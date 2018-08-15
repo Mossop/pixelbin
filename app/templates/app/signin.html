@@ -1,15 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 
 <html>
 <head>
+<title>Please Log In</title>
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/global.css' %}">
 <style type="text/css">
-html, body {
-  padding: 0;
-  margin: 0;
-  height: 100%;
-  width: 100%;
-}
-
 body {
   display: flex;
   align-items: center;
@@ -19,7 +15,7 @@ body {
 </head>
 <body>
 <form action="{{ target }}" method="POST">
-  <p>Please Log In.</p>
+  <p>Please Log In</p>
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ next }}">
   <div><label>Username: <input type="text" name="username"></label></div>

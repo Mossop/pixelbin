@@ -6,3 +6,4 @@ pip-selfcheck.json
 __pycache__
 config.ini
 .vscode
+public/static

@@ -32,4 +32,6 @@ def index(request):
 
 @login_required(login_url=signin)
 def upload(request):
-    return HttpResponse("Upload.")
+    template = loader.get_template('app/upload.html')
+    context = {}
+    return HttpResponse(template.render(context, request))
