@@ -26,10 +26,10 @@ def login(request):
 
     return HttpResponse("Bad Login.")
 
-@login_required(login_url='/app/signin')
+@login_required(login_url=signin)
 def index(request):
     return HttpResponse("Index.")
 
-@login_required(login_url='/app/signin')
+@login_required(login_url=signin)
 def upload(request):
     return HttpResponse("Upload.")
