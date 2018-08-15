@@ -30,6 +30,12 @@ module.exports = {
       "error",
       "always"
     ],
-    "no-unused-vars": "off"
-  }
+    "no-unused-vars": "off",
+    "comma-dangle": ["error", "always-multiline"],
+  },
+  "settings": {
+    "react": {
+      "version": "16.4.2",
+    },
+  },
 };

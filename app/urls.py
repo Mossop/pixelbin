@@ -1,10 +1,7 @@
-from django.urls import path
+from django.urls import re_path
 
 from . import views
 
 urlpatterns = [
-    path('signin', views.signin),
-    path('login', views.login),
-    path('', views.index),
-    path('upload', views.upload),
+    re_path('', views.index),
 ]

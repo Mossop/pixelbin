@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>PixelBin</title>
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/global.css' %}">
+<script type="text/javascript">
+{% if authenticated %}
+const DEFAULT_STATE = {
+  user: {
+    email: "{{ email }}",
+    fullname: "{{ full_name }}",
+  }
+};
+{% else %}
+const DEFAULT_STATE = {
+  user: null
+};
+{% endif %}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<script type="text/javascript" src="{% static 'app/js/app.js' %}"></script>
+</body>
+</html>
