@@ -1,0 +1,18 @@
+{
+  "name": "pixelbinserver",
+  "version": "1.0.0",
+  "description": "JS scripts for the PixelBinServer.",
+  "main": "index.js",
+  "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-plugin-syntax-jsx": "^6.18.0",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
+    "babel-preset-env": "^1.7.0",
+    "eslint": "^5.3.0",
+    "eslint-plugin-react": "^7.11.1",
+    "webpack": "^4.16.5",
+    "webpack-cli": "^3.1.0"
+  }
+}

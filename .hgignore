@@ -7,3 +7,5 @@ __pycache__
 config.ini
 .vscode
 public/static
+node_modules
+app/static/app/js
