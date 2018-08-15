@@ -1,3 +1,4 @@
+/* eslint-env node */
 const path = require("path");
 
 const JS_ROOT = path.resolve(__dirname, "js");
