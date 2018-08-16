@@ -44,7 +44,10 @@ const If = ({ result, children }) => {
 
 If.propTypes = {
   condition: PropTypes.oneOfType([ PropTypes.bool, PropTypes.func ]).isRequired,
-  children: PropTypes.arrayOf(PropTypes.element).isRequired,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node,
+  ]).isRequired,
 };
 
 const ConnectedIf = connect(calculateResult)(If);

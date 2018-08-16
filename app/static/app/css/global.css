@@ -66,9 +66,30 @@ p, h1, h2, h3, h4, h5, h6 {
   flex: 1;
 }
 
+#loginForm {
+  padding: 20px;
+  border: 1px solid grey;
+  border-radius: 10px;
+}
+
+.centerAlign {
+  text-align: center;
+}
+
+.rightAlign {
+  text-align: right;
+}
+
 .centerblock {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 10px;
+  align-items: center;
 }

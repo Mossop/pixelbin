@@ -1,10 +1,17 @@
 import React from "react";
 
-const Index = () => {
+import { If, Then, Else } from "../utils/if";
+import { loggedIn } from "../utils/helpers";
+
+const IndexPage = () => {
   return (
-    <div id="content">
-    </div>
+    <If condition={loggedIn}>
+      <Else>
+        <div id="content">
+        </div>
+      </Else>
+    </If>
   );
 };
 
-export default Index;
+export default IndexPage;
