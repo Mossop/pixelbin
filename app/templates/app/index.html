@@ -6,20 +6,7 @@
 <title>PixelBin</title>
 <link href="https://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet">
 <link rel="stylesheet" type="text/css" href="{% static 'app/css/global.css' %}">
-<script type="text/javascript">
-{% if authenticated %}
-const INITIAL_STATE = {
-  user: {
-    email: "{{ email }}",
-    fullname: "{{ full_name }}",
-  }
-};
-{% else %}
-const INITIAL_STATE = {
-  user: null
-};
-{% endif %}
-</script>
+{{ state|json_script:"initial-state" }}
 </head>
 <body>
 <div id="app"></div>

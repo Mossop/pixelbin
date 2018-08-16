@@ -8,7 +8,7 @@ import { fromJS } from "immutable";
 import { If, Then, Else } from "./if";
 import reducer from "./reducer";
 
-/* global INITIAL_STATE */
+const INITIAL_STATE = JSON.parse(document.getElementById("initial-state").textContent);
 const store = createStore(reducer, fromJS(INITIAL_STATE));
 
 const loggedIn = (state) => {
