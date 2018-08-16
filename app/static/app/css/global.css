@@ -15,6 +15,7 @@ p, h1, h2, h3, h4, h5, h6 {
 #root {
   display: flex;
   flex-direction: column;
+  font-family: sans-serif;
 }
 
 #banner {
@@ -34,7 +35,23 @@ p, h1, h2, h3, h4, h5, h6 {
   padding-bottom: 20px;
 }
 
-#main {
+#logo a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#rightbanner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 100%;
+}
+
+#rightbanner a {
+  padding: 20px;
+}
+
+#splitmain {
   flex: 1;
   display: flex;
   flex-direction: row;
@@ -47,4 +64,11 @@ p, h1, h2, h3, h4, h5, h6 {
 
 #content {
   flex: 1;
+}
+
+.centerblock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
 }

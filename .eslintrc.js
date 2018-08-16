@@ -5,6 +5,7 @@ module.exports = {
   "extends": [
     "eslint:recommended",
     "plugin:react/recommended",
+    "plugin:import/errors",
   ],
   "parserOptions": {
     "ecmaVersion": 2018,

@@ -2,42 +2,39 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { createStore } from "redux";
 import { Provider } from "react-redux";
-import { BrowserRouter, Route } from "react-router-dom";
+import { BrowserRouter, Route, Link } from "react-router-dom";
 import { fromJS } from "immutable";
 
-import { If, Then, Else } from "./if";
-import reducer from "./reducer";
+import { If, Then, Else } from "./utils/if";
+import reducer from "./utils/reducer";
+import { loggedIn } from "./utils/helpers";
+
+import Banner from "./content/banner";
+import Index from "./pages/index";
 
 const INITIAL_STATE = JSON.parse(document.getElementById("initial-state").textContent);
 const store = createStore(reducer, fromJS(INITIAL_STATE));
-
-const loggedIn = (state) => {
-  return state.get("user", null) != null;
-};
 
 ReactDOM.render(
   <Provider store={store}>
     <BrowserRouter basename="/">
       <div id="root">
-        <div id="banner">
-          <h1 id="logo">PixelBin</h1>
-          <div id="rightbanner">
-            <If condition={loggedIn}>
-              <Then>
-                <p>Logged in.</p>
-              </Then>
-              <Else>
-                <p>Not logged in.</p>
-              </Else>
-            </If>
+        <Banner/>
+        <Route exact path="/">
+          <If condition={loggedIn}>
+            <Else>
+              <Index/>
+            </Else>
+          </If>
+        </Route>
+        <Route path="/login">
+          <div id="content" className="centerblock">
           </div>
-        </div>
-        <div id="main">
-          <div id="sidebar">
+        </Route>
+        <Route path="/signup">
+          <div id="content" className="centerblock">
           </div>
-          <div id="content">
-          </div>
-        </div>
+        </Route>
       </div>
     </BrowserRouter>
   </Provider>,
