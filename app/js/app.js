@@ -20,7 +20,7 @@ ReactDOM.render(
     <BrowserRouter basename="/">
       <div id="root">
         <div id="banner">
-          <p id="logo">PixelBin</p>
+          <h1 id="logo">PixelBin</h1>
           <div id="rightbanner">
             <If condition={loggedIn}>
               <Then>
