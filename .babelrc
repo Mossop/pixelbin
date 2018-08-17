@@ -2,9 +2,16 @@
   "presets": [
     ["env", {
       "targets": {
-        "browsers": "last 2 version"
+        "browsers": ">3%"
       }
     }]
   ],
-  "plugins": ["syntax-jsx", "transform-react-jsx"]
+  "plugins": [
+    "syntax-jsx",
+    "transform-react-jsx",
+    ["transform-runtime", {
+      "polyfill": false,
+      "regenerator": true
+    }]
+  ]
 }
