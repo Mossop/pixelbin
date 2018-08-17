@@ -10,6 +10,7 @@ import reducer from "./utils/reducer";
 import Banner from "./content/banner";
 import IndexPage from "./pages/index";
 import LoginPage from "./pages/login";
+import LogoutPage from "./pages/logout";
 
 const INITIAL_STATE = JSON.parse(document.getElementById("initial-state").textContent);
 const store = createStore(reducer, fromJS(INITIAL_STATE));
@@ -22,6 +23,7 @@ ReactDOM.render(
         <Switch>
           <Route exact path="/" component={IndexPage}/>
           <Route path="/login" component={LoginPage}/>
+          <Route path="/logout" component={LogoutPage}/>
         </Switch>
       </div>
     </BrowserRouter>

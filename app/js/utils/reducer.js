@@ -6,6 +6,9 @@ const reducers = {
   [ACTIONS.ACTION_SET_USER]: (state, { email, fullname }) => {
     return state.set("user", Map({ email, fullname }));
   },
+  [ACTIONS.ACTION_CLEAR_USER]: (state) => {
+    return state.set("user", null);
+  },
 };
 
 export default (state, action) => {

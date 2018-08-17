@@ -1,7 +1,21 @@
-const API_ROOT = "/api";
+const API_ROOT = new URL("/api/", window.location.href);
 const CSRF_TOKEN = document.querySelector("[name='csrfmiddlewaretoken']").value;
 
-export function formRequest(path, options) {
+export function getRequest(path, options = {}) {
+  let url = new URL(path, API_ROOT);
+
+  for (let key of Object.keys(options)) {
+    url.searchParams.append(key, options[key]);
+  }
+
+  return fetch(url.href, {
+    method: "GET",
+  });
+}
+
+export function postRequest(path, options = {}) {
+  let url = new URL(path, API_ROOT);
+
   let formData = new FormData();
   formData.append("csrfmiddlewaretoken", CSRF_TOKEN);
 
@@ -9,7 +23,7 @@ export function formRequest(path, options) {
     formData.append(key, options[key]);
   }
 
-  return fetch(API_ROOT + path, {
+  return fetch(url.href, {
     method: "POST",
     body: formData,
   });

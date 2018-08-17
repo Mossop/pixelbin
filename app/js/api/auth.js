@@ -1,7 +1,7 @@
-import { formRequest } from "./api";
+import { getRequest, postRequest } from "./api";
 
 export async function login(email, password) {
-  let request = await formRequest("/login", {
+  let request = await postRequest("login", {
     email,
     password,
   });
@@ -10,5 +10,13 @@ export async function login(email, password) {
     return request.json();
   } else {
     throw new Error("Login failed");
+  }
+}
+
+export async function logout() {
+  let request = await getRequest("logout");
+
+  if (!request.ok) {
+    throw new Error("Logout failed");
   }
 }

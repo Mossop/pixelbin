@@ -1,5 +1,5 @@
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
-from django.contrib.auth import authenticate, login as login_user
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 
 def login(request):
     if request.method == 'POST' and 'email' in request.POST and 'password' in request.POST:
@@ -14,3 +14,7 @@ def login(request):
         else:
             return HttpResponseForbidden('<h1>Forbidden</h1>')
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+def logout(request):
+    logout_user(request)
+    return HttpResponse('<h1>Logged Out</h1>')
