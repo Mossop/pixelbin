@@ -48,7 +48,7 @@ If.propTypes = {
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node,
   ]).isRequired,
-  result: PropTypes.bool,
+  result: PropTypes.bool.isRequired,
 };
 
 const ConnectedIf = connect(calculateResult)(If);

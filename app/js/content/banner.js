@@ -11,6 +11,7 @@ const Banner = () => {
       <div id="rightbanner">
         <If condition={loggedIn}>
           <Then>
+            <Link to="/upload">Upload</Link>
             <Link to="/logout">Log Out</Link>
           </Then>
           <Else>

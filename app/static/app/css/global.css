@@ -16,10 +16,10 @@ p, h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   font-family: sans-serif;
+  background: lightblue;
 }
 
 #banner {
-  background: lightblue;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -55,15 +55,57 @@ p, h1, h2, h3, h4, h5, h6 {
   flex: 1;
   display: flex;
   flex-direction: row;
+  align-items: stretch;
 }
 
 #sidebar {
   width: 300px;
-  background: lightblue;
+  padding-top: 20px;
+  overflow-y: auto;
+}
+
+#sidebar ol {
+  padding: 0;
+  padding-left: 10px;
+  margin: 0;
+}
+
+#sidebar li {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }
 
 #content {
+  background: white;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
   flex: 1;
+  overflow-y: auto;
+}
+
+#splitmain #content {
+  border-top-right-radius: 0;
+}
+
+.medialist {
+  flex: 1;
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.media {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px;
+  border: 1px solid lightgrey;
+  border-radius: 5px;
+  margin-bottom: 10px;
 }
 
 #loginForm {
@@ -78,6 +120,13 @@ p, h1, h2, h3, h4, h5, h6 {
 
 .rightAlign {
   text-align: right;
+}
+
+.vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
 }
 
 .centerblock {
