@@ -1,5 +1,5 @@
 const API_ROOT = new URL("/api/", window.location.href);
-const CSRF_TOKEN = document.querySelector("[name='csrfmiddlewaretoken']").value;
+const CSRF_TOKEN = document.querySelector("[name='csrfmiddlewaretoken']").getAttribute("value");
 
 export function getRequest(path, options = {}) {
   let url = new URL(path, API_ROOT);
