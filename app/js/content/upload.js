@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
 
-const mapStateToProps = (state) => ({
+const mapStateToProps = () => ({
   thumbsize: 150,
 });
 
@@ -11,15 +11,17 @@ class Upload extends React.Component {
     super(props);
     this.state = {
       tags: "",
+      date: new Date(props.file.lastModified),
     };
 
     this.canvasRef = React.createRef();
+    this.mounted = false;
   }
 
-  async componentDidMount() {
+  async createThumbnail() {
     let bitmap = await createImageBitmap(this.props.file);
 
-    if (!this.canvasRef.current) {
+    if (!this.mounted) {
       return;
     }
 
@@ -36,6 +38,37 @@ class Upload extends React.Component {
 
     let context = this.canvasRef.current.getContext("2d");
     context.drawImage(bitmap, (size - width) / 2, (size - height) / 2, width, height);
+  }
+
+  async extractMetadata() {
+    let { parseMetadata } = await import(/* webpackChunkName: "metadata" */ "../metadata/parser");
+    let metadata = await parseMetadata(this.props.file);
+    console.log(metadata);
+
+    if (!this.mounted) {
+      return;
+    }
+
+    let newState = {};
+    if ("tags" in metadata) {
+      newState.tags = metadata.tags;
+    }
+    if ("date" in metadata) {
+      newState.date = metadata.date;
+    }
+
+    this.setState(newState);
+  }
+
+  componentDidMount() {
+    this.mounted = true;
+
+    this.createThumbnail();
+    this.extractMetadata();
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
   }
 
   render() {

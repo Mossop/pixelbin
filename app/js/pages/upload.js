@@ -1,5 +1,4 @@
 import React from "react";
-import PropTypes from "prop-types";
 
 import Sidebar from "../content/sidebar";
 import Upload from "../content/upload";
@@ -83,3 +82,5 @@ export default class UploadPage extends React.Component {
     );
   }
 }
+
+Upload.propTypes = {};

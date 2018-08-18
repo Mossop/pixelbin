@@ -5,7 +5,7 @@ import { Redirect } from "react-router";
 
 import { login } from "../api/auth";
 import { If, Then, Else } from "../utils/if";
-import { loggedIn } from "../utils/helpers";
+import { loggedIn, bindAll } from "../utils/helpers";
 
 import { setUser } from "../utils/actions";
 
@@ -22,9 +22,11 @@ class LoginPage extends React.Component {
       password: "",
     };
 
-    this.onEmailChange = this.onEmailChange.bind(this);
-    this.onPasswordChange = this.onPasswordChange.bind(this);
-    this.onSubmit = this.onSubmit.bind(this);
+    bindAll(this, [
+      "onEmailChange",
+      "onPasswordChange",
+      "onSubmit",
+    ]);
   }
 
   onEmailChange(event) {

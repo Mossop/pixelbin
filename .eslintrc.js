@@ -1,6 +1,8 @@
 module.exports = {
+  "parser": "babel-eslint",
   "env": {
-    "browser": true
+    "browser": true,
+    "es6": true,
   },
   "extends": [
     "eslint:recommended",
@@ -18,7 +20,8 @@ module.exports = {
     "indent": [
       "error",
       2, {
-        "MemberExpression": "off"
+        "MemberExpression": "off",
+        "SwitchCase": 1,
       }
     ],
     "linebreak-style": [
@@ -33,8 +36,12 @@ module.exports = {
       "error",
       "always"
     ],
-    "no-unused-vars": "off",
-    "comma-dangle": ["error", "always-multiline"],
+    "comma-dangle": [
+      "error",
+      "always-multiline"
+    ],
+    "consistent-return": "error",
+    "no-console": "off",
   },
   "settings": {
     "react": {
