@@ -41,8 +41,7 @@ export class ExifParser extends DataReader {
   constructor(data, offset, metadata){
     super(data, offset);
     this.metadata = metadata;
-    this.date = null;
-    this.time = null;
+    this.ifds = {};
   }
 
   readData(type, components) {
@@ -112,6 +111,8 @@ export class ExifParser extends DataReader {
   }
 
   parseIFD(ifd) {
+    this.ifds[ifd] = {};
+
     let count = this.read16();
     for (let i = 0; i < count; i++) {
       let tag = this.read16();
@@ -127,7 +128,7 @@ export class ExifParser extends DataReader {
 
       // Now positioned to read the data if we want it.
       let data = this.readData(type, components);
-      // console.log(ifd.toString(16), tag.toString(16), type, data);
+      console.log(ifd.toString(16), tag.toString(16), type, data);
 
       switch (tag) {
         case ID_GPS_IFD:
@@ -143,6 +144,8 @@ export class ExifParser extends DataReader {
           this.parseIFD(tag);
           break;
         }
+        default:
+          this.ifds[ifd][tag] = data;
       }
 
       this.offset = offset;
@@ -179,5 +182,21 @@ export class ExifParser extends DataReader {
       nextIfd = this.read32();
       this.offset = this.tiffOffset + nextIfd;
     } while (nextIfd != 0);
+
+    if ([1, 2, 3, 4].every(p => p in this.ifds[ID_GPS_IFD])) {
+      let [deg, min, sec] = this.ifds[ID_GPS_IFD][2];
+      deg += min/60 + sec/3600;
+      if (this.ifds[ID_GPS_IFD][1] == "S") {
+        deg = -deg;
+      }
+      this.metadata.latitude = deg;
+
+      [deg, min, sec] = this.ifds[ID_GPS_IFD][4];
+      deg += min/60 + sec/3600;
+      if (this.ifds[ID_GPS_IFD][3] == "W") {
+        deg = -deg;
+      }
+      this.metadata.longitude = deg;
+    }
   }
 }
