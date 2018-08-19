@@ -1,54 +1,117 @@
-import Uint8Reader from "./uint8reader";
+import DataReader from "./datareader";
 
-export const EXIF_HEAD = 0x457869660000;
+export const EXIF_HEAD = "Exif";
 
 const ALIGN_INTEL = 0x4949;
 const ALIGN_MOTO = 0x4D4D;
 const ALIGN_CHECK = 0x002A;
-const COMPONENT_SIZES = [0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8];
+
+const TYPE_BYTE = 1;
+const TYPE_STR = 2;
+const TYPE_SHORT = 3;
+const TYPE_LONG = 4;
+const TYPE_RATIONAL = 5;
+const TYPE_SBYTE = 6;
+const TYPE_UNKNOWN = 7;
+const TYPE_SSHORT = 8;
+const TYPE_SLONG = 9;
+const TYPE_SRATIONAL = 10;
+const TYPE_SINGLE = 11;
+const TYPE_DOUBLE = 12;
+const COMPONENT_SIZES = {
+  [TYPE_BYTE]: 1,
+  [TYPE_STR]: 1,
+  [TYPE_SHORT]: 2,
+  [TYPE_LONG]: 4,
+  [TYPE_RATIONAL]: 8,
+  [TYPE_SBYTE]: 1,
+  [TYPE_UNKNOWN]: 1,
+  [TYPE_SSHORT]: 2,
+  [TYPE_SLONG]: 4,
+  [TYPE_SRATIONAL]: 8,
+  [TYPE_SINGLE]: 4,
+  [TYPE_DOUBLE]: 8,
+};
 
 const ID_EXIF_IFD = 0x8769;
 const ID_GPS_IFD = 0x8825;
+const ID_INTEROP_IFD = 0xA005;
 
-const ID_KEYWORDS = 0x0019;
-const ID_DATE = 0x003e;
-const ID_TIME = 0x003f;
-
-const DATE_RE = /^(\d{4}):(\d{2}):(\d{2})$/;
-const TIME_RE = /^(\d{2}):(\d{2}):(\d{2})$/;
-
-export class ExifParser extends Uint8Reader {
-  constructor(data, metadata){
-    super(data);
+export class ExifParser extends DataReader {
+  constructor(data, offset, metadata){
+    super(data, offset);
     this.metadata = metadata;
     this.date = null;
     this.time = null;
   }
 
   readData(type, components) {
-    let data = [];
-    for (let i = 0; i < components; i++) {
-      data.push(this.read(COMPONENT_SIZES[type]));
-    }
+    let results = [];
 
     switch (type) {
-      case 1: // uint8
-      case 3: // uint16
-      case 4: // uint32
+      case TYPE_UNKNOWN:
+      case TYPE_BYTE:
+        for (let i = 0; i < components; i++) {
+          results.push(this.read8());
+        }
         break;
-      case 2: // string
-        return String.fromCharCode(...data);
+      case TYPE_SHORT:
+        for (let i = 0; i < components; i++) {
+          results.push(this.read16());
+        }
+        break;
+      case TYPE_LONG:
+        for (let i = 0; i < components; i++) {
+          results.push(this.read32());
+        }
+        break;
+      case TYPE_STR:
+        for (let i = 0; i < components; i++) {
+          results.push(this.read8());
+        }
+
+        if (results[results.length - 1] != 0) {
+          console.warn("Missing null terminator from string.");
+        } else {
+          results.pop();
+        }
+
+        return String.fromCharCode(...results);
+      case TYPE_RATIONAL: {
+        for (let i = 0; i < components; i++) {
+          results.push(1.0 * this.read32() / this.read32());
+        }
+        break;
+      }
+      case TYPE_SBYTE:
+        for (let i = 0; i < components; i++) {
+          results.push(this.readSigned8());
+        }
+        break;
+      case TYPE_SSHORT:
+        for (let i = 0; i < components; i++) {
+          results.push(this.readSigned16());
+        }
+        break;
+      case TYPE_SLONG:
+        for (let i = 0; i < components; i++) {
+          results.push(this.readSigned32());
+        }
+        break;
+      case TYPE_SRATIONAL: {
+        for (let i = 0; i < components; i++) {
+          results.push(1.0 * this.readSigned32() / this.readSigned32());
+        }
+        break;
+      }
       default:
-        throw new Error(`Unable to read tags of type ${type}`);
+        console.warn("Unable to read type.", type);
     }
 
-    if (components == 1) {
-      return data[0];
-    }
-    return data;
+    return results;
   }
 
-  parseIFD() {
+  parseIFD(ifd) {
     let count = this.read16();
     for (let i = 0; i < count; i++) {
       let tag = this.read16();
@@ -63,23 +126,23 @@ export class ExifParser extends Uint8Reader {
       }
 
       // Now positioned to read the data if we want it.
+      let data = this.readData(type, components);
+      // console.log(ifd.toString(16), tag.toString(16), type, data);
+
       switch (tag) {
         case ID_GPS_IFD:
-        case ID_EXIF_IFD: {
-          let ifdOffset = this.readData(type, components);
+        case ID_EXIF_IFD:
+        case ID_INTEROP_IFD: {
+          if (data.length != 1) {
+            console.warn("Unexpected IFD offset tag.", tag.toString(16), type, components);
+            break;
+          }
+
+          let ifdOffset = data[0];
           this.offset = this.tiffOffset + ifdOffset;
-          this.parseIFD();
+          this.parseIFD(tag);
           break;
         }
-        case ID_KEYWORDS:
-          this.metadata.keywords = this.readData(type, components);
-          break;
-        case ID_DATE:
-          this.date = this.readData(type, components);
-          break;
-        case ID_TIME:
-          this.time = this.readData(type, components);
-          break;
       }
 
       this.offset = offset;
@@ -87,6 +150,7 @@ export class ExifParser extends Uint8Reader {
   }
 
   parse() {
+    // Skip over the EXIF header.
     this.offset += 6;
 
     // Where the TIFF header starts is the relative position for all offsets.
@@ -94,7 +158,7 @@ export class ExifParser extends Uint8Reader {
 
     let align = this.read16();
     if (align == ALIGN_INTEL) {
-      this.alignment = false;
+      this.alignment = true;
     } else if (align != ALIGN_MOTO) {
       console.error("Unexpected alignment data", align.toString(16));
       return;
@@ -108,34 +172,12 @@ export class ExifParser extends Uint8Reader {
 
     this.offset = this.tiffOffset + this.read32();
 
+    let ifd = 0;
     let nextIfd;
     do {
-      this.parseIFD();
+      this.parseIFD(ifd++);
       nextIfd = this.read32();
       this.offset = this.tiffOffset + nextIfd;
     } while (nextIfd != 0);
-
-    if (this.date) {
-      let matches = DATE_RE.match(this.date);
-      if (!matches) {
-        return;
-      }
-
-      let [, year, month, day] = matches;
-
-      if (this.time) {
-        matches = TIME_RE.match(this.date);
-        if (!matches) {
-          return;
-        }
-        let [, hour, minute, second] = matches;
-
-        this.metadata.date = new Date(year, month, day, hour, minute, second, 0);
-      } else {
-        this.metadata.date = new Date(year, month, day, 0, 0, 0, 0);
-      }
-    }
-
-    return;
   }
 }

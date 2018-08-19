@@ -1,4 +1,4 @@
-import Uint8Reader from "./uint8reader";
+import Uint8Reader from "./datareader";
 
 export const NS_XMP = "http://ns.adobe.com/xap/1.0/";
 const NS_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
@@ -19,8 +19,8 @@ const PROP_TAGS = "http://purl.org/dc/elements/1.1/subject";
 const PROP_DATE = "http://ns.adobe.com/xap/1.0/CreateDate";
 
 export class XMPParser extends Uint8Reader {
-  constructor(data, metadata){
-    super(data);
+  constructor(data, offset, metadata){
+    super(data, offset);
     this.metadata = metadata;
     this.graph = {};
   }
@@ -95,8 +95,10 @@ export class XMPParser extends Uint8Reader {
     }
   }
 
-  parse() {
+  parse(length) {
+    // The header is null terminated.
     this.offset += NS_XMP.length + 1;
+    length -= NS_XMP.length + 1;
 
     let bom = this.read16(true);
     let encoding = "utf-8";
@@ -107,13 +109,14 @@ export class XMPParser extends Uint8Reader {
       encoding = "utf-16le";
       this.offset += 2;
     } else {
-      bom = this.read(3, true);
-      if (bom == BOM_UTF8) {
-        this.offset += 3;
+      let offset = this.offset;
+      bom = (this.read16() << 8) | this.read8();
+      if (bom != BOM_UTF8) {
+        this.offset = offset;
       }
     }
 
-    let buffer = this.data.subarray(this.offset, this.data.length - this.offset);
+    let buffer = new Uint8Array(this.data.buffer, this.offset, length);
     let decoder = new TextDecoder(encoding);
     let text = decoder.decode(buffer);
 

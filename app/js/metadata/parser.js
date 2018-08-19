@@ -1,7 +1,7 @@
-import Uint8Reader from "./uint8reader";
+import DataReader from "./datareader";
 import { JpegParser, JPEG_SOI } from "./jpeg";
 
-class FileParser extends Uint8Reader {
+class FileParser extends DataReader {
   parse() {
     let header = this.read16(true);
     if (header == JPEG_SOI) {
@@ -24,7 +24,7 @@ function loadBlob(blob) {
 export async function parseMetadata(blob) {
   try {
     let buffer = await loadBlob(blob);
-    let data = new Uint8Array(buffer);
+    let data = new DataView(buffer);
     let parser = new FileParser(data);
     return parser.parse();
   } catch (e) {
