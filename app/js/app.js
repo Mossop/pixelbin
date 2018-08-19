@@ -26,7 +26,7 @@ ReactDOM.render(
           <Route exact path="/" component={IndexPage}/>
           <Route path="/login" component={LoginPage}/>
           <Route path="/logout" component={LogoutPage}/>
-          <Route path="/upload" component={UploadPage}/>
+          <RestrictedRoute path="/upload" component={UploadPage}/>
         </Switch>
       </div>
     </BrowserRouter>

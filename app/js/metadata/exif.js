@@ -1,3 +1,5 @@
+import moment from "moment";
+
 import DataReader from "./datareader";
 
 export const EXIF_HEAD = "Exif";
@@ -36,6 +38,15 @@ const COMPONENT_SIZES = {
 const ID_EXIF_IFD = 0x8769;
 const ID_GPS_IFD = 0x8825;
 const ID_INTEROP_IFD = 0xA005;
+
+const GPS_LAT_DIR = 1;
+const GPS_LAT = 2;
+const GPS_LONG_DIR = 3;
+const GPS_LONG = 4;
+
+const DATE_CREATE = 0x9004;
+const DATE_ORIGINAL = 0x9003;
+const DATE_FORMAT = "YYYY:MM:DD HH:mm:ss";
 
 export class ExifParser extends DataReader {
   constructor(data, offset, metadata){
@@ -128,7 +139,6 @@ export class ExifParser extends DataReader {
 
       // Now positioned to read the data if we want it.
       let data = this.readData(type, components);
-      console.log(ifd.toString(16), tag.toString(16), type, data);
 
       switch (tag) {
         case ID_GPS_IFD:
@@ -183,20 +193,35 @@ export class ExifParser extends DataReader {
       this.offset = this.tiffOffset + nextIfd;
     } while (nextIfd != 0);
 
-    if ([1, 2, 3, 4].every(p => p in this.ifds[ID_GPS_IFD])) {
-      let [deg, min, sec] = this.ifds[ID_GPS_IFD][2];
-      deg += min/60 + sec/3600;
-      if (this.ifds[ID_GPS_IFD][1] == "S") {
-        deg = -deg;
-      }
-      this.metadata.latitude = deg;
+    if (ID_GPS_IFD in this.ifds) {
+      if ([GPS_LAT_DIR, GPS_LAT, GPS_LONG_DIR, GPS_LONG].every(p => p in this.ifds[ID_GPS_IFD])) {
+        let [deg, min, sec] = this.ifds[ID_GPS_IFD][GPS_LAT];
+        deg += min/60 + sec/3600;
+        if (this.ifds[ID_GPS_IFD][GPS_LAT_DIR] == "S") {
+          deg = -deg;
+        }
+        this.metadata.latitude = deg;
 
-      [deg, min, sec] = this.ifds[ID_GPS_IFD][4];
-      deg += min/60 + sec/3600;
-      if (this.ifds[ID_GPS_IFD][3] == "W") {
-        deg = -deg;
+        [deg, min, sec] = this.ifds[ID_GPS_IFD][GPS_LONG];
+        deg += min/60 + sec/3600;
+        if (this.ifds[ID_GPS_IFD][GPS_LONG_DIR] == "W") {
+          deg = -deg;
+        }
+        this.metadata.longitude = deg;
       }
-      this.metadata.longitude = deg;
+    }
+
+    if (ID_EXIF_IFD in this.ifds) {
+      let date = "";
+      if (DATE_ORIGINAL in this.ifds[ID_EXIF_IFD]) {
+        date = this.ifds[ID_EXIF_IFD][DATE_ORIGINAL];
+      } else if (DATE_CREATE in this.ifds[ID_EXIF_IFD]) {
+        date = this.ifds[ID_EXIF_IFD][DATE_CREATE];
+      }
+
+      if (date) {
+        this.metadata.date = moment(date, DATE_FORMAT);
+      }
     }
   }
 }

@@ -1,3 +1,5 @@
+import moment from "moment";
+
 import Uint8Reader from "./datareader";
 
 export const NS_XMP = "http://ns.adobe.com/xap/1.0/";
@@ -137,7 +139,7 @@ export class XMPParser extends Uint8Reader {
     }
 
     if (PROP_DATE in this.graph) {
-      this.metadata.date = new Date(Date.parse(this.graph[PROP_DATE]));
+      this.metadata.date = moment(this.graph[PROP_DATE]);
     }
   }
 }
