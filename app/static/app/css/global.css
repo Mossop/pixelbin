@@ -78,18 +78,12 @@ p, h1, h2, h3, h4, h5, h6 {
 
 #content {
   background: white;
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
   flex: 1;
   overflow-y: auto;
-}
-
-#splitmain #content {
-  border-top-right-radius: 0;
+  padding: 10px
 }
 
 .medialist {
-  flex: 1;
   padding: 10px;
   display: flex;
   flex-direction: row;
@@ -125,6 +119,13 @@ p, h1, h2, h3, h4, h5, h6 {
 .vertical {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
   align-items: stretch;
   justify-content: start;
 }

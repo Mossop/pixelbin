@@ -5,6 +5,7 @@ import moment from "moment";
 import Sidebar from "../content/sidebar";
 import Upload from "../content/upload";
 import { bindAll } from "../utils/helpers";
+import { If, Then, Else } from "../utils/if";
 
 const MEDIA_TYPES = [
   "image/jpeg",
@@ -23,18 +24,49 @@ const itemIsMedia = (item) => {
   return MEDIA_TYPES.includes(item.type);
 };
 
+const tagStrToArray = (str) => {
+  if (!str) {
+    return [];
+  }
+
+  return str.split(",").map(t => t.trim());
+};
+
 export default class UploadPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       media: List(),
+      globalTags: "",
     };
 
     bindAll(this, [
       "onDragEnter",
       "onDragOver",
       "onDrop",
+      "onGlobalTagsChange",
+      "onUpload",
+      "hasMedia",
     ]);
+  }
+
+  hasMedia() {
+    return this.state.media.size > 0;
+  }
+
+  onUpload() {
+    let globalTags = tagStrToArray(this.state.globalTags);
+
+    for (let media of this.state.media.values()) {
+      let tags = globalTags.concat(tagStrToArray(media.get("tags")));
+      console.log(tags);
+    }
+  }
+
+  onGlobalTagsChange(event) {
+    this.setState({
+      globalTags: event.target.value,
+    });
   }
 
   onDragEnter(event) {
@@ -84,7 +116,7 @@ export default class UploadPage extends React.Component {
 
       let metadata = await parseMetadata(file);
       if ("hierarchicalTags" in metadata) {
-        media.tags = metadata.hierarchicalTags.map(t => t.replace("|", "/")).join(", ");
+        media.tags = metadata.hierarchicalTags.map(t => t.replace(/\|/g, "/")).join(", ");
       } else if ("tags" in metadata) {
         media.tags = metadata.tags.join(", ");
       }
@@ -100,16 +132,40 @@ export default class UploadPage extends React.Component {
     });
   }
 
+  onChangeMediaTags(media, event) {
+    let pos = this.state.media.indexOf(media);
+    if (pos < 0) {
+      return;
+    }
+
+    this.setState({
+      media: this.state.media.setIn([pos, "tags"], event.target.value),
+    });
+  }
+
   render() {
     return (
       <div id="splitmain">
         <Sidebar/>
         <div id="content" className="vertical">
-          <div className="medialist" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-            {this.state.media.toArray().map((media) => (
-              <Upload key={media.get("id")} name={media.get("file").name} bitmap={media.get("bitmap")} tags={media.get("tags")}/>
-            ))}
+          <div className="horizontal" style={{ justifyContent: "space-between" }}>
+            <label>Additional Tags for all Media: <input type="text" onChange={this.onGlobalTagsChange} value={this.state.globalTags}/></label>
+            <button type="button" onClick={this.onUpload}>Upload</button>
           </div>
+          <If condition={this.hasMedia}>
+            <Then>
+              <div className="medialist" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
+                {this.state.media.toArray().map((media) => (
+                  <Upload key={media.get("id")} name={media.get("file").name} bitmap={media.get("bitmap")} tags={media.get("tags")} onChangeTags={this.onChangeMediaTags.bind(this, media)}/>
+                ))}
+              </div>
+            </Then>
+            <Else>
+              <div style={{ flex: 1, color: "gray" }} className="centerblock" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
+                <p>Drag media here</p>
+              </div>
+            </Else>
+          </If>
         </div>
       </div>
     );

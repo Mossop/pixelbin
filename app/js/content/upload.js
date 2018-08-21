@@ -37,7 +37,7 @@ class Upload extends React.Component {
       <div className="media">
         <canvas ref={this.canvasRef} height={this.props.thumbsize} width={this.props.thumbsize} style={{ width: `${this.props.thumbsize}px`, height: `${this.props.thumbsize}px` }}/>
         <p>{this.props.name}</p>
-        <input type="text" value={this.props.tags}/>
+        <input type="text" onChange={this.props.onChangeTags} value={this.props.tags}/>
       </div>
     );
   }
@@ -48,6 +48,7 @@ Upload.propTypes = {
   bitmap: PropTypes.object.isRequired,
   tags: PropTypes.string.isRequired,
   thumbsize: PropTypes.number.isRequired,
+  onChangeTags: PropTypes.func.isRequired,
 };
 
 export default connect(mapStateToProps)(Upload);
