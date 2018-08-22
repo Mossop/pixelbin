@@ -15,7 +15,7 @@ export async function upload(file, tags, date, gps) {
   let request = await postRequest("upload", params);
 
   if (request.ok) {
-    return request.json();
+    return (await request.json()).tags;
   } else {
     throw new Error("Upload failed");
   }

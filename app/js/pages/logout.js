@@ -6,10 +6,10 @@ import { connect } from "react-redux";
 import { logout } from "../api/auth";
 import { If, Then, Else } from "../utils/if";
 import { loggedIn } from "../utils/helpers";
-import { clearUser } from "../utils/actions";
+import { setState } from "../utils/actions";
 
 const mapDispatchToProps = (dispatch) => ({
-  onLogout: () => dispatch(clearUser()),
+  onNewState: (state) => dispatch(setState(state)),
 });
 
 class LogoutPage extends React.Component {
@@ -18,8 +18,8 @@ class LogoutPage extends React.Component {
   }
 
   async componentDidMount() {
-    await logout();
-    this.props.onLogout();
+    let state = await logout();
+    this.props.onNewState(state);
   }
 
   render() {
@@ -39,7 +39,7 @@ class LogoutPage extends React.Component {
 }
 
 LogoutPage.propTypes = {
-  onLogout: PropTypes.func.isRequired,
+  onNewState: PropTypes.func.isRequired,
 };
 
 export default connect(null, mapDispatchToProps)(LogoutPage);

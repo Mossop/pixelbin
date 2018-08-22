@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { createStore } from "redux";
+import { applyMiddleware, createStore } from "redux";
+import { createLogger } from "redux-logger";
 import { Provider } from "react-redux";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import { fromJS } from "immutable";
@@ -14,8 +15,16 @@ import LoginPage from "./pages/login";
 import LogoutPage from "./pages/logout";
 import UploadPage from "./pages/upload";
 
+let logging = createLogger({
+  stateTransformer: (state) => state.toJS(),
+});
+
 const INITIAL_STATE = JSON.parse(document.getElementById("initial-state").textContent);
-const store = createStore(reducer, fromJS(INITIAL_STATE));
+const store = createStore(
+  reducer,
+  fromJS(INITIAL_STATE),
+  applyMiddleware(logging),
+);
 
 ReactDOM.render(
   <Provider store={store}>

@@ -1,13 +1,13 @@
-import { Map } from "immutable";
+import { fromJS } from "immutable";
 
 import { ACTIONS } from "./actions";
 
 const reducers = {
-  [ACTIONS.ACTION_SET_USER]: (state, { email, fullname }) => {
-    return state.set("user", Map({ email, fullname }));
+  [ACTIONS.ACTION_SET_STATE]: (state, { newState }) => {
+    return fromJS(newState);
   },
-  [ACTIONS.ACTION_CLEAR_USER]: (state) => {
-    return state.set("user", null);
+  [ACTIONS.ACTION_SET_TAGS]: (state, { tags }) => {
+    return state.set("tags", fromJS(tags));
   },
 };
 

@@ -7,10 +7,10 @@ import { login } from "../api/auth";
 import { If, Then, Else } from "../utils/if";
 import { loggedIn, bindAll } from "../utils/helpers";
 
-import { setUser } from "../utils/actions";
+import { setState } from "../utils/actions";
 
 const mapDispatchToProps = (dispatch) => ({
-  onLogin: (email, fullname) => dispatch(setUser(email, fullname)),
+  onNewState: (state) => dispatch(setState(state)),
 });
 
 class LoginPage extends React.Component {
@@ -42,8 +42,8 @@ class LoginPage extends React.Component {
     event.preventDefault();
 
     try {
-      let details = await login(this.state.email, this.state.password);
-      this.props.onLogin(details.email, details.fullname);
+      let state = await login(this.state.email, this.state.password);
+      this.props.onNewState(state);
     } catch (e) {
       this.setState({ disabled: false, failed: true });
     }
@@ -73,7 +73,7 @@ class LoginPage extends React.Component {
 }
 
 LoginPage.propTypes = {
-  onLogin: PropTypes.func.isRequired,
+  onNewState: PropTypes.func.isRequired,
 };
 
 export default connect(null, mapDispatchToProps)(LoginPage);

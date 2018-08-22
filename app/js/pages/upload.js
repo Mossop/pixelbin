@@ -1,4 +1,6 @@
 import React from "react";
+import PropTypes from "prop-types";
+import { connect } from "react-redux";
 import { List, Map } from "immutable";
 import moment from "moment";
 
@@ -7,6 +9,7 @@ import Upload from "../content/upload";
 import { bindAll } from "../utils/helpers";
 import { If, Then, Else } from "../utils/if";
 import { upload } from "../api/image";
+import { setTags } from "../utils/actions";
 
 const MEDIA_TYPES = [
   "image/jpeg",
@@ -25,7 +28,11 @@ const itemIsMedia = (item) => {
   return MEDIA_TYPES.includes(item.type);
 };
 
-export default class UploadPage extends React.Component {
+const mapDispatchToProps = (dispatch) => ({
+  onNewTags: (tags) => dispatch(setTags(tags)),
+});
+
+class UploadPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -64,11 +71,13 @@ export default class UploadPage extends React.Component {
           };
         }
 
-        let result = await upload(media.get("file"), tags, media.get("date"), gps);
+        let newTags = await upload(media.get("file"), tags, media.get("date"), gps);
         allMedia = allMedia.delete(pos);
         this.setState({
           media: allMedia,
         });
+
+        this.props.onNewTags(newTags);
       } catch (e) {
         pos++;
       }
@@ -188,4 +197,8 @@ export default class UploadPage extends React.Component {
   }
 }
 
-Upload.propTypes = {};
+UploadPage.propTypes = {
+  onNewTags: PropTypes.func.isRequired,
+};
+
+export default connect(null, mapDispatchToProps)(UploadPage);

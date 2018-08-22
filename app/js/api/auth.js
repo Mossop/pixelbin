@@ -16,7 +16,9 @@ export async function login(email, password) {
 export async function logout() {
   let request = await getRequest("logout");
 
-  if (!request.ok) {
+  if (request.ok) {
+    return request.json();
+  } else {
     throw new Error("Logout failed");
   }
 }
