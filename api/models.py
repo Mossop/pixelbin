@@ -53,3 +53,22 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ['full_name']
+
+class Tag(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tags')
+    name = models.TextField()
+    parent = models.ForeignKey('self',
+                               on_delete=models.CASCADE,
+                               related_name='children',
+                               null=True)
+
+    class Meta:
+        unique_together = (('name', 'parent'))
+
+class Media(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='media')
+    file = models.FileField()
+    tags = models.ManyToManyField(Tag, related_name='media')
+    longitude = models.FloatField(null=True)
+    latitude = models.FloatField(null=True)
+    taken = models.DateField()

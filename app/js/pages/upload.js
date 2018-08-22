@@ -6,6 +6,7 @@ import Sidebar from "../content/sidebar";
 import Upload from "../content/upload";
 import { bindAll } from "../utils/helpers";
 import { If, Then, Else } from "../utils/if";
+import { upload } from "../api/image";
 
 const MEDIA_TYPES = [
   "image/jpeg",
@@ -22,14 +23,6 @@ const itemIsMedia = (item) => {
   }
 
   return MEDIA_TYPES.includes(item.type);
-};
-
-const tagStrToArray = (str) => {
-  if (!str) {
-    return [];
-  }
-
-  return str.split(",").map(t => t.trim());
 };
 
 export default class UploadPage extends React.Component {
@@ -54,12 +47,23 @@ export default class UploadPage extends React.Component {
     return this.state.media.size > 0;
   }
 
-  onUpload() {
-    let globalTags = tagStrToArray(this.state.globalTags);
+  async onUpload() {
+    let globalTags = this.state.globalTags;
+    let allMedia = this.state.media;
 
-    for (let media of this.state.media.values()) {
-      let tags = globalTags.concat(tagStrToArray(media.get("tags")));
-      console.log(tags);
+    for (let pos = 0; pos < allMedia.size;) {
+      let media = allMedia.get(pos);
+      let tags = `${globalTags}, ${media.get("tags")}`;
+
+      try {
+        let result = await upload(media.get("file"), tags, media.get("date"));
+        allMedia = allMedia.delete(pos);
+        this.setState({
+          media: allMedia,
+        });
+      } catch (e) {
+        pos++;
+      }
     }
   }
 
