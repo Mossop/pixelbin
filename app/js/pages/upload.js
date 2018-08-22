@@ -56,7 +56,15 @@ export default class UploadPage extends React.Component {
       let tags = `${globalTags}, ${media.get("tags")}`;
 
       try {
-        let result = await upload(media.get("file"), tags, media.get("date"));
+        let gps = null;
+        if (media.has("latitude") && media.has("longitude")) {
+          gps = {
+            latitude: media.get("latitude"),
+            longitude: media.get("longitude"),
+          };
+        }
+
+        let result = await upload(media.get("file"), tags, media.get("date"), gps);
         allMedia = allMedia.delete(pos);
         this.setState({
           media: allMedia,
@@ -126,6 +134,10 @@ export default class UploadPage extends React.Component {
       }
       if ("date" in metadata) {
         media.date = metadata.date;
+      }
+      if (("longitude" in metadata) && ("latitude" in metadata)) {
+        media.latitude = metadata.latitude;
+        media.longitude = metadata.longitude;
       }
 
       newMedia.push(Map(media));

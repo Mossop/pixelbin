@@ -28,6 +28,9 @@ def upload(request):
     if request.method == 'POST' and 'file' in request.FILES and 'tags' in request.POST and 'date' in request.POST:
         taken = datetime.fromisoformat(request.POST['date'])
         media = models.Media(owner=request.user, file=request.FILES['file'], taken=taken)
+        if 'latitude' in request.POST and 'longitude' in request.POST:
+            media.latitude = float(request.POST['latitude'])
+            media.longitude = float(request.POST['longitude'])
         media.save()
 
         tags = [t.strip() for t in request.POST['tags'].split(',')]
