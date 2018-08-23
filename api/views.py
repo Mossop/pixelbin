@@ -69,6 +69,8 @@ def list(request):
                 ids = [tag.id for tag in tag.descendants()]
                 media = media.filter(tags__id__in=ids)
 
+        media = media.distinct()
+
     if 'excludeTag' in request.GET:
         tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('excludeTag')]
         ids = [tag.id for tag in union([tag.descendants() for tag in tags])]
