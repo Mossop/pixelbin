@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django_cte import CTEManager, With
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -55,12 +56,28 @@ class User(AbstractUser):
         ordering = ['full_name']
 
 class Tag(models.Model):
+    objects = CTEManager()
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tags')
     name = models.TextField()
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='children',
                                null=True)
+
+    def descendants(self):
+        def make_tags_cte(cte):
+            return (
+                Tag.objects.filter(id=self.id)
+                           .values("id")
+                           .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
+            )
+
+        cte = With.recursive(make_tags_cte)
+
+        return (
+            cte.join(Tag, id=cte.col.id)
+               .with_cte(cte)
+        )
 
     class Meta:
         unique_together = (('name', 'parent'))
@@ -71,4 +88,12 @@ class Media(models.Model):
     tags = models.ManyToManyField(Tag, related_name='media')
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)
-    taken = models.DateField()
+    taken = models.DateTimeField()
+
+    def asJS(self):
+        return {
+            "id": self.id,
+            "longitude": self.longitude,
+            "latitude": self.latitude,
+            "taken": self.taken.isoformat(timespec='seconds'),
+        }

@@ -30,3 +30,11 @@ def build_state(request):
             "user": None,
             "tags": None,
         }
+
+def union(querysets):
+    if len(querysets) == 0:
+        return None
+    first = querysets.pop(0)
+    if len(querysets) == 0:
+        return first
+    return first.union(*querysets)

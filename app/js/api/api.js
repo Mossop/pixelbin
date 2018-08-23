@@ -3,8 +3,14 @@ const API_ROOT = new URL("/api/", window.location.href);
 export function getRequest(path, options = {}) {
   let url = new URL(path, API_ROOT);
 
-  for (let key of Object.keys(options)) {
-    url.searchParams.append(key, options[key]);
+  if (options instanceof URLSearchParams) {
+    for (let [key, value] of options) {
+      url.searchParams.append(key, value);
+    }
+  } else {
+    for (let key of Object.keys(options)) {
+      url.searchParams.append(key, options[key]);
+    }
   }
 
   return fetch(url.href, {

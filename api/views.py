@@ -49,3 +49,30 @@ def upload(request):
         })
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+def list(request):
+    if request.method != 'GET':
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    # First filter down to only the media the user has access to
+    media = models.Media.objects.filter(owner=request.user)
+
+    if 'includeTag' in request.GET:
+        tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('includeTag')]
+
+        if 'includeType' in request.GET and request.GET['includeType'] == 'or':
+            ids = [tag.id for tag in union([tag.descendants() for tag in tags])]
+            media = media.filter(tags__id__in=ids)
+        else:
+            for tag in tags:
+                ids = [tag.id for tag in tag.descendants()]
+                media = media.filter(tags__id__in=ids)
+
+    if 'excludeTag' in request.GET:
+        tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('excludeTag')]
+        ids = [tag.id for tag in union([tag.descendants() for tag in tags])]
+        media = media.exclude(tags__id__in=ids)
+
+    return JsonResponse({
+        "media": [m.asJS() for m in media]
+    })

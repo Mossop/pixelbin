@@ -6,4 +6,5 @@ urlpatterns = [
     path('login', views.login),
     path('logout', views.logout),
     path('upload', views.upload),
+    path('listMedia', views.list),
 ]

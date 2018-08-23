@@ -14,6 +14,7 @@ import IndexPage from "./pages/index";
 import LoginPage from "./pages/login";
 import LogoutPage from "./pages/logout";
 import UploadPage from "./pages/upload";
+import TagPage from "./pages/tag";
 
 let logging = createLogger({
   stateTransformer: (state) => state.toJS(),
@@ -36,6 +37,7 @@ ReactDOM.render(
           <Route path="/login" component={LoginPage}/>
           <Route path="/logout" component={LogoutPage}/>
           <RestrictedRoute path="/upload" component={UploadPage}/>
+          <RestrictedRoute path="/tag/:tag+" component={TagPage}/>
         </Switch>
       </div>
     </BrowserRouter>

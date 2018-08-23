@@ -8,7 +8,7 @@ import Sidebar from "../content/sidebar";
 import Upload from "../content/upload";
 import { bindAll } from "../utils/helpers";
 import { If, Then, Else } from "../utils/if";
-import { upload } from "../api/image";
+import { upload } from "../api/media";
 import { setTags } from "../utils/actions";
 
 const MEDIA_TYPES = [
