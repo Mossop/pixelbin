@@ -43,6 +43,15 @@ class TagPage extends React.Component {
       <div id="splitmain">
         <Sidebar/>
         <div id="content" className="vertical">
+          <div className="horizontal" style={{ justifyContent: "space-between" }}>
+            <h2>Media tagged with {this.props.match.params.tag}</h2>
+            <label>Sort
+              <select>
+                <option>Newest to oldest</option>
+                <option>Oldest to newest</option>
+              </select>
+            </label>
+          </div>
           <div className="medialist">
             {this.state.media.map((media) => (
               <Media key={media.id} media={media}/>
@@ -55,6 +64,7 @@ class TagPage extends React.Component {
 }
 
 TagPage.propTypes = {
+  match: PropTypes.object.isRequired,
   tagId: PropTypes.number,
 };
 
