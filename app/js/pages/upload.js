@@ -123,7 +123,6 @@ class UploadPage extends React.Component {
   }
 
   async addFiles(files) {
-    let newMedia = [];
     let { parseMetadata } = await import(/* webpackChunkName: "metadata" */ "../metadata/parser");
 
     for (let file of files) {
@@ -149,12 +148,10 @@ class UploadPage extends React.Component {
         media.longitude = metadata.longitude;
       }
 
-      newMedia.push(Map(media));
+      this.setState({
+        media: this.state.media.push(Map(media)),
+      });
     }
-
-    this.setState({
-      media: this.state.media.push(...newMedia),
-    });
   }
 
   onChangeMediaTags(media, event) {
