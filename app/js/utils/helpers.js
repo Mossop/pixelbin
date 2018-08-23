@@ -21,7 +21,6 @@ export const tagIDFromPath = (state, path) => {
     }
   };
 
-  console.log(`Getting tag for ${path}`);
   let tags = path.split("/");
 
   return findTagId(state.get("tags"), tags);

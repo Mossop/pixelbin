@@ -1,4 +1,4 @@
-import { getRequest, postRequest } from "./api";
+import { getRequest, postRequest, getAPIPath } from "./api";
 
 export async function upload(file, tags, date, gps) {
   let params = {
@@ -41,4 +41,10 @@ export async function listMedia({ includeTags = [], includeType = "and", exclude
   } else {
     throw new Error("Request failed");
   }
+}
+
+export function buildThumbURL(id, size) {
+  let url = getAPIPath(`media/${id}/thumbnail`);
+  url.searchParams.append("size", size);
+  return url;
 }

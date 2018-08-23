@@ -36,3 +36,7 @@ export async function postRequest(path, options = {}) {
     headers,
   });
 }
+
+export function getAPIPath(path) {
+  return new URL(path, API_ROOT);
+}

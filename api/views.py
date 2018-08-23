@@ -2,6 +2,7 @@ from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
+from PIL import Image
 
 from . import models
 from .utils import *
@@ -76,3 +77,16 @@ def list(request):
     return JsonResponse({
         "media": [m.asJS() for m in media]
     })
+
+def thumbnail(request, id):
+    if request.method != 'GET' or 'size' not in request.GET:
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    size = int(request.GET['size'])
+    media = models.Media.objects.get(id=id, owner=request.user)
+    im = Image.open(media.file)
+    im.thumbnail([size, size])
+
+    response = HttpResponse(content_type="image/jpeg")
+    im.save(response, 'JPEG')
+    return response

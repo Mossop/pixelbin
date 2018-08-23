@@ -6,7 +6,7 @@ import Sidebar from "../content/sidebar";
 import Media from "../content/media";
 import { listMedia } from "../api/media";
 
-class IndexPage extends React.Component {
+class MainContent extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -23,26 +23,32 @@ class IndexPage extends React.Component {
 
   render() {
     return (
-      <If condition={loggedIn}>
-        <Then>
-          <div id="splitmain">
-            <Sidebar/>
-            <div id="content" className="vertical">
-              <div className="medialist">
-                {this.state.media.map((media) => (
-                  <Media key={media.id} media={media}/>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Then>
-        <Else>
-          <div id="content">
-          </div>
-        </Else>
-      </If>
+      <div id="content" className="vertical">
+        <div className="medialist">
+          {this.state.media.map((media) => (
+            <Media key={media.id} media={media}/>
+          ))}
+        </div>
+      </div>
     );
   }
 }
+
+const IndexPage = () => {
+  return (
+    <If condition={loggedIn}>
+      <Then>
+        <div id="splitmain">
+          <Sidebar/>
+          <MainContent/>
+        </div>
+      </Then>
+      <Else>
+        <div id="content">
+        </div>
+      </Else>
+    </If>
+  );
+};
 
 export default IndexPage;
