@@ -82,9 +82,12 @@ class Tag(models.Model):
     class Meta:
         unique_together = (('name', 'parent'))
 
+def choose_upload_path(instance, filename):
+    return '%s/%s' % (instance.owner.id, filename)
+
 class Media(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='media')
-    file = models.FileField()
+    file = models.FileField(upload_to=choose_upload_path)
     tags = models.ManyToManyField(Tag, related_name='media')
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)

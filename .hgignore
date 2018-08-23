@@ -9,3 +9,4 @@ config.ini
 public/static
 node_modules
 app/static/app/js
+media
