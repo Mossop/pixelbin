@@ -19,13 +19,23 @@ class TagPage extends React.Component {
     };
   }
 
-  async componentDidMount() {
+  async updateList() {
     let media = await listMedia({
       includeTags: [this.props.tagId],
     });
     this.setState({
       media,
     });
+  }
+
+  componentDidMount() {
+    this.updateList();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.tagId != this.props.tagId) {
+      this.updateList();
+    }
   }
 
   render() {
