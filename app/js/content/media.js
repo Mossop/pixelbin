@@ -32,7 +32,7 @@ class Media extends React.Component {
   }
 
   async componentDidUpdate(prevProps, prevState) {
-    if (prevState.bitmap || !this.state.bitmap) {
+    if (!this.state.bitmap || this.state.bitmap == prevState.bitmap) {
       return;
     }
 
