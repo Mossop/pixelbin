@@ -49,11 +49,22 @@ class LoginPage extends React.Component {
     }
   }
 
+  nextURL() {
+    if (this.props.location.search) {
+      let params = new URLSearchParams(this.props.location.search);
+      if (params.has("next")) {
+        return params.get("next");
+      }
+    }
+
+    return "/";
+  }
+
   render() {
     return (
       <If condition={loggedIn}>
         <Then>
-          <Redirect to="/"/>
+          <Redirect to={this.nextURL()}/>
         </Then>
         <Else>
           <div id="content" className="centerblock">
@@ -74,6 +85,7 @@ class LoginPage extends React.Component {
 
 LoginPage.propTypes = {
   onNewState: PropTypes.func.isRequired,
+  location: PropTypes.object.isRequired,
 };
 
 export default connect(null, mapDispatchToProps)(LoginPage);

@@ -16,13 +16,15 @@ class RestrictedRoute extends Route {
     }
 
     const { component, authenticated } = this.props;
-
-    if (!authenticated) {
-      return <Redirect to="/login"/>;
-    }
-
     const { history, route, staticContext } = this.context.router;
     const location = this.props.location || route.location;
+
+    if (!authenticated) {
+      let params = new URLSearchParams();
+      params.append("next", location.pathname + location.search);
+      return <Redirect to={`/login?${params.toString()}`}/>;
+    }
+
     const props = { match, location, history, staticContext };
 
     return component ? React.createElement(component, props) : null;
