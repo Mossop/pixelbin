@@ -1,12 +1,11 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
-import { List, Map } from "immutable";
 import moment from "moment";
 
 import Sidebar from "../content/Sidebar";
 import Upload from "../content/Upload";
-import { bindAll } from "../utils/helpers";
+import { bindAll, uuid } from "../utils/helpers";
 import { If, Then, Else } from "../utils/if";
 import { upload } from "../api/media";
 import { setTags } from "../utils/actions";
@@ -15,10 +14,6 @@ const MEDIA_TYPES = [
   "image/jpeg",
   "video/mp4",
 ];
-
-const uuid = () => {
-  return Math.random();
-};
 
 const itemIsMedia = (item) => {
   if (item.kind != "file") {
@@ -36,7 +31,7 @@ class UploadPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      media: List(),
+      media: [],
       globalTags: "",
     };
 
@@ -51,7 +46,7 @@ class UploadPage extends React.Component {
   }
 
   hasMedia() {
-    return this.state.media.size > 0;
+    return this.state.media.length > 0;
   }
 
   async onUpload() {
@@ -128,28 +123,41 @@ class UploadPage extends React.Component {
     for (let file of files) {
       let media = {
         id: uuid(),
-        file: file,
-        bitmap: await createThumbnail(file),
-        tags: "",
-        date: moment(file.lastModified),
+        file,
+        bitmap: null,
+        metadata: {
+          tags: "",
+          date: moment(file.lastModified),
+          longitude: null,
+          latitude: null,
+        },
       };
 
       let metadata = await parseMetadata(file);
       if ("hierarchicalTags" in metadata) {
-        media.tags = metadata.hierarchicalTags.map(t => t.replace(/\|/g, "/")).join(", ");
+        media.metadata.tags = metadata.hierarchicalTags.map(t => t.replace(/\|/g, "/")).join(", ");
       } else if ("tags" in metadata) {
-        media.tags = metadata.tags.join(", ");
+        media.metadata.tags = metadata.tags.join(", ");
       }
       if ("date" in metadata) {
-        media.date = metadata.date;
+        media.metadata.date = metadata.date;
       }
       if (("longitude" in metadata) && ("latitude" in metadata)) {
-        media.latitude = metadata.latitude;
-        media.longitude = metadata.longitude;
+        media.metadata.latitude = metadata.latitude;
+        media.metadata.longitude = metadata.longitude;
       }
 
+      let newMedia = this.state.media.slice(0);
+      newMedia.push(media);
       this.setState({
-        media: this.state.media.push(Map(media)),
+        media: newMedia,
+      });
+
+      createThumbnail(file).then((bitmap) => {
+        media.bitmap = bitmap;
+        this.setState({
+          media: this.state.media,
+        });
       });
     }
   }
@@ -177,8 +185,8 @@ class UploadPage extends React.Component {
           <If condition={this.hasMedia}>
             <Then>
               <div className="medialist" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-                {this.state.media.toArray().map((media) => (
-                  <Upload key={media.get("id")} name={media.get("file").name} bitmap={media.get("bitmap")} tags={media.get("tags")} onChangeTags={this.onChangeMediaTags.bind(this, media)}/>
+                {this.state.media.map((media) => (
+                  <Upload key={media.id} name={media.file.name} bitmap={media.bitmap} metadata={media.metadata} onChangeTags={this.onChangeMediaTags.bind(this, media)}/>
                 ))}
               </div>
             </Then>

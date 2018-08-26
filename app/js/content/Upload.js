@@ -8,7 +8,7 @@ const mapStateToProps = () => ({
   thumbsize: 150,
 });
 
-const Upload = ({ bitmap, thumbsize, name, tags, onChangeTags }) => {
+const Upload = ({ bitmap, thumbsize, name, metadata: { tags }, onChangeTags }) => {
   return (
     <div className="media">
       <ImageCanvas bitmap={bitmap} size={thumbsize}/>
@@ -21,7 +21,7 @@ const Upload = ({ bitmap, thumbsize, name, tags, onChangeTags }) => {
 Upload.propTypes = {
   name: PropTypes.string.isRequired,
   bitmap: PropTypes.object.isRequired,
-  tags: PropTypes.string.isRequired,
+  metadata: PropTypes.string.isRequired,
   thumbsize: PropTypes.number.isRequired,
   onChangeTags: PropTypes.func.isRequired,
 };
