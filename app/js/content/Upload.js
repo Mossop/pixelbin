@@ -20,8 +20,8 @@ const Upload = ({ bitmap, thumbsize, name, metadata: { tags }, onChangeTags }) =
 
 Upload.propTypes = {
   name: PropTypes.string.isRequired,
-  bitmap: PropTypes.object.isRequired,
-  metadata: PropTypes.string.isRequired,
+  bitmap: PropTypes.object,
+  metadata: PropTypes.object.isRequired,
   thumbsize: PropTypes.number.isRequired,
   onChangeTags: PropTypes.func.isRequired,
 };

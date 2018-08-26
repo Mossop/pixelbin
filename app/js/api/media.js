@@ -1,15 +1,15 @@
 import { getRequest, postRequest, getAPIPath } from "./api";
 
-export async function upload(file, tags, date, gps) {
+export async function upload(file, metadata, additionalTags = "") {
   let params = {
     file,
-    tags,
-    date: date.format("YYYY-MM-DDTHH:mm:ss"),
+    tags: metadata.tags + ", " + additionalTags,
+    date: metadata.date.format("YYYY-MM-DDTHH:mm:ss"),
   };
 
-  if (gps) {
-    params.latitude = gps.latitude;
-    params.longitude = gps.longitude;
+  if (metadata.latitude && metadata.longitude) {
+    params.latitude = metadata.latitude;
+    params.longitude = metadata.longitude;
   }
 
   let request = await postRequest("upload", params);

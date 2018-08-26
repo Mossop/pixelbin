@@ -1,7 +1,9 @@
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from datetime import datetime
+import filetype
 from PIL import Image
 
 from . import models
@@ -22,10 +24,21 @@ def logout(request):
     return JsonResponse(build_state(request))
 
 @login_required(login_url='/login')
+@transaction.atomic
 def upload(request):
     if request.method == 'POST' and 'file' in request.FILES and 'tags' in request.POST and 'date' in request.POST:
+        # filetype only considers the first 261 bytes of a file
+        header = next(request.FILES['file'].chunks(261))
+        mimetype = filetype.guess_mime(header)
+        if mimetype is not None and mimetype.startswith('image/'):
+            type = models.Media.TYPE_IMAGE
+        elif mimetype is not None and mimetype.startswith('video/'):
+            type = models.Media.TYPE_VIDEO
+        else:
+            return HttpResponseBadRequest('<h1>Unknown file type</h1>')
+
         taken = datetime.fromisoformat(request.POST['date'])
-        media = models.Media(owner=request.user, file=request.FILES['file'], taken=taken)
+        media = models.Media(owner=request.user, file=request.FILES['file'], taken=taken, type=type)
         if 'latitude' in request.POST and 'longitude' in request.POST:
             media.latitude = float(request.POST['latitude'])
             media.longitude = float(request.POST['longitude'])

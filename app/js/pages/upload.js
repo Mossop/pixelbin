@@ -53,21 +53,13 @@ class UploadPage extends React.Component {
     let globalTags = this.state.globalTags;
     let allMedia = this.state.media;
 
-    for (let pos = 0; pos < allMedia.size;) {
-      let media = allMedia.get(pos);
-      let tags = `${globalTags}, ${media.get("tags")}`;
+    for (let pos = 0; pos < allMedia.length;) {
+      let media = allMedia[pos];
 
       try {
-        let gps = null;
-        if (media.has("latitude") && media.has("longitude")) {
-          gps = {
-            latitude: media.get("latitude"),
-            longitude: media.get("longitude"),
-          };
-        }
-
-        let newTags = await upload(media.get("file"), tags, media.get("date"), gps);
-        allMedia = allMedia.delete(pos);
+        let newTags = await upload(media.file, media.metadata, globalTags);
+        allMedia = allMedia.slice(0);
+        allMedia.splice(pos, 1);
         this.setState({
           media: allMedia,
         });

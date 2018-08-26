@@ -2,3 +2,4 @@ Django==2.1
 pytz==2018.5
 django-cte==1.1.4
 Pillow==5.2.0
+filetype==1.0.1
