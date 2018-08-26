@@ -9,7 +9,7 @@ import { fromJS } from "immutable";
 import reducer from "./utils/reducer";
 import RestrictedRoute from "./utils/restricted";
 
-import Banner from "./content/banner";
+import Banner from "./content/Banner";
 import IndexPage from "./pages/index";
 import LoginPage from "./pages/login";
 import LogoutPage from "./pages/logout";

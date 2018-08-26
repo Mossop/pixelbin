@@ -4,8 +4,8 @@ import { connect } from "react-redux";
 import { List, Map } from "immutable";
 import moment from "moment";
 
-import Sidebar from "../content/sidebar";
-import Upload from "../content/upload";
+import Sidebar from "../content/Sidebar";
+import Upload from "../content/Upload";
 import { bindAll } from "../utils/helpers";
 import { If, Then, Else } from "../utils/if";
 import { upload } from "../api/media";

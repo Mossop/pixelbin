@@ -2,8 +2,8 @@ import React from "react";
 
 import { If, Then, Else } from "../utils/if";
 import { loggedIn } from "../utils/helpers";
-import Sidebar from "../content/sidebar";
-import Media from "../content/media";
+import Sidebar from "../content/Sidebar";
+import Media from "../content/Media";
 import { listMedia } from "../api/media";
 
 class MainContent extends React.Component {

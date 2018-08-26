@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { connect } from "react-redux";
 
 import { buildThumbURL } from "../api/media";
-import { drawBitmapToCanvas } from "../utils/helpers";
+import ImageCanvas from "./ImageCanvas";
 
 const mapStateToProps = () => ({
   thumbsize: 150,
@@ -12,7 +12,6 @@ const mapStateToProps = () => ({
 class Media extends React.Component {
   constructor(props) {
     super(props);
-    this.canvasRef = React.createRef();
     this.state = {
       bitmap: null,
     };
@@ -31,19 +30,12 @@ class Media extends React.Component {
     }
   }
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (!this.state.bitmap || this.state.bitmap == prevState.bitmap) {
-      return;
-    }
-
-    drawBitmapToCanvas(this.state.bitmap, this.canvasRef.current);
-  }
-
   render() {
     let { thumbsize } = this.props;
+    let { bitmap } = this.state;
     return (
       <div className="media">
-        <canvas ref={this.canvasRef} height={thumbsize} width={thumbsize} style={{ width: thumbsize, height: thumbsize }}/>
+        <ImageCanvas bitmap={bitmap} size={thumbsize}/>
       </div>
     );
   }

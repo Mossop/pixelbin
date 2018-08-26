@@ -2,8 +2,8 @@ import React from "react";
 import { connect } from "react-redux";
 import PropTypes from "prop-types";
 
-import Sidebar from "../content/sidebar";
-import Media from "../content/media";
+import Sidebar from "../content/Sidebar";
+import Media from "../content/Media";
 import { tagIDFromPath } from "../utils/helpers";
 import { listMedia } from "../api/media";
 

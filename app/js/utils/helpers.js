@@ -25,19 +25,3 @@ export const tagIDFromPath = (state, path) => {
 
   return findTagId(state.get("tags"), tags);
 };
-
-export function drawBitmapToCanvas(bitmap, canvas) {
-  let size = canvas.height;
-  let width = bitmap.width;
-  let height = bitmap.height;
-  if (width > height) {
-    width = size;
-    height = bitmap.height / (bitmap.width / width);
-  } else {
-    height = size;
-    width = bitmap.width / (bitmap.height / height);
-  }
-
-  let context = canvas.getContext("2d");
-  context.drawImage(bitmap, (size - width) / 2, (size - height) / 2, width, height);
-}
