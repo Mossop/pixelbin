@@ -3,8 +3,8 @@ import { ExifParser, EXIF_HEAD } from "./exif";
 import { XMPParser, NS_XMP } from "./xmp";
 
 export const JPEG_SOI = 0xFFD8;
+export const JPEG_EOI = 0xFFD9;
 const JPEG_SOS = 0xFFDA;
-const JPEG_EOI = 0xFFD9;
 const JPEG_APP1 = 0xFFE1;
 
 export class JpegParser extends DataReader {
