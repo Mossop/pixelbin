@@ -13,7 +13,7 @@ import { setTags } from "../utils/actions";
 
 const MEDIA_TYPES = [
   "image/jpeg",
-  "image/png",
+  "video/mp4",
 ];
 
 const uuid = () => {
