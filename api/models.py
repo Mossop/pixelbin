@@ -64,6 +64,12 @@ class Tag(models.Model):
                                related_name='children',
                                null=True)
 
+    @property
+    def path(self):
+        if self.parent:
+            return '%s/%s' % (self.parent.path, self.name)
+        return self.name
+
     def descendants(self):
         def make_tags_cte(cte):
             return (
@@ -98,5 +104,6 @@ class Media(models.Model):
             "id": self.id,
             "longitude": self.longitude,
             "latitude": self.latitude,
-            "taken": self.taken.isoformat(timespec='seconds'),
+            "date": self.taken.isoformat(timespec='seconds'),
+            "tags": [t.path for t in self.tags.all()],
         }
