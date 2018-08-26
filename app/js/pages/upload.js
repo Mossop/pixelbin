@@ -168,7 +168,7 @@ class UploadPage extends React.Component {
   render() {
     return (
       <div id="splitmain">
-        <Sidebar/>
+        <Sidebar selectedTags={[]}/>
         <div id="content" className="vertical">
           <div className="horizontal" style={{ justifyContent: "space-between" }}>
             <label>Additional Tags for all Media: <input type="text" onChange={this.onGlobalTagsChange} value={this.state.globalTags}/></label>

@@ -41,7 +41,7 @@ class TagPage extends React.Component {
   render() {
     return (
       <div id="splitmain">
-        <Sidebar/>
+        <Sidebar selectedTags={[this.props.match.params.tag]}/>
         <div id="content" className="vertical">
           <div className="horizontal" style={{ justifyContent: "space-between" }}>
             <h2>Media tagged with {this.props.match.params.tag}</h2>

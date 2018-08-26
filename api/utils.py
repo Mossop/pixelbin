@@ -11,6 +11,7 @@ def build_tags(request):
         tagLists[tagParent].append({
             "id": tag.id,
             "name": tag.name,
+            "path": tag.path,
             "children": tagLists[tag.id]
         })
 
