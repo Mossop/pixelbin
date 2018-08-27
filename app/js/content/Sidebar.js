@@ -16,7 +16,7 @@ const TagList = ({ parent, tags, depth = 0, selectedTags, untagged = false, all 
       </If>
       {tags.map(t => (
         <li key={t.id} style={{ paddingLeft: `${depth * 10}px` }} className={selectedTags.includes(t.path) ? "selected" : ""}>
-          <Link to={`/tag/${parent}${t.name}`}>{t.name}</Link>
+          <Link to={`/tag/${t.path}`}>{t.name}</Link>
           <If condition={t.children.length > 0}>
             <Then>
               <TagList parent={`${parent}${t.name}/`} tags={t.children} depth={depth + 1} selectedTags={selectedTags}/>

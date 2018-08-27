@@ -7,14 +7,22 @@ export const bindAll = (obj, keys) => {
 };
 
 export const tagIDFromPath = (state, path) => {
-  const findTagId = (tagList, tagPath) => {
+  let tag = tagFromPath(state, path);
+  if (tag) {
+    return tag.get("id");
+  }
+  return null;
+};
+
+export const tagFromPath = (state, path) => {
+  const findTag = (tagList, tagPath) => {
     let first = tagPath.shift();
     let tag = tagList.find(t => t.get("name") == first);
     if (tag) {
       if (tagPath.length) {
-        return findTagId(tag.get("children"), tagPath);
+        return findTag(tag.get("children"), tagPath);
       } else {
-        return tag.get("id");
+        return tag;
       }
     } else {
       return null;
@@ -23,7 +31,7 @@ export const tagIDFromPath = (state, path) => {
 
   let tags = path.split("/");
 
-  return findTagId(state.get("tags"), tags);
+  return findTag(state.get("tags"), tags);
 };
 
 export const uuid = () => {

@@ -4,11 +4,11 @@ import PropTypes from "prop-types";
 
 import Sidebar from "../content/Sidebar";
 import Media from "../content/Media";
-import { tagIDFromPath } from "../utils/helpers";
+import { tagFromPath } from "../utils/helpers";
 import { listMedia } from "../api/media";
 
 const mapStateToProps = (state, props) => ({
-  tagId: tagIDFromPath(state, props.match.params.tag),
+  tag: tagFromPath(state, props.match.params.tag),
 });
 
 class TagPage extends React.Component {
@@ -21,7 +21,7 @@ class TagPage extends React.Component {
 
   async updateList() {
     let media = await listMedia({
-      includeTags: [this.props.tagId],
+      includeTags: [this.props.tag.get("id")],
     });
     this.setState({
       media,
@@ -33,7 +33,7 @@ class TagPage extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.tagId != this.props.tagId) {
+    if (prevProps.tag != this.props.tag) {
       this.updateList();
     }
   }
@@ -65,7 +65,7 @@ class TagPage extends React.Component {
 
 TagPage.propTypes = {
   match: PropTypes.object.isRequired,
-  tagId: PropTypes.number,
+  tag: PropTypes.object.isRequired,
 };
 
 export default connect(mapStateToProps)(TagPage);
