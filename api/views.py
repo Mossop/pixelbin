@@ -1,4 +1,4 @@
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, FileResponse
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -117,3 +117,19 @@ def thumbnail(request, id):
     response = HttpResponse(content_type="image/jpeg")
     im.save(response, 'JPEG')
     return response
+
+@login_required(login_url='/login')
+def metadata(request, id):
+    if request.method != 'GET':
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    media = models.Media.objects.get(id=id, owner=request.user)
+    return JsonResponse(media.asJS())
+
+@login_required(login_url='/login')
+def download(request, id):
+    if request.method != 'GET':
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    media = models.Media.objects.get(id=id, owner=request.user)
+    return FileResponse(media.file)

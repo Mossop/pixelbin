@@ -8,5 +8,7 @@ urlpatterns = [
     path('upload', views.upload),
     path('listUntagged', views.untagged),
     path('listMedia', views.list),
+    path('media/<id>', views.metadata),
+    path('media/<id>/download', views.download),
     path('media/<id>/thumbnail', views.thumbnail),
 ]

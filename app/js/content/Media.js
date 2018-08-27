@@ -1,8 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
+import { withRouter } from "react-router-dom";
 
 import { buildThumbURL } from "../api/media";
+import { bindAll } from "../utils/helpers";
 import ImageCanvas from "./ImageCanvas";
 
 const mapStateToProps = () => ({
@@ -15,10 +17,14 @@ class Media extends React.Component {
     this.state = {
       bitmap: null,
     };
+
+    bindAll(this, [
+      "openMedia",
+    ]);
   }
 
   async componentDidMount() {
-    let thumburl = buildThumbURL(this.props.media.id, this.props.thumbsize);
+    let thumburl = buildThumbURL(this.props.media, this.props.thumbsize);
 
     let response = await fetch(thumburl);
     if (response.ok) {
@@ -30,12 +36,16 @@ class Media extends React.Component {
     }
   }
 
+  openMedia() {
+    this.props.history.push(`/media/${this.props.media.id}`);
+  }
+
   render() {
     let { thumbsize } = this.props;
     let { bitmap } = this.state;
     return (
       <div className="media">
-        <ImageCanvas bitmap={bitmap} size={thumbsize}/>
+        <ImageCanvas bitmap={bitmap} size={thumbsize} onClick={this.openMedia}/>
       </div>
     );
   }
@@ -44,6 +54,7 @@ class Media extends React.Component {
 Media.propTypes = {
   thumbsize: PropTypes.number.isRequired,
   media: PropTypes.object.isRequired,
+  history: PropTypes.object.isRequired,
 };
 
-export default connect(mapStateToProps)(Media);
+export default withRouter(connect(mapStateToProps)(Media));

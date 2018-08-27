@@ -38,9 +38,9 @@ class ImageCanvas extends React.Component {
   }
 
   render() {
-    let { size } = this.props;
+    let { size, onClick } = this.props;
     return (
-      <canvas ref={this.canvasRef} height={size} width={size} style={{ width: size, height: size }}/>
+      <canvas ref={this.canvasRef} onClick={onClick} height={size} width={size} style={{ width: size, height: size }}/>
     );
   }
 }
@@ -48,6 +48,7 @@ class ImageCanvas extends React.Component {
 ImageCanvas.propTypes = {
   bitmap: PropTypes.object,
   size: PropTypes.number.isRequired,
+  onClick: PropTypes.func,
 };
 
 export default ImageCanvas;

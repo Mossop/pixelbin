@@ -12,20 +12,20 @@ export async function upload(file, metadata, additionalTags = "") {
     params.longitude = metadata.longitude;
   }
 
-  let request = await postRequest("upload", params);
+  let response = await postRequest("upload", params);
 
-  if (request.ok) {
-    return (await request.json()).tags;
+  if (response.ok) {
+    return (await response.json()).tags;
   } else {
     throw new Error("Upload failed");
   }
 }
 
 export async function listUntaggedMedia() {
-  let request = await getRequest("listUntagged");
+  let response = await getRequest("listUntagged");
 
-  if (request.ok) {
-    return (await request.json()).media;
+  if (response.ok) {
+    return (await response.json()).media;
   } else {
     throw new Error("Request failed");
   }
@@ -44,17 +44,41 @@ export async function listMedia({ includeTags = [], includeType = "and", exclude
 
   params.append("includeType", includeType);
 
-  let request = await getRequest("listMedia", params);
+  let response = await getRequest("listMedia", params);
 
-  if (request.ok) {
-    return (await request.json()).media;
+  if (response.ok) {
+    return (await response.json()).media;
   } else {
     throw new Error("Request failed");
   }
 }
 
-export function buildThumbURL(id, size) {
-  let url = getAPIPath(`media/${id}/thumbnail`);
+export function buildThumbURL(media, size) {
+  let url = getAPIPath(`media/${media.id}/thumbnail`);
   url.searchParams.append("size", size);
   return url;
+}
+
+export function buildDownloadURL(media) {
+  return getAPIPath(`media/${media.id}/download`);
+}
+
+export async function loadMetadata(id) {
+  let response = await getRequest(`media/${id}`);
+
+  if (response.ok) {
+    return response.json();
+  } else {
+    throw new Error("Request failed");
+  }
+}
+
+export async function loadBitmap(id) {
+  let response = await getRequest(`media/${id}/download`);
+
+  if (response.ok) {
+    return createImageBitmap(await response.blob());
+  } else {
+    throw new Error("Request failed");
+  }
 }
