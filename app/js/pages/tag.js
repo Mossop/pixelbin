@@ -21,7 +21,7 @@ class TagPage extends React.Component {
 
   async updateList() {
     let media = await listMedia({
-      includeTags: [this.props.tag.get("id")],
+      includeTags: [this.props.tag],
     });
     this.setState({
       media,
@@ -41,10 +41,10 @@ class TagPage extends React.Component {
   render() {
     return (
       <div id="splitmain">
-        <Sidebar selectedTags={[this.props.match.params.tag]}/>
+        <Sidebar selectedTags={[this.props.tag]}/>
         <div id="content" className="vertical">
           <div className="horizontal" style={{ justifyContent: "space-between" }}>
-            <h2>Media tagged with {this.props.match.params.tag}</h2>
+            <h2>Media tagged with {this.props.tag.get("path")}</h2>
             <label>Sort
               <select>
                 <option>Newest to oldest</option>

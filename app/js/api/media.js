@@ -35,11 +35,11 @@ export async function listMedia({ includeTags = [], includeType = "and", exclude
   let params = new URLSearchParams();
 
   for (let tag of includeTags) {
-    params.append("includeTag", tag);
+    params.append("includeTag", tag.get("id"));
   }
 
   for (let tag of excludeTags) {
-    params.append("excludeTag", tag);
+    params.append("excludeTag", tag.get("id"));
   }
 
   params.append("includeType", includeType);

@@ -35,8 +35,8 @@ class SearchPage extends React.Component {
 
   async updateList() {
     let media = await listMedia({
-      includeTags: this.props.includeTags.map(t => t.get("id")),
-      excludeTags: this.props.excludeTags.map(t => t.get("id")),
+      includeTags: this.props.includeTags,
+      excludeTags: this.props.excludeTags,
     });
     this.setState({
       media,
@@ -57,7 +57,7 @@ class SearchPage extends React.Component {
   render() {
     return (
       <div id="splitmain">
-        <Sidebar selectedTags={this.props.includeTags.map(t => t.get("path"))}/>
+        <Sidebar selectedTags={this.props.includeTags}/>
         <div id="content" className="vertical">
           <div className="horizontal" style={{ justifyContent: "space-between" }}>
             <h2>Media tagged with {this.props.includeTags.map(t => t.get("path")).join(", ")}</h2>

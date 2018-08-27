@@ -13,7 +13,7 @@ const TagLink = withRouter(({ tag, history, selectedTags, children }) => {
     if (event.metaKey) {
       let params = new URLSearchParams();
       for (let t of selectedTags) {
-        params.append("includeTag", t);
+        params.append("includeTag", t.get("path"));
       }
       params.append("includeTag", tag.path);
       history.push(`/search?${params}`);
@@ -37,7 +37,7 @@ const TagList = ({ parent, tags, depth = 0, selectedTags, untagged = false, all 
         </Then>
       </If>
       {tags.map(t => (
-        <li key={t.id} style={{ paddingLeft: `${depth * 10}px` }} className={selectedTags.includes(t.path) ? "selected" : ""}>
+        <li key={t.id} style={{ paddingLeft: `${depth * 10}px` }} className={selectedTags.map(t => t.get("path")).includes(t.path) ? "selected" : ""}>
           <TagLink tag={t} selectedTags={selectedTags}>{t.name}</TagLink>
           <If condition={t.children.length > 0}>
             <Then>
@@ -73,7 +73,7 @@ const Sidebar = ({ tags, selectedTags, untagged = false, all = false }) => {
 
 Sidebar.propTypes = {
   tags: PropTypes.arrayOf(PropTypes.object).isRequired,
-  selectedTags: PropTypes.arrayOf(PropTypes.string).isRequired,
+  selectedTags: PropTypes.arrayOf(PropTypes.object).isRequired,
   all: PropTypes.bool,
   untagged: PropTypes.bool,
 };
