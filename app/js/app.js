@@ -16,6 +16,7 @@ import LogoutPage from "./pages/logout";
 import UntaggedPage from "./pages/untagged";
 import UploadPage from "./pages/upload";
 import TagPage from "./pages/tag";
+import SearchPage from "./pages/search";
 
 let logging = createLogger({
   stateTransformer: (state) => state.toJS(),
@@ -40,6 +41,7 @@ ReactDOM.render(
           <RestrictedRoute path="/untagged" component={UntaggedPage}/>
           <RestrictedRoute path="/upload" component={UploadPage}/>
           <RestrictedRoute path="/tag/:tag+" component={TagPage}/>
+          <RestrictedRoute path="/search" component={SearchPage}/>
         </Switch>
       </div>
     </BrowserRouter>

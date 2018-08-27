@@ -1,9 +1,31 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, withRouter } from "react-router-dom";
 
 import { If, Then } from "../utils/if";
+
+const TagLink = withRouter(({ tag, history, selectedTags, children }) => {
+  let link = `/tag/${tag.path}`;
+  let appendTag = (event) => {
+    event.preventDefault();
+
+    if (event.metaKey) {
+      let params = new URLSearchParams();
+      for (let t of selectedTags) {
+        params.append("includeTag", t);
+      }
+      params.append("includeTag", tag.path);
+      history.push(`/search?${params}`);
+    } else {
+      history.push(link);
+    }
+  };
+
+  return (
+    <a onClick={appendTag} href={link}>{children}</a>
+  );
+});
 
 const TagList = ({ parent, tags, depth = 0, selectedTags, untagged = false, all = false }) => {
   return (
@@ -16,7 +38,7 @@ const TagList = ({ parent, tags, depth = 0, selectedTags, untagged = false, all 
       </If>
       {tags.map(t => (
         <li key={t.id} style={{ paddingLeft: `${depth * 10}px` }} className={selectedTags.includes(t.path) ? "selected" : ""}>
-          <Link to={`/tag/${t.path}`}>{t.name}</Link>
+          <TagLink tag={t} selectedTags={selectedTags}>{t.name}</TagLink>
           <If condition={t.children.length > 0}>
             <Then>
               <TagList parent={`${parent}${t.name}/`} tags={t.children} depth={depth + 1} selectedTags={selectedTags}/>
