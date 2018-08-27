@@ -13,6 +13,7 @@ import Banner from "./content/Banner";
 import IndexPage from "./pages/index";
 import LoginPage from "./pages/login";
 import LogoutPage from "./pages/logout";
+import UntaggedPage from "./pages/untagged";
 import UploadPage from "./pages/upload";
 import TagPage from "./pages/tag";
 
@@ -36,6 +37,7 @@ ReactDOM.render(
           <Route exact path="/" component={IndexPage}/>
           <Route path="/login" component={LoginPage}/>
           <Route path="/logout" component={LogoutPage}/>
+          <RestrictedRoute path="/untagged" component={UntaggedPage}/>
           <RestrictedRoute path="/upload" component={UploadPage}/>
           <RestrictedRoute path="/tag/:tag+" component={TagPage}/>
         </Switch>

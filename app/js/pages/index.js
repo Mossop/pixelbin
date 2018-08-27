@@ -39,7 +39,7 @@ const IndexPage = () => {
     <If condition={loggedIn}>
       <Then>
         <div id="splitmain">
-          <Sidebar selectedTags={[]}/>
+          <Sidebar selectedTags={[]} all={true}/>
           <MainContent/>
         </div>
       </Then>

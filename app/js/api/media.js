@@ -21,6 +21,16 @@ export async function upload(file, metadata, additionalTags = "") {
   }
 }
 
+export async function listUntaggedMedia() {
+  let request = await getRequest("listUntagged");
+
+  if (request.ok) {
+    return (await request.json()).media;
+  } else {
+    throw new Error("Request failed");
+  }
+}
+
 export async function listMedia({ includeTags = [], includeType = "and", excludeTags = [] } = {}) {
   let params = new URLSearchParams();
 

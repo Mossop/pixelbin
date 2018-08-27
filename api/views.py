@@ -64,6 +64,18 @@ def upload(request):
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
+@login_required(login_url='/login')
+def untagged(request):
+    if request.method != 'GET':
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    media = models.Media.objects.filter(owner=request.user, tags=None)
+
+    return JsonResponse({
+        "media": [m.asJS() for m in media]
+    })
+
+@login_required(login_url='/login')
 def list(request):
     if request.method != 'GET':
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
