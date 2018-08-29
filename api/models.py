@@ -92,21 +92,15 @@ def choose_upload_path(instance, filename):
     return '%s/%s' % (instance.owner.id, filename)
 
 class Media(models.Model):
-    TYPE_UNKNOWN = 0
-    TYPE_IMAGE = 1
-    TYPE_VIDEO = 2
-    CHOICES = (
-        (TYPE_IMAGE, 'Image'),
-        (TYPE_VIDEO, 'Video'),
-    )
-
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='media')
     file = models.FileField(upload_to=choose_upload_path)
     tags = models.ManyToManyField(Tag, related_name='media')
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)
     taken = models.DateTimeField()
-    type = models.PositiveSmallIntegerField(choices=CHOICES)
+    mimetype = models.CharField(max_length=50)
+    width = models.IntegerField()
+    height = models.IntegerField()
 
     def asJS(self):
         return {
@@ -115,5 +109,7 @@ class Media(models.Model):
             "latitude": self.latitude,
             "date": self.taken.isoformat(timespec='seconds'),
             "tags": [t.path for t in self.tags.all()],
-            "type": self.type,
+            "mimetype": self.mimetype,
+            "width": self.width,
+            "height": self.height,
         }

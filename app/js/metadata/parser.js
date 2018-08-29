@@ -1,5 +1,4 @@
 import { JpegParser, JPEG_SOI, JPEG_EOI } from "./jpeg";
-import * as TYPES from "./types";
 
 const MP4_FTYP = 0x66747970;
 
@@ -46,7 +45,7 @@ export async function parseMetadata(blob) {
       }
       case "video/mp4": {
         return {
-          type: TYPES.TYPE_VIDEO,
+          mimetype: "video/mp4",
         };
       }
       default:
@@ -55,7 +54,7 @@ export async function parseMetadata(blob) {
   } catch (e) {
     console.error("Failed to parse metadata", e);
     return {
-      type: TYPES.TYPE_UNKNOWN,
+      mimetype: null,
     };
   }
 }

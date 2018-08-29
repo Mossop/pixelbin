@@ -1,7 +1,6 @@
 import DataReader from "./datareader";
 import { ExifParser, EXIF_HEAD } from "./exif";
 import { XMPParser, NS_XMP } from "./xmp";
-import { TYPE_IMAGE } from "./types";
 
 export const JPEG_SOI = 0xFFD8;
 export const JPEG_EOI = 0xFFD9;
@@ -11,7 +10,7 @@ const JPEG_APP1 = 0xFFE1;
 export class JpegParser extends DataReader {
   parse() {
     let metadata = {
-      type: TYPE_IMAGE,
+      mimetype: "image/jpeg",
     };
 
     // The header has already been checked.

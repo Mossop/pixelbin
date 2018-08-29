@@ -9,6 +9,12 @@ from PIL import Image
 from . import models
 from .utils import *
 
+def has_all_fields(dictionary, fields):
+    for field in fields:
+        if field not in dictionary:
+            return False
+    return True
+
 def login(request):
     if request.method == 'POST' and 'email' in request.POST and 'password' in request.POST:
         user = authenticate(request, username=request.POST['email'], password=request.POST['password'])
@@ -26,19 +32,18 @@ def logout(request):
 @login_required(login_url='/login')
 @transaction.atomic
 def upload(request):
-    if request.method == 'POST' and 'file' in request.FILES and 'tags' in request.POST and 'date' in request.POST:
+    if request.method == 'POST' and 'file' in request.FILES and has_all_fields(request.POST, ['tags', 'date', 'height', 'width']):
         # filetype only considers the first 261 bytes of a file
         header = next(request.FILES['file'].chunks(261))
         mimetype = filetype.guess_mime(header)
-        if mimetype is not None and mimetype.startswith('image/'):
-            type = models.Media.TYPE_IMAGE
-        elif mimetype is not None and mimetype.startswith('video/'):
-            type = models.Media.TYPE_VIDEO
-        else:
+        if mimetype is None:
             return HttpResponseBadRequest('<h1>Unknown file type</h1>')
+        elif not (mimetype.startswith('image/') or mimetype.startswith('video/')):
+            return HttpResponseBadRequest('<h1>Unsupported file type "%s"</h1>' % mimetype)
 
         taken = datetime.fromisoformat(request.POST['date'])
-        media = models.Media(owner=request.user, file=request.FILES['file'], taken=taken, type=type)
+        media = models.Media(owner=request.user, file=request.FILES['file'], taken=taken,
+                             mimetype=mimetype, width=request.POST['width'], height=request.POST['height'])
         if 'latitude' in request.POST and 'longitude' in request.POST:
             media.latitude = float(request.POST['latitude'])
             media.longitude = float(request.POST['longitude'])

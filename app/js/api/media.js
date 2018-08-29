@@ -5,6 +5,8 @@ export async function upload(file, metadata, additionalTags = "") {
     file,
     tags: metadata.tags + ", " + additionalTags,
     date: metadata.date.format("YYYY-MM-DDTHH:mm:ss"),
+    width: metadata.width,
+    height: metadata.height,
   };
 
   if (metadata.latitude && metadata.longitude) {

@@ -147,6 +147,8 @@ class UploadPage extends React.Component {
 
       createThumbnail(file).then((bitmap) => {
         media.bitmap = bitmap;
+        media.metadata.width = bitmap.width;
+        media.metadata.height = bitmap.height;
         this.setState({
           media: this.state.media,
         });
@@ -155,13 +157,10 @@ class UploadPage extends React.Component {
   }
 
   onChangeMediaTags(media, event) {
-    let pos = this.state.media.indexOf(media);
-    if (pos < 0) {
-      return;
-    }
+    media.metadata.tags = event.target.value;
 
     this.setState({
-      media: this.state.media.setIn([pos, "tags"], event.target.value),
+      media: this.state.media,
     });
   }
 
