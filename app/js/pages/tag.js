@@ -45,7 +45,7 @@ class TagPage extends React.Component {
         <div id="content" className="vertical">
           <div className="horizontal" style={{ justifyContent: "space-between" }}>
             <h2>Media tagged with {this.props.tag.get("path")}</h2>
-            <label>Sort
+            <label>Sort:
               <select>
                 <option>Newest to oldest</option>
                 <option>Oldest to newest</option>

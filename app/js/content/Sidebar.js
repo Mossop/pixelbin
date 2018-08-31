@@ -32,13 +32,13 @@ const TagList = ({ parent, tags, depth = 0, selectedTags, untagged = false, all 
     <ol>
       <If condition={parent == ""}>
         <Then>
-          <li className={all ? "selected" : ""} style={{ paddingLeft: `${depth * 10}px` }}><Link to="/">All Media</Link></li>
-          <li className={untagged ? "selected" : ""} style={{ paddingLeft: `${depth * 10}px` }}><Link to="/untagged">Untagged Media</Link></li>
+          <li className={all ? "selected" : ""}><span style={{ paddingLeft: "10px" }}><Link to="/">All Media</Link></span></li>
+          <li className={untagged ? "selected" : ""}><span style={{ paddingLeft: "10px" }}><Link to="/untagged">Untagged Media</Link></span></li>
         </Then>
       </If>
       {tags.map(t => (
-        <li key={t.id} style={{ paddingLeft: `${depth * 10}px` }} className={selectedTags.map(t => t.get("path")).includes(t.path) ? "selected" : ""}>
-          <TagLink tag={t} selectedTags={selectedTags}>{t.name}</TagLink>
+        <li key={t.id} className={selectedTags.map(t => t.get("path")).includes(t.path) ? "selected" : ""}>
+          <span style={{ paddingLeft: `${(depth + 1) * 10}px` }}><TagLink tag={t} selectedTags={selectedTags}>{t.name}</TagLink></span>
           <If condition={t.children.length > 0}>
             <Then>
               <TagList parent={`${parent}${t.name}/`} tags={t.children} depth={depth + 1} selectedTags={selectedTags}/>

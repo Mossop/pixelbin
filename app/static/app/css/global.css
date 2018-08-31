@@ -1,3 +1,13 @@
+:root {
+  --header-bg: #121212;
+  --header-fg: #ffffff;
+  --header-height: 50px;
+  --sidebar-bg: #292929;
+  --sidebar-fg: #f0f0f0;
+  --sidebar-active: #b62a25;
+  --box-border: #1a1a1a;
+}
+
 body, html, #app, #root {
   width: 100%;
   height: 100%;
@@ -12,11 +22,15 @@ p, h1, h2, h3, h4, h5, h6 {
   font-size: 100%;
 }
 
+a, a:hover, a:visited, a:active {
+  color: inherit;
+  text-decoration: none;
+}
+
 #root {
   display: flex;
   flex-direction: column;
   font-family: sans-serif;
-  background: lightblue;
 }
 
 #banner {
@@ -24,20 +38,15 @@ p, h1, h2, h3, h4, h5, h6 {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+  background: var(--header-bg);
+  color: var(--header-fg);
+  height: var(--header-height);
 }
 
 #logo {
   font-family: 'Comfortaa', cursive;
-  font-size: 50px;
-  width: 300px;
-  text-align: center;
-  padding-top: 20px;
-  padding-bottom: 20px;
-}
-
-#logo a {
-  color: inherit;
-  text-decoration: none;
+  font-size: 20px;
+  padding-left: 20px;
 }
 
 #rightbanner {
@@ -59,9 +68,11 @@ p, h1, h2, h3, h4, h5, h6 {
 }
 
 #sidebar {
-  width: 300px;
+  width: 200px;
   padding-top: 20px;
   overflow-y: auto;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-fg);
 }
 
 #sidebar ol {
@@ -72,15 +83,13 @@ p, h1, h2, h3, h4, h5, h6 {
 #sidebar li {
   list-style-type: none;
   margin: 0;
-  padding: 0;
 }
 
 #sidebar li.selected {
-  background-color: darkblue;
+  background: var(--sidebar-active);
 }
 
 #content {
-  background: white;
   flex: 1;
   overflow-y: auto;
   padding: 10px
@@ -100,16 +109,14 @@ p, h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   align-items: stretch;
   padding: 10px;
-  border: 1px solid lightgrey;
-  border-radius: 5px;
   margin-bottom: 10px;
   margin-right: 10px;
+  border: 1px solid var(--box-border);
 }
 
 #loginForm {
   padding: 20px;
-  border: 1px solid grey;
-  border-radius: 10px;
+  border: 1px solid var(--box-border);
 }
 
 .centerAlign {
