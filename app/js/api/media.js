@@ -1,4 +1,11 @@
+import moment from "moment";
+
 import { getRequest, postRequest, getAPIPath } from "./api";
+
+function unpickle(media) {
+  media.date = moment(media.date);
+  return media;
+}
 
 export async function upload(file, metadata, additionalTags = "") {
   let params = {
@@ -27,7 +34,7 @@ export async function listUntaggedMedia() {
   let response = await getRequest("listUntagged");
 
   if (response.ok) {
-    return (await response.json()).media;
+    return (response.json()).media.map(unpickle);
   } else {
     throw new Error("Request failed");
   }
@@ -49,7 +56,7 @@ export async function listMedia({ includeTags = [], includeType = "and", exclude
   let response = await getRequest("listMedia", params);
 
   if (response.ok) {
-    return (await response.json()).media;
+    return (await response.json()).media.map(unpickle);
   } else {
     throw new Error("Request failed");
   }
