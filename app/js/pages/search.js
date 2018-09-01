@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import PropTypes from "prop-types";
 
 import Sidebar from "../content/Sidebar";
-import Media from "../content/Media";
+import MediaList from "../content/MediaList";
 import { tagFromPath } from "../utils/helpers";
 import { listMedia } from "../api/media";
 
@@ -58,22 +58,7 @@ class SearchPage extends React.Component {
     return (
       <div id="splitmain">
         <Sidebar selectedTags={this.props.includeTags}/>
-        <div id="content" className="vertical">
-          <div className="horizontal" style={{ justifyContent: "space-between" }}>
-            <h2>Media tagged with {this.props.includeTags.map(t => t.get("path")).join(", ")}</h2>
-            <label>Sort
-              <select>
-                <option>Newest to oldest</option>
-                <option>Oldest to newest</option>
-              </select>
-            </label>
-          </div>
-          <div className="medialist">
-            {this.state.media.map((media) => (
-              <Media key={media.id} media={media}/>
-            ))}
-          </div>
-        </div>
+        <MediaList title={`Media tagged with ${this.props.includeTags.map(t => t.get("path")).join(", ")}`} media={this.state.media}/>
       </div>
     );
   }

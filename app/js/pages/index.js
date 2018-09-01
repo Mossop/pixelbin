@@ -3,7 +3,7 @@ import React from "react";
 import { If, Then, Else } from "../utils/if";
 import { loggedIn } from "../utils/helpers";
 import Sidebar from "../content/Sidebar";
-import Media from "../content/Media";
+import MediaList from "../content/MediaList";
 import { listMedia } from "../api/media";
 
 class MainContent extends React.Component {
@@ -23,13 +23,7 @@ class MainContent extends React.Component {
 
   render() {
     return (
-      <div id="content" className="vertical">
-        <div className="medialist">
-          {this.state.media.map((media) => (
-            <Media key={media.id} media={media}/>
-          ))}
-        </div>
-      </div>
+      <MediaList title="All media" media={this.state.media}/>
     );
   }
 }

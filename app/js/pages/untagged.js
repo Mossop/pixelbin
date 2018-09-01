@@ -1,7 +1,7 @@
 import React from "react";
 
 import Sidebar from "../content/Sidebar";
-import Media from "../content/Media";
+import MediaList from "../content/MediaList";
 import { listUntaggedMedia } from "../api/media";
 
 class UntaggedPage extends React.Component {
@@ -23,13 +23,7 @@ class UntaggedPage extends React.Component {
     return (
       <div id="splitmain">
         <Sidebar selectedTags={[]} untagged={true}/>
-        <div id="content" className="vertical">
-          <div className="medialist">
-            {this.state.media.map((media) => (
-              <Media key={media.id} media={media}/>
-            ))}
-          </div>
-        </div>
+        <MediaList title="Untagged media" media={this.state.media}/>
       </div>
     );
   }
