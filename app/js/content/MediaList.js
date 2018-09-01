@@ -43,7 +43,7 @@ class MediaList extends React.Component {
         <div className="horizontal" style={{ justifyContent: "space-between" }}>
           <h2>{this.props.title}</h2>
           <label>Sort:
-            <select onChange={this.onChangeSort} value={this.state.sort}>
+            <select style={{ marginLeft: "10px" }} onChange={this.onChangeSort} value={this.state.sort}>
               <option value="descending">Newest to oldest</option>
               <option value="ascending">Oldest to newest</option>
             </select>
