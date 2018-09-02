@@ -177,7 +177,7 @@ a, a:hover, a:visited, a:active {
 }
 
 #mediaContainer {
-  width: calc(50vw - 20px);
+  width: calc(70% - 20px);
   margin-right: 10px;
   position: relative;
 }
@@ -196,4 +196,21 @@ a, a:hover, a:visited, a:active {
   max-height: 100%;
   width: 100%;
   height: 100%;
+}
+
+#metadataDisplay {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+#mapDisplay {
+  flex: 1;
+}
+
+#metadataGrid {
+  flex: 1;
+  padding-top: 20px;
 }

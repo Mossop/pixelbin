@@ -5,6 +5,8 @@ import { loadMetadata, buildDownloadURL } from "../api/media";
 import { bindAll } from "../utils/helpers";
 import Throbber from "../content/Throbber";
 
+/* global promiseMapsAPI, google */
+
 const isImage = (metadata) => metadata.mimetype.startsWith("image/");
 
 const ImageMediaDisplay = ({ metadata }) => {
@@ -52,6 +54,7 @@ class MediaContainer extends React.Component {
 
     this.containerRef = React.createRef();
     this.displayRef = React.createRef();
+    this.mapRef = React.createRef();
   }
 
   componentDidResize() {
@@ -78,12 +81,29 @@ class MediaContainer extends React.Component {
     style.left = `${this.displayLeft}px`;
     style.width = `${this.displayWidth}px`;
     style.height = `${this.displayHeight}px`;
-    console.log(style, this.displayTop, this.displayLeft);
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     window.addEventListener("resize", this.componentDidResize);
     this.componentDidResize();
+
+    await promiseMapsAPI();
+
+    let latlng = {
+      lat: this.props.metadata.latitude,
+      lng: this.props.metadata.longitude,
+    };
+
+    let map = new google.maps.Map(this.mapRef.current, {
+      center: latlng,
+      zoom: 10,
+      fullscreenControl: false,
+    });
+
+    new google.maps.Marker({
+      position: latlng,
+      map,
+    });
   }
 
   componentWillUnmount() {
@@ -92,16 +112,29 @@ class MediaContainer extends React.Component {
 
   render() {
     return (
-      <div id="mediaContainer" ref={this.containerRef} >
-        <div id="mediaDisplay" ref={this.displayRef} style={{
-          top: this.displayTop,
-          left: this.displayLeft,
-          width: this.displayWidth,
-          height: this.displayHeight,
-        }}>
-          <MediaDisplay metadata={this.props.metadata}/>
+      <React.Fragment>
+        <div id="mediaContainer" ref={this.containerRef} >
+          <div id="mediaDisplay" ref={this.displayRef} style={{
+            top: this.displayTop,
+            left: this.displayLeft,
+            width: this.displayWidth,
+            height: this.displayHeight,
+          }}>
+            <MediaDisplay metadata={this.props.metadata}/>
+          </div>
         </div>
-      </div>
+        <div id="metadataDisplay">
+          <div id="mapDisplay" ref={this.mapRef}/>
+          <div id="metadataGrid">
+            <div className="fieldGrid">
+              <p className="rightAlign">Date:</p>
+              <p>{this.props.metadata.date.format("HH:mm Mo MMM YYYY")}</p>
+              <p className="rightAlign">Tags:</p>
+              <p>{this.props.metadata.tags.join(", ")}</p>
+            </div>
+          </div>
+        </div>
+      </React.Fragment>
     );
   }
 }

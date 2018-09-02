@@ -74,7 +74,7 @@ export async function loadMetadata(id) {
   let response = await getRequest(`media/${id}`);
 
   if (response.ok) {
-    return response.json();
+    return unpickle(await response.json());
   } else {
     throw new Error("Request failed");
   }
