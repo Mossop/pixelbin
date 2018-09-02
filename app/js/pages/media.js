@@ -146,7 +146,6 @@ MediaContainer.propTypes = {
 class MediaPage extends React.Component {
   constructor(props) {
     super(props);
-    this.canvasRef = React.createRef();
     this.state = {
       metadata: null,
     };
@@ -158,12 +157,6 @@ class MediaPage extends React.Component {
     this.setState({
       metadata,
     });
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.bitmap && this.state.bitmap != prevState.bitmap) {
-      this.drawBitmap(this.state.bitmap, this.canvasRef.current);
-    }
   }
 
   render() {

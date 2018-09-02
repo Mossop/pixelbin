@@ -10,6 +10,9 @@ import { If, Then, Else } from "../utils/if";
 import { upload } from "../api/media";
 import { setTags } from "../utils/actions";
 
+const REGEX_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const REGEX_TIME = /^(\d{2}):(\d{2})$/;
+
 const MEDIA_TYPES = [
   "image/jpeg",
   "video/mp4",
@@ -42,6 +45,9 @@ class UploadPage extends React.Component {
       "onGlobalTagsChange",
       "onUpload",
       "hasMedia",
+      "onChangeMediaTags",
+      "onChangeMediaDate",
+      "onChangeMediaTime",
     ]);
   }
 
@@ -164,6 +170,31 @@ class UploadPage extends React.Component {
     });
   }
 
+  onChangeMediaDate(media, event) {
+    let matches = REGEX_DATE.exec(event.target.value);
+    if (matches) {
+      media.metadata.date.year(parseInt(matches[1]));
+      media.metadata.date.month(parseInt(matches[2]) - 1);
+      media.metadata.date.date(parseInt(matches[3]));
+
+      this.setState({
+        media: this.state.media,
+      });
+    }
+  }
+
+  onChangeMediaTime(media, event) {
+    let matches = REGEX_TIME.exec(event.target.value);
+    if (matches) {
+      media.metadata.date.hour(parseInt(matches[1]));
+      media.metadata.date.minute(parseInt(matches[2]));
+
+      this.setState({
+        media: this.state.media,
+      });
+    }
+  }
+
   render() {
     return (
       <div id="splitmain">
@@ -177,7 +208,10 @@ class UploadPage extends React.Component {
             <Then>
               <div className="medialist" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
                 {this.state.media.map((media) => (
-                  <Upload key={media.id} name={media.file.name} bitmap={media.bitmap} metadata={media.metadata} onChangeTags={this.onChangeMediaTags.bind(this, media)}/>
+                  <Upload key={media.id} name={media.file.name} bitmap={media.bitmap} metadata={media.metadata}
+                    onChangeTags={this.onChangeMediaTags.bind(this, media)}
+                    onChangeDate={this.onChangeMediaDate.bind(this, media)}
+                    onChangeTime={this.onChangeMediaTime.bind(this, media)}/>
                 ))}
               </div>
             </Then>
