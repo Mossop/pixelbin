@@ -12,8 +12,6 @@ export async function upload(file, metadata, additionalTags = "") {
     file,
     tags: metadata.tags + ", " + additionalTags,
     date: metadata.date.format("YYYY-MM-DDTHH:mm:ss"),
-    width: metadata.width,
-    height: metadata.height,
   };
 
   if (metadata.latitude && metadata.longitude) {
@@ -34,7 +32,7 @@ export async function listUntaggedMedia() {
   let response = await getRequest("listUntagged");
 
   if (response.ok) {
-    return (response.json()).media.map(unpickle);
+    return (await response.json()).media.map(unpickle);
   } else {
     throw new Error("Request failed");
   }
