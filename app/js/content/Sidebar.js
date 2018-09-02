@@ -4,6 +4,7 @@ import { connect } from "react-redux";
 import { Link, withRouter } from "react-router-dom";
 
 import { If, Then } from "../utils/if";
+import { bindAll } from "../utils/helpers";
 
 const TagLink = withRouter(({ tag, history, selectedTags, children }) => {
   let link = `/tag/${tag.path}`;
@@ -27,21 +28,27 @@ const TagLink = withRouter(({ tag, history, selectedTags, children }) => {
   );
 });
 
-const TagList = ({ parent, tags, depth = 0, selectedTags, untagged = false, all = false }) => {
+function isIncluded(tag, searchTerm) {
+  if (tag.name.toLowerCase().indexOf(searchTerm) >= 0) {
+    return true;
+  }
+
+  return tag.children.filter(t => isIncluded(t, searchTerm)).length > 0;
+}
+
+const TagList = ({ parent, tags, depth = 0, selectedTags, searchTerm }) => {
+  if (searchTerm) {
+    tags = tags.filter(t => isIncluded(t, searchTerm));
+  }
+
   return (
     <ol>
-      <If condition={parent == ""}>
-        <Then>
-          <li className={all ? "selected" : ""}><span style={{ paddingLeft: "10px" }}><Link to="/">All Media</Link></span></li>
-          <li className={untagged ? "selected" : ""}><span style={{ paddingLeft: "10px" }}><Link to="/untagged">Untagged Media</Link></span></li>
-        </Then>
-      </If>
       {tags.map(t => (
         <li key={t.id} className={selectedTags.map(t => t.get("path")).includes(t.path) ? "selected" : ""}>
-          <span style={{ paddingLeft: `${(depth + 1) * 10}px` }}><TagLink tag={t} selectedTags={selectedTags}>{t.name}</TagLink></span>
+          <span style={{ paddingLeft: `${(depth + 1) * 10}px`, paddingRight: "10px" }}><TagLink tag={t} selectedTags={selectedTags}>{t.name}</TagLink></span>
           <If condition={t.children.length > 0}>
             <Then>
-              <TagList parent={`${parent}${t.name}/`} tags={t.children} depth={depth + 1} selectedTags={selectedTags}/>
+              <TagList parent={`${parent}${t.name}/`} tags={t.children} depth={depth + 1} selectedTags={selectedTags} searchTerm={searchTerm}/>
             </Then>
           </If>
         </li>
@@ -53,23 +60,49 @@ const TagList = ({ parent, tags, depth = 0, selectedTags, untagged = false, all 
 TagList.propTypes = {
   parent: PropTypes.string.isRequired,
   tags: PropTypes.arrayOf(PropTypes.object).isRequired,
-  selectedTags: PropTypes.arrayOf(PropTypes.string).isRequired,
+  selectedTags: PropTypes.arrayOf(PropTypes.object).isRequired,
+  searchTerm: PropTypes.string.isRequired,
   depth: PropTypes.number,
-  all: PropTypes.bool,
-  untagged: PropTypes.bool,
 };
 
 const mapStateToProps = (state) => ({
   tags: state.get("tags").toJS(),
 });
 
-const Sidebar = ({ tags, selectedTags, untagged = false, all = false }) => {
-  return (
-    <div id="sidebar">
-      <TagList parent="" tags={tags} selectedTags={selectedTags} untagged={untagged} all={all}/>
-    </div>
-  );
-};
+class Sidebar extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      searchTerm: "",
+    };
+
+    bindAll(this, [
+      "onChangeSearchTerm",
+    ]);
+  }
+
+  onChangeSearchTerm(event) {
+    this.setState({
+      searchTerm: event.target.value,
+    });
+  }
+
+  render() {
+    let { tags, selectedTags, untagged = false, all = false } = this.props;
+    return (
+      <div id="sidebar">
+        <ol>
+          <li className={all ? "selected" : ""}><span style={{ paddingLeft: "10px" }}><Link to="/">All Media</Link></span></li>
+          <li className={untagged ? "selected" : ""}><span style={{ paddingLeft: "10px" }}><Link to="/untagged">Untagged Media</Link></span></li>
+        </ol>
+        <div className="tagsearch">
+          <input type="text" onChange={this.onChangeSearchTerm} value={this.state.searchTerm} placeholder="Filter tags"/>
+        </div>
+        <TagList parent="" tags={tags} selectedTags={selectedTags} searchTerm={this.state.searchTerm.toLowerCase()}/>
+      </div>
+    );
+  }
+}
 
 Sidebar.propTypes = {
   tags: PropTypes.arrayOf(PropTypes.object).isRequired,

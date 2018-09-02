@@ -74,7 +74,7 @@ a, a:hover, a:visited, a:active {
 }
 
 #sidebar {
-  width: 200px;
+  min-width: 200px;
   padding-top: 20px;
   overflow-y: auto;
   background: var(--sidebar-bg);
@@ -94,6 +94,18 @@ a, a:hover, a:visited, a:active {
 
 #sidebar li.selected {
   background: var(--sidebar-active);
+}
+
+.tagsearch {
+  width: 100%;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.tagsearch input {
+  margin: 0 10px;
 }
 
 #content {
