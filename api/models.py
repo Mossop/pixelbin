@@ -1,6 +1,9 @@
+import os
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
+from django.conf import settings
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -88,12 +91,8 @@ class Tag(models.Model):
     class Meta:
         unique_together = (('name', 'parent'))
 
-def choose_upload_path(instance, filename):
-    return '%s/%s' % (instance.owner.id, filename)
-
 class Media(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='media')
-    file = models.FileField(upload_to=choose_upload_path)
     tags = models.ManyToManyField(Tag, related_name='media')
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)
@@ -101,6 +100,24 @@ class Media(models.Model):
     mimetype = models.CharField(max_length=50)
     width = models.IntegerField()
     height = models.IntegerField()
+
+    @property
+    def root_path(self):
+        return os.path.join(settings.MEDIA_ROOT, str(self.owner.id), str(self.id))
+
+    @property
+    def preview_path(self):
+        return os.path.join(self.root_path, 'preview')
+
+    @property
+    def poster_path(self):
+        if self.mimetype.startswith('image/'):
+            return self.file_path
+        return os.path.join(self.root_path, 'poster')
+
+    @property
+    def file_path(self):
+        return os.path.join(self.root_path, 'full')
 
     def asJS(self):
         return {

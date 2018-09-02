@@ -1,3 +1,6 @@
+import os
+import shutil
+
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, FileResponse
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
@@ -8,6 +11,7 @@ from PIL import Image
 
 from . import models
 from .utils import *
+from .video import read_metadata, extract_poster
 
 def has_all_fields(dictionary, fields):
     for field in fields:
@@ -42,30 +46,65 @@ def upload(request):
             return HttpResponseBadRequest('<h1>Unsupported file type "%s"</h1>' % mimetype)
 
         taken = datetime.fromisoformat(request.POST['date'])
-        media = models.Media(owner=request.user, file=request.FILES['file'], taken=taken,
-                             mimetype=mimetype, width=request.POST['width'], height=request.POST['height'])
+        media = models.Media(owner=request.user, taken=taken,
+                             mimetype=mimetype, width=0, height=0)
         if 'latitude' in request.POST and 'longitude' in request.POST:
             media.latitude = float(request.POST['latitude'])
             media.longitude = float(request.POST['longitude'])
         media.save()
 
-        tags = [t.strip() for t in request.POST['tags'].split(',')]
-        for tag in tags:
-            parts = [p.strip() for p in tag.split("/")]
-            if any([p == "" for p in parts]):
-                continue
+        target = media.file_path
+        root_dir = os.path.dirname(target)
+        os.makedirs(root_dir)
 
-            parent = None
-            while len(parts) > 0:
-                name = parts.pop(0)
-                (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
-                                                               name=name,
-                                                               parent=parent)
+        try:
+            f = open(target, "wb")
+            for chunk in request.FILES['file'].chunks():
+                f.write(chunk)
+            f.close()
 
-            media.tags.add(parent)
-        return JsonResponse({
-            "tags": build_tags(request)
-        })
+            if mimetype.startswith('image/'):
+                im = Image.open(target)
+                media.width = im.width
+                media.height = im.height
+
+                im.thumbnail([500, 500])
+                im.save(media.preview_path, 'JPEG')
+
+                media.save()
+            else:
+                metadata = read_metadata(target)
+                media.width = metadata['width']
+                media.height = metadata['height']
+
+                extract_poster(target, media.poster_path)
+
+                im = Image.open(media.poster_path)
+                im.thumbnail([500, 500])
+                im.save(media.preview_path, 'JPEG')
+
+                media.save()
+
+            tags = [t.strip() for t in request.POST['tags'].split(',')]
+            for tag in tags:
+                parts = [p.strip() for p in tag.split("/")]
+                if any([p == "" for p in parts]):
+                    continue
+
+                parent = None
+                while len(parts) > 0:
+                    name = parts.pop(0)
+                    (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
+                                                                name=name,
+                                                                parent=parent)
+
+                media.tags.add(parent)
+            return JsonResponse({
+                "tags": build_tags(request)
+            })
+        except Exception as e:
+            shutil.rmtree(root_dir)
+            raise e
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
@@ -116,7 +155,7 @@ def thumbnail(request, id):
 
     size = int(request.GET['size'])
     media = models.Media.objects.get(id=id, owner=request.user)
-    im = Image.open(media.file)
+    im = Image.open(media.preview_path)
     im.thumbnail([size, size])
 
     response = HttpResponse(content_type="image/jpeg")
@@ -137,4 +176,4 @@ def download(request, id):
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
     media = models.Media.objects.get(id=id, owner=request.user)
-    return FileResponse(media.file)
+    return FileResponse(open(media.file_path, 'rb'))

@@ -11,3 +11,4 @@ __pycache__
 ^app/static/app/js
 ^media
 ^pixelbin.sqlite
+.DS_Store
