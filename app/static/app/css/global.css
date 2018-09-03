@@ -12,6 +12,8 @@
 
   --box-bg: var(--sidebar-active);
   --box-fg: #E8E7DD;
+
+  --highlight: var(--sidebar-active);
 }
 
 body, html, #app, #root {
@@ -123,6 +125,14 @@ a, a:hover, a:visited, a:active {
   flex-wrap: wrap;
   align-items: start;
   justify-content: start;
+}
+
+#mediaSelector i {
+  cursor: pointer;
+}
+
+#mediaSelector .selected {
+  background: var(--highlight);
 }
 
 .media {
