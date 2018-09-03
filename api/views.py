@@ -20,7 +20,7 @@ def has_all_fields(dictionary, fields):
     return True
 
 def login(request):
-    if request.method == 'POST' and 'email' in request.POST and 'password' in request.POST:
+    if request.method == 'POST' and has_all_fields(request.POST, ['email', 'password']):
         user = authenticate(request, username=request.POST['email'], password=request.POST['password'])
         if user is not None:
             login_user(request, user)
@@ -104,6 +104,7 @@ def upload(request):
             })
         except Exception as e:
             shutil.rmtree(root_dir)
+            media.delete()
             raise e
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
