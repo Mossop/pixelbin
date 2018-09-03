@@ -36,7 +36,7 @@ def logout(request):
 @login_required(login_url='/login')
 @transaction.atomic
 def upload(request):
-    if request.method == 'POST' and 'file' in request.FILES and has_all_fields(request.POST, ['tags', 'date', 'height', 'width']):
+    if request.method == 'POST' and 'file' in request.FILES and has_all_fields(request.POST, ['tags', 'date']):
         # filetype only considers the first 261 bytes of a file
         header = next(request.FILES['file'].chunks(261))
         mimetype = filetype.guess_mime(header)
@@ -120,31 +120,46 @@ def untagged(request):
         "media": [m.asJS() for m in media]
     })
 
-@login_required(login_url='/login')
-def list(request):
-    if request.method != 'GET':
-        return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
+def search_media(owner, include_tags, include_type, exclude_tags):
     # First filter down to only the media the user has access to
-    media = models.Media.objects.filter(owner=request.user)
+    media = models.Media.objects.filter(owner=owner)
 
-    if 'includeTag' in request.GET:
-        tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('includeTag')]
-
-        if 'includeType' in request.GET and request.GET['includeType'] == 'or':
-            ids = [tag.id for tag in union([tag.descendants() for tag in tags])]
+    if len(include_tags) > 0:
+        if include_type == 'OR':
+            ids = [tag.id for tag in union([tag.descendants() for tag in include_tags])]
             media = media.filter(tags__id__in=ids)
         else:
-            for tag in tags:
+            for tag in include_tags:
                 ids = [tag.id for tag in tag.descendants()]
                 media = media.filter(tags__id__in=ids)
 
         media = media.distinct()
 
-    if 'excludeTag' in request.GET:
-        tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('excludeTag')]
-        ids = [tag.id for tag in union([tag.descendants() for tag in tags])]
+    if len(exclude_tags) > 0:
+        ids = [tag.id for tag in union([tag.descendants() for tag in exclude_tags])]
         media = media.exclude(tags__id__in=ids)
+
+    return media
+
+
+@login_required(login_url='/login')
+def list(request):
+    if request.method != 'GET':
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    include_tags = []
+    if 'includeTag' in request.GET:
+        include_tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('includeTag')]
+
+    include_type = 'AND'
+    if 'includeType' in request.GET and request.GET['includeType'] == 'or':
+        include_type = 'OR'
+
+    exclude_tags = []
+    if 'excludeTag' in request.GET:
+        exclude_tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('excludeTag')]
+
+    media = search_media(request.user, include_tags, include_type, exclude_tags)
 
     return JsonResponse({
         "media": [m.asJS() for m in media]
@@ -178,3 +193,43 @@ def download(request, id):
 
     media = models.Media.objects.get(id=id, owner=request.user)
     return FileResponse(open(media.file_path, 'rb'))
+
+
+@login_required(login_url='/login')
+@transaction.atomic
+def save(request):
+    if (request.method != 'POST'):
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    include_type = 'AND'
+    if 'includeType' in request.POST and request.POST['includeType'] == 'or':
+        include_type = 'OR'
+
+    search = models.TagSearch(id=uuid(), owner=request.user, name="foo", include_type=include_type)
+    search.save()
+
+    if 'includeTag' in request.POST:
+        for id in request.POST.getlist('includeTag'):
+            tag = models.Tag.objects.get(id=int(id), owner=request.user)
+            search.include_tags.add(tag)
+
+    if 'excludeTag' in request.POST:
+        for id in request.POST.getlist('excludeTag'):
+            tag = models.Tag.objects.get(id=int(id), owner=request.user)
+            search.exclude_tags.add(tag)
+
+    return JsonResponse({
+        "searches": build_searches(request)
+    })
+
+def retrieve(request):
+    if (request.method != 'GET' or 'id'  not in request.GET):
+        return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+    search = models.TagSearch.objects.get(id=request.GET['id'])
+
+    media = search_media(search.owner, search.include_tags.all(), search.include_type, search.exclude_tags.all())
+
+    return JsonResponse({
+        "media": [m.asJS() for m in media]
+    })

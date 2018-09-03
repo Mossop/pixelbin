@@ -130,3 +130,16 @@ class Media(models.Model):
             "width": self.width,
             "height": self.height,
         }
+
+class TagSearch(models.Model):
+    INCLUDE_TYPE_CHOICES = (
+        ('AND', 'And'),
+        ('OR', 'Or'),
+    )
+
+    id = models.CharField(max_length=10, primary_key=True)
+    name = models.CharField(max_length=100)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tag_searches')
+    include_tags = models.ManyToManyField(Tag, related_name='included_tag_searches')
+    include_type = models.CharField(max_length=5, choices=INCLUDE_TYPE_CHOICES)
+    exclude_tags = models.ManyToManyField(Tag, related_name='excluded_tag_searches')

@@ -224,3 +224,12 @@ a, a:hover, a:visited, a:active {
   flex: 1;
   padding-top: 20px;
 }
+
+#searches h3 {
+  padding-top: 20px;
+  padding-left: 10px;
+}
+
+#searches li {
+  padding-left: 20px;
+}

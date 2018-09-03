@@ -9,6 +9,9 @@ const reducers = {
   [ACTIONS.ACTION_SET_TAGS]: (state, { tags }) => {
     return state.set("tags", fromJS(tags));
   },
+  [ACTIONS.ACTION_SET_SEARCHES]: (state, { searches }) => {
+    return state.set("searches", fromJS(searches));
+  },
 };
 
 export default (state, action) => {

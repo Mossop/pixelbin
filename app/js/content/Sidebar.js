@@ -67,6 +67,7 @@ TagList.propTypes = {
 
 const mapStateToProps = (state) => ({
   tags: state.get("tags").toJS(),
+  searches: state.get("searches").toJS(),
 });
 
 class Sidebar extends React.Component {
@@ -88,7 +89,7 @@ class Sidebar extends React.Component {
   }
 
   render() {
-    let { tags, selectedTags, untagged = false, all = false } = this.props;
+    let { tags, selectedTags, untagged = false, all = false, searches } = this.props;
     return (
       <div id="sidebar">
         <ol>
@@ -99,6 +100,18 @@ class Sidebar extends React.Component {
           <input type="text" onChange={this.onChangeSearchTerm} value={this.state.searchTerm} placeholder="Filter tags"/>
         </div>
         <TagList parent="" tags={tags} selectedTags={selectedTags} searchTerm={this.state.searchTerm.toLowerCase()}/>
+        <If condition={searches.length > 0}>
+          <Then>
+            <div id="searches">
+              <h3>Searches</h3>
+              <ol>
+                {searches.map(s => (
+                  <li key={s.id}><Link to={`/shared/${s.id}`}>{s.name}</Link></li>
+                ))}
+              </ol>
+            </div>
+          </Then>
+        </If>
       </div>
     );
   }
@@ -109,6 +122,7 @@ Sidebar.propTypes = {
   selectedTags: PropTypes.arrayOf(PropTypes.object).isRequired,
   all: PropTypes.bool,
   untagged: PropTypes.bool,
+  searches: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
 export default connect(mapStateToProps)(Sidebar);

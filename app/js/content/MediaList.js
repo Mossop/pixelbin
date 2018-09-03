@@ -52,7 +52,14 @@ class MediaList extends React.Component {
     return (
       <div id="content" className="vertical">
         <div className="horizontal" style={{ justifyContent: "space-between" }}>
-          <h2>{this.props.title}</h2>
+          <h2>
+            {this.props.title}
+            <If condition={!!this.props.onSaveSearch}>
+              <Then>
+                <sup onClick={this.props.onSaveSearch} style={{ cursor: "pointer", textDecoration: "underline", marginLeft: "5px" }}>Save Search</sup>
+              </Then>
+            </If>
+          </h2>
           <div id="mediaSelector">
             <If condition={this.state.type == "image"}>
               <Then>
@@ -91,6 +98,7 @@ class MediaList extends React.Component {
 MediaList.propTypes = {
   title: PropTypes.string.isRequired,
   media: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onSaveSearch: PropTypes.func,
 };
 
 export default MediaList;

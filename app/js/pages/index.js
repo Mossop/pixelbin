@@ -4,7 +4,7 @@ import { If, Then, Else } from "../utils/if";
 import { loggedIn } from "../utils/helpers";
 import Sidebar from "../content/Sidebar";
 import MediaList from "../content/MediaList";
-import { listMedia } from "../api/media";
+import { searchMedia } from "../api/search";
 
 class MainContent extends React.Component {
   constructor(props) {
@@ -15,7 +15,7 @@ class MainContent extends React.Component {
   }
 
   async componentDidMount() {
-    let media = await listMedia();
+    let media = await searchMedia();
     this.setState({
       media,
     });

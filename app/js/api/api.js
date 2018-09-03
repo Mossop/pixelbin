@@ -1,4 +1,11 @@
+import moment from "moment";
+
 const API_ROOT = new URL("/api/", window.location.href);
+
+export function unpickle(media) {
+  media.date = moment(media.date);
+  return media;
+}
 
 export function getRequest(path, options = {}) {
   let url = new URL(path, API_ROOT);
@@ -26,8 +33,14 @@ export async function postRequest(path, options = {}) {
   let url = new URL(path, API_ROOT);
 
   let formData = new FormData();
-  for (let key of Object.keys(options)) {
-    formData.append(key, options[key]);
+  if (options instanceof URLSearchParams) {
+    for (let [key, value] of options) {
+      formData.append(key, value);
+    }
+  } else {
+    for (let key of Object.keys(options)) {
+      formData.append(key, options[key]);
+    }
   }
 
   return fetch(url.href, {

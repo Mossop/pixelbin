@@ -9,6 +9,7 @@ import { tagFromPath } from "../utils/helpers";
 const mapStateToProps = (state, props) => {
   let newProps = {
     includeTags: [],
+    includeType: "and",
     excludeTags: [],
   };
 
@@ -18,6 +19,10 @@ const mapStateToProps = (state, props) => {
       newProps.includeTags.push(tagFromPath(state, value));
     } else if (key == "excludeTag") {
       newProps.excludeTags.push(tagFromPath(state, value));
+    } else if (key == "includeType") {
+      if (value == "or") {
+        newProps["includeType"] = "or";
+      }
     }
   }
 
@@ -35,6 +40,7 @@ const SearchPage = ({ includeTags, excludeTags }) => {
 
 SearchPage.propTypes = {
   includeTags: PropTypes.arrayOf(PropTypes.object).isRequired,
+  includeType: PropTypes.string.isRequired,
   excludeTags: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
