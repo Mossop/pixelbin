@@ -89,7 +89,7 @@ class Sidebar extends React.Component {
   }
 
   render() {
-    let { tags, selectedTags, untagged = false, all = false, searches } = this.props;
+    let { tags, selectedTags = [], selectedSearch = "", untagged = false, all = false, searches } = this.props;
     return (
       <div id="sidebar">
         <ol>
@@ -106,7 +106,7 @@ class Sidebar extends React.Component {
               <h3>Searches</h3>
               <ol>
                 {searches.map(s => (
-                  <li key={s.id}><Link to={`/shared/${s.id}`}>{s.name}</Link></li>
+                  <li key={s.id} className={s.id == selectedSearch ? "selected" : ""}><Link to={`/shared/${s.id}`}>{s.name}</Link></li>
                 ))}
               </ol>
             </div>
@@ -119,7 +119,8 @@ class Sidebar extends React.Component {
 
 Sidebar.propTypes = {
   tags: PropTypes.arrayOf(PropTypes.object).isRequired,
-  selectedTags: PropTypes.arrayOf(PropTypes.object).isRequired,
+  selectedTags: PropTypes.arrayOf(PropTypes.object),
+  selectedSearch: PropTypes.string,
   all: PropTypes.bool,
   untagged: PropTypes.bool,
   searches: PropTypes.arrayOf(PropTypes.object).isRequired,
