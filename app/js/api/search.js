@@ -50,7 +50,11 @@ export async function fetchShare(id) {
   });
 
   if (response.ok) {
-    return response.json();
+    let { name, media } = await response.json();
+    return {
+      name,
+      media: media.map(unpickle),
+    };
   } else {
     throw new Error("Request failed");
   }
