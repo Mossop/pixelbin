@@ -24,7 +24,7 @@ class Media extends React.Component {
   }
 
   async componentDidMount() {
-    let thumburl = buildThumbURL(this.props.media, this.props.thumbsize);
+    let thumburl = buildThumbURL(this.props.media, this.props.thumbsize, this.props.share);
 
     let response = await fetch(thumburl);
     if (response.ok) {
@@ -37,7 +37,12 @@ class Media extends React.Component {
   }
 
   openMedia() {
-    this.props.history.push(`/media/${this.props.media.id}`);
+    console.log(1);
+    if (this.props.share) {
+      this.props.history.push(`/share/${this.props.share}/media/${this.props.media.id}`);
+    } else {
+      this.props.history.push(`/media/${this.props.media.id}`);
+    }
   }
 
   render() {
@@ -55,6 +60,7 @@ Media.propTypes = {
   thumbsize: PropTypes.number.isRequired,
   media: PropTypes.object.isRequired,
   history: PropTypes.object.isRequired,
+  share: PropTypes.string,
 };
 
 export default withRouter(connect(mapStateToProps)(Media));

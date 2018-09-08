@@ -4,14 +4,14 @@ import { connect } from "react-redux";
 
 import MediaList from "../content/MediaList";
 import Sidebar from "../content/Sidebar";
-import { fetchTagSearch } from "../api/search";
+import { fetchShare } from "../api/search";
 import { loggedIn } from "../utils/helpers";
 
 const mapStateToProps = (state) => ({
   loggedIn: loggedIn(state),
 });
 
-class SharedPage extends React.Component {
+class SharePage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -21,7 +21,7 @@ class SharedPage extends React.Component {
   }
 
   async updateList() {
-    let { name, media } = await fetchTagSearch(this.props.match.params.id);
+    let { name, media } = await fetchShare(this.props.match.params.share);
     this.setState({
       name,
       media,
@@ -33,7 +33,7 @@ class SharedPage extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.match.params.id != prevProps.match.params.id) {
+    if (this.props.match.params.share != prevProps.match.params.share) {
       this.updateList();
     }
   }
@@ -42,7 +42,7 @@ class SharedPage extends React.Component {
     if (this.props.loggedIn) {
       return (
         <div id="splitmain">
-          <Sidebar selectedSearch={this.props.match.params.id}/>
+          <Sidebar selectedShare={this.props.match.params.share}/>
           <div id="content">
             <MediaList title={this.state.name} media={this.state.media}/>
           </div>
@@ -52,15 +52,15 @@ class SharedPage extends React.Component {
 
     return (
       <div id="content">
-        <MediaList title={this.state.name} media={this.state.media}/>
+        <MediaList title={this.state.name} media={this.state.media} share={this.props.match.params.share}/>
       </div>
     );
   }
 }
 
-SharedPage.propTypes = {
+SharePage.propTypes = {
   loggedIn: PropTypes.bool.isRequired,
   match: PropTypes.object.isRequired,
 };
 
-export default connect(mapStateToProps)(SharedPage);
+export default connect(mapStateToProps)(SharePage);

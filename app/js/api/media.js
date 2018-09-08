@@ -31,18 +31,29 @@ export async function listUntaggedMedia() {
   }
 }
 
-export function buildThumbURL(media, size) {
+export function buildThumbURL(media, size, share = null) {
   let url = getAPIPath(`media/${media.id}/thumbnail`);
   url.searchParams.append("size", size);
+  if (share) {
+    url.searchParams.append("share", share);
+  }
   return url;
 }
 
-export function buildDownloadURL(media) {
-  return getAPIPath(`media/${media.id}/download`);
+export function buildDownloadURL(media, share = null) {
+  let url = getAPIPath(`media/${media.id}/download`);
+  if (share) {
+    url.searchParams.append("share", share);
+  }
+  return url;
 }
 
-export async function loadMetadata(id) {
-  let response = await getRequest(`media/${id}`);
+export async function loadMetadata(id, share = null) {
+  let params = {};
+  if (share) {
+    params["share"] = share;
+  }
+  let response = await getRequest(`media/${id}`, params);
 
   if (response.ok) {
     return unpickle(await response.json());
@@ -51,8 +62,12 @@ export async function loadMetadata(id) {
   }
 }
 
-export async function loadBitmap(id) {
-  let response = await getRequest(`media/${id}/download`);
+export async function loadBitmap(id, share = null) {
+  let params = {};
+  if (share) {
+    params["share"] = share;
+  }
+  let response = await getRequest(`media/${id}/download`, params);
 
   if (response.ok) {
     return createImageBitmap(await response.blob());

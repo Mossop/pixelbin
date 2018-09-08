@@ -18,7 +18,7 @@ import UploadPage from "./pages/upload";
 import TagPage from "./pages/tag";
 import SearchPage from "./pages/search";
 import MediaPage from "./pages/media";
-import SharedPage from "./pages/shared";
+import SharePage from "./pages/share";
 
 let logging = createLogger({
   stateTransformer: (state) => state.toJS(),
@@ -40,7 +40,8 @@ ReactDOM.render(
           <Route exact path="/" component={IndexPage}/>
           <Route path="/login" component={LoginPage}/>
           <Route path="/logout" component={LogoutPage}/>
-          <Route path="/shared/:id" component={SharedPage}/>
+          <Route path="/share/:share/media/:id" component={MediaPage}/>
+          <Route path="/share/:share" component={SharePage}/>
           <RestrictedRoute path="/untagged" component={UntaggedPage}/>
           <RestrictedRoute path="/upload" component={UploadPage}/>
           <RestrictedRoute path="/tag/:tag+" component={TagPage}/>

@@ -141,6 +141,9 @@ def search_media(owner, include_tags, include_type, exclude_tags):
 
     return media
 
+def shared_media(share_id):
+    search = models.TagSearch.objects.get(id=share_id)
+    return search_media(search.owner, search.include_tags.all(), search.include_type, search.exclude_tags.all())
 
 @login_required(login_url='/login')
 def list(request):
@@ -165,12 +168,19 @@ def list(request):
         "media": [m.asJS() for m in media]
     })
 
+def get_media(request, id):
+    if ('share' not in request.GET):
+        return models.Media.objects.get(id=id, owner=request.user)
+    else:
+        return shared_media(request.GET['share']).filter(id=id)[0]
+
 def thumbnail(request, id):
     if request.method != 'GET' or 'size' not in request.GET:
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
     size = int(request.GET['size'])
-    media = models.Media.objects.get(id=id, owner=request.user)
+    media = get_media(request, id)
+
     im = Image.open(media.preview_path)
     im.thumbnail([size, size])
 
@@ -178,20 +188,18 @@ def thumbnail(request, id):
     im.save(response, 'JPEG')
     return response
 
-@login_required(login_url='/login')
 def metadata(request, id):
     if request.method != 'GET':
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
-    media = models.Media.objects.get(id=id, owner=request.user)
+    media = get_media(request, id)
     return JsonResponse(media.asJS())
 
-@login_required(login_url='/login')
 def download(request, id):
     if request.method != 'GET':
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
-    media = models.Media.objects.get(id=id, owner=request.user)
+    media = get_media(request, id)
     return FileResponse(open(media.file_path, 'rb'))
 
 
@@ -222,13 +230,11 @@ def save(request):
         "searches": build_searches(request)
     })
 
-def retrieve(request):
+def share(request):
     if (request.method != 'GET' or 'id'  not in request.GET):
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
-    search = models.TagSearch.objects.get(id=request.GET['id'])
-
-    media = search_media(search.owner, search.include_tags.all(), search.include_type, search.exclude_tags.all())
+    media = shared_media(request.GET['id'])
 
     return JsonResponse({
         "media": [m.asJS() for m in media]

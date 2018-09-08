@@ -9,35 +9,38 @@ import Throbber from "../content/Throbber";
 
 const isImage = (metadata) => metadata.mimetype.startsWith("image/");
 
-const ImageMediaDisplay = ({ metadata }) => {
+const ImageMediaDisplay = ({ metadata, share }) => {
   return (
-    <img id="media" src={buildDownloadURL(metadata)}/>
+    <img id="media" src={buildDownloadURL(metadata, share)}/>
   );
 };
 
 ImageMediaDisplay.propTypes = {
   metadata: PropTypes.object.isRequired,
+  share: PropTypes.string,
 };
 
-const VideoMediaDisplay = ({ metadata }) => {
+const VideoMediaDisplay = ({ metadata, share }) => {
   return (
-    <video id="media" src={buildDownloadURL(metadata)} controls="true" autoPlay="true"/>
+    <video id="media" src={buildDownloadURL(metadata, share)} controls="true" autoPlay="true"/>
   );
 };
 
 VideoMediaDisplay.propTypes = {
   metadata: PropTypes.object.isRequired,
+  share: PropTypes.string,
 };
 
-const MediaDisplay = ({ metadata }) => {
+const MediaDisplay = ({ metadata, share }) => {
   if (isImage(metadata)) {
-    return <ImageMediaDisplay metadata={metadata}/>;
+    return <ImageMediaDisplay metadata={metadata} share={share}/>;
   }
-  return <VideoMediaDisplay metadata={metadata}/>;
+  return <VideoMediaDisplay metadata={metadata} share={share}/>;
 };
 
 MediaDisplay.propTypes = {
   metadata: PropTypes.object.isRequired,
+  share: PropTypes.string,
 };
 
 class MediaContainer extends React.Component {
@@ -120,7 +123,7 @@ class MediaContainer extends React.Component {
             width: this.displayWidth,
             height: this.displayHeight,
           }}>
-            <MediaDisplay metadata={this.props.metadata}/>
+            <MediaDisplay metadata={this.props.metadata} share={this.props.share}/>
           </div>
         </div>
         <div id="metadataDisplay">
@@ -141,6 +144,7 @@ class MediaContainer extends React.Component {
 
 MediaContainer.propTypes = {
   metadata: PropTypes.object.isRequired,
+  share: PropTypes.string,
 };
 
 class MediaPage extends React.Component {
@@ -152,8 +156,8 @@ class MediaPage extends React.Component {
   }
 
   async componentDidMount() {
-    let mediaId = this.props.match.params.id;
-    let metadata = await loadMetadata(mediaId);
+    let { id, share = null } = this.props.match.params;
+    let metadata = await loadMetadata(id, share);
     this.setState({
       metadata,
     });
@@ -163,7 +167,7 @@ class MediaPage extends React.Component {
     if (this.state.metadata) {
       return (
         <div id="content" className="horizontal">
-          <MediaContainer metadata={this.state.metadata}/>
+          <MediaContainer metadata={this.state.metadata} share={this.props.match.params.share}/>
         </div>
       );
     }

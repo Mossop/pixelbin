@@ -106,7 +106,7 @@ class Sidebar extends React.Component {
               <h3>Searches</h3>
               <ol>
                 {searches.map(s => (
-                  <li key={s.id} className={s.id == selectedSearch ? "selected" : ""}><Link to={`/shared/${s.id}`}>{s.name}</Link></li>
+                  <li key={s.id} className={s.id == selectedSearch ? "selected" : ""}><Link to={`/share/${s.id}`}>{s.name}</Link></li>
                 ))}
               </ol>
             </div>

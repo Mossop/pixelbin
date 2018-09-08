@@ -9,7 +9,7 @@ urlpatterns = [
     path('listUntagged', views.untagged),
     path('listMedia', views.list),
     path('saveSearch', views.save),
-    path('tagSearch', views.retrieve),
+    path('share', views.share),
     path('media/<id>', views.metadata),
     path('media/<id>/download', views.download),
     path('media/<id>/thumbnail', views.thumbnail),

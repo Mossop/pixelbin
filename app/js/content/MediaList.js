@@ -36,7 +36,8 @@ class MediaList extends React.Component {
   }
 
   render() {
-    let media = this.props.media;
+    let { media, share = null } = this.props;
+
     media = sort(media, (a, b) => {
       let diff = a.date.diff(b.date);
       if (this.state.sort == "descending") {
@@ -87,7 +88,7 @@ class MediaList extends React.Component {
         </div>
         <div className="medialist">
           {media.map((media) => (
-            <Media key={media.id} media={media}/>
+            <Media key={media.id} media={media} share={share}/>
           ))}
         </div>
       </div>
@@ -98,6 +99,7 @@ class MediaList extends React.Component {
 MediaList.propTypes = {
   title: PropTypes.string.isRequired,
   media: PropTypes.arrayOf(PropTypes.object).isRequired,
+  share: PropTypes.string,
   onSaveSearch: PropTypes.func,
 };
 

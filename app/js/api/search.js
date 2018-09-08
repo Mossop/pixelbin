@@ -44,8 +44,8 @@ export async function saveSearch(includeTags, includeType = "and", excludeTags =
   }
 }
 
-export async function fetchTagSearch(id) {
-  let response = await getRequest("tagSearch", {
+export async function fetchShare(id) {
+  let response = await getRequest("share", {
     id,
   });
 
