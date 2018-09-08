@@ -54,4 +54,4 @@ def union(querysets):
     return first.union(*querysets)
 
 def uuid():
-    return urlsafe_b64encode(uuid4().bytes)
+    return urlsafe_b64encode(uuid4().bytes).decode("utf-8")
