@@ -58,6 +58,11 @@ class User(AbstractUser):
     def get_full_name(self):
         return self.full_name
 
+    def delete(self):
+        for media in Media.objects.filter(owner=self):
+            media.delete()
+        super().delete()
+
     class Meta:
         ordering = ['full_name']
 
