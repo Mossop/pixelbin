@@ -7,6 +7,7 @@ import hashlib
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseRedirect
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import cache_control
 from django.db import transaction
 from datetime import datetime
 import filetype
@@ -95,8 +96,6 @@ def upload(request):
 
                     im.thumbnail([500, 500])
                     im.save(media.preview_path, 'JPEG')
-
-                    media.save()
                 else:
                     metadata = read_metadata(temppath)
                     media.width = metadata['width']
@@ -111,7 +110,7 @@ def upload(request):
                     finally:
                         os.remove(poster_path)
 
-                    media.save()
+                media.save()
             finally:
                 os.remove(temppath)
         except:
@@ -189,6 +188,7 @@ def get_media(request, id):
     else:
         return shared_media(request.GET['share']).filter(id=id)[0]
 
+@cache_control(max_age=86400, private=True, immutable=True)
 def thumbnail(request, id):
     if request.method != 'GET' or 'size' not in request.GET:
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
@@ -203,6 +203,7 @@ def thumbnail(request, id):
     im.save(response, 'JPEG')
     return response
 
+@cache_control(max_age=86400, private=True, immutable=True)
 def metadata(request, id):
     if request.method != 'GET':
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
@@ -210,6 +211,7 @@ def metadata(request, id):
     media = get_media(request, id)
     return JsonResponse(media.asJS())
 
+@cache_control(max_age=3600, private=True)
 def download(request, id):
     if request.method != 'GET':
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
