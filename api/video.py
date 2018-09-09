@@ -1,6 +1,7 @@
 import subprocess
 import json
 import os
+import tempfile
 
 def read_metadata(filename):
     args = [
@@ -24,17 +25,21 @@ def read_metadata(filename):
         'height': videos[0]['height'],
     }
 
-def extract_poster(filename, target):
+def extract_poster(filename):
+    (fd, temp_path) = tempfile.mkstemp()
+    os.close(fd)
+
     args = [
         'ffmpeg',
+        '-y',
         '-i', filename,
         '-frames:v', '1',
         '-q:v', '3',
         '-f', 'singlejpeg',
-        target
+        temp_path
     ]
     completed = subprocess.run(args, capture_output=True, encoding='utf-8')
     if completed.returncode < 0:
         raise Exception('Unexpected return code %d from ffmpeg.' % completed.returncode)
-    if not os.path.exists(target):
-        raise Exception('ffmpeg failed to extract an image: %s' % completed.stdout)
+
+    return temp_path

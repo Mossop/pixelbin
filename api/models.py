@@ -6,6 +6,8 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from django.conf import settings
 
+from .backblaze import backblaze
+
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
         """
@@ -101,6 +103,11 @@ class Media(models.Model):
     mimetype = models.CharField(max_length=50)
     width = models.IntegerField()
     height = models.IntegerField()
+    storage_id = models.CharField(max_length=200)
+
+    @property
+    def storage_path(self):
+        return 'media/%s/%s' % (self.owner.id, self.id)
 
     @property
     def root_path(self):
@@ -110,18 +117,9 @@ class Media(models.Model):
     def preview_path(self):
         return os.path.join(self.root_path, 'preview')
 
-    @property
-    def poster_path(self):
-        if self.mimetype.startswith('image/'):
-            return self.file_path
-        return os.path.join(self.root_path, 'poster')
-
-    @property
-    def file_path(self):
-        return os.path.join(self.root_path, 'full')
-
     def delete(self):
         shutil.rmtree(self.root_path)
+        backblaze.delete(self.storage_path, self.storage_id)
         super().delete()
 
     def asJS(self):

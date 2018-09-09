@@ -1,7 +1,10 @@
 import os
+import sys
 import shutil
+import tempfile
+import hashlib
 
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, FileResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseRedirect
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -12,6 +15,7 @@ from PIL import Image
 from . import models
 from .utils import *
 from .video import read_metadata, extract_poster
+from .backblaze import backblaze
 
 def has_all_fields(dictionary, fields):
     for field in fields:
@@ -53,59 +57,70 @@ def upload(request):
             media.longitude = float(request.POST['longitude'])
         media.save()
 
-        target = media.file_path
-        root_dir = os.path.dirname(target)
-        os.makedirs(root_dir)
+        tags = [t.strip() for t in request.POST['tags'].split(',')]
+        for tag in tags:
+            parts = [p.strip() for p in tag.split("/")]
+            if any([p == "" for p in parts]):
+                continue
+
+            parent = None
+            while len(parts) > 0:
+                name = parts.pop(0)
+                (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
+                                                            name=name,
+                                                            parent=parent)
+
+            media.tags.add(parent)
+
+        os.makedirs(media.root_path, exist_ok=True)
 
         try:
-            f = open(target, "wb")
-            for chunk in request.FILES['file'].chunks():
-                f.write(chunk)
-            f.close()
+            (fd, temppath) = tempfile.mkstemp()
+            f = os.fdopen(fd, mode="wb")
+            try:
+                sha = hashlib.sha1()
+                for chunk in request.FILES['file'].chunks():
+                    sha.update(chunk)
+                    f.write(chunk)
+                f.close()
 
-            if mimetype.startswith('image/'):
-                im = Image.open(target)
-                media.width = im.width
-                media.height = im.height
+                f = open(temppath, 'rb')
+                media.storage_id = backblaze.upload(media.storage_path, sha.hexdigest(), f, mimetype)
+                f.close()
 
-                im.thumbnail([500, 500])
-                im.save(media.preview_path, 'JPEG')
+                if mimetype.startswith('image/'):
+                    im = Image.open(temppath)
+                    media.width = im.width
+                    media.height = im.height
 
-                media.save()
-            else:
-                metadata = read_metadata(target)
-                media.width = metadata['width']
-                media.height = metadata['height']
+                    im.thumbnail([500, 500])
+                    im.save(media.preview_path, 'JPEG')
 
-                extract_poster(target, media.poster_path)
+                    media.save()
+                else:
+                    metadata = read_metadata(temppath)
+                    media.width = metadata['width']
+                    media.height = metadata['height']
 
-                im = Image.open(media.poster_path)
-                im.thumbnail([500, 500])
-                im.save(media.preview_path, 'JPEG')
+                    poster_path = extract_poster(temppath)
 
-                media.save()
+                    try:
+                        im = Image.open(poster_path)
+                        im.thumbnail([500, 500])
+                        im.save(media.preview_path, 'JPEG')
+                    finally:
+                        os.remove(poster_path)
 
-            tags = [t.strip() for t in request.POST['tags'].split(',')]
-            for tag in tags:
-                parts = [p.strip() for p in tag.split("/")]
-                if any([p == "" for p in parts]):
-                    continue
+                    media.save()
+            finally:
+                os.remove(temppath)
+        except:
+            shutil.rmtree(media.root_path)
+            raise
 
-                parent = None
-                while len(parts) > 0:
-                    name = parts.pop(0)
-                    (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
-                                                                name=name,
-                                                                parent=parent)
-
-                media.tags.add(parent)
-            return JsonResponse({
-                "tags": build_tags(request)
-            })
-        except Exception as e:
-            shutil.rmtree(root_dir)
-            media.delete()
-            raise e
+        return JsonResponse({
+            "tags": build_tags(request)
+        })
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
@@ -200,7 +215,8 @@ def download(request, id):
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
     media = get_media(request, id)
-    return FileResponse(open(media.file_path, 'rb'))
+    url = backblaze.get_download_url(media.storage_path)
+    return HttpResponseRedirect(url)
 
 
 @login_required(login_url='/login')
