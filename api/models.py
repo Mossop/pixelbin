@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -118,6 +119,10 @@ class Media(models.Model):
     @property
     def file_path(self):
         return os.path.join(self.root_path, 'full')
+
+    def delete(self):
+        shutil.rmtree(self.root_path)
+        super().delete()
 
     def asJS(self):
         return {
