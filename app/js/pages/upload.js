@@ -55,25 +55,19 @@ class UploadPage extends React.Component {
     return this.state.media.length > 0;
   }
 
-  async onUpload() {
-    let globalTags = this.state.globalTags;
-    let allMedia = this.state.media;
+  async uploadMedia(media, additionalTags) {
+    let newTags = await upload(media.file, media.metadata, additionalTags);
+    this.props.onNewTags(newTags);
 
-    for (let pos = 0; pos < allMedia.length;) {
-      let media = allMedia[pos];
+    let newMedia = this.state.media.filter(m => m != media);
+    this.setState({
+      media: newMedia,
+    });
+  }
 
-      try {
-        let newTags = await upload(media.file, media.metadata, globalTags);
-        allMedia = allMedia.slice(0);
-        allMedia.splice(pos, 1);
-        this.setState({
-          media: allMedia,
-        });
-
-        this.props.onNewTags(newTags);
-      } catch (e) {
-        pos++;
-      }
+  onUpload() {
+    for (let media of this.state.media) {
+      this.uploadMedia(media, this.state.globalTags);
     }
   }
 
@@ -115,50 +109,54 @@ class UploadPage extends React.Component {
     this.addFiles(files);
   }
 
-  async addFiles(files) {
+  async addFile(file) {
     let { parseMetadata, createThumbnail } = await import(/* webpackChunkName: "metadata" */ "../metadata/parser");
 
-    for (let file of files) {
-      let media = {
-        id: uuid(),
-        file,
-        bitmap: null,
-        metadata: {
-          tags: "",
-          date: moment(file.lastModified),
-          longitude: null,
-          latitude: null,
-        },
-      };
+    let media = {
+      id: uuid(),
+      file,
+      bitmap: null,
+      metadata: {
+        tags: "",
+        date: moment(file.lastModified),
+        longitude: null,
+        latitude: null,
+      },
+    };
 
-      let metadata = await parseMetadata(file);
-      if ("hierarchicalTags" in metadata) {
-        media.metadata.tags = metadata.hierarchicalTags.map(t => t.replace(/\|/g, "/")).join(", ");
-      } else if ("tags" in metadata) {
-        media.metadata.tags = metadata.tags.join(", ");
-      }
-      if ("date" in metadata) {
-        media.metadata.date = metadata.date;
-      }
-      if (("longitude" in metadata) && ("latitude" in metadata)) {
-        media.metadata.latitude = metadata.latitude;
-        media.metadata.longitude = metadata.longitude;
-      }
+    let metadata = await parseMetadata(file);
+    if ("hierarchicalTags" in metadata) {
+      media.metadata.tags = metadata.hierarchicalTags.map(t => t.replace(/\|/g, "/")).join(", ");
+    } else if ("tags" in metadata) {
+      media.metadata.tags = metadata.tags.join(", ");
+    }
+    if ("date" in metadata) {
+      media.metadata.date = metadata.date;
+    }
+    if (("longitude" in metadata) && ("latitude" in metadata)) {
+      media.metadata.latitude = metadata.latitude;
+      media.metadata.longitude = metadata.longitude;
+    }
 
-      let newMedia = this.state.media.slice(0);
-      newMedia.push(media);
+    let newMedia = this.state.media.slice(0);
+    newMedia.push(media);
+    this.setState({
+      media: newMedia,
+    });
+
+    createThumbnail(file).then((bitmap) => {
+      media.bitmap = bitmap;
+      media.metadata.width = bitmap.width;
+      media.metadata.height = bitmap.height;
       this.setState({
-        media: newMedia,
+        media: this.state.media,
       });
+    });
+  }
 
-      createThumbnail(file).then((bitmap) => {
-        media.bitmap = bitmap;
-        media.metadata.width = bitmap.width;
-        media.metadata.height = bitmap.height;
-        this.setState({
-          media: this.state.media,
-        });
-      });
+  async addFiles(files) {
+    for (let file of files) {
+      this.addFile(file);
     }
   }
 

@@ -39,7 +39,6 @@ def logout(request):
     return JsonResponse(build_state(request))
 
 @login_required(login_url='/login')
-@transaction.atomic
 def upload(request):
     if request.method == 'POST' and 'file' in request.FILES and has_all_fields(request.POST, ['tags', 'date']):
         # filetype only considers the first 261 bytes of a file
@@ -51,29 +50,30 @@ def upload(request):
             return HttpResponseBadRequest('<h1>Unsupported file type "%s"</h1>' % mimetype)
 
         taken = datetime.fromisoformat(request.POST['date'])
-        media = models.Media(owner=request.user, taken=taken,
-                             mimetype=mimetype, width=0, height=0)
-        if 'latitude' in request.POST and 'longitude' in request.POST:
-            media.latitude = float(request.POST['latitude'])
-            media.longitude = float(request.POST['longitude'])
-        media.save()
 
-        tags = [t.strip() for t in request.POST['tags'].split(',')]
-        for tag in tags:
-            parts = [p.strip() for p in tag.split("/")]
-            if any([p == "" for p in parts]):
-                continue
+        with transaction.atomic():
+            media = models.Media(owner=request.user, taken=taken,
+                                mimetype=mimetype, width=0, height=0)
+            if 'latitude' in request.POST and 'longitude' in request.POST:
+                media.latitude = float(request.POST['latitude'])
+                media.longitude = float(request.POST['longitude'])
+            media.save()
 
-            parent = None
-            while len(parts) > 0:
-                name = parts.pop(0)
-                (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
-                                                            name=name,
-                                                            parent=parent)
+            tags = [t.strip() for t in request.POST['tags'].split(',')]
+            for tag in tags:
+                parts = [p.strip() for p in tag.split("/")]
+                if any([p == "" for p in parts]):
+                    continue
 
-            media.tags.add(parent)
+                parent = None
+                while len(parts) > 0:
+                    name = parts.pop(0)
+                    (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
+                                                                name=name,
+                                                                parent=parent)
 
-        os.makedirs(media.root_path, exist_ok=True)
+                media.tags.add(parent)
+            os.makedirs(media.root_path, exist_ok=True)
 
         try:
             (fd, temppath) = tempfile.mkstemp()
@@ -114,7 +114,7 @@ def upload(request):
             finally:
                 os.remove(temppath)
         except:
-            shutil.rmtree(media.root_path)
+            media.delete()
             raise
 
         return JsonResponse({
@@ -222,7 +222,6 @@ def download(request, id):
 
 
 @login_required(login_url='/login')
-@transaction.atomic
 def save(request):
     if (request.method != 'POST'):
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
@@ -231,17 +230,23 @@ def save(request):
     if 'includeType' in request.POST and request.POST['includeType'] == 'or':
         include_type = 'OR'
 
-    search = models.TagSearch(id=uuid(), owner=request.user, name="foo", include_type=include_type)
-    search.save()
-
+    includeTags = []
     if 'includeTag' in request.POST:
         for id in request.POST.getlist('includeTag'):
-            tag = models.Tag.objects.get(id=int(id), owner=request.user)
-            search.include_tags.add(tag)
+            includeTags.append(models.Tag.objects.get(id=int(id), owner=request.user))
 
+    excludeTags = []
     if 'excludeTag' in request.POST:
         for id in request.POST.getlist('excludeTag'):
-            tag = models.Tag.objects.get(id=int(id), owner=request.user)
+            excludeTags.append(models.Tag.objects.get(id=int(id), owner=request.user))
+
+    with transaction.atomic():
+        search = models.TagSearch(id=uuid(), owner=request.user, name="foo", include_type=include_type)
+        search.save()
+
+        for tag in includeTags:
+            search.include_tags.add(tag)
+        for tag in excludeTags:
             search.exclude_tags.add(tag)
 
     return JsonResponse({
