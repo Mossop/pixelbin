@@ -1,6 +1,5 @@
-import { JpegParser, JPEG_SOI, JPEG_EOI } from "./jpeg";
-
-const MP4_FTYP = 0x66747970;
+import { JpegParser } from "./jpeg";
+import fileType from "file-type";
 
 function loadBlob(blob) {
   return new Promise((resolve) => {
@@ -12,25 +11,12 @@ function loadBlob(blob) {
 
 export async function detectMimeType(blobOrBuffer) {
   let buffer = (blobOrBuffer instanceof Blob) ? await loadBlob(blobOrBuffer) : blobOrBuffer;
-  let data = new DataView(buffer);
-
-  let header16 = data.getUint16(0);
-  if (header16 == JPEG_SOI) {
-    let footer = data.getUint16(data.byteLength - 2);
-    if (footer == JPEG_EOI) {
-      return "image/jpeg";
-    }
+  let type = fileType(buffer);
+  if (!type) {
+    return null;
   }
 
-  let header32 = data.getUint32(0);
-  if (header32 < data.byteLength) {
-    header32 = data.getUint32(4);
-    if (header32 == MP4_FTYP) {
-      return "video/mp4";
-    }
-  }
-
-  return null;
+  return type.mime;
 }
 
 export async function parseMetadata(blob) {
