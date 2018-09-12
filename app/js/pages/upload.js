@@ -110,7 +110,7 @@ class UploadPage extends React.Component {
   }
 
   async addFile(file) {
-    let { parseMetadata, createThumbnail } = await import(/* webpackChunkName: "metadata" */ "../metadata/parser");
+    let { parseMetadata, createThumbnail } = await import(/* webpackChunkName: "metadata" */ "../utils/metadata");
 
     let media = {
       id: uuid(),
