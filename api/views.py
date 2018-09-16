@@ -118,10 +118,19 @@ def upload(request):
             raise
 
         return JsonResponse({
-            "tags": build_tags(request)
+            "tags": build_tags(request),
+            "media": media.asJS(),
         })
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+@login_required(login_url='/login')
+def delete(request):
+    if request.method == 'POST' and 'id' in request.POST:
+        media = models.Media.objects.get(id=request.POST['id'], owner=request.user)
+        media.delete()
+
+        return HttpResponse("OK")
 
 @login_required(login_url='/login')
 def untagged(request):

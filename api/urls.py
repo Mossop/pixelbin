@@ -6,6 +6,7 @@ urlpatterns = [
     path('login', views.login),
     path('logout', views.logout),
     path('upload', views.upload),
+    path('delete', views.delete),
     path('listUntagged', views.untagged),
     path('listMedia', views.list),
     path('saveSearch', views.save),
