@@ -24,6 +24,10 @@ provider.supportsCustomSortOrder = false
 provider.disableRenamePublishedCollection = false
 provider.disableRenamePublishedCollectionSet = false
 
+provider.allowFileFormats = {
+  "JPEG"
+}
+
 -- The setting to use for the publish service name if the user doesn't set one
 provider.publish_fallbackNameBinding = 'site_url'
 
@@ -120,7 +124,6 @@ end
 
 function provider.metadataThatTriggersRepublish(publishSettings)
   return {
-    default = false,
     keywords = true,
     dateCreated = true,
     gps = true
