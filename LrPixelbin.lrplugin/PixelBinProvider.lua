@@ -1,7 +1,8 @@
 local LrView = import "LrView"
-local LrHttp = import "LrHttp"
 local LrLogger = import "LrLogger"
 local LrDialogs = import "LrDialogs"
+
+require "PixelBinAPI"
 
 local bind = LrView.bind
 local share = LrView.share
@@ -142,29 +143,14 @@ end
 
 function provider.processRenderedPhotos(functionContext, exportContext)
   local publishSettings = exportContext.propertyTable
-  local url = publishSettings.site_url .. "api/login"
 
-  logger:trace("Logging in to " .. url)
-  local result, headers = LrHttp.postMultipart(url, {
-    { name = "email", value = publishSettings.email },
-    { name = "password", value = publishSettings.password }
-  })
+  local api = PixelBinAPI(publishSettings.site_url)
+  local status, result = api:login(publishSettings.email, publishSettings.password)
 
-  if result == nil then
-    LrDialogs.message("An error occurred while trying to log in.", headers["info"]["name"], "critical")
+  if not status then
+    LrDialogs.message(result, nil, "critical")
     return
   end
-
-  if headers["status"] ~= 200 then
-    if headers["status"] == 403 then
-      LrDialogs.message("Unable to log in. Check your email and password.", nil, "critical")
-    else
-      LrDialogs.message("Failed to log in for an unexpected reason.", "Status " .. headers["status"], "critical")
-    end
-    return
-  end
-
-  logger:info("Logged in!")
 end
 
 function provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
