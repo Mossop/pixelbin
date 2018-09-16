@@ -1,7 +1,13 @@
-local LrView = import 'LrView'
+local LrView = import "LrView"
+local LrHttp = import "LrHttp"
+local LrLogger = import "LrLogger"
+local LrDialogs = import "LrDialogs"
 
 local bind = LrView.bind
 local share = LrView.share
+
+local logger = LrLogger("PixelBinProvider")
+logger:enable("print")
 
 local provider = { }
 
@@ -14,7 +20,7 @@ provider.hideSections = {
 }
 
 provider.exportPresetFields = {
-  { key = 'username', default = "Your username" },
+  { key = 'email', default = "Your email address" },
   { key = 'password', default = "Your password" },
   { key = 'site_url', default = "https://pixelbin.org/" },
 }
@@ -55,12 +61,12 @@ function provider.sectionsForTopOfDialog(f, propertyTable)
     end,
   }
 
-  local username = f:edit_field {
+  local email = f:edit_field {
     width_in_chars = 20,
-    tooltip = "The username you use to log in to the server",
-    value = bind 'username',
+    tooltip = "The email address that you use to log in to the server",
+    value = bind 'email',
     validate = function(view, value)
-      return string.len(value) > 0, value, "Username cannot be empty"
+      return string.len(value) > 0, value, "Email cannot be empty"
     end,
   }
 
@@ -77,7 +83,7 @@ function provider.sectionsForTopOfDialog(f, propertyTable)
     {
       title = "Login Details",
 
-      synopsis = bind 'username',
+      synopsis = bind 'email',
 
       f:column {
         spacing = f:control_spacing(),
@@ -98,12 +104,12 @@ function provider.sectionsForTopOfDialog(f, propertyTable)
           spacing = f:label_spacing(),
 
           f:static_text {
-            title = "Username:",
+            title = "Email:",
             alignment = "right",
             width = LrView.share "label_width",
           },
 
-          username
+          email
         },
 
         f:row {
@@ -135,6 +141,30 @@ function provider.canAddCommentsToService(publishSettings)
 end
 
 function provider.processRenderedPhotos(functionContext, exportContext)
+  local publishSettings = exportContext.propertyTable
+  local url = publishSettings.site_url .. "api/login"
+
+  logger:trace("Logging in to " .. url)
+  local result, headers = LrHttp.postMultipart(url, {
+    { name = "email", value = publishSettings.email },
+    { name = "password", value = publishSettings.password }
+  })
+
+  if result == nil then
+    LrDialogs.message("An error occurred while trying to log in.", headers["info"]["name"], "critical")
+    return
+  end
+
+  if headers["status"] ~= 200 then
+    if headers["status"] == 403 then
+      LrDialogs.message("Unable to log in. Check your email and password.", nil, "critical")
+    else
+      LrDialogs.message("Failed to log in for an unexpected reason.", "Status " .. headers["status"], "critical")
+    end
+    return
+  end
+
+  logger:info("Logged in!")
 end
 
 function provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
