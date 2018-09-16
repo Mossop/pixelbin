@@ -69,7 +69,7 @@ class User(AbstractUser):
 class Tag(models.Model):
     objects = CTEManager()
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tags')
-    name = models.TextField()
+    name = models.CharField(max_length=100)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='children',
