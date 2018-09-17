@@ -8,6 +8,7 @@ from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_control
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
 from datetime import datetime
 import filetype
@@ -130,7 +131,8 @@ def delete(request):
         media = models.Media.objects.get(id=request.POST['id'], owner=request.user)
         media.delete()
 
-        return HttpResponse("OK")
+        return JsonResponse({})
+    return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
 @login_required(login_url='/login')
 def untagged(request):
@@ -271,3 +273,7 @@ def share(request):
     return JsonResponse({
         "media": [m.asJS() for m in media]
     })
+
+@ensure_csrf_cookie
+def dummy(request):
+    return JsonResponse({})
