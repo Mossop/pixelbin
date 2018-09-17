@@ -170,6 +170,22 @@ function provider.processRenderedPhotos(functionContext, exportContext)
 end
 
 function provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
+  local api = PixelBinAPI(publishSettings.site_url)
+  local success, result = api:login(publishSettings.email, publishSettings.password)
+
+  if not success then
+    LrDialogs.message(result, nil, "critical")
+    return
+  end
+
+  for i, photoId in ipairs(arrayOfPhotoIds) do
+    local success, result = api:delete(photoId)
+    if success then
+      deletedCallback(photoId)
+    end
+  end
+
+  api:logout()
 end
 
 return provider

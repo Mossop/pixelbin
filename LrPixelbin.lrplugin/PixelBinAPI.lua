@@ -159,6 +159,12 @@ function API:upload(photo, path)
   return success, result
 end
 
+function API:delete(id)
+  return self:POST("delete", {
+    { name = "id", value = id }
+  })
+end
+
 function API:logout()
   self:GET("logout", { })
 end
