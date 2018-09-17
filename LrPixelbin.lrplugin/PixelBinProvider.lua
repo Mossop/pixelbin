@@ -145,12 +145,28 @@ function provider.processRenderedPhotos(functionContext, exportContext)
   local publishSettings = exportContext.propertyTable
 
   local api = PixelBinAPI(publishSettings.site_url)
-  local status, result = api:login(publishSettings.email, publishSettings.password)
+  local success, result = api:login(publishSettings.email, publishSettings.password)
 
-  if not status then
+  if not success then
     LrDialogs.message(result, nil, "critical")
     return
   end
+
+  for i, rendition in exportContext:renditions() do
+    local success, pathOrMessage = rendition:waitForRender()
+    if success then
+      local success, result = api:upload(rendition.photo, pathOrMessage)
+      if success then
+        rendition:recordPublishedPhotoId(result["id"])
+      else
+        rendition:uploadFailed(result)
+      end
+    else
+      rendition:uploadFailed(pathOrMessage)
+    end
+  end
+
+  api:logout()
 end
 
 function provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
