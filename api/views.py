@@ -19,6 +19,8 @@ from .utils import *
 from .video import read_metadata, extract_poster
 from .backblaze import backblaze
 
+PREVIEW_SIZE = 600
+
 def has_all_fields(dictionary, fields):
     for field in fields:
         if field not in dictionary:
@@ -95,8 +97,8 @@ def upload(request):
                     media.width = im.width
                     media.height = im.height
 
-                    im.thumbnail([500, 500])
-                    im.save(media.preview_path, 'JPEG')
+                    im.thumbnail([PREVIEW_SIZE, PREVIEW_SIZE])
+                    im.save(media.preview_path, 'JPEG', quality=90)
                 else:
                     metadata = read_metadata(temppath)
                     media.width = metadata['width']
@@ -106,8 +108,8 @@ def upload(request):
 
                     try:
                         im = Image.open(poster_path)
-                        im.thumbnail([500, 500])
-                        im.save(media.preview_path, 'JPEG')
+                        im.thumbnail([PREVIEW_SIZE, PREVIEW_SIZE])
+                        im.save(media.preview_path, 'JPEG', quality=90)
                     finally:
                         os.remove(poster_path)
 
@@ -208,10 +210,10 @@ def thumbnail(request, id):
     media = get_media(request, id)
 
     im = Image.open(media.preview_path)
-    im.thumbnail([size, size])
+    im.thumbnail([size, size], Image.LANCZOS)
 
-    response = HttpResponse(content_type="image/jpeg")
-    im.save(response, 'JPEG')
+    response = HttpResponse(content_type="image/png")
+    im.save(response, 'PNG')
     return response
 
 @cache_control(max_age=86400, private=True, immutable=True)
