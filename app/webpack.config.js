@@ -2,7 +2,7 @@
 const path = require("path");
 
 const JS_ROOT = path.resolve(__dirname, "js");
-const STATIC_ROOT = path.resolve(__dirname, "static", path.basename(__dirname));
+const STATIC_ROOT = path.join(path.dirname(path.resolve(__dirname)), "public", "static", path.basename(__dirname));
 
 module.exports = {
   mode: "development",
