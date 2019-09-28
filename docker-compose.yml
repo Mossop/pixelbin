@@ -1,0 +1,27 @@
+version: "3.7"
+
+networks:
+  main:
+
+services:
+
+  redis:
+    image: redis
+    networks:
+      - main
+
+  celery:
+    build: ./docker/celery
+    networks:
+      - main
+    volumes:
+      - "$PWD:/usr/src/app"
+
+  server:
+    build: ./docker/testserver
+    networks:
+      - main
+    ports:
+      - 8000
+    volumes:
+      - "$PWD:/usr/src/app"

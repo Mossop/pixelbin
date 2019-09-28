@@ -1,0 +1,8 @@
+#! /bin/sh
+
+pip install -r requirements.txt
+
+trap 'trap - TERM; kill -1' TERM
+celery -A api worker -l info &
+wait
+exit 0
