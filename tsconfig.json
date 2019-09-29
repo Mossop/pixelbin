@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "target": "ESNext",
+    "moduleResolution": "Node",
+    "jsx": "preserve",
+    "esModuleInterop": true,
+  },
+  "exclude": [
+    "node_modules",
+  ]
+}

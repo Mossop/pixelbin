@@ -1,5 +1,5 @@
-app/static/app/js
 bin
 include
 lib
 public/static
+node_modules

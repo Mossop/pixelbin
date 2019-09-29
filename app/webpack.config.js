@@ -22,4 +22,8 @@ module.exports = {
       use: "babel-loader",
     }],
   },
+  externals: {
+    "react": "React",
+    "react-dom": "ReactDOM",
+  },
 };

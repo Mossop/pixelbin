@@ -6,10 +6,11 @@ set -e
 echo "Installing python dependencies..."
 pip install -q -r requirements.txt
 echo "Installing npm dependencies..."
+npm install -g gulp-cli
 ${EXEC} npm install
 
 ${EXEC} ./manage.py collectstatic --no-input
-${EXEC} node_modules/.bin/webpack --config app/webpack.config.js
+${EXEC} gulp bundle
 ${EXEC} ./manage.py makemigrations
 ${EXEC} ./manage.py migrate
 
