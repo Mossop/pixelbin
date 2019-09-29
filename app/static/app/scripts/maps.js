@@ -1,4 +1,4 @@
-/* eslint no-unused-vars: "off" */
+/* eslint @typescript-eslint/no-unused-vars: "off" */
 let KEYS = JSON.parse(document.getElementById("api-keys").textContent);
 
 let mapsResolve = null;

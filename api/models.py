@@ -55,7 +55,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-    def delete():
+    def delete(self):
         super().delete()
         Catalog.objects.filter(users = None).delete()
 
@@ -114,12 +114,12 @@ class Media(models.Model):
     storage_id = models.CharField(max_length=200)
     private = models.BooleanField()
 
-    storage = None
+    __storage = None
 
     def storage(self):
-        if self.storage is None:
-            self.storage = get_storage(self)
-        return self.storage
+        if self.__storage is None:
+            self.__storage = get_storage(self)
+        return self.__storage
 
     def delete(self):
         self.storage().delete()
@@ -128,10 +128,14 @@ class Media(models.Model):
     def asJS(self):
         return {
             "id": self.id,
+            "processed": self.processed,
+
+            "tags": [t.path for t in self.tags.all()],
+            # "albums":
             "longitude": self.longitude,
             "latitude": self.latitude,
-            "date": self.taken.isoformat(timespec='seconds'),
-            "tags": [t.path for t in self.tags.all()],
+            "taken": self.taken.isoformat(timespec='seconds'),
+
             "mimetype": self.mimetype,
             "width": self.width,
             "height": self.height,

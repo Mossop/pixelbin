@@ -18,7 +18,10 @@ module.exports = {
     },
   },
 
-  "plugins": ["@typescript-eslint"],
+  "plugins": [
+    "@typescript-eslint",
+    "@typescript-eslint/tslint"
+  ],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
@@ -36,12 +39,36 @@ module.exports = {
     "indent": "off",
     "@typescript-eslint/indent": ["error", 2],
     "prefer-const": "off",
+    "no-multiple-empty-lines": "error",
+    "no-new-wrappers": "error",
+    "no-throw-literal": "error",
+    "semi": "off",
+    "@typescript-eslint/semi": "error",
+    "@typescript-eslint/ban-ts-ignore": "off",
+    "@typescript-eslint/no-inferrable-types": ["error", {
+      "ignoreParameters": true,
+      "ignoreProperties": true,
+    }]
   },
   "overrides": [{
     // enable these rules specifically for TypeScript files
     "files": ["*.ts", "*.tsx"],
     "rules": {
       "@typescript-eslint/explicit-member-accessibility": "error",
+      "@typescript-eslint/tslint/config": [
+        "error", {
+          "rules": {
+            "typedef": [
+              true,
+              "call-signature",
+              "parameter",
+              "arrow-parameter",
+              "property-declaration",
+              "member-variable-declaration",
+            ]
+          }
+        }
+      ]
     }
   }, {
     // enable these rules specifically for TypeScript files

@@ -146,31 +146,6 @@ def untagged(request):
         "media": [m.asJS() for m in media]
     })
 
-def search_media(owner, include_tags, include_type, exclude_tags):
-    # First filter down to only the media the user has access to
-    media = models.Media.objects.filter(owner=owner)
-
-    if len(include_tags) > 0:
-        if include_type == 'OR':
-            ids = [tag.id for tag in union([tag.descendants() for tag in include_tags])]
-            media = media.filter(tags__id__in=ids)
-        else:
-            for tag in include_tags:
-                ids = [tag.id for tag in tag.descendants()]
-                media = media.filter(tags__id__in=ids)
-
-        media = media.distinct()
-
-    if len(exclude_tags) > 0:
-        ids = [tag.id for tag in union([tag.descendants() for tag in exclude_tags])]
-        media = media.exclude(tags__id__in=ids)
-
-    return media
-
-def shared_media(share_id):
-    search = models.TagSearch.objects.get(id=share_id)
-    return search_media(search.owner, search.include_tags.all(), search.include_type, search.exclude_tags.all())
-
 @login_required(login_url='/login')
 def list(request):
     if request.method != 'GET':

@@ -7,6 +7,11 @@
     "moduleResolution": "Node",
     "jsx": "preserve",
     "esModuleInterop": true,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./app/js/@types",
+      "./@types",
+    ]
   },
   "exclude": [
     "node_modules",

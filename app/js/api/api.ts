@@ -2,12 +2,20 @@ import moment from "moment";
 
 const API_ROOT = new URL("/api/", window.location.href);
 
-export function unpickle(media) {
-  media.date = moment(media.date);
-  return media;
+interface Pickled {
+  date: moment.MomentInput;
 }
 
-export function getRequest(path, options = {}) {
+interface Unpickled {
+  date: moment.Moment;
+}
+
+export function unpickle<B, P extends B & Pickled, U extends B & Unpickled>(media: P): U {
+  // @ts-ignore
+  return Object.assign({}, media, { date: moment(media.date) });
+}
+
+export function getRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
   let url = new URL(path, API_ROOT);
 
   if (options instanceof URLSearchParams) {
@@ -25,7 +33,7 @@ export function getRequest(path, options = {}) {
   });
 }
 
-export async function postRequest(path, options = {}) {
+export async function postRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
   let cookie = await import(/* webpackChunkName: "cookie" */"cookie");
 
   let headers = new Headers();
@@ -50,6 +58,6 @@ export async function postRequest(path, options = {}) {
   });
 }
 
-export function getAPIPath(path) {
+export function getAPIPath(path: string): URL {
   return new URL(path, API_ROOT);
 }
