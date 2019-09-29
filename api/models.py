@@ -6,10 +6,10 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from django.conf import settings
 
-from .backblaze import backblaze
+from .storage import get_storage
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, full_name, password=None):
+    def create_user(self, email, full_name, password = None):
         """
         Creates and saves a User with the given email, fullname and password.
         """
@@ -55,76 +55,74 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
+    def delete():
+        super().delete()
+        Catalog.objects.filter(users = None).delete()
+
     def get_full_name(self):
         return self.full_name
-
-    def delete(self):
-        for media in Media.objects.filter(owner=self):
-            media.delete()
-        super().delete()
 
     class Meta:
         ordering = ['full_name']
 
+class Catalog(models.Model):
+    storage = 'backblaze'
+    name = models.CharField(max_length=100)
+    users = models.ManyToManyField(User, related_name='catalogs', through = 'Access')
+
+class Access(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
+    editable = models.BooleanField()
+
+class Album(models.Model):
+    catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
+    name = models.CharField(max_length=100)
+    private = models.BooleanField()
+    parent = models.ForeignKey('self',
+                               on_delete=models.CASCADE,
+                               related_name='albums',
+                               null=True)
+
+    class Meta:
+        unique_together = (('name', 'parent'))
+
 class Tag(models.Model):
-    objects = CTEManager()
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tags')
+    catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='tags')
     name = models.CharField(max_length=100)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='children',
                                null=True)
 
-    @property
-    def path(self):
-        if self.parent:
-            return '%s/%s' % (self.parent.path, self.name)
-        return self.name
-
-    def descendants(self):
-        def make_tags_cte(cte):
-            return (
-                Tag.objects.filter(id=self.id)
-                           .values("id")
-                           .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
-            )
-
-        cte = With.recursive(make_tags_cte)
-
-        return (
-            cte.join(Tag, id=cte.col.id)
-               .with_cte(cte)
-        )
-
     class Meta:
         unique_together = (('name', 'parent'))
 
 class Media(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='media')
+    catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
+    processed = models.BooleanField()
+
     tags = models.ManyToManyField(Tag, related_name='media')
+    albums = models.ManyToManyField(Album, related_name='media')
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)
     taken = models.DateTimeField()
+
     mimetype = models.CharField(max_length=50)
     width = models.IntegerField()
     height = models.IntegerField()
     storage_id = models.CharField(max_length=200)
+    private = models.BooleanField()
 
-    @property
-    def storage_path(self):
-        return 'media/%s/%s' % (self.owner.id, self.id)
+    storage = None
 
-    @property
-    def root_path(self):
-        return os.path.join(settings.MEDIA_ROOT, str(self.owner.id), str(self.id))
-
-    @property
-    def preview_path(self):
-        return os.path.join(self.root_path, 'preview')
+    def storage(self):
+        if self.storage is None:
+            self.storage = get_storage(self)
+        return self.storage
 
     def delete(self):
-        shutil.rmtree(self.root_path)
-        backblaze.delete(self.storage_path, self.storage_id)
+        self.storage().delete()
         super().delete()
 
     def asJS(self):
@@ -138,16 +136,3 @@ class Media(models.Model):
             "width": self.width,
             "height": self.height,
         }
-
-class TagSearch(models.Model):
-    INCLUDE_TYPE_CHOICES = (
-        ('AND', 'And'),
-        ('OR', 'Or'),
-    )
-
-    id = models.CharField(max_length=10, primary_key=True)
-    name = models.CharField(max_length=100)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tag_searches')
-    include_tags = models.ManyToManyField(Tag, related_name='included_tag_searches')
-    include_type = models.CharField(max_length=5, choices=INCLUDE_TYPE_CHOICES)
-    exclude_tags = models.ManyToManyField(Tag, related_name='excluded_tag_searches')

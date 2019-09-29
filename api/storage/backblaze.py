@@ -1,10 +1,11 @@
 import requests
 
 from base.utils import config
+from . import Storage
 
 B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
 
-class Backblaze(object):
+class BackblazeAPI(object):
     auth_token = None
     api_url = None
     download_url = None
@@ -118,9 +119,26 @@ class Backblaze(object):
 
         return '%s/file/%s/%s?Authorization=%s' % (self.download_url, self.bucket_name, path, token)
 
-backblaze = Backblaze(
+API = BackblazeAPI(
     config.get('backblaze', 'key_id'),
     config.get('backblaze', 'key'),
     config.get('backblaze', 'bucket_id'),
     config.get('backblaze', 'bucket'),
 )
+
+class BackblazeStorage(Storage):
+    backblaze = None
+    file_id = None
+
+    def __init__(self, media):
+        super().__init__(media)
+        self.file_id = media.storage_id
+
+    def store_file(self, path):
+        pass
+
+    def get_full_url(self):
+        pass
+
+    def delete(self):
+        super().delete(media)

@@ -17,7 +17,6 @@ from PIL import Image
 from . import models
 from .utils import *
 from .video import read_metadata, extract_poster
-from .backblaze import backblaze
 
 PREVIEW_SIZE = 600
 
@@ -56,7 +55,7 @@ def upload(request):
 
         with transaction.atomic():
             media = models.Media(owner=request.user, taken=taken,
-                                mimetype=mimetype, width=0, height=0)
+                                 mimetype=mimetype, width=0, height=0)
             if 'latitude' in request.POST and 'longitude' in request.POST:
                 media.latitude = float(request.POST['latitude'])
                 media.longitude = float(request.POST['longitude'])
@@ -72,8 +71,8 @@ def upload(request):
                 while len(parts) > 0:
                     name = parts.pop(0)
                     (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
-                                                                name=name,
-                                                                parent=parent)
+                                                                   name=name,
+                                                                   parent=parent)
 
                 media.tags.add(parent)
             os.makedirs(media.root_path, exist_ok=True)
@@ -232,49 +231,6 @@ def download(request, id):
     media = get_media(request, id)
     url = backblaze.get_download_url(media.storage_path)
     return HttpResponseRedirect(url)
-
-
-@login_required(login_url='/login')
-def save(request):
-    if (request.method != 'POST'):
-        return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-    include_type = 'AND'
-    if 'includeType' in request.POST and request.POST['includeType'] == 'or':
-        include_type = 'OR'
-
-    includeTags = []
-    if 'includeTag' in request.POST:
-        for id in request.POST.getlist('includeTag'):
-            includeTags.append(models.Tag.objects.get(id=int(id), owner=request.user))
-
-    excludeTags = []
-    if 'excludeTag' in request.POST:
-        for id in request.POST.getlist('excludeTag'):
-            excludeTags.append(models.Tag.objects.get(id=int(id), owner=request.user))
-
-    with transaction.atomic():
-        search = models.TagSearch(id=uuid(), owner=request.user, name="foo", include_type=include_type)
-        search.save()
-
-        for tag in includeTags:
-            search.include_tags.add(tag)
-        for tag in excludeTags:
-            search.exclude_tags.add(tag)
-
-    return JsonResponse({
-        "searches": build_searches(request)
-    })
-
-def share(request):
-    if (request.method != 'GET' or 'id'  not in request.GET):
-        return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-    media = shared_media(request.GET['id'])
-
-    return JsonResponse({
-        "media": [m.asJS() for m in media]
-    })
 
 @ensure_csrf_cookie
 def dummy(request):

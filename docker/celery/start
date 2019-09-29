@@ -1,8 +1,13 @@
 #! /bin/sh
 
-pip install -r requirements.txt
+EXEC="sudo --user=pixelbin"
 
+set -e
+echo "Installing python dependencies..."
+pip install -q -r requirements.txt
+
+echo "Starting celery..."
 trap 'trap - TERM; kill -1' TERM
-celery -A api worker -l info &
+${EXEC} celery -A api worker -l info &
 wait
 exit 0
