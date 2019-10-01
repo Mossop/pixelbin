@@ -1,37 +1,48 @@
 import { Action } from "redux";
 
-import { State, StoreState } from "../types";
+import { UserState } from "../types";
 
-export enum ActionType {
-  Callable,
+export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";
+export const CLOSE_OVERLAY = "CLOSE_OVERLAY";
+export const COMPLETE_LOGIN = "COMPLETE_LOGIN";
+
+export type ActionType = ShowLoginOverlayAction | CompleteLoginAction | CloseOverlayAction;
+
+interface CloseOverlayAction extends Action {
+  type: typeof CLOSE_OVERLAY;
 }
 
-export abstract class BaseAction implements Action {
-  public type: ActionType = ActionType.Callable;
-
-  public abstract apply(state: StoreState): StoreState;
+export function closeOverlay(): CloseOverlayAction {
+  return {
+    type: CLOSE_OVERLAY,
+  };
 }
 
-export class ShowLoginOverlay extends BaseAction {
-  public apply(state: StoreState): StoreState {
-    state.page.overlay = {
-
-    };
-    return state;
-  }
+interface ShowLoginOverlayAction extends Action {
+  type: typeof SHOW_LOGIN_OVERLAY;
 }
 
-export class CompleteLogin extends BaseAction {
-  private newState: State;
-
-  public constructor(newState: State) {
-    super();
-    this.newState = newState;
-  }
-
-  public apply(state: StoreState): StoreState {
-    state.state = this.newState;
-    state.page.overlay = null;
-    return state;
-  }
+export function showLoginOverlay(): ShowLoginOverlayAction {
+  return {
+    type: SHOW_LOGIN_OVERLAY,
+  };
 }
+
+interface CompleteLoginAction extends Action {
+  type: typeof COMPLETE_LOGIN;
+  payload: UserState;
+}
+
+export function completeLogin(newState: UserState): CompleteLoginAction {
+  return {
+    type: COMPLETE_LOGIN,
+    payload: newState,
+  };
+}
+
+type ArgumentTypes<T> = T extends (... args: infer U ) => infer R ? U: never;
+type IntoVoid<T> = (...a: ArgumentTypes<T>) => void;
+
+export type DispatchProps<M> = {
+  [P in keyof M]: IntoVoid<M[P]>;
+};

@@ -30,6 +30,7 @@ module.exports = {
     "plugin:react/recommended",
   ],
   "rules": {
+    "react/prop-types": "off",
     "@typescript-eslint/array-type": "error",
     "@typescript-eslint/no-unnecessary-condition": "error",
     "quotes": "off",

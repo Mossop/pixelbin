@@ -29,6 +29,14 @@ def build_searches(request):
         })
     return searches
 
+def build_catalogs(request):
+    catalogs = []
+    for access in Access.objects.filter(user=request.user).search_related("catalog"):
+        js = access.catalog.asJS()
+        js["editable"] = access.editable
+        catalogs.append(js)
+    return catalogs
+
 def build_state(request):
     if request.user.is_authenticated:
         return {
@@ -36,13 +44,11 @@ def build_state(request):
                 "email": request.user.email,
                 "fullname": request.user.full_name,
             },
-            "tags": build_tags(request),
-            "searches": build_searches(request),
+            "catalogs": build_catalogs(request),
         }
     else:
         return {
             "user": None,
-            "tags": None,
         }
 
 def union(querysets):

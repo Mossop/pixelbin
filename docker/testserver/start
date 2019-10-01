@@ -16,6 +16,7 @@ ${EXEC} ./manage.py migrate
 
 echo "Starting test server..."
 trap 'trap - TERM; kill -1' TERM
+${EXEC} gulp watch &
 ${EXEC} ./manage.py runserver --nostatic 0.0.0.0:8000 &
 wait
 exit 0

@@ -1,22 +1,37 @@
-import { applyMiddleware, createStore, Store, Action, Middleware } from "redux";
+import { applyMiddleware, createStore, Store, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
-import { ActionType, BaseAction } from "./actions";
-import { StoreState, StateDecoder, decode } from "../types";
+import { ActionType, SHOW_LOGIN_OVERLAY, COMPLETE_LOGIN, CLOSE_OVERLAY } from "./actions";
+import { StoreState, OverlayType } from "../types";
 
-function isBaseAction(action: Action): action is BaseAction {
-  return action.type === ActionType.Callable;
-}
-
-function reducer (state: StoreState, action: Action): StoreState {
-  if (isBaseAction(action)) {
-    return action.apply(state);
+function reducer(state: StoreState, action: ActionType): StoreState {
+  switch (action.type) {
+    case SHOW_LOGIN_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.Login,
+        }
+      };
+    }
+    case COMPLETE_LOGIN: {
+      return {
+        ...state,
+        userState: action.payload,
+      };
+    }
+    case CLOSE_OVERLAY: {
+      return {
+        ...state,
+        overlay: undefined,
+      };
+    }
   }
+
   return state;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildStore(initialState: any): Store {
+export function buildStore(initialState: StoreState): Store<StoreState, ActionType> {
   const middlewares: Middleware[] = [];
 
   if (process.env.NODE_ENV === "development") {
@@ -25,7 +40,7 @@ export function buildStore(initialState: any): Store {
 
   return createStore(
     reducer,
-    { state: decode(StateDecoder, initialState) },
+    initialState,
     applyMiddleware(...middlewares),
   );
 }

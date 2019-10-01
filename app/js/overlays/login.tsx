@@ -1,19 +1,14 @@
 import React from "react";
-import { Action } from "redux";
 import { connect } from "react-redux";
 
 import { login } from "../api/auth";
 import Textbox from "../content/Textbox";
 
-import { CompleteLogin } from "../utils/actions";
-import { UserState, Overlay, OverlayType } from "../types";
+import { DispatchProps, completeLogin } from "../utils/actions";
+import { Overlay, OverlayType } from "../types";
 
 export function isLoginOverlay(state: Overlay): boolean {
   return state.type === OverlayType.Login;
-}
-
-interface DispatchProps {
-  onNewState: (state: UserState) => void;
 }
 
 interface LoginState {
@@ -21,11 +16,11 @@ interface LoginState {
   failed: boolean;
 }
 
-type LoginProps = DispatchProps;
+const mapDispatchToProps = {
+  onNewState: completeLogin,
+};
 
-const mapDispatchToProps = (dispatch: (action: Action) => void): DispatchProps => ({
-  onNewState: (state: UserState): void => dispatch(new CompleteLogin(state)),
-});
+type LoginProps = DispatchProps<typeof mapDispatchToProps>;
 
 class LoginOverlay extends React.Component<LoginProps, LoginState> {
   private emailBox: React.RefObject<Textbox>;

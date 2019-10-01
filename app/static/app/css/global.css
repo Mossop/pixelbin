@@ -132,12 +132,6 @@ a, a:hover, a:visited, a:active {
   margin-right: 10px;
 }
 
-#loginForm {
-  padding: 20px;
-  background: var(--box-bg);
-  color: var(--box-fg);
-}
-
 .centerAlign {
   text-align: center;
 }
@@ -224,10 +218,20 @@ a, a:hover, a:visited, a:active {
 
 #overlay {
   position: fixed;
-  top: 40px;
-  bottom: 40px;
-  left: 40px;
-  right: 40px;
-  background: white;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#overlay > * {
   border: 1px solid black;
+  padding: 10px;
+  background: var(--box-bg);
+  color: var(--box-fg);
 }

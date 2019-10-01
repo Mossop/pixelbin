@@ -1,6 +1,10 @@
-export const loggedIn = (state) => state.get("user", null) != null;
+import { StoreState } from "../types";
 
-export const bindAll = (obj, keys) => {
+export function loggedIn(state: StoreState): boolean {
+  return !!state.userState.user;
+}
+
+/*export const bindAll = (obj, keys) => {
   for (let key of keys) {
     obj[key] = obj[key].bind(obj);
   }
@@ -14,7 +18,7 @@ export const tagIDFromPath = (state, path) => {
   return null;
 };
 
-export const tagFromPath = (state, path) => {
+export function tagFromPath(state, path) {
   const findTag = (tagList, tagPath) => {
     let first = tagPath.shift();
     let tag = tagList.find(t => t.get("name") == first);
@@ -32,18 +36,19 @@ export const tagFromPath = (state, path) => {
   let tags = path.split("/");
 
   return findTag(state.get("tags"), tags);
-};
+}
 
-export const uuid = () => {
-  function s4() {
+export function uuid(): string {
+  function s4(): string {
     return Math.floor((1 + Math.random()) * 0x10000)
-               .toString(16)
-               .substring(1);
+      .toString(16)
+      .substring(1);
   }
   return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
-};
+}
 
-export function deepEqual(a, b) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deepEqual(a: any, b: any): boolean {
   if (a === null && b === null) {
     return true;
   }
@@ -100,3 +105,4 @@ export function deepEqual(a, b) {
     return a === b;
   }
 }
+*/

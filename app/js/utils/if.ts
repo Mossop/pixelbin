@@ -1,55 +1,63 @@
 import React from "react";
-import PropTypes from "prop-types";
 import { connect } from "react-redux";
 
-export const Then = ({ children }) => children;
-Then.propTypes = {
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node,
-  ]).isRequired,
-};
-export const Else = ({ children }) => children;
-Else.propTypes = {
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node,
-  ]).isRequired,
-};
+import { StoreState } from "../types";
 
-function calculateResult(state, { condition }) {
-  let result = condition;
-  if (typeof result == "function") {
-    result = result(state);
+export class Then extends React.Component {
+  public render(): React.ReactNode {
+    return this.props.children;
+  }
+}
+
+export class Else extends React.Component {
+  public render(): React.ReactNode {
+    return this.props.children;
+  }
+}
+
+interface IfProps {
+  result: boolean;
+}
+
+class If extends React.Component<IfProps> {
+  public render(): React.ReactNode {
+    let element: React.ReactNode;
+    React.Children.forEach(this.props.children, (child: React.ReactNode) => {
+      if (React.isValidElement(child)) {
+        if (this.props.result && child.type == Then) {
+          element = child;
+        } else if (!this.props.result && child.type == Else) {
+          element = child;
+        }
+      }
+    });
+
+    return element;
+  }
+}
+
+type Condition = boolean | ((state: StoreState) => boolean);
+interface CalcProps {
+  condition: Condition;
+
+  // Why does this need to be here?
+  children: [
+    React.ReactElement,
+    React.ReactElement,
+  ] | React.ReactElement;
+}
+
+function calculateResult(state: StoreState, props: CalcProps): IfProps {
+  let { condition } = props;
+  let result: boolean;
+  if (typeof condition == "function") {
+    result = condition(state);
+  } else {
+    result = condition;
   }
 
   return { result };
 }
-
-const If = ({ result, children }) => {
-  let element = null;
-  React.Children.forEach(children, child => {
-    if (React.isValidElement(child)) {
-      if (result && child.type == Then) {
-        element = child;
-      }
-      else if (!result && child.type == Else) {
-        element = child;
-      }
-    }
-  });
-
-  return element;
-};
-
-If.propTypes = {
-  condition: PropTypes.oneOfType([ PropTypes.bool, PropTypes.func ]).isRequired,
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node,
-  ]).isRequired,
-  result: PropTypes.bool.isRequired,
-};
 
 const ConnectedIf = connect(calculateResult)(If);
 
