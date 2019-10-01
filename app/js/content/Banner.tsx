@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { connect } from "react-redux";
 
 import { showLoginOverlay, DispatchProps } from "../utils/actions";
-import { Button } from "../content/Button";
+import { Button } from "../components/Button";
 import { loggedIn } from "../utils/helpers";
 import { If, Then, Else } from "../utils/if";
 
@@ -24,8 +24,8 @@ class Banner extends React.Component<BannerProps> {
             <Link to="/logout">Log Out</Link>
           </Then>
           <Else>
-            <Button onClick={this.props.openLoginOverlay}>Log In</Button>
-            <Link to="/signup">Sign Up</Link>
+            <Button style={{ height: "100%" }} onClick={this.props.openLoginOverlay}>Log In</Button>
+            <Button style={{ height: "100%" }} onClick={(): void => {}}>Sign Up</Button>
           </Else>
         </If>
       </div>

@@ -1,19 +1,25 @@
 :root {
-  --header-bg: #1A1920;
-  --header-fg: #E8E7DD;
-  --header-height: 50px;
+  --background: #36454F;
+  --foreground: #E8E7DD;
+  --active: #7E7C78;
+  --error: #ad0606;
+}
 
-  --sidebar-bg: #6C636A;
-  --sidebar-fg: #E8E7DD;
-  --sidebar-active: #7E7C78;
+#banner {
+  --background: #1A1920;
+  --foreground: #E8E7DD;
+  --height: 50px;
+}
 
-  --main-bg: #36454F;
-  --main-fg: #E8E7DD;
+#sidebar {
+  --background: #6C636A;
+  --foreground: #E8E7DD;
+  --width: 200px;
+}
 
-  --box-bg: var(--sidebar-active);
-  --box-fg: #E8E7DD;
-
-  --highlight: var(--sidebar-active);
+#overlay {
+  --background: #7E7C78;
+  --foreground: #E8E7DD;
 }
 
 body, html, #app, #root {
@@ -39,6 +45,8 @@ a, a:hover, a:visited, a:active {
   display: flex;
   flex-direction: column;
   font-family: sans-serif;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 #banner {
@@ -46,15 +54,16 @@ a, a:hover, a:visited, a:active {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  background: var(--header-bg);
-  color: var(--header-fg);
-  height: var(--header-height);
+  background: var(--background);
+  color: var(--foreground);
+  height: var(--height);
+  font-family: 'Comfortaa', cursive;
+  font-size: 15px;
 }
 
 #logo {
-  font-family: 'Comfortaa', cursive;
-  font-size: 20px;
   padding-left: 20px;
+  font-size: 20px;
 }
 
 #rightbanner {
@@ -76,11 +85,11 @@ a, a:hover, a:visited, a:active {
 }
 
 #sidebar {
-  min-width: 200px;
+  min-width: var(--width);
   padding-top: 20px;
   overflow-y: auto;
-  background: var(--sidebar-bg);
-  color: var(--sidebar-fg);
+  background: var(--background);
+  color: var(--foreground);
 }
 
 #sidebar ol {
@@ -95,15 +104,15 @@ a, a:hover, a:visited, a:active {
 }
 
 #sidebar li.selected {
-  background: var(--sidebar-active);
+  background: var(--active);
 }
 
 #content {
   flex: 1;
   overflow-y: auto;
   padding: 10px;
-  background: var(--main-bg);
-  color: var(--main-fg);
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .medialist {
@@ -168,61 +177,13 @@ a, a:hover, a:visited, a:active {
   align-items: center;
 }
 
-#mediaContainer {
-  width: calc(70% - 20px);
-  margin-right: 10px;
-  position: relative;
-}
-
-#mediaDisplay {
-  position: absolute;
-}
-
-#media {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  bottom: 0;
-  max-width: 100%;
-  max-height: 100%;
-  width: 100%;
-  height: 100%;
-}
-
-#metadataDisplay {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-items: stretch;
-}
-
-#mapDisplay {
-  flex: 1;
-}
-
-#metadataGrid {
-  flex: 1;
-  padding-top: 20px;
-}
-
-#searches h3 {
-  padding-top: 20px;
-  padding-left: 10px;
-}
-
-#searches li {
-  padding-left: 20px;
-}
-
 #overlay {
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -231,7 +192,39 @@ a, a:hover, a:visited, a:active {
 
 #overlay > * {
   border: 1px solid black;
-  padding: 10px;
-  background: var(--box-bg);
-  color: var(--box-fg);
+  padding: 20px;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.error {
+  color: var(--error);
+}
+
+.button {
+  color: inherit;
+  background: var(--background);
+  color: var(--foreground);
+  border: none;
+  cursor: pointer;
+  display: block;
+  text-align: center;
+  font: inherit;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.button > span {
+  vertical-align: center;
+}
+
+.button:hover {
+  background: var(--active);
+}
+
+.throbber {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
 }

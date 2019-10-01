@@ -32,7 +32,9 @@ module.exports = {
   "rules": {
     "react/prop-types": "off",
     "@typescript-eslint/array-type": "error",
-    "@typescript-eslint/no-unnecessary-condition": "error",
+    "@typescript-eslint/no-unnecessary-condition": ["error", {
+      ignoreRhs: true
+    }],
     "quotes": "off",
     "@typescript-eslint/quotes": "error",
     "brace-style": "off",

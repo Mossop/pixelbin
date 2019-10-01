@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 
 import { loadMetadata, buildDownloadURL } from "../api/media";
 import { bindAll } from "../utils/helpers";
-import Throbber from "../content/Throbber";
+import Throbber from "../components/Throbber";
 
 /* global promiseMapsAPI, google */
 

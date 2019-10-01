@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { login } from "../api/auth";
-import Textbox from "../content/Textbox";
+import Textbox from "../components/Textbox";
 
 import { DispatchProps, completeLogin } from "../utils/actions";
 import { Overlay, OverlayType } from "../types";
@@ -53,14 +53,21 @@ class LoginOverlay extends React.Component<LoginProps, LoginState> {
       this.props.onNewState(state);
     } catch (e) {
       this.setState({ disabled: false, failed: true });
+
+      //this.emailBox.current.disable();
+      //this.passwordBox.current.disable();
     }
   };
 
   public render(): React.ReactNode {
+    let title = this.state.failed ?
+      <p className="error" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Incorrect username or password. Try again:</p> :
+      <p style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Please enter your login details:</p>;
+
     return (
       <div className="centerblock">
         <form id="loginForm" className="fieldGrid" onSubmit={this.onSubmit}>
-          <p style={{ gridColumn: "span 2", justifySelf: "start" }}>Please enter your login details:</p>
+          {title}
           <p className="rightAlign"><label htmlFor="email">Email address:</label></p>
           <Textbox type="email" id="email" ref={this.emailBox}/>
           <p className="rightAlign"><label htmlFor="password">Password:</label></p>
