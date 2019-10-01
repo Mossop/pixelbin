@@ -1,5 +1,18 @@
-import { JsonDecoder, ok, err, Result } from "ts.data.json";
+import { JsonDecoder, Ok, ok, err, Result } from "ts.data.json";
 import moment from "moment";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
+  let result = decoder.decode(data);
+  if (result instanceof Ok) {
+    return result.value;
+  }
+  throw new Error(result.error);
+}
+
+function OptionalDecoder<A>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<undefined | A> {
+  return JsonDecoder.oneOf([JsonDecoder.isNull(undefined), JsonDecoder.isUndefined(undefined), decoder], `${name}?`);
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DateDecoder = new JsonDecoder.Decoder<moment.Moment>((json: any): Result<moment.Moment> => {
@@ -26,15 +39,15 @@ export const UserInfoDecoder = JsonDecoder.object<UserInfo>(
   "State"
 );
 
-export interface State {
+export interface UserState {
   user?: UserInfo;
 }
 
-export const StateDecoder = JsonDecoder.object<State>(
+export const UserStateDecoder = JsonDecoder.object<UserState>(
   {
-    user: JsonDecoder.oneOf([JsonDecoder.isNull(null), UserInfoDecoder], "User?"),
+    user: OptionalDecoder(UserInfoDecoder, "User"),
   },
-  "State"
+  "UserState"
 );
 
 export interface Tag {

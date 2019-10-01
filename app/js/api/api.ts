@@ -1,19 +1,4 @@
-import moment from "moment";
-
 const API_ROOT = new URL("/api/", window.location.href);
-
-interface Pickled {
-  date: moment.MomentInput;
-}
-
-interface Unpickled {
-  date: moment.Moment;
-}
-
-export function unpickle<B, P extends B & Pickled, U extends B & Unpickled>(media: P): U {
-  // @ts-ignore
-  return Object.assign({}, media, { date: moment(media.date) });
-}
 
 export function getRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
   let url = new URL(path, API_ROOT);

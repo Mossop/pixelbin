@@ -1,20 +1,37 @@
-export const ACTIONS = {
-  ACTION_SET_STATE: "SET_STATE",
-  ACTION_SET_TAGS: "SET_TAGS",
-  ACTION_SET_SEARCHES: "SET_SEARCHES",
-};
+import { Action } from "redux";
 
-export const setState = (newState) => ({
-  type: ACTIONS.ACTION_SET_STATE,
-  newState,
-});
+import { State, StoreState } from "../types";
 
-export const setTags = (tags) => ({
-  type: ACTIONS.ACTION_SET_TAGS,
-  tags,
-});
+export enum ActionType {
+  Callable,
+}
 
-export const setSearches = (searches) => ({
-  type: ACTIONS.ACTION_SET_SEARCHES,
-  searches,
-});
+export abstract class BaseAction implements Action {
+  public type: ActionType = ActionType.Callable;
+
+  public abstract apply(state: StoreState): StoreState;
+}
+
+export class ShowLoginOverlay extends BaseAction {
+  public apply(state: StoreState): StoreState {
+    state.page.overlay = {
+
+    };
+    return state;
+  }
+}
+
+export class CompleteLogin extends BaseAction {
+  private newState: State;
+
+  public constructor(newState: State) {
+    super();
+    this.newState = newState;
+  }
+
+  public apply(state: StoreState): StoreState {
+    state.state = this.newState;
+    state.page.overlay = null;
+    return state;
+  }
+}

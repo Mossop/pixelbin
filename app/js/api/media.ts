@@ -1,5 +1,5 @@
 import { getRequest, postRequest, getAPIPath } from "./api";
-import { UploadResponseDecoder, Media, UploadMetadata, MediaDecoder, MediaArrayDecoder, Tag } from "./types";
+import { UploadResponseDecoder, Media, UploadMetadata, MediaDecoder, MediaArrayDecoder, Tag } from "../types";
 
 export async function upload(file: string, metadata: UploadMetadata, additionalTags: string = ""): Promise<Tag[]> {
   let params = new URLSearchParams();

@@ -98,18 +98,6 @@ a, a:hover, a:visited, a:active {
   background: var(--sidebar-active);
 }
 
-.tagsearch {
-  width: 100%;
-  margin: 10px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.tagsearch input {
-  margin: 0 10px;
-}
-
 #content {
   flex: 1;
   overflow-y: auto;
@@ -232,4 +220,14 @@ a, a:hover, a:visited, a:active {
 
 #searches li {
   padding-left: 20px;
+}
+
+#overlay {
+  position: fixed;
+  top: 40px;
+  bottom: 40px;
+  left: 40px;
+  right: 40px;
+  background: white;
+  border: 1px solid black;
 }

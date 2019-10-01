@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.6.2",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
     "@babel/preset-env": "^7.6.2",
     "@babel/preset-react": "^7.0.0",
     "@babel/preset-typescript": "^7.6.0",
@@ -40,7 +41,6 @@
   "dependencies": {
     "cookie": "^0.4.0",
     "file-type": "^12.3.0",
-    "immutable": "^3.8.2",
     "media-metadata": "^0.1.0",
     "moment": "^2.24.0",
     "react": "^16.10.1",

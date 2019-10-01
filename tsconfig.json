@@ -7,6 +7,8 @@
     "moduleResolution": "Node",
     "jsx": "preserve",
     "esModuleInterop": true,
+    "strictPropertyInitialization": true,
+    "strictNullChecks": true,
     "typeRoots": [
       "./node_modules/@types",
       "./app/js/@types",

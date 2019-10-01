@@ -10,6 +10,7 @@ import { config, path } from "./base/config";
 
 function babelOptions(): RuleSetQuery {
   return {
+    plugins: ["@babel/plugin-proposal-class-properties"],
     presets: [
       ["@babel/preset-typescript", {
         isTSX: true,
@@ -22,7 +23,7 @@ function babelOptions(): RuleSetQuery {
         }
       }]
     ],
-  }
+  };
 }
 
 function lint(): NodeJS.ReadWriteStream {
