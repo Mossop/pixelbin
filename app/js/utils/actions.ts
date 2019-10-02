@@ -7,13 +7,16 @@ export const SHOW_SIGNUP_OVERLAY = "SHOW_SIGNUP_OVERLAY";
 export const CLOSE_OVERLAY = "CLOSE_OVERLAY";
 export const COMPLETE_LOGIN = "COMPLETE_LOGIN";
 export const COMPLETE_SIGNUP = "COMPLETE_SIGNUP";
+export const COMPLETE_LOGOUT = "COMPLETE_LOGOUT";
 
 export type ActionType =
   ShowLoginOverlayAction |
   ShowSignupOverlayAction |
   CompleteLoginAction |
   CompleteSignupAction |
-  CloseOverlayAction;
+  CompleteLogoutAction |
+  CloseOverlayAction |
+  CompleteLogoutAction;
 
 interface CloseOverlayAction extends Action {
   type: typeof CLOSE_OVERLAY;
@@ -65,6 +68,18 @@ interface CompleteSignupAction extends Action {
 export function completeSignup(newState: ServerState): CompleteSignupAction {
   return {
     type: COMPLETE_SIGNUP,
+    payload: newState,
+  };
+}
+
+interface CompleteLogoutAction extends Action {
+  type: typeof COMPLETE_LOGOUT;
+  payload: ServerState;
+}
+
+export function completeLogout(newState: ServerState): CompleteLogoutAction {
+  return {
+    type: COMPLETE_LOGOUT,
     payload: newState,
   };
 }

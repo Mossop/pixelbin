@@ -6,6 +6,7 @@ import { ActionType,
   SHOW_SIGNUP_OVERLAY,
   COMPLETE_LOGIN,
   COMPLETE_SIGNUP,
+  COMPLETE_LOGOUT,
   CLOSE_OVERLAY } from "./actions";
 import { StoreState, OverlayType } from "../types";
 
@@ -39,6 +40,12 @@ function reducer(state: StoreState, action: ActionType): StoreState {
         ...state,
         serverState: action.payload,
         overlay: undefined,
+      };
+    }
+    case COMPLETE_LOGOUT: {
+      return {
+        ...state,
+        serverState: action.payload,
       };
     }
     case CLOSE_OVERLAY: {

@@ -39,7 +39,6 @@ class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof
   };
 
   private onKeyDown = (event: KeyboardEvent): void => {
-    console.log(event.key);
     if (event.key == "Escape") {
       event.preventDefault();
       event.stopPropagation();
