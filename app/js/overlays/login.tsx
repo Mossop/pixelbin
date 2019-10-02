@@ -37,6 +37,12 @@ class LoginOverlay extends React.Component<LoginProps, LoginState> {
     this.passwordBox = React.createRef();
   }
 
+  public componentDidMount(): void {
+    if (this.emailBox.current) {
+      this.emailBox.current.focus();
+    }
+  }
+
   private onSubmit = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 

@@ -20,8 +20,26 @@ interface OverlayProps {
 }
 
 class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof mapDispatchToProps>> {
-  private onClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
+  public componentDidMount(): void {
+    document.addEventListener("keydown", this.onKeyDown, true);
+  }
+
+  public componentWillUnmount(): void {
+    document.removeEventListener("keydown", this.onKeyDown, true);
+  }
+
+  private onClick = (event: React.MouseEvent): void => {
     if (event.target == event.currentTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      this.props.closeOverlay();
+    }
+  };
+
+  private onKeyDown = (event: KeyboardEvent): void => {
+    console.log(event.key);
+    if (event.key == "Escape") {
       event.preventDefault();
       event.stopPropagation();
 
