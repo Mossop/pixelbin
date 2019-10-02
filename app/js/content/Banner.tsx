@@ -2,13 +2,14 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { connect } from "react-redux";
 
-import { showLoginOverlay, DispatchProps } from "../utils/actions";
+import { showLoginOverlay, showSignupOverlay, DispatchProps } from "../utils/actions";
 import { Button } from "../components/Button";
 import { loggedIn } from "../utils/helpers";
 import { If, Then, Else } from "../utils/if";
 
 const mapDispatchToProps = {
   openLoginOverlay: showLoginOverlay,
+  openSignupOverlay: showSignupOverlay,
 };
 
 type BannerProps = DispatchProps<typeof mapDispatchToProps>;
@@ -25,7 +26,7 @@ class Banner extends React.Component<BannerProps> {
           </Then>
           <Else>
             <Button style={{ height: "100%" }} onClick={this.props.openLoginOverlay}>Log In</Button>
-            <Button style={{ height: "100%" }} onClick={(): void => {}}>Sign Up</Button>
+            <Button style={{ height: "100%" }} onClick={this.props.openSignupOverlay}>Sign Up</Button>
           </Else>
         </If>
       </div>

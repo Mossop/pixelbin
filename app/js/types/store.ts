@@ -2,6 +2,7 @@ import { ServerState } from "./api";
 
 export enum OverlayType {
   Login,
+  Signup,
   Logout,
 }
 

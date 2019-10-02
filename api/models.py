@@ -53,6 +53,7 @@ class User(AbstractUser):
     first_name = None
     last_name = None
     verified = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.email

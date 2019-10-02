@@ -5,7 +5,7 @@ import tempfile
 import hashlib
 
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseRedirect
-from django.contrib.auth import authenticate, login as login_user, logout as logout_user
+from django.contrib.auth import authenticate, login as login_user, logout as logout_user, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -34,6 +34,15 @@ def login(request):
             return JsonResponse(build_state(request))
         else:
             return HttpResponseForbidden('<h1>Forbidden</h1>')
+    return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+def signup(request):
+    if request.method == 'POST' and has_all_fields(request.POST, ['email', 'full_name', 'password']):
+        user = get_user_model().objects.create_user(request.POST['email'], request.POST['full_name'], request.POST['password'])
+        user.verified = True
+        user.save()
+        login_user(request, user)
+        return JsonResponse(build_state(request))
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
 def logout(request):

@@ -3,6 +3,7 @@ import { connect } from "react-redux";
 
 import { StoreState, Overlay } from "../types";
 import LoginOverlay, { isLoginOverlay } from "./login";
+import SignupOverlay, { isSignupOverlay } from "./signup";
 import { closeOverlay, DispatchProps } from "../utils/actions";
 
 function mapStateToProps(state: StoreState): OverlayProps {
@@ -51,6 +52,8 @@ class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof
     if (this.props.overlay) {
       if (isLoginOverlay(this.props.overlay)) {
         return <div id="overlay" onClick={this.onClick}><LoginOverlay/></div>;
+      } else if (isSignupOverlay(this.props.overlay)) {
+        return <div id="overlay" onClick={this.onClick}><SignupOverlay/></div>;
       }
     }
 

@@ -33,7 +33,7 @@ def build_albums(request):
 
 def build_catalogs(user):
     catalogs = []
-    for access in Access.objects.filter(user=user).search_related("catalog").order_by('catalog_name'):
+    for access in models.Access.objects.filter(user=user).select_related("catalog").order_by('catalog__name'):
         js = access.catalog.asJS()
         js["editable"] = access.editable and user.verified
         js["tags"] = build_tags(access.catalog)
