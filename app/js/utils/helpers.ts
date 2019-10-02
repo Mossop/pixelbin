@@ -1,7 +1,7 @@
 import { StoreState } from "../types";
 
 export function loggedIn(state: StoreState): boolean {
-  return !!state.userState.user;
+  return !!state.serverState.user;
 }
 
 /*export const bindAll = (obj, keys) => {

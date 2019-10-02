@@ -36,6 +36,7 @@ class UserManager(BaseUserManager):
         )
         user.is_superuser = True
         user.is_staff = True
+        user.verified = True
         user.save(using=self._db)
         return user
 
@@ -46,11 +47,12 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    email = models.CharField(max_length=100, unique=True)
-    full_name = models.CharField(max_length=200, unique=True)
+    email = models.CharField(max_length=100, primary_key=True)
+    full_name = models.CharField(max_length=200)
     username = None
     first_name = None
     last_name = None
+    verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.email
@@ -62,20 +64,42 @@ class User(AbstractUser):
     def get_full_name(self):
         return self.full_name
 
+    def asJS(self):
+        return {
+            "email": self.email,
+            "fullname": self.full_name,
+        }
+
     class Meta:
         ordering = ['full_name']
 
 class Catalog(models.Model):
     storage = 'backblaze'
+    id = models.CharField(max_length=24, primary_key=True)
+    stub = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
     users = models.ManyToManyField(User, related_name='catalogs', through = 'Access')
+
+    def asJS(self):
+        return {
+            id: self.id,
+            stub: self.stub,
+            name: self.name,
+        }
 
 class Access(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
     editable = models.BooleanField()
 
+    class Meta:
+        unique_together = (('user', 'catalog'))
+
 class Album(models.Model):
+    objects = CTEManager()
+
+    id = models.CharField(max_length=24, primary_key=True)
+    stub = models.CharField(max_length=50)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
     name = models.CharField(max_length=100)
     private = models.BooleanField()
@@ -84,10 +108,36 @@ class Album(models.Model):
                                related_name='albums',
                                null=True)
 
+    def descendants(self):
+        def make_albums_cte(cte):
+            return (
+                Album.objects.filter(id=self.id)
+                             .values("id")
+                             .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
+            )
+
+        cte = With.recursive(make_albums_cte)
+
+        return (
+            cte.join(Album, id=cte.col.id)
+               .with_cte(cte)
+        )
+
+    def asJS(self):
+        return {
+            id: self.id,
+            stub: self.stub,
+            name: self.name,
+            private: self.private,
+        }
+
     class Meta:
-        unique_together = (('name', 'parent'))
+        unique_together = (('catalog', 'id'))
+        unique_together = (('catalog', 'parent', 'name'))
 
 class Tag(models.Model):
+    objects = CTEManager()
+
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='tags')
     name = models.CharField(max_length=100)
     parent = models.ForeignKey('self',
@@ -95,10 +145,40 @@ class Tag(models.Model):
                                related_name='children',
                                null=True)
 
+    @property
+    def path(self):
+        if self.parent:
+            path = self.parent.path
+            path.append(self.name)
+            return path
+        return [self.name]
+
+    def descendants(self):
+        def make_tags_cte(cte):
+            return (
+                Tag.objects.filter(id=self.id)
+                           .values("id")
+                           .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
+            )
+
+        cte = With.recursive(make_tags_cte)
+
+        return (
+            cte.join(Tag, id=cte.col.id)
+               .with_cte(cte)
+        )
+
+    def asJS(self):
+        return {
+            "name": self.name,
+            "path": self.path,
+        }
+
     class Meta:
-        unique_together = (('name', 'parent'))
+        unique_together = (('catalog', 'parent', 'name'))
 
 class Media(models.Model):
+    id = models.CharField(max_length=24, primary_key=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
     processed = models.BooleanField()
 
@@ -131,7 +211,7 @@ class Media(models.Model):
             "processed": self.processed,
 
             "tags": [t.path for t in self.tags.all()],
-            # "albums":
+            "albums": [{id: a.id, stub: a.stub} for a in self.albums.all()],
             "longitude": self.longitude,
             "latitude": self.latitude,
             "taken": self.taken.isoformat(timespec='seconds'),

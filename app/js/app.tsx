@@ -4,18 +4,18 @@ import { Provider } from "react-redux";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 
 import { buildStore } from "./utils/store";
-import { StoreState, UserStateDecoder, decode } from "./types";
+import { StoreState, ServerStateDecoder, decode } from "./types";
 
 import Banner from "./content/Banner";
 import IndexPage from "./pages/index";
 import Overlay from "./overlays/index";
 
-let initialState: StoreState = { userState: { } };
+let initialState: StoreState = { serverState: { } };
 let stateElement = document.getElementById("initial-state");
 if (stateElement && stateElement.textContent) {
   try {
     initialState = {
-      userState: decode(UserStateDecoder, JSON.parse(stateElement.textContent)),
+      serverState: decode(ServerStateDecoder, JSON.parse(stateElement.textContent)),
     };
   } catch (e) {
     console.error(e);

@@ -1,24 +1,24 @@
 import { getRequest, postRequest } from "./api";
-import { UserStateDecoder, UserState } from "../types";
+import { ServerStateDecoder, ServerState } from "../types";
 
-export async function login(email: string, password: string): Promise<UserState> {
+export async function login(email: string, password: string): Promise<ServerState> {
   let request = await postRequest("login", {
     email,
     password,
   });
 
   if (request.ok) {
-    return UserStateDecoder.decodePromise(await request.json());
+    return ServerStateDecoder.decodePromise(await request.json());
   } else {
     throw new Error("Login failed");
   }
 }
 
-export async function logout(): Promise<UserState> {
+export async function logout(): Promise<ServerState> {
   let request = await getRequest("logout");
 
   if (request.ok) {
-    return UserStateDecoder.decodePromise(await request.json());
+    return ServerStateDecoder.decodePromise(await request.json());
   } else {
     throw new Error("Logout failed");
   }

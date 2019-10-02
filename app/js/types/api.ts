@@ -26,32 +26,26 @@ const DateDecoder = new JsonDecoder.Decoder<moment.Moment>((json: any): Result<m
   return err<moment.Moment>(`'${json}' is not a string.`);
 });
 
-export interface UserInfo {
-  email: string;
-  fullname: string;
+export interface Album {
+  id: string;
+  stub: string;
+  name: string;
+  private: boolean;
+  children: Album[];
 }
 
-export const UserInfoDecoder = JsonDecoder.object<UserInfo>(
+export const AlbumDecoder = JsonDecoder.object<Album>(
   {
-    email: JsonDecoder.string,
-    fullname: JsonDecoder.string,
+    id: JsonDecoder.string,
+    stub: JsonDecoder.string,
+    name: JsonDecoder.string,
+    private: JsonDecoder.boolean,
+    children: JsonDecoder.array<Album>(JsonDecoder.lazy<Album>(() => AlbumDecoder), "Album[]"),
   },
-  "State"
-);
-
-export interface UserState {
-  user?: UserInfo;
-}
-
-export const UserStateDecoder = JsonDecoder.object<UserState>(
-  {
-    user: OptionalDecoder(UserInfoDecoder, "User"),
-  },
-  "UserState"
+  "Album"
 );
 
 export interface Tag {
-  id: number;
   name: string;
   path: string;
   children: Tag[];
@@ -59,12 +53,58 @@ export interface Tag {
 
 export const TagDecoder = JsonDecoder.object<Tag>(
   {
-    id: JsonDecoder.number,
     name: JsonDecoder.string,
     path: JsonDecoder.string,
     children: JsonDecoder.array<Tag>(JsonDecoder.lazy<Tag>(() => TagDecoder), "Tag[]"),
   },
-  "State"
+  "Tag"
+);
+
+export interface Catalog {
+  id: string;
+  stub: string;
+  name: string;
+  editable: boolean;
+  tags: Tag[];
+  albums: Album[];
+}
+
+export const CatalogDecoder = JsonDecoder.object<Catalog>(
+  {
+    id: JsonDecoder.string,
+    stub: JsonDecoder.string,
+    name: JsonDecoder.string,
+    editable: JsonDecoder.boolean,
+    tags: JsonDecoder.array(TagDecoder, "Tag[]"),
+    albums: JsonDecoder.array(AlbumDecoder, "Album[]"),
+  },
+  "Catalog"
+);
+
+export interface User {
+  email: string;
+  fullname: string;
+  catalogs: Catalog[];
+}
+
+export const UserDecoder = JsonDecoder.object<User>(
+  {
+    email: JsonDecoder.string,
+    fullname: JsonDecoder.string,
+    catalogs: JsonDecoder.array(CatalogDecoder, "Catalog[]"),
+  },
+  "User"
+);
+
+export interface ServerState {
+  user?: User;
+}
+
+export const ServerStateDecoder = JsonDecoder.object<ServerState>(
+  {
+    user: OptionalDecoder(UserDecoder, "User"),
+  },
+  "ServerState"
 );
 
 export interface Media {
@@ -72,8 +112,8 @@ export interface Media {
   processed: boolean;
 
   tags: string[];
-  longitude: number;
-  latitude: number;
+  longitude?: number;
+  latitude?: number;
   taken: moment.Moment;
 
   mimetype: string;
@@ -87,8 +127,8 @@ export const MediaDecoder = JsonDecoder.object<Media>(
     processed: JsonDecoder.boolean,
 
     tags: JsonDecoder.array<string>(JsonDecoder.string, "path[]"),
-    longitude: JsonDecoder.number,
-    latitude: JsonDecoder.number,
+    longitude: OptionalDecoder(JsonDecoder.number, "longitude"),
+    latitude: OptionalDecoder(JsonDecoder.number, "latitude"),
     taken: DateDecoder,
 
     mimetype: JsonDecoder.string,
