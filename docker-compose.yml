@@ -6,13 +6,30 @@ services:
     image: redis
 
   celery:
-    build: ./docker/celery
+    build:
+      context: .
+      dockerfile: docker/celery/Dockerfile
     volumes:
-      - "$PWD:/usr/src/pixelbin"
+      - "$PWD/api:/usr/src/pixelbin/api:ro"
+      - "$PWD/app:/usr/src/pixelbin/app:ro"
+      - "$PWD/base:/usr/src/pixelbin/base:ro"
+      - "$PWD/config:/usr/src/pixelbin/config:ro"
+      - "$PWD/public:/usr/src/pixelbin/public:ro"
+      - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
+      - "$PWD/pixelbin.sqlite:/usr/src/pixelbin/pixelbin.sqlite"
 
   server:
-    build: ./docker/testserver
+    build:
+      context: .
+      dockerfile: ./docker/server/Dockerfile
     ports:
       - "8000:8000/tcp"
     volumes:
-      - "$PWD:/usr/src/pixelbin"
+    volumes:
+      - "$PWD/api:/usr/src/pixelbin/api:ro"
+      - "$PWD/app:/usr/src/pixelbin/app:ro"
+      - "$PWD/base:/usr/src/pixelbin/base:ro"
+      - "$PWD/config:/usr/src/pixelbin/config:ro"
+      - "$PWD/public:/usr/src/pixelbin/public:ro"
+      - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
+      - "$PWD/pixelbin.sqlite:/usr/src/pixelbin/pixelbin.sqlite"

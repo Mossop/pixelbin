@@ -1,10 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
-import { BrowserRouter, Route, Switch } from "react-router-dom";
+import { Router, Route } from "react-router-dom";
 
 import { buildStore } from "./utils/store";
 import { StoreState, ServerStateDecoder, decode } from "./types";
+import history from "./utils/history";
 
 import Banner from "./content/Banner";
 import IndexPage from "./pages/index";
@@ -24,17 +25,15 @@ if (stateElement && stateElement.textContent) {
 
 ReactDOM.render(
   <Provider store={buildStore(initialState)}>
-    <BrowserRouter basename="/">
-      <div id="root">
-        <Banner/>
-        <Switch>
-          <Route exact path="/">
-            <IndexPage/>
-          </Route>
-        </Switch>
+    <Router history={history}>
+      <Banner/>
+      <div id="main">
+        <Route path="/">
+          <IndexPage/>
+        </Route>
         <Overlay/>
       </div>
-    </BrowserRouter>
+    </Router>
   </Provider>,
   document.getElementById("app")
 );

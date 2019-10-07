@@ -4,6 +4,7 @@ import { connect } from "react-redux";
 import { StoreState, Overlay } from "../types";
 import LoginOverlay, { isLoginOverlay } from "./login";
 import SignupOverlay, { isSignupOverlay } from "./signup";
+import CreateCatalogOverlay, { isCreateCatalogOverlay } from "./catalog";
 import { closeOverlay, DispatchProps } from "../utils/actions";
 
 function mapStateToProps(state: StoreState): OverlayProps {
@@ -29,7 +30,7 @@ class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof
     document.removeEventListener("keydown", this.onKeyDown, true);
   }
 
-  private onClick = (event: React.MouseEvent): void => {
+  private onClick: ((event: React.MouseEvent) => void) = (event: React.MouseEvent): void => {
     if (event.target == event.currentTarget) {
       event.preventDefault();
       event.stopPropagation();
@@ -38,7 +39,7 @@ class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof
     }
   };
 
-  private onKeyDown = (event: KeyboardEvent): void => {
+  private onKeyDown: ((event: KeyboardEvent) => void) = (event: KeyboardEvent): void => {
     if (event.key == "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -53,6 +54,8 @@ class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof
         return <div id="overlay" onClick={this.onClick}><LoginOverlay/></div>;
       } else if (isSignupOverlay(this.props.overlay)) {
         return <div id="overlay" onClick={this.onClick}><SignupOverlay/></div>;
+      } else if (isCreateCatalogOverlay(this.props.overlay)) {
+        return <div id="overlay" onClick={this.onClick}><CreateCatalogOverlay/></div>;
       }
     }
 

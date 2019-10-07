@@ -3,6 +3,7 @@ import { connect } from "react-redux";
 
 import { signup } from "../api/auth";
 import Textbox from "../components/Textbox";
+import { UIProvider } from "../utils/uicontext";
 
 import { DispatchProps, completeSignup } from "../utils/actions";
 import { Overlay, OverlayType } from "../types";
@@ -17,7 +18,7 @@ interface SignupState {
 }
 
 const mapDispatchToProps = {
-  onNewState: completeSignup,
+  completeSignup: completeSignup,
 };
 
 type SignupProps = DispatchProps<typeof mapDispatchToProps>;
@@ -45,7 +46,7 @@ class SignupOverlay extends React.Component<SignupProps, SignupState> {
     }
   }
 
-  private onSubmit = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => Promise<void>) = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
     if (!this.emailBox.current || !this.nameBox.current || !this.passwordBox.current) {
@@ -53,18 +54,12 @@ class SignupOverlay extends React.Component<SignupProps, SignupState> {
     }
 
     this.setState({ disabled: true });
-    this.emailBox.current.disable();
-    this.nameBox.current.disable();
-    this.passwordBox.current.disable();
 
     try {
       let state = await signup(this.emailBox.current.getValue(), this.nameBox.current.getValue(), this.passwordBox.current.getValue());
-      this.props.onNewState(state);
+      this.props.completeSignup(state);
     } catch (e) {
       this.setState({ disabled: false, failed: true });
-
-      //this.emailBox.current.disable();
-      //this.passwordBox.current.disable();
     }
   };
 
@@ -73,20 +68,20 @@ class SignupOverlay extends React.Component<SignupProps, SignupState> {
       <p className="error" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>There is already an account with this email. Try again:</p> :
       <p style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Enter your details:</p>;
 
-    return (
+    return <UIProvider>
       <div className="centerblock">
-        <form id="loginForm" className="fieldGrid" onSubmit={this.onSubmit}>
+        <form id="signupForm" className="fieldGrid" onSubmit={this.onSubmit}>
           {title}
           <p className="rightAlign"><label htmlFor="email">Email address:</label></p>
-          <Textbox type="email" id="email" ref={this.emailBox}/>
+          <Textbox type="email" id="email" uiPath="email" ref={this.emailBox} disabled={this.state.disabled}/>
           <p className="rightAlign"><label htmlFor="name">Name:</label></p>
-          <Textbox type="text" id="name" ref={this.nameBox}/>
+          <Textbox type="text" id="name" uiPath="name" ref={this.nameBox} disabled={this.state.disabled}/>
           <p className="rightAlign"><label htmlFor="password">Password:</label></p>
-          <Textbox type="password" id="password" ref={this.passwordBox}/>
+          <Textbox type="password" id="password" uiPath="password" ref={this.passwordBox} disabled={this.state.disabled}/>
           <p style={{ gridColumn: "span 2", justifySelf: "end" }}><input id="" type="submit" value="Log In" disabled={this.state.disabled}/></p>
         </form>
       </div>
-    );
+    </UIProvider>;
   }
 }
 

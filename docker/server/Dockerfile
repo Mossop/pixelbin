@@ -1,9 +1,12 @@
 FROM python:3
 
+WORKDIR /usr/src/pixelbin
+
+EXPOSE 8000/tcp
+
 RUN \
-  curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
-  apt-get install -y --no-install-recommends \
-    nodejs \
+  apt-get update && \
+  apt-get install  -y --no-install-recommends \
     sudo
 
 RUN \
@@ -12,10 +15,9 @@ RUN \
   mkdir -p /usr/src/scripts && \
   mkdir -p /usr/src/pixelbin
 
-COPY start /usr/src/scripts
+COPY docker/server/start /usr/src/scripts/
+COPY manage.py requirements.txt /usr/src/pixelbin/
 
-WORKDIR /usr/src/pixelbin
-
-EXPOSE 8000/tcp
+RUN pip install -r requirements.txt
 
 ENTRYPOINT ["/usr/src/scripts/start"]

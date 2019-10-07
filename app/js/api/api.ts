@@ -1,6 +1,6 @@
 const API_ROOT = new URL("/api/", window.location.href);
 
-export function getRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
+export function getRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<void> {
   let url = new URL(path, API_ROOT);
 
   if (options instanceof URLSearchParams) {

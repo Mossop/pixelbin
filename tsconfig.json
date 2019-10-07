@@ -1,21 +1,32 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "noImplicitAny": false,
-    "noImplicitReturns": true,
     "target": "ESNext",
-    "moduleResolution": "Node",
     "jsx": "preserve",
+    "allowJs": true,
+    "noEmit": true,
+    "isolatedModules": true,
     "esModuleInterop": true,
-    "strictPropertyInitialization": true,
-    "strictNullChecks": true,
+    "moduleResolution": "Node",
     "typeRoots": [
       "./node_modules/@types",
       "./app/js/@types",
-      "./@types",
-    ]
+      "./@types"
+    ],
+
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strictPropertyInitialization": true,
+    "strictNullChecks": true
   },
+  "include": [
+    "app/js"
+  ],
   "exclude": [
-    "node_modules",
+    "node_modules"
   ]
 }

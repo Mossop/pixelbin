@@ -20,7 +20,8 @@ module.exports = {
 
   "plugins": [
     "@typescript-eslint",
-    "@typescript-eslint/tslint"
+    "@typescript-eslint/tslint",
+    "mossop-typescript"
   ],
   "extends": [
     "eslint:recommended",
@@ -36,38 +37,39 @@ module.exports = {
       ignoreRhs: true
     }],
     "quotes": "off",
-    "@typescript-eslint/quotes": "error",
+    "@typescript-eslint/quotes": "warn",
     "brace-style": "off",
-    "@typescript-eslint/brace-style": "error",
+    "@typescript-eslint/brace-style": "warn",
     "indent": "off",
-    "@typescript-eslint/indent": ["error", 2],
+    "@typescript-eslint/indent": ["warn", 2],
     "prefer-const": "off",
-    "no-multiple-empty-lines": "error",
+    "no-multiple-empty-lines": "warn",
     "no-new-wrappers": "error",
     "no-throw-literal": "error",
     "semi": "off",
     "@typescript-eslint/semi": "error",
     "@typescript-eslint/ban-ts-ignore": "off",
-    "@typescript-eslint/no-inferrable-types": ["error", {
+    "@typescript-eslint/no-inferrable-types": ["warn", {
       "ignoreParameters": true,
       "ignoreProperties": true,
-    }]
+    }],
+    "@typescript-eslint/typedef": "warn",
+    // "mossop-typescript/type-errors": "error",
+    // "mossop-typescript/type-warnings": "warn",
+    // "mossop-typescript/type-messages": "warn",
+    // "mossop-typescript/type-suggestions": "warn"
   },
   "overrides": [{
     // enable these rules specifically for TypeScript files
     "files": ["*.ts", "*.tsx"],
     "rules": {
-      "@typescript-eslint/explicit-member-accessibility": "error",
+      "@typescript-eslint/explicit-member-accessibility": "warn",
       "@typescript-eslint/tslint/config": [
-        "error", {
+        "warn", {
           "rules": {
             "typedef": [
               true,
               "call-signature",
-              "parameter",
-              "arrow-parameter",
-              "property-declaration",
-              "member-variable-declaration",
             ]
           }
         }

@@ -10,21 +10,35 @@ export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
   throw new Error(result.error);
 }
 
+function MapDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new JsonDecoder.Decoder<B>((json: any): Result<B> => {
+    let result = decoder.decode(json);
+    if (result instanceof Ok) {
+      try {
+        return ok<B>(mapper(result.value));
+      } catch (e) {
+        return err<B>(`Error decoding ${name}: ${e}`);
+      }
+    } else {
+      return err<B>(result.error);
+    }
+  });
+}
+
 function OptionalDecoder<A>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<undefined | A> {
   return JsonDecoder.oneOf([JsonDecoder.isNull(undefined), JsonDecoder.isUndefined(undefined), decoder], `${name}?`);
 }
 
+function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A[]>, compare: undefined | ((a: A, b: A) => number), name: string): JsonDecoder.Decoder<A[]> {
+  return MapDecoder(decoder, (arr: A[]) => {
+    arr.sort(compare);
+    return arr;
+  }, name);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const DateDecoder = new JsonDecoder.Decoder<moment.Moment>((json: any): Result<moment.Moment> => {
-  if (typeof json === "string") {
-    try {
-      return ok<moment.Moment>(moment(json, moment.ISO_8601));
-    } catch (e) {
-      return err<moment.Moment>(`'${json}' could not be parsed as ISO 8601: ${e}`);
-    }
-  }
-  return err<moment.Moment>(`'${json}' is not a string.`);
-});
+const DateDecoder = MapDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
 
 export interface Album {
   id: string;
@@ -40,7 +54,8 @@ export const AlbumDecoder = JsonDecoder.object<Album>(
     stub: JsonDecoder.string,
     name: JsonDecoder.string,
     private: JsonDecoder.boolean,
-    children: JsonDecoder.array<Album>(JsonDecoder.lazy<Album>(() => AlbumDecoder), "Album[]"),
+    children: SortedDecoder(JsonDecoder.array<Album>(JsonDecoder.lazy<Album>(() => AlbumDecoder), "Album[]"),
+      (a: Album, b: Album) => a.name.localeCompare(b.name), "Album[]"),
   },
   "Album"
 );
@@ -55,7 +70,8 @@ export const TagDecoder = JsonDecoder.object<Tag>(
   {
     name: JsonDecoder.string,
     path: JsonDecoder.string,
-    children: JsonDecoder.array<Tag>(JsonDecoder.lazy<Tag>(() => TagDecoder), "Tag[]"),
+    children: SortedDecoder(JsonDecoder.array<Tag>(JsonDecoder.lazy<Tag>(() => TagDecoder), "Tag[]"),
+      (a: Tag, b: Tag) => a.name.localeCompare(b.name), "Tag[]"),
   },
   "Tag"
 );
@@ -75,8 +91,10 @@ export const CatalogDecoder = JsonDecoder.object<Catalog>(
     stub: JsonDecoder.string,
     name: JsonDecoder.string,
     editable: JsonDecoder.boolean,
-    tags: JsonDecoder.array(TagDecoder, "Tag[]"),
-    albums: JsonDecoder.array(AlbumDecoder, "Album[]"),
+    tags: SortedDecoder(JsonDecoder.array(TagDecoder, "Tag[]"),
+      (a: Tag, b: Tag) => a.name.localeCompare(b.name), "Tag[]"),
+    albums: SortedDecoder(JsonDecoder.array<Album>(AlbumDecoder, "Album[]"),
+      (a: Album, b: Album) => a.name.localeCompare(b.name), "Album[]"),
   },
   "Catalog"
 );
@@ -84,6 +102,7 @@ export const CatalogDecoder = JsonDecoder.object<Catalog>(
 export interface User {
   email: string;
   fullname: string;
+  hadCatalog: boolean;
   catalogs: Catalog[];
 }
 
@@ -91,7 +110,9 @@ export const UserDecoder = JsonDecoder.object<User>(
   {
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
-    catalogs: JsonDecoder.array(CatalogDecoder, "Catalog[]"),
+    hadCatalog: JsonDecoder.boolean,
+    catalogs: SortedDecoder(JsonDecoder.array(CatalogDecoder, "Catalog[]"),
+      (a: Catalog, b: Catalog) => a.name.localeCompare(b.name), "Catalog[]"),
   },
   "User"
 );

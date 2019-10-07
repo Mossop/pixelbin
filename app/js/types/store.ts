@@ -4,6 +4,7 @@ export enum OverlayType {
   Login,
   Signup,
   Logout,
+  CreateCatalog,
 }
 
 export interface Overlay {

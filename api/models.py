@@ -7,6 +7,7 @@ from django_cte import CTEManager, With
 from django.conf import settings
 
 from .storage import get_storage
+from .utils import uuid
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password = None):
@@ -17,6 +18,7 @@ class UserManager(BaseUserManager):
             raise ValueError('Users must have an email address')
 
         user = self.model(
+            id=uuid("U"),
             email=self.normalize_email(email),
             full_name=full_name,
         )
@@ -47,11 +49,13 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    email = models.CharField(max_length=100, primary_key=True)
+    id = models.CharField(max_length=24, primary_key=True)
+    email = models.CharField(max_length=100, unique=True)
     full_name = models.CharField(max_length=200)
     username = None
     first_name = None
     last_name = None
+    had_catalog = models.BooleanField(default=True)
     verified = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now_add=True)
 
@@ -67,8 +71,10 @@ class User(AbstractUser):
 
     def asJS(self):
         return {
+            "id": self.id,
             "email": self.email,
             "fullname": self.full_name,
+            "hadCatalog": self.had_catalog,
         }
 
     class Meta:
@@ -77,14 +83,13 @@ class User(AbstractUser):
 class Catalog(models.Model):
     storage = 'backblaze'
     id = models.CharField(max_length=24, primary_key=True)
-    stub = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
     users = models.ManyToManyField(User, related_name='catalogs', through = 'Access')
+    modified = models.DateTimeField(auto_now_add=True)
 
     def asJS(self):
         return {
             id: self.id,
-            stub: self.stub,
             name: self.name,
         }
 
@@ -100,10 +105,11 @@ class Album(models.Model):
     objects = CTEManager()
 
     id = models.CharField(max_length=24, primary_key=True)
-    stub = models.CharField(max_length=50)
+    stub = models.CharField(max_length=50, unique=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
     name = models.CharField(max_length=100)
     private = models.BooleanField()
+    modified = models.DateTimeField(auto_now_add=True)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='albums',
@@ -141,6 +147,7 @@ class Tag(models.Model):
 
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='tags')
     name = models.CharField(max_length=100)
+    modified = models.DateTimeField(auto_now_add=True)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='children',
@@ -189,6 +196,8 @@ class Media(models.Model):
     latitude = models.FloatField(null=True)
     taken = models.DateTimeField()
 
+    uploaded = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now_add=True)
     mimetype = models.CharField(max_length=50)
     width = models.IntegerField()
     height = models.IntegerField()
