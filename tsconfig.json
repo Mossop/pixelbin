@@ -4,6 +4,7 @@
     "target": "ESNext",
     "jsx": "preserve",
     "allowJs": true,
+    "checkJs": true,
     "noEmit": true,
     "isolatedModules": true,
     "esModuleInterop": true,

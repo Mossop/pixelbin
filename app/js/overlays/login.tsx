@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import { login } from "../api/auth";
 import Textbox from "../components/Textbox";
-import { UIProvider } from "../utils/uicontext";
+import { UIManager } from "../utils/uicontext";
 
 import { DispatchProps, completeLogin } from "../utils/actions";
 import { Overlay, OverlayType } from "../types";
@@ -23,9 +23,8 @@ const mapDispatchToProps = {
 
 type LoginProps = DispatchProps<typeof mapDispatchToProps>;
 
-class LoginOverlay extends React.Component<LoginProps, LoginState> {
+class LoginOverlay extends UIManager<LoginProps, LoginState> {
   private emailBox: React.RefObject<Textbox>;
-  private passwordBox: React.RefObject<Textbox>;
 
   public constructor(props: LoginProps) {
     super(props);
@@ -35,7 +34,6 @@ class LoginOverlay extends React.Component<LoginProps, LoginState> {
     };
 
     this.emailBox = React.createRef();
-    this.passwordBox = React.createRef();
   }
 
   public componentDidMount(): void {
@@ -47,37 +45,40 @@ class LoginOverlay extends React.Component<LoginProps, LoginState> {
   private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => Promise<void>) = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
-    if (!this.emailBox.current || !this.passwordBox.current) {
+    let email = this.getTextState("email");
+    let password = this.getTextState("password");
+    if (!email) {
       return;
     }
 
     this.setState({ disabled: true });
 
     try {
-      let state = await login(this.emailBox.current.getValue(), this.passwordBox.current.getValue());
+      let state = await login(email, password);
       this.props.completeLogin(state);
     } catch (e) {
       this.setState({ disabled: false, failed: true });
+
+      this.setTextState("email", "");
+      this.setTextState("password", "");
     }
   };
 
-  public render(): React.ReactNode {
+  public renderUI(): React.ReactNode {
     let title = this.state.failed ?
       <p className="error" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Unknown email or password. Try again:</p> :
       <p style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Please enter your login details:</p>;
 
-    return <UIProvider>
-      <div className="centerblock">
-        <form id="loginForm" className="fieldGrid" onSubmit={this.onSubmit}>
-          {title}
-          <p className="rightAlign"><label htmlFor="email">Email address:</label></p>
-          <Textbox type="email" id="email" ref={this.emailBox} uiPath="email" disabled={this.state.disabled}/>
-          <p className="rightAlign"><label htmlFor="password">Password:</label></p>
-          <Textbox type="password" id="password" ref={this.passwordBox} uiPath="password" disabled={this.state.disabled}/>
-          <p style={{ gridColumn: "span 2", justifySelf: "end" }}><input id="" type="submit" value="Log In" disabled={this.state.disabled}/></p>
-        </form>
-      </div>
-    </UIProvider>;
+    return <div className="centerblock">
+      <form id="loginForm" className="fieldGrid" onSubmit={this.onSubmit}>
+        {title}
+        <p className="rightAlign"><label htmlFor="email">Email address:</label></p>
+        <Textbox type="email" id="email" ref={this.emailBox} uiPath="email" disabled={this.state.disabled}/>
+        <p className="rightAlign"><label htmlFor="password">Password:</label></p>
+        <Textbox type="password" id="password" uiPath="password" disabled={this.state.disabled}/>
+        <p style={{ gridColumn: "span 2", justifySelf: "end" }}><input id="" type="submit" value="Log In" disabled={this.state.disabled}/></p>
+      </form>
+    </div>;
   }
 }
 

@@ -10,3 +10,4 @@ __pycache__
 ^node_modules
 ^pixelbin.sqlite
 .DS_Store
+^venv
