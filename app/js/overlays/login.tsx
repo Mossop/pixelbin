@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { login } from "../api/auth";
-import Textbox from "../components/Textbox";
+import TextField from "../components/TextField";
 import { UIManager } from "../utils/uicontext";
 
 import { DispatchProps, completeLogin } from "../utils/actions";
@@ -24,7 +24,7 @@ const mapDispatchToProps = {
 type LoginProps = DispatchProps<typeof mapDispatchToProps>;
 
 class LoginOverlay extends UIManager<LoginProps, LoginState> {
-  private emailBox: React.RefObject<Textbox>;
+  private emailBox: React.RefObject<TextField>;
 
   public constructor(props: LoginProps) {
     super(props);
@@ -66,17 +66,15 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
 
   public renderUI(): React.ReactNode {
     let title = this.state.failed ?
-      <p className="error" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Unknown email or password. Try again:</p> :
-      <p style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Please enter your login details:</p>;
+      <p className="formTitle error" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Unknown email or password. Try again:</p> :
+      <p className="formTitle" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Please enter your login details:</p>;
 
     return <div className="centerblock">
-      <form id="loginForm" className="fieldGrid" onSubmit={this.onSubmit}>
+      <form className="fieldGrid" onSubmit={this.onSubmit}>
         {title}
-        <p className="rightAlign"><label htmlFor="email">Email address:</label></p>
-        <Textbox type="email" id="email" ref={this.emailBox} uiPath="email" disabled={this.state.disabled}/>
-        <p className="rightAlign"><label htmlFor="password">Password:</label></p>
-        <Textbox type="password" id="password" uiPath="password" disabled={this.state.disabled}/>
-        <p style={{ gridColumn: "span 2", justifySelf: "end" }}><input id="" type="submit" value="Log In" disabled={this.state.disabled}/></p>
+        <TextField uiPath="email" required={true} type="email" ref={this.emailBox} disabled={this.state.disabled}>Email address:</TextField>
+        <TextField uiPath="password" type="password" disabled={this.state.disabled}>Pasword:</TextField>
+        <p className="spanEnd"><input type="submit" value="Log In" disabled={this.state.disabled}/></p>
       </form>
     </div>;
   }

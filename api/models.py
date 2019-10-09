@@ -6,7 +6,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from django.conf import settings
 
-from .storage import get_storage
+from .storage import *
 from .utils import uuid
 
 class UserManager(BaseUserManager):
@@ -81,11 +81,15 @@ class User(AbstractUser):
         ordering = ['full_name']
 
 class Catalog(models.Model):
-    storage = 'backblaze'
     id = models.CharField(max_length=24, primary_key=True)
     name = models.CharField(max_length=100)
     users = models.ManyToManyField(User, related_name='catalogs', through = 'Access')
     modified = models.DateTimeField(auto_now_add=True)
+    storage = models.ForeignKey(Storage, on_delete=models.CASCADE, related_name='catalogs')
+
+    def delete(self):
+        super().delete()
+        Storage.objects.filter(catalogs = None).delete()
 
     def asJS(self):
         return {
@@ -208,7 +212,7 @@ class Media(models.Model):
 
     def storage(self):
         if self.__storage is None:
-            self.__storage = get_storage(self)
+            self.__storage = self.catalog.storage.get_storage(self)
         return self.__storage
 
     def delete(self):

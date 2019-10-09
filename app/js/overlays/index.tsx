@@ -49,17 +49,22 @@ class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof
   };
 
   public render(): React.ReactNode {
+    let overlay: React.ReactNode;
     if (this.props.overlay) {
       if (isLoginOverlay(this.props.overlay)) {
-        return <div id="overlay" onClick={this.onClick}><LoginOverlay/></div>;
+        overlay = <LoginOverlay/>;
       } else if (isSignupOverlay(this.props.overlay)) {
-        return <div id="overlay" onClick={this.onClick}><SignupOverlay/></div>;
+        overlay = <SignupOverlay/>;
       } else if (isCreateCatalogOverlay(this.props.overlay)) {
-        return <div id="overlay" onClick={this.onClick}><CreateCatalogOverlay/></div>;
+        overlay = <CreateCatalogOverlay/>;
+      } else {
+        return null;
       }
+    } else {
+      return null;
     }
 
-    return null;
+    return <div id="overlay" onClick={this.onClick}>{overlay}</div>;
   }
 }
 

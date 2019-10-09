@@ -3,6 +3,7 @@ import sys
 import shutil
 import tempfile
 import hashlib
+import json
 
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseRedirect
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user, get_user_model
@@ -17,6 +18,8 @@ from PIL import Image
 from . import models
 from .utils import *
 from .video import read_metadata, extract_poster
+from .storage import build_storage
+from .utils import uuid
 
 PREVIEW_SIZE = 600
 
@@ -37,19 +40,40 @@ def login(request):
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
 def signup(request):
-    if request.method == 'POST' and has_all_fields(request.POST, ['email', 'full_name', 'password']):
-        user = get_user_model().objects.create_user(request.POST['email'], request.POST['full_name'], request.POST['password'])
+    if request.method == 'POST' and has_all_fields(request.POST, ['email', 'fullName', 'password']):
+        user = get_user_model().objects.create_user(request.POST['email'], request.POST['fullName'], request.POST['password'])
         user.verified = True
         user.save()
         login_user(request, user)
         return JsonResponse(build_state(request))
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
+@login_required
+def create_catalog(request):
+    body = json.loads(request.body.decode('utf-8'))
+    if type(body) is dict:
+        if "name" in body and "storage" in body and type(body["storage"]) is dict:
+            storage = build_storage(body["storage"])
+            catalog = Catalog(id=uuid("C"), name=body["name"], storage=storage)
+            catalog.save()
+
+            access = Access(user=request.user, catalog=catalog, editable=True)
+            access.save()
+
+            return JsonResponse(build_catalog(access))
+
+    return HttpResponseBadRequest('<h1>Bad Request</h1>')
+
+
 def logout(request):
     logout_user(request)
     return JsonResponse(build_state(request))
 
-@login_required(login_url='/login')
+
+# -------------------------------------
+
+
+@login_required
 def upload(request):
     if request.method == 'POST' and 'file' in request.FILES and has_all_fields(request.POST, ['tags', 'date']):
         # filetype only considers the first 261 bytes of a file
@@ -135,7 +159,7 @@ def upload(request):
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
-@login_required(login_url='/login')
+@login_required
 def delete(request):
     if request.method == 'POST' and 'id' in request.POST:
         media = models.Media.objects.get(id=request.POST['id'], owner=request.user)
@@ -144,7 +168,7 @@ def delete(request):
         return JsonResponse({})
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
-@login_required(login_url='/login')
+@login_required
 def untagged(request):
     if request.method != 'GET':
         return HttpResponseBadRequest('<h1>Bad Request</h1>')
@@ -155,7 +179,7 @@ def untagged(request):
         "media": [m.asJS() for m in media]
     })
 
-@login_required(login_url='/login')
+@login_required
 def list(request):
     if request.method != 'GET':
         return HttpResponseBadRequest('<h1>Bad Request</h1>')

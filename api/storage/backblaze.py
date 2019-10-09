@@ -1,7 +1,7 @@
 import requests
 
 from base.utils import config
-from . import Storage
+from . import StorageModel
 
 B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
 
@@ -141,4 +141,4 @@ class BackblazeStorage(Storage):
         pass
 
     def delete(self):
-        super().delete(media)
+        pass

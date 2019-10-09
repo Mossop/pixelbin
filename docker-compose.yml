@@ -16,7 +16,7 @@ services:
       - "$PWD/config:/usr/src/pixelbin/config:ro"
       - "$PWD/public:/usr/src/pixelbin/public:ro"
       - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
-      - "$PWD/pixelbin.sqlite:/usr/src/pixelbin/pixelbin.sqlite"
+      - "$PWD/data:/usr/src/pixelbin/data:rw"
 
   server:
     build:
@@ -25,11 +25,10 @@ services:
     ports:
       - "8000:8000/tcp"
     volumes:
-    volumes:
       - "$PWD/api:/usr/src/pixelbin/api:ro"
       - "$PWD/app:/usr/src/pixelbin/app:ro"
       - "$PWD/base:/usr/src/pixelbin/base:ro"
       - "$PWD/config:/usr/src/pixelbin/config:ro"
       - "$PWD/public:/usr/src/pixelbin/public:ro"
       - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
-      - "$PWD/pixelbin.sqlite:/usr/src/pixelbin/pixelbin.sqlite"
+      - "$PWD/data:/usr/src/pixelbin/data:rw"

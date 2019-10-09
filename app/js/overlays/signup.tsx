@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { signup } from "../api/auth";
-import Textbox from "../components/Textbox";
+import TextField from "../components/TextField";
 import { UIManager } from "../utils/uicontext";
 
 import { DispatchProps, completeSignup } from "../utils/actions";
@@ -24,7 +24,7 @@ const mapDispatchToProps = {
 type SignupProps = DispatchProps<typeof mapDispatchToProps>;
 
 class SignupOverlay extends UIManager<SignupProps, SignupState> {
-  private emailBox: React.RefObject<Textbox>;
+  private emailBox: React.RefObject<TextField>;
 
   public constructor(props: SignupProps) {
     super(props);
@@ -65,19 +65,16 @@ class SignupOverlay extends UIManager<SignupProps, SignupState> {
 
   public renderUI(): React.ReactNode {
     let title = this.state.failed ?
-      <p className="error" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>There is already an account with this email. Try again:</p> :
-      <p style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Enter your details:</p>;
+      <p className="error formTitle">There is already an account with this email. Try again:</p> :
+      <p className="formTitle">Enter your details:</p>;
 
     return <div className="centerblock">
       <form id="signupForm" className="fieldGrid" onSubmit={this.onSubmit}>
         {title}
-        <p className="rightAlign"><label htmlFor="email">Email address:</label></p>
-        <Textbox type="email" id="email" uiPath="email" ref={this.emailBox} disabled={this.state.disabled}/>
-        <p className="rightAlign"><label htmlFor="name">Name:</label></p>
-        <Textbox type="text" id="name" uiPath="name" disabled={this.state.disabled}/>
-        <p className="rightAlign"><label htmlFor="password">Password:</label></p>
-        <Textbox type="password" id="password" uiPath="password" disabled={this.state.disabled}/>
-        <p style={{ gridColumn: "span 2", justifySelf: "end" }}><input id="" type="submit" value="Log In" disabled={this.state.disabled}/></p>
+        <TextField uiPath="email" required={true} type="email" ref={this.emailBox} disabled={this.state.disabled}>Email address:</TextField>
+        <TextField uiPath="name" disabled={this.state.disabled}>Name:</TextField>
+        <TextField uiPath="password" type="password" disabled={this.state.disabled}>Password:</TextField>
+        <p className="spanEnd"><input type="submit" value="Log In" disabled={this.state.disabled}/></p>
       </form>
     </div>;
   }

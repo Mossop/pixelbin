@@ -31,20 +31,18 @@ def build_albums(request):
 
     return albums[None]
 
-def build_catalogs(user):
-    catalogs = []
-    for access in models.Access.objects.filter(user=user).select_related("catalog").order_by('catalog__name'):
-        js = access.catalog.asJS()
-        js["editable"] = access.editable and user.verified
-        js["tags"] = build_tags(access.catalog)
-        js["albums"] = build_albums(access.catalog)
-        catalogs.append(js)
-    return catalogs
+def build_catalog(access):
+    js = access.catalog.asJS()
+    js["editable"] = access.editable and user.verified
+    js["tags"] = build_tags(access.catalog)
+    js["albums"] = build_albums(access.catalog)
+
+    return js
 
 def build_state(request):
     if request.user.is_authenticated:
         js = request.user.asJS()
-        js["catalogs"] = build_catalogs(request.user)
+        js["catalogs"] = [build_catalog(a) for a in models.Access.objects.filter(user=user).select_related("catalog")]
         return {
             "user": js,
         }

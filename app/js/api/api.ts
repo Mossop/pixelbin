@@ -19,7 +19,7 @@ export function getRequest(path: string, options: URLSearchParams | { [key: stri
 }
 
 export async function postRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
-  let cookie = await import(/* webpackChunkName: "cookie" */"cookie");
+  let cookie = await import(/* webpackChunkName: "cookie" */ "cookie");
 
   let headers = new Headers();
   headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
@@ -39,6 +39,21 @@ export async function postRequest(path: string, options: URLSearchParams | { [ke
   return fetch(url.href, {
     method: "POST",
     body: formData,
+    headers,
+  });
+}
+
+export async function postJSONRequest(path: string, json: any): Promise<Response> {
+  let cookie = await import(/* webpackChunkName: "cookie" */ "cookie");
+
+  let headers = new Headers();
+  headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
+  headers.append("Content-Type", "application/json");
+  let url = new URL(path, API_ROOT);
+
+  return fetch(url.href, {
+    method: "POST",
+    body: JSON.stringify(json),
     headers,
   });
 }

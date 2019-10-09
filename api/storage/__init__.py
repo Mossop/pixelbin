@@ -1,22 +1,18 @@
-class Storage(object):
-    def __init__(self, media):
-        pass
+from django.db import models
 
-    def store_file(self, path):
-        pass
+class Storage(models.Model):
+    def get_storage(self, media):
+        self.backblaze.get_storage(media)
 
-    def get_full_url(self):
-        pass
+class Backblaze(Storage):
+    key_id = models.CharField(max_length=30)
+    key = models.CharField(max_length=40)
+    bucket = models.CharField(max_length=50)
+    path = models.CharField(max_length=200)
 
-    def get_thumbnail_url(self, size):
-        pass
-
-    def delete(self):
-        pass
-
-def get_storage(media):
-    storage_type = media.catalog.storage
-    if storage_type == 'backblaze':
+    def get_storage(self, media):
         from .backblaze import BackblazeStorage
         return BackblazeStorage(media)
-    return Storage(media)
+
+def build_storage(info):
+    pass

@@ -6,6 +6,8 @@ interface TextboxProps {
   id: string;
   type: string;
   disabled?: boolean;
+  className?: string;
+  required?: boolean;
 }
 
 export default class Textbox extends TextComponent<TextboxProps & ComponentProps> {
@@ -29,7 +31,7 @@ export default class Textbox extends TextComponent<TextboxProps & ComponentProps
 
   public render(): React.ReactNode {
     return (
-      <input ref={this.input} type={this.props.type} id={this.props.id}  disabled={!!this.props.disabled} value={this.getUIState()} onChange={this.onChange}/>
+      <input className={this.props.className ? this.props.className : "field"} ref={this.input} required={!!this.props.required} type={this.props.type} id={this.props.id} disabled={!!this.props.disabled} value={this.getUIState()} onChange={this.onChange}/>
     );
   }
 }

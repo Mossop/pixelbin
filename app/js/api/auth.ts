@@ -1,8 +1,6 @@
 import { getRequest, postRequest } from "./api";
 import { ServerStateDecoder, ServerState } from "../types";
 
-/* eslint-disable @typescript-eslint/camelcase */
-
 export async function login(email: string, password: string): Promise<ServerState> {
   let request = await postRequest("login", {
     email,
@@ -19,7 +17,7 @@ export async function login(email: string, password: string): Promise<ServerStat
 export async function signup(email: string, fullName: string, password: string): Promise<ServerState> {
   let request = await postRequest("signup", {
     email,
-    full_name: fullName,
+    fullName: fullName,
     password,
   });
 

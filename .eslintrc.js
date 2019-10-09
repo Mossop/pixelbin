@@ -21,7 +21,7 @@ module.exports = {
   "plugins": [
     "@typescript-eslint",
     "@typescript-eslint/tslint",
-    "mossop-typescript"
+    //"mossop-typescript"
   ],
   "extends": [
     "eslint:recommended",

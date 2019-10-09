@@ -32,7 +32,7 @@ const Context = React.createContext<UIContext>({
   }
 });
 
-export abstract class UIManager<P, S = object> extends React.Component<P, S> {
+export abstract class UIManager<P = {}, S = {}> extends React.Component<P, S> {
   private uiState: Map<string, ComponentState>;
 
   private getUIState: (path: string) => ComponentState | undefined = (path: string): ComponentState | undefined => {
@@ -78,7 +78,7 @@ export interface ComponentProps {
   uiPath: string;
 }
 
-export abstract class TextComponent<P, S = object> extends React.Component<P & ComponentProps, S> {
+export abstract class TextComponent<P = {}, S = {}> extends React.Component<P & ComponentProps, S> {
   public static contextType: React.Context<UIContext> = Context;
   public context!: React.ContextType<typeof Context>;
 

@@ -1,7 +1,12 @@
 from django.contrib import admin
-from .models import User
+from .models import *
+from .storage import *
 
-class UserAdmin(admin.ModelAdmin):
-    fields = ['email', 'full_name', 'password']
+admin.site.register(User)
+admin.site.register(Catalog)
+admin.site.register(Album)
+admin.site.register(Tag)
+admin.site.register(Media)
 
-admin.site.register(User, UserAdmin)
+admin.site.register(Storage)
+admin.site.register(Backblaze)
