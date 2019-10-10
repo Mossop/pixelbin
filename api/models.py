@@ -50,12 +50,12 @@ class User(AbstractUser):
     objects = UserManager()
 
     id = models.CharField(max_length=24, primary_key=True)
-    email = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=200)
     username = None
     first_name = None
     last_name = None
-    had_catalog = models.BooleanField(default=True)
+    had_catalog = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now_add=True)
 
@@ -84,7 +84,6 @@ class Catalog(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
     name = models.CharField(max_length=100)
     users = models.ManyToManyField(User, related_name='catalogs', through = 'Access')
-    modified = models.DateTimeField(auto_now_add=True)
     storage = models.ForeignKey(Storage, on_delete=models.CASCADE, related_name='catalogs')
 
     def delete(self):
@@ -100,7 +99,6 @@ class Catalog(models.Model):
 class Access(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
-    editable = models.BooleanField()
 
     class Meta:
         unique_together = (('user', 'catalog'))
@@ -112,8 +110,6 @@ class Album(models.Model):
     stub = models.CharField(max_length=50, unique=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
     name = models.CharField(max_length=100)
-    private = models.BooleanField()
-    modified = models.DateTimeField(auto_now_add=True)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='albums',
@@ -139,7 +135,6 @@ class Album(models.Model):
             id: self.id,
             stub: self.stub,
             name: self.name,
-            private: self.private,
         }
 
     class Meta:
@@ -151,7 +146,6 @@ class Tag(models.Model):
 
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='tags')
     name = models.CharField(max_length=100)
-    modified = models.DateTimeField(auto_now_add=True)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='children',
@@ -206,7 +200,6 @@ class Media(models.Model):
     width = models.IntegerField()
     height = models.IntegerField()
     storage_id = models.CharField(max_length=200)
-    private = models.BooleanField()
 
     __storage = None
 
@@ -218,19 +211,3 @@ class Media(models.Model):
     def delete(self):
         self.storage().delete()
         super().delete()
-
-    def asJS(self):
-        return {
-            "id": self.id,
-            "processed": self.processed,
-
-            "tags": [t.path for t in self.tags.all()],
-            "albums": [{id: a.id, stub: a.stub} for a in self.albums.all()],
-            "longitude": self.longitude,
-            "latitude": self.latitude,
-            "taken": self.taken.isoformat(timespec='seconds'),
-
-            "mimetype": self.mimetype,
-            "width": self.width,
-            "height": self.height,
-        }

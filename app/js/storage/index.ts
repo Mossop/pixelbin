@@ -1,15 +1,7 @@
-import { UIManager } from "../utils/uicontext";
-import { BackblazeConfigUI, BackblazeConfig } from "./backblaze";
+import { StorageConfigUI } from "./types";
+import { BackblazeConfigUI } from "./backblaze";
 
-export type StorageConfig = BackblazeConfig;
-
-interface StorageConfigProps {
-  disabled: boolean;
-}
-
-export abstract class StorageConfigUI extends UIManager<StorageConfigProps> {
-  public abstract getStorageConfig(): StorageConfig;
-}
+export { StorageConfigUI };
 
 export function getStorageConfigUI(type: string): new(props: {}) => StorageConfigUI {
   switch (type) {

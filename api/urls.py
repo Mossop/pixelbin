@@ -1,11 +1,11 @@
-from django.urls import path
+from django.urls import path, include
 
 from . import views
 
 urlpatterns = [
-    path('dummy', views.dummy),
     path('login', views.login),
-    path('signup', views.signup),
-    path('createCatalog', views.create_catalog),
     path('logout', views.logout),
+    path('user/create', views.create_user),
+    path('user', views.get_user),
+    path('auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

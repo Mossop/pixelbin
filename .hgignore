@@ -11,3 +11,4 @@ __pycache__
 ^pixelbin.sqlite
 .DS_Store
 ^venv
+^data

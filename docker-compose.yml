@@ -14,9 +14,10 @@ services:
       - "$PWD/app:/usr/src/pixelbin/app:ro"
       - "$PWD/base:/usr/src/pixelbin/base:ro"
       - "$PWD/config:/usr/src/pixelbin/config:ro"
-      - "$PWD/public:/usr/src/pixelbin/public:ro"
+      - "$PWD/public/static:/usr/src/pixelbin/public/static:ro"
       - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
       - "$PWD/data:/usr/src/pixelbin/data:rw"
+      - "$PWD/public/media:/usr/src/pixelbin/public/media:rw"
 
   server:
     build:
@@ -29,6 +30,7 @@ services:
       - "$PWD/app:/usr/src/pixelbin/app:ro"
       - "$PWD/base:/usr/src/pixelbin/base:ro"
       - "$PWD/config:/usr/src/pixelbin/config:ro"
-      - "$PWD/public:/usr/src/pixelbin/public:ro"
+      - "$PWD/public/static:/usr/src/pixelbin/public/static:ro"
       - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
       - "$PWD/data:/usr/src/pixelbin/data:rw"
+      - "$PWD/public/media:/usr/src/pixelbin/public/media:rw"

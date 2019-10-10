@@ -12,6 +12,9 @@ from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
 from datetime import datetime
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
 import filetype
 from PIL import Image
 
@@ -20,6 +23,7 @@ from .utils import *
 from .video import read_metadata, extract_poster
 from .storage import build_storage
 from .utils import uuid
+from .serializers import *
 
 PREVIEW_SIZE = 600
 
@@ -29,24 +33,33 @@ def has_all_fields(dictionary, fields):
             return False
     return True
 
-def login(request):
-    if request.method == 'POST' and has_all_fields(request.POST, ['email', 'password']):
-        user = authenticate(request, username=request.POST['email'], password=request.POST['password'])
-        if user is not None:
-            login_user(request, user)
-            return JsonResponse(build_state(request))
-        else:
-            return HttpResponseForbidden('<h1>Forbidden</h1>')
-    return HttpResponseBadRequest('<h1>Bad Request</h1>')
+@api_view()
+def get_user(request):
+    if request.user and request.user.is_authenticated:
+        serializer = UserSerializer(request.user)
+        return Response(serialize_state(request))
+    return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-def signup(request):
-    if request.method == 'POST' and has_all_fields(request.POST, ['email', 'fullName', 'password']):
-        user = get_user_model().objects.create_user(request.POST['email'], request.POST['fullName'], request.POST['password'])
-        user.verified = True
-        user.save()
+@api_view(['PUT'])
+def create_user(request):
+    if request.user and request.user.is_authenticated and not request.user.is_staff:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    serializer = UserSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.save()
+    if not request.auth:
         login_user(request, user)
-        return JsonResponse(build_state(request))
-    return HttpResponseBadRequest('<h1>Bad Request</h1>')
+    return Response(serialize_state(request))
+
+@api_view(['POST'])
+def login(request):
+    serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = authenticate(request, username=serializer.validated_data['email'], password=serializer.validated_data['password'])
+    if user is not None:
+        login_user(request, user)
+        return Response(serialize_state(request))
+    return Response(status=status.HTTP_403_FORBIDDEN)
 
 @login_required
 def create_catalog(request):
@@ -64,10 +77,10 @@ def create_catalog(request):
 
     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
-
+@api_view(['POST'])
 def logout(request):
     logout_user(request)
-    return JsonResponse(build_state(request))
+    return Response(serialize_state(request))
 
 
 # -------------------------------------
@@ -239,7 +252,3 @@ def download(request, id):
     media = get_media(request, id)
     url = backblaze.get_download_url(media.storage_path)
     return HttpResponseRedirect(url)
-
-@ensure_csrf_cookie
-def dummy(request):
-    return JsonResponse({})

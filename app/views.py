@@ -3,7 +3,7 @@ from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 
-from api.utils import build_state
+from api.serializers import serialize_state
 from base.utils import config
 
 @ensure_csrf_cookie
@@ -13,7 +13,7 @@ def index(request):
         "config": {
             "debug": settings.DEBUG
         },
-        "state": build_state(request),
+        "state": serialize_state(request),
         "keys": {
             "MAPS": config.get('keys', 'maps')
         }

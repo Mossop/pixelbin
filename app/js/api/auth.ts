@@ -1,38 +1,38 @@
-import { getRequest, postRequest } from "./api";
+import { buildFormBody, request } from "./api";
 import { ServerStateDecoder, ServerState } from "../types";
 
 export async function login(email: string, password: string): Promise<ServerState> {
-  let request = await postRequest("login", {
+  let response = await request("login", "POST", buildFormBody({
     email,
     password,
-  });
+  }));
 
-  if (request.ok) {
-    return ServerStateDecoder.decodePromise(await request.json());
+  if (response.ok) {
+    return ServerStateDecoder.decodePromise(await response.json());
   } else {
     throw new Error("Login failed");
   }
 }
 
-export async function signup(email: string, fullName: string, password: string): Promise<ServerState> {
-  let request = await postRequest("signup", {
+export async function signup(email: string, fullname: string, password: string): Promise<ServerState> {
+  let response = await request("user/create", "PUT", buildFormBody({
     email,
-    fullName: fullName,
+    fullname,
     password,
-  });
+  }));
 
-  if (request.ok) {
-    return ServerStateDecoder.decodePromise(await request.json());
+  if (response.ok) {
+    return ServerStateDecoder.decodePromise(await response.json());
   } else {
     throw new Error("Signup failed");
   }
 }
 
 export async function logout(): Promise<ServerState> {
-  let request = await getRequest("logout");
+  let response = await request("logout", "POST");
 
-  if (request.ok) {
-    return ServerStateDecoder.decodePromise(await request.json());
+  if (response.ok) {
+    return ServerStateDecoder.decodePromise(await response.json());
   } else {
     throw new Error("Logout failed");
   }

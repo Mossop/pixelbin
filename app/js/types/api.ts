@@ -78,9 +78,7 @@ export const TagDecoder = JsonDecoder.object<Tag>(
 
 export interface Catalog {
   id: string;
-  stub: string;
   name: string;
-  editable: boolean;
   tags: Tag[];
   albums: Album[];
 }
@@ -88,14 +86,11 @@ export interface Catalog {
 export const CatalogDecoder = JsonDecoder.object<Catalog>(
   {
     id: JsonDecoder.string,
-    stub: JsonDecoder.string,
     name: JsonDecoder.string,
-    editable: JsonDecoder.boolean,
     tags: SortedDecoder(JsonDecoder.array(TagDecoder, "Tag[]"),
       (a: Tag, b: Tag) => a.name.localeCompare(b.name), "Tag[]"),
     albums: SortedDecoder(JsonDecoder.array<Album>(AlbumDecoder, "Album[]"),
-      (a: Album, b: Album) => a.name.localeCompare(b.name), "Album[]"),
-  },
+      (a: Album, b: Album) => a.name.localeCompare(b.name), "Album[]"),  },
   "Catalog"
 );
 
@@ -103,7 +98,7 @@ export interface User {
   email: string;
   fullname: string;
   hadCatalog: boolean;
-  catalogs: Catalog[];
+  verified: boolean;
 }
 
 export const UserDecoder = JsonDecoder.object<User>(
@@ -111,19 +106,34 @@ export const UserDecoder = JsonDecoder.object<User>(
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
     hadCatalog: JsonDecoder.boolean,
-    catalogs: SortedDecoder(JsonDecoder.array(CatalogDecoder, "Catalog[]"),
-      (a: Catalog, b: Catalog) => a.name.localeCompare(b.name), "Catalog[]"),
+    verified: JsonDecoder.boolean,
   },
   "User"
 );
 
+export interface UserState extends User {
+  catalogs: Catalog[];
+}
+
+export const UserStateDecoder = JsonDecoder.object<UserState>(
+  {
+    email: JsonDecoder.string,
+    fullname: JsonDecoder.string,
+    hadCatalog: JsonDecoder.boolean,
+    verified: JsonDecoder.boolean,
+    catalogs: SortedDecoder(JsonDecoder.array(CatalogDecoder, "Catalog[]"),
+      (a: Catalog, b: Catalog) => a.name.localeCompare(b.name), "Catalog[]"),
+  },
+  "UserState"
+);
+
 export interface ServerState {
-  user?: User;
+  user?: UserState;
 }
 
 export const ServerStateDecoder = JsonDecoder.object<ServerState>(
   {
-    user: OptionalDecoder(UserDecoder, "User"),
+    user: OptionalDecoder(UserStateDecoder, "User"),
   },
   "ServerState"
 );

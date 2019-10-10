@@ -39,18 +39,6 @@ def build_catalog(access):
 
     return js
 
-def build_state(request):
-    if request.user.is_authenticated:
-        js = request.user.asJS()
-        js["catalogs"] = [build_catalog(a) for a in models.Access.objects.filter(user=user).select_related("catalog")]
-        return {
-            "user": js,
-        }
-    else:
-        return {
-            "user": None,
-        }
-
 def union(querysets):
     if len(querysets) == 0:
         return []

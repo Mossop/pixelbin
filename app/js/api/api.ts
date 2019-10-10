@@ -1,5 +1,46 @@
 const API_ROOT = new URL("/api/", window.location.href);
 
+export type Method = "GET" | "POST" | "PUT";
+
+export function buildFormBody(options: URLSearchParams | { [key: string]: string }): FormData {
+  let formData = new FormData();
+  if (options instanceof URLSearchParams) {
+    for (let [key, value] of options) {
+      formData.append(key, value);
+    }
+  } else {
+    for (let key of Object.keys(options)) {
+      formData.append(key, options[key]);
+    }
+  }
+
+  return formData;
+}
+
+export function buildJSONBody(data: any): string {
+  return JSON.stringify(data);
+}
+
+export async function request(url: URL | string, method: Method = "POST", body?: FormData | string): Promise<Response> {
+  let cookie = await import(/* webpackChunkName: "cookie" */ "cookie");
+
+  let uri: URL;
+  if (url instanceof URL) {
+    uri = url;
+  } else {
+    uri = new URL(url, API_ROOT);
+  }
+
+  let headers = new Headers();
+  headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
+
+  return fetch(uri.href, {
+    method,
+    body,
+    headers,
+  });
+}
+
 export function getRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
   let url = new URL(path, API_ROOT);
 
@@ -13,51 +54,5 @@ export function getRequest(path: string, options: URLSearchParams | { [key: stri
     }
   }
 
-  return fetch(url.href, {
-    method: "GET",
-  });
-}
-
-export async function postRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
-  let cookie = await import(/* webpackChunkName: "cookie" */ "cookie");
-
-  let headers = new Headers();
-  headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
-  let url = new URL(path, API_ROOT);
-
-  let formData = new FormData();
-  if (options instanceof URLSearchParams) {
-    for (let [key, value] of options) {
-      formData.append(key, value);
-    }
-  } else {
-    for (let key of Object.keys(options)) {
-      formData.append(key, options[key]);
-    }
-  }
-
-  return fetch(url.href, {
-    method: "POST",
-    body: formData,
-    headers,
-  });
-}
-
-export async function postJSONRequest(path: string, json: any): Promise<Response> {
-  let cookie = await import(/* webpackChunkName: "cookie" */ "cookie");
-
-  let headers = new Headers();
-  headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
-  headers.append("Content-Type", "application/json");
-  let url = new URL(path, API_ROOT);
-
-  return fetch(url.href, {
-    method: "POST",
-    body: JSON.stringify(json),
-    headers,
-  });
-}
-
-export function getAPIPath(path: string): URL {
-  return new URL(path, API_ROOT);
+  return request(url, "GET");
 }

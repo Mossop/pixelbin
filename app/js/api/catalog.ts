@@ -1,16 +1,16 @@
-import { postJSONRequest } from "./api";
-import { StorageConfig } from "../storage";
+import { buildJSONBody, request } from "./api";
+import { StorageConfig } from "../storage/types";
 import { Catalog, CatalogDecoder } from "../types";
 
 export async function createCatalog(name: string, storage: StorageConfig): Promise<Catalog> {
-  let request = await postJSONRequest("createCatalog", {
+  let response = await request("createCatalog", "PUT", buildJSONBody({
     name,
     storage
-  });
+  }));
 
-  if (request.ok) {
-    return CatalogDecoder.decodePromise(await request.json());
+  if (response.ok) {
+    return CatalogDecoder.decodePromise(await response.json());
   } else {
-    throw new Error("Login failed");
+    throw new Error("Failed to create catalog.");
   }
 }

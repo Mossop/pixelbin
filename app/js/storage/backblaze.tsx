@@ -1,17 +1,7 @@
 import React from "react";
 
-import { StorageConfigUI } from ".";
+import { StorageConfigUI, BackblazeConfig, BackblazeStorageType } from "./types";
 import TextField from "../components/TextField";
-
-export const BackblazeStorageType = "backblaze";
-
-export interface BackblazeConfig {
-  type: typeof BackblazeStorageType;
-  keyId: string;
-  key: string;
-  bucket: string;
-  path: string;
-}
 
 export class BackblazeConfigUI extends StorageConfigUI {
   public getStorageConfig(): BackblazeConfig {

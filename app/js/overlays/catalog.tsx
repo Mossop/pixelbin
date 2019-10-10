@@ -6,6 +6,8 @@ import { UIManager } from "../utils/uicontext";
 import TextField from "../components/TextField";
 import Selectbox from "../components/Selectbox";
 import { getStorageConfigUI, StorageConfigUI } from "../storage";
+import { createCatalog } from "../api/catalog";
+import { catalogCreated, DispatchProps } from "../utils/actions";
 
 export function isCreateCatalogOverlay(state: Overlay): boolean {
   return state.type === OverlayType.CreateCatalog;
@@ -17,6 +19,7 @@ interface CreateCatalogProps {
 
 interface CreateCatalogState {
   disabled: boolean;
+  failed: boolean;
 }
 
 function mapStateToProps(state: StoreState): CreateCatalogProps {
@@ -25,15 +28,20 @@ function mapStateToProps(state: StoreState): CreateCatalogProps {
   };
 }
 
-class CreateCatalogOverlay extends UIManager<CreateCatalogProps, CreateCatalogState> {
+const mapDispatchToProps = {
+  catalogCreated: catalogCreated,
+};
+
+class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>, CreateCatalogState> {
   private nameBox: React.RefObject<TextField>;
   private storageConfigUI: React.RefObject<StorageConfigUI>;
 
-  public constructor(props: CreateCatalogProps) {
+  public constructor(props: CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>) {
     super(props);
 
     this.state = {
       disabled: false,
+      failed: false,
     };
     this.nameBox = React.createRef();
     this.storageConfigUI = React.createRef();
@@ -46,6 +54,8 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps, CreateCatalogSt
   }
 
   private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => Promise<void>) = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+
     if (!this.storageConfigUI.current) {
       return;
     }
@@ -56,7 +66,20 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps, CreateCatalogSt
     }
 
     let storage = this.storageConfigUI.current.getStorageConfig();
+
+    this.setState({ disabled: true });
+
+    try {
+      let catalog = await createCatalog(name, storage);
+      this.props.catalogCreated(catalog);
+    } catch (e) {
+      this.setState({ disabled: false, failed: true });
+
+      this.setTextState("email", "");
+      this.setTextState("password", "");
+    }
   };
+
 
   public renderUI(): React.ReactNode {
     let title = this.props.isFirst ? "Create your first catalog:" : "Create a new catalog:";
@@ -76,4 +99,4 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps, CreateCatalogSt
   }
 }
 
-export default connect(mapStateToProps)(CreateCatalogOverlay);
+export default connect(mapStateToProps, mapDispatchToProps)(CreateCatalogOverlay);
