@@ -4,7 +4,7 @@ import { Redirect } from "react-router";
 import { connect } from "react-redux";
 
 import { logout } from "../api/auth";
-import { If, Then, Else } from "../utils/if";
+import { If, Then, Else } from "../utils/Conditions";
 import { loggedIn } from "../utils/helpers";
 import { setState } from "../utils/actions";
 

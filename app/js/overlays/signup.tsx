@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import { signup } from "../api/auth";
 import Form, { FormProps } from "../content/Form";
-import { UIManager } from "../utils/uicontext";
+import { UIManager } from "../utils/UIState";
 
 import { DispatchProps, completeSignup } from "../utils/actions";
 import { Overlay, OverlayType } from "../types";

@@ -2,7 +2,7 @@ import React from "react";
 import { Localized } from "@fluent/react";
 
 import { L10nProps } from "../l10n";
-import { TextComponent } from "../utils/uicontext";
+import { TextComponent } from "../utils/UIState";
 import { fieldProps, UIProps } from "./shared";
 
 export type SelectOption = {

@@ -3,7 +3,7 @@ import { PropTypes } from "prop-types";
 
 import Media from "./Media";
 import { bindAll } from "../utils/helpers";
-import { If, Then, Else } from "../utils/if";
+import { If, Then, Else } from "../utils/Conditions";
 
 function sort(arr, cmp) {
   arr = arr.slice(0);

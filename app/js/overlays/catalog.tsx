@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { Overlay, OverlayType, StoreState } from "../types";
-import { UIManager } from "../utils/uicontext";
+import { UIManager } from "../utils/UIState";
 import Form, { FormProps } from "../content/Form";
 import { getStorageConfigUI, getStorageConfig } from "../storage";
 import { createCatalog } from "../api/catalog";

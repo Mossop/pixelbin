@@ -3,15 +3,29 @@ import { connect } from "react-redux";
 
 import { StoreState } from "../types";
 
+const IfContext: React.Context<boolean> = React.createContext<boolean>(false);
+
 export class Then extends React.Component {
+  public static contextType: React.Context<boolean> = IfContext;
+
   public render(): React.ReactNode {
-    return this.props.children;
+    if (this.context) {
+      return this.props.children;
+    } else {
+      return null;
+    }
   }
 }
 
 export class Else extends React.Component {
+  public static contextType: React.Context<boolean> = IfContext;
+
   public render(): React.ReactNode {
-    return this.props.children;
+    if (!this.context) {
+      return this.props.children;
+    } else {
+      return null;
+    }
   }
 }
 
@@ -21,30 +35,13 @@ interface IfProps {
 
 class If extends React.Component<IfProps> {
   public render(): React.ReactNode {
-    let element: React.ReactNode;
-    React.Children.forEach(this.props.children, (child: React.ReactNode) => {
-      if (React.isValidElement(child)) {
-        if (this.props.result && child.type == Then) {
-          element = child;
-        } else if (!this.props.result && child.type == Else) {
-          element = child;
-        }
-      }
-    });
-
-    return element;
+    return <IfContext.Provider value={this.props.result}>{this.props.children}</IfContext.Provider>;
   }
 }
 
 type Condition = boolean | ((state: StoreState) => boolean);
 interface CalcProps {
   condition: Condition;
-
-  // Why does this need to be here?
-  children: [
-    React.ReactElement,
-    React.ReactElement,
-  ] | React.ReactElement;
 }
 
 function calculateResult(state: StoreState, props: CalcProps): IfProps {

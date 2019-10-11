@@ -1,6 +1,6 @@
 import React from "react";
 
-import { TextComponent } from "../utils/uicontext";
+import { TextComponent } from "../utils/UIState";
 import { UIProps, fieldProps } from "./shared";
 
 export type TextboxProps = {

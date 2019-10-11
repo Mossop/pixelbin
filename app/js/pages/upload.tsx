@@ -6,7 +6,7 @@ import moment from "moment";
 import Sidebar from "../content/Sidebar";
 import Upload from "../content/Upload";
 import { bindAll, uuid } from "../utils/helpers";
-import { If, Then, Else } from "../utils/if";
+import { If, Then, Else } from "../utils/Conditions";
 import { upload } from "../api/media";
 import { setTags } from "../utils/actions";
 

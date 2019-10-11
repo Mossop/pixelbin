@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import { Link, withRouter } from "react-router-dom";
 
-import { If, Then } from "../utils/if";
+import { If, Then } from "../utils/Conditions";
 import { bindAll } from "../utils/helpers";
 
 const TagLink = withRouter(({ tag, history, selectedTags, children }) => {

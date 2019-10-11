@@ -1,7 +1,7 @@
 import { Field } from "../content/Form";
 import { StorageConfig, ServerStorageType } from "./types";
 import { getBackblazeConfigUI, getBackblazeConfig } from "./backblaze";
-import { UIManager } from "../utils/uicontext";
+import { UIManager } from "../utils/UIState";
 
 export function getStorageConfigUI(type: string): Field[] {
   switch (type) {

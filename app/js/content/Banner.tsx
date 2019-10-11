@@ -5,7 +5,7 @@ import { connect } from "react-redux";
 import { showLoginOverlay, showSignupOverlay, completeLogout, DispatchProps } from "../utils/actions";
 import { Button } from "../components/Button";
 import { loggedIn } from "../utils/helpers";
-import { If, Then, Else } from "../utils/if";
+import { If, Then, Else } from "../utils/Conditions";
 import { logout } from "../api/auth";
 
 const mapDispatchToProps = {

@@ -1,4 +1,4 @@
-import { UIComponentProps } from "../utils/uicontext";
+import { UIComponentProps } from "../utils/UIState";
 
 export interface DefaultProps {
   id?: string;
