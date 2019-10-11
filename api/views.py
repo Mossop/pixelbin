@@ -1,17 +1,14 @@
 import os
-import sys
-import shutil
 import tempfile
 import hashlib
 import json
+from datetime import datetime
 
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseRedirect
-from django.contrib.auth import authenticate, login as login_user, logout as logout_user, get_user_model
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_control
-from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
-from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -19,11 +16,10 @@ import filetype
 from PIL import Image
 
 from . import models
-from .utils import *
 from .video import read_metadata, extract_poster
 from .storage import build_storage
 from .utils import uuid
-from .serializers import *
+from .serializers import UserSerializer, LoginSerializer, serialize_state
 
 PREVIEW_SIZE = 600
 
@@ -37,7 +33,7 @@ def has_all_fields(dictionary, fields):
 def get_user(request):
     if request.user and request.user.is_authenticated:
         serializer = UserSerializer(request.user)
-        return Response(serialize_state(request))
+        return Response(serializer.data)
     return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['PUT'])
@@ -55,7 +51,8 @@ def create_user(request):
 def login(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    user = authenticate(request, username=serializer.validated_data['email'], password=serializer.validated_data['password'])
+    user = authenticate(request, username=serializer.validated_data['email'],
+                        password=serializer.validated_data['password'])
     if user is not None:
         login_user(request, user)
         return Response(serialize_state(request))
@@ -64,13 +61,13 @@ def login(request):
 @login_required
 def create_catalog(request):
     body = json.loads(request.body.decode('utf-8'))
-    if type(body) is dict:
+    if isinstance(body, dict):
         if "name" in body and "storage" in body and type(body["storage"]) is dict:
             storage = build_storage(body["storage"])
-            catalog = Catalog(id=uuid("C"), name=body["name"], storage=storage)
+            catalog = models.Catalog(id=uuid("C"), name=body["name"], storage=storage)
             catalog.save()
 
-            access = Access(user=request.user, catalog=catalog, editable=True)
+            access = models.Access(user=request.user, catalog=catalog, editable=True)
             access.save()
 
             return JsonResponse(build_catalog(access))

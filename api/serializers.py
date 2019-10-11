@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import *
+from .models import Album, Tag, Catalog, User, Access
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField()

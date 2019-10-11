@@ -2,7 +2,7 @@ from django.db import models
 
 class Storage(models.Model):
     def get_storage(self, media):
-        self.backblaze.get_storage(media)
+        return self.backblaze.get_storage(media)
 
 class Backblaze(Storage):
     key_id = models.CharField(max_length=30)

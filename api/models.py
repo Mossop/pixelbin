@@ -1,16 +1,12 @@
-import os
-import shutil
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
-from django.conf import settings
 
-from .storage import *
+from .storage import Storage
 from .utils import uuid
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, full_name, password = None):
+    def create_user(self, email, full_name, password=None):
         """
         Creates and saves a User with the given email, fullname and password.
         """
@@ -45,7 +41,7 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
-    REQUIRED_FIELDS=['full_name']
+    REQUIRED_FIELDS = ['full_name']
 
     objects = UserManager()
 
@@ -64,18 +60,10 @@ class User(AbstractUser):
 
     def delete(self):
         super().delete()
-        Catalog.objects.filter(users = None).delete()
+        Catalog.objects.filter(users=None).delete()
 
     def get_full_name(self):
         return self.full_name
-
-    def asJS(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            "fullname": self.full_name,
-            "hadCatalog": self.had_catalog,
-        }
 
     class Meta:
         ordering = ['full_name']
@@ -89,12 +77,6 @@ class Catalog(models.Model):
     def delete(self):
         super().delete()
         Storage.objects.filter(catalogs = None).delete()
-
-    def asJS(self):
-        return {
-            id: self.id,
-            name: self.name,
-        }
 
 class Access(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -129,13 +111,6 @@ class Album(models.Model):
             cte.join(Album, id=cte.col.id)
                .with_cte(cte)
         )
-
-    def asJS(self):
-        return {
-            id: self.id,
-            stub: self.stub,
-            name: self.name,
-        }
 
     class Meta:
         unique_together = (('catalog', 'id'))
@@ -173,12 +148,6 @@ class Tag(models.Model):
             cte.join(Tag, id=cte.col.id)
                .with_cte(cte)
         )
-
-    def asJS(self):
-        return {
-            "name": self.name,
-            "path": self.path,
-        }
 
     class Meta:
         unique_together = (('catalog', 'parent', 'name'))

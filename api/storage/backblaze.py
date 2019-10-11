@@ -1,11 +1,10 @@
 import requests
 
 from base.utils import config
-from . import StorageModel
 
 B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
 
-class BackblazeAPI(object):
+class BackblazeAPI:
     auth_token = None
     api_url = None
     download_url = None
@@ -23,21 +22,22 @@ class BackblazeAPI(object):
         response = requests.get(B2_AUTHORIZE_URL, auth=(self.key_id, self.key))
         data = response.json()
         if response.status_code != 200:
-            raise Exception('Unable to authenticate with B2: %s %s' % (response.status_code, data['code']))
+            raise Exception('Unable to authenticate with B2: %s %s' %
+                            (response.status_code, data['code']))
 
         self.auth_token = data['authorizationToken']
         self.api_url = data['apiUrl']
         self.download_url = data['downloadUrl']
 
     def ensure_authorized(self):
-        if self.auth_token != None:
+        if self.auth_token is not None:
             return
         self.authorize()
 
     def upload(self, path, sha1, file, content_type='application/octet-stream'):
         self.ensure_authorized()
 
-        for i in range(5):
+        for _ in range(5):
             url = self.get_endpoint(1, 'b2_get_upload_url')
             headers = {
                 'Authorization': self.auth_token,
@@ -74,7 +74,7 @@ class BackblazeAPI(object):
 
         raise Exception('Failed to upload file after five attempts.')
 
-    def delete(self, path, id):
+    def delete(self, path, storage_id):
         self.ensure_authorized()
 
         url = self.get_endpoint(1, 'b2_delete_file_version')
@@ -83,20 +83,20 @@ class BackblazeAPI(object):
         }
         params = {
             'fileName': path,
-            'fileId': id,
+            'fileId': storage_id,
         }
         response = requests.post(url, headers=headers, json=params)
         data = response.json()
 
         if response.status_code == 401 and data['code'] == 'expired_auth_token':
             self.authorize()
-            self.delete(path, id)
+            self.delete(path, storage_id)
             return
 
         if response.status_code != 200:
             raise Exception('Failed to delete file: %s %s' % (response.status_code, data['code']))
 
-    def get_download_url(self, path, duration = 3600):
+    def get_download_url(self, path, duration=3600):
         self.ensure_authorized()
 
         url = self.get_endpoint(1, 'b2_get_download_authorization')
@@ -126,7 +126,7 @@ API = BackblazeAPI(
     config.get('backblaze', 'bucket'),
 )
 
-class BackblazeStorage(Storage):
+class BackblazeStorage:
     backblaze = None
     file_id = None
 
