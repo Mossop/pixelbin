@@ -1,30 +1,36 @@
-import React from "react";
+import { BackblazeConfig, BackblazeStorageType } from "./types";
+import { UIManager } from "../utils/uicontext";
+import { Field } from "../content/Form";
 
-import { StorageConfigUI, BackblazeConfig, BackblazeStorageType } from "./types";
-import Textbox from "../components/Textbox";
-import FieldLabel from "../components/FieldLabel";
+export function getBackblazeConfigUI(): Field[] {
+  return [{
+    fieldType: "textbox",
+    uiPath: "b2_keyId",
+    labelL10n: "storage-backblaze-keyid",
+    required: true,
+  }, {
+    fieldType: "textbox",
+    uiPath: "b2_key",
+    labelL10n: "storage-backblaze-key",
+    required: true,
+  }, {
+    fieldType: "textbox",
+    uiPath: "b2_bucket",
+    labelL10n: "storage-backblaze-bucket",
+    required: true,
+  }, {
+    fieldType: "textbox",
+    uiPath: "b2_path",
+    labelL10n: "storage-backblaze-path",
+  }];
+}
 
-export class BackblazeConfigUI extends StorageConfigUI {
-  public getStorageConfig(): BackblazeConfig {
-    return {
-      type: BackblazeStorageType,
-      keyId: this.getTextState("keyId"),
-      key: this.getTextState("key"),
-      bucket: this.getTextState("bucket"),
-      path: this.getTextState("path"),
-    };
-  }
-
-  public renderUI(): React.ReactNode {
-    return <React.Fragment>
-      <FieldLabel l10n="storage-backblaze-keyid" for="keyId"/>
-      <Textbox id="keyId" uiPath="keyId" required={true} disabled={this.props.disabled}/>
-      <FieldLabel l10n="storage-backblaze-key" for="key"/>
-      <Textbox id="key" uiPath="key" required={true} disabled={this.props.disabled}/>
-      <FieldLabel l10n="storage-backblaze-bucket" for="bucket"/>
-      <Textbox id="bucket" uiPath="bucket" required={true} disabled={this.props.disabled}/>
-      <FieldLabel l10n="storage-backblaze-path" for="path"/>
-      <Textbox id="path" uiPath="path" disabled={this.props.disabled}/>
-    </React.Fragment>;
-  }
+export function getBackblazeConfig(state: UIManager): BackblazeConfig {
+  return {
+    type: BackblazeStorageType,
+    keyId: state.getTextState("b2_keyId"),
+    key: state.getTextState("b2_key"),
+    bucket: state.getTextState("b2_bucket"),
+    path: state.getTextState("b2_path"),
+  };
 }

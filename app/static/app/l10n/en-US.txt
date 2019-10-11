@@ -26,3 +26,5 @@ storage-backblaze-keyid = Application key ID:
 storage-backblaze-key = Application key:
 storage-backblaze-bucket = Bucket:
 storage-backblaze-path = Path:
+
+storage-server-name = Server

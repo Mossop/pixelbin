@@ -1,5 +1,3 @@
-import { UIManager } from "../utils/uicontext";
-
 export const BackblazeStorageType = "backblaze";
 
 export interface BackblazeConfig {
@@ -10,12 +8,10 @@ export interface BackblazeConfig {
   path: string;
 }
 
-export type StorageConfig = BackblazeConfig;
+export const ServerStorageType = "server";
 
-interface StorageConfigProps {
-  disabled: boolean;
+export interface ServerConfig {
+  type: typeof ServerStorageType;
 }
 
-export abstract class StorageConfigUI extends UIManager<StorageConfigProps> {
-  public abstract getStorageConfig(): StorageConfig;
-}
+export type StorageConfig = BackblazeConfig | ServerConfig;

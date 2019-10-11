@@ -59,7 +59,7 @@ export abstract class UIManager<P = {}, S = {}> extends React.Component<P, S> {
     this.mounted = false;
   }
 
-  protected getTextState(path: string): string {
+  public getTextState(path: string): string {
     return getTextState(this.getUIState(path));
   }
 

@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { Overlay, OverlayType, StoreState } from "../types";
 import { UIManager } from "../utils/uicontext";
 import Form, { FormProps } from "../content/Form";
-import { getStorageConfigUI, StorageConfigUI } from "../storage";
+import { getStorageConfigUI, getStorageConfig } from "../storage";
 import { createCatalog } from "../api/catalog";
 import { catalogCreated, DispatchProps } from "../utils/actions";
 
@@ -32,8 +32,6 @@ const mapDispatchToProps = {
 };
 
 class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>, CreateCatalogState> {
-  private storageConfigUI: React.RefObject<StorageConfigUI>;
-
   public constructor(props: CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>) {
     super(props);
 
@@ -41,22 +39,17 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<
       disabled: false,
       error: false,
     };
-    this.storageConfigUI = React.createRef();
 
     this.setTextState("storage", "backblaze");
   }
 
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    if (!this.storageConfigUI.current) {
-      return;
-    }
-
     let name = this.getTextState("name");
     if (!name) {
       return;
     }
 
-    let storage = this.storageConfigUI.current.getStorageConfig();
+    let storage = getStorageConfig(this.getTextState("storage"), this);
 
     this.setState({ disabled: true });
 
@@ -65,15 +58,12 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<
       this.props.catalogCreated(catalog);
     } catch (e) {
       this.setState({ disabled: false, error: true });
-
-      this.setTextState("email", "");
-      this.setTextState("password", "");
     }
   };
 
   public renderUI(): React.ReactNode {
     let title = this.props.isFirst ? "catalog-create-title-first" : "catalog-create-title";
-    let StorageUI = getStorageConfigUI(this.getTextState("storage"));
+    let storageUI = getStorageConfigUI(this.getTextState("storage"));
 
     let form: FormProps = {
       disabled: this.state.disabled,
@@ -93,13 +83,14 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<
         choices: [{
           value: "backblaze",
           l10n: "storage-backblaze-name",
+        }, {
+          value: "server",
+          l10n: "storage-server-name",
         }]
-      }, {
-        fieldType: "custom",
-        content: <StorageUI disabled={this.state.disabled}/>,
-      }],
+      }, ...storageUI],
       submit: "catalog-create-submit",
     };
+
     return <Form {...form}/>;
   }
 }
