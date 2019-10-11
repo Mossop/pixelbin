@@ -1,7 +1,8 @@
 import React from "react";
 
 import { StorageConfigUI, BackblazeConfig, BackblazeStorageType } from "./types";
-import TextField from "../components/TextField";
+import Textbox from "../components/Textbox";
+import FieldLabel from "../components/FieldLabel";
 
 export class BackblazeConfigUI extends StorageConfigUI {
   public getStorageConfig(): BackblazeConfig {
@@ -16,10 +17,14 @@ export class BackblazeConfigUI extends StorageConfigUI {
 
   public renderUI(): React.ReactNode {
     return <React.Fragment>
-      <TextField uiPath="keyId" required={true} disabled={this.props.disabled}>Application key ID:</TextField>
-      <TextField uiPath="key" required={true} disabled={this.props.disabled}>Application key:</TextField>
-      <TextField uiPath="bucket" required={true} disabled={this.props.disabled}>Bucket:</TextField>
-      <TextField uiPath="path" disabled={this.props.disabled}>Path:</TextField>
+      <FieldLabel l10n="storage-backblaze-keyid" for="keyId"/>
+      <Textbox id="keyId" uiPath="keyId" required={true} disabled={this.props.disabled}/>
+      <FieldLabel l10n="storage-backblaze-key" for="key"/>
+      <Textbox id="key" uiPath="key" required={true} disabled={this.props.disabled}/>
+      <FieldLabel l10n="storage-backblaze-bucket" for="bucket"/>
+      <Textbox id="bucket" uiPath="bucket" required={true} disabled={this.props.disabled}/>
+      <FieldLabel l10n="storage-backblaze-path" for="path"/>
+      <Textbox id="path" uiPath="path" disabled={this.props.disabled}/>
     </React.Fragment>;
   }
 }

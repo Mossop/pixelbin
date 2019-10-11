@@ -1,15 +1,28 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
-import { Router, Route } from "react-router-dom";
+import { Router, Switch, Route } from "react-router-dom";
 
 import { buildStore } from "./utils/store";
-import { StoreState, ServerStateDecoder, decode } from "./types";
+import { StoreState, ServerStateDecoder, Paths, PathsDecoder, decode } from "./types";
 import history from "./utils/history";
 
-import Banner from "./content/Banner";
 import IndexPage from "./pages/index";
 import Overlay from "./overlays/index";
+import LocalizationContext from "./l10n";
+
+let PATHS: Paths = {
+  static: "/static/",
+};
+
+let pathsElement = document.getElementById("paths");
+if (pathsElement && pathsElement.textContent) {
+  try {
+    PATHS = decode(PathsDecoder, JSON.parse(pathsElement.textContent));
+  } catch (e) {
+    console.error(e);
+  }
+}
 
 let initialState: StoreState = { serverState: { } };
 let stateElement = document.getElementById("initial-state");
@@ -25,15 +38,17 @@ if (stateElement && stateElement.textContent) {
 
 ReactDOM.render(
   <Provider store={buildStore(initialState)}>
-    <Router history={history}>
-      <Banner/>
-      <div id="main">
-        <Route path="/">
-          <IndexPage/>
-        </Route>
+    <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
+      <Router history={history}>
+        <Switch>
+          <Route exact path="/">
+            <IndexPage/>
+          </Route>
+          <Route></Route>
+        </Switch>
         <Overlay/>
-      </div>
-    </Router>
+      </Router>
+    </LocalizationContext>
   </Provider>,
   document.getElementById("app")
 );

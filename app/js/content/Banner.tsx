@@ -17,7 +17,7 @@ const mapDispatchToProps = {
 type BannerProps = DispatchProps<typeof mapDispatchToProps>;
 
 class Banner extends React.Component<BannerProps> {
-  private logout = async (): Promise<void> => {
+  private logout: (() => void) = async (): Promise<void> => {
     let state = await logout();
     this.props.completeLogout(state);
   };
@@ -26,14 +26,14 @@ class Banner extends React.Component<BannerProps> {
     return <div id="banner">
       <h1 id="logo"><Link to="/">PixelBin</Link></h1>
       <div id="rightbanner">
+        {this.props.children}
         <If condition={loggedIn}>
           <Then>
-            <Link to="/upload">Upload</Link>
-            <Button style={{ height: "100%" }} onClick={this.logout}>Log Out</Button>
+            <Button l10n="banner-logout" style={{ height: "100%" }} onClick={this.logout}/>
           </Then>
           <Else>
-            <Button style={{ height: "100%" }} onClick={this.props.openLoginOverlay}>Log In</Button>
-            <Button style={{ height: "100%" }} onClick={this.props.openSignupOverlay}>Sign Up</Button>
+            <Button l10n="banner-login" style={{ height: "100%" }} onClick={this.props.openLoginOverlay}/>
+            <Button l10n="banner-signup" style={{ height: "100%" }} onClick={this.props.openSignupOverlay}/>
           </Else>
         </If>
       </div>

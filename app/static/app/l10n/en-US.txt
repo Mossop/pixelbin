@@ -1,0 +1,28 @@
+banner-login = Log in
+banner-signup = Signup
+banner-logout = Log out
+
+signup-title = Enter your details:
+signup-title-bademail = There is already an account with this email. Try again:
+signup-email = Email address:
+signup-name = Name:
+signup-password = Password:
+signup-submit = Sign up...
+
+login-title = Please enter your login details:
+login-title-failed = Unknown email or password. Try again:
+login-email = Email address:
+login-password = Pasword:
+login-submit = Log in...
+
+catalog-create-title = Create a new catalog
+catalog-create-title-first = Create your first catalog:
+catalog-create-name = Catalog name:
+catalog-create-storage = Storage:
+catalog-create-submit = Create...
+
+storage-backblaze-name = Backblaze
+storage-backblaze-keyid = Application key ID:
+storage-backblaze-key = Application key:
+storage-backblaze-bucket = Bucket:
+storage-backblaze-path = Path:

@@ -15,6 +15,7 @@
 {% endif %}
 <link rel="stylesheet" type="text/css" href="{% static 'app/css/global.css' %}">
 {{ state|json_script:"initial-state" }}
+<script id="paths" type="application/json">{"static": "{% static "app/" %}"}</script>
 {{ keys|json_script:"api-keys" }}
 <script type="text/javascript" src="{% static 'app/scripts/maps.js' %}"></script>
 </head>

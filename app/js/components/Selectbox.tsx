@@ -1,25 +1,28 @@
 import React from "react";
+import { Localized } from "@fluent/react";
 
-import { ComponentProps, TextComponent } from "../utils/uicontext";
+import { L10nProps } from "../l10n";
+import { TextComponent } from "../utils/uicontext";
+import { fieldProps, UIProps } from "./shared";
 
-interface SelectboxProps {
-  id: string;
-  disabled?: boolean;
-  className?: string;
-}
+export type SelectOption = {
+  value: string;
+} & L10nProps;
 
-export default class Selectbox extends TextComponent<SelectboxProps & ComponentProps> {
-  public constructor(props: SelectboxProps & ComponentProps) {
-    super(props);
-  }
+export type SelectboxProps = {
+  choices: SelectOption[];
+} & UIProps;
 
+export default class Selectbox extends TextComponent<SelectboxProps> {
   private onChange: ((event: React.ChangeEvent<HTMLSelectElement>) => void) = (event: React.ChangeEvent<HTMLSelectElement>): void => {
     this.setUIState(event.target.value);
   };
 
   public render(): React.ReactNode {
-    return <select className={this.props.className ? this.props.className : "field"} id={this.props.id} disabled={!!this.props.disabled} value={this.getUIState()} onChange={this.onChange}>
-      {this.props.children}
+    return <select {...fieldProps(this.props, { className: "field" })} value={this.getUIState()} onChange={this.onChange}>
+      {this.props.choices.map((choice: SelectOption) => {
+        return <Localized id={choice.l10n} key={choice.value}><option value={choice.value}/></Localized>;
+      })}
     </select>;
   }
 }

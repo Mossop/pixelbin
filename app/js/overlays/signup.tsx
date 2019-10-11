@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { signup } from "../api/auth";
-import TextField from "../components/TextField";
+import Form, { FormProps } from "../content/Form";
 import { UIManager } from "../utils/uicontext";
 
 import { DispatchProps, completeSignup } from "../utils/actions";
@@ -14,7 +14,7 @@ export function isSignupOverlay(state: Overlay): boolean {
 
 interface SignupState {
   disabled: boolean;
-  failed: boolean;
+  error: boolean;
 }
 
 const mapDispatchToProps = {
@@ -24,27 +24,15 @@ const mapDispatchToProps = {
 type SignupProps = DispatchProps<typeof mapDispatchToProps>;
 
 class SignupOverlay extends UIManager<SignupProps, SignupState> {
-  private emailBox: React.RefObject<TextField>;
-
   public constructor(props: SignupProps) {
     super(props);
     this.state = {
       disabled: false,
-      failed: false,
+      error: false,
     };
-
-    this.emailBox = React.createRef();
   }
 
-  public componentDidMount(): void {
-    if (this.emailBox.current) {
-      this.emailBox.current.focus();
-    }
-  }
-
-  private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => Promise<void>) = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-
+  private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
     let email = this.getTextState("email");
     let name = this.getTextState("name");
     let password = this.getTextState("password");
@@ -59,24 +47,38 @@ class SignupOverlay extends UIManager<SignupProps, SignupState> {
       let state = await signup(email, name || "", password || "");
       this.props.completeSignup(state);
     } catch (e) {
-      this.setState({ disabled: false, failed: true });
+      this.setState({ disabled: false, error: true });
     }
   };
 
   public renderUI(): React.ReactNode {
-    let title = this.state.failed ?
-      <p className="error formTitle">There is already an account with this email. Try again:</p> :
-      <p className="formTitle">Enter your details:</p>;
+    let title = this.state.error ? "signup-title-bademail" : "signup-title";
 
-    return <div className="centerblock">
-      <form id="signupForm" className="fieldGrid" onSubmit={this.onSubmit}>
-        {title}
-        <TextField uiPath="email" required={true} type="email" ref={this.emailBox} disabled={this.state.disabled}>Email address:</TextField>
-        <TextField uiPath="name" disabled={this.state.disabled}>Name:</TextField>
-        <TextField uiPath="password" type="password" disabled={this.state.disabled}>Password:</TextField>
-        <p className="spanEnd"><input type="submit" value="Log In" disabled={this.state.disabled}/></p>
-      </form>
-    </div>;
+    let form: FormProps = {
+      disabled: this.state.disabled,
+      onSubmit: this.onSubmit,
+      className: this.state.error ? "error" : undefined,
+
+      title,
+      fields: [{
+        fieldType: "textbox",
+        uiPath: "email",
+        labelL10n: "signup-email",
+        type: "email",
+        required: true,
+      }, {
+        fieldType: "textbox",
+        uiPath: "name",
+        labelL10n: "signup-name",
+      }, {
+        fieldType: "textbox",
+        uiPath: "password",
+        labelL10n: "signup-password",
+        type: "password",
+      }],
+      submit: "signup-submit",
+    };
+    return <Form {...form}/>;
   }
 }
 

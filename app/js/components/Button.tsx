@@ -1,15 +1,21 @@
 import React from "react";
 
-interface Props {
-  style?: object;
-  onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
-}
+import { Localized } from "@fluent/react";
 
-export class Button extends React.Component<Props> {
+import { fieldProps, FieldProps } from "./shared";
+import { L10nProps } from "../l10n";
+
+type ButtonProps  = {
+  onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+} & FieldProps & L10nProps;
+
+export class Button extends React.Component<ButtonProps> {
   public render(): React.ReactNode {
     return (
-      <button style={this.props.style || {}} className="button" onClick={this.props.onClick}>
-        <span>{this.props.children}</span>
+      <button {...fieldProps(this.props)} onClick={this.props.onClick}>
+        <Localized id={this.props.l10n}>
+          <span/>
+        </Localized>
       </button>
     );
   }

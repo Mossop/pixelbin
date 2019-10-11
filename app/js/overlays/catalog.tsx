@@ -3,8 +3,7 @@ import { connect } from "react-redux";
 
 import { Overlay, OverlayType, StoreState } from "../types";
 import { UIManager } from "../utils/uicontext";
-import TextField from "../components/TextField";
-import Selectbox from "../components/Selectbox";
+import Form, { FormProps } from "../content/Form";
 import { getStorageConfigUI, StorageConfigUI } from "../storage";
 import { createCatalog } from "../api/catalog";
 import { catalogCreated, DispatchProps } from "../utils/actions";
@@ -19,7 +18,7 @@ interface CreateCatalogProps {
 
 interface CreateCatalogState {
   disabled: boolean;
-  failed: boolean;
+  error: boolean;
 }
 
 function mapStateToProps(state: StoreState): CreateCatalogProps {
@@ -33,7 +32,6 @@ const mapDispatchToProps = {
 };
 
 class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>, CreateCatalogState> {
-  private nameBox: React.RefObject<TextField>;
   private storageConfigUI: React.RefObject<StorageConfigUI>;
 
   public constructor(props: CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>) {
@@ -41,21 +39,14 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<
 
     this.state = {
       disabled: false,
-      failed: false,
+      error: false,
     };
-    this.nameBox = React.createRef();
     this.storageConfigUI = React.createRef();
+
+    this.setTextState("storage", "backblaze");
   }
 
-  public componentDidMount(): void {
-    if (this.nameBox.current) {
-      this.nameBox.current.focus();
-    }
-  }
-
-  private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => Promise<void>) = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-
+  private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
     if (!this.storageConfigUI.current) {
       return;
     }
@@ -73,29 +64,43 @@ class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<
       let catalog = await createCatalog(name, storage);
       this.props.catalogCreated(catalog);
     } catch (e) {
-      this.setState({ disabled: false, failed: true });
+      this.setState({ disabled: false, error: true });
 
       this.setTextState("email", "");
       this.setTextState("password", "");
     }
   };
 
-
   public renderUI(): React.ReactNode {
-    let title = this.props.isFirst ? "Create your first catalog:" : "Create a new catalog:";
+    let title = this.props.isFirst ? "catalog-create-title-first" : "catalog-create-title";
     let StorageUI = getStorageConfigUI(this.getTextState("storage"));
-    return <div className="centerblock">
-      <form id="catalogForm" className="fieldGrid" onSubmit={this.onSubmit}>
-        <p className="formTitle">{title}</p>
-        <TextField uiPath="name" ref={this.nameBox} required={true} disabled={this.state.disabled}>Catalog name:</TextField>
-        <p className="fieldLabel"><label htmlFor="storage">Storage type:</label></p>
-        <Selectbox id="storage" uiPath="storage">
-          <option value="backblaze">Backblaze</option>
-        </Selectbox>
-        <StorageUI ref={this.storageConfigUI} disabled={this.state.disabled}/>
-        <p className="spanEnd"><input type="submit" value="Create" disabled={this.state.disabled}/></p>
-      </form>
-    </div>;
+
+    let form: FormProps = {
+      disabled: this.state.disabled,
+      onSubmit: this.onSubmit,
+      className: this.state.error ? "error" : undefined,
+
+      title,
+      fields: [{
+        fieldType: "textbox",
+        uiPath: "name",
+        labelL10n: "catalog-create-name",
+        required: true,
+      }, {
+        fieldType: "selectbox",
+        uiPath: "storage",
+        labelL10n: "catalog-create-storage",
+        choices: [{
+          value: "backblaze",
+          l10n: "storage-backblaze-name",
+        }]
+      }, {
+        fieldType: "custom",
+        content: <StorageUI disabled={this.state.disabled}/>,
+      }],
+      submit: "catalog-create-submit",
+    };
+    return <Form {...form}/>;
   }
 }
 

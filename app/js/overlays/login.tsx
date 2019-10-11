@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { login } from "../api/auth";
-import TextField from "../components/TextField";
+import Form, { FormProps } from "../content/Form";
 import { UIManager } from "../utils/uicontext";
 
 import { DispatchProps, completeLogin } from "../utils/actions";
@@ -14,7 +14,7 @@ export function isLoginOverlay(state: Overlay): boolean {
 
 interface LoginState {
   disabled: boolean;
-  failed: boolean;
+  error: boolean;
 }
 
 const mapDispatchToProps = {
@@ -24,27 +24,15 @@ const mapDispatchToProps = {
 type LoginProps = DispatchProps<typeof mapDispatchToProps>;
 
 class LoginOverlay extends UIManager<LoginProps, LoginState> {
-  private emailBox: React.RefObject<TextField>;
-
   public constructor(props: LoginProps) {
     super(props);
     this.state = {
       disabled: false,
-      failed: false,
+      error: false,
     };
-
-    this.emailBox = React.createRef();
   }
 
-  public componentDidMount(): void {
-    if (this.emailBox.current) {
-      this.emailBox.current.focus();
-    }
-  }
-
-  private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => Promise<void>) = async(event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-
+  private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
     let email = this.getTextState("email");
     let password = this.getTextState("password");
     if (!email) {
@@ -57,7 +45,7 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
       let state = await login(email, password);
       this.props.completeLogin(state);
     } catch (e) {
-      this.setState({ disabled: false, failed: true });
+      this.setState({ disabled: false, error: true });
 
       this.setTextState("email", "");
       this.setTextState("password", "");
@@ -65,18 +53,29 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
   };
 
   public renderUI(): React.ReactNode {
-    let title = this.state.failed ?
-      <p className="formTitle error" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Unknown email or password. Try again:</p> :
-      <p className="formTitle" style={{ paddingBottom: "15px", gridColumn: "span 2", justifySelf: "start" }}>Please enter your login details:</p>;
+    let title = this.state.error ? "login-title-failed" : "login-title";
 
-    return <div className="centerblock">
-      <form className="fieldGrid" onSubmit={this.onSubmit}>
-        {title}
-        <TextField uiPath="email" required={true} type="email" ref={this.emailBox} disabled={this.state.disabled}>Email address:</TextField>
-        <TextField uiPath="password" type="password" disabled={this.state.disabled}>Pasword:</TextField>
-        <p className="spanEnd"><input type="submit" value="Log In" disabled={this.state.disabled}/></p>
-      </form>
-    </div>;
+    let form: FormProps = {
+      disabled: this.state.disabled,
+      onSubmit: this.onSubmit,
+      className: this.state.error ? "error" : undefined,
+
+      title,
+      fields: [{
+        fieldType: "textbox",
+        uiPath: "email",
+        labelL10n: "login-email",
+        type: "email",
+        required: true,
+      }, {
+        fieldType: "textbox",
+        uiPath: "password",
+        labelL10n: "login-password",
+        type: "password",
+      }],
+      submit: "login-submit",
+    };
+    return <Form {...form}/>;
   }
 }
 

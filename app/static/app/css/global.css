@@ -217,11 +217,11 @@ a, a:hover, a:visited, a:active {
   color: var(--foreground);
 }
 
-.error {
+.error .formTitle {
   color: var(--error);
 }
 
-.button {
+#rightbanner button {
   color: inherit;
   background: var(--background);
   color: var(--foreground);
@@ -234,11 +234,11 @@ a, a:hover, a:visited, a:active {
   padding-right: 10px;
 }
 
-.button > span {
+#rightbanner .button > span {
   vertical-align: center;
 }
 
-.button:hover {
+#rightbanner .button:hover {
   background: var(--active);
 }
 

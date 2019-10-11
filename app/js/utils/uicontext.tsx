@@ -34,6 +34,7 @@ const Context = React.createContext<UIContext>({
 
 export abstract class UIManager<P = {}, S = {}> extends React.Component<P, S> {
   private uiState: Map<string, ComponentState>;
+  private mounted: boolean;
 
   private getUIState: (path: string) => ComponentState | undefined = (path: string): ComponentState | undefined => {
     return this.uiState.get(path);
@@ -46,13 +47,16 @@ export abstract class UIManager<P = {}, S = {}> extends React.Component<P, S> {
       this.uiState.delete(path);
     }
 
-    this.forceUpdate();
+    if (this.mounted) {
+      this.forceUpdate();
+    }
   };
 
   public constructor(props: P) {
     super(props);
 
     this.uiState = new Map();
+    this.mounted = false;
   }
 
   protected getTextState(path: string): string {
@@ -65,6 +69,14 @@ export abstract class UIManager<P = {}, S = {}> extends React.Component<P, S> {
 
   protected abstract renderUI(): React.ReactNode;
 
+  public componentDidMount(): void {
+    this.mounted = true;
+  }
+
+  public componentWillUnmount(): void {
+    this.mounted = false;
+  }
+
   public render(): React.ReactNode {
     let context: UIContext = {
       getState: this.getUIState,
@@ -74,11 +86,11 @@ export abstract class UIManager<P = {}, S = {}> extends React.Component<P, S> {
   }
 }
 
-export interface ComponentProps {
+export interface UIComponentProps {
   uiPath: string;
 }
 
-export abstract class TextComponent<P = {}, S = {}> extends React.Component<P & ComponentProps, S> {
+export abstract class TextComponent<P extends UIComponentProps, S = {}> extends React.Component<P, S> {
   public static contextType: React.Context<UIContext> = Context;
   public context!: React.ContextType<typeof Context>;
 
