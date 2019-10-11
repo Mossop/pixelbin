@@ -6,6 +6,7 @@ import history from "./history";
 import { ActionType,
   SHOW_LOGIN_OVERLAY,
   SHOW_SIGNUP_OVERLAY,
+  SHOW_CATALOG_CREATE_OVERLAY,
   COMPLETE_LOGIN,
   COMPLETE_SIGNUP,
   COMPLETE_LOGOUT,
@@ -27,6 +28,14 @@ function reducer(state: StoreState, action: ActionType): StoreState {
         ...state,
         overlay: {
           type: OverlayType.Signup,
+        }
+      };
+    }
+    case SHOW_CATALOG_CREATE_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.CreateCatalog,
         }
       };
     }

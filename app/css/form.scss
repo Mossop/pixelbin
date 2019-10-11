@@ -3,12 +3,12 @@
 
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: 10px;
+  gap: 15px;
   align-items: center;
 }
 
 .fieldGrid .formTitle {
-  padding-bottom: 15px;
+  padding-bottom: 20px;
   grid-column: span 2;
   justify-self: start;
 }

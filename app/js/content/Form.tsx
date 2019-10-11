@@ -5,7 +5,7 @@ import FieldLabel from "../components/FieldLabel";
 import Textbox, { TextboxProps } from "../components/Textbox";
 import Selectbox, { SelectboxProps } from "../components/SelectBox";
 import FormSubmit, { FormSubmitProps } from "../components/FormSubmit";
-import { DefaultProps, defaultProps } from "../components/shared";
+import { StyleProps, styleProps } from "../components/shared";
 
 interface LabelProps {
   labelL10n: string;
@@ -26,7 +26,7 @@ export type CustomField = {
 
 export type Field = TextboxField | SelectboxField | CustomField;
 
-export interface FormProps extends DefaultProps {
+export interface FormProps extends StyleProps {
   disabled: boolean;
   onSubmit: () => void | Promise<void>;
 
@@ -65,7 +65,7 @@ export default class Form extends React.Component<FormProps> {
     let title = typeof this.props.title == "object" ? this.props.title : { l10n: this.props.title };
     let submit = typeof this.props.submit == "object" ? this.props.submit : { l10n: this.props.submit };
 
-    return <form {...defaultProps(this.props, { className: "fieldGrid" })} onSubmit={this.onSubmit}>
+    return <form {...styleProps(this.props, { className: "fieldGrid" })} onSubmit={this.onSubmit}>
       <FormTitle {...title}/>
       {this.props.fields.map(this.renderField)}
       <FormSubmit {...submit} disabled={this.props.disabled}/>

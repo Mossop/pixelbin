@@ -1,16 +1,18 @@
 import { UIComponentProps } from "../utils/UIState";
 
-export interface DefaultProps {
+export interface StyleProps {
   id?: string;
-  style?: object;
+  style?: React.CSSProperties;
   className?: string | string[];
 }
 
-type Final<P> = P & {
+interface ElementStyleProps {
+  id?: string;
+  style?: React.CSSProperties;
   className?: string;
-};
+}
 
-export function defaultProps<P extends DefaultProps>(props: P, additional: DefaultProps = {}): Final<DefaultProps> {
+export function styleProps<P extends StyleProps>(props: P, additional: StyleProps = {}): ElementStyleProps {
   const asArray: ((i: undefined | string | string[]) => string[]) = (i: undefined | string | string[]): string[] => {
     if (i === undefined) {
       return [];
@@ -21,28 +23,46 @@ export function defaultProps<P extends DefaultProps>(props: P, additional: Defau
     }
   };
 
-  const { id, style, className } = props;
-  return {
-    id: id || additional.id,
-    style: Object.assign({}, additional.style, style),
-    className: asArray(className).concat(asArray(additional.className)).join(" "),
+  let result: ElementStyleProps = {
+    id: props.id || additional.id,
+    style: Object.assign({}, additional.style, props.style),
+    className: asArray(props.className).concat(asArray(additional.className)).join(" ").trim(),
   };
+
+  if (!result.id) {
+    delete result.id;
+  }
+
+  if (result.style && Object.keys(result.style).length === 0) {
+    delete result.style;
+  }
+
+  if (result.className === "") {
+    delete result.className;
+  }
+
+  return result;
 }
 
 export type FieldProps = {
   disabled?: boolean;
-} & DefaultProps;
+} & StyleProps;
 
-export function fieldProps<P extends FieldProps>(props: P, additional: DefaultProps = {}): Final<FieldProps> {
+type ElementFieldProps = {
+  disabled?: boolean;
+} & ElementStyleProps;
+
+export function fieldProps<P extends FieldProps>(props: P, additional: StyleProps = {}): ElementFieldProps {
   return {
-    ...defaultProps(props, additional),
+    ...styleProps(props, additional),
     disabled: props.disabled,
   };
 }
 
 export type UIProps = FieldProps & UIComponentProps;
+type ElementUIProps = ElementFieldProps & UIComponentProps;
 
-export function uiProps<P extends UIProps>(props: P, additional: DefaultProps = {}): Final<UIProps> {
+export function uiProps<P extends UIProps>(props: P, additional: StyleProps = {}): ElementUIProps {
   return {
     ...fieldProps(props, additional),
     uiPath: props.uiPath,

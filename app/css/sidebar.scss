@@ -1,22 +1,36 @@
 #sidebar {
   @include base-styles;
 
-  min-width: var(200px);
-  padding-top: 20px;
+  min-width: 250px;
   overflow-y: auto;
+}
+
+#catalog-list {
+  padding-top: 15px;
+  padding-bottom: 15px;
+  padding-right: 15px;
 
   ol {
     padding: 0;
     margin: 0;
   }
 
+  p, li {
+    margin: 0;
+    padding-bottom: 2px;
+    margin-left: 15px;
+  }
+
   li {
     list-style-type: none;
-    margin: 0;
-    padding-top: 2px;
   }
 
   li.selected {
     background: var(--active);
+  }
+
+  button {
+    @include unstyled-button;
+    display: block;
   }
 }

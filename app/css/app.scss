@@ -4,6 +4,13 @@
   font: var(--font);
 }
 
+@mixin unstyled-button {
+  @include base-styles;
+
+  border: none;
+  cursor: pointer;
+}
+
 @import "variables";
 @import "base";
 @import "form";
@@ -13,6 +20,22 @@
 
 #app {
   @include base-styles;
+
+  display: flex;
+  flex-direction: column;
+}
+
+#sidebar-content {
+  flex: 1;
+
+  display: flex;
+  flex-direction: row;
+}
+
+#content {
+  @include base-styles;
+
+  flex: 1;
 
   display: flex;
   flex-direction: column;

@@ -8,8 +8,11 @@ import { StoreState, ServerStateDecoder, Paths, PathsDecoder, decode } from "./t
 import history from "./utils/history";
 
 import IndexPage from "./pages/index";
+import UserPage from "./pages/user";
 import Overlay from "./overlays/index";
 import LocalizationContext from "./l10n";
+import { If, Else, Then } from "./utils/Conditions";
+import { loggedIn } from "./utils/helpers";
 
 let PATHS: Paths = {
   static: "/static/",
@@ -41,10 +44,12 @@ ReactDOM.render(
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
       <Router history={history}>
         <Switch>
-          <Route>
+          <Route path="/user">
+            <UserPage/>
+          </Route>
+          <Route exact path="/">
             <IndexPage/>
           </Route>
-          <Route></Route>
         </Switch>
         <Overlay/>
       </Router>

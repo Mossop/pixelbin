@@ -1,8 +1,8 @@
 import React from "react";
-import { Localized } from "@fluent/react";
 import { connect } from "react-redux";
 
 import { showCatalogCreateOverlay, DispatchProps } from "../utils/actions";
+import { Button } from "../components/Button";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
@@ -17,12 +17,11 @@ class Sidebar extends React.Component<SidebarProps> {
 
   public render(): React.ReactNode {
     return <div id="sidebar">
-      <ol>
-      </ol>
-      <Localized id="sidebar-add-category">
-        <button onClick={this.onClick}/>
-      </Localized>
-      <p>Add a new category...</p>
+      <div id="catalog-list">
+        <ol>
+        </ol>
+        <p><Button l10n="sidebar-add-category" iconName="folder-plus" onClick={this.onClick}/></p>
+      </div>
     </div>;
   }
 }
