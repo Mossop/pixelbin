@@ -35,7 +35,7 @@ function reducer(state: StoreState, action: ActionType): StoreState {
 
       if (action.payload.user) {
         if (action.payload.user.catalogs.length) {
-          history.push(`/catalog/${action.payload.user.catalogs[0].stub}`);
+          history.push(`/catalog/${action.payload.user.catalogs[0].id}`);
         } else {
           history.push("/user");
           if (!action.payload.user.hadCatalog) {

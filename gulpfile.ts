@@ -1,11 +1,12 @@
 /* eslint-env node */
 
-import { src, dest } from "gulp";
+import { src, dest, parallel, watch as filewatch } from "gulp";
 import { RuleSetQuery } from "webpack";
 import { Configuration } from "webpack";
 import webpack = require("webpack-stream");
 import named = require("vinyl-named");
 import eslint = require("gulp-eslint");
+import sass = require("gulp-sass");
 
 import { config, path } from "./base/config";
 
@@ -27,7 +28,7 @@ function babelOptions(): RuleSetQuery {
   };
 }
 
-function bundleConfig(): Configuration {
+function buildJsConfig(): Configuration {
   return {
     mode: config.general.debug ? "development" : "production",
     resolve: {
@@ -56,8 +57,8 @@ function bundleConfig(): Configuration {
   };
 }
 
-function watchConfig(): Configuration {
-  let config = bundleConfig();
+function watchJsConfig(): Configuration {
+  let config = buildJsConfig();
   config.watch = true;
   return config;
 }
@@ -69,18 +70,31 @@ export function lint(): NodeJS.ReadWriteStream {
     .pipe(eslint.failAfterError());
 }
 
-export function watch(): NodeJS.ReadWriteStream {
+export function watchJs(): NodeJS.ReadWriteStream {
   return src([path("app", "js", "app.tsx")])
     .pipe(named())
-    .pipe(webpack(watchConfig()))
+    .pipe(webpack(watchJsConfig()))
     .pipe(dest(path(config.path.static, "app", "js")));
 }
 
-export function bundle(): NodeJS.ReadWriteStream {
+export function buildJs(): NodeJS.ReadWriteStream {
   return src([path("app", "js", "app.tsx")])
     .pipe(named())
-    .pipe(webpack(bundleConfig()))
+    .pipe(webpack(buildJsConfig()))
     .pipe(dest(path(config.path.static, "app", "js")));
 }
 
-export default bundle;
+export function watchCss(): void {
+  filewatch("**/*.scss", { cwd: path("app", "css") }, buildCss);
+}
+
+export function buildCss(): NodeJS.ReadWriteStream {
+  return src([path("app", "css", "app.scss")])
+    .pipe(sass().on('error', sass.logError))
+    .pipe(dest(path(config.path.static, "app", "css")));
+}
+
+export const build = parallel(buildJs, buildCss);
+export const watch = parallel(watchJs, watchCss);
+
+export default build;

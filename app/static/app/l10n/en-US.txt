@@ -28,3 +28,5 @@ storage-backblaze-bucket = Bucket:
 storage-backblaze-path = Path:
 
 storage-server-name = Server
+
+sidebar-add-category = Add a new category...

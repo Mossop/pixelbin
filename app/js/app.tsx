@@ -41,7 +41,7 @@ ReactDOM.render(
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
       <Router history={history}>
         <Switch>
-          <Route exact path="/">
+          <Route>
             <IndexPage/>
           </Route>
           <Route></Route>

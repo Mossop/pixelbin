@@ -1,0 +1,46 @@
+#banner {
+  @include base-styles;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+
+  height: 50px;
+}
+
+#logo {
+  padding-left: 20px;
+  font-size: 20px;
+}
+
+#rightbanner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 100%;
+
+  a {
+    padding: 200px;
+  }
+
+  button {
+    @include base-styles;
+
+    border: none;
+    cursor: pointer;
+    display: block;
+    text-align: center;
+    font: inherit;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .button > span {
+    vertical-align: center;
+  }
+
+  .button:hover {
+    background: var(--active);
+  }
+}

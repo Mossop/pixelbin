@@ -9,6 +9,7 @@ export const COMPLETE_LOGIN = "COMPLETE_LOGIN";
 export const COMPLETE_SIGNUP = "COMPLETE_SIGNUP";
 export const COMPLETE_LOGOUT = "COMPLETE_LOGOUT";
 export const CATALOG_CREATED = "CATALOG_CREATED";
+export const SHOW_CATALOG_CREATE_OVERLAY = "SHOW_CATALOG_CREATE_OVERLAY";
 
 export type ActionType =
   ShowLoginOverlayAction |
@@ -18,7 +19,8 @@ export type ActionType =
   CompleteLogoutAction |
   CloseOverlayAction |
   CompleteLogoutAction |
-  CatalogCreatedAction;
+  CatalogCreatedAction |
+  ShowCatalogCreateOverlayAction;
 
 interface CatalogCreatedAction extends Action {
   type: typeof CATALOG_CREATED;
@@ -39,6 +41,16 @@ interface CloseOverlayAction extends Action {
 export function closeOverlay(): CloseOverlayAction {
   return {
     type: CLOSE_OVERLAY,
+  };
+}
+
+interface ShowCatalogCreateOverlayAction extends Action {
+  type: typeof SHOW_CATALOG_CREATE_OVERLAY;
+}
+
+export function showCatalogCreateOverlay(): ShowCatalogCreateOverlayAction {
+  return {
+    type: SHOW_CATALOG_CREATE_OVERLAY,
   };
 }
 
