@@ -131,7 +131,6 @@ class BackblazeStorage:
     file_id = None
 
     def __init__(self, media):
-        super().__init__(media)
         self.file_id = media.storage_id
 
     def store_file(self, path):

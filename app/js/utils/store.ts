@@ -10,7 +10,8 @@ import { ActionType,
   COMPLETE_LOGIN,
   COMPLETE_SIGNUP,
   COMPLETE_LOGOUT,
-  CLOSE_OVERLAY } from "./actions";
+  CLOSE_OVERLAY, 
+  CATALOG_CREATED} from "./actions";
 import { StoreState, OverlayType, Overlay } from "../types";
 
 function reducer(state: StoreState, action: ActionType): StoreState {
@@ -69,6 +70,16 @@ function reducer(state: StoreState, action: ActionType): StoreState {
         overlay: {
           type: OverlayType.CreateCatalog,
         },
+      };
+    }
+    case CATALOG_CREATED: {
+      if (state.serverState.user) {
+        state.serverState.user.catalogs.push(action.payload);
+      }
+
+      return {
+        ...state,
+        overlay: undefined,
       };
     }
     case COMPLETE_LOGOUT: {

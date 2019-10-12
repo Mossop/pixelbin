@@ -22,19 +22,19 @@ class IndexPage extends React.Component<PageProps> {
     if (this.props.isLoggedIn) {
       return <React.Fragment>
         <Banner/>
-        <Page>
-          <h1>Hello user!</h1>
-        </Page>
+        <SidebarPage>
+          <Sidebar/>
+          <Page>
+            <h1>Hello user!</h1>
+          </Page>
+        </SidebarPage>
       </React.Fragment>;
     } else {
       return <React.Fragment>
         <Banner/>
-        <SidebarPage>
-          <Sidebar/>
-          <Page>
-            <h1>Hello!</h1>
-          </Page>
-        </SidebarPage>
+        <Page>
+          <h1>Hello!</h1>
+        </Page>
       </React.Fragment>;
     }
   }

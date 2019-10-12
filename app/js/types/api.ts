@@ -45,7 +45,7 @@ export interface Album {
   stub: string;
   name: string;
   private: boolean;
-  children: Album[];
+  parent: string | undefined;
 }
 
 export const AlbumDecoder = JsonDecoder.object<Album>(
@@ -54,8 +54,7 @@ export const AlbumDecoder = JsonDecoder.object<Album>(
     stub: JsonDecoder.string,
     name: JsonDecoder.string,
     private: JsonDecoder.boolean,
-    children: SortedDecoder(JsonDecoder.array<Album>(JsonDecoder.lazy<Album>(() => AlbumDecoder), "Album[]"),
-      (a: Album, b: Album) => a.name.localeCompare(b.name), "Album[]"),
+    parent: OptionalDecoder(JsonDecoder.string, "parent?"),
   },
   "Album"
 );
@@ -63,15 +62,14 @@ export const AlbumDecoder = JsonDecoder.object<Album>(
 export interface Tag {
   name: string;
   path: string;
-  children: Tag[];
+  parent: string | undefined;
 }
 
 export const TagDecoder = JsonDecoder.object<Tag>(
   {
     name: JsonDecoder.string,
     path: JsonDecoder.string,
-    children: SortedDecoder(JsonDecoder.array<Tag>(JsonDecoder.lazy<Tag>(() => TagDecoder), "Tag[]"),
-      (a: Tag, b: Tag) => a.name.localeCompare(b.name), "Tag[]"),
+    parent: OptionalDecoder(JsonDecoder.string, "parent?"),
   },
   "Tag"
 );
@@ -87,10 +85,9 @@ export const CatalogDecoder = JsonDecoder.object<Catalog>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
-    tags: SortedDecoder(JsonDecoder.array(TagDecoder, "Tag[]"),
-      (a: Tag, b: Tag) => a.name.localeCompare(b.name), "Tag[]"),
-    albums: SortedDecoder(JsonDecoder.array<Album>(AlbumDecoder, "Album[]"),
-      (a: Album, b: Album) => a.name.localeCompare(b.name), "Album[]"),  },
+    tags: JsonDecoder.array<Tag>(TagDecoder, "Tag[]"),
+    albums: JsonDecoder.array<Album>(AlbumDecoder, "Album[]"),
+  },
   "Catalog"
 );
 

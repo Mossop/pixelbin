@@ -1,7 +1,6 @@
 import os
 import tempfile
 import hashlib
-import json
 from datetime import datetime
 
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
@@ -17,9 +16,8 @@ from PIL import Image
 
 from . import models
 from .video import read_metadata, extract_poster
-from .storage import build_storage
 from .utils import uuid
-from .serializers import UserSerializer, LoginSerializer, serialize_state
+from .serializers import UserSerializer, LoginSerializer, CatalogSerializer, serialize_state
 
 PREVIEW_SIZE = 600
 
@@ -58,21 +56,23 @@ def login(request):
         return Response(serialize_state(request))
     return Response(status=status.HTTP_403_FORBIDDEN)
 
-@login_required
+@api_view(['PUT'])
 def create_catalog(request):
-    body = json.loads(request.body.decode('utf-8'))
-    if isinstance(body, dict):
-        if "name" in body and "storage" in body and type(body["storage"]) is dict:
-            storage = build_storage(body["storage"])
-            catalog = models.Catalog(id=uuid("C"), name=body["name"], storage=storage)
-            catalog.save()
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
 
-            access = models.Access(user=request.user, catalog=catalog, editable=True)
-            access.save()
+    serializer = CatalogSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    catalog = serializer.save(id=uuid('C'))
 
-            return JsonResponse(build_catalog(access))
+    access = models.Access(user=request.user, catalog=catalog)
+    access.save()
 
-    return HttpResponseBadRequest('<h1>Bad Request</h1>')
+    request.user.had_catalog = True
+    request.user.save()
+
+    serializer = CatalogSerializer(catalog)
+    return Response(serializer.data)
 
 @api_view(['POST'])
 def logout(request):

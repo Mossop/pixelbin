@@ -71,7 +71,7 @@ class User(AbstractUser):
 class Catalog(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
     name = models.CharField(max_length=100)
-    users = models.ManyToManyField(User, related_name='catalogs', through = 'Access')
+    users = models.ManyToManyField(User, related_name='catalogs', through='Access')
     storage = models.ForeignKey(Storage, on_delete=models.CASCADE, related_name='catalogs')
 
     def delete(self):
@@ -79,7 +79,7 @@ class Catalog(models.Model):
         Storage.objects.filter(catalogs = None).delete()
 
 class Access(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access')
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
 
     class Meta:

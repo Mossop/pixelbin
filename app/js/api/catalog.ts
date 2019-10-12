@@ -3,7 +3,7 @@ import { StorageConfig } from "../storage/types";
 import { Catalog, CatalogDecoder } from "../types";
 
 export async function createCatalog(name: string, storage: StorageConfig): Promise<Catalog> {
-  let response = await request("createCatalog", "PUT", buildJSONBody({
+  let response = await request("catalog/create", "PUT", buildJSONBody({
     name,
     storage
   }));
