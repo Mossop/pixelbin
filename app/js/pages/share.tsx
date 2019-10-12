@@ -5,10 +5,10 @@ import { connect } from "react-redux";
 import MediaList from "../content/MediaList";
 import Sidebar from "../content/Sidebar";
 import { fetchShare } from "../api/search";
-import { loggedIn } from "../utils/helpers";
+import { isLoggedIn } from "../utils/helpers";
 
 const mapStateToProps = (state) => ({
-  loggedIn: loggedIn(state),
+  loggedIn: isLoggedIn(state),
 });
 
 class SharePage extends React.Component {

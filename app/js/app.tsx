@@ -12,7 +12,7 @@ import UserPage from "./pages/user";
 import Overlay from "./overlays/index";
 import LocalizationContext from "./l10n";
 import { If, Else, Then } from "./utils/Conditions";
-import { loggedIn } from "./utils/helpers";
+import { isLoggedIn } from "./utils/helpers";
 
 let PATHS: Paths = {
   static: "/static/",

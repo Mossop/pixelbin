@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import Banner from "../content/Banner";
 import { StoreState } from "../types";
-import { loggedIn } from "../utils/helpers";
+import { isLoggedIn } from "../utils/helpers";
 import { Page, SidebarPage } from "../components/pages";
 import Sidebar from "../content/Sidebar";
 
@@ -13,7 +13,7 @@ interface PageProps {
 
 function mapStateToProps(state: StoreState): PageProps {
   return {
-    isLoggedIn: loggedIn(state),
+    isLoggedIn: isLoggedIn(state),
   };
 }
 

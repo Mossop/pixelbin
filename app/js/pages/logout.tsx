@@ -5,7 +5,7 @@ import { connect } from "react-redux";
 
 import { logout } from "../api/auth";
 import { If, Then, Else } from "../utils/Conditions";
-import { loggedIn } from "../utils/helpers";
+import { isLoggedIn } from "../utils/helpers";
 import { setState } from "../utils/actions";
 
 const mapDispatchToProps = (dispatch) => ({
@@ -24,7 +24,7 @@ class LogoutPage extends React.Component {
 
   render() {
     return (
-      <If condition={loggedIn}>
+      <If condition={isLoggedIn}>
         <Then>
           <div id="content" className="centerblock">
             <p>Logging out...</p>

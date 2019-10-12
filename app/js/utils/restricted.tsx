@@ -2,10 +2,10 @@ import React from "react";
 import { Route, Redirect } from "react-router";
 import { connect } from "react-redux";
 
-import { loggedIn } from "./helpers";
+import { isLoggedIn } from "./helpers";
 
 const mapStateToProps = (state) => ({
-  authenticated: loggedIn(state),
+  authenticated: isLoggedIn(state),
 });
 
 class RestrictedRoute extends Route {

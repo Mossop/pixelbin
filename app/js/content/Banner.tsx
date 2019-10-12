@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 
 import { showLoginOverlay, showSignupOverlay, completeLogout, DispatchProps } from "../utils/actions";
 import { Button } from "../components/Button";
-import { loggedIn } from "../utils/helpers";
+import { isLoggedIn } from "../utils/helpers";
 import { If, Then, Else } from "../utils/Conditions";
 import { logout } from "../api/auth";
 
@@ -27,7 +27,7 @@ class Banner extends React.Component<BannerProps> {
       <h1 id="logo"><Link to="/">PixelBin</Link></h1>
       <div id="rightbanner">
         {this.props.children}
-        <If condition={loggedIn}>
+        <If condition={isLoggedIn}>
           <Then>
             <Button l10n="banner-logout" style={{ height: "100%" }} onClick={this.logout}/>
           </Then>

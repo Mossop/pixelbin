@@ -1,6 +1,6 @@
 import { StoreState } from "../types";
 
-export function loggedIn(state: StoreState): boolean {
+export function isLoggedIn(state: StoreState): boolean {
   return !!state.serverState.user;
 }
 
