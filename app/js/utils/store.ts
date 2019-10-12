@@ -77,6 +77,7 @@ function reducer(state: StoreState, action: ActionType): StoreState {
         state.serverState.user.catalogs.push(action.payload);
       }
 
+      history.push(`/catalog/${action.payload.id}`);
       return {
         ...state,
         overlay: undefined,

@@ -7,7 +7,7 @@ import SignupOverlay, { isSignupOverlay } from "./signup";
 import CreateCatalogOverlay, { isCreateCatalogOverlay } from "./catalog";
 import { closeOverlay, DispatchProps } from "../utils/actions";
 
-function mapStateToProps(state: StoreState): OverlayProps {
+function mapStateToProps(state: StoreState): StateProps {
   return {
     overlay: state.overlay,
   };
@@ -17,11 +17,11 @@ const mapDispatchToProps = {
   closeOverlay,
 };
 
-interface OverlayProps {
+interface StateProps {
   overlay?: Overlay;
 }
 
-class OverlayDisplay extends React.Component<OverlayProps & DispatchProps<typeof mapDispatchToProps>> {
+class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof mapDispatchToProps>> {
   public componentDidMount(): void {
     document.addEventListener("keydown", this.onKeyDown, true);
   }

@@ -8,6 +8,8 @@ export interface L10nProps {
   l10n: string;
 }
 
+export type OptionalL10nProps = Partial<L10nProps>;
+
 async function retrieveBundle(baseurl: string, locale: string): Promise<null | FluentBundle> {
   let response = await fetch(`${baseurl}${locale}.txt`);
   if (response.ok) {

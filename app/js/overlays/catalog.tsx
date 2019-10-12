@@ -12,7 +12,7 @@ export function isCreateCatalogOverlay(state: Overlay): boolean {
   return state.type === OverlayType.CreateCatalog;
 }
 
-interface CreateCatalogProps {
+interface StateProps {
   isFirst: boolean;
 }
 
@@ -21,7 +21,7 @@ interface CreateCatalogState {
   error: boolean;
 }
 
-function mapStateToProps(state: StoreState): CreateCatalogProps {
+function mapStateToProps(state: StoreState): StateProps {
   return {
     isFirst: state.serverState.user ? !state.serverState.user.hadCatalog : true,
   };
@@ -31,8 +31,8 @@ const mapDispatchToProps = {
   catalogCreated: catalogCreated,
 };
 
-class CreateCatalogOverlay extends UIManager<CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>, CreateCatalogState> {
-  public constructor(props: CreateCatalogProps & DispatchProps<typeof mapDispatchToProps>) {
+class CreateCatalogOverlay extends UIManager<StateProps & DispatchProps<typeof mapDispatchToProps>, CreateCatalogState> {
+  public constructor(props: StateProps & DispatchProps<typeof mapDispatchToProps>) {
     super(props);
 
     this.state = {
