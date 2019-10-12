@@ -1,43 +1,13 @@
 import React from "react";
-import { connect } from "react-redux";
 
-import Banner from "../content/Banner";
-import { StoreState } from "../types";
-import { isLoggedIn } from "../utils/helpers";
-import { Page, SidebarPage } from "../components/pages";
-import Sidebar from "../content/Sidebar";
+import { PageContent, DefaultPage } from "../components/pages";
 
-interface PageProps {
-  isLoggedIn: boolean;
-}
-
-function mapStateToProps(state: StoreState): PageProps {
-  return {
-    isLoggedIn: isLoggedIn(state),
-  };
-}
-
-class IndexPage extends React.Component<PageProps> {
+export default class IndexPage extends React.Component {
   public render(): React.ReactNode {
-    if (this.props.isLoggedIn) {
-      return <React.Fragment>
-        <Banner/>
-        <SidebarPage>
-          <Sidebar/>
-          <Page>
-            <h1>Hello user!</h1>
-          </Page>
-        </SidebarPage>
-      </React.Fragment>;
-    } else {
-      return <React.Fragment>
-        <Banner/>
-        <Page>
-          <h1>Hello!</h1>
-        </Page>
-      </React.Fragment>;
-    }
+    return <DefaultPage>
+      <PageContent>
+        <h1>Index</h1>
+      </PageContent>
+    </DefaultPage>;
   }
 }
-
-export default connect(mapStateToProps)(IndexPage);

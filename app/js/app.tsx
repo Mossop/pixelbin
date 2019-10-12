@@ -1,18 +1,17 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
-import { Router, Switch, Route } from "react-router-dom";
+import { Switch, Route } from "react-router-dom";
 
-import { buildStore } from "./utils/store";
-import { StoreState, ServerStateDecoder, Paths, PathsDecoder, decode } from "./types";
-import history from "./utils/history";
-
+import { Paths, PathsDecoder, decode } from "./types";
 import IndexPage from "./pages/index";
 import UserPage from "./pages/user";
 import Overlay from "./overlays/index";
 import LocalizationContext from "./l10n";
-import { If, Else, Then } from "./utils/Conditions";
-import { isLoggedIn } from "./utils/helpers";
+import CatalogPage from "./pages/catalog";
+import AlbumPage from "./pages/album";
+import store from "./utils/store";
+import { ReduxRouter } from "./utils/history";
 
 let PATHS: Paths = {
   static: "/static/",
@@ -27,32 +26,26 @@ if (pathsElement && pathsElement.textContent) {
   }
 }
 
-let initialState: StoreState = { serverState: { } };
-let stateElement = document.getElementById("initial-state");
-if (stateElement && stateElement.textContent) {
-  try {
-    initialState = {
-      serverState: decode(ServerStateDecoder, JSON.parse(stateElement.textContent)),
-    };
-  } catch (e) {
-    console.error(e);
-  }
-}
-
 ReactDOM.render(
-  <Provider store={buildStore(initialState)}>
+  <Provider store={store}>
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
-      <Router history={history}>
+      <ReduxRouter>
         <Switch>
           <Route path="/user">
             <UserPage/>
+          </Route>
+          <Route path="/catalog/:id">
+            <CatalogPage/>
+          </Route>
+          <Route path="/album/:id">
+            <AlbumPage/>
           </Route>
           <Route exact path="/">
             <IndexPage/>
           </Route>
         </Switch>
         <Overlay/>
-      </Router>
+      </ReduxRouter>
     </LocalizationContext>
   </Provider>,
   document.getElementById("app")

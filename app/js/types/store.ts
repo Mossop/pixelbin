@@ -1,4 +1,5 @@
 import { ServerState } from "./api";
+import { HistoryState } from "../utils/history";
 
 export enum OverlayType {
   Login,
@@ -14,4 +15,5 @@ export interface Overlay {
 export interface StoreState {
   serverState: ServerState;
   overlay?: Overlay;
+  historyState: HistoryState | null;
 }

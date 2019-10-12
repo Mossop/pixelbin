@@ -1,6 +1,7 @@
 import { Action } from "redux";
 
 import { ServerState, Catalog } from "../types";
+import { HistoryState } from "./history";
 
 export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";
 export const SHOW_SIGNUP_OVERLAY = "SHOW_SIGNUP_OVERLAY";
@@ -10,6 +11,7 @@ export const COMPLETE_SIGNUP = "COMPLETE_SIGNUP";
 export const COMPLETE_LOGOUT = "COMPLETE_LOGOUT";
 export const CATALOG_CREATED = "CATALOG_CREATED";
 export const SHOW_CATALOG_CREATE_OVERLAY = "SHOW_CATALOG_CREATE_OVERLAY";
+export const SET_HISTORY_STATE = "SET_HISTORY_STATE";
 
 export type ActionType =
   ShowLoginOverlayAction |
@@ -20,7 +22,20 @@ export type ActionType =
   CloseOverlayAction |
   CompleteLogoutAction |
   CatalogCreatedAction |
-  ShowCatalogCreateOverlayAction;
+  ShowCatalogCreateOverlayAction |
+  SetHistoryStateAction;
+
+interface SetHistoryStateAction extends Action {
+  type: typeof SET_HISTORY_STATE;
+  payload: HistoryState;
+}
+
+export function setHistoryState(historyState: HistoryState): SetHistoryStateAction {
+  return {
+    type: SET_HISTORY_STATE,
+    payload: historyState,
+  };
+}
 
 interface CatalogCreatedAction extends Action {
   type: typeof CATALOG_CREATED;

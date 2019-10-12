@@ -1,5 +1,3 @@
-from . import models
-
 from base64 import urlsafe_b64encode
 from uuid import uuid4
 

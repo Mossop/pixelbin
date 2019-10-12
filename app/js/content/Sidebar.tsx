@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { showCatalogCreateOverlay, DispatchProps } from "../utils/actions";
 import { Button } from "../components/Button";
 import { StoreState, Catalog } from "../types";
-import history from "../utils/history";
+import { history } from "../utils/history";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
