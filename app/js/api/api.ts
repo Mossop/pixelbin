@@ -12,7 +12,7 @@ interface JSONBody {
   data: string;
 }
 
-export function buildFormBody(options: URLSearchParams | { [key: string]: string }): FormBody {
+/*export function buildFormBody(options: URLSearchParams | { [key: string]: string }): FormBody {
   let formData = new FormData();
   if (options instanceof URLSearchParams) {
     for (let [key, value] of options) {
@@ -28,7 +28,7 @@ export function buildFormBody(options: URLSearchParams | { [key: string]: string
     type: "multipart/form-data",
     data: formData,
   };
-}
+}*/
 
 export function buildJSONBody(data: any): JSONBody {
   return {

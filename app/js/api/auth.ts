@@ -1,8 +1,8 @@
-import { buildFormBody, request } from "./api";
+import { buildJSONBody, request } from "./api";
 import { ServerStateDecoder, ServerState } from "../types";
 
 export async function login(email: string, password: string): Promise<ServerState> {
-  let response = await request("login", "POST", buildFormBody({
+  let response = await request("login", "POST", buildJSONBody({
     email,
     password,
   }));
@@ -15,7 +15,7 @@ export async function login(email: string, password: string): Promise<ServerStat
 }
 
 export async function signup(email: string, fullname: string, password: string): Promise<ServerState> {
-  let response = await request("user/create", "PUT", buildFormBody({
+  let response = await request("user/create", "PUT", buildJSONBody({
     email,
     fullname,
     password,
