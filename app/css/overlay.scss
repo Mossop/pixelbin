@@ -18,6 +18,20 @@
 
   border: 1px solid black;
   padding: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
+}
+
+#overlay.fullscreen {
+  padding: 75px;
+  align-items: stretch;
+  justify-content: stretch;
+
+  #overlay-inner {
+    flex: 1;
+  }
 }
 
 #overlay-header {
@@ -33,4 +47,34 @@
   .icon {
     padding: 0;
   }
+}
+
+#overlay-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
+}
+
+#overlay .media-list {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: start;
+  align-items: start;
+  overflow-y: auto;
+
+  .media {
+    padding: 5px;
+  }
+}
+
+#overlay .empty-media-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }

@@ -1,16 +1,12 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { Overlay, OverlayType, StoreState } from "../types";
+import { StoreState } from "../types";
 import { UIManager } from "../utils/UIState";
 import Form, { FormProps } from "../content/Form";
 import { getStorageConfigUI, getStorageConfig } from "../storage";
 import { createCatalog } from "../api/catalog";
 import { catalogCreated, DispatchProps } from "../utils/actions";
-
-export function isCreateCatalogOverlay(state: Overlay): boolean {
-  return state.type === OverlayType.CreateCatalog;
-}
 
 interface StateProps {
   isFirst: boolean;

@@ -6,11 +6,6 @@ import Form, { FormProps } from "../content/Form";
 import { UIManager } from "../utils/UIState";
 
 import { DispatchProps, completeSignup } from "../utils/actions";
-import { Overlay, OverlayType } from "../types";
-
-export function isSignupOverlay(state: Overlay): boolean {
-  return state.type === OverlayType.Signup;
-}
 
 interface SignupState {
   disabled: boolean;

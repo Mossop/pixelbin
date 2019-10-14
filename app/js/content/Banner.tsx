@@ -29,11 +29,11 @@ class Banner extends React.Component<BannerProps> {
         {this.props.children}
         <If condition={isLoggedIn}>
           <Then>
-            <Button l10n="banner-logout" style={{ height: "100%" }} onClick={this.logout}/>
+            <Button l10n="banner-logout" onClick={this.logout}/>
           </Then>
           <Else>
-            <Button l10n="banner-login" style={{ height: "100%" }} onClick={this.props.openLoginOverlay}/>
-            <Button l10n="banner-signup" style={{ height: "100%" }} onClick={this.props.openSignupOverlay}/>
+            <Button l10n="banner-login" onClick={this.props.openLoginOverlay}/>
+            <Button l10n="banner-signup" onClick={this.props.openSignupOverlay}/>
           </Else>
         </If>
       </div>

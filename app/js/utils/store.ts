@@ -12,7 +12,8 @@ import { ActionType,
   COMPLETE_SIGNUP,
   COMPLETE_LOGOUT,
   CLOSE_OVERLAY, 
-  CATALOG_CREATED} from "./actions";
+  CATALOG_CREATED,
+  SHOW_UPLOAD_OVERLAY} from "./actions";
 import { StoreState, OverlayType, Overlay, ServerStateDecoder, decode } from "../types";
 import { LocationState } from "history";
 
@@ -109,6 +110,16 @@ function reducer(state: StoreState, action: ActionType): StoreState {
       return {
         ...state,
         overlay: undefined,
+      };
+    }
+    case SHOW_UPLOAD_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.Upload,
+          catalog: action.payload.catalog,
+          album: action.payload.album,
+        }
       };
     }
   }

@@ -12,6 +12,14 @@ export const COMPLETE_LOGOUT = "COMPLETE_LOGOUT";
 export const CATALOG_CREATED = "CATALOG_CREATED";
 export const SHOW_CATALOG_CREATE_OVERLAY = "SHOW_CATALOG_CREATE_OVERLAY";
 export const SET_HISTORY_STATE = "SET_HISTORY_STATE";
+export const SHOW_UPLOAD_OVERLAY = "SHOW_UPLOAD_OVERLAY";
+
+type ArgumentTypes<T> = T extends (... args: infer U ) => infer _R ? U: never;
+type IntoVoid<T> = (...a: ArgumentTypes<T>) => void;
+
+export type DispatchProps<M> = {
+  [P in keyof M]: IntoVoid<M[P]>;
+};
 
 export type ActionType =
   ShowLoginOverlayAction |
@@ -23,7 +31,26 @@ export type ActionType =
   CompleteLogoutAction |
   CatalogCreatedAction |
   ShowCatalogCreateOverlayAction |
-  SetHistoryStateAction;
+  SetHistoryStateAction |
+  ShowUploadOverlayAction;
+
+interface ShowUploadOverlayAction extends Action {
+  type: typeof SHOW_UPLOAD_OVERLAY;
+  payload: {
+    catalog: string | undefined;
+    album: string | undefined;
+  };
+}
+
+export function showUploadOverlay(catalog?: string, album?: string): ShowUploadOverlayAction {
+  return {
+    type: SHOW_UPLOAD_OVERLAY,
+    payload: {
+      catalog,
+      album,
+    }
+  };
+}
 
 interface SetHistoryStateAction extends Action {
   type: typeof SET_HISTORY_STATE;
@@ -124,10 +151,3 @@ export function completeLogout(newState: ServerState): CompleteLogoutAction {
     payload: newState,
   };
 }
-
-type ArgumentTypes<T> = T extends (... args: infer U ) => infer R ? U: never;
-type IntoVoid<T> = (...a: ArgumentTypes<T>) => void;
-
-export type DispatchProps<M> = {
-  [P in keyof M]: IntoVoid<M[P]>;
-};

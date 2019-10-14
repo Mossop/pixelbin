@@ -1,13 +1,24 @@
 import React from "react";
-import PropTypes from "prop-types";
 
-class ImageCanvas extends React.Component {
-  constructor(props) {
+interface ImageCanvasProps {
+  bitmap?: ImageBitmap;
+  size: number;
+}
+
+class ImageCanvas extends React.Component<ImageCanvasProps> {
+  private canvasRef: React.RefObject<HTMLCanvasElement>;
+
+  public constructor(props: ImageCanvasProps) {
     super(props);
     this.canvasRef = React.createRef();
   }
 
-  drawBitmap(bitmap, canvas) {
+  private drawBitmap(bitmap: ImageBitmap): void {
+    let canvas = this.canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
     let size = canvas.height;
     let width = bitmap.width;
     let height = bitmap.height;
@@ -20,35 +31,33 @@ class ImageCanvas extends React.Component {
     }
 
     let context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
     context.drawImage(bitmap, (size - width) / 2, (size - height) / 2, width, height);
   }
 
-  async componentDidMount() {
+  public componentDidMount(): void {
     if (this.props.bitmap) {
-      this.drawBitmap(this.props.bitmap, this.canvasRef.current);
+      this.drawBitmap(this.props.bitmap);
     }
   }
 
-  async componentDidUpdate(prevProps) {
+  public componentDidUpdate(prevProps: ImageCanvasProps): void {
     if (!this.props.bitmap || this.props.bitmap == prevProps.bitmap) {
       return;
     }
 
-    this.drawBitmap(this.props.bitmap, this.canvasRef.current);
+    this.drawBitmap(this.props.bitmap);
   }
 
-  render() {
-    let { size, onClick } = this.props;
+  public render(): React.ReactNode {
+    let { size } = this.props;
     return (
-      <canvas ref={this.canvasRef} onClick={onClick} height={size} width={size} style={{ width: size, height: size }}/>
+      <canvas ref={this.canvasRef} height={size} width={size} style={{ width: size, height: size }}/>
     );
   }
 }
-
-ImageCanvas.propTypes = {
-  bitmap: PropTypes.object,
-  size: PropTypes.number.isRequired,
-  onClick: PropTypes.func,
-};
 
 export default ImageCanvas;

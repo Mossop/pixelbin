@@ -1,10 +1,11 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { StoreState, Overlay } from "../types";
-import LoginOverlay, { isLoginOverlay } from "./login";
-import SignupOverlay, { isSignupOverlay } from "./signup";
-import CreateCatalogOverlay, { isCreateCatalogOverlay } from "./catalog";
+import { StoreState, Overlay, OverlayType } from "../types";
+import LoginOverlay from "./login";
+import SignupOverlay from "./signup";
+import UploadOverlay from "./upload";
+import CreateCatalogOverlay from "./catalog";
 import { closeOverlay, DispatchProps } from "../utils/actions";
 import { Button } from "../components/Button";
 
@@ -51,21 +52,32 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
 
   public render(): React.ReactNode {
     let overlay: React.ReactNode;
+    let className = "";
     if (this.props.overlay) {
-      if (isLoginOverlay(this.props.overlay)) {
-        overlay = <LoginOverlay/>;
-      } else if (isSignupOverlay(this.props.overlay)) {
-        overlay = <SignupOverlay/>;
-      } else if (isCreateCatalogOverlay(this.props.overlay)) {
-        overlay = <CreateCatalogOverlay/>;
-      } else {
-        return null;
+      switch (this.props.overlay.type) {
+        case OverlayType.Login: {
+          overlay = <LoginOverlay/>;
+          break;
+        }
+        case OverlayType.Signup: {
+          overlay = <SignupOverlay/>;
+          break;
+        }
+        case OverlayType.CreateCatalog: {
+          overlay = <CreateCatalogOverlay/>;
+          break;
+        }
+        case OverlayType.Upload: {
+          overlay = <UploadOverlay catalog={this.props.overlay.catalog} album={this.props.overlay.album}/>;
+          className = "fullscreen";
+          break;
+        }
       }
     } else {
       return null;
     }
 
-    return <div id="overlay" onClick={this.onClick}>
+    return <div id="overlay" className={className} onClick={this.onClick}>
       <div id="overlay-inner">
         <div id="overlay-header">
           <Button iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>

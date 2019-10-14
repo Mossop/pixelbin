@@ -4,6 +4,15 @@ export function isLoggedIn(state: StoreState): boolean {
   return !!state.serverState.user;
 }
 
+export function uuid(): string {
+  function s4(): string {
+    return Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1);
+  }
+  return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
+}
+
 /*export const bindAll = (obj, keys) => {
   for (let key of keys) {
     obj[key] = obj[key].bind(obj);
@@ -36,15 +45,6 @@ export function tagFromPath(state, path) {
   let tags = path.split("/");
 
   return findTag(state.get("tags"), tags);
-}
-
-export function uuid(): string {
-  function s4(): string {
-    return Math.floor((1 + Math.random()) * 0x10000)
-      .toString(16)
-      .substring(1);
-  }
-  return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

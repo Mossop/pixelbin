@@ -1,116 +1,51 @@
-import fileType from "file-type";
 import { parseBuffer } from "media-metadata";
-import moment from "moment";
+import { Metadata } from "media-metadata/lib/metadata";
+import { uuid } from "./helpers";
 
-function loadBlob(blob) {
-  return new Promise((resolve) => {
+export interface MediaForUpload {
+  id: string;
+  file: File;
+  bitmap?: ImageBitmap;
+  metadata: Metadata;
+}
+
+function loadBlob(blob: Blob): Promise<ArrayBuffer> {
+  return new Promise((resolve: (b: ArrayBuffer) => void, reject: () => void): void => {
     let reader = new FileReader();
-    reader.onload = (event) => resolve(event.target.result);
+    reader.onload = (): void => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+      } else {
+        reject();
+      }
+    };
     reader.readAsArrayBuffer(blob);
   });
 }
 
-export async function detectMimeType(blobOrBuffer) {
-  let buffer = (blobOrBuffer instanceof Blob) ? await loadBlob(blobOrBuffer) : blobOrBuffer;
-  let type = fileType(buffer);
-  if (!type) {
-    return null;
-  }
-
-  return type.mime;
-}
-
-const EXIF_DATE_FORMAT = "YYYY:MM:DD HH:mm:ss";
-
-function parseExifDate(datestr) {
-  return moment(datestr, EXIF_DATE_FORMAT);
-}
-
-function buildMetadata(buffer, mimetype) {
-  let mediadata = parseBuffer(buffer);
-  console.log(mediadata);
-
-  let metadata = {
-    mimetype,
-  };
-
-  if ("exif" in mediadata) {
-    if ("DateTimeOriginal" in mediadata.exif) {
-      metadata.date = parseExifDate(mediadata.exif.DateTimeOriginal);
-    } else if ("CreateDate" in mediadata.exif) {
-      metadata.date = parseExifDate(mediadata.exif.CreateDate);
-    }
-  }
-
-  if ("gps" in mediadata) {
-    if (["GPSLatitude", "GPSLatitudeRef", "GPSLongitude", "GPSLongitudeRef"].every(p => p in mediadata.gps)) {
-      let [deg, min, sec] = mediadata.gps.GPSLatitude;
-      deg += min/60 + sec/3600;
-      if (mediadata.gps.GPSLatitudeRef == "S") {
-        deg = -deg;
-      }
-      metadata.latitude = deg;
-
-      [deg, min, sec] = mediadata.gps.GPSLongitude;
-      deg += min/60 + sec/3600;
-      if (mediadata.gps.GPSLongitudeRef == "W") {
-        deg = -deg;
-      }
-      metadata.longitude = deg;
-    }
-  }
-
-  // Prefer xmp/iptc data when available
-  if ("xmp" in mediadata) {
-    if ("http://ns.adobe.com/xap/1.0/CreateDate" in mediadata.xmp) {
-      metadata.date = moment(mediadata.xmp["http://ns.adobe.com/xap/1.0/CreateDate"]);
-    }
-
-    if ("http://ns.adobe.com/lightroom/1.0/hierarchicalSubject" in mediadata.xmp) {
-      metadata.hierarchicalTags = mediadata.xmp["http://ns.adobe.com/lightroom/1.0/hierarchicalSubject"];
-    }
-
-    if ("http://purl.org/dc/elements/1.1/subject" in mediadata.xmp) {
-      metadata.tags = mediadata.xmp["http://purl.org/dc/elements/1.1/subject"];
-    }
-  }
-
-  console.log(metadata);
-
-  return metadata;
-}
-
-export async function parseMetadata(blob) {
+export async function parseMedia(file: File): Promise<MediaForUpload | null> {
   try {
-    let buffer = await loadBlob(blob);
-
-    let type = await detectMimeType(buffer);
-    switch (type) {
-      case "image/jpeg":
-        return buildMetadata(buffer, type);
-      case "video/mp4":
-        return { mimetype: "video/mp4" };
-      default:
-        throw new Error("Unknown file type");
-    }
+    let buffer = await loadBlob(file);
+    return {
+      id: uuid(),
+      file,
+      metadata: await parseBuffer(buffer),
+    };
   } catch (e) {
     console.error("Failed to parse metadata", e);
-    return {
-      mimetype: null,
-    };
+    return null;
   }
 }
 
-function loadVideo(video, url) {
-  return new Promise((resolve, reject) => {
+function loadVideo(video: HTMLVideoElement, url: string): Promise<void> {
+  return new Promise((resolve: () => void, reject: () => void): void => {
     video.addEventListener("canplay", resolve, { once: true });
     video.addEventListener("error", reject, { once: true });
     video.src = url;
   });
 }
 
-export async function createThumbnail(blob) {
-  let type = await detectMimeType(blob);
+export async function createThumbnail(blob: Blob, type: string): Promise<ImageBitmap | null> {
   switch (type) {
     case "image/jpeg":
       return createImageBitmap(blob);

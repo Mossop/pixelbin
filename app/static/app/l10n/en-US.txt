@@ -23,6 +23,7 @@ catalog-create-title-first = Create your first catalog:
 catalog-create-name = Catalog name:
 catalog-create-storage = Storage:
 catalog-create-submit = Create...
+catalog-upload = Upload
 
 storage-backblaze-name = Backblaze
 storage-backblaze-keyid = Application key ID:
@@ -33,3 +34,7 @@ storage-backblaze-path = Path:
 storage-server-name = Server
 
 sidebar-add-category = Add a new category...
+
+upload-global-tags = Additional Tags for all media:
+upload-upload = Upload...
+upload-drag-media = Drag media here...
