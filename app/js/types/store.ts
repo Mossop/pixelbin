@@ -2,10 +2,10 @@ import { ServerState } from "./api";
 import { HistoryState } from "../utils/history";
 
 export enum OverlayType {
-  Login,
-  Signup,
-  CreateCatalog,
-  Upload,
+  Login = "login",
+  Signup = "signup",
+  CreateCatalog = "createCatalog",
+  Upload = "upload",
 }
 
 interface BaseOverlay {

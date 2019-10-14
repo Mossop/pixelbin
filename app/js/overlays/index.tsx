@@ -69,10 +69,11 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
         }
         case OverlayType.Upload: {
           overlay = <UploadOverlay catalog={this.props.overlay.catalog} album={this.props.overlay.album}/>;
-          className = "fullscreen";
           break;
         }
       }
+
+      className = this.props.overlay.type;
     } else {
       return null;
     }

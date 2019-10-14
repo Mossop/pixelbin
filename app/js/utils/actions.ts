@@ -14,12 +14,16 @@ export const SHOW_CATALOG_CREATE_OVERLAY = "SHOW_CATALOG_CREATE_OVERLAY";
 export const SET_HISTORY_STATE = "SET_HISTORY_STATE";
 export const SHOW_UPLOAD_OVERLAY = "SHOW_UPLOAD_OVERLAY";
 
-type ArgumentTypes<T> = T extends (... args: infer U ) => infer _R ? U: never;
+type ArgumentTypes<F> = F extends (...args: infer A) => infer _R ? A : never;
+type ReturnType<F> = F extends (...args: infer _A) => infer R ? R : never;
 type IntoVoid<T> = (...a: ArgumentTypes<T>) => void;
 
+export type StateProps<F> = ReturnType<F>;
 export type DispatchProps<M> = {
   [P in keyof M]: IntoVoid<M[P]>;
 };
+
+export type ConnectedProps<P = {}, S = () => void, D = {}> = P & StateProps<S> & DispatchProps<D>;
 
 export type ActionType =
   ShowLoginOverlayAction |

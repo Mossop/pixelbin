@@ -49,12 +49,16 @@ interface UploadOverlayState {
 }
 
 class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
+  fileInput: React.RefObject<HTMLInputElement>;
+
   public constructor(props: UploadOverlayProps) {
     super(props);
 
     this.state = {
       media: [],
     };
+
+    this.fileInput = React.createRef();
   }
 
   private async addFile(file: File): Promise<void> {
@@ -84,6 +88,18 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       });
     });
   }
+
+  private openFilePicker: (() => void) = (): void => {
+    if (this.fileInput.current) {
+      this.fileInput.current.click();
+    }
+  };
+
+  private onNewFiles: (() => void) = (): void => {
+    if (this.fileInput.current && this.fileInput.current.files) {
+      this.addFiles(Array.from(this.fileInput.current.files));
+    }
+  };
 
   private addFiles(files: File[]): void {
     for (let file of files) {
@@ -136,27 +152,37 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
 
   public renderUI(): React.ReactNode {
     return <React.Fragment>
-      <div>
-        <Localized id="upload-global-tags">
-          <label htmlFor="globalTags"/>
-        </Localized>
-        <Textbox id="globalTags" uiPath="globalTags"/>
-        <Button l10n="upload-upload" onClick={(): void => {}}/>
+      <div id="upload-metadata">
+        <p>
+          <Localized id="upload-global-tags">
+            <label htmlFor="globalTags"/>
+          </Localized>
+        </p>
+        <p>
+          <Textbox id="globalTags" uiPath="globalTags"/>
+        </p>
       </div>
-      <If condition={this.state.media.length > 0}>
-        <Then>
-          <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-            {this.state.media.map((m: MediaForUpload) => this.renderMedia(m))}
-          </div>
-        </Then>
-        <Else>
-          <div className="empty-media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-            <Localized id="upload-drag-media">
-              <p/>
-            </Localized>
-          </div>
-        </Else>
-      </If>
+      <div id="upload-content">
+        <If condition={this.state.media.length > 0}>
+          <Then>
+            <div id="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
+              {this.state.media.map((m: MediaForUpload) => this.renderMedia(m))}
+            </div>
+          </Then>
+          <Else>
+            <div id="media-list" className="empty" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
+              <Localized id="upload-drag-media">
+                <p/>
+              </Localized>
+            </div>
+          </Else>
+        </If>
+        <div id="upload-complete">
+          <input id="fileInput" multiple={true} accept="image/jpeg,video/mp4" type="file" ref={this.fileInput} onChange={this.onNewFiles}/>
+          <Button l10n="upload-add-files" onClick={this.openFilePicker}/>
+          <Button l10n="upload-upload" onClick={(): void => {}}/>
+        </div>
+      </div>
     </React.Fragment>;
   }
 }

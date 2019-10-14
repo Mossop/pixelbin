@@ -1,9 +1,20 @@
+@mixin fullscreen-overlay {
+  padding: 75px;
+  align-items: stretch;
+  justify-content: stretch;
+
+  #overlay-inner {
+    flex: 1;
+  }
+}
+
 #overlay {
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
   right: 0;
+  overflow: hidden;
 
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(2px);
@@ -16,6 +27,7 @@
 #overlay-inner {
   @include base-styles;
 
+  overflow: hidden;
   border: 1px solid black;
   padding: 25px;
   display: flex;
@@ -24,21 +36,15 @@
   justify-content: start;
 }
 
-#overlay.fullscreen {
-  padding: 75px;
-  align-items: stretch;
-  justify-content: stretch;
-
-  #overlay-inner {
-    flex: 1;
-  }
+#overlay.upload {
+  @include fullscreen-overlay;
 }
 
 #overlay-header {
   display: flex;
   flex-direction: row;
   justify-content: end;
-  padding-bottom: 5px;
+  padding-bottom: 10px;
 
   .button {
     @include unstyled-button;
@@ -55,26 +61,61 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: start;
+  overflow: hidden;
 }
 
-#overlay .media-list {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: start;
-  align-items: start;
-  overflow-y: auto;
-
-  .media {
-    padding: 5px;
+#overlay.upload {
+  #overlay-content {
+    flex-direction: row;
   }
-}
 
-#overlay .empty-media-list {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  #upload-metadata {
+    padding-right: 25px;
+
+    p {
+      padding-bottom: 10px;
+    }
+  }
+
+  #upload-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #media-list {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: start;
+    align-items: start;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid black;
+
+    &.empty {
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: black;
+    }
+
+    .media {
+      padding: 5px;
+    }
+  }
+
+  #upload-complete {
+    padding-top: 25px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-between;
+
+    #fileInput {
+      display: none;
+    }
+  }
 }
