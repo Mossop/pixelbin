@@ -152,6 +152,13 @@ class Tag(models.Model):
     class Meta:
         unique_together = (('catalog', 'parent', 'name'))
 
+class Person(models.Model):
+    catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
+    full_name = models.CharField(max_length=200)
+
+    class Meta:
+        unique_together = (('catalog', 'full_name'))
+
 class Media(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
@@ -159,6 +166,8 @@ class Media(models.Model):
 
     tags = models.ManyToManyField(Tag, related_name='media')
     albums = models.ManyToManyField(Album, related_name='media')
+    people = models.ManyToManyField(Person, related_name='media')
+
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)
     taken = models.DateTimeField()

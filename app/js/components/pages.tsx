@@ -7,21 +7,25 @@ import Sidebar from "../content/Sidebar";
 import { StoreState } from "../types";
 import { isLoggedIn } from "../utils/helpers";
 
-export class PageContent extends React.Component<StyleProps> {
+interface ChildProps {
+  children: React.ReactNode;
+}
+
+export class PageContent extends React.Component<StyleProps & ChildProps> {
   public render(): React.ReactNode {
     let defaults = styleProps(this.props, { id: "content" });
     return <div {...defaults}>{this.props.children}</div>;
   }
 }
 
-export class SidebarWrapper extends React.Component<StyleProps> {
+export class SidebarWrapper extends React.Component<StyleProps & ChildProps> {
   public render(): React.ReactNode {
     let defaults = styleProps(this.props, { id: "sidebar-content" });
     return <div {...defaults}>{this.props.children}</div>;
   }
 }
 
-export class FullPage extends React.Component {
+export class FullPage extends React.Component<ChildProps> {
   public render(): React.ReactNode {
     return <React.Fragment>
       <Banner/>
@@ -30,12 +34,16 @@ export class FullPage extends React.Component {
   }
 }
 
-export class SidebarPage extends React.Component {
+interface SidebarPageProps {
+  sidebarSelected?: string;
+}
+
+export class SidebarPage extends React.Component<SidebarPageProps & ChildProps> {
   public render(): React.ReactNode {
     return <React.Fragment>
       <Banner/>
       <SidebarWrapper>
-        <Sidebar/>
+        <Sidebar selected={this.props.sidebarSelected}/>
         {this.props.children}
       </SidebarWrapper>
     </React.Fragment>;
@@ -52,10 +60,10 @@ function mapStateToProps(state: StoreState): StateProps {
   };
 }
 
-class ConnectedDefaultPage extends React.Component<StateProps> {
+class ConnectedDefaultPage extends React.Component<StateProps & SidebarPageProps & ChildProps> {
   public render(): React.ReactNode {
     if (this.props.isLoggedIn) {
-      return <SidebarPage>{this.props.children}</SidebarPage>;
+      return <SidebarPage {...this.props}>{this.props.children}</SidebarPage>;
     }
     return <FullPage>{this.props.children}</FullPage>;
   }

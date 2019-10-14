@@ -21,7 +21,9 @@ function mapStateToProps(state: StoreState): StateProps {
   return { catalogs: [] };
 }
 
-type SidebarProps = DispatchProps<typeof mapDispatchToProps> & StateProps;
+type SidebarProps = DispatchProps<typeof mapDispatchToProps> & StateProps & {
+  selected?: string;
+};
 
 class Sidebar extends React.Component<SidebarProps> {
   private onCatalogClick: ((catalog: Catalog) => void) = (catalog: Catalog): void => {
@@ -29,8 +31,12 @@ class Sidebar extends React.Component<SidebarProps> {
   };
 
   private renderCatalog(catalog: Catalog): React.ReactNode {
-    return <li key={catalog.id}>
-      <Button iconName="folder" onClick={(): void => this.onCatalogClick(catalog)}>{catalog.name}</Button>
+    let className = ["depth0"];
+    if (this.props.selected == catalog.id) {
+      className.push("selected");
+    }
+    return <li key={catalog.id} className={className.join(" ")}>
+      <Button disabled={this.props.selected == catalog.id} iconName="folder" onClick={(): void => this.onCatalogClick(catalog)}>{catalog.name}</Button>
     </li>;
   }
 

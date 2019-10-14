@@ -5,11 +5,12 @@ body, html, #app {
   margin: 0;
 }
 
-p, h1, h2, h3, h4, h5, h6 {
+p, h1, h2, h3, h4, h5, h6, ol, ul, li {
   margin: 0;
   padding: 0;
   font-weight: normal;
   font-size: 100%;
+  list-style-type: none;
 }
 
 a, a:hover, a:visited, a:active {

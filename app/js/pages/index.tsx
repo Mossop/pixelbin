@@ -1,8 +1,9 @@
 import React from "react";
 
 import { PageContent, DefaultPage } from "../components/pages";
+import { RouteComponentProps } from "react-router";
 
-export default class IndexPage extends React.Component {
+export default class IndexPage extends React.Component<RouteComponentProps> {
   public render(): React.ReactNode {
     return <DefaultPage>
       <PageContent>

@@ -31,18 +31,10 @@ ReactDOM.render(
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
       <ReduxRouter>
         <Switch>
-          <Route path="/user">
-            <UserPage/>
-          </Route>
-          <Route path="/catalog/:id">
-            <CatalogPage/>
-          </Route>
-          <Route path="/album/:id">
-            <AlbumPage/>
-          </Route>
-          <Route exact path="/">
-            <IndexPage/>
-          </Route>
+          <Route path="/user" component={UserPage}/>
+          <Route path="/catalog/:id" component={CatalogPage}/>
+          <Route path="/album/:id" component={AlbumPage}/>
+          <Route exact path="/" component={IndexPage}/>
         </Switch>
         <Overlay/>
       </ReduxRouter>
