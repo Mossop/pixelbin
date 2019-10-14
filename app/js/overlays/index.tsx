@@ -6,6 +6,7 @@ import LoginOverlay, { isLoginOverlay } from "./login";
 import SignupOverlay, { isSignupOverlay } from "./signup";
 import CreateCatalogOverlay, { isCreateCatalogOverlay } from "./catalog";
 import { closeOverlay, DispatchProps } from "../utils/actions";
+import { Button } from "../components/Button";
 
 function mapStateToProps(state: StoreState): StateProps {
   return {
@@ -64,7 +65,14 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
       return null;
     }
 
-    return <div id="overlay" onClick={this.onClick}>{overlay}</div>;
+    return <div id="overlay" onClick={this.onClick}>
+      <div id="overlay-inner">
+        <div id="overlay-header">
+          <Button iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
+        </div>
+        <div id="overlay-content">{overlay}</div>
+      </div>
+    </div>;
   }
 }
 

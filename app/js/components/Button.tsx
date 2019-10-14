@@ -8,22 +8,39 @@ import Icon, { IconProps } from "./Icon";
 
 type ButtonProps  = {
   onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  tooltipL10n?: string;
 } & FieldProps & OptionalL10nProps & IconProps;
 
 export class Button extends React.Component<ButtonProps> {
-  public render(): React.ReactNode {
+  public renderButtonContent(): React.ReactNode {
     if (this.props.l10n) {
-      return <button {...fieldProps(this.props, { className: "button" })} onClick={this.props.onClick}>
-        <Icon iconType={this.props.iconType} iconName={this.props.iconName}/>
+      return <React.Fragment>
         <Localized id={this.props.l10n}>
           <span/>
         </Localized>
-      </button>;
+      </React.Fragment>;
+    } else if (this.props.children) {
+      return <span>{this.props.children}</span>;
     } else {
-      return <button {...fieldProps(this.props, { className: "button" })} onClick={this.props.onClick}>
-        <Icon iconType={this.props.iconType} iconName={this.props.iconName}/>
-        <span>{this.props.children}</span>
-      </button>;
+      return null;
+    }
+  }
+
+  public renderButton(): React.ReactNode {
+    let buttonProps = fieldProps(this.props, { className: "button" });
+    return <button {...buttonProps} onClick={this.props.onClick}>
+      <Icon iconType={this.props.iconType} iconName={this.props.iconName}/>
+      {this.renderButtonContent()}
+    </button>;
+  }
+
+  public render(): React.ReactNode {
+    if (this.props.tooltipL10n) {
+      return <Localized id={this.props.tooltipL10n} attrs={{title: true}}>
+        {this.renderButton()}
+      </Localized>;
+    } else {
+      return this.renderButton();
     }
   }
 }

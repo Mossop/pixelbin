@@ -2,6 +2,9 @@ banner-login = Log in
 banner-signup = Signup
 banner-logout = Log out
 
+overlay-close =
+  .title = Close
+
 signup-title = Enter your details:
 signup-title-bademail = There is already an account with this email. Try again:
 signup-email = Email address:

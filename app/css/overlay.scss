@@ -11,11 +11,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
 
-  > * {
-    @include base-styles;
+#overlay-inner {
+  @include base-styles;
 
-    border: 1px solid black;
-    padding: 25px;
+  border: 1px solid black;
+  padding: 25px;
+}
+
+#overlay-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: end;
+  padding-bottom: 5px;
+
+  .button {
+    @include unstyled-button;
+  }
+
+  .icon {
+    padding: 0;
   }
 }
