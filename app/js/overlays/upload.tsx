@@ -155,12 +155,12 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       <div id="upload-content">
         <If condition={this.state.media.length > 0}>
           <Then>
-            <div id="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
+            <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
               {this.state.media.map((m: UploadFile) => <Upload key={m.id} file={m.file}/>)}
             </div>
           </Then>
           <Else>
-            <div id="media-list" className="empty" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
+            <div className="media-list empty" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
               <Localized id="upload-drag-media">
                 <p/>
               </Localized>

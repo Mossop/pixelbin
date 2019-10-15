@@ -55,7 +55,7 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
   public render(): React.ReactNode {
     let { size } = this.props;
     return (
-      <canvas ref={this.canvasRef} height={size} width={size} style={{ width: size, height: size }}/>
+      <canvas ref={this.canvasRef} className="image-canvas" height={size} width={size} style={{ width: size, height: size }}/>
     );
   }
 }

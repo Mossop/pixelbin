@@ -40,7 +40,7 @@ function loadVideo(video: HTMLVideoElement, url: string): Promise<void> {
   });
 }
 
-export async function createThumbnail(blob: Blob, type: string): Promise<ImageBitmap | null> {
+export async function loadPreview(blob: Blob, type: string): Promise<ImageBitmap | null> {
   switch (type) {
     case "image/jpeg":
       return createImageBitmap(blob);

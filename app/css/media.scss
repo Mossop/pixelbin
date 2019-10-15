@@ -1,0 +1,31 @@
+.media-list {
+  @include base-styles;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: start;
+  align-items: start;
+  overflow-y: auto;
+
+  .media {
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: center;
+    max-width: 200px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+
+    .image-canvas {
+      padding-bottom: 10px;
+    }
+
+    .title {
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}

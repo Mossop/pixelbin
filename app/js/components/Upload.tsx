@@ -1,7 +1,9 @@
 import React from "react";
-import { Metadata } from "media-metadata/lib/metadata";
+import { Metadata, Orientation } from "media-metadata/lib/metadata";
+import path from "path";
+
 import ImageCanvas from "../content/ImageCanvas";
-import { parseMetadata, createThumbnail } from "../utils/metadata";
+import { parseMetadata, loadPreview } from "../utils/metadata";
 
 interface UploadProps {
   file: File;
@@ -9,8 +11,12 @@ interface UploadProps {
 
 interface UploadState {
   error: boolean;
-  metadata?: Metadata;
+  title: string;
+  tags: string[][];
+  people: string[];
+  orientation: Orientation;
   thumbnail?: ImageBitmap;
+  preview?: ImageBitmap;
 }
 
 export default class Upload extends React.Component<UploadProps, UploadState> {
@@ -19,30 +25,38 @@ export default class Upload extends React.Component<UploadProps, UploadState> {
 
     this.state = {
       error: false,
+      title: path.basename(props.file.name, path.extname(props.file.name)),
+      tags: [],
+      people: [],
+      orientation: Orientation.Normal,
     };
 
-    parseMetadata(props.file).then(async (metadata: Metadata| null) => {
+    parseMetadata(props.file).then((metadata: Metadata | null) => {
       if (metadata) {
         if (metadata.thumbnail) {
-          console.log("Found embedded thumbnail");
           let blob = new Blob([metadata.thumbnail]);
-          let thumbnail = await createImageBitmap(blob);
-          if (!this.state.thumbnail) {
-            console.log("Added embedded thumbnail");
+          createImageBitmap(blob).then((thumbnail: ImageBitmap) => {
             this.setState({ thumbnail });
-          }
+          });
         }
 
-        this.setState({ metadata });
+        this.setState({
+          orientation: metadata.orientation,
+          tags: metadata.tags,
+          people: metadata.people,
+        });
+
+        if (metadata.title) {
+          this.setState({ title: metadata.title });
+        }
       } else {
         this.setState({ error: true });
       }
     });
 
-    createThumbnail(props.file, props.file.type).then((thumbnail: ImageBitmap | null) => {
+    loadPreview(props.file, props.file.type).then((thumbnail: ImageBitmap | null) => {
       if (thumbnail) {
-        console.log("Loaded thumbnail.");
-        this.setState({ thumbnail });
+        this.setState({ preview: thumbnail });
       } else {
         this.setState({ error: true });
       }
@@ -50,8 +64,9 @@ export default class Upload extends React.Component<UploadProps, UploadState> {
   }
 
   public renderThumbnail(): React.ReactNode {
-    if (this.state.thumbnail) {
-      return <ImageCanvas bitmap={this.state.thumbnail} size={150}/>;
+    let image = this.state.thumbnail || this.state.preview;
+    if (image) {
+      return <ImageCanvas bitmap={image} size={150}/>;
     } else {
       return null;
     }
@@ -60,6 +75,7 @@ export default class Upload extends React.Component<UploadProps, UploadState> {
   public render(): React.ReactNode {
     return <div className="media">
       {this.renderThumbnail()}
+      <p className="title">{this.state.title}</p>
     </div>;
   }
 }
