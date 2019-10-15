@@ -1,6 +1,5 @@
 import { parseBuffer } from "media-metadata";
 import { Metadata } from "media-metadata/lib/metadata";
-import { uuid } from "./helpers";
 
 export interface MediaForUpload {
   id: string;
@@ -23,14 +22,10 @@ function loadBlob(blob: Blob): Promise<ArrayBuffer> {
   });
 }
 
-export async function parseMedia(file: File): Promise<MediaForUpload | null> {
+export async function parseMetadata(file: File): Promise<Metadata | null> {
   try {
     let buffer = await loadBlob(file);
-    return {
-      id: uuid(),
-      file,
-      metadata: await parseBuffer(buffer),
-    };
+    return await parseBuffer(buffer);
   } catch (e) {
     console.error("Failed to parse metadata", e);
     return null;

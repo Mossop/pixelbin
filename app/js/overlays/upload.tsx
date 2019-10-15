@@ -11,6 +11,13 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { MediaForUpload } from "../utils/metadata";
 import ImageCanvas from "../content/ImageCanvas";
+import { uuid } from "../utils/helpers";
+import Upload from "../components/Upload";
+
+interface UploadFile {
+  id: string;
+  file: File;
+}
 
 const MEDIA_TYPES = [
   "image/jpeg",
@@ -45,11 +52,11 @@ type UploadOverlayProps = {
 } & StateProps & DispatchProps<typeof mapDispatchToProps>;
 
 interface UploadOverlayState {
-  media: MediaForUpload[];
+  media: UploadFile[];
 }
 
 class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
-  fileInput: React.RefObject<HTMLInputElement>;
+  private fileInput: React.RefObject<HTMLInputElement>;
 
   public constructor(props: UploadOverlayProps) {
     super(props);
@@ -61,32 +68,15 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
     this.fileInput = React.createRef();
   }
 
-  private async addFile(file: File): Promise<void> {
-    let { parseMedia, createThumbnail } = await import(/* webpackChunkName: "metadata" */ "../utils/metadata");
-
-    let media: MediaForUpload | null = await parseMedia(file);
-    if (!media) {
-      return;
-    }
+  private addFile(file: File): void {
+    let upload: UploadFile = {
+      id: uuid(),
+      file,
+    };
 
     let newMedia = this.state.media.slice(0);
-    newMedia.push(media);
-    this.setState({
-      media: newMedia,
-    });
-
-    createThumbnail(file, media.metadata.mimetype).then((bitmap: ImageBitmap): void => {
-      if (!media) {
-        return;
-      }
-
-      media.bitmap = bitmap;
-      media.metadata.width = bitmap.width;
-      media.metadata.height = bitmap.height;
-      this.setState({
-        media: this.state.media.slice(0),
-      });
-    });
+    newMedia.push(upload);
+    this.setState({ media: newMedia });
   }
 
   private openFilePicker: (() => void) = (): void => {
@@ -97,11 +87,11 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
 
   private onNewFiles: (() => void) = (): void => {
     if (this.fileInput.current && this.fileInput.current.files) {
-      this.addFiles(Array.from(this.fileInput.current.files));
+      this.addFiles(this.fileInput.current.files);
     }
   };
 
-  private addFiles(files: File[]): void {
+  private addFiles(files: Iterable<File>): void {
     for (let file of files) {
       this.addFile(file);
     }
@@ -166,7 +156,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
         <If condition={this.state.media.length > 0}>
           <Then>
             <div id="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-              {this.state.media.map((m: MediaForUpload) => this.renderMedia(m))}
+              {this.state.media.map((m: UploadFile) => <Upload key={m.id} file={m.file}/>)}
             </div>
           </Then>
           <Else>
