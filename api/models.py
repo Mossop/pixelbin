@@ -1,9 +1,32 @@
+import subprocess
+import json
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
+from PIL import Image
 
-from .storage import Server, Backblaze
+from .storage import Server, Backblaze, MediaStorage
 from .utils import uuid
+
+THUMB_SIZES = [
+    150,
+    200,
+    300,
+    400,
+    500,
+]
+
+def resize(image, size):
+    if image.width <= size and image.height <= size:
+        return image.copy()
+    if image.width > image.height:
+        factor = size / image.width
+        return image.resize((size, round(image.height * factor)), Image.LANCZOS)
+    else:
+        factor = size / image.height
+        return image.resize((round(image.width * factor), size), Image.LANCZOS)
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -207,11 +230,48 @@ class Media(models.Model):
 
     @property
     def storage(self):
-        return self.catalog.storage
+        return MediaStorage(self.catalog.storage, self)
+
+    @property
+    def is_image(self):
+        return self.mimetype[0:6] == 'image/'
+
+    @property
+    def is_video(self):
+        return self.mimetype[0:6] == 'video/'
+
+    def import_metadata(self, data):
+        if 'MIMEType' in data:
+            self.mimetype = data['MIMEType']
 
     def process(self):
-        pass
+        if self.processed:
+            return
+
+        source = self.storage.get_temp_path(self.storage_filename)
+        result = subprocess.run(['exiftool', '-json', source], capture_output=True,
+                                timeout=10, check=True)
+        metadata = json.loads(result.stdout)
+        if len(metadata) != 1:
+            return
+        self.import_metadata(metadata[0])
+        meta_file = self.storage.get_local_path('metadata.json')
+        output = open(meta_file, 'w')
+        json.dump(metadata[0], output, indent=2)
+        output.close()
+
+        if self.is_image:
+            image = Image.open(source)
+            self.width = image.width
+            self.height = image.height
+            for size in THUMB_SIZES:
+                resized = resize(image, size)
+                target = self.storage.get_local_path('sized%d.jpg' % (size))
+                resized.save(target, None, quality=95, optimize=True)
+
+        self.processed = True
+        self.storage.delete_all_temp()
 
     def delete(self, using=None, keep_parents=False):
-        self.storage.delete(self)
+        self.storage.delete()
         super().delete(using, keep_parents)

@@ -124,11 +124,14 @@ def upload(request):
     media.tags.add(*tags)
     media.people.add(*people)
 
-    media.storage.store_temp(media, media.storage_filename, file)
+    temp = media.storage.get_temp_path(media.storage_filename)
+    with open(temp, "wb") as output:
+        for chunk in file.chunks():
+            output.write(chunk)
     try:
         media.save()
     except Exception as exc:
-        media.storage.delete_temp(media, media.storage_filename)
+        os.unlink(temp)
         raise exc
 
     process_media.delay(media.id)

@@ -23,16 +23,6 @@ class BaseStorage:
     def get_temp_path(self, media, name):
         return make_target(os.path.join(self.temp_root(), base_path(media)), name)
 
-    def store_temp(self, media, name, file):
-        target = self.get_temp_path(media, name)
-        with open(target, 'wb') as output:
-            for chunk in file.chunks():
-                output.write(chunk)
-
-    def delete_temp(self, media, name):
-        target = self.get_temp_path(media, name)
-        os.unlink(target)
-
     def delete_all_temp(self, media):
         target = os.path.join(self.temp_root(), base_path(media))
         rmtree(target)
@@ -76,6 +66,53 @@ class BaseStorage:
 
     def delete(self, media):
         raise NotImplementedError("Must implement in class")
+
+class MediaStorage:
+    def __init__(self, storage, media):
+        self.storage = storage
+        self.media = media
+
+    def get_temp_path(self, name):
+        return self.storage.get_temp_path(self.media, name)
+
+    def delete_all_temp(self):
+        self.storage.delete_all_temp(self.media)
+
+    def get_local_path(self, name):
+        return self.storage.get_local_path(self.media, name)
+
+    def store_local_from_temp(self, name):
+        self.storage.store_local_from_temp(self.media, name)
+
+    def delete_local(self, name):
+        self.storage.delete_local(self.media, name)
+
+    def get_public_url(self, name):
+        return self.storage.get_public_url(self.media, name)
+
+    def get_public_stream(self, name):
+        return self.storage.get_public_stream(self.media, name)
+
+    def store_public_from_temp(self, name):
+        self.storage.store_public_from_temp(self.media, name)
+
+    def delete_public(self, name):
+        self.storage.delete_public(self.media, name)
+
+    def get_private_url(self, name):
+        return self.storage.get_private_url(self.media, name)
+
+    def get_private_stream(self, name):
+        return self.storage.get_private_stream(self.media, name)
+
+    def store_private_from_temp(self, name):
+        self.storage.store_private_from_temp(self.media, name)
+
+    def delete_private(self, name):
+        self.storage.delete_private(self.media, name)
+
+    def delete(self):
+        self.storage.delete(self)
 
 class FileStorage(BaseStorage):
     def public_root(self):
