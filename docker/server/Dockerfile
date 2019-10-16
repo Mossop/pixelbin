@@ -1,7 +1,5 @@
 FROM python:3
 
-WORKDIR /usr/src/pixelbin
-
 EXPOSE 8000/tcp
 
 RUN \
@@ -15,9 +13,11 @@ RUN \
   mkdir -p /usr/src/scripts && \
   mkdir -p /usr/src/pixelbin
 
-COPY docker/server/start /usr/src/scripts/
-COPY manage.py requirements.txt /usr/src/pixelbin/
+WORKDIR /usr/src/pixelbin
 
+COPY manage.py requirements.txt /usr/src/pixelbin/
 RUN pip install -r requirements.txt
+
+COPY docker/server/start /usr/src/scripts/
 
 ENTRYPOINT ["/usr/src/scripts/start"]

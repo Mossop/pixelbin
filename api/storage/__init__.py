@@ -1,39 +1,53 @@
+from shutil import rmtree
+from os import makedirs
+
 from django.db import models
+import filetype
 
-class Storage(models.Model):
-    def as_backblaze(self):
-        try:
-            return self.backblaze
-        except:
-            return None
+def base_path(media):
+    return '%s/%s' % (media.catalog.id, media.id)
 
-    def as_server(self):
-        try:
-            return self.server
-        except:
-            return None
+def make_target(directory, name):
+    makedirs(directory, exist_ok=True)
+    return '%s/%s' % (directory, name)
 
-    def get_storage(self, media):
-        if self.backblaze:
-            return self.backblaze.get_storage(media)
-        elif self.server:
-            return self.server.get_storage(media)
+class FileStorage:
+    def private_root(self):
+        raise NotImplementedError("Must implement in class")
 
-class Server(Storage):
-    type = 'server'
+    def temp_root(self):
+        raise NotImplementedError("Must implement in class")
 
-    def get_storage(self, media):
+    def public_root(self):
+        raise NotImplementedError("Must implement in class")
+
+    def store_file(self, media, file):
+        target = make_target('%s/%s' % (self.public_root(), base_path(media)), media.filename)
+        with open(target, 'wb') as output:
+            for chunk in file.chunks():
+                output.write(chunk)
+
+    def delete(self, media):
+        target = '%s/%s' % (self.private_root(), base_path(media))
+        rmtree(target)
+        target = '%s/%s' % (self.temp_root(), base_path(media))
+        rmtree(target)
+        target = '%s/%s' % (self.public_root(), base_path(media))
+        rmtree(target)
+
+class Server(models.Model):
+    @property
+    def storage(self):
         from .server import ServerStorage
-        return ServerStorage(media)
+        return ServerStorage.build()
 
-class Backblaze(Storage):
-    type = 'backblaze'
-
+class Backblaze(models.Model):
     key_id = models.CharField(max_length=30)
     key = models.CharField(max_length=40)
     bucket = models.CharField(max_length=50)
     path = models.CharField(max_length=200)
 
-    def get_storage(self, media):
+    @property
+    def storage(self):
         from .backblaze import BackblazeStorage
-        return BackblazeStorage(media)
+        return BackblazeStorage.build(self)

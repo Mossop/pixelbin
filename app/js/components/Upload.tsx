@@ -63,6 +63,22 @@ export default class Upload extends React.Component<UploadProps, UploadState> {
     });
   }
 
+  public get title(): string {
+    return this.state.title;
+  }
+
+  public get tags(): string[][] {
+    return this.state.tags;
+  }
+
+  public get people(): string[] {
+    return this.state.people;
+  }
+
+  public get orientation(): Orientation {
+    return this.state.orientation;
+  }
+
   public renderThumbnail(): React.ReactNode {
     let image = this.state.thumbnail || this.state.preview;
     if (image) {

@@ -1,12 +1,21 @@
-class ServerStorage:
-    def __init__(self, media):
-        pass
+from django.conf import settings
 
-    def store_file(self, path):
-        pass
+from . import FileStorage
 
-    def get_full_url(self):
-        pass
+class ServerStorage(FileStorage):
+    STORAGE = None
 
-    def delete(self):
-        pass
+    @classmethod
+    def build(cls):
+        if cls.STORAGE is None:
+            cls.STORAGE = ServerStorage()
+        return cls.STORAGE
+
+    def private_root(self):
+        return '%s/%s' % (settings.MEDIA_ROOT, 'private')
+
+    def temp_root(self):
+        return '%s/%s' % (settings.MEDIA_ROOT, 'temp')
+
+    def public_root(self):
+        return '%s/%s' % (settings.MEDIA_ROOT, 'storage')

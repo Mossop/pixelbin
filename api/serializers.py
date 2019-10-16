@@ -2,9 +2,54 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .storage import Server, Backblaze
-from .models import Album, Tag, Catalog, User, Access
+from .models import Album, Tag, Catalog, User, Access, Media
 
-class LoginSerializer(serializers.Serializer):
+def get_catalog_storage_field(instance):
+    if instance.backblaze is not None:
+        serializer = BackblazeSerializer(instance.backblaze)
+        data = serializer.data
+        data['type'] = 'backblaze'
+        return data
+
+    if instance.server is not None:
+        serializer = ServerSerializer(instance.server)
+        data = serializer.data
+        data['type'] = 'server'
+        return data
+
+    raise RuntimeError("Unreachable")
+
+class MediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Media
+        fields = ['id', 'processed', 'filename', 'longitude', 'latitude',
+                  'mimetype', 'width', 'height']
+
+class Serializer(serializers.Serializer):
+    def update(self, instance, validated_data):
+        pass
+
+    def create(self, validated_data):
+        pass
+
+class UploadSerializer(Serializer):
+    filename = serializers.CharField()
+    title = serializers.CharField(allow_blank=True)
+    orientation = serializers.IntegerField(min_value=1, max_value=8)
+    catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
+    people = serializers.ListField(
+        child=serializers.CharField(allow_blank=False),
+        allow_empty=True
+    )
+    tags = serializers.ListField(
+        child=serializers.ListField(
+            child=serializers.CharField(allow_blank=False),
+            allow_empty=False
+        ),
+        allow_empty=True
+    )
+
+class LoginSerializer(Serializer):
     email = serializers.CharField()
     password = serializers.CharField()
 
@@ -20,63 +65,6 @@ class ServerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Server
         fields = []
-
-class StorageSerializer(serializers.Field):
-    default_error_messages = {
-        'incorrect_type': 'Incorrect type. Expected {expected_type}, but got {found_type}',
-        'missing_property': 'The required property "{name}" was not present.',
-        'invalid_type': 'Unknown storage type "{type}"'
-    }
-
-    def create(self, validated_data):
-        data = dict(validated_data)
-        del data['type']
-
-        if validated_data['type'] == 'backblaze':
-            serializer = BackblazeSerializer(data=validated_data)
-            serializer.is_valid(raise_exception=True)
-            return serializer.create(data)
-        if validated_data['type'] == 'server':
-            serializer = ServerSerializer(data=validated_data)
-            serializer.is_valid(raise_exception=True)
-            return serializer.create(data)
-
-    def to_internal_value(self, data):
-        if not isinstance(data, dict):
-            self.fail('incorrect_type', expected_type='object', found_type=type(data).__name__)
-        if 'type' not in data:
-            self.fail('missing_property', name='type')
-
-        storage_type = data['type']
-        if not isinstance(storage_type, str):
-            self.fail('incorrect_type', expected_type='str', found_type=type(storage_type).__name__)
-
-        if storage_type == 'backblaze':
-            serializer = BackblazeSerializer(data=data)
-        elif storage_type == 'server':
-            serializer = ServerSerializer(data=data)
-        else:
-            self.fail('invalid_type', type=storage_type)
-
-        serializer.is_valid(raise_exception=True)
-        validated = serializer.validated_data
-        validated['type'] = storage_type
-        return validated
-
-    def to_representation(self, value):
-        backblaze = value.as_backblaze()
-        if backblaze is not None:
-            serializer = BackblazeSerializer(backblaze)
-            data = serializer.data
-            data['type'] = 'backblaze'
-            return data
-        server = value.as_server()
-        if server is not None:
-            serializer = ServerSerializer(server)
-            data = serializer.data
-            data['type'] = 'server'
-            return data
-
 
 class CatalogAlbumsSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
@@ -94,25 +82,28 @@ class CatalogTagsSerializer(serializers.ModelSerializer):
 
 class CatalogSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
-    storage = StorageSerializer()
 
-    def create(self, validated_data):
-        storage = self.fields['storage'].create(validated_data['storage'])
-        storage.save()
-        validated_data['storage'] = storage
-        return super().create(validated_data)
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['storage'] = get_catalog_storage_field(instance)
+        return data
 
     class Meta:
         model = Catalog
-        fields = ['id', 'name', 'storage']
+        fields = ['id', 'name']
 
-class CatalogStateSerializer(CatalogSerializer):
+class CatalogStateSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     tags = CatalogTagsSerializer(many=True)
     albums = CatalogAlbumsSerializer(many=True)
 
-    class Meta:
-        model = Catalog
-        fields = ['id', 'name', 'storage', 'tags', 'albums']
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['storage'] = get_catalog_storage_field(instance)
+        return data
+
+    class Meta(CatalogSerializer.Meta):
+        fields = ['id', 'name', 'tags', 'albums']
 
 class AccessSerializer(serializers.ModelSerializer):
     catalog = CatalogStateSerializer()
@@ -127,7 +118,9 @@ class UserSerializer(serializers.ModelSerializer):
     verified = serializers.BooleanField(read_only=True)
 
     def create(self, validated_data):
-        user = get_user_model().objects.create_user(validated_data['email'], validated_data['full_name'], validated_data['password'])
+        user = get_user_model().objects.create_user(validated_data['email'],
+                                                    validated_data['full_name'],
+                                                    validated_data['password'])
         return user
 
     class Meta:
@@ -138,12 +131,10 @@ class UserSerializer(serializers.ModelSerializer):
 class UserStateSerializer(UserSerializer):
     catalogs = CatalogStateSerializer(many=True)
 
-    class Meta:
-        model = User
+    class Meta(UserSerializer.Meta):
         fields = ['email', 'password', 'fullname', 'hadCatalog', 'verified', 'catalogs']
-        extra_kwargs = {'password': {'write_only': True}}
 
-class StateSerializer(serializers.Serializer):
+class StateSerializer(Serializer):
     user = UserStateSerializer()
 
 def serialize_state(request):

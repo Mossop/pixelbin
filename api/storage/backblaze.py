@@ -1,6 +1,6 @@
 import requests
 
-from base.utils import config
+from . import FileStorage
 
 B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
 
@@ -119,25 +119,29 @@ class BackblazeAPI:
 
         return '%s/file/%s/%s?Authorization=%s' % (self.download_url, self.bucket_name, path, token)
 
-API = BackblazeAPI(
-    config.get('backblaze', 'key_id'),
-    config.get('backblaze', 'key'),
-    config.get('backblaze', 'bucket_id'),
-    config.get('backblaze', 'bucket'),
-)
+class BackblazeStorage(FileStorage):
+    STORAGE = {}
 
-class BackblazeStorage:
-    backblaze = None
-    file_id = None
+    @classmethod
+    def build(cls, model):
+        if model.id not in cls.STORAGE:
+            cls.STORAGE[model.id] = BackblazeStorage(model)
+        return cls.STORAGE[model.id]
 
-    def __init__(self, media):
-        self.file_id = media.storage_id
+    def __init__(self, model):
+        self.model = model
 
-    def store_file(self, path):
-        pass
+    def private_root(self):
+        raise NotImplementedError("Must implement")
 
-    def get_full_url(self):
-        pass
+    def temp_root(self):
+        raise NotImplementedError("Must implement")
 
-    def delete(self):
-        pass
+    def public_root(self):
+        raise NotImplementedError("Must implement")
+
+    def store_file(self, media, file):
+        raise NotImplementedError("Must implement")
+
+    def delete(self, media):
+        raise NotImplementedError("Must implement")

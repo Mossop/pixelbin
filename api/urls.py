@@ -8,5 +8,6 @@ urlpatterns = [
     path('catalog/create', views.create_catalog),
     path('user/create', views.create_user),
     path('user', views.get_user),
+    path('media/upload', views.upload),
     path('auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

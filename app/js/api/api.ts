@@ -3,7 +3,6 @@ const API_ROOT = new URL("/api/", window.location.href);
 export type Method = "GET" | "POST" | "PUT";
 
 interface FormBody {
-  type: "multipart/form-data";
   data: FormData;
 }
 
@@ -12,7 +11,7 @@ interface JSONBody {
   data: string;
 }
 
-/*export function buildFormBody(options: URLSearchParams | { [key: string]: string }): FormBody {
+export function buildFormBody(options: URLSearchParams | { [key: string]: string | Blob }): FormBody {
   let formData = new FormData();
   if (options instanceof URLSearchParams) {
     for (let [key, value] of options) {
@@ -25,10 +24,9 @@ interface JSONBody {
   }
 
   return {
-    type: "multipart/form-data",
     data: formData,
   };
-}*/
+}
 
 export function buildJSONBody(data: any): JSONBody {
   return {
@@ -51,7 +49,7 @@ export async function request(url: URL | string, method: Method = "POST", body?:
 
   let headers = new Headers();
   headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
-  if (body) {
+  if (body && "type" in body) {
     headers.append("Content-Type", body.type);
   }
 

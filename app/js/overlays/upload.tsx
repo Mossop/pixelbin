@@ -1,3 +1,5 @@
+import path from "path";
+
 import React from "react";
 import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
@@ -13,10 +15,12 @@ import { MediaForUpload } from "../utils/metadata";
 import ImageCanvas from "../content/ImageCanvas";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
+import { UploadInfo, upload } from "../api/upload";
 
 interface UploadFile {
   id: string;
   file: File;
+  ref: React.RefObject<Upload>;
 }
 
 const MEDIA_TYPES = [
@@ -47,7 +51,7 @@ const mapDispatchToProps = {
 };
 
 type UploadOverlayProps = {
-  catalog?: string;
+  catalog: string;
   album?: string;
 } & StateProps & DispatchProps<typeof mapDispatchToProps>;
 
@@ -68,10 +72,34 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
     this.fileInput = React.createRef();
   }
 
+  private upload: (() => Promise<void>[]) = (): Promise<void>[] => {
+    let results: Promise<void>[] = [];
+
+    for (let media of this.state.media) {
+      if (!media.ref.current) {
+        continue;
+      }
+
+      let info: UploadInfo = {
+        filename: path.basename(media.file.name),
+        title: media.ref.current.title,
+        tags: media.ref.current.tags,
+        people: media.ref.current.people,
+        orientation: media.ref.current.orientation,
+        catalog: this.props.catalog,
+      };
+
+      results.push(upload(info, media.file));
+    }
+
+    return results;
+  };
+
   private addFile(file: File): void {
     let upload: UploadFile = {
       id: uuid(),
       file,
+      ref: React.createRef(),
     };
 
     let newMedia = this.state.media.slice(0);
@@ -156,7 +184,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
         <If condition={this.state.media.length > 0}>
           <Then>
             <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-              {this.state.media.map((m: UploadFile) => <Upload key={m.id} file={m.file}/>)}
+              {this.state.media.map((m: UploadFile) => <Upload key={m.id} ref={m.ref} file={m.file}/>)}
             </div>
           </Then>
           <Else>
@@ -170,7 +198,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
         <div id="upload-complete">
           <input id="fileInput" multiple={true} accept="image/jpeg,video/mp4" type="file" ref={this.fileInput} onChange={this.onNewFiles}/>
           <Button l10n="upload-add-files" onClick={this.openFilePicker}/>
-          <Button l10n="upload-upload" onClick={(): void => {}}/>
+          <Button l10n="upload-upload" onClick={this.upload}/>
         </div>
       </div>
     </React.Fragment>;

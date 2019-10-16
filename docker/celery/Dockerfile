@@ -1,7 +1,5 @@
 FROM python:3
 
-WORKDIR /usr/src/pixelbin
-
 RUN \
   apt-get update && \
   apt-get install  -y --no-install-recommends \
@@ -15,9 +13,11 @@ RUN \
   mkdir -p /usr/src/scripts && \
   mkdir -p /usr/src/pixelbin
 
-COPY docker/celery/start /usr/src/scripts/
-COPY requirements.txt /usr/src/pixelbin/
+WORKDIR /usr/src/pixelbin
 
+COPY requirements.txt /usr/src/pixelbin/
 RUN pip install -r requirements.txt
+
+COPY docker/celery/start /usr/src/scripts/
 
 ENTRYPOINT ["/usr/src/scripts/start"]

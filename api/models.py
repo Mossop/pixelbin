@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 
-from .storage import Storage
+from .storage import Server, Backblaze
 from .utils import uuid
 
 class UserManager(BaseUserManager):
@@ -58,8 +58,8 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-    def delete(self):
-        super().delete()
+    def delete(self, using=None, keep_parents=False):
+        super().delete(using, keep_parents)
         Catalog.objects.filter(users=None).delete()
 
     def get_full_name(self):
@@ -72,11 +72,24 @@ class Catalog(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
     name = models.CharField(max_length=100)
     users = models.ManyToManyField(User, related_name='catalogs', through='Access')
-    storage = models.ForeignKey(Storage, on_delete=models.CASCADE, related_name='catalogs')
 
-    def delete(self):
-        super().delete()
-        Storage.objects.filter(catalogs = None).delete()
+    backblaze = models.ForeignKey(Backblaze, blank=True, null=True,
+                                  on_delete=models.CASCADE, related_name='catalogs')
+    server = models.ForeignKey(Server, blank=True, null=True,
+                               on_delete=models.CASCADE, related_name='catalogs')
+
+    @property
+    def storage(self):
+        if self.backblaze is not None:
+            return self.backblaze.storage
+        if self.server is not None:
+            return self.server.storage
+        raise RuntimeError("Unreachable")
+
+    def delete(self, using=None, keep_parents=False):
+        super().delete(using, keep_parents)
+        Backblaze.objects.filter(catalogs=None).delete()
+        Server.objects.filter(catalogs=None).delete()
 
 class Access(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access')
@@ -100,16 +113,14 @@ class Album(models.Model):
     def descendants(self):
         def make_albums_cte(cte):
             return (
-                Album.objects.filter(id=self.id)
-                             .values("id")
-                             .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
+                Album.objects.filter(id=self.id).values("id") \
+                    .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
             )
 
         cte = With.recursive(make_albums_cte)
 
         return (
-            cte.join(Album, id=cte.col.id)
-               .with_cte(cte)
+            cte.join(Album, id=cte.col.id).with_cte(cte)
         )
 
     class Meta:
@@ -134,19 +145,25 @@ class Tag(models.Model):
             return path
         return [self.name]
 
+    @staticmethod
+    def get_from_path(catalog, path):
+        parent = None
+        while len(path) > 0:
+            name = path.pop(0)
+            (parent,) = Tag.objects.get_or_create(parent=parent, catalog=catalog, name=name)
+        return parent
+
     def descendants(self):
         def make_tags_cte(cte):
             return (
-                Tag.objects.filter(id=self.id)
-                           .values("id")
-                           .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
+                Tag.objects.filter(id=self.id).values("id") \
+                    .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
             )
 
         cte = With.recursive(make_tags_cte)
 
         return (
-            cte.join(Tag, id=cte.col.id)
-               .with_cte(cte)
+            cte.join(Tag, id=cte.col.id).with_cte(cte)
         )
 
     class Meta:
@@ -156,13 +173,19 @@ class Person(models.Model):
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
     full_name = models.CharField(max_length=200)
 
+    @staticmethod
+    def get_from_name(catalog, name):
+        (person,) = Person.objects.get_or_create(catalog=catalog, full_name=name)
+        return person
+
     class Meta:
         unique_together = (('catalog', 'full_name'))
 
 class Media(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
-    processed = models.BooleanField()
+    processed = models.BooleanField(default=False)
+    filename = models.CharField(max_length=50)
 
     tags = models.ManyToManyField(Tag, related_name='media')
     albums = models.ManyToManyField(Album, related_name='media')
@@ -170,22 +193,21 @@ class Media(models.Model):
 
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)
-    taken = models.DateTimeField()
+    taken = models.DateTimeField(null=True)
 
     uploaded = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now_add=True)
     mimetype = models.CharField(max_length=50)
-    width = models.IntegerField()
-    height = models.IntegerField()
-    storage_id = models.CharField(max_length=200)
+    width = models.IntegerField(default=0)
+    height = models.IntegerField(default=0)
+    orientation = models.IntegerField(default=1)
 
-    __storage = None
+    storage_id = models.CharField(max_length=200, default="", blank=True)
 
+    @property
     def storage(self):
-        if self.__storage is None:
-            self.__storage = self.catalog.storage.get_storage(self)
-        return self.__storage
+        return self.catalog.storage
 
-    def delete(self):
-        self.storage().delete()
-        super().delete()
+    def delete(self, using=None, keep_parents=False):
+        self.storage.delete(self)
+        super().delete(using, keep_parents)

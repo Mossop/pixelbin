@@ -4,7 +4,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 
 from api.serializers import serialize_state
-from base.utils import config
+from base.utils import CONFIG
 
 @ensure_csrf_cookie
 def index(request):
@@ -18,7 +18,7 @@ def index(request):
             "static": settings.STATIC_URL,
         },
         "keys": {
-            "MAPS": config.get('keys', 'maps'),
+            "MAPS": CONFIG.get('keys', 'maps'),
         },
     }
     return HttpResponse(template.render(context, request))
