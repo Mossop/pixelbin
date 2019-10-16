@@ -9,25 +9,47 @@
   padding-top: 15px;
   padding-bottom: 15px;
 
+  --item-padding: 15px;
+
+  ol, li, p, .button {
+    width: 100%;
+    text-align: left;
+  }
+
   ol {
     margin-bottom: 15px;
   }
 
-  p, li {
-    margin-bottom: 5px;
-    padding: 4px 15px 4px 0;
+  .button {
+    padding: 4px var(--item-padding) 4px 0;
   }
 
-  li:hover:not(.selected) {
+  li:hover:not(.selected), p:hover {
     background: var(--hover);
   }
 
-  p {
-    padding-left: 15px;
+  .depth0 .button, p .button {
+    padding-left: calc(1 * var(--item-padding));
   }
 
-  li.depth0 {
-    padding-left: 15px;
+  .depth1 .button {
+    padding-left: calc(2 * var(--item-padding));
+  }
+
+  .depth2 .button {
+    padding-left: calc(3 * var(--item-padding));
+  }
+
+  .depth3 .button {
+    padding-left: calc(4 * var(--item-padding));
+  }
+
+  .depth4 .button {
+    padding-left: calc(5 * var(--item-padding));
+  }
+
+  .depth5 .button {
+    padding-left: calc(6 * var(--item-padding));
   }
 
   .selected {
