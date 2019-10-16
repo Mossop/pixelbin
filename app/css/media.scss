@@ -19,7 +19,12 @@
     margin-bottom: 10px;
 
     .image-canvas {
-      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+
+    .image-processing {
+      background: url("/static/app/images/throbber.gif") center center no-repeat;
+      margin-bottom: 10px;
     }
 
     .title {

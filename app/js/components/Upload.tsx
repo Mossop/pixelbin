@@ -82,9 +82,9 @@ export default class Upload extends React.Component<UploadProps, UploadState> {
   public renderThumbnail(): React.ReactNode {
     let image = this.state.thumbnail || this.state.preview;
     if (image) {
-      return <ImageCanvas bitmap={image} size={150}/>;
+      return <ImageCanvas bitmap={image} size={150} className="thumbnail"/>;
     } else {
-      return null;
+      return <div className="image-processing thumbnail" style={{ width: "150px", height: "150px" }}/>;
     }
   }
 

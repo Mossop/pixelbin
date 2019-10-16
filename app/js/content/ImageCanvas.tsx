@@ -1,9 +1,11 @@
 import React from "react";
 
-interface ImageCanvasProps {
+import { styleProps, StyleProps } from "../components/shared";
+
+type ImageCanvasProps = {
   bitmap?: ImageBitmap;
   size: number;
-}
+} & StyleProps;
 
 class ImageCanvas extends React.Component<ImageCanvasProps> {
   private canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -54,8 +56,16 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
 
   public render(): React.ReactNode {
     let { size } = this.props;
+    let props = styleProps(this.props, {
+      className: "image-canvas",
+      style: {
+        height: size,
+        width: size,
+      }
+    });
+
     return (
-      <canvas ref={this.canvasRef} className="image-canvas" height={size} width={size} style={{ width: size, height: size }}/>
+      <canvas ref={this.canvasRef} height={size} width={size} {...props}/>
     );
   }
 }

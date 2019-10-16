@@ -33,6 +33,10 @@ class BaseStorage:
         target = self.get_temp_path(media, name)
         os.unlink(target)
 
+    def delete_all_temp(self, media):
+        target = os.path.join(self.temp_root(), base_path(media))
+        rmtree(target)
+
     def get_local_path(self, media, name):
         return make_target(os.path.join(self.local_root(), base_path(media)), name)
 
@@ -114,8 +118,7 @@ class FileStorage(BaseStorage):
         os.unlink(target)
 
     def delete(self, media):
-        target = os.path.join(self.temp_root(), base_path(media))
-        rmtree(target)
+        self.delete_all_temp(media)
         target = os.path.join(self.local_root(), base_path(media))
         rmtree(target)
         target = os.path.join(self.public_root(), base_path(media))
