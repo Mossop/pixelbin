@@ -2,6 +2,8 @@ import subprocess
 import json
 
 from django.db import models
+from django.db.models.expressions import Q
+from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from PIL import Image
@@ -26,7 +28,6 @@ def resize(image, size):
     else:
         factor = size / image.height
         return image.resize((round(image.width * factor), size), Image.LANCZOS)
-
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -119,7 +120,9 @@ class Access(models.Model):
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = (('user', 'catalog'))
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'catalog'], name='unique_owners')
+        ]
 
 class Album(models.Model):
     objects = CTEManager()
@@ -147,14 +150,16 @@ class Album(models.Model):
         )
 
     class Meta:
-        unique_together = (('catalog', 'id'))
-        unique_together = (('catalog', 'parent', 'name'))
+        constraints = [
+            models.UniqueConstraint(fields=['catalog', 'parent', 'name'], name='unique_album_name')
+        ]
 
 class Tag(models.Model):
     objects = CTEManager()
 
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='tags')
     name = models.CharField(max_length=100)
+    lc_name = models.CharField(max_length=100)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='children',
@@ -170,10 +175,22 @@ class Tag(models.Model):
 
     @staticmethod
     def get_from_path(catalog, path):
+        to_build = []
         parent = None
         while len(path) > 0:
-            name = path.pop(0)
-            (parent,) = Tag.objects.get_or_create(parent=parent, catalog=catalog, name__iexact=name)
+            name = path.pop()
+            try:
+                parent = Tag.objects.get(catalog=catalog, lc_name=name.lower())
+                break
+            except Tag.DoesNotExist:
+                to_build.insert(0, name)
+                continue
+
+        while len(to_build) > 0:
+            name = to_build.pop()
+            parent = Tag.objects.create(parent=parent, catalog=catalog,
+                                        name=name, lc_name=name.lower())
+
         return parent
 
     def descendants(self):
@@ -190,19 +207,30 @@ class Tag(models.Model):
         )
 
     class Meta:
-        unique_together = (('catalog', 'parent', 'name'))
+        constraints = [
+            models.CheckConstraint(check=Q(lc_name=Lower('name')), name='ensure_lc_name_correct'),
+            models.UniqueConstraint(fields=['catalog', 'lc_name'], name='unique_tag_name')
+        ]
 
 class Person(models.Model):
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
     full_name = models.CharField(max_length=200)
+    lc_name = models.CharField(max_length=200)
 
     @staticmethod
     def get_from_name(catalog, name):
-        (person,) = Person.objects.get_or_create(catalog=catalog, full_name__iexact=name)
+        lower = name.lower()
+        (person,) = Person.objects.get_or_create(catalog=catalog, lc_name=lower, defaults={
+            "full_name": name,
+        })
         return person
 
     class Meta:
-        unique_together = (('catalog', 'full_name'))
+        constraints = [
+            models.CheckConstraint(check=Q(lc_name=Lower('full_name')),
+                                   name='ensure_lc_name_correct'),
+            models.UniqueConstraint(fields=['catalog', 'lc_name'], name='unique_person_name')
+        ]
 
 class Media(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
