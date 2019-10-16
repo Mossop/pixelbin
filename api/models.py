@@ -150,7 +150,7 @@ class Tag(models.Model):
         parent = None
         while len(path) > 0:
             name = path.pop(0)
-            (parent,) = Tag.objects.get_or_create(parent=parent, catalog=catalog, name=name)
+            (parent,) = Tag.objects.get_or_create(parent=parent, catalog=catalog, name__iexact=name)
         return parent
 
     def descendants(self):
@@ -175,7 +175,7 @@ class Person(models.Model):
 
     @staticmethod
     def get_from_name(catalog, name):
-        (person,) = Person.objects.get_or_create(catalog=catalog, full_name=name)
+        (person,) = Person.objects.get_or_create(catalog=catalog, full_name__iexact=name)
         return person
 
     class Meta:
@@ -208,6 +208,9 @@ class Media(models.Model):
     @property
     def storage(self):
         return self.catalog.storage
+
+    def process(self):
+        pass
 
     def delete(self, using=None, keep_parents=False):
         self.storage.delete(self)

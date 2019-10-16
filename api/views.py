@@ -14,6 +14,7 @@ from .utils import uuid
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
     ServerSerializer, MediaSerializer
+from .tasks import process_media
 
 PREVIEW_SIZE = 600
 
@@ -129,6 +130,8 @@ def upload(request):
     except Exception as exc:
         media.storage.delete_temp(media, media.storage_filename)
         raise exc
+
+    process_media.delay(media.id)
 
     serializer = MediaSerializer(media)
     return Response(serializer.data)
