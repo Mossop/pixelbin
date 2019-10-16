@@ -1,7 +1,6 @@
 import { buildFormBody, request } from "./api";
 
 export interface UploadInfo {
-  filename: string;
   title: string;
   tags: string[][];
   people: string[];

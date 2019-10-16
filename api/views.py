@@ -1,3 +1,4 @@
+import os
 import json
 
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
@@ -15,12 +16,6 @@ from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     ServerSerializer, MediaSerializer
 
 PREVIEW_SIZE = 600
-
-def has_all_fields(dictionary, fields):
-    for field in fields:
-        if field not in dictionary:
-            return False
-    return True
 
 @api_view()
 def get_user(request):
@@ -118,105 +113,27 @@ def upload(request):
     tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
     people = [models.Person.get_from_name(catalog, n) for n in data['people']]
 
+    filename = os.path.basename(file.name)
+    if filename is None or filename == "":
+        filename = 'original.%s' % (guessed.extension)
+
     media = models.Media(id=uuid("M"), catalog=catalog, mimetype=guessed.mime,
-                         orientation=data['orientation'], filename=data['filename'])
+                         orientation=data['orientation'], filename=os.path.basename(file.name),
+                         storage_filename=filename)
     media.tags.add(*tags)
     media.people.add(*people)
 
-    media.storage.store_file(media, file)
-    media.save()
+    media.storage.store_temp(media, media.storage_filename, file)
+    try:
+        media.save()
+    except Exception as exc:
+        media.storage.delete_temp(media, media.storage_filename)
+        raise exc
 
     serializer = MediaSerializer(media)
     return Response(serializer.data)
 
 # -------------------------------------
-
-
-# @login_required
-# def upload(request):
-#     if request.method == 'POST' and 'file' in request.FILES and has_all_fields(request.POST, ['tags', 'date']):
-#         # filetype only considers the first 261 bytes of a file
-#         header = next(request.FILES['file'].chunks(261))
-#         mimetype = filetype.guess_mime(header)
-#         if mimetype is None:
-#             return HttpResponseBadRequest('<h1>Unknown file type</h1>')
-#         elif not (mimetype.startswith('image/') or mimetype.startswith('video/')):
-#             return HttpResponseBadRequest('<h1>Unsupported file type "%s"</h1>' % mimetype)
-
-#         taken = datetime.fromisoformat(request.POST['date'])
-
-#         with transaction.atomic():
-#             media = models.Media(owner=request.user, taken=taken,
-#                                  mimetype=mimetype, width=0, height=0)
-#             if 'latitude' in request.POST and 'longitude' in request.POST:
-#                 media.latitude = float(request.POST['latitude'])
-#                 media.longitude = float(request.POST['longitude'])
-#             media.save()
-
-#             tags = [t.strip() for t in request.POST['tags'].split(',')]
-#             for tag in tags:
-#                 parts = [p.strip() for p in tag.split("/")]
-#                 if any([p == "" for p in parts]):
-#                     continue
-
-#                 parent = None
-#                 while len(parts) > 0:
-#                     name = parts.pop(0)
-#                     (parent, _) = models.Tag.objects.get_or_create(owner=request.user,
-#                                                                    name=name,
-#                                                                    parent=parent)
-
-#                 media.tags.add(parent)
-#             os.makedirs(media.root_path, exist_ok=True)
-
-#         try:
-#             (fd, temppath) = tempfile.mkstemp()
-#             f = os.fdopen(fd, mode="wb")
-#             try:
-#                 sha = hashlib.sha1()
-#                 for chunk in request.FILES['file'].chunks():
-#                     sha.update(chunk)
-#                     f.write(chunk)
-#                 f.close()
-
-#                 f = open(temppath, 'rb')
-#                 media.storage_id = backblaze.upload(media.storage_path, sha.hexdigest(), f, mimetype)
-#                 f.close()
-
-#                 if mimetype.startswith('image/'):
-#                     im = Image.open(temppath)
-#                     media.width = im.width
-#                     media.height = im.height
-
-#                     im.thumbnail([PREVIEW_SIZE, PREVIEW_SIZE])
-#                     im.save(media.preview_path, 'JPEG', quality=90)
-#                 else:
-#                     metadata = read_metadata(temppath)
-#                     media.width = metadata['width']
-#                     media.height = metadata['height']
-
-#                     poster_path = extract_poster(temppath)
-
-#                     try:
-#                         im = Image.open(poster_path)
-#                         im.thumbnail([PREVIEW_SIZE, PREVIEW_SIZE])
-#                         im.save(media.preview_path, 'JPEG', quality=90)
-#                     finally:
-#                         os.remove(poster_path)
-
-#                 media.save()
-#             finally:
-#                 os.remove(temppath)
-#         except:
-#             media.delete()
-#             raise
-
-#         return JsonResponse({
-#             "tags": build_tags(request),
-#             "media": media.asJS(),
-#         })
-
-#     return HttpResponseBadRequest('<h1>Bad Request</h1>')
 
 # @login_required
 # def delete(request):

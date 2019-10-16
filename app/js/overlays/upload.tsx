@@ -81,7 +81,6 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       }
 
       let info: UploadInfo = {
-        filename: path.basename(media.file.name),
         title: media.ref.current.title,
         tags: media.ref.current.tags,
         people: media.ref.current.people,

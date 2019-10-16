@@ -185,7 +185,7 @@ class Media(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
     processed = models.BooleanField(default=False)
-    filename = models.CharField(max_length=50)
+    filename = models.CharField(max_length=50, blank=True)
 
     tags = models.ManyToManyField(Tag, related_name='media')
     albums = models.ManyToManyField(Album, related_name='media')
@@ -202,6 +202,7 @@ class Media(models.Model):
     height = models.IntegerField(default=0)
     orientation = models.IntegerField(default=1)
 
+    storage_filename = models.CharField(max_length=50)
     storage_id = models.CharField(max_length=200, default="", blank=True)
 
     @property
