@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .storage import Server, Backblaze
-from .models import Album, Tag, Catalog, User, Access, Media
+from .models import Album, Tag, Catalog, User, Access, Media, Person
 
 def get_catalog_storage_field(instance):
     if instance.backblaze is not None:
@@ -65,6 +65,13 @@ class ServerSerializer(serializers.ModelSerializer):
         model = Server
         fields = []
 
+class CatalogPeopleSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Person
+        fields = ['id', 'full_name']
+
 class CatalogAlbumsSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
 
@@ -81,19 +88,18 @@ class CatalogTagsSerializer(serializers.ModelSerializer):
 
 class CatalogSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
+    storage = serializers.SerializerMethodField()
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['storage'] = get_catalog_storage_field(instance)
-        return data
+    def get_storage(self, instance):
+        return get_catalog_storage_field(instance)
 
     class Meta:
         model = Catalog
         fields = ['id', 'name']
 
-class CatalogStateSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(read_only=True)
+class CatalogStateSerializer(CatalogSerializer):
     tags = CatalogTagsSerializer(many=True)
+    people = CatalogPeopleSerializer(many=True)
     albums = CatalogAlbumsSerializer(many=True)
 
     def to_representation(self, instance):
@@ -102,7 +108,7 @@ class CatalogStateSerializer(serializers.ModelSerializer):
         return data
 
     class Meta(CatalogSerializer.Meta):
-        fields = ['id', 'name', 'tags', 'albums']
+        fields = ['id', 'name', 'people', 'tags', 'albums']
 
 class AccessSerializer(serializers.ModelSerializer):
     catalog = CatalogStateSerializer()
