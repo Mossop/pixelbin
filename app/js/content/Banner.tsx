@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { connect } from "react-redux";
 
-import { showLoginOverlay, showSignupOverlay, completeLogout, DispatchProps } from "../utils/actions";
+import { showLoginOverlay, showSignupOverlay, completeLogout, DispatchProps } from "../store/actions";
 import { Button } from "../components/Button";
 import { isLoggedIn } from "../utils/helpers";
 import { If, Then, Else } from "../utils/Conditions";

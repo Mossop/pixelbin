@@ -1,7 +1,4 @@
-import { applyMiddleware, createStore, Store, Middleware } from "redux";
-import { createLogger } from "redux-logger";
-
-import { history, HistoryState } from "./history";
+import { LocationState } from "history";
 
 import { ActionType,
   SET_HISTORY_STATE,
@@ -11,17 +8,20 @@ import { ActionType,
   COMPLETE_LOGIN,
   COMPLETE_SIGNUP,
   COMPLETE_LOGOUT,
-  CLOSE_OVERLAY, 
+  CLOSE_OVERLAY,
   CATALOG_CREATED,
-  SHOW_UPLOAD_OVERLAY} from "./actions";
-import { StoreState, OverlayType, Overlay, ServerStateDecoder, decode } from "../types";
-import { LocationState } from "history";
+  SHOW_UPLOAD_OVERLAY,
+  SHOW_CATALOG_EDIT_OVERLAY,
+  CATALOG_EDITED} from "./actions";
+import { StoreState, OverlayType, Overlay } from "./types";
+import { history, HistoryState } from "../utils/history";
+import { Catalog } from "../api/types";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
 }
 
-function reducer(state: StoreState, action: ActionType): StoreState {
+export default function reducer(state: StoreState, action: ActionType): StoreState {
   switch (action.type) {
     case SET_HISTORY_STATE: {
       console.log("Update state");
@@ -51,6 +51,15 @@ function reducer(state: StoreState, action: ActionType): StoreState {
         ...state,
         overlay: {
           type: OverlayType.CreateCatalog,
+        }
+      };
+    }
+    case SHOW_CATALOG_EDIT_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.EditCatalog,
+          catalog: action.payload,
         }
       };
     }
@@ -99,6 +108,18 @@ function reducer(state: StoreState, action: ActionType): StoreState {
         historyState: navigate(`/catalog/${action.payload.id}`),
       };
     }
+    case CATALOG_EDITED: {
+      if (state.serverState.user) {
+        state.serverState.user.catalogs = state.serverState.user.catalogs
+          .filter((c: Catalog): boolean => c.id !== action.payload.id);
+        state.serverState.user.catalogs.push(action.payload);
+      }
+
+      return {
+        ...state,
+        overlay: undefined,
+      };
+    }
     case COMPLETE_LOGOUT: {
       return {
         ...state,
@@ -126,30 +147,3 @@ function reducer(state: StoreState, action: ActionType): StoreState {
 
   return state;
 }
-
-function buildStore(): Store<StoreState, ActionType> {
-  let initialState: StoreState = { serverState: { }, historyState: null };
-  let stateElement = document.getElementById("initial-state");
-  if (stateElement && stateElement.textContent) {
-    try {
-      initialState.serverState = decode(ServerStateDecoder, JSON.parse(stateElement.textContent));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  const middlewares: Middleware[] = [];
-
-  if (process.env.NODE_ENV === "development") {
-    middlewares.push(createLogger());
-  }
-
-  return createStore(
-    reducer,
-    initialState,
-    applyMiddleware(...middlewares),
-  );
-}
-
-const store = buildStore();
-export default store;

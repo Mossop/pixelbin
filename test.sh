@@ -5,5 +5,5 @@ set -e
 chmod 666 data/pixelbin.sqlite
 ./manage.py collectstatic --noinput
 gulp buildCss
-gulp watch &
+gulp watchBuild &
 docker-compose up --force-recreate --build

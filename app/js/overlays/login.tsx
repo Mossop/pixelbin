@@ -5,7 +5,7 @@ import { login } from "../api/auth";
 import Form, { FormProps } from "../content/Form";
 import { UIManager } from "../utils/UIState";
 
-import { DispatchProps, completeLogin } from "../utils/actions";
+import { DispatchProps, completeLogin } from "../store/actions";
 
 interface LoginState {
   disabled: boolean;

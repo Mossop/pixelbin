@@ -28,6 +28,7 @@ export function buildFormBody(options: URLSearchParams | { [key: string]: string
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildJSONBody(data: any): JSONBody {
   return {
     type: "application/json",

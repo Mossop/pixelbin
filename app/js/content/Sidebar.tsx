@@ -1,9 +1,10 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { showCatalogCreateOverlay, DispatchProps } from "../utils/actions";
+import { showCatalogCreateOverlay, DispatchProps } from "../store/actions";
 import { Button } from "../components/Button";
-import { StoreState, Catalog } from "../types";
+import { StoreState } from "../store/types";
+import { Catalog } from "../api/types";
 import { history } from "../utils/history";
 
 const mapDispatchToProps = {

@@ -1,4 +1,4 @@
-import { ServerState } from "./api";
+import { ServerState, Catalog, Album } from "../api/types";
 import { HistoryState } from "../utils/history";
 
 export enum OverlayType {
@@ -6,6 +6,7 @@ export enum OverlayType {
   Signup = "signup",
   CreateCatalog = "createCatalog",
   Upload = "upload",
+  EditCatalog = "editCatalog",
 }
 
 interface BaseOverlay {
@@ -14,11 +15,16 @@ interface BaseOverlay {
 
 interface UploadOverlay {
   type: OverlayType.Upload;
-  catalog?: string;
-  album?: string;
+  catalog?: Catalog;
+  album?: Album;
 }
 
-export type Overlay = BaseOverlay | UploadOverlay;
+interface CatalogEditOverlay {
+  type: OverlayType.EditCatalog;
+  catalog: Catalog;
+}
+
+export type Overlay = BaseOverlay | UploadOverlay | CatalogEditOverlay;
 
 export interface StoreState {
   serverState: ServerState;

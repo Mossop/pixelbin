@@ -41,7 +41,7 @@ export default class Form extends React.Component<FormProps> {
     this.props.onSubmit();
   };
 
-  public renderField: (field: Field, pos: number) => React.ReactNode = (field: Field, pos: number): React.ReactNode => {
+  protected renderField: (field: Field, pos: number) => React.ReactNode = (field: Field, pos: number): React.ReactNode => {
     switch (field.fieldType) {
       case "textbox": {
         return <React.Fragment key={pos}>

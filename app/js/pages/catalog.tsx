@@ -1,14 +1,17 @@
 import React from "react";
 
-import { SidebarWrapper } from "../components/pages";
+import { SidebarWrapper, PageContent } from "../components/pages";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
-import { StoreState, Catalog } from "../types";
+import { StoreState } from "../store/types";
+import { Catalog } from "../api/types";
 import { isLoggedIn } from "../utils/helpers";
 import Banner from "../content/Banner";
 import Sidebar from "../content/Sidebar";
 import { Button } from "../components/Button";
-import { DispatchProps, showUploadOverlay } from "../utils/actions";
+import { DispatchProps, showUploadOverlay, showCatalogEditOverlay } from "../store/actions";
+import { getCatalog } from "../store/store";
+import NotFound from "./notfound";
 
 interface MatchParams {
   id: string;
@@ -20,45 +23,52 @@ interface StateProps {
 }
 
 function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchParams>): StateProps {
-  let catalog: Catalog | undefined = undefined;
-  if (state.serverState.user) {
-    catalog = state.serverState.user.catalogs.find((c: Catalog) => c.id == props.match.params.id);
-  }
-
   return {
     isLoggedIn: isLoggedIn(state),
-    catalog,
+    catalog: getCatalog(props.match.params.id),
   };
 }
 
 const mapDispatchToProps = {
   showUploadOverlay,
+  showCatalogEditOverlay,
 };
 
 type CatalogPageProps = RouteComponentProps<MatchParams> & StateProps & DispatchProps<typeof mapDispatchToProps>;
 
 class CatalogPage extends React.Component<CatalogPageProps> {
-  private onClick: (() => void) = (): void => {
+  private onEdit: (() => void) = (): void => {
     if (!this.props.isLoggedIn || !this.props.catalog) {
       return;
     }
 
-    this.props.showUploadOverlay(this.props.catalog.id);
+    this.props.showCatalogEditOverlay(this.props.catalog);
+  };
+
+  private onUpload: (() => void) = (): void => {
+    if (!this.props.isLoggedIn || !this.props.catalog) {
+      return;
+    }
+
+    this.props.showUploadOverlay(this.props.catalog);
   };
 
   public render(): React.ReactNode {
     if (this.props.isLoggedIn && this.props.catalog) {
       return <React.Fragment>
         <Banner>
-          <Button l10n="catalog-upload" onClick={this.onClick}/>
+          <Button l10n="catalog-edit" onClick={this.onEdit}/>
+          <Button l10n="catalog-upload" onClick={this.onUpload}/>
         </Banner>
         <SidebarWrapper>
           <Sidebar selected={this.props.catalog.id}/>
-          {this.props.children}
+          <PageContent>
+            {this.props.children}
+          </PageContent>
         </SidebarWrapper>
       </React.Fragment>;
     } else {
-      return null;
+      return <NotFound/>;
     }
   }
 }

@@ -5,7 +5,7 @@ import { signup } from "../api/auth";
 import Form, { FormProps } from "../content/Form";
 import { UIManager } from "../utils/UIState";
 
-import { DispatchProps, completeSignup } from "../utils/actions";
+import { DispatchProps, completeSignup } from "../store/actions";
 
 interface SignupState {
   disabled: boolean;

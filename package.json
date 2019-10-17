@@ -54,7 +54,7 @@
     "cookie": "^0.4.0",
     "file-type": "^12.3.0",
     "intl-pluralrules": "^1.0.3",
-    "media-metadata": "^0.1.0",
+    "media-metadata": "^1.0.0",
     "moment": "^2.24.0",
     "react": "^16.10.1",
     "react-dom": "^16.10.1",

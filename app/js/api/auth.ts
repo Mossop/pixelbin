@@ -1,5 +1,5 @@
 import { buildJSONBody, request } from "./api";
-import { ServerStateDecoder, ServerState } from "../types";
+import { ServerStateDecoder, ServerState } from "./types";
 
 export async function login(email: string, password: string): Promise<ServerState> {
   let response = await request("login", "POST", buildJSONBody({

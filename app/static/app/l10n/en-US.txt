@@ -24,6 +24,9 @@ catalog-create-name = Catalog name:
 catalog-create-storage = Storage:
 catalog-create-submit = Create...
 catalog-upload = Upload
+catalog-edit = Edit
+catalog-edit-title = Edit this catalog
+catalog-edit-submit = Finish...
 
 storage-backblaze-name = Backblaze
 storage-backblaze-keyid = Application key ID:

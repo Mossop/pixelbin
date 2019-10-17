@@ -53,12 +53,11 @@ class LoginSerializer(Serializer):
     password = serializers.CharField()
 
 class BackblazeSerializer(serializers.ModelSerializer):
-    keyId = serializers.CharField(source='key_id')
+    keyId = serializers.CharField(write_only=True, source='key_id')
 
     class Meta:
         model = Backblaze
         fields = ['keyId', 'key', 'bucket', 'path']
-        extra_kwargs = {'key': {'write_only': True}}
 
 class ServerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -86,6 +85,10 @@ class CatalogTagsSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['id', 'name', 'parent']
 
+class CatalogEditSerializer(Serializer):
+    catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
+    name = serializers.CharField()
+
 class CatalogSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
     storage = serializers.SerializerMethodField()
@@ -95,19 +98,15 @@ class CatalogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Catalog
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'storage']
 
-class CatalogStateSerializer(CatalogSerializer):
+class CatalogStateSerializer(serializers.ModelSerializer):
     tags = CatalogTagsSerializer(many=True)
     people = CatalogPeopleSerializer(many=True)
     albums = CatalogAlbumsSerializer(many=True)
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['storage'] = get_catalog_storage_field(instance)
-        return data
-
     class Meta(CatalogSerializer.Meta):
+        model = Catalog
         fields = ['id', 'name', 'people', 'tags', 'albums']
 
 class AccessSerializer(serializers.ModelSerializer):

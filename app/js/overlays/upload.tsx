@@ -1,12 +1,10 @@
-import path from "path";
-
 import React from "react";
 import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
-import { DispatchProps, closeOverlay } from "../utils/actions";
+import { DispatchProps, closeOverlay } from "../store/actions";
 import { isLoggedIn } from "../utils/helpers";
-import { StoreState } from "../types";
+import { StoreState } from "../store/types";
 import { UIManager } from "../utils/UIState";
 import Textbox from "../components/Textbox";
 import { Button } from "../components/Button";
@@ -16,6 +14,8 @@ import ImageCanvas from "../content/ImageCanvas";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
 import { UploadInfo, upload } from "../api/upload";
+import { Catalog, Album } from "../api/types";
+import { getCatalog } from "../store/store";
 
 interface UploadFile {
   id: string;
@@ -51,8 +51,8 @@ const mapDispatchToProps = {
 };
 
 type UploadOverlayProps = {
-  catalog: string;
-  album?: string;
+  catalog?: Catalog;
+  album?: Album;
 } & StateProps & DispatchProps<typeof mapDispatchToProps>;
 
 interface UploadOverlayState {
@@ -75,6 +75,12 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
   private upload: (() => Promise<void>[]) = (): Promise<void>[] => {
     let results: Promise<void>[] = [];
 
+    let catalogId = this.getTextState("catalog");
+    let catalog = getCatalog(catalogId);
+    if (!catalog) {
+      return results;
+    }
+
     for (let media of this.state.media) {
       if (!media.ref.current) {
         continue;
@@ -85,7 +91,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
         tags: media.ref.current.tags,
         people: media.ref.current.people,
         orientation: media.ref.current.orientation,
-        catalog: this.props.catalog,
+        catalog,
       };
 
       results.push(upload(info, media.file));

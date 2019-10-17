@@ -1,7 +1,7 @@
 import { Action } from "redux";
 
-import { ServerState, Catalog } from "../types";
-import { HistoryState } from "./history";
+import { ServerState, Catalog, Album } from "../api/types";
+import { HistoryState } from "../utils/history";
 
 export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";
 export const SHOW_SIGNUP_OVERLAY = "SHOW_SIGNUP_OVERLAY";
@@ -10,9 +10,11 @@ export const COMPLETE_LOGIN = "COMPLETE_LOGIN";
 export const COMPLETE_SIGNUP = "COMPLETE_SIGNUP";
 export const COMPLETE_LOGOUT = "COMPLETE_LOGOUT";
 export const CATALOG_CREATED = "CATALOG_CREATED";
+export const CATALOG_EDITED = "CATALOG_EDITED";
 export const SHOW_CATALOG_CREATE_OVERLAY = "SHOW_CATALOG_CREATE_OVERLAY";
 export const SET_HISTORY_STATE = "SET_HISTORY_STATE";
 export const SHOW_UPLOAD_OVERLAY = "SHOW_UPLOAD_OVERLAY";
+export const SHOW_CATALOG_EDIT_OVERLAY = "SHOW_CATALOG_EDIT_OVERLAY";
 
 type ArgumentTypes<F> = F extends (...args: infer A) => infer _R ? A : never;
 type ReturnType<F> = F extends (...args: infer _A) => infer R ? R : never;
@@ -34,19 +36,33 @@ export type ActionType =
   CloseOverlayAction |
   CompleteLogoutAction |
   CatalogCreatedAction |
+  CatalogEditedAction |
   ShowCatalogCreateOverlayAction |
   SetHistoryStateAction |
-  ShowUploadOverlayAction;
+  ShowUploadOverlayAction |
+  ShowCatalogEditOverlayAction;
+
+interface ShowCatalogEditOverlayAction {
+  type: typeof SHOW_CATALOG_EDIT_OVERLAY;
+  payload: Catalog;
+}
+
+export function showCatalogEditOverlay(catalog: Catalog): ShowCatalogEditOverlayAction {
+  return {
+    type: SHOW_CATALOG_EDIT_OVERLAY,
+    payload: catalog,
+  };
+}
 
 interface ShowUploadOverlayAction extends Action {
   type: typeof SHOW_UPLOAD_OVERLAY;
   payload: {
-    catalog: string | undefined;
-    album: string | undefined;
+    catalog: Catalog | undefined;
+    album: Album | undefined;
   };
 }
 
-export function showUploadOverlay(catalog?: string, album?: string): ShowUploadOverlayAction {
+export function showUploadOverlay(catalog?: Catalog, album?: Album): ShowUploadOverlayAction {
   return {
     type: SHOW_UPLOAD_OVERLAY,
     payload: {
@@ -77,6 +93,18 @@ export function catalogCreated(newCatalog: Catalog): CatalogCreatedAction {
   return {
     type: CATALOG_CREATED,
     payload: newCatalog,
+  };
+}
+
+interface CatalogEditedAction extends Action {
+  type: typeof CATALOG_EDITED;
+  payload: Catalog;
+}
+
+export function catalogEdited(catalog: Catalog): CatalogEditedAction {
+  return {
+    type: CATALOG_EDITED,
+    payload: catalog,
   };
 }
 

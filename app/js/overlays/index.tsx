@@ -1,12 +1,12 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { StoreState, Overlay, OverlayType } from "../types";
+import { StoreState, Overlay, OverlayType } from "../store/types";
 import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
 import UploadOverlay from "./upload";
-import CreateCatalogOverlay from "./catalog";
-import { closeOverlay, DispatchProps } from "../utils/actions";
+import CatalogOverlay from "./catalog";
+import { closeOverlay, DispatchProps } from "../store/actions";
 import { Button } from "../components/Button";
 
 function mapStateToProps(state: StoreState): StateProps {
@@ -64,7 +64,11 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           break;
         }
         case OverlayType.CreateCatalog: {
-          overlay = <CreateCatalogOverlay/>;
+          overlay = <CatalogOverlay isCreate={true}/>;
+          break;
+        }
+        case OverlayType.EditCatalog: {
+          overlay = <CatalogOverlay isCreate={false} catalog={this.props.overlay.catalog}/>;
           break;
         }
         case OverlayType.Upload: {

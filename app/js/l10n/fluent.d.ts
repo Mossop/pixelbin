@@ -14,7 +14,7 @@ declare module "@fluent/bundle" {
 
   export interface BundleOptions {
     functions: {
-      [name: string]: () => any;
+      [name: string]: () => string;
     };
     useIsolating?: boolean;
     transform?: (s: string) => string;

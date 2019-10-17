@@ -13,7 +13,7 @@ from . import models
 from .utils import uuid
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
-    ServerSerializer, MediaSerializer
+    ServerSerializer, MediaSerializer, CatalogEditSerializer
 from .tasks import process_media
 
 PREVIEW_SIZE = 600
@@ -76,6 +76,27 @@ def create_catalog(request):
 
     request.user.had_catalog = True
     request.user.save()
+
+    serializer = CatalogStateSerializer(catalog)
+    return Response(serializer.data)
+
+@transaction.atomic
+@api_view(['POST'])
+def edit_catalog(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    serializer = CatalogEditSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    catalog = serializer.validated_data['catalog']
+
+    if not models.Access.objects.filter(catalog=catalog,
+                                        user=request.user).exists():
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    catalog.name = serializer.validated_data['name']
+    catalog.save()
 
     serializer = CatalogStateSerializer(catalog)
     return Response(serializer.data)

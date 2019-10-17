@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { styleProps, StyleProps } from "./shared";
 import Banner from "../content/Banner";
 import Sidebar from "../content/Sidebar";
-import { StoreState } from "../types";
+import { StoreState } from "../store/types";
 import { isLoggedIn } from "../utils/helpers";
 
 interface ChildProps {

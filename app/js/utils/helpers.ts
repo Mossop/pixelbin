@@ -1,4 +1,4 @@
-import { StoreState } from "../types";
+import { StoreState } from "../store/types";
 
 export function isLoggedIn(state: StoreState): boolean {
   return !!state.serverState.user;

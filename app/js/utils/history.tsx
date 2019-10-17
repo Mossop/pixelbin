@@ -2,12 +2,12 @@ import React from "react";
 import { Store } from "redux";
 
 import { Location, History, Action, UnregisterCallback, LocationListener, LocationDescriptorObject } from "history";
-import { StoreState } from "../types";
-import { setHistoryState } from "./actions";
-import store from "./store";
+import { StoreState } from "../store/types";
+import { setHistoryState } from "../store/actions";
+import store from "../store/store";
 import { Router } from "react-router";
 
-type LocationState = any;
+type LocationState = undefined;
 
 export interface HistoryState {
   url: URL;
@@ -22,10 +22,6 @@ function statesEqual(a: HistoryState, b: HistoryState): boolean {
   }
 
   if (a.url.toString() != b.url.toString()) {
-    return false;
-  }
-
-  if (a.state != b.state) {
     return false;
   }
 

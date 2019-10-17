@@ -2,16 +2,29 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
 import { Switch, Route } from "react-router-dom";
+import { JsonDecoder } from "ts.data.json";
 
-import { Paths, PathsDecoder, decode } from "./types";
 import IndexPage from "./pages/index";
 import UserPage from "./pages/user";
 import Overlay from "./overlays/index";
 import LocalizationContext from "./l10n";
 import CatalogPage from "./pages/catalog";
 import AlbumPage from "./pages/album";
-import store from "./utils/store";
+import store from "./store/store";
 import { ReduxRouter } from "./utils/history";
+import { decode } from "./utils/decoders";
+import NotFound from "./pages/notfound";
+
+export interface Paths {
+  static: string;
+}
+
+export const PathsDecoder = JsonDecoder.object<Paths>(
+  {
+    static: JsonDecoder.string,
+  },
+  "Paths"
+);
 
 let PATHS: Paths = {
   static: "/static/",
@@ -35,6 +48,7 @@ ReactDOM.render(
           <Route path="/catalog/:id" component={CatalogPage}/>
           <Route path="/album/:id" component={AlbumPage}/>
           <Route exact path="/" component={IndexPage}/>
+          <Route component={NotFound}/>
         </Switch>
         <Overlay/>
       </ReduxRouter>
