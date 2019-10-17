@@ -1,13 +1,12 @@
 import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
-import { OptionalDecoder, SortedDecoder, DateDecoder } from "../utils/decoders";
+import { OptionalDecoder, DateDecoder, MapDecoder } from "../utils/decoders";
 
 export interface Album {
   id: string;
   stub: string;
   name: string;
-  private: boolean;
   parent: string | undefined;
 }
 
@@ -16,22 +15,21 @@ export const AlbumDecoder = JsonDecoder.object<Album>(
     id: JsonDecoder.string,
     stub: JsonDecoder.string,
     name: JsonDecoder.string,
-    private: JsonDecoder.boolean,
     parent: OptionalDecoder(JsonDecoder.string, "parent?"),
   },
   "Album"
 );
 
 export interface Tag {
+  id: string;
   name: string;
-  path: string;
   parent: string | undefined;
 }
 
 export const TagDecoder = JsonDecoder.object<Tag>(
   {
+    id: JsonDecoder.string,
     name: JsonDecoder.string,
-    path: JsonDecoder.string,
     parent: OptionalDecoder(JsonDecoder.string, "parent?"),
   },
   "Tag"
@@ -40,16 +38,16 @@ export const TagDecoder = JsonDecoder.object<Tag>(
 export interface Catalog {
   id: string;
   name: string;
-  tags: Tag[];
-  albums: Album[];
+  tags: Map<string, Tag>;
+  albums: Map<string, Album>;
 }
 
 export const CatalogDecoder = JsonDecoder.object<Catalog>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
-    tags: JsonDecoder.array<Tag>(TagDecoder, "Tag[]"),
-    albums: JsonDecoder.array<Album>(AlbumDecoder, "Album[]"),
+    tags: MapDecoder(TagDecoder, "Tag"),
+    albums: MapDecoder(AlbumDecoder, "Album"),
   },
   "Catalog"
 );
@@ -72,7 +70,7 @@ export const UserDecoder = JsonDecoder.object<User>(
 );
 
 export interface UserState extends User {
-  catalogs: Catalog[];
+  catalogs: Map<string, Catalog>;
 }
 
 export const UserStateDecoder = JsonDecoder.object<UserState>(
@@ -81,8 +79,7 @@ export const UserStateDecoder = JsonDecoder.object<UserState>(
     fullname: JsonDecoder.string,
     hadCatalog: JsonDecoder.boolean,
     verified: JsonDecoder.boolean,
-    catalogs: SortedDecoder(JsonDecoder.array(CatalogDecoder, "Catalog[]"),
-      (a: Catalog, b: Catalog) => a.name.localeCompare(b.name), "Catalog[]"),
+    catalogs: MapDecoder(CatalogDecoder, "Catalog"),
   },
   "UserState"
 );

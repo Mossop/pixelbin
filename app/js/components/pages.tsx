@@ -75,11 +75,13 @@ class Standard extends React.Component<StateProps & SidebarPageProps & ChildProp
 
 export const StandardContent = connect(mapStateToProps)(Standard);
 
-export class DefaultPage extends React.Component<StateProps & SidebarPageProps & ChildProps> {
+export class DefaultPage extends React.Component<ChildProps> {
   public render(): React.ReactNode {
-    if (this.props.isLoggedIn) {
-      return <SidebarPage {...this.props}>{this.props.children}</SidebarPage>;
-    }
-    return <FullPage>{this.props.children}</FullPage>;
+    return <React.Fragment>;
+      <Banner/>
+      <StandardContent>
+        {this.props.children}
+      </StandardContent>
+    </React.Fragment>;
   }
 }

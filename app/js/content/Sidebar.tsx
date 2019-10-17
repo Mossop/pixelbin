@@ -12,14 +12,14 @@ const mapDispatchToProps = {
 };
 
 interface StateProps {
-  catalogs: Catalog[];
+  catalogs: Map<string, Catalog>;
 }
 
 function mapStateToProps(state: StoreState): StateProps {
   if (state.serverState.user) {
     return { catalogs: state.serverState.user.catalogs };
   }
-  return { catalogs: [] };
+  return { catalogs: new Map() };
 }
 
 type SidebarProps = DispatchProps<typeof mapDispatchToProps> & StateProps & {
@@ -45,7 +45,7 @@ class Sidebar extends React.Component<SidebarProps> {
     return <div id="sidebar">
       <div id="catalog-list">
         <ol>
-          {this.props.catalogs.map((c: Catalog) => this.renderCatalog(c))}
+          {Array.from(this.props.catalogs.values()).map((c: Catalog) => this.renderCatalog(c))}
         </ol>
         <p><Button l10n="sidebar-add-category" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/></p>
       </div>

@@ -10,7 +10,7 @@ export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
   throw new Error(result.error);
 }
 
-function MapDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
+function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new JsonDecoder.Decoder<B>((json: any): Result<B> => {
     let result = decoder.decode(json);
@@ -30,11 +30,29 @@ export function OptionalDecoder<A>(decoder: JsonDecoder.Decoder<A>, name: string
   return JsonDecoder.oneOf([JsonDecoder.isNull(undefined), JsonDecoder.isUndefined(undefined), decoder], `${name}?`);
 }
 
-export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A[]>, compare: undefined | ((a: A, b: A) => number), name: string): JsonDecoder.Decoder<A[]> {
-  return MapDecoder(decoder, (arr: A[]) => {
-    arr.sort(compare);
-    return arr;
-  }, name);
+export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undefined | ((a: A, b: A) => number), name: string): JsonDecoder.Decoder<A[]> {
+  return MappingDecoder(
+    JsonDecoder.array(decoder, `${name}[]`),
+    (arr: A[]) => {
+      arr.sort(compare);
+      return arr;
+    },
+    `${name}[]`
+  );
 }
 
-export const DateDecoder = MapDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
+export const DateDecoder = MappingDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
+
+interface Mappable {
+  id: string;
+}
+
+export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<Map<string, A>> {
+  return MappingDecoder<A[], Map<string, A>>(
+    JsonDecoder.array(decoder, name),
+    (arr: A[]) => {
+      return new Map(arr.map((a: A) => [a.id, a]));
+    },
+    `Map<string, ${name}>`
+  );
+}
