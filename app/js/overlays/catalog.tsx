@@ -11,7 +11,6 @@ import { catalogCreated, catalogEdited, DispatchProps } from "../store/actions";
 
 interface StateProps {
   isFirst: boolean;
-  catalog?: Catalog;
 }
 
 interface CatalogState {
@@ -19,12 +18,9 @@ interface CatalogState {
   error: boolean;
 }
 
-type PassedProps = {
-  isCreate: true;
-} | {
-  isCreate: false;
-  catalog: Catalog;
-};
+interface PassedProps {
+  catalog?: Catalog;
+}
 
 function mapStateToProps(state: StoreState): StateProps {
   return {
@@ -48,7 +44,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
       error: false,
     };
 
-    if (props.isCreate) {
+    if (!props.catalog) {
       this.setTextState("storage", "backblaze");
     } else {
       this.setTextState("name", props.catalog.name);
@@ -64,7 +60,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
     this.setState({ disabled: true });
 
     try {
-      if (this.props.isCreate) {
+      if (!this.props.catalog) {
         let storage = getStorageConfig(this.getTextState("storage"), this);
         let catalog = await createCatalog(name, storage);
         this.props.catalogCreated(catalog);
@@ -78,7 +74,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
   };
 
   private getStorageFields(): Field[] {
-    if (this.props.isCreate) {
+    if (!this.props.catalog) {
       let storageUI = getStorageConfigUI(this.getTextState("storage"));
 
       return [{
@@ -99,9 +95,9 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
   }
 
   public renderUI(): React.ReactNode {
-    let title = this.props.isCreate ?
-      (this.props.isFirst ? "catalog-create-title-first" : "catalog-create-title") :
-      "catalog-edit-title";
+    let title = this.props.catalog ?
+      "catalog-edit-title" :
+      (this.props.isFirst ? "catalog-create-title-first" : "catalog-create-title");
 
     let form: FormProps = {
       disabled: this.state.disabled,
@@ -116,7 +112,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
         required: true,
       },
       ...this.getStorageFields()],
-      submit: this.props.isCreate ? "catalog-create-submit" : "catalog-edit-submit",
+      submit: this.props.catalog ? "catalog-edit-submit" : "catalog-create-submit",
     };
 
     return <Form {...form}/>;

@@ -64,11 +64,11 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           break;
         }
         case OverlayType.CreateCatalog: {
-          overlay = <CatalogOverlay isCreate={true}/>;
+          overlay = <CatalogOverlay/>;
           break;
         }
         case OverlayType.EditCatalog: {
-          overlay = <CatalogOverlay isCreate={false} catalog={this.props.overlay.catalog}/>;
+          overlay = <CatalogOverlay catalog={this.props.overlay.catalog}/>;
           break;
         }
         case OverlayType.Upload: {
