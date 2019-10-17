@@ -6,14 +6,8 @@
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
-    "isolatedModules": true,
     "esModuleInterop": true,
     "moduleResolution": "Node",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./app/js/@types",
-      "./@types"
-    ],
 
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
@@ -25,9 +19,14 @@
     "strictNullChecks": true
   },
   "include": [
-    "app/js"
+    "@types",
+    "gulpfile.ts",
+    "app/js",
+    "base"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "venv",
+    "public"
   ]
 }
