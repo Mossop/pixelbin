@@ -29,7 +29,7 @@ export class FullPage extends React.Component<ChildProps> {
   public render(): React.ReactNode {
     return <React.Fragment>
       <Banner/>
-      {this.props.children}
+      <PageContent>{this.props.children}</PageContent>
     </React.Fragment>;
   }
 }
@@ -44,7 +44,7 @@ export class SidebarPage extends React.Component<SidebarPageProps & ChildProps> 
       <Banner/>
       <SidebarWrapper>
         <Sidebar selected={this.props.sidebarSelected}/>
-        {this.props.children}
+        <PageContent>{this.props.children}</PageContent>
       </SidebarWrapper>
     </React.Fragment>;
   }
@@ -60,7 +60,22 @@ function mapStateToProps(state: StoreState): StateProps {
   };
 }
 
-class ConnectedDefaultPage extends React.Component<StateProps & SidebarPageProps & ChildProps> {
+class Standard extends React.Component<StateProps & SidebarPageProps & ChildProps> {
+  public render(): React.ReactNode {
+    if (this.props.isLoggedIn) {
+      return <SidebarWrapper>
+        <Sidebar selected={this.props.sidebarSelected}/>
+        <PageContent>{this.props.children}</PageContent>
+      </SidebarWrapper>;
+    } else {
+      return <PageContent>{this.props.children}</PageContent>;
+    }
+  }
+}
+
+export const StandardContent = connect(mapStateToProps)(Standard);
+
+export class DefaultPage extends React.Component<StateProps & SidebarPageProps & ChildProps> {
   public render(): React.ReactNode {
     if (this.props.isLoggedIn) {
       return <SidebarPage {...this.props}>{this.props.children}</SidebarPage>;
@@ -68,5 +83,3 @@ class ConnectedDefaultPage extends React.Component<StateProps & SidebarPageProps
     return <FullPage>{this.props.children}</FullPage>;
   }
 }
-
-export const DefaultPage = connect(mapStateToProps)(ConnectedDefaultPage);

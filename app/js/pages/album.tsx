@@ -1,6 +1,6 @@
 import React from "react";
 
-import { DefaultPage, PageContent } from "../components/pages";
+import { StandardContent } from "../components/pages";
 import { RouteComponentProps } from "react-router";
 
 interface MatchParams {
@@ -9,10 +9,10 @@ interface MatchParams {
 
 export default class AlbumPage extends React.Component<RouteComponentProps<MatchParams>> {
   public render(): React.ReactNode {
-    return <DefaultPage>
-      <PageContent>
+    return <React.Fragment>
+      <StandardContent>
         <h1>Album {this.props.match.params.id}</h1>
-      </PageContent>
-    </DefaultPage>;
+      </StandardContent>
+    </React.Fragment>;
   }
 }
