@@ -12,46 +12,34 @@ import { ActionType,
   CATALOG_CREATED,
   SHOW_UPLOAD_OVERLAY,
   SHOW_CATALOG_EDIT_OVERLAY,
-  CATALOG_EDITED} from "./actions";
+  CATALOG_EDITED,
+  SHOW_ALBUM_CREATE_OVERLAY } from "./actions";
 import { StoreState, OverlayType, Overlay } from "./types";
 import { history, HistoryState } from "../utils/history";
-import { Catalog } from "../api/types";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
 }
 
-export default function reducer(state: StoreState, action: ActionType): StoreState {
+function catalogReducer(state: StoreState, action: ActionType): StoreState {
   switch (action.type) {
-    case SET_HISTORY_STATE: {
-      console.log("Update state");
-      return {
-        ...state,
-        historyState: action.payload,
-      };
-    }
-    case SHOW_LOGIN_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.Login,
-        }
-      };
-    }
-    case SHOW_SIGNUP_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.Signup,
-        }
-      };
-    }
     case SHOW_CATALOG_CREATE_OVERLAY: {
       return {
         ...state,
         overlay: {
           type: OverlayType.CreateCatalog,
         }
+      };
+    }
+    case CATALOG_CREATED: {
+      if (state.serverState.user) {
+        state.serverState.user.catalogs.set(action.payload.id, action.payload);
+      }
+
+      return {
+        ...state,
+        overlay: undefined,
+        historyState: navigate(`/catalog/${action.payload.id}`),
       };
     }
     case SHOW_CATALOG_EDIT_OVERLAY: {
@@ -63,13 +51,57 @@ export default function reducer(state: StoreState, action: ActionType): StoreSta
         }
       };
     }
+    case CATALOG_EDITED: {
+      if (state.serverState.user) {
+        state.serverState.user.catalogs.set(action.payload.id, action.payload);
+      }
+
+      return {
+        ...state,
+        overlay: undefined,
+      };
+    }
+  }
+
+  return state;
+}
+
+function albumReducer(state: StoreState, action: ActionType): StoreState {
+  switch (action.type) {
+    case SHOW_ALBUM_CREATE_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.CreateAlbum,
+          catalog: action.payload.catalog,
+          album: action.payload.album,
+        }
+      };
+    }
+  }
+
+  return state;
+}
+
+function authReducer(state: StoreState, action: ActionType): StoreState {
+  switch (action.type) {
+    case SHOW_LOGIN_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.Login,
+        }
+      };
+    }
     case COMPLETE_LOGIN: {
       let newOverlay: Overlay | undefined = undefined;
       let historyState = state.historyState;
 
       if (action.payload.user) {
-        if (action.payload.user.catalogs.length) {
-          historyState = navigate(`/catalog/${action.payload.user.catalogs[0].id}`);
+        if (action.payload.user.catalogs.size) {
+          let catalogs = Array.from(action.payload.user.catalogs.values());
+          // TODO sort them
+          historyState = navigate(`/catalog/${catalogs[0]}`);
         } else {
           historyState = navigate("/user");
           if (!action.payload.user.hadCatalog) {
@@ -87,6 +119,14 @@ export default function reducer(state: StoreState, action: ActionType): StoreSta
         historyState,
       };
     }
+    case SHOW_SIGNUP_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.Signup,
+        }
+      };
+    }
     case COMPLETE_SIGNUP: {
       return {
         ...state,
@@ -97,29 +137,6 @@ export default function reducer(state: StoreState, action: ActionType): StoreSta
         historyState: navigate("/user"),
       };
     }
-    case CATALOG_CREATED: {
-      if (state.serverState.user) {
-        state.serverState.user.catalogs.push(action.payload);
-      }
-
-      return {
-        ...state,
-        overlay: undefined,
-        historyState: navigate(`/catalog/${action.payload.id}`),
-      };
-    }
-    case CATALOG_EDITED: {
-      if (state.serverState.user) {
-        state.serverState.user.catalogs = state.serverState.user.catalogs
-          .filter((c: Catalog): boolean => c.id !== action.payload.id);
-        state.serverState.user.catalogs.push(action.payload);
-      }
-
-      return {
-        ...state,
-        overlay: undefined,
-      };
-    }
     case COMPLETE_LOGOUT: {
       return {
         ...state,
@@ -127,12 +144,13 @@ export default function reducer(state: StoreState, action: ActionType): StoreSta
         historyState: navigate("/"),
       };
     }
-    case CLOSE_OVERLAY: {
-      return {
-        ...state,
-        overlay: undefined,
-      };
-    }
+  }
+
+  return state;
+}
+
+function mediaReducer(state: StoreState, action: ActionType): StoreState {
+  switch (action.type) {
     case SHOW_UPLOAD_OVERLAY: {
       return {
         ...state,
@@ -145,5 +163,28 @@ export default function reducer(state: StoreState, action: ActionType): StoreSta
     }
   }
 
+  return state;
+}
+
+export default function reducer(state: StoreState, action: ActionType): StoreState {
+  switch (action.type) {
+    case SET_HISTORY_STATE: {
+      return {
+        ...state,
+        historyState: action.payload,
+      };
+    }
+    case CLOSE_OVERLAY: {
+      return {
+        ...state,
+        overlay: undefined,
+      };
+    }
+  }
+
+  state = authReducer(state, action);
+  state = catalogReducer(state, action);
+  state = albumReducer(state, action);
+  state = mediaReducer(state, action);
   return state;
 }

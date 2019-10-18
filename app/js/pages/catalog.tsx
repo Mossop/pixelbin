@@ -9,7 +9,7 @@ import { isLoggedIn } from "../utils/helpers";
 import Banner from "../content/Banner";
 import Sidebar from "../content/Sidebar";
 import { Button } from "../components/Button";
-import { DispatchProps, showUploadOverlay, showCatalogEditOverlay } from "../store/actions";
+import { DispatchProps, showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
 import { getCatalog } from "../store/store";
 import NotFound from "./notfound";
 
@@ -32,6 +32,7 @@ function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchPara
 const mapDispatchToProps = {
   showUploadOverlay,
   showCatalogEditOverlay,
+  showAlbumCreateOverlay,
 };
 
 type CatalogPageProps = RouteComponentProps<MatchParams> & StateProps & DispatchProps<typeof mapDispatchToProps>;
@@ -43,6 +44,14 @@ class CatalogPage extends React.Component<CatalogPageProps> {
     }
 
     this.props.showCatalogEditOverlay(this.props.catalog);
+  };
+
+  private onNewAlbum: (() => void) = (): void => {
+    if (!this.props.isLoggedIn || !this.props.catalog) {
+      return;
+    }
+
+    this.props.showAlbumCreateOverlay(this.props.catalog);
   };
 
   private onUpload: (() => void) = (): void => {
@@ -58,6 +67,7 @@ class CatalogPage extends React.Component<CatalogPageProps> {
       return <React.Fragment>
         <Banner>
           <Button l10n="catalog-edit" onClick={this.onEdit}/>
+          <Button l10n="album-new-button" onClick={this.onNewAlbum}/>
           <Button l10n="catalog-upload" onClick={this.onUpload}/>
         </Banner>
         <SidebarWrapper>

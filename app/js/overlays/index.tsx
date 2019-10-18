@@ -6,6 +6,7 @@ import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
 import UploadOverlay from "./upload";
 import CatalogOverlay from "./catalog";
+import AlbumOverlay from "./album";
 import { closeOverlay, DispatchProps } from "../store/actions";
 import { Button } from "../components/Button";
 
@@ -69,6 +70,10 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
         }
         case OverlayType.EditCatalog: {
           overlay = <CatalogOverlay catalog={this.props.overlay.catalog}/>;
+          break;
+        }
+        case OverlayType.CreateAlbum: {
+          overlay = <AlbumOverlay catalog={this.props.overlay.catalog} parent={this.props.overlay.album}/>;
           break;
         }
         case OverlayType.Upload: {

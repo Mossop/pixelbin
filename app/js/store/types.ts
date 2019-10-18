@@ -5,8 +5,9 @@ export enum OverlayType {
   Login = "login",
   Signup = "signup",
   CreateCatalog = "createCatalog",
-  Upload = "upload",
   EditCatalog = "editCatalog",
+  CreateAlbum = "createAlbum",
+  Upload = "upload",
 }
 
 interface BaseOverlay {
@@ -24,7 +25,13 @@ interface CatalogEditOverlay {
   catalog: Catalog;
 }
 
-export type Overlay = BaseOverlay | UploadOverlay | CatalogEditOverlay;
+interface AlbumCreateOverlay {
+  type: OverlayType.CreateAlbum;
+  catalog: Catalog;
+  album?: Album;
+}
+
+export type Overlay = BaseOverlay | UploadOverlay | CatalogEditOverlay | AlbumCreateOverlay;
 
 export interface StoreState {
   serverState: ServerState;

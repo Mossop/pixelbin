@@ -15,6 +15,7 @@ export const SHOW_CATALOG_CREATE_OVERLAY = "SHOW_CATALOG_CREATE_OVERLAY";
 export const SET_HISTORY_STATE = "SET_HISTORY_STATE";
 export const SHOW_UPLOAD_OVERLAY = "SHOW_UPLOAD_OVERLAY";
 export const SHOW_CATALOG_EDIT_OVERLAY = "SHOW_CATALOG_EDIT_OVERLAY";
+export const SHOW_ALBUM_CREATE_OVERLAY = "SHOW_ALBUM_CREATE_OVERLAY";
 
 type ArgumentTypes<F> = F extends (...args: infer A) => infer _R ? A : never;
 type ReturnType<F> = F extends (...args: infer _A) => infer R ? R : never;
@@ -40,9 +41,28 @@ export type ActionType =
   ShowCatalogCreateOverlayAction |
   SetHistoryStateAction |
   ShowUploadOverlayAction |
-  ShowCatalogEditOverlayAction;
+  ShowCatalogEditOverlayAction |
+  ShowAlbumCreateOverlayAction;
 
-interface ShowCatalogEditOverlayAction {
+interface ShowAlbumCreateOverlayAction extends Action {
+  type: typeof SHOW_ALBUM_CREATE_OVERLAY;
+  payload: {
+    catalog: Catalog;
+    album?: Album;
+  };
+}
+
+export function showAlbumCreateOverlay(catalog: Catalog, album?: Album): ShowAlbumCreateOverlayAction {
+  return {
+    type: SHOW_ALBUM_CREATE_OVERLAY,
+    payload: {
+      catalog,
+      album,
+    }
+  };
+}
+
+interface ShowCatalogEditOverlayAction extends Action {
   type: typeof SHOW_CATALOG_EDIT_OVERLAY;
   payload: Catalog;
 }

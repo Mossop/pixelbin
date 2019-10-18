@@ -42,7 +42,7 @@ export function getCatalog(id: string, state?: StoreState): Catalog | undefined 
     return undefined;
   }
 
-  return state.serverState.user.catalogs.find((c: Catalog) => c.id === id);
+  return state.serverState.user.catalogs.get(id);
 }
 
 export default store;

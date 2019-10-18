@@ -77,7 +77,7 @@ export const StandardContent = connect(mapStateToProps)(Standard);
 
 export class DefaultPage extends React.Component<ChildProps> {
   public render(): React.ReactNode {
-    return <React.Fragment>;
+    return <React.Fragment>
       <Banner/>
       <StandardContent>
         {this.props.children}
