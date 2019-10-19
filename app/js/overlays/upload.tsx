@@ -3,8 +3,6 @@ import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
 import { DispatchProps, closeOverlay } from "../store/actions";
-import { isLoggedIn } from "../utils/helpers";
-import { StoreState } from "../store/types";
 import { UIManager } from "../utils/UIState";
 import Textbox from "../components/Textbox";
 import { Button } from "../components/Button";
@@ -14,7 +12,7 @@ import ImageCanvas from "../content/ImageCanvas";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
 import { UploadInfo, upload } from "../api/upload";
-import { Catalog, Album } from "../api/types";
+import { Catalog, Album, User } from "../api/types";
 import { getCatalog } from "../store/store";
 
 interface UploadFile {
@@ -36,24 +34,15 @@ function itemIsMedia(item: DataTransferItem): boolean {
   return MEDIA_TYPES.includes(item.type);
 }
 
-interface StateProps {
-  isLoggedIn: boolean;
-}
-
-function mapStateToProps(state: StoreState): StateProps {
-  return {
-    isLoggedIn: isLoggedIn(state),
-  };
-}
-
 const mapDispatchToProps = {
   closeOverlay,
 };
 
 type UploadOverlayProps = {
+  user: User;
   catalog?: Catalog;
-  album?: Album;
-} & StateProps & DispatchProps<typeof mapDispatchToProps>;
+  parent?: Album;
+} & DispatchProps<typeof mapDispatchToProps>;
 
 interface UploadOverlayState {
   media: UploadFile[];
@@ -64,6 +53,13 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
 
   public constructor(props: UploadOverlayProps) {
     super(props);
+
+    if (this.props.catalog) {
+      this.setTextState("catalog", this.props.catalog.id);
+      if (this.props.parent) {
+        this.setTextState("album", this.props.parent.id);
+      }
+    }
 
     this.state = {
       media: [],
@@ -203,11 +199,11 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
         <div id="upload-complete">
           <input id="fileInput" multiple={true} accept="image/jpeg,video/mp4" type="file" ref={this.fileInput} onChange={this.onNewFiles}/>
           <Button l10n="upload-add-files" onClick={this.openFilePicker}/>
-          <Button l10n="upload-upload" onClick={this.upload}/>
+          <Button l10n="upload-submit" onClick={this.upload}/>
         </div>
       </div>
     </React.Fragment>;
   }
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(UploadOverlay);
+export default connect(undefined, mapDispatchToProps)(UploadOverlay);

@@ -24,31 +24,31 @@
     padding: 4px var(--item-padding) 4px 0;
   }
 
-  li:hover:not(.selected), p:hover {
+  .button:hover:not(.selected), p:hover {
     background: var(--hover);
   }
 
-  .depth0 .button, p .button {
+  .depth0 > .button, p > .button {
     padding-left: calc(1 * var(--item-padding));
   }
 
-  .depth1 .button {
+  .depth1 > .button {
     padding-left: calc(2 * var(--item-padding));
   }
 
-  .depth2 .button {
+  .depth2 > .button {
     padding-left: calc(3 * var(--item-padding));
   }
 
-  .depth3 .button {
+  .depth3 > .button {
     padding-left: calc(4 * var(--item-padding));
   }
 
-  .depth4 .button {
+  .depth4 > .button {
     padding-left: calc(5 * var(--item-padding));
   }
 
-  .depth5 .button {
+  .depth5 > .button {
     padding-left: calc(6 * var(--item-padding));
   }
 

@@ -13,9 +13,13 @@ import { ActionType,
   SHOW_UPLOAD_OVERLAY,
   SHOW_CATALOG_EDIT_OVERLAY,
   CATALOG_EDITED,
-  SHOW_ALBUM_CREATE_OVERLAY } from "./actions";
+  SHOW_ALBUM_CREATE_OVERLAY,
+  SHOW_ALBUM_EDIT_OVERLAY, 
+  ALBUM_CREATED,
+  ALBUM_EDITED } from "./actions";
 import { StoreState, OverlayType, Overlay } from "./types";
 import { history, HistoryState } from "../utils/history";
+import { getCatalogForAlbum } from "./store";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
@@ -74,8 +78,40 @@ function albumReducer(state: StoreState, action: ActionType): StoreState {
         overlay: {
           type: OverlayType.CreateAlbum,
           catalog: action.payload.catalog,
-          album: action.payload.album,
+          parent: action.payload.parent,
         }
+      };
+    }
+    case ALBUM_CREATED: {
+      action.payload.catalog.albums.set(action.payload.album.id, action.payload.album);
+
+      return {
+        ...state,
+        overlay: undefined,
+        historyState: navigate(`/album/${action.payload.album.id}`),
+      };
+    }
+    case SHOW_ALBUM_EDIT_OVERLAY: {
+      return {
+        ...state,
+        overlay: {
+          type: OverlayType.EditAlbum,
+          album: action.payload.album,
+          catalog: action.payload.catalog,
+        }
+      };
+    }
+    case ALBUM_EDITED: {
+      const { catalog, album } = action.payload;
+      let oldCatalog = getCatalogForAlbum(album, state);
+      if (oldCatalog && oldCatalog != catalog) {
+        oldCatalog.albums.delete(album.id);
+      }
+      catalog.albums.set(album.id, album);
+
+      return {
+        ...state,
+        overlay: undefined,
       };
     }
   }
@@ -157,7 +193,7 @@ function mediaReducer(state: StoreState, action: ActionType): StoreState {
         overlay: {
           type: OverlayType.Upload,
           catalog: action.payload.catalog,
-          album: action.payload.album,
+          parent: action.payload.parent,
         }
       };
     }

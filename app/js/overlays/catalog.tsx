@@ -1,17 +1,12 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { StoreState } from "../store/types";
-import { Catalog } from "../api/types";
+import { Catalog, User } from "../api/types";
 import { UIManager } from "../utils/UIState";
 import Form, { FormProps, Field } from "../content/Form";
 import { getStorageConfigUI, getStorageConfig } from "../storage";
 import { createCatalog, editCatalog } from "../api/catalog";
 import { catalogCreated, catalogEdited, DispatchProps } from "../store/actions";
-
-interface StateProps {
-  isFirst: boolean;
-}
 
 interface CatalogState {
   disabled: boolean;
@@ -19,13 +14,8 @@ interface CatalogState {
 }
 
 interface PassedProps {
+  user: User;
   catalog?: Catalog;
-}
-
-function mapStateToProps(state: StoreState): StateProps {
-  return {
-    isFirst: state.serverState.user ? !state.serverState.user.hadCatalog : true,
-  };
 }
 
 const mapDispatchToProps = {
@@ -33,7 +23,7 @@ const mapDispatchToProps = {
   catalogEdited,
 };
 
-type CatalogProps = PassedProps & StateProps & DispatchProps<typeof mapDispatchToProps>;
+type CatalogProps = PassedProps & DispatchProps<typeof mapDispatchToProps>;
 
 class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
   public constructor(props: CatalogProps) {
@@ -97,7 +87,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
   public renderUI(): React.ReactNode {
     let title = this.props.catalog ?
       "catalog-edit-title" :
-      (this.props.isFirst ? "catalog-create-title-first" : "catalog-create-title");
+      (this.props.user.hadCatalog ? "catalog-create-title" : "catalog-create-title-first");
 
     let form: FormProps = {
       disabled: this.state.disabled,
@@ -119,4 +109,4 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
   }
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(CatalogOverlay);
+export default connect(undefined, mapDispatchToProps)(CatalogOverlay);

@@ -5,7 +5,7 @@ import { OptionalDecoder, DateDecoder, MapDecoder } from "../utils/decoders";
 
 export interface Album {
   id: string;
-  stub: string;
+  stub: string | undefined;
   name: string;
   parent: string | undefined;
 }
@@ -13,7 +13,7 @@ export interface Album {
 export const AlbumDecoder = JsonDecoder.object<Album>(
   {
     id: JsonDecoder.string,
-    stub: JsonDecoder.string,
+    stub: OptionalDecoder(JsonDecoder.string, "stub?"),
     name: JsonDecoder.string,
     parent: OptionalDecoder(JsonDecoder.string, "parent?"),
   },

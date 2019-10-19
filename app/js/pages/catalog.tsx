@@ -66,9 +66,9 @@ class CatalogPage extends React.Component<CatalogPageProps> {
     if (this.props.isLoggedIn && this.props.catalog) {
       return <React.Fragment>
         <Banner>
-          <Button l10n="catalog-edit" onClick={this.onEdit}/>
-          <Button l10n="album-new-button" onClick={this.onNewAlbum}/>
-          <Button l10n="catalog-upload" onClick={this.onUpload}/>
+          <Button l10n="banner-catalog-edit" onClick={this.onEdit}/>
+          <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>
+          <Button l10n="banner-upload" onClick={this.onUpload}/>
         </Banner>
         <SidebarWrapper>
           <Sidebar selected={this.props.catalog.id}/>

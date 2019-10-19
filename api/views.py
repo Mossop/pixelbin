@@ -13,7 +13,7 @@ from . import models
 from .utils import uuid
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
-    ServerSerializer, MediaSerializer, CatalogEditSerializer
+    ServerSerializer, MediaSerializer, CatalogEditSerializer, AlbumSerializer
 from .tasks import process_media
 
 PREVIEW_SIZE = 600
@@ -100,6 +100,38 @@ def edit_catalog(request):
 
     serializer = CatalogStateSerializer(catalog)
     return Response(serializer.data)
+
+@transaction.atomic
+@api_view(['PUT'])
+def create_album(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    serializer = AlbumSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    album = serializer.save(id=uuid("A"))
+
+    serializer = AlbumSerializer(album)
+    return Response(serializer.data)
+
+@transaction.atomic
+@api_view(['POST'])
+def edit_album(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    serializer = AlbumSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    try:
+        album = models.Album.objects.get(id=serializer.validated_data['id'])
+        serializer.update(album, serializer.validated_data)
+
+        serializer = AlbumSerializer(album)
+        return Response(serializer.data)
+    except models.Album.DoesNotExist:
+        return Response(status=status.HTTP_403_FORBIDDEN)
 
 @api_view(['POST'])
 def logout(request):

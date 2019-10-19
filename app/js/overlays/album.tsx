@@ -3,8 +3,10 @@ import { connect } from "react-redux";
 
 import { UIManager } from "../utils/UIState";
 import Form, { FormProps } from "../content/Form";
-import { Album, Catalog } from "../api/types";
-import { DispatchProps } from "../store/actions";
+import { Album, Catalog, User } from "../api/types";
+import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
+import { editAlbum, createAlbum } from "../api/album";
+import { getCatalog } from "../store/store";
 
 interface AlbumState {
   disabled: boolean;
@@ -12,12 +14,15 @@ interface AlbumState {
 }
 
 interface PassedProps {
+  user: User;
   catalog: Catalog;
   parent?: Album;
   album?: Album;
 }
 
 const mapDispatchToProps = {
+  albumCreated,
+  albumEdited,
 };
 
 type AlbumProps = PassedProps & DispatchProps<typeof mapDispatchToProps>;
@@ -43,15 +48,30 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
   }
 
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let name = await Promise.resolve(this.getTextState("name"));
+    let name = this.getTextState("name");
     if (!name) {
       return;
     }
+    let catalogId = this.getTextState("catalog");
+    if (!catalogId) {
+      return;
+    }
+    let catalog = getCatalog(catalogId);
+    if (!catalog) {
+      return;
+    }
+    let parent = this.getTextState("parent");
 
     this.setState({ disabled: true });
 
     try {
-      // TODO
+      if (!this.props.album) {
+        let album = await createAlbum(catalog, name, parent);
+        this.props.albumCreated(catalog, album);
+      } else {
+        let album = await editAlbum(this.props.album, catalog, name, parent);
+        this.props.albumEdited(catalog, album);
+      }
     } catch (e) {
       this.setState({ disabled: false, error: true });
     }

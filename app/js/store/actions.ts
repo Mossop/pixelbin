@@ -16,6 +16,9 @@ export const SET_HISTORY_STATE = "SET_HISTORY_STATE";
 export const SHOW_UPLOAD_OVERLAY = "SHOW_UPLOAD_OVERLAY";
 export const SHOW_CATALOG_EDIT_OVERLAY = "SHOW_CATALOG_EDIT_OVERLAY";
 export const SHOW_ALBUM_CREATE_OVERLAY = "SHOW_ALBUM_CREATE_OVERLAY";
+export const SHOW_ALBUM_EDIT_OVERLAY = "SHOW_ALBUM_EDIT_OVERLAY";
+export const ALBUM_CREATED = "ALBUM_CREATED";
+export const ALBUM_EDITED = "ALBUM_EDITED";
 
 type ArgumentTypes<F> = F extends (...args: infer A) => infer _R ? A : never;
 type ReturnType<F> = F extends (...args: infer _A) => infer R ? R : never;
@@ -42,23 +45,44 @@ export type ActionType =
   SetHistoryStateAction |
   ShowUploadOverlayAction |
   ShowCatalogEditOverlayAction |
-  ShowAlbumCreateOverlayAction;
+  ShowAlbumCreateOverlayAction |
+  ShowAlbumEditOverlayAction |
+  AlbumCreatedAction |
+  AlbumEditedAction;
 
 interface ShowAlbumCreateOverlayAction extends Action {
   type: typeof SHOW_ALBUM_CREATE_OVERLAY;
   payload: {
     catalog: Catalog;
-    album?: Album;
+    parent?: Album;
   };
 }
 
-export function showAlbumCreateOverlay(catalog: Catalog, album?: Album): ShowAlbumCreateOverlayAction {
+export function showAlbumCreateOverlay(catalog: Catalog, parent?: Album): ShowAlbumCreateOverlayAction {
   return {
     type: SHOW_ALBUM_CREATE_OVERLAY,
     payload: {
       catalog,
-      album,
+      parent,
     }
+  };
+}
+
+interface ShowAlbumEditOverlayAction extends Action {
+  type: typeof SHOW_ALBUM_EDIT_OVERLAY;
+  payload: {
+    album: Album;
+    catalog: Catalog;
+  };
+}
+
+export function showAlbumEditOverlay(catalog: Catalog, album: Album): ShowAlbumEditOverlayAction {
+  return {
+    type: SHOW_ALBUM_EDIT_OVERLAY,
+    payload: {
+      album,
+      catalog,
+    },
   };
 }
 
@@ -77,17 +101,17 @@ export function showCatalogEditOverlay(catalog: Catalog): ShowCatalogEditOverlay
 interface ShowUploadOverlayAction extends Action {
   type: typeof SHOW_UPLOAD_OVERLAY;
   payload: {
-    catalog: Catalog | undefined;
-    album: Album | undefined;
+    catalog?: Catalog;
+    parent?: Album;
   };
 }
 
-export function showUploadOverlay(catalog?: Catalog, album?: Album): ShowUploadOverlayAction {
+export function showUploadOverlay(catalog?: Catalog, parent?: Album): ShowUploadOverlayAction {
   return {
     type: SHOW_UPLOAD_OVERLAY,
     payload: {
       catalog,
-      album,
+      parent,
     }
   };
 }
@@ -113,6 +137,42 @@ export function catalogCreated(newCatalog: Catalog): CatalogCreatedAction {
   return {
     type: CATALOG_CREATED,
     payload: newCatalog,
+  };
+}
+
+interface AlbumCreatedAction extends Action {
+  type: typeof ALBUM_CREATED;
+  payload: {
+    catalog: Catalog;
+    album: Album;
+  };
+}
+
+export function albumCreated(catalog: Catalog, album: Album): AlbumCreatedAction {
+  return {
+    type: ALBUM_CREATED,
+    payload: {
+      catalog,
+      album,
+    }
+  };
+}
+
+interface AlbumEditedAction extends Action {
+  type: typeof ALBUM_EDITED;
+  payload: {
+    catalog: Catalog;
+    album: Album;
+  };
+}
+
+export function albumEdited(catalog: Catalog, album: Album): AlbumEditedAction {
+  return {
+    type: ALBUM_EDITED,
+    payload: {
+      catalog,
+      album,
+    },
   };
 }
 

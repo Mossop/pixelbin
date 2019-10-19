@@ -85,3 +85,7 @@ export class DefaultPage extends React.Component<ChildProps> {
     </React.Fragment>;
   }
 }
+
+export class Throbber extends React.Component {
+
+}

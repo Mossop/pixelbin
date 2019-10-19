@@ -9,10 +9,12 @@ import CatalogOverlay from "./catalog";
 import AlbumOverlay from "./album";
 import { closeOverlay, DispatchProps } from "../store/actions";
 import { Button } from "../components/Button";
+import { User } from "../api/types";
 
 function mapStateToProps(state: StoreState): StateProps {
   return {
     overlay: state.overlay,
+    user: state.serverState.user,
   };
 }
 
@@ -22,6 +24,7 @@ const mapDispatchToProps = {
 
 interface StateProps {
   overlay?: Overlay;
+  user?: User;
 }
 
 class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof mapDispatchToProps>> {
@@ -52,9 +55,14 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
   };
 
   public render(): React.ReactNode {
-    let overlay: React.ReactNode;
+    if (!this.props.overlay) {
+      return null;
+    }
+
+    let overlay: React.ReactNode = null;
     let className = "";
-    if (this.props.overlay) {
+
+    if (!this.props.user) {
       switch (this.props.overlay.type) {
         case OverlayType.Login: {
           overlay = <LoginOverlay/>;
@@ -64,28 +72,39 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           overlay = <SignupOverlay/>;
           break;
         }
+      }
+    } else {
+      switch (this.props.overlay.type) {
         case OverlayType.CreateCatalog: {
-          overlay = <CatalogOverlay/>;
+          overlay = <CatalogOverlay user={this.props.user}/>;
           break;
         }
         case OverlayType.EditCatalog: {
-          overlay = <CatalogOverlay catalog={this.props.overlay.catalog}/>;
+          overlay = <CatalogOverlay user={this.props.user} catalog={this.props.overlay.catalog}/>;
           break;
         }
         case OverlayType.CreateAlbum: {
-          overlay = <AlbumOverlay catalog={this.props.overlay.catalog} parent={this.props.overlay.album}/>;
+          overlay = <AlbumOverlay user={this.props.user} catalog={this.props.overlay.catalog} parent={this.props.overlay.parent}/>;
+          break;
+        }
+        case OverlayType.EditAlbum: {
+          overlay = <AlbumOverlay user={this.props.user} catalog={this.props.overlay.catalog} album={this.props.overlay.album}/>;
           break;
         }
         case OverlayType.Upload: {
-          overlay = <UploadOverlay catalog={this.props.overlay.catalog} album={this.props.overlay.album}/>;
+          overlay = <UploadOverlay user={this.props.user} catalog={this.props.overlay.catalog} parent={this.props.overlay.parent}/>;
           break;
         }
       }
+    }
 
-      className = this.props.overlay.type;
-    } else {
+    if (!overlay) {
+      console.error(`State contained an illegal overlay: ${this.props.overlay.type}`);
+      this.props.closeOverlay();
       return null;
     }
+
+    className = this.props.overlay.type;
 
     return <div id="overlay" className={className} onClick={this.onClick}>
       <div id="overlay-inner">
