@@ -5,59 +5,21 @@
   overflow-y: auto;
 }
 
-#catalog-list {
+#catalog-tree {
   padding-top: 15px;
   padding-bottom: 15px;
 
   --item-padding: 15px;
 
-  button {
+  #new-catalog {
     @include unstyled-button;
-    display: block;
-  }
 
-  ol, li, p, .button {
     width: 100%;
     text-align: left;
+    padding: 4px var(--item-padding) 4px var(--item-padding)
   }
 
-  #catalog-list > ol {
-    margin-bottom: 15px;
-  }
-
-  .button {
-    padding: 4px var(--item-padding) 4px 0;
-  }
-
-  .button:hover:not(.selected), p:hover {
+  #new-catalog:hover {
     background: var(--hover);
-  }
-
-  .depth0 > .button, p > .button {
-    padding-left: calc(1 * var(--item-padding));
-  }
-
-  .depth1 > .button {
-    padding-left: calc(2 * var(--item-padding));
-  }
-
-  .depth2 > .button {
-    padding-left: calc(3 * var(--item-padding));
-  }
-
-  .depth3 > .button {
-    padding-left: calc(4 * var(--item-padding));
-  }
-
-  .depth4 > .button {
-    padding-left: calc(5 * var(--item-padding));
-  }
-
-  .depth5 > .button {
-    padding-left: calc(6 * var(--item-padding));
-  }
-
-  .selected {
-    background: var(--active);
   }
 }

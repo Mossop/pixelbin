@@ -1,5 +1,5 @@
 /* eslint-env node */
-import { src, dest, parallel } from "gulp";
+import { src, dest, parallel, watch } from "gulp";
 import { RuleSetQuery } from "webpack";
 import { Configuration } from "webpack";
 import gulpWebpack from "webpack-stream";
@@ -7,12 +7,8 @@ import named from "vinyl-named";
 import gulpEslint from "gulp-eslint";
 import gulpSass from "gulp-sass";
 import gulpTypeScript from "gulp-typescript";
-import gulpWatch from "gulp-watch";
-import through from "through2";
-import { TransformCallback } from "stream";
 
 import { config, path } from "./base/config";
-import { BufferFile } from "vinyl";
 
 const IGNORES = [
   "!node_modules/**/*",
@@ -92,24 +88,16 @@ export function eslint(): NodeJS.ReadWriteStream {
 }
 
 export function watchEslint(): void {
-  gulpWatch(allScripts())
-    .pipe(through.obj(function (chunk: BufferFile, _: string, callback: TransformCallback): void {
-      console.log(`Linting ${chunk.path}...`);
-      this.push(chunk);
-      callback();
-    }))
-    .pipe(gulpEslint())
-    .pipe(gulpEslint.formatEach())
-    .pipe(through.obj(function (chunk: BufferFile, _: string, callback: TransformCallback): void {
-      console.log(`Finished linting ${chunk.path}...`);
-      this.push(chunk);
-      callback();
-    }));
+  watch(allScripts(), eslint);
 }
 
 export function typescript(): NodeJS.ReadWriteStream {
   return src(allScripts())
     .pipe(tsProject());
+}
+
+export function watchTypescript(): void {
+  watch(allScripts(), typescript);
 }
 
 export function watchBuildJs(): NodeJS.ReadWriteStream {
@@ -133,9 +121,7 @@ export function buildCss(): NodeJS.ReadWriteStream {
 }
 
 export function watchBuildCss(): void {
-  gulpWatch(["**/*.scss",...IGNORES])
-    .pipe(gulpSass().on("error", gulpSass.logError))
-    .pipe(dest(path(config.path.static, "app", "css")));
+  watch(["**/*.scss",...IGNORES], buildCss);
 }
 
 export const lint = parallel(eslint, typescript);

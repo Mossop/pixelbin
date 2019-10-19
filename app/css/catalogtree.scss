@@ -1,0 +1,48 @@
+.catalog-tree {
+  button {
+    @include unstyled-button;
+    display: block;
+  }
+
+  ol, li, .item {
+    width: 100%;
+    text-align: left;
+  }
+
+  .item {
+    padding: 4px var(--item-padding) 4px 0;
+    user-select: none;
+  }
+
+  .item:hover:not(.selected) {
+    background: var(--hover);
+  }
+
+  .item.selected {
+    background: var(--active);
+  }
+
+  .depth0 > .item {
+    padding-left: calc(1 * var(--item-padding));
+  }
+
+  .depth1 > .item {
+    padding-left: calc(2 * var(--item-padding));
+  }
+
+  .depth2 > .item {
+    padding-left: calc(3 * var(--item-padding));
+  }
+
+  .depth3 > .item {
+    padding-left: calc(4 * var(--item-padding));
+  }
+
+  .depth4 > .item {
+    padding-left: calc(5 * var(--item-padding));
+  }
+
+  .depth5 > .item {
+    padding-left: calc(6 * var(--item-padding));
+  }
+}
