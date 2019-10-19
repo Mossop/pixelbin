@@ -150,6 +150,6 @@ export const UploadResponseDecoder = JsonDecoder.object<UploadResponse>(
 );
 
 export function albumChildren(catalog: Catalog, item?: Album): Album[] {
-  let parent = item ? item.id : null;
-  return nameSorted(Object.values(catalog.albums).filter((a: Album) => a.parent === parent));
+  let parent = item ? item.id : undefined;
+  return nameSorted(Object.values(catalog.albums).filter((a: Album) => a.parent == parent));
 }

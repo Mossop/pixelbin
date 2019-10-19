@@ -28,11 +28,11 @@ function mapStateToProps(state: StoreState): StateProps {
 type CatalogTreeProps = Props & StateProps;
 
 class CatalogTree extends React.Component<CatalogTreeProps> {
-  private renderItem(id: string, name: string, onClick: () => void): React.ReactNode {
-    if (this.props.selected === id) {
-      return <p className="item selected"><Icon iconName="folder"/>{name}</p>;
+  private renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
+    if (this.props.selected === item.id) {
+      return <p className="item selected"><Icon iconName="folder"/>{item.name}</p>;
     } else {
-      return <Button className="item" iconName="folder" onClick={onClick}>{name}</Button>;
+      return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
     }
   }
 
@@ -49,14 +49,14 @@ class CatalogTree extends React.Component<CatalogTreeProps> {
 
   private renderAlbum(catalog: Catalog, album: Album, depth: number): React.ReactNode {
     return <li key={album.id} className={`depth${depth}`}>
-      {this.renderItem(album.id, album.name, () => this.props.onAlbumClick(album))}
+      {this.renderItem(album, () => this.props.onAlbumClick(album))}
       {this.renderChildren(catalog, album, depth)}
     </li>;
   }
 
   private renderCatalog(catalog: Catalog): React.ReactNode {
     return <li key={catalog.id} className="depth0">
-      {this.renderItem(catalog.id, catalog.name, () => this.props.onCatalogClick(catalog))}
+      {this.renderItem(catalog, () => this.props.onCatalogClick(catalog))}
       {this.renderChildren(catalog)}
     </li>;
   }
