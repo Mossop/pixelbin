@@ -11,12 +11,17 @@
 
   --item-padding: 15px;
 
+  button {
+    @include unstyled-button;
+    display: block;
+  }
+
   ol, li, p, .button {
     width: 100%;
     text-align: left;
   }
 
-  ol {
+  #catalog-list > ol {
     margin-bottom: 15px;
   }
 
@@ -54,10 +59,5 @@
 
   .selected {
     background: var(--active);
-  }
-
-  button {
-    @include unstyled-button;
-    display: block;
   }
 }

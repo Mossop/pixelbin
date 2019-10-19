@@ -7,6 +7,7 @@ import { StoreState } from "../store/types";
 import { Catalog, Album } from "../api/types";
 import { history } from "../utils/history";
 import { Mapped } from "../utils/decoders";
+import { nameSorted } from "../utils/sort";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
@@ -42,13 +43,17 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
       innerClass = "selected";
     }
 
-    let children = Object.values(catalog.albums).filter((a: Album): boolean => a.parent === album.id);
+    let inner: React.ReactNode = null;
+    let children = nameSorted(Object.values(catalog.albums).filter((a: Album): boolean => a.parent === album.id));
+    if (children.length) {
+      inner = <ol>
+        {children.map((a: Album) => this.renderAlbum(catalog, a, depth + 1))}
+      </ol>;
+    }
 
     return <li key={album.id} className={`depth${depth}`}>
       <Button className={innerClass} disabled={this.props.selected == album.id} iconName="folder" onClick={(): void => this.onAlbumClick(album)}>{album.name}</Button>
-      <ol>
-        {children.map((a: Album) => this.renderAlbum(catalog, a, depth + 1))}
-      </ol>
+      {inner}
     </li>;
   }
 
@@ -58,13 +63,17 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
       innerClass = "selected";
     }
 
-    let children = Object.values(catalog.albums).filter((a: Album): boolean => !a.parent);
+    let inner: React.ReactNode = null;
+    let children = nameSorted(Object.values(catalog.albums).filter((a: Album): boolean => !a.parent));
+    if (children.length) {
+      inner = <ol>
+        {children.map((a: Album) => this.renderAlbum(catalog, a))}
+      </ol>;
+    }
 
     return <li key={catalog.id} className="depth0">
       <Button className={innerClass} disabled={this.props.selected == catalog.id} iconName="folder" onClick={(): void => this.onCatalogClick(catalog)}>{catalog.name}</Button>
-      <ol>
-        {children.map((a: Album) => this.renderAlbum(catalog, a))}
-      </ol>
+      {inner}
     </li>;
   }
 
@@ -72,7 +81,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
     return <div id="sidebar">
       <div id="catalog-list">
         <ol>
-          {Object.values(this.props.catalogs).map((c: Catalog) => this.renderCatalog(c))}
+          {nameSorted(this.props.catalogs).map((c: Catalog) => this.renderCatalog(c))}
         </ol>
         <p><Button l10n="sidebar-add-category" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/></p>
       </div>

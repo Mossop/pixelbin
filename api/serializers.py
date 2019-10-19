@@ -72,7 +72,7 @@ class CatalogPeopleSerializer(serializers.ModelSerializer):
         fields = ['id', 'full_name']
 
 class AlbumSerializer(serializers.ModelSerializer):
-    id = serializers.CharField()
+    id = serializers.CharField(required=False)
     catalog = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Catalog.objects.all())
     stub = serializers.CharField(allow_null=True, default=None)
     parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all(), allow_null=True)

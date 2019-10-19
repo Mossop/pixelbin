@@ -21,6 +21,7 @@ import { ActionType,
 import { StoreState, OverlayType } from "./types";
 import { history, HistoryState } from "../utils/history";
 import { UserState } from "../api/types";
+import { nameSorted } from "../utils/sort";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
@@ -112,9 +113,8 @@ function authReducer(state: Draft<StoreState>, action: ActionType): void {
       state.serverState = action.payload;
 
       if (action.payload.user) {
-        let catalogs = Object.values(action.payload.user.catalogs);
+        let catalogs = nameSorted(action.payload.user.catalogs);
         if (catalogs.length) {
-          // TODO sort them
           state.historyState = navigate(`/catalog/${catalogs[0]}`);
         } else {
           state.historyState = navigate("/user");
