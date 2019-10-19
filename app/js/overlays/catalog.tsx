@@ -7,6 +7,7 @@ import Form, { FormProps, Field } from "../content/Form";
 import { getStorageConfigUI, getStorageConfig } from "../storage";
 import { createCatalog, editCatalog } from "../api/catalog";
 import { catalogCreated, catalogEdited, DispatchProps } from "../store/actions";
+import { Overlay } from ".";
 
 interface CatalogState {
   disabled: boolean;
@@ -94,7 +95,6 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
       onSubmit: this.onSubmit,
       className: this.state.error ? "error" : undefined,
 
-      title,
       fields: [{
         fieldType: "textbox",
         uiPath: "name",
@@ -105,7 +105,9 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
       submit: this.props.catalog ? "catalog-edit-submit" : "catalog-create-submit",
     };
 
-    return <Form {...form}/>;
+    return <Overlay title={title}>
+      <Form {...form}/>
+    </Overlay>;
   }
 }
 

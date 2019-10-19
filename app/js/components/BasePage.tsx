@@ -19,7 +19,7 @@ function mapStateToProps(state: StoreState): StateProps {
 export type BasePageProps = StateProps;
 export type BasePageState = {};
 
-export class BasePage<P extends BasePageProps, S> extends React.Component<P, S> {
+export class BasePage<P extends BasePageProps, S extends BasePageState> extends React.Component<P, S> {
   protected renderBannerButtons(): React.ReactNode {
     return null;
   }

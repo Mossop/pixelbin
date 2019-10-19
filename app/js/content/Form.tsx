@@ -30,7 +30,7 @@ export interface FormProps extends StyleProps {
   disabled: boolean;
   onSubmit: () => void | Promise<void>;
 
-  title: string | FormTitleProps;
+  title?: string | FormTitleProps;
   fields: Field[];
   submit: string | Omit<FormSubmitProps, "disabled">;
 }
@@ -62,11 +62,17 @@ export default class Form extends React.Component<FormProps> {
   };
 
   public render(): React.ReactNode {
-    let title = typeof this.props.title == "object" ? this.props.title : { l10n: this.props.title };
+    let title: React.ReactNode = null;
+
+    if (this.props.title) {
+      title = typeof this.props.title == "object" ?
+        <FormTitle {...this.props.title}/> :
+        <FormTitle l10n={this.props.title }/>;
+    }
     let submit = typeof this.props.submit == "object" ? this.props.submit : { l10n: this.props.submit };
 
     return <form {...styleProps(this.props, { className: "fieldGrid" })} onSubmit={this.onSubmit}>
-      <FormTitle {...title}/>
+      {title}
       {this.props.fields.map(this.renderField)}
       <FormSubmit {...submit} disabled={this.props.disabled}/>
     </form>;

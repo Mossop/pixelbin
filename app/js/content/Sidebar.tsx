@@ -41,7 +41,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
     return <div id="sidebar">
       <div id="catalog-tree">
         <CatalogTree selected={this.props.selected} onCatalogClick={this.onCatalogClick} onAlbumClick={this.onAlbumClick}/>
-        <Button id="new-catalog" l10n="sidebar-add-category" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/>
+        <Button id="new-catalog" l10n="sidebar-add-catalog" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/>
       </div>
     </div>;
   }

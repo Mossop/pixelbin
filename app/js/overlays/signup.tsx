@@ -43,6 +43,7 @@ class SignupOverlay extends UIManager<SignupProps, SignupState> {
       this.props.completeSignup(state);
     } catch (e) {
       this.setState({ disabled: false, error: true });
+      this.setTextState("password", "");
     }
   };
 

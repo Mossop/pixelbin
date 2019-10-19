@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { StoreState, Overlay, OverlayType } from "../store/types";
+import { StoreState, OverlayState, OverlayType } from "../store/types";
 import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
 import UploadOverlay from "./upload";
@@ -10,6 +10,55 @@ import AlbumOverlay from "./album";
 import { closeOverlay, DispatchProps } from "../store/actions";
 import { Button } from "../components/Button";
 import { User } from "../api/types";
+import { Localized } from "@fluent/react";
+
+interface Props {
+  title?: string | React.ReactNode;
+  sidebar?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+const mapDispatchToOverlayProps = {
+  closeOverlay,
+};
+
+export type OverlayProps = Props & DispatchProps<typeof mapDispatchToOverlayProps>;
+export type OverlayState = {};
+
+class OverlayComponent extends React.Component<OverlayProps> {
+  public render(): React.ReactNode {
+    let sidebar = this.props.sidebar;
+    let title: React.ReactNode;
+    if (this.props.title && typeof this.props.title == "string") {
+      title = <Localized id={this.props.title}><p/></Localized>;
+    } else {
+      title = this.props.title;
+    }
+
+    if (sidebar) {
+      return <div id="overlay-inner" className="sidebar">
+        <div id="overlay-sidebar">{sidebar}</div>
+        <div className="overlay-main">
+          <div id="overlay-header">
+            {title}
+            <Button id="overlay-close" iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
+          </div>
+          <div id="overlay-content">{this.props.children}</div>
+        </div>
+      </div>;
+    } else {
+      return <div id="overlay-inner" className="overlay-main">
+        <div id="overlay-header">
+          {title}
+          <Button iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
+        </div>
+        <div id="overlay-content">{this.props.children}</div>
+      </div>;
+    }
+  }
+}
+
+export const Overlay = connect(undefined, mapDispatchToOverlayProps)(OverlayComponent);
 
 function mapStateToProps(state: StoreState): StateProps {
   return {
@@ -23,7 +72,7 @@ const mapDispatchToProps = {
 };
 
 interface StateProps {
-  overlay?: Overlay;
+  overlay?: OverlayState;
   user?: User;
 }
 
@@ -107,12 +156,7 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
     className = this.props.overlay.type;
 
     return <div id="overlay" className={className} onClick={this.onClick}>
-      <div id="overlay-inner">
-        <div id="overlay-header">
-          <Button iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
-        </div>
-        <div id="overlay-content">{overlay}</div>
-      </div>
+      {overlay}
     </div>;
   }
 }

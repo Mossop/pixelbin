@@ -11,37 +11,37 @@ export enum OverlayType {
   Upload = "upload",
 }
 
-interface BaseOverlay {
+interface BaseOverlayState {
   readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CreateCatalog;
 }
 
-interface UploadOverlay {
+interface UploadOverlayState {
   readonly type: OverlayType.Upload;
   readonly catalog?: Catalog;
   readonly parent?: Album;
 }
 
-interface CatalogEditOverlay {
+interface CatalogEditOverlayState {
   readonly type: OverlayType.EditCatalog;
   readonly catalog: Catalog;
 }
 
-interface AlbumCreateOverlay {
+interface AlbumCreateOverlayState {
   readonly type: OverlayType.CreateAlbum;
   readonly catalog: Catalog;
   readonly parent?: Album;
 }
 
-interface AlbumEditOverlay {
+interface AlbumEditOverlayState {
   readonly type: OverlayType.EditAlbum;
   readonly catalog: Catalog;
   readonly album: Album;
 }
 
-export type Overlay = BaseOverlay | UploadOverlay | CatalogEditOverlay | AlbumCreateOverlay | AlbumEditOverlay;
+export type OverlayState = BaseOverlayState | UploadOverlayState | CatalogEditOverlayState | AlbumCreateOverlayState | AlbumEditOverlayState;
 
 export interface StoreState {
   readonly serverState: ServerState;
-  readonly overlay?: Overlay;
+  readonly overlay?: OverlayState;
   readonly historyState: HistoryState | null;
 }

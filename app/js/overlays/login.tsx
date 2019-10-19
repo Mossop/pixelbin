@@ -41,8 +41,6 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
       this.props.completeLogin(state);
     } catch (e) {
       this.setState({ disabled: false, error: true });
-
-      this.setTextState("email", "");
       this.setTextState("password", "");
     }
   };

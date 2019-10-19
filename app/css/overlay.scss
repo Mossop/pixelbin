@@ -9,6 +9,8 @@
 }
 
 #overlay {
+  --padding: 25px;
+
   position: fixed;
   top: 0;
   bottom: 0;
@@ -25,11 +27,31 @@
 }
 
 #overlay-inner {
-  @include base-styles;
-
   overflow: hidden;
   border: 1px solid black;
-  padding: 25px;
+}
+
+#overlay-inner.sidebar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: start;
+}
+
+#overlay-sidebar {
+  @include base-styles;
+
+  min-width: 250px;
+}
+
+#overlay-close {
+  padding-left: var(--padding);
+}
+
+.overlay-main {
+  @include base-styles;
+
+  padding: var(--padding);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -43,8 +65,8 @@
 #overlay-header {
   display: flex;
   flex-direction: row;
-  justify-content: end;
-  padding-bottom: 10px;
+  justify-content: space-between;
+  padding-bottom: var(--padding);
 
   .button {
     @include unstyled-button;
@@ -70,7 +92,7 @@
   }
 
   #upload-metadata {
-    padding-right: 25px;
+    padding-right: var(--padding);
 
     p {
       padding-bottom: 10px;
@@ -96,7 +118,7 @@
   }
 
   #upload-complete {
-    padding-top: 25px;
+    padding-top: var(--padding);
     display: flex;
     flex-direction: row;
     align-items: stretch;

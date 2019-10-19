@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { Catalog, Album } from "../api/types";
+import { Catalog, Album, albumChildren } from "../api/types";
 import { nameSorted } from "../utils/sort";
 import { Button } from "./Button";
 import { Mapped } from "../utils/decoders";
@@ -36,33 +36,28 @@ class CatalogTree extends React.Component<CatalogTreeProps> {
     }
   }
 
-  private renderAlbum(catalog: Catalog, album: Album, depth: number = 1): React.ReactNode {
-    let inner: React.ReactNode = null;
-    let children = nameSorted(Object.values(catalog.albums).filter((a: Album): boolean => a.parent === album.id));
+  private renderChildren(catalog: Catalog, album?: Album, depth: number = 1): React.ReactNode {
+    let children = albumChildren(catalog, album);
     if (children.length) {
-      inner = <ol>
+      return <ol>
         {children.map((a: Album) => this.renderAlbum(catalog, a, depth + 1))}
       </ol>;
+    } else {
+      return null;
     }
+  }
 
+  private renderAlbum(catalog: Catalog, album: Album, depth: number): React.ReactNode {
     return <li key={album.id} className={`depth${depth}`}>
       {this.renderItem(album.id, album.name, () => this.props.onAlbumClick(album))}
-      {inner}
+      {this.renderChildren(catalog, album, depth)}
     </li>;
   }
 
   private renderCatalog(catalog: Catalog): React.ReactNode {
-    let inner: React.ReactNode = null;
-    let children = nameSorted(Object.values(catalog.albums).filter((a: Album): boolean => !a.parent));
-    if (children.length) {
-      inner = <ol>
-        {children.map((a: Album) => this.renderAlbum(catalog, a))}
-      </ol>;
-    }
-
     return <li key={catalog.id} className="depth0">
       {this.renderItem(catalog.id, catalog.name, () => this.props.onCatalogClick(catalog))}
-      {inner}
+      {this.renderChildren(catalog)}
     </li>;
   }
 

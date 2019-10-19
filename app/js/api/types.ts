@@ -2,6 +2,7 @@ import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
 import { OptionalDecoder, DateDecoder, MapDecoder, Mapped } from "../utils/decoders";
+import { nameSorted } from "../utils/sort";
 
 export interface Album {
   readonly id: string;
@@ -147,3 +148,8 @@ export const UploadResponseDecoder = JsonDecoder.object<UploadResponse>(
   },
   "UploadResponseDecoder"
 );
+
+export function albumChildren(catalog: Catalog, item?: Album): Album[] {
+  let parent = item ? item.id : null;
+  return nameSorted(Object.values(catalog.albums).filter((a: Album) => a.parent === parent));
+}
