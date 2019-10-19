@@ -1,4 +1,5 @@
 import { LocationState } from "history";
+import produce, { Draft } from "immer";
 
 import { ActionType,
   SET_HISTORY_STATE,
@@ -17,210 +18,172 @@ import { ActionType,
   SHOW_ALBUM_EDIT_OVERLAY, 
   ALBUM_CREATED,
   ALBUM_EDITED } from "./actions";
-import { StoreState, OverlayType, Overlay } from "./types";
+import { StoreState, OverlayType } from "./types";
 import { history, HistoryState } from "../utils/history";
-import { getCatalogForAlbum } from "./store";
+import { UserState } from "../api/types";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
 }
 
-function catalogReducer(state: StoreState, action: ActionType): StoreState {
+function catalogReducer(state: Draft<StoreState>, user: Draft<UserState>, action: ActionType): void {
   switch (action.type) {
     case SHOW_CATALOG_CREATE_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.CreateCatalog,
-        }
+      state.overlay = {
+        type: OverlayType.CreateCatalog,
       };
+      return;
     }
     case CATALOG_CREATED: {
-      if (state.serverState.user) {
-        state.serverState.user.catalogs.set(action.payload.id, action.payload);
-      }
-
-      return {
-        ...state,
-        overlay: undefined,
-        historyState: navigate(`/catalog/${action.payload.id}`),
-      };
+      user.catalogs[action.payload.id] = action.payload;
+      state.overlay = undefined;
+      state.historyState = navigate(`/catalog/${action.payload.id}`);
+      return;
     }
     case SHOW_CATALOG_EDIT_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.EditCatalog,
-          catalog: action.payload,
-        }
+      state.overlay = {
+        type: OverlayType.EditCatalog,
+        catalog: action.payload,
       };
+      return;
     }
     case CATALOG_EDITED: {
-      if (state.serverState.user) {
-        state.serverState.user.catalogs.set(action.payload.id, action.payload);
-      }
-
-      return {
-        ...state,
-        overlay: undefined,
-      };
+      user.catalogs[action.payload.id] = action.payload;
+      state.overlay = undefined;
     }
   }
-
-  return state;
 }
 
-function albumReducer(state: StoreState, action: ActionType): StoreState {
+function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: ActionType): void {
   switch (action.type) {
     case SHOW_ALBUM_CREATE_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.CreateAlbum,
-          catalog: action.payload.catalog,
-          parent: action.payload.parent,
-        }
+      state.overlay = {
+        type: OverlayType.CreateAlbum,
+        catalog: action.payload.catalog,
+        parent: action.payload.parent,
       };
+      return;
     }
     case ALBUM_CREATED: {
-      action.payload.catalog.albums.set(action.payload.album.id, action.payload.album);
+      const { catalog, album } = action.payload;
+      for (let [id, current] of Object.entries(user.catalogs)) {
+        if (id === catalog.id) {
+          current.albums[album.id] = album;
+        }
+      }
 
-      return {
-        ...state,
-        overlay: undefined,
-        historyState: navigate(`/album/${action.payload.album.id}`),
-      };
+      state.overlay = undefined;
+      state.historyState = navigate(`/album/${action.payload.album.id}`);
+      return;
     }
     case SHOW_ALBUM_EDIT_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.EditAlbum,
-          album: action.payload.album,
-          catalog: action.payload.catalog,
-        }
+      state.overlay = {
+        type: OverlayType.EditAlbum,
+        album: action.payload.album,
+        catalog: action.payload.catalog,
       };
+      return;
     }
     case ALBUM_EDITED: {
-      const { catalog, album } = action.payload;
-      let oldCatalog = getCatalogForAlbum(album, state);
-      if (oldCatalog && oldCatalog != catalog) {
-        oldCatalog.albums.delete(album.id);
-      }
-      catalog.albums.set(album.id, album);
+      state.overlay = undefined;
 
-      return {
-        ...state,
-        overlay: undefined,
-      };
+      const { catalog, album } = action.payload;
+      for (let [id, current] of Object.entries(user.catalogs)) {
+        if (id === catalog.id) {
+          current.albums[album.id] = album;
+        } else if (album.id in current.albums) {
+          delete current.albums[album.id];
+        }
+      }
+      return;
     }
   }
-
-  return state;
 }
 
-function authReducer(state: StoreState, action: ActionType): StoreState {
+function authReducer(state: Draft<StoreState>, action: ActionType): void {
   switch (action.type) {
     case SHOW_LOGIN_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.Login,
-        }
+      state.overlay = {
+        type: OverlayType.Login,
       };
+      return;
     }
     case COMPLETE_LOGIN: {
-      let newOverlay: Overlay | undefined = undefined;
-      let historyState = state.historyState;
+      state.serverState = action.payload;
 
       if (action.payload.user) {
-        if (action.payload.user.catalogs.size) {
-          let catalogs = Array.from(action.payload.user.catalogs.values());
+        let catalogs = Object.values(action.payload.user.catalogs);
+        if (catalogs.length) {
           // TODO sort them
-          historyState = navigate(`/catalog/${catalogs[0]}`);
+          state.historyState = navigate(`/catalog/${catalogs[0]}`);
         } else {
-          historyState = navigate("/user");
+          state.historyState = navigate("/user");
           if (!action.payload.user.hadCatalog) {
-            newOverlay = {
+            state.overlay = {
               type: OverlayType.CreateCatalog,
             };
           }
         }
       }
-
-      return {
-        ...state,
-        serverState: action.payload,
-        overlay: newOverlay,
-        historyState,
-      };
+      return;
     }
     case SHOW_SIGNUP_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.Signup,
-        }
+      state.overlay = {
+        type: OverlayType.Signup,
       };
+      return;
     }
     case COMPLETE_SIGNUP: {
-      return {
-        ...state,
-        serverState: action.payload,
-        overlay: {
-          type: OverlayType.CreateCatalog,
-        },
-        historyState: navigate("/user"),
+      state.serverState = action.payload;
+      state.overlay = {
+        type: OverlayType.CreateCatalog,
       };
+      state.historyState = navigate("/user");
+      return;
     }
     case COMPLETE_LOGOUT: {
-      return {
-        ...state,
-        serverState: action.payload,
-        historyState: navigate("/"),
-      };
+      state.serverState = action.payload;
+      state.historyState = navigate("/");
+      return;
     }
   }
-
-  return state;
 }
 
-function mediaReducer(state: StoreState, action: ActionType): StoreState {
+function mediaReducer(state: Draft<StoreState>, action: ActionType): void {
   switch (action.type) {
     case SHOW_UPLOAD_OVERLAY: {
-      return {
-        ...state,
-        overlay: {
-          type: OverlayType.Upload,
-          catalog: action.payload.catalog,
-          parent: action.payload.parent,
-        }
+      state.overlay = {
+        type: OverlayType.Upload,
+        catalog: action.payload.catalog,
+        parent: action.payload.parent,
       };
+      return;
     }
   }
-
-  return state;
 }
 
-export default function reducer(state: StoreState, action: ActionType): StoreState {
+function reducer(state: Draft<StoreState>, action: ActionType): void {
   switch (action.type) {
     case SET_HISTORY_STATE: {
-      return {
-        ...state,
-        historyState: action.payload,
-      };
+      state.historyState = action.payload;
+      return;
     }
     case CLOSE_OVERLAY: {
-      return {
-        ...state,
-        overlay: undefined,
-      };
+      state.overlay = undefined;
+      return;
     }
   }
 
-  state = authReducer(state, action);
-  state = catalogReducer(state, action);
-  state = albumReducer(state, action);
-  state = mediaReducer(state, action);
-  return state;
+  authReducer(state, action);
+  mediaReducer(state, action);
+  if (state.serverState.user) {
+    catalogReducer(state, state.serverState.user, action);
+    albumReducer(state, state.serverState.user, action);
+  }
+}
+
+export default function(state: StoreState, action: ActionType): StoreState {
+  return produce(state, (draft: Draft<StoreState>) => {
+    reducer(draft, action);
+  });
 }

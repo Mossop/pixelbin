@@ -34,7 +34,7 @@ const mapDispatchToProps = {
 
 function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchParams>): StateProps {
   let catalog = getCatalogForAlbum(props.match.params.id, state);
-  let album = catalog ? catalog.albums.get(props.match.params.id) : undefined;
+  let album = catalog ? catalog.albums[props.match.params.id] : undefined;
   return {
     album,
     catalog,

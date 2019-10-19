@@ -10,10 +10,10 @@ import { Router } from "react-router";
 type LocationState = undefined;
 
 export interface HistoryState {
-  url: URL;
-  state: LocationState;
-  length: number;
-  action: Action;
+  readonly url: URL;
+  readonly state: LocationState;
+  readonly length: number;
+  readonly action: Action;
 }
 
 function statesEqual(a: HistoryState, b: HistoryState): boolean {

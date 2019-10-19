@@ -1,13 +1,13 @@
 import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
-import { OptionalDecoder, DateDecoder, MapDecoder } from "../utils/decoders";
+import { OptionalDecoder, DateDecoder, MapDecoder, Mapped } from "../utils/decoders";
 
 export interface Album {
-  id: string;
-  stub: string | undefined;
-  name: string;
-  parent: string | undefined;
+  readonly id: string;
+  readonly stub: string | undefined;
+  readonly name: string;
+  readonly parent: string | undefined;
 }
 
 export const AlbumDecoder = JsonDecoder.object<Album>(
@@ -21,9 +21,9 @@ export const AlbumDecoder = JsonDecoder.object<Album>(
 );
 
 export interface Tag {
-  id: string;
-  name: string;
-  parent: string | undefined;
+  readonly id: string;
+  readonly name: string;
+  readonly parent: string | undefined;
 }
 
 export const TagDecoder = JsonDecoder.object<Tag>(
@@ -36,10 +36,10 @@ export const TagDecoder = JsonDecoder.object<Tag>(
 );
 
 export interface Catalog {
-  id: string;
-  name: string;
-  tags: Map<string, Tag>;
-  albums: Map<string, Album>;
+  readonly id: string;
+  readonly name: string;
+  readonly tags: Readonly<Mapped<Tag>>;
+  readonly albums: Readonly<Mapped<Album>>;
 }
 
 export const CatalogDecoder = JsonDecoder.object<Catalog>(
@@ -53,10 +53,10 @@ export const CatalogDecoder = JsonDecoder.object<Catalog>(
 );
 
 export interface User {
-  email: string;
-  fullname: string;
-  hadCatalog: boolean;
-  verified: boolean;
+  readonly email: string;
+  readonly fullname: string;
+  readonly hadCatalog: boolean;
+  readonly verified: boolean;
 }
 
 export const UserDecoder = JsonDecoder.object<User>(
@@ -70,7 +70,7 @@ export const UserDecoder = JsonDecoder.object<User>(
 );
 
 export interface UserState extends User {
-  catalogs: Map<string, Catalog>;
+  readonly catalogs: Readonly<Mapped<Catalog>>;
 }
 
 export const UserStateDecoder = JsonDecoder.object<UserState>(
@@ -85,7 +85,7 @@ export const UserStateDecoder = JsonDecoder.object<UserState>(
 );
 
 export interface ServerState {
-  user?: UserState;
+  readonly user?: UserState;
 }
 
 export const ServerStateDecoder = JsonDecoder.object<ServerState>(
@@ -96,17 +96,17 @@ export const ServerStateDecoder = JsonDecoder.object<ServerState>(
 );
 
 export interface Media {
-  id: number;
-  processed: boolean;
+  readonly id: number;
+  readonly processed: boolean;
 
-  tags: string[];
-  longitude?: number;
-  latitude?: number;
-  taken: moment.Moment;
+  readonly tags: string[];
+  readonly longitude?: number;
+  readonly latitude?: number;
+  readonly taken: moment.Moment;
 
-  mimetype: string;
-  width: number;
-  height: number;
+  readonly mimetype: string;
+  readonly width: number;
+  readonly height: number;
 }
 
 export const MediaDecoder = JsonDecoder.object<Media>(

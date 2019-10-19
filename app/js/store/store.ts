@@ -4,19 +4,21 @@ import { createLogger } from "redux-logger";
 import reducer from "./reducer";
 import { StoreState } from "./types";
 import { ActionType } from "./actions";
-import { Catalog, ServerStateDecoder, Album } from "../api/types";
+import { Catalog, ServerStateDecoder, Album, ServerState } from "../api/types";
 import { decode } from "../utils/decoders";
 
 function buildStore(): Store<StoreState, ActionType> {
-  let initialState: StoreState = { serverState: { }, historyState: null };
+  let initialServerState: ServerState = {};
   let stateElement = document.getElementById("initial-state");
   if (stateElement && stateElement.textContent) {
     try {
-      initialState.serverState = decode(ServerStateDecoder, JSON.parse(stateElement.textContent));
+      initialServerState = decode(ServerStateDecoder, JSON.parse(stateElement.textContent));
     } catch (e) {
       console.error(e);
     }
   }
+
+  let initialState: StoreState = { serverState: initialServerState, historyState: null };
 
   const middlewares: Middleware[] = [];
 
@@ -42,7 +44,7 @@ export function getCatalog(id: string, state?: StoreState): Catalog | undefined 
     return undefined;
   }
 
-  return state.serverState.user.catalogs.get(id);
+  return state.serverState.user.catalogs[id];
 }
 
 export function getCatalogForAlbum(album: string | Album, state?: StoreState): Catalog | undefined {
@@ -61,8 +63,8 @@ export function getCatalogForAlbum(album: string | Album, state?: StoreState): C
     return undefined;
   }
 
-  for (let catalog of state.serverState.user.catalogs.values()) {
-    if (catalog.albums.has(id)) {
+  for (let catalog of Object.values(state.serverState.user.catalogs)) {
+    if (id in catalog.albums) {
       return catalog;
     }
   }
@@ -72,7 +74,7 @@ export function getCatalogForAlbum(album: string | Album, state?: StoreState): C
 
 export function getAlbum(id: string, state?: StoreState): Album | undefined {
   let catalog = getCatalogForAlbum(id, state);
-  return catalog ? catalog.albums.get(id) : undefined;
+  return catalog ? catalog.albums[id] : undefined;
 }
 
 export default store;

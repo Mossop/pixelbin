@@ -12,36 +12,36 @@ export enum OverlayType {
 }
 
 interface BaseOverlay {
-  type: OverlayType.Login | OverlayType.Signup | OverlayType.CreateCatalog;
+  readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CreateCatalog;
 }
 
 interface UploadOverlay {
-  type: OverlayType.Upload;
-  catalog?: Catalog;
-  parent?: Album;
+  readonly type: OverlayType.Upload;
+  readonly catalog?: Catalog;
+  readonly parent?: Album;
 }
 
 interface CatalogEditOverlay {
-  type: OverlayType.EditCatalog;
-  catalog: Catalog;
+  readonly type: OverlayType.EditCatalog;
+  readonly catalog: Catalog;
 }
 
 interface AlbumCreateOverlay {
-  type: OverlayType.CreateAlbum;
-  catalog: Catalog;
-  parent?: Album;
+  readonly type: OverlayType.CreateAlbum;
+  readonly catalog: Catalog;
+  readonly parent?: Album;
 }
 
 interface AlbumEditOverlay {
-  type: OverlayType.EditAlbum;
-  catalog: Catalog;
-  album: Album;
+  readonly type: OverlayType.EditAlbum;
+  readonly catalog: Catalog;
+  readonly album: Album;
 }
 
 export type Overlay = BaseOverlay | UploadOverlay | CatalogEditOverlay | AlbumCreateOverlay | AlbumEditOverlay;
 
 export interface StoreState {
-  serverState: ServerState;
-  overlay?: Overlay;
-  historyState: HistoryState | null;
+  readonly serverState: ServerState;
+  readonly overlay?: Overlay;
+  readonly historyState: HistoryState | null;
 }

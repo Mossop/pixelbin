@@ -47,11 +47,19 @@ interface Mappable {
   id: string;
 }
 
-export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<Map<string, A>> {
-  return MappingDecoder<A[], Map<string, A>>(
+export interface Mapped<R> {
+  [prop: string]: R;
+}
+
+export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<Readonly<Mapped<A>>> {
+  return MappingDecoder<A[], Mapped<A>>(
     JsonDecoder.array(decoder, name),
     (arr: A[]) => {
-      return new Map(arr.map((a: A) => [a.id, a]));
+      let result: Mapped<A> = {};
+      for (let val of arr) {
+        result[val.id] = val;
+      }
+      return result;
     },
     `Map<string, ${name}>`
   );

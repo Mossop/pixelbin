@@ -6,20 +6,21 @@ import { Button } from "../components/Button";
 import { StoreState } from "../store/types";
 import { Catalog, Album } from "../api/types";
 import { history } from "../utils/history";
+import { Mapped } from "../utils/decoders";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
 };
 
 interface StateProps {
-  catalogs: Map<string, Catalog>;
+  catalogs: Mapped<Catalog>;
 }
 
 function mapStateToProps(state: StoreState): StateProps {
   if (state.serverState.user) {
     return { catalogs: state.serverState.user.catalogs };
   }
-  return { catalogs: new Map() };
+  return { catalogs: {} };
 }
 
 export interface SidebarProps {
@@ -41,7 +42,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
       innerClass = "selected";
     }
 
-    let children = Array.from(catalog.albums.values()).filter((a: Album): boolean => a.parent === album.id);
+    let children = Object.values(catalog.albums).filter((a: Album): boolean => a.parent === album.id);
 
     return <li key={album.id} className={`depth${depth}`}>
       <Button className={innerClass} disabled={this.props.selected == album.id} iconName="folder" onClick={(): void => this.onAlbumClick(album)}>{album.name}</Button>
@@ -57,7 +58,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
       innerClass = "selected";
     }
 
-    let children = Array.from(catalog.albums.values()).filter((a: Album): boolean => !a.parent);
+    let children = Object.values(catalog.albums).filter((a: Album): boolean => !a.parent);
 
     return <li key={catalog.id} className="depth0">
       <Button className={innerClass} disabled={this.props.selected == catalog.id} iconName="folder" onClick={(): void => this.onCatalogClick(catalog)}>{catalog.name}</Button>
@@ -71,7 +72,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
     return <div id="sidebar">
       <div id="catalog-list">
         <ol>
-          {Array.from(this.props.catalogs.values()).map((c: Catalog) => this.renderCatalog(c))}
+          {Object.values(this.props.catalogs).map((c: Catalog) => this.renderCatalog(c))}
         </ol>
         <p><Button l10n="sidebar-add-category" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/></p>
       </div>

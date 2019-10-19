@@ -53,6 +53,7 @@
     "@types/through2": "^2.0.34",
     "cookie": "^0.4.0",
     "file-type": "^12.3.0",
+    "immer": "^4.0.1",
     "intl-pluralrules": "^1.0.3",
     "media-metadata": "^1.0.0",
     "moment": "^2.24.0",
