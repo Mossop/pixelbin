@@ -1,12 +1,12 @@
 import React from "react";
 
-import { DefaultPage } from "../components/pages";
+import { BasePageProps, BasePage, baseConnect } from "../components/BasePage";
 import { RouteComponentProps } from "react-router";
 
-export default class IndexPage extends React.Component<RouteComponentProps> {
-  public render(): React.ReactNode {
-    return <DefaultPage>
-      <h1>Index</h1>
-    </DefaultPage>;
+class IndexPage extends BasePage<BasePageProps & RouteComponentProps> {
+  public renderContent(): React.ReactNode {
+    return <h1>Index</h1>;
   }
 }
+
+export default baseConnect(IndexPage);

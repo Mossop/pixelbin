@@ -1,14 +1,12 @@
 import React from "react";
 
-import { DefaultPage, PageContent } from "../components/pages";
+import { BasePageProps, BasePage, baseConnect } from "../components/BasePage";
 import { RouteComponentProps } from "react-router";
 
-export default class UserPage extends React.Component<RouteComponentProps> {
-  public render(): React.ReactNode {
-    return <DefaultPage>
-      <PageContent>
-        <h1>User</h1>
-      </PageContent>
-    </DefaultPage>;
+class UserPage extends BasePage<BasePageProps & RouteComponentProps> {
+  public renderContent(): React.ReactNode {
+    return <h1>User</h1>;
   }
 }
+
+export default baseConnect(UserPage);
