@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
 
-import MediaList from "../content/MediaList";
+import MediaList from "../components/MediaList";
 import { searchMedia, saveSearch } from "../api/search";
 import { deepEqual, bindAll } from "../utils/helpers";
 import { setSearches } from "../utils/actions";

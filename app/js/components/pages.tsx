@@ -2,8 +2,8 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { styleProps, StyleProps } from "./shared";
-import Banner from "../content/Banner";
-import Sidebar from "../content/Sidebar";
+import Banner from "../components/Banner";
+import Sidebar from "../components/Sidebar";
 import { StoreState } from "../store/types";
 import { isLoggedIn } from "../utils/helpers";
 

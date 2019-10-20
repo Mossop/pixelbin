@@ -3,8 +3,8 @@ import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import moment from "moment";
 
-import Sidebar from "../content/Sidebar";
-import Upload from "../content/Upload";
+import Sidebar from "../components/Sidebar";
+import Upload from "../components/Upload";
 import { bindAll, uuid } from "../utils/helpers";
 import { If, Then, Else } from "../utils/Conditions";
 import { upload } from "../api/media";

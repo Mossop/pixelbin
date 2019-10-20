@@ -9,7 +9,7 @@ import { showAlbumCreateOverlay, showAlbumEditOverlay, DispatchProps, showUpload
 import NotFound from "./notfound";
 import { Button } from "../components/Button";
 import { BasePage, BasePageProps, baseConnect, BasePageState } from "../components/BasePage";
-import { SidebarProps } from "../content/Sidebar";
+import { SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
 
 interface MatchParams {

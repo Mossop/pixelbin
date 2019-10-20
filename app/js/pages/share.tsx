@@ -2,8 +2,8 @@ import React from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
 
-import MediaList from "../content/MediaList";
-import Sidebar from "../content/Sidebar";
+import MediaList from "../components/MediaList";
+import Sidebar from "../components/Sidebar";
 import { fetchShare } from "../api/search";
 import { isLoggedIn } from "../utils/helpers";
 

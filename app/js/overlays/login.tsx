@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { login } from "../api/auth";
-import Form, { FormProps } from "../content/Form";
+import Form, { FormProps } from "../components/Form";
 import { UIManager } from "../utils/UIState";
 import { DispatchProps, completeLogin } from "../store/actions";
 import Overlay from "../components/overlay";

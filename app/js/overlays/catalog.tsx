@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import { Catalog, User } from "../api/types";
 import { UIManager } from "../utils/UIState";
-import Form, { FormProps, Field } from "../content/Form";
+import Form, { FormProps, Field } from "../components/Form";
 import { getStorageConfigUI, getStorageConfig } from "../storage";
 import { createCatalog, editCatalog } from "../api/catalog";
 import { catalogCreated, catalogEdited, DispatchProps } from "../store/actions";

@@ -2,8 +2,8 @@ import React from "react";
 import { connect } from "react-redux";
 import PropTypes from "prop-types";
 
-import Sidebar from "../content/Sidebar";
-import TagSearch from "../content/TagSearch";
+import Sidebar from "../components/Sidebar";
+import TagSearch from "../components/TagSearch";
 import { tagFromPath } from "../utils/helpers";
 
 const mapStateToProps = (state, props) => ({

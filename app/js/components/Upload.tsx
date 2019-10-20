@@ -2,7 +2,7 @@ import React from "react";
 import { Metadata, Orientation } from "media-metadata/lib/metadata";
 import path from "path";
 
-import ImageCanvas from "../content/ImageCanvas";
+import ImageCanvas from "../components/ImageCanvas";
 import { parseMetadata, loadPreview } from "../utils/metadata";
 
 interface UploadProps {

@@ -1,10 +1,10 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import Banner from "../content/Banner";
+import Banner from "../components/Banner";
 import { User } from "../api/types";
 import { StoreState } from "../store/types";
-import Sidebar, { SidebarProps } from "../content/Sidebar";
+import Sidebar, { SidebarProps } from "../components/Sidebar";
 
 interface StateProps {
   user?: User;

@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { UIManager } from "../utils/UIState";
-import Form, { FormProps } from "../content/Form";
+import Form, { FormProps } from "../components/Form";
 import { Album, Catalog, User } from "../api/types";
 import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";

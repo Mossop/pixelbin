@@ -1,7 +1,7 @@
 import React from "react";
 
-import Sidebar from "../content/Sidebar";
-import MediaList from "../content/MediaList";
+import Sidebar from "../components/Sidebar";
+import MediaList from "../components/MediaList";
 import { listUntaggedMedia } from "../api/media";
 
 class UntaggedPage extends React.Component {

@@ -1,6 +1,6 @@
 import { BackblazeConfig, BackblazeStorageType } from "./types";
 import { UIManager } from "../utils/UIState";
-import { Field } from "../content/Form";
+import { Field } from "../components/Form";
 
 export function getBackblazeConfigUI(): Field[] {
   return [{

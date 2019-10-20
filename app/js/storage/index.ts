@@ -1,4 +1,4 @@
-import { Field } from "../content/Form";
+import { Field } from "../components/Form";
 import { StorageConfig, ServerStorageType } from "./types";
 import { getBackblazeConfigUI, getBackblazeConfig } from "./backblaze";
 import { UIManager } from "../utils/UIState";
