@@ -1,30 +1,28 @@
-.fieldGrid {
+.form {
   @include base-styles;
-
-  display: grid;
-  grid-template-columns: max-content max-content;
-  gap: 15px;
-  align-items: center;
+  @include flex-column;
 }
 
-.fieldGrid .formTitle {
+.formTitle {
   padding-bottom: 20px;
-  grid-column: span 2;
   justify-self: start;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: minmax(max-content, 150px) minmax(max-content, 250px);
+  gap: 15px;
+  align-items: center;
 }
 
 .fieldGrid .fieldLabel {
   text-align: right;
 }
 
-.fieldGrid .spanStart {
-  grid-column: span 2;
-  justify-self: start;
-}
-
-.fieldGrid .spanEnd {
-  grid-column: span 2;
+.formSubmit {
+  flex: 1;
   justify-self: end;
+  align-self: end;
 }
 
 .error .formTitle {

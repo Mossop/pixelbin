@@ -1,18 +1,15 @@
 .media-list {
   @include base-styles;
+  @include flex-row;
 
-  display: flex;
-  flex-direction: row;
   flex-wrap: wrap;
-  justify-content: start;
   align-items: start;
   overflow-y: auto;
 
   .media {
+    @include flex-column;
+
     padding: 5px;
-    display: flex;
-    flex-direction: column;
-    justify-content: start;
     align-items: center;
     max-width: 200px;
     margin-right: 10px;

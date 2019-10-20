@@ -18,6 +18,20 @@
   }
 }
 
+@mixin flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: start;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
+}
+
 @import "variables";
 @import "base";
 @import "form";
@@ -29,24 +43,19 @@
 
 #app {
   @include base-styles;
-
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
 }
 
 #sidebar-content {
-  flex: 1;
+  @include flex-row;
 
-  display: flex;
-  flex-direction: row;
+  flex: 1;
 }
 
 #content {
   @include base-styles;
+  @include flex-column;
 
   flex: 1;
-
-  display: flex;
-  flex-direction: column;
   overflow-y: auto;
 }

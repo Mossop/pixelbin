@@ -28,22 +28,29 @@
   &.upload {
     @include fullscreen-overlay;
   }
+
+  .form {
+    flex: 1;
+
+    .formSubmit {
+      @include flex-column;
+
+      flex: 1;
+      align-items: end;
+      justify-content: end;
+    }
+  }
 }
 
 #overlay-inner {
+  @include flex-column;
+
   overflow: hidden;
   border: 1px solid black;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: start;
 }
 
 #overlay-sidebar-wrapper {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: start;
+  @include flex-row;
 }
 
 #overlay-sidebar {
@@ -67,9 +74,8 @@
 
 #overlay-header {
   @include base-styles;
+  @include flex-row;
 
-  display: flex;
-  flex-direction: row;
   justify-content: space-between;
   padding: var(--padding);
 
@@ -84,13 +90,10 @@
 
 #overlay-content {
   @include base-styles;
+  @include flex-column;
 
   padding: var(--padding);
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: start;
   overflow: hidden;
 }
 
@@ -107,8 +110,9 @@
     flex: 1;
 
     &.empty {
+      @include flex-column;
+
       flex: 1;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       color: black;
@@ -116,10 +120,9 @@
   }
 
   #upload-complete {
+    @include flex-row;
+
     padding-top: var(--padding);
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
     justify-content: space-between;
 
     #fileInput {

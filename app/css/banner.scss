@@ -1,8 +1,7 @@
 #banner {
   @include base-styles;
+  @include flex-row;
 
-  display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: space-between;
 
@@ -15,8 +14,8 @@
 }
 
 #rightbanner {
-  display: flex;
-  flex-direction: row;
+  @include flex-row;
+
   align-items: center;
   height: 100%;
 

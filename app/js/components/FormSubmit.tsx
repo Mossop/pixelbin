@@ -9,10 +9,10 @@ export type FormSubmitProps = FieldProps & L10nProps;
 
 export default class FormSubmit extends React.Component<FormSubmitProps> {
   public render(): React.ReactNode {
-    return <p {...styleProps(this.props, { className: ["formSubmit", "spanEnd"] })}>
+    return <div {...styleProps(this.props, { className: ["formSubmit"] })}>
       <Localized id={this.props.l10n}>
         <button disabled={this.props.disabled}/>
       </Localized>
-    </p>;
+    </div>;
   }
 }

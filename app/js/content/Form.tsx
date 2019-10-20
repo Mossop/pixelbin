@@ -71,9 +71,11 @@ export default class Form extends React.Component<FormProps> {
     }
     let submit = typeof this.props.submit == "object" ? this.props.submit : { l10n: this.props.submit };
 
-    return <form {...styleProps(this.props, { className: "fieldGrid" })} onSubmit={this.onSubmit}>
+    return <form {...styleProps(this.props, { className: "form" })} onSubmit={this.onSubmit}>
       {title}
-      {this.props.fields.map(this.renderField)}
+      <div className="fieldGrid">
+        {this.props.fields.map(this.renderField)}
+      </div>
       <FormSubmit {...submit} disabled={this.props.disabled}/>
     </form>;
   }
