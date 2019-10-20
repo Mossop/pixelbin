@@ -10,10 +10,10 @@ type FieldLabelProps = {
 
 export default class FieldLabel extends React.Component<FieldLabelProps> {
   public render(): React.ReactNode {
-    return <p {...styleProps(this.props, { className: "fieldLabel" })}>
+    return <div {...styleProps(this.props, { className: "fieldLabel" })}>
       <Localized id={this.props.l10n}>
         <label htmlFor={this.props.for} />
       </Localized>
-    </p>;
+    </div>;
   }
 }

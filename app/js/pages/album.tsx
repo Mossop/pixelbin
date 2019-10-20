@@ -2,8 +2,8 @@ import React from "react";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 
-import { Album, Catalog } from "../api/types";
-import { getCatalogForAlbum } from "../store/store";
+import { Album } from "../api/types";
+import { getAlbum } from "../store/store";
 import { StoreState } from "../store/types";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, DispatchProps, showUploadOverlay } from "../store/actions";
 import NotFound from "./notfound";
@@ -17,7 +17,6 @@ interface MatchParams {
 }
 
 interface StateProps {
-  catalog?: Catalog;
   album?: Album;
 }
 
@@ -33,11 +32,8 @@ const mapDispatchToProps = {
 };
 
 function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchParams>): StateProps {
-  let catalog = getCatalogForAlbum(props.match.params.id, state);
-  let album = catalog ? catalog.albums[props.match.params.id] : undefined;
   return {
-    album,
-    catalog,
+    album: getAlbum(props.match.params.id, state),
   };
 }
 
@@ -55,7 +51,7 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
   }
 
   private onEdit: (() => void) = (): void => {
-    if (!this.props.user || !this.props.catalog || !this.props.album) {
+    if (!this.props.user || !this.props.album) {
       return;
     }
 
@@ -63,7 +59,7 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
   };
 
   private onNewAlbum: (() => void) = (): void => {
-    if (!this.props.user || !this.props.catalog || !this.props.album) {
+    if (!this.props.user || !this.props.album) {
       return;
     }
 
@@ -71,15 +67,15 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
   };
 
   private onUpload: (() => void) = (): void => {
-    if (!this.props.user || !this.props.catalog || !this.props.album) {
+    if (!this.props.user || !this.props.album) {
       return;
     }
 
-    this.props.showUploadOverlay(this.props.catalog, this.props.album);
+    this.props.showUploadOverlay(this.props.album);
   };
 
   protected renderBannerButtons(): React.ReactNode {
-    if (this.props.user && this.props.catalog && this.props.album) {
+    if (this.props.user && this.props.album) {
       return <React.Fragment>
         <Button l10n="banner-album-edit" onClick={this.onEdit}/>
         <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>

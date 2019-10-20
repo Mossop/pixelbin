@@ -141,7 +141,7 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           break;
         }
         case OverlayType.Upload: {
-          overlay = <UploadOverlay user={this.props.user} catalog={this.props.overlay.catalog} parent={this.props.overlay.parent}/>;
+          overlay = <UploadOverlay user={this.props.user} parent={this.props.overlay.parent}/>;
           break;
         }
       }

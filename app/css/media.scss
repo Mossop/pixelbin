@@ -5,6 +5,7 @@
   flex-wrap: wrap;
   align-items: start;
   overflow-y: auto;
+  overflow-x: hidden;
 
   .media {
     @include flex-column;

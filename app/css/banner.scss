@@ -4,33 +4,25 @@
 
   align-items: center;
   justify-content: space-between;
-
-  height: 50px;
 }
 
 #logo {
-  padding-left: 20px;
+  padding: var(--padding);
   font-size: 20px;
 }
 
 #rightbanner {
   @include flex-row;
 
-  align-items: center;
+  align-items: stretch;
   height: 100%;
-
-  a {
-    padding: 200px;
-  }
 
   button {
     @include unstyled-button;
 
     display: block;
     text-align: center;
-    padding-left: 1em;
-    padding-right: 1em;
-    height: 100%;
+    padding: var(--padding);
   }
 
   .button > span {

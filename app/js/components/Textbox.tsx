@@ -15,7 +15,7 @@ export default class Textbox extends TextComponent<TextboxProps> {
 
   public render(): React.ReactNode {
     return (
-      <input {...fieldProps(this.props, { className: "field" })} type={this.props.type || "text"} required={this.props.required} value={this.getUIState()} onChange={this.onChange}/>
+      <input {...fieldProps(this.props, { className: ["field", "textfield"] })} type={this.props.type || "text"} required={this.props.required} value={this.getUIState()} onChange={this.onChange}/>
     );
   }
 }

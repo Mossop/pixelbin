@@ -7,17 +7,15 @@
 }
 
 #catalog-tree {
-  padding-top: 15px;
-  padding-bottom: 15px;
-
-  --item-padding: 15px;
+  padding-top: var(--padding);
+  padding-bottom: var(--padding);
 
   #new-catalog {
     @include unstyled-button;
 
     width: 100%;
     text-align: left;
-    padding: 4px var(--item-padding) 4px var(--item-padding)
+    padding: 4px var(--padding) 4px var(--padding)
   }
 
   #new-catalog:hover {

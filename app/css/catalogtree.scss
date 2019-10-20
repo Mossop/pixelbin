@@ -10,7 +10,7 @@
   }
 
   .item {
-    padding: 4px var(--item-padding) 4px 0;
+    padding: 4px var(--padding) 4px 0;
     user-select: none;
   }
 
@@ -23,26 +23,26 @@
   }
 
   .depth0 > .item {
-    padding-left: calc(1 * var(--item-padding));
+    padding-left: calc(1 * var(--padding));
   }
 
   .depth1 > .item {
-    padding-left: calc(2 * var(--item-padding));
+    padding-left: calc(2 * var(--padding));
   }
 
   .depth2 > .item {
-    padding-left: calc(3 * var(--item-padding));
+    padding-left: calc(3 * var(--padding));
   }
 
   .depth3 > .item {
-    padding-left: calc(4 * var(--item-padding));
+    padding-left: calc(4 * var(--padding));
   }
 
   .depth4 > .item {
-    padding-left: calc(5 * var(--item-padding));
+    padding-left: calc(5 * var(--padding));
   }
 
   .depth5 > .item {
-    padding-left: calc(6 * var(--item-padding));
+    padding-left: calc(6 * var(--padding));
   }
 }

@@ -17,8 +17,7 @@ interface BaseOverlayState {
 
 interface UploadOverlayState {
   readonly type: OverlayType.Upload;
-  readonly catalog?: Catalog;
-  readonly parent?: Album;
+  readonly parent: Catalog | Album;
 }
 
 interface CatalogEditOverlayState {

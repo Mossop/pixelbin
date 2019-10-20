@@ -26,13 +26,50 @@ export type CustomField = {
 
 export type Field = TextboxField | SelectboxField | CustomField;
 
+interface FieldsProps {
+  fields: Field[];
+  orientation?: "row" | "column";
+}
+
+export class FormFields extends React.Component<FieldsProps> {
+  protected renderField: (field: Field, pos: number) => React.ReactNode = (field: Field, pos: number): React.ReactNode => {
+    switch (field.fieldType) {
+      case "textbox": {
+        return <React.Fragment key={pos}>
+          <FieldLabel l10n={field.labelL10n} for={field.uiPath}/>
+          <div className="fieldBox">
+            <Textbox {...field} id={field.uiPath}/>
+          </div>
+        </React.Fragment>;
+      }
+      case "selectbox": {
+        return <React.Fragment key={pos}>
+          <FieldLabel l10n={field.labelL10n} for={field.uiPath}/>
+          <div className="fieldBox">
+            <Selectbox {...field} id={field.uiPath}/>
+          </div>
+        </React.Fragment>;
+      }
+      case "custom": {
+        return <div className="fieldBox custom" key={pos}>{field.content}</div>;
+      }
+    }
+  };
+
+  public render(): React.ReactNode {
+    return <div className={`fieldGrid ${this.props.orientation ? this.props.orientation : "row"}`}>
+      {this.props.fields.map(this.renderField)}
+    </div>;
+  }
+}
+
 export interface FormProps extends StyleProps {
   disabled: boolean;
   onSubmit: () => void | Promise<void>;
 
   title?: string | FormTitleProps;
   fields: Field[];
-  submit: string | Omit<FormSubmitProps, "disabled">;
+  submit?: string | Omit<FormSubmitProps, "disabled">;
 }
 
 export default class Form extends React.Component<FormProps> {
@@ -41,42 +78,25 @@ export default class Form extends React.Component<FormProps> {
     this.props.onSubmit();
   };
 
-  protected renderField: (field: Field, pos: number) => React.ReactNode = (field: Field, pos: number): React.ReactNode => {
-    switch (field.fieldType) {
-      case "textbox": {
-        return <React.Fragment key={pos}>
-          <FieldLabel l10n={field.labelL10n} for={field.uiPath}/>
-          <Textbox {...field} id={field.uiPath}/>
-        </React.Fragment>;
-      }
-      case "selectbox": {
-        return <React.Fragment key={pos}>
-          <FieldLabel l10n={field.labelL10n} for={field.uiPath}/>
-          <Selectbox {...field} id={field.uiPath}/>
-        </React.Fragment>;
-      }
-      case "custom": {
-        return <React.Fragment key={pos}>{field.content}</React.Fragment>;
-      }
-    }
-  };
-
   public render(): React.ReactNode {
     let title: React.ReactNode = null;
+    let submit: React.ReactNode = null;
 
     if (this.props.title) {
       title = typeof this.props.title == "object" ?
         <FormTitle {...this.props.title}/> :
         <FormTitle l10n={this.props.title }/>;
     }
-    let submit = typeof this.props.submit == "object" ? this.props.submit : { l10n: this.props.submit };
+    if (this.props.submit) {
+      submit = typeof this.props.submit == "object" ?
+        <FormSubmit {...this.props.submit} disabled={this.props.disabled}/> :
+        <FormSubmit l10n={this.props.submit} disabled={this.props.disabled}/>;
+    }
 
     return <form {...styleProps(this.props, { className: "form" })} onSubmit={this.onSubmit}>
       {title}
-      <div className="fieldGrid">
-        {this.props.fields.map(this.renderField)}
-      </div>
-      <FormSubmit {...submit} disabled={this.props.disabled}/>
+      <FormFields fields={this.props.fields}/>
+      {submit}
     </form>;
   }
 }

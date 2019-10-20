@@ -88,19 +88,13 @@ export function showCatalogEditOverlay(catalog: Catalog): ShowCatalogEditOverlay
 
 interface ShowUploadOverlayAction extends Action {
   type: typeof SHOW_UPLOAD_OVERLAY;
-  payload: {
-    catalog?: Catalog;
-    parent?: Album;
-  };
+  payload: Catalog | Album;
 }
 
-export function showUploadOverlay(catalog?: Catalog, parent?: Album): ShowUploadOverlayAction {
+export function showUploadOverlay(parent: Catalog | Album): ShowUploadOverlayAction {
   return {
     type: SHOW_UPLOAD_OVERLAY,
-    payload: {
-      catalog,
-      parent,
-    }
+    payload: parent,
   };
 }
 

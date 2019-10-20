@@ -8,15 +8,50 @@
   justify-self: start;
 }
 
-.fieldGrid {
+.fieldGrid.row {
   display: grid;
   grid-template-columns: minmax(max-content, 150px) minmax(max-content, 250px);
   gap: 15px;
-  align-items: center;
+  padding-bottom: 15px;
+  justify-content: stretch;
+  align-items: stretch;
+
+  .fieldLabel {
+    @include flex-row;
+
+    text-align: right;
+    justify-content: end;
+    align-items: center;
+  }
+
+  .fieldBox {
+    @include flex-row;
+
+    text-align: left;
+    justify-content: start;
+    align-items: center;
+
+    &.custom {
+      grid-column-start: 1;
+      grid-column-end: 3;
+    }
+  }
+
+  .textfield, .selectfield {
+    flex: 1;
+  }
 }
 
-.fieldGrid .fieldLabel {
-  text-align: right;
+.fieldGrid.column {
+  @include flex-column;
+
+  .fieldLabel, .fieldBox {
+    padding-bottom: 15px;
+  }
+
+  .fieldBox {
+    @include flex-column;
+  }
 }
 
 .formSubmit {

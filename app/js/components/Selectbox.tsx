@@ -19,7 +19,7 @@ export default class Selectbox extends TextComponent<SelectboxProps> {
   };
 
   public render(): React.ReactNode {
-    return <select {...fieldProps(this.props, { className: "field" })} value={this.getUIState()} onChange={this.onChange}>
+    return <select {...fieldProps(this.props, { className: ["field", "selectfield"] })} value={this.getUIState()} onChange={this.onChange}>
       {this.props.choices.map((choice: SelectOption) => {
         return <Localized id={choice.l10n} key={choice.value}><option value={choice.value}/></Localized>;
       })}

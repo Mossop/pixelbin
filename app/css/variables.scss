@@ -11,16 +11,19 @@
   --background: #1A1920;
   --foreground: #E8E7DD;
   --font: 15px 'Comfortaa', cursive;
+  --padding: 15px;
 }
 
 #sidebar, #overlay-sidebar {
   --background: #6C636A;
   --foreground: #E8E7DD;
+  --padding: 15px;
 }
 
 #overlay {
   --background: #7E7C78;
   --foreground: #E8E7DD;
+  --padding: 15px;
 }
 
 .media-list {

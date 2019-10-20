@@ -1,37 +1,4 @@
-@mixin base-styles {
-  background: var(--background);
-  color: var(--foreground);
-  font: var(--font);
-}
-
-@mixin unstyled-button {
-  background: inherit;
-  color: inherit;
-  font: inherit;
-  border: none;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-
-  &[disabled=true] {
-    cursor: default;
-  }
-}
-
-@mixin flex-row {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: start;
-}
-
-@mixin flex-column {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: start;
-}
-
+@import "mixins";
 @import "variables";
 @import "base";
 @import "form";
@@ -57,5 +24,5 @@
   @include flex-column;
 
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
 }

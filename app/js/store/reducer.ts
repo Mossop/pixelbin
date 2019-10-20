@@ -152,8 +152,7 @@ function mediaReducer(state: Draft<StoreState>, action: ActionType): void {
     case SHOW_UPLOAD_OVERLAY: {
       state.overlay = {
         type: OverlayType.Upload,
-        catalog: action.payload.catalog,
-        parent: action.payload.parent,
+        parent: action.payload,
       };
       return;
     }

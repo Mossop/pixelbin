@@ -91,7 +91,9 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
     let title = this.props.album ? "album-edit-sidebar" : "album-create-sidebar";
 
     return <React.Fragment>
-      <Localized id={title}><h1 className="title"/></Localized>
+      <div className="sidebar-item">
+        <Localized id={title}><label/></Localized>
+      </div>
       <CatalogTreeSelector uiPath="parent"/>
     </React.Fragment>;
   }
