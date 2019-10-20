@@ -40,7 +40,7 @@ class CatalogTree extends React.Component<CatalogTreeProps> {
     let children = albumChildren(catalog, album);
     if (children.length) {
       return <ol>
-        {children.map((a: Album) => this.renderAlbum(catalog, a, depth + 1))}
+        {children.map((a: Album) => this.renderAlbum(catalog, a, depth))}
       </ol>;
     } else {
       return null;
@@ -50,7 +50,7 @@ class CatalogTree extends React.Component<CatalogTreeProps> {
   private renderAlbum(catalog: Catalog, album: Album, depth: number): React.ReactNode {
     return <li key={album.id} className={`depth${depth}`}>
       {this.renderItem(album, () => this.props.onAlbumClick(album))}
-      {this.renderChildren(catalog, album, depth)}
+      {this.renderChildren(catalog, album, depth + 1)}
     </li>;
   }
 
