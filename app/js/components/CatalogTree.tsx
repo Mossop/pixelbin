@@ -7,12 +7,7 @@ import { Button } from "./Button";
 import { Mapped } from "../utils/decoders";
 import { StoreState } from "../store/types";
 import Icon from "./Icon";
-
-interface Props {
-  onCatalogClick: (catalog: Catalog) => void;
-  onAlbumClick: (catalog: Album) => void;
-  selected?: string;
-}
+import { UIContext, Context, getTextState } from "../utils/UIState";
 
 interface StateProps {
   catalogs: Mapped<Catalog>;
@@ -25,15 +20,12 @@ function mapStateToProps(state: StoreState): StateProps {
   return { catalogs: {} };
 }
 
-type CatalogTreeProps = Props & StateProps;
+abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
+  protected abstract onAlbumClick(album: Album): void;
+  protected abstract onCatalogClick(catalog: Catalog): void;
 
-class CatalogTree extends React.Component<CatalogTreeProps> {
-  private renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
-    if (this.props.selected === item.id) {
-      return <p className="item selected"><Icon iconName="folder"/>{item.name}</p>;
-    } else {
-      return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
-    }
+  protected renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
+    return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
   }
 
   private renderChildren(catalog: Catalog, album?: Album, depth: number = 1): React.ReactNode {
@@ -49,14 +41,14 @@ class CatalogTree extends React.Component<CatalogTreeProps> {
 
   private renderAlbum(catalog: Catalog, album: Album, depth: number): React.ReactNode {
     return <li key={album.id} className={`depth${depth}`}>
-      {this.renderItem(album, () => this.props.onAlbumClick(album))}
+      {this.renderItem(album, () => this.onAlbumClick(album))}
       {this.renderChildren(catalog, album, depth + 1)}
     </li>;
   }
 
   private renderCatalog(catalog: Catalog): React.ReactNode {
     return <li key={catalog.id} className="depth0">
-      {this.renderItem(catalog, () => this.props.onCatalogClick(catalog))}
+      {this.renderItem(catalog, () => this.onCatalogClick(catalog))}
       {this.renderChildren(catalog)}
     </li>;
   }
@@ -68,4 +60,59 @@ class CatalogTree extends React.Component<CatalogTreeProps> {
   }
 }
 
-export default connect(mapStateToProps)(CatalogTree);
+interface SelectorProps {
+  uiPath: string;
+}
+
+class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProps> {
+  public static contextType: React.Context<UIContext> = Context;
+  public context!: React.ContextType<typeof Context>;
+
+  private getSelected(): string {
+    return getTextState(this.context.getState(this.props.uiPath));
+  }
+
+  protected onAlbumClick(album: Album): void {
+    this.context.setState(this.props.uiPath, { text: album.id });
+  }
+
+  protected onCatalogClick(catalog: Catalog): void {
+    this.context.setState(this.props.uiPath, { text: catalog.id });
+  }
+
+  protected renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
+    if (this.getSelected() === item.id) {
+      return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
+    } else {
+      return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
+    }
+  }
+}
+
+export const CatalogTreeSelector = connect(mapStateToProps)(CatalogTreeSelectorComponent);
+
+interface SidebarProps {
+  onCatalogClick: (catalog: Catalog) => void;
+  onAlbumClick: (album: Album) => void;
+  selected?: string;
+}
+
+class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps> {
+  protected onAlbumClick(album: Album): void {
+    this.props.onAlbumClick(album);
+  }
+
+  protected onCatalogClick(catalog: Catalog): void {
+    this.props.onCatalogClick(catalog);
+  }
+
+  protected renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
+    if (this.props.selected === item.id) {
+      return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
+    } else {
+      return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
+    }
+  }
+}
+
+export const CatalogTreeSidebar = connect(mapStateToProps)(CatalogTreeSidebarComponent);

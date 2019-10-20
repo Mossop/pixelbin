@@ -77,4 +77,13 @@ export function getAlbum(id: string, state?: StoreState): Album | undefined {
   return catalog ? catalog.albums[id] : undefined;
 }
 
+export function getParent(id: string, state?: StoreState): Album | Catalog | undefined {
+  let catalog = getCatalog(id, state);
+  if (catalog) {
+    return catalog;
+  }
+
+  return getAlbum(id, state);
+}
+
 export default store;

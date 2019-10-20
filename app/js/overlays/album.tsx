@@ -6,7 +6,10 @@ import Form, { FormProps } from "../content/Form";
 import { Album, Catalog, User } from "../api/types";
 import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
-import { getCatalog } from "../store/store";
+import { getParent, getCatalogForAlbum } from "../store/store";
+import { Overlay } from ".";
+import { CatalogTreeSelector } from "../components/CatalogTree";
+import { Localized } from "@fluent/react";
 
 interface AlbumState {
   disabled: boolean;
@@ -15,9 +18,8 @@ interface AlbumState {
 
 interface PassedProps {
   user: User;
-  catalog: Catalog;
-  parent?: Album;
   album?: Album;
+  parent?: Catalog | Album;
 }
 
 const mapDispatchToProps = {
@@ -36,14 +38,13 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
       error: false,
     };
 
-    this.setTextState("catalog", this.props.catalog.id);
     if (this.props.parent) {
       this.setTextState("parent", this.props.parent.id);
-    }
-
-    if (this.props.album) {
+    } else if (this.props.album) {
       this.setTextState("parent", this.props.album.parent || "");
       this.setTextState("name", this.props.album.name);
+    } else {
+      console.error("Invalid overlay state.");
     }
   }
 
@@ -52,30 +53,48 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
     if (!name) {
       return;
     }
-    let catalogId = this.getTextState("catalog");
-    if (!catalogId) {
+    let parent = getParent(this.getTextState("parent"));
+    if (!parent) {
       return;
     }
-    let catalog = getCatalog(catalogId);
-    if (!catalog) {
-      return;
+
+    let catalog: Catalog;
+    let parentAlbum: Album | undefined;
+    if ("albums" in parent) {
+      catalog = parent;
+      parentAlbum = undefined;
+    } else {
+      parentAlbum = parent;
+      let check = getCatalogForAlbum(parent);
+      if (!check) {
+        return;
+      }
+      catalog = check;
     }
-    let parent = this.getTextState("parent");
 
     this.setState({ disabled: true });
 
     try {
       if (!this.props.album) {
-        let album = await createAlbum(catalog, name, parent);
+        let album = await createAlbum(catalog, name, parentAlbum);
         this.props.albumCreated(catalog, album);
       } else {
-        let album = await editAlbum(this.props.album, catalog, name, parent);
+        let album = await editAlbum(this.props.album, catalog, name, parentAlbum);
         this.props.albumEdited(catalog, album);
       }
     } catch (e) {
       this.setState({ disabled: false, error: true });
     }
   };
+
+  public renderSidebar(): React.ReactNode {
+    let title = this.props.album ? "album-edit-sidebar" : "album-create-sidebar";
+
+    return <React.Fragment>
+      <Localized id={title}><h1 className="title"/></Localized>
+      <CatalogTreeSelector uiPath="parent"/>
+    </React.Fragment>;
+  }
 
   public renderUI(): React.ReactNode {
     let title = this.props.album ? "album-edit-title" : "album-create-title";
@@ -85,7 +104,6 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
       onSubmit: this.onSubmit,
       className: this.state.error ? "error" : undefined,
 
-      title,
       fields: [{
         fieldType: "textbox",
         uiPath: "name",
@@ -95,7 +113,9 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
       submit: this.props.album ? "album-edit-submit" : "album-create-submit",
     };
 
-    return <Form {...form}/>;
+    return <Overlay title={title} sidebar={this.renderSidebar()}>
+      <Form {...form}/>
+    </Overlay>;
   }
 }
 

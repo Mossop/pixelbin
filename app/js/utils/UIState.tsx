@@ -8,7 +8,7 @@ function isTextState(state: ComponentState): state is TextComponentState {
   return "text" in state;
 }
 
-function getTextState(state: ComponentState | undefined): string {
+export function getTextState(state: ComponentState | undefined): string {
   if (state && isTextState(state)) {
     return state.text;
   }
@@ -17,12 +17,12 @@ function getTextState(state: ComponentState | undefined): string {
 
 type ComponentState = TextComponentState;
 
-interface UIContext {
+export interface UIContext {
   getState: (path: string) => ComponentState | undefined;
   setState: (path: string, state: ComponentState | undefined) => void;
 }
 
-const Context = React.createContext<UIContext>({
+export const Context = React.createContext<UIContext>({
   getState(): undefined {
     return undefined;
   },

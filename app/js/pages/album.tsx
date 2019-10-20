@@ -59,7 +59,7 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
       return;
     }
 
-    this.props.showAlbumEditOverlay(this.props.catalog, this.props.album);
+    this.props.showAlbumEditOverlay(this.props.album);
   };
 
   private onNewAlbum: (() => void) = (): void => {
@@ -67,7 +67,7 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
       return;
     }
 
-    this.props.showAlbumCreateOverlay(this.props.catalog, this.props.album);
+    this.props.showAlbumCreateOverlay(this.props.album);
   };
 
   private onUpload: (() => void) = (): void => {

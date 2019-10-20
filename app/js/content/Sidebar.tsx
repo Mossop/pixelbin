@@ -7,7 +7,7 @@ import { StoreState } from "../store/types";
 import { Catalog, Album } from "../api/types";
 import { history } from "../utils/history";
 import { Mapped } from "../utils/decoders";
-import CatalogTree from "../components/CatalogTree";
+import { CatalogTreeSidebar } from "../components/CatalogTree";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
@@ -40,7 +40,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
   public render(): React.ReactNode {
     return <div id="sidebar">
       <div id="catalog-tree">
-        <CatalogTree selected={this.props.selected} onCatalogClick={this.onCatalogClick} onAlbumClick={this.onAlbumClick}/>
+        <CatalogTreeSidebar selected={this.props.selected} onCatalogClick={this.onCatalogClick} onAlbumClick={this.onAlbumClick}/>
         <Button id="new-catalog" l10n="sidebar-add-catalog" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/>
       </div>
     </div>;

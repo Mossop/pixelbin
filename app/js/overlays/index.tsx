@@ -30,27 +30,27 @@ class OverlayComponent extends React.Component<OverlayProps> {
     let sidebar = this.props.sidebar;
     let title: React.ReactNode;
     if (this.props.title && typeof this.props.title == "string") {
-      title = <Localized id={this.props.title}><p/></Localized>;
+      title = <Localized id={this.props.title}><h1 className="title"/></Localized>;
     } else {
       title = this.props.title;
     }
 
     if (sidebar) {
-      return <div id="overlay-inner" className="sidebar">
-        <div id="overlay-sidebar">{sidebar}</div>
-        <div className="overlay-main">
-          <div id="overlay-header">
-            {title}
-            <Button id="overlay-close" iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
-          </div>
+      return <div id="overlay-inner">
+        <div id="overlay-header">
+          {title}
+          <Button id="overlay-close" iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
+        </div>
+        <div id="overlay-sidebar-wrapper">
+          <div id="overlay-sidebar">{sidebar}</div>
           <div id="overlay-content">{this.props.children}</div>
         </div>
       </div>;
     } else {
-      return <div id="overlay-inner" className="overlay-main">
+      return <div id="overlay-inner">
         <div id="overlay-header">
           {title}
-          <Button iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
+          <Button id="overlay-close" iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
         </div>
         <div id="overlay-content">{this.props.children}</div>
       </div>;
@@ -133,11 +133,11 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           break;
         }
         case OverlayType.CreateAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} catalog={this.props.overlay.catalog} parent={this.props.overlay.parent}/>;
+          overlay = <AlbumOverlay user={this.props.user} parent={this.props.overlay.parent}/>;
           break;
         }
         case OverlayType.EditAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} catalog={this.props.overlay.catalog} album={this.props.overlay.album}/>;
+          overlay = <AlbumOverlay user={this.props.user} album={this.props.overlay.album}/>;
           break;
         }
         case OverlayType.Upload: {

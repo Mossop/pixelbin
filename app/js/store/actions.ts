@@ -52,37 +52,25 @@ export type ActionType =
 
 interface ShowAlbumCreateOverlayAction extends Action {
   type: typeof SHOW_ALBUM_CREATE_OVERLAY;
-  payload: {
-    catalog: Catalog;
-    parent?: Album;
-  };
+  payload: Album | Catalog;
 }
 
-export function showAlbumCreateOverlay(catalog: Catalog, parent?: Album): ShowAlbumCreateOverlayAction {
+export function showAlbumCreateOverlay(parent: Album | Catalog): ShowAlbumCreateOverlayAction {
   return {
     type: SHOW_ALBUM_CREATE_OVERLAY,
-    payload: {
-      catalog,
-      parent,
-    }
+    payload: parent,
   };
 }
 
 interface ShowAlbumEditOverlayAction extends Action {
   type: typeof SHOW_ALBUM_EDIT_OVERLAY;
-  payload: {
-    album: Album;
-    catalog: Catalog;
-  };
+  payload: Album;
 }
 
-export function showAlbumEditOverlay(catalog: Catalog, album: Album): ShowAlbumEditOverlayAction {
+export function showAlbumEditOverlay(album: Album): ShowAlbumEditOverlayAction {
   return {
     type: SHOW_ALBUM_EDIT_OVERLAY,
-    payload: {
-      album,
-      catalog,
-    },
+    payload: album,
   };
 }
 

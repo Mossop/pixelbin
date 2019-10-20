@@ -28,13 +28,11 @@ interface CatalogEditOverlayState {
 
 interface AlbumCreateOverlayState {
   readonly type: OverlayType.CreateAlbum;
-  readonly catalog: Catalog;
-  readonly parent?: Album;
+  readonly parent: Catalog | Album;
 }
 
 interface AlbumEditOverlayState {
   readonly type: OverlayType.EditAlbum;
-  readonly catalog: Catalog;
   readonly album: Album;
 }
 

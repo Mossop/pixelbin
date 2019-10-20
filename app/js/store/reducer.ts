@@ -60,8 +60,7 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: 
     case SHOW_ALBUM_CREATE_OVERLAY: {
       state.overlay = {
         type: OverlayType.CreateAlbum,
-        catalog: action.payload.catalog,
-        parent: action.payload.parent,
+        parent: action.payload,
       };
       return;
     }
@@ -80,8 +79,7 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: 
     case SHOW_ALBUM_EDIT_OVERLAY: {
       state.overlay = {
         type: OverlayType.EditAlbum,
-        album: action.payload.album,
-        catalog: action.payload.catalog,
+        album: action.payload,
       };
       return;
     }
