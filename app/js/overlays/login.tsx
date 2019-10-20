@@ -4,8 +4,8 @@ import { connect } from "react-redux";
 import { login } from "../api/auth";
 import Form, { FormProps } from "../content/Form";
 import { UIManager } from "../utils/UIState";
-
 import { DispatchProps, completeLogin } from "../store/actions";
+import Overlay from "../components/overlay";
 
 interface LoginState {
   disabled: boolean;
@@ -53,7 +53,6 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
       onSubmit: this.onSubmit,
       className: this.state.error ? "error" : undefined,
 
-      title,
       fields: [{
         fieldType: "textbox",
         uiPath: "email",
@@ -68,7 +67,9 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
       }],
       submit: "login-submit",
     };
-    return <Form {...form}/>;
+    return <Overlay title={title}>
+      <Form {...form}/>
+    </Overlay>;
   }
 }
 

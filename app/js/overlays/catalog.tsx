@@ -7,7 +7,7 @@ import Form, { FormProps, Field } from "../content/Form";
 import { getStorageConfigUI, getStorageConfig } from "../storage";
 import { createCatalog, editCatalog } from "../api/catalog";
 import { catalogCreated, catalogEdited, DispatchProps } from "../store/actions";
-import { Overlay } from ".";
+import Overlay from "../components/overlay";
 
 interface CatalogState {
   disabled: boolean;

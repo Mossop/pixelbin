@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { signup } from "../api/auth";
 import Form, { FormProps } from "../content/Form";
 import { UIManager } from "../utils/UIState";
-
+import Overlay from "../components/overlay";
 import { DispatchProps, completeSignup } from "../store/actions";
 
 interface SignupState {
@@ -55,7 +55,6 @@ class SignupOverlay extends UIManager<SignupProps, SignupState> {
       onSubmit: this.onSubmit,
       className: this.state.error ? "error" : undefined,
 
-      title,
       fields: [{
         fieldType: "textbox",
         uiPath: "email",
@@ -74,7 +73,9 @@ class SignupOverlay extends UIManager<SignupProps, SignupState> {
       }],
       submit: "signup-submit",
     };
-    return <Form {...form}/>;
+    return <Overlay title={title}>
+      <Form {...form}/>
+    </Overlay>;
   }
 }
 

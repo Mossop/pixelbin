@@ -10,7 +10,7 @@
 
 .fieldGrid.row {
   display: grid;
-  grid-template-columns: minmax(max-content, 150px) minmax(max-content, 250px);
+  grid-template-columns: minmax(max-content, 100px) minmax(max-content, 200px);
   gap: 15px;
   padding-bottom: 15px;
   justify-content: stretch;

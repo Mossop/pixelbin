@@ -7,11 +7,14 @@
   --font: 15px sans-serif;
 }
 
-#banner {
+#banner, #overlay-header {
   --background: #1A1920;
   --foreground: #E8E7DD;
-  --font: 15px 'Comfortaa', cursive;
   --padding: 15px;
+}
+
+#banner {
+  --font: 15px 'Comfortaa', cursive;
 }
 
 #sidebar, #overlay-sidebar {
@@ -27,7 +30,8 @@
 }
 
 .media-list {
-  --background: white;
-  --foreground: black;
-  --hover: darkgrey;
+  --background: #36454F;
+  --foreground: #E8E7DD;
+  --active: #7E7C78;
+  --hover: rgb(180, 176, 166);
 }

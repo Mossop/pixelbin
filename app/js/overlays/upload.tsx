@@ -12,7 +12,7 @@ import { UploadInfo, upload } from "../api/upload";
 import { Catalog, Album, User } from "../api/types";
 import { getCatalog } from "../store/store";
 import { CatalogTreeSelector } from "../components/CatalogTree";
-import { Overlay } from ".";
+import Overlay from "../components/overlay";
 import { FormFields, Field } from "../content/Form";
 
 interface UploadFile {

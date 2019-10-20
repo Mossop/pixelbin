@@ -7,7 +7,7 @@ import { Album, Catalog, User } from "../api/types";
 import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
 import { getParent, getCatalogForAlbum } from "../store/store";
-import { Overlay } from ".";
+import Overlay from "../components/overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import { Localized } from "@fluent/react";
 

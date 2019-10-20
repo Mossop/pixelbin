@@ -16,7 +16,7 @@
   right: 0;
   overflow: hidden;
 
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(2px);
 
   display: flex;
@@ -42,9 +42,6 @@
 
 #overlay-inner {
   @include flex-column;
-
-  overflow: hidden;
-  border: 1px solid black;
 }
 
 #overlay-sidebar-wrapper {
@@ -67,7 +64,11 @@
 }
 
 #overlay-close {
-  padding-left: var(--padding);
+  padding: var(--padding);
+
+  &:hover {
+    background: var(--active);
+  }
 }
 
 #overlay-header {
@@ -90,7 +91,7 @@
   @include base-styles;
   @include flex-column;
 
-  padding: 0 var(--padding) var(--padding) var(--padding);
+  padding: var(--padding);
   flex: 1;
   overflow: hidden;
 }
