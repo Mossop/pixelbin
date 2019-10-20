@@ -33,9 +33,10 @@ class Serializer(serializers.Serializer):
         pass
 
 class UploadSerializer(Serializer):
-    title = serializers.CharField(allow_blank=True)
-    orientation = serializers.IntegerField(min_value=1, max_value=8)
     catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
+    album = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all(),
+                                               write_only=True, allow_null=True)
+    orientation = serializers.IntegerField(min_value=1, max_value=8)
     people = serializers.ListField(
         child=serializers.CharField(allow_blank=False),
         allow_empty=True

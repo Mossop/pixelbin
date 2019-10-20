@@ -1,18 +1,12 @@
 import { buildFormBody, request } from "./api";
-import { Catalog } from "./types";
+import { Catalog, UploadMetadata, Album } from "./types";
+import { Immutable } from "immer";
 
-export interface UploadInfo {
-  title: string;
-  tags: string[][];
-  people: string[];
-  orientation: number;
-  catalog: Catalog;
-}
-
-export async function upload(metadata: UploadInfo, file: Blob): Promise<void> {
+export async function upload(catalog: Catalog, parentAlbum: Album | undefined, metadata: Immutable<UploadMetadata>, file: Blob): Promise<void> {
   let data = {
+    catalog: catalog.id,
+    album: parentAlbum ? parentAlbum.id : undefined,
     ...metadata,
-    catalog: metadata.catalog.id,
   };
 
   let body = buildFormBody({
@@ -20,5 +14,11 @@ export async function upload(metadata: UploadInfo, file: Blob): Promise<void> {
     file,
   });
 
-  await request("media/upload", "PUT", body);
+  let response = await request("media/upload", "PUT", body);
+
+  if (response.ok) {
+    return;
+  } else {
+    throw new Error("Failed to upload file.");
+  }
 }

@@ -177,6 +177,9 @@ def upload(request):
     media.tags.add(*tags)
     media.people.add(*people)
 
+    if 'album' in data and data['album'] is not None:
+        media.albums.add(data['album'])
+
     temp = media.storage.get_temp_path(media.storage_filename)
     with open(temp, "wb") as output:
         for chunk in file.chunks():

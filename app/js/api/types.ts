@@ -3,6 +3,7 @@ import moment from "moment";
 
 import { OptionalDecoder, DateDecoder, MapDecoder, Mapped } from "../utils/decoders";
 import { nameSorted } from "../utils/sort";
+import { Orientation } from "media-metadata/lib/metadata";
 
 export interface Album {
   readonly id: string;
@@ -130,10 +131,9 @@ export const MediaDecoder = JsonDecoder.object<Media>(
 export const MediaArrayDecoder = JsonDecoder.array<Media>(MediaDecoder, "Media[]");
 
 export interface UploadMetadata {
-  tags: string;
-  taken: moment.Moment;
-  latitude?: number;
-  longitude?: number;
+  tags: string[][];
+  people: string[];
+  orientation: Orientation;
 }
 
 export interface UploadResponse {

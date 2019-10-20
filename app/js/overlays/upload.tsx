@@ -8,16 +8,22 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { UploadInfo, upload } from "../api/upload";
-import { Catalog, Album, User } from "../api/types";
-import { getCatalog } from "../store/store";
+import { upload } from "../api/upload";
+import { Catalog, Album, User, UploadMetadata } from "../api/types";
+import { getParent, getCatalogForAlbum } from "../store/store";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/overlay";
 import { FormFields, Field } from "../components/Form";
+import { produce, Immutable } from "immer";
+import { Metadata } from "media-metadata/lib/metadata";
+import { parseMetadata, loadPreview } from "../utils/metadata";
 
-interface UploadFile {
-  id: string;
+export interface PendingUpload {
   file: File;
+  uploading: boolean;
+  failed: boolean;
+  thumbnail?: ImageBitmap;
+  metadata: UploadMetadata;
   ref: React.RefObject<Upload>;
 }
 
@@ -43,62 +49,158 @@ type UploadOverlayProps = {
   parent: Catalog | Album;
 } & DispatchProps<typeof mapDispatchToProps>;
 
+interface Uploads {
+  [id: string]: PendingUpload;
+}
+
+interface Refs {
+  [id: string]: React.RefObject<Upload>;
+}
+
 interface UploadOverlayState {
-  media: UploadFile[];
+  uploads: Immutable<Uploads>;
 }
 
 class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
   private fileInput: React.RefObject<HTMLInputElement>;
+  private uploadRefs: Refs;
 
   public constructor(props: UploadOverlayProps) {
     super(props);
 
     this.setTextState("parent", this.props.parent.id);
+    this.uploadRefs = {};
     this.state = {
-      media: [],
+      uploads: {},
     };
 
     this.fileInput = React.createRef();
   }
 
-  private upload: (() => Promise<void>[]) = (): Promise<void>[] => {
-    let results: Promise<void>[] = [];
-
-    let catalogId = this.getTextState("catalog");
-    let catalog = getCatalog(catalogId);
-    if (!catalog) {
-      return results;
+  private async upload(catalog: Catalog, parentAlbum: Album | undefined, id: string, pending: Immutable<PendingUpload>): Promise<void> {
+    if (pending.uploading) {
+      return;
     }
 
-    for (let media of this.state.media) {
-      if (!media.ref.current) {
-        continue;
+    let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
+      uploads[id].uploading = true;
+    });
+    this.setState({ uploads });
+    // pending is outdated here, doesn't matter much though.
+
+    // TODO add global metadata.
+
+    try {
+      await upload(catalog, parentAlbum, pending.metadata, pending.file);
+
+      let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
+        delete uploads[id];
+      });
+      this.setState({ uploads });
+    } catch (e) {
+      let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
+        uploads[id].failed = true;
+        uploads[id].uploading = false;
+      });
+      this.setState({ uploads });
+    }
+  }
+
+  private startUploads: (() => void) = (): void => {
+    let parent = getParent(this.getTextState("parent"));
+    if (!parent) {
+      return;
+    }
+
+    let catalog: Catalog;
+    let parentAlbum: Album | undefined;
+    if ("albums" in parent) {
+      catalog = parent;
+      parentAlbum = undefined;
+    } else {
+      parentAlbum = parent;
+      let check = getCatalogForAlbum(parent);
+      if (!check) {
+        return;
       }
-
-      let info: UploadInfo = {
-        title: media.ref.current.title,
-        tags: media.ref.current.tags,
-        people: media.ref.current.people,
-        orientation: media.ref.current.orientation,
-        catalog,
-      };
-
-      results.push(upload(info, media.file));
+      catalog = check;
     }
 
-    return results;
+    for (let [id, upload] of Object.entries(this.state.uploads)) {
+      this.upload(catalog, parentAlbum, id, upload);
+    }
   };
 
-  private addFile(file: File): void {
-    let upload: UploadFile = {
-      id: uuid(),
-      file,
-      ref: React.createRef(),
-    };
+  private async loadPreview(id: string, file: File): Promise<void> {
+    let preview = await loadPreview(file, file.type);
 
-    let newMedia = this.state.media.slice(0);
-    newMedia.push(upload);
-    this.setState({ media: newMedia });
+    if (!preview) {
+      return;
+    }
+
+    let found: ImageBitmap = preview;
+
+    let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
+      if (!(id in uploads)) {
+        return;
+      }
+
+      uploads[id].thumbnail = found;
+    });
+
+    this.setState({ uploads });
+  }
+
+  private async loadThumbnail(id: string, blob: Blob): Promise<void> {
+    let thumbnail = await createImageBitmap(blob);
+
+    let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
+      if (!(id in uploads)) {
+        return;
+      }
+
+      if (uploads[id].thumbnail) {
+        return;
+      }
+
+      uploads[id].thumbnail = thumbnail;
+    });
+
+    this.setState({ uploads });
+  }
+
+  private addFile(file: File): void {
+    let id = uuid();
+    this.uploadRefs[id] = React.createRef<Upload>();
+
+    parseMetadata(file).then((metadata: Metadata | null) => {
+      if (metadata) {
+        let uploadMeta: UploadMetadata = {
+          orientation: metadata.orientation,
+          tags: metadata.tags,
+          people: metadata.people,
+        };
+
+        let uploads = produce(this.state.uploads, (uploads: Uploads) => {
+          let upload: PendingUpload = {
+            file,
+            uploading: false,
+            failed: false,
+            metadata: uploadMeta,
+            ref: React.createRef(),
+          };
+
+          uploads[id] = upload;
+        });
+
+        this.setState({ uploads });
+
+        if (metadata.thumbnail) {
+          this.loadThumbnail(id, new Blob([metadata.thumbnail]));
+        }
+        this.loadPreview(id, file);
+      }
+    });
   }
 
   private openFilePicker: (() => void) = (): void => {
@@ -176,10 +278,12 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
 
   public renderUI(): React.ReactNode {
     return <Overlay title="upload-title" sidebar={this.renderSidebar()}>
-      <If condition={this.state.media.length > 0}>
+      <If condition={Object.keys(this.state.uploads).length > 0}>
         <Then>
           <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-            {this.state.media.map((m: UploadFile) => <Upload key={m.id} ref={m.ref} file={m.file}/>)}
+            {Object.entries(this.state.uploads).map(([id, upload]: [string, Immutable<PendingUpload>]) => {
+              return <Upload ref={this.uploadRefs[id]} key={id} upload={upload}/>;
+            })}
           </div>
         </Then>
         <Else>
@@ -193,7 +297,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       <div id="upload-complete">
         <input id="fileInput" multiple={true} accept="image/jpeg,video/mp4" type="file" ref={this.fileInput} onChange={this.onNewFiles}/>
         <Button l10n="upload-add-files" onClick={this.openFilePicker}/>
-        <Button l10n="upload-submit" onClick={this.upload}/>
+        <Button l10n="upload-submit" onClick={this.startUploads}/>
       </div>
     </Overlay>;
   }
