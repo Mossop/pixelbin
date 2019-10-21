@@ -25,6 +25,7 @@ interface StateProps {
 interface PageState {
   album?: Album;
   catalog?: Catalog;
+  search?: Search;
   pending: boolean;
 }
 
@@ -40,11 +41,11 @@ function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchPara
   };
 }
 
-type AlbumPageParams = BasePageProps & RouteComponentProps<MatchParams> & StateProps & DispatchProps<typeof mapDispatchToProps>;
+type AlbumPageProps = BasePageProps & RouteComponentProps<MatchParams> & StateProps & DispatchProps<typeof mapDispatchToProps>;
 type AlbumPageState = BasePageState & PageState;
 
-class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
-  public constructor(props: AlbumPageParams) {
+class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
+  public constructor(props: AlbumPageProps) {
     super(props);
 
     let catalog: Catalog | undefined = undefined;
@@ -52,10 +53,41 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
       catalog = getCatalogForAlbum(props.album);
     }
     this.state = {
-      album: props.album,
       catalog,
-      pending: !props.album,
+      pending: true,
     };
+  }
+
+  public componentDidMount(): void {
+    if (this.props.album && this.state.catalog) {
+      let search: Search = {
+        catalog: this.state.catalog,
+        query: {
+          invert: false,
+          field: Field.Album,
+          operation: Operation.Includes,
+          value: this.props.album.name,
+        },
+      };
+
+      this.setState({
+        album: this.props.album,
+        search,
+        pending: false,
+      });
+    } else {
+      this.setState({
+        album: undefined,
+        search: undefined,
+        pending: true,
+      });
+    }
+  }
+
+  public componentDidUpdate(prevProps: AlbumPageProps): void {
+    if (prevProps.match.params.id !== this.props.match.params.id) {
+      this.componentDidMount();
+    }
   }
 
   private onEdit: (() => void) = (): void => {
@@ -102,17 +134,8 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
 
   protected renderContent(): React.ReactNode {
     if (!this.state.pending) {
-      if (this.state.album && this.state.catalog) {
-        let search: Search = {
-          catalog: this.state.catalog,
-          query: {
-            invert: false,
-            field: Field.Album,
-            operation: Operation.Includes,
-            value: this.state.album.name,
-          },
-        };
-        return <MediaList search={search}/>;
+      if (this.state.search) {
+        return <MediaList search={this.state.search}/>;
       } else {
         return <NotFound/>;
       }
