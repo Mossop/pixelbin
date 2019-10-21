@@ -134,7 +134,7 @@ class Album(models.Model):
     objects = CTEManager()
 
     id = models.CharField(max_length=30, primary_key=True)
-    stub = models.CharField(max_length=50, unique=True, default='', blank=True)
+    stub = models.CharField(max_length=50, unique=True, default=None, blank=False, null=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
     name = models.CharField(max_length=100, blank=False)
     lc_name = models.CharField(max_length=100, blank=False)

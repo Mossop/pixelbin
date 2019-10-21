@@ -103,7 +103,7 @@ class CatalogPeopleSerializer(serializers.ModelSerializer):
 class AlbumSerializer(serializers.ModelSerializer):
     id = serializers.CharField(required=False)
     catalog = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Catalog.objects.all())
-    stub = serializers.CharField(allow_null=True, default=None)
+    stub = serializers.CharField(allow_null=True, allow_blank=False, required=False, default=None)
     parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all())
 
     class Meta:
