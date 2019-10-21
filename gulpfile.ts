@@ -1,7 +1,7 @@
 /* eslint-env node */
 import { spawn } from "child_process";
 
-import { src, dest, parallel, watch } from "gulp";
+import { src, dest, parallel, watch, series } from "gulp";
 import { RuleSetQuery } from "webpack";
 import { Configuration } from "webpack";
 import gulpWebpack from "webpack-stream";
@@ -29,6 +29,27 @@ function allScripts(): string[] {
 }
 
 const tsProject = gulpTypeScript.createProject(path("tsconfig.json"));
+
+function exec(command: string, args: string[] = []): Promise<void> {
+  return new Promise((resolve: () => void, reject: (err: Error) => void) => {
+    let process = spawn(command, args, {
+      stdio: "inherit",
+      shell: true,
+    });
+
+    process.on("exit", (code: number) => {
+      if (code !== 0) {
+        reject(new Error(`Process exitied with code ${code}`));
+      } else {
+        resolve();
+      }
+    });
+
+    process.on("error", (err: Error) => {
+      reject(err);
+    });
+  });
+}
 
 function babelOptions(): RuleSetQuery {
   return {
@@ -83,6 +104,10 @@ function watchJsConfig(): Configuration {
   return config;
 }
 
+export async function pylint(): Promise<void> {
+  return exec("pylint", ["api", "app", "base", "config"]);
+}
+
 export function eslint(): NodeJS.ReadWriteStream {
   return src(allScripts())
     .pipe(gulpEslint())
@@ -102,34 +127,8 @@ export function watchTypescript(): void {
   watch(allScripts(), typescript);
 }
 
-export function staticContent(callback: ((error: Error | null) => void)): void {
-  let process = spawn(path("manage.py"), ["collectstatic", "--noinput"], {
-    stdio: "inherit",
-    shell: true,
-  });
-
-  let finished = false;
-  process.on("exit", (code: number) => {
-    if (finished) {
-      return;
-    }
-
-    if (code !== 0) {
-      finished = true;
-      callback(new Error(`Process exitied with code ${code}`));
-    } else {
-      callback(null);
-    }
-  });
-
-  process.on("error", (err: Error) => {
-    if (finished) {
-      return;
-    }
-
-    finished = true;
-    callback(err);
-  });
+export async function staticContent(): Promise<void> {
+  return exec(path("manage.py"), ["collectstatic", "--noinput"]);
 }
 
 export function watchStaticContent(): void {
@@ -160,7 +159,7 @@ export function watchBuildCss(): void {
   watch(["**/*.scss",...IGNORES], buildCss);
 }
 
-export const lint = parallel(eslint, typescript);
+export const lint = series(eslint, typescript, pylint);
 export const watchLint = parallel(watchEslint);
 export const build = parallel(buildJs, buildCss, staticContent);
 export const watchBuild = parallel(watchBuildJs, watchBuildCss, watchStaticContent);
