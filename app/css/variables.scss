@@ -10,6 +10,7 @@
 #banner, #overlay-header {
   --background: #1A1920;
   --foreground: #E8E7DD;
+  --hover: #7E7C78;
   --padding: 15px;
 }
 
@@ -32,6 +33,11 @@
 .media-list {
   --background: #FFFFFF;
   --foreground: #000000;
-  --active: #7E7C78;
-  --hover: rgb(180, 176, 166);
+  --padding: 15px;
+}
+
+.media {
+  --background: #FFFFFF;
+  --foreground: #000000;
+  --active: rgb(180, 176, 166);
 }
