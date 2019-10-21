@@ -1,12 +1,11 @@
 import { buildFormBody, request, buildJSONBody, getRequest } from "./api";
-import { Catalog, UploadMetadata, Album, Media, MediaArrayDecoder } from "./types";
+import { Catalog, UploadMetadata, Album, Media, MediaArrayDecoder, MediaDecoder } from "./types";
 import { Immutable } from "immer";
 import { Search } from "../utils/search";
 
-export async function upload(catalog: Catalog, parentAlbum: Album | undefined, metadata: Immutable<UploadMetadata>, file: Blob): Promise<void> {
+export async function upload(catalog: Catalog, metadata: Immutable<UploadMetadata>, file: Blob): Promise<Media> {
   let data = {
     catalog: catalog.id,
-    album: parentAlbum ? parentAlbum.id : undefined,
     ...metadata,
   };
 
@@ -18,9 +17,35 @@ export async function upload(catalog: Catalog, parentAlbum: Album | undefined, m
   let response = await request("media/upload", "PUT", body);
 
   if (response.ok) {
-    return;
+    return MediaDecoder.decodePromise(await response.json());
   } else {
     throw new Error("Failed to upload file.");
+  }
+}
+
+export async function addToAlbums(media: Media, albums: Album[]): Promise<void> {
+  let response = await request("albums/add", "PUT", buildJSONBody({
+    media: media.id,
+    albums: albums.map((a: Album): string => a.id),
+  }));
+
+  if (response.ok) {
+    return;
+  } else {
+    throw new Error("Failed to add to albums.");
+  }
+}
+
+export async function removeFromAlbums(media: Media, albums: Album[]): Promise<void> {
+  let response = await request("albums/remove", "DELETE", buildJSONBody({
+    media: media.id,
+    albums: albums.map((a: Album): string => a.id),
+  }));
+
+  if (response.ok) {
+    return;
+  } else {
+    throw new Error("Failed to remove from albums.");
   }
 }
 

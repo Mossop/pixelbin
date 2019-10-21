@@ -8,7 +8,7 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { upload } from "../api/media";
+import { upload, addToAlbums } from "../api/media";
 import { Catalog, Album, User, UploadMetadata } from "../api/types";
 import { getParent, getCatalogForAlbum } from "../store/store";
 import { CatalogTreeSelector } from "../components/CatalogTree";
@@ -91,7 +91,11 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
     // TODO add global metadata.
 
     try {
-      await upload(catalog, parentAlbum, pending.metadata, pending.file);
+      let media = await upload(catalog, pending.metadata, pending.file);
+      if (parentAlbum) {
+        // Not sure what to do if this fails.
+        addToAlbums(media, [parentAlbum]);
+      }
 
       let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
         delete uploads[id];

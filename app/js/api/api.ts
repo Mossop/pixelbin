@@ -1,6 +1,6 @@
 const API_ROOT = new URL("/api/", window.location.href);
 
-export type Method = "GET" | "POST" | "PUT";
+export type Method = "GET" | "POST" | "PUT" | "DELETE";
 
 interface FormBody {
   data: FormData;

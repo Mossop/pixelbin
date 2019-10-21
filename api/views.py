@@ -15,11 +15,15 @@ from . import models
 from .utils import uuid
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
-    ServerSerializer, MediaSerializer, AlbumSerializer, SearchSerializer, ThumbnailRequestSerializer
+    ServerSerializer, MediaSerializer, AlbumSerializer, SearchSerializer, \
+    ThumbnailRequestSerializer, MediaAlbumSerializer
 from .tasks import process_media
 
 logger = logging.getLogger(__name__)
 from pprint import pformat
+
+class IllegalUpdateException(Exception):
+    pass
 
 @api_view()
 def get_user(request):
@@ -134,6 +138,52 @@ def logout(request):
     return Response(serialize_state(request))
 
 @api_view(['PUT'])
+def add_albums(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    serializer = MediaAlbumSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    albums = serializer.validated_data['albums']
+    media = serializer.validated_data['media']
+
+    if not request.user.can_access_catalog(media.catalog):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    for album in albums:
+        if album.catalog != media.catalog:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    media.albums.add(*albums)
+
+@api_view(['DELETE'])
+def remove_albums(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    serializer = MediaAlbumSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    albums = serializer.validated_data['albums']
+    media = serializer.validated_data['media']
+
+    if not request.user.can_access_catalog(media.catalog):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    for album in albums:
+        if album.catalog != media.catalog:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        with transaction.atomic():
+            media.albums.remove(*albums)
+            if len(media.albums.objects.all()) == 0:
+                raise IllegalUpdateException("Cannot remove from all albums.")
+    except IllegalUpdateException:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT'])
 @parser_classes([MultiPartParser])
 def upload(request):
     if not request.user or not request.user.is_authenticated:
@@ -171,9 +221,6 @@ def upload(request):
 
         media.tags.add(*tags)
         media.people.add(*people)
-
-        if 'album' in data and data['album'] is not None:
-            media.albums.add(data['album'])
 
     temp = media.storage.get_temp_path(media.storage_filename)
     with open(temp, "wb") as output:
