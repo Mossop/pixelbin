@@ -38,7 +38,7 @@ function catalogReducer(state: Draft<StoreState>, user: Draft<UserState>, action
     case CATALOG_CREATED: {
       user.catalogs[action.payload.id] = action.payload;
       state.overlay = undefined;
-      state.historyState = navigate(`/catalog/${action.payload.id}`);
+      state.historyState = navigate(`/album/${action.payload.root.id}`);
       return;
     }
     case SHOW_CATALOG_EDIT_OVERLAY: {
@@ -113,7 +113,7 @@ function authReducer(state: Draft<StoreState>, action: ActionType): void {
       if (action.payload.user) {
         let catalogs = catalogNameSorted(action.payload.user.catalogs);
         if (catalogs.length) {
-          state.historyState = navigate(`/catalog/${catalogs[0].id}`);
+          state.historyState = navigate(`/album/${catalogs[0].root.id}`);
         } else {
           state.historyState = navigate("/user");
           if (!action.payload.user.hadCatalog) {
