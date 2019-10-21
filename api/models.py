@@ -68,7 +68,7 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    id = models.CharField(max_length=24, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True)
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=200)
     username = None
@@ -95,7 +95,7 @@ class User(AbstractUser):
         ordering = ['full_name']
 
 class Catalog(models.Model):
-    id = models.CharField(max_length=24, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True)
     users = models.ManyToManyField(User, related_name='catalogs', through='Access')
 
     backblaze = models.ForeignKey(Backblaze, blank=True, null=True,
@@ -133,7 +133,7 @@ class Access(models.Model):
 class Album(models.Model):
     objects = CTEManager()
 
-    id = models.CharField(max_length=24, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True)
     stub = models.CharField(max_length=50, unique=True, default='', blank=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
     name = models.CharField(max_length=100, blank=False)
@@ -255,7 +255,7 @@ class Person(models.Model):
         ]
 
 class Media(models.Model):
-    id = models.CharField(max_length=24, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
     processed = models.BooleanField(default=False)
     title = models.CharField(max_length=200, blank=True)

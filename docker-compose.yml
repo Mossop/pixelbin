@@ -1,21 +1,29 @@
 version: "3.7"
 
+networks:
+  pixelbin_net:
+    external: true
+
 services:
 
   redis:
     image: redis
+    networks:
+      - pixelbin_net
 
   celery:
     build:
       context: .
       dockerfile: docker/celery/Dockerfile
+    networks:
+      - pixelbin_net
     volumes:
       - "$PWD/api:/usr/src/pixelbin/api:ro"
       - "$PWD/app:/usr/src/pixelbin/app:ro"
       - "$PWD/base:/usr/src/pixelbin/base:ro"
       - "$PWD/config:/usr/src/pixelbin/config:ro"
       - "$PWD/public/static:/usr/src/pixelbin/public/static:ro"
-      - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
+      - "$PWD/docker.ini:/usr/src/pixelbin/config.ini:ro"
       - "$PWD/data:/usr/src/pixelbin/data:rw"
       - "$PWD/public/media:/usr/src/pixelbin/public/media:rw"
 
@@ -23,6 +31,8 @@ services:
     build:
       context: .
       dockerfile: ./docker/server/Dockerfile
+    networks:
+      - pixelbin_net
     ports:
       - "8000:8000/tcp"
     volumes:
@@ -31,6 +41,6 @@ services:
       - "$PWD/base:/usr/src/pixelbin/base:ro"
       - "$PWD/config:/usr/src/pixelbin/config:ro"
       - "$PWD/public/static:/usr/src/pixelbin/public/static:ro"
-      - "$PWD/config.ini:/usr/src/pixelbin/config.ini:ro"
+      - "$PWD/docker.ini:/usr/src/pixelbin/config.ini:ro"
       - "$PWD/data:/usr/src/pixelbin/data:rw"
       - "$PWD/public/media:/usr/src/pixelbin/public/media:rw"

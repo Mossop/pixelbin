@@ -5,6 +5,7 @@ EXEC="sudo --user=pixelbin"
 set -e
 echo "Starting test server..."
 trap 'trap - TERM; kill -1' TERM
+${EXEC} ./manage.py migrate
 ${EXEC} ./manage.py runserver --verbosity 3 --nostatic 0.0.0.0:8000 &
 wait
 exit 0

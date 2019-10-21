@@ -3,6 +3,8 @@ FROM python:3
 RUN \
   apt-get update && \
   apt-get install  -y --no-install-recommends \
+    python-dev \
+    default-libmysqlclient-dev \
     ffmpeg \
     exiftool \
     sudo
@@ -17,6 +19,7 @@ WORKDIR /usr/src/pixelbin
 
 COPY requirements.txt /usr/src/pixelbin/
 RUN pip install -r requirements.txt
+RUN pip install mysqlclient
 
 COPY docker/celery/start /usr/src/scripts/
 

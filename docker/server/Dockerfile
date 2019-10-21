@@ -5,6 +5,8 @@ EXPOSE 8000/tcp
 RUN \
   apt-get update && \
   apt-get install  -y --no-install-recommends \
+    python-dev \
+    default-libmysqlclient-dev \
     sudo
 
 RUN \
@@ -17,6 +19,7 @@ WORKDIR /usr/src/pixelbin
 
 COPY manage.py requirements.txt /usr/src/pixelbin/
 RUN pip install -r requirements.txt
+RUN pip install mysqlclient
 
 COPY docker/server/start /usr/src/scripts/
 

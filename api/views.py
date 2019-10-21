@@ -167,12 +167,13 @@ def upload(request):
         media = models.Media(id=uuid("M"), catalog=catalog, mimetype=guessed.mime,
                              orientation=data['orientation'], filename=os.path.basename(file.name),
                              storage_filename=filename)
+        media.save()
+
         media.tags.add(*tags)
         media.people.add(*people)
 
         if 'album' in data and data['album'] is not None:
             media.albums.add(data['album'])
-        media.save()
 
     temp = media.storage.get_temp_path(media.storage_filename)
     with open(temp, "wb") as output:
