@@ -1,5 +1,6 @@
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 import moment from "moment";
+import { Mappable, Mapped } from "./maps";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
@@ -10,7 +11,7 @@ export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
   throw new Error(result.error);
 }
 
-function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
+export function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new JsonDecoder.Decoder<B>((json: any): Result<B> => {
     let result = decoder.decode(json);
@@ -43,14 +44,6 @@ export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undef
 
 export const DateDecoder = MappingDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
 
-interface Mappable {
-  id: string;
-}
-
-export interface Mapped<R> {
-  [prop: string]: R;
-}
-
 export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<Readonly<Mapped<A>>> {
   return MappingDecoder<A[], Mapped<A>>(
     JsonDecoder.array(decoder, name),
@@ -61,6 +54,6 @@ export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<A>, 
       }
       return result;
     },
-    `Map<string, ${name}>`
+    `Mapped<string, ${name}>`
   );
 }

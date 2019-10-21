@@ -20,11 +20,7 @@ class FieldQuery:
 
     def album_query(self, category):
         if self.operation == 'child':
-            if self.value == '':
-                # The special top-level category album
-                return Q(albums__parent=None)
-            else:
-                return Q(albums__lc_name=self.value.lower())
+            return Q(albums__lc_name=self.value.lower())
         if self.operation == 'descendent':
             if self.value == '':
                 return True
@@ -92,24 +88,6 @@ class QueryGroup:
             return ~query
         return query
 
-
-class Query:
-    def __init__(self, field=None, group=None):
-        if field is not None and group is not None:
-            raise Exception("Cannot have both a group and a field on the same query.")
-        if field is None and group is None:
-            raise Exception("Must have a group or a field on a query.")
-
-        self.field = field
-        self.group = group
-
-    # Returns the field or group query.
-    def get_query(self, category):
-        if self.field is not None:
-            return self.field.get_query(category)
-        if self.group is not None:
-            return self.field.get_query(category)
-        raise Exception("Query has not field or group.")
 
 class Search:
     def __init__(self, catalog, query):

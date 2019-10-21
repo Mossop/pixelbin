@@ -6,8 +6,8 @@ import { Button } from "../components/Button";
 import { StoreState } from "../store/types";
 import { Catalog, Album } from "../api/types";
 import { history } from "../utils/history";
-import { Mapped } from "../utils/decoders";
 import { CatalogTreeSidebar } from "../components/CatalogTree";
+import { Mapped } from "../utils/maps";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
@@ -30,7 +30,7 @@ export interface SidebarProps {
 
 class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDispatchToProps> & StateProps> {
   private onCatalogClick: ((catalog: Catalog) => void) = (catalog: Catalog): void => {
-    history.push(`/catalog/${catalog.id}`);
+    history.push(`/album/${catalog.root.id}`);
   };
 
   private onAlbumClick: ((album: Album) => void) = (album: Album): void => {

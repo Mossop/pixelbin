@@ -11,7 +11,7 @@ import { Button } from "../components/Button";
 import { BasePage, BasePageProps, baseConnect, BasePageState } from "../components/BasePage";
 import { SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
-import { Search, Join, Field, Operation } from "../utils/search";
+import { Search, Field, Operation } from "../utils/search";
 import MediaList from "../components/MediaList";
 
 interface MatchParams {
@@ -107,15 +107,9 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
           catalog: this.state.catalog,
           query: {
             invert: false,
-            join: Join.And,
-            queries: [{
-              field: {
-                invert: false,
-                field: Field.Album,
-                operation: Operation.Includes,
-                value: this.state.album.name,
-              },
-            }],
+            field: Field.Album,
+            operation: Operation.Includes,
+            value: this.state.album.name,
           },
         };
         return <MediaList search={search}/>;

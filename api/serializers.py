@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from .storage import Server, Backblaze
 from .models import Album, Tag, Catalog, User, Access, Media, Person
-from .search import QueryGroup, FieldQuery, Query, Search
+from .search import QueryGroup, FieldQuery, Search
 
 def creator(cls, data):
     serializer = cls(data=data)
@@ -104,7 +104,7 @@ class AlbumSerializer(serializers.ModelSerializer):
     id = serializers.CharField(required=False)
     catalog = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Catalog.objects.all())
     stub = serializers.CharField(allow_null=True, default=None)
-    parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all(), allow_null=True)
+    parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all())
 
     class Meta:
         model = Album
@@ -117,12 +117,9 @@ class CatalogTagsSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['id', 'name', 'parent']
 
-class CatalogEditSerializer(Serializer):
-    catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
-    name = serializers.CharField()
-
 class CatalogSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
+    name = serializers.CharField(write_only=True)
     storage = serializers.SerializerMethodField()
 
     def get_storage(self, instance):
@@ -136,10 +133,14 @@ class CatalogStateSerializer(serializers.ModelSerializer):
     tags = CatalogTagsSerializer(many=True)
     people = CatalogPeopleSerializer(many=True)
     albums = AlbumSerializer(many=True)
+    root = serializers.SerializerMethodField()
+
+    def get_root(self, catalog):
+        return catalog.root.id
 
     class Meta(CatalogSerializer.Meta):
         model = Catalog
-        fields = ['id', 'name', 'people', 'tags', 'albums']
+        fields = ['id', 'root', 'people', 'tags', 'albums']
 
 class AccessSerializer(serializers.ModelSerializer):
     catalog = CatalogStateSerializer()

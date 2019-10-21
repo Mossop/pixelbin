@@ -38,7 +38,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
     if (!props.catalog) {
       this.setTextState("storage", "backblaze");
     } else {
-      this.setTextState("name", props.catalog.name);
+      this.setTextState("name", props.catalog.root.name);
     }
   }
 

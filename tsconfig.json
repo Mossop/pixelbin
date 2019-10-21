@@ -22,6 +22,7 @@
     "@types",
     "gulpfile.ts",
     "app/js",
+    "app/static/scripts",
     "base"
   ],
   "exclude": [

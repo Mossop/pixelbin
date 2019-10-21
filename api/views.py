@@ -15,8 +15,7 @@ from . import models
 from .utils import uuid
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
-    ServerSerializer, MediaSerializer, CatalogEditSerializer, AlbumSerializer, \
-    SearchSerializer, ThumbnailRequestSerializer
+    ServerSerializer, MediaSerializer, AlbumSerializer, SearchSerializer, ThumbnailRequestSerializer
 from .tasks import process_media
 
 logger = logging.getLogger(__name__)
@@ -52,7 +51,6 @@ def login(request):
         return Response(serialize_state(request))
     return Response(status=status.HTTP_403_FORBIDDEN)
 
-@transaction.atomic
 @api_view(['PUT'])
 def create_catalog(request):
     if not request.user or not request.user.is_authenticated:
@@ -63,48 +61,32 @@ def create_catalog(request):
 
     serializer = CatalogSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+    name = serializer.validated_data['name']
+    del serializer.validated_data['name']
 
-    if request.data['storage']['type'] == 'backblaze':
-        storage_serializer = BackblazeSerializer(data=request.data['storage'])
-        storage_serializer.is_valid(raise_exception=True)
-        storage = storage_serializer.save()
-        catalog = serializer.save(id=uuid('C'), backblaze=storage)
-    elif request.data['storage']['type'] == 'server':
-        storage_serializer = ServerSerializer(data=request.data['storage'])
-        storage_serializer.is_valid(raise_exception=True)
-        storage = storage_serializer.save()
-        catalog = serializer.save(id=uuid('C'), server=storage)
+    with transaction.atomic():
+        if request.data['storage']['type'] == 'backblaze':
+            storage_serializer = BackblazeSerializer(data=request.data['storage'])
+            storage_serializer.is_valid(raise_exception=True)
+            storage = storage_serializer.save()
+            catalog = serializer.save(id=uuid('C'), backblaze=storage)
+        elif request.data['storage']['type'] == 'server':
+            storage_serializer = ServerSerializer(data=request.data['storage'])
+            storage_serializer.is_valid(raise_exception=True)
+            storage = storage_serializer.save()
+            catalog = serializer.save(id=uuid('C'), server=storage)
+        root = models.Album(id=uuid('A'), name=name, parent=None, catalog=catalog)
+        root.save()
 
-    access = models.Access(user=request.user, catalog=catalog)
-    access.save()
+        access = models.Access(user=request.user, catalog=catalog)
+        access.save()
 
-    request.user.had_catalog = True
-    request.user.save()
-
-    serializer = CatalogStateSerializer(catalog)
-    return Response(serializer.data)
-
-@transaction.atomic
-@api_view(['POST'])
-def edit_catalog(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
-    serializer = CatalogEditSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    catalog = serializer.validated_data['catalog']
-
-    if not request.user.can_access_catalog(catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
-    catalog.name = serializer.validated_data['name']
-    catalog.save()
+        request.user.had_catalog = True
+        request.user.save()
 
     serializer = CatalogStateSerializer(catalog)
     return Response(serializer.data)
 
-@transaction.atomic
 @api_view(['PUT'])
 def create_album(request):
     if not request.user or not request.user.is_authenticated:
@@ -116,12 +98,14 @@ def create_album(request):
     if not request.user.can_access_catalog(serializer.validated_data['catalog']):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
+    if serializer.validated_data['parent'] is None:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
     album = serializer.save(id=uuid("A"))
 
     serializer = AlbumSerializer(album)
     return Response(serializer.data)
 
-@transaction.atomic
 @api_view(['POST'])
 def edit_album(request):
     if not request.user or not request.user.is_authenticated:
@@ -129,11 +113,16 @@ def edit_album(request):
 
     serializer = AlbumSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
 
     try:
-        album = models.Album.objects.get(id=serializer.validated_data['id'])
-        serializer.update(album, serializer.validated_data)
+        album = models.Album.objects.get(id=data['id'])
+        if album.parent is None and data['parent'] is not None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        elif album.parent is not None and data['parent'] is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        serializer.update(album, data)
         serializer = AlbumSerializer(album)
         return Response(serializer.data)
     except models.Album.DoesNotExist:
@@ -144,7 +133,6 @@ def logout(request):
     logout_user(request)
     return Response(serialize_state(request))
 
-@transaction.atomic
 @api_view(['PUT'])
 @parser_classes([MultiPartParser])
 def upload(request):
@@ -168,31 +156,28 @@ def upload(request):
     if guessed.mime[0:6] != "image/" and guessed.mime[0:6] != "video/":
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
-    people = [models.Person.get_from_name(catalog, n) for n in data['people']]
-
     filename = os.path.basename(file.name)
     if filename is None or filename == "":
         filename = 'original.%s' % (guessed.extension)
 
-    media = models.Media(id=uuid("M"), catalog=catalog, mimetype=guessed.mime,
-                         orientation=data['orientation'], filename=os.path.basename(file.name),
-                         storage_filename=filename)
-    media.tags.add(*tags)
-    media.people.add(*people)
+    with transaction.atomic():
+        tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
+        people = [models.Person.get_from_name(catalog, n) for n in data['people']]
 
-    if 'album' in data and data['album'] is not None:
-        media.albums.add(data['album'])
+        media = models.Media(id=uuid("M"), catalog=catalog, mimetype=guessed.mime,
+                             orientation=data['orientation'], filename=os.path.basename(file.name),
+                             storage_filename=filename)
+        media.tags.add(*tags)
+        media.people.add(*people)
+
+        if 'album' in data and data['album'] is not None:
+            media.albums.add(data['album'])
+        media.save()
 
     temp = media.storage.get_temp_path(media.storage_filename)
     with open(temp, "wb") as output:
         for chunk in file.chunks():
             output.write(chunk)
-    try:
-        media.save()
-    except Exception as exc:
-        os.unlink(temp)
-        raise exc
 
     process_media.delay(media.id)
 

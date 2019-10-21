@@ -83,7 +83,7 @@ class User(AbstractUser):
 
     def delete(self, using=None, keep_parents=False):
         super().delete(using, keep_parents)
-        Catalog.objects.filter(users=None).delete()
+        Catalog.objects.filter(users__isnull=True).delete()
 
     def get_full_name(self):
         return self.full_name
@@ -96,7 +96,6 @@ class User(AbstractUser):
 
 class Catalog(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
-    name = models.CharField(max_length=100)
     users = models.ManyToManyField(User, related_name='catalogs', through='Access')
 
     backblaze = models.ForeignKey(Backblaze, blank=True, null=True,
@@ -112,10 +111,15 @@ class Catalog(models.Model):
             return self.server.storage
         raise RuntimeError("Unreachable")
 
+    @property
+    def root(self):
+        return self.albums.get(parent__isnull=True)
+
     def delete(self, using=None, keep_parents=False):
+        self.root.delete()
         super().delete(using, keep_parents)
-        Backblaze.objects.filter(catalogs=None).delete()
-        Server.objects.filter(catalogs=None).delete()
+        Backblaze.objects.filter(catalogs__isnull=True).delete()
+        Server.objects.filter(catalogs__isnull=True).delete()
 
 class Access(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access')
@@ -130,10 +134,10 @@ class Album(models.Model):
     objects = CTEManager()
 
     id = models.CharField(max_length=24, primary_key=True)
-    stub = models.CharField(max_length=50, unique=True, null=True)
+    stub = models.CharField(max_length=50, unique=True, default='', blank=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
-    name = models.CharField(max_length=100)
-    lc_name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, blank=False)
+    lc_name = models.CharField(max_length=100, blank=False)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='albums',
@@ -159,6 +163,8 @@ class Album(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(check=Q(lc_name=Lower('name')), name='ensure_lc_name_correct'),
+            models.UniqueConstraint(fields=['catalog'], condition=Q(parent__isnull=True),
+                                    name='single_root_album'),
             models.UniqueConstraint(fields=['catalog', 'parent', 'lc_name'],
                                     name='unique_album_name'),
         ]

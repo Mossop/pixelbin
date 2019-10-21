@@ -1,9 +1,10 @@
 import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
-import { OptionalDecoder, DateDecoder, MapDecoder, Mapped } from "../utils/decoders";
+import { OptionalDecoder, DateDecoder, MapDecoder, MappingDecoder } from "../utils/decoders";
 import { nameSorted } from "../utils/sort";
 import { Orientation } from "media-metadata/lib/metadata";
+import { Mapped } from "../utils/maps";
 
 export interface Album {
   readonly id: string;
@@ -39,20 +40,29 @@ export const TagDecoder = JsonDecoder.object<Tag>(
 
 export interface Catalog {
   readonly id: string;
-  readonly name: string;
+  readonly root: Album;
   readonly tags: Readonly<Mapped<Tag>>;
   readonly albums: Readonly<Mapped<Album>>;
 }
 
-export const CatalogDecoder = JsonDecoder.object<Catalog>(
+type SerializedCatalog = Omit<Catalog, "root"> & { root: string };
+
+export const CatalogDecoder = MappingDecoder(JsonDecoder.object<SerializedCatalog>(
   {
     id: JsonDecoder.string,
-    name: JsonDecoder.string,
+    root: JsonDecoder.string,
     tags: MapDecoder(TagDecoder, "Tag"),
     albums: MapDecoder(AlbumDecoder, "Album"),
   },
   "Catalog"
-);
+), (source: SerializedCatalog): Catalog => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (source.albums[source.root]) {
+    return Object.assign({}, source, { root: source.albums[source.root] });
+  } else {
+    throw new Error("Missing root album.");
+  }
+}, "Catalog");
 
 export interface User {
   readonly email: string;

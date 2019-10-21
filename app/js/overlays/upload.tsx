@@ -98,6 +98,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       });
       this.setState({ uploads });
     } catch (e) {
+      console.error(e);
       let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
         uploads[id].failed = true;
         uploads[id].uploading = false;

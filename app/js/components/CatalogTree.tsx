@@ -2,12 +2,12 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { Catalog, Album, albumChildren } from "../api/types";
-import { nameSorted } from "../utils/sort";
+import { catalogNameSorted } from "../utils/sort";
 import { Button } from "./Button";
-import { Mapped } from "../utils/decoders";
 import { StoreState } from "../store/types";
 import Icon from "./Icon";
 import { UIContext, Context, getTextState } from "../utils/UIState";
+import { Mapped } from "../utils/maps";
 
 interface StateProps {
   catalogs: Mapped<Catalog>;
@@ -24,11 +24,11 @@ abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
   protected abstract onAlbumClick(album: Album): void;
   protected abstract onCatalogClick(catalog: Catalog): void;
 
-  protected renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
+  protected renderItem(item: Album, onClick: () => void): React.ReactNode {
     return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
   }
 
-  private renderChildren(catalog: Catalog, album?: Album, depth: number = 1): React.ReactNode {
+  private renderChildren(catalog: Catalog, album: Album, depth: number = 1): React.ReactNode {
     let children = albumChildren(catalog, album);
     if (children.length) {
       return <ol>
@@ -48,14 +48,14 @@ abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
 
   private renderCatalog(catalog: Catalog): React.ReactNode {
     return <li key={catalog.id} className="depth0">
-      {this.renderItem(catalog, () => this.onCatalogClick(catalog))}
-      {this.renderChildren(catalog)}
+      {this.renderItem(catalog.root, () => this.onCatalogClick(catalog))}
+      {this.renderChildren(catalog, catalog.root)}
     </li>;
   }
 
   public render(): React.ReactNode {
     return <ol className="catalog-tree">
-      {nameSorted(this.props.catalogs).map((c: Catalog) => this.renderCatalog(c))}
+      {catalogNameSorted(this.props.catalogs).map((c: Catalog) => this.renderCatalog(c))}
     </ol>;
   }
 }
@@ -80,7 +80,7 @@ class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProp
     this.context.setState(this.props.uiPath, { text: catalog.id });
   }
 
-  protected renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
+  protected renderItem(item: Album, onClick: () => void): React.ReactNode {
     if (this.getSelected() === item.id) {
       return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
     } else {
@@ -106,7 +106,7 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps>
     this.props.onCatalogClick(catalog);
   }
 
-  protected renderItem(item: Album | Catalog, onClick: () => void): React.ReactNode {
+  protected renderItem(item: Album, onClick: () => void): React.ReactNode {
     if (this.props.selected === item.id) {
       return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
     } else {
