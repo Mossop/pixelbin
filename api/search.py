@@ -22,7 +22,7 @@ class FieldQuery:
         album = None
         if self.value != '':
             try:
-                album = Album.objects.get(lc_name=self.value.lower())
+                album = Album.objects.get(name=self.value)
             except Album.DoesNotExist:
                 return False
 

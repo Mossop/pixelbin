@@ -2,8 +2,8 @@ import React from "react";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 
-import { Album } from "../api/types";
-import { getAlbum } from "../store/store";
+import { Album, Catalog } from "../api/types";
+import { getAlbum, getCatalogForAlbum } from "../store/store";
 import { StoreState } from "../store/types";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, DispatchProps, showUploadOverlay } from "../store/actions";
 import NotFound from "./notfound";
@@ -11,6 +11,8 @@ import { Button } from "../components/Button";
 import { BasePage, BasePageProps, baseConnect, BasePageState } from "../components/BasePage";
 import { SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
+import { Search, Join, Field, Operation } from "../utils/search";
+import MediaList from "../components/MediaList";
 
 interface MatchParams {
   id: string;
@@ -22,6 +24,7 @@ interface StateProps {
 
 interface PageState {
   album?: Album;
+  catalog?: Catalog;
   pending: boolean;
 }
 
@@ -44,9 +47,14 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
   public constructor(props: AlbumPageParams) {
     super(props);
 
+    let catalog: Catalog | undefined = undefined;
+    if (props.album) {
+      catalog = getCatalogForAlbum(props.album);
+    }
     this.state = {
       album: props.album,
-      pending: !!props.album,
+      catalog,
+      pending: !props.album,
     };
   }
 
@@ -93,9 +101,24 @@ class AlbumPage extends BasePage<AlbumPageParams, AlbumPageState> {
   }
 
   protected renderContent(): React.ReactNode {
-    if (this.state.pending) {
-      if (this.state.album) {
-        return <h1>Album!</h1>;
+    if (!this.state.pending) {
+      if (this.state.album && this.state.catalog) {
+        let search: Search = {
+          catalog: this.state.catalog,
+          query: {
+            invert: false,
+            join: Join.And,
+            queries: [{
+              field: {
+                invert: false,
+                field: Field.Album,
+                operation: Operation.Includes,
+                value: this.state.album.name,
+              },
+            }],
+          },
+        };
+        return <MediaList search={search}/>;
       } else {
         return <NotFound/>;
       }
