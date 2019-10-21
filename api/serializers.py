@@ -3,6 +3,19 @@ from rest_framework import serializers
 
 from .storage import Server, Backblaze
 from .models import Album, Tag, Catalog, User, Access, Media, Person
+from .search import QueryGroup, FieldQuery, Query
+
+def creator(cls, data):
+    serializer = cls(data=data)
+    serializer.is_valid(raise_exception=True)
+    return serializer.create(serializer.validated_data)
+
+class Serializer(serializers.Serializer):
+    def update(self, instance, validated_data):
+        pass
+
+    def create(self, validated_data):
+        pass
 
 def get_catalog_storage_field(instance):
     if instance.backblaze is not None:
@@ -46,13 +59,6 @@ class MediaSerializer(serializers.ModelSerializer):
         fields = ['id', 'processed', 'orientation', 'title', 'filename',
                   'longitude', 'latitude', 'mimetype', 'width', 'height',
                   'tags', 'people']
-
-class Serializer(serializers.Serializer):
-    def update(self, instance, validated_data):
-        pass
-
-    def create(self, validated_data):
-        pass
 
 class UploadSerializer(Serializer):
     catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
@@ -173,8 +179,50 @@ def serialize_state(request):
     else:
         return StateSerializer({"user": None}).data
 
+class LazyQueryGroupSerializer(Serializer):
+    def to_representation(self, instance):
+        serializer = QueryGroupSerializer(instance, context=self.context)
+        return serializer.to_representation(instance)
+
+    def to_internal_value(self, data):
+        serializer = QueryGroupSerializer(data=data, context=self.context)
+        return serializer.to_internal_value(data)
+
+class FieldQuerySerializer(Serializer):
+    invert = serializers.BooleanField()
+    field = serializers.ChoiceField(FieldQuery.FIELDS)
+    operation = serializers.ChoiceField(FieldQuery.OPERATIONS)
+    value = serializers.CharField(allow_blank=True)
+
+    def create(self, validated_data):
+        return FieldQuery(**validated_data)
+
+class QuerySerializer(Serializer):
+    field = FieldQuerySerializer(required=False)
+    group = LazyQueryGroupSerializer(required=False)
+
+    def create(self, validated_data):
+        if 'field' in validated_data:
+            return Query(field=creator(FieldQuerySerializer, validated_data['field']))
+        if 'group' in validated_data:
+            return Query(group=creator(QueryGroupSerializer, validated_data['group']))
+        raise Exception("No field or group for a query.")
+
+class QueryGroupSerializer(Serializer):
+    invert = serializers.BooleanField()
+    join = serializers.ChoiceField(QueryGroup.JOINS)
+    queries = QuerySerializer(many=True)
+
+    def create(self, validated_data):
+        validated_data['queries'] = [creator(QuerySerializer, q) for q in validated_data['queries']]
+        return QueryGroup(**validated_data)
+
 class SearchSerializer(Serializer):
     catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
+    query = QueryGroupSerializer()
+
+    def create(self, validated_data):
+        return creator(QueryGroupSerializer, validated_data['query'])
 
 class ThumbnailRequestSerializer(Serializer):
     media = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())

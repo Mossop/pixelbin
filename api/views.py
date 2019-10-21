@@ -1,7 +1,6 @@
 import os
 import json
 import logging
-from pprint import pformat
 
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.http.response import HttpResponse
@@ -21,6 +20,7 @@ from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
 from .tasks import process_media
 
 logger = logging.getLogger(__name__)
+from pprint import pformat
 
 @api_view()
 def get_user(request):
@@ -206,13 +206,24 @@ def search(request):
 
     serializer = SearchSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    data = serializer.validated_data
+    catalog = serializer.validated_data['catalog']
+    query_group = serializer.create(serializer.validated_data)
 
-    if not request.user.can_access_catalog(data['catalog']):
+    if not request.user.can_access_catalog(catalog):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    query = models.Media.objects.filter(catalog=data['catalog'])
-    serializer = MediaSerializer(query, many=True)
+    media = None
+    logger.debug(pformat(query_group))
+    query = query_group.get_query()
+    if isinstance(query, bool):
+        if not query:
+            media = []
+        else:
+            media = models.Media.objects.filter(catalog=catalog)
+    else:
+        media = models.Media.objects.filter(query, catalog=catalog)
+
+    serializer = MediaSerializer(media, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
@@ -231,87 +242,3 @@ def thumbnail(request):
     image.save(response, 'jpeg', quality=90)
 
     return response
-
-
-# -------------------------------------
-
-# @login_required
-# def delete(request):
-#     if request.method == 'POST' and 'id' in request.POST:
-#         media = models.Media.objects.get(id=request.POST['id'], owner=request.user)
-#         media.delete()
-
-#         return JsonResponse({})
-#     return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-# @login_required
-# def untagged(request):
-#     if request.method != 'GET':
-#         return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-#     media = models.Media.objects.filter(owner=request.user, tags=None)
-
-#     return JsonResponse({
-#         "media": [m.asJS() for m in media]
-#     })
-
-# @login_required
-# def list(request):
-#     if request.method != 'GET':
-#         return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-#     include_tags = []
-#     if 'includeTag' in request.GET:
-#         include_tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('includeTag')]
-
-#     include_type = 'AND'
-#     if 'includeType' in request.GET and request.GET['includeType'] == 'or':
-#         include_type = 'OR'
-
-#     exclude_tags = []
-#     if 'excludeTag' in request.GET:
-#         exclude_tags = [models.Tag.objects.get(id=int(id)) for id in request.GET.getlist('excludeTag')]
-
-#     media = search_media(request.user, include_tags, include_type, exclude_tags)
-
-#     return JsonResponse({
-#         "media": [m.asJS() for m in media]
-#     })
-
-# def get_media(request, id):
-#     if ('share' not in request.GET):
-#         return models.Media.objects.get(id=id, owner=request.user)
-#     else:
-#         return shared_media(request.GET['share']).filter(id=id)[0]
-
-# @cache_control(max_age=86400, private=True, immutable=True)
-# def thumbnail(request, id):
-#     if request.method != 'GET' or 'size' not in request.GET:
-#         return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-#     size = int(request.GET['size'])
-#     media = get_media(request, id)
-
-#     im = Image.open(media.preview_path)
-#     im.thumbnail([size, size], Image.LANCZOS)
-
-#     response = HttpResponse(content_type="image/png")
-#     im.save(response, 'PNG')
-#     return response
-
-# @cache_control(max_age=86400, private=True, immutable=True)
-# def metadata(request, id):
-#     if request.method != 'GET':
-#         return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-#     media = get_media(request, id)
-#     return JsonResponse(media.asJS())
-
-# @cache_control(max_age=3600, private=True)
-# def download(request, id):
-#     if request.method != 'GET':
-#         return HttpResponseBadRequest('<h1>Bad Request</h1>')
-
-#     media = get_media(request, id)
-#     url = backblaze.get_download_url(media.storage_path)
-#     return HttpResponseRedirect(url)

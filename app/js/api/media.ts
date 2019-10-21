@@ -26,7 +26,8 @@ export async function upload(catalog: Catalog, parentAlbum: Album | undefined, m
 
 export async function search(search: Search): Promise<Media[]> {
   let response = await request("media/search", "POST", buildJSONBody({
-    catalog: search.catalog.id
+    catalog: search.catalog.id,
+    query: search.query,
   }));
 
   if (response.ok) {

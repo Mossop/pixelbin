@@ -143,7 +143,7 @@ class Album(models.Model):
         def make_albums_cte(cte):
             return (
                 Album.objects.filter(id=self.id).values("id") \
-                    .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
+                    .union(cte.join(Album, parent=cte.col.id).values("id"), all=True)
             )
 
         cte = With.recursive(make_albums_cte)
