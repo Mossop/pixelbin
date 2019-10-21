@@ -1,4 +1,6 @@
 /* eslint-env node */
+import { spawn } from "child_process";
+
 import { src, dest, parallel, watch } from "gulp";
 import { RuleSetQuery } from "webpack";
 import { Configuration } from "webpack";
@@ -100,6 +102,40 @@ export function watchTypescript(): void {
   watch(allScripts(), typescript);
 }
 
+export function staticContent(callback: ((error: Error | null) => void)): void {
+  let process = spawn(path("manage.py"), ["collectstatic", "--noinput"], {
+    stdio: "inherit",
+    shell: true,
+  });
+
+  let finished = false;
+  process.on("exit", (code: number) => {
+    if (finished) {
+      return;
+    }
+
+    if (code !== 0) {
+      finished = true;
+      callback(new Error(`Process exitied with code ${code}`));
+    } else {
+      callback(null);
+    }
+  });
+
+  process.on("error", (err: Error) => {
+    if (finished) {
+      return;
+    }
+
+    finished = true;
+    callback(err);
+  });
+}
+
+export function watchStaticContent(): void {
+  watch(["app/static/**/*"], staticContent);
+}
+
 export function watchBuildJs(): NodeJS.ReadWriteStream {
   return src([path("app", "js", "app.tsx")])
     .pipe(named())
@@ -126,7 +162,7 @@ export function watchBuildCss(): void {
 
 export const lint = parallel(eslint, typescript);
 export const watchLint = parallel(watchEslint);
-export const build = parallel(buildJs, buildCss);
-export const watchBuild = parallel(watchBuildJs, watchBuildCss);
+export const build = parallel(buildJs, buildCss, staticContent);
+export const watchBuild = parallel(watchBuildJs, watchBuildCss, watchStaticContent);
 
 export default build;
