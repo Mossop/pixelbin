@@ -15,7 +15,11 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
     this.canvasRef = React.createRef();
   }
 
-  private drawBitmap(bitmap: ImageBitmap): void {
+  private drawBitmap(bitmap: ImageBitmap | undefined): void {
+    if (!bitmap) {
+      return;
+    }
+
     let canvas = this.canvasRef.current;
     if (!canvas) {
       return;
@@ -41,13 +45,11 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
   }
 
   public componentDidMount(): void {
-    if (this.props.bitmap) {
-      this.drawBitmap(this.props.bitmap);
-    }
+    this.drawBitmap(this.props.bitmap);
   }
 
   public componentDidUpdate(prevProps: ImageCanvasProps): void {
-    if (!this.props.bitmap || this.props.bitmap == prevProps.bitmap) {
+    if (this.props.bitmap === prevProps.bitmap && this.props.size === prevProps.size) {
       return;
     }
 

@@ -276,6 +276,19 @@ class Media(models.Model):
         if 'MIMEType' in data:
             self.mimetype = data['MIMEType']
 
+    def thumbnail(self, size):
+        for thumbsize in THUMB_SIZES:
+            if thumbsize >= size:
+                path = self.storage.get_local_path('sized%d.jpg' % (thumbsize))
+                image = Image.open(path)
+                return resize(image, size)
+
+        thumbsize = THUMB_SIZES[-1]
+        path = self.storage.get_local_path('sized%d.jpg' % (thumbsize))
+        image = Image.open(path)
+        return resize(image, size)
+
+
     def process(self):
         if self.processed:
             return

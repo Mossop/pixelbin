@@ -35,11 +35,11 @@ class MediaSerializer(serializers.ModelSerializer):
     tags = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
 
-    def get_tags(self, obj):
-        return [t.path() for t in obj.tags.all()]
+    def get_tags(self, media):
+        return [t.path() for t in media.tags.all()]
 
-    def get_people(self, obj):
-        return [t.path() for t in obj.people.all()]
+    def get_people(self, media):
+        return [t.path() for t in media.people.all()]
 
     class Meta:
         model = Media
@@ -175,3 +175,7 @@ def serialize_state(request):
 
 class SearchSerializer(Serializer):
     catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
+
+class ThumbnailRequestSerializer(Serializer):
+    media = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())
+    size = serializers.IntegerField()

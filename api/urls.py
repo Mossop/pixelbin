@@ -13,5 +13,6 @@ urlpatterns = [
     path('user', views.get_user),
     path('media/upload', views.upload),
     path('media/search', views.search),
+    path('media/thumbnail', views.thumbnail),
     path('auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

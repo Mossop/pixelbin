@@ -4,16 +4,13 @@ import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 import { StoreState } from "../store/types";
-import { Catalog, Media } from "../api/types";
+import { Catalog } from "../api/types";
 import { SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
 import { DispatchProps, showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
 import { getCatalog } from "../store/store";
 import NotFound from "./notfound";
-import Throbber from "../components/Throbber";
-import { Search } from "../utils/search";
-import { search } from "../api/media";
-import { MediaThumbnail } from "../components/Media";
+import MediaList from "../components/MediaList";
 
 interface MatchParams {
   id: string;
@@ -35,40 +32,9 @@ const mapDispatchToProps = {
   showAlbumCreateOverlay,
 };
 
-interface CatalogPageState {
-  media?: Media[];
-  search?: Search;
-}
-
 type CatalogPageProps = BasePageProps & RouteComponentProps<MatchParams> & StateProps & DispatchProps<typeof mapDispatchToProps>;
 
-class CatalogPage extends BasePage<CatalogPageProps, CatalogPageState> {
-  public constructor(props: CatalogPageProps) {
-    super(props);
-
-    let search: Search | undefined = undefined;
-    if (this.props.user && this.props.catalog) {
-      search = {
-        catalog: this.props.catalog,
-      };
-    }
-
-    this.state = {
-      search,
-    };
-  }
-
-  public async componentDidMount(): Promise<void> {
-    if (!this.state.search) {
-      return;
-    }
-
-    let media = await search(this.state.search);
-    this.setState({
-      media,
-    });
-  }
-
+class CatalogPage extends BasePage<CatalogPageProps> {
   private onEdit: (() => void) = (): void => {
     if (!this.props.user || !this.props.catalog) {
       return;
@@ -113,15 +79,7 @@ class CatalogPage extends BasePage<CatalogPageProps, CatalogPageState> {
 
   protected renderContent(): React.ReactNode {
     if (this.props.user && this.props.catalog) {
-      if (this.state.media) {
-        return <div className="media-list">
-          {this.state.media.map((media: Media) => <MediaThumbnail key={media.id} media={media}/>)}
-        </div>;
-      } else {
-        return <div className="media-list empty">
-          <Throbber/>
-        </div>;
-      }
+      return <MediaList search={{ catalog: this.props.catalog }}/>;
     } else {
       return <NotFound/>;
     }

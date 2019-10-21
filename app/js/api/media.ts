@@ -1,4 +1,4 @@
-import { buildFormBody, request, buildJSONBody } from "./api";
+import { buildFormBody, request, buildJSONBody, getRequest } from "./api";
 import { Catalog, UploadMetadata, Album, Media, MediaArrayDecoder } from "./types";
 import { Immutable } from "immer";
 import { Search } from "../utils/search";
@@ -33,5 +33,18 @@ export async function search(search: Search): Promise<Media[]> {
     return MediaArrayDecoder.decodePromise(await response.json());
   } else {
     throw new Error("Search failed");
+  }
+}
+
+export async function thumbnail(media: Media, size: number): Promise<ImageBitmap> {
+  let response = await getRequest("media/thumbnail", {
+    media: media.id,
+    size: String(size),
+  });
+
+  if (response.ok) {
+    return createImageBitmap(await response.blob());
+  } else {
+    throw new Error("Thumbnail failed");
   }
 }

@@ -101,6 +101,8 @@ export interface Media {
   readonly id: string;
   readonly processed: boolean;
   readonly orientation: Orientation;
+  readonly title?: string;
+  readonly filename?: string;
 
   readonly longitude?: number;
   readonly latitude?: number;
@@ -119,8 +121,8 @@ export const MediaDecoder = JsonDecoder.object<Media>(
     id: JsonDecoder.string,
     processed: JsonDecoder.boolean,
     orientation: JsonDecoder.number,
-    title: JsonDecoder.string,
-    filename: JsonDecoder.string,
+    title: OptionalDecoder(JsonDecoder.string, "title"),
+    filename: OptionalDecoder(JsonDecoder.string, "title"),
 
     longitude: OptionalDecoder(JsonDecoder.number, "longitude"),
     latitude: OptionalDecoder(JsonDecoder.number, "latitude"),

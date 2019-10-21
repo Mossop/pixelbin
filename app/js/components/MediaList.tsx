@@ -1,106 +1,110 @@
 import React from "react";
-import { PropTypes } from "prop-types";
+import { connect } from "react-redux";
 
-import Media from "./Media";
-import { bindAll } from "../utils/helpers";
-import { If, Then, Else } from "../utils/Conditions";
+import { Search } from "../utils/search";
+import { StoreState } from "../store/types";
+import { Media } from "../api/types";
+import Throbber from "./Throbber";
+import MediaThumbnail from "./MediaThumbnail";
+import { thumbnail, search } from "../api/media";
+import produce, { Draft } from "immer";
 
-function sort(arr, cmp) {
-  arr = arr.slice(0);
-  arr.sort(cmp);
-  return arr;
+interface MediaListProps {
+  search: Search;
 }
 
-class MediaList extends React.Component {
-  constructor(props) {
+interface StateProps {
+  thumbnailSize: number;
+}
+
+function mapStateToProps(state: StoreState): StateProps {
+  return {
+    thumbnailSize: state.settings.thumbnailSize,
+  };
+}
+
+interface MediaData {
+  readonly thumbnail?: ImageBitmap;
+  readonly media: Media;
+}
+
+interface MediaDataMap {
+  readonly [id: string]: MediaData;
+}
+
+interface MediaListState {
+  pending: boolean;
+  mediaMap: MediaDataMap;
+}
+
+type AllProps = StateProps & MediaListProps;
+
+class MediaList extends React.Component<AllProps, MediaListState> {
+  private pendingSearch: number;
+
+  public constructor(props: AllProps) {
     super(props);
+
+    this.pendingSearch = 0;
     this.state = {
-      sort: "descending",
+      pending: true,
+      mediaMap: {},
     };
-
-    bindAll(this, [
-      "onChangeSort",
-    ]);
   }
 
-  onChangeSort(event) {
+  private async loadThumbnail(media: Media): Promise<void> {
+    let image = await thumbnail(media, this.props.thumbnailSize);
+
+    let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
+      mediaMap[media.id].thumbnail = image;
+    });
+
     this.setState({
-      sort: event.target.value,
+      mediaMap,
     });
   }
 
-  selectType(type) {
-    this.setState({
-      type,
-    });
-  }
+  private async startSearch(): Promise<void> {
+    let id = ++this.pendingSearch;
 
-  render() {
-    let { media, share = null } = this.props;
-
-    media = sort(media, (a, b) => {
-      let diff = a.date.diff(b.date);
-      if (this.state.sort == "descending") {
-        return -diff;
-      }
-      return diff;
-    });
-
-    if (this.state.type) {
-      media = media.filter(m => m.mimetype.startsWith(`${this.state.type}/`));
+    let results = await search(this.props.search);
+    if (id !== this.pendingSearch) {
+      return;
     }
 
-    return (
-      <div id="content" className="vertical">
-        <div className="horizontal" style={{ justifyContent: "space-between" }}>
-          <h2>
-            {this.props.title}
-            <If condition={!!this.props.onSaveSearch}>
-              <Then>
-                <sup onClick={this.props.onSaveSearch} style={{ cursor: "pointer", textDecoration: "underline", marginLeft: "5px" }}>Save Search</sup>
-              </Then>
-            </If>
-          </h2>
-          <div id="mediaSelector">
-            <If condition={this.state.type == "image"}>
-              <Then>
-                <i onClick={() => this.selectType(null)} className="material-icons selected" title="Show all">photo</i>
-              </Then>
-              <Else>
-                <i onClick={() => this.selectType("image")} className="material-icons" title="Show photos">photo</i>
-              </Else>
-            </If>
-            <If condition={this.state.type == "video"}>
-              <Then>
-                <i onClick={() => this.selectType(null)} className="material-icons selected" title="Show all">movie</i>
-              </Then>
-              <Else>
-                <i onClick={() => this.selectType("video")} className="material-icons" title="Show videos">movie</i>
-              </Else>
-            </If>
-          </div>
-          <label>Sort:
-            <select style={{ marginLeft: "10px" }} onChange={this.onChangeSort} value={this.state.sort}>
-              <option value="descending">Newest to oldest</option>
-              <option value="ascending">Oldest to newest</option>
-            </select>
-          </label>
-        </div>
-        <div className="medialist">
-          {media.map((media) => (
-            <Media key={media.id} media={media} share={share}/>
-          ))}
-        </div>
-      </div>
-    );
+    let mediaMap: Draft<MediaDataMap> = {};
+    for (let item of results) {
+      this.loadThumbnail(item);
+      mediaMap[item.id] = { media: item };
+    }
+
+    this.setState({
+      pending: false,
+      mediaMap,
+    });
+  }
+
+  public componentDidMount(): void {
+    this.startSearch();
+  }
+
+  public componentDidUpdate(prevProps: AllProps): void {
+    if (prevProps.search !== this.props.search) {
+      this.startSearch();
+    }
+  }
+
+  public render(): React.ReactNode {
+    if (!this.state.pending) {
+      return <div className="media-list">
+        {Object.values(this.state.mediaMap).map((data: MediaData) => <MediaThumbnail key={data.media.id} thumbnail={data.thumbnail} media={data.media}/>)}
+      </div>;
+    } else {
+      return <div className="media-list empty">
+        <Throbber/>
+      </div>;
+    }
   }
 }
 
-MediaList.propTypes = {
-  title: PropTypes.string.isRequired,
-  media: PropTypes.arrayOf(PropTypes.object).isRequired,
-  share: PropTypes.string,
-  onSaveSearch: PropTypes.func,
-};
-
-export default MediaList;
+export default connect(mapStateToProps)(MediaList);

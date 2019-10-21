@@ -1,7 +1,10 @@
 import os
 import json
+import logging
+from pprint import pformat
 
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
+from django.http.response import HttpResponse
 from django.db import transaction
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
@@ -14,10 +17,10 @@ from .utils import uuid
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
     ServerSerializer, MediaSerializer, CatalogEditSerializer, AlbumSerializer, \
-    SearchSerializer
+    SearchSerializer, ThumbnailRequestSerializer
 from .tasks import process_media
 
-PREVIEW_SIZE = 600
+logger = logging.getLogger(__name__)
 
 @api_view()
 def get_user(request):
@@ -211,6 +214,24 @@ def search(request):
     query = models.Media.objects.filter(catalog=data['catalog'])
     serializer = MediaSerializer(query, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def thumbnail(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    serializer = ThumbnailRequestSerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    media = serializer.validated_data['media']
+    size = serializer.validated_data['size']
+
+    image = media.thumbnail(size)
+    response = HttpResponse(content_type='image/jpeg')
+    response.tell()
+    image.save(response, 'jpeg', quality=90)
+
+    return response
+
 
 # -------------------------------------
 

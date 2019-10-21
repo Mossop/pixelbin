@@ -40,28 +40,13 @@ class BaseStorage:
         target = self.get_local_path(media, name)
         os.unlink(target)
 
-    def get_public_url(self, media, name):
+    def get_storage_stream(self, media, name):
         raise NotImplementedError("Must implement in class")
 
-    def get_public_stream(self, media, name):
+    def store_storage_from_temp(self, media, name):
         raise NotImplementedError("Must implement in class")
 
-    def store_public_from_temp(self, media, name):
-        raise NotImplementedError("Must implement in class")
-
-    def delete_public(self, media, name):
-        raise NotImplementedError("Must implement in class")
-
-    def get_private_url(self, media, name):
-        raise NotImplementedError("Must implement in class")
-
-    def get_private_stream(self, media, name):
-        raise NotImplementedError("Must implement in class")
-
-    def store_private_from_temp(self, media, name):
-        raise NotImplementedError("Must implement in class")
-
-    def delete_private(self, media, name):
+    def delete_storage(self, media, name):
         raise NotImplementedError("Must implement in class")
 
     def delete(self, media):
@@ -87,80 +72,39 @@ class MediaStorage:
     def delete_local(self, name):
         self.storage.delete_local(self.media, name)
 
-    def get_public_url(self, name):
-        return self.storage.get_public_url(self.media, name)
-
-    def get_public_stream(self, name):
+    def get_storage_stream(self, name):
         return self.storage.get_public_stream(self.media, name)
 
-    def store_public_from_temp(self, name):
+    def store_storage_from_temp(self, name):
         self.storage.store_public_from_temp(self.media, name)
 
-    def delete_public(self, name):
+    def delete_storage(self, name):
         self.storage.delete_public(self.media, name)
 
-    def get_private_url(self, name):
-        return self.storage.get_private_url(self.media, name)
-
-    def get_private_stream(self, name):
-        return self.storage.get_private_stream(self.media, name)
-
-    def store_private_from_temp(self, name):
-        self.storage.store_private_from_temp(self.media, name)
-
-    def delete_private(self, name):
-        self.storage.delete_private(self.media, name)
-
     def delete(self):
-        self.storage.delete(self)
+        self.storage.delete(self.media)
 
 class FileStorage(BaseStorage):
-    def public_root(self):
+    def storage_root(self):
         raise NotImplementedError("Must implement in class")
 
-    def public_root_url(self):
-        raise NotImplementedError("Must implement in class")
-
-    def private_root(self):
-        raise NotImplementedError("Must implement in class")
-
-    def get_public_url(self, media, name):
-        return '%s/%s/%s/%s' % (self.public_root_url(), media.catalog.id, media.id, name)
-
-    def get_public_stream(self, media, name):
-        target = make_target(os.path.join(self.public_root(), base_path(media)), name)
+    def get_storage_stream(self, media, name):
+        target = make_target(os.path.join(self.storage_root(), base_path(media)), name)
         return open(target, "rb")
 
-    def store_public_from_temp(self, media, name):
-        target = make_target(os.path.join(self.public_root(), base_path(media)), name)
+    def store_storage_from_temp(self, media, name):
+        target = make_target(os.path.join(self.storage_root(), base_path(media)), name)
         copyfile(self.get_temp_path(media, name), target)
 
-    def delete_public(self, media, name):
-        target = make_target(os.path.join(self.public_root(), base_path(media)), name)
-        os.unlink(target)
-
-    def get_private_url(self, media, name):
-        return None
-
-    def get_private_stream(self, media, name):
-        target = make_target(os.path.join(self.private_root(), base_path(media)), name)
-        return open(target, "rb")
-
-    def store_private_from_temp(self, media, name):
-        target = make_target(os.path.join(self.private_root(), base_path(media)), name)
-        copyfile(self.get_temp_path(media, name), target)
-
-    def delete_private(self, media, name):
-        target = make_target(os.path.join(self.private_root(), base_path(media)), name)
+    def delete_storage(self, media, name):
+        target = make_target(os.path.join(self.storage_root(), base_path(media)), name)
         os.unlink(target)
 
     def delete(self, media):
         self.delete_all_temp(media)
         target = os.path.join(self.local_root(), base_path(media))
         rmtree(target)
-        target = os.path.join(self.public_root(), base_path(media))
-        rmtree(target)
-        target = os.path.join(self.private_root(), base_path(media))
+        target = os.path.join(self.storage_root(), base_path(media))
         rmtree(target)
 
 class Server(models.Model):
