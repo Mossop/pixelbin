@@ -13,7 +13,8 @@ from . import models
 from .utils import uuid
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
-    ServerSerializer, MediaSerializer, CatalogEditSerializer, AlbumSerializer
+    ServerSerializer, MediaSerializer, CatalogEditSerializer, AlbumSerializer, \
+    SearchSerializer
 from .tasks import process_media
 
 PREVIEW_SIZE = 600
@@ -91,8 +92,7 @@ def edit_catalog(request):
 
     catalog = serializer.validated_data['catalog']
 
-    if not models.Access.objects.filter(catalog=catalog,
-                                        user=request.user).exists():
+    if not request.user.can_access_catalog(catalog):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
     catalog.name = serializer.validated_data['name']
@@ -109,6 +109,9 @@ def create_album(request):
 
     serializer = AlbumSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+
+    if not request.user.can_access_catalog(serializer.validated_data['catalog']):
+        return Response(status=status.HTTP_403_FORBIDDEN)
 
     album = serializer.save(id=uuid("A"))
 
@@ -154,9 +157,7 @@ def upload(request):
     data = serializer.validated_data
 
     catalog = data['catalog']
-    try:
-        models.Access.objects.get(user=request.user, catalog=catalog)
-    except models.Access.DoesNotExist:
+    if not request.user.can_access_catalog(data['catalog']):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
     file = request.data['file']
@@ -193,6 +194,22 @@ def upload(request):
     process_media.delay(media.id)
 
     serializer = MediaSerializer(media)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+def search(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    serializer = SearchSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    if not request.user.can_access_catalog(data['catalog']):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    query = models.Media.objects.filter(catalog=data['catalog'])
+    serializer = MediaSerializer(query, many=True)
     return Response(serializer.data)
 
 # -------------------------------------

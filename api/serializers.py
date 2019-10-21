@@ -19,11 +19,33 @@ def get_catalog_storage_field(instance):
 
     raise RuntimeError("Unreachable")
 
+class MediaPeopleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Person
+        fields = ['full_name']
+
+class MediaTagsSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Tag
+        fields = ['name', 'parent']
+
 class MediaSerializer(serializers.ModelSerializer):
+    tags = serializers.SerializerMethodField()
+    people = serializers.SerializerMethodField()
+
+    def get_tags(self, obj):
+        return [t.path() for t in obj.tags.all()]
+
+    def get_people(self, obj):
+        return [t.path() for t in obj.people.all()]
+
     class Meta:
         model = Media
-        fields = ['id', 'processed', 'filename', 'longitude', 'latitude',
-                  'mimetype', 'width', 'height']
+        fields = ['id', 'processed', 'orientation', 'title', 'filename',
+                  'longitude', 'latitude', 'mimetype', 'width', 'height',
+                  'tags', 'people']
 
 class Serializer(serializers.Serializer):
     def update(self, instance, validated_data):
@@ -150,3 +172,6 @@ def serialize_state(request):
         return StateSerializer({"user": request.user}).data
     else:
         return StateSerializer({"user": None}).data
+
+class SearchSerializer(Serializer):
+    catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())

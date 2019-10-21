@@ -98,13 +98,16 @@ export const ServerStateDecoder = JsonDecoder.object<ServerState>(
 );
 
 export interface Media {
-  readonly id: number;
+  readonly id: string;
   readonly processed: boolean;
+  readonly orientation: Orientation;
 
-  readonly tags: string[];
   readonly longitude?: number;
   readonly latitude?: number;
-  readonly taken: moment.Moment;
+  readonly taken?: moment.Moment;
+
+  readonly tags: string[][];
+  readonly people: string[];
 
   readonly mimetype: string;
   readonly width: number;
@@ -113,13 +116,18 @@ export interface Media {
 
 export const MediaDecoder = JsonDecoder.object<Media>(
   {
-    id: JsonDecoder.number,
+    id: JsonDecoder.string,
     processed: JsonDecoder.boolean,
+    orientation: JsonDecoder.number,
+    title: JsonDecoder.string,
+    filename: JsonDecoder.string,
 
-    tags: JsonDecoder.array<string>(JsonDecoder.string, "path[]"),
     longitude: OptionalDecoder(JsonDecoder.number, "longitude"),
     latitude: OptionalDecoder(JsonDecoder.number, "latitude"),
-    taken: DateDecoder,
+    taken: OptionalDecoder(DateDecoder, "taken"),
+
+    tags: JsonDecoder.array(JsonDecoder.array(JsonDecoder.string, "tag"), "tag[]"),
+    people: JsonDecoder.array(JsonDecoder.string, "people[]"),
 
     mimetype: JsonDecoder.string,
     width: JsonDecoder.number,

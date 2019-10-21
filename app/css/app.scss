@@ -26,3 +26,12 @@
   flex: 1;
   overflow: hidden;
 }
+
+.throbber {
+  flex: 1;
+  background-image: url('/static/app/images/throbber.gif');
+  background-position: center center;
+  background-repeat: no-repeat;
+  min-width: 32px;
+  min-height: 32px;
+}

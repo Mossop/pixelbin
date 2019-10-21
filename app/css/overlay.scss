@@ -101,19 +101,6 @@
     padding-bottom: var(--padding);
   }
 
-  .media-list {
-    flex: 1;
-
-    &.empty {
-      @include flex-column;
-
-      flex: 1;
-      align-items: center;
-      justify-content: center;
-      color: black;
-    }
-  }
-
   #upload-complete {
     @include flex-row;
 

@@ -2,10 +2,17 @@
   @include base-styles;
   @include flex-row;
 
+  flex: 1;
   flex-wrap: wrap;
   align-items: start;
   overflow-y: auto;
   overflow-x: hidden;
+
+  &.empty {
+    align-items: center;
+    justify-content: center;
+    color: black;
+  }
 
   .media {
     @include flex-column;
@@ -16,16 +23,12 @@
     margin-right: 10px;
     margin-bottom: 10px;
 
-    .image-canvas {
-      margin-bottom: 10px;
-    }
-
-    .image-processing {
+    .processing {
       background: url("/static/app/images/throbber.gif") center center no-repeat;
-      margin-bottom: 10px;
     }
 
     .title {
+      padding-top: 10px;
       text-align: center;
       text-overflow: ellipsis;
       white-space: nowrap;

@@ -1,63 +1,37 @@
-import { getRequest, postRequest, getAPIPath } from "./api";
-import { UploadResponseDecoder, Media, UploadMetadata, MediaDecoder, MediaArrayDecoder, Tag } from "../types";
+import { buildFormBody, request, buildJSONBody } from "./api";
+import { Catalog, UploadMetadata, Album, Media, MediaArrayDecoder } from "./types";
+import { Immutable } from "immer";
+import { Search } from "../utils/search";
 
-export async function upload(file: string, metadata: UploadMetadata, additionalTags: string = ""): Promise<Tag[]> {
-  let params = new URLSearchParams();
-  params.set("file", file);
-  params.set("tags", metadata.tags + ", " + additionalTags);
-  params.set("date", metadata.taken.format("YYYY-MM-DDTHH:mm:ss"));
+export async function upload(catalog: Catalog, parentAlbum: Album | undefined, metadata: Immutable<UploadMetadata>, file: Blob): Promise<void> {
+  let data = {
+    catalog: catalog.id,
+    album: parentAlbum ? parentAlbum.id : undefined,
+    ...metadata,
+  };
 
-  if (metadata.latitude && metadata.longitude) {
-    params.set("latitude", String(metadata.latitude));
-    params.set("longitude", String(metadata.longitude));
-  }
+  let body = buildFormBody({
+    metadata: JSON.stringify(data),
+    file,
+  });
 
-  let response = await postRequest("upload", params);
-
-  if (response.ok) {
-    return (await UploadResponseDecoder.decodePromise(await response.json())).tags;
-  } else {
-    throw new Error("Upload failed");
-  }
-}
-
-export async function listUntagged(): Promise<Media[]> {
-  let response = await getRequest("listUntagged");
+  let response = await request("media/upload", "PUT", body);
 
   if (response.ok) {
-    return await MediaArrayDecoder.decodePromise((await response.json()).media);
+    return;
   } else {
-    throw new Error("Request failed");
+    throw new Error("Failed to upload file.");
   }
 }
 
-export function buildThumbURL(media: Media, size: number): URL {
-  let url = getAPIPath(`media/${media.id}/thumbnail`);
-  url.searchParams.append("size", String(size));
-  return url;
-}
-
-export function buildDownloadURL(media: Media): URL {
-  let url = getAPIPath(`media/${media.id}/download`);
-  return url;
-}
-
-export async function loadMetadata(id: number): Promise<Media> {
-  let response = await getRequest(`media/${id}`);
+export async function search(search: Search): Promise<Media[]> {
+  let response = await request("media/search", "POST", buildJSONBody({
+    catalog: search.catalog.id
+  }));
 
   if (response.ok) {
-    return MediaDecoder.decodePromise(await response.json());
+    return MediaArrayDecoder.decodePromise(await response.json());
   } else {
-    throw new Error("Request failed");
-  }
-}
-
-export async function loadBitmap(id: number): Promise<ImageBitmap> {
-  let response = await getRequest(`media/${id}/download`);
-
-  if (response.ok) {
-    return createImageBitmap(await response.blob());
-  } else {
-    throw new Error("Request failed");
+    throw new Error("Search failed");
   }
 }

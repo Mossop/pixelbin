@@ -1,66 +1,28 @@
 import React from "react";
-import PropTypes from "prop-types";
+import { Media } from "../api/types";
+import { StoreState } from "../store/types";
 import { connect } from "react-redux";
-import { withRouter } from "react-router-dom";
 
-import { buildThumbURL } from "../api/media";
-import { bindAll } from "../utils/helpers";
-import ImageCanvas from "./ImageCanvas";
+interface MediaProps {
+  media: Media;
+}
 
-const mapStateToProps = () => ({
-  thumbsize: 150,
-});
+interface StateProps {
+  size: number;
+}
 
-class Media extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      bitmap: null,
-    };
+function mapStateToProps(state: StoreState): StateProps {
+  return {
+    size: state.settings.thumbnailSize,
+  };
+}
 
-    bindAll(this, [
-      "openMedia",
-    ]);
-  }
-
-  async componentDidMount() {
-    let thumburl = buildThumbURL(this.props.media, this.props.thumbsize, this.props.share);
-
-    let response = await fetch(thumburl);
-    if (response.ok) {
-      let blob = await response.blob();
-      let bitmap = await createImageBitmap(blob);
-      this.setState({
-        bitmap,
-      });
-    }
-  }
-
-  openMedia() {
-    console.log(1);
-    if (this.props.share) {
-      this.props.history.push(`/share/${this.props.share}/media/${this.props.media.id}`);
-    } else {
-      this.props.history.push(`/media/${this.props.media.id}`);
-    }
-  }
-
-  render() {
-    let { thumbsize } = this.props;
-    let { bitmap } = this.state;
-    return (
-      <div className="media">
-        <ImageCanvas bitmap={bitmap} size={thumbsize} onClick={this.openMedia}/>
-      </div>
-    );
+class MediaThumb extends React.Component<StateProps & MediaProps> {
+  public render(): React.ReactNode {
+    return <div className="media">
+      <div className="processing thumbnail" style={{ width: `${this.props.size}px`, height: `${this.props.size}px` }}/>
+    </div>;
   }
 }
 
-Media.propTypes = {
-  thumbsize: PropTypes.number.isRequired,
-  media: PropTypes.object.isRequired,
-  history: PropTypes.object.isRequired,
-  share: PropTypes.string,
-};
-
-export default withRouter(connect(mapStateToProps)(Media));
+export const MediaThumbnail = connect(mapStateToProps)(MediaThumb);

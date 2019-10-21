@@ -8,7 +8,7 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { upload } from "../api/upload";
+import { upload } from "../api/media";
 import { Catalog, Album, User, UploadMetadata } from "../api/types";
 import { getParent, getCatalogForAlbum } from "../store/store";
 import { CatalogTreeSelector } from "../components/CatalogTree";

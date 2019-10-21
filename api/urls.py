@@ -12,5 +12,6 @@ urlpatterns = [
     path('user/create', views.create_user),
     path('user', views.get_user),
     path('media/upload', views.upload),
+    path('media/search', views.search),
     path('auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

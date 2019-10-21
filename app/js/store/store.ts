@@ -18,7 +18,13 @@ function buildStore(): Store<StoreState, ActionType> {
     }
   }
 
-  let initialState: StoreState = { serverState: initialServerState, historyState: null };
+  let initialState: StoreState = {
+    serverState: initialServerState,
+    settings: {
+      thumbnailSize: 150,
+    },
+    historyState: null
+  };
 
   const middlewares: Middleware[] = [];
 

@@ -13,7 +13,7 @@ export default class Upload extends React.Component<UploadProps> {
     if (this.props.upload.thumbnail) {
       return <ImageCanvas bitmap={this.props.upload.thumbnail} size={150} className="thumbnail"/>;
     } else {
-      return <div className="image-processing thumbnail" style={{ width: "150px", height: "150px" }}/>;
+      return <div className="processing thumbnail" style={{ width: "150px", height: "150px" }}/>;
     }
   }
 

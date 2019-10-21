@@ -37,8 +37,13 @@ interface AlbumEditOverlayState {
 
 export type OverlayState = BaseOverlayState | UploadOverlayState | CatalogEditOverlayState | AlbumCreateOverlayState | AlbumEditOverlayState;
 
+interface Settings {
+  readonly thumbnailSize: number;
+}
+
 export interface StoreState {
   readonly serverState: ServerState;
   readonly overlay?: OverlayState;
+  readonly settings: Settings;
   readonly historyState: HistoryState | null;
 }

@@ -89,6 +89,9 @@ class User(AbstractUser):
     def get_full_name(self):
         return self.full_name
 
+    def can_access_catalog(self, catalog):
+        return Access.objects.filter(catalog=catalog, user=self).exists()
+
     class Meta:
         ordering = ['full_name']
 
@@ -236,6 +239,7 @@ class Media(models.Model):
     id = models.CharField(max_length=24, primary_key=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
     processed = models.BooleanField(default=False)
+    title = models.CharField(max_length=200, blank=True)
     filename = models.CharField(max_length=50, blank=True)
 
     tags = models.ManyToManyField(Tag, related_name='media')
