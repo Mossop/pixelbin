@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from .storage import Server, Backblaze
 from .models import Album, Tag, Catalog, User, Access, Media, Person
-from .search import QueryGroup, FieldQuery, Query
+from .search import QueryGroup, FieldQuery, Query, Search
 
 def creator(cls, data):
     serializer = cls(data=data)
@@ -179,14 +179,16 @@ def serialize_state(request):
     else:
         return StateSerializer({"user": None}).data
 
-class LazyQueryGroupSerializer(Serializer):
-    def to_representation(self, instance):
-        serializer = QueryGroupSerializer(instance, context=self.context)
-        return serializer.to_representation(instance)
-
-    def to_internal_value(self, data):
-        serializer = QueryGroupSerializer(data=data, context=self.context)
-        return serializer.to_internal_value(data)
+class RecursiveSerializer(Serializer):
+    def create_inner(self, validated_data):
+        args = {}
+        for key, value in validated_data.items():
+            field = self.fields[key]
+            if isinstance(field, Serializer):
+                args[key] = field.create(value)
+            else:
+                args[key] = value
+        return args
 
 class FieldQuerySerializer(Serializer):
     invert = serializers.BooleanField()
@@ -198,31 +200,47 @@ class FieldQuerySerializer(Serializer):
         return FieldQuery(**validated_data)
 
 class QuerySerializer(Serializer):
-    field = FieldQuerySerializer(required=False)
-    group = LazyQueryGroupSerializer(required=False)
+    def to_representation(self, instance):
+        if isinstance(instance, QueryGroup):
+            serializer = QueryGroupSerializer(instance)
+        else:
+            serializer = FieldQuerySerializer(instance)
+        return serializer.to_representation(instance)
+
+    def to_internal_value(self, data):
+        if 'join' in data:
+            serializer = QueryGroupSerializer(data=data)
+        else:
+            serializer = FieldQuerySerializer(data=data)
+        return serializer.to_internal_value(data)
 
     def create(self, validated_data):
-        if 'field' in validated_data:
-            return Query(field=creator(FieldQuerySerializer, validated_data['field']))
-        if 'group' in validated_data:
-            return Query(group=creator(QueryGroupSerializer, validated_data['group']))
-        raise Exception("No field or group for a query.")
+        if 'join' in validated_data:
+            serializer = QueryGroupSerializer(data=validated_data)
+        else:
+            serializer = FieldQuerySerializer(data=validated_data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.create(serializer.validated_data)
 
-class QueryGroupSerializer(Serializer):
+class QueryGroupSerializer(RecursiveSerializer):
     invert = serializers.BooleanField()
     join = serializers.ChoiceField(QueryGroup.JOINS)
     queries = QuerySerializer(many=True)
 
     def create(self, validated_data):
-        validated_data['queries'] = [creator(QuerySerializer, q) for q in validated_data['queries']]
-        return QueryGroup(**validated_data)
+        args = self.create_inner(validated_data)
+        return QueryGroup(**args)
 
 class SearchSerializer(Serializer):
     catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
-    query = QueryGroupSerializer()
+    query = QuerySerializer()
+
+    def to_representation(self, instance):
+        pass
 
     def create(self, validated_data):
-        return creator(QueryGroupSerializer, validated_data['query'])
+        query = self.fields['query'].create(validated_data['query'])
+        return Search(validated_data['catalog'], query)
 
 class ThumbnailRequestSerializer(Serializer):
     media = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())

@@ -206,23 +206,16 @@ def search(request):
 
     serializer = SearchSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    catalog = serializer.validated_data['catalog']
-    query_group = serializer.create(serializer.validated_data)
+    search_params = serializer.create(serializer.validated_data)
 
-    if not request.user.can_access_catalog(catalog):
+    if not request.user.can_access_catalog(search_params.catalog):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    media = None
-    logger.debug(pformat(query_group))
-    query = query_group.get_query()
-    if isinstance(query, bool):
-        if not query:
-            media = []
-        else:
-            media = models.Media.objects.filter(catalog=catalog)
-    else:
-        media = models.Media.objects.filter(query, catalog=catalog)
-
+    query = search_params.get_query()
+    media = []
+    if query is not None:
+        media = models.Media.objects.filter(query).distinct()
+        logger.debug(media.query)
     serializer = MediaSerializer(media, many=True)
     return Response(serializer.data)
 

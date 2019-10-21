@@ -29,16 +29,13 @@ export interface QueryGroup {
   queries: Query[];
 }
 
-export interface Query {
-  field?: FieldQuery;
-  group?: QueryGroup;
-}
+type Query = QueryGroup | FieldQuery;
 
 export interface Search {
   catalog: Catalog;
-  query: QueryGroup;
+  query: Query;
 }
 
-export function isFieldQuery(f: FieldQuery | QueryGroup): f is FieldQuery {
+export function isFieldQuery(f: Query): f is FieldQuery {
   return !("join" in f);
 }

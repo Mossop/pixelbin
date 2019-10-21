@@ -11,7 +11,7 @@ import { DispatchProps, showUploadOverlay, showCatalogEditOverlay, showAlbumCrea
 import { getCatalog } from "../store/store";
 import NotFound from "./notfound";
 import MediaList from "../components/MediaList";
-import { Search, Field, Operation, Join } from "../utils/search";
+import { Search, Field, Operation } from "../utils/search";
 
 interface MatchParams {
   id: string;
@@ -84,15 +84,9 @@ class CatalogPage extends BasePage<CatalogPageProps> {
         catalog: this.props.catalog,
         query: {
           invert: false,
-          join: Join.And,
-          queries: [{
-            field: {
-              invert: false,
-              field: Field.Album,
-              operation: Operation.Includes,
-              value: "",
-            },
-          }],
+          field: Field.Album,
+          operation: Operation.Includes,
+          value: "",
         },
       };
       return <MediaList search={search}/>;

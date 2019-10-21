@@ -25,9 +25,8 @@ def resize(image, size):
     if image.width > image.height:
         factor = size / image.width
         return image.resize((size, round(image.height * factor)), Image.LANCZOS)
-    else:
-        factor = size / image.height
-        return image.resize((round(image.width * factor), size), Image.LANCZOS)
+    factor = size / image.height
+    return image.resize((round(image.width * factor), size), Image.LANCZOS)
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -134,6 +133,7 @@ class Album(models.Model):
     stub = models.CharField(max_length=50, unique=True, null=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
     name = models.CharField(max_length=100)
+    lc_name = models.CharField(max_length=100)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='albums',
@@ -152,9 +152,15 @@ class Album(models.Model):
             cte.join(Album, id=cte.col.id).with_cte(cte)
         )
 
+    def save(self, *args, **kwargs):
+        self.lc_name = self.name.lower()
+        super().save(*args, **kwargs)
+
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['catalog', 'parent', 'name'], name='unique_album_name')
+            models.CheckConstraint(check=Q(lc_name=Lower('name')), name='ensure_lc_name_correct'),
+            models.UniqueConstraint(fields=['catalog', 'parent', 'lc_name'],
+                                    name='unique_album_name'),
         ]
 
 class Tag(models.Model):
@@ -191,8 +197,7 @@ class Tag(models.Model):
 
         while len(to_build) > 0:
             name = to_build.pop()
-            parent = Tag.objects.create(parent=parent, catalog=catalog,
-                                        name=name, lc_name=name.lower())
+            parent = Tag.objects.create(parent=parent, catalog=catalog, name=name)
 
         return parent
 
@@ -209,10 +214,14 @@ class Tag(models.Model):
             cte.join(Tag, id=cte.col.id).with_cte(cte)
         )
 
+    def save(self, *args, **kwargs):
+        self.lc_name = self.name.lower()
+        super().save(*args, **kwargs)
+
     class Meta:
         constraints = [
             models.CheckConstraint(check=Q(lc_name=Lower('name')), name='ensure_lc_name_correct'),
-            models.UniqueConstraint(fields=['catalog', 'lc_name'], name='unique_tag_name')
+            models.UniqueConstraint(fields=['catalog', 'lc_name'], name='unique_tag_name'),
         ]
 
 class Person(models.Model):
@@ -227,6 +236,10 @@ class Person(models.Model):
             "full_name": name,
         })
         return person
+
+    def save(self, *args, **kwargs):
+        self.lc_name = self.full_name.lower()
+        super().save(*args, **kwargs)
 
     class Meta:
         constraints = [

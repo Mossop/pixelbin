@@ -18,25 +18,24 @@ class FieldQuery:
         self.value = value
         self.invert = invert
 
-    def album_query(self):
-        album = None
-        if self.value != '':
-            try:
-                album = Album.objects.get(name=self.value)
-            except Album.DoesNotExist:
-                return False
-
+    def album_query(self, category):
         if self.operation == 'child':
-            return Q(albums=album)
+            if self.value == '':
+                # The special top-level category album
+                return Q(albums__parent=None)
+            else:
+                return Q(albums__lc_name=self.value.lower())
         if self.operation == 'descendent':
-            return Q(albums__in=album.descendants())
+            if self.value == '':
+                return True
+            return False
         raise Exception("Unexpected operation on album field %s" % self.operation)
 
     # Returns True if every media matches this query, False if no media can
     # match this query or a Q object otherwise.
-    def get_query(self):
+    def get_query(self, category):
         if self.field == 'album':
-            query = self.album_query()
+            query = self.album_query(category)
         else:
             raise Exception("Search on unknown field %s" % self.field)
 
@@ -56,14 +55,14 @@ class QueryGroup:
         self.queries = queries
         self.invert = invert
 
-    def get_child_queries(self):
+    def get_child_queries(self, category):
         children = list(self.queries)
         if len(children) == 0:
             return False
 
         query = None
         while len(children) > 0:
-            next_query = children.pop(0).get_query()
+            next_query = children.pop(0).get_query(category)
             if isinstance(next_query, bool):
                 if not next_query:
                     # No results, no point continuing
@@ -86,9 +85,10 @@ class QueryGroup:
 
     # Returns True if every media matches this query, False if no media can
     # match this query or a Q object otherwise.
-    def get_query(self):
-        query = self.get_child_queries()
+    def get_query(self, category):
+        query = self.get_child_queries(category)
         if self.invert:
+            # pylint: disable=invalid-unary-operand-type
             return ~query
         return query
 
@@ -104,9 +104,22 @@ class Query:
         self.group = group
 
     # Returns the field or group query.
-    def get_query(self):
+    def get_query(self, category):
         if self.field is not None:
-            return self.field.get_query()
+            return self.field.get_query(category)
         if self.group is not None:
-            return self.field.get_query()
+            return self.field.get_query(category)
         raise Exception("Query has not field or group.")
+
+class Search:
+    def __init__(self, catalog, query):
+        self.catalog = catalog
+        self.query = query
+
+    def get_query(self):
+        query = self.query.get_query(self.catalog)
+        if isinstance(query, bool):
+            if not query:
+                return None
+            return Q(catalog=self.catalog)
+        return Q(catalog=self.catalog) & query
