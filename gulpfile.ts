@@ -105,7 +105,7 @@ function watchJsConfig(): Configuration {
 }
 
 export async function pylint(): Promise<void> {
-  return exec("pylint", ["api", "app", "base", "config"]);
+  return exec("pylint", [`--rcfile=${path(".pylintrc")}`, "api", "app", "base", "config"]);
 }
 
 export function eslint(): NodeJS.ReadWriteStream {

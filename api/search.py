@@ -18,13 +18,19 @@ class FieldQuery:
         self.value = value
         self.invert = invert
 
-    def album_query(self, category):
+    def album_query(self, catalog):
         if self.operation == 'child':
             return Q(albums__lc_name=self.value.lower())
-        if self.operation == 'descendent':
-            if self.value == '':
-                return True
-            return False
+        if self.operation == 'descendant':
+            albums = set()
+            roots = Album.objects.filter(catalog=catalog, lc_name=self.value.lower())
+            for album in roots:
+                albums |= set(album.descendants())
+
+            if len(albums) == 0:
+                return False
+            return Q(albums__in=albums)
+
         raise Exception("Unexpected operation on album field %s" % self.operation)
 
     # Returns True if every media matches this query, False if no media can

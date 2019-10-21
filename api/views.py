@@ -1,6 +1,5 @@
 import os
 import json
-import logging
 
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.http.response import HttpResponse
@@ -18,9 +17,6 @@ from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     ServerSerializer, MediaSerializer, AlbumSerializer, SearchSerializer, \
     ThumbnailRequestSerializer, MediaAlbumSerializer
 from .tasks import process_media
-
-logger = logging.getLogger(__name__)
-from pprint import pformat
 
 class IllegalUpdateException(Exception):
     pass
@@ -248,7 +244,6 @@ def search(request):
     media = []
     if query is not None:
         media = models.Media.objects.filter(query).distinct()
-        logger.debug(media.query)
     serializer = MediaSerializer(media, many=True)
     return Response(serializer.data)
 
