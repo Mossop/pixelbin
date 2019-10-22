@@ -91,10 +91,10 @@ function buildJsConfig(): Configuration {
         }
       }],
     },
-    externals: {
+    /*externals: {
       "react": "React",
       "react-dom": "ReactDOM",
-    },
+    },*/
   };
 }
 

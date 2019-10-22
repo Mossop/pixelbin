@@ -9,6 +9,7 @@ import Icon from "./Icon";
 import { UIContext, Context, getTextState } from "../utils/UIState";
 import { Mapped } from "../utils/maps";
 import { modifyAlbums } from "../api/media";
+import { DispatchProps, bumpState } from "../store/actions";
 
 interface StateProps {
   catalogs: Mapped<Catalog>;
@@ -99,7 +100,11 @@ interface SidebarProps {
   selected?: string;
 }
 
-class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps> {
+const mapDispatchToProps = {
+  bumpState,
+};
+
+class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps & DispatchProps<typeof mapDispatchToProps>> {
   protected onAlbumClick(album: Album): void {
     this.props.onAlbumClick(album);
   }
@@ -126,7 +131,7 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps>
     event.currentTarget.classList.remove("dragtarget");
   };
 
-  private onDrop: ((event: React.DragEvent, album: Album) => void) = (event: React.DragEvent, album: Album): void => {
+  private onDrop: ((event: React.DragEvent, album: Album) => Promise<void>) = async (event: React.DragEvent, album: Album): Promise<void> => {
     event.currentTarget.classList.remove("dragtarget");
     event.preventDefault();
 
@@ -140,16 +145,21 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps>
       removals = [this.props.album];
     }
 
-    modifyAlbums(mediaId, [album], removals);
+    try {
+      await modifyAlbums(mediaId, [album], removals);
+      this.props.bumpState();
+    } catch (e) {
+      // TODO
+    }
   };
 
   protected renderItem(item: Album, onClick: () => void): React.ReactNode {
     if (this.props.selected === item.id) {
       return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
     } else {
-      return <Button className="item" iconName="folder" onClick={onClick} onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDragLeave={this.onDragLeave} onDrop={(event: React.DragEvent): void => this.onDrop(event, item)}>{item.name}</Button>;
+      return <Button className="item" iconName="folder" onClick={onClick} onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDragLeave={this.onDragLeave} onDrop={(event: React.DragEvent): Promise<void> => this.onDrop(event, item)}>{item.name}</Button>;
     }
   }
 }
 
-export const CatalogTreeSidebar = connect(mapStateToProps)(CatalogTreeSidebarComponent);
+export const CatalogTreeSidebar = connect(mapStateToProps, mapDispatchToProps)(CatalogTreeSidebarComponent);

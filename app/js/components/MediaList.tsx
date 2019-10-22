@@ -15,11 +15,13 @@ interface MediaListProps {
 
 interface StateProps {
   thumbnailSize: number;
+  stateId: number;
 }
 
 function mapStateToProps(state: StoreState): StateProps {
   return {
     thumbnailSize: state.settings.thumbnailSize,
+    stateId: state.stateId,
   };
 }
 
@@ -72,11 +74,23 @@ class MediaList extends React.Component<AllProps, MediaListState> {
       return;
     }
 
-    let mediaMap: Draft<MediaDataMap> = {};
-    for (let item of results) {
-      this.loadThumbnail(item);
-      mediaMap[item.id] = { media: item };
-    }
+    let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaDataMap>) => {
+      let current = new Set(Object.keys(mediaMap));
+
+      for (let item of results) {
+        current.delete(item.id);
+        if (!(item.id in mediaMap)) {
+          mediaMap[item.id] = { media: item };
+        } else {
+          mediaMap[item.id].media = item;
+        }
+        this.loadThumbnail(item);
+      }
+
+      for (let old of current.values()) {
+        delete mediaMap[old];
+      }
+    });
 
     this.setState({
       pending: false,
@@ -89,7 +103,8 @@ class MediaList extends React.Component<AllProps, MediaListState> {
   }
 
   public componentDidUpdate(prevProps: AllProps): void {
-    if (prevProps.search !== this.props.search) {
+    if (prevProps.search !== this.props.search ||
+        prevProps.stateId !== this.props.stateId) {
       this.startSearch();
     }
   }

@@ -23,7 +23,8 @@ function buildStore(): Store<StoreState, ActionType> {
     settings: {
       thumbnailSize: 150,
     },
-    historyState: null
+    historyState: null,
+    stateId: 0,
   };
 
   const middlewares: Middleware[] = [];

@@ -46,4 +46,5 @@ export interface StoreState {
   readonly overlay?: OverlayState;
   readonly settings: Settings;
   readonly historyState: HistoryState | null;
+  readonly stateId: number;
 }

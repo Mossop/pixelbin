@@ -2,7 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
-import { DispatchProps, closeOverlay } from "../store/actions";
+import { DispatchProps, bumpState, closeOverlay } from "../store/actions";
 import { UIManager } from "../utils/UIState";
 import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
@@ -41,6 +41,7 @@ function itemIsMedia(item: DataTransferItem): boolean {
 }
 
 const mapDispatchToProps = {
+  bumpState,
   closeOverlay,
 };
 
@@ -101,6 +102,8 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
         delete uploads[id];
       });
       this.setState({ uploads });
+
+      this.props.bumpState();
     } catch (e) {
       console.error(e);
       let uploads = produce(this.state.uploads, (uploads: Uploads): void => {

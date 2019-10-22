@@ -19,6 +19,7 @@ export const SHOW_ALBUM_CREATE_OVERLAY = "SHOW_ALBUM_CREATE_OVERLAY";
 export const SHOW_ALBUM_EDIT_OVERLAY = "SHOW_ALBUM_EDIT_OVERLAY";
 export const ALBUM_CREATED = "ALBUM_CREATED";
 export const ALBUM_EDITED = "ALBUM_EDITED";
+export const BUMP_STATE = "BUMP_STATE";
 
 type ArgumentTypes<F> = F extends (...args: infer A) => infer _R ? A : never;
 type ReturnType<F> = F extends (...args: infer _A) => infer R ? R : never;
@@ -48,7 +49,18 @@ export type ActionType =
   ShowAlbumCreateOverlayAction |
   ShowAlbumEditOverlayAction |
   AlbumCreatedAction |
-  AlbumEditedAction;
+  AlbumEditedAction |
+  BumpStateAction;
+
+interface BumpStateAction extends Action {
+  type: typeof BUMP_STATE;
+}
+
+export function bumpState(): BumpStateAction {
+  return {
+    type: BUMP_STATE,
+  };
+}
 
 interface ShowAlbumCreateOverlayAction extends Action {
   type: typeof SHOW_ALBUM_CREATE_OVERLAY;

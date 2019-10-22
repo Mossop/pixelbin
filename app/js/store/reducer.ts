@@ -17,7 +17,8 @@ import { ActionType,
   SHOW_ALBUM_CREATE_OVERLAY,
   SHOW_ALBUM_EDIT_OVERLAY, 
   ALBUM_CREATED,
-  ALBUM_EDITED } from "./actions";
+  ALBUM_EDITED, 
+  BUMP_STATE} from "./actions";
 import { StoreState, OverlayType } from "./types";
 import { history, HistoryState } from "../utils/history";
 import { UserState } from "../api/types";
@@ -161,6 +162,10 @@ function mediaReducer(state: Draft<StoreState>, action: ActionType): void {
 
 function reducer(state: Draft<StoreState>, action: ActionType): void {
   switch (action.type) {
+    case BUMP_STATE: {
+      state.stateId++;
+      return;
+    }
     case SET_HISTORY_STATE: {
       state.historyState = action.payload;
       return;
