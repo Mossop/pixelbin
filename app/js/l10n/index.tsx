@@ -4,8 +4,32 @@ import { LocalizationProvider } from "@fluent/react";
 import { negotiateLanguages } from "@fluent/langneg";
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 
+export interface L10nArgs {
+  [key: string]: string | number;
+}
+
+export interface LocalizedProps {
+  id: string;
+  [key: string]: string | number;
+}
+
+export function l10nAttributes(id: string, args?: L10nArgs): LocalizedProps {
+  let attributes: LocalizedProps = {
+    id,
+  };
+
+  if (args) {
+    for (let [key, val] of Object.entries(args)) {
+      attributes[`$${key}`] = val;
+    }
+  }
+
+  return attributes;
+}
+
 export interface L10nProps {
   l10n: string;
+  args: L10nArgs;
 }
 
 export type OptionalL10nProps = Partial<L10nProps>;

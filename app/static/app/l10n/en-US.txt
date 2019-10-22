@@ -1,3 +1,12 @@
+api-error-validation-failure = Some invalid data was sent to the server.
+api-error-parse-failure = Some invalid data was sent to the server.
+api-error-api-failure = An unknown API failure occured.
+api-error-server-error = An unknown server error occured.
+api-error-unknown-method = An unknown API method was called.
+api-error-media-in-no-albums = Refusing to remove media from all albums.
+api-error-request-failed = The server request failed: '{$detail}'.
+api-error-error-parse-failed = Failed to parse the server error response.
+
 banner-login = Log in
 banner-signup = Signup
 banner-logout = Log out
@@ -10,14 +19,14 @@ overlay-close =
   .title = Close
 
 signup-title = Enter your details:
-signup-title-bademail = There is already an account with this email. Try again:
+api-error-signup-bad-email = There is already an account with this email. Try again:
 signup-email = Email address:
 signup-name = Name:
 signup-password = Password:
 signup-submit = Sign up...
 
 login-title = Please enter your login details:
-login-title-failed = Unknown email or password. Try again:
+api-error-login-failed = Unknown email or password. Try again:
 login-email = Email address:
 login-password = Pasword:
 login-submit = Log in...

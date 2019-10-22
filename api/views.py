@@ -4,29 +4,23 @@ import json
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from django.http.response import HttpResponse
 from django.db import transaction
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import parser_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from filetype import filetype
 
 from . import models
-from .utils import uuid
+from .utils import uuid, api_view, ApiException
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
     ServerSerializer, MediaSerializer, AlbumSerializer, SearchSerializer, \
     ThumbnailRequestSerializer, MediaAlbumSerializer
 from .tasks import process_media
 
-class IllegalUpdateException(Exception):
-    pass
-
-@api_view()
-def get_user(request):
-    if request.user and request.user.is_authenticated:
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
-    return Response(status=status.HTTP_401_UNAUTHORIZED)
+@api_view(['GET', 'PUT', 'OPTIONS', 'POST', 'DELETE'])
+def default(request):
+    raise ApiException('unknown-method', status=status.HTTP_404_NOT_FOUND)
 
 @transaction.atomic
 @api_view(['PUT'])
@@ -35,6 +29,9 @@ def create_user(request):
         return Response(status=status.HTTP_403_FORBIDDEN)
     serializer = UserSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+    if len(models.User.objects.filter(email=serializer['email'])) > 0:
+        raise ApiException('signup-bad-email')
+
     user = serializer.save()
     if not request.auth:
         login_user(request, user)
@@ -49,7 +46,7 @@ def login(request):
     if user is not None:
         login_user(request, user)
         return Response(serialize_state(request))
-    return Response(status=status.HTTP_403_FORBIDDEN)
+    raise ApiException('login-failed', status=status.HTTP_403_FORBIDDEN)
 
 @api_view(['PUT'])
 def create_catalog(request):
@@ -133,51 +130,28 @@ def logout(request):
     logout_user(request)
     return Response(serialize_state(request))
 
-@api_view(['PUT'])
-def add_albums(request):
+@api_view(['POST'])
+def modify_albums(request):
     if not request.user or not request.user.is_authenticated:
         return Response(status=status.HTTP_403_FORBIDDEN)
 
     serializer = MediaAlbumSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    albums = serializer.validated_data['albums']
+    add_albums = serializer.validated_data['addAlbums']
+    remove_albums = serializer.validated_data['removeAlbums']
     media = serializer.validated_data['media']
 
     if not request.user.can_access_catalog(media.catalog):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    for album in albums:
-        if album.catalog != media.catalog:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+    with transaction.atomic():
+        media.albums.remove(*remove_albums)
+        media.albums.add(*add_albums)
+        if len(media.albums.all()) == 0:
+            raise ApiException('media-in-no-albums')
 
-    media.albums.add(*albums)
-
-@api_view(['DELETE'])
-def remove_albums(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
-    serializer = MediaAlbumSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    albums = serializer.validated_data['albums']
-    media = serializer.validated_data['media']
-
-    if not request.user.can_access_catalog(media.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
-    for album in albums:
-        if album.catalog != media.catalog:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        with transaction.atomic():
-            media.albums.remove(*albums)
-            if len(media.albums.objects.all()) == 0:
-                raise IllegalUpdateException("Cannot remove from all albums.")
-    except IllegalUpdateException:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+    return Response(status=status.HTTP_200_OK)
 
 @api_view(['PUT'])
 @parser_classes([MultiPartParser])

@@ -1,3 +1,5 @@
+import { decodeAPIError, APIError } from "./types";
+
 const API_ROOT = new URL("/api/", window.location.href);
 
 export type Method = "GET" | "POST" | "PUT" | "DELETE";
@@ -54,11 +56,30 @@ export async function request(url: URL | string, method: Method = "POST", body?:
     headers.append("Content-Type", body.type);
   }
 
-  return fetch(uri.href, {
-    method,
-    body: body ? body.data : undefined,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(uri.href, {
+      method,
+      headers,
+      body: body ? body.data : undefined,
+    });
+  } catch (e) {
+    let error: APIError = {
+      status: 0,
+      statusText: "Request failed",
+      code: "request-failed",
+      args: {
+        detail: String(e),
+      }
+    };
+    throw error;
+  }
+
+  if (!response.ok) {
+    throw await decodeAPIError(response);
+  } else {
+    return response;
+  }
 }
 
 export function getRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {

@@ -14,7 +14,7 @@
     user-select: none;
   }
 
-  .item:hover:not(.selected) {
+  .item:hover:not(.selected), .item.dragtarget {
     background: var(--hover);
   }
 

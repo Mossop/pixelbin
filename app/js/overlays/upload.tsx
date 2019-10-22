@@ -238,14 +238,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
   };
 
   private onDragOver: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
-    let media = Array.from(event.dataTransfer.items).filter(itemIsMedia);
-    if (media.length == 0) {
-      return;
-    }
-
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.dropEffect = "copy";
-    event.preventDefault();
+    this.onDragEnter(event);
   };
 
   private onDrop: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {

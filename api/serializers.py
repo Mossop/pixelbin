@@ -77,7 +77,8 @@ class UploadSerializer(Serializer):
 
 class MediaAlbumSerializer(Serializer):
     media = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())
-    albums = serializers.PrimaryKeyRelatedField(many=True, queryset=Album.objects.all())
+    addAlbums = serializers.PrimaryKeyRelatedField(many=True, queryset=Album.objects.all(), required=False, default=[])
+    removeAlbums = serializers.PrimaryKeyRelatedField(many=True, queryset=Album.objects.all(), required=False, default=[])
 
 class LoginSerializer(Serializer):
     email = serializers.CharField()
@@ -153,6 +154,7 @@ class AccessSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     fullname = serializers.CharField(source='full_name')
+    password = serializers.CharField(write_only=True, allow_blank=True)
     hadCatalog = serializers.BooleanField(source='had_catalog', read_only=True)
     verified = serializers.BooleanField(read_only=True)
 
@@ -165,7 +167,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'password', 'fullname', 'hadCatalog', 'verified']
-        extra_kwargs = {'password': {'write_only': True}}
 
 class UserStateSerializer(UserSerializer):
     catalogs = CatalogStateSerializer(many=True)

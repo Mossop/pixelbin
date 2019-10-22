@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { Catalog, User } from "../api/types";
+import { Catalog, User, APIError } from "../api/types";
 import { UIManager } from "../utils/UIState";
 import Form, { FormProps, Field } from "../components/Form";
 import { getStorageConfigUI, getStorageConfig } from "../storage";
@@ -11,7 +11,7 @@ import Overlay from "../components/overlay";
 
 interface CatalogState {
   disabled: boolean;
-  error: boolean;
+  error?: APIError;
 }
 
 interface PassedProps {
@@ -32,7 +32,6 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
 
     this.state = {
       disabled: false,
-      error: false,
     };
 
     if (!props.catalog) {
@@ -60,7 +59,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
         this.props.catalogEdited(catalog);
       }
     } catch (e) {
-      this.setState({ disabled: false, error: true });
+      this.setState({ disabled: false, error: e });
     }
   };
 
@@ -93,7 +92,6 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
     let form: FormProps = {
       disabled: this.state.disabled,
       onSubmit: this.onSubmit,
-      className: this.state.error ? "error" : undefined,
 
       fields: [{
         fieldType: "textbox",
@@ -105,7 +103,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
       submit: this.props.catalog ? "catalog-edit-submit" : "catalog-create-submit",
     };
 
-    return <Overlay title={title}>
+    return <Overlay title={title} error={this.state.error}>
       <Form {...form}/>
     </Overlay>;
   }

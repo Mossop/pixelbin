@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import { UIManager } from "../utils/UIState";
 import Form, { FormProps } from "../components/Form";
-import { Album, Catalog, User } from "../api/types";
+import { Album, Catalog, User, APIError } from "../api/types";
 import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
 import { getParent, getCatalogForAlbum } from "../store/store";
@@ -13,7 +13,7 @@ import { Localized } from "@fluent/react";
 
 interface AlbumState {
   disabled: boolean;
-  error: boolean;
+  error?: APIError;
 }
 
 interface PassedProps {
@@ -35,7 +35,6 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
 
     this.state = {
       disabled: false,
-      error: false,
     };
 
     if (this.props.parent) {
@@ -83,7 +82,7 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
         this.props.albumEdited(catalog, album);
       }
     } catch (e) {
-      this.setState({ disabled: false, error: true });
+      this.setState({ disabled: false, error: e });
     }
   };
 
@@ -104,7 +103,6 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
     let form: FormProps = {
       disabled: this.state.disabled,
       onSubmit: this.onSubmit,
-      className: this.state.error ? "error" : undefined,
 
       fields: [{
         fieldType: "textbox",
@@ -115,7 +113,7 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
       submit: this.props.album ? "album-edit-submit" : "album-create-submit",
     };
 
-    return <Overlay title={title} sidebar={this.renderSidebar()}>
+    return <Overlay title={title} error={this.state.error} sidebar={this.renderSidebar()}>
       <Form {...form}/>
     </Overlay>;
   }

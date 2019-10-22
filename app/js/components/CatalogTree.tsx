@@ -8,6 +8,7 @@ import { StoreState } from "../store/types";
 import Icon from "./Icon";
 import { UIContext, Context, getTextState } from "../utils/UIState";
 import { Mapped } from "../utils/maps";
+import { modifyAlbums } from "../api/media";
 
 interface StateProps {
   catalogs: Mapped<Catalog>;
@@ -92,6 +93,7 @@ class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProp
 export const CatalogTreeSelector = connect(mapStateToProps)(CatalogTreeSelectorComponent);
 
 interface SidebarProps {
+  album?: Album;
   onCatalogClick: (catalog: Catalog) => void;
   onAlbumClick: (album: Album) => void;
   selected?: string;
@@ -106,11 +108,46 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps>
     this.props.onCatalogClick(catalog);
   }
 
+  private onDragEnter: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
+    if (!event.dataTransfer.types.includes("pixelbin/media")) {
+      return;
+    }
+
+    event.dataTransfer.effectAllowed = this.props.album ? "copyMove" : "copy";
+    event.currentTarget.classList.add("dragtarget");
+    event.preventDefault();
+  };
+
+  private onDragOver: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
+    this.onDragEnter(event);
+  };
+
+  private onDragLeave: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
+    event.currentTarget.classList.remove("dragtarget");
+  };
+
+  private onDrop: ((event: React.DragEvent, album: Album) => void) = (event: React.DragEvent, album: Album): void => {
+    event.currentTarget.classList.remove("dragtarget");
+    event.preventDefault();
+
+    let mediaId = event.dataTransfer.getData("pixelbin/media");
+    if (!mediaId) {
+      return;
+    }
+
+    let removals: Album[] = [];
+    if (event.dataTransfer.dropEffect === "move" && this.props.album) {
+      removals = [this.props.album];
+    }
+
+    modifyAlbums(mediaId, [album], removals);
+  };
+
   protected renderItem(item: Album, onClick: () => void): React.ReactNode {
     if (this.props.selected === item.id) {
       return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
     } else {
-      return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
+      return <Button className="item" iconName="folder" onClick={onClick} onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDragLeave={this.onDragLeave} onDrop={(event: React.DragEvent): void => this.onDrop(event, item)}>{item.name}</Button>;
     }
   }
 }

@@ -8,6 +8,10 @@ import Icon, { IconProps } from "./Icon";
 
 type ButtonProps  = {
   onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  onDragEnter?: (event: React.DragEvent) => void;
+  onDragOver?: (event: React.DragEvent) => void;
+  onDragLeave?: (event: React.DragEvent) => void;
+  onDrop?: (event: React.DragEvent) => void;
   tooltipL10n?: string;
 } & FieldProps & OptionalL10nProps & IconProps;
 
@@ -27,7 +31,12 @@ export class Button extends React.Component<ButtonProps> {
   }
 
   public renderButton(): React.ReactNode {
-    let buttonProps = fieldProps(this.props, { className: "button" });
+    let buttonProps = Object.assign(fieldProps(this.props, { className: "button" }), {
+      onDragEnter: this.props.onDragEnter,
+      onDragOver: this.props.onDragOver,
+      onDragLeave: this.props.onDragLeave,
+      onDrop: this.props.onDrop,
+    });
     return <button {...buttonProps} onClick={this.props.onClick}>
       <Icon iconType={this.props.iconType} iconName={this.props.iconName}/>
       {this.renderButtonContent()}

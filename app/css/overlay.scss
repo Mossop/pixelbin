@@ -87,12 +87,24 @@
   }
 }
 
-#overlay-content {
+#overlay-main {
   @include base-styles;
   @include flex-column;
 
-  padding: var(--padding);
   flex: 1;
+}
+
+#overlay-error {
+  padding: var(--padding) var(--padding) 0 var(--padding);
+
+  color: var(--error);
+  font-weight: bold;
+}
+
+#overlay-content {
+  @include base-styles;
+
+  padding: var(--padding);
   overflow: hidden;
 }
 

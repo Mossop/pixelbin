@@ -23,9 +23,9 @@ export async function upload(catalog: Catalog, metadata: Immutable<UploadMetadat
   }
 }
 
-export async function addToAlbums(media: Media, albums: Album[]): Promise<void> {
+export async function addToAlbums(media: Media | string, albums: Album[]): Promise<void> {
   let response = await request("albums/add", "PUT", buildJSONBody({
-    media: media.id,
+    media: typeof media === "string" ? media : media.id,
     albums: albums.map((a: Album): string => a.id),
   }));
 
@@ -36,10 +36,11 @@ export async function addToAlbums(media: Media, albums: Album[]): Promise<void> 
   }
 }
 
-export async function removeFromAlbums(media: Media, albums: Album[]): Promise<void> {
-  let response = await request("albums/remove", "DELETE", buildJSONBody({
-    media: media.id,
-    albums: albums.map((a: Album): string => a.id),
+export async function modifyAlbums(media: Media | string, addAlbums: Album[] = [], removeAlbums: Album[] = []): Promise<void> {
+  let response = await request("albums/edit", "POST", buildJSONBody({
+    media: typeof media === "string" ? media : media.id,
+    addAlbums: addAlbums.map((a: Album): string => a.id),
+    removeAlbums: removeAlbums.map((a: Album): string => a.id),
   }));
 
   if (response.ok) {

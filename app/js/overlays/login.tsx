@@ -6,10 +6,11 @@ import Form, { FormProps } from "../components/Form";
 import { UIManager } from "../utils/UIState";
 import { DispatchProps, completeLogin } from "../store/actions";
 import Overlay from "../components/overlay";
+import { APIError } from "../api/types";
 
 interface LoginState {
   disabled: boolean;
-  error: boolean;
+  error?: APIError;
 }
 
 const mapDispatchToProps = {
@@ -23,7 +24,6 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
     super(props);
     this.state = {
       disabled: false,
-      error: false,
     };
   }
 
@@ -40,18 +40,15 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
       let state = await login(email, password);
       this.props.completeLogin(state);
     } catch (e) {
-      this.setState({ disabled: false, error: true });
+      this.setState({ disabled: false, error: e });
       this.setTextState("password", "");
     }
   };
 
   public renderUI(): React.ReactNode {
-    let title = this.state.error ? "login-title-failed" : "login-title";
-
     let form: FormProps = {
       disabled: this.state.disabled,
       onSubmit: this.onSubmit,
-      className: this.state.error ? "error" : undefined,
 
       fields: [{
         fieldType: "textbox",
@@ -67,7 +64,7 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
       }],
       submit: "login-submit",
     };
-    return <Overlay title={title}>
+    return <Overlay title="login-title" error={this.state.error}>
       <Form {...form}/>
     </Overlay>;
   }
