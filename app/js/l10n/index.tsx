@@ -29,7 +29,7 @@ export function l10nAttributes(id: string, args?: L10nArgs): LocalizedProps {
 
 export interface L10nProps {
   l10n: string;
-  args: L10nArgs;
+  args?: L10nArgs;
 }
 
 export type OptionalL10nProps = Partial<L10nProps>;
