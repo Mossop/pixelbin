@@ -8,6 +8,8 @@ import Icon, { IconProps } from "./Icon";
 
 type ButtonProps  = {
   onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  draggable?: boolean;
+  onDragStart?: (event: React.DragEvent) => void;
   onDragEnter?: (event: React.DragEvent) => void;
   onDragOver?: (event: React.DragEvent) => void;
   onDragLeave?: (event: React.DragEvent) => void;
@@ -32,6 +34,8 @@ export class Button extends React.Component<ButtonProps> {
 
   public renderButton(): React.ReactNode {
     let buttonProps = Object.assign(fieldProps(this.props, { className: "button" }), {
+      draggable: this.props.draggable,
+      onDragStart: this.props.onDragStart,
       onDragEnter: this.props.onDragEnter,
       onDragOver: this.props.onDragOver,
       onDragLeave: this.props.onDragLeave,

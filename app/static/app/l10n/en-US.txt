@@ -6,6 +6,7 @@ api-error-unknown-method = An unknown API method was called.
 api-error-media-in-no-albums = Refusing to remove media from all albums.
 api-error-request-failed = The server request failed: '{$detail}'.
 api-error-error-parse-failed = Failed to parse the server error response.
+api-error-invalid-response = Failed to parse server response: '{$detail}'.
 
 banner-login = Log in
 banner-signup = Signup
@@ -36,8 +37,6 @@ catalog-create-title-first = Create your first catalog:
 catalog-name = Catalog name:
 catalog-create-storage = Storage:
 catalog-create-submit = Create...
-catalog-edit-title = Edit this catalog
-catalog-edit-submit = Finish...
 
 storage-backblaze-name = Backblaze
 storage-backblaze-keyid = Application key ID:

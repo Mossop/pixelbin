@@ -6,10 +6,11 @@ import Form, { FormProps } from "../components/Form";
 import { Album, Catalog, User, APIError } from "../api/types";
 import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
-import { getParent, getCatalogForAlbum } from "../store/store";
+import { getAlbum } from "../store/store";
 import Overlay from "../components/overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import { Localized } from "@fluent/react";
+import { Patch } from "../api/api";
 
 interface AlbumState {
   disabled: boolean;
@@ -52,34 +53,25 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
     if (!name) {
       return;
     }
-    let parent = getParent(this.getTextState("parent"));
+    let parent = getAlbum(this.getTextState("parent"));
     if (!parent) {
       return;
-    }
-
-    let catalog: Catalog;
-    let parentAlbum: Album | undefined;
-    if ("albums" in parent) {
-      catalog = parent;
-      parentAlbum = undefined;
-    } else {
-      parentAlbum = parent;
-      let check = getCatalogForAlbum(parent);
-      if (!check) {
-        return;
-      }
-      catalog = check;
     }
 
     this.setState({ disabled: true });
 
     try {
       if (!this.props.album) {
-        let album = await createAlbum(catalog, name, parentAlbum);
-        this.props.albumCreated(catalog, album);
+        let album = await createAlbum(name, parent);
+        this.props.albumCreated(album);
       } else {
-        let album = await editAlbum(this.props.album, catalog, name, parentAlbum);
-        this.props.albumEdited(catalog, album);
+        let updated: Patch<Album> = {
+          name,
+          id: this.props.album.id,
+          parent: parent.id,
+        };
+        let album = await editAlbum(updated);
+        this.props.albumEdited(album);
       }
     } catch (e) {
       this.setState({ disabled: false, error: e });

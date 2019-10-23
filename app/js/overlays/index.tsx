@@ -78,10 +78,6 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           overlay = <CatalogOverlay user={this.props.user}/>;
           break;
         }
-        case OverlayType.EditCatalog: {
-          overlay = <CatalogOverlay user={this.props.user} catalog={this.props.overlay.catalog}/>;
-          break;
-        }
         case OverlayType.CreateAlbum: {
           overlay = <AlbumOverlay user={this.props.user} parent={this.props.overlay.parent}/>;
           break;

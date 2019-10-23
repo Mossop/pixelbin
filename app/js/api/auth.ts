@@ -2,38 +2,34 @@ import { buildJSONBody, request } from "./api";
 import { ServerStateDecoder, ServerState } from "./types";
 
 export async function login(email: string, password: string): Promise<ServerState> {
-  let response = await request("login", "POST", buildJSONBody({
-    email,
-    password,
-  }));
-
-  if (response.ok) {
-    return ServerStateDecoder.decodePromise(await response.json());
-  } else {
-    throw new Error("Login failed");
-  }
+  return request({
+    url: "login",
+    method: "POST",
+    body: buildJSONBody({
+      email,
+      password,
+    }),
+    decoder: ServerStateDecoder,
+  });
 }
 
 export async function signup(email: string, fullname: string, password: string): Promise<ServerState> {
-  let response = await request("user/create", "PUT", buildJSONBody({
-    email,
-    fullname,
-    password,
-  }));
-
-  if (response.ok) {
-    return ServerStateDecoder.decodePromise(await response.json());
-  } else {
-    throw new Error("Signup failed");
-  }
+  return request({
+    url: "user/create",
+    method: "PUT",
+    body: buildJSONBody({
+      email,
+      fullname,
+      password,
+    }),
+    decoder: ServerStateDecoder,
+  });
 }
 
 export async function logout(): Promise<ServerState> {
-  let response = await request("logout", "POST");
-
-  if (response.ok) {
-    return ServerStateDecoder.decodePromise(await response.json());
-  } else {
-    throw new Error("Logout failed");
-  }
+  return request({
+    url: "logout",
+    method: "POST",
+    decoder: ServerStateDecoder,
+  });
 }

@@ -6,6 +6,8 @@ import { StoreState } from "./types";
 import { ActionType } from "./actions";
 import { Catalog, ServerStateDecoder, Album, ServerState } from "../api/types";
 import { decode } from "../utils/decoders";
+import { MapId, intoId } from "../utils/maps";
+import { nameSorted } from "../utils/sort";
 
 function buildStore(): Store<StoreState, ActionType> {
   let initialServerState: ServerState = {};
@@ -54,18 +56,12 @@ export function getCatalog(id: string, state?: StoreState): Catalog | undefined 
   return state.serverState.user.catalogs[id];
 }
 
-export function getCatalogForAlbum(album: string | Album, state?: StoreState): Catalog | undefined {
+export function getCatalogForAlbum(album: MapId<Album>, state?: StoreState): Catalog | undefined {
   if (!state) {
     state = store.getState();
   }
 
-  let id: string;
-  if (typeof album === "string") {
-    id = album;
-  } else {
-    id = album.id;
-  }
-
+  let id = intoId(album);
   if (!state.serverState.user) {
     return undefined;
   }
@@ -79,9 +75,13 @@ export function getCatalogForAlbum(album: string | Album, state?: StoreState): C
   return undefined;
 }
 
-export function getAlbum(id: string, state?: StoreState): Album | undefined {
-  let catalog = getCatalogForAlbum(id, state);
-  return catalog ? catalog.albums[id] : undefined;
+export function getAlbum(album: MapId<Album>, state?: StoreState): Album | undefined {
+  if (typeof album === "string") {
+    let catalog = getCatalogForAlbum(album, state);
+    return catalog ? catalog.albums[album] : undefined;
+  } else {
+    return album;
+  }
 }
 
 export function getParent(id: string, state?: StoreState): Album | Catalog | undefined {
@@ -91,6 +91,45 @@ export function getParent(id: string, state?: StoreState): Album | Catalog | und
   }
 
   return getAlbum(id, state);
+}
+
+export function albumChildren(album: MapId<Album>, catalog?: Catalog): Album[] {
+  let parent = intoId(album);
+  catalog = catalog ? catalog : getCatalogForAlbum(album);
+  if (!catalog) {
+    return [];
+  }
+  return nameSorted(Object.values(catalog.albums).filter((a: Album) => a.parent == parent));
+}
+
+export function isAncestor(maybeAncestor: MapId<Album>, album: MapId<Album>): boolean {
+  let ancestor = intoId(maybeAncestor);
+  let kid = getAlbum(album);
+  if (!kid || !kid.parent) {
+    return false;
+  }
+
+  if (kid.parent === ancestor) {
+    return true;
+  }
+
+  let catalog = getCatalogForAlbum(album);
+  if (!catalog) {
+    return false;
+  }
+
+  if (!(ancestor in catalog.albums)) {
+    return false;
+  }
+
+  while(kid.parent) {
+    kid = catalog.albums[kid.parent];
+    if (kid.parent === ancestor) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export default store;

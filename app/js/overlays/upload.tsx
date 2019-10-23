@@ -8,7 +8,7 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { upload, addToAlbums } from "../api/media";
+import { upload, modifyAlbums } from "../api/media";
 import { Catalog, Album, User, UploadMetadata } from "../api/types";
 import { getParent, getCatalogForAlbum } from "../store/store";
 import { CatalogTreeSelector } from "../components/CatalogTree";
@@ -95,7 +95,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       let media = await upload(catalog, pending.metadata, pending.file);
       if (parentAlbum) {
         // Not sure what to do if this fails.
-        addToAlbums(media, [parentAlbum]);
+        modifyAlbums(media, [parentAlbum]);
       }
 
       let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
@@ -235,9 +235,9 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       return;
     }
 
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.dropEffect = "copy";
-    event.preventDefault();
+    if (event.dataTransfer.dropEffect === "copy" || event.dataTransfer.dropEffect === "link") {
+      event.preventDefault();
+    }
   };
 
   private onDragOver: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {

@@ -66,15 +66,15 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: 
       return;
     }
     case ALBUM_CREATED: {
-      const { catalog, album } = action.payload;
-      for (let [id, current] of Object.entries(user.catalogs)) {
-        if (id === catalog.id) {
-          current.albums[album.id] = album;
+      let album = action.payload;
+      for (let catalog of Object.values(user.catalogs)) {
+        if (album.parent && album.parent in catalog.albums) {
+          catalog.albums[album.id] = album;
         }
       }
 
       state.overlay = undefined;
-      state.historyState = navigate(`/album/${action.payload.album.id}`);
+      state.historyState = navigate(`/album/${album.id}`);
       return;
     }
     case SHOW_ALBUM_EDIT_OVERLAY: {
@@ -85,16 +85,17 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: 
       return;
     }
     case ALBUM_EDITED: {
-      state.overlay = undefined;
-
-      const { catalog, album } = action.payload;
-      for (let [id, current] of Object.entries(user.catalogs)) {
-        if (id === catalog.id) {
-          current.albums[album.id] = album;
-        } else if (album.id in current.albums) {
-          delete current.albums[album.id];
+      let album = action.payload;
+      for (let catalog of Object.values(user.catalogs)) {
+        if (album.id in catalog.albums) {
+          delete catalog.albums[album.id];
+        }
+        if (album.parent && album.parent in catalog.albums) {
+          catalog.albums[album.id] = album;
         }
       }
+
+      state.overlay = undefined;
       return;
     }
   }

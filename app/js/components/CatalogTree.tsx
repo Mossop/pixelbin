@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { Catalog, Album, albumChildren } from "../api/types";
+import { Catalog, Album } from "../api/types";
 import { catalogNameSorted } from "../utils/sort";
 import { Button } from "./Button";
 import { StoreState } from "../store/types";
@@ -9,7 +9,9 @@ import Icon from "./Icon";
 import { UIContext, Context, getTextState } from "../utils/UIState";
 import { Mapped } from "../utils/maps";
 import { modifyAlbums } from "../api/media";
-import { DispatchProps, bumpState } from "../store/actions";
+import { DispatchProps, bumpState, albumEdited } from "../store/actions";
+import { editAlbum } from "../api/album";
+import { albumChildren, isAncestor, getAlbum } from "../store/store";
 
 interface StateProps {
   catalogs: Mapped<Catalog>;
@@ -31,7 +33,7 @@ abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
   }
 
   private renderChildren(catalog: Catalog, album: Album, depth: number = 1): React.ReactNode {
-    let children = albumChildren(catalog, album);
+    let children = albumChildren(album, catalog);
     if (children.length) {
       return <ol>
         {children.map((a: Album) => this.renderAlbum(catalog, a, depth))}
@@ -102,6 +104,7 @@ interface SidebarProps {
 
 const mapDispatchToProps = {
   bumpState,
+  albumEdited,
 };
 
 class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps & DispatchProps<typeof mapDispatchToProps>> {
@@ -113,51 +116,146 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps 
     this.props.onCatalogClick(catalog);
   }
 
-  private onDragEnter: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
-    if (!event.dataTransfer.types.includes("pixelbin/media")) {
+  private onDragStart: (event: React.DragEvent, album: Album) => void = (event: React.DragEvent, album: Album): void => {
+    event.dataTransfer.setData("pixelbin/album", album.id);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  private onDragEnter: ((event: React.DragEvent, album: Album) => void) = (event: React.DragEvent, album: Album): void => {
+    let mediaDrag = event.dataTransfer.types.includes("pixelbin/media");
+    let albumDrag = event.dataTransfer.types.includes("pixelbin/album");
+
+    if (!mediaDrag && !albumDrag) {
       return;
     }
 
-    event.dataTransfer.effectAllowed = this.props.album ? "copyMove" : "copy";
-    event.currentTarget.classList.add("dragtarget");
-    event.preventDefault();
+    let albumMediaDrag = mediaDrag ? event.dataTransfer.types.includes("pixelbin/album-media") : false;
+    let effect = event.dataTransfer.dropEffect;
+
+    if (albumMediaDrag) {
+      if (effect !== "link" && effect !== "copy" && effect !== "move") {
+        return;
+      }
+
+      let data = JSON.parse(event.dataTransfer.getData("pixelbin/album-media"));
+      // Can't drop into the same album.
+      if (data.album === album.id) {
+        return;
+      }
+
+      event.currentTarget.classList.add("dragtarget");
+      event.preventDefault();
+    } else if (mediaDrag) {
+      if (effect !== "link" && effect !== "copy") {
+        return;
+      }
+
+      event.currentTarget.classList.add("dragtarget");
+      event.preventDefault();
+    } else {
+      if (event.dataTransfer.dropEffect !== "move") {
+        return;
+      }
+
+      let id = event.dataTransfer.getData("pixelbin/album");
+      // Can't drop onto itself.
+      if (album.id === id) {
+        return;
+      }
+
+      let actualAlbum = getAlbum(id);
+      if (!actualAlbum) {
+        return;
+      }
+      // Can't drop onto it's current parent
+      if (actualAlbum.parent === album.id) {
+        return;
+      }
+
+      // Can't drop onto any descendants.
+      if (isAncestor(actualAlbum, album)) {
+        return;
+      }
+
+      event.currentTarget.classList.add("dragtarget");
+      event.preventDefault();
+    }
   };
 
-  private onDragOver: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
-    this.onDragEnter(event);
+  private onDragOver: ((event: React.DragEvent, album: Album) => void) = (event: React.DragEvent, album: Album): void => {
+    this.onDragEnter(event, album);
   };
 
-  private onDragLeave: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
+  private onDragLeave: ((event: React.DragEvent, album: Album) => void) = (event: React.DragEvent): void => {
     event.currentTarget.classList.remove("dragtarget");
   };
 
   private onDrop: ((event: React.DragEvent, album: Album) => Promise<void>) = async (event: React.DragEvent, album: Album): Promise<void> => {
     event.currentTarget.classList.remove("dragtarget");
-    event.preventDefault();
 
-    let mediaId = event.dataTransfer.getData("pixelbin/media");
-    if (!mediaId) {
+    let mediaDrag = event.dataTransfer.types.includes("pixelbin/media");
+    let albumDrag = event.dataTransfer.types.includes("pixelbin/album");
+    if (!mediaDrag && !albumDrag) {
       return;
     }
 
-    let removals: Album[] = [];
-    if (event.dataTransfer.dropEffect === "move" && this.props.album) {
-      removals = [this.props.album];
-    }
+    let albumMediaDrag = mediaDrag ? event.dataTransfer.types.includes("pixelbin/album-media") : false;
+    let effect = event.dataTransfer.dropEffect;
 
-    try {
-      await modifyAlbums(mediaId, [album], removals);
-      this.props.bumpState();
-    } catch (e) {
-      // TODO
+    if ((mediaDrag && (effect === "link" || effect === "copy")) ||
+        (albumMediaDrag && effect === "move")) {
+      event.preventDefault();
+
+      let removals: string[] = [];
+      let mediaId: string;
+      if (effect === "move") {
+        let data = JSON.parse(event.dataTransfer.getData("pixelbin/album-media"));
+        removals.push(data.album);
+        mediaId = data.media;
+      } else {
+        mediaId = event.dataTransfer.getData("pixelbin/media");
+      }
+
+      try {
+        await modifyAlbums(mediaId, [album], removals);
+        this.props.bumpState();
+      } catch (e) {
+        // TODO
+      }
+    } else if (albumDrag && effect === "move") {
+      event.preventDefault();
+
+      let albumId = event.dataTransfer.getData("pixelbin/album");
+      try {
+        let updated = await editAlbum({
+          id: albumId,
+          parent: album.id,
+        });
+        this.props.albumEdited(updated);
+        this.props.bumpState();
+      } catch (e) {
+        // TODO
+      }
+
     }
   };
 
-  protected renderItem(item: Album, onClick: () => void): React.ReactNode {
-    if (this.props.selected === item.id) {
-      return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
+  protected renderItem(album: Album, onClick: () => void): React.ReactNode {
+    let isRoot = !album.parent;
+
+    const dragProps = {
+      draggable: !isRoot,
+      onDragStart: (event: React.DragEvent): void => this.onDragStart(event, album),
+      onDragEnter: (event: React.DragEvent): void => this.onDragEnter(event, album),
+      onDragOver: (event: React.DragEvent): void => this.onDragOver(event, album),
+      onDragLeave: (event: React.DragEvent): void => this.onDragLeave(event, album),
+      onDrop: (event: React.DragEvent): Promise<void> => this.onDrop(event, album),
+    };
+
+    if (this.props.selected === album.id) {
+      return <p className="item selected" {...dragProps}><Icon iconName="folder-open"/>{album.name}</p>;
     } else {
-      return <Button className="item" iconName="folder" onClick={onClick} onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDragLeave={this.onDragLeave} onDrop={(event: React.DragEvent): Promise<void> => this.onDrop(event, item)}>{item.name}</Button>;
+      return <Button className="item" {...dragProps} iconName="folder" onClick={onClick}>{album.name}</Button>;
     }
   }
 }

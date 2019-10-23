@@ -10,6 +10,7 @@ import { thumbnail, search } from "../api/media";
 import produce, { Draft } from "immer";
 
 interface MediaListProps {
+  onDragStart?: (event: React.DragEvent, media: Media) => void;
   search: Search;
 }
 
@@ -98,6 +99,16 @@ class MediaList extends React.Component<AllProps, MediaListState> {
     });
   }
 
+  private onDragStart: (event: React.DragEvent, data: MediaData) => void = (event: React.DragEvent, data: MediaData): void => {
+    if (this.props.onDragStart) {
+      this.props.onDragStart(event, data.media);
+      return;
+    }
+
+    event.dataTransfer.setData("pixelbin/media", data.media.id);
+    event.dataTransfer.effectAllowed = "link";
+  };
+
   public componentDidMount(): void {
     this.startSearch();
   }
@@ -112,7 +123,9 @@ class MediaList extends React.Component<AllProps, MediaListState> {
   public render(): React.ReactNode {
     if (!this.state.pending) {
       return <div className="media-list">
-        {Object.values(this.state.mediaMap).map((data: MediaData) => <MediaThumbnail key={data.media.id} thumbnail={data.thumbnail} media={data.media}/>)}
+        {Object.values(this.state.mediaMap).map((data: MediaData) =>
+          <MediaThumbnail key={data.media.id} draggable={true} onDragStart={(event: React.DragEvent): void => this.onDragStart(event, data)}
+            thumbnail={data.thumbnail} media={data.media}/>)}
       </div>;
     } else {
       return <div className="media-list empty">

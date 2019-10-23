@@ -2,7 +2,6 @@ import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
 import { OptionalDecoder, DateDecoder, MapDecoder, MappingDecoder } from "../utils/decoders";
-import { nameSorted } from "../utils/sort";
 import { Orientation } from "media-metadata/lib/metadata";
 import { Mapped } from "../utils/maps";
 import { L10nArgs, LocalizedProps, l10nAttributes } from "../l10n";
@@ -12,6 +11,7 @@ export interface APIError {
   statusText: string;
   code: string;
   args?: L10nArgs;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   detail?: any;
 }
 
@@ -216,8 +216,3 @@ export const UploadResponseDecoder = JsonDecoder.object<UploadResponse>(
   },
   "UploadResponseDecoder"
 );
-
-export function albumChildren(catalog: Catalog, item?: Album): Album[] {
-  let parent = item ? item.id : undefined;
-  return nameSorted(Object.values(catalog.albums).filter((a: Album) => a.parent == parent));
-}

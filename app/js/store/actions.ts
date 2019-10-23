@@ -136,37 +136,25 @@ export function catalogCreated(newCatalog: Catalog): CatalogCreatedAction {
 
 interface AlbumCreatedAction extends Action {
   type: typeof ALBUM_CREATED;
-  payload: {
-    catalog: Catalog;
-    album: Album;
-  };
+  payload: Album;
 }
 
-export function albumCreated(catalog: Catalog, album: Album): AlbumCreatedAction {
+export function albumCreated(album: Album): AlbumCreatedAction {
   return {
     type: ALBUM_CREATED,
-    payload: {
-      catalog,
-      album,
-    }
+    payload: album,
   };
 }
 
 interface AlbumEditedAction extends Action {
   type: typeof ALBUM_EDITED;
-  payload: {
-    catalog: Catalog;
-    album: Album;
-  };
+  payload: Album;
 }
 
-export function albumEdited(catalog: Catalog, album: Album): AlbumEditedAction {
+export function albumEdited(album: Album): AlbumEditedAction {
   return {
     type: ALBUM_EDITED,
-    payload: {
-      catalog,
-      album,
-    },
+    payload: album,
   };
 }
 

@@ -14,12 +14,12 @@
     user-select: none;
   }
 
-  .item:hover:not(.selected), .item.dragtarget {
-    background: var(--hover);
-  }
-
   .item.selected {
     background: var(--active);
+  }
+
+  .item:hover:not(.selected), .item.dragtarget {
+    background: var(--hover);
   }
 
   .depth0 > .item {

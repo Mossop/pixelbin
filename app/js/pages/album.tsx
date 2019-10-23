@@ -2,7 +2,7 @@ import React from "react";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 
-import { Album, Catalog } from "../api/types";
+import { Album, Catalog, Media } from "../api/types";
 import { getAlbum, getCatalogForAlbum } from "../store/store";
 import { StoreState } from "../store/types";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, DispatchProps, showUploadOverlay } from "../store/actions";
@@ -114,6 +114,16 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
     this.props.showUploadOverlay(this.props.album);
   };
 
+  private onDragStart: (event: React.DragEvent, media: Media) => void = (event: React.DragEvent, media: Media): void => {
+    event.dataTransfer.setData("pixelbin/media", media.id);
+    if (this.props.album) {
+      event.dataTransfer.setData("pixelbin/album-media", JSON.stringify({ media: media.id, album: this.props.album.id }));
+      event.dataTransfer.effectAllowed = "copyMove";
+    } else {
+      event.dataTransfer.effectAllowed = "copy";
+    }
+  };
+
   protected renderBannerButtons(): React.ReactNode {
     if (this.props.user && this.props.album) {
       return <React.Fragment>
@@ -136,7 +146,7 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
   protected renderContent(): React.ReactNode {
     if (!this.state.pending) {
       if (this.state.search) {
-        return <MediaList search={this.state.search}/>;
+        return <MediaList onDragStart={this.onDragStart} search={this.state.search}/>;
       } else {
         return <NotFound/>;
       }

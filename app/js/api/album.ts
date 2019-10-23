@@ -1,33 +1,30 @@
-import { buildJSONBody, request } from "./api";
-import { Album, AlbumDecoder, Catalog } from "./types";
+import { buildJSONBody, request, Patch } from "./api";
+import { Album, AlbumDecoder } from "./types";
+import { intoId, MapId } from "../utils/maps";
 
-export async function createAlbum(catalog: Catalog, name: string, parentAlbum: Album | undefined): Promise<Album> {
-  let response = await request("album/create", "PUT", buildJSONBody({
-    catalog: catalog.id,
-    name,
-    stub: null,
-    parent: parentAlbum ? parentAlbum.id : null,
-  }));
-
-  if (response.ok) {
-    return AlbumDecoder.decodePromise(await response.json());
-  } else {
-    throw new Error("Failed to create album.");
-  }
+export async function createAlbum(name: string, parentAlbum: MapId<Album>): Promise<Album> {
+  return request({
+    url: "album/create",
+    method: "PUT",
+    body: buildJSONBody({
+      parent: intoId(parentAlbum),
+      name,
+      stub: null,
+    }),
+    decoder: AlbumDecoder,
+  });
 }
 
-export async function editAlbum(album: Album, catalog: Catalog, name: string, parentAlbum: Album | undefined): Promise<Album> {
-  let response = await request("album/edit", "POST", buildJSONBody({
-    id: album.id,
-    catalog: catalog.id,
-    name,
-    stub: album.stub,
-    parent: parentAlbum ? parentAlbum.id : null,
-  }));
-
-  if (response.ok) {
-    return AlbumDecoder.decodePromise(await response.json());
-  } else {
-    throw new Error("Failed to edit album.");
-  }
+export async function editAlbum(album: Patch<Album>): Promise<Album> {
+  return await request({
+    url: "album/edit",
+    method: "PATCH",
+    body: buildJSONBody({
+      id: album.id,
+      parent: album.parent,
+      name: album.name,
+      stub: album.stub,
+    }),
+    decoder: AlbumDecoder,
+  });
 }

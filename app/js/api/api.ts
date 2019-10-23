@@ -1,8 +1,13 @@
 import { decodeAPIError, APIError } from "./types";
+import cookie from "cookie";
+import { JsonDecoder } from "ts.data.json";
+import { Mappable } from "../utils/maps";
 
 const API_ROOT = new URL("/api/", window.location.href);
 
-export type Method = "GET" | "POST" | "PUT" | "DELETE";
+export type Patch<R extends Mappable> = Partial<R> & Mappable;
+
+export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface FormBody {
   data: FormData;
@@ -11,6 +16,13 @@ interface FormBody {
 interface JSONBody {
   type: "application/json";
   data: string;
+}
+
+function apiURL(url: string | URL): URL {
+  if (url instanceof URL) {
+    return url;
+  }
+  return new URL(url, API_ROOT);
 }
 
 export function buildFormBody(options: URLSearchParams | { [key: string]: string | Blob }): FormBody {
@@ -40,16 +52,16 @@ export function buildJSONBody(data: any): JSONBody {
 
 export type Body = JSONBody | FormBody;
 
-export async function request(url: URL | string, method: Method = "POST", body?: Body): Promise<Response> {
-  let cookie = await import(/* webpackChunkName: "cookie" */ "cookie");
+export interface RequestParams {
+  url: URL | string;
+  method?: Method;
+  body?: Body;
+}
 
-  let uri: URL;
-  if (url instanceof URL) {
-    uri = url;
-  } else {
-    uri = new URL(url, API_ROOT);
-  }
+export async function baseRequest(params: RequestParams): Promise<Response> {
+  const { method = "GET", body = undefined } = params;
 
+  let url = apiURL(params.url);
   let headers = new Headers();
   headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
   if (body && "type" in body) {
@@ -58,7 +70,7 @@ export async function request(url: URL | string, method: Method = "POST", body?:
 
   let response: Response;
   try {
-    response = await fetch(uri.href, {
+    response = await fetch(url.href, {
       method,
       headers,
       body: body ? body.data : undefined,
@@ -82,8 +94,8 @@ export async function request(url: URL | string, method: Method = "POST", body?:
   }
 }
 
-export function getRequest(path: string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
-  let url = new URL(path, API_ROOT);
+export function getRequest(uri: URL | string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
+  let url = apiURL(uri);
 
   if (options instanceof URLSearchParams) {
     for (let [key, value] of options) {
@@ -95,5 +107,29 @@ export function getRequest(path: string, options: URLSearchParams | { [key: stri
     }
   }
 
-  return request(url, "GET");
+  return baseRequest({ url });
+}
+
+type DecodeParams<R> = RequestParams & {
+  decoder: JsonDecoder.Decoder<R>;
+};
+
+export async function request<R>(params: DecodeParams<R>): Promise<R> {
+  let response = await baseRequest(params);
+
+  try {
+    let json = await response.json();
+    let data: R = await params.decoder.decodePromise(json);
+    return data;
+  } catch (e) {
+    let error: APIError = {
+      status: 0,
+      statusText: "Response parse failed",
+      code: "invalid-response",
+      args: {
+        detail: String(e),
+      },
+    };
+    throw error;
+  }
 }

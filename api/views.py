@@ -18,7 +18,7 @@ from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     ThumbnailRequestSerializer, MediaAlbumSerializer
 from .tasks import process_media
 
-@api_view(['GET', 'PUT', 'OPTIONS', 'POST', 'DELETE'])
+@api_view(['GET', 'PUT', 'OPTIONS', 'POST', 'DELETE', 'PATCH'])
 def default(request):
     raise ApiException('unknown-method', status=status.HTTP_404_NOT_FOUND)
 
@@ -103,12 +103,12 @@ def create_album(request):
     serializer = AlbumSerializer(album)
     return Response(serializer.data)
 
-@api_view(['POST'])
+@api_view(['PATCH'])
 def edit_album(request):
     if not request.user or not request.user.is_authenticated:
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    serializer = AlbumSerializer(data=request.data)
+    serializer = AlbumSerializer(data=request.data, partial=True)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
@@ -118,6 +118,10 @@ def edit_album(request):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         elif album.parent is not None and data['parent'] is None:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.can_access_catalog(album.catalog):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        if 'catalog' in data and not request.user.can_access_catalog(data['catalog']):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer.update(album, data)
         serializer = AlbumSerializer(album)
@@ -130,7 +134,7 @@ def logout(request):
     logout_user(request)
     return Response(serialize_state(request))
 
-@api_view(['POST'])
+@api_view(['PATCH'])
 def modify_albums(request):
     if not request.user or not request.user.is_authenticated:
         return Response(status=status.HTTP_403_FORBIDDEN)

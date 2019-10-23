@@ -1,77 +1,53 @@
-import { buildFormBody, request, buildJSONBody, getRequest } from "./api";
+import { buildFormBody, request, buildJSONBody, getRequest, baseRequest } from "./api";
 import { Catalog, UploadMetadata, Album, Media, MediaArrayDecoder, MediaDecoder } from "./types";
 import { Immutable } from "immer";
 import { Search } from "../utils/search";
+import { intoIds, intoId, MapId } from "../utils/maps";
 
-export async function upload(catalog: Catalog, metadata: Immutable<UploadMetadata>, file: Blob): Promise<Media> {
-  let data = {
-    catalog: catalog.id,
-    ...metadata,
-  };
-
-  let body = buildFormBody({
-    metadata: JSON.stringify(data),
-    file,
+export async function upload(catalog: MapId<Catalog>, metadata: Immutable<UploadMetadata>, file: Blob): Promise<Media> {
+  return request({
+    url: "media/upload",
+    method: "PUT",
+    body: buildFormBody({
+      metadata: JSON.stringify({
+        catalog: intoId(catalog),
+        ...metadata,
+      }),
+      file,
+    }),
+    decoder: MediaDecoder,
   });
-
-  let response = await request("media/upload", "PUT", body);
-
-  if (response.ok) {
-    return MediaDecoder.decodePromise(await response.json());
-  } else {
-    throw new Error("Failed to upload file.");
-  }
 }
 
-export async function addToAlbums(media: Media | string, albums: Album[]): Promise<void> {
-  let response = await request("albums/add", "PUT", buildJSONBody({
-    media: typeof media === "string" ? media : media.id,
-    albums: albums.map((a: Album): string => a.id),
-  }));
-
-  if (response.ok) {
-    return;
-  } else {
-    throw new Error("Failed to add to albums.");
-  }
-}
-
-export async function modifyAlbums(media: Media | string, addAlbums: Album[] = [], removeAlbums: Album[] = []): Promise<void> {
-  let response = await request("albums/edit", "POST", buildJSONBody({
-    media: typeof media === "string" ? media : media.id,
-    addAlbums: addAlbums.map((a: Album): string => a.id),
-    removeAlbums: removeAlbums.map((a: Album): string => a.id),
-  }));
-
-  if (response.ok) {
-    return;
-  } else {
-    throw new Error("Failed to remove from albums.");
-  }
+export async function modifyAlbums(media: MapId<Media>, addAlbums: MapId<Album>[] = [], removeAlbums: MapId<Album>[] = []): Promise<void> {
+  await baseRequest({
+    url: "albums/edit",
+    method: "PATCH",
+    body: buildJSONBody({
+      media: intoId(media),
+      addAlbums: intoIds(addAlbums),
+      removeAlbums: intoIds(removeAlbums),
+    }),
+  });
 }
 
 export async function search(search: Search): Promise<Media[]> {
-  let response = await request("media/search", "POST", buildJSONBody({
-    catalog: search.catalog.id,
-    query: search.query,
-  }));
-
-  if (response.ok) {
-    return MediaArrayDecoder.decodePromise(await response.json());
-  } else {
-    throw new Error("Search failed");
-  }
+  return request({
+    url: "media/search",
+    method: "POST",
+    body: buildJSONBody({
+      catalog: search.catalog.id,
+      query: search.query,
+    }),
+    decoder: MediaArrayDecoder,
+  });
 }
 
-export async function thumbnail(media: Media, size: number): Promise<ImageBitmap> {
+export async function thumbnail(media: MapId<Media>, size: number): Promise<ImageBitmap> {
   let response = await getRequest("media/thumbnail", {
-    media: media.id,
+    media: intoId(media),
     size: String(size),
   });
 
-  if (response.ok) {
-    return createImageBitmap(await response.blob());
-  } else {
-    throw new Error("Thumbnail failed");
-  }
+  return createImageBitmap(await response.blob());
 }
