@@ -36,8 +36,7 @@ interface MediaDataMap {
 }
 
 interface MediaListState {
-  pending: boolean;
-  mediaMap: MediaDataMap;
+  mediaMap: MediaDataMap | null;
 }
 
 type AllProps = StateProps & MediaListProps;
@@ -50,8 +49,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
 
     this.pendingSearch = 0;
     this.state = {
-      pending: true,
-      mediaMap: {},
+      mediaMap: null,
     };
   }
 
@@ -68,6 +66,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
   }
 
   private async startSearch(): Promise<void> {
+    let mediaMap = this.state.mediaMap || {};
     let id = ++this.pendingSearch;
 
     let results = await search(this.props.search);
@@ -75,7 +74,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
       return;
     }
 
-    let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaDataMap>) => {
+    mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>) => {
       let current = new Set(Object.keys(mediaMap));
 
       for (let item of results) {
@@ -94,7 +93,6 @@ class MediaList extends React.Component<AllProps, MediaListState> {
     });
 
     this.setState({
-      pending: false,
       mediaMap,
     });
   }
@@ -114,14 +112,16 @@ class MediaList extends React.Component<AllProps, MediaListState> {
   }
 
   public componentDidUpdate(prevProps: AllProps): void {
-    if (prevProps.search !== this.props.search ||
-        prevProps.stateId !== this.props.stateId) {
+    if (prevProps.search !== this.props.search) {
+      this.startSearch();
+      this.setState({ mediaMap: null });
+    } else if (prevProps.stateId !== this.props.stateId) {
       this.startSearch();
     }
   }
 
   public render(): React.ReactNode {
-    if (!this.state.pending) {
+    if (this.state.mediaMap) {
       return <div className="media-list">
         {Object.values(this.state.mediaMap).map((data: MediaData) =>
           <MediaThumbnail key={data.media.id} draggable={true} onDragStart={(event: React.DragEvent): void => this.onDragStart(event, data)}
