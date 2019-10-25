@@ -48,6 +48,7 @@ class MediaSerializer(serializers.ModelSerializer):
     tags = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
 
+    # pylint: disable=no-self-use
     def get_tags(self, media):
         return [t.path() for t in media.tags.all()]
 
@@ -77,8 +78,12 @@ class UploadSerializer(Serializer):
 
 class MediaAlbumSerializer(Serializer):
     media = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())
-    addAlbums = serializers.PrimaryKeyRelatedField(many=True, queryset=Album.objects.all(), required=False, default=[])
-    removeAlbums = serializers.PrimaryKeyRelatedField(many=True, queryset=Album.objects.all(), required=False, default=[])
+    addAlbums = serializers.PrimaryKeyRelatedField(many=True,
+                                                   queryset=Album.objects.all(),
+                                                   required=False, default=[])
+    removeAlbums = serializers.PrimaryKeyRelatedField(many=True,
+                                                      queryset=Album.objects.all(),
+                                                      required=False, default=[])
 
 class LoginSerializer(Serializer):
     email = serializers.CharField()
@@ -125,6 +130,7 @@ class CatalogSerializer(serializers.ModelSerializer):
     name = serializers.CharField(write_only=True)
     storage = serializers.SerializerMethodField()
 
+    # pylint: disable=no-self-use
     def get_storage(self, instance):
         return get_catalog_storage_field(instance)
 
@@ -138,6 +144,7 @@ class CatalogStateSerializer(serializers.ModelSerializer):
     albums = AlbumSerializer(many=True)
     root = serializers.SerializerMethodField()
 
+    # pylint: disable=no-self-use
     def get_root(self, catalog):
         return catalog.root.id
 
@@ -180,8 +187,7 @@ class StateSerializer(Serializer):
 def serialize_state(request):
     if request.user.is_authenticated:
         return StateSerializer({"user": request.user}).data
-    else:
-        return StateSerializer({"user": None}).data
+    return StateSerializer({"user": None}).data
 
 class RecursiveSerializer(Serializer):
     def create_inner(self, validated_data):

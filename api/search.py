@@ -95,6 +95,7 @@ class QueryGroup:
         return query
 
 
+# pylint: disable=too-few-public-methods
 class Search:
     def __init__(self, catalog, query):
         self.catalog = catalog

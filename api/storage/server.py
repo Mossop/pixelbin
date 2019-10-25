@@ -1,7 +1,7 @@
 import os
 from base.utils import CONFIG, path
 
-from . import FileStorage
+from .base import FileStorage
 
 class ServerStorage(FileStorage):
     STORAGE = None

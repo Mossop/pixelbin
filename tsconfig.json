@@ -23,7 +23,8 @@
     "gulpfile.ts",
     "app/js",
     "app/static/scripts",
-    "base"
+    "base",
+    "ci"
   ],
   "exclude": [
     "node_modules",

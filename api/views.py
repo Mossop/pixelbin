@@ -114,13 +114,11 @@ def edit_album(request):
 
     try:
         album = models.Album.objects.get(id=data['id'])
-        if album.parent is None and data['parent'] is not None:
+        if (album.parent is None and data['parent'] is not None) or \
+            (album.parent is not None and data['parent'] is None):
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        elif album.parent is not None and data['parent'] is None:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        if not request.user.can_access_catalog(album.catalog):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        if 'catalog' in data and not request.user.can_access_catalog(data['catalog']):
+        if (not request.user.can_access_catalog(album.catalog)) or \
+            ('catalog' in data and not request.user.can_access_catalog(data['catalog'])):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer.update(album, data)

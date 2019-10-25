@@ -8,7 +8,9 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from PIL import Image
 
-from .storage import Server, Backblaze, MediaStorage
+from .storage import Server, Backblaze
+from .storage.base import MediaStorage
+
 from .utils import uuid
 
 THUMB_SIZES = [

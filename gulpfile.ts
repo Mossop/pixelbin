@@ -1,21 +1,24 @@
 /* eslint-env node */
-import { spawn } from "child_process";
-
-import { src, dest, parallel, watch, series } from "gulp";
+import { src, dest, parallel, watch } from "gulp";
 import { RuleSetQuery } from "webpack";
 import { Configuration } from "webpack";
 import gulpWebpack from "webpack-stream";
 import named from "vinyl-named";
-import gulpEslint from "gulp-eslint";
 import gulpSass from "gulp-sass";
-import gulpTypeScript from "gulp-typescript";
+import mergeStreams from "merge-stream";
 
 import { config, path } from "./base/config";
+import { typeScriptCheck } from "./ci/typescript";
+import { eslintCheck } from "./ci/eslint";
+import { exec, logLints } from "./ci/utils";
+import { pylintCheck } from "./ci/pylint";
 
 const IGNORES = [
+  "!base/**/*",
   "!node_modules/**/*",
   "!venv/**/*",
   "!public/**/*",
+  "!api/migrations/**/*",
 ];
 
 function allScripts(): string[] {
@@ -26,29 +29,6 @@ function allScripts(): string[] {
     "**/*.tsx",
     ...IGNORES
   ];
-}
-
-const tsProject = gulpTypeScript.createProject(path("tsconfig.json"));
-
-function exec(command: string, args: string[] = []): Promise<void> {
-  return new Promise((resolve: () => void, reject: (err: Error) => void) => {
-    let process = spawn(command, args, {
-      stdio: "inherit",
-      shell: true,
-    });
-
-    process.on("exit", (code: number) => {
-      if (code !== 0) {
-        reject(new Error(`Process exitied with code ${code}`));
-      } else {
-        resolve();
-      }
-    });
-
-    process.on("error", (err: Error) => {
-      reject(err);
-    });
-  });
 }
 
 function babelOptions(): RuleSetQuery {
@@ -104,31 +84,32 @@ function watchJsConfig(): Configuration {
   return config;
 }
 
-export async function pylint(): Promise<void> {
-  return exec("pylint", [`--rcfile=${path(".pylintrc")}`, "api", "app", "base", "config"]);
+function pylint(): NodeJS.ReadWriteStream {
+  return src(["**/*.py", ...IGNORES])
+    .pipe(pylintCheck([`--rcfile=${path(".pylintrc")}`]));
 }
 
-export function eslint(): NodeJS.ReadWriteStream {
+function eslint(): NodeJS.ReadWriteStream {
   return src(allScripts())
-    .pipe(gulpEslint())
-    .pipe(gulpEslint.formatEach());
+    .pipe(eslintCheck());
 }
 
-export function watchEslint(): void {
-  watch(allScripts(), eslint);
+function typescript(): NodeJS.ReadWriteStream {
+  return src([path("tsconfig.json"), ...allScripts()])
+    .pipe(typeScriptCheck(path("tsconfig.json")));
 }
 
-export function typescript(): NodeJS.ReadWriteStream {
-  return src(allScripts())
-    .pipe(tsProject());
+export function lint(): NodeJS.ReadWriteStream {
+  return mergeStreams(pylint(), eslint(), typescript())
+    .pipe(logLints());
 }
 
-export function watchTypescript(): void {
-  watch(allScripts(), typescript);
+export function watchLint(): void {
+  watch(["**/*.py", ...allScripts()], lint);
 }
 
 export async function staticContent(): Promise<void> {
-  return exec(path("manage.py"), ["collectstatic", "--noinput"]);
+  console.log(await exec(path("manage.py"), ["collectstatic", "--noinput"]));
 }
 
 export function watchStaticContent(): void {
@@ -159,8 +140,6 @@ export function watchBuildCss(): void {
   watch(["**/*.scss",...IGNORES], buildCss);
 }
 
-export const lint = series(eslint, typescript, pylint);
-export const watchLint = parallel(watchEslint);
 export const build = parallel(buildJs, buildCss, staticContent);
 export const watchBuild = parallel(watchBuildJs, watchBuildCss, watchStaticContent);
 

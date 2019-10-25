@@ -6,7 +6,7 @@ import { User } from "../api/types";
 import { StoreState } from "../store/types";
 import Sidebar, { SidebarProps } from "../components/Sidebar";
 
-interface StateProps {
+export interface StateProps {
   user?: User;
 }
 

@@ -1,6 +1,6 @@
 import requests
 
-from . import FileStorage
+from .base import FileStorage
 
 B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
 
