@@ -1,8 +1,19 @@
-import { buildFormBody, request, buildJSONBody, getRequest, baseRequest } from "./api";
+import { buildFormBody, request, buildJSONBody, getRequest, baseRequest, apiURL } from "./api";
 import { Catalog, UploadMetadata, Album, Media, MediaArrayDecoder, MediaDecoder } from "./types";
 import { Immutable } from "immer";
 import { Search } from "../utils/search";
 import { intoIds, intoId, MapId } from "../utils/maps";
+
+export async function get(id: string): Promise<Media> {
+  let url = apiURL("media/get");
+  url.searchParams.set("id", id);
+
+  return request({
+    url,
+    method: "GET",
+    decoder: MediaDecoder,
+  });
+}
 
 export async function upload(catalog: MapId<Catalog>, metadata: Immutable<UploadMetadata>, file: Blob): Promise<Media> {
   return request({

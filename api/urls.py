@@ -10,6 +10,7 @@ urlpatterns = [
     path('album/edit', views.edit_album),
     path('albums/edit', views.modify_albums),
     path('user/create', views.create_user),
+    path('media/get', views.get_media),
     path('media/upload', views.upload),
     path('media/search', views.search),
     path('media/thumbnail', views.thumbnail),

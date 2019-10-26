@@ -6,8 +6,10 @@ import { StoreState } from "../store/types";
 import { Media } from "../api/types";
 import Throbber from "./Throbber";
 import MediaThumbnail from "./MediaThumbnail";
-import { thumbnail, search } from "../api/media";
+import { thumbnail, search, get } from "../api/media";
 import produce, { Draft } from "immer";
+
+const POLL_TIMEOUT = 5000;
 
 interface MediaListProps {
   onDragStart?: (event: React.DragEvent, media: Media) => void;
@@ -43,11 +45,15 @@ type AllProps = StateProps & MediaListProps;
 
 class MediaList extends React.Component<AllProps, MediaListState> {
   private pendingSearch: number;
+  private pendingProcessing: Map<string, Media>;
+  private pendingTimeout: NodeJS.Timeout | null;
 
   public constructor(props: AllProps) {
     super(props);
 
     this.pendingSearch = 0;
+    this.pendingProcessing = new Map();
+    this.pendingTimeout = null;
     this.state = {
       mediaMap: null,
     };
@@ -65,7 +71,65 @@ class MediaList extends React.Component<AllProps, MediaListState> {
     });
   }
 
+  private async process(id: string): Promise<void> {
+    try {
+      let media = await get(id);
+      if (!media.processed) {
+        return;
+      }
+
+      if (!this.pendingProcessing.has(id)) {
+        // No longer need this result.
+        return;
+      }
+
+      let mediaMap = this.state.mediaMap || {};
+      mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>) => {
+        mediaMap[id].media = media;
+      });
+
+      this.setState({
+        mediaMap,
+      });
+
+      this.loadThumbnail(media);
+    } catch (e) {
+      let mediaMap = this.state.mediaMap || {};
+      mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>) => {
+        delete mediaMap[id];
+      });
+
+      this.setState({
+        mediaMap,
+      });
+    }
+
+    this.pendingProcessing.delete(id);
+  }
+
+  private async pollProcessing(): Promise<void> {
+    let requests: Promise<void>[] = [];
+    for (let media of this.pendingProcessing.values()) {
+      requests.push(this.process(media.id));
+    }
+
+    await Promise.all(requests);
+
+    if (this.pendingProcessing.size > 0) {
+      this.pendingTimeout = setTimeout(() => {
+        this.pollProcessing();
+      }, POLL_TIMEOUT);
+    } else {
+      this.pendingTimeout = null;
+    }
+  }
+
   private async startSearch(): Promise<void> {
+    this.pendingProcessing.clear();
+    if (this.pendingTimeout) {
+      clearTimeout(this.pendingTimeout);
+    }
+
     let mediaMap = this.state.mediaMap || {};
     let id = ++this.pendingSearch;
 
@@ -84,13 +148,24 @@ class MediaList extends React.Component<AllProps, MediaListState> {
         } else {
           mediaMap[item.id].media = item;
         }
-        this.loadThumbnail(item);
+
+        if (!item.processed) {
+          this.pendingProcessing.set(item.id, item);
+        } else {
+          this.loadThumbnail(item);
+        }
       }
 
       for (let old of current.values()) {
         delete mediaMap[old];
       }
     });
+
+    if (this.pendingProcessing.size > 0 && !this.pendingTimeout) {
+      this.pendingTimeout = setTimeout(() => {
+        this.pollProcessing();
+      }, POLL_TIMEOUT);
+    }
 
     this.setState({
       mediaMap,

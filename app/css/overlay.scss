@@ -96,12 +96,21 @@
 #overlay-content {
   @include base-styles;
 
+  flex: 1;
   padding: var(--padding);
   overflow: hidden;
 }
 
 #overlay.upload {
   @include fullscreen-overlay;
+
+  #overlay-content {
+    @include flex-column;
+  }
+
+  .media-list {
+    flex: 1;
+  }
 
   #upload-metadata {
     padding-bottom: var(--padding);

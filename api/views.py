@@ -48,6 +48,25 @@ def login(request):
         return Response(serialize_state(request))
     raise ApiException('login-failed', status=status.HTTP_403_FORBIDDEN)
 
+@api_view(['GET'])
+def get_media(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    if 'id' not in request.query_params or not isinstance(request.query_params['id'], str):
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        media = models.Media.objects.get(id=request.query_params['id'])
+
+        if not request.user.can_access_catalog(media.catalog):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        serializer = MediaSerializer(media)
+        return Response(serializer.data)
+    except models.Media.DoesNotExist:
+        raise ApiException('unknown-media', status=status.HTTP_404_NOT_FOUND)
+
 @api_view(['PUT'])
 def create_catalog(request):
     if not request.user or not request.user.is_authenticated:

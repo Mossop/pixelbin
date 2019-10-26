@@ -18,7 +18,7 @@ interface JSONBody {
   data: string;
 }
 
-function apiURL(url: string | URL): URL {
+export function apiURL(url: string | URL): URL {
   if (url instanceof URL) {
     return url;
   }
