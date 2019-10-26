@@ -62,7 +62,6 @@ class MediaSerializer(serializers.ModelSerializer):
                   'tags', 'people']
 
 class UploadSerializer(Serializer):
-    catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
     orientation = serializers.IntegerField(min_value=1, max_value=8)
     people = serializers.ListField(
         child=serializers.CharField(allow_blank=False),
@@ -75,6 +74,7 @@ class UploadSerializer(Serializer):
         ),
         allow_empty=True
     )
+    albums = serializers.PrimaryKeyRelatedField(many=True, queryset=Album.objects.all())
 
 class MediaAlbumSerializer(Serializer):
     media = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())

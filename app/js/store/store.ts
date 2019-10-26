@@ -84,15 +84,6 @@ export function getAlbum(album: MapId<Album>, state?: StoreState): Album | undef
   }
 }
 
-export function getParent(id: string, state?: StoreState): Album | Catalog | undefined {
-  let catalog = getCatalog(id, state);
-  if (catalog) {
-    return catalog;
-  }
-
-  return getAlbum(id, state);
-}
-
 export function albumChildren(album: MapId<Album>, catalog?: Catalog): Album[] {
   let parent = intoId(album);
   catalog = catalog ? catalog : getCatalogForAlbum(album);

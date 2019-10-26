@@ -183,14 +183,9 @@ def upload(request):
     if 'metadata' not in request.data or 'file' not in request.data:
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    metadata = json.loads(request.data['metadata'])
-    serializer = UploadSerializer(data=metadata)
+    serializer = UploadSerializer(data=json.loads(request.data['metadata']))
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
-
-    catalog = data['catalog']
-    if not request.user.can_access_catalog(data['catalog']):
-        return Response(status=status.HTTP_403_FORBIDDEN)
 
     file = request.data['file']
     guessed = filetype.guess(file)
@@ -200,6 +195,16 @@ def upload(request):
     filename = os.path.basename(file.name)
     if filename is None or filename == "":
         filename = 'original.%s' % (guessed.extension)
+
+    albums = data['albums']
+    if len(albums) == 0:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    catalog = albums[0].catalog
+
+    for album in albums:
+        if album.catalog != catalog:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
     with transaction.atomic():
         tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
@@ -212,6 +217,7 @@ def upload(request):
 
         media.tags.add(*tags)
         media.people.add(*people)
+        media.albums.add(*albums)
 
     temp = media.storage.get_temp_path(media.storage_filename)
     with open(temp, "wb") as output:

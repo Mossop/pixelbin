@@ -8,15 +8,16 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { upload, modifyAlbums } from "../api/media";
+import { upload } from "../api/media";
 import { Catalog, Album, User, UploadMetadata } from "../api/types";
-import { getParent, getCatalogForAlbum } from "../store/store";
+import { getAlbum } from "../store/store";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/overlay";
 import { FormFields, Field } from "../components/Form";
 import { produce, Immutable } from "immer";
 import { Metadata } from "media-metadata/lib/metadata";
 import { parseMetadata, loadPreview } from "../utils/metadata";
+import { MapId } from "../utils/maps";
 
 export interface PendingUpload {
   file: File;
@@ -78,8 +79,8 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
     this.fileInput = React.createRef();
   }
 
-  private async upload(catalog: Catalog, parentAlbum: Album | undefined, id: string, pending: Immutable<PendingUpload>): Promise<void> {
-    if (pending.uploading) {
+  private async upload(parentAlbum: MapId<Album>, id: string, pending: Immutable<PendingUpload>): Promise<void> {
+    if (pending.uploading || !parentAlbum) {
       return;
     }
 
@@ -92,11 +93,7 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
     // TODO add global metadata.
 
     try {
-      let media = await upload(catalog, pending.metadata, pending.file);
-      if (parentAlbum) {
-        // Not sure what to do if this fails.
-        modifyAlbums(media, [parentAlbum]);
-      }
+      await upload(pending.metadata, pending.file, [parentAlbum]);
 
       let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
         delete uploads[id];
@@ -104,6 +101,9 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
       this.setState({ uploads });
 
       this.props.bumpState();
+      if (Object.keys(uploads).length === 0) {
+        this.props.closeOverlay();
+      }
     } catch (e) {
       console.error(e);
       let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
@@ -115,27 +115,13 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
   }
 
   private startUploads: (() => void) = (): void => {
-    let parent = getParent(this.getTextState("parent"));
-    if (!parent) {
+    let parentAlbum = getAlbum(this.getTextState("parent"));
+    if (!parentAlbum) {
       return;
     }
 
-    let catalog: Catalog;
-    let parentAlbum: Album | undefined;
-    if ("albums" in parent) {
-      catalog = parent;
-      parentAlbum = undefined;
-    } else {
-      parentAlbum = parent;
-      let check = getCatalogForAlbum(parent);
-      if (!check) {
-        return;
-      }
-      catalog = check;
-    }
-
     for (let [id, upload] of Object.entries(this.state.uploads)) {
-      this.upload(catalog, parentAlbum, id, upload);
+      this.upload(parentAlbum, id, upload);
     }
   };
 

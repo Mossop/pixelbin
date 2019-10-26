@@ -1,5 +1,5 @@
 import { buildFormBody, request, buildJSONBody, getRequest, baseRequest, apiURL } from "./api";
-import { Catalog, UploadMetadata, Album, Media, MediaArrayDecoder, MediaDecoder } from "./types";
+import { UploadMetadata, Album, Media, MediaArrayDecoder, MediaDecoder } from "./types";
 import { Immutable } from "immer";
 import { Search } from "../utils/search";
 import { intoIds, intoId, MapId } from "../utils/maps";
@@ -15,14 +15,14 @@ export async function get(id: string): Promise<Media> {
   });
 }
 
-export async function upload(catalog: MapId<Catalog>, metadata: Immutable<UploadMetadata>, file: Blob): Promise<Media> {
+export async function upload(metadata: Immutable<UploadMetadata>, file: Blob, albums: MapId<Album>[]): Promise<Media> {
   return request({
     url: "media/upload",
     method: "PUT",
     body: buildFormBody({
       metadata: JSON.stringify({
-        catalog: intoId(catalog),
         ...metadata,
+        albums: intoIds(albums),
       }),
       file,
     }),
