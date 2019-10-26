@@ -15,17 +15,11 @@
   left: 0;
   right: 0;
   overflow: hidden;
-
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(2px);
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  &.upload {
-    @include fullscreen-overlay;
-  }
 
   .form {
     flex: 1;
@@ -58,7 +52,6 @@
   padding-bottom: var(--padding);
 
   .sidebar-item {
-    padding-left: var(--padding);
     padding: 0 var(--padding) 10px var(--padding);
   }
 }
@@ -96,7 +89,6 @@
 
 #overlay-error {
   padding: var(--padding) var(--padding) 0 var(--padding);
-
   color: var(--error);
   font-weight: bold;
 }
@@ -109,6 +101,8 @@
 }
 
 #overlay.upload {
+  @include fullscreen-overlay;
+
   #upload-metadata {
     padding-bottom: var(--padding);
   }

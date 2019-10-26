@@ -7,14 +7,13 @@
   align-items: start;
   overflow-y: auto;
   overflow-x: hidden;
-
   padding-top: var(--padding);
   padding-left: var(--padding);
 
   &.empty {
     align-items: center;
     justify-content: center;
-    color: black;
+    color: #000000;
   }
 
   .media {

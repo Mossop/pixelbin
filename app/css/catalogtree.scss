@@ -1,10 +1,13 @@
 .catalog-tree {
   button {
     @include unstyled-button;
+
     display: block;
   }
 
-  ol, li, .item {
+  ol,
+  li,
+  .item {
     width: 100%;
     text-align: left;
   }
@@ -16,10 +19,6 @@
 
   .item.selected {
     background: var(--active);
-  }
-
-  .item:hover:not(.selected), .item.dragtarget {
-    background: var(--hover);
   }
 
   .depth0 > .item {
@@ -44,5 +43,10 @@
 
   .depth5 > .item {
     padding-left: calc(6 * var(--padding));
+  }
+
+  .item:hover:not(.selected),
+  .item.dragtarget {
+    background: var(--hover);
   }
 }

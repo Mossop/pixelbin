@@ -37,7 +37,8 @@
     }
   }
 
-  .textfield, .selectfield {
+  .textfield,
+  .selectfield {
     flex: 1;
   }
 }
@@ -45,7 +46,8 @@
 .fieldGrid.column {
   @include flex-column;
 
-  .fieldLabel, .fieldBox {
+  .fieldLabel,
+  .fieldBox {
     padding-bottom: 15px;
   }
 

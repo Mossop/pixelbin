@@ -1,43 +1,45 @@
 :root {
-  --background: #36454F;
-  --foreground: #E8E7DD;
-  --active: #7E7C78;
+  --background: #36454f;
+  --foreground: #e8e7dd;
+  --active: #7e7c78;
   --hover: rgb(180, 176, 166);
   --error: #ad0606;
   --font: 15px sans-serif;
 }
 
-#banner, #overlay-header {
-  --background: #1A1920;
-  --foreground: #E8E7DD;
-  --hover: #7E7C78;
+#banner,
+#overlay-header {
+  --background: #1a1920;
+  --foreground: #e8e7dd;
+  --hover: #7e7c78;
   --padding: 15px;
 }
 
 #banner {
-  --font: 15px 'Comfortaa', cursive;
+  --font: 15px "Comfortaa", cursive;
 }
 
-#sidebar, #overlay-sidebar {
-  --background: #6C636A;
-  --foreground: #E8E7DD;
+#sidebar,
+#overlay-sidebar {
+  --background: #6c636a;
+  --foreground: #e8e7dd;
   --padding: 15px;
 }
 
 #overlay {
-  --background: #7E7C78;
-  --foreground: #E8E7DD;
+  --background: #7e7c78;
+  --foreground: #e8e7dd;
   --padding: 15px;
 }
 
 .media-list {
-  --background: #FFFFFF;
+  --background: #ffffff;
   --foreground: #000000;
   --padding: 15px;
 }
 
 .media {
-  --background: #FFFFFF;
+  --background: #ffffff;
   --foreground: #000000;
   --active: rgb(180, 176, 166);
 }
