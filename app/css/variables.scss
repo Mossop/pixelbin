@@ -36,12 +36,17 @@
   --font: 15px "Comfortaa", cursive;
 }
 
+.fieldBox {
+  color: var(--color7);
+}
+
 #sidebar,
 #overlay-sidebar {
   --background: var(--color2);
   --foreground: var(--color5);
   --hover: var(--color10);
   --active: var(--color6);
+  --border: var(--color7);
 }
 
 #overlay {
@@ -51,10 +56,6 @@
 
 #overlay-main {
   --border: var(--color2);
-
-  .form {
-    color: var(--color7);
-  }
 }
 
 .media-list {

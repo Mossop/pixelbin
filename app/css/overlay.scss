@@ -57,11 +57,15 @@
   @include base-styles;
 
   min-width: 150px;
-  padding-top: var(--padding);
   padding-bottom: var(--padding);
+  border-bottom-left-radius: var(--border-radius);
 
   .sidebar-item {
-    padding: 0 var(--padding) 10px var(--padding);
+    padding: var(--padding) var(--padding) 0 var(--padding);
+
+    .title {
+      font-size: 80%;
+    }
   }
 }
 
@@ -107,6 +111,10 @@
 #overlay.upload {
   @include fullscreen-overlay;
 
+  .catalog-tree {
+    padding-top: 5px;
+  }
+
   #overlay-content {
     @include flex-column;
   }
@@ -128,6 +136,10 @@
 
     #fileInput {
       display: none;
+    }
+
+    button {
+      @include styled-button;
     }
   }
 }

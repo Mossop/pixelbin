@@ -73,6 +73,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
     let title = this.props.user.hadCatalog ? "catalog-create-title" : "catalog-create-title-first";
 
     let form: FormProps = {
+      orientation: "column",
       disabled: this.state.disabled,
       onSubmit: this.onSubmit,
 

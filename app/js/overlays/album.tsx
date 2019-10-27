@@ -93,6 +93,7 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
     let title = this.props.album ? "album-edit-title" : "album-create-title";
 
     let form: FormProps = {
+      orientation: "column",
       disabled: this.state.disabled,
       onSubmit: this.onSubmit,
 

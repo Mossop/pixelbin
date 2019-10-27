@@ -254,13 +254,13 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
     }];
 
     return <React.Fragment>
-      <div id="upload-metadata" className="sidebar-item">
-        <FormFields orientation="column" fields={fields}/>
-      </div>
       <div className="sidebar-item">
         <Localized id="upload-tree-title"><label className="title"/></Localized>
       </div>
       <CatalogTreeSelector uiPath="parent"/>
+      <div id="upload-metadata" className="sidebar-item">
+        <FormFields orientation="column" fields={fields}/>
+      </div>
     </React.Fragment>;
   }
 
