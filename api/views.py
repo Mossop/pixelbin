@@ -15,7 +15,7 @@ from .utils import uuid, api_view, ApiException
 from .serializers import UploadSerializer, UserSerializer, LoginSerializer, \
     CatalogSerializer, CatalogStateSerializer, serialize_state, BackblazeSerializer, \
     ServerSerializer, MediaSerializer, AlbumSerializer, SearchSerializer, \
-    ThumbnailRequestSerializer, MediaAlbumSerializer
+    ThumbnailRequestSerializer, MediaAlbumSerializer, AlbumCreateSerializer
 from .tasks import process_media
 
 @api_view(['GET', 'PUT', 'OPTIONS', 'POST', 'DELETE', 'PATCH'])
@@ -108,16 +108,14 @@ def create_album(request):
     if not request.user or not request.user.is_authenticated:
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    serializer = AlbumSerializer(data=request.data)
+    serializer = AlbumCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    if not request.user.can_access_catalog(serializer.validated_data['catalog']):
+    catalog = serializer.validated_data['parent'].catalog
+    if not request.user.can_access_catalog(catalog):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    if serializer.validated_data['parent'] is None:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    album = serializer.save(id=uuid("A"))
+    album = serializer.save(id=uuid("A"), catalog=catalog)
 
     serializer = AlbumSerializer(album)
     return Response(serializer.data)

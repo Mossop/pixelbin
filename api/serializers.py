@@ -108,15 +108,22 @@ class CatalogPeopleSerializer(serializers.ModelSerializer):
         model = Person
         fields = ['id', 'full_name']
 
-class AlbumSerializer(serializers.ModelSerializer):
-    id = serializers.CharField()
-    catalog = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Catalog.objects.all())
+class AlbumCreateSerializer(serializers.ModelSerializer):
     stub = serializers.CharField(allow_null=True, allow_blank=False, required=False, default=None)
-    parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all(), allow_null=True)
+    parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all())
 
     class Meta:
         model = Album
-        fields = ['id', 'catalog', 'stub', 'name', 'parent']
+        fields = ['stub', 'name', 'parent']
+
+class AlbumSerializer(serializers.ModelSerializer):
+    id = serializers.CharField()
+    stub = serializers.CharField(allow_null=True, allow_blank=False, required=False, default=None)
+    parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all())
+
+    class Meta:
+        model = Album
+        fields = ['id', 'stub', 'name', 'parent']
 
 class CatalogTagsSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
