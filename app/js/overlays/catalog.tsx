@@ -59,6 +59,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
       fieldType: "selectbox",
       uiPath: "storage",
       labelL10n: "catalog-create-storage",
+      iconName: "server",
       choices: [{
         value: "backblaze",
         l10n: "storage-backblaze-name",

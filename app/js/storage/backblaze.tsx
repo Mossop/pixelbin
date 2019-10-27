@@ -19,7 +19,7 @@ export function getBackblazeConfigUI(): Field[] {
     fieldType: "textbox",
     uiPath: "b2_bucket",
     labelL10n: "storage-backblaze-bucket",
-    iconName: "server",
+    iconName: "database",
     required: true,
   }, {
     fieldType: "textbox",

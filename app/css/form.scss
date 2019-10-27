@@ -11,7 +11,7 @@
 .fieldBox {
   position: relative;
 
-  .textfield-icon {
+  .field-icon {
     @include flex-row;
 
     position: absolute;
@@ -21,34 +21,26 @@
     align-items: center;
   }
 
-  .textfield {
-    border: 2px solid var(--border);
-    border-radius: calc(var(--border-radius) / 2);
-    padding: var(--border-radius);
-    font-size: 110%;
-    min-width: 20em;
-
-    &.textfield-iconed {
-      padding-left: calc(calc(var(--padding) / 2) + 20px);
-    }
-
-    &:invalid {
-      border-color: var(--error);
-      box-shadow: 0 0 5px 2px var(--error);
-    }
-
-    &:focus {
-      border-color: var(--active);
-      box-shadow: 0 0 5px 2px var(--active);
-    }
+  .selectfield {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    background-image: url("/static/app/images/angle-down-solid.svg");
+    background-position: center right calc(var(--padding) / 2);
+    background-repeat: no-repeat;
+    background-size: 15px;
   }
 
+  .textfield,
   .selectfield {
     border: 2px solid var(--border);
     border-radius: calc(var(--border-radius) / 2);
     padding: var(--border-radius);
     font-size: 110%;
     min-width: 20em;
+
+    &.with-icon {
+      padding-left: calc(calc(var(--padding) / 2) + 20px);
+    }
 
     &:invalid {
       border-color: var(--error);

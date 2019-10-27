@@ -58,7 +58,6 @@ module.exports = {
     "media-feature-colon-space-before": "always",
     "media-feature-name-case": "lower",
     "media-feature-name-no-unknown": true,
-    "media-feature-name-no-vendor-prefix": true,
     "media-feature-parentheses-space-inside": "never",
     "media-feature-range-operator-space-after": "always",
     "media-feature-range-operator-space-before": "always",
@@ -78,7 +77,6 @@ module.exports = {
     "number-no-trailing-zeros": true,
     "property-case": "lower",
     "property-no-unknown": true,
-    "property-no-vendor-prefix": true,
     "rule-empty-line-before": ["always", {
       "except": ["first-nested"],
     }],
@@ -90,7 +88,6 @@ module.exports = {
     "selector-combinator-space-before": "always",
     "selector-list-comma-newline-after": "always",
     "selector-list-comma-space-before": "never",
-    "selector-no-vendor-prefix": true,
     "selector-pseudo-class-case": "lower",
     "selector-pseudo-class-no-unknown": true,
     "selector-pseudo-class-parentheses-space-inside": "never",
@@ -107,6 +104,5 @@ module.exports = {
     "value-list-comma-space-after": "always",
     "value-list-comma-space-before": "never",
     "value-list-max-empty-lines": 0,
-    "value-no-vendor-prefix": true
   }
 };

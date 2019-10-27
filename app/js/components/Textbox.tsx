@@ -17,7 +17,7 @@ export default class Textbox extends TextComponent<TextboxProps> {
   public render(): React.ReactNode {
     let classes = ["field", "textfield"];
     if (this.props.iconName) {
-      classes.push("textfield-iconed");
+      classes.push("with-icon");
     }
 
     let allProps = {
@@ -29,7 +29,7 @@ export default class Textbox extends TextComponent<TextboxProps> {
 
     if (this.props.iconName) {
       return <React.Fragment>
-        <span className="textfield-icon"><Icon iconName={this.props.iconName} iconType={this.props.iconType}/></span>
+        <span className="field-icon"><Icon iconName={this.props.iconName} iconType={this.props.iconType}/></span>
         <input {...allProps} type={this.props.type || "text"}/>
       </React.Fragment>;
     } else {
