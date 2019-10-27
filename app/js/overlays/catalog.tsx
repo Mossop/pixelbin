@@ -81,6 +81,7 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
         fieldType: "textbox",
         uiPath: "name",
         labelL10n: "catalog-name",
+        iconName: "folder",
         required: true,
       },
       ...this.getStorageFields()],

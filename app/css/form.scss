@@ -9,9 +9,41 @@
 }
 
 .fieldBox {
-  input[type="text"],
-  input[type="email"],
-  input[type="password"] {
+  position: relative;
+
+  .textfield-icon {
+    @include flex-row;
+
+    position: absolute;
+    top: 0;
+    bottom: var(--padding);
+    left: calc(var(--padding) / 2);
+    align-items: center;
+  }
+
+  .textfield {
+    border: 2px solid var(--border);
+    border-radius: calc(var(--border-radius) / 2);
+    padding: var(--border-radius);
+    font-size: 110%;
+    min-width: 20em;
+
+    &.textfield-iconed {
+      padding-left: calc(calc(var(--padding) / 2) + 20px);
+    }
+
+    &:invalid {
+      border-color: var(--error);
+      box-shadow: 0 0 5px 2px var(--error);
+    }
+
+    &:focus {
+      border-color: var(--active);
+      box-shadow: 0 0 5px 2px var(--active);
+    }
+  }
+
+  .selectfield {
     border: 2px solid var(--border);
     border-radius: calc(var(--border-radius) / 2);
     padding: var(--border-radius);

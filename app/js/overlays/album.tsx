@@ -101,6 +101,7 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
         fieldType: "textbox",
         uiPath: "name",
         labelL10n: "album-name",
+        iconName: "folder",
         required: true,
       }],
       submit: this.props.album ? "album-edit-submit" : "album-create-submit",

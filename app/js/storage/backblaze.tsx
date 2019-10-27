@@ -7,21 +7,25 @@ export function getBackblazeConfigUI(): Field[] {
     fieldType: "textbox",
     uiPath: "b2_keyId",
     labelL10n: "storage-backblaze-keyid",
+    iconName: "key",
     required: true,
   }, {
     fieldType: "textbox",
     uiPath: "b2_key",
     labelL10n: "storage-backblaze-key",
+    iconName: "key",
     required: true,
   }, {
     fieldType: "textbox",
     uiPath: "b2_bucket",
     labelL10n: "storage-backblaze-bucket",
+    iconName: "server",
     required: true,
   }, {
     fieldType: "textbox",
     uiPath: "b2_path",
     labelL10n: "storage-backblaze-path",
+    iconName: "folder",
   }];
 }
 

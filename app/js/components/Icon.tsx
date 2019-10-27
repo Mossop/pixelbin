@@ -2,9 +2,25 @@ import React from "react";
 
 import { styleProps, StyleProps } from "./shared";
 
+export enum IconType {
+  FontAwesome = "fontawesone",
+  Material = "material",
+}
+
 export interface IconProps {
-  iconType?: "fontawesome" | "material";
+  iconType?: IconType;
   iconName?: string;
+}
+
+export function beforeIconClasses(name: string, type: IconType = IconType.FontAwesome): string[] {
+  let classes = ["icon-before"];
+  if (type === IconType.FontAwesome) {
+    classes.push("font-awesome", `fa-${name}`);
+  } else {
+    // Unknown
+  }
+
+  return classes;
 }
 
 export default class Icon extends React.Component<IconProps & StyleProps> {
@@ -13,7 +29,7 @@ export default class Icon extends React.Component<IconProps & StyleProps> {
       return null;
     }
 
-    if (this.props.iconType === "material") {
+    if (this.props.iconType === IconType.Material) {
       let props = styleProps(this.props, { className: ["material-icons", "icon"] });
       return <span {...props}>${this.props.iconName}</span>;
     } else {

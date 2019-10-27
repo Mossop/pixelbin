@@ -2,11 +2,12 @@ import React from "react";
 
 import { TextComponent } from "../utils/UIState";
 import { UIProps, fieldProps } from "./shared";
+import Icon, { IconProps } from "./Icon";
 
 export type TextboxProps = {
   type?: string;
   required?: boolean;
-} & UIProps;
+} & UIProps & IconProps;
 
 export default class Textbox extends TextComponent<TextboxProps> {
   private onChange: ((event: React.ChangeEvent<HTMLInputElement>) => void) = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -14,8 +15,25 @@ export default class Textbox extends TextComponent<TextboxProps> {
   };
 
   public render(): React.ReactNode {
-    return (
-      <input {...fieldProps(this.props, { className: ["field", "textfield"] })} type={this.props.type || "text"} required={this.props.required} value={this.getUIState()} onChange={this.onChange}/>
-    );
+    let classes = ["field", "textfield"];
+    if (this.props.iconName) {
+      classes.push("textfield-iconed");
+    }
+
+    let allProps = {
+      ...fieldProps(this.props, { className: classes }),
+      required: this.props.required,
+      value: this.getUIState(),
+      onChange: this.onChange,
+    };
+
+    if (this.props.iconName) {
+      return <React.Fragment>
+        <span className="textfield-icon"><Icon iconName={this.props.iconName} iconType={this.props.iconType}/></span>
+        <input {...allProps} type={this.props.type || "text"}/>
+      </React.Fragment>;
+    } else {
+      return <input {...allProps} type={this.props.type || "text"}/>;
+    }
   }
 }
