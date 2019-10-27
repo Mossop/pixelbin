@@ -25,23 +25,14 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
       return;
     }
 
-    let size = canvas.height;
-    let width = bitmap.width;
-    let height = bitmap.height;
-    if (width > height) {
-      width = size;
-      height = bitmap.height / (bitmap.width / width);
-    } else {
-      height = size;
-      width = bitmap.width / (bitmap.height / height);
-    }
-
     let context = canvas.getContext("2d");
     if (!context) {
       return;
     }
 
-    context.drawImage(bitmap, (size - width) / 2, (size - height) / 2, width, height);
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    context.drawImage(bitmap, 0, 0);
   }
 
   public componentDidMount(): void {
@@ -63,11 +54,12 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
       style: {
         height: size,
         width: size,
+        objectFit: "contain",
       }
     });
 
     return (
-      <canvas ref={this.canvasRef} height={size} width={size} {...props}/>
+      <canvas ref={this.canvasRef} {...props}/>
     );
   }
 }
