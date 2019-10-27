@@ -13,8 +13,27 @@
   margin: 0;
   cursor: pointer;
 
-  &[disabled="true"] {
+  &[disabled] {
     cursor: default;
+  }
+}
+
+@mixin styled-button {
+  background: var(--button-background);
+  color: var(--button-foreground);
+  font: inherit;
+  border: none;
+  border-radius: calc(var(--border-radius) / 2);
+  padding: calc(var(--padding) / 2);
+  margin: 0;
+  cursor: pointer;
+
+  &[disabled] {
+    cursor: default;
+  }
+
+  &:hover:not([disabled]) {
+    background: var(--button-hover);
   }
 }
 

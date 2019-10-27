@@ -68,6 +68,7 @@ export interface FormProps extends StyleProps {
   onSubmit: () => void | Promise<void>;
 
   title?: string | FormTitleProps;
+  orientation?: "row" | "column";
   fields: Field[];
   submit?: string | Omit<FormSubmitProps, "disabled">;
 }
@@ -95,7 +96,7 @@ export default class Form extends React.Component<FormProps> {
 
     return <form {...styleProps(this.props, { className: "form" })} onSubmit={this.onSubmit}>
       {title}
-      <FormFields fields={this.props.fields}/>
+      <FormFields orientation={this.props.orientation} fields={this.props.fields}/>
       {submit}
     </form>;
   }

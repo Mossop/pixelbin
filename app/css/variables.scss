@@ -1,18 +1,35 @@
 :root {
-  --background: #36454f;
-  --foreground: #e8e7dd;
-  --active: #7e7c78;
-  --hover: rgb(180, 176, 166);
-  --error: #ad0606;
+  --color1: rgba(4, 8, 15, 1);
+  --color2: rgba(80, 125, 188, 1);
+  --color3: rgba(161, 198, 234, 1);
+  --color4: rgba(187, 209, 234, 1);
+  --color5: rgba(218, 227, 229, 1);
+  --color6: rgba(111, 148, 200, 1);
+  --color7: rgba(61, 64, 68, 1);
+  --color8: rgba(218, 74, 76, 1);
+  --color9: rgba(241, 244, 245, 1);
+  --color10: rgba(143, 172, 212, 1);
+
+  --background: var(--color9);
+  --foreground: var(--color1);
+  --border: var(--color2);
+  --active: var(--color2);
+  --hover: var(--color4);
+  --error: var(--color8);
+  --padding: 20px;
   --font: 15px sans-serif;
+  --border-radius: 10px;
+  --button-background: var(--color2);
+  --button-foreground: var(--color5);
+  --button-hover: var(--color6);
 }
 
 #banner,
 #overlay-header {
-  --background: #1a1920;
-  --foreground: #e8e7dd;
-  --hover: #7e7c78;
-  --padding: 15px;
+  --background: var(--color1);
+  --foreground: var(--color5);
+  --hover: var(--color2);
+  --active: var(--color6);
 }
 
 #banner {
@@ -21,25 +38,25 @@
 
 #sidebar,
 #overlay-sidebar {
-  --background: #6c636a;
-  --foreground: #e8e7dd;
-  --padding: 15px;
+  --background: var(--color2);
+  --foreground: var(--color5);
+  --hover: var(--color10);
+  --active: var(--color6);
 }
 
 #overlay {
-  --background: #7e7c78;
-  --foreground: #e8e7dd;
-  --padding: 15px;
+  --border: var(--color1);
+  --padding: 20px;
+}
+
+#overlay-main {
+  --border: var(--color2);
+
+  .form {
+    color: var(--color7);
+  }
 }
 
 .media-list {
-  --background: #ffffff;
-  --foreground: #000000;
   --padding: 15px;
-}
-
-.media {
-  --background: #ffffff;
-  --foreground: #000000;
-  --active: rgb(180, 176, 166);
 }

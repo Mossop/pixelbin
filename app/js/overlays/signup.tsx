@@ -49,6 +49,7 @@ class SignupOverlay extends UIManager<SignupProps, SignupState> {
 
   public renderUI(): React.ReactNode {
     let form: FormProps = {
+      orientation: "column",
       disabled: this.state.disabled,
       onSubmit: this.onSubmit,
 

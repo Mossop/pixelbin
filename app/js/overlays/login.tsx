@@ -47,6 +47,7 @@ class LoginOverlay extends UIManager<LoginProps, LoginState> {
 
   public renderUI(): React.ReactNode {
     let form: FormProps = {
+      orientation: "column",
       disabled: this.state.disabled,
       onSubmit: this.onSubmit,
 

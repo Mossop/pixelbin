@@ -13,18 +13,18 @@
   &.empty {
     align-items: center;
     justify-content: center;
-    color: #000000;
   }
 
   .media {
     @include base-styles;
     @include flex-column;
 
-    padding: 5px;
+    padding: 8px;
     align-items: center;
     max-width: 200px;
     margin-right: var(--padding);
     margin-bottom: var(--padding);
+    border-radius: calc(var(--border-radius) / 2);
 
     &:hover {
       background: var(--hover);

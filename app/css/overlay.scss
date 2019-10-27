@@ -15,7 +15,7 @@
   left: 0;
   right: 0;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -35,7 +35,16 @@
 }
 
 #overlay-inner {
+  @include base-styles;
   @include flex-column;
+
+  border: 0.5px solid var(--border);
+  border-radius: var(--border-radius);
+
+  &.error {
+    border-color: var(--error);
+    box-shadow: 0 0 5px 2px var(--error);
+  }
 }
 
 #overlay-sidebar-wrapper {
@@ -57,10 +66,12 @@
 }
 
 #overlay-close {
-  padding: var(--padding);
+  @include unstyled-button;
 
-  &:hover {
-    background: var(--active);
+  margin-left: var(--padding);
+
+  .icon {
+    padding: 0;
   }
 }
 
@@ -69,19 +80,13 @@
   @include flex-row;
 
   justify-content: space-between;
+  align-items: center;
   padding: var(--padding);
-
-  .button {
-    @include unstyled-button;
-  }
-
-  .icon {
-    padding: 0;
-  }
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
 }
 
 #overlay-main {
-  @include base-styles;
   @include flex-column;
 
   flex: 1;
@@ -94,8 +99,6 @@
 }
 
 #overlay-content {
-  @include base-styles;
-
   flex: 1;
   padding: var(--padding);
   overflow: hidden;

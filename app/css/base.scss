@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 body,
 html,
 #app {
@@ -16,12 +20,15 @@ h5,
 h6,
 ol,
 ul,
-li {
+li,
+input {
+  border: 0;
   margin: 0;
   padding: 0;
   font-weight: normal;
   font-size: 100%;
   list-style-type: none;
+  color: inherit;
 }
 
 a,

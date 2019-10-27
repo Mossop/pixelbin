@@ -4,15 +4,37 @@
 }
 
 .formTitle {
-  padding-bottom: 20px;
+  padding-bottom: var(--padding);
   justify-self: start;
+}
+
+.fieldBox {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    border: 2px solid var(--border);
+    border-radius: calc(var(--border-radius) / 2);
+    padding: var(--border-radius);
+    font-size: 110%;
+    min-width: 20em;
+
+    &:invalid {
+      border-color: var(--error);
+      box-shadow: 0 0 5px 2px var(--error);
+    }
+
+    &:focus {
+      border-color: var(--active);
+      box-shadow: 0 0 5px 2px var(--active);
+    }
+  }
 }
 
 .fieldGrid.row {
   display: grid;
   grid-template-columns: minmax(max-content, 100px) minmax(max-content, 200px);
-  gap: 15px;
-  padding-bottom: 15px;
+  gap: var(--padding);
+  padding-bottom: var(--padding);
   justify-content: stretch;
   align-items: stretch;
 
@@ -46,13 +68,15 @@
 .fieldGrid.column {
   @include flex-column;
 
-  .fieldLabel,
-  .fieldBox {
-    padding-bottom: 15px;
+  .fieldLabel {
+    padding-bottom: 5px;
+    font-size: 80%;
   }
 
   .fieldBox {
     @include flex-column;
+
+    padding-bottom: var(--padding);
   }
 }
 
@@ -60,6 +84,10 @@
   flex: 1;
   justify-self: end;
   align-self: end;
+
+  button {
+    @include styled-button;
+  }
 }
 
 .error .formTitle {
