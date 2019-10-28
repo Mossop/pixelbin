@@ -26,12 +26,11 @@ function mapStateToProps(state: StoreState): StateProps {
 
 export interface SidebarProps {
   album?: Album;
-  selected?: string;
 }
 
 class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDispatchToProps> & StateProps> {
   private onCatalogClick: ((catalog: Catalog) => void) = (catalog: Catalog): void => {
-    history.push(`/album/${catalog.root.id}`);
+    history.push(`/catalog/${catalog.id}`);
   };
 
   private onAlbumClick: ((album: Album) => void) = (album: Album): void => {
@@ -41,7 +40,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
   public render(): React.ReactNode {
     return <div id="sidebar">
       <div id="catalog-tree">
-        <CatalogTreeSidebar album={this.props.album} selected={this.props.selected} onCatalogClick={this.onCatalogClick} onAlbumClick={this.onAlbumClick}/>
+        <CatalogTreeSidebar album={this.props.album} onCatalogClick={this.onCatalogClick} onAlbumClick={this.onAlbumClick}/>
         <Button id="new-catalog" l10n="sidebar-add-catalog" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/>
       </div>
     </div>;

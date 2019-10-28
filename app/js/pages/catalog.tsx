@@ -49,7 +49,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showAlbumCreateOverlay(this.props.catalog);
+    this.props.showAlbumCreateOverlay(this.props.catalog.root);
   };
 
   private onUpload: (() => void) = (): void => {
@@ -57,7 +57,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showUploadOverlay(this.props.catalog);
+    this.props.showUploadOverlay(this.props.catalog.root);
   };
 
   protected renderBannerButtons(): React.ReactNode {
@@ -74,7 +74,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
 
   protected getSidebarProps(): Partial<SidebarProps> {
     return {
-      selected: this.props.catalog ? this.props.catalog.id : undefined,
+      album: this.props.catalog ? this.props.catalog.root : undefined,
     };
   }
 
@@ -86,7 +86,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
           invert: false,
           field: Field.Album,
           operation: Operation.Includes,
-          value: "",
+          value: this.props.catalog.root.name,
         },
       };
       return <MediaList search={search}/>;

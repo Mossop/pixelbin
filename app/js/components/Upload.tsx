@@ -1,11 +1,10 @@
 import React from "react";
 
 import ImageCanvas from "../components/ImageCanvas";
-import { Immutable } from "immer";
 import { PendingUpload } from "../overlays/upload";
 
 interface UploadProps {
-  upload: Immutable<PendingUpload>;
+  upload: PendingUpload;
 }
 
 export default class Upload extends React.Component<UploadProps> {

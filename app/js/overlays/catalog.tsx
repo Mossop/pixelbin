@@ -2,16 +2,23 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { User, APIError } from "../api/types";
-import { UIManager } from "../utils/UIState";
-import Form, { FormProps, Field } from "../components/Form";
-import { getStorageConfigUI, getStorageConfig } from "../storage";
+import Form, { FormField } from "../components/Form";
+import { renderStorageConfigUI } from "../storage";
 import { createCatalog } from "../api/catalog";
 import { catalogCreated, DispatchProps } from "../store/actions";
 import Overlay from "../components/overlay";
+import { StorageConfig } from "../storage/types";
+import { ReactInputs, InputGroup } from "../utils/InputState";
+
+interface Inputs {
+  name: string;
+  storage: StorageConfig;
+}
 
 interface CatalogState {
   disabled: boolean;
   error?: APIError;
+  inputs: Inputs;
 }
 
 interface PassedProps {
@@ -24,19 +31,27 @@ const mapDispatchToProps = {
 
 type CatalogProps = PassedProps & DispatchProps<typeof mapDispatchToProps>;
 
-class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
+class CatalogOverlay extends ReactInputs<Inputs, CatalogProps, CatalogState> {
+  private storageGroup: InputGroup<StorageConfig>;
+
   public constructor(props: CatalogProps) {
     super(props);
 
     this.state = {
       disabled: false,
+      inputs: {
+        name: "",
+        storage: {
+          type: "server",
+        },
+      },
     };
 
-    this.setTextState("storage", "backblaze");
+    this.storageGroup = new InputGroup(this.getInputState("storage"));
   }
 
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let name = this.getTextState("name");
+    let name = this.state.inputs.name;
     if (!name) {
       return;
     }
@@ -44,53 +59,21 @@ class CatalogOverlay extends UIManager<CatalogProps, CatalogState> {
     this.setState({ disabled: true });
 
     try {
-      let storage = getStorageConfig(this.getTextState("storage"), this);
-      let catalog = await createCatalog(name, storage);
+      let catalog = await createCatalog(name, this.state.inputs.storage);
       this.props.catalogCreated(catalog);
     } catch (e) {
       this.setState({ disabled: false, error: e });
     }
   };
 
-  private getStorageFields(): Field[] {
-    let storageUI = getStorageConfigUI(this.getTextState("storage"));
-
-    return [{
-      fieldType: "selectbox",
-      uiPath: "storage",
-      labelL10n: "catalog-create-storage",
-      iconName: "server",
-      choices: [{
-        value: "backblaze",
-        l10n: "storage-backblaze-name",
-      }, {
-        value: "server",
-        l10n: "storage-server-name",
-      }]
-    }, ...storageUI];
-  }
-
-  public renderUI(): React.ReactNode {
+  public render(): React.ReactNode {
     let title = this.props.user.hadCatalog ? "catalog-create-title" : "catalog-create-title-first";
 
-    let form: FormProps = {
-      orientation: "column",
-      disabled: this.state.disabled,
-      onSubmit: this.onSubmit,
-
-      fields: [{
-        fieldType: "textbox",
-        uiPath: "name",
-        labelL10n: "catalog-name",
-        iconName: "folder",
-        required: true,
-      },
-      ...this.getStorageFields()],
-      submit: "catalog-create-submit",
-    };
-
     return <Overlay title={title} error={this.state.error}>
-      <Form {...form}/>
+      <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="catalog-create-submit">
+        <FormField id="name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} inputs={this.getInputState(name)}/>
+        {renderStorageConfigUI(this.storageGroup, this.state.disabled)}
+      </Form>
     </Overlay>;
   }
 }

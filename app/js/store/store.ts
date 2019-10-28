@@ -44,7 +44,11 @@ function buildStore(): Store<StoreState, ActionType> {
 
 const store = buildStore();
 
-export function getCatalog(id: string, state?: StoreState): Catalog | undefined {
+// Something about the history state is messing up type inference, this is the
+// only part of the state we care about anyway.
+type ServerStoreState = Pick<StoreState, "serverState">;
+
+export function getCatalog(id: string, state?: ServerStoreState): Catalog | undefined {
   if (!state) {
     state = store.getState();
   }
@@ -56,7 +60,7 @@ export function getCatalog(id: string, state?: StoreState): Catalog | undefined 
   return state.serverState.user.catalogs[id];
 }
 
-export function getCatalogForAlbum(album: MapId<Album>, state?: StoreState): Catalog | undefined {
+export function getCatalogForAlbum(album: MapId<Album>, state?: ServerStoreState): Catalog | undefined {
   if (!state) {
     state = store.getState();
   }
@@ -75,7 +79,7 @@ export function getCatalogForAlbum(album: MapId<Album>, state?: StoreState): Cat
   return undefined;
 }
 
-export function getAlbum(album: MapId<Album>, state?: StoreState): Album | undefined {
+export function getAlbum(album: MapId<Album>, state?: ServerStoreState): Album | undefined {
   if (typeof album === "string") {
     let catalog = getCatalogForAlbum(album, state);
     return catalog ? catalog.albums[album] : undefined;

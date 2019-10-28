@@ -1,26 +1,31 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { UIManager } from "../utils/UIState";
-import Form, { FormProps } from "../components/Form";
-import { Album, Catalog, User, APIError } from "../api/types";
+import Form, { FormField } from "../components/Form";
+import { Album, User, APIError } from "../api/types";
 import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
-import { getAlbum } from "../store/store";
 import Overlay from "../components/overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import { Localized } from "@fluent/react";
 import { Patch } from "../api/api";
+import { ReactInputs } from "../utils/InputState";
+
+interface Inputs {
+  name: string;
+  parent: Album;
+}
 
 interface AlbumState {
   disabled: boolean;
   error?: APIError;
+  inputs: Inputs;
 }
 
 interface PassedProps {
   user: User;
   album?: Album;
-  parent?: Catalog | Album;
+  parent: Album;
 }
 
 const mapDispatchToProps = {
@@ -30,33 +35,29 @@ const mapDispatchToProps = {
 
 type AlbumProps = PassedProps & DispatchProps<typeof mapDispatchToProps>;
 
-class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
+class AlbumOverlay extends ReactInputs<Inputs, AlbumProps, AlbumState> {
   public constructor(props: AlbumProps) {
     super(props);
 
     this.state = {
       disabled: false,
+      inputs: {
+        parent: this.props.parent,
+        name: "",
+      },
     };
 
-    if (this.props.parent) {
-      this.setTextState("parent", this.props.parent.id);
-    } else if (this.props.album) {
-      this.setTextState("parent", this.props.album.parent || "");
-      this.setTextState("name", this.props.album.name);
-    } else {
-      console.error("Invalid overlay state.");
+    if (this.props.album) {
+      this.state.inputs.name = this.props.album.name;
     }
   }
 
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let name = this.getTextState("name");
+    let name = this.state.inputs.name;
     if (!name) {
       return;
     }
-    let parent = getAlbum(this.getTextState("parent"));
-    if (!parent) {
-      return;
-    }
+    let parent = this.state.inputs.parent;
 
     this.setState({ disabled: true });
 
@@ -85,30 +86,17 @@ class AlbumOverlay extends UIManager<AlbumProps, AlbumState> {
       <div className="sidebar-item">
         <Localized id={title}><label/></Localized>
       </div>
-      <CatalogTreeSelector uiPath="parent"/>
+      <CatalogTreeSelector inputs={this.getInputState("parent")}/>
     </React.Fragment>;
   }
 
-  public renderUI(): React.ReactNode {
+  public render(): React.ReactNode {
     let title = this.props.album ? "album-edit-title" : "album-create-title";
 
-    let form: FormProps = {
-      orientation: "column",
-      disabled: this.state.disabled,
-      onSubmit: this.onSubmit,
-
-      fields: [{
-        fieldType: "textbox",
-        uiPath: "name",
-        labelL10n: "album-name",
-        iconName: "folder",
-        required: true,
-      }],
-      submit: this.props.album ? "album-edit-submit" : "album-create-submit",
-    };
-
     return <Overlay title={title} error={this.state.error} sidebar={this.renderSidebar()}>
-      <Form {...form}/>
+      <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit={this.props.album ? "album-edit-submit" : "album-create-submit"}>
+        <FormField id="name" type="text" labelL10n="album-name" iconName="folder" required={true} inputs={this.getInputState("name")}/>
+      </Form>
     </Overlay>;
   }
 }

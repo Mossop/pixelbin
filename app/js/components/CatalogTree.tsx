@@ -6,12 +6,12 @@ import { catalogNameSorted } from "../utils/sort";
 import { Button } from "./Button";
 import { StoreState } from "../store/types";
 import Icon from "./Icon";
-import { UIContext, Context, getTextState } from "../utils/UIState";
 import { Mapped } from "../utils/maps";
 import { modifyAlbums } from "../api/media";
 import { DispatchProps, bumpState, albumEdited } from "../store/actions";
 import { editAlbum } from "../api/album";
 import { albumChildren, isAncestor, getAlbum } from "../store/store";
+import { InputState } from "../utils/InputState";
 
 interface StateProps {
   catalogs: Mapped<Catalog>;
@@ -65,27 +65,20 @@ abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
 }
 
 interface SelectorProps {
-  uiPath: string;
+  inputs: InputState<Album | undefined>;
 }
 
 class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProps> {
-  public static contextType: React.Context<UIContext> = Context;
-  public context!: React.ContextType<typeof Context>;
-
-  private getSelected(): string {
-    return getTextState(this.context.getState(this.props.uiPath));
-  }
-
   protected onAlbumClick(album: Album): void {
-    this.context.setState(this.props.uiPath, { text: album.id });
+    this.props.inputs.setInputValue(album);
   }
 
   protected onCatalogClick(catalog: Catalog): void {
-    this.context.setState(this.props.uiPath, { text: catalog.id });
+    this.props.inputs.setInputValue(catalog.root);
   }
 
   protected renderItem(item: Album, onClick: () => void): React.ReactNode {
-    if (this.getSelected() === item.id) {
+    if (this.props.inputs.getInputValue() === item) {
       return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
     } else {
       return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
@@ -99,7 +92,6 @@ interface SidebarProps {
   album?: Album;
   onCatalogClick: (catalog: Catalog) => void;
   onAlbumClick: (album: Album) => void;
-  selected?: string;
 }
 
 const mapDispatchToProps = {
@@ -252,7 +244,7 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps 
       onDrop: (event: React.DragEvent): Promise<void> => this.onDrop(event, album),
     };
 
-    if (this.props.selected === album.id) {
+    if (this.props.album === album) {
       return <p className="item selected" {...dragProps}><Icon iconName="folder-open"/>{album.name}</p>;
     } else {
       return <Button className="item" {...dragProps} iconName="folder" onClick={onClick}>{album.name}</Button>;

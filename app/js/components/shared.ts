@@ -1,5 +1,3 @@
-import { UIComponentProps } from "../utils/UIState";
-
 export interface StyleProps {
   id?: string;
   style?: React.CSSProperties;
@@ -62,14 +60,4 @@ export function fieldProps<P extends FieldProps>(props: P, additional: StyleProp
   }
 
   return result;
-}
-
-export type UIProps = FieldProps & UIComponentProps;
-type ElementUIProps = ElementFieldProps & UIComponentProps;
-
-export function uiProps<P extends UIProps>(props: P, additional: StyleProps = {}): ElementUIProps {
-  return {
-    ...fieldProps(props, additional),
-    uiPath: props.uiPath,
-  };
 }

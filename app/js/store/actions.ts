@@ -64,10 +64,10 @@ export function bumpState(): BumpStateAction {
 
 interface ShowAlbumCreateOverlayAction extends Action {
   type: typeof SHOW_ALBUM_CREATE_OVERLAY;
-  payload: Album | Catalog;
+  payload: Album;
 }
 
-export function showAlbumCreateOverlay(parent: Album | Catalog): ShowAlbumCreateOverlayAction {
+export function showAlbumCreateOverlay(parent: Album): ShowAlbumCreateOverlayAction {
   return {
     type: SHOW_ALBUM_CREATE_OVERLAY,
     payload: parent,
@@ -100,10 +100,10 @@ export function showCatalogEditOverlay(catalog: Catalog): ShowCatalogEditOverlay
 
 interface ShowUploadOverlayAction extends Action {
   type: typeof SHOW_UPLOAD_OVERLAY;
-  payload: Catalog | Album;
+  payload: Album;
 }
 
-export function showUploadOverlay(parent: Catalog | Album): ShowUploadOverlayAction {
+export function showUploadOverlay(parent: Album): ShowUploadOverlayAction {
   return {
     type: SHOW_UPLOAD_OVERLAY,
     payload: parent,

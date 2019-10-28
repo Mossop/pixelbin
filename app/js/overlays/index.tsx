@@ -83,7 +83,7 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           break;
         }
         case OverlayType.EditAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} album={this.props.overlay.album}/>;
+          overlay = <AlbumOverlay user={this.props.user} album={this.props.overlay.album} parent={this.props.overlay.parent}/>;
           break;
         }
         case OverlayType.Upload: {

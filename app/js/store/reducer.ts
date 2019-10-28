@@ -23,6 +23,7 @@ import { StoreState, OverlayType } from "./types";
 import { history, HistoryState } from "../utils/history";
 import { UserState } from "../api/types";
 import { catalogNameSorted } from "../utils/sort";
+import { getAlbum } from "./store";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
@@ -39,7 +40,7 @@ function catalogReducer(state: Draft<StoreState>, user: Draft<UserState>, action
     case CATALOG_CREATED: {
       user.catalogs[action.payload.id] = action.payload;
       state.overlay = undefined;
-      state.historyState = navigate(`/album/${action.payload.root.id}`);
+      state.historyState = navigate(`/catalog/${action.payload.id}`);
       return;
     }
     case SHOW_CATALOG_EDIT_OVERLAY: {
@@ -78,9 +79,19 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: 
       return;
     }
     case SHOW_ALBUM_EDIT_OVERLAY: {
+      if (!action.payload.parent) {
+        return;
+      }
+
+      let parent = getAlbum(action.payload.parent, state);
+      if (!parent) {
+        return;
+      }
+
       state.overlay = {
         type: OverlayType.EditAlbum,
         album: action.payload,
+        parent,
       };
       return;
     }

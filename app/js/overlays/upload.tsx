@@ -3,21 +3,18 @@ import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
 import { DispatchProps, bumpState, closeOverlay } from "../store/actions";
-import { UIManager } from "../utils/UIState";
 import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
 import { upload } from "../api/media";
-import { Catalog, Album, User, UploadMetadata } from "../api/types";
-import { getAlbum } from "../store/store";
+import { Album, User, UploadMetadata } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/overlay";
-import { FormFields, Field } from "../components/Form";
-import { produce, Immutable } from "immer";
+import { FormFields, FormField } from "../components/Form";
 import { Metadata } from "media-metadata/lib/metadata";
 import { parseMetadata, loadPreview } from "../utils/metadata";
-import { MapId } from "../utils/maps";
+import { MapState, ReactInputs, InputGroupMap, InputGroup } from "../utils/InputState";
 
 export interface PendingUpload {
   file: File;
@@ -48,80 +45,66 @@ const mapDispatchToProps = {
 
 type UploadOverlayProps = {
   user: User;
-  parent: Catalog | Album;
+  parent: Album;
 } & DispatchProps<typeof mapDispatchToProps>;
 
-interface Uploads {
-  [id: string]: PendingUpload;
-}
-
-interface Refs {
-  [id: string]: React.RefObject<Upload>;
+interface Inputs {
+  parent: Album;
+  globalTags: string;
+  uploads: MapState<PendingUpload>;
 }
 
 interface UploadOverlayState {
-  uploads: Immutable<Uploads>;
+  inputs: Inputs;
+  disabled: boolean;
 }
 
-class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
+class UploadOverlay extends ReactInputs<Inputs, UploadOverlayProps, UploadOverlayState> {
   private fileInput: React.RefObject<HTMLInputElement>;
-  private uploadRefs: Refs;
+  private uploads: InputGroupMap<PendingUpload>;
 
   public constructor(props: UploadOverlayProps) {
     super(props);
 
-    this.setTextState("parent", this.props.parent.id);
-    this.uploadRefs = {};
     this.state = {
-      uploads: {},
+      disabled: false,
+      inputs: {
+        parent: this.props.parent,
+        globalTags: "",
+        uploads: {},
+      },
     };
 
     this.fileInput = React.createRef();
+    this.uploads = new InputGroupMap(this.getInputState("uploads"));
   }
 
-  private async upload(parentAlbum: MapId<Album>, id: string, pending: Immutable<PendingUpload>): Promise<void> {
-    if (pending.uploading || !parentAlbum) {
+  private async upload(id: string, pending: InputGroup<PendingUpload>): Promise<void> {
+    if (pending.getInputValue("uploading")) {
       return;
     }
-
-    let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
-      uploads[id].uploading = true;
-    });
-    this.setState({ uploads });
-    // pending is outdated here, doesn't matter much though.
+    pending.setInputValue("uploading", true);
 
     // TODO add global metadata.
 
     try {
-      await upload(pending.metadata, pending.file, [parentAlbum]);
-
-      let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
-        delete uploads[id];
-      });
-      this.setState({ uploads });
+      await upload(pending.getInputValue("metadata"), pending.getInputValue("file"), [this.state.inputs.parent]);
+      this.uploads.delete(id);
 
       this.props.bumpState();
-      if (Object.keys(uploads).length === 0) {
+      if (this.uploads.length === 0) {
         this.props.closeOverlay();
       }
     } catch (e) {
       console.error(e);
-      let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
-        uploads[id].failed = true;
-        uploads[id].uploading = false;
-      });
-      this.setState({ uploads });
+      pending.setInputValue("failed", true);
+      pending.setInputValue("uploading", false);
     }
   }
 
   private startUploads: (() => void) = (): void => {
-    let parentAlbum = getAlbum(this.getTextState("parent"));
-    if (!parentAlbum) {
-      return;
-    }
-
-    for (let [id, upload] of Object.entries(this.state.uploads)) {
-      this.upload(parentAlbum, id, upload);
+    for (let id of this.uploads.keys()) {
+      this.upload(id, this.uploads.getInputGroup(id));
     }
   };
 
@@ -133,39 +116,20 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
     }
 
     let found: ImageBitmap = preview;
-
-    let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
-      if (!(id in uploads)) {
-        return;
-      }
-
-      uploads[id].thumbnail = found;
-    });
-
-    this.setState({ uploads });
+    let pending = this.uploads.getInputGroup(id);
+    pending.setInputValue("thumbnail", found);
   }
 
   private async loadThumbnail(id: string, blob: Blob): Promise<void> {
     let thumbnail = await createImageBitmap(blob);
-
-    let uploads = produce(this.state.uploads, (uploads: Uploads): void => {
-      if (!(id in uploads)) {
-        return;
-      }
-
-      if (uploads[id].thumbnail) {
-        return;
-      }
-
-      uploads[id].thumbnail = thumbnail;
-    });
-
-    this.setState({ uploads });
+    let pending = this.uploads.getInputGroup(id);
+    if (!pending.getInputValue("thumbnail")) {
+      pending.setInputValue("thumbnail", thumbnail);
+    }
   }
 
   private addFile(file: File): void {
     let id = uuid();
-    this.uploadRefs[id] = React.createRef<Upload>();
 
     parseMetadata(file).then((metadata: Metadata | null) => {
       if (metadata) {
@@ -175,19 +139,15 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
           people: metadata.people,
         };
 
-        let uploads = produce(this.state.uploads, (uploads: Uploads) => {
-          let upload: PendingUpload = {
-            file,
-            uploading: false,
-            failed: false,
-            metadata: uploadMeta,
-            ref: React.createRef(),
-          };
+        let upload: PendingUpload = {
+          file,
+          uploading: false,
+          failed: false,
+          metadata: uploadMeta,
+          ref: React.createRef(),
+        };
 
-          uploads[id] = upload;
-        });
-
-        this.setState({ uploads });
+        this.uploads.set(id, upload);
 
         if (metadata.thumbnail) {
           this.loadThumbnail(id, new Blob([metadata.thumbnail]));
@@ -247,30 +207,26 @@ class UploadOverlay extends UIManager<UploadOverlayProps, UploadOverlayState> {
   };
 
   public renderSidebar(): React.ReactNode {
-    let fields: Field[] = [{
-      fieldType: "textbox",
-      uiPath: "globalTags",
-      labelL10n: "upload-global-tags",
-    }];
-
     return <React.Fragment>
       <div className="sidebar-item">
         <Localized id="upload-tree-title"><label className="title"/></Localized>
       </div>
-      <CatalogTreeSelector uiPath="parent"/>
+      <CatalogTreeSelector inputs={this.getInputState("parent")}/>
       <div id="upload-metadata" className="sidebar-item">
-        <FormFields orientation="column" fields={fields}/>
+        <FormFields orientation="column">
+          <FormField id="globalTags" type="text" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} inputs={this.getInputState("globalTags")}/>
+        </FormFields>
       </div>
     </React.Fragment>;
   }
 
   public renderUI(): React.ReactNode {
     return <Overlay title="upload-title" sidebar={this.renderSidebar()}>
-      <If condition={Object.keys(this.state.uploads).length > 0}>
+      <If condition={this.uploads.length > 0}>
         <Then>
           <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-            {Object.entries(this.state.uploads).map(([id, upload]: [string, Immutable<PendingUpload>]) => {
-              return <Upload ref={this.uploadRefs[id]} key={id} upload={upload}/>;
+            {Object.entries(this.state.inputs.uploads).map(([id, upload]: [string, PendingUpload]) => {
+              return <Upload key={id} upload={upload}/>;
             })}
           </div>
         </Then>

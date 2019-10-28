@@ -138,7 +138,6 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
 
   protected getSidebarProps(): Partial<SidebarProps> {
     return {
-      selected: this.props.match.params.id,
       album: this.state.album,
     };
   }
