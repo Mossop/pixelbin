@@ -9,7 +9,7 @@ import Overlay from "../components/overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import { Localized } from "@fluent/react";
 import { Patch } from "../api/api";
-import { ReactInputs } from "../utils/InputState";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 interface Inputs {
   name: string;
@@ -35,7 +35,9 @@ const mapDispatchToProps = {
 
 type AlbumProps = PassedProps & DispatchProps<typeof mapDispatchToProps>;
 
-class AlbumOverlay extends ReactInputs<Inputs, AlbumProps, AlbumState> {
+class AlbumOverlay extends React.Component<AlbumProps, AlbumState> {
+  private inputs: Inputs;
+
   public constructor(props: AlbumProps) {
     super(props);
 
@@ -50,14 +52,16 @@ class AlbumOverlay extends ReactInputs<Inputs, AlbumProps, AlbumState> {
     if (this.props.album) {
       this.state.inputs.name = this.props.album.name;
     }
+
+    this.inputs = proxyReactState(this, "inputs");
   }
 
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let name = this.state.inputs.name;
+    let name = this.inputs.name;
     if (!name) {
       return;
     }
-    let parent = this.state.inputs.parent;
+    let parent = this.inputs.parent;
 
     this.setState({ disabled: true });
 
@@ -86,7 +90,7 @@ class AlbumOverlay extends ReactInputs<Inputs, AlbumProps, AlbumState> {
       <div className="sidebar-item">
         <Localized id={title}><label/></Localized>
       </div>
-      <CatalogTreeSelector inputs={this.getInputState("parent")}/>
+      <CatalogTreeSelector property={makeProperty(this.inputs, "parent")}/>
     </React.Fragment>;
   }
 
@@ -95,7 +99,7 @@ class AlbumOverlay extends ReactInputs<Inputs, AlbumProps, AlbumState> {
 
     return <Overlay title={title} error={this.state.error} sidebar={this.renderSidebar()}>
       <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit={this.props.album ? "album-edit-submit" : "album-create-submit"}>
-        <FormField id="name" type="text" labelL10n="album-name" iconName="folder" required={true} inputs={this.getInputState("name")}/>
+        <FormField id="name" type="text" labelL10n="album-name" iconName="folder" required={true} property={makeProperty(this.inputs, "name")}/>
       </Form>
     </Overlay>;
   }

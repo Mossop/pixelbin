@@ -6,7 +6,7 @@ import Form, { FormField } from "../components/Form";
 import Overlay from "../components/overlay";
 import { DispatchProps, completeSignup } from "../store/actions";
 import { APIError } from "../api/types";
-import { ReactInputs } from "../utils/InputState";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 interface Inputs {
   email: string;
@@ -26,7 +26,9 @@ const mapDispatchToProps = {
 
 type SignupProps = DispatchProps<typeof mapDispatchToProps>;
 
-class SignupOverlay extends ReactInputs<Inputs, SignupProps, SignupState> {
+class SignupOverlay extends React.Component<SignupProps, SignupState> {
+  private inputs: Inputs;
+
   public constructor(props: SignupProps) {
     super(props);
     this.state = {
@@ -37,12 +39,14 @@ class SignupOverlay extends ReactInputs<Inputs, SignupProps, SignupState> {
         password: "",
       },
     };
+
+    this.inputs = proxyReactState(this, "inputs");
   }
 
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let email = this.state.inputs.email;
-    let name = this.state.inputs.name;
-    let password = this.state.inputs.password;
+    let email = this.inputs.email;
+    let name = this.inputs.name;
+    let password = this.inputs.password;
 
     if (!email) {
       return;
@@ -57,20 +61,17 @@ class SignupOverlay extends ReactInputs<Inputs, SignupProps, SignupState> {
       this.setState({
         disabled: false,
         error: e,
-        inputs: {
-          ...this.state.inputs,
-          password: "",
-        },
       });
+      this.inputs.password = "";
     }
   };
 
   public render(): React.ReactNode {
     return <Overlay title="signup-title" error={this.state.error}>
       <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="signup-submit">
-        <FormField id="email" type="email" labelL10n="signup-email" iconName="at" required={true} inputs={this.getInputState("email")}/>
-        <FormField id="name" type="text" labelL10n="signup-name" iconName="user" inputs={this.getInputState("name")}/>
-        <FormField id="password" type="password" labelL10n="signup-password" iconName="key" inputs={this.getInputState("password")}/>
+        <FormField id="email" type="email" labelL10n="signup-email" iconName="at" required={true} property={makeProperty(this.inputs, "email")}/>
+        <FormField id="name" type="text" labelL10n="signup-name" iconName="user" property={makeProperty(this.inputs, "name")}/>
+        <FormField id="password" type="password" labelL10n="signup-password" iconName="key" property={makeProperty(this.inputs, "password")}/>
       </Form>
     </Overlay>;
   }

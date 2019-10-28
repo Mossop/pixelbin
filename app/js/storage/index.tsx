@@ -1,19 +1,19 @@
 import React from "react";
 
 import { FormField } from "../components/Form";
-import { StorageConfig, BackblazeConfig } from "./types";
+import { StorageConfig } from "./types";
 import { renderBackblazeConfigUI } from "./backblaze";
-import { InputGroup } from "../utils/InputState";
 import { Option } from "../components/SelectBox";
+import { makeProperty } from "../utils/StateProxy";
 
-export function renderStorageConfigUI(group: InputGroup<StorageConfig>, disabled: boolean): React.ReactNode {
+export function renderStorageConfigUI(config: StorageConfig, disabled: boolean): React.ReactNode {
   let inner: React.ReactNode = null;
-  if (group.castInto((state: StorageConfig): state is BackblazeConfig => state.type === "backblaze")) {
-    inner = renderBackblazeConfigUI(group, disabled);
+  if (config.type === "backblaze") {
+    inner = renderBackblazeConfigUI(config, disabled);
   }
 
   return <React.Fragment>
-    <FormField id="storage" type="select" labelL10n="catalog-create-storage" iconName="server" disabled={disabled} inputs={group.getInputState("type")}>
+    <FormField id="storage" type="select" labelL10n="catalog-create-storage" iconName="server" disabled={disabled} property={makeProperty(config, "type")}>
       <Option l10n="storage-server-name" value="server"/>
       <Option l10n="storage-backblaze-name" value="backblaze"/>
     </FormField>

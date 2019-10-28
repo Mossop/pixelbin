@@ -2,17 +2,17 @@ import React from "react";
 
 import { fieldProps, FieldProps } from "./shared";
 import Icon, { IconProps } from "./Icon";
-import { InputState } from "../utils/InputState";
+import { Property } from "../utils/StateProxy";
 
 export type TextboxProps = {
   type: "text" | "email" | "password";
   required?: boolean;
-  inputs: InputState<string>;
+  property: Property<string>;
 } & FieldProps & IconProps;
 
 export default class Textbox extends React.Component<TextboxProps> {
   private onChange: ((event: React.ChangeEvent<HTMLInputElement>) => void) = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    this.props.inputs.setInputValue(event.target.value);
+    this.props.property.set(event.target.value);
   };
 
   public render(): React.ReactNode {
@@ -24,7 +24,7 @@ export default class Textbox extends React.Component<TextboxProps> {
     let allProps = {
       ...fieldProps(this.props, { className: classes }),
       required: this.props.required,
-      value: this.props.inputs.getInputValue(),
+      value: this.props.property.get(),
       onChange: this.onChange,
     };
 

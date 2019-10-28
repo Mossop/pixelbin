@@ -31,6 +31,7 @@ module.exports = {
     "plugin:react/recommended",
   ],
   "rules": {
+    "require-atomic-updates": "off",
     "react/prop-types": "off",
     "@typescript-eslint/array-type": "error",
     "@typescript-eslint/no-unnecessary-condition": ["error", {

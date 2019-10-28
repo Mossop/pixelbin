@@ -14,7 +14,7 @@ import Overlay from "../components/overlay";
 import { FormFields, FormField } from "../components/Form";
 import { Metadata } from "media-metadata/lib/metadata";
 import { parseMetadata, loadPreview } from "../utils/metadata";
-import { MapState, ReactInputs, InputGroupMap, InputGroup } from "../utils/InputState";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 export interface PendingUpload {
   file: File;
@@ -51,7 +51,7 @@ type UploadOverlayProps = {
 interface Inputs {
   parent: Album;
   globalTags: string;
-  uploads: MapState<PendingUpload>;
+  uploads: Record<string, PendingUpload>;
 }
 
 interface UploadOverlayState {
@@ -59,9 +59,9 @@ interface UploadOverlayState {
   disabled: boolean;
 }
 
-class UploadOverlay extends ReactInputs<Inputs, UploadOverlayProps, UploadOverlayState> {
+class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlayState> {
   private fileInput: React.RefObject<HTMLInputElement>;
-  private uploads: InputGroupMap<PendingUpload>;
+  private inputs: Inputs;
 
   public constructor(props: UploadOverlayProps) {
     super(props);
@@ -76,35 +76,35 @@ class UploadOverlay extends ReactInputs<Inputs, UploadOverlayProps, UploadOverla
     };
 
     this.fileInput = React.createRef();
-    this.uploads = new InputGroupMap(this.getInputState("uploads"));
+    this.inputs = proxyReactState(this, "inputs");
   }
 
-  private async upload(id: string, pending: InputGroup<PendingUpload>): Promise<void> {
-    if (pending.getInputValue("uploading")) {
+  private async upload(id: string, pending: PendingUpload): Promise<void> {
+    if (pending.uploading) {
       return;
     }
-    pending.setInputValue("uploading", true);
+    pending.uploading = true;
 
     // TODO add global metadata.
 
     try {
-      await upload(pending.getInputValue("metadata"), pending.getInputValue("file"), [this.state.inputs.parent]);
-      this.uploads.delete(id);
+      await upload(pending.metadata, pending.file, [this.state.inputs.parent]);
+      delete this.inputs.uploads[id];
 
       this.props.bumpState();
-      if (this.uploads.length === 0) {
+      if (Object.keys(this.inputs.uploads).length === 0) {
         this.props.closeOverlay();
       }
     } catch (e) {
       console.error(e);
-      pending.setInputValue("failed", true);
-      pending.setInputValue("uploading", false);
+      pending.failed = true;
+      pending.uploading = false;
     }
   }
 
   private startUploads: (() => void) = (): void => {
-    for (let id of this.uploads.keys()) {
-      this.upload(id, this.uploads.getInputGroup(id));
+    for (let [id, pending] of Object.entries(this.inputs.uploads)) {
+      this.upload(id, pending);
     }
   };
 
@@ -115,16 +115,14 @@ class UploadOverlay extends ReactInputs<Inputs, UploadOverlayProps, UploadOverla
       return;
     }
 
-    let found: ImageBitmap = preview;
-    let pending = this.uploads.getInputGroup(id);
-    pending.setInputValue("thumbnail", found);
+    this.inputs.uploads[id].thumbnail = preview;
   }
 
   private async loadThumbnail(id: string, blob: Blob): Promise<void> {
     let thumbnail = await createImageBitmap(blob);
-    let pending = this.uploads.getInputGroup(id);
-    if (!pending.getInputValue("thumbnail")) {
-      pending.setInputValue("thumbnail", thumbnail);
+    let pending = this.inputs.uploads[id];
+    if (!pending.thumbnail) {
+      pending.thumbnail = thumbnail;
     }
   }
 
@@ -147,7 +145,7 @@ class UploadOverlay extends ReactInputs<Inputs, UploadOverlayProps, UploadOverla
           ref: React.createRef(),
         };
 
-        this.uploads.set(id, upload);
+        this.inputs.uploads[id] = upload;
 
         if (metadata.thumbnail) {
           this.loadThumbnail(id, new Blob([metadata.thumbnail]));
@@ -211,18 +209,18 @@ class UploadOverlay extends ReactInputs<Inputs, UploadOverlayProps, UploadOverla
       <div className="sidebar-item">
         <Localized id="upload-tree-title"><label className="title"/></Localized>
       </div>
-      <CatalogTreeSelector inputs={this.getInputState("parent")}/>
+      <CatalogTreeSelector property={makeProperty(this.inputs, "parent")}/>
       <div id="upload-metadata" className="sidebar-item">
         <FormFields orientation="column">
-          <FormField id="globalTags" type="text" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} inputs={this.getInputState("globalTags")}/>
+          <FormField id="globalTags" type="text" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} property={makeProperty(this.inputs, "globalTags")}/>
         </FormFields>
       </div>
     </React.Fragment>;
   }
 
-  public renderUI(): React.ReactNode {
+  public render(): React.ReactNode {
     return <Overlay title="upload-title" sidebar={this.renderSidebar()}>
-      <If condition={this.uploads.length > 0}>
+      <If condition={Object.keys(this.inputs.uploads).length > 0}>
         <Then>
           <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
             {Object.entries(this.state.inputs.uploads).map(([id, upload]: [string, PendingUpload]) => {

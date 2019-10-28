@@ -8,7 +8,7 @@ import { createCatalog } from "../api/catalog";
 import { catalogCreated, DispatchProps } from "../store/actions";
 import Overlay from "../components/overlay";
 import { StorageConfig } from "../storage/types";
-import { ReactInputs, InputGroup } from "../utils/InputState";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 interface Inputs {
   name: string;
@@ -31,8 +31,8 @@ const mapDispatchToProps = {
 
 type CatalogProps = PassedProps & DispatchProps<typeof mapDispatchToProps>;
 
-class CatalogOverlay extends ReactInputs<Inputs, CatalogProps, CatalogState> {
-  private storageGroup: InputGroup<StorageConfig>;
+class CatalogOverlay extends React.Component<CatalogProps, CatalogState> {
+  private inputs: Inputs;
 
   public constructor(props: CatalogProps) {
     super(props);
@@ -47,11 +47,11 @@ class CatalogOverlay extends ReactInputs<Inputs, CatalogProps, CatalogState> {
       },
     };
 
-    this.storageGroup = new InputGroup(this.getInputState("storage"));
+    this.inputs = proxyReactState(this, "inputs");
   }
 
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let name = this.state.inputs.name;
+    let name = this.inputs.name;
     if (!name) {
       return;
     }
@@ -59,7 +59,7 @@ class CatalogOverlay extends ReactInputs<Inputs, CatalogProps, CatalogState> {
     this.setState({ disabled: true });
 
     try {
-      let catalog = await createCatalog(name, this.state.inputs.storage);
+      let catalog = await createCatalog(name, this.inputs.storage);
       this.props.catalogCreated(catalog);
     } catch (e) {
       this.setState({ disabled: false, error: e });
@@ -71,8 +71,8 @@ class CatalogOverlay extends ReactInputs<Inputs, CatalogProps, CatalogState> {
 
     return <Overlay title={title} error={this.state.error}>
       <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="catalog-create-submit">
-        <FormField id="name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} inputs={this.getInputState(name)}/>
-        {renderStorageConfigUI(this.storageGroup, this.state.disabled)}
+        <FormField id="name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} property={makeProperty(this.inputs, name)}/>
+        {renderStorageConfigUI(this.inputs.storage, this.state.disabled)}
       </Form>
     </Overlay>;
   }

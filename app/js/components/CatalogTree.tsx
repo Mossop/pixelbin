@@ -11,7 +11,7 @@ import { modifyAlbums } from "../api/media";
 import { DispatchProps, bumpState, albumEdited } from "../store/actions";
 import { editAlbum } from "../api/album";
 import { albumChildren, isAncestor, getAlbum } from "../store/store";
-import { InputState } from "../utils/InputState";
+import { Property } from "../utils/StateProxy";
 
 interface StateProps {
   catalogs: Mapped<Catalog>;
@@ -65,20 +65,20 @@ abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
 }
 
 interface SelectorProps {
-  inputs: InputState<Album | undefined>;
+  property: Property<Album | undefined>;
 }
 
 class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProps> {
   protected onAlbumClick(album: Album): void {
-    this.props.inputs.setInputValue(album);
+    this.props.property.set(album);
   }
 
   protected onCatalogClick(catalog: Catalog): void {
-    this.props.inputs.setInputValue(catalog.root);
+    this.props.property.set(catalog.root);
   }
 
   protected renderItem(item: Album, onClick: () => void): React.ReactNode {
-    if (this.props.inputs.getInputValue() === item) {
+    if (this.props.property.get() === item) {
       return <p className="item selected"><Icon iconName="folder-open"/>{item.name}</p>;
     } else {
       return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
