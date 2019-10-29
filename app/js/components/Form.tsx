@@ -6,6 +6,7 @@ import Textbox, { TextboxProps } from "../components/Textbox";
 import Selectbox, { SelectboxProps } from "../components/SelectBox";
 import FormSubmit, { FormSubmitProps } from "../components/FormSubmit";
 import { StyleProps, styleProps } from "../components/shared";
+import Textarea, { TextareaProps } from "./Textarea";
 
 interface LabelProps {
   id: string;
@@ -18,7 +19,11 @@ export type SelectboxField = {
   type: "select";
 } & SelectboxProps & LabelProps;
 
-export type Field = TextboxField | SelectboxField;
+export type TextareaField = {
+  type: "textarea";
+} & TextareaProps & LabelProps;
+
+export type Field = TextboxField | SelectboxField | TextareaField;
 
 export class FormField extends React.Component<Field> {
   public render(): React.ReactNode {
@@ -42,6 +47,14 @@ export class FormField extends React.Component<Field> {
             <Selectbox {...field}>
               {this.props.children}
             </Selectbox>
+          </div>
+        </React.Fragment>;
+      }
+      case "textarea": {
+        return <React.Fragment>
+          <FieldLabel l10n={field.labelL10n} for={field.id}/>
+          <div className="fieldBox">
+            <Textarea {...field}/>
           </div>
         </React.Fragment>;
       }

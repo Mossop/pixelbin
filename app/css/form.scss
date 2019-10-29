@@ -12,13 +12,9 @@
   position: relative;
 
   .field-icon {
-    @include flex-row;
-
     position: absolute;
-    top: 0;
-    bottom: var(--padding);
+    top: calc(var(--border-radius) + 0.28em);
     left: calc(var(--padding) / 2);
-    align-items: center;
   }
 
   .selectfield {
@@ -31,7 +27,8 @@
   }
 
   .textfield,
-  .selectfield {
+  .selectfield,
+  .textareafield {
     border: 2px solid var(--border);
     border-radius: calc(var(--border-radius) / 2);
     padding: var(--border-radius);

@@ -118,6 +118,18 @@
     padding-top: 5px;
   }
 
+  #upload-overlay-globalTags {
+    height: 41px;
+    resize: none;
+    transition-property: height;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out;
+  }
+
+  #upload-overlay-globalTags:focus {
+    height: 120px;
+  }
+
   #overlay-content {
     @include flex-column;
   }

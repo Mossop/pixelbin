@@ -212,7 +212,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       <CatalogTreeSelector property={makeProperty(this.inputs, "parent")}/>
       <div id="upload-metadata" className="sidebar-item">
         <FormFields orientation="column">
-          <FormField id="globalTags" type="text" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} property={makeProperty(this.inputs, "globalTags")}/>
+          <FormField id="upload-overlay-globalTags" type="textarea" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} property={makeProperty(this.inputs, "globalTags")}/>
         </FormFields>
       </div>
     </React.Fragment>;
