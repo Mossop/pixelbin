@@ -1,5 +1,6 @@
 import React from "react";
 import { connect } from "react-redux";
+import { Localized } from "@fluent/react";
 
 import Form, { FormField } from "../components/Form";
 import { Album, User, APIError } from "../api/types";
@@ -7,9 +8,9 @@ import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
 import Overlay from "../components/overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
-import { Localized } from "@fluent/react";
 import { Patch } from "../api/api";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
+import { focus } from "../utils/helpers";
 
 interface Inputs {
   name: string;
@@ -56,6 +57,10 @@ class AlbumOverlay extends React.Component<AlbumProps, AlbumState> {
     this.inputs = proxyReactState(this, "inputs");
   }
 
+  public componentDidMount(): void {
+    focus("album-overlay-name");
+  }
+
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
     let name = this.inputs.name;
     if (!name) {
@@ -99,7 +104,7 @@ class AlbumOverlay extends React.Component<AlbumProps, AlbumState> {
 
     return <Overlay title={title} error={this.state.error} sidebar={this.renderSidebar()}>
       <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit={this.props.album ? "album-edit-submit" : "album-create-submit"}>
-        <FormField id="name" type="text" labelL10n="album-name" iconName="folder" required={true} property={makeProperty(this.inputs, "name")}/>
+        <FormField id="album-overlay-name" type="text" labelL10n="album-name" iconName="folder" required={true} property={makeProperty(this.inputs, "name")}/>
       </Form>
     </Overlay>;
   }

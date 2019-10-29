@@ -9,6 +9,7 @@ import { catalogCreated, DispatchProps } from "../store/actions";
 import Overlay from "../components/overlay";
 import { StorageConfig } from "../storage/types";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
+import { focus } from "../utils/helpers";
 
 type Inputs = Proxyable<{
   name: string;
@@ -50,6 +51,10 @@ class CatalogOverlay extends React.Component<CatalogProps, CatalogState> {
     this.inputs = proxyReactState(this, "inputs");
   }
 
+  public componentDidMount(): void {
+    focus("catalog-overlay-name");
+  }
+
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
     let name = this.inputs.name;
     if (!name) {
@@ -71,7 +76,7 @@ class CatalogOverlay extends React.Component<CatalogProps, CatalogState> {
 
     return <Overlay title={title} error={this.state.error}>
       <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="catalog-create-submit">
-        <FormField id="name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} property={makeProperty(this.inputs, name)}/>
+        <FormField id="catalog-overlay-name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} property={makeProperty(this.inputs, name)}/>
         {renderStorageConfigUI(this.inputs.storage, this.state.disabled)}
       </Form>
     </Overlay>;

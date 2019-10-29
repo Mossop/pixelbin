@@ -4,7 +4,7 @@ import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 import { StoreState } from "../store/types";
-import { Catalog } from "../api/types";
+import { Catalog, Media } from "../api/types";
 import { SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
 import { DispatchProps, showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
@@ -78,6 +78,16 @@ class CatalogPage extends BasePage<CatalogPageProps> {
     };
   }
 
+  private onDragStart: (event: React.DragEvent, media: Media) => void = (event: React.DragEvent, media: Media): void => {
+    event.dataTransfer.setData("pixelbin/media", media.id);
+    if (this.props.catalog) {
+      event.dataTransfer.setData("pixelbin/album-media", JSON.stringify({ media: media.id, album: this.props.catalog.root.id }));
+      event.dataTransfer.effectAllowed = "copyMove";
+    } else {
+      event.dataTransfer.effectAllowed = "copy";
+    }
+  };
+
   protected renderContent(): React.ReactNode {
     if (this.props.user && this.props.catalog) {
       let search: Search = {
@@ -89,7 +99,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
           value: this.props.catalog.root.name,
         },
       };
-      return <MediaList search={search}/>;
+      return <MediaList onDragStart={this.onDragStart} search={search}/>;
     } else {
       return <NotFound/>;
     }

@@ -7,6 +7,7 @@ import Overlay from "../components/overlay";
 import { DispatchProps, completeSignup } from "../store/actions";
 import { APIError } from "../api/types";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
+import { focus } from "../utils/helpers";
 
 interface Inputs {
   email: string;
@@ -43,6 +44,10 @@ class SignupOverlay extends React.Component<SignupProps, SignupState> {
     this.inputs = proxyReactState(this, "inputs");
   }
 
+  public componentDidMount(): void {
+    focus("signup-overlay-email");
+  }
+
   private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
     let email = this.inputs.email;
     let name = this.inputs.name;
@@ -69,9 +74,9 @@ class SignupOverlay extends React.Component<SignupProps, SignupState> {
   public render(): React.ReactNode {
     return <Overlay title="signup-title" error={this.state.error}>
       <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="signup-submit">
-        <FormField id="email" type="email" labelL10n="signup-email" iconName="at" required={true} property={makeProperty(this.inputs, "email")}/>
-        <FormField id="name" type="text" labelL10n="signup-name" iconName="user" property={makeProperty(this.inputs, "name")}/>
-        <FormField id="password" type="password" labelL10n="signup-password" iconName="key" property={makeProperty(this.inputs, "password")}/>
+        <FormField id="signup-overlay-email" type="email" labelL10n="signup-email" iconName="at" required={true} property={makeProperty(this.inputs, "email")}/>
+        <FormField id="signup-overlay-name" type="text" labelL10n="signup-name" iconName="user" property={makeProperty(this.inputs, "name")}/>
+        <FormField id="signup-overlay-password" type="password" labelL10n="signup-password" iconName="key" property={makeProperty(this.inputs, "password")}/>
       </Form>
     </Overlay>;
   }

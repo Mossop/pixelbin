@@ -13,7 +13,7 @@ export function renderStorageConfigUI(config: StorageConfig, disabled: boolean):
   }
 
   return <React.Fragment>
-    <FormField id="storage" type="select" labelL10n="catalog-create-storage" iconName="server" disabled={disabled} property={makeProperty(config, "type")}>
+    <FormField id="storage-config-type" type="select" labelL10n="catalog-create-storage" iconName="server" disabled={disabled} property={makeProperty(config, "type")}>
       <Option l10n="storage-server-name" value="server"/>
       <Option l10n="storage-backblaze-name" value="backblaze"/>
     </FormField>
