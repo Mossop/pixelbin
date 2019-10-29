@@ -14,16 +14,16 @@ import Overlay from "../components/overlay";
 import { FormFields, FormField } from "../components/Form";
 import { Metadata } from "media-metadata/lib/metadata";
 import { parseMetadata, loadPreview } from "../utils/metadata";
-import { proxyReactState, makeProperty } from "../utils/StateProxy";
+import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 
-export interface PendingUpload {
+export type PendingUpload = Proxyable<{
   file: File;
   uploading: boolean;
   failed: boolean;
   thumbnail?: ImageBitmap;
   metadata: UploadMetadata;
   ref: React.RefObject<Upload>;
-}
+}>;
 
 const MEDIA_TYPES = [
   "image/jpeg",
@@ -48,11 +48,11 @@ type UploadOverlayProps = {
   parent: Album;
 } & DispatchProps<typeof mapDispatchToProps>;
 
-interface Inputs {
+type Inputs = Proxyable<{
   parent: Album;
   globalTags: string;
   uploads: Record<string, PendingUpload>;
-}
+}>;
 
 interface UploadOverlayState {
   inputs: Inputs;
@@ -71,7 +71,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       inputs: {
         parent: this.props.parent,
         globalTags: "",
-        uploads: {},
+        uploads: proxy({}),
       },
     };
 
@@ -88,7 +88,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     // TODO add global metadata.
 
     try {
-      await upload(pending.metadata, pending.file, [this.state.inputs.parent]);
+      await upload(pending.metadata, pending.file, [this.inputs.parent]);
       delete this.inputs.uploads[id];
 
       this.props.bumpState();
@@ -137,15 +137,16 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
           people: metadata.people,
         };
 
-        let upload: PendingUpload = {
+        let upload: PendingUpload = proxy({
           file,
           uploading: false,
           failed: false,
           metadata: uploadMeta,
           ref: React.createRef(),
-        };
+        });
 
         this.inputs.uploads[id] = upload;
+        console.log(Object.keys(this.inputs.uploads));
 
         if (metadata.thumbnail) {
           this.loadThumbnail(id, new Blob([metadata.thumbnail]));
@@ -175,7 +176,6 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
 
   private onDragEnter: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
     let media = Array.from(event.dataTransfer.items).filter(itemIsMedia);
-    console.log("Here", media.length, event.dataTransfer.dropEffect);
     if (media.length == 0) {
       return;
     }
@@ -223,7 +223,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       <If condition={Object.keys(this.inputs.uploads).length > 0}>
         <Then>
           <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-            {Object.entries(this.state.inputs.uploads).map(([id, upload]: [string, PendingUpload]) => {
+            {Object.entries(this.inputs.uploads).map(([id, upload]: [string, PendingUpload]) => {
               return <Upload key={id} upload={upload}/>;
             })}
           </div>

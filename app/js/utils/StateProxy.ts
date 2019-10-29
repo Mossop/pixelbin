@@ -15,11 +15,53 @@ export function makeProperty<T extends object, K extends keyof T>(obj: T, prop: 
   };
 }
 
+export const ProxyMarker = Symbol();
+
+export type Proxyable<T> = {
+  -readonly [K in keyof T]: T[K] extends object ? T[K] & Proxyable<T[K]> : T[K];
+} & { [ProxyMarker]?: boolean };
+
+export function proxy<T extends object>(obj: T): T {
+  obj[ProxyMarker] = true;
+  return obj;
+}
+
 class SubHandler<T extends object> implements ProxyHandler<T> {
   private outer: Property<T>;
 
   public constructor(outer: Property<T>) {
     this.outer = outer;
+  }
+
+  public getOwnPropertyDescriptor<K extends keyof T>(target: T, prop: K): PropertyDescriptor | undefined {
+    let descriptor = Object.getOwnPropertyDescriptor(this.outer.get(), prop);
+    if (!descriptor) {
+      return undefined;
+    }
+
+    if ("value" in descriptor) {
+      descriptor.value = this.get(target, prop);
+    }
+
+    if (descriptor.get) {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      descriptor.get = (): T[K] => {
+        return this.get(target, prop);
+      };
+    }
+
+    if (descriptor.set) {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      descriptor.set = (val: T[K]): void => {
+        this.set(target, prop, val);
+      };
+    }
+
+    return descriptor;
+  }
+
+  public ownKeys(): string[] {
+    return Object.keys(this.outer.get());
   }
 
   public has(_: T, prop: string): boolean {
@@ -30,7 +72,7 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
     let obj = this.outer.get();
     let inner = obj[prop];
 
-    if (typeof inner === "object") {
+    if (typeof inner === "object" && ProxyMarker in inner) {
       let getter: () => Readonly<T[K]> = () => this.outer.get()[prop];
       let setter: (val: T[K]) => void = (val: T[K]) => this.set(target, prop, val);
 

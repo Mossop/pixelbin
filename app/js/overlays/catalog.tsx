@@ -8,12 +8,12 @@ import { createCatalog } from "../api/catalog";
 import { catalogCreated, DispatchProps } from "../store/actions";
 import Overlay from "../components/overlay";
 import { StorageConfig } from "../storage/types";
-import { proxyReactState, makeProperty } from "../utils/StateProxy";
+import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 
-interface Inputs {
+type Inputs = Proxyable<{
   name: string;
   storage: StorageConfig;
-}
+}>;
 
 interface CatalogState {
   disabled: boolean;
@@ -41,9 +41,9 @@ class CatalogOverlay extends React.Component<CatalogProps, CatalogState> {
       disabled: false,
       inputs: {
         name: "",
-        storage: {
+        storage: proxy({
           type: "server",
-        },
+        }),
       },
     };
 
