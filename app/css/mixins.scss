@@ -50,3 +50,16 @@
   align-items: stretch;
   justify-content: start;
 }
+
+@mixin position($top, $right, $bottom, $left) {
+  top: $top;
+  right: $right;
+  bottom: $bottom;
+  left: $left;
+}
+
+@mixin overlay {
+  @include position(0, 0, 0, 0);
+
+  position: absolute;
+}

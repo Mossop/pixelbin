@@ -50,7 +50,12 @@ sidebar-add-catalog = Add a new catalog...
 
 upload-title = Upload photos and videos
 upload-tree-title = Upload into:
-upload-global-tags = Additional Tags for all media:
+upload-global-tags = Tags for all media:
+upload-global-people = People in all media:
+upload-media-tags = Tags:
+upload-media-people = People:
+upload-preview-close =
+  .title = Close
 upload-submit = Upload...
 upload-drag-media = Drag files here...
 upload-add-files = Add files...

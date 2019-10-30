@@ -76,7 +76,7 @@ class CatalogOverlay extends React.Component<CatalogProps, CatalogState> {
 
     return <Overlay title={title} error={this.state.error}>
       <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="catalog-create-submit">
-        <FormField id="catalog-overlay-name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} property={makeProperty(this.inputs, name)}/>
+        <FormField id="catalog-overlay-name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} property={makeProperty(this.inputs, "name")}/>
         {renderStorageConfigUI(this.inputs.storage, this.state.disabled)}
       </Form>
     </Overlay>;

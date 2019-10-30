@@ -4,10 +4,9 @@ import { styleProps, StyleProps } from "../components/shared";
 
 type ImageCanvasProps = {
   bitmap?: ImageBitmap;
-  size: number;
 } & StyleProps;
 
-class ImageCanvas extends React.Component<ImageCanvasProps> {
+export default class ImageCanvas extends React.Component<ImageCanvasProps> {
   private canvasRef: React.RefObject<HTMLCanvasElement>;
 
   public constructor(props: ImageCanvasProps) {
@@ -40,7 +39,7 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
   }
 
   public componentDidUpdate(prevProps: ImageCanvasProps): void {
-    if (this.props.bitmap === prevProps.bitmap && this.props.size === prevProps.size) {
+    if (this.props.bitmap === prevProps.bitmap) {
       return;
     }
 
@@ -48,20 +47,18 @@ class ImageCanvas extends React.Component<ImageCanvasProps> {
   }
 
   public render(): React.ReactNode {
-    let { size } = this.props;
     let props = styleProps(this.props, {
       className: "image-canvas",
-      style: {
-        height: size,
-        width: size,
-        objectFit: "contain",
-      }
     });
 
-    return (
-      <canvas ref={this.canvasRef} {...props}/>
-    );
+    let innerStyle: React.CSSProperties = {
+      objectFit: "contain",
+      width: "100%",
+      height: "100%",
+    };
+
+    return <div {...props}>
+      <canvas ref={this.canvasRef} style={innerStyle}/>
+    </div>;
   }
 }
-
-export default ImageCanvas;

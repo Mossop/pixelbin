@@ -93,7 +93,7 @@ class AlbumOverlay extends React.Component<AlbumProps, AlbumState> {
 
     return <React.Fragment>
       <div className="sidebar-item">
-        <Localized id={title}><label/></Localized>
+        <Localized id={title}><label className="title"/></Localized>
       </div>
       <CatalogTreeSelector property={makeProperty(this.inputs, "parent")}/>
     </React.Fragment>;

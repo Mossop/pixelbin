@@ -3,6 +3,7 @@ import { Media } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect } from "react-redux";
 import ImageCanvas from "./ImageCanvas";
+import MediaContainer from "./MediaContainer";
 
 interface MediaProps {
   media: Media;
@@ -25,13 +26,16 @@ type AllProps = StateProps & MediaProps;
 
 class MediaThumbnail extends React.Component<AllProps> {
   public render(): React.ReactNode {
+    let size = `${this.props.size}px`;
     if (this.props.thumbnail) {
       return <div className="media" draggable={this.props.draggable} onDragStart={this.props.onDragStart}>
-        <ImageCanvas bitmap={this.props.thumbnail} size={this.props.size} className="thumbnail"/>
+        <MediaContainer width={this.props.thumbnail.width} height={this.props.thumbnail.height} orientation={this.props.media.orientation} style={{ width: size, height: size }}>
+          <ImageCanvas bitmap={this.props.thumbnail} className="thumbnail"/>
+        </MediaContainer>
       </div>;
     } else {
       return <div className="media" draggable={this.props.draggable} onDragStart={this.props.onDragStart}>
-        <div className="processing thumbnail" style={{ width: `${this.props.size}px`, height: `${this.props.size}px` }}/>
+        <div className="processing thumbnail" style={{ width: size, height: size }}/>
       </div>;
     }
   }

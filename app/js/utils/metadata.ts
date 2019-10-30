@@ -1,5 +1,5 @@
 import { parseBuffer } from "media-metadata";
-import { Metadata } from "media-metadata/lib/metadata";
+import { Metadata, Orientation } from "media-metadata/lib/metadata";
 
 export interface MediaForUpload {
   id: string;
@@ -56,4 +56,60 @@ export async function loadPreview(blob: Blob, type: string): Promise<ImageBitmap
       console.error(new Error("Unknown file type"));
   }
   return null;
+}
+
+export function tagsToString(tags: string[][]): string {
+  return tags.filter((t: string[]) => t.length)
+    .map((t: string[]) => t.join("/"))
+    .join(", ");
+}
+
+export function tagsFromString(tags: string): string[][] {
+  return tags.split(/[,\n]/)
+    .map((t: string) => t.trim())
+    .filter((t: string) => t.length)
+    .map((t: string) => t.split("/"));
+}
+
+export function peopleToString(people: string[]): string {
+  return people.filter((p: string) => p.length).join("\n");
+}
+
+export function peopleFromString(people: string): string[] {
+  return people.split(/[,\n]/)
+    .map((p: string) => p.trim())
+    .filter((p: string) => p.length);
+}
+
+export function areDimensionsFlipped(orientation: Orientation): boolean {
+  switch (orientation) {
+    case Orientation.RightTop:
+    case Orientation.RightBottom:
+    case Orientation.LeftBottom:
+    case Orientation.LeftTop:
+      return true;
+    default:
+      return false;
+  }
+}
+
+export function getTransformForOrientation(orientation: Orientation = Orientation.TopLeft): string | undefined {
+  switch (orientation) {
+    case Orientation.TopLeft:
+      return undefined;
+    case Orientation.RightTop:
+      return "rotate(90)";
+    case Orientation.BottomRight:
+      return "rotate(180)";
+    case Orientation.LeftBottom:
+      return "rotate(-90)";
+    case Orientation.TopRight:
+      return "scale(-1, 1)";
+    case Orientation.BottomLeft:
+      return "scale(1, -1)";
+    case Orientation.LeftTop:
+      return "scale(1, -1) rotate(-90)";
+    case Orientation.RightBottom:
+      return "scale(1, -1) rotate(90)";
+  }
 }
