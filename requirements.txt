@@ -6,3 +6,4 @@ requests==2.22.0
 Celery==4.3.0
 redis==3.3.8
 djangorestframework==3.10.3
+django-mysql==3.2.0

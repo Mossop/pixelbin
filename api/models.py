@@ -1,13 +1,14 @@
 import subprocess
 import json
 
-from django.db import models, transaction
+from django.db import models
 from django.db.models.expressions import Q
 from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from rest_framework import status
 from PIL import Image
+from django_mysql.locks import TableLock
 
 from .storage import Server, Backblaze
 from .storage.base import MediaStorage
@@ -194,32 +195,32 @@ class Tag(models.Model):
         return [self.name]
 
     @staticmethod
-    @transaction.atomic
     def get_from_path(catalog, path):
         if len(path) == 0:
             raise ApiException('invalid-tag', status=status.HTTP_400_BAD_REQUEST)
 
-        if len(path) == 1:
-            try:
-                tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=path[0].lower(),
-                                                   defaults={'name': path[0], 'parent': None})
-                return tag
-            except Tag.MultipleObjectsReturned:
+        with TableLock(write=[Tag]):
+            if len(path) == 1:
                 try:
-                    return Tag.objects.get(catalog=catalog, lc_name=path[0].lower(),
-                                           parent=None)
-                except Tag.DoesNotExist:
-                    return Tag.objects.filter(catalog=catalog, lc_name=path[0].lower()).first()
+                    tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=path[0].lower(),
+                                                       defaults={'name': path[0], 'parent': None})
+                    return tag
+                except Tag.MultipleObjectsReturned:
+                    try:
+                        return Tag.objects.get(catalog=catalog, lc_name=path[0].lower(),
+                                               parent=None)
+                    except Tag.DoesNotExist:
+                        return Tag.objects.filter(catalog=catalog, lc_name=path[0].lower()).first()
 
-        name = path.pop(0)
-        tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
-                                           parent=None, defaults={'name': name})
-        while len(path) > 0:
             name = path.pop(0)
             tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
-                                               parent=tag, defaults={'name': name})
+                                               parent=None, defaults={'name': name})
+            while len(path) > 0:
+                name = path.pop(0)
+                tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
+                                                   parent=tag, defaults={'name': name})
 
-        return tag
+            return tag
 
     def descendants(self):
         def make_tags_cte(cte):
@@ -254,9 +255,8 @@ class Person(models.Model):
     @staticmethod
     def get_from_name(catalog, name):
         lower = name.lower()
-        (person,) = Person.objects.get_or_create(catalog=catalog, lc_name=lower, defaults={
-            "full_name": name,
-        })
+        person, _ = Person.objects.get_or_create(catalog=catalog, lc_name=lower,
+                                                 defaults={"full_name": name})
         return person
 
     def save(self, *args, **kwargs):

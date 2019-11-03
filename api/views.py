@@ -204,8 +204,8 @@ def upload(request):
         if album.catalog != catalog:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+    tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
     with transaction.atomic():
-        tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
         people = [models.Person.get_from_name(catalog, n) for n in data['people']]
 
         media = models.Media(id=uuid("M"), catalog=catalog, mimetype=guessed.mime,
