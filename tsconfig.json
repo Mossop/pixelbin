@@ -21,6 +21,7 @@
   "include": [
     "@types",
     "gulpfile.ts",
+    "stylelint.config.js",
     "app/js",
     "app/static/scripts",
     "base",
