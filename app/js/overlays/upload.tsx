@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
-import { Metadata, Orientation, rotateClockwise90, rotateCounterClockwise90, mirrorHorizontal, mirrorVertical } from "media-metadata/lib/metadata";
+import { Orientation, rotateClockwise90, rotateCounterClockwise90, mirrorHorizontal, mirrorVertical } from "media-metadata/lib/metadata";
 
 import { DispatchProps, bumpState, closeOverlay } from "../store/actions";
 import { Button } from "../components/Button";
@@ -140,27 +140,33 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     this.inputs.uploads[id].height = thumbnail.height;
   }
 
-  private addFile(file: File): void {
+  private async addFile(file: File): Promise<void> {
     let id = uuid();
 
-    parseMetadata(file).then((metadata: Metadata | null) => {
-      if (metadata) {
-        let upload: PendingUpload = proxy({
-          file,
-          uploading: false,
-          failed: false,
-          mimetype: metadata.mimetype,
-          width: metadata.width || -1,
-          height: metadata.height || -1,
-          orientation: metadata.orientation,
-          tags: tagsToString(metadata.tags),
-          people: peopleToString(metadata.people),
-        });
+    let metadata = await parseMetadata(file);
+    if (metadata) {
+      let upload: PendingUpload = proxy({
+        file,
+        uploading: false,
+        failed: false,
+        mimetype: metadata.mimetype,
+        width: metadata.width || 0,
+        height: metadata.height || 0,
+        orientation: metadata.orientation,
+        tags: tagsToString(metadata.tags),
+        people: peopleToString(metadata.people),
+      });
 
-        this.inputs.uploads[id] = upload;
+      if (metadata.thumbnail) {
+        upload.thumbnail = await createImageBitmap(new Blob([metadata.thumbnail]));
+      }
+
+      this.inputs.uploads[id] = upload;
+
+      if (!upload.thumbnail || !upload.width || !upload.height) {
         this.loadFrame(id, file);
       }
-    });
+    }
   }
 
   private openFilePicker: (() => void) = (): void => {
