@@ -72,14 +72,14 @@ export const AlbumDecoder = JsonDecoder.object<Album>(
 );
 
 export interface Tag {
-  readonly id: string;
+  readonly id: number;
   readonly name: string;
   readonly parent: string | undefined;
 }
 
 export const TagDecoder = JsonDecoder.object<Tag>(
   {
-    id: JsonDecoder.string,
+    id: JsonDecoder.number,
     name: JsonDecoder.string,
     parent: OptionalDecoder(JsonDecoder.string, "parent?"),
   },

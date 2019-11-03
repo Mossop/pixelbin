@@ -50,10 +50,10 @@ class MediaSerializer(serializers.ModelSerializer):
 
     # pylint: disable=no-self-use
     def get_tags(self, media):
-        return [t.path() for t in media.tags.all()]
+        return [t.path for t in media.tags.all()]
 
     def get_people(self, media):
-        return [t.path() for t in media.people.all()]
+        return [p.full_name for p in media.people.all()]
 
     class Meta:
         model = Media
