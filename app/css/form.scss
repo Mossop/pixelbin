@@ -13,7 +13,7 @@
 
   .field-icon {
     position: absolute;
-    top: calc(var(--border-radius) + 0.28em);
+    top: calc(var(--border-radius) + 0.15em);
     left: calc(var(--padding) / 2);
   }
 
@@ -95,8 +95,9 @@
   }
 
   .fieldBox {
-    @include flex-column;
+    @include flex-row;
 
+    align-items: start;
     padding-bottom: var(--padding);
   }
 }
