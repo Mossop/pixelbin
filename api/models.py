@@ -1,15 +1,17 @@
 import subprocess
 import json
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models.expressions import Q
 from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
+from rest_framework import status
 from PIL import Image
 
 from .storage import Server, Backblaze
 from .storage.base import MediaStorage
+from .utils import ApiException
 
 from .utils import uuid
 
@@ -192,23 +194,31 @@ class Tag(models.Model):
         return [self.name]
 
     @staticmethod
+    @transaction.atomic
     def get_from_path(catalog, path):
-        to_build = []
-        parent = None
-        while len(path) > 0:
-            name = path.pop()
+        if len(path) == 0:
+            raise ApiException('invalid-tag', status=status.HTTP_400_BAD_REQUEST)
+
+        if len(path) == 1:
             try:
-                parent = Tag.objects.get(catalog=catalog, lc_name=name.lower())
-                break
+                return Tag.objects.get(catalog=catalog, lc_name=path[0].lower(), parent=None)
             except Tag.DoesNotExist:
-                to_build.insert(0, name)
-                continue
+                try:
+                    return Tag.objects.filter(catalog=catalog, lc_name=path[0].lower())[0]
+                except IndexError:
+                    tag = Tag(catalog=catalog, name=path[0], lc_name=path[0].lower(), parent=None)
+                    tag.save()
+                    return tag
 
-        while len(to_build) > 0:
-            name = to_build.pop()
-            parent = Tag.objects.create(parent=parent, catalog=catalog, name=name)
+        name = path.pop(0)
+        tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
+                                           parent=None, defaults={'name': name})
+        while len(path) > 0:
+            name = path.pop(0)
+            tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
+                                               parent=tag, defaults={'name': name})
 
-        return parent
+        return tag
 
     def descendants(self):
         def make_tags_cte(cte):
