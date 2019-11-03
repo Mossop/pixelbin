@@ -34,7 +34,7 @@ services:
     networks:
       - pixelbin_net
     ports:
-      - "8000:8000/tcp"
+      - "8080:8080/tcp"
     volumes:
       - "$PWD/api:/usr/src/pixelbin/api:ro"
       - "$PWD/app:/usr/src/pixelbin/app:ro"
