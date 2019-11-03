@@ -75,7 +75,7 @@ class MediaStorage:
         return self.storage.get_public_stream(self.media, name)
 
     def store_storage_from_temp(self, name):
-        self.storage.store_public_from_temp(self.media, name)
+        self.storage.store_storage_from_temp(self.media, name)
 
     def delete_storage(self, name):
         self.storage.delete_public(self.media, name)

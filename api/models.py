@@ -340,8 +340,30 @@ class Media(models.Model):
         json.dump(metadata[0], output, indent=2)
         output.close()
 
+        self.storage.store_storage_from_temp(self.storage_filename)
+
         if self.is_image:
             image = Image.open(source)
+            self.width = image.width
+            self.height = image.height
+            for size in THUMB_SIZES:
+                resized = resize(image, size)
+                target = self.storage.get_local_path('sized%d.jpg' % (size))
+                resized.save(target, None, quality=95, optimize=True)
+        elif self.is_video:
+            tmp = self.storage.get_temp_path('tmp.jpg')
+            args = [
+                'ffmpeg',
+                '-noautorotate',
+                '-y',
+                '-i', source,
+                '-frames:v', '1',
+                '-q:v', '3',
+                '-f', 'singlejpeg',
+                tmp,
+            ]
+            result = subprocess.run(args, timeout=10, check=True)
+            image = Image.open(tmp)
             self.width = image.width
             self.height = image.height
             for size in THUMB_SIZES:

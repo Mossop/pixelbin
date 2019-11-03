@@ -22,7 +22,7 @@ export type PendingUpload = Proxyable<{
   file: File;
   uploading: boolean;
   failed: boolean;
-  thumbnail?: ImageBitmap;
+  preview?: ImageBitmap;
   tags: string;
   people: string;
   orientation: Orientation;
@@ -125,14 +125,14 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       return;
     }
 
-    this.inputs.uploads[id].thumbnail = preview;
+    this.inputs.uploads[id].preview = preview;
   }
 
   private async loadThumbnail(id: string, blob: Blob): Promise<void> {
     let thumbnail = await createImageBitmap(blob);
     let pending = this.inputs.uploads[id];
-    if (!pending.thumbnail) {
-      pending.thumbnail = thumbnail;
+    if (!pending.preview) {
+      pending.preview = thumbnail;
     }
   }
 
@@ -151,7 +151,6 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         });
 
         this.inputs.uploads[id] = upload;
-        console.log(Object.keys(this.inputs.uploads));
 
         if (metadata.thumbnail) {
           this.loadThumbnail(id, new Blob([metadata.thumbnail]));
@@ -258,9 +257,9 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
 
     let thumb: React.ReactNode;
-    if (pending.thumbnail) {
-      thumb = <MediaContainer width={pending.thumbnail.width} height={pending.thumbnail.height} orientation={pending.orientation} style={{height: "100%", width: "100%" }}>
-        <ImageCanvas id="upload-preview" bitmap={pending.thumbnail} style={{height: "100%", width: "100%" }}/>
+    if (pending.preview) {
+      thumb = <MediaContainer width={pending.preview.width} height={pending.preview.height} orientation={pending.orientation} style={{height: "100%", width: "100%" }}>
+        <ImageCanvas id="upload-preview" bitmap={pending.preview} style={{height: "100%", width: "100%" }}/>
       </MediaContainer>;
     } else {
       thumb = <div className="processing" style={{ width: "100%", height: "100%" }}/>;
