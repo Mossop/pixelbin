@@ -164,7 +164,8 @@ class Album(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=Q(lc_name=Lower('name')), name='ensure_lc_name_correct'),
+            models.CheckConstraint(check=Q(lc_name=Lower('name')),
+                                   name='ensure_album_lc_name_correct'),
             models.UniqueConstraint(fields=['catalog'], condition=Q(parent__isnull=True),
                                     name='single_root_album'),
             models.UniqueConstraint(fields=['catalog', 'parent', 'lc_name'],
@@ -228,8 +229,10 @@ class Tag(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=Q(lc_name=Lower('name')), name='ensure_lc_name_correct'),
-            models.UniqueConstraint(fields=['catalog', 'lc_name'], name='unique_tag_name'),
+            models.CheckConstraint(check=Q(lc_name=Lower('name')),
+                                   name='ensure_tag_lc_name_correct'),
+            models.UniqueConstraint(fields=['catalog', 'parent', 'lc_name'],
+                                    name='unique_tag_name'),
         ]
 
 class Person(models.Model):
@@ -252,7 +255,7 @@ class Person(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(check=Q(lc_name=Lower('full_name')),
-                                   name='ensure_lc_name_correct'),
+                                   name='ensure_person_lc_name_correct'),
             models.UniqueConstraint(fields=['catalog', 'lc_name'], name='unique_person_name')
         ]
 

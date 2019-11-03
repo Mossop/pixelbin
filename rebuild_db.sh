@@ -1,5 +1,6 @@
 #! /bin/bash
 
+set -e
 EXEC=venv/bin/python3
 
 echo "DROP DATABASE IF EXISTS pixelbin; CREATE DATABASE pixelbin CHARACTER SET utf8;" | docker exec -i pixelbin_db mysql -u root -ppixelbin
