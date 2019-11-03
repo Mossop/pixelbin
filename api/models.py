@@ -201,14 +201,15 @@ class Tag(models.Model):
 
         if len(path) == 1:
             try:
-                return Tag.objects.get(catalog=catalog, lc_name=path[0].lower(), parent=None)
-            except Tag.DoesNotExist:
+                tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=path[0].lower(),
+                                                   defaults={'name': path[0], 'parent': None})
+                return tag
+            except Tag.MultipleObjectsReturned:
                 try:
-                    return Tag.objects.filter(catalog=catalog, lc_name=path[0].lower())[0]
-                except IndexError:
-                    tag = Tag(catalog=catalog, name=path[0], lc_name=path[0].lower(), parent=None)
-                    tag.save()
-                    return tag
+                    return Tag.objects.get(catalog=catalog, lc_name=path[0].lower(),
+                                           parent=None)
+                except Tag.DoesNotExist:
+                    return Tag.objects.filter(catalog=catalog, lc_name=path[0].lower()).first()
 
         name = path.pop(0)
         tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
