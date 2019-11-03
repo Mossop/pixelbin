@@ -13,16 +13,18 @@ import { Album, User, UploadMetadata } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/overlay";
 import { FormFields, FormField } from "../components/Form";
-import { parseMetadata, loadPreview, tagsToString, peopleToString, tagsFromString, peopleFromString } from "../utils/metadata";
+import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString } from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
-import ImageCanvas from "../components/ImageCanvas";
-import MediaContainer from "../components/MediaContainer";
+import Media from "../components/Media";
 
 export type PendingUpload = Proxyable<{
   file: File;
   uploading: boolean;
   failed: boolean;
-  preview?: ImageBitmap;
+  mimetype: string;
+  width: number;
+  height: number;
+  thumbnail?: ImageBitmap;
   tags: string;
   people: string;
   orientation: Orientation;
@@ -62,6 +64,7 @@ interface UploadOverlayState {
   inputs: Inputs;
   disabled: boolean;
   selected?: PendingUpload;
+  preview: string;
 }
 
 class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlayState> {
@@ -79,10 +82,17 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         people: "",
         uploads: proxy({}),
       },
+      preview: "",
     };
 
     this.fileInput = React.createRef();
     this.inputs = proxyReactState(this, "inputs");
+  }
+
+  public componentWillUnmount(): void {
+    if (this.state.preview) {
+      URL.revokeObjectURL(this.state.preview);
+    }
   }
 
   private async upload(id: string, pending: PendingUpload): Promise<void> {
@@ -118,22 +128,16 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
   };
 
-  private async loadPreview(id: string, file: File): Promise<void> {
-    let preview = await loadPreview(file, file.type);
+  private async loadFrame(id: string, file: File): Promise<void> {
+    let thumbnail = await loadFrame(file, file.type);
 
-    if (!preview) {
+    if (!thumbnail) {
       return;
     }
 
-    this.inputs.uploads[id].preview = preview;
-  }
-
-  private async loadThumbnail(id: string, blob: Blob): Promise<void> {
-    let thumbnail = await createImageBitmap(blob);
-    let pending = this.inputs.uploads[id];
-    if (!pending.preview) {
-      pending.preview = thumbnail;
-    }
+    this.inputs.uploads[id].thumbnail = thumbnail;
+    this.inputs.uploads[id].width = thumbnail.width;
+    this.inputs.uploads[id].height = thumbnail.height;
   }
 
   private addFile(file: File): void {
@@ -145,17 +149,16 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
           file,
           uploading: false,
           failed: false,
+          mimetype: metadata.mimetype,
+          width: metadata.width || -1,
+          height: metadata.height || -1,
           orientation: metadata.orientation,
           tags: tagsToString(metadata.tags),
           people: peopleToString(metadata.people),
         });
 
         this.inputs.uploads[id] = upload;
-
-        if (metadata.thumbnail) {
-          this.loadThumbnail(id, new Blob([metadata.thumbnail]));
-        }
-        this.loadPreview(id, file);
+        this.loadFrame(id, file);
       }
     });
   }
@@ -179,7 +182,10 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
   }
 
   private onUploadClick: (pending: PendingUpload) => void = (pending: PendingUpload) => {
-    this.setState({ selected: pending });
+    this.setState({
+      selected: pending,
+      preview: URL.createObjectURL(pending.file),
+    });
   };
 
   private onDragEnter: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
@@ -256,18 +262,17 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       pending.orientation = mirrorVertical(pending.orientation);
     }
 
-    let thumb: React.ReactNode;
-    if (pending.preview) {
-      thumb = <MediaContainer width={pending.preview.width} height={pending.preview.height} orientation={pending.orientation} style={{height: "100%", width: "100%" }}>
-        <ImageCanvas id="upload-preview" bitmap={pending.preview} style={{height: "100%", width: "100%" }}/>
-      </MediaContainer>;
-    } else {
-      thumb = <div className="processing" style={{ width: "100%", height: "100%" }}/>;
-    }
+    const onClose = (): void => {
+      URL.revokeObjectURL(this.state.preview);
+      this.setState({
+        selected: undefined,
+        preview: "",
+      });
+    };
 
     return <div id="selected-upload">
-      {thumb}
-      <Button id="upload-preview-close" iconName="times" tooltipL10n="upload-preview-close" onClick={(): void => this.setState({ selected: undefined })}/>
+      <Media mimetype={pending.mimetype} width={pending.width} height={pending.height} orientation={pending.orientation} style={{height: "100%", width: "100%" }} src={this.state.preview}/>
+      <Button id="upload-preview-close" iconName="times" tooltipL10n="upload-preview-close" onClick={onClose}/>
       <div id="upload-preview-controls">
         <Button id="upload-preview-left" iconName="undo" tooltipL10n="upload-preview-left" onClick={rotateLeft}/>
         <div id="upload-preview-flip-controls">
