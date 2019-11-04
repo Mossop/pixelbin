@@ -54,7 +54,7 @@ export function exec(command: string, args: string[] = []): Promise<string[]> {
 
     process.on("exit", (code: number) => {
       if (code !== 0) {
-        reject(new Error(`Process exited with code ${code}`));
+        reject(new Error(`Process exited with code ${code}\n${output.join("\n")}`));
       } else {
         resolve(output);
       }

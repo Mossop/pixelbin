@@ -21,7 +21,7 @@ export function pylintCheck(args?: string[]): stream.Transform {
   return through2.obj((file: VinylFile, _: string, callback: () => void): void => {
     files.set(file.path, file);
     callback();
-  }, function(callback: () => void): void {
+  }, function(callback: (e?: Error) => void): void {
     python([path("venv/bin/pylint"), ...(args ? args : []), "--exit-zero", "-f", "json", ...files.keys()]).then((stdout: string[]): void => {
       let data = JSON.parse(stdout.join("\n"));
 
@@ -41,6 +41,9 @@ export function pylintCheck(args?: string[]): stream.Transform {
       for (let file of files.values()) {
         this.push(file);
       }
+      callback();
+    }, (e: Error) => {
+      console.error(e);
       callback();
     });
   });
