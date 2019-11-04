@@ -152,7 +152,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         mimetype: metadata.mimetype,
         width: metadata.width || 0,
         height: metadata.height || 0,
-        orientation: metadata.orientation,
+        orientation: metadata.orientation || Orientation.TopLeft,
         tags: tagsToString(metadata.tags),
         people: peopleToString(metadata.people),
       });
