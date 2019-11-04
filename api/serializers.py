@@ -126,7 +126,10 @@ class AlbumSerializer(serializers.ModelSerializer):
         fields = ['id', 'stub', 'name', 'parent']
 
 class CatalogTagsSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(read_only=True)
+    id = serializers.SerializerMethodField()
+
+    def get_id(self, instance):
+        return str(instance.id)
 
     class Meta:
         model = Tag
