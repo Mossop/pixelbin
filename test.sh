@@ -5,4 +5,4 @@ set -e
 ./manage.py makemigrations
 gulp build
 gulp watchBuild &
-docker-compose up --force-recreate --build
+docker-compose up --force-recreate
