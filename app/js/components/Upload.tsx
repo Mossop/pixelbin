@@ -13,7 +13,7 @@ export default class Upload extends React.Component<UploadProps> {
   public renderThumbnail(): React.ReactNode {
     let thumb = this.props.upload.thumbnail;
     if (thumb) {
-      return <MediaContainer width={thumb.width} height={thumb.height} orientation={this.props.upload.orientation} style={{ width: "150px", height: "150px" }}>
+      return <MediaContainer width={thumb.width} height={thumb.height} orientation={this.props.upload.thumbnailOrientation} style={{ width: "150px", height: "150px" }}>
         <ImageCanvas bitmap={this.props.upload.thumbnail} className="thumbnail"/>
       </MediaContainer>;
     } else {

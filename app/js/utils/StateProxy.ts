@@ -104,16 +104,28 @@ export function buildProxy<T>(outer: Property<T>): T {
   return new Proxy({}, new SubHandler(outer));
 }
 
-export function proxyReactState<C extends React.Component, K extends keyof C["state"]>(component: C, prop: K): C["state"][K] {
-  return buildProxy({
-    get(): Readonly<C["state"][K]> {
-      // @ts-ignore
-      return component.state[prop];
-    },
+class ReactState<C extends React.Component, K extends keyof C["state"]> implements Property<C["state"][K]> {
+  private state: C["state"][K];
+  private component: C;
+  private prop: K;
 
-    set(val: C["state"][K]): void {
-      // @ts-ignore
-      component.setState({ [prop]: val });
-    }
-  });
+  public constructor(component: C, prop: K) {
+    this.component = component;
+    this.prop = prop;
+    // @ts-ignore
+    this.state = component.state[prop];
+  }
+
+  public get(): Readonly<C["state"][K]> {
+    return this.state;
+  }
+
+  public set(val: C["state"][K]): void {
+    this.state = val;
+    this.component.setState({ [this.prop]: val });
+  }
+}
+
+export function proxyReactState<C extends React.Component, K extends keyof C["state"]>(component: C, prop: K): C["state"][K] {
+  return buildProxy(new ReactState(component, prop));
 }

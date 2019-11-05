@@ -13,7 +13,7 @@ import { Album, User, UploadMetadata } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/overlay";
 import { FormFields, FormField } from "../components/Form";
-import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString } from "../utils/metadata";
+import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString, areDimensionsFlipped } from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 import Media from "../components/Media";
 
@@ -28,6 +28,7 @@ export type PendingUpload = Proxyable<{
   tags: string;
   people: string;
   orientation: Orientation;
+  thumbnailOrientation: Orientation;
 }>;
 
 const MEDIA_TYPES = [
@@ -128,24 +129,12 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
   };
 
-  private async loadFrame(id: string, file: File): Promise<void> {
-    let thumbnail = await loadFrame(file, file.type);
-
-    if (!thumbnail) {
-      return;
-    }
-
-    this.inputs.uploads[id].thumbnail = thumbnail;
-    this.inputs.uploads[id].width = thumbnail.width;
-    this.inputs.uploads[id].height = thumbnail.height;
-  }
-
   private async addFile(file: File): Promise<void> {
     let id = uuid();
 
     let metadata = await parseMetadata(file);
     if (metadata) {
-      let upload: PendingUpload = proxy({
+      let upload: PendingUpload = proxy<PendingUpload>({
         file,
         uploading: false,
         failed: false,
@@ -153,19 +142,46 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         width: metadata.width || 0,
         height: metadata.height || 0,
         orientation: metadata.orientation || Orientation.TopLeft,
+        thumbnailOrientation: metadata.orientation || Orientation.TopLeft,
         tags: tagsToString(metadata.tags),
         people: peopleToString(metadata.people),
       });
 
-      if (metadata.thumbnail) {
+      if (upload.mimetype === "video/mp4" && upload.orientation && upload.width && upload.height) {
+        // Browsers automatically handle the in-file specified translation so
+        // by default we don't need to do anything.
+        if (upload.orientation !== Orientation.TopLeft) {
+          if (areDimensionsFlipped(upload.orientation)) {
+            [upload.width, upload.height] = [upload.height, upload.width];
+          }
+          upload.orientation = Orientation.TopLeft;
+          upload.thumbnailOrientation = Orientation.TopLeft;
+        }
+      }
+
+      if (!metadata.thumbnail || !upload.width || !upload.height) {
+        let bitmap = await loadFrame(file, metadata.mimetype, upload.width, upload.height);
+        if (bitmap) {
+          upload.thumbnail = bitmap;
+          if (!upload.height || !upload.width) {
+            upload.height = bitmap.height;
+            upload.width = bitmap.width;
+          } else if (upload.mimetype === "video/mp4" &&
+                     areDimensionsFlipped(metadata.orientation || Orientation.TopLeft) &&
+                     bitmap.height === upload.width && bitmap.width === upload.height) {
+
+            // Firefox renders the bitmap without applying the correct rotation.
+            // So apply it ourselves. See https://bugzilla.mozilla.org/show_bug.cgi?id=1593790.
+            upload.thumbnailOrientation = metadata.orientation || Orientation.TopLeft;
+          }
+        }
+      }
+
+      if (!upload.thumbnail && metadata.thumbnail) {
         upload.thumbnail = await createImageBitmap(new Blob([metadata.thumbnail]));
       }
 
       this.inputs.uploads[id] = upload;
-
-      if (!upload.thumbnail || !upload.width || !upload.height) {
-        this.loadFrame(id, file);
-      }
     }
   }
 
@@ -254,18 +270,22 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
   public renderSelected(pending: PendingUpload): React.ReactNode {
     function rotateLeft(): void {
       pending.orientation = rotateCounterClockwise90(pending.orientation);
+      pending.thumbnailOrientation = rotateCounterClockwise90(pending.thumbnailOrientation);
     }
 
     function rotateRight(): void {
       pending.orientation = rotateClockwise90(pending.orientation);
+      pending.thumbnailOrientation = rotateClockwise90(pending.thumbnailOrientation);
     }
 
     function flipHorizontal(): void {
       pending.orientation = mirrorHorizontal(pending.orientation);
+      pending.thumbnailOrientation = mirrorHorizontal(pending.thumbnailOrientation);
     }
 
     function flipVertical(): void {
       pending.orientation = mirrorVertical(pending.orientation);
+      pending.thumbnailOrientation = mirrorVertical(pending.thumbnailOrientation);
     }
 
     const onClose = (): void => {

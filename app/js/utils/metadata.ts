@@ -40,21 +40,26 @@ function loadVideo(video: HTMLVideoElement, url: string): Promise<void> {
   });
 }
 
-export async function loadFrame(blob: Blob, type: string): Promise<ImageBitmap | null> {
-  switch (type) {
-    case "image/jpeg":
-      return createImageBitmap(blob);
-    case "video/mp4": {
-      let video = document.createElement("video");
-      let url = URL.createObjectURL(blob);
-      await loadVideo(video, url);
-      let bitmap = await createImageBitmap(video);
-      URL.revokeObjectURL(url);
-      return bitmap;
-    }
-    default:
-      console.error(new Error("Unknown file type"));
+export async function loadFrame(blob: Blob, type: string, width?: number, height?: number): Promise<ImageBitmap | null> {
+  if (type.startsWith("image/")) {
+    return createImageBitmap(blob);
   }
+
+  if (type.startsWith("video/")) {
+    let video = document.createElement("video");
+    if (width) {
+      video.width = width;
+    }
+    if (height) {
+      video.height = height;
+    }
+    let url = URL.createObjectURL(blob);
+    await loadVideo(video, url);
+    let bitmap = await createImageBitmap(video);
+    URL.revokeObjectURL(url);
+    return bitmap;
+  }
+
   return null;
 }
 

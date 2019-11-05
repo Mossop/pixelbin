@@ -357,7 +357,6 @@ class Media(models.Model):
             tmp = self.storage.get_temp_path('tmp.jpg')
             args = [
                 'ffmpeg',
-                '-noautorotate',
                 '-y',
                 '-i', source,
                 '-frames:v', '1',
