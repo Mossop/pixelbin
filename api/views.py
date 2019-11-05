@@ -204,18 +204,21 @@ def upload(request):
         if album.catalog != catalog:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
-    with transaction.atomic():
-        people = [models.Person.get_from_name(catalog, n) for n in data['people']]
+    with models.Tag.lock_for_create():
+        with models.Person.lock_for_create():
+            with transaction.atomic():
+                tags = [models.Tag.get_from_path(catalog, p) for p in data['tags']]
+                people = [models.Person.get_from_name(catalog, n) for n in data['people']]
 
-        media = models.Media(id=uuid("M"), catalog=catalog, mimetype=guessed.mime,
-                             orientation=data['orientation'], filename=os.path.basename(file.name),
-                             storage_filename=filename)
-        media.save()
+                media = models.Media(id=uuid("M"), catalog=catalog, mimetype=guessed.mime,
+                                     orientation=data['orientation'],
+                                     filename=os.path.basename(file.name),
+                                     storage_filename=filename)
+                media.save()
 
-        media.tags.add(*tags)
-        media.people.add(*people)
-        media.albums.add(*albums)
+                media.tags.add(*tags)
+                media.people.add(*people)
+                media.albums.add(*albums)
 
     temp = media.storage.get_temp_path(media.storage_filename)
     with open(temp, "wb") as output:

@@ -1,14 +1,14 @@
 import subprocess
 import json
 
-from django.db import models
+from django.db import models, IntegrityError
 from django.db.models.expressions import Q
 from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from rest_framework import status
 from PIL import Image
-from django_mysql.locks import TableLock
+from django_mysql.locks import Lock
 
 from .storage import Server, Backblaze
 from .storage.base import MediaStorage
@@ -195,24 +195,21 @@ class Tag(models.Model):
         return [self.name]
 
     @staticmethod
+    def lock_for_create():
+        return Lock('Tag.create')
+
+    @staticmethod
     def get_from_path(catalog, path):
         if len(path) == 0:
             raise ApiException('invalid-tag', status=status.HTTP_400_BAD_REQUEST)
 
-        with TableLock(write=[Tag]):
-            if len(path) == 1:
-                try:
-                    tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=path[0].lower(),
-                                                       defaults={'name': path[0], 'parent': None})
-                    return tag
-                except Tag.MultipleObjectsReturned:
-                    try:
-                        return Tag.objects.get(catalog=catalog, lc_name=path[0].lower(),
-                                               parent=None)
-                    except Tag.DoesNotExist:
-                        return Tag.objects.filter(catalog=catalog, lc_name=path[0].lower()).first()
+        if len(path) == 1:
+            tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=path[0].lower(),
+                                               defaults={'name': path[0], 'parent': None})
+            return tag
 
-            name = path.pop(0)
+        name = path.pop(0)
+        try:
             tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
                                                parent=None, defaults={'name': name})
             while len(path) > 0:
@@ -221,6 +218,8 @@ class Tag(models.Model):
                                                    parent=tag, defaults={'name': name})
 
             return tag
+        except IntegrityError:
+            raise ApiException('invalid-tag', name, status=status.HTTP_400_BAD_REQUEST)
 
     def descendants(self):
         def make_tags_cte(cte):
@@ -243,7 +242,7 @@ class Tag(models.Model):
         constraints = [
             models.CheckConstraint(check=Q(lc_name=Lower('name')),
                                    name='ensure_tag_lc_name_correct'),
-            models.UniqueConstraint(fields=['catalog', 'parent', 'lc_name'],
+            models.UniqueConstraint(fields=['catalog', 'lc_name'],
                                     name='unique_tag_name'),
         ]
 
@@ -251,6 +250,10 @@ class Person(models.Model):
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
     full_name = models.CharField(max_length=200)
     lc_name = models.CharField(max_length=200)
+
+    @staticmethod
+    def lock_for_create():
+        return Lock('Person.create')
 
     @staticmethod
     def get_from_name(catalog, name):
