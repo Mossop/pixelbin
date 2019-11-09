@@ -23,7 +23,16 @@ export function pylintCheck(args?: string[]): stream.Transform {
     callback();
   }, function(callback: (e?: Error) => void): void {
     python([path("venv/bin/pylint"), ...(args ? args : []), "--exit-zero", "-f", "json", ...files.keys()]).then((stdout: string[]): void => {
-      let data = JSON.parse(stdout.join("\n"));
+      // eslint-disable-next-line
+      let data: any;
+      try {
+        data = JSON.parse(stdout.join("\n"));
+      } catch (e) {
+        console.error(`Failed to parse pylint output: ${e}`);
+        console.log(stdout.join("\n"));
+        callback();
+        return;
+      }
 
       for (let lint of data) {
         let file = files.get(path(lint.path));

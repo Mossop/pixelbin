@@ -3,10 +3,10 @@ import { connect } from "react-redux";
 
 import { Search } from "../utils/search";
 import { StoreState } from "../store/types";
-import { Media } from "../api/types";
+import { Media, isProcessed, UnprocessedMedia } from "../api/types";
 import Throbber from "./Throbber";
 import MediaThumbnail from "./MediaThumbnail";
-import { thumbnail, search, get } from "../api/media";
+import { thumbnail, searchMedia, getMedia } from "../api/media";
 import produce, { Draft } from "immer";
 
 const POLL_TIMEOUT = 5000;
@@ -45,7 +45,7 @@ type AllProps = StateProps & MediaListProps;
 
 class MediaList extends React.Component<AllProps, MediaListState> {
   private pendingSearch: number;
-  private pendingProcessing: Map<string, Media>;
+  private pendingProcessing: Map<string, UnprocessedMedia>;
   private pendingTimeout: NodeJS.Timeout | null;
 
   public constructor(props: AllProps) {
@@ -73,12 +73,15 @@ class MediaList extends React.Component<AllProps, MediaListState> {
 
   private async process(id: string): Promise<void> {
     try {
-      let media = await get(id);
-      if (!media.processed) {
+      let media = await getMedia(id);
+      console.log("Got media");
+      if (!isProcessed(media)) {
+        console.log("Not processed");
         return;
       }
 
       if (!this.pendingProcessing.has(id)) {
+        console.log("Already found");
         // No longer need this result.
         return;
       }
@@ -94,6 +97,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
 
       this.loadThumbnail(media);
     } catch (e) {
+      console.error(e);
       let mediaMap = this.state.mediaMap || {};
       mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>) => {
         delete mediaMap[id];
@@ -133,7 +137,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
     let mediaMap = this.state.mediaMap || {};
     let id = ++this.pendingSearch;
 
-    let results = await search(this.props.search);
+    let results = await searchMedia(this.props.search);
     if (id !== this.pendingSearch) {
       return;
     }
@@ -149,7 +153,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
           mediaMap[item.id].media = item;
         }
 
-        if (!item.processed) {
+        if (!isProcessed(item)) {
           this.pendingProcessing.set(item.id, item);
         } else {
           this.loadThumbnail(item);

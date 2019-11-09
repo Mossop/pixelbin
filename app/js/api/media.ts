@@ -1,48 +1,37 @@
-import { buildFormBody, request, buildJSONBody, getRequest, baseRequest, apiURL } from "./api";
-import { UploadMetadata, Album, Media, MediaArrayDecoder, MediaDecoder } from "./types";
-import { Immutable } from "immer";
+import { request, buildJSONBody, apiURL, buildFormBody, baseRequest, buildGetURL } from "./api";
+import { Media, MediaArrayDecoder, MediaDecoder, UnprocessedMedia, UnprocessedMediaDecoder } from "./types";
 import { Search } from "../utils/search";
-import { intoIds, intoId, MapId } from "../utils/maps";
+import { intoId, MapId } from "../utils/maps";
 
-export async function get(id: string): Promise<Media> {
-  let url = apiURL("media/get");
-  url.searchParams.set("id", id);
+export async function getMedia(id: string): Promise<Media> {
+  let url = apiURL(`media/get/${id}`);
 
   return request({
     url,
-    method: "GET",
     decoder: MediaDecoder,
   });
 }
 
-export async function upload(metadata: Immutable<UploadMetadata>, file: Blob, albums: MapId<Album>[]): Promise<Media> {
+export async function createMedia(media: Partial<UnprocessedMedia>): Promise<UnprocessedMedia> {
   return request({
-    url: "media/upload",
+    url: "media/create",
+    method: "PUT",
+    body: buildJSONBody(media),
+    decoder: UnprocessedMediaDecoder,
+  });
+}
+
+export async function uploadMedia(media: MapId<Media>, file: File): Promise<void> {
+  await baseRequest({
+    url: `media/upload/${intoId(media)}`,
     method: "PUT",
     body: buildFormBody({
-      metadata: JSON.stringify({
-        ...metadata,
-        albums: intoIds(albums),
-      }),
-      file,
-    }),
-    decoder: MediaDecoder,
+      file: file,
+    })
   });
 }
 
-export async function modifyAlbums(media: MapId<Media>, addAlbums: MapId<Album>[] = [], removeAlbums: MapId<Album>[] = []): Promise<void> {
-  await baseRequest({
-    url: "albums/edit",
-    method: "PATCH",
-    body: buildJSONBody({
-      media: intoId(media),
-      addAlbums: intoIds(addAlbums),
-      removeAlbums: intoIds(removeAlbums),
-    }),
-  });
-}
-
-export async function search(search: Search): Promise<Media[]> {
+export async function searchMedia(search: Search): Promise<Media[]> {
   return request({
     url: "media/search",
     method: "POST",
@@ -55,9 +44,10 @@ export async function search(search: Search): Promise<Media[]> {
 }
 
 export async function thumbnail(media: MapId<Media>, size: number): Promise<ImageBitmap> {
-  let response = await getRequest("media/thumbnail", {
-    media: intoId(media),
-    size: String(size),
+  let response = await baseRequest({
+    url: buildGetURL(`media/thumbnail/${intoId(media)}`, {
+      size: String(size),
+    }),
   });
 
   return createImageBitmap(await response.blob());

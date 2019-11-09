@@ -94,7 +94,7 @@ export async function baseRequest(params: RequestParams): Promise<Response> {
   }
 }
 
-export function getRequest(uri: URL | string, options: URLSearchParams | { [key: string]: string } = {}): Promise<Response> {
+export function buildGetURL(uri: URL | string, options: URLSearchParams | { [key: string]: string } = {}): URL {
   let url = apiURL(uri);
 
   if (options instanceof URLSearchParams) {
@@ -107,7 +107,7 @@ export function getRequest(uri: URL | string, options: URLSearchParams | { [key:
     }
   }
 
-  return baseRequest({ url });
+  return url;
 }
 
 type DecodeParams<R> = RequestParams & {

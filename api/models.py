@@ -1,37 +1,15 @@
-import subprocess
-import json
-
 from django.db import models, IntegrityError
-from django.db.models.expressions import Q
+from django.db.models.expressions import Q, F
 from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from rest_framework import status
-from PIL import Image
 from django_mysql.locks import Lock
 
 from .storage import Server, Backblaze
 from .storage.base import MediaStorage
-from .utils import ApiException
-
-from .utils import uuid
-
-THUMB_SIZES = [
-    150,
-    200,
-    300,
-    400,
-    500,
-]
-
-def resize(image, size):
-    if image.width <= size and image.height <= size:
-        return image.copy()
-    if image.width > image.height:
-        factor = size / image.width
-        return image.resize((size, round(image.height * factor)), Image.LANCZOS)
-    factor = size / image.height
-    return image.resize((round(image.width * factor), size), Image.LANCZOS)
+from .utils import uuid, ApiException
+from .constraints import UniqueWithLookupsConstraint
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -73,7 +51,7 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    id = models.CharField(max_length=30, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=200)
     username = None
@@ -100,7 +78,7 @@ class User(AbstractUser):
         ordering = ['full_name']
 
 class Catalog(models.Model):
-    id = models.CharField(max_length=30, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     users = models.ManyToManyField(User, related_name='catalogs', through='Access')
 
     backblaze = models.ForeignKey(Backblaze, blank=True, null=True,
@@ -138,11 +116,10 @@ class Access(models.Model):
 class Album(models.Model):
     objects = CTEManager()
 
-    id = models.CharField(max_length=30, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     stub = models.CharField(max_length=50, unique=True, default=None, blank=False, null=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='albums')
     name = models.CharField(max_length=100, blank=False)
-    lc_name = models.CharField(max_length=100, blank=False)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='albums',
@@ -161,26 +138,21 @@ class Album(models.Model):
             cte.join(Album, id=cte.col.id).with_cte(cte)
         )
 
-    def save(self, *args, **kwargs):
-        self.lc_name = self.name.lower()
-        super().save(*args, **kwargs)
-
     class Meta:
         constraints = [
-            models.CheckConstraint(check=Q(lc_name=Lower('name')),
-                                   name='ensure_album_lc_name_correct'),
             models.UniqueConstraint(fields=['catalog'], condition=Q(parent__isnull=True),
                                     name='single_root_album'),
-            models.UniqueConstraint(fields=['catalog', 'parent', 'lc_name'],
-                                    name='unique_album_name'),
+            UniqueWithLookupsConstraint(fields=['catalog', 'parent'],
+                                        lookups=[Lower(F('name'))],
+                                        name='unique_album_name'),
         ]
 
 class Tag(models.Model):
     objects = CTEManager()
 
+    id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='tags')
     name = models.CharField(max_length=100)
-    lc_name = models.CharField(max_length=100)
     parent = models.ForeignKey('self',
                                on_delete=models.CASCADE,
                                related_name='children',
@@ -199,23 +171,33 @@ class Tag(models.Model):
         return Lock('Tag.create')
 
     @staticmethod
-    def get_from_path(catalog, path):
+    def get_for_path(catalog, path):
         if len(path) == 0:
             raise ApiException('invalid-tag', status=status.HTTP_400_BAD_REQUEST)
 
         if len(path) == 1:
-            tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=path[0].lower(),
-                                               defaults={'name': path[0], 'parent': None})
+            tag, _ = Tag.objects.get_or_create(catalog=catalog, name__iexact=path[0],
+                                               defaults={
+                                                   'id': uuid('T'),
+                                                   'name': path[0],
+                                                   'parent': None
+                                               })
             return tag
 
         name = path.pop(0)
         try:
-            tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
-                                               parent=None, defaults={'name': name})
+            tag, _ = Tag.objects.get_or_create(catalog=catalog, name__iexact=name,
+                                               parent=None, defaults={
+                                                   'id': uuid('T'),
+                                                   'name': name,
+                                               })
             while len(path) > 0:
                 name = path.pop(0)
-                tag, _ = Tag.objects.get_or_create(catalog=catalog, lc_name=name.lower(),
-                                                   parent=tag, defaults={'name': name})
+                tag, _ = Tag.objects.get_or_create(catalog=catalog, name__iexact=name,
+                                                   parent=tag, defaults={
+                                                       'id': uuid('T'),
+                                                       'name': name,
+                                                   })
 
             return tag
         except IntegrityError:
@@ -224,8 +206,8 @@ class Tag(models.Model):
     def descendants(self):
         def make_tags_cte(cte):
             return (
-                Tag.objects.filter(id=self.id).values("id") \
-                    .union(cte.join(Tag, parent=cte.col.id).values("id"), all=True)
+                Tag.objects.filter(id=self.id).values('id') \
+                    .union(cte.join(Tag, parent=cte.col.id).values('id'), all=True)
             )
 
         cte = With.recursive(make_tags_cte)
@@ -234,65 +216,57 @@ class Tag(models.Model):
             cte.join(Tag, id=cte.col.id).with_cte(cte)
         )
 
-    def save(self, *args, **kwargs):
-        self.lc_name = self.name.lower()
-        super().save(*args, **kwargs)
-
     class Meta:
         constraints = [
-            models.CheckConstraint(check=Q(lc_name=Lower('name')),
-                                   name='ensure_tag_lc_name_correct'),
-            models.UniqueConstraint(fields=['catalog', 'lc_name'],
-                                    name='unique_tag_name'),
+            UniqueWithLookupsConstraint(fields=['catalog'],
+                                        lookups=[Lower(F('name'))],
+                                        name='unique_tag_name'),
         ]
 
 class Person(models.Model):
+    id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
-    full_name = models.CharField(max_length=200)
-    lc_name = models.CharField(max_length=200)
+    fullname = models.CharField(max_length=200)
 
     @staticmethod
     def lock_for_create():
         return Lock('Person.create')
 
     @staticmethod
-    def get_from_name(catalog, name):
-        lower = name.lower()
-        person, _ = Person.objects.get_or_create(catalog=catalog, lc_name=lower,
-                                                 defaults={"full_name": name})
+    def get_for_name(catalog, name):
+        person, _ = Person.objects.get_or_create(catalog=catalog, fullname__iexact=name,
+                                                 defaults={
+                                                     'id': uuid('P'),
+                                                     'fullname': name,
+                                                 })
         return person
-
-    def save(self, *args, **kwargs):
-        self.lc_name = self.full_name.lower()
-        super().save(*args, **kwargs)
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=Q(lc_name=Lower('full_name')),
-                                   name='ensure_person_lc_name_correct'),
-            models.UniqueConstraint(fields=['catalog', 'lc_name'], name='unique_person_name')
+            UniqueWithLookupsConstraint(fields=['catalog'],
+                                        lookups=[Lower(F('fullname'))],
+                                        name='unique_person_name')
         ]
 
 class Media(models.Model):
-    id = models.CharField(max_length=30, primary_key=True)
+    id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
-    processed = models.BooleanField(default=False)
-    title = models.CharField(max_length=200, blank=True)
+    process_version = models.IntegerField(null=True, default=None)
     filename = models.CharField(max_length=50, blank=True)
 
     tags = models.ManyToManyField(Tag, related_name='media')
     albums = models.ManyToManyField(Album, related_name='media')
     people = models.ManyToManyField(Person, related_name='media')
 
+    title = models.CharField(max_length=200, blank=True)
+    taken = models.DateTimeField(null=True)
     longitude = models.FloatField(null=True)
     latitude = models.FloatField(null=True)
-    taken = models.DateTimeField(null=True)
 
     uploaded = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now_add=True)
-    mimetype = models.CharField(max_length=50)
-    width = models.IntegerField(default=0)
-    height = models.IntegerField(default=0)
+    mimetype = models.CharField(blank=True, max_length=50)
+    width = models.IntegerField(null=True, default=None)
+    height = models.IntegerField(null=True, default=None)
     orientation = models.IntegerField(default=1)
 
     storage_filename = models.CharField(max_length=50)
@@ -313,68 +287,6 @@ class Media(models.Model):
     def import_metadata(self, data):
         if 'MIMEType' in data:
             self.mimetype = data['MIMEType']
-
-    def thumbnail(self, size):
-        for thumbsize in THUMB_SIZES:
-            if thumbsize >= size:
-                path = self.storage.get_local_path('sized%d.jpg' % (thumbsize))
-                image = Image.open(path)
-                return resize(image, size)
-
-        thumbsize = THUMB_SIZES[-1]
-        path = self.storage.get_local_path('sized%d.jpg' % (thumbsize))
-        image = Image.open(path)
-        return resize(image, size)
-
-
-    def process(self):
-        if self.processed:
-            return
-
-        source = self.storage.get_temp_path(self.storage_filename)
-        result = subprocess.run(['exiftool', '-json', source], capture_output=True,
-                                timeout=10, check=True)
-        metadata = json.loads(result.stdout)
-        if len(metadata) != 1:
-            return
-        self.import_metadata(metadata[0])
-        meta_file = self.storage.get_local_path('metadata.json')
-        output = open(meta_file, 'w')
-        json.dump(metadata[0], output, indent=2)
-        output.close()
-
-        self.storage.store_storage_from_temp(self.storage_filename)
-
-        if self.is_image:
-            image = Image.open(source)
-            self.width = image.width
-            self.height = image.height
-            for size in THUMB_SIZES:
-                resized = resize(image, size)
-                target = self.storage.get_local_path('sized%d.jpg' % (size))
-                resized.save(target, None, quality=95, optimize=True)
-        elif self.is_video:
-            tmp = self.storage.get_temp_path('tmp.jpg')
-            args = [
-                'ffmpeg',
-                '-y',
-                '-i', source,
-                '-frames:v', '1',
-                '-q:v', '3',
-                '-f', 'singlejpeg',
-                tmp,
-            ]
-            result = subprocess.run(args, timeout=10, check=True)
-            image = Image.open(tmp)
-            self.width = image.width
-            self.height = image.height
-            for size in THUMB_SIZES:
-                resized = resize(image, size)
-                target = self.storage.get_local_path('sized%d.jpg' % (size))
-                resized.save(target, None, quality=95, optimize=True)
-
-        self.processed = True
-        self.storage.delete_all_temp()
 
     def delete(self, using=None, keep_parents=False):
         self.storage.delete()

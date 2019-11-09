@@ -7,9 +7,8 @@ import { Button } from "./Button";
 import { StoreState } from "../store/types";
 import Icon from "./Icon";
 import { Mapped } from "../utils/maps";
-import { modifyAlbums } from "../api/media";
 import { DispatchProps, bumpState, albumEdited } from "../store/actions";
-import { editAlbum } from "../api/album";
+import { editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "../api/album";
 import { albumChildren, isAncestor, getAlbum } from "../store/store";
 import { Property } from "../utils/StateProxy";
 
@@ -198,18 +197,17 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps 
         (albumMediaDrag && effect === "move")) {
       event.preventDefault();
 
-      let removals: string[] = [];
       let mediaId: string;
       if (effect === "move") {
         let data = JSON.parse(event.dataTransfer.getData("pixelbin/album-media"));
-        removals.push(data.album);
         mediaId = data.media;
+        removeMediaFromAlbum(data.album, [mediaId]);
       } else {
         mediaId = event.dataTransfer.getData("pixelbin/media");
       }
 
       try {
-        await modifyAlbums(mediaId, [album], removals);
+        await addMediaToAlbum(album, [mediaId]);
         this.props.bumpState();
       } catch (e) {
         // TODO

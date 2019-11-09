@@ -1,7 +1,7 @@
 import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
-import { OptionalDecoder, DateDecoder, MapDecoder, MappingDecoder } from "../utils/decoders";
+import { DateDecoder, MapDecoder, MappingDecoder } from "../utils/decoders";
 import { Orientation } from "media-metadata/lib/metadata";
 import { Mapped } from "../utils/maps";
 import { L10nArgs, LocalizedProps, l10nAttributes } from "../l10n";
@@ -34,7 +34,7 @@ export async function decodeAPIError(response: Response): Promise<APIError> {
     status: JsonDecoder.constant(response.status),
     statusText: JsonDecoder.constant(response.statusText),
     code: JsonDecoder.string,
-    args: OptionalDecoder(L10nArgsDecoder, "Args?"),
+    args: JsonDecoder.optional(L10nArgsDecoder),
     detail: JsonDecoder.succeed,
   },
   "APIError");
@@ -64,9 +64,9 @@ export interface Album {
 export const AlbumDecoder = JsonDecoder.object<Album>(
   {
     id: JsonDecoder.string,
-    stub: OptionalDecoder(JsonDecoder.string, "stub?"),
+    stub: JsonDecoder.optional(JsonDecoder.string),
     name: JsonDecoder.string,
-    parent: OptionalDecoder(JsonDecoder.string, "parent?"),
+    parent: JsonDecoder.optional(JsonDecoder.string),
   },
   "Album"
 );
@@ -81,9 +81,22 @@ export const TagDecoder = JsonDecoder.object<Tag>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
-    parent: OptionalDecoder(JsonDecoder.string, "parent?"),
+    parent: JsonDecoder.optional(JsonDecoder.string),
   },
   "Tag"
+);
+
+export interface Person {
+  readonly id: string;
+  readonly fullname: string;
+}
+
+export const PersonDecoder = JsonDecoder.object<Person>(
+  {
+    id: JsonDecoder.string,
+    fullname: JsonDecoder.string,
+  },
+  "Person"
 );
 
 export interface Catalog {
@@ -150,69 +163,85 @@ export interface ServerState {
 
 export const ServerStateDecoder = JsonDecoder.object<ServerState>(
   {
-    user: OptionalDecoder(UserStateDecoder, "User"),
+    user: JsonDecoder.optional(UserStateDecoder),
   },
   "ServerState"
 );
 
-export interface Media {
+export interface UnprocessedMedia {
   readonly id: string;
-  readonly processed: boolean;
-  readonly orientation: Orientation;
-  readonly title?: string;
-  readonly filename?: string;
+  readonly catalog?: string;
 
-  readonly longitude?: number;
-  readonly latitude?: number;
-  readonly taken?: moment.Moment;
-
-  readonly tags: string[][];
+  readonly tags: string[];
+  readonly albums: string[];
   readonly people: string[];
 
+  readonly title?: string;
+  readonly taken?: moment.Moment;
+  readonly longitude?: number;
+  readonly latitude?: number;
+
+  readonly orientation?: Orientation;
+}
+
+export interface ProcessedMedia extends UnprocessedMedia {
+  readonly processVersion: number;
+  readonly filename?: string;
+
+  readonly uploaded: moment.Moment;
   readonly mimetype: string;
   readonly width: number;
   readonly height: number;
+  readonly orientation: Orientation;
 }
 
-export const MediaDecoder = JsonDecoder.object<Media>(
+export type Media = UnprocessedMedia | ProcessedMedia;
+
+export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
   {
     id: JsonDecoder.string,
-    processed: JsonDecoder.boolean,
-    orientation: JsonDecoder.number,
-    title: OptionalDecoder(JsonDecoder.string, "title"),
-    filename: OptionalDecoder(JsonDecoder.string, "title"),
 
-    longitude: OptionalDecoder(JsonDecoder.number, "longitude"),
-    latitude: OptionalDecoder(JsonDecoder.number, "latitude"),
-    taken: OptionalDecoder(DateDecoder, "taken"),
-
-    tags: JsonDecoder.array(JsonDecoder.array(JsonDecoder.string, "tag"), "tag[]"),
+    tags: JsonDecoder.array(JsonDecoder.string, "tag[]"),
+    albums: JsonDecoder.array(JsonDecoder.string, "album[]"),
     people: JsonDecoder.array(JsonDecoder.string, "people[]"),
 
+    title: JsonDecoder.optional(JsonDecoder.string),
+    taken: JsonDecoder.optional(DateDecoder),
+    longitude: JsonDecoder.optional(JsonDecoder.number),
+    latitude: JsonDecoder.optional(JsonDecoder.number),
+  },
+  "UnprocessedMedia"
+);
+
+export const ProcessedMediaDecoder = JsonDecoder.object<ProcessedMedia>(
+  {
+    id: JsonDecoder.string,
+    processVersion: JsonDecoder.number,
+    filename: JsonDecoder.optional(JsonDecoder.string),
+
+    tags: JsonDecoder.array(JsonDecoder.string, "tag[]"),
+    albums: JsonDecoder.array(JsonDecoder.string, "album[]"),
+    people: JsonDecoder.array(JsonDecoder.string, "people[]"),
+
+    title: JsonDecoder.optional(JsonDecoder.string),
+    taken: JsonDecoder.optional(DateDecoder),
+    longitude: JsonDecoder.optional(JsonDecoder.number),
+    latitude: JsonDecoder.optional(JsonDecoder.number),
+
+    uploaded: DateDecoder,
     mimetype: JsonDecoder.string,
     width: JsonDecoder.number,
     height: JsonDecoder.number,
+    orientation: JsonDecoder.number,
   },
-  "Media"
+  "ProcessedMedia"
 );
 
+export function isProcessed(media: Media): media is ProcessedMedia {
+  // @ts-ignore
+  console.log("Checking:", media, "processVersion" in media, media.processVersion, media.processVersion > 0);
+  return "processVersion" in media && media.processVersion > 0;
+}
+
+export const MediaDecoder = JsonDecoder.oneOf<Media>([ProcessedMediaDecoder, UnprocessedMediaDecoder], "Media");
 export const MediaArrayDecoder = JsonDecoder.array<Media>(MediaDecoder, "Media[]");
-
-export interface UploadMetadata {
-  tags: string[][];
-  people: string[];
-  orientation: Orientation;
-}
-
-export interface UploadResponse {
-  tags: Tag[];
-  media: Media;
-}
-
-export const UploadResponseDecoder = JsonDecoder.object<UploadResponse>(
-  {
-    tags: JsonDecoder.array<Tag>(TagDecoder, "Tag[]"),
-    media: MediaDecoder,
-  },
-  "UploadResponseDecoder"
-);

@@ -3,7 +3,7 @@ from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 
-from api.serializers import serialize_state
+from api.serializers.state import serialize_state
 from base.utils import CONFIG
 
 @ensure_csrf_cookie

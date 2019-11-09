@@ -11,6 +11,8 @@ export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
   throw new Error(result.error);
 }
 
+export const VoidDecoder = new JsonDecoder.Decoder<void>((): Result<void> => ok<void>(undefined));
+
 export function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new JsonDecoder.Decoder<B>((json: any): Result<B> => {
@@ -25,10 +27,6 @@ export function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (d
       return err<B>(result.error);
     }
   });
-}
-
-export function OptionalDecoder<A>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<undefined | A> {
-  return JsonDecoder.oneOf([JsonDecoder.isNull(undefined), JsonDecoder.isUndefined(undefined), decoder], `${name}?`);
 }
 
 export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undefined | ((a: A, b: A) => number), name: string): JsonDecoder.Decoder<A[]> {

@@ -13,7 +13,6 @@
   position: fixed;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -162,7 +161,6 @@
     @include overlay;
 
     background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(2px);
     border-bottom-right-radius: var(--border-radius);
     padding: var(--padding);
 

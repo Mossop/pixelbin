@@ -8,14 +8,17 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { upload } from "../api/media";
-import { Album, User, UploadMetadata } from "../api/types";
+import { createMedia, uploadMedia } from "../api/media";
+import { findTag } from "../api/tag";
+import { Album, User, Tag, Person, UnprocessedMedia } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/overlay";
 import { FormFields, FormField } from "../components/Form";
 import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString, areDimensionsFlipped } from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 import Media from "../components/Media";
+import { getCatalogForAlbum } from "../store/store";
+import { createPerson } from "../api/person";
 
 export type PendingUpload = Proxyable<{
   file: File;
@@ -102,14 +105,33 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
     pending.uploading = true;
 
-    let metadata: UploadMetadata = {
-      tags: tagsFromString(pending.tags).concat(tagsFromString(this.inputs.tags)),
-      people: peopleFromString(pending.people).concat(peopleFromString(this.inputs.people)),
+    let album = this.inputs.parent.id;
+    let catalog = getCatalogForAlbum(album);
+
+    let strTags = tagsFromString(pending.tags).concat(tagsFromString(this.inputs.tags));
+    let strPeople = peopleFromString(pending.people).concat(peopleFromString(this.inputs.people));
+
+    let tagPromises = strTags.map((path: string[]): Promise<Tag> => findTag(catalog, path));
+    let personPromises = strPeople.map((name: string): Promise<Person> => createPerson(catalog, name));
+
+    let [tags, people] = await Promise.all([
+      Promise.all(tagPromises),
+      Promise.all(personPromises),
+    ]);
+    console.log("here");
+
+    let media: Partial<UnprocessedMedia> = {
+      catalog: catalog.id,
+      tags: tags.map((t: Tag) => t.id),
+      people: people.map((p: Person) => p.id),
+      albums: [album],
       orientation: pending.orientation,
     };
 
     try {
-      await upload(metadata, pending.file, [this.inputs.parent]);
+      let created = await createMedia(media);
+      await uploadMedia(created, pending.file);
+
       delete this.inputs.uploads[id];
 
       this.props.bumpState();

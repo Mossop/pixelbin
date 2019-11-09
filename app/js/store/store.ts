@@ -60,14 +60,14 @@ export function getCatalog(id: string, state?: ServerStoreState): Catalog | unde
   return state.serverState.user.catalogs[id];
 }
 
-export function getCatalogForAlbum(album: MapId<Album>, state?: ServerStoreState): Catalog | undefined {
+export function getCatalogForAlbum(album: MapId<Album>, state?: ServerStoreState): Catalog {
   if (!state) {
     state = store.getState();
   }
 
   let id = intoId(album);
   if (!state.serverState.user) {
-    return undefined;
+    throw new Error("Attempt to find catalog for an unauthenticated user.");
   }
 
   for (let catalog of Object.values(state.serverState.user.catalogs)) {
@@ -76,13 +76,12 @@ export function getCatalogForAlbum(album: MapId<Album>, state?: ServerStoreState
     }
   }
 
-  return undefined;
+  throw new Error("Attempt to find catalog for an unknown album.");
 }
 
 export function getAlbum(album: MapId<Album>, state?: ServerStoreState): Album | undefined {
   if (typeof album === "string") {
-    let catalog = getCatalogForAlbum(album, state);
-    return catalog ? catalog.albums[album] : undefined;
+    return getCatalogForAlbum(album, state).albums[album];
   } else {
     return album;
   }
@@ -91,9 +90,6 @@ export function getAlbum(album: MapId<Album>, state?: ServerStoreState): Album |
 export function albumChildren(album: MapId<Album>, catalog?: Catalog): Album[] {
   let parent = intoId(album);
   catalog = catalog ? catalog : getCatalogForAlbum(album);
-  if (!catalog) {
-    return [];
-  }
   return nameSorted(Object.values(catalog.albums).filter((a: Album) => a.parent == parent));
 }
 
@@ -108,8 +104,10 @@ export function isAncestor(maybeAncestor: MapId<Album>, album: MapId<Album>): bo
     return true;
   }
 
-  let catalog = getCatalogForAlbum(album);
-  if (!catalog) {
+  let catalog;
+  try {
+    catalog = getCatalogForAlbum(album);
+  } catch {
     return false;
   }
 
@@ -117,9 +115,9 @@ export function isAncestor(maybeAncestor: MapId<Album>, album: MapId<Album>): bo
     return false;
   }
 
-  while(kid.parent) {
+  while(kid && kid.parent) {
     kid = catalog.albums[kid.parent];
-    if (kid.parent === ancestor) {
+    if (kid && kid.parent === ancestor) {
       return true;
     }
   }

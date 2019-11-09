@@ -20,10 +20,10 @@ class FieldQuery:
 
     def album_query(self, catalog):
         if self.operation == 'child':
-            return Q(albums__lc_name=self.value.lower())
+            return Q(albums__name__iexact=self.value)
         if self.operation == 'descendant':
             albums = set()
-            roots = Album.objects.filter(catalog=catalog, lc_name=self.value.lower())
+            roots = Album.objects.filter(catalog=catalog, name__iexact=self.value)
             for album in roots:
                 albums |= set(album.descendants())
 
