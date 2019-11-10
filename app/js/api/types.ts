@@ -170,7 +170,7 @@ export const ServerStateDecoder = JsonDecoder.object<ServerState>(
 
 export interface UnprocessedMedia {
   readonly id: string;
-  readonly catalog?: string;
+  readonly filename: string;
 
   readonly tags: string[];
   readonly albums: string[];
@@ -180,19 +180,15 @@ export interface UnprocessedMedia {
   readonly taken?: moment.Moment;
   readonly longitude?: number;
   readonly latitude?: number;
-
   readonly orientation?: Orientation;
 }
 
 export interface ProcessedMedia extends UnprocessedMedia {
   readonly processVersion: number;
-  readonly filename?: string;
-
   readonly uploaded: moment.Moment;
   readonly mimetype: string;
   readonly width: number;
   readonly height: number;
-  readonly orientation: Orientation;
 }
 
 export type Media = UnprocessedMedia | ProcessedMedia;
@@ -200,6 +196,7 @@ export type Media = UnprocessedMedia | ProcessedMedia;
 export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
   {
     id: JsonDecoder.string,
+    filename: JsonDecoder.string,
 
     tags: JsonDecoder.array(JsonDecoder.string, "tag[]"),
     albums: JsonDecoder.array(JsonDecoder.string, "album[]"),
@@ -209,6 +206,7 @@ export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
     taken: JsonDecoder.optional(DateDecoder),
     longitude: JsonDecoder.optional(JsonDecoder.number),
     latitude: JsonDecoder.optional(JsonDecoder.number),
+    orientation: JsonDecoder.optional(JsonDecoder.number),
   },
   "UnprocessedMedia"
 );
@@ -216,8 +214,13 @@ export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
 export const ProcessedMediaDecoder = JsonDecoder.object<ProcessedMedia>(
   {
     id: JsonDecoder.string,
+    filename: JsonDecoder.string,
+
     processVersion: JsonDecoder.number,
-    filename: JsonDecoder.optional(JsonDecoder.string),
+    uploaded: DateDecoder,
+    mimetype: JsonDecoder.string,
+    width: JsonDecoder.number,
+    height: JsonDecoder.number,
 
     tags: JsonDecoder.array(JsonDecoder.string, "tag[]"),
     albums: JsonDecoder.array(JsonDecoder.string, "album[]"),
@@ -227,19 +230,12 @@ export const ProcessedMediaDecoder = JsonDecoder.object<ProcessedMedia>(
     taken: JsonDecoder.optional(DateDecoder),
     longitude: JsonDecoder.optional(JsonDecoder.number),
     latitude: JsonDecoder.optional(JsonDecoder.number),
-
-    uploaded: DateDecoder,
-    mimetype: JsonDecoder.string,
-    width: JsonDecoder.number,
-    height: JsonDecoder.number,
-    orientation: JsonDecoder.number,
+    orientation: JsonDecoder.optional(JsonDecoder.number),
   },
   "ProcessedMedia"
 );
 
 export function isProcessed(media: Media): media is ProcessedMedia {
-  // @ts-ignore
-  console.log("Checking:", media, "processVersion" in media, media.processVersion, media.processVersion > 0);
   return "processVersion" in media && media.processVersion > 0;
 }
 

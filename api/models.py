@@ -248,29 +248,69 @@ class Person(models.Model):
                                         name='unique_person_name')
         ]
 
+def multiprop(name):
+    def getter(self):
+        overridden = getattr(self, 'overridden_%s' % name)
+        if overridden is not None:
+            return overridden
+        return getattr(self, 'media_%s' % name)
+
+    def setter(self, val):
+        setattr(self, 'overridden_%s' % name, val)
+
+    return property(getter, setter)
+
 class Media(models.Model):
+    # Cannot be changed after upload.
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
-    catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='media')
-    process_version = models.IntegerField(null=True, default=None)
+    catalog = models.ForeignKey(Catalog, null=False, on_delete=models.CASCADE, related_name='media')
     filename = models.CharField(max_length=50, blank=True)
 
-    tags = models.ManyToManyField(Tag, related_name='media')
-    albums = models.ManyToManyField(Album, related_name='media')
-    people = models.ManyToManyField(Person, related_name='media')
+    # Fields required for the storage system. Should not be exposed to the API.
+    storage_filename = models.CharField(max_length=50)
+    storage_id = models.CharField(max_length=200, default="", blank=True)
 
-    title = models.CharField(max_length=200, blank=True)
-    taken = models.DateTimeField(null=True)
-    longitude = models.FloatField(null=True)
-    latitude = models.FloatField(null=True)
-
+    # Fields generated from the media file.
+    process_version = models.IntegerField(null=True, default=None)
     uploaded = models.DateTimeField(auto_now_add=True)
     mimetype = models.CharField(blank=True, max_length=50)
     width = models.IntegerField(null=True, default=None)
     height = models.IntegerField(null=True, default=None)
-    orientation = models.IntegerField(default=1)
 
-    storage_filename = models.CharField(max_length=50)
-    storage_id = models.CharField(max_length=200, default="", blank=True)
+    # Relationships. Entirely under API control.
+    tags = models.ManyToManyField(Tag, related_name='media')
+    albums = models.ManyToManyField(Album, related_name='media')
+    people = models.ManyToManyField(Person, related_name='media')
+
+    def getter(self, name):
+        overridden = getattr(self, 'overridden_%s' % name)
+        if overridden is not None:
+            return overridden
+        return getattr(self, 'media_%s' % name)
+
+    def setter(self, name, val):
+        setattr(self, 'overridden_%s' % name, val)
+
+    # Metadata that can be accessed and modified through the API.
+    title = multiprop('title')
+    overridden_title = models.CharField(max_length=200, null=True, blank=True)
+    media_title = models.CharField(max_length=200, null=True, blank=True)
+
+    taken = multiprop('taken')
+    overridden_taken = models.DateTimeField(null=True)
+    media_taken = models.DateTimeField(null=True)
+
+    longitude = multiprop('longitude')
+    overridden_longitude = models.FloatField(null=True)
+    media_longitude = models.FloatField(null=True)
+
+    latitude = multiprop('latitude')
+    overridden_latitude = models.FloatField(null=True)
+    media_latitude = models.FloatField(null=True)
+
+    orientation = multiprop('orientation')
+    overridden_orientation = models.IntegerField(null=True)
+    media_orientation = models.IntegerField(null=True)
 
     @property
     def storage(self):
@@ -283,10 +323,6 @@ class Media(models.Model):
     @property
     def is_video(self):
         return self.mimetype[0:6] == 'video/'
-
-    def import_metadata(self, data):
-        if 'MIMEType' in data:
-            self.mimetype = data['MIMEType']
 
     def delete(self, using=None, keep_parents=False):
         self.storage.delete()

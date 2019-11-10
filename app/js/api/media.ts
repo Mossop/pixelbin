@@ -1,5 +1,5 @@
 import { request, buildJSONBody, apiURL, buildFormBody, baseRequest, buildGetURL } from "./api";
-import { Media, MediaArrayDecoder, MediaDecoder, UnprocessedMedia, UnprocessedMediaDecoder } from "./types";
+import { Media, MediaArrayDecoder, MediaDecoder, UnprocessedMedia, UnprocessedMediaDecoder, Catalog } from "./types";
 import { Search } from "../utils/search";
 import { intoId, MapId } from "../utils/maps";
 
@@ -12,11 +12,11 @@ export async function getMedia(id: string): Promise<Media> {
   });
 }
 
-export async function createMedia(media: Partial<UnprocessedMedia>): Promise<UnprocessedMedia> {
+export async function createMedia(catalog: MapId<Catalog>, media: Partial<UnprocessedMedia>): Promise<UnprocessedMedia> {
   return request({
     url: "media/create",
     method: "PUT",
-    body: buildJSONBody(media),
+    body: buildJSONBody(Object.assign({}, media, { catalog: intoId(catalog) })),
     decoder: UnprocessedMediaDecoder,
   });
 }

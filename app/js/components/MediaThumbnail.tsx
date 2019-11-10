@@ -4,6 +4,7 @@ import { StoreState } from "../store/types";
 import { connect } from "react-redux";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
+import { Orientation } from "media-metadata/lib/metadata";
 
 interface MediaProps {
   media: Media;
@@ -29,7 +30,7 @@ class MediaThumbnail extends React.Component<AllProps> {
     let size = `${this.props.size}px`;
     if (isProcessed(this.props.media) && this.props.thumbnail) {
       return <div className="media" draggable={this.props.draggable} onDragStart={this.props.onDragStart}>
-        <MediaContainer width={this.props.thumbnail.width} height={this.props.thumbnail.height} orientation={this.props.media.orientation} style={{ width: size, height: size }}>
+        <MediaContainer width={this.props.thumbnail.width} height={this.props.thumbnail.height} orientation={this.props.media.orientation || Orientation.TopLeft} style={{ width: size, height: size }}>
           <ImageCanvas bitmap={this.props.thumbnail} className="thumbnail"/>
         </MediaContainer>
       </div>;

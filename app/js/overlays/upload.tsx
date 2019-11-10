@@ -121,7 +121,6 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     console.log("here");
 
     let media: Partial<UnprocessedMedia> = {
-      catalog: catalog.id,
       tags: tags.map((t: Tag) => t.id),
       people: people.map((p: Person) => p.id),
       albums: [album],
@@ -129,7 +128,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     };
 
     try {
-      let created = await createMedia(media);
+      let created = await createMedia(catalog, media);
       await uploadMedia(created, pending.file);
 
       delete this.inputs.uploads[id];

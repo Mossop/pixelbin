@@ -56,6 +56,11 @@ def upload(request, ident):
     if not request.user or not request.user.is_authenticated:
         return Response(status=status.HTTP_403_FORBIDDEN)
 
+    file = request.data['file']
+    guessed_type = filetype.guess(file)
+    if guessed_type is None:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
     with transaction.atomic():
         try:
             media = Media.objects.select_for_update().get(id=ident)
@@ -65,27 +70,24 @@ def upload(request, ident):
         if not request.user.can_access_catalog(media.catalog):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        file = request.data['file']
-        filename = os.path.basename(file.name)
-        if filename is None or filename == "":
-            guessed = filetype.guess(file)
-            filename = 'original.%s' % (guessed.extension)
-
         try:
+            filename = 'original.%s' % (guessed_type.extension)
             temp = media.storage.get_temp_path(filename)
             with open(temp, "wb") as output:
                 for chunk in file.chunks():
                     output.write(chunk)
 
-            media.filename = os.path.basename(file.name)
+            if file.name is not None and len(file.name) > 0:
+                media.filename = os.path.basename(file.name)
             media.storage_filename = filename
+            media.mimetype = guessed_type.mime
+            media.process_version = None
             media.save()
-
-            process_media.delay(media.id)
         except Exception as exc:
             media.storage.delete_all_temp()
             raise exc
 
+    process_media.delay(media.id)
     serializer = MediaSerializer(media)
     return Response(serializer.data)
 
