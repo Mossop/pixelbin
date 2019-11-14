@@ -114,10 +114,59 @@ def initial_import(media):
             '-frames:v', '1',
             '-q:v', '3',
             '-f', 'singlejpeg',
+            '-y',
             tmp,
         ]
-        result = subprocess.run(args, timeout=10, check=True)
+        subprocess.run(args, timeout=10, check=True)
         process_image(media, Image.open(tmp))
+
+        target = media.storage.get_temp_path('h264.mp4')
+        args = [
+            'ffmpeg',
+            '-i', source,
+            '-vcodec', 'h264',
+            '-acodec', 'aac',
+            '-profile:v', 'high',
+            '-level', '5.1',
+            '-strict',
+            '-2',
+            '-y',
+            target,
+        ]
+        subprocess.run(args, check=True)
+        media.storage.store_storage_from_temp('h264.mp4')
+
+        target = media.storage.get_temp_path('vp9.mp4')
+        logroot = media.storage.get_temp_path('ffmpeg2pass')
+        args = [
+            'ffmpeg',
+            '-i', source,
+            '-vcodec', 'libvpx-vp9',
+            '-b:v', '2M',
+            '-pass', '1',
+            '-passlogfile', logroot,
+            '-an',
+            '-pix_fmt', 'yuv420p',
+            '-f', 'mp4',
+            '-y',
+            '/dev/null',
+        ]
+        subprocess.run(args, check=True)
+        args = [
+            'ffmpeg',
+            '-i', source,
+            '-vcodec', 'libvpx-vp9',
+            '-b:v', '2M',
+            '-pass', '2',
+            '-passlogfile', logroot,
+            '-pix_fmt', 'yuv420p',
+            '-acodec', 'libvorbis',
+            '-f', 'mp4',
+            '-y',
+            target,
+        ]
+        subprocess.run(args, check=True)
+        media.storage.store_storage_from_temp('vp9.mp4')
 
     media.storage.delete_all_temp()
     return metadata
