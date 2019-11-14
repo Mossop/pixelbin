@@ -30,8 +30,8 @@ export type PendingUpload = Proxyable<{
   thumbnail?: ImageBitmap;
   tags: string;
   people: string;
-  orientation: Orientation;
-  thumbnailOrientation: Orientation;
+  orientation?: Orientation;
+  thumbnailOrientation?: Orientation;
 }>;
 
 const MEDIA_TYPES = [

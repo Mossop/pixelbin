@@ -5,12 +5,16 @@ import { getTransformForOrientation, areDimensionsFlipped } from "../utils/metad
 import { StyleProps, styleProps } from "./shared";
 
 export type MediaContainerProps = {
-  orientation: Orientation;
+  orientation?: Orientation;
   width: number;
   height: number;
 } & StyleProps;
 
 export default class MediaContainer extends React.Component<MediaContainerProps> {
+  public get orientation(): Orientation {
+    return this.props.orientation || Orientation.TopLeft;
+  }
+
   public render(): React.ReactNode {
     let props: React.SVGProps<SVGSVGElement> = {
       ...styleProps(this.props),
@@ -19,14 +23,14 @@ export default class MediaContainer extends React.Component<MediaContainerProps>
     let [width, height] = [this.props.width, this.props.height];
 
     let [viewWidth, viewHeight] = [width, height];
-    if (areDimensionsFlipped(this.props.orientation)) {
+    if (areDimensionsFlipped(this.orientation)) {
       [viewWidth, viewHeight] = [viewHeight, viewWidth];
     }
 
     props.viewBox = `${-viewWidth/2} ${-viewHeight/2} ${viewWidth} ${viewHeight}`;
 
     return <svg {...props}>
-      <foreignObject x={-width/2} y={-height/2} width={width} height={height} transform={getTransformForOrientation(this.props.orientation)}>
+      <foreignObject x={-width/2} y={-height/2} width={width} height={height} transform={getTransformForOrientation(this.orientation)}>
         {this.props.children}
       </foreignObject>
     </svg>;
