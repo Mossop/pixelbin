@@ -3,6 +3,8 @@ from django.db.models.constraints import BaseConstraint
 from django.db.models.sql.query import Query
 from django.db.models.expressions import Func, F
 
+USE_INDEX = ['sqlite', 'postgresql']
+
 def resolve(expr, query):
     if isinstance(expr, Func):
         e = expr.copy()
@@ -17,8 +19,6 @@ def resolve(expr, query):
     return expr.resolve_expression(query=query, allow_joins=False)
 
 class UniqueWithExpressionsConstraint(BaseConstraint):
-    template = 'CONSTRAINT %(name)s UNIQUE (%(terms)s)'
-
     def __init__(self, *, name, fields, expressions=None):
         self.fields = fields
         self.expressions = expressions
@@ -37,7 +37,10 @@ class UniqueWithExpressionsConstraint(BaseConstraint):
         return terms
 
     def constraint_sql(self, model, schema_editor):
-        if schema_editor.connection.vendor == 'sqlite':
+        if schema_editor.connection.vendor in USE_INDEX:
+            sql = self.create_sql(model, schema_editor)
+            if sql:
+                schema_editor.deferred_sql.append(sql)
             return None
 
         terms = self._get_terms(model, schema_editor)
@@ -50,24 +53,27 @@ class UniqueWithExpressionsConstraint(BaseConstraint):
         }
 
     def create_sql(self, model, schema_editor):
-        if schema_editor.connection.vendor == 'sqlite':
-            return None
-
         terms = self._get_terms(model, schema_editor)
         table = Table(model._meta.db_table, schema_editor.quote_name)
         name = schema_editor.quote_name(self.name)
-
         columns = Columns(table, terms, str)
+
+        if schema_editor.connection.vendor in USE_INDEX:
+            template = schema_editor.sql_create_unique_index
+        else:
+            template = schema_editor.sql_create_unique
+
         return Statement(
-            schema_editor.sql_create_unique,
+            template,
             table=table,
             name=name,
             columns=columns,
+            condition='',
         )
 
     def remove_sql(self, model, schema_editor):
-        if schema_editor.connection.vendor == 'sqlite':
-            return None
+        if schema_editor.connection.vendor in USE_INDEX:
+            return schema_editor._delete_index_sql(model, self.name)
 
         return schema_editor._delete_unique_sql(model, self.name)
 
