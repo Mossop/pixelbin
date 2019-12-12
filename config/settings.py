@@ -1,12 +1,7 @@
 import importlib
 
-AUTH_USER_MODEL = 'api.User'
-
-SILENCED_SYSTEM_CHECKS = ["models.W027"]
-
 INSTALLED_APPS = [
     'rest_framework',
-    'django_mysql',
     'api',
     'app',
 ]
