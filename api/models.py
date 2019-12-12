@@ -9,7 +9,7 @@ from django_mysql.locks import Lock
 from .storage import Server, Backblaze
 from .storage.base import MediaStorage
 from .utils import uuid, ApiException
-from .constraints import UniqueWithLookupsConstraint
+from .constraints import UniqueWithExpressionsConstraint
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -142,9 +142,9 @@ class Album(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['catalog'], condition=Q(parent__isnull=True),
                                     name='single_root_album'),
-            UniqueWithLookupsConstraint(fields=['catalog', 'parent'],
-                                        lookups=[Lower(F('name'))],
-                                        name='unique_album_name'),
+            UniqueWithExpressionsConstraint(fields=['catalog', 'parent'],
+                                            expressions=[Lower(F('name'))],
+                                            name='unique_album_name'),
         ]
 
 class Tag(models.Model):
@@ -218,9 +218,9 @@ class Tag(models.Model):
 
     class Meta:
         constraints = [
-            UniqueWithLookupsConstraint(fields=['catalog'],
-                                        lookups=[Lower(F('name'))],
-                                        name='unique_tag_name'),
+            UniqueWithExpressionsConstraint(fields=['catalog'],
+                                            expressions=[Lower(F('name'))],
+                                            name='unique_tag_name'),
         ]
 
 class Person(models.Model):
@@ -243,9 +243,9 @@ class Person(models.Model):
 
     class Meta:
         constraints = [
-            UniqueWithLookupsConstraint(fields=['catalog'],
-                                        lookups=[Lower(F('fullname'))],
-                                        name='unique_person_name')
+            UniqueWithExpressionsConstraint(fields=['catalog'],
+                                            expressions=[Lower(F('fullname'))],
+                                            name='unique_person_name')
         ]
 
 def multiprop(name):
