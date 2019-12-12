@@ -1,10 +1,10 @@
 #! /bin/bash
 
-mkdir -p data/mysql
+mkdir -p data/postgres
 docker container rm -f pixelbin_db
 set -e
-docker run --name pixelbin_db --network pixelbin_net -p 3306:3306 --restart always \
-  -e MYSQL_ROOT_PASSWORD=pixelbin \
-  -v /Users/dave/workspace/pixelbin/data/mysql:/var/lib/mysql \
-  -d mossop/mysql
-docker run --name phpmyadmin --network pixelbin_net -d -e PMA_HOST=pixelbin_db -p 8090:80 --restart always phpmyadmin/phpmyadmin
+docker run --name pixelbin_db --network pixelbin_net -p 5432:5432 --restart always \
+  -e POSTGRES_USER=pixelbin \
+  -e POSTGRES_PASSWORD=pixelbin \
+  -v /Users/dave/workspace/pixelbin/data/postgres:/var/lib/postgresql/data \
+  -d postgres

@@ -6,7 +6,6 @@ RUN \
   apt-get update && \
   apt-get install  -y --no-install-recommends \
     python-dev \
-    default-libmysqlclient-dev \
     sudo
 
 RUN \
@@ -17,9 +16,9 @@ RUN \
 
 WORKDIR /usr/src/pixelbin
 
-COPY manage.py requirements.txt /usr/src/pixelbin/
-RUN pip install -r requirements.txt
-RUN pip install mysqlclient
+COPY manage.py requirements.txt requirements_postgres.txt /usr/src/pixelbin/
+RUN pip install -r requirements.txt && \
+    pip install -r requirements_postgres.txt
 
 COPY docker/server/start /usr/src/scripts/
 

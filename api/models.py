@@ -4,8 +4,8 @@ from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from rest_framework import status
-from django_mysql.locks import Lock
 
+from .locks import lock
 from .storage import Server, Backblaze
 from .storage.base import MediaStorage
 from .utils import uuid, ApiException
@@ -168,7 +168,7 @@ class Tag(models.Model):
 
     @staticmethod
     def lock_for_create():
-        return Lock('Tag.create')
+        return lock('Tag.create')
 
     @staticmethod
     def get_for_path(catalog, path):
@@ -230,7 +230,7 @@ class Person(models.Model):
 
     @staticmethod
     def lock_for_create():
-        return Lock('Person.create')
+        return lock('Person.create')
 
     @staticmethod
     def get_for_name(catalog, name):
