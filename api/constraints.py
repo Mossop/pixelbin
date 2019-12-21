@@ -28,7 +28,8 @@ class UniqueWithExpressionsConstraint(BaseConstraint):
         query = Query(model)
         compiler = query.get_compiler(connection=schema_editor.connection)
 
-        terms = [schema_editor.quote_name(model._meta.get_field(field_name).column) for field_name in self.fields]
+        terms = [schema_editor.quote_name(model._meta.get_field(field_name).column)
+                 for field_name in self.fields]
         for expression in self.expressions:
             expression = resolve(expression, query)
             sql, params = expression.as_sql(compiler, schema_editor.connection)
@@ -72,6 +73,7 @@ class UniqueWithExpressionsConstraint(BaseConstraint):
         )
 
     def remove_sql(self, model, schema_editor):
+        # pylint: disable=protected-access
         if schema_editor.connection.vendor in USE_INDEX:
             return schema_editor._delete_index_sql(model, self.name)
 
