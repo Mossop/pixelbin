@@ -12,7 +12,6 @@ def make_target(directory, name):
     return os.path.join(directory, name)
 
 class BaseStorage:
-    # pylint: disable=no-self-use
     def temp_root(self):
         return os.path.join(path(CONFIG.get('path', 'data')), 'storage', 'temp')
 
@@ -24,7 +23,7 @@ class BaseStorage:
 
     def delete_all_temp(self, media):
         target = os.path.join(self.temp_root(), base_path(media))
-        rmtree(target)
+        rmtree(target, True)
 
     def get_local_path(self, media, name):
         return make_target(os.path.join(self.local_root(), base_path(media)), name)

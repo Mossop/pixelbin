@@ -78,7 +78,7 @@ def upload(request, ident):
                     output.write(chunk)
 
             if file.name is not None and len(file.name) > 0:
-                media.filename = os.path.basename(file.name)
+                media.metadata.set_media_value('filename', os.path.basename(file.name))
             media.storage_filename = filename
             media.mimetype = guessed_type.mime
             media.process_version = None

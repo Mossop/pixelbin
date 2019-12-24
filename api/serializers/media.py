@@ -1,7 +1,17 @@
 from rest_framework import serializers
+from django.db.models.fields.related_descriptors import ManyToManyDescriptor
 
 from ..models import Media, Person, Tag, Album, Catalog
+from ..metadata import get_metadata_fields
 from . import Serializer
+
+class MetadataSerializer(Serializer):
+    pass
+
+def init_serializer():
+    for field in get_metadata_fields():
+        field.add_to_serializer(MetadataSerializer)
+init_serializer()
 
 class MediaSerializer(serializers.ModelSerializer):
     catalog = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Catalog.objects.all())
@@ -12,23 +22,59 @@ class MediaSerializer(serializers.ModelSerializer):
     albums = serializers.PrimaryKeyRelatedField(many=True, queryset=Album.objects.all())
     people = serializers.PrimaryKeyRelatedField(many=True, queryset=Person.objects.all())
 
-    title = serializers.CharField(max_length=200, required=False, allow_null=True, allow_blank=True)
-    taken = serializers.DateTimeField(required=False, allow_null=True)
-    longitude = serializers.FloatField(required=False, allow_null=True)
-    latitude = serializers.FloatField(required=False, allow_null=True)
-    orientation = serializers.IntegerField(required=False, allow_null=True)
+    metadata = MetadataSerializer(required=False, allow_null=False)
+
+    def create(self, validated_data):
+        init_data = {}
+        for (key, value) in validated_data.items():
+            if key == 'metadata':
+                continue
+            if isinstance(getattr(Media, key), ManyToManyDescriptor):
+                continue
+            init_data[key] = value
+        instance = Media(**init_data)
+
+        if 'metadata' in validated_data:
+            instance.metadata.deserialize(validated_data['metadata'])
+
+        instance.save()
+
+        for (key, value) in validated_data.items():
+            if isinstance(getattr(Media, key), ManyToManyDescriptor):
+                field = getattr(instance, key)
+                field.set(value)
+
+        return instance
+
+    def update(self, instance, validated_data):
+        for (key, value) in validated_data.items():
+            if key == 'metadata':
+                continue
+            if isinstance(getattr(Media, key), ManyToManyDescriptor):
+                continue
+            setattr(instance, key, value)
+
+        if 'metadata' in validated_data:
+            instance.metadata.deserialize(validated_data['metadata'])
+
+        instance.save()
+
+        for (key, value) in validated_data.items():
+            if isinstance(getattr(Media, key), ManyToManyDescriptor):
+                field = getattr(instance, key)
+                field.set(value)
+
+        return instance
 
     class Meta:
         model = Media
-        fields = ['id', 'catalog', 'filename',
+        fields = ['id', 'catalog',
                   'processVersion', 'uploaded', 'mimetype', 'width', 'height',
                   'tags', 'albums', 'people',
-                  'title', 'taken', 'longitude', 'latitude', 'orientation']
+                  'metadata']
         extra_kwargs = {
             'id': {'read_only': True},
-            'filename': {'read_only': True},
 
-            'processVersion': {'read_only': True, 'source': 'process_version'},
             'uploaded': {'read_only': True},
             'mimetype': {'read_only': True},
             'width': {'read_only': True},

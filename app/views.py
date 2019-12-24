@@ -4,6 +4,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 
 from api.serializers.state import serialize_state
+from api.metadata import get_js_spec
 from base.utils import CONFIG
 
 @ensure_csrf_cookie
@@ -20,5 +21,6 @@ def index(request):
         "keys": {
             "MAPS": CONFIG.get('keys', 'maps'),
         },
+        "metadata": get_js_spec(),
     }
     return HttpResponse(template.render(context, request))

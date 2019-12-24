@@ -19,6 +19,8 @@ import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateP
 import Media from "../components/Media";
 import { getCatalogForAlbum } from "../store/store";
 import { createPerson } from "../api/person";
+import { Draft } from "immer";
+import { setOrientation } from "../api/metadata";
 
 export type PendingUpload = Proxyable<{
   file: File;
@@ -120,12 +122,16 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     ]);
     console.log("here");
 
-    let media: Partial<UnprocessedMedia> = {
+    let media: Partial<Draft<UnprocessedMedia>> = {
       tags: tags.map((t: Tag) => t.id),
       people: people.map((p: Person) => p.id),
       albums: [album],
-      orientation: pending.orientation,
+      metadata: {},
     };
+
+    if (pending.orientation) {
+      setOrientation(media, pending.orientation);
+    }
 
     try {
       let created = await createMedia(catalog, media);

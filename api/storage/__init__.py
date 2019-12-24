@@ -3,6 +3,7 @@ from django.db import models
 class Server(models.Model):
     @property
     def storage(self):
+        # pylint: disable=import-outside-toplevel
         from .server import ServerStorage
         return ServerStorage.build()
 
@@ -14,5 +15,6 @@ class Backblaze(models.Model):
 
     @property
     def storage(self):
+        # pylint: disable=import-outside-toplevel
         from .backblaze import BackblazeStorage
         return BackblazeStorage.build(self)

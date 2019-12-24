@@ -2,9 +2,9 @@ import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
 import { DateDecoder, MapDecoder, MappingDecoder } from "../utils/decoders";
-import { Orientation } from "media-metadata/lib/metadata";
 import { Mapped } from "../utils/maps";
 import { L10nArgs, LocalizedProps, l10nAttributes } from "../l10n";
+import { Metadata, MetadataDecoder } from "./metadata";
 
 export interface APIError {
   status: number;
@@ -170,17 +170,12 @@ export const ServerStateDecoder = JsonDecoder.object<ServerState>(
 
 export interface UnprocessedMedia {
   readonly id: string;
-  readonly filename: string;
 
   readonly tags: string[];
   readonly albums: string[];
   readonly people: string[];
 
-  readonly title?: string;
-  readonly taken?: moment.Moment;
-  readonly longitude?: number;
-  readonly latitude?: number;
-  readonly orientation?: Orientation;
+  readonly metadata: Metadata;
 }
 
 export interface ProcessedMedia extends UnprocessedMedia {
@@ -196,17 +191,12 @@ export type Media = UnprocessedMedia | ProcessedMedia;
 export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
   {
     id: JsonDecoder.string,
-    filename: JsonDecoder.string,
 
     tags: JsonDecoder.array(JsonDecoder.string, "tag[]"),
     albums: JsonDecoder.array(JsonDecoder.string, "album[]"),
     people: JsonDecoder.array(JsonDecoder.string, "people[]"),
 
-    title: JsonDecoder.optional(JsonDecoder.string),
-    taken: JsonDecoder.optional(DateDecoder),
-    longitude: JsonDecoder.optional(JsonDecoder.number),
-    latitude: JsonDecoder.optional(JsonDecoder.number),
-    orientation: JsonDecoder.optional(JsonDecoder.number),
+    metadata: MetadataDecoder,
   },
   "UnprocessedMedia"
 );
@@ -214,7 +204,6 @@ export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
 export const ProcessedMediaDecoder = JsonDecoder.object<ProcessedMedia>(
   {
     id: JsonDecoder.string,
-    filename: JsonDecoder.string,
 
     processVersion: JsonDecoder.number,
     uploaded: DateDecoder,
@@ -226,11 +215,7 @@ export const ProcessedMediaDecoder = JsonDecoder.object<ProcessedMedia>(
     albums: JsonDecoder.array(JsonDecoder.string, "album[]"),
     people: JsonDecoder.array(JsonDecoder.string, "people[]"),
 
-    title: JsonDecoder.optional(JsonDecoder.string),
-    taken: JsonDecoder.optional(DateDecoder),
-    longitude: JsonDecoder.optional(JsonDecoder.number),
-    latitude: JsonDecoder.optional(JsonDecoder.number),
-    orientation: JsonDecoder.optional(JsonDecoder.number),
+    metadata: MetadataDecoder,
   },
   "ProcessedMedia"
 );

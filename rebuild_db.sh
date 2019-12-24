@@ -2,6 +2,8 @@
 
 EXEC=venv/bin/python3
 
+docker exec -i pixelbin_db psql -U pixelbin -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = 'pixelbin' AND pid <> pg_backend_pid();"
+
 docker exec -i pixelbin_db dropdb -U pixelbin pixelbin
 
 set -e

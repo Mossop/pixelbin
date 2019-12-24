@@ -1,6 +1,5 @@
 import subprocess
 import json
-from datetime import datetime
 
 from celery import shared_task
 from django.db import transaction
@@ -15,12 +14,9 @@ PROCESS_VERSION = 1
 @transaction.atomic
 def process_media(media_id):
     # pylint: disable=bare-except
-    try:
-        media = Media.objects.select_for_update().get(id=media_id)
-        process(media)
-        media.save()
-    except:
-        media.storage.delete_all_temp()
+    media = Media.objects.select_for_update().get(id=media_id)
+    process(media)
+    media.save()
 
 def process_image(media, image):
     media.width = image.width
@@ -29,62 +25,6 @@ def process_image(media, image):
         resized = resize(image, size)
         target = media.storage.get_local_path('sized%d.jpg' % (size))
         resized.save(target, None, quality=95, optimize=True)
-
-def parse_exif_date(date):
-    return datetime.strptime(date, '%Y:%m:%d %H:%M:%S')
-
-def parse_exif_subsec_date(date):
-    return datetime.strptime(date, '%Y:%m:%d %H:%M:%S.%f')
-
-def parse_metadata(metadata, spec, default=None):
-    for [key, parser] in spec:
-        if key in metadata:
-            return parser(metadata[key])
-    return default
-
-def straight(data):
-    return data
-
-def rotate(value):
-    while value < 0:
-        value += 360
-
-    if value == 0:
-        return 1
-    if value == 90:
-        return 6
-    if value == 180:
-        return 3
-    if value == 270:
-        return 8
-
-def import_metadata(media, metadata):
-    media.media_title = parse_metadata(metadata, [
-        ['Title', straight],
-    ])
-
-    media.media_taken = parse_metadata(metadata, [
-        ['SubSecDateTimeOriginal', parse_exif_subsec_date],
-        ['SubSecCreateDate', parse_exif_subsec_date],
-        ['DateTimeOriginal', parse_exif_date],
-        ['CreateDate', parse_exif_date],
-        ['DateTimeCreated', parse_exif_date],
-        ['DigitalCreationDateTime', parse_exif_date],
-    ])
-
-    media.media_longitude = parse_metadata(metadata, [
-        ['GPSLongitude', float],
-    ])
-    media.media_latitude = parse_metadata(metadata, [
-        ['GPSLatitude', float],
-    ])
-
-    # Orientation is handled automatically for videos.
-    if not media.is_video:
-        media.media_orientation = parse_metadata(metadata, [
-            ['Orientation', int],
-            ['Rotation', rotate],
-        ], 1)
 
 def initial_import(media):
     meta_path = media.storage.get_local_path('metadata.json')
@@ -168,7 +108,6 @@ def initial_import(media):
         subprocess.run(args, check=True)
         media.storage.store_storage_from_temp('vp9.mp4')
 
-    media.storage.delete_all_temp()
     return metadata
 
 def process(media):
@@ -184,7 +123,6 @@ def process(media):
         metadata = json.load(meta_file)
         meta_file.close()
 
-    with transaction.atomic():
-        import_metadata(media, metadata)
-        media.process_version = PROCESS_VERSION
-        media.save()
+    media.metadata.import_from_media(metadata)
+    media.process_version = PROCESS_VERSION
+    media.storage.delete_all_temp()

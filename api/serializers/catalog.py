@@ -41,7 +41,6 @@ class CatalogPeopleSerializer(serializers.ModelSerializer):
 class CatalogTagsSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
 
-    # pylint: disable=no-self-use
     def get_id(self, instance):
         return str(instance.id)
 
@@ -54,7 +53,6 @@ class CatalogSerializer(serializers.ModelSerializer):
     name = serializers.CharField(write_only=True)
     storage = serializers.SerializerMethodField()
 
-    # pylint: disable=no-self-use
     def get_storage(self, instance):
         return get_catalog_storage_field(instance)
 
@@ -68,7 +66,6 @@ class CatalogStateSerializer(serializers.ModelSerializer):
     albums = AlbumSerializer(many=True)
     root = serializers.SerializerMethodField()
 
-    # pylint: disable=no-self-use
     def get_root(self, catalog):
         return catalog.root.id
 
