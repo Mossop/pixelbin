@@ -7,7 +7,10 @@ def startup(sender, **kwargs):
     # pylint: disable=import-outside-toplevel
     from .models import Media
     from .tasks import PROCESS_VERSION, process_media
-    needs_processing = Media.objects.exclude(process_version=PROCESS_VERSION)
+
+    Media.objects.filter(process_version=None, new_file=False).delete()
+
+    needs_processing = Media.objects.exclude(process_version=PROCESS_VERSION, new_file=False)
     for media in needs_processing:
         process_media.delay(media.id)
 

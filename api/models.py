@@ -269,6 +269,7 @@ class Media(models.Model):
     # Fields required for the storage system. Should not be exposed to the API.
     storage_filename = models.CharField(max_length=50)
     storage_id = models.CharField(max_length=200, default="", blank=True)
+    new_file = models.BooleanField(null=False, default=False)
 
     # Fields generated from the media file.
     process_version = models.IntegerField(null=True, default=None)
@@ -276,6 +277,8 @@ class Media(models.Model):
     mimetype = models.CharField(blank=True, max_length=50)
     width = models.IntegerField(null=True, default=None)
     height = models.IntegerField(null=True, default=None)
+    duration = models.FloatField(null=True, default=None)
+    file_size = models.IntegerField(null=True, default=None)
 
     # Relationships. Entirely under API control.
     tags = models.ManyToManyField(Tag, related_name='media')

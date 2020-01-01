@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from django.http.response import HttpResponse
 from django.db import transaction
@@ -81,7 +82,8 @@ def upload(request, ident):
                 media.metadata.set_media_value('filename', os.path.basename(file.name))
             media.storage_filename = filename
             media.mimetype = guessed_type.mime
-            media.process_version = None
+            media.new_file = True
+            media.uploaded = datetime.now()
             media.save()
         except Exception as exc:
             media.storage.delete_all_temp()

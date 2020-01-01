@@ -1,24 +1,43 @@
-from datetime import datetime
+from datetime import datetime, time
+import re
 
 from django.db import models
 from rest_framework import fields
 
 METADATA_CACHE = dict()
 
-def parse_exif_date(date):
-    return datetime.strptime(date, '%Y:%m:%d %H:%M:%S')
+def parse_exif_date(text):
+    return datetime.strptime(text, '%Y:%m:%d')
 
-def parse_exif_subsec_date(date):
-    return datetime.strptime(date, '%Y:%m:%d %H:%M:%S.%f')
+def parse_exif_time(text):
+    return time.fromisoformat(text)
+
+def parse_exif_datetime(text):
+    return datetime.strptime(text, '%Y:%m:%d %H:%M:%S')
+
+def parse_exif_subsec_datetime(text):
+    return datetime.strptime(text, '%Y:%m:%d %H:%M:%S.%f')
+
+def parse_offset(offset):
+    match = re.fullmatch(r"""([+-]?)(\d{1-2}):(\d{1-2})""", offset)
+    if match is not None:
+        offset = int(match.group(2)) * 60 + int(match.group(3))
+        if match.group(1) == '-':
+            offset = -offset
+        return offset
+    return None
 
 def parse_metadata(metadata, spec, default=None):
-    for [key, parser] in spec:
+    for import_spec in spec:
+        if isinstance(import_spec, list):
+            [key, parser] = import_spec
+        else:
+            key = import_spec
+            parser = lambda x: x
+
         if key in metadata:
             return parser(metadata[key])
     return default
-
-def straight(data):
-    return data
 
 def rotate(value):
     while value < 0:
@@ -157,19 +176,11 @@ class MetadataField:
 
     def import_from_media(self, media, metadata):
         if not self.should_import(media):
+            self.set_media_value(media, self._default)
             return
         self.set_media_value(media,
                              parse_metadata(metadata,
                                             METADATA[self._key]['import_fields'], self._default))
-
-    @classmethod
-    def create(cls, key):
-        field_type = METADATA[key]['type']
-        for field_class in [StringMetadataField, IntegerMetadataField,
-                            FloatMetadataField, DateTimeMetadataField]:
-            if field_class.type == field_type:
-                return field_class(key)
-        raise Exception('Unknown metadata field type: %s' % field_type)
 
 class StringMetadataField(MetadataField):
     type = 'string'
@@ -221,41 +232,114 @@ class DateTimeMetadataField(MetadataField):
     def serialize_value(self, value):
         return value.isoformat()
 
+class TakenMetadataField(DateTimeMetadataField):
+    def import_from_media(self, media, metadata):
+        taken = parse_metadata(metadata, [
+            ['SubSecDateTimeOriginal', parse_exif_subsec_datetime],
+            ['SubSecCreateDate', parse_exif_subsec_datetime],
+        ])
+
+        if taken is not None:
+            self.set_media_value(media, taken)
+            return
+
+        taken = parse_metadata(metadata, [
+            ['DateTimeOriginal', parse_exif_datetime],
+            ['CreateDate', parse_exif_datetime],
+            ['DateTimeCreated', parse_exif_datetime],
+            ['DigitalCreationDateTime', parse_exif_datetime],
+        ])
+
+        if taken is None:
+            taken = parse_metadata(metadata, [
+                ['DigitalCreationDate', parse_exif_date],
+            ])
+
+            if taken is None:
+                self.set_media_value(media, None)
+
+            taken_time = parse_metadata(metadata, [
+                ['DigitalCreationTime', parse_exif_time],
+            ])
+
+            if taken_time is not None:
+                taken = datetime.combine(taken.date(), taken_time)
+
+        subsec = parse_metadata(metadata, [
+            'SubSecTimeOriginal',
+            'SubSecTimeDigitized',
+            'SubSecTime',
+        ])
+
+        if subsec is not None:
+            subsec = float('0.%d' % subsec) * 1000000
+            taken = taken.replace(microsecond=subsec)
+
+        self.set_media_value(media, taken)
+
 METADATA = {
     'filename': {
-        'type': 'string',
+        'import_fields': [
+            'FileName',
+        ],
     },
     'title': {
-        'type': 'string',
         'import_fields': [
-            ['Title', straight],
+            'Title',
         ],
     },
     'taken': {
-        'type': 'datetime',
+        'type': TakenMetadataField,
+    },
+    'offset': {
+        'type': IntegerMetadataField,
         'import_fields': [
-            ['SubSecDateTimeOriginal', parse_exif_subsec_date],
-            ['SubSecCreateDate', parse_exif_subsec_date],
-            ['DateTimeOriginal', parse_exif_date],
-            ['CreateDate', parse_exif_date],
-            ['DateTimeCreated', parse_exif_date],
-            ['DigitalCreationDateTime', parse_exif_date],
+            ['OffsetTime', parse_offset],
         ],
     },
     'longitude': {
-        'type': 'float',
+        'type': FloatMetadataField,
         'import_fields': [
-            ['GPSLongitude', float],
+            'GPSLongitude',
         ],
     },
     'latitude': {
-        'type': 'float',
+        'type': FloatMetadataField,
         'import_fields': [
-            ['GPSLatitude', float],
+            'GPSLatitude',
+        ],
+    },
+    'altitude': {
+        'type': FloatMetadataField,
+        'import_fields': [
+            'GPSAltitude',
+        ],
+    },
+    'location': {
+        'import_fields': [
+            'Location',
+            'Sub-location',
+        ],
+    },
+    'city': {
+        'import_fields': [
+            'City',
+        ],
+    },
+    'state': {
+        'import_fields': [
+            'State',
+            'Province-State',
+        ],
+    },
+    'country': {
+        'import_fields': [
+            'Country',
+            'Country-PrimaryLocationName',
         ],
     },
     'orientation': {
-        'type': 'integer',
+        'type': IntegerMetadataField,
         # Orientation is handled automatically for videos.
         'should_import': lambda media: not media.is_video,
         'import_fields': [
@@ -263,7 +347,65 @@ METADATA = {
             ['Rotation', rotate],
         ],
         'default': 1,
-    }
+    },
+    'make': {
+        'import_fields': [
+            'Make',
+            'ComAndroidManufacturer',
+        ],
+    },
+    'model': {
+        'import_fields': [
+            'Model',
+            'ComAndroidModel',
+        ],
+    },
+    'lens': {
+        'import_fields': [
+            'Lens',
+            'LensModel',
+        ],
+    },
+    'photographer': {
+        'import_fields': [
+            'Creator',
+            'Artist',
+            'By-line',
+        ],
+    },
+    'aperture': {
+        'type': FloatMetadataField,
+        'import_fields': [
+            'FNumber',
+            'ApertureValue',
+        ],
+    },
+    'exposure': {
+        'type': FloatMetadataField,
+        'import_fields': [
+            'ExposureTime',
+            'ShutterSpeed',
+            'ShutterSpeedValue',
+        ],
+    },
+    'iso': {
+        'type': IntegerMetadataField,
+        'import_fields': [
+            'ISO',
+        ],
+    },
+    'focal_length': {
+        'type': FloatMetadataField,
+        'import_fields': [
+            'FocalLength',
+        ],
+    },
+    'bitrate': {
+        'type': FloatMetadataField,
+        'import_fields': [
+            'AvgBitrate',
+        ],
+    },
 }
 
 def get_metadata_fields():
@@ -277,5 +419,8 @@ def get_js_spec():
 
 def init():
     for key in METADATA:
-        MetadataField.create(key)
+        if 'type' in METADATA[key]:
+            METADATA[key]['type'](key)
+        else:
+            StringMetadataField(key)
 init()

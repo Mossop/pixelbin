@@ -120,7 +120,6 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       Promise.all(tagPromises),
       Promise.all(personPromises),
     ]);
-    console.log("here");
 
     let media: Partial<Draft<UnprocessedMedia>> = {
       tags: tags.map((t: Tag) => t.id),

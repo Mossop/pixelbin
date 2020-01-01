@@ -74,14 +74,11 @@ class MediaList extends React.Component<AllProps, MediaListState> {
   private async process(id: string): Promise<void> {
     try {
       let media = await getMedia(id);
-      console.log("Got media");
       if (!isProcessed(media)) {
-        console.log("Not processed");
         return;
       }
 
       if (!this.pendingProcessing.has(id)) {
-        console.log("Already found");
         // No longer need this result.
         return;
       }
