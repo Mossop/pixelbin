@@ -102,7 +102,7 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
     className = this.props.overlay.type;
 
     return <div id="overlay" className={className} onClick={this.onClick}>
-      {overlay}
+      <div id="overlay-pane">{overlay}</div>
     </div>;
   }
 }
