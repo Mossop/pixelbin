@@ -174,6 +174,7 @@ function createReduxHistory(store: Store<StoreState>): ReduxHistory {
     },
 
     block(): UnregisterCallback {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       return (): void => {};
     },
 
