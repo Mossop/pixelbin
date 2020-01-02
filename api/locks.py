@@ -3,7 +3,7 @@ from contextlib import nullcontext
 from django.db import DEFAULT_DB_ALIAS, connections
 
 def lock(name, using=DEFAULT_DB_ALIAS):
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel,import-error
     connection = connections[using]
     if connection.vendor == 'mysql':
         from django_mysql.locks import Lock
