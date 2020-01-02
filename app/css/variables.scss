@@ -50,7 +50,14 @@
 }
 
 #overlay {
+  --padding: 40px;
+}
+
+#overlay-inner {
   --border: var(--color1);
+}
+
+#overlay-inner > * {
   --padding: 20px;
 }
 

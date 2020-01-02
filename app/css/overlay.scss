@@ -1,21 +1,22 @@
 @mixin fullscreen-overlay {
   align-items: stretch;
-  justify-content: stretch;
+  justify-content: start;
 
   #overlay-inner {
     flex: 1;
+
+    min-height: calc(100vh - (2 * var(--padding)));
   }
 }
 
 #overlay {
-  @include position(0, 0, 0, 0);
+  @include overlay;
+  @include flex-column;
+  @include vertical-scroll;
 
-  position: fixed;
-  overflow: hidden;
   background: rgba(255, 255, 255, 0.7);
-  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
 
   .form {
     flex: 1;
@@ -34,9 +35,7 @@
   @include base-styles;
   @include flex-column;
 
-  margin: 75px;
-  max-height: calc(100% - 75px);
-  max-width: calc(100% - 75px);
+  margin: var(--padding);
   border: 0.5px solid var(--border);
   border-radius: var(--border-radius);
 
@@ -50,16 +49,14 @@
   @include flex-row;
 
   flex: 1;
+  overflow: hidden;
 }
 
 #overlay-sidebar {
   @include base-styles;
-  @include flex-column;
+  @include vertical-scroll;
 
-  min-width: 150px;
-  padding-bottom: var(--padding);
   border-bottom-left-radius: var(--border-radius);
-  overflow: auto;
 
   .sidebar-item {
     padding: var(--padding) var(--padding) 0 var(--padding);
@@ -68,6 +65,13 @@
       font-size: 80%;
     }
   }
+}
+
+#overlay-sidebar-inner {
+  @include flex-column;
+
+  min-width: 150px;
+  padding-bottom: var(--padding);
 }
 
 #overlay-close {
@@ -95,19 +99,17 @@
   @include flex-column;
 
   flex: 1;
-  overflow: auto;
-  position: relative;
+  padding: var(--padding);
 }
 
 #overlay-error {
-  padding: var(--padding) var(--padding) 0 var(--padding);
+  padding-bottom: var(--padding);
   color: var(--error);
   font-weight: bold;
 }
 
 #overlay-content {
   flex: 1;
-  padding: var(--padding);
 }
 
 #overlay.upload {

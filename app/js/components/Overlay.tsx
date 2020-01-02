@@ -41,7 +41,9 @@ class Overlay extends React.Component<OverlayProps> {
   public renderSidebar(): React.ReactNode {
     if (this.props.sidebar) {
       return <div id="overlay-sidebar-wrapper">
-        <div id="overlay-sidebar">{this.props.sidebar}</div>
+        <div id="overlay-sidebar">
+          <div id="overlay-sidebar-inner">{this.props.sidebar}</div>
+        </div>
         {this.renderContent()}
       </div>;
     } else {

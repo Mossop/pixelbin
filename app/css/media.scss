@@ -5,14 +5,13 @@
   flex: 1;
   flex-wrap: wrap;
   align-items: start;
-  overflow-y: auto;
-  overflow-x: hidden;
   padding-top: var(--padding);
   padding-left: var(--padding);
 
   &.empty {
     align-items: center;
     justify-content: center;
+    padding: var(--padding);
   }
 
   .media {

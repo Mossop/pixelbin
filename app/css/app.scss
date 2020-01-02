@@ -12,20 +12,32 @@
 #app {
   @include base-styles;
   @include flex-column;
+
+  width: 100vw;
+  height: 100vh;
+}
+
+#main {
+  @include flex-column;
+
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 #sidebar-content {
   @include flex-row;
 
   flex: 1;
+  overflow: hidden;
 }
 
 #content {
   @include base-styles;
   @include flex-column;
+  @include vertical-scroll;
 
   flex: 1;
-  overflow: hidden;
 }
 
 .throbber {

@@ -2,15 +2,9 @@
   box-sizing: border-box;
 }
 
-body,
 html,
-#app {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-}
-
+body,
+div,
 p,
 h1,
 h2,
@@ -31,6 +25,9 @@ textarea {
   font-family: inherit;
   list-style-type: none;
   color: inherit;
+  overflow: visible;
+  min-height: min-content;
+  min-width: min-content;
 }
 
 a,
@@ -43,4 +40,11 @@ a:active {
 
 .icon {
   min-width: 22px;
+}
+
+html,
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }

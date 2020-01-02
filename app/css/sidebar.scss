@@ -1,9 +1,8 @@
 #sidebar {
   @include base-styles;
+  @include vertical-scroll;
 
   min-width: 250px;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 #catalog-tree {
