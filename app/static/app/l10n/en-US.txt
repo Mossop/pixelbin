@@ -7,6 +7,7 @@ api-error-media-in-no-albums = Refusing to remove media from all albums.
 api-error-request-failed = The server request failed: '{$detail}'.
 api-error-error-parse-failed = Failed to parse the server error response.
 api-error-invalid-response = Failed to parse server response: '{$detail}'.
+api-error-unauthenticated = Not authorized to access the requested API method.
 
 banner-login = Log in
 banner-signup = Signup

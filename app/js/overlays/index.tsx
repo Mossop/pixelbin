@@ -9,6 +9,7 @@ import CatalogOverlay from "./catalog";
 import AlbumOverlay from "./album";
 import { closeOverlay, DispatchProps } from "../store/actions";
 import { User } from "../api/types";
+import { getAlbum } from "../store/store";
 
 function mapStateToProps(state: StoreState): StateProps {
   return {
@@ -79,15 +80,15 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
           break;
         }
         case OverlayType.CreateAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} parent={this.props.overlay.parent}/>;
+          overlay = <AlbumOverlay user={this.props.user} parent={getAlbum(this.props.overlay.parent)}/>;
           break;
         }
         case OverlayType.EditAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} album={this.props.overlay.album} parent={this.props.overlay.parent}/>;
+          overlay = <AlbumOverlay user={this.props.user} album={getAlbum(this.props.overlay.album)} parent={getAlbum(this.props.overlay.parent)}/>;
           break;
         }
         case OverlayType.Upload: {
-          overlay = <UploadOverlay user={this.props.user} parent={this.props.overlay.parent}/>;
+          overlay = <UploadOverlay user={this.props.user} parent={getAlbum(this.props.overlay.parent)}/>;
           break;
         }
       }

@@ -6,21 +6,21 @@ import { catalogNameSorted } from "../utils/sort";
 import { Button } from "./Button";
 import { StoreState } from "../store/types";
 import Icon from "./Icon";
-import { Mapped } from "../utils/maps";
+import { MapOf } from "../utils/maps";
 import { DispatchProps, bumpState, albumEdited } from "../store/actions";
 import { editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "../api/album";
-import { albumChildren, isAncestor, getAlbum } from "../store/store";
+import { albumChildren, isAncestor, getAlbum, getCatalogRoot } from "../store/store";
 import { Property } from "../utils/StateProxy";
 
 interface StateProps {
-  catalogs: Mapped<Catalog>;
+  catalogs: MapOf<Catalog>;
 }
 
 function mapStateToProps(state: StoreState): StateProps {
   if (state.serverState.user) {
     return { catalogs: state.serverState.user.catalogs };
   }
-  return { catalogs: {} };
+  return { catalogs: new Map() };
 }
 
 abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
@@ -51,8 +51,8 @@ abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
 
   private renderCatalog(catalog: Catalog): React.ReactNode {
     return <li key={catalog.id} className="depth0">
-      {this.renderItem(catalog.root, () => this.onCatalogClick(catalog))}
-      {this.renderChildren(catalog, catalog.root)}
+      {this.renderItem(getCatalogRoot(catalog), () => this.onCatalogClick(catalog))}
+      {this.renderChildren(catalog, getCatalogRoot(catalog))}
     </li>;
   }
 
@@ -73,7 +73,7 @@ class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProp
   }
 
   protected onCatalogClick(catalog: Catalog): void {
-    this.props.property.set(catalog.root);
+    this.props.property.set(getCatalogRoot(catalog));
   }
 
   protected renderItem(item: Album, onClick: () => void): React.ReactNode {
@@ -155,9 +155,7 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps 
       }
 
       let actualAlbum = getAlbum(id);
-      if (!actualAlbum) {
-        return;
-      }
+
       // Can't drop onto it's current parent
       if (actualAlbum.parent === album.id) {
         return;

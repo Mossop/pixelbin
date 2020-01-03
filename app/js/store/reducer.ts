@@ -13,9 +13,8 @@ import { ActionType,
   CATALOG_CREATED,
   SHOW_UPLOAD_OVERLAY,
   SHOW_CATALOG_EDIT_OVERLAY,
-  CATALOG_EDITED,
   SHOW_ALBUM_CREATE_OVERLAY,
-  SHOW_ALBUM_EDIT_OVERLAY, 
+  SHOW_ALBUM_EDIT_OVERLAY,
   ALBUM_CREATED,
   ALBUM_EDITED, 
   BUMP_STATE} from "./actions";
@@ -23,7 +22,7 @@ import { StoreState, OverlayType } from "./types";
 import { history, HistoryState } from "../utils/history";
 import { UserState } from "../api/types";
 import { catalogNameSorted } from "../utils/sort";
-import { getAlbum } from "./store";
+import { mapValues } from "../utils/maps";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
@@ -38,7 +37,7 @@ function catalogReducer(state: Draft<StoreState>, user: Draft<UserState>, action
       return;
     }
     case CATALOG_CREATED: {
-      user.catalogs[action.payload.id] = action.payload;
+      user.catalogs.set(action.payload.id, action.payload);
       state.overlay = undefined;
       state.historyState = navigate(`/catalog/${action.payload.id}`);
       return;
@@ -46,13 +45,9 @@ function catalogReducer(state: Draft<StoreState>, user: Draft<UserState>, action
     case SHOW_CATALOG_EDIT_OVERLAY: {
       state.overlay = {
         type: OverlayType.EditCatalog,
-        catalog: action.payload,
+        catalog: action.payload.id,
       };
       return;
-    }
-    case CATALOG_EDITED: {
-      user.catalogs[action.payload.id] = action.payload;
-      state.overlay = undefined;
     }
   }
 }
@@ -62,13 +57,13 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: 
     case SHOW_ALBUM_CREATE_OVERLAY: {
       state.overlay = {
         type: OverlayType.CreateAlbum,
-        parent: action.payload,
+        parent: action.payload.id,
       };
       return;
     }
     case ALBUM_CREATED: {
       let album = action.payload;
-      for (let catalog of Object.values(user.catalogs)) {
+      for (let catalog of mapValues(user.catalogs)) {
         if (album.parent && album.parent in catalog.albums) {
           catalog.albums[album.id] = album;
         }
@@ -83,26 +78,22 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserState>, action: 
         return;
       }
 
-      let parent = getAlbum(action.payload.parent, state);
-      if (!parent) {
-        return;
-      }
-
       state.overlay = {
         type: OverlayType.EditAlbum,
-        album: action.payload,
-        parent,
+        album: action.payload.id,
+        parent: action.payload.parent,
       };
+
       return;
     }
     case ALBUM_EDITED: {
       let album = action.payload;
-      for (let catalog of Object.values(user.catalogs)) {
-        if (album.id in catalog.albums) {
-          delete catalog.albums[album.id];
+      for (let catalog of mapValues(user.catalogs)) {
+        if (catalog.albums.has(album.id)) {
+          catalog.albums.delete(album.id);
         }
-        if (album.parent && album.parent in catalog.albums) {
-          catalog.albums[album.id] = album;
+        if (album.parent && catalog.albums.has(album.parent)) {
+          catalog.albums.set(album.id, album);
         }
       }
 
@@ -165,7 +156,7 @@ function mediaReducer(state: Draft<StoreState>, action: ActionType): void {
     case SHOW_UPLOAD_OVERLAY: {
       state.overlay = {
         type: OverlayType.Upload,
-        parent: action.payload,
+        parent: action.payload.id,
       };
       return;
     }

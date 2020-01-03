@@ -7,21 +7,21 @@ import { StoreState } from "../store/types";
 import { Catalog, Album } from "../api/types";
 import { history } from "../utils/history";
 import { CatalogTreeSidebar } from "../components/CatalogTree";
-import { Mapped } from "../utils/maps";
+import { MapOf } from "../utils/maps";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
 };
 
 interface StateProps {
-  catalogs: Mapped<Catalog>;
+  catalogs: MapOf<Catalog>;
 }
 
 function mapStateToProps(state: StoreState): StateProps {
   if (state.serverState.user) {
     return { catalogs: state.serverState.user.catalogs };
   }
-  return { catalogs: {} };
+  return { catalogs: new Map() };
 }
 
 export interface SidebarProps {

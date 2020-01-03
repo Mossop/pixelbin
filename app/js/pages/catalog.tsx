@@ -8,7 +8,7 @@ import { Catalog, Media } from "../api/types";
 import { SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
 import { DispatchProps, showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
-import { getCatalog } from "../store/store";
+import { getCatalog, getCatalogRoot } from "../store/store";
 import NotFound from "./notfound";
 import MediaList from "../components/MediaList";
 import { Search, Field, Operation } from "../utils/search";
@@ -49,7 +49,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showAlbumCreateOverlay(this.props.catalog.root);
+    this.props.showAlbumCreateOverlay(getCatalogRoot(this.props.catalog));
   };
 
   private onUpload: (() => void) = (): void => {
@@ -57,7 +57,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showUploadOverlay(this.props.catalog.root);
+    this.props.showUploadOverlay(getCatalogRoot(this.props.catalog));
   };
 
   protected renderBannerButtons(): React.ReactNode {
@@ -74,14 +74,14 @@ class CatalogPage extends BasePage<CatalogPageProps> {
 
   protected getSidebarProps(): Partial<SidebarProps> {
     return {
-      album: this.props.catalog ? this.props.catalog.root : undefined,
+      album: this.props.catalog ? getCatalogRoot(this.props.catalog) : undefined,
     };
   }
 
   private onDragStart: (event: React.DragEvent, media: Media) => void = (event: React.DragEvent, media: Media): void => {
     event.dataTransfer.setData("pixelbin/media", media.id);
     if (this.props.catalog) {
-      event.dataTransfer.setData("pixelbin/album-media", JSON.stringify({ media: media.id, album: this.props.catalog.root.id }));
+      event.dataTransfer.setData("pixelbin/album-media", JSON.stringify({ media: media.id, album: this.props.catalog.root }));
       event.dataTransfer.effectAllowed = "copyMove";
     } else {
       event.dataTransfer.effectAllowed = "copy";
@@ -96,7 +96,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
           invert: false,
           field: Field.Album,
           operation: Operation.Includes,
-          value: this.props.catalog.root.name,
+          value: getCatalogRoot(this.props.catalog).name,
         },
       };
       return <MediaList onDragStart={this.onDragStart} search={search}/>;

@@ -1,10 +1,11 @@
 import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
 
-import { DateDecoder, MapDecoder, MappingDecoder } from "../utils/decoders";
-import { Mapped } from "../utils/maps";
+import { DateDecoder, MapDecoder } from "../utils/decoders";
+import { MapOf } from "../utils/maps";
 import { L10nArgs, LocalizedProps, l10nAttributes } from "../l10n";
 import { Metadata, MetadataDecoder } from "./metadata";
+import { Draft } from "immer";
 
 export interface APIError {
   status: number;
@@ -61,7 +62,7 @@ export interface Album {
   readonly parent: string | undefined;
 }
 
-export const AlbumDecoder = JsonDecoder.object<Album>(
+export const AlbumDecoder = JsonDecoder.object<Draft<Album>>(
   {
     id: JsonDecoder.string,
     stub: JsonDecoder.optional(JsonDecoder.string),
@@ -77,7 +78,7 @@ export interface Tag {
   readonly parent: string | undefined;
 }
 
-export const TagDecoder = JsonDecoder.object<Tag>(
+export const TagDecoder = JsonDecoder.object<Draft<Tag>>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
@@ -91,7 +92,7 @@ export interface Person {
   readonly fullname: string;
 }
 
-export const PersonDecoder = JsonDecoder.object<Person>(
+export const PersonDecoder = JsonDecoder.object<Draft<Person>>(
   {
     id: JsonDecoder.string,
     fullname: JsonDecoder.string,
@@ -101,14 +102,12 @@ export const PersonDecoder = JsonDecoder.object<Person>(
 
 export interface Catalog {
   readonly id: string;
-  readonly root: Album;
-  readonly tags: Readonly<Mapped<Tag>>;
-  readonly albums: Readonly<Mapped<Album>>;
+  readonly root: string;
+  readonly tags: MapOf<Tag>;
+  readonly albums: MapOf<Album>;
 }
 
-type SerializedCatalog = Omit<Catalog, "root"> & { root: string };
-
-export const CatalogDecoder = MappingDecoder(JsonDecoder.object<SerializedCatalog>(
+export const CatalogDecoder = JsonDecoder.object<Draft<Catalog>>(
   {
     id: JsonDecoder.string,
     root: JsonDecoder.string,
@@ -116,14 +115,7 @@ export const CatalogDecoder = MappingDecoder(JsonDecoder.object<SerializedCatalo
     albums: MapDecoder(AlbumDecoder, "Album"),
   },
   "Catalog"
-), (source: SerializedCatalog): Catalog => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (source.albums[source.root]) {
-    return Object.assign({}, source, { root: source.albums[source.root] });
-  } else {
-    throw new Error("Missing root album.");
-  }
-}, "Catalog");
+);
 
 export interface User {
   readonly email: string;
@@ -132,7 +124,7 @@ export interface User {
   readonly verified: boolean;
 }
 
-export const UserDecoder = JsonDecoder.object<User>(
+export const UserDecoder = JsonDecoder.object<Draft<User>>(
   {
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
@@ -143,10 +135,10 @@ export const UserDecoder = JsonDecoder.object<User>(
 );
 
 export interface UserState extends User {
-  readonly catalogs: Readonly<Mapped<Catalog>>;
+  readonly catalogs: MapOf<Catalog>;
 }
 
-export const UserStateDecoder = JsonDecoder.object<UserState>(
+export const UserStateDecoder = JsonDecoder.object<Draft<UserState>>(
   {
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
@@ -161,7 +153,7 @@ export interface ServerState {
   readonly user?: UserState;
 }
 
-export const ServerStateDecoder = JsonDecoder.object<ServerState>(
+export const ServerStateDecoder = JsonDecoder.object<Draft<ServerState>>(
   {
     user: JsonDecoder.optional(UserStateDecoder),
   },
@@ -188,7 +180,7 @@ export interface ProcessedMedia extends UnprocessedMedia {
 
 export type Media = UnprocessedMedia | ProcessedMedia;
 
-export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
+export const UnprocessedMediaDecoder = JsonDecoder.object<Draft<UnprocessedMedia>>(
   {
     id: JsonDecoder.string,
 
@@ -201,7 +193,7 @@ export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMedia>(
   "UnprocessedMedia"
 );
 
-export const ProcessedMediaDecoder = JsonDecoder.object<ProcessedMedia>(
+export const ProcessedMediaDecoder = JsonDecoder.object<Draft<ProcessedMedia>>(
   {
     id: JsonDecoder.string,
 

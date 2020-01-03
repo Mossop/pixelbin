@@ -1,4 +1,4 @@
-import { ServerState, Catalog, Album } from "../api/types";
+import { ServerState } from "../api/types";
 import { HistoryState } from "../utils/history";
 
 export enum OverlayType {
@@ -17,23 +17,23 @@ interface BaseOverlayState {
 
 interface UploadOverlayState {
   readonly type: OverlayType.Upload;
-  readonly parent: Album;
+  readonly parent: string;
 }
 
 interface CatalogEditOverlayState {
   readonly type: OverlayType.EditCatalog;
-  readonly catalog: Catalog;
+  readonly catalog: string;
 }
 
 interface AlbumCreateOverlayState {
   readonly type: OverlayType.CreateAlbum;
-  readonly parent: Album;
+  readonly parent: string;
 }
 
 interface AlbumEditOverlayState {
   readonly type: OverlayType.EditAlbum;
-  readonly album: Album;
-  readonly parent: Album;
+  readonly album: string;
+  readonly parent: string;
 }
 
 export type OverlayState = BaseOverlayState | UploadOverlayState | CatalogEditOverlayState | AlbumCreateOverlayState | AlbumEditOverlayState;

@@ -1,7 +1,8 @@
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 import moment from "moment";
 
-import { Mappable, Mapped } from "./maps";
+import { Mappable, MapOf } from "./maps";
+import { Draft } from "immer";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
@@ -43,16 +44,16 @@ export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undef
 
 export const DateDecoder = MappingDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
 
-export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<A>, name: string): JsonDecoder.Decoder<Readonly<Mapped<A>>> {
-  return MappingDecoder<A[], Mapped<A>>(
+export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<Draft<A>>, name: string): JsonDecoder.Decoder<Draft<MapOf<A>>> {
+  return MappingDecoder<Draft<A[]>, Draft<MapOf<A>>>(
     JsonDecoder.array(decoder, name),
-    (arr: A[]) => {
-      let result: Mapped<A> = {};
+    (arr: Draft<A[]>) => {
+      let result: Map<string, Draft<A>> = new Map();
       for (let val of arr) {
-        result[val.id] = val;
+        result.set(val.id, val);
       }
       return result;
     },
-    `Mapped<string, ${name}>`
+    `MapOf<${name}>`
   );
 }

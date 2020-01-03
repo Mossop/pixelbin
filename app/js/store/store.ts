@@ -6,8 +6,9 @@ import { StoreState } from "./types";
 import { ActionType } from "./actions";
 import { Catalog, ServerStateDecoder, Album, ServerState } from "../api/types";
 import { decode } from "../utils/decoders";
-import { MapId, intoId } from "../utils/maps";
+import { MapId, intoId, mapValues, mapIncludes } from "../utils/maps";
 import { nameSorted } from "../utils/sort";
+import { exception, ErrorCode } from "../utils/exception";
 
 function buildStore(): Store<StoreState, ActionType> {
   let initialServerState: ServerState = {};
@@ -48,16 +49,25 @@ const store = buildStore();
 // only part of the state we care about anyway.
 type ServerStoreState = Pick<StoreState, "serverState">;
 
-export function getCatalog(id: string, state?: ServerStoreState): Catalog | undefined {
+export function dispatch(action: ActionType): void {
+  store.dispatch(action);
+}
+
+export function getCatalog(id: string, state?: ServerStoreState): Catalog {
   if (!state) {
     state = store.getState();
   }
 
   if (!state.serverState.user) {
-    return undefined;
+    exception(ErrorCode.NotLoggedIn);
   }
 
-  return state.serverState.user.catalogs[id];
+  let catalog: Catalog | undefined = state.serverState.user.catalogs.get(id);
+  if (!catalog) {
+    exception(ErrorCode.UnknownCatalog);
+  }
+
+  return catalog;
 }
 
 export function getCatalogForAlbum(album: MapId<Album>, state?: ServerStoreState): Catalog {
@@ -67,62 +77,101 @@ export function getCatalogForAlbum(album: MapId<Album>, state?: ServerStoreState
 
   let id = intoId(album);
   if (!state.serverState.user) {
-    throw new Error("Attempt to find catalog for an unauthenticated user.");
+    exception(ErrorCode.NotLoggedIn);
   }
 
-  for (let catalog of Object.values(state.serverState.user.catalogs)) {
-    if (id in catalog.albums) {
+  for (let catalog of mapValues(state.serverState.user.catalogs)) {
+    if (mapIncludes(catalog.albums, id)) {
       return catalog;
     }
   }
 
-  throw new Error("Attempt to find catalog for an unknown album.");
+  exception(ErrorCode.UnknownCatalog);
 }
 
-export function getAlbum(album: MapId<Album>, state?: ServerStoreState): Album | undefined {
+export function getAlbum(album: MapId<Album>, state?: ServerStoreState): Album {
   if (typeof album === "string") {
-    return getCatalogForAlbum(album, state).albums[album];
-  } else {
-    return album;
+    let found = getCatalogForAlbum(album, state).albums.get(album);
+    if (!found) {
+      exception(ErrorCode.UnknownAlbum);
+    }
+    return found;
   }
+  return album;
+}
+
+export function getCatalogRoot(catalog: MapId<Catalog>, state?: ServerStoreState): Album {
+  let cat: Catalog = getCatalog(intoId(catalog), state);
+  let album = cat.albums.get(cat.root);
+  if (!album) {
+    exception(ErrorCode.UnknownAlbum);
+  }
+  return album;
+}
+
+export function getCatalogAlbum(catalog: MapId<Catalog>, album: MapId<Album>, state?: ServerStoreState): Album {
+  let cat: Catalog = getCatalog(intoId(catalog), state);
+  if (!mapIncludes(cat.albums, album)) {
+    exception(ErrorCode.UnknownAlbum);
+  }
+
+  if (typeof album === "string") {
+    let found = cat.albums.get(album);
+    if (!found) {
+      exception(ErrorCode.UnknownAlbum);
+    }
+    return found;
+  }
+  return album;
 }
 
 export function albumChildren(album: MapId<Album>, catalog?: Catalog): Album[] {
   let parent = intoId(album);
   catalog = catalog ? catalog : getCatalogForAlbum(album);
-  return nameSorted(Object.values(catalog.albums).filter((a: Album) => a.parent == parent));
+  return nameSorted(mapValues(catalog.albums).filter((a: Album) => a.parent == parent));
 }
 
-export function isAncestor(maybeAncestor: MapId<Album>, album: MapId<Album>): boolean {
-  let ancestor = intoId(maybeAncestor);
-  let kid = getAlbum(album);
-  if (!kid || !kid.parent) {
+export function isAncestor(maybeAncestor: MapId<Album>, album: MapId<Album>, state?: ServerStoreState): boolean {
+  if (!state) {
+    state = store.getState();
+  }
+
+  if (!state.serverState.user) {
+    exception(ErrorCode.NotLoggedIn);
+  }
+
+  let ancestorId = intoId(maybeAncestor);
+  let descendent = getAlbum(album, state);
+
+  // No parent, cannot be an ancestor.
+  if (!descendent.parent) {
     return false;
   }
 
-  if (kid.parent === ancestor) {
+  // Simple case
+  if (descendent.parent === ancestorId) {
     return true;
   }
 
-  let catalog;
-  try {
-    catalog = getCatalogForAlbum(album);
-  } catch {
-    return false;
-  }
+  for (let catalog of mapValues(state.serverState.user.catalogs)) {
+    if (mapIncludes(catalog.albums, ancestorId)) {
+      // If they aren't in the same catalog then cannot be an ancestor.
+      if (!mapIncludes(catalog.albums, descendent)) {
+        return false;
+      }
 
-  if (!(ancestor in catalog.albums)) {
-    return false;
-  }
+      let parent: Album | undefined = catalog.albums.get(descendent.parent);
+      while (parent) {
+        if (parent.parent === ancestorId) {
+          return true;
+        }
+      }
 
-  while(kid && kid.parent) {
-    kid = catalog.albums[kid.parent];
-    if (kid && kid.parent === ancestor) {
-      return true;
+      return false;
     }
   }
 
-  return false;
+  exception(ErrorCode.UnknownCatalog);
 }
 
 export default store;

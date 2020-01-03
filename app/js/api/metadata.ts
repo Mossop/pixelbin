@@ -143,7 +143,7 @@ for (let field of MetadataFields.values()) {
   decoderSpec[field.key] = field.decoder();
 }
 
-export const MetadataDecoder = JsonDecoder.object<Metadata>(
+export const MetadataDecoder = JsonDecoder.object<Draft<Metadata>>(
   decoderSpec,
   "Metadata"
 );

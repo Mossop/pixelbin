@@ -1,7 +1,8 @@
 import { buildJSONBody, request } from "./api";
 import { ServerStateDecoder, ServerState } from "./types";
+import { Draft } from "immer";
 
-export async function login(email: string, password: string): Promise<ServerState> {
+export async function login(email: string, password: string): Promise<Draft<ServerState>> {
   return request({
     url: "login",
     method: "POST",
@@ -13,7 +14,7 @@ export async function login(email: string, password: string): Promise<ServerStat
   });
 }
 
-export async function signup(email: string, fullname: string, password: string): Promise<ServerState> {
+export async function signup(email: string, fullname: string, password: string): Promise<Draft<ServerState>> {
   return request({
     url: "user/create",
     method: "PUT",
@@ -26,7 +27,7 @@ export async function signup(email: string, fullname: string, password: string):
   });
 }
 
-export async function logout(): Promise<ServerState> {
+export async function logout(): Promise<Draft<ServerState>> {
   return request({
     url: "logout",
     method: "POST",

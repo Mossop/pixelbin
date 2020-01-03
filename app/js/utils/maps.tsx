@@ -1,5 +1,5 @@
 export interface Mappable {
-  id: string;
+  readonly id: string;
 }
 
 export type MapId<R> = R | string;
@@ -15,18 +15,27 @@ export function intoIds<R extends Mappable>(items: MapId<R>[]): string[] {
   return items.map(intoId);
 }
 
-export interface Mapped<R extends Mappable> {
-  [key: string]: R;
+export type MapOf<R extends Mappable> = ReadonlyMap<string, R>;
+
+export function mapValues<R extends Mappable>(map: MapOf<R> | R[]): R[] {
+  if (map instanceof Map) {
+    return Array.from(map.values());
+  }
+  return Object.values(map);
 }
 
-export function mapValues<R extends Mappable>(map: Mapped<R> | R[]): R[] {
-  return Object.values(map).filter((item: R | undefined): item is R => !!item);
-}
-
-export function mapKeys<R extends Mappable>(map: Mapped<R> | R[]): string[] {
+export function mapKeys<R extends Mappable>(map: MapOf<R> | R[]): string[] {
   return mapValues(map).map((item: R) => item.id);
 }
 
-export function mapEntries<R extends Mappable>(map: Mapped<R> | R[]): [string, R][] {
+export function mapEntries<R extends Mappable>(map: MapOf<R> | R[]): [string, R][] {
   return mapValues(map).map((item: R) => [item.id, item]);
+}
+
+export function mapIncludes<R extends Mappable>(map: MapOf<R> | R[], item: MapId<R>): boolean {
+  if (map instanceof Map) {
+    return map.has(intoId(item));
+  }
+
+  return mapKeys(map).includes(intoId(item));
 }
