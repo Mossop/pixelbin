@@ -3,6 +3,9 @@ FROM python:3
 RUN \
   apt-get update && \
   apt-get install  -y --no-install-recommends \
+    apt-utils && \
+  apt-get upgrade -y && \
+  apt-get install  -y --no-install-recommends \
     python-dev \
     ffmpeg \
     exiftool \

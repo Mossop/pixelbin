@@ -5,6 +5,9 @@ EXPOSE 8000/tcp
 RUN \
   apt-get update && \
   apt-get install  -y --no-install-recommends \
+    apt-utils && \
+  apt-get upgrade -y && \
+  apt-get install  -y --no-install-recommends \
     python-dev \
     sudo
 
