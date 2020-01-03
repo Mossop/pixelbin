@@ -33,7 +33,7 @@ def api_view(http_method_names=None, requires_login=True):
 
     def decorator(func):
         def inner_view(request, *args, **kwargs):
-            # pylint: disable=broad-except
+            # pylint: disable=broad-except,too-many-return-statements
             if requires_login and request.user is None or not request.user.is_authenticated:
                 return build_error_response('unauthenticated',
                                             status=http_status.HTTP_403_FORBIDDEN)
