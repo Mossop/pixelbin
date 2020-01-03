@@ -28,12 +28,16 @@ class ApiException(Exception):
 def uuid(start):
     return start + urlsafe_b64encode(uuid4().bytes).decode("utf-8")
 
-def api_view(http_method_names=None):
+def api_view(http_method_names=None, requires_login=True):
     rest_decorator = rest_view(http_method_names=http_method_names)
 
     def decorator(func):
         def inner_view(request, *args, **kwargs):
             # pylint: disable=broad-except
+            if requires_login and request.user is None or not request.user.is_authenticated:
+                return build_error_response('unauthenticated',
+                                            status=http_status.HTTP_403_FORBIDDEN)
+
             try:
                 return func(request, *args, **kwargs)
             except exceptions.ValidationError as exception:

@@ -15,5 +15,4 @@ class AlbumSerializer(serializers.ModelSerializer):
         }
 
 class ManyMediaSerializer(ListSerializer):
-    child = serializers.PrimaryKeyRelatedField(many=True,
-                                               queryset=Media.objects.all())
+    child = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())

@@ -7,26 +7,20 @@ from ..serializers.album import AlbumSerializer, ManyMediaSerializer
 
 @api_view(['PUT'])
 def create(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     serializer = AlbumSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    catalog = serializer.validated_data['catalog']
-    if not request.user.can_access_catalog(catalog):
+    parent = serializer.validated_data['parent']
+    if not request.user.can_access_catalog(parent.catalog):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    album = serializer.save(id=uuid("A"), catalog=catalog)
+    album = serializer.save(id=uuid("A"), catalog=parent.catalog, parent=parent)
 
     serializer = AlbumSerializer(album)
     return Response(serializer.data)
 
 @api_view(['PATCH'])
 def edit(request, ident):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     try:
         album = Album.objects.get(id=ident)
         if not request.user.can_access_catalog(album.catalog):
@@ -46,9 +40,6 @@ def edit(request, ident):
 
 @api_view(['PUT'])
 def add(request, ident):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     try:
         album = Album.objects.get(id=ident)
         if not request.user.can_access_catalog(album.catalog):
@@ -58,20 +49,16 @@ def add(request, ident):
 
     serializer = ManyMediaSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    data = serializer.validated_data
 
     for media in serializer.validated_data:
-        if media.catalog != data['album'].catalog:
+        if media.catalog != album.catalog:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    data['album'].media.add(*serializer.validated_data)
+    album.media.add(*serializer.validated_data)
     return Response(status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
 def remove(request, ident):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     try:
         album = Album.objects.get(id=ident)
         if not request.user.can_access_catalog(album.catalog):
@@ -81,7 +68,6 @@ def remove(request, ident):
 
     serializer = ManyMediaSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    data = serializer.validated_data
 
-    data['album'].media.remove(*serializer.validated_data)
+    album.media.remove(*serializer.validated_data)
     return Response(status=status.HTTP_200_OK)

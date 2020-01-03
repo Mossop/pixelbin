@@ -7,9 +7,6 @@ from ..serializers.tag import TagSerializer, TagFindSerializer
 
 @api_view(['PUT'])
 def create(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     serializer = TagSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -31,9 +28,6 @@ def create(request):
 
 @api_view(['POST'])
 def find(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     serializer = TagFindSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 

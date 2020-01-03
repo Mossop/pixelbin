@@ -9,9 +9,6 @@ from ..serializers.catalog import CatalogSerializer, BackblazeSerializer, Server
 
 @api_view(['PUT'])
 def create(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     if 'storage' not in request.data or 'type' not in request.data['storage']:
         return Response(status=status.HTTP_400_BAD_REQUEST)
 

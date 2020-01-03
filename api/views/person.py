@@ -7,9 +7,6 @@ from ..serializers.person import PersonSerializer
 
 @api_view(['PUT'])
 def create(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     serializer = PersonSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 

@@ -18,9 +18,6 @@ from ..media import build_thumbnail
 
 @api_view(['PUT'])
 def create(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     serializer = MediaSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -37,9 +34,6 @@ def create(request):
 
 @api_view(['GET'])
 def get(request, ident):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     try:
         media = Media.objects.get(id=ident)
 
@@ -54,9 +48,6 @@ def get(request, ident):
 @api_view(['PUT'])
 @parser_classes([MultiPartParser])
 def upload(request, ident):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     file = request.data['file']
     guessed_type = filetype.guess(file)
     if guessed_type is None:
@@ -95,9 +86,6 @@ def upload(request, ident):
 
 @api_view(['POST'])
 def search(request):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     serializer = SearchSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     search_params = serializer.create(serializer.validated_data)
@@ -114,9 +102,6 @@ def search(request):
 
 @api_view(['GET'])
 def thumbnail(request, ident):
-    if not request.user or not request.user.is_authenticated:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     try:
         media = Media.objects.get(id=ident)
     except Media.DoesNotExist:

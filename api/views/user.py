@@ -11,8 +11,6 @@ from ..serializers.state import serialize_state
 @transaction.atomic
 @api_view(['PUT'])
 def create(request):
-    if request.user and request.user.is_authenticated and not request.user.is_staff:
-        return Response(status=status.HTTP_403_FORBIDDEN)
     serializer = UserSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     if len(models.User.objects.filter(email=serializer['email'])) > 0:
@@ -23,7 +21,7 @@ def create(request):
         login_user(request, user)
     return Response(serialize_state(request))
 
-@api_view(['POST'])
+@api_view(['POST'], requires_login=False)
 def login(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -34,7 +32,7 @@ def login(request):
         return Response(serialize_state(request))
     raise ApiException('login-failed', status=status.HTTP_403_FORBIDDEN)
 
-@api_view(['POST'])
+@api_view(['POST'], requires_login=False)
 def logout(request):
     logout_user(request)
     return Response(serialize_state(request))
