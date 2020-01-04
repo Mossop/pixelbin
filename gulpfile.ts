@@ -32,7 +32,11 @@ function allScripts(): string[] {
 
 function babelOptions(): RuleSetQuery {
   return {
-    plugins: ["@babel/plugin-proposal-class-properties"],
+    plugins: [
+      "@babel/plugin-proposal-class-properties",
+      "@babel/plugin-proposal-optional-chaining",
+      "@babel/plugin-proposal-nullish-coalescing-operator",
+    ],
     presets: [
       ["@babel/preset-typescript", {
         isTSX: true,
@@ -64,6 +68,13 @@ function buildJsConfig(): Configuration {
       rules: [{
         test: /\.(ts|js)x?$/,
         exclude: /(node_modules|bower_components)/,
+        use: {
+          loader: "babel-loader",
+          options: babelOptions(),
+        }
+      }, {
+        test: /\.(ts|js)x?$/,
+        include: /node_modules\/immer/,
         use: {
           loader: "babel-loader",
           options: babelOptions(),
