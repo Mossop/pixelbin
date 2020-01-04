@@ -1,7 +1,7 @@
-import { request, buildJSONBody, apiURL, buildFormBody, baseRequest, buildGetURL } from "./api";
-import { Media, MediaArrayDecoder, MediaDecoder, UnprocessedMedia, UnprocessedMediaDecoder, Catalog } from "./types";
 import { Search } from "../utils/search";
 import { intoId, MapId } from "../utils/maps";
+import { request, buildJSONBody, apiURL, buildFormBody, baseRequest, buildGetURL } from "./api";
+import { Media, MediaArrayDecoder, MediaDecoder, UnprocessedMedia, UnprocessedMediaDecoder, Catalog } from "./types";
 
 export async function getMedia(id: string): Promise<Media> {
   let url = apiURL(`media/get/${id}`);

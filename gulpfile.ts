@@ -1,7 +1,6 @@
 /* eslint-env node */
 import { src, dest, parallel, watch } from "gulp";
-import { RuleSetQuery } from "webpack";
-import { Configuration } from "webpack";
+import { Configuration, RuleSetQuery } from "webpack";
 import gulpWebpack from "webpack-stream";
 import named from "vinyl-named";
 import gulpSass from "gulp-sass";

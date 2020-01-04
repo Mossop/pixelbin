@@ -2,14 +2,14 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { StoreState, OverlayState, OverlayType } from "../store/types";
+import { closeOverlay, DispatchProps } from "../store/actions";
+import { User } from "../api/types";
+import { getAlbum } from "../store/store";
 import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
 import UploadOverlay from "./upload";
 import CatalogOverlay from "./catalog";
 import AlbumOverlay from "./album";
-import { closeOverlay, DispatchProps } from "../store/actions";
-import { User } from "../api/types";
-import { getAlbum } from "../store/store";
 
 function mapStateToProps(state: StoreState): StateProps {
   return {

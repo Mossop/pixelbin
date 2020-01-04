@@ -1,8 +1,9 @@
 import stream from "stream";
 
-import { LintInfo, python, VinylFile } from "./utils";
-import { path } from "../base/config";
 import through2 from "through2";
+
+import { path } from "../base/config";
+import { LintInfo, python, VinylFile } from "./utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function lintFromPylint(message: any): LintInfo {

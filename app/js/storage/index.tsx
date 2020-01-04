@@ -1,10 +1,10 @@
 import React from "react";
 
 import { FormField } from "../components/Form";
+import { Option } from "../components/Selectbox";
+import { makeProperty } from "../utils/StateProxy";
 import { StorageConfig } from "./types";
 import { renderBackblazeConfigUI } from "./backblaze";
-import { Option } from "../components/SelectBox";
-import { makeProperty } from "../utils/StateProxy";
 
 export function renderStorageConfigUI(config: StorageConfig, disabled: boolean): React.ReactNode {
   let inner: React.ReactNode = null;

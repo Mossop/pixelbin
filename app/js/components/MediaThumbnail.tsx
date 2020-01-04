@@ -1,10 +1,11 @@
 import React from "react";
+import { connect } from "react-redux";
+
 import { Media, isProcessed } from "../api/types";
 import { StoreState } from "../store/types";
-import { connect } from "react-redux";
+import { getOrientation } from "../api/metadata";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
-import { getOrientation } from "../api/metadata";
 
 interface MediaProps {
   media: Media;

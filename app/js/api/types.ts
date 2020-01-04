@@ -1,7 +1,7 @@
 import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
-import { Draft } from "../utils/immer";
 
+import { Draft } from "../utils/immer";
 import { DateDecoder, MapDecoder } from "../utils/decoders";
 import { MapOf } from "../utils/maps";
 import { L10nArgs, LocalizedProps, l10nAttributes } from "../l10n";

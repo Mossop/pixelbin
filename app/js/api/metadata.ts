@@ -1,10 +1,10 @@
 import { JsonDecoder, Result, err, ok } from "ts.data.json";
 import moment from "moment";
-import { Draft } from "../utils/immer";
 import { Orientation } from "media-metadata/lib/metadata";
 
-import { UnprocessedMedia } from "./types";
+import { Draft } from "../utils/immer";
 import { DateDecoder, decode } from "../utils/decoders";
+import { UnprocessedMedia } from "./types";
 
 export interface Metadata {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

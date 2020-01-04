@@ -1,6 +1,6 @@
 import { Catalog } from "../api/types";
-import { mapValues, MapOf, Mappable } from "./maps";
 import { getCatalogRoot } from "../store/store";
+import { mapValues, MapOf, Mappable } from "./maps";
 
 type Comparator<A> = (a: A, b: A) => number;
 

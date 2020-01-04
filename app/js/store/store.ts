@@ -1,14 +1,14 @@
 import { applyMiddleware, createStore, Store, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
-import reducer from "./reducer";
-import { StoreState } from "./types";
-import { ActionType } from "./actions";
 import { Catalog, ServerStateDecoder, Album, ServerState } from "../api/types";
 import { decode } from "../utils/decoders";
 import { MapId, intoId, mapValues, mapIncludes } from "../utils/maps";
 import { nameSorted } from "../utils/sort";
 import { exception, ErrorCode } from "../utils/exception";
+import { ActionType } from "./actions";
+import { StoreState } from "./types";
+import reducer from "./reducer";
 
 function buildStore(): Store<StoreState, ActionType> {
   let initialServerState: ServerState = {};
@@ -48,10 +48,6 @@ const store = buildStore();
 // Something about the history state is messing up type inference, this is the
 // only part of the state we care about anyway.
 type ServerStoreState = Pick<StoreState, "serverState">;
-
-export function dispatch(action: ActionType): void {
-  store.dispatch(action);
-}
 
 export function getCatalog(id: string, state?: ServerStoreState): Catalog {
   if (!state) {

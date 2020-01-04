@@ -1,6 +1,6 @@
 import React from "react";
-
 import { Orientation } from "media-metadata/lib/metadata";
+
 import { getTransformForOrientation, areDimensionsFlipped } from "../utils/metadata";
 import { StyleProps, styleProps } from "./shared";
 

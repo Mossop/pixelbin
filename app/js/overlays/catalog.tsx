@@ -6,7 +6,7 @@ import Form, { FormField } from "../components/Form";
 import { renderStorageConfigUI } from "../storage";
 import { createCatalog } from "../api/catalog";
 import { catalogCreated, DispatchProps } from "../store/actions";
-import Overlay from "../components/overlay";
+import Overlay from "../components/Overlay";
 import { StorageConfig } from "../storage/types";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";

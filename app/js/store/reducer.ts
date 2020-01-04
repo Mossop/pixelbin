@@ -1,6 +1,11 @@
 import { LocationState } from "history";
-import { produce, Draft } from "../utils/immer";
 
+import { produce, Draft } from "../utils/immer";
+import { history, HistoryState } from "../utils/history";
+import { UserState } from "../api/types";
+import { catalogNameSorted } from "../utils/sort";
+import { mapValues } from "../utils/maps";
+import { StoreState, OverlayType } from "./types";
 import { ActionType,
   SET_HISTORY_STATE,
   SHOW_LOGIN_OVERLAY,
@@ -18,11 +23,6 @@ import { ActionType,
   ALBUM_CREATED,
   ALBUM_EDITED, 
   BUMP_STATE} from "./actions";
-import { StoreState, OverlayType } from "./types";
-import { history, HistoryState } from "../utils/history";
-import { UserState } from "../api/types";
-import { catalogNameSorted } from "../utils/sort";
-import { mapValues } from "../utils/maps";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);

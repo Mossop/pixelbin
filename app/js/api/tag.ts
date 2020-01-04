@@ -1,6 +1,6 @@
+import { intoId, MapId } from "../utils/maps";
 import { buildJSONBody, request } from "./api";
 import { Tag, Catalog, TagDecoder } from "./types";
-import { intoId, MapId } from "../utils/maps";
 
 export async function findTag(catalog: MapId<Catalog>, path: string[]): Promise<Tag> {
   return request({

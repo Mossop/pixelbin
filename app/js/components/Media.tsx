@@ -1,4 +1,5 @@
 import React from "react";
+
 import MediaContainer, { MediaContainerProps } from "./MediaContainer";
 
 type MediaProps = MediaContainerProps & {

@@ -3,14 +3,14 @@ import { connect } from "react-redux";
 
 import { Catalog, Album } from "../api/types";
 import { catalogNameSorted } from "../utils/sort";
-import { Button } from "./Button";
 import { StoreState } from "../store/types";
-import Icon from "./Icon";
 import { MapOf } from "../utils/maps";
 import { DispatchProps, bumpState, albumEdited } from "../store/actions";
 import { editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "../api/album";
 import { albumChildren, isAncestor, getAlbum, getCatalogRoot } from "../store/store";
 import { Property } from "../utils/StateProxy";
+import Icon from "./Icon";
+import { Button } from "./Button";
 
 interface StateProps {
   catalogs: MapOf<Catalog>;

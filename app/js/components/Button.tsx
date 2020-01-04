@@ -1,9 +1,8 @@
 import React from "react";
-
 import { Localized } from "@fluent/react";
 
-import { fieldProps, FieldProps } from "./shared";
 import { OptionalL10nProps } from "../l10n";
+import { fieldProps, FieldProps } from "./shared";
 import Icon, { IconProps } from "./Icon";
 
 type ButtonProps  = {

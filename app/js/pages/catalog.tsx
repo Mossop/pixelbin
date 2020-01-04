@@ -1,17 +1,17 @@
 import React from "react";
-
-import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
+
+import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
 import { StoreState } from "../store/types";
 import { Catalog, Media } from "../api/types";
 import { SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
 import { DispatchProps, showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
 import { getCatalog, getCatalogRoot } from "../store/store";
-import NotFound from "./notfound";
 import MediaList from "../components/MediaList";
 import { Search, Field, Operation } from "../utils/search";
+import NotFound from "./notfound";
 
 interface MatchParams {
   id: string;

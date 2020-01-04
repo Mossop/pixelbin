@@ -6,7 +6,7 @@ import Form, { FormField } from "../components/Form";
 import { Album, User, APIError } from "../api/types";
 import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
-import Overlay from "../components/overlay";
+import Overlay from "../components/Overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import { Patch } from "../api/api";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";

@@ -1,9 +1,11 @@
 import stream from "stream";
 import { spawn } from "child_process";
 
-import through2 = require("through2");
 import { TransformCallback } from "through2";
+
 import { path } from "../base/config";
+
+import through2 = require("through2");
 
 const PYTHON = path("venv", "bin", "python");
 

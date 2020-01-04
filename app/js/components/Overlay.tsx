@@ -2,9 +2,9 @@ import React from "react";
 import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
-import { Button } from "./Button";
 import { DispatchProps, closeOverlay } from "../store/actions";
 import { APIError, errorL10n } from "../api/types";
+import { Button } from "./Button";
 
 interface Props {
   title?: string | React.ReactNode;

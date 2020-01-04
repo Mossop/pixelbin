@@ -1,11 +1,11 @@
 import React from "react";
 import { Store } from "redux";
-
 import { Location, History, Action, UnregisterCallback, LocationListener, LocationDescriptorObject } from "history";
+import { Router } from "react-router";
+
 import { StoreState } from "../store/types";
 import { setHistoryState } from "../store/actions";
 import store from "../store/store";
-import { Router } from "react-router";
 
 type LocationState = undefined;
 

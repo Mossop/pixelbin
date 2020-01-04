@@ -6,13 +6,13 @@ import { Album, Catalog, Media } from "../api/types";
 import { getAlbum, getCatalogForAlbum } from "../store/store";
 import { StoreState } from "../store/types";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, DispatchProps, showUploadOverlay } from "../store/actions";
-import NotFound from "./notfound";
 import { Button } from "../components/Button";
 import { BasePage, BasePageProps, baseConnect, BasePageState } from "../components/BasePage";
 import { SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
 import { Search, Field, Operation } from "../utils/search";
 import MediaList from "../components/MediaList";
+import NotFound from "./notfound";
 
 interface MatchParams {
   id: string;

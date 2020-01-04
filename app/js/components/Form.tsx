@@ -1,11 +1,11 @@
 import React from "react";
 
-import FormTitle, { FormTitleProps } from "../components/FormTitle";
-import FieldLabel from "../components/FieldLabel";
-import Textbox, { TextboxProps } from "../components/Textbox";
-import Selectbox, { SelectboxProps } from "../components/SelectBox";
-import FormSubmit, { FormSubmitProps } from "../components/FormSubmit";
-import { StyleProps, styleProps } from "../components/shared";
+import FormTitle, { FormTitleProps } from "./FormTitle";
+import FieldLabel from "./FieldLabel";
+import Textbox, { TextboxProps } from "./Textbox";
+import Selectbox, { SelectboxProps } from "./Selectbox";
+import FormSubmit, { FormSubmitProps } from "./FormSubmit";
+import { StyleProps, styleProps } from "./shared";
 import Textarea, { TextareaProps } from "./Textarea";
 
 interface LabelProps {

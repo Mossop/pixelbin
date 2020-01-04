@@ -1,8 +1,8 @@
 import React from "react";
 
-import { BackblazeConfig } from "./types";
 import { FormField } from "../components/Form";
 import { makeProperty } from "../utils/StateProxy";
+import { BackblazeConfig } from "./types";
 
 export function renderBackblazeConfigUI(config: BackblazeConfig, disabled: boolean): React.ReactNode {
   return <React.Fragment>

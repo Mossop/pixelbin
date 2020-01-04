@@ -2,12 +2,12 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { showCatalogCreateOverlay, DispatchProps } from "../store/actions";
-import { Button } from "../components/Button";
 import { StoreState } from "../store/types";
 import { Catalog, Album } from "../api/types";
 import { history } from "../utils/history";
-import { CatalogTreeSidebar } from "../components/CatalogTree";
 import { MapOf } from "../utils/maps";
+import { CatalogTreeSidebar } from "./CatalogTree";
+import { Button } from "./Button";
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,

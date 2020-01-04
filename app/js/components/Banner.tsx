@@ -1,12 +1,12 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import { connect } from "react-redux";
+import { Link } from "react-router-dom";
 
-import { showLoginOverlay, showSignupOverlay, completeLogout, DispatchProps } from "../store/actions";
-import { Button } from "../components/Button";
-import { isLoggedIn } from "../utils/helpers";
-import { If, Then, Else } from "../utils/Conditions";
 import { logout } from "../api/auth";
+import { showLoginOverlay, showSignupOverlay, completeLogout, DispatchProps } from "../store/actions";
+import { If, Then, Else } from "../utils/Conditions";
+import { isLoggedIn } from "../utils/helpers";
+import { Button } from "./Button";
 
 const mapDispatchToProps = {
   openLoginOverlay: showLoginOverlay,

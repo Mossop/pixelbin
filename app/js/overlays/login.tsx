@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 
 import { login } from "../api/auth";
 import { DispatchProps, completeLogin } from "../store/actions";
-import Overlay from "../components/overlay";
+import Overlay from "../components/Overlay";
 import { APIError } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";

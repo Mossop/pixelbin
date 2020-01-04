@@ -1,6 +1,6 @@
+import { Draft } from "../utils/immer";
 import { buildJSONBody, request } from "./api";
 import { ServerStateDecoder, ServerState } from "./types";
-import { Draft } from "../utils/immer";
 
 export async function login(email: string, password: string): Promise<Draft<ServerState>> {
   return request({

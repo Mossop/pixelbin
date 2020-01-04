@@ -1,7 +1,8 @@
-import { decodeAPIError, APIError } from "./types";
 import cookie from "cookie";
 import { JsonDecoder } from "ts.data.json";
+
 import { Mappable } from "../utils/maps";
+import { decodeAPIError, APIError } from "./types";
 
 const API_ROOT = new URL("/api/", window.location.href);
 

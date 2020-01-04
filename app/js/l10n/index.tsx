@@ -1,5 +1,4 @@
 import React from "react";
-
 import { LocalizationProvider } from "@fluent/react";
 import { negotiateLanguages } from "@fluent/langneg";
 import { FluentBundle, FluentResource } from "@fluent/bundle";

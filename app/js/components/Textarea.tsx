@@ -1,8 +1,8 @@
 import React from "react";
 
+import { Property } from "../utils/StateProxy";
 import { fieldProps, FieldProps } from "./shared";
 import Icon, { IconProps } from "./Icon";
-import { Property } from "../utils/StateProxy";
 
 export type TextareaProps = {
   required?: boolean;

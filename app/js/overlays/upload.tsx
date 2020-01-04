@@ -12,7 +12,7 @@ import { createMedia, uploadMedia } from "../api/media";
 import { findTag } from "../api/tag";
 import { Album, User, Tag, Person, UnprocessedMedia } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
-import Overlay from "../components/overlay";
+import Overlay from "../components/Overlay";
 import { FormFields, FormField } from "../components/Form";
 import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString, areDimensionsFlipped } from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";

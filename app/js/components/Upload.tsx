@@ -1,7 +1,7 @@
 import React from "react";
 
-import ImageCanvas from "../components/ImageCanvas";
 import { PendingUpload } from "../overlays/upload";
+import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
 
 interface UploadProps {

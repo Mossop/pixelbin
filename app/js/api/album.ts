@@ -1,6 +1,6 @@
+import { intoId, MapId, intoIds } from "../utils/maps";
 import { buildJSONBody, request, Patch, baseRequest } from "./api";
 import { Album, AlbumDecoder, Media } from "./types";
-import { intoId, MapId, intoIds } from "../utils/maps";
 
 export async function createAlbum(name: string, parentAlbum: MapId<Album>): Promise<Album> {
   return request({

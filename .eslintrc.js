@@ -21,6 +21,7 @@ module.exports = {
   "plugins": [
     "@typescript-eslint",
     "@typescript-eslint/tslint",
+    "import",
     //"mossop-typescript"
   ],
   "extends": [
@@ -29,6 +30,10 @@ module.exports = {
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "plugin:react/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/recommended",
+    "plugin:import/typescript",
   ],
   "rules": {
     "require-atomic-updates": "off",
@@ -38,16 +43,31 @@ module.exports = {
       ignoreRhs: true
     }],
     "quotes": "off",
-    "@typescript-eslint/quotes": "warn",
     "brace-style": "off",
-    "@typescript-eslint/brace-style": "warn",
     "indent": "off",
-    "@typescript-eslint/indent": ["warn", 2],
     "prefer-const": "off",
-    "no-multiple-empty-lines": "warn",
+    "no-multiple-empty-lines": ["warn", {
+      "max": 1,
+    }],
     "no-new-wrappers": "error",
     "no-throw-literal": "error",
     "semi": "off",
+    "import/order": ["warn", {
+      "groups": [
+        "builtin",
+        "external",
+        "internal",
+        "unknown",
+        ["parent", "sibling", "index"],
+      ],
+      "newlines-between": "always",
+    }],
+    "import/first": "warn",
+    "import/extensions": ["warn", "never"],
+    "import/newline-after-import": "warn",
+    "@typescript-eslint/quotes": "warn",
+    "@typescript-eslint/brace-style": "warn",
+    "@typescript-eslint/indent": ["warn", 2],
     "@typescript-eslint/semi": "error",
     "@typescript-eslint/ban-ts-ignore": "off",
     "@typescript-eslint/no-inferrable-types": ["warn", {
