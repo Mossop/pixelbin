@@ -18,9 +18,6 @@ def index(request):
         "paths": {
             "static": settings.STATIC_URL,
         },
-        "keys": {
-            "MAPS": CONFIG.get('keys', 'maps'),
-        },
         "metadata": get_js_spec(),
     }
     return HttpResponse(template.render(context, request))
