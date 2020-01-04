@@ -5,9 +5,14 @@ export enum ErrorCode {
   NotLoggedIn,
   UnknownCatalog,
   UnknownAlbum,
+  DecodeError,
 }
 
-export function exception(code: ErrorCode): never {
+export function exception(code: ErrorCode, message?: string): never {
   store.dispatch(exceptionAction(code));
-  throw new Error(`Internal error ${String(code).padStart(3, "0")}`);
+  if (message) {
+    throw new Error(`Internal error ${String(code).padStart(3, "0")}: ${message}`);
+  } else {
+    throw new Error(`Internal error ${String(code).padStart(3, "0")}`);
+  }
 }

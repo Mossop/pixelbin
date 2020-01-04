@@ -3,6 +3,7 @@ import moment from "moment";
 
 import { Draft } from "../utils/immer";
 import { Mappable, MapOf } from "./maps";
+import { exception, ErrorCode } from "./exception";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
@@ -10,10 +11,8 @@ export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
   if (result instanceof Ok) {
     return result.value;
   }
-  throw new Error(result.error);
+  exception(ErrorCode.DecodeError, result.error);
 }
-
-export const VoidDecoder = new JsonDecoder.Decoder<void>((): Result<void> => ok<void>(undefined));
 
 export function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,4 +55,10 @@ export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<Draf
     },
     `MapOf<${name}>`
   );
+}
+
+export function ClassDecoder<C>(cls: new() => C, decoders: JsonDecoder.DecoderObject<C>, decoderName: string): JsonDecoder.Decoder<C> {
+  return MappingDecoder(JsonDecoder.object(decoders, decoderName), (data: C): C => {
+    return Object.assign(new cls(), data);
+  }, decoderName);
 }
