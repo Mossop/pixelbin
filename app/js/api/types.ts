@@ -1,11 +1,11 @@
 import { JsonDecoder } from "ts.data.json";
 import moment from "moment";
+import { Draft } from "../utils/immer";
 
 import { DateDecoder, MapDecoder } from "../utils/decoders";
 import { MapOf } from "../utils/maps";
 import { L10nArgs, LocalizedProps, l10nAttributes } from "../l10n";
 import { Metadata, MetadataDecoder } from "./metadata";
-import { Draft } from "immer";
 
 export interface APIError {
   status: number;

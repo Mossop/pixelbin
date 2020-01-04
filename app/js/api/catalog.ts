@@ -1,4 +1,4 @@
-import { Draft } from "immer";
+import { Draft } from "../utils/immer";
 
 import { buildJSONBody, request } from "./api";
 import { StorageConfig } from "../storage/types";

@@ -7,7 +7,7 @@ import { Media, isProcessed, UnprocessedMedia } from "../api/types";
 import Throbber from "./Throbber";
 import MediaThumbnail from "./MediaThumbnail";
 import { thumbnail, searchMedia, getMedia } from "../api/media";
-import produce, { Draft } from "immer";
+import { produce, Draft } from "../utils/immer";
 
 const POLL_TIMEOUT = 5000;
 

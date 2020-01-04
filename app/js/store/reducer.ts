@@ -1,5 +1,5 @@
 import { LocationState } from "history";
-import produce, { Draft } from "immer";
+import { produce, Draft } from "../utils/immer";
 
 import { ActionType,
   SET_HISTORY_STATE,

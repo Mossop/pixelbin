@@ -2,7 +2,7 @@ import { Action } from "redux";
 
 import { ServerState, Catalog, Album } from "../api/types";
 import { HistoryState } from "../utils/history";
-import { Draft } from "immer";
+import { Draft } from "../utils/immer";
 import { ErrorCode } from "../utils/exception";
 
 export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";

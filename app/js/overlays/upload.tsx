@@ -19,7 +19,7 @@ import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateP
 import Media from "../components/Media";
 import { getCatalogForAlbum } from "../store/store";
 import { createPerson } from "../api/person";
-import { Draft } from "immer";
+import { Draft } from "../utils/immer";
 import { setOrientation } from "../api/metadata";
 
 export type PendingUpload = Proxyable<{

@@ -2,7 +2,7 @@ import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 import moment from "moment";
 
 import { Mappable, MapOf } from "./maps";
-import { Draft } from "immer";
+import { Draft } from "../utils/immer";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {

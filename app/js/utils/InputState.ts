@@ -1,4 +1,4 @@
-import produce from "immer";
+import { produce } from "../utils/immer";
 import React from "react";
 
 export type MapState<T> = Record<string, T>;

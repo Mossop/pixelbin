@@ -56,7 +56,7 @@
     "@types/through2": "^2.0.34",
     "cookie": "^0.4.0",
     "file-type": "^12.4.2",
-    "immer": "^5.1.0",
+    "immer": "Mossop/immer#readonly_types",
     "intl-pluralrules": "^1.0.3",
     "media-metadata": "^2.0.0",
     "moment": "^2.24.0",
