@@ -5,7 +5,6 @@ from django.conf import settings
 
 from api.serializers.state import serialize_state
 from api.metadata import get_js_spec
-from base.utils import CONFIG
 
 @ensure_csrf_cookie
 def index(request):
