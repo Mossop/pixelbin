@@ -1,9 +1,10 @@
 import { Search } from "../utils/search";
 import { intoId, MapId } from "../utils/maps";
 import { request, buildJSONBody, apiURL, buildFormBody, baseRequest, buildGetURL } from "./api";
-import { Media, MediaArrayDecoder, MediaDecoder, UnprocessedMedia, UnprocessedMediaDecoder, Catalog } from "./types";
+import { MediaData, MediaArrayDecoder, MediaDecoder, UnprocessedMediaData, UnprocessedMediaDecoder, CatalogData } from "./types";
+import { Catalog } from "./highlevel";
 
-export async function getMedia(id: string): Promise<Media> {
+export async function getMedia(id: string): Promise<MediaData> {
   let url = apiURL(`media/get/${id}`);
 
   return request({
@@ -12,7 +13,7 @@ export async function getMedia(id: string): Promise<Media> {
   });
 }
 
-export async function createMedia(catalog: MapId<Catalog>, media: Partial<UnprocessedMedia>): Promise<UnprocessedMedia> {
+export async function createMedia(catalog: MapId<Catalog | CatalogData>, media: Partial<UnprocessedMediaData>): Promise<UnprocessedMediaData> {
   return request({
     url: "media/create",
     method: "PUT",
@@ -21,7 +22,7 @@ export async function createMedia(catalog: MapId<Catalog>, media: Partial<Unproc
   });
 }
 
-export async function uploadMedia(media: MapId<Media>, file: File): Promise<void> {
+export async function uploadMedia(media: MapId<MediaData>, file: File): Promise<void> {
   await baseRequest({
     url: `media/upload/${intoId(media)}`,
     method: "PUT",
@@ -31,19 +32,19 @@ export async function uploadMedia(media: MapId<Media>, file: File): Promise<void
   });
 }
 
-export async function searchMedia(search: Search): Promise<Media[]> {
+export async function searchMedia(search: Search): Promise<MediaData[]> {
   return request({
     url: "media/search",
     method: "POST",
     body: buildJSONBody({
-      catalog: search.catalog.id,
+      catalog: search.catalog,
       query: search.query,
     }),
     decoder: MediaArrayDecoder,
   });
 }
 
-export async function thumbnail(media: MapId<Media>, size: number): Promise<ImageBitmap> {
+export async function thumbnail(media: MapId<MediaData>, size: number): Promise<ImageBitmap> {
   let response = await baseRequest({
     url: buildGetURL(`media/thumbnail/${intoId(media)}`, {
       size: String(size),

@@ -3,52 +3,51 @@ import { connect } from "react-redux";
 
 import { Search } from "../utils/search";
 import { StoreState } from "../store/types";
-import { Media, isProcessed, UnprocessedMedia } from "../api/types";
+import { MediaData, isProcessed, UnprocessedMediaData } from "../api/types";
 import { thumbnail, searchMedia, getMedia } from "../api/media";
 import { produce, Draft } from "../utils/immer";
 import Throbber from "./Throbber";
 import MediaThumbnail from "./MediaThumbnail";
+import { ComponentProps } from "./shared";
 
 const POLL_TIMEOUT = 5000;
 
-interface MediaListProps {
-  onDragStart?: (event: React.DragEvent, media: Media) => void;
+interface ItemData {
+  readonly thumbnail?: ImageBitmap;
+  readonly media: MediaData;
+}
+
+interface MediaDataMap {
+  readonly [id: string]: ItemData;
+}
+
+interface PassedProps {
+  onDragStart?: (event: React.DragEvent, media: MediaData) => void;
   search: Search;
 }
 
-interface StateProps {
+interface FromStateProps {
   thumbnailSize: number;
   stateId: number;
 }
 
-function mapStateToProps(state: StoreState): StateProps {
+function mapStateToProps(state: StoreState): FromStateProps {
   return {
     thumbnailSize: state.settings.thumbnailSize,
     stateId: state.stateId,
   };
 }
 
-interface MediaData {
-  readonly thumbnail?: ImageBitmap;
-  readonly media: Media;
-}
-
-interface MediaDataMap {
-  readonly [id: string]: MediaData;
-}
-
+type MediaListProps = ComponentProps<PassedProps, typeof mapStateToProps>;
 interface MediaListState {
   mediaMap: MediaDataMap | null;
 }
-
-type AllProps = StateProps & MediaListProps;
-
-class MediaList extends React.Component<AllProps, MediaListState> {
+class MediaList extends React.Component<MediaListProps, MediaListState> {
   private pendingSearch: number;
-  private pendingProcessing: Map<string, UnprocessedMedia>;
+  private pendingProcessing: Map<string, UnprocessedMediaData>;
   private pendingTimeout: NodeJS.Timeout | null;
 
-  public constructor(props: AllProps) {
+  public constructor(props: MediaListProps) {
     super(props);
 
     this.pendingSearch = 0;
@@ -59,7 +58,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
     };
   }
 
-  private async loadThumbnail(media: Media): Promise<void> {
+  private async loadThumbnail(media: MediaData): Promise<void> {
     let image = await thumbnail(media, this.props.thumbnailSize);
 
     let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
@@ -173,7 +172,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
     });
   }
 
-  private onDragStart: (event: React.DragEvent, data: MediaData) => void = (event: React.DragEvent, data: MediaData): void => {
+  private onDragStart: (event: React.DragEvent, data: ItemData) => void = (event: React.DragEvent, data: ItemData): void => {
     if (this.props.onDragStart) {
       this.props.onDragStart(event, data.media);
       return;
@@ -187,7 +186,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
     this.startSearch();
   }
 
-  public componentDidUpdate(prevProps: AllProps): void {
+  public componentDidUpdate(prevProps: MediaListProps): void {
     if (prevProps.search !== this.props.search) {
       this.startSearch();
       this.setState({ mediaMap: null });
@@ -199,7 +198,7 @@ class MediaList extends React.Component<AllProps, MediaListState> {
   public render(): React.ReactNode {
     if (this.state.mediaMap) {
       return <div className="media-list">
-        {Object.values(this.state.mediaMap).map((data: MediaData) =>
+        {Object.values(this.state.mediaMap).map((data: ItemData) =>
           <MediaThumbnail key={data.media.id} draggable={true} onDragStart={(event: React.DragEvent): void => this.onDragStart(event, data)}
             thumbnail={data.thumbnail} media={data.media}/>)}
       </div>;

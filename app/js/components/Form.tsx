@@ -13,19 +13,19 @@ interface LabelProps {
   labelL10n: string;
 }
 
-export type TextboxField = TextboxProps & LabelProps;
+export type TextboxFieldProps = TextboxProps & LabelProps;
 
-export type SelectboxField = {
+export type SelectboxFieldProps = {
   type: "select";
 } & SelectboxProps & LabelProps;
 
-export type TextareaField = {
+export type TextareaFieldProps = {
   type: "textarea";
 } & TextareaProps & LabelProps;
 
-export type Field = TextboxField | SelectboxField | TextareaField;
+export type FormFieldProps = TextboxFieldProps | SelectboxFieldProps | TextareaFieldProps;
 
-export class FormField extends React.Component<Field> {
+export class FormField extends React.Component<FormFieldProps> {
   public render(): React.ReactNode {
     let field = this.props;
 
@@ -62,16 +62,16 @@ export class FormField extends React.Component<Field> {
   }
 }
 
-interface FieldsProps {
-  fields?: Field[];
+interface FormFieldsProps {
+  fields?: FormFieldProps[];
   disabled?: boolean;
   orientation?: "row" | "column";
 }
 
-export class FormFields extends React.Component<FieldsProps> {
+export class FormFields extends React.Component<FormFieldsProps> {
   public render(): React.ReactNode {
     return <div className={`fieldGrid ${this.props.orientation ? this.props.orientation : "row"}`}>
-      {this.props.fields ? this.props.fields.map((field: Field) => <FormField key={field.id} disabled={this.props.disabled} {...field}/>) : this.props.children}
+      {this.props.fields ? this.props.fields.map((field: FormFieldProps) => <FormField key={field.id} disabled={this.props.disabled} {...field}/>) : this.props.children}
     </div>;
   }
 }
@@ -82,7 +82,7 @@ export interface FormProps extends StyleProps {
 
   title?: string | FormTitleProps;
   orientation?: "row" | "column";
-  fields?: Field[];
+  fields?: FormFieldProps[];
   submit?: string | Omit<FormSubmitProps, "disabled">;
 }
 

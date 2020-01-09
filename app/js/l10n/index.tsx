@@ -49,16 +49,16 @@ async function retrieveBundle(baseurl: string, locale: string): Promise<null | F
   return null;
 }
 
-interface ContextProps {
+interface LocalizationContextProps {
   baseurl: string;
 }
 
-interface ContextState {
+interface LocalizationContextState {
   generateBundles: FluentBundle[];
 }
 
-export default class LocalizationContext extends React.Component<ContextProps, ContextState> {
-  public constructor(props: ContextProps) {
+export default class LocalizationContext extends React.Component<LocalizationContextProps, LocalizationContextState> {
+  public constructor(props: LocalizationContextProps) {
     super(props);
 
     this.state = {

@@ -2,24 +2,23 @@ import React from "react";
 import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
-import { DispatchProps, closeOverlay } from "../store/actions";
+import { closeOverlay } from "../store/actions";
 import { APIError, errorL10n } from "../api/types";
 import { Button } from "./Button";
+import { ComponentProps } from "./shared";
 
-interface Props {
+interface PassedProps {
   title?: string | React.ReactNode;
   sidebar?: React.ReactNode;
   error?: APIError;
   children: React.ReactNode;
 }
 
-const mapDispatchToOverlayProps = {
+const mapDispatchToProps = {
   closeOverlay,
 };
 
-export type OverlayProps = Props & DispatchProps<typeof mapDispatchToOverlayProps>;
-export type OverlayState = {};
-
+export type OverlayProps = ComponentProps<PassedProps, {}, typeof mapDispatchToProps>;
 class Overlay extends React.Component<OverlayProps> {
   public renderError(): React.ReactNode {
     if (this.props.error) {
@@ -71,4 +70,4 @@ class Overlay extends React.Component<OverlayProps> {
   }
 }
 
-export default connect(undefined, mapDispatchToOverlayProps)(Overlay);
+export default connect(undefined, mapDispatchToProps)(Overlay);

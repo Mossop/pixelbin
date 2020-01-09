@@ -2,10 +2,10 @@ import React from "react";
 import { Localized } from "@fluent/react";
 
 import { OptionalL10nProps } from "../l10n";
-import { fieldProps, FieldProps } from "./shared";
+import { fieldProps, FieldProps, ComponentProps } from "./shared";
 import Icon, { IconProps } from "./Icon";
 
-type ButtonProps  = {
+type PassedProps  = {
   onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
   draggable?: boolean;
   onDragStart?: (event: React.DragEvent) => void;
@@ -16,6 +16,7 @@ type ButtonProps  = {
   tooltipL10n?: string;
 } & FieldProps & OptionalL10nProps & IconProps;
 
+type ButtonProps = ComponentProps<PassedProps>;
 export class Button extends React.Component<ButtonProps> {
   public renderButtonContent(): React.ReactNode {
     if (this.props.l10n) {

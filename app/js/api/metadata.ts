@@ -2,13 +2,12 @@ import { JsonDecoder, Result, err, ok } from "ts.data.json";
 import moment from "moment";
 import { Orientation } from "media-metadata/lib/metadata";
 
-import { Draft } from "../utils/immer";
 import { DateDecoder, decode } from "../utils/decoders";
-import { UnprocessedMedia } from "./types";
+import { UnprocessedMediaData } from "./types";
 
 export interface Metadata {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly [key: string]: any;
+  [key: string]: any;
 }
 
 const MetadataFields: Map<string, MetadataField> = new Map();
@@ -22,7 +21,7 @@ abstract class MetadataField {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected get(media: Partial<UnprocessedMedia>): any {
+  protected get(media: Partial<UnprocessedMediaData>): any {
     if (media.metadata) {
       return media.metadata[this.key];
     }
@@ -30,7 +29,7 @@ abstract class MetadataField {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected set(media: Partial<Draft<UnprocessedMedia>>, value: any): void {
+  protected set(media: Partial<UnprocessedMediaData>, value: any): void {
     if (media.metadata) {
       media.metadata[this.key] = value;
     } else {
@@ -40,7 +39,7 @@ abstract class MetadataField {
     }
   }
 
-  public delete(media: Partial<Draft<UnprocessedMedia>>): void {
+  public delete(media: Partial<UnprocessedMediaData>): void {
     if (media.metadata) {
       delete media.metadata[this.key];
     }
@@ -53,15 +52,15 @@ abstract class MetadataField {
 abstract class BaseMetadataField<T> extends MetadataField {
   public abstract decoder(): JsonDecoder.Decoder<T | undefined>;
 
-  public getValue(media: Partial<UnprocessedMedia>): T | undefined {
+  public getValue(media: Partial<UnprocessedMediaData>): T | undefined {
     return this.get(media);
   }
 
-  public setValue(media: Partial<Draft<UnprocessedMedia>>, value: T): void {
+  public setValue(media: Partial<UnprocessedMediaData>, value: T): void {
     this.set(media, value);
   }
 
-  public deleteValue(media: Partial<Draft<UnprocessedMedia>>): void {
+  public deleteValue(media: Partial<UnprocessedMediaData>): void {
     this.delete(media);
   }
 }
@@ -77,12 +76,12 @@ class IntegerMetadataField extends BaseMetadataField<number> {
     return JsonDecoder.optional(JsonDecoder.number);
   }
 
-  public getValue(media: Partial<UnprocessedMedia>): number | undefined {
+  public getValue(media: Partial<UnprocessedMediaData>): number | undefined {
     let val = this.get(media);
     return typeof val == "number" ? Math.round(val) : val;
   }
 
-  public setValue(media: Draft<UnprocessedMedia>, value: number): void {
+  public setValue(media: UnprocessedMediaData, value: number): void {
     this.set(media, Math.round(value));
   }
 }
@@ -138,12 +137,12 @@ if (metadataElement && metadataElement.textContent) {
   }
 }
 
-const decoderSpec: Draft<Metadata> = {};
+const decoderSpec: Metadata = {};
 for (let field of MetadataFields.values()) {
   decoderSpec[field.key] = field.decoder();
 }
 
-export const MetadataDecoder = JsonDecoder.object<Draft<Metadata>>(
+export const MetadataDecoder = JsonDecoder.object<Metadata>(
   decoderSpec,
   "Metadata"
 );
@@ -163,24 +162,24 @@ function getFieldInstance<T>(key: string, cls: FieldConstructor<T>): BaseMetadat
   throw new Error(`Field ${key} did not have the expected type.`);
 }
 
-type FieldGetter<T> = (media: UnprocessedMedia, key: string) => T | undefined;
-type FieldSetter<T> = (media: Partial<Draft<UnprocessedMedia>>, key: string, value: T) => void;
+type FieldGetter<T> = (media: UnprocessedMediaData, key: string) => T | undefined;
+type FieldSetter<T> = (media: Partial<UnprocessedMediaData>, key: string, value: T) => void;
 
 function buildFieldGetter<T>(cls: FieldConstructor<T>): FieldGetter<T> {
-  return (media: UnprocessedMedia, key: string): T | undefined => {
+  return (media: UnprocessedMediaData, key: string): T | undefined => {
     let field: BaseMetadataField<T> = getFieldInstance(key, cls);
     return field.getValue(media);
   };
 }
 
 function buildFieldSetter<T>(cls: FieldConstructor<T>): FieldSetter<T> {
-  return (media: Partial<Draft<UnprocessedMedia>>, key: string, value: T): void => {
+  return (media: Partial<UnprocessedMediaData>, key: string, value: T): void => {
     let field: BaseMetadataField<T> = getFieldInstance(key, cls);
     return field.setValue(media, value);
   };
 }
 
-export function deleteValue(media: Partial<Draft<UnprocessedMedia>>, key: string): void {
+export function deleteValue(media: Partial<UnprocessedMediaData>, key: string): void {
   let field: MetadataField | undefined = MetadataFields.get(key);
   if (field) {
     field.delete(media);
@@ -196,10 +195,10 @@ export const setIntegerValue = buildFieldSetter(IntegerMetadataField);
 export const getDateValue = buildFieldGetter(DateTimeMetadataField);
 export const setDateValue = buildFieldSetter(DateTimeMetadataField);
 
-export function getOrientation(media: UnprocessedMedia): Orientation {
+export function getOrientation(media: UnprocessedMediaData): Orientation {
   return getIntegerValue(media, "orientation") || Orientation.TopLeft;
 }
 
-export function setOrientation(media: Partial<Draft<UnprocessedMedia>>, value: Orientation): void {
+export function setOrientation(media: Partial<UnprocessedMediaData>, value: Orientation): void {
   setIntegerValue(media, "orientation", value);
 }

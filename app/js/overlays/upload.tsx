@@ -1,26 +1,28 @@
 import React from "react";
-import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 import { Orientation, rotateClockwise90, rotateCounterClockwise90, mirrorHorizontal, mirrorVertical } from "media-metadata/lib/metadata";
 
-import { DispatchProps, bumpState, closeOverlay } from "../store/actions";
+import { bumpState, closeOverlay } from "../store/actions";
 import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
 import { createMedia, uploadMedia } from "../api/media";
 import { findTag } from "../api/tag";
-import { Album, User, Tag, Person, UnprocessedMedia } from "../api/types";
+import { UnprocessedMediaData, UserData, PersonData, TagData } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/Overlay";
 import { FormFields, FormField } from "../components/Form";
 import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString, areDimensionsFlipped } from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 import Media from "../components/Media";
-import { getCatalogForAlbum } from "../store/store";
 import { createPerson } from "../api/person";
-import { Draft } from "../utils/immer";
+import { Draft, Immutable } from "../utils/immer";
 import { setOrientation } from "../api/metadata";
+import { ComponentProps, connect } from "../components/shared";
+import { Album } from "../api/highlevel";
+import { StoreState } from "../store/types";
+import { exception, ErrorCode } from "../utils/exception";
 
 export type PendingUpload = Proxyable<{
   file: File;
@@ -49,33 +51,44 @@ function itemIsMedia(item: DataTransferItem): boolean {
   return MEDIA_TYPES.includes(item.type);
 }
 
-const mapDispatchToProps = {
-  bumpState,
-  closeOverlay,
-};
-
-type UploadOverlayProps = {
-  user: User;
-  parent: Album;
-} & DispatchProps<typeof mapDispatchToProps>;
-
-type Inputs = Proxyable<{
-  parent: Album;
+type InputFields = Proxyable<{
+  target: Album | undefined;
   tags: string;
   people: string;
   uploads: Record<string, PendingUpload>;
 }>;
 
+interface PassedProps {
+  user: Immutable<UserData>;
+  target?: string;
+}
+
+interface FromStateProps {
+  target?: Album;
+}
+
+function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
+  return {
+    target: ownProps.target ? Album.fromState(state, ownProps.target) : undefined,
+  };
+}
+
+const mapDispatchToProps = {
+  bumpState,
+  closeOverlay,
+};
+
 interface UploadOverlayState {
-  inputs: Inputs;
+  inputs: InputFields;
   disabled: boolean;
   selected?: PendingUpload;
   preview: string;
 }
 
+type UploadOverlayProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
 class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlayState> {
   private fileInput: React.RefObject<HTMLInputElement>;
-  private inputs: Inputs;
+  private inputs: InputFields;
 
   public constructor(props: UploadOverlayProps) {
     super(props);
@@ -83,7 +96,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     this.state = {
       disabled: false,
       inputs: {
-        parent: this.props.parent,
+        target: this.props.target,
         tags: "",
         people: "",
         uploads: proxy({}),
@@ -107,24 +120,30 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
     pending.uploading = true;
 
-    let album = this.inputs.parent.id;
-    let catalog = getCatalogForAlbum(album);
+    let target = this.inputs.target;
+    if (!target) {
+      exception(ErrorCode.InvalidState);
+    }
+    let catalog = target.catalog;
 
     let strTags = tagsFromString(pending.tags).concat(tagsFromString(this.inputs.tags));
     let strPeople = peopleFromString(pending.people).concat(peopleFromString(this.inputs.people));
 
-    let tagPromises = strTags.map((path: string[]): Promise<Tag> => findTag(catalog, path));
-    let personPromises = strPeople.map((name: string): Promise<Person> => createPerson(catalog, name));
+    let tagPromises = strTags.map((path: string[]): Promise<TagData> => findTag(catalog, path));
+    let personPromises = strPeople.map((fullname: string): Promise<PersonData> => createPerson({
+      catalog: catalog.id,
+      fullname
+    }));
 
     let [tags, people] = await Promise.all([
       Promise.all(tagPromises),
       Promise.all(personPromises),
     ]);
 
-    let media: Partial<Draft<UnprocessedMedia>> = {
-      tags: tags.map((t: Tag) => t.id),
-      people: people.map((p: Person) => p.id),
-      albums: [album],
+    let media: Partial<Draft<UnprocessedMediaData>> = {
+      tags: tags.map((t: TagData) => t.id),
+      people: people.map((p: PersonData) => p.id),
+      albums: [target.id],
       metadata: {},
     };
 
@@ -272,7 +291,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         <div className="sidebar-item">
           <Localized id="upload-tree-title"><label className="title"/></Localized>
         </div>
-        <CatalogTreeSelector property={makeProperty(this.inputs, "parent")}/>
+        <CatalogTreeSelector property={makeProperty(this.inputs, "target")}/>
         <div id="upload-metadata" className="sidebar-item">
           <FormFields orientation="column">
             <FormField id="upload-overlay-global-tags" type="textarea" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} property={makeProperty(this.inputs, "tags")}/>
@@ -364,4 +383,4 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
   }
 }
 
-export default connect(undefined, mapDispatchToProps)(UploadOverlay);
+export default connect<PassedProps>(mapStateToProps, mapDispatchToProps)(UploadOverlay);

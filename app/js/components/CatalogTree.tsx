@@ -1,29 +1,36 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { Catalog, Album } from "../api/types";
+import { Catalog, Album } from "../api/highlevel";
 import { catalogNameSorted } from "../utils/sort";
 import { StoreState } from "../store/types";
-import { MapOf } from "../utils/maps";
-import { DispatchProps, bumpState, albumEdited } from "../store/actions";
+import { bumpState, albumEdited } from "../store/actions";
 import { editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "../api/album";
-import { albumChildren, isAncestor, getAlbum, getCatalogRoot } from "../store/store";
 import { Property } from "../utils/StateProxy";
 import Icon from "./Icon";
 import { Button } from "./Button";
+import { CatalogData } from "../api/types";
+import { Immutable } from "../utils/immer";
+import { ComponentProps } from "./shared";
+import { exception, ErrorCode } from "../utils/exception";
 
-interface StateProps {
-  catalogs: MapOf<Catalog>;
+interface FromStateProps {
+  catalogs: Catalog[];
 }
 
-function mapStateToProps(state: StoreState): StateProps {
+function mapStateToProps(state: StoreState): FromStateProps {
   if (state.serverState.user) {
-    return { catalogs: state.serverState.user.catalogs };
+    return {
+      catalogs: Array.from(state.serverState.user.catalogs.values()).map((item: Immutable<CatalogData>) => Catalog.fromState(state, item)),
+    };
   }
-  return { catalogs: new Map() };
+  return {
+    catalogs: []
+  };
 }
 
-abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
+type CatalogTreeProps = ComponentProps<{}, typeof mapStateToProps>;
+abstract class CatalogTree<P extends CatalogTreeProps> extends React.Component<P> {
   protected abstract onAlbumClick(album: Album): void;
   protected abstract onCatalogClick(catalog: Catalog): void;
 
@@ -31,28 +38,28 @@ abstract class CatalogTree<P extends StateProps> extends React.Component<P> {
     return <Button className="item" iconName="folder" onClick={onClick}>{item.name}</Button>;
   }
 
-  private renderChildren(catalog: Catalog, album: Album, depth: number = 1): React.ReactNode {
-    let children = albumChildren(album, catalog);
+  private renderChildren(album: Album, depth: number = 1): React.ReactNode {
+    let children = album.children;
     if (children.length) {
       return <ol>
-        {children.map((a: Album) => this.renderAlbum(catalog, a, depth))}
+        {children.map((a: Album) => this.renderAlbum(a, depth))}
       </ol>;
     } else {
       return null;
     }
   }
 
-  private renderAlbum(catalog: Catalog, album: Album, depth: number): React.ReactNode {
+  private renderAlbum(album: Album, depth: number): React.ReactNode {
     return <li key={album.id} className={`depth${depth}`}>
       {this.renderItem(album, () => this.onAlbumClick(album))}
-      {this.renderChildren(catalog, album, depth + 1)}
+      {this.renderChildren(album, depth + 1)}
     </li>;
   }
 
   private renderCatalog(catalog: Catalog): React.ReactNode {
     return <li key={catalog.id} className="depth0">
-      {this.renderItem(getCatalogRoot(catalog), () => this.onCatalogClick(catalog))}
-      {this.renderChildren(catalog, getCatalogRoot(catalog))}
+      {this.renderItem(catalog.root, () => this.onCatalogClick(catalog))}
+      {this.renderChildren(catalog.root)}
     </li>;
   }
 
@@ -67,13 +74,14 @@ interface SelectorProps {
   property: Property<Album | undefined>;
 }
 
-class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProps> {
+type CatalogTreeSelectorProps = ComponentProps<SelectorProps, typeof mapStateToProps>;
+class CatalogTreeSelectorComponent extends CatalogTree<CatalogTreeSelectorProps> {
   protected onAlbumClick(album: Album): void {
     this.props.property.set(album);
   }
 
   protected onCatalogClick(catalog: Catalog): void {
-    this.props.property.set(getCatalogRoot(catalog));
+    this.props.property.set(catalog.root);
   }
 
   protected renderItem(item: Album, onClick: () => void): React.ReactNode {
@@ -88,7 +96,7 @@ class CatalogTreeSelectorComponent extends CatalogTree<SelectorProps & StateProp
 export const CatalogTreeSelector = connect(mapStateToProps)(CatalogTreeSelectorComponent);
 
 interface SidebarProps {
-  album?: Album;
+  selectedAlbum?: Album;
   onCatalogClick: (catalog: Catalog) => void;
   onAlbumClick: (album: Album) => void;
 }
@@ -98,7 +106,8 @@ const mapDispatchToProps = {
   albumEdited,
 };
 
-class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps & DispatchProps<typeof mapDispatchToProps>> {
+type CatalogTreeSidebarProps = ComponentProps<SidebarProps, typeof mapStateToProps, typeof mapDispatchToProps>;
+class CatalogTreeSidebarComponent extends CatalogTree<CatalogTreeSidebarProps> {
   protected onAlbumClick(album: Album): void {
     this.props.onAlbumClick(album);
   }
@@ -154,15 +163,25 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps 
         return;
       }
 
-      let actualAlbum = getAlbum(id);
+      let actualAlbum: Album | undefined = undefined;
+      for (let catalog of this.props.catalogs) {
+        actualAlbum = catalog.getAlbum(id);
+        if (actualAlbum) {
+          break;
+        }
+      }
+
+      if (!actualAlbum) {
+        exception(ErrorCode.UnknownAlbum);
+      }
 
       // Can't drop onto it's current parent
-      if (actualAlbum.parent === album.id) {
+      if (actualAlbum.parent === album) {
         return;
       }
 
       // Can't drop onto any descendants.
-      if (isAncestor(actualAlbum, album)) {
+      if (actualAlbum.isAncestorOf(album)) {
         return;
       }
 
@@ -224,7 +243,6 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps 
       } catch (e) {
         // TODO
       }
-
     }
   };
 
@@ -240,7 +258,7 @@ class CatalogTreeSidebarComponent extends CatalogTree<SidebarProps & StateProps 
       onDrop: (event: React.DragEvent): Promise<void> => this.onDrop(event, album),
     };
 
-    if (this.props.album === album) {
+    if (this.props.selectedAlbum === album) {
       return <p className="item selected" {...dragProps}><Icon iconName="folder-open"/>{album.name}</p>;
     } else {
       return <Button className="item" {...dragProps} iconName="folder" onClick={onClick}>{album.name}</Button>;

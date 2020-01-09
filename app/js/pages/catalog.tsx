@@ -2,28 +2,32 @@ import React from "react";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 
-import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
+import { baseConnect, BasePage } from "../components/BasePage";
 import { StoreState } from "../store/types";
-import { Catalog, Media } from "../api/types";
-import { SidebarProps } from "../components/Sidebar";
+import { MediaData } from "../api/types";
+import { PassedProps as SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
-import { DispatchProps, showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
-import { getCatalog, getCatalogRoot } from "../store/store";
+import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
 import MediaList from "../components/MediaList";
 import { Search, Field, Operation } from "../utils/search";
 import NotFound from "./notfound";
+import { ComponentProps } from "../components/shared";
+import { Catalog } from "../api/highlevel";
+import { safe } from "../utils/exception";
 
 interface MatchParams {
   id: string;
 }
 
-interface StateProps {
+type PassedProps = RouteComponentProps<MatchParams>;
+
+interface FromStateProps {
   catalog: Catalog | undefined;
 }
 
-function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchParams>): StateProps {
+function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchParams>): FromStateProps {
   return {
-    catalog: getCatalog(props.match.params.id, state),
+    catalog: safe(() => Catalog.fromState(state, props.match.params.id)),
   };
 }
 
@@ -33,8 +37,7 @@ const mapDispatchToProps = {
   showAlbumCreateOverlay,
 };
 
-type CatalogPageProps = BasePageProps & RouteComponentProps<MatchParams> & StateProps & DispatchProps<typeof mapDispatchToProps>;
-
+type CatalogPageProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
 class CatalogPage extends BasePage<CatalogPageProps> {
   private onEdit: (() => void) = (): void => {
     if (!this.props.user || !this.props.catalog) {
@@ -49,7 +52,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showAlbumCreateOverlay(getCatalogRoot(this.props.catalog));
+    this.props.showAlbumCreateOverlay(this.props.catalog.root);
   };
 
   private onUpload: (() => void) = (): void => {
@@ -57,7 +60,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showUploadOverlay(getCatalogRoot(this.props.catalog));
+    this.props.showUploadOverlay(this.props.catalog.root);
   };
 
   protected renderBannerButtons(): React.ReactNode {
@@ -74,11 +77,11 @@ class CatalogPage extends BasePage<CatalogPageProps> {
 
   protected getSidebarProps(): Partial<SidebarProps> {
     return {
-      album: this.props.catalog ? getCatalogRoot(this.props.catalog) : undefined,
+      selectedAlbum: this.props.catalog?.root,
     };
   }
 
-  private onDragStart: (event: React.DragEvent, media: Media) => void = (event: React.DragEvent, media: Media): void => {
+  private onDragStart: (event: React.DragEvent, media: MediaData) => void = (event: React.DragEvent, media: MediaData): void => {
     event.dataTransfer.setData("pixelbin/media", media.id);
     if (this.props.catalog) {
       event.dataTransfer.setData("pixelbin/album-media", JSON.stringify({ media: media.id, album: this.props.catalog.root }));
@@ -91,12 +94,12 @@ class CatalogPage extends BasePage<CatalogPageProps> {
   protected renderContent(): React.ReactNode {
     if (this.props.user && this.props.catalog) {
       let search: Search = {
-        catalog: this.props.catalog,
+        catalog: this.props.catalog.id,
         query: {
           invert: false,
           field: Field.Album,
           operation: Operation.Includes,
-          value: getCatalogRoot(this.props.catalog).name,
+          value: this.props.catalog.root.name,
         },
       };
       return <MediaList onDragStart={this.onDragStart} search={search}/>;

@@ -1,34 +1,27 @@
-import { intoId, MapId, intoIds } from "../utils/maps";
 import { buildJSONBody, request, Patch, baseRequest } from "./api";
-import { Album, AlbumDecoder, Media } from "./types";
+import { AlbumData, AlbumDecoder, MediaData, CreateData } from "./types";
+import { intoId, intoIds, MapId } from "../utils/maps";
+import { Album } from "./highlevel";
 
-export async function createAlbum(name: string, parentAlbum: MapId<Album>): Promise<Album> {
+export async function createAlbum(data: CreateData<AlbumData>): Promise<AlbumData> {
   return request({
     url: "album/create",
     method: "PUT",
-    body: buildJSONBody({
-      parent: intoId(parentAlbum),
-      name,
-      stub: null,
-    }),
+    body: buildJSONBody(data),
     decoder: AlbumDecoder,
   });
 }
 
-export async function editAlbum(album: Patch<Album>): Promise<Album> {
+export async function editAlbum(album: Patch<AlbumData>): Promise<AlbumData> {
   return await request({
     url: `album/edit/${album.id}`,
     method: "PATCH",
-    body: buildJSONBody({
-      parent: album.parent,
-      name: album.name,
-      stub: album.stub,
-    }),
+    body: buildJSONBody(album),
     decoder: AlbumDecoder,
   });
 }
 
-export async function addMediaToAlbum(album: MapId<Album>, media: MapId<Media>[]): Promise<void> {
+export async function addMediaToAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
   await baseRequest({
     url: `album/add_media/${intoId(album)}`,
     method: "PUT",
@@ -36,7 +29,7 @@ export async function addMediaToAlbum(album: MapId<Album>, media: MapId<Media>[]
   });
 }
 
-export async function removeMediaFromAlbum(album: MapId<Album>, media: MapId<Media>[]): Promise<void> {
+export async function removeMediaFromAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
   await baseRequest({
     url: `album/remove_media/${intoId(album)}`,
     method: "DELETE",

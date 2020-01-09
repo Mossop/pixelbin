@@ -1,9 +1,10 @@
 import { Action } from "redux";
 
-import { ServerState, Catalog, Album } from "../api/types";
-import { HistoryState } from "../utils/history";
+import { ServerData, CatalogData, AlbumData } from "../api/types";
+import { HistoryState } from "./types";
 import { Draft } from "../utils/immer";
 import { ErrorCode } from "../utils/exception";
+import { Album, Catalog } from "../api/highlevel";
 
 export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";
 export const SHOW_SIGNUP_OVERLAY = "SHOW_SIGNUP_OVERLAY";
@@ -22,17 +23,6 @@ export const ALBUM_CREATED = "ALBUM_CREATED";
 export const ALBUM_EDITED = "ALBUM_EDITED";
 export const BUMP_STATE = "BUMP_STATE";
 export const EXCEPTION = "EXCEPTION";
-
-type ArgumentTypes<F> = F extends (...args: infer A) => infer _R ? A : never;
-type ReturnType<F> = F extends (...args: infer _A) => infer R ? R : never;
-type IntoVoid<T> = (...a: ArgumentTypes<T>) => void;
-
-export type StateProps<F> = ReturnType<F>;
-export type DispatchProps<M> = {
-  [P in keyof M]: IntoVoid<M[P]>;
-};
-
-export type ConnectedProps<P = {}, S = () => void, D = {}> = P & StateProps<S> & DispatchProps<D>;
 
 export interface BaseAction extends Action{
   type: string;
@@ -82,49 +72,65 @@ export function bumpState(): BumpStateAction {
 
 interface ShowAlbumCreateOverlayAction extends BaseAction {
   type: typeof SHOW_ALBUM_CREATE_OVERLAY;
-  payload: Album;
+  payload: {
+    parent: string;
+  };
 }
 
 export function showAlbumCreateOverlay(parent: Album): ShowAlbumCreateOverlayAction {
   return {
     type: SHOW_ALBUM_CREATE_OVERLAY,
-    payload: parent,
+    payload: {
+      parent: parent.id,
+    },
   };
 }
 
 interface ShowAlbumEditOverlayAction extends BaseAction {
   type: typeof SHOW_ALBUM_EDIT_OVERLAY;
-  payload: Album;
+  payload: {
+    album: string;
+  };
 }
 
 export function showAlbumEditOverlay(album: Album): ShowAlbumEditOverlayAction {
   return {
     type: SHOW_ALBUM_EDIT_OVERLAY,
-    payload: album,
+    payload: {
+      album: album.id,
+    },
   };
 }
 
 interface ShowCatalogEditOverlayAction extends BaseAction {
   type: typeof SHOW_CATALOG_EDIT_OVERLAY;
-  payload: Catalog;
+  payload: {
+    catalog: string;
+  };
 }
 
 export function showCatalogEditOverlay(catalog: Catalog): ShowCatalogEditOverlayAction {
   return {
     type: SHOW_CATALOG_EDIT_OVERLAY,
-    payload: catalog,
+    payload: {
+      catalog: catalog.id,
+    },
   };
 }
 
 interface ShowUploadOverlayAction extends BaseAction {
   type: typeof SHOW_UPLOAD_OVERLAY;
-  payload: Album;
+  payload: {
+    target: string | undefined;
+  };
 }
 
-export function showUploadOverlay(parent: Album): ShowUploadOverlayAction {
+export function showUploadOverlay(parent: Album | undefined): ShowUploadOverlayAction {
   return {
     type: SHOW_UPLOAD_OVERLAY,
-    payload: parent,
+    payload: {
+      target: parent ? parent.id : undefined,
+    },
   };
 }
 
@@ -142,37 +148,49 @@ export function setHistoryState(historyState: HistoryState): SetHistoryStateActi
 
 interface CatalogCreatedAction extends BaseAction {
   type: typeof CATALOG_CREATED;
-  payload: Draft<Catalog>;
+  payload: {
+    catalog: Draft<CatalogData>;
+  };
 }
 
-export function catalogCreated(newCatalog: Draft<Catalog>): CatalogCreatedAction {
+export function catalogCreated(catalog: Draft<CatalogData>): CatalogCreatedAction {
   return {
     type: CATALOG_CREATED,
-    payload: newCatalog,
+    payload: {
+      catalog,
+    },
   };
 }
 
 interface AlbumCreatedAction extends BaseAction {
   type: typeof ALBUM_CREATED;
-  payload: Draft<Album>;
+  payload: {
+    album: Draft<AlbumData>;
+  };
 }
 
-export function albumCreated(album: Draft<Album>): AlbumCreatedAction {
+export function albumCreated(album: Draft<AlbumData>): AlbumCreatedAction {
   return {
     type: ALBUM_CREATED,
-    payload: album,
+    payload: {
+      album,
+    },
   };
 }
 
 interface AlbumEditedAction extends BaseAction {
   type: typeof ALBUM_EDITED;
-  payload: Album;
+  payload: {
+    album: Draft<AlbumData>;
+  };
 }
 
-export function albumEdited(album: Album): AlbumEditedAction {
+export function albumEdited(album: Draft<AlbumData>): AlbumEditedAction {
   return {
     type: ALBUM_EDITED,
-    payload: album,
+    payload: {
+      album,
+    },
   };
 }
 
@@ -218,10 +236,10 @@ export function showSignupOverlay(): ShowSignupOverlayAction {
 
 interface CompleteLoginAction extends BaseAction {
   type: typeof COMPLETE_LOGIN;
-  payload: Draft<ServerState>;
+  payload: Draft<ServerData>;
 }
 
-export function completeLogin(newState: Draft<ServerState>): CompleteLoginAction {
+export function completeLogin(newState: Draft<ServerData>): CompleteLoginAction {
   return {
     type: COMPLETE_LOGIN,
     payload: newState,
@@ -230,10 +248,10 @@ export function completeLogin(newState: Draft<ServerState>): CompleteLoginAction
 
 interface CompleteSignupAction extends BaseAction {
   type: typeof COMPLETE_SIGNUP;
-  payload: Draft<ServerState>;
+  payload: Draft<ServerData>;
 }
 
-export function completeSignup(newState: Draft<ServerState>): CompleteSignupAction {
+export function completeSignup(newState: Draft<ServerData>): CompleteSignupAction {
   return {
     type: COMPLETE_SIGNUP,
     payload: newState,
@@ -242,10 +260,10 @@ export function completeSignup(newState: Draft<ServerState>): CompleteSignupActi
 
 interface CompleteLogoutAction extends BaseAction {
   type: typeof COMPLETE_LOGOUT;
-  payload: Draft<ServerState>;
+  payload: Draft<ServerData>;
 }
 
-export function completeLogout(newState: Draft<ServerState>): CompleteLogoutAction {
+export function completeLogout(newState: Draft<ServerData>): CompleteLogoutAction {
   return {
     type: COMPLETE_LOGOUT,
     payload: newState,

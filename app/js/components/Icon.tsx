@@ -3,7 +3,7 @@ import React from "react";
 import { styleProps, StyleProps } from "./shared";
 
 export enum IconType {
-  FontAwesome = "fontawesone",
+  FontAwesome = "fontawesome",
   Material = "material",
 }
 

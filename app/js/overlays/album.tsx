@@ -1,32 +1,53 @@
 import React from "react";
-import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
 import Form, { FormField } from "../components/Form";
-import { Album, User, APIError } from "../api/types";
-import { DispatchProps, albumCreated, albumEdited } from "../store/actions";
+import { UserData, APIError, AlbumData, CreateData } from "../api/types";
+import { albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
 import Overlay from "../components/Overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import { Patch } from "../api/api";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
+import { Album } from "../api/highlevel";
+import { ComponentProps, connect } from "../components/shared";
+import { Immutable } from "../utils/immer";
+import { StoreState } from "../store/types";
+import { exception, ErrorCode } from "../utils/exception";
 
-interface Inputs {
+interface InputFields {
   name: string;
-  parent: Album;
-}
-
-interface AlbumState {
-  disabled: boolean;
-  error?: APIError;
-  inputs: Inputs;
+  parent: Album | undefined;
 }
 
 interface PassedProps {
-  user: User;
+  user: Immutable<UserData>;
+  album?: string;
+  parent?: string;
+}
+
+interface FromStateProps {
   album?: Album;
-  parent: Album;
+  parent?: Album;
+}
+
+function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
+  if (ownProps.album) {
+    let album = Album.fromState(state, ownProps.album);
+    return {
+      album,
+      parent: album.parent,
+    };
+  }
+
+  if (ownProps.parent) {
+    return {
+      parent: Album.fromState(state, ownProps.parent),
+    };
+  }
+
+  exception(ErrorCode.InvalidState);
 }
 
 const mapDispatchToProps = {
@@ -34,12 +55,17 @@ const mapDispatchToProps = {
   albumEdited,
 };
 
-type AlbumProps = PassedProps & DispatchProps<typeof mapDispatchToProps>;
+interface AlbumOverlayState {
+  disabled: boolean;
+  error?: APIError;
+  inputs: InputFields;
+}
 
-class AlbumOverlay extends React.Component<AlbumProps, AlbumState> {
-  private inputs: Inputs;
+type AlbumOverlayProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
+class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState> {
+  private inputs: InputFields;
 
-  public constructor(props: AlbumProps) {
+  public constructor(props: AlbumOverlayProps) {
     super(props);
 
     this.state = {
@@ -67,15 +93,24 @@ class AlbumOverlay extends React.Component<AlbumProps, AlbumState> {
       return;
     }
     let parent = this.inputs.parent;
+    if (!parent) {
+      exception(ErrorCode.InvalidState);
+    }
 
     this.setState({ disabled: true });
 
     try {
       if (!this.props.album) {
-        let album = await createAlbum(name, parent);
+        let data: CreateData<AlbumData> = {
+          catalog: parent.catalog.id,
+          name,
+          parent: parent.id,
+        };
+
+        let album = await createAlbum(data);
         this.props.albumCreated(album);
       } else {
-        let updated: Patch<Album> = {
+        let updated: Patch<AlbumData> = {
           name,
           id: this.props.album.id,
           parent: parent.id,
@@ -110,4 +145,4 @@ class AlbumOverlay extends React.Component<AlbumProps, AlbumState> {
   }
 }
 
-export default connect(undefined, mapDispatchToProps)(AlbumOverlay);
+export default connect<PassedProps>(mapStateToProps, mapDispatchToProps)(AlbumOverlay);

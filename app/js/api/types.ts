@@ -55,90 +55,98 @@ export async function decodeAPIError(response: Response): Promise<APIError> {
   }
 }
 
-export interface Album {
-  readonly id: string;
-  readonly stub: string | undefined;
-  readonly name: string;
-  readonly parent: string | undefined;
+export interface AlbumData {
+  catalog: string;
+  id: string;
+  stub?: string;
+  name: string;
+  parent?: string;
 }
 
-export const AlbumDecoder = JsonDecoder.object<Draft<Album>>(
+export const AlbumDecoder = JsonDecoder.object<AlbumData>(
   {
+    catalog: JsonDecoder.string,
     id: JsonDecoder.string,
     stub: JsonDecoder.optional(JsonDecoder.string),
     name: JsonDecoder.string,
     parent: JsonDecoder.optional(JsonDecoder.string),
   },
-  "Album"
+  "AlbumState"
 );
 
-export interface Tag {
-  readonly id: string;
-  readonly name: string;
-  readonly parent: string | undefined;
+export interface TagData {
+  catalog: string;
+  id: string;
+  name: string;
+  parent: string | undefined;
 }
 
-export const TagDecoder = JsonDecoder.object<Draft<Tag>>(
+export const TagDecoder = JsonDecoder.object<TagData>(
   {
+    catalog: JsonDecoder.string,
     id: JsonDecoder.string,
     name: JsonDecoder.string,
     parent: JsonDecoder.optional(JsonDecoder.string),
   },
-  "Tag"
+  "TagState"
 );
 
-export interface Person {
-  readonly id: string;
-  readonly fullname: string;
+export interface PersonData {
+  catalog: string;
+  id: string;
+  fullname: string;
 }
 
-export const PersonDecoder = JsonDecoder.object<Draft<Person>>(
+export const PersonDecoder = JsonDecoder.object<PersonData>(
   {
+    catalog: JsonDecoder.string,
     id: JsonDecoder.string,
     fullname: JsonDecoder.string,
   },
-  "Person"
+  "PersonState"
 );
 
-export interface Catalog {
-  readonly id: string;
-  readonly root: string;
-  readonly tags: MapOf<Tag>;
-  readonly albums: MapOf<Album>;
+export interface CatalogData {
+  id: string;
+  root: string;
+  tags: MapOf<TagData>;
+  albums: MapOf<AlbumData>;
+  people: MapOf<PersonData>;
 }
 
-export const CatalogDecoder = JsonDecoder.object<Draft<Catalog>>(
+export const CatalogDecoder = JsonDecoder.object<CatalogData>(
   {
     id: JsonDecoder.string,
     root: JsonDecoder.string,
-    tags: MapDecoder(TagDecoder, "Tag"),
-    albums: MapDecoder(AlbumDecoder, "Album"),
+    tags: MapDecoder(TagDecoder, "TagState"),
+    albums: MapDecoder(AlbumDecoder, "AlbumState"),
+    people: MapDecoder(PersonDecoder, "PersonState"),
   },
-  "Catalog"
+  "CatalogState"
 );
 
-export interface User {
-  readonly email: string;
-  readonly fullname: string;
-  readonly hadCatalog: boolean;
-  readonly verified: boolean;
+export interface UserInfoData {
+  email: string;
+  fullname: string;
+  hadCatalog: boolean;
+  verified: boolean;
 }
 
-export const UserDecoder = JsonDecoder.object<Draft<User>>(
+export const UserInfoDecoder = JsonDecoder.object<UserInfoData>(
   {
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
     hadCatalog: JsonDecoder.boolean,
     verified: JsonDecoder.boolean,
   },
-  "User"
+  "UserInfoState"
 );
 
-export interface UserState extends User {
-  readonly catalogs: MapOf<Catalog>;
+export interface UserData extends UserInfoData {
+  catalogs: MapOf<CatalogData>;
 }
 
-export const UserStateDecoder = JsonDecoder.object<Draft<UserState>>(
+export const UserDecoder = JsonDecoder.object<Draft<UserData>>(
   {
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
@@ -149,38 +157,38 @@ export const UserStateDecoder = JsonDecoder.object<Draft<UserState>>(
   "UserState"
 );
 
-export interface ServerState {
-  readonly user?: UserState;
+export interface ServerData {
+  user?: UserData;
 }
 
-export const ServerStateDecoder = JsonDecoder.object<Draft<ServerState>>(
+export const ServerStateDecoder = JsonDecoder.object<ServerData>(
   {
-    user: JsonDecoder.optional(UserStateDecoder),
+    user: JsonDecoder.optional(UserDecoder),
   },
   "ServerState"
 );
 
-export interface UnprocessedMedia {
-  readonly id: string;
+export interface UnprocessedMediaData {
+  id: string;
 
-  readonly tags: string[];
-  readonly albums: string[];
-  readonly people: string[];
+  tags: string[];
+  albums: string[];
+  people: string[];
 
-  readonly metadata: Metadata;
+  metadata: Metadata;
 }
 
-export interface ProcessedMedia extends UnprocessedMedia {
-  readonly processVersion: number;
-  readonly uploaded: moment.Moment;
-  readonly mimetype: string;
-  readonly width: number;
-  readonly height: number;
+export interface ProcessedMediaData extends UnprocessedMediaData {
+  processVersion: number;
+  uploaded: moment.Moment;
+  mimetype: string;
+  width: number;
+  height: number;
 }
 
-export type Media = UnprocessedMedia | ProcessedMedia;
+export type MediaData = UnprocessedMediaData | ProcessedMediaData;
 
-export const UnprocessedMediaDecoder = JsonDecoder.object<Draft<UnprocessedMedia>>(
+export const UnprocessedMediaDecoder = JsonDecoder.object<UnprocessedMediaData>(
   {
     id: JsonDecoder.string,
 
@@ -190,10 +198,10 @@ export const UnprocessedMediaDecoder = JsonDecoder.object<Draft<UnprocessedMedia
 
     metadata: MetadataDecoder,
   },
-  "UnprocessedMedia"
+  "UnprocessedMediaState"
 );
 
-export const ProcessedMediaDecoder = JsonDecoder.object<Draft<ProcessedMedia>>(
+export const ProcessedMediaDecoder = JsonDecoder.object<ProcessedMediaData>(
   {
     id: JsonDecoder.string,
 
@@ -209,12 +217,14 @@ export const ProcessedMediaDecoder = JsonDecoder.object<Draft<ProcessedMedia>>(
 
     metadata: MetadataDecoder,
   },
-  "ProcessedMedia"
+  "ProcessedMediaState"
 );
 
-export function isProcessed(media: Media): media is ProcessedMedia {
+export function isProcessed(media: MediaData): media is ProcessedMediaData {
   return "processVersion" in media && media.processVersion > 0;
 }
 
-export const MediaDecoder = JsonDecoder.oneOf<Media>([ProcessedMediaDecoder, UnprocessedMediaDecoder], "Media");
-export const MediaArrayDecoder = JsonDecoder.array<Media>(MediaDecoder, "Media[]");
+export const MediaDecoder = JsonDecoder.oneOf<MediaData>([ProcessedMediaDecoder, UnprocessedMediaDecoder], "Media");
+export const MediaArrayDecoder = JsonDecoder.array<MediaData>(MediaDecoder, "Media[]");
+
+export type CreateData<D> = Omit<D, "id">;

@@ -10,7 +10,7 @@ import Overlay from "./overlays/index";
 import LocalizationContext from "./l10n";
 import CatalogPage from "./pages/catalog";
 import AlbumPage from "./pages/album";
-import store from "./store/store";
+import { store } from "./store/store";
 import { ReduxRouter } from "./utils/history";
 import { decode } from "./utils/decoders";
 import NotFound from "./pages/notfound";

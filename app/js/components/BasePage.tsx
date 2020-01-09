@@ -1,25 +1,26 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { User } from "../api/types";
+import { UserData } from "../api/types";
 import { StoreState } from "../store/types";
 import Banner from "./Banner";
-import Sidebar, { SidebarProps } from "./Sidebar";
+import Sidebar, { PassedProps as SidebarProps } from "./Sidebar";
+import { Immutable } from "../utils/immer";
+import { ComponentProps } from "./shared";
 
-export interface StateProps {
-  user?: User;
+export interface FromStateProps {
+  user?: Immutable<UserData>;
 }
 
-function mapStateToProps(state: StoreState): StateProps {
+function mapStateToProps(state: StoreState): FromStateProps {
   return {
     user: state.serverState.user,
   };
 }
 
-export type BasePageProps = StateProps;
+export type BasePageProps = ComponentProps<{}, typeof mapStateToProps>;
 export type BasePageState = {};
-
-export class BasePage<P extends BasePageProps, S extends BasePageState = BasePageState> extends React.Component<P, S> {
+export class BasePage<P, S extends BasePageState = BasePageState> extends React.Component<P & BasePageProps, S> {
   protected renderBannerButtons(): React.ReactNode {
     return null;
   }

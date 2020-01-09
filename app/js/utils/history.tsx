@@ -3,18 +3,9 @@ import { Store } from "redux";
 import { Location, History, Action, UnregisterCallback, LocationListener, LocationDescriptorObject } from "history";
 import { Router } from "react-router";
 
-import { StoreState } from "../store/types";
+import { StoreState, LocationState, HistoryState } from "../store/types";
 import { setHistoryState } from "../store/actions";
-import store from "../store/store";
-
-type LocationState = undefined;
-
-export interface HistoryState {
-  readonly url: URL;
-  readonly state: LocationState;
-  readonly length: number;
-  readonly action: Action;
-}
+import { store } from "../store/store";
 
 function statesEqual(a: HistoryState, b: HistoryState): boolean {
   if (a === b) {

@@ -70,6 +70,7 @@ module.exports = {
     "@typescript-eslint/indent": ["warn", 2],
     "@typescript-eslint/semi": "error",
     "@typescript-eslint/ban-ts-ignore": "off",
+    "@typescript-eslint/no-empty-interface": "off",
     "@typescript-eslint/no-inferrable-types": ["warn", {
       "ignoreParameters": true,
       "ignoreProperties": true,

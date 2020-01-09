@@ -1,5 +1,7 @@
-import { ServerState } from "../api/types";
-import { HistoryState } from "../utils/history";
+import { Action } from "history";
+
+import { ServerData } from "../api/types";
+import { Immutable } from "../utils/immer";
 
 export enum OverlayType {
   Login = "login",
@@ -17,7 +19,7 @@ interface BaseOverlayState {
 
 interface UploadOverlayState {
   readonly type: OverlayType.Upload;
-  readonly parent: string;
+  readonly target: string | undefined;
 }
 
 interface CatalogEditOverlayState {
@@ -33,7 +35,6 @@ interface AlbumCreateOverlayState {
 interface AlbumEditOverlayState {
   readonly type: OverlayType.EditAlbum;
   readonly album: string;
-  readonly parent: string;
 }
 
 export type OverlayState = BaseOverlayState | UploadOverlayState | CatalogEditOverlayState | AlbumCreateOverlayState | AlbumEditOverlayState;
@@ -42,8 +43,17 @@ interface Settings {
   readonly thumbnailSize: number;
 }
 
+export type LocationState = undefined;
+
+export interface HistoryState {
+  readonly url: URL;
+  readonly state: LocationState;
+  readonly length: number;
+  readonly action: Action;
+}
+
 export interface StoreState {
-  readonly serverState: ServerState;
+  readonly serverState: Immutable<ServerData>;
   readonly overlay?: OverlayState;
   readonly settings: Settings;
   readonly historyState: HistoryState | null;

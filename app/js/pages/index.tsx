@@ -1,9 +1,13 @@
 import React from "react";
 import { RouteComponentProps } from "react-router";
 
-import { BasePageProps, BasePage, baseConnect } from "../components/BasePage";
+import { BasePage, baseConnect } from "../components/BasePage";
+import { ComponentProps } from "../components/shared";
 
-class IndexPage extends BasePage<BasePageProps & RouteComponentProps> {
+type PassedProps = RouteComponentProps;
+
+type IndexPageProps = ComponentProps<PassedProps>;
+class IndexPage extends BasePage<IndexPageProps> {
   public renderContent(): React.ReactNode {
     return <h1>Index</h1>;
   }

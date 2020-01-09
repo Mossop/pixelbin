@@ -1,32 +1,32 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { Media, isProcessed } from "../api/types";
+import { MediaData, isProcessed } from "../api/types";
 import { StoreState } from "../store/types";
 import { getOrientation } from "../api/metadata";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
+import { ComponentProps } from "./shared";
 
-interface MediaProps {
-  media: Media;
+interface PassedProps {
+  media: MediaData;
   thumbnail?: ImageBitmap;
   draggable?: boolean;
   onDragStart?: (event: React.DragEvent) => void;
 }
 
-interface StateProps {
+interface FromStateProps {
   size: number;
 }
 
-function mapStateToProps(state: StoreState): StateProps {
+function mapStateToProps(state: StoreState): FromStateProps {
   return {
     size: state.settings.thumbnailSize,
   };
 }
 
-type AllProps = StateProps & MediaProps;
-
-class MediaThumbnail extends React.Component<AllProps> {
+type MediaThumbnailProps = ComponentProps<PassedProps, typeof mapStateToProps>;
+class MediaThumbnail extends React.Component<MediaThumbnailProps> {
   public render(): React.ReactNode {
     let size = `${this.props.size}px`;
     if (isProcessed(this.props.media) && this.props.thumbnail) {

@@ -4,33 +4,33 @@ import { connect } from "react-redux";
 import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { DispatchProps, completeSignup } from "../store/actions";
+import { completeSignup } from "../store/actions";
 import { APIError } from "../api/types";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
+import { ComponentProps } from "../components/shared";
 
-interface Inputs {
+interface InputFields {
   email: string;
   name: string;
   password: string;
-}
-
-interface SignupState {
-  disabled: boolean;
-  error?: APIError;
-  inputs: Inputs;
 }
 
 const mapDispatchToProps = {
   completeSignup: completeSignup,
 };
 
-type SignupProps = DispatchProps<typeof mapDispatchToProps>;
+interface SignupOverlayState {
+  disabled: boolean;
+  error?: APIError;
+  inputs: InputFields;
+}
 
-class SignupOverlay extends React.Component<SignupProps, SignupState> {
-  private inputs: Inputs;
+type SignupOverlayProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
+class SignupOverlay extends React.Component<SignupOverlayProps, SignupOverlayState> {
+  private inputs: InputFields;
 
-  public constructor(props: SignupProps) {
+  public constructor(props: SignupOverlayProps) {
     super(props);
     this.state = {
       disabled: false,

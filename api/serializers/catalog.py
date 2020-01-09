@@ -1,8 +1,10 @@
 from rest_framework import serializers
 
 from ..storage import Server, Backblaze
-from ..models import Tag, Catalog, Person
+from ..models import Catalog
 from .album import AlbumSerializer
+from .person import PersonSerializer
+from .tag import TagSerializer
 
 def get_catalog_storage_field(instance):
     if instance.backblaze is not None:
@@ -31,23 +33,6 @@ class ServerSerializer(serializers.ModelSerializer):
         model = Server
         fields = []
 
-class CatalogPeopleSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = Person
-        fields = ['id', 'fullname']
-
-class CatalogTagsSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
-
-    def get_id(self, instance):
-        return str(instance.id)
-
-    class Meta:
-        model = Tag
-        fields = ['id', 'name', 'parent']
-
 class CatalogSerializer(serializers.ModelSerializer):
     id = serializers.CharField(required=False, allow_blank=False, allow_null=False, default=None)
     name = serializers.CharField(write_only=True)
@@ -61,8 +46,8 @@ class CatalogSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'storage']
 
 class CatalogStateSerializer(serializers.ModelSerializer):
-    tags = CatalogTagsSerializer(many=True)
-    people = CatalogPeopleSerializer(many=True)
+    tags = TagSerializer(many=True)
+    people = PersonSerializer(many=True)
     albums = AlbumSerializer(many=True)
     root = serializers.SerializerMethodField()
 

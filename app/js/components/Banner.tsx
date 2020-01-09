@@ -3,10 +3,11 @@ import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 
 import { logout } from "../api/auth";
-import { showLoginOverlay, showSignupOverlay, completeLogout, DispatchProps } from "../store/actions";
+import { showLoginOverlay, showSignupOverlay, completeLogout } from "../store/actions";
 import { If, Then, Else } from "../utils/Conditions";
 import { isLoggedIn } from "../utils/helpers";
 import { Button } from "./Button";
+import { ComponentProps } from "./shared";
 
 const mapDispatchToProps = {
   openLoginOverlay: showLoginOverlay,
@@ -14,8 +15,7 @@ const mapDispatchToProps = {
   completeLogout: completeLogout,
 };
 
-type BannerProps = DispatchProps<typeof mapDispatchToProps>;
-
+type BannerProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
 class Banner extends React.Component<BannerProps> {
   private logout: (() => void) = async (): Promise<void> => {
     let state = await logout();

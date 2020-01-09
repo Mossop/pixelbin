@@ -2,16 +2,22 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { StoreState, OverlayState, OverlayType } from "../store/types";
-import { closeOverlay, DispatchProps } from "../store/actions";
-import { User } from "../api/types";
-import { getAlbum } from "../store/store";
+import { closeOverlay } from "../store/actions";
+import { UserData } from "../api/types";
 import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
 import UploadOverlay from "./upload";
 import CatalogOverlay from "./catalog";
 import AlbumOverlay from "./album";
+import { Immutable } from "../utils/immer";
+import { ComponentProps } from "../components/shared";
 
-function mapStateToProps(state: StoreState): StateProps {
+interface FromStateProps {
+  overlay?: OverlayState;
+  user?: Immutable<UserData>;
+}
+
+function mapStateToProps(state: StoreState): FromStateProps {
   return {
     overlay: state.overlay,
     user: state.serverState.user,
@@ -22,12 +28,8 @@ const mapDispatchToProps = {
   closeOverlay,
 };
 
-interface StateProps {
-  overlay?: OverlayState;
-  user?: User;
-}
-
-class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof mapDispatchToProps>> {
+type OverlayDisplayProps = ComponentProps<{}, typeof mapStateToProps, typeof mapDispatchToProps>;
+class OverlayDisplay extends React.Component<OverlayDisplayProps> {
   public componentDidMount(): void {
     document.addEventListener("keydown", this.onKeyDown, true);
   }
@@ -55,7 +57,8 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
   };
 
   public render(): React.ReactNode {
-    if (!this.props.overlay) {
+    let overlayState = this.props.overlay;
+    if (!overlayState) {
       return null;
     }
 
@@ -63,7 +66,7 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
     let className = "";
 
     if (!this.props.user) {
-      switch (this.props.overlay.type) {
+      switch (overlayState.type) {
         case OverlayType.Login: {
           overlay = <LoginOverlay/>;
           break;
@@ -74,33 +77,33 @@ class OverlayDisplay extends React.Component<StateProps & DispatchProps<typeof m
         }
       }
     } else {
-      switch (this.props.overlay.type) {
+      switch (overlayState.type) {
         case OverlayType.CreateCatalog: {
           overlay = <CatalogOverlay user={this.props.user}/>;
           break;
         }
         case OverlayType.CreateAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} parent={getAlbum(this.props.overlay.parent)}/>;
+          overlay = <AlbumOverlay user={this.props.user} parent={overlayState.parent}/>;
           break;
         }
         case OverlayType.EditAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} album={getAlbum(this.props.overlay.album)} parent={getAlbum(this.props.overlay.parent)}/>;
+          overlay = <AlbumOverlay user={this.props.user} album={overlayState.album}/>;
           break;
         }
         case OverlayType.Upload: {
-          overlay = <UploadOverlay user={this.props.user} parent={getAlbum(this.props.overlay.parent)}/>;
+          overlay = <UploadOverlay user={this.props.user} target={overlayState.target}/>;
           break;
         }
       }
     }
 
     if (!overlay) {
-      console.error(`State contained an illegal overlay: ${this.props.overlay.type}`);
+      console.error(`State contained an illegal overlay: ${overlayState.type}`);
       this.props.closeOverlay();
       return null;
     }
 
-    className = this.props.overlay.type;
+    className = overlayState.type;
 
     return <div id="overlay" className={className} onClick={this.onClick}>
       <div id="overlay-pane">{overlay}</div>

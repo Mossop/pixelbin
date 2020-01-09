@@ -1,9 +1,13 @@
 import React from "react";
 import { RouteComponentProps } from "react-router";
 
-import { BasePageProps, BasePage, baseConnect } from "../components/BasePage";
+import { BasePage, baseConnect } from "../components/BasePage";
+import { ComponentProps } from "../components/shared";
 
-class UserPage extends BasePage<BasePageProps & RouteComponentProps> {
+type PassedProps = RouteComponentProps;
+
+type UserPageProps = ComponentProps<PassedProps>;
+class UserPage extends BasePage<UserPageProps> {
   public renderContent(): React.ReactNode {
     return <h1>User</h1>;
   }

@@ -1,34 +1,37 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { showCatalogCreateOverlay, DispatchProps } from "../store/actions";
+import { showCatalogCreateOverlay } from "../store/actions";
 import { StoreState } from "../store/types";
-import { Catalog, Album } from "../api/types";
+import { CatalogData } from "../api/types";
 import { history } from "../utils/history";
-import { MapOf } from "../utils/maps";
 import { CatalogTreeSidebar } from "./CatalogTree";
 import { Button } from "./Button";
+import { Immutable } from "../utils/immer";
+import { Catalog, Album } from "../api/highlevel";
+import { ComponentProps } from "./shared";
+
+export interface PassedProps {
+  selectedAlbum?: Album;
+}
+
+interface FromStateProps {
+  catalogs: Catalog[];
+}
+
+function mapStateToProps(state: StoreState): FromStateProps {
+  return {
+    catalogs: Array.from(state.serverState.user?.catalogs.values() || [])
+      .map((catalogState: Immutable<CatalogData>) => Catalog.fromState(state, catalogState)),
+  };
+}
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
 };
 
-interface StateProps {
-  catalogs: MapOf<Catalog>;
-}
-
-function mapStateToProps(state: StoreState): StateProps {
-  if (state.serverState.user) {
-    return { catalogs: state.serverState.user.catalogs };
-  }
-  return { catalogs: new Map() };
-}
-
-export interface SidebarProps {
-  album?: Album;
-}
-
-class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDispatchToProps> & StateProps> {
+type SidebarProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
+class Sidebar extends React.Component<SidebarProps> {
   private onCatalogClick: ((catalog: Catalog) => void) = (catalog: Catalog): void => {
     history.push(`/catalog/${catalog.id}`);
   };
@@ -40,7 +43,7 @@ class Sidebar extends React.Component<SidebarProps & DispatchProps<typeof mapDis
   public render(): React.ReactNode {
     return <div id="sidebar">
       <div id="catalog-tree">
-        <CatalogTreeSidebar album={this.props.album} onCatalogClick={this.onCatalogClick} onAlbumClick={this.onAlbumClick}/>
+        <CatalogTreeSidebar selectedAlbum={this.props.selectedAlbum} onCatalogClick={this.onCatalogClick} onAlbumClick={this.onAlbumClick}/>
         <Button id="new-catalog" l10n="sidebar-add-catalog" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/>
       </div>
     </div>;

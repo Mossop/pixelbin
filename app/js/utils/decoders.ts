@@ -57,8 +57,18 @@ export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<Draf
   );
 }
 
-export function ClassDecoder<C>(cls: new() => C, decoders: JsonDecoder.DecoderObject<C>, decoderName: string): JsonDecoder.Decoder<C> {
-  return MappingDecoder(JsonDecoder.object(decoders, decoderName), (data: C): C => {
-    return Object.assign(new cls(), data);
+type InterfaceFunctions<T> = ({[P in keyof T]: T[P] extends Function ? P : never })[keyof T];
+type InterfaceProperties<T> = Omit<T, InterfaceFunctions<T>>;
+
+export class Decodable<T> {
+  public constructor(obj: InterfaceProperties<T>) {
+    Object.assign(this, obj);
+  }
+}
+
+export function ClassDecoder<C>(cls: new(obj: InterfaceProperties<C>) => C,
+  decoders: JsonDecoder.DecoderObject<InterfaceProperties<C>>, decoderName: string): JsonDecoder.Decoder<Draft<C>> {
+  return MappingDecoder(JsonDecoder.object(decoders, decoderName), (data: InterfaceProperties<C>): Draft<C> => {
+    return new cls(data) as Draft<C>;
   }, decoderName);
 }

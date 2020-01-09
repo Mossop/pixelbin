@@ -1,5 +1,3 @@
-import { Catalog } from "../api/types";
-
 export enum Join {
   And = "&&",
   Or = "||",
@@ -32,7 +30,7 @@ export interface QueryGroup {
 type Query = QueryGroup | FieldQuery;
 
 export interface Search {
-  catalog: Catalog;
+  catalog: string;
   query: Query;
 }
 
