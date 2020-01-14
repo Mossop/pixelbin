@@ -2,11 +2,11 @@ import React from "react";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 
-import { MediaData } from "../api/types";
+import { MediaData } from "../api/media";
 import { StoreState } from "../store/types";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, showUploadOverlay } from "../store/actions";
 import { Button } from "../components/Button";
-import { BasePage, baseConnect, BasePageState } from "../components/BasePage";
+import { BasePage, baseConnect, BasePageState, BasePageProps } from "../components/BasePage";
 import { PassedProps as SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
 import { Search, Field, Operation } from "../utils/search";
@@ -20,7 +20,7 @@ interface MatchParams {
   id: string;
 }
 
-type PassedProps = RouteComponentProps<MatchParams>;
+type PassedProps = BasePageProps & RouteComponentProps<MatchParams>;
 
 interface FromStateProps {
   album?: Album;

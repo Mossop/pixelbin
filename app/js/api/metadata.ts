@@ -2,13 +2,11 @@ import { JsonDecoder, Result, err, ok } from "ts.data.json";
 import moment from "moment";
 import { Orientation } from "media-metadata/lib/metadata";
 
-import { DateDecoder, decode } from "../utils/decoders";
-import { UnprocessedMediaData } from "./types";
+import { decode } from "../utils/decoders";
+import { MediaData } from "./media";
+import { MediaCreateData, MetadataUpdateData, MetadataData } from "./types";
 
-export interface Metadata {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
+type MediaWithMetadata = MediaData | MediaCreateData;
 
 const MetadataFields: Map<string, MetadataField> = new Map();
 
@@ -21,81 +19,52 @@ abstract class MetadataField {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected get(media: Partial<UnprocessedMediaData>): any {
-    if (media.metadata) {
-      return media.metadata[this.key];
-    }
-    return undefined;
+  protected get(metadata: MetadataData): any {
+    return metadata[this.key];
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected set(media: Partial<UnprocessedMediaData>, value: any): void {
-    if (media.metadata) {
-      media.metadata[this.key] = value;
-    } else {
-      media.metadata = {
-        [this.key]: value,
-      };
-    }
+  protected set(metadata: MetadataUpdateData, value: any): void {
+    metadata[this.key] = value;
   }
 
-  public delete(media: Partial<UnprocessedMediaData>): void {
-    if (media.metadata) {
-      delete media.metadata[this.key];
-    }
+  public delete(metadata: MetadataUpdateData): void {
+    delete metadata[this.key];
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public abstract decoder(): JsonDecoder.Decoder<any>;
 }
 
 abstract class BaseMetadataField<T> extends MetadataField {
-  public abstract decoder(): JsonDecoder.Decoder<T | undefined>;
-
-  public getValue(media: Partial<UnprocessedMediaData>): T | undefined {
-    return this.get(media);
+  public getValue(metadata: MetadataData): T | undefined {
+    return this.get(metadata);
   }
 
-  public setValue(media: Partial<UnprocessedMediaData>, value: T): void {
-    this.set(media, value);
+  public setValue(metadata: MetadataUpdateData, value: T): void {
+    this.set(metadata, value);
   }
 
-  public deleteValue(media: Partial<UnprocessedMediaData>): void {
-    this.delete(media);
+  public deleteValue(metadata: MetadataUpdateData): void {
+    this.delete(metadata);
   }
 }
 
 class StringMetadataField extends BaseMetadataField<string> {
-  public decoder(): JsonDecoder.Decoder<string | undefined> {
-    return JsonDecoder.optional(JsonDecoder.string);
-  }
 }
 
 class IntegerMetadataField extends BaseMetadataField<number> {
-  public decoder(): JsonDecoder.Decoder<number | undefined> {
-    return JsonDecoder.optional(JsonDecoder.number);
-  }
-
-  public getValue(media: Partial<UnprocessedMediaData>): number | undefined {
-    let val = this.get(media);
+  public getValue(metadata: MetadataData): number | undefined {
+    let val = this.get(metadata);
     return typeof val == "number" ? Math.round(val) : val;
   }
 
-  public setValue(media: UnprocessedMediaData, value: number): void {
-    this.set(media, Math.round(value));
+  public setValue(metadata: MetadataUpdateData, value: number): void {
+    this.set(metadata, Math.round(value));
   }
 }
 
 class FloatMetadataField extends BaseMetadataField<number> {
-  public decoder(): JsonDecoder.Decoder<number | undefined> {
-    return JsonDecoder.optional(JsonDecoder.number);
-  }
 }
 
 class DateTimeMetadataField extends BaseMetadataField<moment.Moment> {
-  public decoder(): JsonDecoder.Decoder<moment.Moment | undefined> {
-    return JsonDecoder.optional(DateDecoder);
-  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,6 +85,8 @@ const MetadataFieldDecoder = new JsonDecoder.Decoder<MetadataField>((json: any):
         return ok<MetadataField>(new IntegerMetadataField(key, json));
       case "datetime":
         return ok<MetadataField>(new DateTimeMetadataField(key, json));
+      case "orientation":
+        return ok<MetadataField>(new IntegerMetadataField(key, json));
       default:
         return err<MetadataField>(`Unknown metadata field type ${type}.`);
     }
@@ -137,16 +108,6 @@ if (metadataElement && metadataElement.textContent) {
   }
 }
 
-const decoderSpec: Metadata = {};
-for (let field of MetadataFields.values()) {
-  decoderSpec[field.key] = field.decoder();
-}
-
-export const MetadataDecoder = JsonDecoder.object<Metadata>(
-  decoderSpec,
-  "Metadata"
-);
-
 type FieldConstructor<T> = new (key: string, spec: {}) => BaseMetadataField<T>;
 
 function getFieldInstance<T>(key: string, cls: FieldConstructor<T>): BaseMetadataField<T> {
@@ -162,27 +123,33 @@ function getFieldInstance<T>(key: string, cls: FieldConstructor<T>): BaseMetadat
   throw new Error(`Field ${key} did not have the expected type.`);
 }
 
-type FieldGetter<T> = (media: UnprocessedMediaData, key: string) => T | undefined;
-type FieldSetter<T> = (media: Partial<UnprocessedMediaData>, key: string, value: T) => void;
+type FieldGetter<T> = (media: MediaWithMetadata, key: string) => T | undefined;
+type FieldSetter<T> = (media: MediaWithMetadata, key: string, value: T) => void;
 
 function buildFieldGetter<T>(cls: FieldConstructor<T>): FieldGetter<T> {
-  return (media: UnprocessedMediaData, key: string): T | undefined => {
+  return (media: MediaData, key: string): T | undefined => {
     let field: BaseMetadataField<T> = getFieldInstance(key, cls);
-    return field.getValue(media);
+    return field.getValue(media.metadata);
   };
 }
 
 function buildFieldSetter<T>(cls: FieldConstructor<T>): FieldSetter<T> {
-  return (media: Partial<UnprocessedMediaData>, key: string, value: T): void => {
+  return (media: MediaCreateData, key: string, value: T): void => {
     let field: BaseMetadataField<T> = getFieldInstance(key, cls);
-    return field.setValue(media, value);
+    if (!media.metadata) {
+      media.metadata = {};
+    }
+    return field.setValue(media.metadata, value);
   };
 }
 
-export function deleteValue(media: Partial<UnprocessedMediaData>, key: string): void {
+export function deleteValue(media: MediaCreateData, key: string): void {
   let field: MetadataField | undefined = MetadataFields.get(key);
   if (field) {
-    field.delete(media);
+    if (!media.metadata) {
+      return;
+    }
+    field.delete(media.metadata);
   }
 }
 
@@ -195,10 +162,10 @@ export const setIntegerValue = buildFieldSetter(IntegerMetadataField);
 export const getDateValue = buildFieldGetter(DateTimeMetadataField);
 export const setDateValue = buildFieldSetter(DateTimeMetadataField);
 
-export function getOrientation(media: UnprocessedMediaData): Orientation {
+export function getOrientation(media: MediaData): Orientation {
   return getIntegerValue(media, "orientation") || Orientation.TopLeft;
 }
 
-export function setOrientation(media: Partial<UnprocessedMediaData>, value: Orientation): void {
+export function setOrientation(media: MediaCreateData, value: Orientation): void {
   setIntegerValue(media, "orientation", value);
 }

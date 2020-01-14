@@ -1,15 +1,10 @@
-import { StorageConfig } from "../storage/types";
-import { buildJSONBody, request } from "./api";
-import { CatalogData, CatalogDecoder } from "./types";
+import { StorageData } from "../storage";
+import { request } from "./api";
+import { ApiMethod, CatalogData } from "./types";
 
-export async function createCatalog(name: string, storage: StorageConfig): Promise<CatalogData> {
-  return request({
-    url: "catalog/create",
-    method: "PUT",
-    body: buildJSONBody({
-      name,
-      storage
-    }),
-    decoder: CatalogDecoder,
+export function createCatalog(name: string, storage: StorageData): Promise<CatalogData> {
+  return request(ApiMethod.CatalogCreate, {
+    name,
+    storage,
   });
 }

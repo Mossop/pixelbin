@@ -1,7 +1,7 @@
 import { applyMiddleware, createStore, Store, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
-import { ServerStateDecoder, ServerData } from "../api/types";
+import { ServerDataDecoder, ServerData } from "../api/types";
 import { decode } from "../utils/decoders";
 import { ActionType } from "./actions";
 import { StoreState } from "./types";
@@ -10,11 +10,11 @@ import reducer from "./reducer";
 export type StoreType = Store<StoreState, ActionType>;
 
 function buildStore(): StoreType {
-  let initialServerState: ServerData = {};
+  let initialServerState: ServerData = { user: null };
   let stateElement = document.getElementById("initial-state");
   if (stateElement && stateElement.textContent) {
     try {
-      initialServerState = decode(ServerStateDecoder, JSON.parse(stateElement.textContent));
+      initialServerState = decode(ServerDataDecoder, JSON.parse(stateElement.textContent));
     } catch (e) {
       console.error(e);
     }

@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
 import { closeOverlay } from "../store/actions";
-import { APIError, errorL10n } from "../api/types";
+import { APIError, errorL10n } from "../api/errors";
 import { Button } from "./Button";
 import { ComponentProps } from "./shared";
 

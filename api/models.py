@@ -6,7 +6,7 @@ from django_cte import CTEManager, With
 from rest_framework import status
 
 from .locks import lock
-from .storage import Server, Backblaze
+from .storage.models import Storage
 from .storage.base import MediaStorage
 from .utils import uuid, ApiException
 from .constraints import UniqueWithExpressionsConstraint
@@ -81,29 +81,12 @@ class User(AbstractUser):
 class Catalog(models.Model):
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     users = models.ManyToManyField(User, related_name='catalogs', through='Access')
-
-    backblaze = models.ForeignKey(Backblaze, blank=True, null=True,
-                                  on_delete=models.CASCADE, related_name='catalogs')
-    server = models.ForeignKey(Server, blank=True, null=True,
-                               on_delete=models.CASCADE, related_name='catalogs')
-
-    @property
-    def storage(self):
-        if self.backblaze is not None:
-            return self.backblaze.storage
-        if self.server is not None:
-            return self.server.storage
-        raise RuntimeError("Unreachable")
+    storage = models.ForeignKey(Storage, null=False,
+                                on_delete=models.CASCADE, related_name='catalogs')
 
     @property
     def root(self):
         return self.albums.get(parent__isnull=True)
-
-    def delete(self, using=None, keep_parents=False):
-        self.root.delete()
-        super().delete(using, keep_parents)
-        Backblaze.objects.filter(catalogs__isnull=True).delete()
-        Server.objects.filter(catalogs__isnull=True).delete()
 
 class Access(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access')
@@ -265,6 +248,7 @@ class Media(models.Model):
     # Cannot be changed after upload.
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, null=False, on_delete=models.CASCADE, related_name='media')
+    created = models.DateTimeField(auto_now_add=True)
 
     # Fields required for the storage system. Should not be exposed to the API.
     storage_filename = models.CharField(max_length=50)
@@ -273,8 +257,8 @@ class Media(models.Model):
 
     # Fields generated from the media file.
     process_version = models.IntegerField(null=True, default=None)
-    uploaded = models.DateTimeField(auto_now_add=True)
-    mimetype = models.CharField(blank=True, max_length=50)
+    uploaded = models.DateTimeField(null=True)
+    mimetype = models.CharField(null=True, blank=False, max_length=50)
     width = models.IntegerField(null=True, default=None)
     height = models.IntegerField(null=True, default=None)
     duration = models.FloatField(null=True, default=None)
@@ -295,7 +279,7 @@ class Media(models.Model):
 
     @property
     def storage(self):
-        return MediaStorage(self.catalog.storage, self)
+        return MediaStorage(self.catalog.storage.file_store, self)
 
     @property
     def is_image(self):

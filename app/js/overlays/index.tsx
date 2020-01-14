@@ -3,7 +3,6 @@ import { connect } from "react-redux";
 
 import { StoreState, OverlayState, OverlayType } from "../store/types";
 import { closeOverlay } from "../store/actions";
-import { UserData } from "../api/types";
 import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
 import UploadOverlay from "./upload";
@@ -11,10 +10,11 @@ import CatalogOverlay from "./catalog";
 import AlbumOverlay from "./album";
 import { Immutable } from "../utils/immer";
 import { ComponentProps } from "../components/shared";
+import { UserData } from "../api/types";
 
 interface FromStateProps {
   overlay?: OverlayState;
-  user?: Immutable<UserData>;
+  user: Immutable<UserData> | null;
 }
 
 function mapStateToProps(state: StoreState): FromStateProps {

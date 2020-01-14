@@ -3,10 +3,12 @@ import React from "react";
 import { FormField } from "../components/Form";
 import { Option } from "../components/Selectbox";
 import { makeProperty } from "../utils/StateProxy";
-import { StorageConfig } from "./types";
+import { BackblazeStorageData, ServerStorageData } from "../api/types";
 import { renderBackblazeConfigUI } from "./backblaze";
 
-export function renderStorageConfigUI(config: StorageConfig, disabled: boolean): React.ReactNode {
+export type StorageData = BackblazeStorageData | ServerStorageData;
+
+export function renderStorageConfigUI(config: StorageData, disabled: boolean): React.ReactNode {
   let inner: React.ReactNode = null;
   if (config.type === "backblaze") {
     inner = renderBackblazeConfigUI(config, disabled);

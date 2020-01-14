@@ -1,55 +1,40 @@
 import { Search } from "../utils/search";
 import { intoId, MapId } from "../utils/maps";
-import { request, buildJSONBody, apiURL, buildFormBody, baseRequest, buildGetURL } from "./api";
-import { MediaData, MediaArrayDecoder, MediaDecoder, UnprocessedMediaData, UnprocessedMediaDecoder, CatalogData } from "./types";
-import { Catalog } from "./highlevel";
+import { request } from "./api";
+import { ApiMethod, UnprocessedMediaData, MediaCreateData } from "./types";
 
-export async function getMedia(id: string): Promise<MediaData> {
-  let url = apiURL(`media/get/${id}`);
+type ProcessParams = "processVersion" | "uploaded" | "mimetype" | "width" | "height" | "duration" | "fileSize";
+export type ProcessedMediaData = {
+  [K in keyof UnprocessedMediaData]: K extends ProcessParams ? NonNullable<UnprocessedMediaData[K]> : UnprocessedMediaData[K];
+};
+export type MediaData = ProcessedMediaData | UnprocessedMediaData;
 
-  return request({
-    url,
-    decoder: MediaDecoder,
+export function isProcessed(media: MediaData): media is ProcessedMediaData {
+  return media.processVersion !== null;
+}
+
+export function getMedia(id: string): Promise<MediaData> {
+  return request(ApiMethod.MediaGet, { id });
+}
+
+export function createMedia(media: MediaCreateData): Promise<MediaData> {
+  return request(ApiMethod.MediaCreate, media);
+}
+
+export function uploadMedia(media: MapId<MediaData>, file: File): Promise<MediaData> {
+  return request(ApiMethod.MediaUpload, {
+    id: intoId(media),
+    file,
   });
 }
 
-export async function createMedia(catalog: MapId<Catalog | CatalogData>, media: Partial<UnprocessedMediaData>): Promise<UnprocessedMediaData> {
-  return request({
-    url: "media/create",
-    method: "PUT",
-    body: buildJSONBody(Object.assign({}, media, { catalog: intoId(catalog) })),
-    decoder: UnprocessedMediaDecoder,
-  });
-}
-
-export async function uploadMedia(media: MapId<MediaData>, file: File): Promise<void> {
-  await baseRequest({
-    url: `media/upload/${intoId(media)}`,
-    method: "PUT",
-    body: buildFormBody({
-      file: file,
-    })
-  });
-}
-
-export async function searchMedia(search: Search): Promise<MediaData[]> {
-  return request({
-    url: "media/search",
-    method: "POST",
-    body: buildJSONBody({
-      catalog: search.catalog,
-      query: search.query,
-    }),
-    decoder: MediaArrayDecoder,
-  });
+export function searchMedia(search: Search): Promise<MediaData[]> {
+  return request(ApiMethod.MediaSearch, search);
 }
 
 export async function thumbnail(media: MapId<MediaData>, size: number): Promise<ImageBitmap> {
-  let response = await baseRequest({
-    url: buildGetURL(`media/thumbnail/${intoId(media)}`, {
-      size: String(size),
-    }),
-  });
-
-  return createImageBitmap(await response.blob());
+  return createImageBitmap(await request(ApiMethod.MediaThumbnail, {
+    id: intoId(media),
+    size,
+  }));
 }

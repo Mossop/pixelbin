@@ -142,7 +142,7 @@ export class Album {
     return Catalog.fromState(this.storeState, this.state.catalog);
   }
 
-  public get stub(): string | undefined {
+  public get stub(): string | null {
     return this.state.stub;
   }
 
@@ -155,7 +155,12 @@ export class Album {
   }
 
   public get children(): Album[] {
-    let catalogState: Immutable<CatalogData> | undefined = this.storeState.serverState.user?.catalogs.get(this.state.catalog);
+    let user = this.storeState.serverState.user;
+    if (!user) {
+      return [];
+    }
+
+    let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog);
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);

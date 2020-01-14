@@ -13,4 +13,5 @@ rm -rf data/storage
 rm -f api/migrations/00*
 ${EXEC} ./manage.py makemigrations
 ${EXEC} ./manage.py migrate
+${EXEC} ./manage.py buildtypes
 ${EXEC} ./manage.py createsuperuser --email dtownsend@oxymoronical.com --full_name="Dave Townsend"

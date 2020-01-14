@@ -2,9 +2,9 @@ import React from "react";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 
-import { baseConnect, BasePage } from "../components/BasePage";
+import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
 import { StoreState } from "../store/types";
-import { MediaData } from "../api/types";
+import { MediaData } from "../api/media";
 import { PassedProps as SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
 import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
@@ -19,7 +19,7 @@ interface MatchParams {
   id: string;
 }
 
-type PassedProps = RouteComponentProps<MatchParams>;
+type PassedProps = BasePageProps & RouteComponentProps<MatchParams>;
 
 interface FromStateProps {
   catalog: Catalog | undefined;

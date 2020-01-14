@@ -1,5 +1,6 @@
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 import moment from "moment";
+import { Orientation } from "media-metadata/lib/metadata";
 
 import { Draft } from "../utils/immer";
 import { Mappable, MapOf } from "./maps";
@@ -42,6 +43,7 @@ export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undef
 }
 
 export const DateDecoder = MappingDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
+export const OrientationDecoder = MappingDecoder(JsonDecoder.number, (num: number): Orientation=> num, "Orientation");
 
 export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<Draft<A>>, name: string): JsonDecoder.Decoder<Draft<MapOf<A>>> {
   return MappingDecoder<Draft<A[]>, Draft<MapOf<A>>>(

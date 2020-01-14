@@ -1,5 +1,5 @@
 export interface Mappable {
-  readonly id: string;
+  id: string;
 }
 
 export function isId<T extends Mappable>(item: MapId<T>): item is string {

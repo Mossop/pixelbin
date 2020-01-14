@@ -1,73 +1,73 @@
 from rest_framework.response import Response
 from rest_framework import status
 
+from . import api_view
 from ..models import Album
-from ..utils import uuid, api_view
-from ..serializers.album import AlbumSerializer, ManyMediaSerializer
+from ..utils import uuid
+from ..serializers.album import AlbumSerializer, AlbumMediaSerializer
+from ..serializers import PatchSerializerWrapper
 
-@api_view(['PUT'])
-def create(request):
-    serializer = AlbumSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    parent = serializer.validated_data['parent']
+@api_view('PUT', request=AlbumSerializer, response=AlbumSerializer)
+def create(request, deserialized):
+    parent = deserialized.validated_data['parent']
     if not request.user.can_access_catalog(parent.catalog):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    album = serializer.save(id=uuid("A"), catalog=parent.catalog, parent=parent)
+    return deserialized.save(id=uuid("A"), catalog=parent.catalog, parent=parent)
 
-    serializer = AlbumSerializer(album)
-    return Response(serializer.data)
+@api_view('PATCH', request=PatchSerializerWrapper(AlbumSerializer), response=AlbumSerializer)
+def edit(request, deserialized):
+    album = deserialized.instance
+    if not request.user.can_access_catalog(album.catalog):
+        return Response(status=status.HTTP_403_FORBIDDEN)
 
-@api_view(['PATCH'])
-def edit(request, ident):
-    try:
-        album = Album.objects.get(id=ident)
-        if not request.user.can_access_catalog(album.catalog):
+    data = deserialized.validated_data
+    target_catalog = album.catalog
+    if 'catalog' in data:
+        target_catalog = data['catalog']
+        if not request.user.can_access_catalog(target_catalog):
             return Response(status=status.HTTP_403_FORBIDDEN)
-    except Album.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
 
-    serializer = AlbumSerializer(album, data=request.data, partial=True)
-    serializer.is_valid(raise_exception=True)
-    data = serializer.validated_data
+    parent_album = album.parent
+    if 'parent' in data:
+        parent_album = data['parent']
 
-    if 'parent' in data and data['parent'].catalog != album.catalog:
+    # Cannot have a parent album with a different catalog.
+    if parent_album is not None and parent_album.catalog != target_catalog:
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    serializer.save()
-    return Response(serializer.data)
+    # Can only be the top-level album if it was already the top-level album
+    # for the new catalog.
+    if parent_album is None:
+        if album.parent is not None or target_catalog != album.catalog:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['PUT'])
-def add(request, ident):
+    return deserialized.save()
+
+@api_view('PUT', request=AlbumMediaSerializer)
+def add(request, deserialized):
     try:
-        album = Album.objects.get(id=ident)
+        album = Album.objects.get(id=deserialized.validated_data['id'])
         if not request.user.can_access_catalog(album.catalog):
             return Response(status=status.HTTP_403_FORBIDDEN)
     except Album.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    serializer = ManyMediaSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    for media in serializer.validated_data:
+    for media in deserialized.validated_data:
         if media.catalog != album.catalog:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    album.media.add(*serializer.validated_data)
+    album.media.add(*deserialized.validated_data)
     return Response(status=status.HTTP_200_OK)
 
-@api_view(['DELETE'])
-def remove(request, ident):
+@api_view('DELETE', request=AlbumMediaSerializer)
+def remove(request, deserialized):
     try:
-        album = Album.objects.get(id=ident)
+        album = Album.objects.get(id=deserialized.validated_data['id'])
         if not request.user.can_access_catalog(album.catalog):
             return Response(status=status.HTTP_403_FORBIDDEN)
     except Album.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    serializer = ManyMediaSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    album.media.remove(*serializer.validated_data)
+    album.media.remove(*deserialized.validated_data)
     return Response(status=status.HTTP_200_OK)

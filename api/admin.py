@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import User, Catalog, Album, Tag, Media, Person
-from .storage import Server, Backblaze
+from .storage.models import Server, Backblaze
 
 admin.site.register(User)
 admin.site.register(Catalog)

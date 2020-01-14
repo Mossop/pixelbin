@@ -1,38 +1,27 @@
-import { buildJSONBody, request, Patch, baseRequest } from "./api";
-import { AlbumData, AlbumDecoder, MediaData, CreateData } from "./types";
+import { request } from "./api";
 import { intoId, intoIds, MapId } from "../utils/maps";
 import { Album } from "./highlevel";
+import { AlbumCreateData, ApiMethod, AlbumData, Patch} from "./types";
+import { MediaData } from "./media";
 
-export async function createAlbum(data: CreateData<AlbumData>): Promise<AlbumData> {
-  return request({
-    url: "album/create",
-    method: "PUT",
-    body: buildJSONBody(data),
-    decoder: AlbumDecoder,
+export function createAlbum(data: AlbumCreateData): Promise<AlbumData> {
+  return request(ApiMethod.AlbumCreate, data);
+}
+
+export function editAlbum(album: Patch<AlbumCreateData>): Promise<AlbumData> {
+  return request(ApiMethod.AlbumEdit, album);
+}
+
+export function addMediaToAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
+  return request(ApiMethod.AlbumAddMedia, {
+    id: intoId(album),
+    media: intoIds(media),
   });
 }
 
-export async function editAlbum(album: Patch<AlbumData>): Promise<AlbumData> {
-  return await request({
-    url: `album/edit/${album.id}`,
-    method: "PATCH",
-    body: buildJSONBody(album),
-    decoder: AlbumDecoder,
-  });
-}
-
-export async function addMediaToAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
-  await baseRequest({
-    url: `album/add_media/${intoId(album)}`,
-    method: "PUT",
-    body: buildJSONBody(intoIds(media)),
-  });
-}
-
-export async function removeMediaFromAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
-  await baseRequest({
-    url: `album/remove_media/${intoId(album)}`,
-    method: "DELETE",
-    body: buildJSONBody(intoIds(media)),
+export function removeMediaFromAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
+  return request(ApiMethod.AlbumRemoveMedia, {
+    id: intoId(album),
+    media: intoIds(media),
   });
 }

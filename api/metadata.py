@@ -52,6 +52,10 @@ def rotate(value):
     if value == 270:
         return 8
 
+class OrientationField(fields.IntegerField):
+    def __init__(self, **kwargs):
+        super().__init__(max_value=8, min_value=1, **kwargs)
+
 class MediaMetadata:
     _media = None
 
@@ -110,11 +114,16 @@ class MetadataField:
     def __init__(self, key):
         self._key = key
         self._default = METADATA[key].get('default', None)
+        self._js_name = METADATA[key].get('js_name', key)
         METADATA_CACHE[key] = self
 
     @property
     def key(self):
         return self._key
+
+    @property
+    def js_name(self):
+        return self._js_name
 
     def should_import(self, media):
         if 'should_import' in METADATA[self.key]:
@@ -130,14 +139,19 @@ class MetadataField:
 
     def add_to_serializer(self, cls):
         # pylint: disable=protected-access
-        cls._declared_fields[self._key] = self.get_serializer_field()
+        kwargs = dict()
+        kwargs['required'] = False
+        if self._js_name != self._key:
+            kwargs['source'] = self._key
+        kwargs['allow_null'] = True
+        cls._declared_fields[self._js_name] = self.get_serializer_field(**kwargs)
 
-    def get_serializer_field(self):
-        return fields.CharField(max_length=200, allow_blank=True, required=False)
+    def get_serializer_field(self, **kwargs):
+        return fields.CharField(max_length=200, allow_blank=True, **kwargs)
 
     def get_js_spec(self):
         spec = {
-            'key': self.key,
+            'key': self.js_name,
             'type': self.type,
         }
 
@@ -196,8 +210,8 @@ class StringMetadataField(MetadataField):
     def get_db_field(self):
         return models.CharField(max_length=self.max_length, null=True, blank=True)
 
-    def get_serializer_field(self):
-        return fields.CharField(max_length=self.max_length, allow_blank=True, required=False)
+    def get_serializer_field(self, **kwargs):
+        return fields.CharField(max_length=self.max_length, allow_blank=True, **kwargs)
 
     def fill_js_spec(self, spec):
         spec['max_length'] = self.max_length
@@ -208,8 +222,8 @@ class FloatMetadataField(MetadataField):
     def get_db_field(self):
         return models.FloatField(null=True)
 
-    def get_serializer_field(self):
-        return fields.FloatField(required=False)
+    def get_serializer_field(self, **kwargs):
+        return fields.FloatField(**kwargs)
 
 class IntegerMetadataField(MetadataField):
     type = 'integer'
@@ -217,8 +231,17 @@ class IntegerMetadataField(MetadataField):
     def get_db_field(self):
         return models.IntegerField(null=True)
 
-    def get_serializer_field(self):
-        return fields.IntegerField(required=False)
+    def get_serializer_field(self, **kwargs):
+        return fields.IntegerField(**kwargs)
+
+class OrientationMetadataField(IntegerMetadataField):
+    type = 'orientation'
+
+    def get_db_field(self):
+        return models.IntegerField(null=True)
+
+    def get_serializer_field(self, **kwargs):
+        return OrientationField(**kwargs)
 
 class DateTimeMetadataField(MetadataField):
     type = 'datetime'
@@ -226,8 +249,8 @@ class DateTimeMetadataField(MetadataField):
     def get_db_field(self):
         return models.DateTimeField(null=True)
 
-    def get_serializer_field(self):
-        return fields.DateTimeField(required=False)
+    def get_serializer_field(self, **kwargs):
+        return fields.DateTimeField(**kwargs)
 
     def serialize_value(self, value):
         return value.isoformat()
@@ -339,7 +362,7 @@ METADATA = {
         ],
     },
     'orientation': {
-        'type': IntegerMetadataField,
+        'type': OrientationMetadataField,
         # Orientation is handled automatically for videos.
         'should_import': lambda media: not media.is_video,
         'import_fields': [
@@ -396,6 +419,7 @@ METADATA = {
     },
     'focal_length': {
         'type': FloatMetadataField,
+        'js_name': 'focalLength',
         'import_fields': [
             'FocalLength',
         ],

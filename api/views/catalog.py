@@ -1,33 +1,19 @@
 from django.db import transaction
-from rest_framework.response import Response
-from rest_framework import status
 
-from ..models import Album, Access
-from ..utils import uuid, api_view
-from ..serializers.catalog import CatalogSerializer, BackblazeSerializer, ServerSerializer, \
-    CatalogStateSerializer
+from . import api_view
+from ..models import Catalog, Album, Access
+from ..utils import uuid
+from ..serializers.catalog import CatalogCreateSerializer, CatalogStateSerializer
 
-@api_view(['PUT'])
-def create(request):
-    if 'storage' not in request.data or 'type' not in request.data['storage']:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    serializer = CatalogSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    name = serializer.validated_data['name']
-    del serializer.validated_data['name']
+@api_view('PUT', request=CatalogCreateSerializer, response=CatalogStateSerializer)
+def create(request, deserialized):
+    name = deserialized.validated_data['name']
+    storage_serializer = deserialized.validated_data['storage']
 
     with transaction.atomic():
-        if request.data['storage']['type'] == 'backblaze':
-            storage_serializer = BackblazeSerializer(data=request.data['storage'])
-            storage_serializer.is_valid(raise_exception=True)
-            storage = storage_serializer.save()
-            catalog = serializer.save(id=uuid('C'), backblaze=storage)
-        elif request.data['storage']['type'] == 'server':
-            storage_serializer = ServerSerializer(data=request.data['storage'])
-            storage_serializer.is_valid(raise_exception=True)
-            storage = storage_serializer.save()
-            catalog = serializer.save(id=uuid('C'), server=storage)
+        storage = storage_serializer.save()
+        catalog = Catalog(id=uuid('C'), storage=storage)
+        catalog.save()
         root = Album(id=uuid('A'), name=name, parent=None, catalog=catalog)
         root.save()
 
@@ -37,5 +23,4 @@ def create(request):
         request.user.had_catalog = True
         request.user.save()
 
-    serializer = CatalogStateSerializer(catalog)
-    return Response(serializer.data)
+    return catalog

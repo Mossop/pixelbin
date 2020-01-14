@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { login } from "../api/auth";
 import { completeLogin } from "../store/actions";
 import Overlay from "../components/Overlay";
-import { APIError } from "../api/types";
+import { APIError } from "../api/errors";
 import Form, { FormField } from "../components/Form";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";

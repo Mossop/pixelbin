@@ -9,7 +9,7 @@ import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
 import { createMedia, uploadMedia } from "../api/media";
 import { findTag } from "../api/tag";
-import { UnprocessedMediaData, UserData, PersonData, TagData } from "../api/types";
+import { UserData, PersonData, TagData, MediaCreateData } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
 import Overlay from "../components/Overlay";
 import { FormFields, FormField } from "../components/Form";
@@ -17,7 +17,7 @@ import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString,
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 import Media from "../components/Media";
 import { createPerson } from "../api/person";
-import { Draft, Immutable } from "../utils/immer";
+import { Immutable } from "../utils/immer";
 import { setOrientation } from "../api/metadata";
 import { ComponentProps, connect } from "../components/shared";
 import { Album } from "../api/highlevel";
@@ -140,11 +140,11 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       Promise.all(personPromises),
     ]);
 
-    let media: Partial<Draft<UnprocessedMediaData>> = {
+    let media: MediaCreateData = {
+      catalog: catalog.id,
       tags: tags.map((t: TagData) => t.id),
       people: people.map((p: PersonData) => p.id),
       albums: [target.id],
-      metadata: {},
     };
 
     if (pending.orientation) {
@@ -152,7 +152,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
 
     try {
-      let created = await createMedia(catalog, media);
+      let created = await createMedia(media);
       await uploadMedia(created, pending.file);
 
       delete this.inputs.uploads[id];

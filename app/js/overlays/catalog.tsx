@@ -1,21 +1,21 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { UserData, APIError } from "../api/types";
+import { APIError } from "../api/errors";
 import Form, { FormField } from "../components/Form";
-import { renderStorageConfigUI } from "../storage";
+import { renderStorageConfigUI, StorageData } from "../storage";
 import { createCatalog } from "../api/catalog";
 import { catalogCreated } from "../store/actions";
 import Overlay from "../components/Overlay";
-import { StorageConfig } from "../storage/types";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
 import { ComponentProps } from "../components/shared";
 import { Immutable } from "../utils/immer";
+import { UserData } from "../api/types";
 
 type InputFields = Proxyable<{
   name: string;
-  storage: StorageConfig;
+  storage: StorageData;
 }>;
 
 interface PassedProps {

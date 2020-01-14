@@ -1,11 +1,6 @@
-import { buildJSONBody, request } from "./api";
-import { PersonData, PersonDecoder, CreateData } from "./types";
+import { request } from "./api";
+import { ApiMethod, PersonCreateData, PersonData } from "./types";
 
-export async function createPerson(person: CreateData<PersonData>): Promise<PersonData> {
-  return request({
-    url: "person/create",
-    method: "PUT",
-    body: buildJSONBody(person),
-    decoder: PersonDecoder,
-  });
+export async function createPerson(person: PersonCreateData): Promise<PersonData> {
+  return request(ApiMethod.PersonCreate, person);
 }

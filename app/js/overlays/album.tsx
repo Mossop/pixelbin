@@ -2,12 +2,12 @@ import React from "react";
 import { Localized } from "@fluent/react";
 
 import Form, { FormField } from "../components/Form";
-import { UserData, APIError, AlbumData, CreateData } from "../api/types";
+import { APIError } from "../api/errors";
 import { albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
 import Overlay from "../components/Overlay";
 import { CatalogTreeSelector } from "../components/CatalogTree";
-import { Patch } from "../api/api";
+import { Patch, UserData, AlbumData, AlbumCreateData } from "../api/types";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
 import { Album } from "../api/highlevel";
@@ -101,7 +101,7 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
 
     try {
       if (!this.props.album) {
-        let data: CreateData<AlbumData> = {
+        let data: AlbumCreateData = {
           catalog: parent.catalog.id,
           name,
           parent: parent.id,

@@ -5,7 +5,7 @@ import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { completeSignup } from "../store/actions";
-import { APIError } from "../api/types";
+import { APIError } from "../api/errors";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
 import { ComponentProps } from "../components/shared";
@@ -60,7 +60,11 @@ class SignupOverlay extends React.Component<SignupOverlayProps, SignupOverlaySta
     this.setState({ disabled: true });
 
     try {
-      let state = await signup(email, name || "", password || "");
+      let state = await signup({
+        email,
+        fullname: name,
+        password: password,
+      });
       this.props.completeSignup(state);
     } catch (e) {
       this.setState({

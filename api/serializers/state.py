@@ -1,10 +1,20 @@
-from . import Serializer
-from .user import UserStateSerializer
+import logging
 
-class StateSerializer(Serializer):
-    user = UserStateSerializer()
+from . import Serializer
+from .user import UserSerializer
+
+LOGGER = logging.getLogger(__name__)
+
+class ServerDataSerializer(Serializer):
+    user = UserSerializer(allow_null=True)
+
+    class Meta:
+        js_response_type = 'ServerData'
 
 def serialize_state(request):
+    state = {"user": None}
     if request.user.is_authenticated:
-        return StateSerializer({"user": request.user}).data
-    return StateSerializer({"user": None}).data
+        state = {"user": request.user}
+
+    serializer = ServerDataSerializer(state)
+    return serializer.data

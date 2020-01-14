@@ -3,17 +3,21 @@ from rest_framework import serializers
 
 from ..models import User
 from .catalog import CatalogStateSerializer
-from . import Serializer
+from . import ModelSerializer, Serializer, MapSerializer
 
 class LoginSerializer(Serializer):
     email = serializers.CharField()
     password = serializers.CharField()
 
-class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        js_request_type = 'LoginData'
+
+class UserSerializer(ModelSerializer):
     fullname = serializers.CharField(source='full_name')
     password = serializers.CharField(write_only=True, allow_blank=True)
     hadCatalog = serializers.BooleanField(source='had_catalog', read_only=True)
     verified = serializers.BooleanField(read_only=True)
+    catalogs = MapSerializer(child=CatalogStateSerializer(), read_only=True)
 
     def create(self, validated_data):
         user = get_user_model().objects.create_user(validated_data['email'],
@@ -22,11 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     class Meta:
+        js_response_type = 'UserData'
+        js_request_type = 'UserCreateData'
         model = User
-        fields = ['email', 'password', 'fullname', 'hadCatalog', 'verified']
-
-class UserStateSerializer(UserSerializer):
-    catalogs = CatalogStateSerializer(many=True)
-
-    class Meta(UserSerializer.Meta):
         fields = ['email', 'password', 'fullname', 'hadCatalog', 'verified', 'catalogs']

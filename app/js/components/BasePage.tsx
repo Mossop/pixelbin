@@ -9,7 +9,7 @@ import { Immutable } from "../utils/immer";
 import { ComponentProps } from "./shared";
 
 export interface FromStateProps {
-  user?: Immutable<UserData>;
+  user: Immutable<UserData> | null;
 }
 
 function mapStateToProps(state: StoreState): FromStateProps {

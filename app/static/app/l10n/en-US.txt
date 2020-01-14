@@ -8,6 +8,7 @@ api-error-request-failed = The server request failed: '{$detail}'.
 api-error-error-parse-failed = Failed to parse the server error response.
 api-error-invalid-response = Failed to parse server response: '{$detail}'.
 api-error-unauthenticated = Not authorized to access the requested API method.
+api-error-illegal-storage = An internal error occured, unlinked storage.
 
 banner-login = Log in
 banner-signup = Signup

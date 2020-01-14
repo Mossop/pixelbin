@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from . import Serializer
+from . import Serializer, ListSerializer
 from ..search import QueryGroup, FieldQuery, Search
 from ..models import Catalog
 
@@ -23,6 +23,9 @@ class FieldQuerySerializer(Serializer):
 
     def create(self, validated_data):
         return FieldQuery(**validated_data)
+
+    class Meta:
+        js_response_type = 'FieldQuery'
 
 class QuerySerializer(Serializer):
     def to_representation(self, instance):
@@ -47,14 +50,20 @@ class QuerySerializer(Serializer):
         serializer.is_valid(raise_exception=True)
         return serializer.create(serializer.validated_data)
 
+    class Meta:
+        js_response_type = 'Query'
+
 class QueryGroupSerializer(RecursiveSerializer):
     invert = serializers.BooleanField()
     join = serializers.ChoiceField(QueryGroup.JOINS)
-    queries = QuerySerializer(many=True)
+    queries = ListSerializer(child=QuerySerializer())
 
     def create(self, validated_data):
         args = self.create_inner(validated_data)
         return QueryGroup(**args)
+
+    class Meta:
+        js_response_type = 'QueryGroup'
 
 class SearchSerializer(Serializer):
     catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
@@ -66,3 +75,6 @@ class SearchSerializer(Serializer):
     def create(self, validated_data):
         query = self.fields['query'].create(validated_data['query'])
         return Search(validated_data['catalog'], query)
+
+    class Meta:
+        js_response_type = 'Search'

@@ -1,19 +1,23 @@
 from rest_framework import serializers
 
-from ..models import Album, Media, Catalog
-from . import ListSerializer
+from . import ModelSerializer, Serializer, ListSerializer
+from ..models import Album, Media
 
-class AlbumSerializer(serializers.ModelSerializer):
-    catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
-    stub = serializers.CharField(allow_null=True, allow_blank=False, required=False, default=None)
-    parent = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all())
-
+class AlbumSerializer(ModelSerializer):
     class Meta:
+        js_response_type = 'AlbumData'
+        js_request_type = 'AlbumCreateData'
         model = Album
         fields = ['id', 'catalog', 'stub', 'name', 'parent']
         extra_kwargs = {
-            'id': {'read_only': True}
+            'id': {'read_only': True},
+            'stub': {'required': False},
         }
 
-class ManyMediaSerializer(ListSerializer):
-    child = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all())
+class AlbumMediaSerializer(Serializer):
+    id = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all(),
+                                            allow_null=False)
+    media = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Media.objects.all()))
+
+    class Meta:
+        js_request_type = 'AlbumMedia'

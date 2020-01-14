@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
 
-import { MediaData, isProcessed } from "../api/types";
+import { MediaData, isProcessed } from "../api/media";
 import { StoreState } from "../store/types";
 import { getOrientation } from "../api/metadata";
 import ImageCanvas from "./ImageCanvas";

@@ -3,8 +3,7 @@ import { connect } from "react-redux";
 
 import { Search } from "../utils/search";
 import { StoreState } from "../store/types";
-import { MediaData, isProcessed, UnprocessedMediaData } from "../api/types";
-import { thumbnail, searchMedia, getMedia } from "../api/media";
+import { thumbnail, searchMedia, getMedia, isProcessed, ProcessedMediaData, MediaData } from "../api/media";
 import { produce, Draft } from "../utils/immer";
 import Throbber from "./Throbber";
 import MediaThumbnail from "./MediaThumbnail";
@@ -44,7 +43,7 @@ interface MediaListState {
 }
 class MediaList extends React.Component<MediaListProps, MediaListState> {
   private pendingSearch: number;
-  private pendingProcessing: Map<string, UnprocessedMediaData>;
+  private pendingProcessing: Map<string, MediaData>;
   private pendingTimeout: NodeJS.Timeout | null;
 
   public constructor(props: MediaListProps) {
@@ -58,7 +57,7 @@ class MediaList extends React.Component<MediaListProps, MediaListState> {
     };
   }
 
-  private async loadThumbnail(media: MediaData): Promise<void> {
+  private async loadThumbnail(media: ProcessedMediaData): Promise<void> {
     let image = await thumbnail(media, this.props.thumbnailSize);
 
     let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
@@ -76,6 +75,7 @@ class MediaList extends React.Component<MediaListProps, MediaListState> {
       if (!isProcessed(media)) {
         return;
       }
+      let processed: ProcessedMediaData = media;
 
       if (!this.pendingProcessing.has(id)) {
         // No longer need this result.
@@ -84,7 +84,7 @@ class MediaList extends React.Component<MediaListProps, MediaListState> {
 
       let mediaMap = this.state.mediaMap || {};
       mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>) => {
-        mediaMap[id].media = media;
+        mediaMap[id].media = processed;
       });
 
       this.setState({
