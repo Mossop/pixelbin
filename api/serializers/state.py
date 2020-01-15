@@ -11,10 +11,11 @@ class ServerDataSerializer(Serializer):
     class Meta:
         js_response_type = 'ServerData'
 
-def serialize_state(request):
-    state = {"user": None}
+def build_state(request):
     if request.user.is_authenticated:
-        state = {"user": request.user}
+        return {"user": request.user}
+    return {"user": None}
 
-    serializer = ServerDataSerializer(state)
+def serialize_state(request):
+    serializer = ServerDataSerializer(build_state(request))
     return serializer.data

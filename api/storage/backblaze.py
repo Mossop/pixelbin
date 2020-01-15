@@ -1,6 +1,6 @@
 import requests
 
-from .base import FileStorage
+from .base import LocalFileStore
 
 B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
 
@@ -119,13 +119,13 @@ class BackblazeAPI:
 
         return '%s/file/%s/%s?Authorization=%s' % (self.download_url, self.bucket_name, path, token)
 
-class BackblazeStorage(FileStorage):
+class BackblazeFileStore(LocalFileStore):
     STORAGE = {}
 
     @classmethod
     def build(cls, model):
         if model.id not in cls.STORAGE:
-            cls.STORAGE[model.id] = BackblazeStorage(model)
+            cls.STORAGE[model.id] = BackblazeFileStore(model)
         return cls.STORAGE[model.id]
 
     def __init__(self, model):

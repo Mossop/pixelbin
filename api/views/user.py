@@ -7,7 +7,7 @@ from . import api_view
 from .. import models
 from ..utils import ApiException
 from ..serializers.user import UserSerializer, LoginSerializer
-from ..serializers.state import ServerDataSerializer, serialize_state
+from ..serializers.state import ServerDataSerializer, build_state
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def create(request, deserialized):
     user = deserialized.save()
     if not request.auth:
         login_user(request, user)
-    return serialize_state(request)
+    return build_state(request)
 
 @api_view('POST', requires_login=False, request=LoginSerializer, response=ServerDataSerializer)
 def login(request, deserialized):
@@ -27,10 +27,10 @@ def login(request, deserialized):
                         password=deserialized.validated_data['password'])
     if user is not None:
         login_user(request, user)
-        return serialize_state(request)
+        return build_state(request)
     raise ApiException('login-failed', status=status.HTTP_403_FORBIDDEN)
 
 @api_view('POST', requires_login=False, response=ServerDataSerializer)
 def logout(request):
     logout_user(request)
-    return serialize_state(request)
+    return build_state(request)

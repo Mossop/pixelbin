@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 from django.http.response import HttpResponse
 from rest_framework.response import Response
@@ -8,24 +7,71 @@ from filetype import filetype
 
 from . import api_view
 from ..models import Media
-from ..utils import uuid
-from ..serializers.media import MediaSerializer, ThumbnailRequestSerializer, UploadSerializer
+from ..utils import uuid, ApiException
+from ..serializers.media import MediaSerializer, ThumbnailRequestSerializer
 from ..serializers.search import SearchSerializer
 from ..serializers import ListSerializerWrapper, ModelIdQuery, BlobSerializer, \
-                          MultipartSerializerWrapper
-from ..tasks import process_media
-from ..media import build_thumbnail
+                          MultipartSerializerWrapper, PatchSerializerWrapper
+from ..tasks import process_new_file
+from ..media import build_thumbnail, ALLOWED_TYPES
 
-@api_view('PUT', request=MediaSerializer, response=MediaSerializer)
+def perform_upload(media, file):
+    try:
+        temp = media.file_store.get_temp_path('original')
+        with open(temp, "wb") as output:
+            for chunk in file.chunks():
+                output.write(chunk)
+
+        media.new_file = True
+        media.save()
+    except Exception as exc:
+        media.file_store.delete_all_temp()
+        raise exc
+
+    if file.name is not None and len(file.name) > 0:
+        target_name = os.path.basename(file.name)
+    else:
+        target_name = None
+    process_new_file.delay(media.id, target_name)
+
+    return media
+
+# pylint: disable=too-many-arguments
+def validate(request, file, catalog, albums, tags, people):
+    if not request.user.can_access_catalog(catalog):
+        raise ApiException('unauthenticated', status=status.HTTP_403_FORBIDDEN)
+
+    if file is not None:
+        guessed_mimetype = filetype.guess_mime(file)
+        if not guessed_mimetype in ALLOWED_TYPES:
+            raise ApiException('unknown-type', message_args={
+                'type': guessed_mimetype,
+            })
+
+    if len(albums) == 0:
+        raise ApiException('media-in-no-albums')
+
+    for album in albums:
+        if album.catalog != catalog:
+            raise ApiException('catalog-mismatch')
+
+    for tag in tags:
+        if tag.catalog != catalog:
+            raise ApiException('catalog-mismatch')
+
+    for person in people:
+        if person.catalog != catalog:
+            raise ApiException('catalog-mismatch')
+
+@api_view('PUT', request=MultipartSerializerWrapper(MediaSerializer), response=MediaSerializer)
 def create(request, deserialized):
-    if not request.user.can_access_catalog(deserialized.validated_data['catalog']):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    data = deserialized.validated_data
+    file = data['file']
 
-    for album in deserialized.validated_data['albums']:
-        if album.catalog != deserialized.validated_data['catalog']:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+    validate(request, file, data['catalog'], data['albums'], data['tags'], data['people'])
 
-    return deserialized.save(id=uuid('M'))
+    media = deserialized.save(id=uuid('M'))
+    return perform_upload(media, file)
 
 @api_view('GET', request=ModelIdQuery(Media), response=MediaSerializer)
 def get(request, media):
@@ -34,37 +80,26 @@ def get(request, media):
 
     return media
 
-@api_view('PUT', request=MultipartSerializerWrapper(UploadSerializer), response=MediaSerializer)
-def upload(request, deserialized):
-    media = deserialized.validated_data['id']
-    file = deserialized.validated_data['file']
+@api_view('PUT', request=MultipartSerializerWrapper(PatchSerializerWrapper(MediaSerializer)),
+          response=MediaSerializer)
+def update(request, deserialized):
+    media = deserialized.instance
+    data = deserialized.validated_data
+    file = data.get('file', None)
 
     if not request.user.can_access_catalog(media.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+        raise ApiException('unauthenticated', status=status.HTTP_403_FORBIDDEN)
 
-    guessed_type = filetype.guess(file)
-    if guessed_type is None:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+    validate(request, file,
+             data.get('catalog', None) or media.catalog,
+             data.get('albums', None) or media.albums.all(),
+             data.get('tags', None) or media.tags.all(),
+             data.get('people', None) or media.people.all())
 
-    try:
-        filename = 'original.%s' % (guessed_type.extension)
-        temp = media.storage.get_temp_path(filename)
-        with open(temp, "wb") as output:
-            for chunk in file.chunks():
-                output.write(chunk)
+    media = deserialized.save()
 
-        if file.name is not None and len(file.name) > 0:
-            media.metadata.set_media_value('filename', os.path.basename(file.name))
-        media.storage_filename = filename
-        media.mimetype = guessed_type.mime
-        media.new_file = True
-        media.uploaded = datetime.now()
-        media.save()
-    except Exception as exc:
-        media.storage.delete_all_temp()
-        raise exc
-
-    process_media.delay(media.id)
+    if file is not None:
+        return perform_upload(media, file)
     return media
 
 @api_view('POST', request=SearchSerializer, response=ListSerializerWrapper(MediaSerializer))

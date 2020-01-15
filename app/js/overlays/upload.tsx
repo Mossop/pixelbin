@@ -7,7 +7,7 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { createMedia, uploadMedia } from "../api/media";
+import { createMedia } from "../api/media";
 import { findTag } from "../api/tag";
 import { UserData, PersonData, TagData, MediaCreateData } from "../api/types";
 import { CatalogTreeSelector } from "../components/CatalogTree";
@@ -145,6 +145,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       tags: tags.map((t: TagData) => t.id),
       people: people.map((p: PersonData) => p.id),
       albums: [target.id],
+      file: pending.file,
     };
 
     if (pending.orientation) {
@@ -152,8 +153,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
 
     try {
-      let created = await createMedia(media);
-      await uploadMedia(created, pending.file);
+      await createMedia(media);
 
       delete this.inputs.uploads[id];
 

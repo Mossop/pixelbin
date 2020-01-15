@@ -6,13 +6,13 @@ from base.signals import wsgi_startup
 def startup(sender, **kwargs):
     # pylint: disable=import-outside-toplevel
     from .models import Media
-    from .tasks import PROCESS_VERSION, process_media
+    from .tasks import PROCESS_VERSION, process_new_file, process_metadata
 
-    Media.objects.filter(process_version=None, new_file=False).delete()
+    for media in Media.objects.exclude(process_version=PROCESS_VERSION).filter(new_file=False):
+        process_metadata.delay(media.id)
 
-    needs_processing = Media.objects.exclude(process_version=PROCESS_VERSION, new_file=False)
-    for media in needs_processing:
-        process_media.delay(media.id)
+    for media in Media.objects.filter(new_file=True):
+        process_new_file.delay(media.id)
 
 class ApiConfig(AppConfig):
     name = 'api'

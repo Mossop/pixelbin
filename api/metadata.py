@@ -4,6 +4,8 @@ import re
 from django.db import models
 from rest_framework import fields
 
+from .media import is_video
+
 METADATA_CACHE = dict()
 
 def parse_exif_date(text):
@@ -17,6 +19,9 @@ def parse_exif_datetime(text):
 
 def parse_exif_subsec_datetime(text):
     return datetime.strptime(text, '%Y:%m:%d %H:%M:%S.%f')
+
+def parse_iso_datetime(text):
+    return datetime.fromisoformat(text)
 
 def parse_offset(offset):
     match = re.fullmatch(r"""([+-]?)(\d{1-2}):(\d{1-2})""", offset)
@@ -364,7 +369,7 @@ METADATA = {
     'orientation': {
         'type': OrientationMetadataField,
         # Orientation is handled automatically for videos.
-        'should_import': lambda media: not media.is_video,
+        'should_import': lambda media: not is_video(media.mimetype),
         'import_fields': [
             ['Orientation', int],
             ['Rotation', rotate],

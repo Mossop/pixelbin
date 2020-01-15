@@ -1,15 +1,17 @@
 import subprocess
 import json
+from datetime import datetime
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.db import transaction
 from PIL import Image
+from filetype import filetype
 
 from .models import Media
-from .media import resize, THUMB_SIZES
+from .media import resize, THUMB_SIZES, ALLOWED_TYPES, is_video, is_image
 
-from .metadata import parse_metadata
+from .metadata import parse_metadata, parse_iso_datetime
 
 base_logger = get_task_logger(__name__)
 
@@ -33,30 +35,64 @@ class MediaLogger:
 
 @shared_task
 @transaction.atomic
-def process_media(media_id):
+def process_metadata(media_id):
     # pylint: disable=bare-except
     media = Media.objects.select_for_update().get(id=media_id)
     logger = MediaLogger(media)
 
+    if media.process_version == PROCESS_VERSION:
+        logger.info('Skipping processing for already processed media "%s".' % media.id)
+        return
+
     try:
-        logger.info('Processing media "%s"...', media.id)
-        process(logger, media)
+        logger.info('Processing metadata for media "%s"...', media.id)
+        meta_path = media.file_store.get_local_path('metadata.json')
+        with open(meta_path, 'r') as meta_file:
+            metadata = json.load(meta_file)
+
+        import_metadata(logger, media, metadata)
+        media.save()
     except:
-        logger.exception('Failed while processing media "%s".', media.id)
+        logger.exception('Failed while processing metadata for media "%s".', media.id)
         raise
-    logger.info('Processing of media "%s" is complete.', media.id)
+    logger.info('Processing of metadata for media "%s" is complete.', media.id)
+
+@shared_task
+@transaction.atomic
+def process_new_file(media_id, target_name=None):
+    # pylint: disable=bare-except
+    media = Media.objects.select_for_update().get(id=media_id)
+    logger = MediaLogger(media)
+
+    if not media.new_file:
+        logger.info('Skipping new file for already processed media "%s".' % media.id)
+        return
+
+    try:
+        logger.info('Processing new file for media "%s"...', media.id)
+        metadata = import_file(logger, media, target_name)
+        if metadata is not None:
+            import_metadata(logger, media, metadata)
+        media.new_file = False
+        media.save()
+
+        media.file_store.delete_all_temp()
+    except:
+        logger.exception('Failed while processing new file for media "%s".', media.id)
+        raise
+    logger.info('Processing of new file for media "%s" is complete.', media.id)
 
 def process_image(logger, media, source):
     image = Image.open(source)
     for size in THUMB_SIZES:
         logger.debug('Building thumbnail of size %d.', size)
         resized = resize(image, size)
-        target = media.storage.get_local_path('sized%d.jpg' % (size))
+        target = media.file_store.get_local_path('sized%d.jpg' % (size))
         resized.save(target, None, quality=95, optimize=True)
 
 def process_video(logger, media, source):
     logger.info('Generating video frame.')
-    tmp = media.storage.get_temp_path('tmp.jpg')
+    tmp = media.file_store.get_temp_path('tmp.jpg')
     args = [
         'ffmpeg',
         '-y',
@@ -72,7 +108,7 @@ def process_video(logger, media, source):
     process_image(logger, media, tmp)
 
     logger.info('Encoding video using h264 codec.')
-    target = media.storage.get_temp_path('h264.mp4')
+    target = media.file_store.get_temp_path('h264.mp4')
     args = [
         'ffmpeg',
         '-loglevel', 'warning',
@@ -87,11 +123,11 @@ def process_video(logger, media, source):
         target,
     ]
     subprocess.run(args, check=True)
-    media.storage.store_storage_from_temp('h264.mp4')
+    media.file_store.store_storage_from_temp('h264.mp4')
 
     logger.info('Encoding video using vp9 codec. Pass 1.')
-    target = media.storage.get_temp_path('vp9.mp4')
-    logroot = media.storage.get_temp_path('ffmpeg2pass')
+    target = media.file_store.get_temp_path('vp9.mp4')
+    logroot = media.file_store.get_temp_path('ffmpeg2pass')
     args = [
         'ffmpeg',
         '-loglevel', 'warning',
@@ -123,62 +159,62 @@ def process_video(logger, media, source):
         target,
     ]
     subprocess.run(args, check=True)
-    media.storage.store_storage_from_temp('vp9.mp4')
+    media.file_store.store_storage_from_temp('vp9.mp4')
 
-def import_file(logger, media):
+def import_file(logger, media, target_name):
     logger.info('Importing new media file.')
-    meta_path = media.storage.get_local_path('metadata.json')
-    source = media.storage.get_temp_path(media.storage_filename)
+    meta_path = media.file_store.get_local_path('metadata.json')
+    source = media.file_store.get_temp_path('original')
     result = subprocess.run(['exiftool', '-n', '-json', source],
                             capture_output=True, timeout=10, check=True)
     results = json.loads(result.stdout)
     if len(results) != 1:
-        metadata = {}
-    else:
-        metadata = results[0]
+        logger.error('Unable to load the file\'s metadata. Abandoning this file.')
+        return None
+    metadata = results[0]
 
-    metadata['FileName'] = media.metadata.get_media_value('filename')
+    mimetype = metadata.get('MIMEType', None)
+    if mimetype is None:
+        logger.error('No mimetype detected. Abandoning this file.')
+        return None
+    if mimetype not in ALLOWED_TYPES:
+        logger.error('Invalid mimetype detected (%s). Abandoning this file.' % mimetype)
+        return None
+
+    if target_name is None:
+        kind = filetype.get_type(mime=mimetype)
+        if kind is not None:
+            extension = kind.extension
+        else:
+            extension = ''
+        target_name = 'original%s' % extension
+    metadata['FileName'] = target_name
+    metadata['FileUploadDate'] = datetime.now().isoformat()
+
+    if is_image(mimetype):
+        process_image(logger, media, source)
+    elif is_video(mimetype):
+        process_video(logger, media, source)
+
+    media.file_store.store_storage_from_temp('original', target_name)
 
     meta_file = open(meta_path, 'w')
     json.dump(metadata, meta_file, indent=2)
     meta_file.close()
 
-    media.storage.store_storage_from_temp(media.storage_filename)
-
-    mimetype = metadata.get('MIMEType', None)
-    if mimetype is not None:
-        media.mimetype = mimetype
-
-    if media.is_image:
-        process_image(logger, media, source)
-    elif media.is_video:
-        process_video(logger, media, source)
-
     return metadata
 
-def process(logger, media):
-    if media.process_version == PROCESS_VERSION and not media.new_file:
-        return
-
-    # There is a new file, generate the thumbnails.
-    if media.new_file:
-        metadata = import_file(logger, media)
-    else:
-        logger.info('Loading cached metadata.')
-        meta_path = media.storage.get_local_path('metadata.json')
-        with open(meta_path, 'r') as meta_file:
-            metadata = json.load(meta_file)
-
+def import_metadata(logger, media, metadata):
     logger.info('Parsing metadata.')
 
+    media.mimetype = parse_metadata(metadata, ['MIMEType'])
     media.file_size = parse_metadata(metadata, ['FileSize'])
     media.duration = parse_metadata(metadata, ['Duration'])
     media.width = parse_metadata(metadata, ['ImageWidth'])
     media.height = parse_metadata(metadata, ['ImageHeight'])
+    media.uploaded = parse_metadata(metadata, [
+        ['FileUploadDate', parse_iso_datetime],
+    ])
 
     media.metadata.import_from_media(metadata)
     media.process_version = PROCESS_VERSION
-    media.new_file = False
-    media.save()
-
-    media.storage.delete_all_temp()

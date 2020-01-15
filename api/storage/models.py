@@ -1,9 +1,12 @@
 from django.db import models
-from rest_framework import status as http_status
+from rest_framework import status as http_status, serializers
 
+from ..serializers import ModelSerializer, FieldMixin, UnionType, derive_type_from_class
 from ..utils import ApiException
 
 class Storage(models.Model):
+    _file_store = None
+
     @property
     def inner(self):
         for model in STORAGE_MODELS:
@@ -16,22 +19,27 @@ class Storage(models.Model):
 
     @property
     def file_store(self):
-        return self.inner.file_store
+        if self._file_store is None:
+            self._file_store = self.inner.build_file_store()
+        return self._file_store
 
 class Server(Storage):
     type = 'server'
 
     @classmethod
     def serializer(cls):
-        # pylint: disable=import-outside-toplevel
-        from .serializers import ServerSerializer
         return ServerSerializer
 
-    @property
-    def file_store(self):
+    def build_file_store(self):
         # pylint: disable=import-outside-toplevel
-        from .server import ServerStorage
-        return ServerStorage.build()
+        from .server import ServerFileStore
+        return ServerFileStore.build()
+
+class ServerSerializer(ModelSerializer):
+    class Meta:
+        js_request_type = 'ServerStorageData'
+        model = Server
+        fields = ['type']
 
 class Backblaze(Storage):
     type = 'backblaze'
@@ -43,14 +51,43 @@ class Backblaze(Storage):
 
     @classmethod
     def serializer(cls):
-        # pylint: disable=import-outside-toplevel
-        from .serializers import BackblazeSerializer
         return BackblazeSerializer
 
-    @property
-    def file_store(self):
+    def build_file_store(self):
         # pylint: disable=import-outside-toplevel
-        from .backblaze import BackblazeStorage
-        return BackblazeStorage.build(self)
+        from .backblaze import BackblazeFileStore
+        return BackblazeFileStore.build(self)
+
+class BackblazeSerializer(ModelSerializer):
+    keyId = serializers.CharField(write_only=True, source='key_id')
+
+    class Meta:
+        js_request_type = 'BackblazeStorageData'
+        model = Backblaze
+        fields = ['type', 'keyId', 'key', 'bucket', 'path']
 
 STORAGE_MODELS = [Server, Backblaze]
+
+def serializer_for_data(data):
+    if 'type' in data and isinstance(data['type'], str):
+        for model in STORAGE_MODELS:
+            if getattr(model, 'type') == data['type']:
+                return model.serializer()(data=data)
+
+    msg = 'Storage type "%s" is unknown.'
+    raise serializers.ValidationError(msg % data['type'])
+
+class StorageField(serializers.Field, FieldMixin):
+    @classmethod
+    def typedef(cls):
+        return UnionType(map(lambda c: derive_type_from_class(c.serializer()), STORAGE_MODELS))
+
+    def to_internal_value(self, data):
+        serializer = serializer_for_data(data)
+        serializer.is_valid(raise_exception=True)
+        return serializer
+
+    def to_representation(self, value):
+        inner = value.inner
+        serializer = inner.serializer()(inner)
+        return serializer.data

@@ -3,6 +3,7 @@ import { JsonDecoder } from "ts.data.json";
 
 import { ApiMethod, HttpMethods } from "./types";
 import { APIError, decodeAPIError } from "./errors";
+import { exception, ErrorCode } from "../utils/exception";
 
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export type MethodList = { [k in ApiMethod]: Method };
@@ -41,8 +42,47 @@ export class RequestData<D> {
   }
 }
 
+type QueryType = Record<string, boolean | string | number> | null | undefined;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isObject = (data: any): boolean => !(data instanceof Blob) && typeof data == "object";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isArray = (data: any): boolean => Array.isArray(data);
+
+function* objectParams(data: object, prefix: string = ""): Generator<[string, string | Blob]> {
+  for (let [key, value] of Object.entries(data)) {
+    let param = `${prefix}${key}`;
+    if (isArray(value)) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      yield* arrayParams(value, param);
+    } else if (isObject(value)) {
+      yield* objectParams(value, `${param}.`);
+    } else if (value instanceof Blob) {
+      yield [param, value];
+    } else {
+      yield [param, String(value)];
+    }
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function* arrayParams(data: any[], prefix: string = ""): Generator<[string, string | Blob]> {
+  for (let [index, value] of data.entries()) {
+    let param = `${prefix}[${index}]`;
+    if (isArray(value)) {
+      yield* arrayParams(value, param);
+    } else if (isObject(value)) {
+      yield* objectParams(value, param);
+    } else if (value instanceof Blob) {
+      yield [param, value];
+    } else {
+      yield [param, String(value)];
+    }
+  }
+}
+
 export class QueryRequestData<D> extends RequestData<D> {
-  public constructor(private data: object | undefined, decoder: Decoder<D>) {
+  public constructor(private data: QueryType, decoder: Decoder<D>) {
     super(decoder);
   }
 
@@ -52,7 +92,7 @@ export class QueryRequestData<D> extends RequestData<D> {
     }
 
     for (let [key, value] of Object.entries(this.data)) {
-      url.searchParams.append(key, value);
+      url.searchParams.append(key, String(value));
     }
   }
 }
@@ -60,13 +100,24 @@ export class QueryRequestData<D> extends RequestData<D> {
 export class FormRequestData<D> extends RequestData<D> {
   private formData: FormData;
 
-  public constructor(data: object | undefined, decoder: Decoder<D>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public constructor(data: any, decoder: Decoder<D>) {
     super(decoder);
     this.formData = new FormData();
-    if (!data) {
+    if (data === null || data === undefined) {
       return;
     }
-    for (let [key, value] of Object.entries(data)) {
+
+    let items: Generator<[string, string | Blob]>;
+    if (isArray(data)) {
+      items = arrayParams(data);
+    } else if (isObject(data)) {
+      items = objectParams(data);
+    } else {
+      exception(ErrorCode.InvalidData, `Unexpected data type ${typeof data}`);
+    }
+
+    for (let [key, value] of items) {
       this.formData.append(key, value);
     }
   }
@@ -79,7 +130,8 @@ export class FormRequestData<D> extends RequestData<D> {
 export class JsonRequestData<D> extends RequestData<D> {
   private data: string | null;
 
-  public constructor(data: object | undefined, decoder: Decoder<D>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public constructor(data: any, decoder: Decoder<D>) {
     super(decoder);
     if (!data) {
       this.data = null;

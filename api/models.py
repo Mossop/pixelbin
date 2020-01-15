@@ -7,7 +7,7 @@ from rest_framework import status
 
 from .locks import lock
 from .storage.models import Storage
-from .storage.base import MediaStorage
+from .storage.base import MediaFileStore
 from .utils import uuid, ApiException
 from .constraints import UniqueWithExpressionsConstraint
 from .metadata import MediaMetadata, get_metadata_fields
@@ -87,6 +87,10 @@ class Catalog(models.Model):
     @property
     def root(self):
         return self.albums.get(parent__isnull=True)
+
+    @property
+    def file_store(self):
+        return self.storage.file_store
 
 class Access(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access')
@@ -232,18 +236,6 @@ class Person(models.Model):
                                             name='unique_person_name')
         ]
 
-def multiprop(name):
-    def getter(self):
-        overridden = getattr(self, 'overridden_%s' % name)
-        if overridden is not None:
-            return overridden
-        return getattr(self, 'media_%s' % name)
-
-    def setter(self, val):
-        setattr(self, 'overridden_%s' % name, val)
-
-    return property(getter, setter)
-
 class Media(models.Model):
     # Cannot be changed after upload.
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
@@ -251,7 +243,6 @@ class Media(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     # Fields required for the storage system. Should not be exposed to the API.
-    storage_filename = models.CharField(max_length=50)
     storage_id = models.CharField(max_length=200, default="", blank=True)
     new_file = models.BooleanField(null=False, default=False)
 
@@ -270,6 +261,7 @@ class Media(models.Model):
     people = models.ManyToManyField(Person, related_name='media')
 
     _metadata = None
+    _file_store = None
 
     @property
     def metadata(self):
@@ -278,19 +270,13 @@ class Media(models.Model):
         return self._metadata
 
     @property
-    def storage(self):
-        return MediaStorage(self.catalog.storage.file_store, self)
-
-    @property
-    def is_image(self):
-        return self.mimetype[0:6] == 'image/'
-
-    @property
-    def is_video(self):
-        return self.mimetype[0:6] == 'video/'
+    def file_store(self):
+        if self._file_store is None:
+            self._file_store = MediaFileStore(self.catalog.file_store, self)
+        return self._file_store
 
     def delete(self, using=None, keep_parents=False):
-        self.storage.delete()
+        self.file_store.delete()
         super().delete(using, keep_parents)
 
 for field in get_metadata_fields():

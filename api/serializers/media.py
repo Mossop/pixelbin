@@ -21,18 +21,25 @@ class MediaSerializer(ModelSerializer):
     fileSize = serializers.IntegerField(source='file_size',
                                         read_only=True, allow_null=True)
 
-    tags = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all()))
-    albums = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Album.objects.all()))
-    people = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Person.objects.all()))
+    tags = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all()),
+                          required=False, default=[])
+    albums = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Album.objects.all()),
+                            required=False, default=[])
+    people = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Person.objects.all()),
+                            required=False, default=[])
 
     metadata = MetadataSerializer(required=False, allow_null=False)
 
+    file = serializers.FileField(write_only=True)
+
     def create(self, validated_data):
         init_data = {}
+        many_keys = []
         for (key, value) in validated_data.items():
-            if key == 'metadata':
+            if key in ['metadata', 'file']:
                 continue
-            if isinstance(getattr(Media, key), ManyToManyDescriptor):
+            if isinstance(getattr(Media, key, None), ManyToManyDescriptor):
+                many_keys.append(key)
                 continue
             init_data[key] = value
         instance = Media(**init_data)
@@ -42,10 +49,9 @@ class MediaSerializer(ModelSerializer):
 
         instance.save()
 
-        for (key, value) in validated_data.items():
-            if isinstance(getattr(Media, key), ManyToManyDescriptor):
-                field = getattr(instance, key)
-                field.set(value)
+        for key in many_keys:
+            field = getattr(instance, key)
+            field.set(validated_data[key])
 
         return instance
 
@@ -78,7 +84,7 @@ class MediaSerializer(ModelSerializer):
                   'processVersion', 'uploaded', 'mimetype', 'width', 'height',
                   'duration', 'fileSize',
 
-                  'tags', 'albums', 'people',
+                  'tags', 'albums', 'people', 'file',
 
                   'metadata']
         extra_kwargs = {
@@ -99,10 +105,3 @@ class ThumbnailRequestSerializer(Serializer):
 
     class Meta:
         js_request_type = 'MediaThumbnail'
-
-class UploadSerializer(Serializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all(), allow_null=False)
-    file = serializers.FileField(allow_null=False)
-
-    class Meta:
-        js_request_type = 'MediaUpload'

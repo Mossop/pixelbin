@@ -11,7 +11,7 @@ def make_target(directory, name):
     os.makedirs(directory, exist_ok=True)
     return os.path.join(directory, name)
 
-class BaseStorage:
+class BaseFileStore:
     def temp_root(self):
         return os.path.join(path(CONFIG.get('path', 'data')), 'storage', 'temp')
 
@@ -28,10 +28,12 @@ class BaseStorage:
     def get_local_path(self, media, name):
         return make_target(os.path.join(self.local_root(), base_path(media)), name)
 
-    def store_local_from_temp(self, media, name):
+    def store_local_from_temp(self, media, name, target=None):
+        if target is None:
+            target = name
         copyfile(
             self.get_temp_path(media, name),
-            self.get_local_path(media, name)
+            self.get_local_path(media, target)
         )
 
     def delete_local(self, media, name):
@@ -41,7 +43,7 @@ class BaseStorage:
     def get_storage_stream(self, media, name):
         raise NotImplementedError("Must implement in class")
 
-    def store_storage_from_temp(self, media, name):
+    def store_storage_from_temp(self, media, name, target=None):
         raise NotImplementedError("Must implement in class")
 
     def delete_storage(self, media, name):
@@ -50,39 +52,39 @@ class BaseStorage:
     def delete(self, media):
         raise NotImplementedError("Must implement in class")
 
-class MediaStorage:
-    def __init__(self, storage, media):
-        self.storage = storage
+class MediaFileStore:
+    def __init__(self, file_store, media):
+        self.file_store = file_store
         self.media = media
 
     def get_temp_path(self, name):
-        return self.storage.get_temp_path(self.media, name)
+        return self.file_store.get_temp_path(self.media, name)
 
     def delete_all_temp(self):
-        self.storage.delete_all_temp(self.media)
+        self.file_store.delete_all_temp(self.media)
 
     def get_local_path(self, name):
-        return self.storage.get_local_path(self.media, name)
+        return self.file_store.get_local_path(self.media, name)
 
-    def store_local_from_temp(self, name):
-        self.storage.store_local_from_temp(self.media, name)
+    def store_local_from_temp(self, name, target=None):
+        self.file_store.store_local_from_temp(self.media, name, target)
 
     def delete_local(self, name):
-        self.storage.delete_local(self.media, name)
+        self.file_store.delete_local(self.media, name)
 
     def get_storage_stream(self, name):
-        return self.storage.get_public_stream(self.media, name)
+        return self.file_store.get_public_stream(self.media, name)
 
-    def store_storage_from_temp(self, name):
-        self.storage.store_storage_from_temp(self.media, name)
+    def store_storage_from_temp(self, name, target=None):
+        self.file_store.store_storage_from_temp(self.media, name, target)
 
     def delete_storage(self, name):
-        self.storage.delete_public(self.media, name)
+        self.file_store.delete_public(self.media, name)
 
     def delete(self):
-        self.storage.delete(self.media)
+        self.file_store.delete(self.media)
 
-class FileStorage(BaseStorage):
+class LocalFileStore(BaseFileStore):
     def storage_root(self):
         raise NotImplementedError("Must implement in class")
 
@@ -90,8 +92,10 @@ class FileStorage(BaseStorage):
         target = make_target(os.path.join(self.storage_root(), base_path(media)), name)
         return open(target, "rb")
 
-    def store_storage_from_temp(self, media, name):
-        target = make_target(os.path.join(self.storage_root(), base_path(media)), name)
+    def store_storage_from_temp(self, media, name, target=None):
+        if target is None:
+            target = name
+        target = make_target(os.path.join(self.storage_root(), base_path(media)), target)
         copyfile(self.get_temp_path(media, name), target)
 
     def delete_storage(self, media, name):

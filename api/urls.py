@@ -21,7 +21,7 @@ urlpatterns = [
 
     path('media/get', media.get),
     path('media/create', media.create),
-    path('media/upload', media.upload),
+    path('media/update', media.update),
     path('media/search', media.search),
     path('media/thumbnail', media.thumbnail),
 

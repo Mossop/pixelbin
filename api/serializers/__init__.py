@@ -1,4 +1,5 @@
 import json
+import logging
 from collections import OrderedDict
 
 from rest_framework import serializers, fields, relations
@@ -8,6 +9,8 @@ from django.core.exceptions import FieldDoesNotExist
 
 from ..utils import merge
 from ..metadata import OrientationField
+
+LOGGER = logging.getLogger(__name__)
 
 # pylint: disable=too-few-public-methods
 class FieldFlags:
@@ -359,7 +362,7 @@ class UnionType(TypeDef):
 
     def decoder(self):
         return 'JsonDecoder.oneOf([%s], "%s")' % \
-               (', '.join(map(lambda t: t.nested_decoder(), self.typedefs)), self.request_name())
+               (', '.join(map(lambda t: t.nested_decoder(), self.typedefs)), self.response_name())
 
 class WrappedTypeDef(TypeDef):
     def __init__(self, typedef):
@@ -460,7 +463,10 @@ def derive_type_from_instance(field_instance):
     if isinstance(field_instance, type):
         raise Exception('Attempt to derive a type from a class when expected an instance.')
 
-    if isinstance(field_instance, models.fields.Field):
+    if isinstance(field_instance, SerializerWrapper):
+        typedef = field_instance.typedef()
+
+    elif isinstance(field_instance, models.fields.Field):
         if isinstance(field_instance, models.fields.related.ForeignKey):
             field_class = relations.PrimaryKeyRelatedField
         else:
@@ -573,16 +579,32 @@ class SerializerWrapper:
     def build_serializer(self, *args, **kwargs):
         return self.serializer(*args, **kwargs)
 
-    def handle_request(self, request, data, func, *args, **kwargs):
-        deserialized = self.build_serializer(data=data)
+    def build_request_serializer(self, *args, data=None, **kwargs):
+        if isinstance(self.serializer, SerializerWrapper):
+            return self.serializer.build_request_serializer(*args, data=data, **kwargs)
+
+        deserialized = self.build_serializer(*args, data=data, **kwargs)
         deserialized.is_valid(raise_exception=True)
+        return deserialized
+
+    def build_response_serializer(self, instance, *args, **kwargs):
+        if isinstance(self.serializer, SerializerWrapper):
+            return self.serializer.build_response_serializer(instance, *args, **kwargs)
+
+        deserialized = self.build_serializer(instance, *args, **kwargs)
+        return deserialized
+
+    def handle_request(self, request, data, func, *args, **kwargs):
+        deserialized = self.build_request_serializer(data=data)
         return func(request, deserialized, *args, **kwargs)
 
     def handle_response(self, result):
-        return Response(self.build_serializer(result).data)
+        return Response(self.build_response_serializer(result).data)
 
     def typedef(self):
-        return derive_type_from_class(self.serializer)
+        if isinstance(self.serializer, type):
+            return derive_type_from_class(self.serializer)
+        return derive_type_from_instance(self.serializer)
 
 class BlobSerializer(SerializerWrapper):
     def __init__(self):
@@ -597,19 +619,19 @@ class PatchSerializerWrapper(SerializerWrapper):
             raise Exception('Can only create a patch serializer for a model serializer.')
         super().__init__(serializer)
 
-    def handle_request(self, request, data, func, *args, **kwargs):
+    def build_request_serializer(self, *args, data=None, **kwargs):
         id_serializer = build_id_serializer(self.serializer.Meta.model)(data=data)
         id_serializer.is_valid(raise_exception=True)
         instance = id_serializer.validated_data['id']
         del data['id']
 
-        deserialized = self.build_serializer(instance, data=data, partial=True)
-        deserialized.is_valid(raise_exception=True)
+        return super().build_request_serializer(instance, *args, data=data, partial=True, **kwargs)
 
-        return func(request, deserialized, *args, **kwargs)
+    def build_response_serializer(self, *args, data=None, **kwargs):
+        raise Exception('Patch serializers cannot be used in response.')
 
     def typedef(self):
-        return PatchType(derive_type_from_class(self.serializer))
+        return PatchType(super().typedef())
 
 class MultipartSerializerWrapper(SerializerWrapper):
     def typedef(self):
@@ -617,10 +639,10 @@ class MultipartSerializerWrapper(SerializerWrapper):
 
 class ListSerializerWrapper(SerializerWrapper):
     def build_serializer(self, *args, **kwargs):
-        return self.serializer(*args, many=True, **kwargs)
+        return super().build_serializer(*args, many=True, **kwargs)
 
     def typedef(self):
-        return ArrayType(derive_type_from_class(self.serializer))
+        return ArrayType(super().typedef())
 
 def build_id_serializer(model):
     class IdSerializer(Serializer):
@@ -635,6 +657,7 @@ class ModelIdQuery(SerializerWrapper):
         super().__init__(build_id_serializer(model))
 
     def handle_request(self, request, data, func, *args, **kwargs):
-        deserialized = self.build_serializer(data=data)
-        deserialized.is_valid(raise_exception=True)
-        return func(request, deserialized.validated_data['id'], *args, **kwargs)
+        def callback(req, des, *args, **kwargs):
+            return func(req, des.validated_data['id'], *args, **kwargs)
+
+        super().handle_request(request, data, callback, *args, **kwargs)

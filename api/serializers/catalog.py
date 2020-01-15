@@ -5,7 +5,7 @@ from .album import AlbumSerializer
 from .person import PersonSerializer
 from .tag import TagSerializer
 from . import Serializer, ModelSerializer, MapSerializer
-from ..storage.serializers import StorageField
+from ..storage.models import StorageField
 
 class CatalogCreateSerializer(Serializer):
     name = serializers.CharField()

@@ -1,7 +1,7 @@
 import { Search } from "../utils/search";
 import { intoId, MapId } from "../utils/maps";
 import { request } from "./api";
-import { ApiMethod, UnprocessedMediaData, MediaCreateData } from "./types";
+import { ApiMethod, UnprocessedMediaData, MediaCreateData, Patch } from "./types";
 
 type ProcessParams = "processVersion" | "uploaded" | "mimetype" | "width" | "height" | "duration" | "fileSize";
 export type ProcessedMediaData = {
@@ -21,11 +21,8 @@ export function createMedia(media: MediaCreateData): Promise<MediaData> {
   return request(ApiMethod.MediaCreate, media);
 }
 
-export function uploadMedia(media: MapId<MediaData>, file: File): Promise<MediaData> {
-  return request(ApiMethod.MediaUpload, {
-    id: intoId(media),
-    file,
-  });
+export function updateMedia(media: Patch<MediaCreateData>): Promise<MediaData> {
+  return request(ApiMethod.MediaUpdate, media);
 }
 
 export function searchMedia(search: Search): Promise<MediaData[]> {

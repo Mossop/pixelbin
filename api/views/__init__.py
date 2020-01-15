@@ -13,23 +13,24 @@ LOGGER = logging.getLogger(__name__)
 
 # pylint: disable=too-few-public-methods
 class ApiView:
-    def __init__(self, view, method, request, response):
+    def __init__(self, view, methods, request, response):
         self.view = view
-        self.method = method
+        self.methods = methods
         self.request = request
         self.response = response
 
     def __call__(self, *args, **kwargs):
         return self.view(*args, **kwargs)
 
-def api_view(http_method_name=None, requires_login=True, request=None, response=None):
-    if http_method_name is None:
-        rest_decorator = rest_view(http_method_names=
-                                   ['GET', 'PUT', 'OPTIONS', 'POST', 'DELETE', 'PATCH'])
-    else:
-        rest_decorator = rest_view(http_method_names=[http_method_name])
+def api_view(http_method_names=None, requires_login=True, request=None, response=None):
+    if http_method_names is None:
+        http_method_names = ['GET', 'PUT', 'OPTIONS', 'POST', 'DELETE', 'PATCH']
+    elif not isinstance(http_method_names, list):
+        http_method_names = [http_method_names]
+    rest_decorator = rest_view(http_method_names=http_method_names)
 
     def decorator(func):
+        # pylint: disable=too-many-branches
         def inner_view(req, *args, **kwargs):
             # pylint: disable=broad-except,too-many-return-statements
             if requires_login and (req.user is None or not req.user.is_authenticated):
@@ -38,8 +39,11 @@ def api_view(http_method_name=None, requires_login=True, request=None, response=
 
             try:
                 data = req.data
-                if http_method_name == 'GET':
+                if req.method == 'GET':
                     data = req.query_params
+                else:
+                    data = req.data
+
                 if isinstance(request, SerializerWrapper):
                     result = request.handle_request(req, data, func, *args, **kwargs)
                 elif request is not None:
@@ -82,7 +86,7 @@ def api_view(http_method_name=None, requires_login=True, request=None, response=
             decorated = parser_classes([MultiPartParser])(decorated)
         decorated = rest_decorator(decorated)
 
-        return ApiView(decorated, http_method_name, request, response)
+        return ApiView(decorated, http_method_names, request, response)
 
     return decorator
 

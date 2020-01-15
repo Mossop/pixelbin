@@ -1,15 +1,15 @@
 import os
 from base.utils import CONFIG, path
 
-from .base import FileStorage
+from .base import LocalFileStore
 
-class ServerStorage(FileStorage):
+class ServerFileStore(LocalFileStore):
     STORAGE = None
 
     @classmethod
     def build(cls):
         if cls.STORAGE is None:
-            cls.STORAGE = ServerStorage()
+            cls.STORAGE = ServerFileStore()
         return cls.STORAGE
 
     def storage_root(self):

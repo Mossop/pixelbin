@@ -66,8 +66,8 @@ class Command(BaseCommand):
 
     def write_method_map(self, methods):
         self.write('export const HttpMethods: MethodList = {')
-        for (method, (method_type, _, _, _)) in methods.items():
-            self.write('  [ApiMethod.%s]: "%s",' % (method, method_type))
+        for (method, (method_types, _, _, _)) in methods.items():
+            self.write('  [ApiMethod.%s]: "%s",' % (method, method_types[0]))
         self.write('};')
 
     def write_request_overloads(self, methods):
@@ -80,12 +80,13 @@ class Command(BaseCommand):
                        (method, data_param, response.response_name()))
 
     def write_request_method(self, methods):
-        self.write('export function request(path: ApiMethod, data?: object): '
+        self.write('// eslint-disable-next-line @typescript-eslint/no-explicit-any')
+        self.write('export function request(path: ApiMethod, data?: any): '
                    'Promise<object | void> {')
         self.write('  let request: RequestData<object | void>;\n')
         self.write('  switch (path) {')
 
-        for (method, (method_type, _, request, response)) in methods.items():
+        for (method, (method_types, _, request, response)) in methods.items():
             if isinstance(response, VoidType):
                 decoder = 'VoidDecoder'
             elif isinstance(response, BlobType):
@@ -93,7 +94,7 @@ class Command(BaseCommand):
             else:
                 decoder = 'JsonDecoderDecoder(%s)' % response.nested_decoder()
 
-            if method_type == 'GET':
+            if method_types[0] == 'GET':
                 request_type = 'QueryRequestData(data, '
             elif isinstance(request, NullType):
                 request_type = 'RequestData('
@@ -137,7 +138,7 @@ class Command(BaseCommand):
                 else:
                     response = VoidType()
 
-                methods[method] = (url.callback.method, str(url.pattern), request, response)
+                methods[method] = (url.callback.methods, str(url.pattern), request, response)
 
         for key in response_ifaces:
             request_ifaces.pop(key, None)

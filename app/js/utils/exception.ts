@@ -6,6 +6,7 @@ export enum ErrorCode {
   UnknownTag,
   UnknownPerson,
   DecodeError,
+  InvalidData,
 }
 
 class InternalError extends Error {

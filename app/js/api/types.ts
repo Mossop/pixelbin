@@ -104,7 +104,7 @@ export interface ServerData {
 
 export const ServerDataDecoder = JsonDecoder.object<ServerData>(
   {
-    user: JsonDecoder.oneOf([UserDataDecoder, JsonDecoder.isNull(null)], "UserCreateData | null"),
+    user: JsonDecoder.oneOf([UserDataDecoder, JsonDecoder.isNull(null)], "UserData | null"),
   },
   "ServerData"
 );
@@ -277,15 +277,11 @@ export interface MetadataUpdateData {
 
 export interface MediaCreateData {
   catalog: string;
-  tags: string[];
-  albums: string[];
-  people: string[];
-  metadata?: MetadataUpdateData;
-}
-
-export interface MediaUpload {
-  id: string;
+  tags?: string[];
+  albums?: string[];
+  people?: string[];
   file: Blob;
+  metadata?: MetadataUpdateData;
 }
 
 export interface Query {
@@ -315,7 +311,7 @@ export enum ApiMethod {
   PersonCreate = "person/create",
   MediaGet = "media/get",
   MediaCreate = "media/create",
-  MediaUpload = "media/upload",
+  MediaUpdate = "media/update",
   MediaSearch = "media/search",
   MediaThumbnail = "media/thumbnail",
 }
@@ -334,7 +330,7 @@ export const HttpMethods: MethodList = {
   [ApiMethod.PersonCreate]: "PUT",
   [ApiMethod.MediaGet]: "GET",
   [ApiMethod.MediaCreate]: "PUT",
-  [ApiMethod.MediaUpload]: "PUT",
+  [ApiMethod.MediaUpdate]: "PUT",
   [ApiMethod.MediaSearch]: "POST",
   [ApiMethod.MediaThumbnail]: "GET",
 };
@@ -352,11 +348,12 @@ export function request(method: ApiMethod.TagFind, data: TagLookup): Promise<Tag
 export function request(method: ApiMethod.PersonCreate, data: PersonCreateData): Promise<PersonData>;
 export function request(method: ApiMethod.MediaGet, data: Mappable): Promise<UnprocessedMediaData>;
 export function request(method: ApiMethod.MediaCreate, data: MediaCreateData): Promise<UnprocessedMediaData>;
-export function request(method: ApiMethod.MediaUpload, data: MediaUpload): Promise<UnprocessedMediaData>;
+export function request(method: ApiMethod.MediaUpdate, data: Patch<MediaCreateData>): Promise<UnprocessedMediaData>;
 export function request(method: ApiMethod.MediaSearch, data: Search): Promise<UnprocessedMediaData[]>;
 export function request(method: ApiMethod.MediaThumbnail, data: MediaThumbnail): Promise<Blob>;
 
-export function request(path: ApiMethod, data?: object): Promise<object | void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function request(path: ApiMethod, data?: any): Promise<object | void> {
   let request: RequestData<object | void>;
 
   switch (path) {
@@ -397,9 +394,9 @@ export function request(path: ApiMethod, data?: object): Promise<object | void> 
       request = new QueryRequestData(data, JsonDecoderDecoder(UnprocessedMediaDataDecoder));
       break;
     case ApiMethod.MediaCreate:
-      request = new JsonRequestData(data, JsonDecoderDecoder(UnprocessedMediaDataDecoder));
+      request = new FormRequestData(data, JsonDecoderDecoder(UnprocessedMediaDataDecoder));
       break;
-    case ApiMethod.MediaUpload:
+    case ApiMethod.MediaUpdate:
       request = new FormRequestData(data, JsonDecoderDecoder(UnprocessedMediaDataDecoder));
       break;
     case ApiMethod.MediaSearch:
