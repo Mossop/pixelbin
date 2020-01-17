@@ -62,10 +62,9 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserData>, action: A
     }
     case ALBUM_CREATED: {
       let album = action.payload.album;
-      for (let catalog of user.catalogs.values()) {
-        if (album.parent && catalog.albums.has(album.parent)) {
-          catalog.albums.set(album.id, album);
-        }
+      let catalog = user.catalogs.get(album.catalog);
+      if (catalog) {
+        catalog.albums.set(album.id, album);
       }
 
       state.overlay = undefined;
@@ -82,13 +81,15 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserData>, action: A
     }
     case ALBUM_EDITED: {
       let album = action.payload.album;
-      for (let catalog of user.catalogs.values()) {
-        if (catalog.albums.has(album.id)) {
-          catalog.albums.delete(album.id);
+      let newCatalog = user.catalogs.get(album.catalog);
+      if (newCatalog) {
+        for (let catalog of user.catalogs.values()) {
+          if (catalog != newCatalog && catalog.albums.has(album.id)) {
+            catalog.albums.delete(album.id);
+            break;
+          }
         }
-        if (album.parent && catalog.albums.has(album.parent)) {
-          catalog.albums.set(album.id, album);
-        }
+        newCatalog.albums.set(album.id, album);
       }
 
       state.overlay = undefined;

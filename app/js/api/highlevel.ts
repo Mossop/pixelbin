@@ -1,6 +1,6 @@
 import { StoreState } from "../store/types";
 import { AlbumData, CatalogData, TagData, PersonData } from "./types";
-import { exception, ErrorCode } from "../utils/exception";
+import { exception, ErrorCode, InternalError, processException } from "../utils/exception";
 import { Immutable } from "../utils/immer";
 import { MapId, intoId, isInstance } from "../utils/maps";
 
@@ -164,7 +164,7 @@ export class Person implements Referencable<Person> {
   }
 }
 
-export class Album  implements Referencable<Album> {
+export class Album implements Referencable<Album> {
   private constructor(private readonly storeState: StoreState, private readonly state: Immutable<AlbumData>) {}
 
   public get id(): string {
@@ -220,7 +220,7 @@ export class Album  implements Referencable<Album> {
     return new APIItemReference(this.id, Album);
   }
 
-  public static fromState(storeState: StoreState, item: MapId<Immutable<AlbumData>>): Album {
+  private static innerFromState(storeState: StoreState, item: MapId<Immutable<AlbumData>>): Album {
     let id = intoId(item);
 
     let cache = getStateCache(storeState);
@@ -237,7 +237,7 @@ export class Album  implements Referencable<Album> {
 
     let user = storeState.serverState.user;
     if (!user) {
-      exception(ErrorCode.NotLoggedIn);
+      throw new InternalError(ErrorCode.NotLoggedIn);
     }
 
     for (let catalog of user.catalogs.values()) {
@@ -249,7 +249,23 @@ export class Album  implements Referencable<Album> {
       }
     }
 
-    exception(ErrorCode.UnknownAlbum);
+    throw new InternalError(ErrorCode.UnknownAlbum);
+  }
+
+  public static safeFromState(storeState: StoreState, item: MapId<Immutable<AlbumData>>): Album | undefined {
+    try {
+      return Album.innerFromState(storeState, item);
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  public static fromState(storeState: StoreState, item: MapId<Immutable<AlbumData>>): Album {
+    try {
+      return Album.innerFromState(storeState, item);
+    } catch (e) {
+      processException(e);
+    }
   }
 }
 
@@ -294,7 +310,7 @@ export class Catalog implements Referencable<Catalog> {
     return new APIItemReference(this.id, Catalog);
   }
 
-  public static fromState(storeState: StoreState, item: MapId<Immutable<CatalogData>>): Catalog {
+  private static innerFromState(storeState: StoreState, item: MapId<Immutable<CatalogData>>): Catalog {
     let id: string = intoId(item);
 
     let cache = getStateCache(storeState);
@@ -322,6 +338,22 @@ export class Catalog implements Referencable<Catalog> {
     }
 
     exception(ErrorCode.UnknownCatalog);
+  }
+
+  public static safeFromState(storeState: StoreState, item: MapId<Immutable<CatalogData>>): Catalog | undefined {
+    try {
+      return Catalog.innerFromState(storeState, item);
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  public static fromState(storeState: StoreState, item: MapId<Immutable<CatalogData>>): Catalog {
+    try {
+      return Catalog.innerFromState(storeState, item);
+    } catch (e) {
+      processException(e);
+    }
   }
 }
 

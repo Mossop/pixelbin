@@ -12,7 +12,9 @@ export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
   if (result instanceof Ok) {
     return result.value;
   }
-  exception(ErrorCode.DecodeError, result.error);
+  exception(ErrorCode.DecodeError, {
+    error: result.error,
+  });
 }
 
 export function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
@@ -44,6 +46,9 @@ export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undef
 
 export const DateDecoder = MappingDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
 export const OrientationDecoder = MappingDecoder(JsonDecoder.number, (num: number): Orientation=> num, "Orientation");
+export function EnumDecoder<F, T>(decoder: JsonDecoder.Decoder<F>, name: string): JsonDecoder.Decoder<T> {
+  return MappingDecoder<F, T>(decoder, (data: F): T => data as unknown as T, name);
+}
 
 export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<Draft<A>>, name: string): JsonDecoder.Decoder<Draft<MapOf<A>>> {
   return MappingDecoder<Draft<A[]>, Draft<MapOf<A>>>(

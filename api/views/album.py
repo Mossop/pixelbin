@@ -1,6 +1,3 @@
-from rest_framework.response import Response
-from rest_framework import status
-
 from . import api_view
 from ..utils import uuid, ApiException
 from ..serializers.album import AlbumSerializer, AlbumMediaSerializer
@@ -9,8 +6,7 @@ from ..serializers import PatchSerializerWrapper
 @api_view('PUT', request=AlbumSerializer, response=AlbumSerializer)
 def create(request, deserialized):
     data = deserialized.validated_data
-    if not request.user.can_access_catalog(data['catalog']):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_modify(data['catalog'])
 
     if 'parent' in data and data['parent'] is not None and \
        data['catalog'] != data['parent'].catalog:
@@ -21,8 +17,7 @@ def create(request, deserialized):
 @api_view('PATCH', request=PatchSerializerWrapper(AlbumSerializer), response=AlbumSerializer)
 def edit(request, deserialized):
     album = deserialized.instance
-    if not request.user.can_access_catalog(album.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_modify(album.catalog)
 
     data = deserialized.validated_data
     if 'catalog' in data and data['catalog'] != album.catalog:
@@ -33,26 +28,24 @@ def edit(request, deserialized):
 
     return deserialized.save()
 
-@api_view('PUT', request=AlbumMediaSerializer)
+@api_view('PUT', request=AlbumMediaSerializer, response=AlbumSerializer)
 def add(request, deserialized):
     data = deserialized.validated_data
     album = data['id']
-    if not request.user.can_access_catalog(album.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_modify(album.catalog)
 
     for media in data['media']:
         if media.catalog != album.catalog:
             raise ApiException('catalog-mismatch')
 
     album.media.add(*data['media'])
-    return Response(status=status.HTTP_200_OK)
+    return album
 
-@api_view('DELETE', request=AlbumMediaSerializer)
+@api_view('DELETE', request=AlbumMediaSerializer, response=AlbumSerializer)
 def remove(request, deserialized):
     data = deserialized.validated_data
     album = data['id']
-    if not request.user.can_access_catalog(album.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_modify(album.catalog)
 
     album.media.remove(*deserialized.validated_data['media'])
-    return Response(status=status.HTTP_200_OK)
+    return album

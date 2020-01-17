@@ -5,10 +5,10 @@ import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { completeSignup } from "../store/actions";
-import { APIError } from "../api/errors";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
 import { ComponentProps } from "../components/shared";
+import { AppError } from "../utils/exception";
 
 interface InputFields {
   email: string;
@@ -22,8 +22,8 @@ const mapDispatchToProps = {
 
 interface SignupOverlayState {
   disabled: boolean;
-  error?: APIError;
   inputs: InputFields;
+  error?: AppError;
 }
 
 type SignupOverlayProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
@@ -57,7 +57,7 @@ class SignupOverlay extends React.Component<SignupOverlayProps, SignupOverlaySta
       return;
     }
 
-    this.setState({ disabled: true });
+    this.setState({ disabled: true, error: undefined });
 
     try {
       let state = await signup({

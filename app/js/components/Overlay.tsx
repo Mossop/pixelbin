@@ -3,15 +3,15 @@ import { connect } from "react-redux";
 import { Localized } from "@fluent/react";
 
 import { closeOverlay } from "../store/actions";
-import { APIError, errorL10n } from "../api/errors";
 import { Button } from "./Button";
 import { ComponentProps } from "./shared";
+import { AppError } from "../utils/exception";
 
 interface PassedProps {
   title?: string | React.ReactNode;
   sidebar?: React.ReactNode;
-  error?: APIError;
   children: React.ReactNode;
+  error?: AppError;
 }
 
 const mapDispatchToProps = {
@@ -22,7 +22,7 @@ export type OverlayProps = ComponentProps<PassedProps, {}, typeof mapDispatchToP
 class Overlay extends React.Component<OverlayProps> {
   public renderError(): React.ReactNode {
     if (this.props.error) {
-      return <Localized {...errorL10n(this.props.error)}>
+      return <Localized {...this.props.error.l10nAttributes()}>
         <h1 id="overlay-error"/>
       </Localized>;
     } else {

@@ -12,7 +12,6 @@ import { Search } from "../utils/search";
 import NotFound from "./notfound";
 import { ComponentProps } from "../components/shared";
 import { Catalog } from "../api/highlevel";
-import { safe } from "../utils/exception";
 
 interface MatchParams {
   id: string;
@@ -26,7 +25,7 @@ interface FromStateProps {
 
 function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchParams>): FromStateProps {
   return {
-    catalog: safe(() => Catalog.fromState(state, props.match.params.id)),
+    catalog: Catalog.safeFromState(state, props.match.params.id),
   };
 }
 

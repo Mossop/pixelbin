@@ -75,6 +75,14 @@ class User(AbstractUser):
     def can_access_catalog(self, catalog):
         return Access.objects.filter(catalog=catalog, user=self).exists()
 
+    def check_can_see(self, catalog):
+        if not self.can_access_catalog(catalog):
+            raise ApiException('not-found', status=status.HTTP_404_NOT_FOUND)
+
+    def check_can_modify(self, catalog):
+        if not self.can_access_catalog(catalog):
+            raise ApiException('not-allowed', status=status.HTTP_403_FORBIDDEN)
+
     class Meta:
         ordering = ['full_name']
 
@@ -196,7 +204,7 @@ class Tag(models.Model):
 
             return tag
         except IntegrityError:
-            raise ApiException('invalid-tag', name, status=status.HTTP_400_BAD_REQUEST)
+            raise ApiException('invalid-tag', status=status.HTTP_400_BAD_REQUEST)
 
     def descendants(self):
         def make_tags_cte(cte):

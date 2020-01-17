@@ -6,14 +6,14 @@ from base.utils import path
 from ...urls import urlpatterns
 from ...utils import merge
 from ...views import ApiView
-from ...serializers import VoidType, NullType, BlobType, FormDataType
+from ...serializers import VoidType, NullType, BlobType, FormDataType, ApiExceptionSerializer
 
 header = """import moment from "moment";
 import { JsonDecoder } from "ts.data.json";
 import { Orientation } from "media-metadata/lib/metadata";
 
 import { Mappable, MapOf } from "../utils/maps";
-import { DateDecoder, OrientationDecoder, MapDecoder } from "../utils/decoders";
+import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
   FormRequestData, JsonDecoderDecoder, BlobDecoder, VoidDecoder } from "./helpers";
 
@@ -38,10 +38,7 @@ class Command(BaseCommand):
             if iface.response_name() == 'Mappable':
                 continue
 
-            self.write('export interface %s {' % iface.response_name())
-            for prop in iface.response_properties():
-                self.write('  %s;' % prop.response_property())
-            self.write('}\n')
+            self.write('\n'.join(iface.build_response_type()))
 
             decoder = iface.decoder()
             if decoder is not None:
@@ -53,10 +50,7 @@ class Command(BaseCommand):
             if iface.request_name() == 'Mappable':
                 continue
 
-            self.write('export interface %s {' % iface.request_name())
-            for prop in iface.request_properties():
-                self.write('  %s;' % prop.request_property())
-            self.write('}\n')
+            self.write('\n'.join(iface.build_request_type()))
 
     def write_method_enum(self, methods):
         self.write('export enum ApiMethod {')
@@ -116,6 +110,8 @@ class Command(BaseCommand):
         request_ifaces = OrderedDict()
         response_ifaces = OrderedDict()
         methods = dict()
+
+        merge(response_ifaces, ApiExceptionSerializer.typedef().response_interfaces())
 
         self.fp = open(path('app', 'js', 'api', 'types.ts'), 'w')
         self.write(header)

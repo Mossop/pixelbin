@@ -13,7 +13,6 @@ import MediaList from "../components/MediaList";
 import NotFound from "./notfound";
 import { ComponentProps } from "../components/shared";
 import { Album, Catalog } from "../api/highlevel";
-import { safe } from "../utils/exception";
 
 interface MatchParams {
   id: string;
@@ -27,7 +26,7 @@ interface FromStateProps {
 
 function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps {
   return {
-    album: safe(() => Album.fromState(state, props.match.params.id)),
+    album: Album.safeFromState(state, props.match.params.id),
   };
 }
 

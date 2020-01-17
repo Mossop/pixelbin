@@ -1,8 +1,6 @@
 import os
 
 from django.http.response import HttpResponse
-from rest_framework.response import Response
-from rest_framework import status
 from filetype import filetype
 
 from . import api_view
@@ -38,8 +36,7 @@ def perform_upload(media, file):
 
 # pylint: disable=too-many-arguments
 def validate(request, file, catalog, albums, tags, people):
-    if not request.user.can_access_catalog(catalog):
-        raise ApiException('unauthenticated', status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_modify(catalog)
 
     if file is not None:
         guessed_mimetype = filetype.guess_mime(file)
@@ -72,8 +69,7 @@ def create(request, deserialized):
 
 @api_view('GET', request=ModelIdQuery(Media), response=MediaSerializer)
 def get(request, media):
-    if not request.user.can_access_catalog(media.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_see(media.catalog)
 
     return media
 
@@ -84,11 +80,11 @@ def update(request, deserialized):
     data = deserialized.validated_data
     file = data.get('file', None)
 
-    if not request.user.can_access_catalog(media.catalog):
-        raise ApiException('unauthenticated', status=status.HTTP_403_FORBIDDEN)
+    if 'catalog' in data and data['catalog'] != media.catalog:
+        raise ApiException('catalog-change')
 
     validate(request, file,
-             data.get('catalog', None) or media.catalog,
+             media.catalog,
              data.get('albums', None) or media.albums.all(),
              data.get('tags', None) or media.tags.all(),
              data.get('people', None) or media.people.all())
@@ -103,8 +99,7 @@ def update(request, deserialized):
 def search(request, deserialized):
     search_params = deserialized.create(deserialized.validated_data)
 
-    if not request.user.can_access_catalog(search_params.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_see(search_params.catalog)
 
     query = search_params.get_query()
     if query is not None:
@@ -114,8 +109,7 @@ def search(request, deserialized):
 @api_view('GET', request=ThumbnailRequestSerializer, response=BlobSerializer())
 def thumbnail(request, deserialized):
     media = deserialized.validated_data['id']
-    if not request.user.can_access_catalog(media.catalog):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+    request.user.check_can_see(media.catalog)
 
     image = build_thumbnail(media, deserialized.validated_data['size'])
     response = HttpResponse(content_type='image/jpeg')

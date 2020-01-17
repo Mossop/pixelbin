@@ -1,3 +1,5 @@
+import logging
+
 from django.http import HttpResponse
 from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -5,6 +7,8 @@ from django.conf import settings
 
 from api.serializers.state import serialize_state
 from api.metadata import get_js_spec
+
+LOGGER = logging.getLogger(__name__)
 
 @ensure_csrf_cookie
 def index(request):

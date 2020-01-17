@@ -3,11 +3,41 @@ import { JsonDecoder } from "ts.data.json";
 import { Orientation } from "media-metadata/lib/metadata";
 
 import { Mappable, MapOf } from "../utils/maps";
-import { DateDecoder, OrientationDecoder, MapDecoder } from "../utils/decoders";
+import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
   FormRequestData, JsonDecoderDecoder, BlobDecoder, VoidDecoder } from "./helpers";
 
 export type Patch<R> = Partial<R> & Mappable;
+
+export enum ApiErrorCode {
+  UnknownException = "unknown-exception",
+  CatalogMismatch = "catalog-mismatch",
+  CyclicStructure = "cyclic-structure",
+  InvalidTag = "invalid-tag",
+  Unauthenticated = "unauthenticated",
+  ValidationFailure = "validation-failure",
+  ParseFailure = "parse-failure",
+  ApiFailure = "api-failure",
+  ServerError = "server-error",
+  UnknownMethod = "unknown-method",
+  CatalogChange = "catalog-change",
+  UnknownType = "unknown-type",
+  SignupBadEmail = "signup-bad-email",
+  LoginFailed = "login-failed",
+}
+
+export interface ApiErrorData {
+  code: ApiErrorCode;
+  args: Record<string, string>;
+}
+
+export const ApiErrorDataDecoder = JsonDecoder.object<ApiErrorData>(
+  {
+    code: EnumDecoder(JsonDecoder.string, "ApiErrorCode"),
+    args: JsonDecoder.dictionary(JsonDecoder.string, "Record<string, string>"),
+  },
+  "ApiErrorData"
+);
 
 export interface PersonData {
   id: string;

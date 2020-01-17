@@ -3,7 +3,6 @@ from base64 import urlsafe_b64encode
 from uuid import uuid4
 
 from rest_framework import status as http_status
-from rest_framework.response import Response
 
 LOGGER = logging.getLogger(__name__)
 
@@ -12,22 +11,39 @@ def merge(dictA, dictB):
         if not key in dictA:
             dictA[key] = value
 
-def build_error_response(code, message_args=None, detail=None,
-                         status=http_status.HTTP_400_BAD_REQUEST):
-    return Response({
-        'code': code,
-        'args': message_args,
-        'detail': detail,
-    }, status=status)
+EXCEPTION_CODES = [
+    'unknown-exception',
+    'catalog-mismatch',
+    'cyclic-structure',
+    'invalid-tag',
+    'unauthenticated',
+    'validation-failure',
+    'parse-failure',
+    'api-failure',
+    'server-error',
+    'unknown-method',
+    'catalog-change',
+    'unknown-type',
+    'signup-bad-email',
+    'login-failed',
+    'not-found',
+    'not-allowed',
+]
 
 class ApiException(Exception):
-    def __init__(self, code, message_args=None, detail=None,
-                 status=http_status.HTTP_400_BAD_REQUEST):
+    def __init__(self, code, status=http_status.HTTP_400_BAD_REQUEST, **kwargs):
         super().__init__()
-        self.code = code
-        self.message_args = message_args
-        self.status = status
-        self.detail = detail
+        if code in EXCEPTION_CODES:
+            self.code = code
+            self.status = status
+            self.message_args = {}
+            for (key, value) in kwargs.items():
+                self.message_args[key] = value
+        else:
+            self.code = 'unknown-exception'
+            self.message_args = {
+                'code': code,
+            }
 
 def uuid(start):
     return start + urlsafe_b64encode(uuid4().bytes).decode("utf-8")

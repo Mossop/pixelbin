@@ -1,9 +1,8 @@
 import cookie from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
-import { ApiMethod, HttpMethods } from "./types";
-import { APIError, decodeAPIError } from "./errors";
-import { exception, ErrorCode } from "../utils/exception";
+import { ApiMethod, HttpMethods, ApiErrorDataDecoder } from "./types";
+import { exception, ErrorCode, ApiError, processException } from "../utils/exception";
 
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export type MethodList = { [k in ApiMethod]: Method };
@@ -114,7 +113,9 @@ export class FormRequestData<D> extends RequestData<D> {
     } else if (isObject(data)) {
       items = objectParams(data);
     } else {
-      exception(ErrorCode.InvalidData, `Unexpected data type ${typeof data}`);
+      exception(ErrorCode.InvalidData, {
+        detail: `Unexpected data type ${typeof data}`,
+      });
     }
 
     for (let [key, value] of items) {
@@ -157,39 +158,30 @@ export async function makeRequest<D>(path: ApiMethod, request: RequestData<D>): 
   headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
   request.applyToHeaders(headers);
 
+  let response;
   try {
-    let response = await fetch(url.href, {
+    response = await fetch(url.href, {
       method: HttpMethods[path],
       headers,
       body: request.body(),
     });
-
-    if (!response.ok) {
-      throw await decodeAPIError(response);
-    }
-
-    try {
-      return await request.decode(response);
-    } catch (e) {
-      let error: APIError = {
-        status: 0,
-        statusText: "Response parse failed",
-        code: "invalid-response",
-        args: {
-          detail: String(e),
-        },
-      };
-      throw error;
-    }
   } catch (e) {
-    let error: APIError = {
-      status: 0,
-      statusText: "Request failed",
-      code: "request-failed",
-      args: {
-        detail: String(e),
-      }
-    };
-    throw error;
+    exception(ErrorCode.RequestFailed);
+  }
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await ApiErrorDataDecoder.decodePromise(await response.json());
+    } catch (e) {
+      exception(ErrorCode.DecodeError);
+    }
+    processException(new ApiError(response.status, response.statusText, errorData));
+  }
+
+  try {
+    return await request.decode(response);
+  } catch (e) {
+    exception(ErrorCode.DecodeError);
   }
 }

@@ -4,11 +4,11 @@ import { connect } from "react-redux";
 import { login } from "../api/auth";
 import { completeLogin } from "../store/actions";
 import Overlay from "../components/Overlay";
-import { APIError } from "../api/errors";
 import Form, { FormField } from "../components/Form";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
 import { ComponentProps } from "../components/shared";
+import { AppError } from "../utils/exception";
 
 interface InputFields {
   email: string;
@@ -21,8 +21,8 @@ const mapDispatchToProps = {
 
 interface LoginOverlayState {
   disabled: boolean;
-  error?: APIError;
   inputs: InputFields;
+  error?: AppError;
 }
 
 type LoginOverlayProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
@@ -53,7 +53,7 @@ class LoginOverlay extends React.Component<LoginOverlayProps, LoginOverlayState>
       return;
     }
 
-    this.setState({ disabled: true });
+    this.setState({ disabled: true, error: undefined });
 
     try {
       let state = await login(email, password);

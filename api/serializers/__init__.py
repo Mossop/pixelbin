@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.db import models
 from django.core.exceptions import FieldDoesNotExist
 
-from ..utils import merge
+from ..utils import merge, EXCEPTION_CODES
 from ..metadata import OrientationField
 
 LOGGER = logging.getLogger(__name__)
@@ -111,70 +111,41 @@ class OrientationType(DecodableNamedType):
     def __init__(self):
         super().__init__('Orientation', 'OrientationDecoder')
 
-class InterfaceView(TypeDef):
-    def __init__(self, cls, iface, is_response=False):
+def build_enum_name(value):
+    return ''.join(map(lambda t: t[0].upper() + t[1:], value.split('-')))
+
+class EnumType(TypeDef):
+    def __init__(self, name, choices):
         super().__init__()
-
-        self.cls = cls
-        self.iface = iface
-        self.properties = []
-        self.is_response = is_response
-        self._name = None
-
-    @property
-    def name(self):
-        if self._name is not None:
-            return self._name
-
-        if self.is_response:
-            self._name = getattr(self.cls.Meta, 'js_response_name')
-        else:
-            self._name = getattr(self.cls.Meta, 'js_request_name', None)
-            if self._name is None:
-                if self.iface.symmetrical:
-                    self._name = self.iface.response_name()
-                else:
-                    self._name = '%sUpdate' % self.iface.response_name()
-
-        return self._name
-
-    @property
-    def symmetrical(self):
-        return self.iface.symmetrical
+        self.name = name
+        self.choices = choices
 
     def request_interfaces(self):
-        if self.is_response:
-            raise Exception('Should not be getting the request interfaces '
-                            'for a response interface.')
+        result = OrderedDict()
+        result[self.name] = self
+        return result
 
-        ifaces = OrderedDict()
-        for prop in self.properties:
-            merge(ifaces, prop.typedef.request_interfaces())
-        ifaces[self.name] = self
-        return ifaces
+    def build_request_type(self):
+        result = map(lambda v: '  %s = "%s",' % (build_enum_name(v), v), self.choices)
+        return ['export enum %s {' % self.name] + list(result) + ['}\n']
 
     def response_interfaces(self):
-        if not self.is_response:
-            raise Exception('Should not be getting the response interfaces '
-                            'for a request interface.')
+        return self.request_interfaces()
 
-        ifaces = OrderedDict()
-        for prop in self.properties:
-            merge(ifaces, prop.typedef.response_interfaces())
-        ifaces[self.name] = self
-        return ifaces
+    def build_response_type(self):
+        return self.build_request_type()
 
     def request_name(self):
-        if self.is_response:
-            raise Exception('Should not be getting the request name '
-                            'for a response interface.')
         return self.name
 
     def response_name(self):
-        if not self.is_response:
-            raise Exception('Should not be getting the response name '
-                            'for a request interface.')
         return self.name
+
+    def decoder(self):
+        return None
+
+    def nested_decoder(self):
+        return 'EnumDecoder(JsonDecoder.string, "%s")' % self.name
 
 class InterfaceProperty:
     def __init__(self, name, typedef, flags):
@@ -255,6 +226,10 @@ class InterfaceType(TypeDef):
             ifaces[self.response_name()] = self
         return ifaces
 
+    def build_response_type(self):
+        result = map(lambda prop: '  %s;' % prop.response_property(), self.response_properties())
+        return ['export interface %s {' % self.response_name()] + list(result) + ['}\n']
+
     def request_interfaces(self):
         self.for_request = True
 
@@ -265,6 +240,10 @@ class InterfaceType(TypeDef):
         if self.request_name() not in ifaces:
             ifaces[self.request_name()] = self
         return ifaces
+
+    def build_request_type(self):
+        result = map(lambda prop: '  %s;' % prop.request_property(), self.request_properties())
+        return ['export interface %s {' % self.request_name()] + list(result) + ['}\n']
 
     def response_name(self):
         if not self.for_response:
@@ -408,6 +387,14 @@ class MapType(WrappedTypeDef):
     def decoder(self):
         return 'MapDecoder(%s, "%s")' % (self.typedef.nested_decoder(), self.response_name())
 
+class DictType(WrappedTypeDef):
+    def make_name(self, name):
+        return 'Record<string, %s>' % name
+
+    def decoder(self):
+        return 'JsonDecoder.dictionary(%s, "%s")' % \
+               (self.typedef.nested_decoder(), self.response_name())
+
 class PatchType(WrappedTypeDef):
     def request_name(self):
         return 'Patch<%s>' % self.typedef.request_name()
@@ -482,6 +469,10 @@ def derive_type_from_instance(field_instance):
             typedef = ArrayType(derive_type_from_instance(field_instance.child))
         elif isinstance(field_instance, fields.ListField):
             typedef = ArrayType(derive_type_from_instance(field_instance.child))
+        elif isinstance(field_instance, fields.DictField):
+            typedef = DictType(derive_type_from_instance(field_instance.child))
+        elif isinstance(field_instance, fields.ChoiceField):
+            typedef = EnumType(field_instance.label, field_instance.choices)
         else:
             typedef = derive_type_from_class(type(field_instance))
 
@@ -571,6 +562,13 @@ class ModelSerializer(serializers.ModelSerializer, SerializerMixin):
 
     class Meta:
         pass
+
+class ApiExceptionSerializer(Serializer):
+    code = serializers.ChoiceField(choices=EXCEPTION_CODES, label='ApiErrorCode')
+    args = serializers.DictField(child=serializers.CharField(), source='message_args')
+
+    class Meta:
+        js_response_type = 'ApiErrorData'
 
 class SerializerWrapper:
     def __init__(self, serializer):

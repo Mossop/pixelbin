@@ -2,7 +2,6 @@ import React from "react";
 import { Localized } from "@fluent/react";
 
 import Form, { FormField } from "../components/Form";
-import { APIError } from "../api/errors";
 import { albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
 import Overlay from "../components/Overlay";
@@ -13,7 +12,7 @@ import { focus } from "../utils/helpers";
 import { Album, Catalog, Reference } from "../api/highlevel";
 import { ComponentProps, connect } from "../components/shared";
 import { StoreState } from "../store/types";
-import { exception, ErrorCode } from "../utils/exception";
+import { exception, ErrorCode, AppError } from "../utils/exception";
 import { store } from "../store/store";
 import { MediaTarget } from "../api/media";
 
@@ -51,7 +50,7 @@ const mapDispatchToProps = {
 
 interface AlbumOverlayState {
   disabled: boolean;
-  error?: APIError;
+  error?: AppError;
   inputs: InputFields;
 }
 
@@ -92,7 +91,7 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
       exception(ErrorCode.InvalidState);
     }
 
-    this.setState({ disabled: true });
+    this.setState({ disabled: true, error: undefined });
 
     try {
       if (!this.props.album) {
