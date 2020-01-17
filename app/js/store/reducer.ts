@@ -21,6 +21,7 @@ import { ActionType,
   ALBUM_CREATED,
   ALBUM_EDITED, 
   BUMP_STATE} from "./actions";
+import { nameSorted } from "../utils/sort";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
@@ -108,18 +109,9 @@ function authReducer(state: Draft<StoreState>, action: ActionType): void {
       state.serverState = action.payload;
 
       if (action.payload.user) {
-        let catalogs = Array.from(action.payload.user.catalogs.values());
+        let catalogs = nameSorted(Array.from(action.payload.user.catalogs.values()));
         if (catalogs.length) {
-          let first = catalogs[0];
-          let firstName = first.albums.get(first.root)?.name;
-          for (let i = 1; i < catalogs.length; i++) {
-            let name = catalogs[i].albums.get(catalogs[i].root)?.name;
-            if (name && firstName && firstName.localeCompare(name) > 0) {
-              first = catalogs[i];
-              firstName = name;
-            }
-          }
-          state.historyState = navigate(`/catalog/${first.id}`);
+          state.historyState = navigate(`/catalog/${catalogs[0].id}`);
         } else {
           state.historyState = navigate("/user");
           if (!action.payload.user.hadCatalog) {

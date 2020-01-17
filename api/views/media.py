@@ -48,9 +48,6 @@ def validate(request, file, catalog, albums, tags, people):
                 'type': guessed_mimetype,
             })
 
-    if len(albums) == 0:
-        raise ApiException('media-in-no-albums')
-
     for album in albums:
         if album.catalog != catalog:
             raise ApiException('catalog-mismatch')

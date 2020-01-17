@@ -31,7 +31,7 @@ type Query = QueryGroup | FieldQuery;
 
 export interface Search {
   catalog: string;
-  query: Query;
+  query?: Query;
 }
 
 export function isFieldQuery(f: Query): f is FieldQuery {

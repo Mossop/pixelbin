@@ -36,6 +36,7 @@ login-email = Email address:
 login-password = Pasword:
 login-submit = Log in...
 
+catalog-albums = Albums
 catalog-create-title = Create a new catalog
 catalog-create-title-first = Create your first catalog:
 catalog-name = Catalog name:

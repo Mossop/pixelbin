@@ -1,5 +1,5 @@
 from django.db import models, IntegrityError
-from django.db.models.expressions import Q, F
+from django.db.models.expressions import F
 from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
@@ -80,13 +80,10 @@ class User(AbstractUser):
 
 class Catalog(models.Model):
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
+    name = models.CharField(max_length=100, blank=False)
     users = models.ManyToManyField(User, related_name='catalogs', through='Access')
     storage = models.ForeignKey(Storage, null=False,
                                 on_delete=models.CASCADE, related_name='catalogs')
-
-    @property
-    def root(self):
-        return self.albums.get(parent__isnull=True)
 
     @property
     def file_store(self):
@@ -128,9 +125,7 @@ class Album(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['catalog'], condition=Q(parent__isnull=True),
-                                    name='single_root_album'),
-            UniqueWithExpressionsConstraint(fields=['catalog', 'parent'],
+            UniqueWithExpressionsConstraint(fields=['parent'],
                                             expressions=[Lower(F('name'))],
                                             name='unique_album_name'),
         ]

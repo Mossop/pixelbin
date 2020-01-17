@@ -62,7 +62,7 @@ export const AlbumDataDecoder = JsonDecoder.object<AlbumData>(
 
 export interface CatalogData {
   id: string;
-  root: string;
+  name: string;
   people: MapOf<PersonData>;
   tags: MapOf<TagData>;
   albums: MapOf<AlbumData>;
@@ -71,7 +71,7 @@ export interface CatalogData {
 export const CatalogDataDecoder = JsonDecoder.object<CatalogData>(
   {
     id: JsonDecoder.string,
-    root: JsonDecoder.string,
+    name: JsonDecoder.string,
     people: MapDecoder(PersonDataDecoder, "MapOf<PersonData>"),
     tags: MapDecoder(TagDataDecoder, "MapOf<TagData>"),
     albums: MapDecoder(AlbumDataDecoder, "MapOf<AlbumData>"),
@@ -219,15 +219,15 @@ export interface BackblazeStorageData {
 }
 
 export interface CatalogCreateData {
-  name: string;
   storage: ServerStorageData | BackblazeStorageData;
+  name: string;
 }
 
 export interface AlbumCreateData {
   catalog: string;
   stub?: string | null;
   name: string;
-  parent: string | null;
+  parent?: string | null;
 }
 
 export interface AlbumMedia {
@@ -289,7 +289,7 @@ export interface Query {
 
 export interface Search {
   catalog: string;
-  query: Query;
+  query?: Query;
 }
 
 export interface MediaThumbnail {

@@ -2,6 +2,9 @@ import { Search } from "../utils/search";
 import { intoId, MapId } from "../utils/maps";
 import { request } from "./api";
 import { ApiMethod, UnprocessedMediaData, MediaCreateData, Patch } from "./types";
+import { Catalog, Album } from "./highlevel";
+
+export type MediaTarget = Catalog | Album;
 
 type ProcessParams = "processVersion" | "uploaded" | "mimetype" | "width" | "height" | "duration" | "fileSize";
 export type ProcessedMediaData = {

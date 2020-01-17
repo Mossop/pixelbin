@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from ..models import User
-from .catalog import CatalogStateSerializer
+from .catalog import CatalogSerializer
 from . import ModelSerializer, Serializer, MapSerializer
 
 class LoginSerializer(Serializer):
@@ -17,7 +17,7 @@ class UserSerializer(ModelSerializer):
     password = serializers.CharField(write_only=True, allow_blank=True)
     hadCatalog = serializers.BooleanField(source='had_catalog', read_only=True)
     verified = serializers.BooleanField(read_only=True)
-    catalogs = MapSerializer(child=CatalogStateSerializer(), read_only=True)
+    catalogs = MapSerializer(child=CatalogSerializer(), read_only=True)
 
     def create(self, validated_data):
         user = get_user_model().objects.create_user(validated_data['email'],

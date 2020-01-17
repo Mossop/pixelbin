@@ -83,15 +83,15 @@ class OverlayDisplay extends React.Component<OverlayDisplayProps> {
           break;
         }
         case OverlayType.CreateAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} parent={overlayState.parent}/>;
+          overlay = <AlbumOverlay parent={overlayState.parent}/>;
           break;
         }
         case OverlayType.EditAlbum: {
-          overlay = <AlbumOverlay user={this.props.user} album={overlayState.album}/>;
+          overlay = <AlbumOverlay album={overlayState.album}/>;
           break;
         }
         case OverlayType.Upload: {
-          overlay = <UploadOverlay user={this.props.user} target={overlayState.target}/>;
+          overlay = <UploadOverlay target={overlayState.target}/>;
           break;
         }
       }

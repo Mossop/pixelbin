@@ -12,6 +12,7 @@ class AlbumSerializer(ModelSerializer):
         extra_kwargs = {
             'id': {'read_only': True},
             'stub': {'required': False},
+            'parent': {'required': False},
         }
 
 class AlbumMediaSerializer(Serializer):

@@ -39,8 +39,17 @@ module.exports = {
     "require-atomic-updates": "off",
     "react/prop-types": "off",
     "@typescript-eslint/array-type": "error",
+    "@typescript-eslint/no-use-before-define": ["error", {
+      functions: false,
+      typedefs: false,
+      variables: false,
+      enums: false,
+    }],
     "@typescript-eslint/no-unnecessary-condition": ["error", {
       ignoreRhs: true
+    }],
+    "@typescript-eslint/no-unused-vars": ["warn", {
+      argsIgnorePattern: "^_",
     }],
     "quotes": "off",
     "brace-style": "off",

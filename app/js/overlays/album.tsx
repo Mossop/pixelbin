@@ -6,48 +6,42 @@ import { APIError } from "../api/errors";
 import { albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
 import Overlay from "../components/Overlay";
-import { CatalogTreeSelector } from "../components/CatalogTree";
-import { Patch, UserData, AlbumData, AlbumCreateData } from "../api/types";
+import { MediaTargetSelector } from "../components/SiteTree";
+import { Patch, AlbumData, AlbumCreateData } from "../api/types";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
 import { focus } from "../utils/helpers";
-import { Album } from "../api/highlevel";
+import { Album, Catalog, Reference } from "../api/highlevel";
 import { ComponentProps, connect } from "../components/shared";
-import { Immutable } from "../utils/immer";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
+import { store } from "../store/store";
+import { MediaTarget } from "../api/media";
 
 interface InputFields {
   name: string;
-  parent: Album | undefined;
+  parent: Reference<MediaTarget> | undefined;
 }
 
 interface PassedProps {
-  user: Immutable<UserData>;
-  album?: string;
-  parent?: string;
+  album?: Reference<Album>;
+  parent?: Reference<MediaTarget>;
 }
 
 interface FromStateProps {
   album?: Album;
-  parent?: Album;
+  parent?: MediaTarget;
 }
 
 function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
-  if (ownProps.album) {
-    let album = Album.fromState(state, ownProps.album);
-    return {
-      album,
-      parent: album.parent,
-    };
+  if (!ownProps.album && !ownProps.parent) {
+    exception(ErrorCode.InvalidState);
   }
 
-  if (ownProps.parent) {
-    return {
-      parent: Album.fromState(state, ownProps.parent),
-    };
-  }
-
-  exception(ErrorCode.InvalidState);
+  let album = ownProps.album?.deref(state);
+  return {
+    album,
+    parent: album ? album.parent : ownProps.parent?.deref(state),
+  };
 }
 
 const mapDispatchToProps = {
@@ -71,7 +65,7 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
     this.state = {
       disabled: false,
       inputs: {
-        parent: this.props.parent,
+        parent: this.props.parent?.ref(),
         name: "",
       },
     };
@@ -92,7 +86,8 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
     if (!name) {
       return;
     }
-    let parent = this.inputs.parent;
+
+    let parent = this.inputs.parent?.deref(store.getState());
     if (!parent) {
       exception(ErrorCode.InvalidState);
     }
@@ -101,22 +96,27 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
 
     try {
       if (!this.props.album) {
+        let catalog = parent instanceof Catalog ? parent : parent.catalog;
+        let album = parent instanceof Catalog ? null : parent;
         let data: AlbumCreateData = {
-          catalog: parent.catalog.id,
+          catalog: catalog.id,
           name,
-          parent: parent.id,
+          parent: album?.id,
         };
 
-        let album = await createAlbum(data);
-        this.props.albumCreated(album);
+        let albumData= await createAlbum(data);
+        this.props.albumCreated(albumData);
       } else {
+        let catalog = parent instanceof Catalog ? parent : parent.catalog;
+        let album = parent instanceof Catalog ? null : parent;
         let updated: Patch<AlbumData> = {
+          catalog: catalog.id,
           name,
           id: this.props.album.id,
-          parent: parent.id,
+          parent: album?.id,
         };
-        let album = await editAlbum(updated);
-        this.props.albumEdited(album);
+        let albumData = await editAlbum(updated);
+        this.props.albumEdited(albumData);
       }
     } catch (e) {
       this.setState({ disabled: false, error: e });
@@ -130,7 +130,7 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
       <div className="sidebar-item">
         <Localized id={title}><label className="title"/></Localized>
       </div>
-      <CatalogTreeSelector property={makeProperty(this.inputs, "parent")}/>
+      <MediaTargetSelector property={makeProperty(this.inputs, "parent")}/>
     </React.Fragment>;
   }
 

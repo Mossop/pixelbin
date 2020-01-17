@@ -1,15 +1,16 @@
-.catalog-tree {
+ol.site-tree,
+.site-tree ol,
+.site-tree li,
+.site-tree .item {
+  width: 100%;
+  text-align: left;
+}
+
+.site-tree {
   button {
     @include unstyled-button;
 
     display: block;
-  }
-
-  ol,
-  li,
-  .item {
-    width: 100%;
-    text-align: left;
   }
 
   .item {
@@ -45,7 +46,7 @@
     padding-left: calc(6 * var(--padding));
   }
 
-  .item:hover:not(.selected),
+  button.item:hover,
   .item.dragtarget {
     background: var(--hover);
   }

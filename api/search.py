@@ -97,11 +97,14 @@ class QueryGroup:
 
 # pylint: disable=too-few-public-methods
 class Search:
-    def __init__(self, catalog, query):
+    def __init__(self, catalog, query=None):
         self.catalog = catalog
         self.query = query
 
     def get_query(self):
+        if self.query is None:
+            return Q(catalog=self.catalog)
+
         query = self.query.get_query(self.catalog)
         if isinstance(query, bool):
             if not query:

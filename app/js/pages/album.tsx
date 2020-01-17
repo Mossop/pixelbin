@@ -2,12 +2,11 @@ import React from "react";
 import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
 
-import { MediaData } from "../api/media";
 import { StoreState } from "../store/types";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, showUploadOverlay } from "../store/actions";
 import { Button } from "../components/Button";
 import { BasePage, baseConnect, BasePageState, BasePageProps } from "../components/BasePage";
-import { PassedProps as SidebarProps } from "../components/Sidebar";
+import { SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
 import { Search, Field, Operation } from "../utils/search";
 import MediaList from "../components/MediaList";
@@ -112,16 +111,6 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
     this.props.showUploadOverlay(this.props.album);
   };
 
-  private onDragStart: (event: React.DragEvent, media: MediaData) => void = (event: React.DragEvent, media: MediaData): void => {
-    event.dataTransfer.setData("pixelbin/media", media.id);
-    if (this.props.album) {
-      event.dataTransfer.setData("pixelbin/album-media", JSON.stringify({ media: media.id, album: this.props.album.id }));
-      event.dataTransfer.effectAllowed = "copyMove";
-    } else {
-      event.dataTransfer.effectAllowed = "copy";
-    }
-  };
-
   protected renderBannerButtons(): React.ReactNode {
     if (this.props.user && this.props.album) {
       return <React.Fragment>
@@ -136,14 +125,14 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
 
   protected getSidebarProps(): Partial<SidebarProps> {
     return {
-      selectedAlbum: this.state.album,
+      selectedItem: this.state.album,
     };
   }
 
   protected renderContent(): React.ReactNode {
     if (!this.state.pending) {
       if (this.state.search) {
-        return <MediaList onDragStart={this.onDragStart} search={this.state.search}/>;
+        return <MediaList search={this.state.search}/>;
       } else {
         return <NotFound/>;
       }

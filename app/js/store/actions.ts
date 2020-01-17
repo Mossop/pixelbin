@@ -4,7 +4,8 @@ import { ServerData, CatalogData, AlbumData } from "../api/types";
 import { HistoryState } from "./types";
 import { Draft } from "../utils/immer";
 import { ErrorCode } from "../utils/exception";
-import { Album, Catalog } from "../api/highlevel";
+import { Album, Catalog, Reference } from "../api/highlevel";
+import { MediaTarget } from "../api/media";
 
 export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";
 export const SHOW_SIGNUP_OVERLAY = "SHOW_SIGNUP_OVERLAY";
@@ -73,15 +74,15 @@ export function bumpState(): BumpStateAction {
 interface ShowAlbumCreateOverlayAction extends BaseAction {
   type: typeof SHOW_ALBUM_CREATE_OVERLAY;
   payload: {
-    parent: string;
+    parent: Reference<MediaTarget>;
   };
 }
 
-export function showAlbumCreateOverlay(parent: Album): ShowAlbumCreateOverlayAction {
+export function showAlbumCreateOverlay(parent: MediaTarget): ShowAlbumCreateOverlayAction {
   return {
     type: SHOW_ALBUM_CREATE_OVERLAY,
     payload: {
-      parent: parent.id,
+      parent: parent.ref(),
     },
   };
 }
@@ -89,7 +90,7 @@ export function showAlbumCreateOverlay(parent: Album): ShowAlbumCreateOverlayAct
 interface ShowAlbumEditOverlayAction extends BaseAction {
   type: typeof SHOW_ALBUM_EDIT_OVERLAY;
   payload: {
-    album: string;
+    album: Reference<Album>;
   };
 }
 
@@ -97,7 +98,7 @@ export function showAlbumEditOverlay(album: Album): ShowAlbumEditOverlayAction {
   return {
     type: SHOW_ALBUM_EDIT_OVERLAY,
     payload: {
-      album: album.id,
+      album: album.ref(),
     },
   };
 }
@@ -105,7 +106,7 @@ export function showAlbumEditOverlay(album: Album): ShowAlbumEditOverlayAction {
 interface ShowCatalogEditOverlayAction extends BaseAction {
   type: typeof SHOW_CATALOG_EDIT_OVERLAY;
   payload: {
-    catalog: string;
+    catalog: Reference<Catalog>;
   };
 }
 
@@ -113,7 +114,7 @@ export function showCatalogEditOverlay(catalog: Catalog): ShowCatalogEditOverlay
   return {
     type: SHOW_CATALOG_EDIT_OVERLAY,
     payload: {
-      catalog: catalog.id,
+      catalog: catalog.ref(),
     },
   };
 }
@@ -121,15 +122,15 @@ export function showCatalogEditOverlay(catalog: Catalog): ShowCatalogEditOverlay
 interface ShowUploadOverlayAction extends BaseAction {
   type: typeof SHOW_UPLOAD_OVERLAY;
   payload: {
-    target: string | undefined;
+    target: Reference<MediaTarget> | undefined;
   };
 }
 
-export function showUploadOverlay(parent: Album | undefined): ShowUploadOverlayAction {
+export function showUploadOverlay(parent: MediaTarget | undefined): ShowUploadOverlayAction {
   return {
     type: SHOW_UPLOAD_OVERLAY,
     payload: {
-      target: parent ? parent.id : undefined,
+      target: parent?.ref(),
     },
   };
 }

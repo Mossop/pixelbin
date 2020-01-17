@@ -7,22 +7,22 @@ import { Button } from "../components/Button";
 import { If, Then, Else } from "../utils/Conditions";
 import { uuid } from "../utils/helpers";
 import Upload from "../components/Upload";
-import { createMedia } from "../api/media";
+import { createMedia, MediaTarget } from "../api/media";
 import { findTag } from "../api/tag";
-import { UserData, PersonData, TagData, MediaCreateData } from "../api/types";
-import { CatalogTreeSelector } from "../components/CatalogTree";
+import { PersonData, TagData, MediaCreateData } from "../api/types";
+import { MediaTargetSelector } from "../components/SiteTree";
 import Overlay from "../components/Overlay";
 import { FormFields, FormField } from "../components/Form";
 import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString, areDimensionsFlipped } from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 import Media from "../components/Media";
 import { createPerson } from "../api/person";
-import { Immutable } from "../utils/immer";
 import { setOrientation } from "../api/metadata";
 import { ComponentProps, connect } from "../components/shared";
-import { Album } from "../api/highlevel";
+import { Album, Reference, Catalog } from "../api/highlevel";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
+import { store } from "../store/store";
 
 export type PendingUpload = Proxyable<{
   file: File;
@@ -52,24 +52,23 @@ function itemIsMedia(item: DataTransferItem): boolean {
 }
 
 type InputFields = Proxyable<{
-  target: Album | undefined;
+  target: Reference<MediaTarget> | undefined;
   tags: string;
   people: string;
   uploads: Record<string, PendingUpload>;
 }>;
 
 interface PassedProps {
-  user: Immutable<UserData>;
-  target?: string;
+  target?: Reference<MediaTarget>;
 }
 
 interface FromStateProps {
-  target?: Album;
+  target?: MediaTarget;
 }
 
 function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
   return {
-    target: ownProps.target ? Album.fromState(state, ownProps.target) : undefined,
+    target: ownProps.target?.deref(state),
   };
 }
 
@@ -96,7 +95,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     this.state = {
       disabled: false,
       inputs: {
-        target: this.props.target,
+        target: this.props.target?.ref(),
         tags: "",
         people: "",
         uploads: proxy({}),
@@ -120,11 +119,13 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
     pending.uploading = true;
 
-    let target = this.inputs.target;
+    // XXX Not sure why the type check is failing here.
+    let target: Catalog | Album | undefined = this.inputs.target?.deref(store.getState());
     if (!target) {
       exception(ErrorCode.InvalidState);
     }
-    let catalog = target.catalog;
+    let catalog = target instanceof Catalog ? target : target.catalog;
+    let album = target instanceof Catalog ? null : target;
 
     let strTags = tagsFromString(pending.tags).concat(tagsFromString(this.inputs.tags));
     let strPeople = peopleFromString(pending.people).concat(peopleFromString(this.inputs.people));
@@ -144,7 +145,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       catalog: catalog.id,
       tags: tags.map((t: TagData) => t.id),
       people: people.map((p: PersonData) => p.id),
-      albums: [target.id],
+      albums: album ? [album.id] : [],
       file: pending.file,
     };
 
@@ -291,7 +292,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         <div className="sidebar-item">
           <Localized id="upload-tree-title"><label className="title"/></Localized>
         </div>
-        <CatalogTreeSelector property={makeProperty(this.inputs, "target")}/>
+        <MediaTargetSelector property={makeProperty(this.inputs, "target")}/>
         <div id="upload-metadata" className="sidebar-item">
           <FormFields orientation="column">
             <FormField id="upload-overlay-global-tags" type="textarea" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} property={makeProperty(this.inputs, "tags")}/>

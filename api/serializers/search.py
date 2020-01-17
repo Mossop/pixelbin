@@ -67,14 +67,16 @@ class QueryGroupSerializer(RecursiveSerializer):
 
 class SearchSerializer(Serializer):
     catalog = serializers.PrimaryKeyRelatedField(queryset=Catalog.objects.all())
-    query = QuerySerializer()
+    query = QuerySerializer(required=False)
 
     def to_representation(self, instance):
         pass
 
     def create(self, validated_data):
-        query = self.fields['query'].create(validated_data['query'])
-        return Search(validated_data['catalog'], query)
+        if 'query' in validated_data:
+            query = self.fields['query'].create(validated_data['query'])
+            return Search(validated_data['catalog'], query)
+        return Search(validated_data['catalog'])
 
     class Meta:
         js_response_type = 'Search'

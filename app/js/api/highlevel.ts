@@ -28,7 +28,33 @@ function getStateCache(state: StoreState): StateCache {
   return STATE_CACHE.get(state) ?? buildStateCache(state);
 }
 
-export class Tag {
+interface APIItemBuilder<T> {
+  fromState: (state: StoreState, id: string) => T;
+}
+
+export interface Reference<T> {
+  readonly id: string;
+  readonly deref: (state: StoreState) => T;
+}
+
+export interface Referencable<T> {
+  ref: () => Reference<T>;
+}
+
+class APIItemReference<T> implements Reference<T> {
+  public constructor(public readonly id: string, private cls: APIItemBuilder<T>) {}
+
+  public deref(state: StoreState): T {
+    return this.cls.fromState(state, this.id);
+  }
+}
+
+export abstract class APIItem<T> {
+  public abstract get id(): string;
+  public abstract ref(): Reference<T>;
+}
+
+export class Tag implements Referencable<Tag> {
   private constructor(private readonly storeState: StoreState, private readonly state: Immutable<TagData>) {}
 
   public get catalog(): Catalog {
@@ -46,6 +72,10 @@ export class Tag {
 
   public get parent(): Tag | undefined {
     return this.state.parent ? Tag.fromState(this.storeState, this.state.parent) : undefined;
+  }
+
+  public ref(): Reference<Tag> {
+    return new APIItemReference(this.id, Tag);
   }
 
   public static fromState(storeState: StoreState, item: MapId<Immutable<TagData>>): Tag {
@@ -81,7 +111,7 @@ export class Tag {
   }
 }
 
-export class Person {
+export class Person implements Referencable<Person> {
   private constructor(private readonly storeState: StoreState, private readonly state: Immutable<PersonData>) {}
 
   public get catalog(): Catalog {
@@ -95,6 +125,10 @@ export class Person {
 
   public get fullname(): string {
     return this.state.fullname;
+  }
+
+  public ref(): Reference<Person> {
+    return new APIItemReference(this.id, Person);
   }
 
   public static fromState(storeState: StoreState, item: MapId<Immutable<PersonData>>): Person {
@@ -130,7 +164,7 @@ export class Person {
   }
 }
 
-export class Album {
+export class Album  implements Referencable<Album> {
   private constructor(private readonly storeState: StoreState, private readonly state: Immutable<AlbumData>) {}
 
   public get id(): string {
@@ -182,6 +216,10 @@ export class Album {
     return false;
   }
 
+  public ref(): Reference<Album> {
+    return new APIItemReference(this.id, Album);
+  }
+
   public static fromState(storeState: StoreState, item: MapId<Immutable<AlbumData>>): Album {
     let id = intoId(item);
 
@@ -215,15 +253,21 @@ export class Album {
   }
 }
 
-export class Catalog {
+export class Catalog implements Referencable<Catalog> {
   private constructor(private readonly storeState: StoreState, private readonly state: Immutable<CatalogData>) {}
 
   public get id(): string {
     return this.state.id;
   }
 
-  public get root(): Album {
-    return Album.fromState(this.storeState, this.state.root);
+  public get name(): string {
+    return this.state.name;
+  }
+
+  public get rootAlbums(): Album[] {
+    return Array.from(this.state.albums.values())
+      .filter((album: Immutable<AlbumData>) => !album.parent)
+      .map((album: Immutable<AlbumData>) => Album.fromState(this.storeState, album));
   }
 
   public get tags(): Tag[] {
@@ -244,6 +288,10 @@ export class Catalog {
 
   public get people(): Person[] {
     return Array.from(this.state.people.values()).map((person: Immutable<PersonData>): Person => Person.fromState(this.storeState, person));
+  }
+
+  public ref(): Reference<Catalog> {
+    return new APIItemReference(this.id, Catalog);
   }
 
   public static fromState(storeState: StoreState, item: MapId<Immutable<CatalogData>>): Catalog {
@@ -276,3 +324,40 @@ export class Catalog {
     exception(ErrorCode.UnknownCatalog);
   }
 }
+
+export function catalogs(storeState: StoreState): Catalog[] {
+  if (storeState.serverState.user) {
+    return Array.from(storeState.serverState.user.catalogs.values(),
+      (st: Immutable<CatalogData>) => Catalog.fromState(storeState, st));
+  }
+  return [];
+}
+
+// export function intoAPIItem<T>(storeState: StoreState, id: string | undefined, filter: T[]): T | undefined {
+//   if (!id || !storeState.serverState.user) {
+//     return undefined;
+//   }
+
+//   for (let catalogState of storeState.serverState.user.catalogs.values()) {
+//     if (filter.includes(Catalog) && catalogState.id == id) {
+//       return Catalog.fromState(storeState, catalogState);
+//     }
+
+//     let albumState = catalogState.albums.get(id);
+//     if (albumState) {
+//       return Album.fromState(storeState, albumState);
+//     }
+
+//     let tagState = catalogState.tags.get(id);
+//     if (tagState) {
+//       return Tag.fromState(storeState, tagState);
+//     }
+
+//     let personState = catalogState.people.get(id);
+//     if (personState) {
+//       return Person.fromState(storeState, personState);
+//     }
+//   }
+
+//   return undefined;
+// }

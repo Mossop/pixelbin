@@ -4,12 +4,11 @@ import { connect } from "react-redux";
 
 import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
 import { StoreState } from "../store/types";
-import { MediaData } from "../api/media";
-import { PassedProps as SidebarProps } from "../components/Sidebar";
+import { SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
 import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
 import MediaList from "../components/MediaList";
-import { Search, Field, Operation } from "../utils/search";
+import { Search } from "../utils/search";
 import NotFound from "./notfound";
 import { ComponentProps } from "../components/shared";
 import { Catalog } from "../api/highlevel";
@@ -52,7 +51,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showAlbumCreateOverlay(this.props.catalog.root);
+    this.props.showAlbumCreateOverlay(this.props.catalog);
   };
 
   private onUpload: (() => void) = (): void => {
@@ -60,7 +59,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
       return;
     }
 
-    this.props.showUploadOverlay(this.props.catalog.root);
+    this.props.showUploadOverlay(this.props.catalog);
   };
 
   protected renderBannerButtons(): React.ReactNode {
@@ -77,32 +76,16 @@ class CatalogPage extends BasePage<CatalogPageProps> {
 
   protected getSidebarProps(): Partial<SidebarProps> {
     return {
-      selectedAlbum: this.props.catalog?.root,
+      selectedItem: this.props.catalog,
     };
   }
-
-  private onDragStart: (event: React.DragEvent, media: MediaData) => void = (event: React.DragEvent, media: MediaData): void => {
-    event.dataTransfer.setData("pixelbin/media", media.id);
-    if (this.props.catalog) {
-      event.dataTransfer.setData("pixelbin/album-media", JSON.stringify({ media: media.id, album: this.props.catalog.root }));
-      event.dataTransfer.effectAllowed = "copyMove";
-    } else {
-      event.dataTransfer.effectAllowed = "copy";
-    }
-  };
 
   protected renderContent(): React.ReactNode {
     if (this.props.user && this.props.catalog) {
       let search: Search = {
         catalog: this.props.catalog.id,
-        query: {
-          invert: false,
-          field: Field.Album,
-          operation: Operation.Includes,
-          value: this.props.catalog.root.name,
-        },
       };
-      return <MediaList onDragStart={this.onDragStart} search={search}/>;
+      return <MediaList search={search}/>;
     } else {
       return <NotFound/>;
     }

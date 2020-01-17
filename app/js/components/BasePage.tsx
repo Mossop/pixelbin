@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { UserData } from "../api/types";
 import { StoreState } from "../store/types";
 import Banner from "./Banner";
-import Sidebar, { PassedProps as SidebarProps } from "./Sidebar";
+import Sidebar, { SidebarProps as SidebarProps } from "./Sidebar";
 import { Immutable } from "../utils/immer";
 import { ComponentProps } from "./shared";
 
