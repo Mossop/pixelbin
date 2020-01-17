@@ -123,6 +123,18 @@ class Album(models.Model):
             cte.join(Album, id=cte.col.id).with_cte(cte)
         )
 
+    def save(self, *args, **kwargs):
+        if self.parent is not None and self.parent.catalog != self.catalog:
+            raise ApiException('catalog-mismatch')
+
+        parent = self.parent
+        while parent is not None:
+            if parent.id == self.id:
+                raise ApiException('cyclic-structure')
+            parent = parent.parent
+
+        super().save(*args, **kwargs)
+
     class Meta:
         constraints = [
             UniqueWithExpressionsConstraint(fields=['parent'],
@@ -199,6 +211,18 @@ class Tag(models.Model):
             cte.join(Tag, id=cte.col.id).with_cte(cte)
         )
 
+    def save(self, *args, **kwargs):
+        if self.parent is not None and self.parent.catalog != self.catalog:
+            raise ApiException('catalog-mismatch')
+
+        parent = self.parent
+        while parent is not None:
+            if parent.id == self.id:
+                raise ApiException('cyclic-structure')
+            parent = parent.parent
+
+        super().save(*args, **kwargs)
+
     class Meta:
         constraints = [
             UniqueWithExpressionsConstraint(fields=['catalog'],
@@ -257,6 +281,21 @@ class Media(models.Model):
 
     _metadata = None
     _file_store = None
+
+    def save(self, *args, **kwargs):
+        for album in self.albums:
+            if album.catalog != self.catalog:
+                raise ApiException('catalog-mismatch')
+
+        for tag in self.tags:
+            if tag.catalog != self.catalog:
+                raise ApiException('catalog-mismatch')
+
+        for person in self.people:
+            if person.catalog != self.catalog:
+                raise ApiException('catalog-mismatch')
+
+        super().save(*args, **kwargs)
 
     @property
     def metadata(self):
