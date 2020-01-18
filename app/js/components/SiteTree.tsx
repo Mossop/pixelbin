@@ -7,7 +7,7 @@ import { MediaTarget } from "../api/media";
 import { StoreState } from "../store/types";
 import { Property } from "../utils/StateProxy";
 import { Button } from "./Button";
-import Icon, { IconProps, IconStyle } from "./Icon";
+import Icon, { IconProps } from "./Icon";
 import { ComponentProps, StyleProps, styleProps } from "./shared";
 
 export type TreeItem = Catalog | Album | VirtualTreeItem;
