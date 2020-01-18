@@ -136,6 +136,9 @@ export abstract class BaseSiteTree<P = {}, S = {}> extends React.Component <P, S
     if (item instanceof Catalog) {
       return { iconName: "archive" };
     }
+    if (item instanceof Album) {
+      return { iconName: "images" };
+    }
     if (item instanceof VirtualTreeItem) {
       return item.getIcon(selected);
     }
