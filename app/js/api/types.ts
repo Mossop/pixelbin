@@ -5,7 +5,7 @@ import { JsonDecoder } from "ts.data.json";
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
 import { Mappable, MapOf } from "../utils/maps";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
-  FormRequestData, JsonDecoderDecoder, BlobDecoder, VoidDecoder } from "./helpers";
+  FormRequestData, JsonDecoderDecoder, BlobDecoder } from "./helpers";
 
 export type Patch<R> = Partial<R> & Mappable;
 
@@ -24,6 +24,8 @@ export enum ApiErrorCode {
   UnknownType = "unknown-type",
   SignupBadEmail = "signup-bad-email",
   LoginFailed = "login-failed",
+  NotFound = "not-found",
+  NotAllowed = "not-allowed",
 }
 
 export interface ApiErrorData {
@@ -371,8 +373,8 @@ export function request(method: ApiMethod.UserCreate, data: UserCreateData): Pro
 export function request(method: ApiMethod.CatalogCreate, data: CatalogCreateData): Promise<CatalogData>;
 export function request(method: ApiMethod.AlbumCreate, data: AlbumCreateData): Promise<AlbumData>;
 export function request(method: ApiMethod.AlbumEdit, data: Patch<AlbumCreateData>): Promise<AlbumData>;
-export function request(method: ApiMethod.AlbumAddMedia, data: AlbumMedia): Promise<void>;
-export function request(method: ApiMethod.AlbumRemoveMedia, data: AlbumMedia): Promise<void>;
+export function request(method: ApiMethod.AlbumAddMedia, data: AlbumMedia): Promise<AlbumData>;
+export function request(method: ApiMethod.AlbumRemoveMedia, data: AlbumMedia): Promise<AlbumData>;
 export function request(method: ApiMethod.TagCreate, data: TagCreateData): Promise<TagData>;
 export function request(method: ApiMethod.TagFind, data: TagLookup): Promise<TagData>;
 export function request(method: ApiMethod.PersonCreate, data: PersonCreateData): Promise<PersonData>;
@@ -406,10 +408,10 @@ export function request(path: ApiMethod, data?: any): Promise<object | void> {
       request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.AlbumAddMedia:
-      request = new JsonRequestData(data, VoidDecoder);
+      request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.AlbumRemoveMedia:
-      request = new JsonRequestData(data, VoidDecoder);
+      request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.TagCreate:
       request = new JsonRequestData(data, JsonDecoderDecoder(TagDataDecoder));

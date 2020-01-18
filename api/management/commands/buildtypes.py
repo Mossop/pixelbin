@@ -8,14 +8,14 @@ from ...utils import merge
 from ...views import ApiView
 from ...serializers import VoidType, NullType, BlobType, FormDataType, ApiExceptionSerializer
 
-header = """import moment from "moment";
+header = """import { Orientation } from "media-metadata/lib/metadata";
+import moment from "moment";
 import { JsonDecoder } from "ts.data.json";
-import { Orientation } from "media-metadata/lib/metadata";
 
-import { Mappable, MapOf } from "../utils/maps";
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
+import { Mappable, MapOf } from "../utils/maps";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
-  FormRequestData, JsonDecoderDecoder, BlobDecoder, VoidDecoder } from "./helpers";
+  FormRequestData, JsonDecoderDecoder, BlobDecoder } from "./helpers";
 
 export type Patch<R> = Partial<R> & Mappable;
 """
