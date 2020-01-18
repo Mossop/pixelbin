@@ -38,6 +38,12 @@ export interface Reference<T> {
   readonly deref: (state: StoreState) => T;
 }
 
+export type Derefer = <T>(ref: Reference<T> | undefined) => T | undefined;
+
+export function derefer(state: StoreState): Derefer {
+  return <T>(ref: Reference<T> | undefined): T | undefined => ref?.deref(state);
+}
+
 export interface Referencable<T> {
   ref: () => Reference<T>;
 }

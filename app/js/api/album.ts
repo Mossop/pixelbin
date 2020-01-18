@@ -12,14 +12,14 @@ export function editAlbum(album: Patch<AlbumCreateData>): Promise<AlbumData> {
   return request(ApiMethod.AlbumEdit, album);
 }
 
-export function addMediaToAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
+export function addMediaToAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<AlbumData> {
   return request(ApiMethod.AlbumAddMedia, {
     id: intoId(album),
     media: intoIds(media),
   });
 }
 
-export function removeMediaFromAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<void> {
+export function removeMediaFromAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<AlbumData> {
   return request(ApiMethod.AlbumRemoveMedia, {
     id: intoId(album),
     media: intoIds(media),

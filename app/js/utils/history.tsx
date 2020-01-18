@@ -3,8 +3,8 @@ import React from "react";
 import { Router } from "react-router";
 import { Store } from "redux";
 
+import store from "../store";
 import { setHistoryState } from "../store/actions";
-import { store } from "../store/store";
 import { StoreState, LocationState, HistoryState } from "../store/types";
 
 function statesEqual(a: HistoryState, b: HistoryState): boolean {

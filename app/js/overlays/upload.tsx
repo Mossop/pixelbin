@@ -2,7 +2,7 @@ import { Localized } from "@fluent/react";
 import { Orientation, rotateClockwise90, rotateCounterClockwise90, mirrorHorizontal, mirrorVertical } from "media-metadata/lib/metadata";
 import React from "react";
 
-import { Album, Reference, Catalog } from "../api/highlevel";
+import { Reference, Catalog, Derefer, derefer } from "../api/highlevel";
 import { createMedia, MediaTarget } from "../api/media";
 import { setOrientation } from "../api/metadata";
 import { createPerson } from "../api/person";
@@ -16,7 +16,6 @@ import { ComponentProps, connect } from "../components/shared";
 import { MediaTargetSelector } from "../components/SiteTree";
 import Upload from "../components/Upload";
 import { bumpState, closeOverlay } from "../store/actions";
-import { store } from "../store/store";
 import { StoreState } from "../store/types";
 import { If, Then, Else } from "../utils/Conditions";
 import { exception, ErrorCode } from "../utils/exception";
@@ -64,11 +63,13 @@ interface PassedProps {
 
 interface FromStateProps {
   target?: MediaTarget;
+  deref: Derefer;
 }
 
 function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
   return {
     target: ownProps.target?.deref(state),
+    deref: derefer(state),
   };
 }
 
@@ -119,8 +120,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
     pending.uploading = true;
 
-    // XXX Not sure why the type check is failing here.
-    let target: Catalog | Album | undefined = this.inputs.target?.deref(store.getState());
+    let target = this.props.deref(this.inputs.target);
     if (!target) {
       exception(ErrorCode.InvalidState);
     }

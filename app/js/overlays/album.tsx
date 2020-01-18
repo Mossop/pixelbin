@@ -2,7 +2,7 @@ import { Localized } from "@fluent/react";
 import React from "react";
 
 import { editAlbum, createAlbum } from "../api/album";
-import { Album, Catalog, Reference } from "../api/highlevel";
+import { Album, Catalog, Reference, Derefer, derefer } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { Patch, AlbumData, AlbumCreateData } from "../api/types";
 import Form, { FormField } from "../components/Form";
@@ -10,7 +10,6 @@ import Overlay from "../components/Overlay";
 import { ComponentProps, connect } from "../components/shared";
 import { MediaTargetSelector } from "../components/SiteTree";
 import { albumCreated, albumEdited } from "../store/actions";
-import { store } from "../store/store";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode, AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
@@ -29,6 +28,7 @@ interface PassedProps {
 interface FromStateProps {
   album?: Album;
   parent?: MediaTarget;
+  deref: Derefer;
 }
 
 function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
@@ -40,6 +40,7 @@ function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStatePro
   return {
     album,
     parent: album ? album.parent : ownProps.parent?.deref(state),
+    deref: derefer(state),
   };
 }
 
@@ -86,7 +87,7 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
       return;
     }
 
-    let parent = this.inputs.parent?.deref(store.getState());
+    let parent = this.props.deref(this.inputs.parent);
     if (!parent) {
       exception(ErrorCode.InvalidState);
     }

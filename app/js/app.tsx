@@ -11,7 +11,7 @@ import CatalogPage from "./pages/catalog";
 import IndexPage from "./pages/index";
 import NotFound from "./pages/notfound";
 import UserPage from "./pages/user";
-import { store } from "./store/store";
+import store from "./store";
 import { decode } from "./utils/decoders";
 import { ReduxRouter } from "./utils/history";
 

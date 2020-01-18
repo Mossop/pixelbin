@@ -42,4 +42,4 @@ function buildStore(): StoreType {
   );
 }
 
-export const store = buildStore();
+export default buildStore();
