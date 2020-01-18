@@ -7,7 +7,7 @@ import { MediaTarget } from "../api/media";
 import { StoreState } from "../store/types";
 import { Property } from "../utils/StateProxy";
 import { Button } from "./Button";
-import Icon, { IconProps } from "./Icon";
+import Icon, { IconProps, IconStyle } from "./Icon";
 import { ComponentProps, StyleProps, styleProps } from "./shared";
 
 export type TreeItem = Catalog | Album | VirtualTreeItem;
@@ -16,7 +16,7 @@ abstract class VirtualTreeItem implements Referencable<VirtualTreeItem> {
   public abstract get id(): string;
   public abstract get name(): React.ReactNode;
   public abstract get classes(): string[];
-  public abstract get icon(): IconProps;
+  public abstract getIcon(selected: boolean): IconProps;
   public abstract get children(): TreeItem[];
   public abstract ref(): Reference<VirtualTreeItem>;
 }
@@ -81,8 +81,8 @@ class CatalogAlbums extends VirtualCatalogItem<"albums"> {
     return ["item", "albums"];
   }
 
-  public get icon(): IconProps {
-    return { iconName: "folder" };
+  public getIcon(selected: boolean): IconProps {
+    return { iconName: selected ? "folder-open" : "folder" };
   }
 
   public get children(): TreeItem[] {
@@ -99,8 +99,8 @@ export abstract class BaseSiteTree<P = {}, S = {}> extends React.Component <P, S
     return;
   }
 
-  protected canClick(_item: TreeItem): boolean {
-    return true;
+  protected canClick(item: TreeItem): boolean {
+    return !this.isSelected(item);
   }
 
   protected renderItemButton(item: TreeItem, content: React.ReactNode, props: StyleProps & IconProps = {}): React.ReactNode {
@@ -112,27 +112,34 @@ export abstract class BaseSiteTree<P = {}, S = {}> extends React.Component <P, S
       let clickHandler = (event: React.MouseEvent): void => this.onItemClicked(event, item);
       return <Button {...props} onClick={clickHandler}>{content}</Button>;
     }
-    return <p {...styleProps(props)}><Icon iconType={props.iconType} iconName={props.iconName}/>{content}</p>;
+    return <p {...styleProps(props)}><Icon iconStyle={props.iconStyle} iconName={props.iconName}/>{content}</p>;
   }
 
   protected getClassForItem(item: TreeItem): string[] {
+    let classes = this.isSelected(item) ? ["selected"] : [];
     if (item instanceof Catalog) {
-      return ["item", "catalog"];
+      classes.push("item", "catalog");
+    } else if (item instanceof Album) {
+      classes.push("item", "album");
+    } else if (item instanceof VirtualTreeItem) {
+      classes.push(...item.classes);
     }
-    if (item instanceof Album) {
-      return ["item", "album"];
-    }
-    if (item instanceof VirtualTreeItem) {
-      return item.classes;
-    }
-    return [];
+    return classes;
+  }
+
+  protected isSelected(_item: TreeItem): boolean {
+    return false;
   }
 
   protected getIconForItem(item: TreeItem): IconProps {
-    if (item instanceof VirtualTreeItem) {
-      return item.icon;
+    let selected = this.isSelected(item);
+    if (item instanceof Catalog) {
+      return { iconName: "archive" };
     }
-    return { iconName: "folder" };
+    if (item instanceof VirtualTreeItem) {
+      return item.getIcon(selected);
+    }
+    return { iconName: selected ? "folder-open" : "folder" };
   }
 
   protected getChildren(item: TreeItem): TreeItem[] {
@@ -206,23 +213,12 @@ export class MediaTargetSelectorComponent extends BaseSiteTree<MediaTargetSelect
     return super.getChildren(item);
   }
 
-  protected getClassForItem(item: TreeItem): string[] {
-    let classes = super.getClassForItem(item);
-    if (this.props.property.get()?.id == item.id) {
-      classes.push("selected");
-    }
-    return classes;
-  }
-
-  protected getIconForItem(item: TreeItem): IconProps {
-    if (this.props.property.get()?.id == item.id) {
-      return { iconName: "folder-open" };
-    }
-    return super.getIconForItem(item);
+  protected isSelected(item: TreeItem): boolean {
+    return this.props.property.get()?.id == item.id;
   }
 
   protected canClick(item: TreeItem): boolean {
-    return this.props.property.get()?.id != item.id && (item instanceof Album || item instanceof Catalog);
+    return !this.isSelected(item) && (item instanceof Album || item instanceof Catalog);
   }
 
   public render(): React.ReactNode {

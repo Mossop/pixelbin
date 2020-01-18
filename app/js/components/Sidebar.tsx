@@ -6,7 +6,6 @@ import { showCatalogCreateOverlay } from "../store/actions";
 import { StoreState } from "../store/types";
 import { history } from "../utils/history";
 import { Button } from "./Button";
-import { IconProps } from "./Icon";
 import { ComponentProps } from "./shared";
 import { TreeItem, BaseSiteTree } from "./SiteTree";
 
@@ -35,22 +34,11 @@ class SidebarTreeComponent extends BaseSiteTree<SidebarTreeProps> {
   }
 
   protected canClick(item: TreeItem): boolean {
-    return item != this.props.selectedItem && (item instanceof Album || item instanceof Catalog);
+    return !this.isSelected(item) && (item instanceof Album || item instanceof Catalog);
   }
 
-  protected getClassForItem(item: TreeItem): string[] {
-    let classes = super.getClassForItem(item);
-    if (item == this.props.selectedItem) {
-      classes.push("selected");
-    }
-    return classes;
-  }
-
-  protected getIconForItem(item: TreeItem): IconProps {
-    if (item == this.props.selectedItem) {
-      return { iconName: "folder-open" };
-    }
-    return super.getIconForItem(item);
+  protected isSelected(item: TreeItem): boolean {
+    return item == this.props.selectedItem;
   }
 
   public render(): React.ReactNode {

@@ -42,7 +42,7 @@ export class Button extends React.Component<ButtonProps> {
       onDrop: this.props.onDrop,
     });
     return <button {...buttonProps} onClick={this.props.onClick}>
-      <Icon iconType={this.props.iconType} iconName={this.props.iconName}/>
+      <Icon iconStyle={this.props.iconStyle} iconName={this.props.iconName}/>
       {this.renderButtonContent()}
     </button>;
   }

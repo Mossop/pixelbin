@@ -28,7 +28,7 @@ export default class Selectbox extends React.Component<SelectboxProps> {
   public render(): React.ReactNode {
     if (this.props.iconName) {
       return <React.Fragment>
-        <span className="field-icon"><Icon iconName={this.props.iconName} iconType={this.props.iconType}/></span>
+        <span className="field-icon"><Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/></span>
         <select {...fieldProps(this.props, { className: ["field", "selectfield", "with-icon"] })} value={this.props.property.get()} onChange={this.onChange}>
           {this.props.children}
         </select>

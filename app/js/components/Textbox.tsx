@@ -30,7 +30,7 @@ export default class Textbox extends React.Component<TextboxProps> {
 
     if (this.props.iconName) {
       return <React.Fragment>
-        <span className="field-icon"><Icon iconName={this.props.iconName} iconType={this.props.iconType}/></span>
+        <span className="field-icon"><Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/></span>
         <input {...allProps} type={this.props.type}/>
       </React.Fragment>;
     } else {

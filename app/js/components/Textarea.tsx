@@ -29,7 +29,7 @@ export default class Textarea extends React.Component<TextareaProps> {
 
     if (this.props.iconName) {
       return <React.Fragment>
-        <span className="field-icon"><Icon iconName={this.props.iconName} iconType={this.props.iconType}/></span>
+        <span className="field-icon"><Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/></span>
         <textarea {...allProps}/>
       </React.Fragment>;
     } else {

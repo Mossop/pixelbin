@@ -2,25 +2,14 @@ import React from "react";
 
 import { styleProps, StyleProps } from "./shared";
 
-export enum IconType {
-  FontAwesome = "fontawesome",
-  Material = "material",
+export enum IconStyle {
+  Solid = "fas",
+  Regular = "far",
 }
 
 export interface IconProps {
-  iconType?: IconType;
+  iconStyle?: IconStyle;
   iconName?: string;
-}
-
-export function beforeIconClasses(name: string, type: IconType = IconType.FontAwesome): string[] {
-  let classes = ["icon-before"];
-  if (type === IconType.FontAwesome) {
-    classes.push("font-awesome", `fa-${name}`);
-  } else {
-    // Unknown
-  }
-
-  return classes;
 }
 
 export default class Icon extends React.Component<IconProps & StyleProps> {
@@ -29,12 +18,8 @@ export default class Icon extends React.Component<IconProps & StyleProps> {
       return null;
     }
 
-    if (this.props.iconType === IconType.Material) {
-      let props = styleProps(this.props, { className: ["material-icons", "icon"] });
-      return <span {...props}>${this.props.iconName}</span>;
-    } else {
-      let props = styleProps(this.props, { className: ["fas", `fa-${this.props.iconName}`, "icon"] });
-      return <span {...props}/>;
-    }
+    let style = this.props.iconStyle || IconStyle.Solid;
+    let props = styleProps(this.props, { className: [style, `fa-${this.props.iconName}`, "icon"] });
+    return <span {...props}/>;
   }
 }
