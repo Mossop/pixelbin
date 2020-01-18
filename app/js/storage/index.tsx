@@ -1,9 +1,9 @@
 import React from "react";
 
+import { BackblazeStorageData, ServerStorageData } from "../api/types";
 import { FormField } from "../components/Form";
 import { Option } from "../components/Selectbox";
 import { makeProperty } from "../utils/StateProxy";
-import { BackblazeStorageData, ServerStorageData } from "../api/types";
 import { renderBackblazeConfigUI } from "./backblaze";
 
 export type StorageData = BackblazeStorageData | ServerStorageData;

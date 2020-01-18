@@ -4,11 +4,11 @@ import { connect } from "react-redux";
 import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { completeSignup } from "../store/actions";
-import { proxyReactState, makeProperty } from "../utils/StateProxy";
-import { focus } from "../utils/helpers";
 import { ComponentProps } from "../components/shared";
+import { completeSignup } from "../store/actions";
 import { AppError } from "../utils/exception";
+import { focus } from "../utils/helpers";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 interface InputFields {
   email: string;

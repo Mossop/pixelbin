@@ -1,8 +1,9 @@
+import { Immutable } from "immer";
+
 import { StoreState } from "../store/types";
-import { AlbumData, CatalogData, TagData, PersonData } from "./types";
 import { exception, ErrorCode, InternalError, processException } from "../utils/exception";
-import { Immutable } from "../utils/immer";
 import { MapId, intoId, isInstance } from "../utils/maps";
+import { AlbumData, CatalogData, TagData, PersonData } from "./types";
 
 interface StateCache {
   readonly albums: Map<string, Album>;

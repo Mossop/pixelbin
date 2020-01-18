@@ -4,16 +4,16 @@ import { Provider } from "react-redux";
 import { Switch, Route } from "react-router-dom";
 import { JsonDecoder } from "ts.data.json";
 
-import IndexPage from "./pages/index";
-import UserPage from "./pages/user";
-import Overlay from "./overlays/index";
 import LocalizationContext from "./l10n";
-import CatalogPage from "./pages/catalog";
+import Overlay from "./overlays/index";
 import AlbumPage from "./pages/album";
-import { store } from "./store/store";
-import { ReduxRouter } from "./utils/history";
-import { decode } from "./utils/decoders";
+import CatalogPage from "./pages/catalog";
+import IndexPage from "./pages/index";
 import NotFound from "./pages/notfound";
+import UserPage from "./pages/user";
+import { store } from "./store/store";
+import { decode } from "./utils/decoders";
+import { ReduxRouter } from "./utils/history";
 
 export interface Paths {
   static: string;

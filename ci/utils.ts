@@ -1,5 +1,5 @@
-import stream from "stream";
 import { spawn } from "child_process";
+import stream from "stream";
 
 import { TransformCallback } from "through2";
 

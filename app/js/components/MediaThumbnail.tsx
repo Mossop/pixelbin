@@ -2,8 +2,8 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { MediaData, isProcessed } from "../api/media";
-import { StoreState } from "../store/types";
 import { getOrientation } from "../api/metadata";
+import { StoreState } from "../store/types";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
 import { ComponentProps } from "./shared";

@@ -1,14 +1,14 @@
+import { Localized } from "@fluent/react";
 import React from "react";
 import { connect } from "react-redux";
-import { Localized } from "@fluent/react";
 
 import { Catalog, Album, catalogs, Reference, Referencable } from "../api/highlevel";
-import { Property } from "../utils/StateProxy";
-import Icon, { IconProps } from "./Icon";
-import { Button } from "./Button";
-import { ComponentProps, StyleProps, styleProps } from "./shared";
-import { StoreState } from "../store/types";
 import { MediaTarget } from "../api/media";
+import { StoreState } from "../store/types";
+import { Property } from "../utils/StateProxy";
+import { Button } from "./Button";
+import Icon, { IconProps } from "./Icon";
+import { ComponentProps, StyleProps, styleProps } from "./shared";
 
 export type TreeItem = Catalog | Album | VirtualTreeItem;
 

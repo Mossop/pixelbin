@@ -1,17 +1,17 @@
 import React from "react";
-import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
+import { RouteComponentProps } from "react-router";
 
+import { Catalog } from "../api/highlevel";
 import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
-import { StoreState } from "../store/types";
-import { SidebarProps } from "../components/Sidebar";
 import { Button } from "../components/Button";
-import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
 import MediaList from "../components/MediaList";
+import { ComponentProps } from "../components/shared";
+import { SidebarProps } from "../components/Sidebar";
+import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
+import { StoreState } from "../store/types";
 import { Search } from "../utils/search";
 import NotFound from "./notfound";
-import { ComponentProps } from "../components/shared";
-import { Catalog } from "../api/highlevel";
 
 interface MatchParams {
   id: string;

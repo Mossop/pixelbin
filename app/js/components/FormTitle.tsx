@@ -1,5 +1,5 @@
-import React from "react";
 import { Localized } from "@fluent/react";
+import React from "react";
 
 import { L10nProps } from "../l10n";
 import { StyleProps, styleProps } from "./shared";

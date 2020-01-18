@@ -1,11 +1,11 @@
+import { Localized } from "@fluent/react";
 import React from "react";
 import { connect } from "react-redux";
-import { Localized } from "@fluent/react";
 
 import { closeOverlay } from "../store/actions";
+import { AppError } from "../utils/exception";
 import { Button } from "./Button";
 import { ComponentProps } from "./shared";
-import { AppError } from "../utils/exception";
 
 interface PassedProps {
   title?: string | React.ReactNode;

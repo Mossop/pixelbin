@@ -28,8 +28,8 @@ declare module "@fluent/bundle" {
 }
 
 declare module "@fluent/react" {
-  import React from "react";
   import { FluentBundle } from "@fluent/bundle";
+  import React from "react";
 
   export interface AllowedAttributes {
     [attribute: string]: boolean;

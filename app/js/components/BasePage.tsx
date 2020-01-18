@@ -1,12 +1,12 @@
+import { Immutable } from "immer";
 import React from "react";
 import { connect } from "react-redux";
 
 import { UserData } from "../api/types";
 import { StoreState } from "../store/types";
 import Banner from "./Banner";
-import Sidebar, { SidebarProps as SidebarProps } from "./Sidebar";
-import { Immutable } from "../utils/immer";
 import { ComponentProps } from "./shared";
+import Sidebar, { SidebarProps as SidebarProps } from "./Sidebar";
 
 export interface FromStateProps {
   user: Immutable<UserData> | null;

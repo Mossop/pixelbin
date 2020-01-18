@@ -1,7 +1,7 @@
-import React from "react";
-import { LocalizationProvider } from "@fluent/react";
-import { negotiateLanguages } from "@fluent/langneg";
 import { FluentBundle, FluentResource } from "@fluent/bundle";
+import { negotiateLanguages } from "@fluent/langneg";
+import { LocalizationProvider } from "@fluent/react";
+import React from "react";
 
 export interface L10nArgs {
   [key: string]: string | number;

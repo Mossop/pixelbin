@@ -4,8 +4,8 @@ import { createLogger } from "redux-logger";
 import { ServerDataDecoder, ServerData } from "../api/types";
 import { decode } from "../utils/decoders";
 import { ActionType } from "./actions";
-import { StoreState } from "./types";
 import reducer from "./reducer";
+import { StoreState } from "./types";
 
 export type StoreType = Store<StoreState, ActionType>;
 

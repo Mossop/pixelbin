@@ -1,14 +1,14 @@
 import React from "react";
 import { connect } from "react-redux";
 
+import { Catalog, Album, catalogs } from "../api/highlevel";
 import { showCatalogCreateOverlay } from "../store/actions";
 import { StoreState } from "../store/types";
 import { history } from "../utils/history";
-import { TreeItem, BaseSiteTree } from "./SiteTree";
 import { Button } from "./Button";
-import { Catalog, Album, catalogs } from "../api/highlevel";
-import { ComponentProps } from "./shared";
 import { IconProps } from "./Icon";
+import { ComponentProps } from "./shared";
+import { TreeItem, BaseSiteTree } from "./SiteTree";
 
 interface SidebarTreePassedProps {
   selectedItem?: TreeItem;

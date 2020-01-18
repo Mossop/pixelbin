@@ -1,28 +1,28 @@
-import React from "react";
 import { Localized } from "@fluent/react";
 import { Orientation, rotateClockwise90, rotateCounterClockwise90, mirrorHorizontal, mirrorVertical } from "media-metadata/lib/metadata";
+import React from "react";
 
-import { bumpState, closeOverlay } from "../store/actions";
-import { Button } from "../components/Button";
-import { If, Then, Else } from "../utils/Conditions";
-import { uuid } from "../utils/helpers";
-import Upload from "../components/Upload";
+import { Album, Reference, Catalog } from "../api/highlevel";
 import { createMedia, MediaTarget } from "../api/media";
+import { setOrientation } from "../api/metadata";
+import { createPerson } from "../api/person";
 import { findTag } from "../api/tag";
 import { PersonData, TagData, MediaCreateData } from "../api/types";
-import { MediaTargetSelector } from "../components/SiteTree";
-import Overlay from "../components/Overlay";
+import { Button } from "../components/Button";
 import { FormFields, FormField } from "../components/Form";
+import Media from "../components/Media";
+import Overlay from "../components/Overlay";
+import { ComponentProps, connect } from "../components/shared";
+import { MediaTargetSelector } from "../components/SiteTree";
+import Upload from "../components/Upload";
+import { bumpState, closeOverlay } from "../store/actions";
+import { store } from "../store/store";
+import { StoreState } from "../store/types";
+import { If, Then, Else } from "../utils/Conditions";
+import { exception, ErrorCode } from "../utils/exception";
+import { uuid } from "../utils/helpers";
 import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString, areDimensionsFlipped } from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
-import Media from "../components/Media";
-import { createPerson } from "../api/person";
-import { setOrientation } from "../api/metadata";
-import { ComponentProps, connect } from "../components/shared";
-import { Album, Reference, Catalog } from "../api/highlevel";
-import { StoreState } from "../store/types";
-import { exception, ErrorCode } from "../utils/exception";
-import { store } from "../store/store";
 
 export type PendingUpload = Proxyable<{
   file: File;

@@ -1,9 +1,9 @@
-import React from "react";
 import { Localized } from "@fluent/react";
+import React from "react";
 
 import { OptionalL10nProps } from "../l10n";
-import { fieldProps, FieldProps, ComponentProps } from "./shared";
 import Icon, { IconProps } from "./Icon";
+import { fieldProps, FieldProps, ComponentProps } from "./shared";
 
 type PassedProps  = {
   onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;

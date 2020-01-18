@@ -1,10 +1,10 @@
-import React from "react";
 import { Localized } from "@fluent/react";
+import React from "react";
 
 import { L10nProps } from "../l10n";
 import { Property } from "../utils/StateProxy";
-import { fieldProps, FieldProps } from "./shared";
 import Icon, { IconProps } from "./Icon";
+import { fieldProps, FieldProps } from "./shared";
 
 export type OptionProps = {
   value: string;

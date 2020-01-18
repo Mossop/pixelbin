@@ -1,8 +1,8 @@
-import { Search } from "../utils/search";
 import { intoId, MapId } from "../utils/maps";
+import { Search } from "../utils/search";
 import { request } from "./api";
-import { ApiMethod, UnprocessedMediaData, MediaCreateData, Patch } from "./types";
 import { Catalog, Album } from "./highlevel";
+import { ApiMethod, UnprocessedMediaData, MediaCreateData, Patch } from "./types";
 
 export type MediaTarget = Catalog | Album;
 

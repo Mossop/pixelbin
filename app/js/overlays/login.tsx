@@ -2,13 +2,13 @@ import React from "react";
 import { connect } from "react-redux";
 
 import { login } from "../api/auth";
-import { completeLogin } from "../store/actions";
-import Overlay from "../components/Overlay";
 import Form, { FormField } from "../components/Form";
-import { proxyReactState, makeProperty } from "../utils/StateProxy";
-import { focus } from "../utils/helpers";
+import Overlay from "../components/Overlay";
 import { ComponentProps } from "../components/shared";
+import { completeLogin } from "../store/actions";
 import { AppError } from "../utils/exception";
+import { focus } from "../utils/helpers";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 interface InputFields {
   email: string;

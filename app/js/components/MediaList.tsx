@@ -1,13 +1,13 @@
+import { produce, Draft } from "immer";
 import React from "react";
 import { connect } from "react-redux";
 
-import { Search } from "../utils/search";
-import { StoreState } from "../store/types";
 import { thumbnail, searchMedia, getMedia, isProcessed, ProcessedMediaData, MediaData } from "../api/media";
-import { produce, Draft } from "../utils/immer";
-import Throbber from "./Throbber";
+import { StoreState } from "../store/types";
+import { Search } from "../utils/search";
 import MediaThumbnail from "./MediaThumbnail";
 import { ComponentProps } from "./shared";
+import Throbber from "./Throbber";
 
 const POLL_TIMEOUT = 5000;
 

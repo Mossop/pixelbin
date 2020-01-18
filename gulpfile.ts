@@ -1,16 +1,16 @@
 /* eslint-env node */
 import { src, dest, parallel, watch } from "gulp";
-import { Configuration, RuleSetQuery } from "webpack";
-import gulpWebpack from "webpack-stream";
-import named from "vinyl-named";
 import gulpSass from "gulp-sass";
 import mergeStreams from "merge-stream";
+import named from "vinyl-named";
+import { Configuration, RuleSetQuery } from "webpack";
+import gulpWebpack from "webpack-stream";
 
 import { config, path } from "./base/config";
-import { typeScriptCheck } from "./ci/typescript";
 import { eslintCheck } from "./ci/eslint";
-import { exec, logLints } from "./ci/utils";
 import { pylintCheck } from "./ci/pylint";
+import { typeScriptCheck } from "./ci/typescript";
+import { exec, logLints } from "./ci/utils";
 
 const IGNORES = [
   "!base/**/*",

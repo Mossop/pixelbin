@@ -1,11 +1,11 @@
-import React from "react";
-import { Store } from "redux";
 import { Location, History, Action, UnregisterCallback, LocationListener, LocationDescriptorObject } from "history";
+import React from "react";
 import { Router } from "react-router";
+import { Store } from "redux";
 
-import { StoreState, LocationState, HistoryState } from "../store/types";
 import { setHistoryState } from "../store/actions";
 import { store } from "../store/store";
+import { StoreState, LocationState, HistoryState } from "../store/types";
 
 function statesEqual(a: HistoryState, b: HistoryState): boolean {
   if (a === b) {

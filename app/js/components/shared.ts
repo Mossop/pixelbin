@@ -1,7 +1,7 @@
 import { connect as reduxConnect } from "react-redux";
 
-import { StoreState } from "../store/types";
 import { ActionType } from "../store/actions";
+import { StoreState } from "../store/types";
 
 // Merges two interfaces such that the properties of B replace those of A.
 type Merged<A extends {}, B extends {}> = Omit<A, keyof A & keyof B> & B;

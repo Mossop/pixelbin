@@ -1,8 +1,8 @@
-import { request } from "./api";
 import { intoId, intoIds, MapId } from "../utils/maps";
+import { request } from "./api";
 import { Album } from "./highlevel";
-import { AlbumCreateData, ApiMethod, AlbumData, Patch} from "./types";
 import { MediaData } from "./media";
+import { AlbumCreateData, ApiMethod, AlbumData, Patch} from "./types";
 
 export function createAlbum(data: AlbumCreateData): Promise<AlbumData> {
   return request(ApiMethod.AlbumCreate, data);

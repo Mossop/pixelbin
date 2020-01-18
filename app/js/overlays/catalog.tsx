@@ -1,17 +1,17 @@
+import { Immutable } from "immer";
 import React from "react";
 import { connect } from "react-redux";
 
-import Form, { FormField } from "../components/Form";
-import { renderStorageConfigUI, StorageData } from "../storage";
 import { createCatalog } from "../api/catalog";
-import { catalogCreated } from "../store/actions";
-import Overlay from "../components/Overlay";
-import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
-import { focus } from "../utils/helpers";
-import { ComponentProps } from "../components/shared";
-import { Immutable } from "../utils/immer";
 import { UserData } from "../api/types";
+import Form, { FormField } from "../components/Form";
+import Overlay from "../components/Overlay";
+import { ComponentProps } from "../components/shared";
+import { renderStorageConfigUI, StorageData } from "../storage";
+import { catalogCreated } from "../store/actions";
 import { AppError } from "../utils/exception";
+import { focus } from "../utils/helpers";
+import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 
 type InputFields = Proxyable<{
   name: string;

@@ -1,6 +1,6 @@
-import { JsonDecoder, Result, err, ok } from "ts.data.json";
-import moment from "moment";
 import { Orientation } from "media-metadata/lib/metadata";
+import moment from "moment";
+import { JsonDecoder, Result, err, ok } from "ts.data.json";
 
 import { decode } from "../utils/decoders";
 import { MediaData } from "./media";

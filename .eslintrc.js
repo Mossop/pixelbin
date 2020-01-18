@@ -70,8 +70,13 @@ module.exports = {
         ["parent", "sibling", "index"],
       ],
       "newlines-between": "always",
+      "alphabetize": {
+        "order": "asc",
+        "caseInsensitive": true,
+      }
     }],
     "import/first": "warn",
+    "import/named": "off",
     "import/extensions": ["warn", "never"],
     "import/newline-after-import": "warn",
     "@typescript-eslint/quotes": "warn",

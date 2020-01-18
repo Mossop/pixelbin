@@ -1,11 +1,11 @@
+import { Draft } from "immer";
 import { Action } from "redux";
 
-import { ServerData, CatalogData, AlbumData } from "../api/types";
-import { HistoryState } from "./types";
-import { Draft } from "../utils/immer";
-import { ErrorCode } from "../utils/exception";
 import { Album, Catalog, Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
+import { ServerData, CatalogData, AlbumData } from "../api/types";
+import { ErrorCode } from "../utils/exception";
+import { HistoryState } from "./types";
 
 export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";
 export const SHOW_SIGNUP_OVERLAY = "SHOW_SIGNUP_OVERLAY";

@@ -1,9 +1,9 @@
 import { Action } from "history";
+import { Immutable } from "immer";
 
-import { ServerData } from "../api/types";
-import { Immutable } from "../utils/immer";
 import { Reference, Catalog, Album } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
+import { ServerData } from "../api/types";
 
 export enum OverlayType {
   Login = "login",

@@ -1,18 +1,18 @@
 import React from "react";
-import { RouteComponentProps } from "react-router";
 import { connect } from "react-redux";
+import { RouteComponentProps } from "react-router";
 
-import { StoreState } from "../store/types";
-import { showAlbumCreateOverlay, showAlbumEditOverlay, showUploadOverlay } from "../store/actions";
-import { Button } from "../components/Button";
+import { Album, Catalog } from "../api/highlevel";
 import { BasePage, baseConnect, BasePageState, BasePageProps } from "../components/BasePage";
+import { Button } from "../components/Button";
+import MediaList from "../components/MediaList";
+import { ComponentProps } from "../components/shared";
 import { SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
+import { showAlbumCreateOverlay, showAlbumEditOverlay, showUploadOverlay } from "../store/actions";
+import { StoreState } from "../store/types";
 import { Search, Field, Operation } from "../utils/search";
-import MediaList from "../components/MediaList";
 import NotFound from "./notfound";
-import { ComponentProps } from "../components/shared";
-import { Album, Catalog } from "../api/highlevel";
 
 interface MatchParams {
   id: string;

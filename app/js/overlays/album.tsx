@@ -1,20 +1,20 @@
-import React from "react";
 import { Localized } from "@fluent/react";
+import React from "react";
 
-import Form, { FormField } from "../components/Form";
-import { albumCreated, albumEdited } from "../store/actions";
 import { editAlbum, createAlbum } from "../api/album";
-import Overlay from "../components/Overlay";
-import { MediaTargetSelector } from "../components/SiteTree";
-import { Patch, AlbumData, AlbumCreateData } from "../api/types";
-import { proxyReactState, makeProperty } from "../utils/StateProxy";
-import { focus } from "../utils/helpers";
 import { Album, Catalog, Reference } from "../api/highlevel";
+import { MediaTarget } from "../api/media";
+import { Patch, AlbumData, AlbumCreateData } from "../api/types";
+import Form, { FormField } from "../components/Form";
+import Overlay from "../components/Overlay";
 import { ComponentProps, connect } from "../components/shared";
+import { MediaTargetSelector } from "../components/SiteTree";
+import { albumCreated, albumEdited } from "../store/actions";
+import { store } from "../store/store";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode, AppError } from "../utils/exception";
-import { store } from "../store/store";
-import { MediaTarget } from "../api/media";
+import { focus } from "../utils/helpers";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 interface InputFields {
   name: string;
