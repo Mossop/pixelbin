@@ -33,7 +33,7 @@ function getStateCache(state: StoreState): StateCache {
   return STATE_CACHE.get(state) ?? buildStateCache(state);
 }
 
-interface APIItemBuilder<T> {
+export interface APIItemBuilder<T> {
   fromState: (state: StoreState, id: string) => T;
 }
 
@@ -70,7 +70,7 @@ interface Pending<T> {
   readonly promise: Promise<Reference<T>>;
 }
 
-class APIItemReference<T> implements Reference<T> {
+export class APIItemReference<T> implements Reference<T> {
   public constructor(public readonly id: string, private cls: APIItemBuilder<T>) {}
 
   public deref(state: StoreState): T {
@@ -113,7 +113,7 @@ export class Tag implements Referencable<Tag> {
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return Catalog.fromState(this.storeState, this.state.catalog);
+    return this.state.catalog.deref(this.storeState);
   }
 
   public get id(): string {
@@ -125,7 +125,7 @@ export class Tag implements Referencable<Tag> {
   }
 
   public get parent(): Tag | undefined {
-    return this.state.parent ? Tag.fromState(this.storeState, this.state.parent) : undefined;
+    return this.state.parent?.deref(this.storeState);
   }
 
   public ref(): Reference<Tag> {
@@ -170,7 +170,7 @@ export class Person implements Referencable<Person> {
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return Catalog.fromState(this.storeState, this.state.catalog);
+    return this.state.catalog.deref(this.storeState);
   }
 
   public get id(): string {
@@ -227,7 +227,7 @@ export class Album implements Referencable<Album> {
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return Catalog.fromState(this.storeState, this.state.catalog);
+    return this.state.catalog.deref(this.storeState);
   }
 
   public get stub(): string | null {
@@ -239,7 +239,7 @@ export class Album implements Referencable<Album> {
   }
 
   public get parent(): Album | undefined {
-    return this.state.parent ? Album.fromState(this.storeState, this.state.parent) : undefined;
+    return this.state.parent?.deref(this.storeState);
   }
 
   public get children(): Album[] {
@@ -248,14 +248,14 @@ export class Album implements Referencable<Album> {
       return [];
     }
 
-    let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog);
+    let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog.id);
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);
     }
 
     return Array.from(catalogState.albums.values())
-      .filter((albumState: Immutable<AlbumData>): boolean => albumState.parent == this.id)
+      .filter((albumState: Immutable<AlbumData>): boolean => albumState.parent?.id == this.id)
       .map((albumState: Immutable<AlbumData>): Album => Album.fromState(this.storeState, albumState));
   }
 

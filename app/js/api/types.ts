@@ -5,7 +5,8 @@ import { JsonDecoder } from "ts.data.json";
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
 import { Mappable, MapOf } from "../utils/maps";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
-  FormRequestData, JsonDecoderDecoder, BlobDecoder, RequestPk, Patch } from "./helpers";
+  FormRequestData, JsonDecoderDecoder, BlobDecoder, RequestPk, ResponsePk, Patch,
+  ResponsePkDecoder } from "./helpers";
 import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 
 export enum ApiErrorCode {
@@ -42,14 +43,14 @@ export const ApiErrorDataDecoder = JsonDecoder.object<ApiErrorData>(
 
 export interface PersonData {
   id: string;
-  catalog: string;
+  catalog: ResponsePk<Catalog>;
   fullname: string;
 }
 
 export const PersonDataDecoder = JsonDecoder.object<PersonData>(
   {
     id: JsonDecoder.string,
-    catalog: JsonDecoder.string,
+    catalog: ResponsePkDecoder(Catalog, "Catalog"),
     fullname: JsonDecoder.string,
   },
   "PersonData"
@@ -57,16 +58,16 @@ export const PersonDataDecoder = JsonDecoder.object<PersonData>(
 
 export interface TagData {
   id: string;
-  catalog: string;
-  parent: string | null;
+  catalog: ResponsePk<Catalog>;
+  parent: ResponsePk<Tag> | null;
   name: string;
 }
 
 export const TagDataDecoder = JsonDecoder.object<TagData>(
   {
     id: JsonDecoder.string,
-    catalog: JsonDecoder.string,
-    parent: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
+    catalog: ResponsePkDecoder(Catalog, "Catalog"),
+    parent: JsonDecoder.oneOf([ResponsePkDecoder(Tag, "Tag"), JsonDecoder.isNull(null)], "ResponsePk<Tag> | null"),
     name: JsonDecoder.string,
   },
   "TagData"
@@ -74,19 +75,19 @@ export const TagDataDecoder = JsonDecoder.object<TagData>(
 
 export interface AlbumData {
   id: string;
-  catalog: string;
+  catalog: ResponsePk<Catalog>;
   stub: string | null;
   name: string;
-  parent: string | null;
+  parent: ResponsePk<Album> | null;
 }
 
 export const AlbumDataDecoder = JsonDecoder.object<AlbumData>(
   {
     id: JsonDecoder.string,
-    catalog: JsonDecoder.string,
+    catalog: ResponsePkDecoder(Catalog, "Catalog"),
     stub: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
     name: JsonDecoder.string,
-    parent: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
+    parent: JsonDecoder.oneOf([ResponsePkDecoder(Album, "Album"), JsonDecoder.isNull(null)], "ResponsePk<Album> | null"),
   },
   "AlbumData"
 );
@@ -201,9 +202,9 @@ export interface UnprocessedMediaData {
   height: number | null;
   duration: number | null;
   fileSize: number | null;
-  tags: string[];
-  albums: string[];
-  people: string[];
+  tags: ResponsePk<Tag>[];
+  albums: ResponsePk<Album>[];
+  people: ResponsePk<Person>[];
   metadata: MetadataData;
 }
 
@@ -218,9 +219,9 @@ export const UnprocessedMediaDataDecoder = JsonDecoder.object<UnprocessedMediaDa
     height: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
     duration: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
     fileSize: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
-    tags: JsonDecoder.array(JsonDecoder.string, "string[]"),
-    albums: JsonDecoder.array(JsonDecoder.string, "string[]"),
-    people: JsonDecoder.array(JsonDecoder.string, "string[]"),
+    tags: JsonDecoder.array(ResponsePkDecoder(Tag, "Tag"), "ResponsePk<Tag>[]"),
+    albums: JsonDecoder.array(ResponsePkDecoder(Album, "Album"), "ResponsePk<Album>[]"),
+    people: JsonDecoder.array(ResponsePkDecoder(Person, "Person"), "ResponsePk<Person>[]"),
     metadata: MetadataDataDecoder,
   },
   "UnprocessedMediaData"

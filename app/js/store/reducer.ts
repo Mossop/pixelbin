@@ -64,7 +64,7 @@ function albumReducer(state: Draft<StoreState>, user: UserData, action: ActionTy
     }
     case ALBUM_CREATED: {
       let album = action.payload.album;
-      let catalog = user.catalogs.get(album.catalog);
+      let catalog = user.catalogs.get(album.catalog.id);
       if (catalog) {
         catalog.albums.set(album.id, album);
       }
@@ -83,7 +83,7 @@ function albumReducer(state: Draft<StoreState>, user: UserData, action: ActionTy
     }
     case ALBUM_EDITED: {
       let album = action.payload.album;
-      let newCatalog = user.catalogs.get(album.catalog);
+      let newCatalog = user.catalogs.get(album.catalog.id);
       if (newCatalog) {
         for (let catalog of user.catalogs.values()) {
           if (catalog != newCatalog && catalog.albums.has(album.id)) {
@@ -105,7 +105,7 @@ function tagReducer(_state: Draft<StoreState>, user: UserData, action: ActionTyp
     case TAGS_CREATED: {
       let tags = action.payload.tags;
       for (let tag of tags) {
-        let catalog = user.catalogs.get(tag.catalog);
+        let catalog = user.catalogs.get(tag.catalog.id);
         if (catalog) {
           catalog.tags.set(tag.id, tag);
         }
@@ -119,7 +119,7 @@ function personReducer(_state: Draft<StoreState>, user: UserData, action: Action
   switch (action.type) {
     case PERSON_CREATED: {
       let person = action.payload.person;
-      let catalog = user.catalogs.get(person.catalog);
+      let catalog = user.catalogs.get(person.catalog.id);
       if (catalog) {
         catalog.people.set(person.id, person);
       }

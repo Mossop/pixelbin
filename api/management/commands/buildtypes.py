@@ -16,7 +16,8 @@ import { JsonDecoder } from "ts.data.json";
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
 import { Mappable, MapOf } from "../utils/maps";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
-  FormRequestData, JsonDecoderDecoder, BlobDecoder, RequestPk, Patch } from "./helpers";
+  FormRequestData, JsonDecoderDecoder, BlobDecoder, RequestPk, ResponsePk, Patch,
+  ResponsePkDecoder } from "./helpers";
 import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 """
 

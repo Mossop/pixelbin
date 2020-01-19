@@ -1,14 +1,16 @@
 import cookie from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
+import { MappingDecoder } from "../utils/decoders";
 import { exception, ErrorCode, ApiError, processException } from "../utils/exception";
-import { Reference, isReference } from "./highlevel";
+import { Reference, isReference, APIItemBuilder, APIItemReference } from "./highlevel";
 import { ApiMethod, HttpMethods, ApiErrorDataDecoder } from "./types";
 
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export type MethodList = { [k in ApiMethod]: Method };
 
 export type RequestPk<T> = Reference<T>;
+export type ResponsePk<T> = Reference<T>;
 
 type Decoder<T> = (response: Response) => Promise<T>;
 
@@ -23,6 +25,12 @@ export const VoidDecoder: Decoder<void> = async (_: Response): Promise<void> => 
 export const BlobDecoder: Decoder<Blob> = (response: Response): Promise<Blob> => response.blob();
 export function JsonDecoderDecoder<D>(decoder: JsonDecoder.Decoder<D>): Decoder<D> {
   return async (response: Response): Promise<D> => decoder.decodePromise(await response.json());
+}
+
+export function ResponsePkDecoder<T>(builder: APIItemBuilder<T>, name: string): JsonDecoder.Decoder<ResponsePk<T>> {
+  return MappingDecoder(JsonDecoder.string, (data: string): Reference<T> => {
+    return new APIItemReference(data, builder);
+  }, `Reference<${name}>`);
 }
 
 export class RequestData<D> {
