@@ -1,4 +1,4 @@
-from django.db import models, IntegrityError
+from django.db import models
 from django.db.models.expressions import F
 from django.db.models.functions import Lower
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -174,37 +174,42 @@ class Tag(models.Model):
         return lock('Tag.create')
 
     @staticmethod
-    def get_for_path(catalog, path):
+    def get_for_path(catalog, path, match_any=None):
         if len(path) == 0:
             raise ApiException('invalid-tag', status=status.HTTP_400_BAD_REQUEST)
 
+        if match_any is None:
+            match_any = len(path) == 1
+
+        # Might be a reference to an existing tag.
         if len(path) == 1:
-            tag, _ = Tag.objects.get_or_create(catalog=catalog, name__iexact=path[0],
-                                               defaults={
-                                                   'id': uuid('T'),
-                                                   'name': path[0],
-                                                   'parent': None
-                                               })
-            return tag
+            try:
+                # Prefer an unparented tag.
+                tag = Tag.objects.get(catalog=catalog, parent=None, name__iexact=path[0])
+                return tag
+            except Tag.DoesNotExist:
+                if match_any:
+                    tags = Tag.objects.filter(catalog=catalog, name__iexact=path[0])
 
-        name = path.pop(0)
-        try:
-            tag, _ = Tag.objects.get_or_create(catalog=catalog, name__iexact=name,
-                                               parent=None, defaults={
-                                                   'id': uuid('T'),
-                                                   'name': name,
-                                               })
-            while len(path) > 0:
-                name = path.pop(0)
-                tag, _ = Tag.objects.get_or_create(catalog=catalog, name__iexact=name,
-                                                   parent=tag, defaults={
-                                                       'id': uuid('T'),
-                                                       'name': name,
-                                                   })
+                    # The easy case...
+                    if len(tags) == 1:
+                        return tags[0]
 
-            return tag
-        except IntegrityError:
-            raise ApiException('invalid-tag', status=status.HTTP_400_BAD_REQUEST)
+                    # Hmmm...
+                    if len(tags) > 1:
+                        return tags[0]
+
+                # No tag of this name, create it at the top-level.
+                tag = Tag(id=uuid('T'), catalog=catalog, parent=None, name=path[0])
+                tag.save()
+                return tag
+
+        name = path.pop()
+        parent = Tag.get_for_path(catalog, path, False)
+        (tag, _) = Tag.objects.get_or_create(catalog=catalog, parent=parent, name=name, defaults={
+            'id': uuid('T')
+        })
+        return tag
 
     def descendants(self):
         def make_tags_cte(cte):
@@ -291,15 +296,15 @@ class Media(models.Model):
     _file_store = None
 
     def save(self, *args, **kwargs):
-        for album in self.albums:
+        for album in self.albums.all():
             if album.catalog != self.catalog:
                 raise ApiException('catalog-mismatch')
 
-        for tag in self.tags:
+        for tag in self.tags.all():
             if tag.catalog != self.catalog:
                 raise ApiException('catalog-mismatch')
 
-        for person in self.people:
+        for person in self.people.all():
             if person.catalog != self.catalog:
                 raise ApiException('catalog-mismatch')
 

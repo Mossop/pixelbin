@@ -1,9 +1,8 @@
-import { Draft } from "immer";
 import { Action } from "redux";
 
 import { Album, Catalog, Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { ServerData, CatalogData, AlbumData } from "../api/types";
+import { ServerData, CatalogData, AlbumData, TagData, PersonData } from "../api/types";
 import { ErrorCode } from "../utils/exception";
 import { HistoryState } from "./types";
 
@@ -22,6 +21,8 @@ export const SHOW_ALBUM_CREATE_OVERLAY = "SHOW_ALBUM_CREATE_OVERLAY";
 export const SHOW_ALBUM_EDIT_OVERLAY = "SHOW_ALBUM_EDIT_OVERLAY";
 export const ALBUM_CREATED = "ALBUM_CREATED";
 export const ALBUM_EDITED = "ALBUM_EDITED";
+export const TAGS_CREATED = "TAGS_CREATED";
+export const PERSON_CREATED = "PERSON_CREATED";
 export const BUMP_STATE = "BUMP_STATE";
 export const EXCEPTION = "EXCEPTION";
 
@@ -44,6 +45,8 @@ export type ActionType =
   ShowCatalogEditOverlayAction |
   ShowAlbumCreateOverlayAction |
   ShowAlbumEditOverlayAction |
+  TagsCreatedAction |
+  PersonCreatedAction |
   AlbumCreatedAction |
   AlbumEditedAction |
   BumpStateAction |
@@ -150,11 +153,11 @@ export function setHistoryState(historyState: HistoryState): SetHistoryStateActi
 interface CatalogCreatedAction extends BaseAction {
   type: typeof CATALOG_CREATED;
   payload: {
-    catalog: Draft<CatalogData>;
+    catalog: CatalogData;
   };
 }
 
-export function catalogCreated(catalog: Draft<CatalogData>): CatalogCreatedAction {
+export function catalogCreated(catalog: CatalogData): CatalogCreatedAction {
   return {
     type: CATALOG_CREATED,
     payload: {
@@ -166,11 +169,11 @@ export function catalogCreated(catalog: Draft<CatalogData>): CatalogCreatedActio
 interface AlbumCreatedAction extends BaseAction {
   type: typeof ALBUM_CREATED;
   payload: {
-    album: Draft<AlbumData>;
+    album: AlbumData;
   };
 }
 
-export function albumCreated(album: Draft<AlbumData>): AlbumCreatedAction {
+export function albumCreated(album: AlbumData): AlbumCreatedAction {
   return {
     type: ALBUM_CREATED,
     payload: {
@@ -182,15 +185,47 @@ export function albumCreated(album: Draft<AlbumData>): AlbumCreatedAction {
 interface AlbumEditedAction extends BaseAction {
   type: typeof ALBUM_EDITED;
   payload: {
-    album: Draft<AlbumData>;
+    album: AlbumData;
   };
 }
 
-export function albumEdited(album: Draft<AlbumData>): AlbumEditedAction {
+export function albumEdited(album: AlbumData): AlbumEditedAction {
   return {
     type: ALBUM_EDITED,
     payload: {
       album,
+    },
+  };
+}
+
+interface TagsCreatedAction extends BaseAction {
+  type: typeof TAGS_CREATED;
+  payload: {
+    tags: TagData[];
+  };
+}
+
+export function tagsCreated(tags: TagData[]): TagsCreatedAction {
+  return {
+    type: TAGS_CREATED,
+    payload: {
+      tags,
+    },
+  };
+}
+
+interface PersonCreatedAction extends BaseAction {
+  type: typeof PERSON_CREATED;
+  payload: {
+    person: PersonData;
+  };
+}
+
+export function personCreated(person: PersonData): PersonCreatedAction {
+  return {
+    type: PERSON_CREATED,
+    payload: {
+      person,
     },
   };
 }
@@ -237,10 +272,10 @@ export function showSignupOverlay(): ShowSignupOverlayAction {
 
 interface CompleteLoginAction extends BaseAction {
   type: typeof COMPLETE_LOGIN;
-  payload: Draft<ServerData>;
+  payload: ServerData;
 }
 
-export function completeLogin(newState: Draft<ServerData>): CompleteLoginAction {
+export function completeLogin(newState: ServerData): CompleteLoginAction {
   return {
     type: COMPLETE_LOGIN,
     payload: newState,
@@ -249,10 +284,10 @@ export function completeLogin(newState: Draft<ServerData>): CompleteLoginAction 
 
 interface CompleteSignupAction extends BaseAction {
   type: typeof COMPLETE_SIGNUP;
-  payload: Draft<ServerData>;
+  payload: ServerData;
 }
 
-export function completeSignup(newState: Draft<ServerData>): CompleteSignupAction {
+export function completeSignup(newState: ServerData): CompleteSignupAction {
   return {
     type: COMPLETE_SIGNUP,
     payload: newState,
@@ -261,10 +296,10 @@ export function completeSignup(newState: Draft<ServerData>): CompleteSignupActio
 
 interface CompleteLogoutAction extends BaseAction {
   type: typeof COMPLETE_LOGOUT;
-  payload: Draft<ServerData>;
+  payload: ServerData;
 }
 
-export function completeLogout(newState: Draft<ServerData>): CompleteLogoutAction {
+export function completeLogout(newState: ServerData): CompleteLogoutAction {
   return {
     type: COMPLETE_LOGOUT,
     payload: newState,

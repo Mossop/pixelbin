@@ -1,8 +1,8 @@
 import { LocationState } from "history";
 import { produce, Draft } from "immer";
 
+import { history } from ".";
 import { UserData } from "../api/types";
-import { history } from "../utils/history";
 import { nameSorted } from "../utils/sort";
 import { ActionType,
   SET_HISTORY_STATE,
@@ -20,14 +20,16 @@ import { ActionType,
   SHOW_ALBUM_EDIT_OVERLAY,
   ALBUM_CREATED,
   ALBUM_EDITED, 
-  BUMP_STATE} from "./actions";
+  BUMP_STATE,
+  TAGS_CREATED,
+  PERSON_CREATED} from "./actions";
 import { StoreState, OverlayType, HistoryState } from "./types";
 
 function navigate(path: string, state?: LocationState): HistoryState {
   return history.pushWithoutDispatch(path, state);
 }
 
-function catalogReducer(state: Draft<StoreState>, user: Draft<UserData>, action: ActionType): void {
+function catalogReducer(state: Draft<StoreState>, user: UserData, action: ActionType): void {
   switch (action.type) {
     case SHOW_CATALOG_CREATE_OVERLAY: {
       state.overlay = {
@@ -51,7 +53,7 @@ function catalogReducer(state: Draft<StoreState>, user: Draft<UserData>, action:
   }
 }
 
-function albumReducer(state: Draft<StoreState>, user: Draft<UserData>, action: ActionType): void {
+function albumReducer(state: Draft<StoreState>, user: UserData, action: ActionType): void {
   switch (action.type) {
     case SHOW_ALBUM_CREATE_OVERLAY: {
       state.overlay = {
@@ -93,6 +95,34 @@ function albumReducer(state: Draft<StoreState>, user: Draft<UserData>, action: A
       }
 
       state.overlay = undefined;
+      return;
+    }
+  }
+}
+
+function tagReducer(_state: Draft<StoreState>, user: UserData, action: ActionType): void {
+  switch (action.type) {
+    case TAGS_CREATED: {
+      let tags = action.payload.tags;
+      for (let tag of tags) {
+        let catalog = user.catalogs.get(tag.catalog);
+        if (catalog) {
+          catalog.tags.set(tag.id, tag);
+        }
+      }
+      return;
+    }
+  }
+}
+
+function personReducer(_state: Draft<StoreState>, user: UserData, action: ActionType): void {
+  switch (action.type) {
+    case PERSON_CREATED: {
+      let person = action.payload.person;
+      let catalog = user.catalogs.get(person.catalog);
+      if (catalog) {
+        catalog.people.set(person.id, person);
+      }
       return;
     }
   }
@@ -179,6 +209,8 @@ function reducer(state: Draft<StoreState>, action: ActionType): void {
   if (state.serverState.user) {
     catalogReducer(state, state.serverState.user, action);
     albumReducer(state, state.serverState.user, action);
+    tagReducer(state, state.serverState.user, action);
+    personReducer(state, state.serverState.user, action);
   }
 }
 

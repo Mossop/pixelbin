@@ -8,11 +8,11 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 
 from ..utils import ApiException
-from ..serializers import SerializerWrapper, MultipartSerializerWrapper, ApiExceptionSerializer
+from ..serializers.wrappers import SerializerWrapper, MultipartSerializerWrapper
+from ..serializers import ApiExceptionSerializer
 
 LOGGER = logging.getLogger(__name__)
 
-# pylint: disable=too-few-public-methods
 class ApiView:
     def __init__(self, view, methods, request, response):
         self.view = view
@@ -31,9 +31,8 @@ def api_view(http_method_names=None, requires_login=True, request=None, response
     rest_decorator = rest_view(http_method_names=http_method_names)
 
     def decorator(func):
-        # pylint: disable=too-many-branches
         def inner_view(req, *args, **kwargs):
-            # pylint: disable=broad-except,too-many-return-statements
+            # pylint: disable=broad-except
             try:
                 if requires_login and (req.user is None or not req.user.is_authenticated):
                     raise ApiException('unauthenticated',

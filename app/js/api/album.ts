@@ -1,27 +1,26 @@
-import { intoId, intoIds, MapId } from "../utils/maps";
 import { request } from "./api";
-import { Album } from "./highlevel";
-import { MediaData } from "./media";
-import { AlbumCreateData, ApiMethod, AlbumData, Patch} from "./types";
+import { Patch } from "./helpers";
+import { Album, Reference, Media } from "./highlevel";
+import { AlbumCreateData, ApiMethod, AlbumData} from "./types";
 
 export function createAlbum(data: AlbumCreateData): Promise<AlbumData> {
   return request(ApiMethod.AlbumCreate, data);
 }
 
-export function editAlbum(album: Patch<AlbumCreateData>): Promise<AlbumData> {
+export function editAlbum(album: Patch<AlbumCreateData, Album>): Promise<AlbumData> {
   return request(ApiMethod.AlbumEdit, album);
 }
 
-export function addMediaToAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<AlbumData> {
+export function addMediaToAlbum(album: Reference<Album>, media: Reference<Media>[]): Promise<AlbumData> {
   return request(ApiMethod.AlbumAddMedia, {
-    id: intoId(album),
-    media: intoIds(media),
+    album,
+    media,
   });
 }
 
-export function removeMediaFromAlbum(album: MapId<Album | AlbumData>, media: MapId<MediaData>[]): Promise<AlbumData> {
+export function removeMediaFromAlbum(album: Reference<Album>, media: Reference<Media>[]): Promise<AlbumData> {
   return request(ApiMethod.AlbumRemoveMedia, {
-    id: intoId(album),
-    media: intoIds(media),
+    album,
+    media,
   });
 }

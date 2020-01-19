@@ -1,8 +1,12 @@
 import { Immutable } from "immer";
 
+import { tagsCreated, personCreated } from "../store/actions";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode, InternalError, processException } from "../utils/exception";
 import { MapId, intoId, isInstance } from "../utils/maps";
+import { MediaData } from "./media";
+import { createPerson } from "./person";
+import { findTag } from "./tag";
 import { AlbumData, CatalogData, TagData, PersonData } from "./types";
 
 interface StateCache {
@@ -38,6 +42,19 @@ export interface Reference<T> {
   readonly deref: (state: StoreState) => T;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isReference<T>(data: any): data is Reference<T> {
+  return typeof data =="object" && "deref" in data;
+}
+
+export type Media = MediaData;
+export function mediaRef(media: Media): Reference<Media> {
+  return {
+    id: media.id,
+    deref: (): Media => media,
+  };
+}
+
 export type Derefer = <T>(ref: Reference<T> | undefined) => T | undefined;
 
 export function derefer(state: StoreState): Derefer {
@@ -48,11 +65,41 @@ export interface Referencable<T> {
   ref: () => Reference<T>;
 }
 
+interface Pending<T> {
+  readonly ref: Reference<T> | undefined;
+  readonly promise: Promise<Reference<T>>;
+}
+
 class APIItemReference<T> implements Reference<T> {
   public constructor(public readonly id: string, private cls: APIItemBuilder<T>) {}
 
   public deref(state: StoreState): T {
     return this.cls.fromState(state, this.id);
+  }
+}
+
+class PendingAPIItem<T> implements Pending<T> {
+  private id: string | undefined = undefined;
+  public readonly promise: Promise<Reference<T>>;
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  private resolver: (ref: Reference<T>) => void = () => {};
+
+  public constructor(private builder: APIItemBuilder<T>) {
+    this.promise = new Promise((resolve: (ref: Reference<T>) => void) => {
+      this.resolver = resolve;
+    });
+  }
+
+  public setId(id: string): void {
+    this.id = id;
+    this.resolver(new APIItemReference(this.id, this.builder));
+  }
+
+  public get ref(): Reference<T> | undefined {
+    if (this.id === undefined) {
+      return undefined;
+    }
+    return new APIItemReference(this.id, this.builder);
   }
 }
 
@@ -293,6 +340,18 @@ export class Catalog implements Referencable<Catalog> {
       .map((album: Immutable<AlbumData>) => Album.fromState(this.storeState, album));
   }
 
+  public findTag(path: string[]): Pending<Tag> {
+    let pending = new PendingAPIItem(Tag);
+
+    findTag(this.ref(), path).then(async (tags: TagData[]) => {
+      const { asyncDispatch } = await import("../store");
+      await asyncDispatch(tagsCreated(tags));
+      pending.setId(tags[tags.length - 1].id);
+    });
+
+    return pending;
+  }
+
   public get tags(): Tag[] {
     return Array.from(this.state.tags.values()).map((tag: Immutable<TagData>): Tag => Tag.fromState(this.storeState, tag));
   }
@@ -307,6 +366,18 @@ export class Catalog implements Referencable<Catalog> {
 
   public get albums(): Album[] {
     return Array.from(this.state.albums.values()).map((album: Immutable<AlbumData>): Album => Album.fromState(this.storeState, album));
+  }
+
+  public createPerson(fullname: string): Pending<Person> {
+    let pending = new PendingAPIItem(Person);
+
+    createPerson(this.ref(), fullname).then(async (person: PersonData) => {
+      const { asyncDispatch } = await import("../store");
+      await asyncDispatch(personCreated(person));
+      pending.setId(person.id);
+    });
+
+    return pending;
   }
 
   public get people(): Person[] {
@@ -372,31 +443,3 @@ export function catalogs(storeState: StoreState): Catalog[] {
   return [];
 }
 
-// export function intoAPIItem<T>(storeState: StoreState, id: string | undefined, filter: T[]): T | undefined {
-//   if (!id || !storeState.serverState.user) {
-//     return undefined;
-//   }
-
-//   for (let catalogState of storeState.serverState.user.catalogs.values()) {
-//     if (filter.includes(Catalog) && catalogState.id == id) {
-//       return Catalog.fromState(storeState, catalogState);
-//     }
-
-//     let albumState = catalogState.albums.get(id);
-//     if (albumState) {
-//       return Album.fromState(storeState, albumState);
-//     }
-
-//     let tagState = catalogState.tags.get(id);
-//     if (tagState) {
-//       return Tag.fromState(storeState, tagState);
-//     }
-
-//     let personState = catalogState.people.get(id);
-//     if (personState) {
-//       return Person.fromState(storeState, personState);
-//     }
-//   }
-
-//   return undefined;
-// }

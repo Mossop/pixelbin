@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from django.db.models.fields.related_descriptors import ManyToManyDescriptor
 
-from ..models import Media, Person, Tag, Album
+from ..models import Media
 from ..metadata import get_metadata_fields
-from . import ModelSerializer, Serializer, ListSerializer
+from . import ModelSerializer, Serializer
 
 class MetadataSerializer(Serializer):
     class Meta:
@@ -20,13 +20,6 @@ class MediaSerializer(ModelSerializer):
                                               read_only=True, allow_null=True)
     fileSize = serializers.IntegerField(source='file_size',
                                         read_only=True, allow_null=True)
-
-    tags = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all()),
-                          required=False, default=[])
-    albums = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Album.objects.all()),
-                            required=False, default=[])
-    people = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Person.objects.all()),
-                            required=False, default=[])
 
     metadata = MetadataSerializer(required=False, allow_null=False)
 
@@ -97,10 +90,14 @@ class MediaSerializer(ModelSerializer):
             'width': {'read_only': True},
             'height': {'read_only': True},
             'duration': {'read_only': True},
+
+            'tags': {'required': False, 'default': [], 'allow_empty': True},
+            'albums': {'required': False, 'default': [], 'allow_empty': True},
+            'people': {'required': False, 'default': [], 'allow_empty': True},
         }
 
 class ThumbnailRequestSerializer(Serializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all(), allow_null=False)
+    media = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all(), allow_null=False)
     size = serializers.IntegerField()
 
     class Meta:

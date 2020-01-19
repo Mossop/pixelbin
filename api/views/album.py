@@ -1,7 +1,7 @@
 from . import api_view
 from ..utils import uuid, ApiException
 from ..serializers.album import AlbumSerializer, AlbumMediaSerializer
-from ..serializers import PatchSerializerWrapper
+from ..serializers.wrappers import PatchSerializerWrapper
 
 @api_view('PUT', request=AlbumSerializer, response=AlbumSerializer)
 def create(request, deserialized):
@@ -31,7 +31,7 @@ def edit(request, deserialized):
 @api_view('PUT', request=AlbumMediaSerializer, response=AlbumSerializer)
 def add(request, deserialized):
     data = deserialized.validated_data
-    album = data['id']
+    album = data['album']
     request.user.check_can_modify(album.catalog)
 
     for media in data['media']:
@@ -44,7 +44,7 @@ def add(request, deserialized):
 @api_view('DELETE', request=AlbumMediaSerializer, response=AlbumSerializer)
 def remove(request, deserialized):
     data = deserialized.validated_data
-    album = data['id']
+    album = data['album']
     request.user.check_can_modify(album.catalog)
 
     album.media.remove(*deserialized.validated_data['media'])

@@ -1,9 +1,6 @@
 import { Location, History, Action, UnregisterCallback, LocationListener, LocationDescriptorObject } from "history";
-import React from "react";
-import { Router } from "react-router";
 import { Store } from "redux";
 
-import store from "../store";
 import { setHistoryState } from "../store/actions";
 import { StoreState, LocationState, HistoryState } from "../store/types";
 
@@ -33,7 +30,7 @@ function buildHistoryState(state: LocationState = window.history.state): History
   };
 }
 
-function createReduxHistory(store: Store<StoreState>): ReduxHistory {
+export function createReduxHistory(store: Store<StoreState>): ReduxHistory {
   let listeners: Set<LocationListener<LocationState>> = new Set();
   let lastState: HistoryState = buildHistoryState();
 
@@ -183,10 +180,8 @@ function createReduxHistory(store: Store<StoreState>): ReduxHistory {
   };
 }
 
-export const history: ReduxHistory = createReduxHistory(store);
-
-export class ReduxRouter extends React.Component {
-  public render(): React.ReactNode {
-    return <Router history={history}>{this.props.children}</Router>;
-  }
-}
+// export class ReduxRouter extends React.Component {
+//   public render(): React.ReactNode {
+//     return <Router history={history}>{this.props.children}</Router>;
+//   }
+// }

@@ -1,6 +1,10 @@
 import { request } from "./api";
-import { ApiMethod, PersonCreateData, PersonData } from "./types";
+import { Catalog, Reference } from "./highlevel";
+import { ApiMethod, PersonData } from "./types";
 
-export async function createPerson(person: PersonCreateData): Promise<PersonData> {
-  return request(ApiMethod.PersonCreate, person);
+export async function createPerson(catalog: Reference<Catalog>, fullname: string): Promise<PersonData> {
+  return request(ApiMethod.PersonCreate, {
+    catalog,
+    fullname,
+  });
 }

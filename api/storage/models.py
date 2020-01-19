@@ -1,7 +1,8 @@
 from django.db import models
 from rest_framework import status as http_status, serializers
 
-from ..serializers import ModelSerializer, FieldMixin, UnionType, derive_type_from_class
+from ..serializers import ModelSerializer
+from ..serializers.typedefs import FieldMixin, UnionType, derive_type_from_class
 from ..utils import ApiException
 
 class Storage(models.Model):

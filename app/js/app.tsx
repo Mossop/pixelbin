@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
-import { Switch, Route } from "react-router-dom";
+import { Switch, Route, Router } from "react-router-dom";
 import { JsonDecoder } from "ts.data.json";
 
 import LocalizationContext from "./l10n";
@@ -11,9 +11,8 @@ import CatalogPage from "./pages/catalog";
 import IndexPage from "./pages/index";
 import NotFound from "./pages/notfound";
 import UserPage from "./pages/user";
-import store from "./store";
+import store, { history } from "./store";
 import { decode } from "./utils/decoders";
-import { ReduxRouter } from "./utils/history";
 
 export interface Paths {
   static: string;
@@ -42,7 +41,7 @@ if (pathsElement && pathsElement.textContent) {
 ReactDOM.render(
   <Provider store={store}>
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
-      <ReduxRouter>
+      <Router history={history}>
         <div id="main">
           <Switch>
             <Route path="/user" component={UserPage}/>
@@ -53,7 +52,7 @@ ReactDOM.render(
           </Switch>
         </div>
         <Overlay/>
-      </ReduxRouter>
+      </Router>
     </LocalizationContext>
   </Provider>,
   document.getElementById("app")

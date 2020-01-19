@@ -82,7 +82,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
   protected renderContent(): React.ReactNode {
     if (this.props.user && this.props.catalog) {
       let search: Search = {
-        catalog: this.props.catalog.id,
+        catalog: this.props.catalog.ref(),
       };
       return <MediaList search={search}/>;
     } else {

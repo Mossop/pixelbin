@@ -2,9 +2,10 @@ import { Localized } from "@fluent/react";
 import React from "react";
 
 import { editAlbum, createAlbum } from "../api/album";
+import { Patch } from "../api/helpers";
 import { Album, Catalog, Reference, Derefer, derefer } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { Patch, AlbumData, AlbumCreateData } from "../api/types";
+import { AlbumCreateData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { ComponentProps, connect } from "../components/shared";
@@ -99,9 +100,9 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
         let catalog = parent instanceof Catalog ? parent : parent.catalog;
         let album = parent instanceof Catalog ? null : parent;
         let data: AlbumCreateData = {
-          catalog: catalog.id,
+          catalog: catalog.ref(),
           name,
-          parent: album?.id,
+          parent: album?.ref(),
         };
 
         let albumData= await createAlbum(data);
@@ -109,11 +110,11 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
       } else {
         let catalog = parent instanceof Catalog ? parent : parent.catalog;
         let album = parent instanceof Catalog ? null : parent;
-        let updated: Patch<AlbumData> = {
-          catalog: catalog.id,
+        let updated: Patch<AlbumCreateData, Album> = {
+          catalog: catalog.ref(),
           name,
-          id: this.props.album.id,
-          parent: album?.id,
+          id: this.props.album.ref(),
+          parent: album?.ref(),
         };
         let albumData = await editAlbum(updated);
         this.props.albumEdited(albumData);

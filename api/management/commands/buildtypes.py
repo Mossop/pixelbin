@@ -6,7 +6,8 @@ from base.utils import path
 from ...urls import urlpatterns
 from ...utils import merge
 from ...views import ApiView
-from ...serializers import VoidType, NullType, BlobType, FormDataType, ApiExceptionSerializer
+from ...serializers.typedefs import VoidType, NullType, BlobType, FormDataType
+from ...serializers import ApiExceptionSerializer
 
 header = """import { Orientation } from "media-metadata/lib/metadata";
 import moment from "moment";
@@ -15,9 +16,8 @@ import { JsonDecoder } from "ts.data.json";
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
 import { Mappable, MapOf } from "../utils/maps";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
-  FormRequestData, JsonDecoderDecoder, BlobDecoder } from "./helpers";
-
-export type Patch<R> = Partial<R> & Mappable;
+  FormRequestData, JsonDecoderDecoder, BlobDecoder, RequestPk, Patch } from "./helpers";
+import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 """
 
 def method_name(st):

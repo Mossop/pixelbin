@@ -2,12 +2,10 @@ import { Localized } from "@fluent/react";
 import { Orientation, rotateClockwise90, rotateCounterClockwise90, mirrorHorizontal, mirrorVertical } from "media-metadata/lib/metadata";
 import React from "react";
 
-import { Reference, Catalog, Derefer, derefer } from "../api/highlevel";
+import { Reference, Catalog, Derefer, derefer, Tag, Person } from "../api/highlevel";
 import { createMedia, MediaTarget } from "../api/media";
 import { setOrientation } from "../api/metadata";
-import { createPerson } from "../api/person";
-import { findTag } from "../api/tag";
-import { PersonData, TagData, MediaCreateData } from "../api/types";
+import { MediaCreateData } from "../api/types";
 import { Button } from "../components/Button";
 import { FormFields, FormField } from "../components/Form";
 import Media from "../components/Media";
@@ -130,11 +128,8 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     let strTags = tagsFromString(pending.tags).concat(tagsFromString(this.inputs.tags));
     let strPeople = peopleFromString(pending.people).concat(peopleFromString(this.inputs.people));
 
-    let tagPromises = strTags.map((path: string[]): Promise<TagData> => findTag(catalog, path));
-    let personPromises = strPeople.map((fullname: string): Promise<PersonData> => createPerson({
-      catalog: catalog.id,
-      fullname
-    }));
+    let tagPromises = strTags.map((path: string[]): Promise<Reference<Tag>> => catalog.findTag(path).promise);
+    let personPromises = strPeople.map((fullname: string): Promise<Reference<Person>> => catalog.createPerson(fullname).promise);
 
     let [tags, people] = await Promise.all([
       Promise.all(tagPromises),
@@ -142,10 +137,10 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     ]);
 
     let media: MediaCreateData = {
-      catalog: catalog.id,
-      tags: tags.map((t: TagData) => t.id),
-      people: people.map((p: PersonData) => p.id),
-      albums: album ? [album.id] : [],
+      catalog: catalog.ref(),
+      tags: tags,
+      people: people,
+      albums: album ? [album.ref()] : [],
       file: pending.file,
     };
 

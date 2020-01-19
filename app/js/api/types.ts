@@ -5,9 +5,8 @@ import { JsonDecoder } from "ts.data.json";
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
 import { Mappable, MapOf } from "../utils/maps";
 import { makeRequest, MethodList, RequestData, JsonRequestData, QueryRequestData,
-  FormRequestData, JsonDecoderDecoder, BlobDecoder } from "./helpers";
-
-export type Patch<R> = Partial<R> & Mappable;
+  FormRequestData, JsonDecoderDecoder, BlobDecoder, RequestPk, Patch } from "./helpers";
+import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 
 export enum ApiErrorCode {
   UnknownException = "unknown-exception",
@@ -256,30 +255,30 @@ export interface CatalogCreateData {
 }
 
 export interface AlbumCreateData {
-  catalog: string;
+  catalog: RequestPk<Catalog>;
   stub?: string | null;
   name: string;
-  parent?: string | null;
+  parent?: RequestPk<Album> | null;
 }
 
 export interface AlbumMedia {
-  id: string;
-  media: string[];
+  album: RequestPk<Album>;
+  media: RequestPk<Media>[];
 }
 
 export interface TagCreateData {
-  catalog: string;
-  parent: string | null;
+  catalog: RequestPk<Catalog>;
+  parent: RequestPk<Tag> | null;
   name: string;
 }
 
 export interface TagLookup {
-  catalog: string;
+  catalog: RequestPk<Catalog>;
   path: string[];
 }
 
 export interface PersonCreateData {
-  catalog: string;
+  catalog: RequestPk<Catalog>;
   fullname: string;
 }
 
@@ -308,10 +307,10 @@ export interface MetadataUpdateData {
 }
 
 export interface MediaCreateData {
-  catalog: string;
-  tags?: string[];
-  albums?: string[];
-  people?: string[];
+  catalog: RequestPk<Catalog>;
+  tags?: RequestPk<Tag>[];
+  albums?: RequestPk<Album>[];
+  people?: RequestPk<Person>[];
   file: Blob;
   metadata?: MetadataUpdateData;
 }
@@ -320,12 +319,12 @@ export interface Query {
 }
 
 export interface Search {
-  catalog: string;
+  catalog: RequestPk<Catalog>;
   query?: Query;
 }
 
 export interface MediaThumbnail {
-  id: string;
+  media: RequestPk<Media>;
   size: number;
 }
 
@@ -372,15 +371,15 @@ export function request(method: ApiMethod.Logout): Promise<ServerData>;
 export function request(method: ApiMethod.UserCreate, data: UserCreateData): Promise<ServerData>;
 export function request(method: ApiMethod.CatalogCreate, data: CatalogCreateData): Promise<CatalogData>;
 export function request(method: ApiMethod.AlbumCreate, data: AlbumCreateData): Promise<AlbumData>;
-export function request(method: ApiMethod.AlbumEdit, data: Patch<AlbumCreateData>): Promise<AlbumData>;
+export function request(method: ApiMethod.AlbumEdit, data: Patch<AlbumCreateData, Album>): Promise<AlbumData>;
 export function request(method: ApiMethod.AlbumAddMedia, data: AlbumMedia): Promise<AlbumData>;
 export function request(method: ApiMethod.AlbumRemoveMedia, data: AlbumMedia): Promise<AlbumData>;
 export function request(method: ApiMethod.TagCreate, data: TagCreateData): Promise<TagData>;
-export function request(method: ApiMethod.TagFind, data: TagLookup): Promise<TagData>;
+export function request(method: ApiMethod.TagFind, data: TagLookup): Promise<TagData[]>;
 export function request(method: ApiMethod.PersonCreate, data: PersonCreateData): Promise<PersonData>;
 export function request(method: ApiMethod.MediaGet, data: Mappable): Promise<UnprocessedMediaData>;
 export function request(method: ApiMethod.MediaCreate, data: MediaCreateData): Promise<UnprocessedMediaData>;
-export function request(method: ApiMethod.MediaUpdate, data: Patch<MediaCreateData>): Promise<UnprocessedMediaData>;
+export function request(method: ApiMethod.MediaUpdate, data: Patch<MediaCreateData, Media>): Promise<UnprocessedMediaData>;
 export function request(method: ApiMethod.MediaSearch, data: Search): Promise<UnprocessedMediaData[]>;
 export function request(method: ApiMethod.MediaThumbnail, data: MediaThumbnail): Promise<Blob>;
 
@@ -417,7 +416,7 @@ export function request(path: ApiMethod, data?: any): Promise<object | void> {
       request = new JsonRequestData(data, JsonDecoderDecoder(TagDataDecoder));
       break;
     case ApiMethod.TagFind:
-      request = new JsonRequestData(data, JsonDecoderDecoder(TagDataDecoder));
+      request = new JsonRequestData(data, JsonDecoderDecoder(JsonDecoder.array(TagDataDecoder, "TagData[]")));
       break;
     case ApiMethod.PersonCreate:
       request = new JsonRequestData(data, JsonDecoderDecoder(PersonDataDecoder));

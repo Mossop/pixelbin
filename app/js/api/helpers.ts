@@ -2,12 +2,19 @@ import cookie from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
 import { exception, ErrorCode, ApiError, processException } from "../utils/exception";
+import { Reference, isReference } from "./highlevel";
 import { ApiMethod, HttpMethods, ApiErrorDataDecoder } from "./types";
 
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export type MethodList = { [k in ApiMethod]: Method };
 
+export type RequestPk<T> = Reference<T>;
+
 type Decoder<T> = (response: Response) => Promise<T>;
+
+export type Patch<D, T> = Partial<D> & {
+  id: RequestPk<T>;
+};
 
 const API_ROOT = new URL("/api/", window.location.href);
 
@@ -48,34 +55,56 @@ const isObject = (data: any): boolean => !(data instanceof Blob) && typeof data 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isArray = (data: any): boolean => Array.isArray(data);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function intoString(data: any): string {
+  if (isReference(data)) {
+    return data.id;
+  }
+
+  return String(data);
+}
+
 function* objectParams(data: object, prefix: string = ""): Generator<[string, string | Blob]> {
   for (let [key, value] of Object.entries(data)) {
     let param = `${prefix}${key}`;
-    if (isArray(value)) {
+    if (isReference(value)) {
+      yield [param, value.id];
+    } else if (isArray(value)) {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      yield* arrayParams(value, param);
+      yield* arrayParams(value, `${param}`);
     } else if (isObject(value)) {
       yield* objectParams(value, `${param}.`);
     } else if (value instanceof Blob) {
       yield [param, value];
     } else {
-      yield [param, String(value)];
+      yield [param, intoString(value)];
     }
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function* arrayParams(data: any[], prefix: string = ""): Generator<[string, string | Blob]> {
+  // For reference types we can just send a list with the same field name.
+  if (data.every(isReference)) {
+    for (let ref of data) {
+      yield [prefix, ref.id];
+    }
+    return;
+  }
+
   for (let [index, value] of data.entries()) {
     let param = `${prefix}[${index}]`;
-    if (isArray(value)) {
+
+    if (isReference(value)) {
+      yield [param, value.id];
+    } else if (isArray(value)) {
       yield* arrayParams(value, param);
     } else if (isObject(value)) {
       yield* objectParams(value, param);
     } else if (value instanceof Blob) {
       yield [param, value];
     } else {
-      yield [param, String(value)];
+      yield [param, intoString(value)];
     }
   }
 }
@@ -91,7 +120,7 @@ export class QueryRequestData<D> extends RequestData<D> {
     }
 
     for (let [key, value] of Object.entries(this.data)) {
-      url.searchParams.append(key, String(value));
+      url.searchParams.append(key, intoString(value));
     }
   }
 }
@@ -137,7 +166,14 @@ export class JsonRequestData<D> extends RequestData<D> {
     if (!data) {
       this.data = null;
     } else {
-      this.data = JSON.stringify(data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.data = JSON.stringify(data, (_key: string, value: any): any => {
+        if (isReference(value)) {
+          return value.id;
+        }
+
+        return value;
+      });
     }
   }
 

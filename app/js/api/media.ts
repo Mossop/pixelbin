@@ -1,8 +1,8 @@
-import { intoId, MapId } from "../utils/maps";
 import { Search } from "../utils/search";
 import { request } from "./api";
-import { Catalog, Album } from "./highlevel";
-import { ApiMethod, UnprocessedMediaData, MediaCreateData, Patch } from "./types";
+import { Patch } from "./helpers";
+import { Catalog, Album, Reference, Media } from "./highlevel";
+import { ApiMethod, UnprocessedMediaData, MediaCreateData } from "./types";
 
 export type MediaTarget = Catalog | Album;
 
@@ -24,7 +24,7 @@ export function createMedia(media: MediaCreateData): Promise<MediaData> {
   return request(ApiMethod.MediaCreate, media);
 }
 
-export function updateMedia(media: Patch<MediaCreateData>): Promise<MediaData> {
+export function updateMedia(media: Patch<MediaCreateData, Media>): Promise<MediaData> {
   return request(ApiMethod.MediaUpdate, media);
 }
 
@@ -32,9 +32,9 @@ export function searchMedia(search: Search): Promise<MediaData[]> {
   return request(ApiMethod.MediaSearch, search);
 }
 
-export async function thumbnail(media: MapId<MediaData>, size: number): Promise<ImageBitmap> {
+export async function thumbnail(media: Reference<Media>, size: number): Promise<ImageBitmap> {
   return createImageBitmap(await request(ApiMethod.MediaThumbnail, {
-    id: intoId(media),
+    media,
     size,
   }));
 }

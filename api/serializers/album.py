@@ -16,8 +16,8 @@ class AlbumSerializer(ModelSerializer):
         }
 
 class AlbumMediaSerializer(Serializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Media.objects.all(),
-                                            allow_null=False)
+    album = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all(),
+                                               allow_null=False)
     media = ListSerializer(child=serializers.PrimaryKeyRelatedField(queryset=Media.objects.all()))
 
     class Meta:

@@ -57,7 +57,7 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
   public componentDidMount(): void {
     if (this.props.album && this.state.catalog) {
       let search: Search = {
-        catalog: this.state.catalog.id,
+        catalog: this.state.catalog.ref(),
         query: {
           invert: false,
           field: Field.Album,

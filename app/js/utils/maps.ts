@@ -13,6 +13,7 @@ export function isInstance<T extends Mappable>(item: MapId<T>): item is T {
 export type MapId<T extends Mappable> = T | string;
 
 export type MapOf<R extends Mappable> = Map<string, R>;
+export type MapType<M> = M extends MapOf<infer T> ? T : never;
 
 export function intoId<T extends Mappable>(item: MapId<T>): string {
   if (typeof item == "string") {

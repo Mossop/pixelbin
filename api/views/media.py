@@ -1,4 +1,5 @@
 import os
+import logging
 
 from django.http.response import HttpResponse
 from filetype import filetype
@@ -8,10 +9,17 @@ from ..models import Media
 from ..utils import uuid, ApiException
 from ..serializers.media import MediaSerializer, ThumbnailRequestSerializer
 from ..serializers.search import SearchSerializer
-from ..serializers import ListSerializerWrapper, ModelIdQuery, BlobSerializer, \
-                          MultipartSerializerWrapper, PatchSerializerWrapper
+from ..serializers.wrappers import (
+    ListSerializerWrapper,
+    ModelIdQuery,
+    BlobSerializer,
+    MultipartSerializerWrapper,
+    PatchSerializerWrapper
+)
 from ..tasks import process_new_file
 from ..media import build_thumbnail, ALLOWED_TYPES
+
+LOGGER = logging.getLogger(__name__)
 
 def perform_upload(media, file):
     try:
@@ -34,7 +42,6 @@ def perform_upload(media, file):
 
     return media
 
-# pylint: disable=too-many-arguments
 def validate(request, file, catalog, albums, tags, people):
     request.user.check_can_modify(catalog)
 
@@ -108,7 +115,7 @@ def search(request, deserialized):
 
 @api_view('GET', request=ThumbnailRequestSerializer, response=BlobSerializer())
 def thumbnail(request, deserialized):
-    media = deserialized.validated_data['id']
+    media = deserialized.validated_data['media']
     request.user.check_can_see(media.catalog)
 
     image = build_thumbnail(media, deserialized.validated_data['size'])

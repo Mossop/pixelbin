@@ -45,8 +45,9 @@ function babelOptions(): RuleSetQuery {
       ["@babel/preset-react"],
       ["@babel/preset-env", {
         targets: {
-          browsers: ">3%"
-        }
+          browsers: ">3%",
+        },
+        modules: false,
       }]
     ],
   };
@@ -68,13 +69,6 @@ function buildJsConfig(): Configuration {
       rules: [{
         test: /\.(ts|js)x?$/,
         exclude: /(node_modules|bower_components)/,
-        use: {
-          loader: "babel-loader",
-          options: babelOptions(),
-        }
-      }, {
-        test: /\.(ts|js)x?$/,
-        include: /node_modules\/immer/,
         use: {
           loader: "babel-loader",
           options: babelOptions(),

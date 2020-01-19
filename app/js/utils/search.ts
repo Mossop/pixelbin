@@ -1,3 +1,5 @@
+import { Reference, Catalog } from "../api/highlevel";
+
 export enum Join {
   And = "&&",
   Or = "||",
@@ -30,7 +32,7 @@ export interface QueryGroup {
 type Query = QueryGroup | FieldQuery;
 
 export interface Search {
-  catalog: string;
+  catalog: Reference<Catalog>;
   query?: Query;
 }
 

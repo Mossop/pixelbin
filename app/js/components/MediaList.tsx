@@ -2,6 +2,7 @@ import { produce, Draft } from "immer";
 import React from "react";
 import { connect } from "react-redux";
 
+import { mediaRef } from "../api/highlevel";
 import { thumbnail, searchMedia, getMedia, isProcessed, ProcessedMediaData, MediaData } from "../api/media";
 import { StoreState } from "../store/types";
 import { Search } from "../utils/search";
@@ -58,7 +59,7 @@ class MediaList extends React.Component<MediaListProps, MediaListState> {
   }
 
   private async loadThumbnail(media: ProcessedMediaData): Promise<void> {
-    let image = await thumbnail(media, this.props.thumbnailSize);
+    let image = await thumbnail(mediaRef(media), this.props.thumbnailSize);
 
     let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
       mediaMap[media.id].thumbnail = image;
