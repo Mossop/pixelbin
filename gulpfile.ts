@@ -44,10 +44,7 @@ function babelOptions(): RuleSetQuery {
       }],
       ["@babel/preset-react"],
       ["@babel/preset-env", {
-        targets: {
-          browsers: ">3%",
-        },
-        modules: false,
+        targets: "defaults",
       }]
     ],
   };
