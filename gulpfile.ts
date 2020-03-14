@@ -45,6 +45,8 @@ function babelOptions(): RuleSetQuery {
       ["@babel/preset-react"],
       ["@babel/preset-env", {
         targets: "defaults",
+        useBuiltIns: "usage",
+        corejs: 3,
       }]
     ],
   };
@@ -72,10 +74,10 @@ function buildJsConfig(): Configuration {
         }
       }],
     },
-    /*externals: {
+    externals: {
       "react": "React",
       "react-dom": "ReactDOM",
-    },*/
+    },
   };
 }
 

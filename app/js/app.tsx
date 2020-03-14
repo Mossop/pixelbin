@@ -3,6 +3,8 @@ import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
 import { Switch, Route, Router } from "react-router-dom";
 import { JsonDecoder } from "ts.data.json";
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 
 import LocalizationContext from "./l10n";
 import Overlay from "./overlays/index";
