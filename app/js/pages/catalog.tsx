@@ -1,12 +1,11 @@
 import React from "react";
-import { connect } from "react-redux";
 import { RouteComponentProps } from "react-router";
 
 import { Catalog } from "../api/highlevel";
 import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
 import { Button } from "../components/Button";
 import MediaList from "../components/MediaList";
-import { ComponentProps } from "../components/shared";
+import { ComponentProps, connect } from "../components/shared";
 import { SidebarProps } from "../components/Sidebar";
 import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
 import { StoreState } from "../store/types";
@@ -23,7 +22,7 @@ interface FromStateProps {
   catalog: Catalog | undefined;
 }
 
-function mapStateToProps(state: StoreState, props: RouteComponentProps<MatchParams>): FromStateProps {
+function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps {
   return {
     catalog: Catalog.safeFromState(state, props.match.params.id),
   };
@@ -91,4 +90,4 @@ class CatalogPage extends BasePage<CatalogPageProps> {
   }
 }
 
-export default baseConnect(connect(mapStateToProps, mapDispatchToProps)(CatalogPage));
+export default baseConnect(connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(CatalogPage));

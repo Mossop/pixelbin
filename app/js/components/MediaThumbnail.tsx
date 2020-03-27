@@ -1,12 +1,11 @@
 import React from "react";
-import { connect } from "react-redux";
 
 import { MediaData, isProcessed } from "../api/media";
 import { getOrientation } from "../api/metadata";
 import { StoreState } from "../store/types";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
-import { ComponentProps } from "./shared";
+import { ComponentProps, connect } from "./shared";
 
 interface PassedProps {
   media: MediaData;
@@ -44,4 +43,4 @@ class MediaThumbnail extends React.Component<MediaThumbnailProps> {
   }
 }
 
-export default connect(mapStateToProps)(MediaThumbnail);
+export default connect<PassedProps>()(mapStateToProps)(MediaThumbnail);

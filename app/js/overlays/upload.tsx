@@ -379,4 +379,4 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
   }
 }
 
-export default connect<PassedProps>(mapStateToProps, mapDispatchToProps)(UploadOverlay);
+export default connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(UploadOverlay);

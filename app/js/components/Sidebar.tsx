@@ -1,12 +1,11 @@
 import React from "react";
-import { connect } from "react-redux";
 
 import { Catalog, Album, catalogs } from "../api/highlevel";
 import { history } from "../store";
 import { showCatalogCreateOverlay } from "../store/actions";
 import { StoreState } from "../store/types";
 import { Button } from "./Button";
-import { ComponentProps } from "./shared";
+import { ComponentProps, connect } from "./shared";
 import { TreeItem, BaseSiteTree } from "./SiteTree";
 
 interface SidebarTreePassedProps {
@@ -45,7 +44,7 @@ class SidebarTreeComponent extends BaseSiteTree<SidebarTreeProps> {
     return this.renderItems(this.props.catalogs);
   }
 }
-const SidebarTree = connect(mapStateToSidebarTreeProps)(SidebarTreeComponent);
+const SidebarTree = connect<SidebarTreePassedProps>()(mapStateToSidebarTreeProps)(SidebarTreeComponent);
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
@@ -67,4 +66,4 @@ class Sidebar extends React.Component<SidebarProps> {
   }
 }
 
-export default connect(null, mapDispatchToProps)(Sidebar);
+export default connect<SidebarPassedProps>()(undefined, mapDispatchToProps)(Sidebar);

@@ -146,4 +146,4 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
   }
 }
 
-export default connect<PassedProps>(mapStateToProps, mapDispatchToProps)(AlbumOverlay);
+export default connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(AlbumOverlay);

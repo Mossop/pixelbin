@@ -1,12 +1,11 @@
 import { Immutable } from "immer";
 import React from "react";
-import { connect } from "react-redux";
 
 import { createCatalog } from "../api/catalog";
 import { UserData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { ComponentProps } from "../components/shared";
+import { ComponentProps, connect } from "../components/shared";
 import { renderStorageConfigUI, StorageData } from "../storage";
 import { catalogCreated } from "../store/actions";
 import { AppError } from "../utils/exception";
@@ -85,4 +84,4 @@ class CatalogOverlay extends React.Component<CatalogOverlayProps, CatalogOverlay
   }
 }
 
-export default connect(undefined, mapDispatchToProps)(CatalogOverlay);
+export default connect<PassedProps>()(undefined, mapDispatchToProps)(CatalogOverlay);

@@ -1,12 +1,11 @@
 import React from "react";
-import { connect } from "react-redux";
 import { RouteComponentProps } from "react-router";
 
 import { Album, Catalog } from "../api/highlevel";
 import { BasePage, baseConnect, BasePageState, BasePageProps } from "../components/BasePage";
 import { Button } from "../components/Button";
 import MediaList from "../components/MediaList";
-import { ComponentProps } from "../components/shared";
+import { ComponentProps, connect } from "../components/shared";
 import { SidebarProps } from "../components/Sidebar";
 import Throbber from "../components/Throbber";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, showUploadOverlay } from "../store/actions";
@@ -141,4 +140,4 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
   }
 }
 
-export default baseConnect(connect(mapStateToProps, mapDispatchToProps)(AlbumPage));
+export default baseConnect(connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(AlbumPage));

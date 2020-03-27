@@ -1,11 +1,10 @@
 import { Localized } from "@fluent/react";
 import React from "react";
-import { connect } from "react-redux";
 
 import { closeOverlay } from "../store/actions";
 import { AppError } from "../utils/exception";
 import { Button } from "./Button";
-import { ComponentProps } from "./shared";
+import { ComponentProps, connect } from "./shared";
 
 interface PassedProps {
   title?: string | React.ReactNode;
@@ -70,4 +69,4 @@ class Overlay extends React.Component<OverlayProps> {
   }
 }
 
-export default connect(undefined, mapDispatchToProps)(Overlay);
+export default connect<PassedProps>()(undefined, mapDispatchToProps)(Overlay);

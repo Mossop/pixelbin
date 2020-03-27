@@ -4,10 +4,10 @@ import { ActionType } from "../store/actions";
 import { StoreState } from "../store/types";
 
 // Merges two interfaces such that the properties of B replace those of A.
-type Merged<A extends {}, B extends {}> = Omit<A, keyof A & keyof B> & B;
+type Merged<A extends {}, B extends {}> = Pick<A, Exclude<keyof A, keyof B>> & B;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MapStateToProps = (state: StoreState, ownProps?: any) => any;
+type MapStateToProps<O> = (state: StoreState, ownProps?: O) => any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ActionCreator = (...args: any) => ActionType;
 type MapDispatchToProps = { [key: string]: ActionCreator };
@@ -20,46 +20,38 @@ export type DispatchProps<M extends MapDispatchToProps> = {
 };
 
 export type FromStateProps<F> =
-  F extends MapStateToProps ? ReturnType<F> : {};
+  F extends MapStateToProps<unknown> ? ReturnType<F> : {};
 
 export type FromDispatchProps<F> =
   F extends MapDispatchToProps ? DispatchProps<F> : {};
 
 // Generates the props for a component after mapStateToProps and mapDispatchToProps have done their work.
 export type ComponentProps<
-  PassedProps = {},
-  mapStateToProps extends MapStateToProps | {} | undefined = {},
-  mapDispatchToProps extends MapDispatchToProps | {} | undefined = {}
-> = Merged<Merged<PassedProps, FromStateProps<mapStateToProps>>, FromDispatchProps<mapDispatchToProps>>;
-
-// Derives the state for a react component.
-type GetComponentState<C> = C extends React.Component<unknown, infer S> ? S : never;
-
-// Derives the type that a constructor will create.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ConstructorType<F extends new (...args: any) => any> =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  F extends new (...args: any) => infer T
-    ? T
-    : never;
+  P = {},
+  S extends MapStateToProps<P> | {} | undefined = {},
+  D extends MapDispatchToProps | {} | undefined = {}
+> = Merged<Merged<P, FromStateProps<S>>, FromDispatchProps<D>>;
 
 // A constructor for react components.
-type ComponentConstructor<Props = {}, State = {}> = new (props: Props) => React.Component<Props, State>;
+type ComponentConstructor<Props = {}> = new (props: Props) => React.Component<Props>;
 
 // The function created by react-redux's connect function. Essentially maps
 // a constructor of AllProps to a constructor of PassedProps.
-type Connector<PassedProps, AllProps> = <C extends ComponentConstructor<AllProps>>(component: C) => ComponentConstructor<PassedProps, GetComponentState<ConstructorType<C>>>;
+type Connector<PassedProps, AllProps> = (component: ComponentConstructor<AllProps>) => ComponentConstructor<PassedProps>;
+
+type ConnectShim<P = {}> = <
+  S extends MapStateToProps<P> | undefined,
+  D extends MapDispatchToProps | undefined,
+>(mapStateToProps?: S, mapDispatchToProps?: D) => Connector<P, ComponentProps<P, S, D>>;
 
 // An override for react-redux's connect function to correct some type issues.
-export function connect<
-  PassedProps,
-  mapStateToProps extends MapStateToProps = MapStateToProps,
-  mapDispatchToProps extends MapDispatchToProps = MapDispatchToProps,
->(
-  mapState: mapStateToProps | undefined,
-  mapDispatch: mapDispatchToProps | undefined
-): Connector<PassedProps, ComponentProps<PassedProps, mapStateToProps, mapDispatchToProps>> {
-  return reduxConnect(mapState, mapDispatch) as unknown as Connector<PassedProps, ComponentProps<PassedProps, mapStateToProps, mapDispatchToProps>>;
+export function connect<P = never>(): ConnectShim<P> {
+  return <
+    S extends MapStateToProps<P> | undefined,
+    D extends MapDispatchToProps | undefined,
+  >(mapStateToProps?: S, mapDispatchToProps?: D): Connector<P, ComponentProps<P, S, D>> => {
+    return reduxConnect(mapStateToProps, mapDispatchToProps) as unknown as Connector<P, ComponentProps<P, S, D>>;
+  };
 }
 
 export interface StyleProps {

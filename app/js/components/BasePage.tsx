@@ -1,11 +1,10 @@
 import { Immutable } from "immer";
 import React from "react";
-import { connect } from "react-redux";
 
 import { UserData } from "../api/types";
 import { StoreState } from "../store/types";
 import Banner from "./Banner";
-import { ComponentProps } from "./shared";
+import { ComponentProps, connect } from "./shared";
 import Sidebar, { SidebarProps as SidebarProps } from "./Sidebar";
 
 export interface FromStateProps {
@@ -51,4 +50,4 @@ export class BasePage<P, S extends BasePageState = BasePageState> extends React.
   }
 }
 
-export const baseConnect = connect(mapStateToProps);
+export const baseConnect = connect<{}>()(mapStateToProps);

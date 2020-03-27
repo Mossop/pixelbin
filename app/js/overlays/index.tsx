@@ -1,9 +1,8 @@
 import { Immutable } from "immer";
 import React from "react";
-import { connect } from "react-redux";
 
 import { UserData } from "../api/types";
-import { ComponentProps } from "../components/shared";
+import { ComponentProps, connect } from "../components/shared";
 import { closeOverlay } from "../store/actions";
 import { StoreState, OverlayState, OverlayType } from "../store/types";
 import AlbumOverlay from "./album";
@@ -111,4 +110,4 @@ class OverlayDisplay extends React.Component<OverlayDisplayProps> {
   }
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(OverlayDisplay);
+export default connect<{}>()(mapStateToProps, mapDispatchToProps)(OverlayDisplay);

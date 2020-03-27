@@ -1,13 +1,12 @@
 import { produce, Draft } from "immer";
 import React from "react";
-import { connect } from "react-redux";
 
 import { mediaRef } from "../api/highlevel";
 import { thumbnail, searchMedia, getMedia, isProcessed, ProcessedMediaData, MediaData } from "../api/media";
 import { StoreState } from "../store/types";
 import { Search } from "../utils/search";
 import MediaThumbnail from "./MediaThumbnail";
-import { ComponentProps } from "./shared";
+import { ComponentProps, connect } from "./shared";
 import Throbber from "./Throbber";
 
 const POLL_TIMEOUT = 5000;
@@ -211,4 +210,4 @@ class MediaList extends React.Component<MediaListProps, MediaListState> {
   }
 }
 
-export default connect(mapStateToProps)(MediaList);
+export default connect<PassedProps>()(mapStateToProps)(MediaList);
