@@ -2,7 +2,7 @@ import React from "react";
 
 import { logout } from "../api/auth";
 import { PageType } from "../pages";
-import { showLoginOverlay, showSignupOverlay, completeLogout } from "../store/actions";
+import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
 import { If, Then, Else } from "../utils/Conditions";
 import { isLoggedIn } from "../utils/helpers";
@@ -10,9 +10,9 @@ import Button from "./Button";
 import Link from "./Link";
 
 const mapDispatchToProps = {
-  openLoginOverlay: showLoginOverlay,
-  openSignupOverlay: showSignupOverlay,
-  completeLogout: completeLogout,
+  openLoginOverlay: actions.showLoginOverlay,
+  openSignupOverlay: actions.showSignupOverlay,
+  completeLogout: actions.completeLogout,
 };
 
 class Banner extends React.Component<ComponentProps<{}, {}, typeof mapDispatchToProps>> {

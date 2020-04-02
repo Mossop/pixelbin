@@ -31,6 +31,7 @@
     "@typescript-eslint/eslint-plugin-tslint": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
     "babel-loader": "^8.0.6",
+    "deeds": "^1.0.0",
     "eslint": "^6.8.0",
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-mossop": "github:Mossop/eslint-plugin-mossop#1.0.0",

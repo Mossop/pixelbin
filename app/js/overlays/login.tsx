@@ -3,7 +3,7 @@ import React from "react";
 import { login } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { completeLogin } from "../store/actions";
+import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
@@ -15,7 +15,7 @@ interface InputFields {
 }
 
 const mapDispatchToProps = {
-  completeLogin: completeLogin,
+  completeLogin: actions.completeLogin,
 };
 
 interface LoginOverlayState {

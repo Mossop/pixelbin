@@ -9,7 +9,7 @@ import { AlbumCreateData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { MediaTargetSelector } from "../components/SiteTree";
-import { albumCreated, albumEdited } from "../store/actions";
+import actions from "../store/actions";
 import { ComponentProps, connect } from "../store/component";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode, AppError } from "../utils/exception";
@@ -46,8 +46,8 @@ function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStatePro
 }
 
 const mapDispatchToProps = {
-  albumCreated,
-  albumEdited,
+  albumCreated: actions.albumCreated,
+  albumEdited: actions.albumEdited,
 };
 
 interface AlbumOverlayState {

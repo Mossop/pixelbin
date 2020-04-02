@@ -6,7 +6,7 @@ import { UserData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { renderStorageConfigUI, StorageData } from "../storage";
-import { catalogCreated } from "../store/actions";
+import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
@@ -22,7 +22,7 @@ interface PassedProps {
 }
 
 const mapDispatchToProps = {
-  catalogCreated,
+  catalogCreated: actions.catalogCreated,
 };
 
 interface CatalogOverlayState {

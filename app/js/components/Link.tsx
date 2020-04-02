@@ -1,22 +1,23 @@
+import { Draft } from "immer";
 import React from "react";
 
-import { navigateAction } from "../store/actions";
+import actions from "../store/actions";
 import { ComponentProps, connect } from "../store/component";
 import { UIState } from "../store/types";
 import { buildURL } from "../utils/history";
 import { fromUIState } from "../utils/navigation";
 
 interface PassedProps {
-  to: UIState;
+  to: Draft<UIState>;
 }
 
 const mapDispatchToProps = {
-  navigateAction,
+  navigate: actions.navigate,
 };
 
 class Link extends React.Component<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
   private onClick(event: React.MouseEvent): void {
-    navigateAction(this.props.to);
+    this.props.navigate(this.props.to);
     event.preventDefault();
   }
 

@@ -1,7 +1,7 @@
 import { Localized } from "@fluent/react";
 import React from "react";
 
-import { closeOverlay } from "../store/actions";
+import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
 import Button from "./Button";
@@ -14,7 +14,7 @@ interface PassedProps {
 }
 
 const mapDispatchToProps = {
-  closeOverlay,
+  closeOverlay: actions.closeOverlay,
 };
 
 class Overlay extends React.Component<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {

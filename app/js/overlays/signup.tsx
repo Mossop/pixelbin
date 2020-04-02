@@ -3,7 +3,7 @@ import React from "react";
 import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { completeSignup } from "../store/actions";
+import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
@@ -16,7 +16,7 @@ interface InputFields {
 }
 
 const mapDispatchToProps = {
-  completeSignup: completeSignup,
+  completeSignup: actions.completeSignup,
 };
 
 interface SignupOverlayState {

@@ -1,21 +1,21 @@
+import { Deed } from "deeds/immer";
 import { Store } from "redux";
 
-import { ActionType } from "./actions";
 import { StoreState } from "./types";
 
 type Resolver = (state: StoreState) => void;
 
 export class AsyncDispatchListener {
-  private waitingForReducer: Map<ActionType, Resolver> = new Map();
+  private waitingForReducer: Map<Deed, Resolver> = new Map();
   private waitingForState: Resolver[] = [];
-  private storeDispatch: (action: ActionType) => void;
+  private storeDispatch: (action: Deed) => void;
 
-  public constructor(store: Store<StoreState>) {
+  public constructor(store: Store<StoreState, Deed>) {
     this.storeDispatch = store.dispatch;
     store.subscribe(() => this.stateChanged(store.getState()));
   }
 
-  public seenAction(action: ActionType): void {
+  public seenAction(action: Deed): void {
     let resolver = this.waitingForReducer.get(action);
     if (!resolver) {
       return;
@@ -33,7 +33,7 @@ export class AsyncDispatchListener {
     }
   }
 
-  public dispatch(action: ActionType): Promise<StoreState> {
+  public dispatch(action: Deed): Promise<StoreState> {
     return new Promise((resolve: Resolver) => {
       this.waitingForReducer.set(action, resolve);
       this.storeDispatch(action);

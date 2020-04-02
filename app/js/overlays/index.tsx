@@ -5,7 +5,7 @@ import { Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { UserData } from "../api/types";
 import { PageState, PageType } from "../pages";
-import { closeOverlay } from "../store/actions";
+import actions from "../store/actions";
 import { ComponentProps, connect } from "../store/component";
 import { StoreState } from "../store/types";
 import AlbumOverlay from "./album";
@@ -32,7 +32,7 @@ function mapStateToProps(state: StoreState): FromStateProps {
 }
 
 const mapDispatchToProps = {
-  closeOverlay,
+  closeOverlay: actions.closeOverlay,
 };
 
 class OverlayDisplay extends React.Component<ComponentProps<{}, typeof mapStateToProps, typeof mapDispatchToProps>> {

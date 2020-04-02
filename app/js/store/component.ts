@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Deed } from "deeds/immer";
 import React from "react";
 import { connect as reduxConnect } from "react-redux";
 
-import { ActionType } from "./actions";
 import { StoreState } from "./types";
 
 // Merges two interfaces such that the properties of B replace those of A.
@@ -16,8 +16,8 @@ export type PropsFor<T> =
       never;
 
 // Dispatch and action types.
-type Dispatch = (action: ActionType) => void;
-type ActionCreator = (...args: unknown[]) => ActionType;
+type Dispatch = (action: Deed) => void;
+type ActionCreator = (...args: unknown[]) => Deed;
 
 // mapStateToProps.
 export type MapStateToProps<PP extends {} = any, SP extends {} = any> = (state: StoreState, ownProps?: PP) => SP;

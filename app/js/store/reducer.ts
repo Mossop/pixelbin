@@ -1,257 +1,241 @@
-import { produce, Draft } from "immer";
+import { rootReducer } from "deeds/immer";
+import { Draft } from "immer";
 
-import { Catalog, Album } from "../api/highlevel";
-import { UserData } from "../api/types";
+import { Catalog, Album, Reference } from "../api/highlevel";
+import { MediaTarget } from "../api/media";
+import { CatalogData, AlbumData, TagData, PersonData, ServerData, UserData } from "../api/types";
 import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
 import { replaceState, pushState } from "../utils/navigation";
 import { nameSorted } from "../utils/sort";
-import { ActionType,
-  SHOW_LOGIN_OVERLAY,
-  SHOW_SIGNUP_OVERLAY,
-  SHOW_CATALOG_CREATE_OVERLAY,
-  COMPLETE_LOGIN,
-  COMPLETE_SIGNUP,
-  COMPLETE_LOGOUT,
-  CLOSE_OVERLAY,
-  CATALOG_CREATED,
-  SHOW_UPLOAD_OVERLAY,
-  SHOW_CATALOG_EDIT_OVERLAY,
-  SHOW_ALBUM_CREATE_OVERLAY,
-  SHOW_ALBUM_EDIT_OVERLAY,
-  ALBUM_CREATED,
-  ALBUM_EDITED, 
-  BUMP_STATE,
-  TAGS_CREATED,
-  PERSON_CREATED,
-  HISTORY_STATE_CHANGED} from "./actions";
-import { StoreState } from "./types";
+import { StoreState, UIState } from "./types";
 
-function catalogReducer(state: Draft<StoreState>, user: UserData, action: ActionType): void {
-  switch (action.type) {
-    case SHOW_CATALOG_CREATE_OVERLAY: {
-      state.ui.overlay = {
+type MappedReducer<S> =
+  S extends (state: Draft<StoreState>, user: UserData, ...args: infer A) => void
+    ? (state: Draft<StoreState>, ...args: A) => void
+    : S;
+
+type MappedReducers<M> = {
+  [K in keyof M]: MappedReducer<M[K]>;
+};
+
+function authedReducers<M>(reducers: M): MappedReducers<M> {
+  let result = {};
+  for (let [key, reducer] of Object.entries(reducers)) {
+    result[key] = (state: Draft<StoreState>, ...args: unknown[]): void => {
+      if (!state.serverState.user) {
+        return;
+      }
+
+      reducer(state, state.serverState.user, ...args);
+    };
+  }
+  return result as MappedReducers<M>;
+}
+
+const catalogReducers = {
+  showCatalogCreateOverlay(state: Draft<StoreState>, _user: UserData): void {
+    state.ui.overlay = {
+      type: OverlayType.CreateCatalog,
+    };
+    replaceState(state.ui);
+  },
+
+  catalogCreated(state: Draft<StoreState>, user: UserData, catalog: CatalogData): void {
+    user.catalogs.set(catalog.id, catalog);
+    state.ui = {
+      page: {
+        type: PageType.Catalog,
+        catalog: Catalog.ref(catalog),
+      }
+    };
+    pushState(state.ui);
+  },
+
+  showCatalogEditOverlay(state: Draft<StoreState>, _user: UserData, catalog: Reference<Catalog>): void {
+    state.ui.overlay = {
+      type: OverlayType.EditCatalog,
+      catalog: catalog,
+    };
+    replaceState(state.ui);
+  },
+};
+
+const albumReducers = {
+  showAlbumCreateOverlay(state: Draft<StoreState>, _user: UserData, parent: Reference<MediaTarget>): void {
+    state.ui.overlay = {
+      type: OverlayType.CreateAlbum,
+      parent,
+    };
+    replaceState(state.ui);
+  },
+
+  albumCreated(state: Draft<StoreState>, user: UserData, album: AlbumData): void {
+    let catalog = user.catalogs.get(album.catalog.id);
+    if (catalog) {
+      catalog.albums.set(album.id, album);
+    }
+
+    state.ui = {
+      page: {
+        type: PageType.Album,
+        album: Album.ref(album),
+      }
+    };
+    pushState(state.ui);
+  },
+
+  showAlbumEditOverlay(state: Draft<StoreState>, _user: UserData, album: Reference<Album>): void {
+    state.ui.overlay = {
+      type: OverlayType.EditAlbum,
+      album,
+    };
+    replaceState(state.ui);
+  },
+
+  albumEdited(state: Draft<StoreState>, user: UserData, album: AlbumData): void {
+    let newCatalog = user.catalogs.get(album.catalog.id);
+    if (newCatalog) {
+      for (let catalog of user.catalogs.values()) {
+        if (catalog != newCatalog && catalog.albums.has(album.id)) {
+          catalog.albums.delete(album.id);
+          break;
+        }
+      }
+      newCatalog.albums.set(album.id, album);
+    }
+
+    state.ui.overlay = undefined;
+    replaceState(state.ui);
+  },
+};
+
+const tagReducers = {
+  tagsCreated(_state: Draft<StoreState>, user: UserData, tags: TagData[]): void {
+    for (let tag of tags) {
+      let catalog = user.catalogs.get(tag.catalog.id);
+      if (catalog) {
+        catalog.tags.set(tag.id, tag);
+      }
+    }
+  },
+};
+
+const personReducers = {
+  personCreated(_state: Draft<StoreState>, user: UserData, person: PersonData): void {
+    let catalog = user.catalogs.get(person.catalog.id);
+    if (catalog) {
+      catalog.people.set(person.id, person);
+    }
+  },
+};
+
+const authReducers = {
+  showLoginOverlay(state: Draft<StoreState>): void {
+    state.ui.overlay = {
+      type: OverlayType.Login,
+    };
+    replaceState(state.ui);
+  },
+
+  completeLogin(state: Draft<StoreState>, serverData: ServerData): void {
+    state.serverState = serverData;
+
+    if (serverData.user) {
+      let catalogs = nameSorted(Array.from(serverData.user.catalogs.values()));
+      if (catalogs.length) {
+        state.ui = {
+          page: {
+            type: PageType.Catalog,
+            catalog: Catalog.ref(catalogs[0]),
+          }
+        };
+      } else {
+        state.ui = {
+          page: {
+            type: PageType.User,
+          },
+        };
+        if (!serverData.user.hadCatalog) {
+          state.ui.overlay = {
+            type: OverlayType.CreateCatalog,
+          };
+        }
+      }
+
+      pushState(state.ui);
+    }
+  },
+
+  showSignupOverlay(state: Draft<StoreState>): void {
+    state.ui.overlay = {
+      type: OverlayType.Signup,
+    };
+    replaceState(state.ui);
+  },
+
+  completeSignup(state: Draft<StoreState>, serverData: ServerData): void {
+    state.serverState = serverData;
+    state.ui = {
+      page: {
+        type: PageType.User,
+      },
+      overlay: {
         type: OverlayType.CreateCatalog,
-      };
+      },
+    };
+    pushState(state.ui);
+  },
+
+  completeLogout(state: Draft<StoreState>, serverData: ServerData): void {
+    state.serverState = serverData;
+    state.ui = {
+      page: {
+        type: PageType.Index,
+      },
+    };
+    pushState(state.ui);
+  },
+};
+
+const mediaReducers = {
+  showUploadOverlay(state: Draft<StoreState>): void {
+    state.ui.overlay = {
+      type: OverlayType.Upload,
+    };
+    pushState(state.ui);
+  }
+};
+
+export const reducers = {
+  ...authedReducers(catalogReducers),
+  ...authedReducers(albumReducers),
+  ...authedReducers(personReducers),
+  ...authedReducers(tagReducers),
+  ...authedReducers(mediaReducers),
+  ...authReducers,
+
+  bumpState(state: Draft<StoreState>): void {
+    state.stateId++;
+  },
+
+  historyStateChanged(state: Draft<StoreState>, uiState: Draft<UIState>): void {
+    state.ui = uiState;
+  },
+
+  navigate(state: Draft<StoreState>, uiState: Draft<UIState>, replace: boolean = false): void {
+    state.ui = uiState;
+    if (replace) {
       replaceState(state.ui);
-      return;
-    }
-    case CATALOG_CREATED: {
-      user.catalogs.set(action.payload.catalog.id, action.payload.catalog);
-      state.ui = {
-        page: {
-          type: PageType.Catalog,
-          catalog: Catalog.ref(action.payload.catalog),
-        }
-      };
+    } else {
       pushState(state.ui);
-      return;
     }
-    case SHOW_CATALOG_EDIT_OVERLAY: {
-      state.ui.overlay = {
-        type: OverlayType.EditCatalog,
-        catalog: action.payload.catalog,
-      };
-      replaceState(state.ui);
-      return;
-    }
-  }
-}
+  },
 
-function albumReducer(state: Draft<StoreState>, user: UserData, action: ActionType): void {
-  switch (action.type) {
-    case SHOW_ALBUM_CREATE_OVERLAY: {
-      state.ui.overlay = {
-        type: OverlayType.CreateAlbum,
-        parent: action.payload.parent,
-      };
-      replaceState(state.ui);
-      return;
-    }
-    case ALBUM_CREATED: {
-      let album = action.payload.album;
-      let catalog = user.catalogs.get(album.catalog.id);
-      if (catalog) {
-        catalog.albums.set(album.id, album);
-      }
+  closeOverlay(state: Draft<StoreState>): void {
+    state.ui.overlay = undefined;
+    replaceState(state.ui);
+  },
+};
 
-      state.ui = {
-        page: {
-          type: PageType.Album,
-          album: Album.ref(album),
-        }
-      };
-      pushState(state.ui);
-      return;
-    }
-    case SHOW_ALBUM_EDIT_OVERLAY: {
-      state.ui.overlay = {
-        type: OverlayType.EditAlbum,
-        album: action.payload.album,
-      };
-      replaceState(state.ui);
-      return;
-    }
-    case ALBUM_EDITED: {
-      let album = action.payload.album;
-      let newCatalog = user.catalogs.get(album.catalog.id);
-      if (newCatalog) {
-        for (let catalog of user.catalogs.values()) {
-          if (catalog != newCatalog && catalog.albums.has(album.id)) {
-            catalog.albums.delete(album.id);
-            break;
-          }
-        }
-        newCatalog.albums.set(album.id, album);
-      }
-
-      state.ui.overlay = undefined;
-      replaceState(state.ui);
-      return;
-    }
-  }
-}
-
-function tagReducer(_state: Draft<StoreState>, user: UserData, action: ActionType): void {
-  switch (action.type) {
-    case TAGS_CREATED: {
-      let tags = action.payload.tags;
-      for (let tag of tags) {
-        let catalog = user.catalogs.get(tag.catalog.id);
-        if (catalog) {
-          catalog.tags.set(tag.id, tag);
-        }
-      }
-      return;
-    }
-  }
-}
-
-function personReducer(_state: Draft<StoreState>, user: UserData, action: ActionType): void {
-  switch (action.type) {
-    case PERSON_CREATED: {
-      let person = action.payload.person;
-      let catalog = user.catalogs.get(person.catalog.id);
-      if (catalog) {
-        catalog.people.set(person.id, person);
-      }
-      return;
-    }
-  }
-}
-
-function authReducer(state: Draft<StoreState>, action: ActionType): void {
-  switch (action.type) {
-    case SHOW_LOGIN_OVERLAY: {
-      state.ui.overlay = {
-        type: OverlayType.Login,
-      };
-      replaceState(state.ui);
-      return;
-    }
-    case COMPLETE_LOGIN: {
-      state.serverState = action.payload;
-
-      if (action.payload.user) {
-        let catalogs = nameSorted(Array.from(action.payload.user.catalogs.values()));
-        if (catalogs.length) {
-          state.ui = {
-            page: {
-              type: PageType.Catalog,
-              catalog: Catalog.ref(catalogs[0]),
-            }
-          };
-        } else {
-          state.ui = {
-            page: {
-              type: PageType.User,
-            },
-          };
-          if (!action.payload.user.hadCatalog) {
-            state.ui.overlay = {
-              type: OverlayType.CreateCatalog,
-            };
-          }
-        }
-
-        pushState(state.ui);
-      }
-      return;
-    }
-    case SHOW_SIGNUP_OVERLAY: {
-      state.ui.overlay = {
-        type: OverlayType.Signup,
-      };
-      replaceState(state.ui);
-      return;
-    }
-    case COMPLETE_SIGNUP: {
-      state.serverState = action.payload;
-      state.ui = {
-        page: {
-          type: PageType.User,
-        },
-        overlay: {
-          type: OverlayType.CreateCatalog,
-        },
-      };
-      pushState(state.ui);
-      return;
-    }
-    case COMPLETE_LOGOUT: {
-      state.serverState = action.payload;
-      state.ui = {
-        page: {
-          type: PageType.Index,
-        },
-      };
-      pushState(state.ui);
-      return;
-    }
-  }
-}
-
-function mediaReducer(state: Draft<StoreState>, action: ActionType): void {
-  switch (action.type) {
-    case SHOW_UPLOAD_OVERLAY: {
-      state.ui.overlay = {
-        type: OverlayType.Upload,
-      };
-      pushState(state.ui);
-      return;
-    }
-  }
-}
-
-function reducer(state: Draft<StoreState>, action: ActionType): void {
-  switch (action.type) {
-    case BUMP_STATE: {
-      state.stateId++;
-      return;
-    }
-    case HISTORY_STATE_CHANGED: {
-      state.ui = action.payload;
-      return;
-    }
-    case CLOSE_OVERLAY: {
-      state.ui.overlay = undefined;
-      replaceState(state.ui);
-      return;
-    }
-  }
-
-  authReducer(state, action);
-  mediaReducer(state, action);
-  if (state.serverState.user) {
-    catalogReducer(state, state.serverState.user, action);
-    albumReducer(state, state.serverState.user, action);
-    tagReducer(state, state.serverState.user, action);
-    personReducer(state, state.serverState.user, action);
-  }
-}
-
-export default function(state: StoreState, action: ActionType): StoreState {
-  return produce(state, (draft: Draft<StoreState>) => {
-    reducer(draft, action);
-  });
-}
+export default rootReducer<StoreState>(reducers);

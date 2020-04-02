@@ -1,3 +1,5 @@
+import { Immutable } from "immer";
+
 import { Reference, Catalog, Album } from "../api/highlevel";
 import { HistoryState } from "../utils/history";
 
@@ -25,7 +27,7 @@ interface AlbumPageState {
 
 interface NotFoundPageState {
   readonly type: PageType.NotFound;
-  readonly history: HistoryState;
+  readonly history: Immutable<HistoryState>;
 }
 
 export type PageState = BasePageState | CatalogPageState | AlbumPageState | NotFoundPageState;

@@ -2,7 +2,7 @@ import React from "react";
 
 import { Catalog, Album, catalogs } from "../api/highlevel";
 import { PageType } from "../pages";
-import { showCatalogCreateOverlay, navigateAction } from "../store/actions";
+import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
 import Button from "./Button";
@@ -23,20 +23,20 @@ function mapStateToSidebarTreeProps(state: StoreState): SidebarTreeFromStateProp
 }
 
 const mapDispatchToSidebarTreeProps = {
-  navigateAction,
+  navigate: actions.navigate,
 };
 
 class SidebarTreeComponent extends BaseSiteTree<SidebarTreePassedProps, typeof mapStateToSidebarTreeProps, typeof mapDispatchToSidebarTreeProps> {
   protected onItemClicked(_: React.MouseEvent, item: TreeItem): void {
     if (item instanceof Catalog) {
-      this.props.navigateAction({
+      this.props.navigate({
         page: {
           type: PageType.Catalog,
           catalog: item.ref(),
         },
       });
     } else if (item instanceof Album) {
-      this.props.navigateAction({
+      this.props.navigate({
         page: {
           type: PageType.Album,
           album: item.ref(),
@@ -60,7 +60,7 @@ class SidebarTreeComponent extends BaseSiteTree<SidebarTreePassedProps, typeof m
 const SidebarTree = connect<SidebarTreePassedProps>()(SidebarTreeComponent, mapStateToSidebarTreeProps, mapDispatchToSidebarTreeProps);
 
 const mapDispatchToProps = {
-  showCatalogCreateOverlay: showCatalogCreateOverlay,
+  showCatalogCreateOverlay: actions.showCatalogCreateOverlay,
 };
 
 interface SidebarPassedProps {

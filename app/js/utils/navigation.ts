@@ -35,7 +35,7 @@ function matchesType(path: string, type: string): string | null {
   return null;
 }
 
-function notfound(historyState: HistoryState): UIState {
+function notfound(historyState: HistoryState): Draft<UIState> {
   return {
     page: {
       type: PageType.NotFound,
@@ -44,7 +44,7 @@ function notfound(historyState: HistoryState): UIState {
   };
 }
 
-export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
+export function intoUIState(historyState: HistoryState, serverState: ServerState): Draft<UIState> {
   switch (historyState.path) {
     case "/": {
       return {

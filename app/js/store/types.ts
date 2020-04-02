@@ -9,8 +9,8 @@ interface Settings {
 }
 
 export interface UIState {
-  page: PageState;
-  overlay?: OverlayState;
+  readonly page: PageState;
+  readonly overlay?: OverlayState;
 }
 
 export type ServerState = Immutable<ServerData>;

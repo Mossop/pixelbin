@@ -1,3 +1,4 @@
+import { Deed } from "deeds/immer";
 import { applyMiddleware, createStore, Store, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
@@ -5,13 +6,13 @@ import { ServerDataDecoder } from "../api/types";
 import { decode } from "../utils/decoders";
 import { addListener, HistoryState } from "../utils/history";
 import { getState, intoUIState } from "../utils/navigation";
-import { ActionType, historyStateChangedAction } from "./actions";
+import actions from "./actions";
 import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
 import { StoreState, ServerState } from "./types";
 
-export type StoreType = Store<StoreState, ActionType> & {
-  asyncDispatch: (action: ActionType) => Promise<StoreState>;
+export type StoreType = Store<StoreState, Deed> & {
+  asyncDispatch: (action: Deed) => Promise<StoreState>;
 };
 
 function buildStore(): StoreType {
@@ -44,7 +45,7 @@ function buildStore(): StoreType {
   let AsyncDispatch: AsyncDispatchListener | undefined;
 
   let store = createStore(
-    (state: StoreState, action: ActionType): StoreState => {
+    (state: StoreState, action: Deed): StoreState => {
       if (AsyncDispatch) {
         AsyncDispatch.seenAction(action);
       }
@@ -57,13 +58,13 @@ function buildStore(): StoreType {
   addListener((historyState: HistoryState) => {
     let uiState = intoUIState(historyState, store.getState().serverState);
     console.log("navigation", historyState, uiState);
-    store.dispatch(historyStateChangedAction(uiState));
+    store.dispatch(actions.historyStateChanged(uiState));
   });
 
   AsyncDispatch = new AsyncDispatchListener(store);
 
   return Object.assign({
-    asyncDispatch: (action: ActionType): Promise<StoreState> => {
+    asyncDispatch: (action: Deed): Promise<StoreState> => {
       return AsyncDispatch ? AsyncDispatch.dispatch(action) : Promise.resolve(store.getState());
     },
   }, store);

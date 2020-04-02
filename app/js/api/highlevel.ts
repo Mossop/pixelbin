@@ -1,6 +1,6 @@
 import { Immutable } from "immer";
 
-import { tagsCreated, personCreated } from "../store/actions";
+import actions from "../store/actions";
 import { ServerState } from "../store/types";
 import { exception, ErrorCode, InternalError, processException } from "../utils/exception";
 import { MapId, intoId, isInstance } from "../utils/maps";
@@ -357,7 +357,7 @@ export class Catalog implements Referencable<Catalog> {
 
     findTag(this.ref(), path).then(async (tags: TagData[]) => {
       const { asyncDispatch } = await import("../store");
-      await asyncDispatch(tagsCreated(tags));
+      await asyncDispatch(actions.tagsCreated(tags));
       pending.setId(tags[tags.length - 1].id);
     });
 
@@ -385,7 +385,7 @@ export class Catalog implements Referencable<Catalog> {
 
     createPerson(this.ref(), fullname).then(async (person: PersonData) => {
       const { asyncDispatch } = await import("../store");
-      await asyncDispatch(personCreated(person));
+      await asyncDispatch(actions.personCreated(person));
       pending.setId(person.id);
     });
 

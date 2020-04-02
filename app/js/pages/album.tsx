@@ -6,7 +6,7 @@ import Button from "../components/Button";
 import MediaList from "../components/MediaList";
 import Sidebar from "../components/Sidebar";
 import Throbber from "../components/Throbber";
-import { showAlbumCreateOverlay, showAlbumEditOverlay, showUploadOverlay } from "../store/actions";
+import actions from "../store/actions";
 import { PropsFor } from "../store/component";
 import { StoreState } from "../store/types";
 import { Search, Field, Operation } from "../utils/search";
@@ -27,9 +27,9 @@ function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps 
 }
 
 const mapDispatchToProps = {
-  showAlbumCreateOverlay,
-  showAlbumEditOverlay,
-  showUploadOverlay,
+  showAlbumCreateOverlay: actions.showAlbumCreateOverlay,
+  showAlbumEditOverlay: actions.showAlbumEditOverlay,
+  showUploadOverlay: actions.showUploadOverlay,
 };
 
 interface AlbumPageState {
@@ -87,7 +87,7 @@ class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof map
       return;
     }
 
-    this.props.showAlbumEditOverlay(this.props.album);
+    this.props.showAlbumEditOverlay(this.props.album.ref());
   };
 
   private onNewAlbum: (() => void) = (): void => {
@@ -95,7 +95,7 @@ class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof map
       return;
     }
 
-    this.props.showAlbumCreateOverlay(this.props.album);
+    this.props.showAlbumCreateOverlay(this.props.album.ref());
   };
 
   private onUpload: (() => void) = (): void => {
@@ -103,7 +103,7 @@ class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof map
       return;
     }
 
-    this.props.showUploadOverlay(this.props.album);
+    this.props.showUploadOverlay();
   };
 
   protected renderBannerButtons(): React.ReactNode {

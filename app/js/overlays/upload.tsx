@@ -12,7 +12,7 @@ import Media from "../components/Media";
 import Overlay from "../components/Overlay";
 import { MediaTargetSelector } from "../components/SiteTree";
 import Upload from "../components/Upload";
-import { bumpState, closeOverlay } from "../store/actions";
+import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
 import { If, Then, Else } from "../utils/Conditions";
@@ -72,8 +72,8 @@ function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStatePro
 }
 
 const mapDispatchToProps = {
-  bumpState,
-  closeOverlay,
+  bumpState: actions.bumpState,
+  closeOverlay: actions.closeOverlay,
 };
 
 interface UploadOverlayState {

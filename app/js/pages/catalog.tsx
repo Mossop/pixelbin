@@ -5,7 +5,7 @@ import { baseConnect, BasePage } from "../components/BasePage";
 import Button from "../components/Button";
 import MediaList from "../components/MediaList";
 import Sidebar from "../components/Sidebar";
-import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
+import actions from "../store/actions";
 import { PropsFor } from "../store/component";
 import { StoreState } from "../store/types";
 import { Search } from "../utils/search";
@@ -26,9 +26,9 @@ function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps 
 }
 
 const mapDispatchToProps = {
-  showUploadOverlay,
-  showCatalogEditOverlay,
-  showAlbumCreateOverlay,
+  showUploadOverlay: actions.showUploadOverlay,
+  showCatalogEditOverlay: actions.showCatalogEditOverlay,
+  showAlbumCreateOverlay: actions.showAlbumCreateOverlay,
 };
 
 class CatalogPage extends BasePage<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps> {
@@ -37,7 +37,7 @@ class CatalogPage extends BasePage<PassedProps, typeof mapStateToProps, typeof m
       return;
     }
 
-    this.props.showCatalogEditOverlay(this.props.catalog);
+    this.props.showCatalogEditOverlay(this.props.catalog.ref());
   };
 
   private onNewAlbum: (() => void) = (): void => {
@@ -45,7 +45,7 @@ class CatalogPage extends BasePage<PassedProps, typeof mapStateToProps, typeof m
       return;
     }
 
-    this.props.showAlbumCreateOverlay(this.props.catalog);
+    this.props.showAlbumCreateOverlay(this.props.catalog.ref());
   };
 
   private onUpload: (() => void) = (): void => {
@@ -53,7 +53,7 @@ class CatalogPage extends BasePage<PassedProps, typeof mapStateToProps, typeof m
       return;
     }
 
-    this.props.showUploadOverlay(this.props.catalog);
+    this.props.showUploadOverlay();
   };
 
   protected renderBannerButtons(): React.ReactNode {
