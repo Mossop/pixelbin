@@ -77,7 +77,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
           },
           overlay: {
             type: OverlayType.Upload,
-          }
+          },
         };
       }
 
@@ -95,7 +95,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
           },
           overlay: {
             type: OverlayType.Upload,
-          }
+          },
         };
       }
 
@@ -105,7 +105,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
         },
         overlay: {
           type: OverlayType.Upload,
-        }
+        },
       };
     }
 
@@ -129,7 +129,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
       page: {
         type: PageType.Catalog,
         catalog: catalog.ref(),
-      }
+      },
     };
   }
 
@@ -144,7 +144,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
       page: {
         type: PageType.Album,
         album: album.ref(),
-      }
+      },
     };
   }
 

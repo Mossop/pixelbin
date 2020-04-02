@@ -11,7 +11,7 @@ export function makeProperty<T extends object, K extends keyof T>(obj: T, prop: 
 
     set(val: T[K]): void {
       obj[prop] = val;
-    }
+    },
   };
 }
 

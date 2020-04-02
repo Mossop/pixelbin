@@ -35,7 +35,7 @@ class LoginOverlay extends React.Component<LoginOverlayProps, LoginOverlayState>
       inputs: {
         email: "",
         password: "",
-      }
+      },
     };
 
     this.inputs = proxyReactState(this, "inputs");

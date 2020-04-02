@@ -47,7 +47,7 @@ const catalogReducers = {
       page: {
         type: PageType.Catalog,
         catalog: Catalog.ref(catalog),
-      }
+      },
     };
     pushState(state.ui);
   },
@@ -80,7 +80,7 @@ const albumReducers = {
       page: {
         type: PageType.Album,
         album: Album.ref(album),
-      }
+      },
     };
     pushState(state.ui);
   },
@@ -148,7 +148,7 @@ const authReducers = {
           page: {
             type: PageType.Catalog,
             catalog: Catalog.ref(catalogs[0]),
-          }
+          },
         };
       } else {
         state.ui = {
@@ -204,7 +204,7 @@ const mediaReducers = {
       type: OverlayType.Upload,
     };
     pushState(state.ui);
-  }
+  },
 };
 
 export const reducers = {

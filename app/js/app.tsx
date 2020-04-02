@@ -19,7 +19,7 @@ export const PathsDecoder = JsonDecoder.object<Paths>(
   {
     static: JsonDecoder.string,
   },
-  "Paths"
+  "Paths",
 );
 
 let PATHS: Paths = {
@@ -44,5 +44,5 @@ ReactDOM.render(
       <Overlay/>
     </LocalizationContext>
   </Provider>,
-  document.getElementById("app")
+  document.getElementById("app"),
 );

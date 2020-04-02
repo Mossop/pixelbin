@@ -65,7 +65,7 @@ export class InputGroup<S extends object> {
 
       setInputValue: (val: S[K]): void => {
         this.setInputValue(prop, val);
-      }
+      },
     };
   }
 }

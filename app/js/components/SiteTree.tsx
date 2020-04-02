@@ -64,7 +64,7 @@ class CatalogAlbums extends VirtualCatalogItem<"albums"> {
   }
 
   public static build(catalog: Catalog): CatalogAlbums {
-    return VirtualCatalogItem.getForCatalog(catalog, "albums", );
+    return VirtualCatalogItem.getForCatalog(catalog, "albums");
   }
 
   public get id(): string {

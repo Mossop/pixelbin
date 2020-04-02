@@ -40,7 +40,7 @@ export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undef
       arr.sort(compare);
       return arr;
     },
-    `${name}[]`
+    `${name}[]`,
   );
 }
 
@@ -60,7 +60,7 @@ export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<Draf
       }
       return result;
     },
-    `MapOf<${name}>`
+    `MapOf<${name}>`,
   );
 }
 

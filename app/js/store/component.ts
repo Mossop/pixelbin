@@ -33,7 +33,7 @@ export function mergeMapStateToProps<
     let bProps: StateProps<B> = b ? b(state, ownProps) : {};
     return {
       ...aProps,
-      ...bProps
+      ...bProps,
     };
   };
 }
