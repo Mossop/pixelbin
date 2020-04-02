@@ -32,6 +32,7 @@ function allScripts(): string[] {
 
 function babelOptions(): RuleSetQuery {
   return {
+    passPerPreset: true,
     plugins: [
       "@babel/plugin-proposal-class-properties",
       "@babel/plugin-proposal-optional-chaining",

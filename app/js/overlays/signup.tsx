@@ -3,8 +3,8 @@ import React from "react";
 import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { ComponentProps, connect } from "../components/shared";
 import { completeSignup } from "../store/actions";
+import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
@@ -85,4 +85,4 @@ class SignupOverlay extends React.Component<SignupOverlayProps, SignupOverlaySta
   }
 }
 
-export default connect<{}>()(undefined, mapDispatchToProps)(SignupOverlay);
+export default connect()(SignupOverlay, undefined, mapDispatchToProps);

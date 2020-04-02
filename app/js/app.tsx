@@ -1,19 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
-import { Switch, Route, Router } from "react-router-dom";
 import { JsonDecoder } from "ts.data.json";
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 
 import LocalizationContext from "./l10n";
-import Overlay from "./overlays/index";
-import AlbumPage from "./pages/album";
-import CatalogPage from "./pages/catalog";
-import IndexPage from "./pages/index";
-import NotFound from "./pages/notfound";
-import UserPage from "./pages/user";
-import store, { history } from "./store";
+import Overlay from "./overlays";
+import Page from "./pages";
+import store from "./store";
 import { decode } from "./utils/decoders";
 
 export interface Paths {
@@ -43,18 +38,10 @@ if (pathsElement && pathsElement.textContent) {
 ReactDOM.render(
   <Provider store={store}>
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
-      <Router history={history}>
-        <div id="main">
-          <Switch>
-            <Route path="/user" component={UserPage}/>
-            <Route path="/catalog/:id" component={CatalogPage}/>
-            <Route path="/album/:id" component={AlbumPage}/>
-            <Route exact path="/" component={IndexPage}/>
-            <Route component={NotFound}/>
-          </Switch>
-        </div>
-        <Overlay/>
-      </Router>
+      <div id="main">
+        <Page/>
+      </div>
+      <Overlay/>
     </LocalizationContext>
   </Provider>,
   document.getElementById("app")

@@ -1,12 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
 
 import { logout } from "../api/auth";
+import { PageType } from "../pages";
 import { showLoginOverlay, showSignupOverlay, completeLogout } from "../store/actions";
+import { connect, ComponentProps } from "../store/component";
 import { If, Then, Else } from "../utils/Conditions";
 import { isLoggedIn } from "../utils/helpers";
-import { Button } from "./Button";
-import { ComponentProps, connect } from "./shared";
+import Button from "./Button";
+import Link from "./Link";
 
 const mapDispatchToProps = {
   openLoginOverlay: showLoginOverlay,
@@ -14,8 +15,7 @@ const mapDispatchToProps = {
   completeLogout: completeLogout,
 };
 
-type BannerProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
-class Banner extends React.Component<BannerProps> {
+class Banner extends React.Component<ComponentProps<{}, {}, typeof mapDispatchToProps>> {
   private logout: (() => void) = async (): Promise<void> => {
     let state = await logout();
     this.props.completeLogout(state);
@@ -23,7 +23,7 @@ class Banner extends React.Component<BannerProps> {
 
   public render(): React.ReactNode {
     return <div id="banner">
-      <h1 id="logo"><Link to="/">PixelBin</Link></h1>
+      <h1 id="logo"><Link to={{ page: { type: PageType.Index } }}>PixelBin</Link></h1>
       <div id="rightbanner">
         {this.props.children}
         <If condition={isLoggedIn}>
@@ -40,4 +40,4 @@ class Banner extends React.Component<BannerProps> {
   }
 }
 
-export default connect<{}>()(undefined, mapDispatchToProps)(Banner);
+export default connect()(Banner, undefined, mapDispatchToProps);

@@ -1,22 +1,19 @@
 import React from "react";
-import { RouteComponentProps } from "react-router";
 
-import { Catalog } from "../api/highlevel";
-import { baseConnect, BasePage, BasePageProps } from "../components/BasePage";
-import { Button } from "../components/Button";
+import { Catalog, Reference } from "../api/highlevel";
+import { baseConnect, BasePage } from "../components/BasePage";
+import Button from "../components/Button";
 import MediaList from "../components/MediaList";
-import { ComponentProps, connect } from "../components/shared";
-import { SidebarProps } from "../components/Sidebar";
+import Sidebar from "../components/Sidebar";
 import { showUploadOverlay, showCatalogEditOverlay, showAlbumCreateOverlay } from "../store/actions";
+import { PropsFor } from "../store/component";
 import { StoreState } from "../store/types";
 import { Search } from "../utils/search";
 import NotFound from "./notfound";
 
-interface MatchParams {
-  id: string;
+interface PassedProps {
+  catalog: Reference<Catalog>;
 }
-
-type PassedProps = BasePageProps & RouteComponentProps<MatchParams>;
 
 interface FromStateProps {
   catalog: Catalog | undefined;
@@ -24,7 +21,7 @@ interface FromStateProps {
 
 function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps {
   return {
-    catalog: Catalog.safeFromState(state, props.match.params.id),
+    catalog: props.catalog.deref(state.serverState),
   };
 }
 
@@ -34,8 +31,7 @@ const mapDispatchToProps = {
   showAlbumCreateOverlay,
 };
 
-type CatalogPageProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
-class CatalogPage extends BasePage<CatalogPageProps> {
+class CatalogPage extends BasePage<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps> {
   private onEdit: (() => void) = (): void => {
     if (!this.props.user || !this.props.catalog) {
       return;
@@ -72,7 +68,7 @@ class CatalogPage extends BasePage<CatalogPageProps> {
     }
   }
 
-  protected getSidebarProps(): Partial<SidebarProps> {
+  protected getSidebarProps(): Partial<PropsFor<typeof Sidebar>> {
     return {
       selectedItem: this.props.catalog,
     };
@@ -90,4 +86,4 @@ class CatalogPage extends BasePage<CatalogPageProps> {
   }
 }
 
-export default baseConnect(connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(CatalogPage));
+export default baseConnect<PassedProps>()(CatalogPage, mapStateToProps, mapDispatchToProps);

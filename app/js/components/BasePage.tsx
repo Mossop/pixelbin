@@ -2,29 +2,38 @@ import { Immutable } from "immer";
 import React from "react";
 
 import { UserData } from "../api/types";
+import { ComponentProps, MapStateToProps, MapDispatchToProps, PropsFor, MergedMapStateToProps, mergedConnect } from "../store/component";
 import { StoreState } from "../store/types";
 import Banner from "./Banner";
-import { ComponentProps, connect } from "./shared";
-import Sidebar, { SidebarProps as SidebarProps } from "./Sidebar";
+import Sidebar from "./Sidebar";
 
 export interface FromStateProps {
   user: Immutable<UserData> | null;
 }
 
-function mapStateToProps(state: StoreState): FromStateProps {
+function baseMapStateToProps(state: StoreState): FromStateProps {
   return {
     user: state.serverState.user,
   };
 }
 
-export type BasePageProps = ComponentProps<{}, typeof mapStateToProps>;
-export type BasePageState = {};
-export class BasePage<P, S extends BasePageState = BasePageState> extends React.Component<P & BasePageProps, S> {
+export type PageProps<
+  PP extends {} = {},
+  SP extends MapStateToProps<PP> | {} = {},
+  DP extends MapDispatchToProps<PP> | {} = {},
+> = ComponentProps<PP, MergedMapStateToProps<PP, SP, typeof baseMapStateToProps>, DP>;
+
+export class BasePage<
+  PP extends {} = {},
+  SP extends MapStateToProps<PP> | {} = {},
+  DP extends MapDispatchToProps<PP> | {} = {},
+  S = {}
+> extends React.Component<PageProps<PP, SP, DP>, S> {
   protected renderBannerButtons(): React.ReactNode {
     return null;
   }
 
-  protected getSidebarProps(): Partial<SidebarProps> {
+  protected getSidebarProps(): Partial<PropsFor<typeof Sidebar>> {
     return {};
   }
 
@@ -50,4 +59,4 @@ export class BasePage<P, S extends BasePageState = BasePageState> extends React.
   }
 }
 
-export const baseConnect = connect<{}>()(mapStateToProps);
+export const baseConnect = mergedConnect(baseMapStateToProps);

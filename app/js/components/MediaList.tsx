@@ -3,10 +3,10 @@ import React from "react";
 
 import { mediaRef } from "../api/highlevel";
 import { thumbnail, searchMedia, getMedia, isProcessed, ProcessedMediaData, MediaData } from "../api/media";
+import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
 import { Search } from "../utils/search";
 import MediaThumbnail from "./MediaThumbnail";
-import { ComponentProps, connect } from "./shared";
 import Throbber from "./Throbber";
 
 const POLL_TIMEOUT = 5000;
@@ -37,10 +37,10 @@ function mapStateToProps(state: StoreState): FromStateProps {
   };
 }
 
-type MediaListProps = ComponentProps<PassedProps, typeof mapStateToProps>;
 interface MediaListState {
   mediaMap: MediaDataMap | null;
 }
+type MediaListProps = ComponentProps<PassedProps, typeof mapStateToProps, {}>;
 class MediaList extends React.Component<MediaListProps, MediaListState> {
   private pendingSearch: number;
   private pendingProcessing: Map<string, MediaData>;
@@ -210,4 +210,4 @@ class MediaList extends React.Component<MediaListProps, MediaListState> {
   }
 }
 
-export default connect<PassedProps>()(mapStateToProps)(MediaList);
+export default connect<PassedProps>()(MediaList, mapStateToProps);

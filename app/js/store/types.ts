@@ -1,63 +1,23 @@
-import { Action } from "history";
 import { Immutable } from "immer";
 
-import { Reference, Catalog, Album } from "../api/highlevel";
-import { MediaTarget } from "../api/media";
 import { ServerData } from "../api/types";
-
-export enum OverlayType {
-  Login = "login",
-  Signup = "signup",
-  CreateCatalog = "createCatalog",
-  EditCatalog = "editCatalog",
-  CreateAlbum = "createAlbum",
-  EditAlbum = "editAlbum",
-  Upload = "upload",
-}
-
-interface BaseOverlayState {
-  readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CreateCatalog;
-}
-
-interface UploadOverlayState {
-  readonly type: OverlayType.Upload;
-  readonly target: Reference<MediaTarget> | undefined;
-}
-
-interface CatalogEditOverlayState {
-  readonly type: OverlayType.EditCatalog;
-  readonly catalog: Reference<Catalog>;
-}
-
-interface AlbumCreateOverlayState {
-  readonly type: OverlayType.CreateAlbum;
-  readonly parent: Reference<MediaTarget>;
-}
-
-interface AlbumEditOverlayState {
-  readonly type: OverlayType.EditAlbum;
-  readonly album: Reference<Album>;
-}
-
-export type OverlayState = BaseOverlayState | UploadOverlayState | CatalogEditOverlayState | AlbumCreateOverlayState | AlbumEditOverlayState;
+import { OverlayState } from "../overlays";
+import { PageState } from "../pages";
 
 interface Settings {
   readonly thumbnailSize: number;
 }
 
-export type LocationState = undefined;
-
-export interface HistoryState {
-  readonly url: URL;
-  readonly state: LocationState;
-  readonly length: number;
-  readonly action: Action;
+export interface UIState {
+  page: PageState;
+  overlay?: OverlayState;
 }
 
+export type ServerState = Immutable<ServerData>;
+
 export interface StoreState {
-  readonly serverState: Immutable<ServerData>;
-  readonly overlay?: OverlayState;
+  readonly serverState: ServerState;
+  readonly ui: UIState;
   readonly settings: Settings;
-  readonly historyState: HistoryState | null;
   readonly stateId: number;
 }

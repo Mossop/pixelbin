@@ -5,9 +5,9 @@ import { createCatalog } from "../api/catalog";
 import { UserData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { ComponentProps, connect } from "../components/shared";
 import { renderStorageConfigUI, StorageData } from "../storage";
 import { catalogCreated } from "../store/actions";
+import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
@@ -25,14 +25,13 @@ const mapDispatchToProps = {
   catalogCreated,
 };
 
-type CatalogOverlayProps = ComponentProps<PassedProps, {}, typeof mapDispatchToProps>;
-
 interface CatalogOverlayState {
   disabled: boolean;
   inputs: InputFields;
   error?: AppError;
 }
 
+type CatalogOverlayProps = ComponentProps<PassedProps, {}, typeof mapDispatchToProps>;
 class CatalogOverlay extends React.Component<CatalogOverlayProps, CatalogOverlayState> {
   private inputs: InputFields;
 
@@ -84,4 +83,4 @@ class CatalogOverlay extends React.Component<CatalogOverlayProps, CatalogOverlay
   }
 }
 
-export default connect<PassedProps>()(undefined, mapDispatchToProps)(CatalogOverlay);
+export default connect<PassedProps>()(CatalogOverlay, undefined, mapDispatchToProps);

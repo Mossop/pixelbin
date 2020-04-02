@@ -226,6 +226,7 @@ export async function makeRequest<D>(path: ApiMethod, request: RequestData<D>): 
   try {
     return await request.decode(response);
   } catch (e) {
+    console.error(e);
     exception(ErrorCode.DecodeError);
   }
 }

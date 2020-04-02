@@ -330,6 +330,7 @@ export interface MediaThumbnail {
 }
 
 export enum ApiMethod {
+  State = "state",
   Login = "login",
   Logout = "logout",
   UserCreate = "user/create",
@@ -349,6 +350,7 @@ export enum ApiMethod {
 }
 
 export const HttpMethods: MethodList = {
+  [ApiMethod.State]: "PUT",
   [ApiMethod.Login]: "POST",
   [ApiMethod.Logout]: "POST",
   [ApiMethod.UserCreate]: "PUT",
@@ -367,6 +369,7 @@ export const HttpMethods: MethodList = {
   [ApiMethod.MediaThumbnail]: "GET",
 };
 
+export function request(method: ApiMethod.State): Promise<ServerData>;
 export function request(method: ApiMethod.Login, data: LoginData): Promise<ServerData>;
 export function request(method: ApiMethod.Logout): Promise<ServerData>;
 export function request(method: ApiMethod.UserCreate, data: UserCreateData): Promise<ServerData>;
@@ -389,6 +392,9 @@ export function request(path: ApiMethod, data?: any): Promise<object | void> {
   let request: RequestData<object | void>;
 
   switch (path) {
+    case ApiMethod.State:
+      request = new RequestData(JsonDecoderDecoder(ServerDataDecoder));
+      break;
     case ApiMethod.Login:
       request = new JsonRequestData(data, JsonDecoderDecoder(ServerDataDecoder));
       break;

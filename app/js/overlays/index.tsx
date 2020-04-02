@@ -1,24 +1,32 @@
 import { Immutable } from "immer";
 import React from "react";
 
+import { Reference } from "../api/highlevel";
+import { MediaTarget } from "../api/media";
 import { UserData } from "../api/types";
-import { ComponentProps, connect } from "../components/shared";
+import { PageState, PageType } from "../pages";
 import { closeOverlay } from "../store/actions";
-import { StoreState, OverlayState, OverlayType } from "../store/types";
+import { ComponentProps, connect } from "../store/component";
+import { StoreState } from "../store/types";
 import AlbumOverlay from "./album";
 import CatalogOverlay from "./catalog";
 import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
+import { OverlayState, OverlayType } from "./types";
 import UploadOverlay from "./upload";
 
+export * from "./types";
+
 interface FromStateProps {
+  page: PageState;
   overlay?: OverlayState;
   user: Immutable<UserData> | null;
 }
 
 function mapStateToProps(state: StoreState): FromStateProps {
   return {
-    overlay: state.overlay,
+    page: state.ui.page,
+    overlay: state.ui.overlay,
     user: state.serverState.user,
   };
 }
@@ -27,8 +35,7 @@ const mapDispatchToProps = {
   closeOverlay,
 };
 
-type OverlayDisplayProps = ComponentProps<{}, typeof mapStateToProps, typeof mapDispatchToProps>;
-class OverlayDisplay extends React.Component<OverlayDisplayProps> {
+class OverlayDisplay extends React.Component<ComponentProps<{}, typeof mapStateToProps, typeof mapDispatchToProps>> {
   public componentDidMount(): void {
     document.addEventListener("keydown", this.onKeyDown, true);
   }
@@ -90,7 +97,14 @@ class OverlayDisplay extends React.Component<OverlayDisplayProps> {
           break;
         }
         case OverlayType.Upload: {
-          overlay = <UploadOverlay target={overlayState.target}/>;
+          let target: Reference<MediaTarget> | undefined = undefined;
+          if (this.props.page.type == PageType.Catalog) {
+            target = this.props.page.catalog;
+          } else if (this.props.page.type == PageType.Album) {
+            target = this.props.page.album;
+          }
+
+          overlay = <UploadOverlay target={target}/>;
           break;
         }
       }
@@ -110,4 +124,4 @@ class OverlayDisplay extends React.Component<OverlayDisplayProps> {
   }
 }
 
-export default connect<{}>()(mapStateToProps, mapDispatchToProps)(OverlayDisplay);
+export default connect()(OverlayDisplay, mapStateToProps, mapDispatchToProps);

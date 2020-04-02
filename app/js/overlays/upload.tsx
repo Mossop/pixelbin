@@ -6,14 +6,14 @@ import { Reference, Catalog, Derefer, derefer, Tag, Person } from "../api/highle
 import { createMedia, MediaTarget } from "../api/media";
 import { setOrientation } from "../api/metadata";
 import { MediaCreateData } from "../api/types";
-import { Button } from "../components/Button";
+import Button from "../components/Button";
 import { FormFields, FormField } from "../components/Form";
 import Media from "../components/Media";
 import Overlay from "../components/Overlay";
-import { ComponentProps, connect } from "../components/shared";
 import { MediaTargetSelector } from "../components/SiteTree";
 import Upload from "../components/Upload";
 import { bumpState, closeOverlay } from "../store/actions";
+import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
 import { If, Then, Else } from "../utils/Conditions";
 import { exception, ErrorCode } from "../utils/exception";
@@ -60,14 +60,14 @@ interface PassedProps {
 }
 
 interface FromStateProps {
-  target?: MediaTarget;
+  target: MediaTarget | undefined;
   deref: Derefer;
 }
 
 function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
   return {
-    target: ownProps.target?.deref(state),
-    deref: derefer(state),
+    target: ownProps.target?.deref(state.serverState),
+    deref: derefer(state.serverState),
   };
 }
 
@@ -379,4 +379,4 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
   }
 }
 
-export default connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(UploadOverlay);
+export default connect<PassedProps>()(UploadOverlay, mapStateToProps, mapDispatchToProps);

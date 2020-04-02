@@ -3,8 +3,8 @@ import React from "react";
 import { login } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { ComponentProps, connect } from "../components/shared";
 import { completeLogin } from "../store/actions";
+import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
@@ -77,4 +77,4 @@ class LoginOverlay extends React.Component<LoginOverlayProps, LoginOverlayState>
   }
 }
 
-export default connect<{}>()(undefined, mapDispatchToProps)(LoginOverlay);
+export default connect()(LoginOverlay, undefined, mapDispatchToProps);

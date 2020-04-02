@@ -1,23 +1,20 @@
 import React from "react";
-import { RouteComponentProps } from "react-router";
 
-import { Album, Catalog } from "../api/highlevel";
-import { BasePage, baseConnect, BasePageState, BasePageProps } from "../components/BasePage";
-import { Button } from "../components/Button";
+import { Album, Catalog, Reference } from "../api/highlevel";
+import { BasePage, baseConnect, PageProps } from "../components/BasePage";
+import Button from "../components/Button";
 import MediaList from "../components/MediaList";
-import { ComponentProps, connect } from "../components/shared";
-import { SidebarProps } from "../components/Sidebar";
+import Sidebar from "../components/Sidebar";
 import Throbber from "../components/Throbber";
 import { showAlbumCreateOverlay, showAlbumEditOverlay, showUploadOverlay } from "../store/actions";
+import { PropsFor } from "../store/component";
 import { StoreState } from "../store/types";
 import { Search, Field, Operation } from "../utils/search";
 import NotFound from "./notfound";
 
-interface MatchParams {
-  id: string;
+interface PassedProps {
+  album: Reference<Album>;
 }
-
-type PassedProps = BasePageProps & RouteComponentProps<MatchParams>;
 
 interface FromStateProps {
   album?: Album;
@@ -25,7 +22,7 @@ interface FromStateProps {
 
 function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps {
   return {
-    album: Album.safeFromState(state, props.match.params.id),
+    album: props.album.deref(state.serverState),
   };
 }
 
@@ -35,15 +32,15 @@ const mapDispatchToProps = {
   showUploadOverlay,
 };
 
-type AlbumPageState = BasePageState & {
+interface AlbumPageState {
   album?: Album;
   catalog?: Catalog;
   search?: Search;
   pending: boolean;
-};
+}
 
-type AlbumPageProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
-class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
+type AlbumPageProps = PageProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
+class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps, AlbumPageState> {
   public constructor(props: AlbumPageProps) {
     super(props);
 
@@ -80,7 +77,7 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
   }
 
   public componentDidUpdate(prevProps: AlbumPageProps): void {
-    if (prevProps.match.params.id !== this.props.match.params.id) {
+    if (prevProps.album !== this.props.album) {
       this.componentDidMount();
     }
   }
@@ -121,7 +118,7 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
     }
   }
 
-  protected getSidebarProps(): Partial<SidebarProps> {
+  protected getSidebarProps(): Partial<PropsFor<typeof Sidebar>> {
     return {
       selectedItem: this.state.album,
     };
@@ -140,4 +137,4 @@ class AlbumPage extends BasePage<AlbumPageProps, AlbumPageState> {
   }
 }
 
-export default baseConnect(connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(AlbumPage));
+export default baseConnect<PassedProps>()(AlbumPage, mapStateToProps, mapDispatchToProps);

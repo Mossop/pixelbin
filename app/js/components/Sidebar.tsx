@@ -1,11 +1,11 @@
 import React from "react";
 
 import { Catalog, Album, catalogs } from "../api/highlevel";
-import { history } from "../store";
-import { showCatalogCreateOverlay } from "../store/actions";
+import { PageType } from "../pages";
+import { showCatalogCreateOverlay, navigateAction } from "../store/actions";
+import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
-import { Button } from "./Button";
-import { ComponentProps, connect } from "./shared";
+import Button from "./Button";
 import { TreeItem, BaseSiteTree } from "./SiteTree";
 
 interface SidebarTreePassedProps {
@@ -18,17 +18,30 @@ interface SidebarTreeFromStateProps {
 
 function mapStateToSidebarTreeProps(state: StoreState): SidebarTreeFromStateProps {
   return {
-    catalogs: catalogs(state),
+    catalogs: catalogs(state.serverState),
   };
 }
 
-type SidebarTreeProps = ComponentProps<SidebarTreePassedProps, typeof mapStateToSidebarTreeProps>;
-class SidebarTreeComponent extends BaseSiteTree<SidebarTreeProps> {
+const mapDispatchToSidebarTreeProps = {
+  navigateAction,
+};
+
+class SidebarTreeComponent extends BaseSiteTree<SidebarTreePassedProps, typeof mapStateToSidebarTreeProps, typeof mapDispatchToSidebarTreeProps> {
   protected onItemClicked(_: React.MouseEvent, item: TreeItem): void {
     if (item instanceof Catalog) {
-      history.push(`/catalog/${item.id}`);
+      this.props.navigateAction({
+        page: {
+          type: PageType.Catalog,
+          catalog: item.ref(),
+        },
+      });
     } else if (item instanceof Album) {
-      history.push(`/album/${item.id}`);
+      this.props.navigateAction({
+        page: {
+          type: PageType.Album,
+          album: item.ref(),
+        },
+      });
     }
   }
 
@@ -44,7 +57,7 @@ class SidebarTreeComponent extends BaseSiteTree<SidebarTreeProps> {
     return this.renderItems(this.props.catalogs);
   }
 }
-const SidebarTree = connect<SidebarTreePassedProps>()(mapStateToSidebarTreeProps)(SidebarTreeComponent);
+const SidebarTree = connect<SidebarTreePassedProps>()(SidebarTreeComponent, mapStateToSidebarTreeProps, mapDispatchToSidebarTreeProps);
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: showCatalogCreateOverlay,
@@ -54,8 +67,7 @@ interface SidebarPassedProps {
   selectedItem?: TreeItem;
 }
 
-export type SidebarProps = ComponentProps<SidebarPassedProps, {}, typeof mapDispatchToProps>;
-class Sidebar extends React.Component<SidebarProps> {
+class Sidebar extends React.Component<ComponentProps<SidebarPassedProps, {}, typeof mapDispatchToProps>> {
   public render(): React.ReactNode {
     return <div id="sidebar">
       <div id="catalog-tree">
@@ -66,4 +78,4 @@ class Sidebar extends React.Component<SidebarProps> {
   }
 }
 
-export default connect<SidebarPassedProps>()(undefined, mapDispatchToProps)(Sidebar);
+export default connect<SidebarPassedProps>()(Sidebar, undefined, mapDispatchToProps);

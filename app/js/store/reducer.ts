@@ -1,11 +1,12 @@
-import { LocationState } from "history";
 import { produce, Draft } from "immer";
 
-import { history } from ".";
+import { Catalog, Album } from "../api/highlevel";
 import { UserData } from "../api/types";
+import { OverlayType } from "../overlays";
+import { PageType } from "../pages";
+import { replaceState, pushState } from "../utils/navigation";
 import { nameSorted } from "../utils/sort";
 import { ActionType,
-  SET_HISTORY_STATE,
   SHOW_LOGIN_OVERLAY,
   SHOW_SIGNUP_OVERLAY,
   SHOW_CATALOG_CREATE_OVERLAY,
@@ -22,32 +23,36 @@ import { ActionType,
   ALBUM_EDITED, 
   BUMP_STATE,
   TAGS_CREATED,
-  PERSON_CREATED} from "./actions";
-import { StoreState, OverlayType, HistoryState } from "./types";
-
-function navigate(path: string, state?: LocationState): HistoryState {
-  return history.pushWithoutDispatch(path, state);
-}
+  PERSON_CREATED,
+  HISTORY_STATE_CHANGED} from "./actions";
+import { StoreState } from "./types";
 
 function catalogReducer(state: Draft<StoreState>, user: UserData, action: ActionType): void {
   switch (action.type) {
     case SHOW_CATALOG_CREATE_OVERLAY: {
-      state.overlay = {
+      state.ui.overlay = {
         type: OverlayType.CreateCatalog,
       };
+      replaceState(state.ui);
       return;
     }
     case CATALOG_CREATED: {
       user.catalogs.set(action.payload.catalog.id, action.payload.catalog);
-      state.overlay = undefined;
-      state.historyState = navigate(`/catalog/${action.payload.catalog.id}`);
+      state.ui = {
+        page: {
+          type: PageType.Catalog,
+          catalog: Catalog.ref(action.payload.catalog),
+        }
+      };
+      pushState(state.ui);
       return;
     }
     case SHOW_CATALOG_EDIT_OVERLAY: {
-      state.overlay = {
+      state.ui.overlay = {
         type: OverlayType.EditCatalog,
         catalog: action.payload.catalog,
       };
+      replaceState(state.ui);
       return;
     }
   }
@@ -56,10 +61,11 @@ function catalogReducer(state: Draft<StoreState>, user: UserData, action: Action
 function albumReducer(state: Draft<StoreState>, user: UserData, action: ActionType): void {
   switch (action.type) {
     case SHOW_ALBUM_CREATE_OVERLAY: {
-      state.overlay = {
+      state.ui.overlay = {
         type: OverlayType.CreateAlbum,
         parent: action.payload.parent,
       };
+      replaceState(state.ui);
       return;
     }
     case ALBUM_CREATED: {
@@ -69,16 +75,21 @@ function albumReducer(state: Draft<StoreState>, user: UserData, action: ActionTy
         catalog.albums.set(album.id, album);
       }
 
-      state.overlay = undefined;
-      state.historyState = navigate(`/album/${album.id}`);
+      state.ui = {
+        page: {
+          type: PageType.Album,
+          album: Album.ref(album),
+        }
+      };
+      pushState(state.ui);
       return;
     }
     case SHOW_ALBUM_EDIT_OVERLAY: {
-      state.overlay = {
+      state.ui.overlay = {
         type: OverlayType.EditAlbum,
         album: action.payload.album,
       };
-
+      replaceState(state.ui);
       return;
     }
     case ALBUM_EDITED: {
@@ -94,7 +105,8 @@ function albumReducer(state: Draft<StoreState>, user: UserData, action: ActionTy
         newCatalog.albums.set(album.id, album);
       }
 
-      state.overlay = undefined;
+      state.ui.overlay = undefined;
+      replaceState(state.ui);
       return;
     }
   }
@@ -131,9 +143,10 @@ function personReducer(_state: Draft<StoreState>, user: UserData, action: Action
 function authReducer(state: Draft<StoreState>, action: ActionType): void {
   switch (action.type) {
     case SHOW_LOGIN_OVERLAY: {
-      state.overlay = {
+      state.ui.overlay = {
         type: OverlayType.Login,
       };
+      replaceState(state.ui);
       return;
     }
     case COMPLETE_LOGIN: {
@@ -142,35 +155,57 @@ function authReducer(state: Draft<StoreState>, action: ActionType): void {
       if (action.payload.user) {
         let catalogs = nameSorted(Array.from(action.payload.user.catalogs.values()));
         if (catalogs.length) {
-          state.historyState = navigate(`/catalog/${catalogs[0].id}`);
+          state.ui = {
+            page: {
+              type: PageType.Catalog,
+              catalog: Catalog.ref(catalogs[0]),
+            }
+          };
         } else {
-          state.historyState = navigate("/user");
+          state.ui = {
+            page: {
+              type: PageType.User,
+            },
+          };
           if (!action.payload.user.hadCatalog) {
-            state.overlay = {
+            state.ui.overlay = {
               type: OverlayType.CreateCatalog,
             };
           }
         }
+
+        pushState(state.ui);
       }
       return;
     }
     case SHOW_SIGNUP_OVERLAY: {
-      state.overlay = {
+      state.ui.overlay = {
         type: OverlayType.Signup,
       };
+      replaceState(state.ui);
       return;
     }
     case COMPLETE_SIGNUP: {
       state.serverState = action.payload;
-      state.overlay = {
-        type: OverlayType.CreateCatalog,
+      state.ui = {
+        page: {
+          type: PageType.User,
+        },
+        overlay: {
+          type: OverlayType.CreateCatalog,
+        },
       };
-      state.historyState = navigate("/user");
+      pushState(state.ui);
       return;
     }
     case COMPLETE_LOGOUT: {
       state.serverState = action.payload;
-      state.historyState = navigate("/");
+      state.ui = {
+        page: {
+          type: PageType.Index,
+        },
+      };
+      pushState(state.ui);
       return;
     }
   }
@@ -179,10 +214,10 @@ function authReducer(state: Draft<StoreState>, action: ActionType): void {
 function mediaReducer(state: Draft<StoreState>, action: ActionType): void {
   switch (action.type) {
     case SHOW_UPLOAD_OVERLAY: {
-      state.overlay = {
+      state.ui.overlay = {
         type: OverlayType.Upload,
-        target: action.payload.target,
       };
+      pushState(state.ui);
       return;
     }
   }
@@ -194,12 +229,13 @@ function reducer(state: Draft<StoreState>, action: ActionType): void {
       state.stateId++;
       return;
     }
-    case SET_HISTORY_STATE: {
-      state.historyState = action.payload;
+    case HISTORY_STATE_CHANGED: {
+      state.ui = action.payload;
       return;
     }
     case CLOSE_OVERLAY: {
-      state.overlay = undefined;
+      state.ui.overlay = undefined;
+      replaceState(state.ui);
       return;
     }
   }

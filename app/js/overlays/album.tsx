@@ -8,9 +8,9 @@ import { MediaTarget } from "../api/media";
 import { AlbumCreateData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { ComponentProps, connect } from "../components/shared";
 import { MediaTargetSelector } from "../components/SiteTree";
 import { albumCreated, albumEdited } from "../store/actions";
+import { ComponentProps, connect } from "../store/component";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode, AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
@@ -27,8 +27,8 @@ interface PassedProps {
 }
 
 interface FromStateProps {
-  album?: Album;
-  parent?: MediaTarget;
+  album: Album | undefined;
+  parent: MediaTarget | undefined;
   deref: Derefer;
 }
 
@@ -37,11 +37,11 @@ function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStatePro
     exception(ErrorCode.InvalidState);
   }
 
-  let album = ownProps.album?.deref(state);
+  let album = ownProps.album?.deref(state.serverState);
   return {
     album,
-    parent: album ? album.parent : ownProps.parent?.deref(state),
-    deref: derefer(state),
+    parent: album ? album.parent : ownProps.parent?.deref(state.serverState),
+    deref: derefer(state.serverState),
   };
 }
 
@@ -146,4 +146,4 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
   }
 }
 
-export default connect<PassedProps>()(mapStateToProps, mapDispatchToProps)(AlbumOverlay);
+export default connect<PassedProps>()(AlbumOverlay, mapStateToProps, mapDispatchToProps);

@@ -2,9 +2,9 @@ import { Localized } from "@fluent/react";
 import React from "react";
 
 import { closeOverlay } from "../store/actions";
+import { connect, ComponentProps } from "../store/component";
 import { AppError } from "../utils/exception";
-import { Button } from "./Button";
-import { ComponentProps, connect } from "./shared";
+import Button from "./Button";
 
 interface PassedProps {
   title?: string | React.ReactNode;
@@ -17,8 +17,7 @@ const mapDispatchToProps = {
   closeOverlay,
 };
 
-export type OverlayProps = ComponentProps<PassedProps, {}, typeof mapDispatchToProps>;
-class Overlay extends React.Component<OverlayProps> {
+class Overlay extends React.Component<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
   public renderError(): React.ReactNode {
     if (this.props.error) {
       return <Localized {...this.props.error.l10nAttributes()}>
@@ -69,4 +68,4 @@ class Overlay extends React.Component<OverlayProps> {
   }
 }
 
-export default connect<PassedProps>()(undefined, mapDispatchToProps)(Overlay);
+export default connect<PassedProps>()(Overlay, undefined, mapDispatchToProps);

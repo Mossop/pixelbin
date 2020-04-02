@@ -2,10 +2,10 @@ import React from "react";
 
 import { MediaData, isProcessed } from "../api/media";
 import { getOrientation } from "../api/metadata";
+import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
-import { ComponentProps, connect } from "./shared";
 
 interface PassedProps {
   media: MediaData;
@@ -24,8 +24,7 @@ function mapStateToProps(state: StoreState): FromStateProps {
   };
 }
 
-type MediaThumbnailProps = ComponentProps<PassedProps, typeof mapStateToProps>;
-class MediaThumbnail extends React.Component<MediaThumbnailProps> {
+class MediaThumbnail extends React.Component<ComponentProps<PassedProps, typeof mapStateToProps>> {
   public render(): React.ReactNode {
     let size = `${this.props.size}px`;
     if (isProcessed(this.props.media) && this.props.thumbnail) {
@@ -43,4 +42,4 @@ class MediaThumbnail extends React.Component<MediaThumbnailProps> {
   }
 }
 
-export default connect<PassedProps>()(mapStateToProps)(MediaThumbnail);
+export default connect<PassedProps>()(MediaThumbnail, mapStateToProps);

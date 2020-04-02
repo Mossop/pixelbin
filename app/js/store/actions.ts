@@ -4,7 +4,7 @@ import { Album, Catalog, Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { ServerData, CatalogData, AlbumData, TagData, PersonData } from "../api/types";
 import { ErrorCode } from "../utils/exception";
-import { HistoryState } from "./types";
+import { UIState } from "./types";
 
 export const SHOW_LOGIN_OVERLAY = "SHOW_LOGIN_OVERLAY";
 export const SHOW_SIGNUP_OVERLAY = "SHOW_SIGNUP_OVERLAY";
@@ -14,7 +14,6 @@ export const COMPLETE_SIGNUP = "COMPLETE_SIGNUP";
 export const COMPLETE_LOGOUT = "COMPLETE_LOGOUT";
 export const CATALOG_CREATED = "CATALOG_CREATED";
 export const SHOW_CATALOG_CREATE_OVERLAY = "SHOW_CATALOG_CREATE_OVERLAY";
-export const SET_HISTORY_STATE = "SET_HISTORY_STATE";
 export const SHOW_UPLOAD_OVERLAY = "SHOW_UPLOAD_OVERLAY";
 export const SHOW_CATALOG_EDIT_OVERLAY = "SHOW_CATALOG_EDIT_OVERLAY";
 export const SHOW_ALBUM_CREATE_OVERLAY = "SHOW_ALBUM_CREATE_OVERLAY";
@@ -25,6 +24,8 @@ export const TAGS_CREATED = "TAGS_CREATED";
 export const PERSON_CREATED = "PERSON_CREATED";
 export const BUMP_STATE = "BUMP_STATE";
 export const EXCEPTION = "EXCEPTION";
+export const HISTORY_STATE_CHANGED = "HISTORY_STATE_CHANGED";
+export const NAVIGATE = "NAVIGATE";
 
 export interface BaseAction extends Action{
   type: string;
@@ -40,7 +41,6 @@ export type ActionType =
   CompleteLogoutAction |
   CatalogCreatedAction |
   ShowCatalogCreateOverlayAction |
-  SetHistoryStateAction |
   ShowUploadOverlayAction |
   ShowCatalogEditOverlayAction |
   ShowAlbumCreateOverlayAction |
@@ -50,7 +50,21 @@ export type ActionType =
   AlbumCreatedAction |
   AlbumEditedAction |
   BumpStateAction |
-  ExceptionAction;
+  ExceptionAction |
+  HistoryStateChangedAction |
+  NavigateAction;
+
+interface NavigateAction extends BaseAction {
+  type: typeof NAVIGATE;
+  payload: UIState;
+}
+
+export function navigateAction(target: UIState): NavigateAction {
+  return {
+    type: NAVIGATE,
+    payload: target,
+  };
+}
 
 interface ExceptionAction extends BaseAction {
   type: typeof EXCEPTION;
@@ -61,6 +75,18 @@ export function exceptionAction(code: ErrorCode): ExceptionAction {
   return {
     type: EXCEPTION,
     payload: code,
+  };
+}
+
+interface HistoryStateChangedAction extends BaseAction {
+  type: typeof HISTORY_STATE_CHANGED;
+  payload: UIState;
+}
+
+export function historyStateChangedAction(state: UIState): HistoryStateChangedAction {
+  return {
+    type: HISTORY_STATE_CHANGED,
+    payload: state,
   };
 }
 
@@ -135,18 +161,6 @@ export function showUploadOverlay(parent: MediaTarget | undefined): ShowUploadOv
     payload: {
       target: parent?.ref(),
     },
-  };
-}
-
-interface SetHistoryStateAction extends BaseAction {
-  type: typeof SET_HISTORY_STATE;
-  payload: HistoryState;
-}
-
-export function setHistoryState(historyState: HistoryState): SetHistoryStateAction {
-  return {
-    type: SET_HISTORY_STATE,
-    payload: historyState,
   };
 }
 

@@ -1,37 +1,39 @@
 import { applyMiddleware, createStore, Store, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
-import { ServerDataDecoder, ServerData } from "../api/types";
+import { ServerDataDecoder } from "../api/types";
 import { decode } from "../utils/decoders";
-import { ReduxHistory, createReduxHistory } from "../utils/history";
-import { ActionType } from "./actions";
+import { addListener, HistoryState } from "../utils/history";
+import { getState, intoUIState } from "../utils/navigation";
+import { ActionType, historyStateChangedAction } from "./actions";
 import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
-import { StoreState } from "./types";
+import { StoreState, ServerState } from "./types";
 
 export type StoreType = Store<StoreState, ActionType> & {
   asyncDispatch: (action: ActionType) => Promise<StoreState>;
 };
 
 function buildStore(): StoreType {
-  let initialServerState: ServerData = { user: null };
+  let serverState: ServerState = { user: null };
   let stateElement = document.getElementById("initial-state");
   if (stateElement && stateElement.textContent) {
     try {
-      initialServerState = decode(ServerDataDecoder, JSON.parse(stateElement.textContent));
+      serverState = decode(ServerDataDecoder, JSON.parse(stateElement.textContent));
     } catch (e) {
       console.error(e);
     }
   }
 
   let initialState: StoreState = {
-    serverState: initialServerState,
+    serverState,
     settings: {
       thumbnailSize: 150,
     },
-    historyState: null,
+    ui: getState(serverState),
     stateId: 0,
   };
+  console.log("Initial state", initialState);
 
   const middlewares: Middleware[] = [];
 
@@ -52,6 +54,12 @@ function buildStore(): StoreType {
     applyMiddleware(...middlewares),
   );
 
+  addListener((historyState: HistoryState) => {
+    let uiState = intoUIState(historyState, store.getState().serverState);
+    console.log("navigation", historyState, uiState);
+    store.dispatch(historyStateChangedAction(uiState));
+  });
+
   AsyncDispatch = new AsyncDispatchListener(store);
 
   return Object.assign({
@@ -63,7 +71,6 @@ function buildStore(): StoreType {
 
 const store = buildStore();
 
-export const history: ReduxHistory = createReduxHistory(store);
 export const asyncDispatch = store.asyncDispatch;
 
 export default store;

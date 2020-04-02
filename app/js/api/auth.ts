@@ -1,6 +1,10 @@
 import { request } from "./api";
 import { ApiMethod, ServerData, UserCreateData } from "./types";
 
+export function state(): Promise<ServerData> {
+  return request(ApiMethod.State);
+}
+
 export function login(email: string, password: string): Promise<ServerData> {
   return request(ApiMethod.Login, {
     email,

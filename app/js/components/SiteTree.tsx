@@ -3,11 +3,12 @@ import React from "react";
 
 import { Catalog, Album, catalogs, Reference, Referencable } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { StoreState } from "../store/types";
+import { ComponentProps, MapStateToProps, MapDispatchToProps, connect } from "../store/component";
+import { StoreState, ServerState } from "../store/types";
 import { Property } from "../utils/StateProxy";
-import { Button } from "./Button";
+import Button from "./Button";
 import Icon, { IconProps } from "./Icon";
-import { ComponentProps, StyleProps, styleProps, connect } from "./shared";
+import { StyleProps, styleProps } from "./shared";
 
 export type TreeItem = Catalog | Album | VirtualTreeItem;
 
@@ -50,8 +51,8 @@ abstract class VirtualCatalogItem<K extends keyof CatalogItems> extends VirtualT
     let catalogRef = this.catalog.ref();
     return {
       id,
-      deref: (state: StoreState): CatalogItemType<K> => {
-        return VirtualCatalogItem.getForCatalog(catalogRef.deref(state), this.type);
+      deref: (serverState: ServerState): CatalogItemType<K> => {
+        return VirtualCatalogItem.getForCatalog(catalogRef.deref(serverState), this.type);
       },
     };
   }
@@ -93,7 +94,12 @@ const CatalogItemBuilders = {
   albums: CatalogAlbums,
 };
 
-export abstract class BaseSiteTree<P = {}, S = {}> extends React.Component <P, S>{
+export abstract class BaseSiteTree<
+  PP extends {} = {},
+  SP extends MapStateToProps | {} = {},
+  DP extends MapDispatchToProps = {},
+  S = {}
+> extends React.Component<ComponentProps<PP, SP, DP>, S>{
   protected onItemClicked(_event: React.MouseEvent, _item: TreeItem): void {
     return;
   }
@@ -195,13 +201,12 @@ interface MediaTargetSelectorFromStateProps {
 
 function mapStateToMediaTargetSelectorProps(state: StoreState, ownProps: MediaTargetSelectorPassedProps): MediaTargetSelectorFromStateProps {
   return {
-    roots: ownProps.roots || catalogs(state),
-    selected: ownProps.property.get()?.deref(state),
+    roots: ownProps.roots || catalogs(state.serverState),
+    selected: ownProps.property.get()?.deref(state.serverState),
   };
 }
 
-type MediaTargetSelectorProps = ComponentProps<MediaTargetSelectorPassedProps, typeof mapStateToMediaTargetSelectorProps>;
-export class MediaTargetSelectorComponent extends BaseSiteTree<MediaTargetSelectorProps> {
+export class MediaTargetSelectorComponent extends BaseSiteTree<MediaTargetSelectorPassedProps, typeof mapStateToMediaTargetSelectorProps> {
   protected onItemClicked(_event: React.MouseEvent, item: TreeItem): void {
     if (item instanceof Album || item instanceof Catalog) {
       this.props.property.set(item.ref());
@@ -228,4 +233,4 @@ export class MediaTargetSelectorComponent extends BaseSiteTree<MediaTargetSelect
   }
 }
 
-export const MediaTargetSelector = connect<MediaTargetSelectorPassedProps>()(mapStateToMediaTargetSelectorProps)(MediaTargetSelectorComponent);
+export const MediaTargetSelector = connect<MediaTargetSelectorPassedProps>()(MediaTargetSelectorComponent, mapStateToMediaTargetSelectorProps);

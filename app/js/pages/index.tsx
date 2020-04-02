@@ -1,16 +1,46 @@
 import React from "react";
-import { RouteComponentProps } from "react-router";
 
-import { BasePage, baseConnect, BasePageProps } from "../components/BasePage";
-import { ComponentProps } from "../components/shared";
+import { connect, ComponentProps } from "../store/component";
+import { StoreState } from "../store/types";
+import Album from "./album";
+import Catalog from "./catalog";
+import Index from "./indexpage";
+import NotFound from "./notfound";
+import { PageType, PageState } from "./types";
+import User from "./user";
 
-type PassedProps = BasePageProps & RouteComponentProps;
+export * from "./types";
 
-type IndexPageProps = ComponentProps<PassedProps>;
-class IndexPage extends BasePage<IndexPageProps> {
-  public renderContent(): React.ReactNode {
-    return <h1>Index</h1>;
+interface FromStateProps {
+  page: PageState;
+}
+
+function mapStateToProps(state: StoreState): FromStateProps {
+  return {
+    page: state.ui.page,
+  };
+}
+
+class PageDisplay extends React.Component<ComponentProps<{}, typeof mapStateToProps>> {
+  public render(): React.ReactNode {
+    switch (this.props.page.type) {
+      case PageType.Index: {
+        return <Index/>;
+      }
+      case PageType.User: {
+        return <User/>;
+      }
+      case PageType.NotFound: {
+        return <NotFound/>;
+      }
+      case PageType.Catalog: {
+        return <Catalog catalog={this.props.page.catalog}/>;
+      }
+      case PageType.Album: {
+        return <Album album={this.props.page.album}/>;
+      }
+    }
   }
 }
 
-export default baseConnect(IndexPage);
+export default connect()(PageDisplay, mapStateToProps);

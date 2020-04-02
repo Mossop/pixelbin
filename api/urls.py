@@ -3,6 +3,8 @@ from django.urls import path
 from .views import default, user, catalog, album, media, tag, person
 
 urlpatterns = [
+    path('state', user.state),
+
     path('login', user.login),
     path('logout', user.logout),
     path('user/create', user.create),
