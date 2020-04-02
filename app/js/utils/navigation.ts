@@ -219,14 +219,10 @@ export function getState(serverState: ServerState): UIState {
 
 export function pushState(uiState: Draft<UIState>): void {
   let historyState = fromUIState(uiState);
-  let url = history.buildURL(historyState);
-  console.log("pushState", uiState, historyState, url);
   history.pushState(historyState);
 }
 
 export function replaceState(uiState: Draft<UIState>): void {
   let historyState = fromUIState(uiState);
-  let url = history.buildURL(historyState);
-  console.log("replaceState", uiState, historyState, url);
   history.replaceState(historyState);
 }

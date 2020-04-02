@@ -34,7 +34,6 @@ function buildStore(): StoreType {
     ui: getState(serverState),
     stateId: 0,
   };
-  console.log("Initial state", initialState);
 
   const middlewares: Middleware[] = [];
 
@@ -57,7 +56,6 @@ function buildStore(): StoreType {
 
   addListener((historyState: HistoryState) => {
     let uiState = intoUIState(historyState, store.getState().serverState);
-    console.log("navigation", historyState, uiState);
     store.dispatch(actions.historyStateChanged(uiState));
   });
 
