@@ -1,5 +1,5 @@
 import { Localized } from "@fluent/react";
-import React from "react";
+import React, { ReactNode, Fragment, PureComponent } from "react";
 
 import { L10nProps } from "../l10n";
 import { Property } from "../utils/StateProxy";
@@ -14,27 +14,37 @@ export type SelectboxProps = {
   property: Property<string>;
 } & FieldProps & IconProps;
 
-export class Option extends React.Component<OptionProps> {
-  public render(): React.ReactNode {
+export class Option extends PureComponent<OptionProps> {
+  public render(): ReactNode {
     return <Localized id={this.props.l10n}><option value={this.props.value}/></Localized>;
   }
 }
 
-export default class Selectbox extends React.Component<SelectboxProps> {
-  private onChange: ((event: React.ChangeEvent<HTMLSelectElement>) => void) = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+export default class Selectbox extends PureComponent<SelectboxProps> {
+  private onChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
     this.props.property.set(event.target.value);
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     if (this.props.iconName) {
-      return <React.Fragment>
-        <span className="field-icon"><Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/></span>
-        <select {...fieldProps(this.props, { className: ["field", "selectfield", "with-icon"] })} value={this.props.property.get()} onChange={this.onChange}>
+      return <Fragment>
+        <span className="field-icon">
+          <Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/>
+        </span>
+        <select
+          {...fieldProps(this.props, { className: ["field", "selectfield", "with-icon"] })}
+          value={this.props.property.get()}
+          onChange={this.onChange}
+        >
           {this.props.children}
         </select>
-      </React.Fragment>;
+      </Fragment>;
     } else {
-      return <select {...fieldProps(this.props, { className: ["field", "selectfield"] })} value={this.props.property.get()} onChange={this.onChange}>
+      return <select
+        {...fieldProps(this.props, { className: ["field", "selectfield"] })}
+        value={this.props.property.get()}
+        onChange={this.onChange}
+      >
         {this.props.children}
       </select>;
     }

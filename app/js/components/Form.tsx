@@ -1,4 +1,4 @@
-import React from "react";
+import React, { PureComponent, ReactNode, Fragment } from "react";
 
 import FieldLabel from "./FieldLabel";
 import FormSubmit, { FormSubmitProps } from "./FormSubmit";
@@ -25,38 +25,38 @@ export type TextareaFieldProps = {
 
 export type FormFieldProps = TextboxFieldProps | SelectboxFieldProps | TextareaFieldProps;
 
-export class FormField extends React.Component<FormFieldProps> {
-  public render(): React.ReactNode {
+export class FormField extends PureComponent<FormFieldProps> {
+  public render(): ReactNode {
     let field = this.props;
 
     switch (field.type) {
       case "text":
       case "email":
       case "password": {
-        return <React.Fragment>
+        return <Fragment>
           <FieldLabel l10n={field.labelL10n} for={field.id}/>
           <div className="fieldBox">
             <Textbox {...field}/>
           </div>
-        </React.Fragment>;
+        </Fragment>;
       }
       case "select": {
-        return <React.Fragment>
+        return <Fragment>
           <FieldLabel l10n={field.labelL10n} for={field.id}/>
           <div className="fieldBox">
             <Selectbox {...field}>
               {this.props.children}
             </Selectbox>
           </div>
-        </React.Fragment>;
+        </Fragment>;
       }
       case "textarea": {
-        return <React.Fragment>
+        return <Fragment>
           <FieldLabel l10n={field.labelL10n} for={field.id}/>
           <div className="fieldBox">
             <Textarea {...field}/>
           </div>
-        </React.Fragment>;
+        </Fragment>;
       }
     }
   }
@@ -68,10 +68,17 @@ interface FormFieldsProps {
   orientation?: "row" | "column";
 }
 
-export class FormFields extends React.Component<FormFieldsProps> {
-  public render(): React.ReactNode {
+export class FormFields extends PureComponent<FormFieldsProps> {
+  public render(): ReactNode {
     return <div className={`fieldGrid ${this.props.orientation ? this.props.orientation : "row"}`}>
-      {this.props.fields ? this.props.fields.map((field: FormFieldProps) => <FormField key={field.id} disabled={this.props.disabled} {...field}/>) : this.props.children}
+      {
+        this.props.fields ?
+          this.props.fields.map(
+            (field: FormFieldProps): ReactNode =>
+              <FormField key={field.id} disabled={this.props.disabled} {...field}/>,
+          ) :
+          this.props.children
+      }
     </div>;
   }
 }
@@ -86,20 +93,20 @@ export interface FormProps extends StyleProps {
   submit?: string | Omit<FormSubmitProps, "disabled">;
 }
 
-export default class Form extends React.Component<FormProps> {
-  private onSubmit: ((event: React.FormEvent<HTMLFormElement>) => void) = (event: React.FormEvent<HTMLFormElement>): void => {
+export default class Form extends PureComponent<FormProps> {
+  private onSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     this.props.onSubmit();
   };
 
-  public render(): React.ReactNode {
-    let title: React.ReactNode = null;
-    let submit: React.ReactNode = null;
+  public render(): ReactNode {
+    let title: ReactNode = null;
+    let submit: ReactNode = null;
 
     if (this.props.title) {
       title = typeof this.props.title == "object" ?
         <FormTitle {...this.props.title}/> :
-        <FormTitle l10n={this.props.title }/>;
+        <FormTitle l10n={this.props.title}/>;
     }
     if (this.props.submit) {
       submit = typeof this.props.submit == "object" ?
@@ -109,7 +116,11 @@ export default class Form extends React.Component<FormProps> {
 
     return <form {...styleProps(this.props, { className: "form" })} onSubmit={this.onSubmit}>
       {title}
-      <FormFields orientation={this.props.orientation} disabled={this.props.disabled} fields={this.props.fields}>
+      <FormFields
+        orientation={this.props.orientation}
+        disabled={this.props.disabled}
+        fields={this.props.fields}
+      >
         {this.props.children}
       </FormFields>
       {submit}

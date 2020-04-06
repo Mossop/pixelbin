@@ -1,6 +1,12 @@
 import { Localized } from "@fluent/react";
-import { Orientation, rotateClockwise90, rotateCounterClockwise90, mirrorHorizontal, mirrorVertical } from "media-metadata/lib/metadata";
-import React from "react";
+import {
+  Orientation,
+  rotateClockwise90,
+  rotateCounterClockwise90,
+  mirrorHorizontal,
+  mirrorVertical,
+} from "media-metadata/lib/metadata";
+import React, { Fragment, PureComponent, createRef, ReactNode, RefObject } from "react";
 
 import { Reference, Catalog, Derefer, derefer, Tag, Person } from "../api/highlevel";
 import { createMedia, MediaTarget } from "../api/media";
@@ -18,7 +24,15 @@ import { StoreState } from "../store/types";
 import { If, Then, Else } from "../utils/Conditions";
 import { exception, ErrorCode } from "../utils/exception";
 import { uuid } from "../utils/helpers";
-import { parseMetadata, loadFrame, tagsToString, peopleToString, tagsFromString, peopleFromString, areDimensionsFlipped } from "../utils/metadata";
+import {
+  parseMetadata,
+  loadFrame,
+  tagsToString,
+  peopleToString,
+  tagsFromString,
+  peopleFromString,
+  areDimensionsFlipped,
+} from "../utils/metadata";
 import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
 
 export type PendingUpload = Proxyable<{
@@ -83,9 +97,13 @@ interface UploadOverlayState {
   preview: string;
 }
 
-type UploadOverlayProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
-class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlayState> {
-  private fileInput: React.RefObject<HTMLInputElement>;
+type UploadOverlayProps = ComponentProps<
+  PassedProps,
+  typeof mapStateToProps,
+  typeof mapDispatchToProps
+>;
+class UploadOverlay extends PureComponent<UploadOverlayProps, UploadOverlayState> {
+  private fileInput: RefObject<HTMLInputElement>;
   private inputs: InputFields;
 
   public constructor(props: UploadOverlayProps) {
@@ -93,6 +111,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
 
     this.state = {
       disabled: false,
+      // eslint-disable-next-line react/no-unused-state
       inputs: {
         target: this.props.target?.ref(),
         tags: "",
@@ -102,7 +121,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       preview: "",
     };
 
-    this.fileInput = React.createRef();
+    this.fileInput = createRef();
     this.inputs = proxyReactState(this, "inputs");
   }
 
@@ -128,8 +147,10 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     let strTags = tagsFromString(pending.tags).concat(tagsFromString(this.inputs.tags));
     let strPeople = peopleFromString(pending.people).concat(peopleFromString(this.inputs.people));
 
-    let tagPromises = strTags.map((path: string[]): Promise<Reference<Tag>> => catalog.findTag(path).promise);
-    let personPromises = strPeople.map((fullname: string): Promise<Reference<Person>> => catalog.createPerson(fullname).promise);
+    let tagPromises = strTags.map((path: string[]): Promise<Reference<Tag>> =>
+      catalog.findTag(path).promise);
+    let personPromises = strPeople.map((fullname: string): Promise<Reference<Person>> =>
+      catalog.createPerson(fullname).promise);
 
     let [tags, people] = await Promise.all([
       Promise.all(tagPromises),
@@ -180,10 +201,10 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         uploading: false,
         failed: false,
         mimetype: metadata.mimetype,
-        width: metadata.width || 0,
-        height: metadata.height || 0,
-        orientation: metadata.orientation || Orientation.TopLeft,
-        thumbnailOrientation: metadata.orientation || Orientation.TopLeft,
+        width: metadata.width ?? 0,
+        height: metadata.height ?? 0,
+        orientation: metadata.orientation ?? Orientation.TopLeft,
+        thumbnailOrientation: metadata.orientation ?? Orientation.TopLeft,
         tags: tagsToString(metadata.tags),
         people: peopleToString(metadata.people),
       });
@@ -210,10 +231,9 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
           } else if (upload.mimetype === "video/mp4" &&
                      areDimensionsFlipped(metadata.orientation || Orientation.TopLeft) &&
                      bitmap.height === upload.width && bitmap.width === upload.height) {
-
             // Firefox renders the bitmap without applying the correct rotation.
             // So apply it ourselves. See https://bugzilla.mozilla.org/show_bug.cgi?id=1593790.
-            upload.thumbnailOrientation = metadata.orientation || Orientation.TopLeft;
+            upload.thumbnailOrientation = metadata.orientation ?? Orientation.TopLeft;
           }
         }
       }
@@ -244,7 +264,7 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     }
   }
 
-  private onUploadClick: (pending: PendingUpload) => void = (pending: PendingUpload) => {
+  private onUploadClick = (pending: PendingUpload): void => {
     this.setState({
       selected: pending,
       preview: URL.createObjectURL(pending.file),
@@ -257,16 +277,20 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
       return;
     }
 
-    if (event.dataTransfer.dropEffect === "copy" || event.dataTransfer.dropEffect === "link" || event.dataTransfer.dropEffect === "move") {
+    if (
+      event.dataTransfer.dropEffect === "copy" ||
+      event.dataTransfer.dropEffect === "link" ||
+      event.dataTransfer.dropEffect === "move"
+    ) {
       event.preventDefault();
     }
   };
 
-  private onDragOver: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
+  private onDragOver = (event: React.DragEvent): void => {
     this.onDragEnter(event);
   };
 
-  private onDrop: ((event: React.DragEvent) => void) = (event: React.DragEvent): void => {
+  private onDrop = (event: React.DragEvent): void => {
     event.preventDefault();
 
     function isFile(f: File | null): f is File {
@@ -275,40 +299,66 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
 
     let files: File[] = Array.from(event.dataTransfer.items)
       .filter(itemIsMedia)
-      .map((i: DataTransferItem) => i.getAsFile())
+      .map((i: DataTransferItem): File | null => i.getAsFile())
       .filter(isFile);
 
     this.addFiles(files);
   };
 
-  public renderSidebar(): React.ReactNode {
+  public renderSidebar(): ReactNode {
     if (!this.state.selected) {
-      return <React.Fragment>
+      return <Fragment>
         <div className="sidebar-item">
           <Localized id="upload-tree-title"><label className="title"/></Localized>
         </div>
         <MediaTargetSelector property={makeProperty(this.inputs, "target")}/>
         <div id="upload-metadata" className="sidebar-item">
           <FormFields orientation="column">
-            <FormField id="upload-overlay-global-tags" type="textarea" labelL10n="upload-global-tags" iconName="hashtag" disabled={this.state.disabled} property={makeProperty(this.inputs, "tags")}/>
-            <FormField id="upload-overlay-global-people" type="textarea" labelL10n="upload-global-people" iconName="users" disabled={this.state.disabled} property={makeProperty(this.inputs, "people")}/>
+            <FormField
+              id="upload-overlay-global-tags"
+              type="textarea"
+              labelL10n="upload-global-tags"
+              iconName="hashtag"
+              disabled={this.state.disabled}
+              property={makeProperty(this.inputs, "tags")}
+            />
+            <FormField
+              id="upload-overlay-global-people"
+              type="textarea"
+              labelL10n="upload-global-people"
+              iconName="users"
+              disabled={this.state.disabled}
+              property={makeProperty(this.inputs, "people")}
+            />
           </FormFields>
         </div>
-      </React.Fragment>;
+      </Fragment>;
     } else {
       let pending = this.state.selected;
-      return <React.Fragment>
-        <div id="upload-metadata" className="sidebar-item">
-          <FormFields orientation="column">
-            <FormField id="upload-overlay-tags" type="textarea" labelL10n="upload-media-tags" iconName="hashtag" disabled={this.state.disabled} property={makeProperty(pending, "tags")}/>
-            <FormField id="upload-overlay-people" type="textarea" labelL10n="upload-media-people" iconName="users" disabled={this.state.disabled} property={makeProperty(pending, "people")}/>
-          </FormFields>
-        </div>
-      </React.Fragment>;
+      return <div id="upload-metadata" className="sidebar-item">
+        <FormFields orientation="column">
+          <FormField
+            id="upload-overlay-tags"
+            type="textarea"
+            labelL10n="upload-media-tags"
+            iconName="hashtag"
+            disabled={this.state.disabled}
+            property={makeProperty(pending, "tags")}
+          />
+          <FormField
+            id="upload-overlay-people"
+            type="textarea"
+            labelL10n="upload-media-people"
+            iconName="users"
+            disabled={this.state.disabled}
+            property={makeProperty(pending, "people")}
+          />
+        </FormFields>
+      </div>;
     }
   }
 
-  public renderSelected(pending: PendingUpload): React.ReactNode {
+  public renderSelected(pending: PendingUpload): ReactNode {
     function rotateLeft(): void {
       pending.orientation = rotateCounterClockwise90(pending.orientation);
       pending.thumbnailOrientation = rotateCounterClockwise90(pending.thumbnailOrientation);
@@ -338,31 +388,80 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
     };
 
     return <div id="selected-upload">
-      <Media mimetype={pending.mimetype} width={pending.width} height={pending.height} orientation={pending.orientation} style={{height: "100%", width: "100%" }} src={this.state.preview}/>
-      <Button id="upload-preview-close" iconName="times" tooltipL10n="upload-preview-close" onClick={onClose}/>
+      <Media
+        mimetype={pending.mimetype}
+        width={pending.width}
+        height={pending.height}
+        orientation={pending.orientation}
+        style={{ height: "100%", width: "100%" }}
+        src={this.state.preview}
+      />
+      <Button
+        id="upload-preview-close"
+        iconName="times"
+        tooltipL10n="upload-preview-close"
+        onClick={onClose}
+      />
       <div id="upload-preview-controls">
-        <Button id="upload-preview-left" iconName="undo" tooltipL10n="upload-preview-left" onClick={rotateLeft}/>
+        <Button
+          id="upload-preview-left"
+          iconName="undo"
+          tooltipL10n="upload-preview-left"
+          onClick={rotateLeft}
+        />
         <div id="upload-preview-flip-controls">
-          <Button id="upload-preview-flip-horizontal" iconName="arrows-alt-h" tooltipL10n="upload-preview-flip-horizontal" onClick={flipHorizontal}/>
-          <Button id="upload-preview-flip-vertical" iconName="arrows-alt-v" tooltipL10n="upload-preview-flip-vertical" onClick={flipVertical}/>
+          <Button
+            id="upload-preview-flip-horizontal"
+            iconName="arrows-alt-h"
+            tooltipL10n="upload-preview-flip-horizontal"
+            onClick={flipHorizontal}
+          />
+          <Button
+            id="upload-preview-flip-vertical"
+            iconName="arrows-alt-v"
+            tooltipL10n="upload-preview-flip-vertical"
+            onClick={flipVertical}
+          />
         </div>
-        <Button id="upload-preview-right" iconName="redo" tooltipL10n="upload-preview-right" onClick={rotateRight}/>
+        <Button
+          id="upload-preview-right"
+          iconName="redo"
+          tooltipL10n="upload-preview-right"
+          onClick={rotateRight}
+        />
       </div>
     </div>;
   }
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     return <Overlay title="upload-title" sidebar={this.renderSidebar()}>
       <If condition={Object.keys(this.inputs.uploads).length > 0}>
         <Then>
-          <div className="media-list" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
-            {Object.entries(this.inputs.uploads).map(([id, upload]: [string, PendingUpload]) => {
-              return <Upload key={id} upload={upload} onClick={(): void => this.onUploadClick(upload)}/>;
-            })}
+          <div
+            className="media-list"
+            onDragEnter={this.onDragEnter}
+            onDragOver={this.onDragOver}
+            onDrop={this.onDrop}
+          >
+            {
+              Object.entries(this.inputs.uploads)
+                .map(([id, upload]: [string, PendingUpload]): ReactNode => {
+                  return <Upload
+                    key={id}
+                    upload={upload}
+                    onClick={this.onUploadClick}
+                  />;
+                })
+            }
           </div>
         </Then>
         <Else>
-          <div className="media-list empty" onDragEnter={this.onDragEnter} onDragOver={this.onDragOver} onDrop={this.onDrop}>
+          <div
+            className="media-list empty"
+            onDragEnter={this.onDragEnter}
+            onDragOver={this.onDragOver}
+            onDrop={this.onDrop}
+          >
             <Localized id="upload-drag-media">
               <p/>
             </Localized>
@@ -370,7 +469,14 @@ class UploadOverlay extends React.Component<UploadOverlayProps, UploadOverlaySta
         </Else>
       </If>
       <div id="upload-complete">
-        <input id="fileInput" multiple={true} accept="image/jpeg,video/mp4" type="file" ref={this.fileInput} onChange={this.onNewFiles}/>
+        <input
+          id="fileInput"
+          multiple={true}
+          accept="image/jpeg,video/mp4"
+          type="file"
+          ref={this.fileInput}
+          onChange={this.onNewFiles}
+        />
         <Button l10n="upload-add-files" onClick={this.openFilePicker}/>
         <Button l10n="upload-submit" onClick={this.startUploads}/>
       </div>

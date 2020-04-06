@@ -1,5 +1,5 @@
 import { Draft } from "immer";
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import actions from "../store/actions";
 import { ComponentProps, connect } from "../store/component";
@@ -15,15 +15,15 @@ const mapDispatchToProps = {
   navigate: actions.navigate,
 };
 
-class Link extends React.Component<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
-  private onClick(event: React.MouseEvent): void {
+class Link extends PureComponent<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
+  private onClick = (event: React.MouseEvent): void => {
     this.props.navigate(this.props.to);
     event.preventDefault();
-  }
+  };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     let url = buildURL(fromUIState(this.props.to));
-    return <a href={url} onClick={(event: React.MouseEvent): void => this.onClick(event)}>{this.props.children}</a>;
+    return <a href={url} onClick={this.onClick}>{this.props.children}</a>;
   }
 }
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, Fragment, PureComponent } from "react";
 
 import { Property } from "../utils/StateProxy";
 import Icon, { IconProps } from "./Icon";
@@ -10,12 +10,12 @@ export type TextboxProps = {
   property: Property<string>;
 } & FieldProps & IconProps;
 
-export default class Textbox extends React.Component<TextboxProps> {
-  private onChange: ((event: React.ChangeEvent<HTMLInputElement>) => void) = (event: React.ChangeEvent<HTMLInputElement>): void => {
+export default class Textbox extends PureComponent<TextboxProps> {
+  private onChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     this.props.property.set(event.target.value);
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     let classes = ["field", "textfield"];
     if (this.props.iconName) {
       classes.push("with-icon");
@@ -29,10 +29,12 @@ export default class Textbox extends React.Component<TextboxProps> {
     };
 
     if (this.props.iconName) {
-      return <React.Fragment>
-        <span className="field-icon"><Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/></span>
+      return <Fragment>
+        <span className="field-icon">
+          <Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/>
+        </span>
         <input {...allProps} type={this.props.type}/>
-      </React.Fragment>;
+      </Fragment>;
     } else {
       return <input {...allProps} type={this.props.type}/>;
     }

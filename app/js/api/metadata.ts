@@ -67,39 +67,41 @@ class FloatMetadataField extends BaseMetadataField<number> {
 class DateTimeMetadataField extends BaseMetadataField<moment.Moment> {
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MetadataFieldDecoder = new JsonDecoder.Decoder<MetadataField>((json: any): Result<MetadataField> => {
-  if (typeof json != "object") {
-    return err<MetadataField>(`Expected an object, got a ${typeof json}`);
-  }
-
-  try {
-    let key = decode(JsonDecoder.string, json.key);
-    let type = decode(JsonDecoder.string, json.type);
-    switch (type) {
-      case "string":
-        return ok<MetadataField>(new StringMetadataField(key, json));
-      case "float":
-        return ok<MetadataField>(new FloatMetadataField(key, json));
-      case "integer":
-        return ok<MetadataField>(new IntegerMetadataField(key, json));
-      case "datetime":
-        return ok<MetadataField>(new DateTimeMetadataField(key, json));
-      case "orientation":
-        return ok<MetadataField>(new IntegerMetadataField(key, json));
-      default:
-        return err<MetadataField>(`Unknown metadata field type ${type}.`);
+const MetadataFieldDecoder =
+  new JsonDecoder.Decoder<MetadataField>((json: unknown): Result<MetadataField> => {
+    if (typeof json != "object" || !json) {
+      return err<MetadataField>(`Expected an object, got a ${typeof json}`);
     }
-  } catch (e) {
-    return err<MetadataField>(e.toString());
-  }
-});
+
+    try {
+      let key = decode(JsonDecoder.string, json["key"]);
+      let type = decode(JsonDecoder.string, json["type"]);
+      switch (type) {
+        case "string":
+          return ok<MetadataField>(new StringMetadataField(key, json));
+        case "float":
+          return ok<MetadataField>(new FloatMetadataField(key, json));
+        case "integer":
+          return ok<MetadataField>(new IntegerMetadataField(key, json));
+        case "datetime":
+          return ok<MetadataField>(new DateTimeMetadataField(key, json));
+        case "orientation":
+          return ok<MetadataField>(new IntegerMetadataField(key, json));
+        default:
+          return err<MetadataField>(`Unknown metadata field type ${type}.`);
+      }
+    } catch (e) {
+      return err<MetadataField>(e.toString());
+    }
+  });
 
 let metadataElement = document.getElementById("metadata");
-if (metadataElement && metadataElement.textContent) {
+if (metadataElement?.textContent) {
   try {
-    let fields = decode(JsonDecoder.array<MetadataField>(MetadataFieldDecoder, "MetadataField"),
-      JSON.parse(metadataElement.textContent));
+    let fields = decode(
+      JsonDecoder.array<MetadataField>(MetadataFieldDecoder, "MetadataField"),
+      JSON.parse(metadataElement.textContent),
+    );
     for (let field of fields) {
       MetadataFields.set(field.key, field);
     }
@@ -163,7 +165,7 @@ export const getDateValue = buildFieldGetter(DateTimeMetadataField);
 export const setDateValue = buildFieldSetter(DateTimeMetadataField);
 
 export function getOrientation(media: MediaData): Orientation {
-  return getIntegerValue(media, "orientation") || Orientation.TopLeft;
+  return getIntegerValue(media, "orientation") ?? Orientation.TopLeft;
 }
 
 export function setOrientation(media: MediaCreateData, value: Orientation): void {

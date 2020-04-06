@@ -40,7 +40,12 @@ function loadVideo(video: HTMLVideoElement, url: string): Promise<void> {
   });
 }
 
-export async function loadFrame(blob: Blob, type: string, width?: number, height?: number): Promise<ImageBitmap | null> {
+export async function loadFrame(
+  blob: Blob,
+  type: string,
+  width?: number,
+  height?: number,
+): Promise<ImageBitmap | null> {
   if (type.startsWith("image/")) {
     return createImageBitmap(blob);
   }
@@ -64,26 +69,26 @@ export async function loadFrame(blob: Blob, type: string, width?: number, height
 }
 
 export function tagsToString(tags: string[][]): string {
-  return tags.filter((t: string[]) => t.length)
-    .map((t: string[]) => t.join("/"))
+  return tags.filter((t: string[]): number => t.length)
+    .map((t: string[]): string => t.join("/"))
     .join(", ");
 }
 
 export function tagsFromString(tags: string): string[][] {
   return tags.split(/[,\n]/)
-    .map((t: string) => t.trim())
-    .filter((t: string) => t.length)
-    .map((t: string) => t.split("/"));
+    .map((t: string): string => t.trim())
+    .filter((t: string): number => t.length)
+    .map((t: string): string[] => t.split("/"));
 }
 
 export function peopleToString(people: string[]): string {
-  return people.filter((p: string) => p.length).join("\n");
+  return people.filter((p: string): number => p.length).join("\n");
 }
 
 export function peopleFromString(people: string): string[] {
   return people.split(/[,\n]/)
-    .map((p: string) => p.trim())
-    .filter((p: string) => p.length);
+    .map((p: string): string => p.trim())
+    .filter((p: string): number => p.length);
 }
 
 export function areDimensionsFlipped(orientation: Orientation): boolean {
@@ -98,7 +103,9 @@ export function areDimensionsFlipped(orientation: Orientation): boolean {
   }
 }
 
-export function getTransformForOrientation(orientation: Orientation = Orientation.TopLeft): string | undefined {
+export function getTransformForOrientation(
+  orientation: Orientation = Orientation.TopLeft,
+): string | undefined {
   switch (orientation) {
     case Orientation.TopLeft:
       return undefined;

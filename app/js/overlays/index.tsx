@@ -1,5 +1,5 @@
 import { Immutable } from "immer";
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
@@ -35,7 +35,9 @@ const mapDispatchToProps = {
   closeOverlay: actions.closeOverlay,
 };
 
-class OverlayDisplay extends React.Component<ComponentProps<{}, typeof mapStateToProps, typeof mapDispatchToProps>> {
+class OverlayDisplay extends PureComponent<
+  ComponentProps<{}, typeof mapStateToProps, typeof mapDispatchToProps>
+> {
   public componentDidMount(): void {
     document.addEventListener("keydown", this.onKeyDown, true);
   }
@@ -62,13 +64,13 @@ class OverlayDisplay extends React.Component<ComponentProps<{}, typeof mapStateT
     }
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     let overlayState = this.props.overlay;
     if (!overlayState) {
       return null;
     }
 
-    let overlay: React.ReactNode = null;
+    let overlay: ReactNode = null;
     let className = "";
 
     if (!this.props.user) {

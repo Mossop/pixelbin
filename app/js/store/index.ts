@@ -18,7 +18,7 @@ export type StoreType = Store<StoreState, Deed> & {
 function buildStore(): StoreType {
   let serverState: ServerState = { user: null };
   let stateElement = document.getElementById("initial-state");
-  if (stateElement && stateElement.textContent) {
+  if (stateElement?.textContent) {
     try {
       serverState = decode(ServerDataDecoder, JSON.parse(stateElement.textContent));
     } catch (e) {
@@ -54,7 +54,7 @@ function buildStore(): StoreType {
     applyMiddleware(...middlewares),
   );
 
-  addListener((historyState: HistoryState) => {
+  addListener((historyState: HistoryState): void => {
     let uiState = intoUIState(historyState, store.getState().serverState);
     store.dispatch(actions.historyStateChanged(uiState));
   });
@@ -70,6 +70,6 @@ function buildStore(): StoreType {
 
 const store = buildStore();
 
-export const asyncDispatch = store.asyncDispatch;
+export const { asyncDispatch } = store;
 
 export default store;

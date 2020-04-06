@@ -1,5 +1,5 @@
 import { Immutable } from "immer";
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { createCatalog } from "../api/catalog";
 import { UserData } from "../api/types";
@@ -32,7 +32,7 @@ interface CatalogOverlayState {
 }
 
 type CatalogOverlayProps = ComponentProps<PassedProps, {}, typeof mapDispatchToProps>;
-class CatalogOverlay extends React.Component<CatalogOverlayProps, CatalogOverlayState> {
+class CatalogOverlay extends PureComponent<CatalogOverlayProps, CatalogOverlayState> {
   private inputs: InputFields;
 
   public constructor(props: CatalogOverlayProps) {
@@ -40,6 +40,7 @@ class CatalogOverlay extends React.Component<CatalogOverlayProps, CatalogOverlay
 
     this.state = {
       disabled: false,
+      // eslint-disable-next-line react/no-unused-state
       inputs: {
         name: "",
         storage: proxy({
@@ -55,8 +56,8 @@ class CatalogOverlay extends React.Component<CatalogOverlayProps, CatalogOverlay
     focus("catalog-overlay-name");
   }
 
-  private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let name = this.inputs.name;
+  private onSubmit: (() => Promise<void>) = async (): Promise<void> => {
+    let { name } = this.inputs;
     if (!name) {
       return;
     }
@@ -71,12 +72,25 @@ class CatalogOverlay extends React.Component<CatalogOverlayProps, CatalogOverlay
     }
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     let title = this.props.user.hadCatalog ? "catalog-create-title" : "catalog-create-title-first";
 
     return <Overlay title={title} error={this.state.error}>
-      <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="catalog-create-submit">
-        <FormField id="catalog-overlay-name" type="text" labelL10n="catalog-name" iconName="folder" disabled={this.state.disabled} required={true} property={makeProperty(this.inputs, "name")}/>
+      <Form
+        orientation="column"
+        disabled={this.state.disabled}
+        onSubmit={this.onSubmit}
+        submit="catalog-create-submit"
+      >
+        <FormField
+          id="catalog-overlay-name"
+          type="text"
+          labelL10n="catalog-name"
+          iconName="folder"
+          disabled={this.state.disabled}
+          required={true}
+          property={makeProperty(this.inputs, "name")}
+        />
         {renderStorageConfigUI(this.inputs.storage, this.state.disabled)}
       </Form>
     </Overlay>;

@@ -1,7 +1,7 @@
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { negotiateLanguages } from "@fluent/langneg";
 import { LocalizationProvider } from "@fluent/react";
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 export interface L10nArgs {
   [key: string]: string | number;
@@ -40,7 +40,7 @@ async function retrieveBundle(baseurl: string, locale: string): Promise<null | F
     let bundle = new FluentBundle(locale);
     let resource = new FluentResource(source);
     let errors = bundle.addResource(resource);
-    errors.map((e: Error) => console.error(e));
+    errors.map((e: Error): void => console.error(e));
 
     return errors.length == 0 ? bundle : null;
   } else {
@@ -57,7 +57,10 @@ interface LocalizationContextState {
   generateBundles: FluentBundle[];
 }
 
-export default class LocalizationContext extends React.Component<LocalizationContextProps, LocalizationContextState> {
+export default class LocalizationContext extends PureComponent<
+  LocalizationContextProps,
+  LocalizationContextState
+> {
   public constructor(props: LocalizationContextProps) {
     super(props);
 
@@ -66,9 +69,9 @@ export default class LocalizationContext extends React.Component<LocalizationCon
     };
 
     const supportedLocales = negotiateLanguages(
-      navigator.languages.slice(),       // requested locales
-      ["en-US"],                         // available locales
-      { defaultLocale: "en-US" }
+      navigator.languages.slice(), // requested locales
+      ["en-US"], // available locales
+      { defaultLocale: "en-US" },
     );
 
     this.retrieveBundles(supportedLocales);
@@ -79,7 +82,11 @@ export default class LocalizationContext extends React.Component<LocalizationCon
       return !!bundles;
     }
 
-    let bundles = (await Promise.all(locales.map((l: string) => retrieveBundle(this.props.baseurl, l)))).filter((b: null | FluentBundle) => !!b);
+    let retrieve = (l: string): Promise<FluentBundle | null> => {
+      return retrieveBundle(this.props.baseurl, l);
+    };
+    let bundles = (await Promise.all(locales.map(retrieve)))
+      .filter((b: null | FluentBundle): boolean => !!b);
 
     if (isAllBundles(bundles)) {
       this.setState({
@@ -88,7 +95,9 @@ export default class LocalizationContext extends React.Component<LocalizationCon
     }
   }
 
-  public render(): React.ReactNode {
-    return <LocalizationProvider bundles={this.state.generateBundles}>{this.props.children}</LocalizationProvider>;
+  public render(): ReactNode {
+    return <LocalizationProvider bundles={this.state.generateBundles}>
+      {this.props.children}
+    </LocalizationProvider>;
   }
 }

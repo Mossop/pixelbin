@@ -1,5 +1,5 @@
 import { Localized } from "@fluent/react";
-import React from "react";
+import React, { DragEvent, PureComponent, ReactNode } from "react";
 
 import { OptionalL10nProps } from "../l10n";
 import { connect } from "../store/component";
@@ -9,22 +9,20 @@ import { fieldProps, FieldProps } from "./shared";
 type PassedProps = {
   onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
   draggable?: boolean;
-  onDragStart?: (event: React.DragEvent) => void;
-  onDragEnter?: (event: React.DragEvent) => void;
-  onDragOver?: (event: React.DragEvent) => void;
-  onDragLeave?: (event: React.DragEvent) => void;
-  onDrop?: (event: React.DragEvent) => void;
+  onDragStart?: (event: DragEvent) => void;
+  onDragEnter?: (event: DragEvent) => void;
+  onDragOver?: (event: DragEvent) => void;
+  onDragLeave?: (event: DragEvent) => void;
+  onDrop?: (event: DragEvent) => void;
   tooltipL10n?: string;
 } & FieldProps & OptionalL10nProps & IconProps;
 
-class Button extends React.Component<PassedProps> {
-  public renderButtonContent(): React.ReactNode {
+class Button extends PureComponent<PassedProps> {
+  public renderButtonContent(): ReactNode {
     if (this.props.l10n) {
-      return <React.Fragment>
-        <Localized id={this.props.l10n}>
-          <span/>
-        </Localized>
-      </React.Fragment>;
+      return <Localized id={this.props.l10n}>
+        <span/>
+      </Localized>;
     } else if (this.props.children) {
       return <span>{this.props.children}</span>;
     } else {
@@ -32,7 +30,7 @@ class Button extends React.Component<PassedProps> {
     }
   }
 
-  public renderButton(): React.ReactNode {
+  public renderButton(): ReactNode {
     let buttonProps = Object.assign(fieldProps(this.props, { className: "button" }), {
       draggable: this.props.draggable,
       onDragStart: this.props.onDragStart,
@@ -41,15 +39,15 @@ class Button extends React.Component<PassedProps> {
       onDragLeave: this.props.onDragLeave,
       onDrop: this.props.onDrop,
     });
-    return <button {...buttonProps} onClick={this.props.onClick}>
+    return <button type="button" {...buttonProps} onClick={this.props.onClick}>
       <Icon iconStyle={this.props.iconStyle} iconName={this.props.iconName}/>
       {this.renderButtonContent()}
     </button>;
   }
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     if (this.props.tooltipL10n) {
-      return <Localized id={this.props.tooltipL10n} attrs={{title: true}}>
+      return <Localized id={this.props.tooltipL10n} attrs={{ title: true }}>
         {this.renderButton()}
       </Localized>;
     } else {

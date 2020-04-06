@@ -1,14 +1,14 @@
-import React from "react";
+import React, { Context, ReactNode, createContext, PureComponent } from "react";
 import { connect } from "react-redux";
 
 import { StoreState } from "../store/types";
 
-const IfContext: React.Context<boolean> = React.createContext<boolean>(false);
+const IfContext: Context<boolean> = createContext<boolean>(false);
 
-export class Then extends React.Component {
-  public static contextType: React.Context<boolean> = IfContext;
+export class Then extends PureComponent {
+  public static contextType: Context<boolean> = IfContext;
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     if (this.context) {
       return this.props.children;
     } else {
@@ -17,10 +17,10 @@ export class Then extends React.Component {
   }
 }
 
-export class Else extends React.Component {
-  public static contextType: React.Context<boolean> = IfContext;
+export class Else extends PureComponent {
+  public static contextType: Context<boolean> = IfContext;
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     if (!this.context) {
       return this.props.children;
     } else {
@@ -33,8 +33,8 @@ interface IfProps {
   result: boolean;
 }
 
-class If extends React.Component<IfProps & { children: React.ReactNode[] }> {
-  public render(): React.ReactNode {
+class If extends PureComponent<IfProps & { children: ReactNode[] }> {
+  public render(): ReactNode {
     return <IfContext.Provider value={this.props.result}>{this.props.children}</IfContext.Provider>;
   }
 }

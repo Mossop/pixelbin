@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
 import { JsonDecoder } from "ts.data.json";
 import "core-js/stable";
@@ -27,7 +27,7 @@ let PATHS: Paths = {
 };
 
 let pathsElement = document.getElementById("paths");
-if (pathsElement && pathsElement.textContent) {
+if (pathsElement?.textContent) {
   try {
     PATHS = decode(PathsDecoder, JSON.parse(pathsElement.textContent));
   } catch (e) {
@@ -35,7 +35,7 @@ if (pathsElement && pathsElement.textContent) {
   }
 }
 
-ReactDOM.render(
+reactRender(
   <Provider store={store}>
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
       <div id="main">

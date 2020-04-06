@@ -1,8 +1,15 @@
 import { Immutable } from "immer";
-import React from "react";
+import React, { PureComponent, ReactNode, Fragment } from "react";
 
 import { UserData } from "../api/types";
-import { ComponentProps, MapStateToProps, MapDispatchToProps, PropsFor, MergedMapStateToProps, mergedConnect } from "../store/component";
+import {
+  ComponentProps,
+  MapStateToProps,
+  MapDispatchToProps,
+  PropsFor,
+  mergedConnect,
+  MergedMapStateToProps,
+} from "../store/component";
 import { StoreState } from "../store/types";
 import Banner from "./Banner";
 import Sidebar from "./Sidebar";
@@ -19,17 +26,17 @@ function baseMapStateToProps(state: StoreState): FromStateProps {
 
 export type PageProps<
   PP extends {} = {},
-  SP extends MapStateToProps<PP> | {} = {},
-  DP extends MapDispatchToProps<PP> | {} = {},
-> = ComponentProps<PP, MergedMapStateToProps<PP, SP, typeof baseMapStateToProps>, DP>;
+  MSP extends MapStateToProps<PP> | {} = {},
+  MDP extends MapDispatchToProps<PP> | {} = {},
+> = ComponentProps<PP, MergedMapStateToProps<PP, typeof baseMapStateToProps, MSP>, MDP>;
 
 export class BasePage<
   PP extends {} = {},
   SP extends MapStateToProps<PP> | {} = {},
   DP extends MapDispatchToProps<PP> | {} = {},
   S = {}
-> extends React.Component<PageProps<PP, SP, DP>, S> {
-  protected renderBannerButtons(): React.ReactNode {
+> extends PureComponent<PageProps<PP, SP, DP>, S> {
+  protected renderBannerButtons(): ReactNode {
     return null;
   }
 
@@ -37,24 +44,24 @@ export class BasePage<
     return {};
   }
 
-  protected renderContent(): React.ReactNode {
+  protected renderContent(): ReactNode {
     return null;
   }
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     if (this.props.user) {
-      return <React.Fragment>
+      return <Fragment>
         <Banner>{this.renderBannerButtons()}</Banner>
         <div id="sidebar-content">
           <Sidebar {...this.getSidebarProps()}/>
           <div id="content">{this.renderContent()}</div>
         </div>
-      </React.Fragment>;
+      </Fragment>;
     } else {
-      return <React.Fragment>
+      return <Fragment>
         <Banner>{this.renderBannerButtons()}</Banner>
         <div id="content">{this.renderContent()}</div>
-      </React.Fragment>;
+      </Fragment>;
     }
   }
 }

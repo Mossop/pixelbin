@@ -2,7 +2,16 @@ import fs from "fs";
 import path from "path";
 import stream from "stream";
 
-import { sys, parseJsonConfigFileContent, ParsedCommandLine, createProgram, Program, Diagnostic, DiagnosticWithLocation, flattenDiagnosticMessageText } from "typescript";
+import {
+  sys,
+  parseJsonConfigFileContent,
+  ParsedCommandLine,
+  createProgram,
+  Program,
+  Diagnostic,
+  DiagnosticWithLocation,
+  flattenDiagnosticMessageText,
+} from "typescript";
 
 import { through, LintInfo, VinylFile } from "./utils";
 
@@ -34,8 +43,20 @@ export function typeScriptCheck(configFile: string): stream.Transform {
     encoding: "utf8",
   }));
 
-  let parsed: ParsedCommandLine = parseJsonConfigFileContent(data, sys, path.dirname(configFile), undefined, configFile);
-  let program: Program = createProgram(parsed.fileNames, parsed.options, undefined, undefined, parsed.errors);
+  let parsed: ParsedCommandLine = parseJsonConfigFileContent(
+    data,
+    sys,
+    path.dirname(configFile),
+    undefined,
+    configFile,
+  );
+  let program: Program = createProgram(
+    parsed.fileNames,
+    parsed.options,
+    undefined,
+    undefined,
+    parsed.errors,
+  );
 
   return through((file: VinylFile): Promise<VinylFile> => {
     if (file.path === configFile) {

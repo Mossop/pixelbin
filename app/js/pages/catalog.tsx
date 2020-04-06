@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, Fragment } from "react";
 
 import { Catalog, Reference } from "../api/highlevel";
 import { baseConnect, BasePage } from "../components/BasePage";
@@ -56,13 +56,13 @@ class CatalogPage extends BasePage<PassedProps, typeof mapStateToProps, typeof m
     this.props.showUploadOverlay();
   };
 
-  protected renderBannerButtons(): React.ReactNode {
+  protected renderBannerButtons(): ReactNode {
     if (this.props.user && this.props.catalog) {
-      return <React.Fragment>
+      return <Fragment>
         <Button l10n="banner-catalog-edit" onClick={this.onEdit}/>
         <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>
         <Button l10n="banner-upload" onClick={this.onUpload}/>
-      </React.Fragment>;
+      </Fragment>;
     } else {
       return null;
     }
@@ -74,7 +74,7 @@ class CatalogPage extends BasePage<PassedProps, typeof mapStateToProps, typeof m
     };
   }
 
-  protected renderContent(): React.ReactNode {
+  protected renderContent(): ReactNode {
     if (this.props.user && this.props.catalog) {
       let search: Search = {
         catalog: this.props.catalog.ref(),

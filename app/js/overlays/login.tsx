@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { login } from "../api/auth";
 import Form, { FormField } from "../components/Form";
@@ -25,13 +25,14 @@ interface LoginOverlayState {
 }
 
 type LoginOverlayProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
-class LoginOverlay extends React.Component<LoginOverlayProps, LoginOverlayState> {
+class LoginOverlay extends PureComponent<LoginOverlayProps, LoginOverlayState> {
   private inputs: InputFields;
 
   public constructor(props: LoginOverlayProps) {
     super(props);
     this.state = {
       disabled: false,
+      // eslint-disable-next-line react/no-unused-state
       inputs: {
         email: "",
         password: "",
@@ -45,9 +46,9 @@ class LoginOverlay extends React.Component<LoginOverlayProps, LoginOverlayState>
     focus("login-overlay-email");
   }
 
-  private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let email = this.inputs.email;
-    let password = this.inputs.password;
+  private onSubmit: (() => Promise<void>) = async (): Promise<void> => {
+    let { email } = this.inputs;
+    let { password } = this.inputs;
     if (!email) {
       return;
     }
@@ -67,11 +68,31 @@ class LoginOverlay extends React.Component<LoginOverlayProps, LoginOverlayState>
     }
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     return <Overlay title="login-title" error={this.state.error}>
-      <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="login-submit">
-        <FormField id="login-overlay-email" type="email" labelL10n="login-email" iconName="at" required={true} disabled={this.state.disabled} property={makeProperty(this.inputs, "email")}/>
-        <FormField id="login-overlay-password" type="password" labelL10n="login-password" iconName="key" disabled={this.state.disabled} property={makeProperty(this.inputs, "password")}/>
+      <Form
+        orientation="column"
+        disabled={this.state.disabled}
+        onSubmit={this.onSubmit}
+        submit="login-submit"
+      >
+        <FormField
+          id="login-overlay-email"
+          type="email"
+          labelL10n="login-email"
+          iconName="at"
+          required={true}
+          disabled={this.state.disabled}
+          property={makeProperty(this.inputs, "email")}
+        />
+        <FormField
+          id="login-overlay-password"
+          type="password"
+          labelL10n="login-password"
+          iconName="key"
+          disabled={this.state.disabled}
+          property={makeProperty(this.inputs, "password")}
+        />
       </Form>
     </Overlay>;
   }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
@@ -21,8 +21,8 @@ function mapStateToProps(state: StoreState): FromStateProps {
   };
 }
 
-class PageDisplay extends React.Component<ComponentProps<{}, typeof mapStateToProps>> {
-  public render(): React.ReactNode {
+class PageDisplay extends PureComponent<ComponentProps<{}, typeof mapStateToProps>> {
+  public render(): ReactNode {
     switch (this.props.page.type) {
       case PageType.Index: {
         return <Index/>;

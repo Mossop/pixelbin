@@ -23,17 +23,24 @@ export interface LintInfo {
 }
 
 export function through(passthrough: (chunk: VinylFile) => Promise<VinylFile>): stream.Transform {
-  return through2.obj(function (this: stream.Transform, chunk: VinylFile, _: string, callback: TransformCallback): void {
-    passthrough(chunk).then((chunk: VinylFile) => {
+  function transform(
+    this: stream.Transform,
+    chunk: VinylFile,
+    _: string,
+    callback: TransformCallback,
+  ): void {
+    passthrough(chunk).then((chunk: VinylFile): void => {
       callback(null, chunk);
-    }, (e: Error) => {
+    }, (e: Error): void => {
       console.error(e);
     });
-  });
+  }
+
+  return through2.obj(transform);
 }
 
 export function exec(command: string, args: string[] = []): Promise<string[]> {
-  return new Promise((resolve: (stdio: string[]) => void, reject: (err: Error) => void) => {
+  let callback = (resolve: (stdio: string[]) => void, reject: (err: Error) => void): void => {
     let output: string[] = [];
 
     let process = spawn(command, args, {
@@ -54,7 +61,7 @@ export function exec(command: string, args: string[] = []): Promise<string[]> {
       });
     }
 
-    process.on("exit", (code: number) => {
+    process.on("exit", (code: number): void => {
       if (code !== 0) {
         reject(new Error(`Process exited with code ${code}\n${output.join("\n")}`));
       } else {
@@ -62,10 +69,12 @@ export function exec(command: string, args: string[] = []): Promise<string[]> {
       }
     });
 
-    process.on("error", (err: Error) => {
+    process.on("error", (err: Error): void => {
       reject(err);
     });
-  });
+  };
+
+  return new Promise(callback);
 }
 
 export function python(args: string[]): Promise<string[]> {
@@ -77,7 +86,9 @@ export function logLints(): stream.Transform {
     if (file.lintResults) {
       for (let result of file.lintResults) {
         const { line = 1, column = 1 } = result;
-        console.log(`${file.path}:${line}:${column} ${result.source}(${result.code}) ${result.message}`);
+        console.log(
+          `${file.path}:${line}:${column} ${result.source}(${result.code}) ${result.message}`,
+        );
       }
     }
     return Promise.resolve(file);

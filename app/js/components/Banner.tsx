@@ -1,4 +1,4 @@
-import React from "react";
+import React, { PureComponent, ReactNode } from "react";
 
 import { logout } from "../api/auth";
 import { PageType } from "../pages";
@@ -15,13 +15,13 @@ const mapDispatchToProps = {
   completeLogout: actions.completeLogout,
 };
 
-class Banner extends React.Component<ComponentProps<{}, {}, typeof mapDispatchToProps>> {
+class Banner extends PureComponent<ComponentProps<{}, {}, typeof mapDispatchToProps>> {
   private logout: (() => void) = async (): Promise<void> => {
     let state = await logout();
     this.props.completeLogout(state);
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     return <div id="banner">
       <h1 id="logo"><Link to={{ page: { type: PageType.Index } }}>PixelBin</Link></h1>
       <div id="rightbanner">

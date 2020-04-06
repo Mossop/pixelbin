@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { Catalog, Album, catalogs } from "../api/highlevel";
 import { PageType } from "../pages";
@@ -26,7 +26,11 @@ const mapDispatchToSidebarTreeProps = {
   navigate: actions.navigate,
 };
 
-class SidebarTreeComponent extends BaseSiteTree<SidebarTreePassedProps, typeof mapStateToSidebarTreeProps, typeof mapDispatchToSidebarTreeProps> {
+class SidebarTreeComponent extends BaseSiteTree<
+  SidebarTreePassedProps,
+  typeof mapStateToSidebarTreeProps,
+  typeof mapDispatchToSidebarTreeProps
+> {
   protected onItemClicked(_: React.MouseEvent, item: TreeItem): void {
     if (item instanceof Catalog) {
       this.props.navigate({
@@ -53,11 +57,15 @@ class SidebarTreeComponent extends BaseSiteTree<SidebarTreePassedProps, typeof m
     return item == this.props.selectedItem;
   }
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     return this.renderItems(this.props.catalogs);
   }
 }
-const SidebarTree = connect<SidebarTreePassedProps>()(SidebarTreeComponent, mapStateToSidebarTreeProps, mapDispatchToSidebarTreeProps);
+const SidebarTree = connect<SidebarTreePassedProps>()(
+  SidebarTreeComponent,
+  mapStateToSidebarTreeProps,
+  mapDispatchToSidebarTreeProps,
+);
 
 const mapDispatchToProps = {
   showCatalogCreateOverlay: actions.showCatalogCreateOverlay,
@@ -67,12 +75,18 @@ interface SidebarPassedProps {
   selectedItem?: TreeItem;
 }
 
-class Sidebar extends React.Component<ComponentProps<SidebarPassedProps, {}, typeof mapDispatchToProps>> {
-  public render(): React.ReactNode {
+type SidebarProps = ComponentProps<SidebarPassedProps, {}, typeof mapDispatchToProps>;
+class Sidebar extends PureComponent<SidebarProps> {
+  public render(): ReactNode {
     return <div id="sidebar">
       <div id="catalog-tree">
         <SidebarTree selectedItem={this.props.selectedItem}/>
-        <Button id="new-catalog" l10n="sidebar-add-catalog" iconName="folder-plus" onClick={this.props.showCatalogCreateOverlay}/>
+        <Button
+          id="new-catalog"
+          l10n="sidebar-add-catalog"
+          iconName="folder-plus"
+          onClick={this.props.showCatalogCreateOverlay}
+        />
       </div>
     </div>;
   }

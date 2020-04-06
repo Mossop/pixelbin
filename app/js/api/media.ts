@@ -6,9 +6,18 @@ import { ApiMethod, UnprocessedMediaData, MediaCreateData } from "./types";
 
 export type MediaTarget = Catalog | Album;
 
-type ProcessParams = "processVersion" | "uploaded" | "mimetype" | "width" | "height" | "duration" | "fileSize";
+type ProcessParams =
+  "processVersion" |
+  "uploaded" |
+  "mimetype" |
+  "width" |
+  "height" |
+  "duration" |
+  "fileSize";
+type ProcessedParam<K extends keyof UnprocessedMediaData> =
+  K extends ProcessParams ? NonNullable<UnprocessedMediaData[K]> : UnprocessedMediaData[K];
 export type ProcessedMediaData = {
-  [K in keyof UnprocessedMediaData]: K extends ProcessParams ? NonNullable<UnprocessedMediaData[K]> : UnprocessedMediaData[K];
+  [K in keyof UnprocessedMediaData]: ProcessedParam<K>;
 };
 export type MediaData = ProcessedMediaData | UnprocessedMediaData;
 

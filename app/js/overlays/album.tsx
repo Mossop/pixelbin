@@ -1,5 +1,5 @@
 import { Localized } from "@fluent/react";
-import React from "react";
+import React, { ReactNode, Fragment, PureComponent } from "react";
 
 import { editAlbum, createAlbum } from "../api/album";
 import { Patch } from "../api/helpers";
@@ -56,8 +56,12 @@ interface AlbumOverlayState {
   inputs: InputFields;
 }
 
-type AlbumOverlayProps = ComponentProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
-class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState> {
+type AlbumOverlayProps = ComponentProps<
+  PassedProps,
+  typeof mapStateToProps,
+  typeof mapDispatchToProps
+>;
+class AlbumOverlay extends PureComponent<AlbumOverlayProps, AlbumOverlayState> {
   private inputs: InputFields;
 
   public constructor(props: AlbumOverlayProps) {
@@ -82,8 +86,8 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
     focus("album-overlay-name");
   }
 
-  private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let name = this.inputs.name;
+  private onSubmit: (() => Promise<void>) = async (): Promise<void> => {
+    let { name } = this.inputs;
     if (!name) {
       return;
     }
@@ -105,7 +109,7 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
           parent: album?.ref(),
         };
 
-        let albumData= await createAlbum(data);
+        let albumData = await createAlbum(data);
         this.props.albumCreated(albumData);
       } else {
         let catalog = parent instanceof Catalog ? parent : parent.catalog;
@@ -124,23 +128,35 @@ class AlbumOverlay extends React.Component<AlbumOverlayProps, AlbumOverlayState>
     }
   };
 
-  public renderSidebar(): React.ReactNode {
+  public renderSidebar(): ReactNode {
     let title = this.props.album ? "album-edit-sidebar" : "album-create-sidebar";
 
-    return <React.Fragment>
+    return <Fragment>
       <div className="sidebar-item">
         <Localized id={title}><label className="title"/></Localized>
       </div>
       <MediaTargetSelector property={makeProperty(this.inputs, "parent")}/>
-    </React.Fragment>;
+    </Fragment>;
   }
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     let title = this.props.album ? "album-edit-title" : "album-create-title";
 
     return <Overlay title={title} error={this.state.error} sidebar={this.renderSidebar()}>
-      <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit={this.props.album ? "album-edit-submit" : "album-create-submit"}>
-        <FormField id="album-overlay-name" type="text" labelL10n="album-name" iconName="folder" required={true} property={makeProperty(this.inputs, "name")}/>
+      <Form
+        orientation="column"
+        disabled={this.state.disabled}
+        onSubmit={this.onSubmit}
+        submit={this.props.album ? "album-edit-submit" : "album-create-submit"}
+      >
+        <FormField
+          id="album-overlay-name"
+          type="text"
+          labelL10n="album-name"
+          iconName="folder"
+          required={true}
+          property={makeProperty(this.inputs, "name")}
+        />
       </Form>
     </Overlay>;
   }

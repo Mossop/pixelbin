@@ -9,7 +9,7 @@ function lintFromLintMessage(message: Linter.LintMessage): LintInfo {
     column: message.column,
     line: message.line,
     source: "eslint",
-    code: message.ruleId || "",
+    code: message.ruleId ?? "",
     message: message.message,
   };
 }

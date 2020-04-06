@@ -14,6 +14,9 @@ module.exports = {
     "react": {
       "version": "detect",
     },
+    "import/ignore": [
+      "typescript",
+    ]
   },
 
   "env": {

@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import React from "react";
+import { PureComponent } from "react";
 
 export type MapState<T> = Record<string, T>;
 
@@ -40,7 +40,9 @@ export class InputGroup<S extends object> {
     }
   }
 
-  public castInto<T extends S>(assertion: (state: Readonly<S>) => state is T): this is InputGroup<T> {
+  public castInto<T extends S>(
+    assertion: (state: Readonly<S>) => state is T,
+  ): this is InputGroup<T> {
     if (assertion(this.state.getInputValue())) {
       return true;
     }
@@ -80,11 +82,13 @@ export class InputMap<T> extends InputGroup<MapState<T>> {
   }
 
   public values(): InputState<T>[] {
-    return Object.keys(this.state.getInputValue()).map((id: string) => this.getInputState(id));
+    return Object.keys(this.state.getInputValue())
+      .map((id: string): InputState<T> => this.getInputState(id));
   }
 
   public entries(): [string, InputState<T>][] {
-    return Object.keys(this.state.getInputValue()).map((id: string) => [id, this.getInputState(id)]);
+    return Object.keys(this.state.getInputValue())
+      .map((id: string): [string, InputState<T>] => [id, this.getInputState(id)]);
   }
 
   public set(id: string, value: T): void {
@@ -106,7 +110,7 @@ export class InputGroupMap<T extends object> extends InputMap<T> {
   }
 }
 
-export class ReactInputs<T extends object, P, S extends { inputs: T }> extends React.Component<P, S> {
+export class ReactInputs<T extends object, P, S extends { inputs: T }> extends PureComponent<P, S> {
   protected inputGroup: InputGroup<T>;
 
   public constructor(props: P) {

@@ -4,13 +4,14 @@ import gulpSass from "gulp-sass";
 import mergeStreams from "merge-stream";
 import named from "vinyl-named";
 import { Configuration, RuleSetQuery } from "webpack";
-import gulpWebpack from "webpack-stream";
 
 import { config, path } from "./base/config";
 import { eslintCheck } from "./ci/eslint";
 import { pylintCheck } from "./ci/pylint";
 import { typeScriptCheck } from "./ci/typescript";
 import { exec, logLints } from "./ci/utils";
+
+import gulpWebpack = require("webpack-stream");
 
 const IGNORES = [
   "!base/**/*",
@@ -26,7 +27,7 @@ function allScripts(): string[] {
     "**/*.jsx",
     "**/*.ts",
     "**/*.tsx",
-    ...IGNORES
+    ...IGNORES,
   ];
 }
 
@@ -39,16 +40,20 @@ function babelOptions(): RuleSetQuery {
       "@babel/plugin-proposal-nullish-coalescing-operator",
     ],
     presets: [
-      ["@babel/preset-typescript", {
-        isTSX: true,
-        allExtensions: true,
-      }],
+      [
+        "@babel/preset-typescript", {
+          isTSX: true,
+          allExtensions: true,
+        },
+      ],
       ["@babel/preset-react"],
-      ["@babel/preset-env", {
-        targets: "defaults",
-        useBuiltIns: "usage",
-        corejs: 3,
-      }]
+      [
+        "@babel/preset-env", {
+          targets: "defaults",
+          useBuiltIns: "usage",
+          corejs: 3,
+        },
+      ],
     ],
   };
 }
@@ -57,7 +62,7 @@ function buildJsConfig(): Configuration {
   return {
     mode: config.general.debug ? "development" : "production",
     resolve: {
-      extensions: [".wasm", ".mjs", ".js", ".json", ".ts", ".tsx"]
+      extensions: [".wasm", ".mjs", ".js", ".json", ".ts", ".tsx"],
     },
     output: {
       publicPath: `${config.url.static}app/js/`,
@@ -66,14 +71,16 @@ function buildJsConfig(): Configuration {
     },
     devtool: "source-map",
     module: {
-      rules: [{
-        test: /\.(ts|js)x?$/,
-        exclude: /(node_modules|bower_components)/,
-        use: {
-          loader: "babel-loader",
-          options: babelOptions(),
-        }
-      }],
+      rules: [
+        {
+          test: /\.(ts|js)x?$/,
+          exclude: /(node_modules|bower_components)/,
+          use: {
+            loader: "babel-loader",
+            options: babelOptions(),
+          },
+        },
+      ],
     },
     externals: {
       "react": "React",
@@ -141,7 +148,7 @@ export function buildCss(): NodeJS.ReadWriteStream {
 }
 
 export function watchBuildCss(): void {
-  watch(["**/*.scss",...IGNORES], buildCss);
+  watch(["**/*.scss", ...IGNORES], buildCss);
 }
 
 export const build = parallel(buildJs, buildCss, staticContent);

@@ -44,7 +44,7 @@ export interface Reference<T> {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isReference<T>(data: any): data is Reference<T> {
-  return typeof data =="object" && "deref" in data;
+  return typeof data == "object" && "deref" in data;
 }
 
 export type Media = MediaData;
@@ -82,10 +82,10 @@ class PendingAPIItem<T> implements Pending<T> {
   private id: string | undefined = undefined;
   public readonly promise: Promise<Reference<T>>;
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private resolver: (ref: Reference<T>) => void = () => {};
+  private resolver: (ref: Reference<T>) => void = (): void => {};
 
   public constructor(private builder: APIItemBuilder<T>) {
-    this.promise = new Promise((resolve: (ref: Reference<T>) => void) => {
+    this.promise = new Promise((resolve: (ref: Reference<T>) => void): void => {
       this.resolver = resolve;
     });
   }
@@ -109,7 +109,10 @@ export abstract class APIItem<T> {
 }
 
 export class Tag implements Referencable<Tag> {
-  private constructor(private readonly serverState: ServerState, private readonly state: Immutable<TagData>) {}
+  private constructor(
+    private readonly serverState: ServerState,
+    private readonly state: Immutable<TagData>,
+  ) {}
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -151,7 +154,7 @@ export class Tag implements Referencable<Tag> {
       return tag;
     }
 
-    let user = serverState.user;
+    let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -170,7 +173,10 @@ export class Tag implements Referencable<Tag> {
 }
 
 export class Person implements Referencable<Person> {
-  private constructor(private readonly serverState: ServerState, private readonly state: Immutable<PersonData>) {}
+  private constructor(
+    private readonly serverState: ServerState,
+    private readonly state: Immutable<PersonData>,
+  ) {}
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -208,7 +214,7 @@ export class Person implements Referencable<Person> {
       return person;
     }
 
-    let user = serverState.user;
+    let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -227,7 +233,10 @@ export class Person implements Referencable<Person> {
 }
 
 export class Album implements Referencable<Album> {
-  private constructor(private readonly serverState: ServerState, private readonly state: Immutable<AlbumData>) {}
+  private constructor(
+    private readonly serverState: ServerState,
+    private readonly state: Immutable<AlbumData>,
+  ) {}
 
   public get id(): string {
     return this.state.id;
@@ -251,7 +260,7 @@ export class Album implements Referencable<Album> {
   }
 
   public get children(): Album[] {
-    let user = this.serverState.user;
+    let { user } = this.serverState;
     if (!user) {
       return [];
     }
@@ -264,11 +273,13 @@ export class Album implements Referencable<Album> {
 
     return Array.from(catalogState.albums.values())
       .filter((albumState: Immutable<AlbumData>): boolean => albumState.parent?.id == this.id)
-      .map((albumState: Immutable<AlbumData>): Album => Album.fromState(this.serverState, albumState));
+      .map(
+        (albumState: Immutable<AlbumData>): Album => Album.fromState(this.serverState, albumState),
+      );
   }
 
   public isAncestorOf(album: Album): boolean {
-    let parent = album.parent;
+    let { parent } = album;
     while (parent) {
       if (parent == this) {
         return true;
@@ -286,7 +297,10 @@ export class Album implements Referencable<Album> {
     return new APIItemReference(this.id, Album);
   }
 
-  private static innerFromState(serverState: ServerState, item: MapId<Immutable<AlbumData>>): Album {
+  private static innerFromState(
+    serverState: ServerState,
+    item: MapId<Immutable<AlbumData>>,
+  ): Album {
     let id = intoId(item);
 
     let cache = getStateCache(serverState);
@@ -301,7 +315,7 @@ export class Album implements Referencable<Album> {
       return album;
     }
 
-    let user = serverState.user;
+    let { user } = serverState;
     if (!user) {
       throw new InternalError(ErrorCode.NotLoggedIn);
     }
@@ -318,7 +332,10 @@ export class Album implements Referencable<Album> {
     throw new InternalError(ErrorCode.UnknownAlbum);
   }
 
-  public static safeFromState(serverState: ServerState, item: MapId<Immutable<AlbumData>>): Album | undefined {
+  public static safeFromState(
+    serverState: ServerState,
+    item: MapId<Immutable<AlbumData>>,
+  ): Album | undefined {
     try {
       return Album.innerFromState(serverState, item);
     } catch (e) {
@@ -336,7 +353,10 @@ export class Album implements Referencable<Album> {
 }
 
 export class Catalog implements Referencable<Catalog> {
-  private constructor(private readonly serverState: ServerState, private readonly state: Immutable<CatalogData>) {}
+  private constructor(
+    private readonly serverState: ServerState,
+    private readonly state: Immutable<CatalogData>,
+  ) {}
 
   public get id(): string {
     return this.state.id;
@@ -348,14 +368,14 @@ export class Catalog implements Referencable<Catalog> {
 
   public get rootAlbums(): Album[] {
     return Array.from(this.state.albums.values())
-      .filter((album: Immutable<AlbumData>) => !album.parent)
-      .map((album: Immutable<AlbumData>) => Album.fromState(this.serverState, album));
+      .filter((album: Immutable<AlbumData>): boolean => !album.parent)
+      .map((album: Immutable<AlbumData>): Album => Album.fromState(this.serverState, album));
   }
 
   public findTag(path: string[]): Pending<Tag> {
     let pending = new PendingAPIItem(Tag);
 
-    findTag(this.ref(), path).then(async (tags: TagData[]) => {
+    findTag(this.ref(), path).then(async (tags: TagData[]): Promise<void> => {
       const { asyncDispatch } = await import("../store");
       await asyncDispatch(actions.tagsCreated(tags));
       pending.setId(tags[tags.length - 1].id);
@@ -365,7 +385,9 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get tags(): Tag[] {
-    return Array.from(this.state.tags.values()).map((tag: Immutable<TagData>): Tag => Tag.fromState(this.serverState, tag));
+    return Array.from(this.state.tags.values()).map(
+      (tag: Immutable<TagData>): Tag => Tag.fromState(this.serverState, tag),
+    );
   }
 
   public getAlbum(id: string): Album | undefined {
@@ -377,13 +399,15 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get albums(): Album[] {
-    return Array.from(this.state.albums.values()).map((album: Immutable<AlbumData>): Album => Album.fromState(this.serverState, album));
+    return Array.from(this.state.albums.values()).map(
+      (album: Immutable<AlbumData>): Album => Album.fromState(this.serverState, album),
+    );
   }
 
   public createPerson(fullname: string): Pending<Person> {
     let pending = new PendingAPIItem(Person);
 
-    createPerson(this.ref(), fullname).then(async (person: PersonData) => {
+    createPerson(this.ref(), fullname).then(async (person: PersonData): Promise<void> => {
       const { asyncDispatch } = await import("../store");
       await asyncDispatch(actions.personCreated(person));
       pending.setId(person.id);
@@ -393,7 +417,9 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get people(): Person[] {
-    return Array.from(this.state.people.values()).map((person: Immutable<PersonData>): Person => Person.fromState(this.serverState, person));
+    return Array.from(this.state.people.values()).map(
+      (person: Immutable<PersonData>): Person => Person.fromState(this.serverState, person),
+    );
   }
 
   public static ref(data: CatalogData): Reference<Catalog> {
@@ -404,7 +430,10 @@ export class Catalog implements Referencable<Catalog> {
     return new APIItemReference(this.id, Catalog);
   }
 
-  private static innerFromState(serverState: ServerState, item: MapId<Immutable<CatalogData>>): Catalog {
+  private static innerFromState(
+    serverState: ServerState,
+    item: MapId<Immutable<CatalogData>>,
+  ): Catalog {
     let id: string = intoId(item);
 
     let cache = getStateCache(serverState);
@@ -419,7 +448,7 @@ export class Catalog implements Referencable<Catalog> {
       return catalog;
     }
 
-    let user = serverState.user;
+    let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -434,7 +463,10 @@ export class Catalog implements Referencable<Catalog> {
     exception(ErrorCode.UnknownCatalog);
   }
 
-  public static safeFromState(serverState: ServerState, item: MapId<Immutable<CatalogData>>): Catalog | undefined {
+  public static safeFromState(
+    serverState: ServerState,
+    item: MapId<Immutable<CatalogData>>,
+  ): Catalog | undefined {
     try {
       return Catalog.innerFromState(serverState, item);
     } catch (e) {
@@ -453,8 +485,10 @@ export class Catalog implements Referencable<Catalog> {
 
 export function catalogs(serverState: ServerState): Catalog[] {
   if (serverState.user) {
-    return Array.from(serverState.user.catalogs.values(),
-      (st: Immutable<CatalogData>) => Catalog.fromState(serverState, st));
+    return Array.from(
+      serverState.user.catalogs.values(),
+      (st: Immutable<CatalogData>): Catalog => Catalog.fromState(serverState, st),
+    );
   }
   return [];
 }

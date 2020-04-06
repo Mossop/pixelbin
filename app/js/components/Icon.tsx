@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { styleProps, StyleProps } from "./shared";
 
@@ -12,13 +12,13 @@ export interface IconProps {
   iconName?: string;
 }
 
-export default class Icon extends React.Component<IconProps & StyleProps> {
-  public render(): React.ReactNode {
+export default class Icon extends PureComponent<IconProps & StyleProps> {
+  public render(): ReactNode {
     if (!this.props.iconName) {
       return null;
     }
 
-    let style = this.props.iconStyle || IconStyle.Solid;
+    let style = this.props.iconStyle ?? IconStyle.Solid;
     let props = styleProps(this.props, { className: [style, `fa-${this.props.iconName}`, "icon"] });
     return <span {...props}/>;
   }

@@ -3,12 +3,14 @@ module.exports = {
   "rules": {
     "at-rule-name-case": "lower",
     "at-rule-name-space-after": "always",
-    "at-rule-no-unknown": [true, {
-      ignoreAtRules: [
-        "include",
-        "mixin",
-      ],
-    }],
+    "at-rule-no-unknown": [
+      true, {
+        ignoreAtRules: [
+          "include",
+          "mixin",
+        ],
+      },
+    ],
     "at-rule-no-vendor-prefix": true,
     "at-rule-semicolon-newline-after": "always",
     "at-rule-semicolon-space-before": "never",
@@ -78,9 +80,11 @@ module.exports = {
     "number-no-trailing-zeros": true,
     "property-case": "lower",
     "property-no-unknown": true,
-    "rule-empty-line-before": ["always", {
-      "except": ["first-nested"],
-    }],
+    "rule-empty-line-before": [
+      "always", {
+        "except": ["first-nested"],
+      },
+    ],
     "selector-attribute-brackets-space-inside": "never",
     "selector-attribute-operator-space-after": "never",
     "selector-attribute-operator-space-before": "never",
@@ -105,5 +109,5 @@ module.exports = {
     "value-list-comma-space-after": "always",
     "value-list-comma-space-before": "never",
     "value-list-max-empty-lines": 0,
-  }
+  },
 };

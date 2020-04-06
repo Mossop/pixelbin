@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, Fragment } from "react";
 
 import { Album, Catalog, Reference } from "../api/highlevel";
 import { BasePage, baseConnect, PageProps } from "../components/BasePage";
@@ -40,7 +40,12 @@ interface AlbumPageState {
 }
 
 type AlbumPageProps = PageProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
-class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps, AlbumPageState> {
+class AlbumPage extends BasePage<
+  PassedProps,
+  typeof mapStateToProps,
+  typeof mapDispatchToProps,
+  AlbumPageState
+> {
   public constructor(props: AlbumPageProps) {
     super(props);
 
@@ -53,6 +58,7 @@ class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof map
   public componentDidMount(): void {
     if (this.props.album && this.state.catalog) {
       let search: Search = {
+        // eslint-disable-next-line react/no-access-state-in-setstate
         catalog: this.state.catalog.ref(),
         query: {
           invert: false,
@@ -62,12 +68,14 @@ class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof map
         },
       };
 
+      // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({
         album: this.props.album,
         search,
         pending: false,
       });
     } else {
+      // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({
         album: undefined,
         search: undefined,
@@ -106,13 +114,13 @@ class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof map
     this.props.showUploadOverlay();
   };
 
-  protected renderBannerButtons(): React.ReactNode {
+  protected renderBannerButtons(): ReactNode {
     if (this.props.user && this.props.album) {
-      return <React.Fragment>
+      return <Fragment>
         <Button l10n="banner-album-edit" onClick={this.onEdit}/>
         <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>
         <Button l10n="banner-upload" onClick={this.onUpload}/>
-      </React.Fragment>;
+      </Fragment>;
     } else {
       return null;
     }
@@ -124,7 +132,7 @@ class AlbumPage extends BasePage<PassedProps, typeof mapStateToProps, typeof map
     };
   }
 
-  protected renderContent(): React.ReactNode {
+  protected renderContent(): ReactNode {
     if (!this.state.pending) {
       if (this.state.search) {
         return <MediaList search={this.state.search}/>;

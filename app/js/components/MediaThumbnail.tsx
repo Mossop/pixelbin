@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { MediaData, isProcessed } from "../api/media";
 import { getOrientation } from "../api/metadata";
@@ -24,18 +24,31 @@ function mapStateToProps(state: StoreState): FromStateProps {
   };
 }
 
-class MediaThumbnail extends React.Component<ComponentProps<PassedProps, typeof mapStateToProps>> {
-  public render(): React.ReactNode {
+class MediaThumbnail extends PureComponent<ComponentProps<PassedProps, typeof mapStateToProps>> {
+  public render(): ReactNode {
     let size = `${this.props.size}px`;
     if (isProcessed(this.props.media) && this.props.thumbnail) {
       let orientation = getOrientation(this.props.media);
-      return <div className="media" draggable={this.props.draggable} onDragStart={this.props.onDragStart}>
-        <MediaContainer width={this.props.thumbnail.width} height={this.props.thumbnail.height} orientation={orientation} style={{ width: size, height: size }}>
+      return <div
+        className="media"
+        draggable={this.props.draggable}
+        onDragStart={this.props.onDragStart}
+      >
+        <MediaContainer
+          width={this.props.thumbnail.width}
+          height={this.props.thumbnail.height}
+          orientation={orientation}
+          style={{ width: size, height: size }}
+        >
           <ImageCanvas bitmap={this.props.thumbnail} className="thumbnail"/>
         </MediaContainer>
       </div>;
     } else {
-      return <div className="media" draggable={this.props.draggable} onDragStart={this.props.onDragStart}>
+      return <div
+        className="media"
+        draggable={this.props.draggable}
+        onDragStart={this.props.onDragStart}
+      >
         <div className="processing thumbnail" style={{ width: size, height: size }}/>
       </div>;
     }

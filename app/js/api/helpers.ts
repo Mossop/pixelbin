@@ -1,4 +1,4 @@
-import cookie from "cookie";
+import { parse as parseCookie } from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
 import { MappingDecoder } from "../utils/decoders";
@@ -27,7 +27,10 @@ export function JsonDecoderDecoder<D>(decoder: JsonDecoder.Decoder<D>): Decoder<
   return async (response: Response): Promise<D> => decoder.decodePromise(await response.json());
 }
 
-export function ResponsePkDecoder<T>(builder: APIItemBuilder<T>, name: string): JsonDecoder.Decoder<ResponsePk<T>> {
+export function ResponsePkDecoder<T>(
+  builder: APIItemBuilder<T>,
+  name: string,
+): JsonDecoder.Decoder<ResponsePk<T>> {
   return MappingDecoder(JsonDecoder.string, (data: string): Reference<T> => {
     return new APIItemReference(data, builder);
   }, `Reference<${name}>`);
@@ -72,7 +75,7 @@ function intoString(data: any): string {
   return String(data);
 }
 
-function* objectParams(data: object, prefix: string = ""): Generator<[string, string | Blob]> {
+function *objectParams(data: object, prefix: string = ""): Generator<[string, string | Blob]> {
   for (let [key, value] of Object.entries(data)) {
     let param = `${prefix}${key}`;
     if (isReference(value)) {
@@ -91,7 +94,7 @@ function* objectParams(data: object, prefix: string = ""): Generator<[string, st
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function* arrayParams(data: any[], prefix: string = ""): Generator<[string, string | Blob]> {
+function *arrayParams(data: any[], prefix: string = ""): Generator<[string, string | Blob]> {
   // For reference types we can just send a list with the same field name.
   if (data.every(isReference)) {
     for (let ref of data) {
@@ -199,7 +202,7 @@ export async function makeRequest<D>(path: ApiMethod, request: RequestData<D>): 
   request.applyToURL(url);
 
   let headers = new Headers();
-  headers.append("X-CSRFToken", cookie.parse(document.cookie)["csrftoken"]);
+  headers.append("X-CSRFToken", parseCookie(document.cookie)["csrftoken"]);
   request.applyToHeaders(headers);
 
   let response;

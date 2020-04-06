@@ -12,7 +12,7 @@ export class AsyncDispatchListener {
 
   public constructor(store: Store<StoreState, Deed>) {
     this.storeDispatch = store.dispatch;
-    store.subscribe(() => this.stateChanged(store.getState()));
+    store.subscribe((): void => this.stateChanged(store.getState()));
   }
 
   public seenAction(action: Deed): void {
@@ -34,7 +34,7 @@ export class AsyncDispatchListener {
   }
 
   public dispatch(action: Deed): Promise<StoreState> {
-    return new Promise((resolve: Resolver) => {
+    return new Promise((resolve: Resolver): void => {
       this.waitingForReducer.set(action, resolve);
       this.storeDispatch(action);
     });

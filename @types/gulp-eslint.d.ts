@@ -13,6 +13,7 @@ declare module "gulp-eslint" {
     function failOnError(): NodeJS.ReadWriteStream;
     function failAfterError(): NodeJS.ReadWriteStream;
     function format<O>(formatter?: Formatter<O>, outputter?: Outputter<O>): NodeJS.ReadWriteStream;
-    function formatEach<O>(formatter?: Formatter<O>, outputter?: Outputter<O>): NodeJS.ReadWriteStream;
+    function formatEach<O>(formatter?: Formatter<O>, outputter?: Outputter<O>):
+    NodeJS.ReadWriteStream;
   }
 }

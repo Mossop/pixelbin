@@ -1,4 +1,4 @@
-import React from "react";
+import React, { CSSProperties, ReactNode, PureComponent, createRef, RefObject } from "react";
 
 import { styleProps, StyleProps } from "./shared";
 
@@ -6,12 +6,12 @@ type ImageCanvasProps = {
   bitmap?: ImageBitmap;
 } & StyleProps;
 
-export default class ImageCanvas extends React.Component<ImageCanvasProps> {
-  private canvasRef: React.RefObject<HTMLCanvasElement>;
+export default class ImageCanvas extends PureComponent<ImageCanvasProps> {
+  private canvasRef: RefObject<HTMLCanvasElement>;
 
   public constructor(props: ImageCanvasProps) {
     super(props);
-    this.canvasRef = React.createRef();
+    this.canvasRef = createRef();
   }
 
   private drawBitmap(bitmap: ImageBitmap | undefined): void {
@@ -46,12 +46,12 @@ export default class ImageCanvas extends React.Component<ImageCanvasProps> {
     this.drawBitmap(this.props.bitmap);
   }
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     let props = styleProps(this.props, {
       className: "image-canvas",
     });
 
-    let innerStyle: React.CSSProperties = {
+    let innerStyle: CSSProperties = {
       objectFit: "contain",
       width: "100%",
       height: "100%",

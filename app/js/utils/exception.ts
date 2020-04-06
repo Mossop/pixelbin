@@ -15,7 +15,10 @@ export enum ErrorCode {
 }
 
 export abstract class AppError extends Error {
-  public constructor(protected code: ErrorCode | ApiErrorCode, protected args?: Record<string, string>) {
+  public constructor(
+    protected code: ErrorCode | ApiErrorCode,
+    protected args?: Record<string, string>,
+  ) {
     super(`Exception ${code}: ${JSON.stringify(args)}`);
   }
 
@@ -23,8 +26,11 @@ export abstract class AppError extends Error {
 }
 
 export class ApiError extends AppError {
-  public constructor(_httpCode: number, _httpStatus: string,
-    data: ApiErrorData) {
+  public constructor(
+    _httpCode: number,
+    _httpStatus: string,
+    data: ApiErrorData,
+  ) {
     super(data.code, data.args);
   }
 

@@ -10,8 +10,11 @@ interface ElementStyleProps {
   className?: string;
 }
 
-export function styleProps<P extends StyleProps>(props: P, additional: StyleProps = {}): ElementStyleProps {
-  const asArray: ((i: undefined | string | string[]) => string[]) = (i: undefined | string | string[]): string[] => {
+export function styleProps<P extends StyleProps>(
+  props: P,
+  additional: StyleProps = {},
+): ElementStyleProps {
+  const asArray = (i: undefined | string | string[]): string[] => {
     if (i === undefined) {
       return [];
     } else if (Array.isArray(i)) {
@@ -22,7 +25,7 @@ export function styleProps<P extends StyleProps>(props: P, additional: StyleProp
   };
 
   let result: ElementStyleProps = {
-    id: props.id || additional.id,
+    id: props.id ?? additional.id,
     style: Object.assign({}, additional.style, props.style),
     className: asArray(props.className).concat(asArray(additional.className)).join(" ").trim(),
   };
@@ -50,7 +53,10 @@ type ElementFieldProps = {
   disabled?: boolean;
 } & ElementStyleProps;
 
-export function fieldProps<P extends FieldProps>(props: P, additional: StyleProps = {}): ElementFieldProps {
+export function fieldProps<P extends FieldProps>(
+  props: P,
+  additional: StyleProps = {},
+): ElementFieldProps {
   let result: ElementFieldProps = {
     ...styleProps(props, additional),
   };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, Fragment, PureComponent } from "react";
 
 import { Property } from "../utils/StateProxy";
 import Icon, { IconProps } from "./Icon";
@@ -9,12 +9,12 @@ export type TextareaProps = {
   property: Property<string>;
 } & FieldProps & IconProps;
 
-export default class Textarea extends React.Component<TextareaProps> {
-  private onChange: ((event: React.ChangeEvent<HTMLTextAreaElement>) => void) = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
+export default class Textarea extends PureComponent<TextareaProps> {
+  private onChange = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
     this.props.property.set(event.target.value || "");
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     let classes = ["field", "textareafield"];
     if (this.props.iconName) {
       classes.push("with-icon");
@@ -28,10 +28,12 @@ export default class Textarea extends React.Component<TextareaProps> {
     };
 
     if (this.props.iconName) {
-      return <React.Fragment>
-        <span className="field-icon"><Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/></span>
+      return <Fragment>
+        <span className="field-icon">
+          <Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/>
+        </span>
         <textarea {...allProps}/>
-      </React.Fragment>;
+      </Fragment>;
     } else {
       return <textarea {...allProps}/>;
     }

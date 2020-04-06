@@ -34,4 +34,9 @@ interface AlbumEditOverlayState {
   readonly album: Reference<Album>;
 }
 
-export type OverlayState = BaseOverlayState | UploadOverlayState | CatalogEditOverlayState | AlbumCreateOverlayState | AlbumEditOverlayState;
+export type OverlayState =
+   BaseOverlayState |
+   UploadOverlayState |
+   CatalogEditOverlayState |
+   AlbumCreateOverlayState |
+   AlbumEditOverlayState;

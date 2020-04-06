@@ -1,5 +1,5 @@
 import { Localized } from "@fluent/react";
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import actions from "../store/actions";
 import { connect, ComponentProps } from "../store/component";
@@ -7,9 +7,9 @@ import { AppError } from "../utils/exception";
 import Button from "./Button";
 
 interface PassedProps {
-  title?: string | React.ReactNode;
-  sidebar?: React.ReactNode;
-  children: React.ReactNode;
+  title?: string | ReactNode;
+  sidebar?: ReactNode;
+  children: ReactNode;
   error?: AppError;
 }
 
@@ -17,8 +17,8 @@ const mapDispatchToProps = {
   closeOverlay: actions.closeOverlay,
 };
 
-class Overlay extends React.Component<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
-  public renderError(): React.ReactNode {
+class Overlay extends PureComponent<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
+  public renderError(): ReactNode {
     if (this.props.error) {
       return <Localized {...this.props.error.l10nAttributes()}>
         <h1 id="overlay-error"/>
@@ -28,14 +28,14 @@ class Overlay extends React.Component<ComponentProps<PassedProps, {}, typeof map
     }
   }
 
-  public renderContent(): React.ReactNode {
+  public renderContent(): ReactNode {
     return <div id="overlay-main">
       {this.renderError()}
       <div id="overlay-content">{this.props.children}</div>
     </div>;
   }
 
-  public renderSidebar(): React.ReactNode {
+  public renderSidebar(): ReactNode {
     if (this.props.sidebar) {
       return <div id="overlay-sidebar-wrapper">
         <div id="overlay-sidebar">
@@ -48,8 +48,8 @@ class Overlay extends React.Component<ComponentProps<PassedProps, {}, typeof map
     }
   }
 
-  public render(): React.ReactNode {
-    let title: React.ReactNode;
+  public render(): ReactNode {
+    let title: ReactNode;
     if (this.props.title && typeof this.props.title == "string") {
       title = <Localized id={this.props.title}><h1 className="title"/></Localized>;
     } else {
@@ -61,7 +61,12 @@ class Overlay extends React.Component<ComponentProps<PassedProps, {}, typeof map
     return <div id="overlay-inner" className={className}>
       <div id="overlay-header">
         {title}
-        <Button id="overlay-close" iconName="times" tooltipL10n="overlay-close" onClick={this.props.closeOverlay}/>
+        <Button
+          id="overlay-close"
+          iconName="times"
+          tooltipL10n="overlay-close"
+          onClick={this.props.closeOverlay}
+        />
       </div>
       {this.renderSidebar()}
     </div>;

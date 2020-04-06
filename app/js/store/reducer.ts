@@ -52,7 +52,11 @@ const catalogReducers = {
     pushState(state.ui);
   },
 
-  showCatalogEditOverlay(state: Draft<StoreState>, _user: UserData, catalog: Reference<Catalog>): void {
+  showCatalogEditOverlay(
+    state: Draft<StoreState>,
+    _user: UserData,
+    catalog: Reference<Catalog>,
+  ): void {
     state.ui.overlay = {
       type: OverlayType.EditCatalog,
       catalog: catalog,
@@ -62,7 +66,11 @@ const catalogReducers = {
 };
 
 const albumReducers = {
-  showAlbumCreateOverlay(state: Draft<StoreState>, _user: UserData, parent: Reference<MediaTarget>): void {
+  showAlbumCreateOverlay(
+    state: Draft<StoreState>,
+    _user: UserData,
+    parent: Reference<MediaTarget>,
+  ): void {
     state.ui.overlay = {
       type: OverlayType.CreateAlbum,
       parent,

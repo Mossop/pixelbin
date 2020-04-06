@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode, PureComponent } from "react";
 
 import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
@@ -26,13 +26,14 @@ interface SignupOverlayState {
 }
 
 type SignupOverlayProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
-class SignupOverlay extends React.Component<SignupOverlayProps, SignupOverlayState> {
+class SignupOverlay extends PureComponent<SignupOverlayProps, SignupOverlayState> {
   private inputs: InputFields;
 
   public constructor(props: SignupOverlayProps) {
     super(props);
     this.state = {
       disabled: false,
+      // eslint-disable-next-line react/no-unused-state
       inputs: {
         email: "",
         name: "",
@@ -47,10 +48,10 @@ class SignupOverlay extends React.Component<SignupOverlayProps, SignupOverlaySta
     focus("signup-overlay-email");
   }
 
-  private onSubmit: (() => Promise<void>) = async(): Promise<void> => {
-    let email = this.inputs.email;
-    let name = this.inputs.name;
-    let password = this.inputs.password;
+  private onSubmit: (() => Promise<void>) = async (): Promise<void> => {
+    let { email } = this.inputs;
+    let { name } = this.inputs;
+    let { password } = this.inputs;
 
     if (!email) {
       return;
@@ -74,12 +75,36 @@ class SignupOverlay extends React.Component<SignupOverlayProps, SignupOverlaySta
     }
   };
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     return <Overlay title="signup-title" error={this.state.error}>
-      <Form orientation="column" disabled={this.state.disabled} onSubmit={this.onSubmit} submit="signup-submit">
-        <FormField id="signup-overlay-email" type="email" labelL10n="signup-email" iconName="at" required={true} property={makeProperty(this.inputs, "email")}/>
-        <FormField id="signup-overlay-name" type="text" labelL10n="signup-name" iconName="user" property={makeProperty(this.inputs, "name")}/>
-        <FormField id="signup-overlay-password" type="password" labelL10n="signup-password" iconName="key" property={makeProperty(this.inputs, "password")}/>
+      <Form
+        orientation="column"
+        disabled={this.state.disabled}
+        onSubmit={this.onSubmit}
+        submit="signup-submit"
+      >
+        <FormField
+          id="signup-overlay-email"
+          type="email"
+          labelL10n="signup-email"
+          iconName="at"
+          required={true}
+          property={makeProperty(this.inputs, "email")}
+        />
+        <FormField
+          id="signup-overlay-name"
+          type="text"
+          labelL10n="signup-name"
+          iconName="user"
+          property={makeProperty(this.inputs, "name")}
+        />
+        <FormField
+          id="signup-overlay-password"
+          type="password"
+          labelL10n="signup-password"
+          iconName="key"
+          property={makeProperty(this.inputs, "password")}
+        />
       </Form>
     </Overlay>;
   }

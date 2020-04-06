@@ -1,6 +1,6 @@
 import { Draft } from "immer";
 import { Orientation } from "media-metadata/lib/metadata";
-import moment from "moment";
+import moment, { ISO_8601, Moment } from "moment";
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 
 import { exception, ErrorCode } from "./exception";
@@ -17,7 +17,11 @@ export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
   });
 }
 
-export function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (data: A) => B, name: string): JsonDecoder.Decoder<B> {
+export function MappingDecoder<A, B>(
+  decoder: JsonDecoder.Decoder<A>,
+  mapper: (data: A) => B,
+  name: string,
+): JsonDecoder.Decoder<B> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new JsonDecoder.Decoder<B>((json: any): Result<B> => {
     let result = decoder.decode(json);
@@ -33,10 +37,14 @@ export function MappingDecoder<A, B>(decoder: JsonDecoder.Decoder<A>, mapper: (d
   });
 }
 
-export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undefined | ((a: A, b: A) => number), name: string): JsonDecoder.Decoder<A[]> {
+export function SortedDecoder<A>(
+  decoder: JsonDecoder.Decoder<A>,
+  compare: undefined | ((a: A, b: A) => number),
+  name: string,
+): JsonDecoder.Decoder<A[]> {
   return MappingDecoder(
     JsonDecoder.array(decoder, `${name}[]`),
-    (arr: A[]) => {
+    (arr: A[]): A[] => {
       arr.sort(compare);
       return arr;
     },
@@ -44,16 +52,30 @@ export function SortedDecoder<A>(decoder: JsonDecoder.Decoder<A>, compare: undef
   );
 }
 
-export const DateDecoder = MappingDecoder(JsonDecoder.string, (str: string) => moment(str, moment.ISO_8601), "Moment");
-export const OrientationDecoder = MappingDecoder(JsonDecoder.number, (num: number): Orientation=> num, "Orientation");
-export function EnumDecoder<F, T>(decoder: JsonDecoder.Decoder<F>, name: string): JsonDecoder.Decoder<T> {
+export const DateDecoder = MappingDecoder(
+  JsonDecoder.string,
+  (str: string): Moment => moment(str, ISO_8601),
+  "Moment",
+);
+export const OrientationDecoder = MappingDecoder(
+  JsonDecoder.number,
+  (num: number): Orientation => num,
+  "Orientation",
+);
+export function EnumDecoder<F, T>(
+  decoder: JsonDecoder.Decoder<F>,
+  name: string,
+): JsonDecoder.Decoder<T> {
   return MappingDecoder<F, T>(decoder, (data: F): T => data as unknown as T, name);
 }
 
-export function MapDecoder<A extends Mappable>(decoder: JsonDecoder.Decoder<Draft<A>>, name: string): JsonDecoder.Decoder<Draft<MapOf<A>>> {
+export function MapDecoder<A extends Mappable>(
+  decoder: JsonDecoder.Decoder<Draft<A>>,
+  name: string,
+): JsonDecoder.Decoder<Draft<MapOf<A>>> {
   return MappingDecoder<Draft<A[]>, Draft<MapOf<A>>>(
     JsonDecoder.array(decoder, name),
-    (arr: Draft<A[]>) => {
+    (arr: Draft<A[]>): Map<string, Draft<A>> => {
       let result: Map<string, Draft<A>> = new Map();
       for (let val of arr) {
         result.set(val.id, val);
@@ -73,9 +95,16 @@ export class Decodable<T> {
   }
 }
 
-export function ClassDecoder<C>(cls: new(obj: InterfaceProperties<C>) => C,
-  decoders: JsonDecoder.DecoderObject<InterfaceProperties<C>>, decoderName: string): JsonDecoder.Decoder<Draft<C>> {
-  return MappingDecoder(JsonDecoder.object(decoders, decoderName), (data: InterfaceProperties<C>): Draft<C> => {
-    return new cls(data) as Draft<C>;
-  }, decoderName);
+export function ClassDecoder<C>(
+  cls: new(obj: InterfaceProperties<C>) => C,
+  decoders: JsonDecoder.DecoderObject<InterfaceProperties<C>>,
+  decoderName: string,
+): JsonDecoder.Decoder<Draft<C>> {
+  return MappingDecoder(
+    JsonDecoder.object(decoders, decoderName),
+    (data: InterfaceProperties<C>): Draft<C> => {
+      return new cls(data) as Draft<C>;
+    },
+    decoderName,
+  );
 }

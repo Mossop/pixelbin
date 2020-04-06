@@ -1,3 +1,5 @@
+import { Component } from "react";
+
 export interface Property<T> {
   get: () => Readonly<T>;
   set: (val: T) => void;
@@ -33,7 +35,10 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
     this.outer = outer;
   }
 
-  public getOwnPropertyDescriptor<K extends keyof T>(target: T, prop: K): PropertyDescriptor | undefined {
+  public getOwnPropertyDescriptor<K extends keyof T>(
+    target: T,
+    prop: K,
+  ): PropertyDescriptor | undefined {
     let descriptor = Object.getOwnPropertyDescriptor(this.outer.get(), prop);
     if (!descriptor) {
       return undefined;
@@ -73,8 +78,8 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
     let inner = obj[prop];
 
     if (typeof inner === "object" && ProxyMarker in inner) {
-      let getter: () => Readonly<T[K]> = () => this.outer.get()[prop];
-      let setter: (val: T[K]) => void = (val: T[K]) => this.set(target, prop, val);
+      let getter = (): T[K] => this.outer.get()[prop];
+      let setter = (val: T[K]): boolean => this.set(target, prop, val);
 
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       return buildProxy({
@@ -104,7 +109,10 @@ export function buildProxy<T>(outer: Property<T>): T {
   return new Proxy({}, new SubHandler(outer));
 }
 
-class ReactState<C extends React.Component, K extends keyof C["state"]> implements Property<C["state"][K]> {
+class ReactState<
+  C extends Component,
+  K extends keyof C["state"]
+> implements Property<C["state"][K]> {
   private state: C["state"][K];
   private component: C;
   private prop: K;
@@ -126,6 +134,9 @@ class ReactState<C extends React.Component, K extends keyof C["state"]> implemen
   }
 }
 
-export function proxyReactState<C extends React.Component, K extends keyof C["state"]>(component: C, prop: K): C["state"][K] {
+export function proxyReactState<
+  C extends Component,
+  K extends keyof C["state"]
+>(component: C, prop: K): C["state"][K] {
   return buildProxy(new ReactState(component, prop));
 }

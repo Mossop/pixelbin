@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Deed } from "deeds/immer";
-import React from "react";
+import { Component } from "react";
 import { connect as reduxConnect } from "react-redux";
 
 import { StoreState } from "./types";
@@ -9,9 +9,9 @@ import { StoreState } from "./types";
 type Merged<A extends {}, B extends {}> = Omit<A, keyof B> & B;
 
 // A React component constructor.
-export type ReactConstructor<T, S = {}> = new (props: T) => React.Component<T, S>;
+export type ReactConstructor<T, S = {}> = new (props: T) => Component<T, S>;
 export type PropsFor<T> =
-  T extends React.Component<infer P> ? P :
+  T extends Component<infer P> ? P :
     T extends ReactConstructor<infer P> ? P :
       never;
 
@@ -20,17 +20,80 @@ type Dispatch = (action: Deed) => void;
 type ActionCreator = (...args: unknown[]) => Deed;
 
 // mapStateToProps.
-export type MapStateToProps<PP extends {} = any, SP extends {} = any> = (state: StoreState, ownProps?: PP) => SP;
+type MapStateToPropsWithProps<PP extends {} = any, SP extends {} = any> =
+  (state: StoreState, ownProps: PP) => SP;
+type MapStateToPropsWithoutProps<SP extends {} = any> =
+  (state: StoreState) => SP;
+export type MapStateToProps<PP extends {} = any, SP extends {} = any> =
+  MapStateToPropsWithProps<PP, SP> |
+  MapStateToPropsWithoutProps<SP>;
 export type StateProps<T> = T extends MapStateToProps<any, infer SP> ? SP : {};
-export type MergedMapStateToProps<PP, A, B> = MapStateToProps<PP, Merged<StateProps<A>, StateProps<B>>>;
+
+// mapDispatchToProps.
+type MapDispatchToPropsObject = { [key: string]: ActionCreator };
+type MapDispatchToPropsFunction<PP extends {}, DP extends {}> =
+  (dispatch: Dispatch, ownProps?: PP) => DP;
+export type MapDispatchToProps<PP = any, DP = any> =
+  MapDispatchToPropsObject | MapDispatchToPropsFunction<PP, DP>;
+type DispatchProps<T> =
+  T extends MapDispatchToPropsFunction<any, infer DP> ? DP :
+    T extends MapDispatchToPropsObject ? { [K in keyof T]: (...args: Parameters<T[K]>) => void } :
+      {};
+
+type MergedProps<PP, SP, DP> = Merged<Merged<PP, SP>, DP>;
+
+// Generates the props for a component after mapStateToProps and mapDispatchToProps have done their
+// work.
+export type ComponentProps<
+  PP extends {} = {},
+  MSP extends MapStateToProps<PP> | {} | undefined = {},
+  MDP extends MapDispatchToProps<PP> | {} | undefined = {}
+> = MergedProps<PP, StateProps<MSP>, DispatchProps<MDP>>;
+
+export interface Connector<PP> {
+  (
+    component: ReactConstructor<MergedProps<PP, {}, {}>>
+  ): ReactConstructor<PP>;
+  <SP>(
+    component: ReactConstructor<MergedProps<PP, SP, {}>>,
+    mapStateToProps: MapStateToProps<PP, SP>,
+  ): ReactConstructor<PP>;
+  <DP>(
+    component: ReactConstructor<MergedProps<PP, {}, DP>>,
+    mapStateToProps: undefined,
+    mapDispatchToProps: MapDispatchToProps<PP, DP>,
+  ): ReactConstructor<PP>;
+  <SP, DP>(
+    component: ReactConstructor<MergedProps<PP, SP, DP>>,
+    mapStateToProps: MapStateToProps<PP, SP>,
+    mapDispatchToProps: MapDispatchToProps<PP, DP>,
+  ): ReactConstructor<PP>;
+}
+
+export function connect<PP = {}>(): Connector<PP> {
+  return (
+    component: any,
+    mapStateToProps?: any,
+    mapDispatchToProps?: any,
+  ): ReactConstructor<PP> => {
+    // @ts-ignore
+    return reduxConnect(mapStateToProps, mapDispatchToProps)(component);
+  };
+}
+
+export type MergedMapStateToProps<PP, BSP, MSP> =
+  MapStateToPropsWithProps<PP, Merged<StateProps<BSP>, StateProps<MSP>>>;
 export function mergeMapStateToProps<
   PP,
-  A extends MapStateToProps<PP> | undefined,
-  B extends MapStateToProps<PP> | undefined
->(a: A, b: B): MergedMapStateToProps<PP, A, B> {
-  return (state: StoreState, ownProps: PP): Merged<StateProps<A>, StateProps<B>> => {
-    let aProps: StateProps<A> = a ? a(state, ownProps) : {};
-    let bProps: StateProps<B> = b ? b(state, ownProps) : {};
+  BSP,
+  SP
+>(
+  a: MapStateToPropsWithoutProps<BSP>,
+  b: MapStateToProps<PP, SP>,
+): MapStateToProps<PP, Merged<BSP, SP>> {
+  return (state: StoreState, ownProps: PP): Merged<BSP, SP> => {
+    let aProps: BSP = a(state);
+    let bProps: SP = b(state, ownProps);
     return {
       ...aProps,
       ...bProps,
@@ -38,47 +101,42 @@ export function mergeMapStateToProps<
   };
 }
 
-// mapDispatchToProps.
-type MapDispatchToPropsObject = { [key: string]: ActionCreator };
-type MapDispatchToPropsFunction<PP extends {}, DP extends {}> = (dispatch: Dispatch, ownProps?: PP) => DP;
-export type MapDispatchToProps<PP = any, DP = any> = MapDispatchToPropsObject | MapDispatchToPropsFunction<PP, DP>;
-type DispatchProps<T> =
-  T extends MapDispatchToPropsFunction<any, infer DP> ? DP :
-    T extends MapDispatchToPropsObject ? { [K in keyof T]: (...args: Parameters<T[K]>) => void } :
-      {};
-
-// Generates the props for a component after mapStateToProps and mapDispatchToProps have done their work.
-export type ComponentProps<
-  PP extends {} = {},
-  SP extends MapStateToProps<PP> | {} | undefined = {},
-  DP extends MapDispatchToProps<PP> | {} | undefined = {}
-> = Merged<Merged<PP, StateProps<SP>>, DispatchProps<DP>>;
-
-type Connector<PP> = <
-  SP extends MapStateToProps<PP> | undefined,
-  DP extends MapDispatchToProps<PP> | undefined,
->(component: ReactConstructor<Merged<Merged<PP, StateProps<SP>>, DispatchProps<DP>>>, mapStateToProps?: SP, mapDispatchToProps?: DP) => ReactConstructor<PP>;
-
-export function connect<PP = {}>(): Connector<PP> {
-  return <
-    SP extends MapStateToProps<PP> | undefined,
-    DP extends MapDispatchToProps<PP> | undefined,
-  >(component: ReactConstructor<ComponentProps<PP, SP, DP>>, mapStateToProps?: SP, mapDispatchToProps?: DP): ReactConstructor<PP> => {
-    // @ts-ignore
-    return reduxConnect(mapStateToProps, mapDispatchToProps)(component);
-  };
+export type MergedConnect<BSP> = <PP = {}>() => MergedConnector<PP, BSP>;
+export interface MergedConnector<PP, BSP> {
+  (
+    component: ReactConstructor<MergedProps<PP, BSP, {}>>
+  ): ReactConstructor<PP>;
+  <SP>(
+    component: ReactConstructor<MergedProps<PP, Merged<BSP, SP>, {}>>,
+    mapStateToProps: MapStateToProps<PP, SP>,
+  ): ReactConstructor<PP>;
+  <DP>(
+    component: ReactConstructor<MergedProps<PP, BSP, DP>>,
+    mapStateToProps: undefined,
+    mapDispatchToProps: MapDispatchToProps<PP, DP>,
+  ): ReactConstructor<PP>;
+  <SP, DP>(
+    component: ReactConstructor<MergedProps<PP, Merged<BSP, SP>, DP>>,
+    mapStateToProps: MapStateToProps<PP, SP>,
+    mapDispatchToProps: MapDispatchToProps<PP, DP>,
+  ): ReactConstructor<PP>;
 }
 
-type Connect = <PP = {}>() => Connector<PP>;
+export function mergedConnect<BSP>(
+  baseMapStateToProps: MapStateToPropsWithoutProps<BSP>,
+): MergedConnect<BSP> {
+  return <PP = {}>(): MergedConnector<PP, BSP> => {
+    return (
+      component: any,
+      mapStateToProps?: any,
+      mapDispatchToProps?: any,
+    ): ReactConstructor<PP> => {
+      let mapState = mapStateToProps ?
+        mergeMapStateToProps(baseMapStateToProps, mapStateToProps) :
+        baseMapStateToProps;
 
-export function mergedConnect<BSP extends MapStateToProps | undefined>(baseMapStateToProps?: BSP): Connect {
-  return <PP>(): Connector<PP> => {
-    return <
-      SP extends MapStateToProps<PP> | undefined,
-      DP extends MapDispatchToProps<PP> | undefined,
-    >(component: ReactConstructor<ComponentProps<PP, SP, DP>>, mapStateToProps?: SP, mapDispatchToProps?: DP): ReactConstructor<PP> => {
       // @ts-ignore
-      return reduxConnect(mergeMapStateToProps<PP, BSP, SP>(baseMapStateToProps, mapStateToProps), mapDispatchToProps)(component);
+      return reduxConnect(mapState, mapDispatchToProps)(component);
     };
   };
 }

@@ -1,4 +1,4 @@
-import {request } from "./api";
+import { request } from "./api";
 import { Catalog, Reference } from "./highlevel";
 import { TagData, ApiMethod } from "./types";
 

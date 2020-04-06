@@ -53,7 +53,7 @@ export function replaceState(state: HistoryState): void {
   window.history.replaceState(state.state, "", buildURL(state));
 }
 
-window.addEventListener("popstate", () => {
+window.addEventListener("popstate", (): void => {
   let state = getState();
 
   for (let listener of listeners) {

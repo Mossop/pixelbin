@@ -1,9 +1,9 @@
 import stream from "stream";
 
-import through2 from "through2";
-
 import { path } from "../base/config";
 import { LintInfo, python, VinylFile } from "./utils";
+
+import through2 = require("through2");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function lintFromPylint(message: any): LintInfo {
@@ -16,14 +16,15 @@ function lintFromPylint(message: any): LintInfo {
   };
 }
 
-export function pylintCheck(args?: string[]): stream.Transform {
+export function pylintCheck(args: string[] = []): stream.Transform {
   let files: Map<string, VinylFile> = new Map();
 
   return through2.obj((file: VinylFile, _: string, callback: () => void): void => {
     files.set(file.path, file);
     callback();
   }, function(callback: (e?: Error) => void): void {
-    python([path("venv/bin/pylint"), ...(args ? args : []), "--exit-zero", "-f", "json", ...files.keys()]).then((stdout: string[]): void => {
+    let cmdLine = [path("venv/bin/pylint"), ...args, "--exit-zero", "-f", "json", ...files.keys()];
+    python(cmdLine).then((stdout: string[]): void => {
       // eslint-disable-next-line
       let data: any;
       try {
@@ -52,7 +53,7 @@ export function pylintCheck(args?: string[]): stream.Transform {
         this.push(file);
       }
       callback();
-    }, (e: Error) => {
+    }, (e: Error): void => {
       console.error(e);
       callback();
     });
