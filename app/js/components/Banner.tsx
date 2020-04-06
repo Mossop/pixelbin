@@ -16,7 +16,7 @@ const mapDispatchToProps = {
 };
 
 class Banner extends PureComponent<ComponentProps<{}, {}, typeof mapDispatchToProps>> {
-  private logout: (() => void) = async (): Promise<void> => {
+  private logout = async (): Promise<void> => {
     let state = await logout();
     this.props.completeLogout(state);
   };

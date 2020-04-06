@@ -143,7 +143,7 @@ export function buildJs(): NodeJS.ReadWriteStream {
 
 export function buildCss(): NodeJS.ReadWriteStream {
   return src([path("app", "css", "app.scss")])
-    .pipe(gulpSass().on("error", gulpSass.logError))
+    .pipe(gulpSass().on("error", (error?: string | undefined): void => gulpSass.logError(error)))
     .pipe(dest(path(config.path.static, "app", "css")));
 }
 

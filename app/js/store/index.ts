@@ -44,7 +44,7 @@ function buildStore(): StoreType {
   let AsyncDispatch: AsyncDispatchListener | undefined;
 
   let store = createStore(
-    (state: StoreState, action: Deed): StoreState => {
+    (state: StoreState | undefined, action: Deed): StoreState => {
       if (AsyncDispatch) {
         AsyncDispatch.seenAction(action);
       }

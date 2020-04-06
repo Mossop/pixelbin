@@ -17,28 +17,33 @@ export type PropsFor<T> =
 
 // Dispatch and action types.
 type Dispatch = (action: Deed) => void;
-type ActionCreator = (...args: unknown[]) => Deed;
+type ActionCreator = (...args: any[]) => Deed;
 
 // mapStateToProps.
-type MapStateToPropsWithProps<PP extends {} = any, SP extends {} = any> =
+type MapStateToPropsWithProps<PP extends {}, SP extends {}> =
   (state: StoreState, ownProps: PP) => SP;
-type MapStateToPropsWithoutProps<SP extends {} = any> =
+type MapStateToPropsWithoutProps<SP extends {}> =
   (state: StoreState) => SP;
 export type MapStateToProps<PP extends {} = any, SP extends {} = any> =
   MapStateToPropsWithProps<PP, SP> |
   MapStateToPropsWithoutProps<SP>;
-export type StateProps<T> = T extends MapStateToProps<any, infer SP> ? SP : {};
+type StateProps<T> = T extends MapStateToProps<any, infer SP> ? SP : {};
 
 // mapDispatchToProps.
 type MapDispatchToPropsObject = { [key: string]: ActionCreator };
-type MapDispatchToPropsFunction<PP extends {}, DP extends {}> =
-  (dispatch: Dispatch, ownProps?: PP) => DP;
+type MapDispatchToPropsFunctionWithProps<PP extends {}, DP extends {}> =
+  (dispatch: Dispatch, ownProps: PP) => DP;
+type MapDispatchToPropsFunctionWithoutProps<DP extends {}> =
+  (dispatch: Dispatch) => DP;
 export type MapDispatchToProps<PP = any, DP = any> =
-  MapDispatchToPropsObject | MapDispatchToPropsFunction<PP, DP>;
+  MapDispatchToPropsObject |
+  MapDispatchToPropsFunctionWithProps<PP, DP> |
+  MapDispatchToPropsFunctionWithoutProps<DP>;
 type DispatchProps<T> =
-  T extends MapDispatchToPropsFunction<any, infer DP> ? DP :
-    T extends MapDispatchToPropsObject ? { [K in keyof T]: (...args: Parameters<T[K]>) => void } :
-      {};
+  T extends MapDispatchToPropsFunctionWithProps<any, infer DP> ? DP :
+    T extends MapDispatchToPropsFunctionWithoutProps<infer DP> ? DP :
+      T extends MapDispatchToPropsObject ? { [K in keyof T]: (...args: Parameters<T[K]>) => void } :
+        {};
 
 type MergedProps<PP, SP, DP> = Merged<Merged<PP, SP>, DP>;
 
@@ -46,8 +51,8 @@ type MergedProps<PP, SP, DP> = Merged<Merged<PP, SP>, DP>;
 // work.
 export type ComponentProps<
   PP extends {} = {},
-  MSP extends MapStateToProps<PP> | {} | undefined = {},
-  MDP extends MapDispatchToProps<PP> | {} | undefined = {}
+  MSP extends MapStateToProps<PP> | {} = {},
+  MDP extends MapDispatchToProps<PP> | {} = {}
 > = MergedProps<PP, StateProps<MSP>, DispatchProps<MDP>>;
 
 export interface Connector<PP> {

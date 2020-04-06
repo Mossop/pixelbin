@@ -1,4 +1,4 @@
-import { rootReducer } from "deeds/immer";
+import { reducer } from "deeds/immer";
 import { Draft } from "immer";
 
 import { Catalog, Album, Reference } from "../api/highlevel";
@@ -246,4 +246,4 @@ export const reducers = {
   },
 };
 
-export default rootReducer<StoreState>(reducers);
+export default reducer(reducers);

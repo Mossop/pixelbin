@@ -17,7 +17,7 @@ interface PassedProps {
 }
 
 interface FromStateProps {
-  album?: Album;
+  album: Album;
 }
 
 function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps {
@@ -50,13 +50,13 @@ class AlbumPage extends BasePage<
     super(props);
 
     this.state = {
-      catalog: props.album?.catalog,
+      catalog: props.album.catalog,
       pending: true,
     };
   }
 
   public componentDidMount(): void {
-    if (this.props.album && this.state.catalog) {
+    if (this.state.catalog) {
       let search: Search = {
         // eslint-disable-next-line react/no-access-state-in-setstate
         catalog: this.state.catalog.ref(),

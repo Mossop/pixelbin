@@ -4,7 +4,7 @@ import { JsonDecoder, Result, err, ok } from "ts.data.json";
 
 import { decode } from "../utils/decoders";
 import { MediaData } from "./media";
-import { MediaCreateData, MetadataUpdateData, MetadataData } from "./types";
+import { MediaCreateData, MetadataUpdateData } from "./types";
 
 type MediaWithMetadata = MediaData | MediaCreateData;
 
@@ -19,7 +19,7 @@ abstract class MetadataField {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected get(metadata: MetadataData): any {
+  protected get(metadata: MetadataUpdateData): any {
     return metadata[this.key];
   }
 
@@ -34,7 +34,7 @@ abstract class MetadataField {
 }
 
 abstract class BaseMetadataField<T> extends MetadataField {
-  public getValue(metadata: MetadataData): T | undefined {
+  public getValue(metadata: MetadataUpdateData): T | undefined {
     return this.get(metadata);
   }
 
@@ -51,7 +51,7 @@ class StringMetadataField extends BaseMetadataField<string> {
 }
 
 class IntegerMetadataField extends BaseMetadataField<number> {
-  public getValue(metadata: MetadataData): number | undefined {
+  public getValue(metadata: MetadataUpdateData): number | undefined {
     let val = this.get(metadata);
     return typeof val == "number" ? Math.round(val) : val;
   }
@@ -129,18 +129,23 @@ type FieldGetter<T> = (media: MediaWithMetadata, key: string) => T | undefined;
 type FieldSetter<T> = (media: MediaWithMetadata, key: string, value: T) => void;
 
 function buildFieldGetter<T>(cls: FieldConstructor<T>): FieldGetter<T> {
-  return (media: MediaData, key: string): T | undefined => {
+  return (media: MediaWithMetadata, key: string): T | undefined => {
+    if (!media.metadata) {
+      return undefined;
+    }
+
     let field: BaseMetadataField<T> = getFieldInstance(key, cls);
     return field.getValue(media.metadata);
   };
 }
 
 function buildFieldSetter<T>(cls: FieldConstructor<T>): FieldSetter<T> {
-  return (media: MediaCreateData, key: string, value: T): void => {
-    let field: BaseMetadataField<T> = getFieldInstance(key, cls);
+  return (media: MediaWithMetadata, key: string, value: T): void => {
     if (!media.metadata) {
       media.metadata = {};
     }
+
+    let field: BaseMetadataField<T> = getFieldInstance(key, cls);
     return field.setValue(media.metadata, value);
   };
 }
