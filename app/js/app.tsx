@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Fragment } from "react";
 import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
 import { JsonDecoder } from "ts.data.json";
@@ -38,10 +38,12 @@ if (pathsElement?.textContent) {
 reactRender(
   <Provider store={store}>
     <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
-      <div id="main">
-        <Page/>
-      </div>
-      <Overlay/>
+      <Fragment>
+        <div id="main">
+          <Page/>
+        </div>
+        <Overlay/>
+      </Fragment>
     </LocalizationContext>
   </Provider>,
   document.getElementById("app"),
