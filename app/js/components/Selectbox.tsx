@@ -2,9 +2,9 @@ import { Localized } from "@fluent/react";
 import React, { ReactNode, Fragment, PureComponent } from "react";
 
 import { L10nProps } from "../l10n";
+import { fieldProps, FieldProps } from "../utils/props";
 import { Property } from "../utils/StateProxy";
 import Icon, { IconProps } from "./Icon";
-import { fieldProps, FieldProps } from "./shared";
 
 export type OptionProps = {
   value: string;

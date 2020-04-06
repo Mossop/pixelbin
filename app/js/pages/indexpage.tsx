@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
 
-import { BasePage, baseConnect } from "../components/BasePage";
+import { BasePage, baseConnect } from "./BasePage";
 
 class IndexPage extends BasePage {
   public renderContent(): ReactNode {

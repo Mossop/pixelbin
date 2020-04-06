@@ -1,10 +1,10 @@
 import React, { PureComponent, ReactNode, Fragment } from "react";
 
+import { StyleProps, styleProps } from "../utils/props";
 import FieldLabel from "./FieldLabel";
 import FormSubmit, { FormSubmitProps } from "./FormSubmit";
 import FormTitle, { FormTitleProps } from "./FormTitle";
 import Selectbox, { SelectboxProps } from "./Selectbox";
-import { StyleProps, styleProps } from "./shared";
 import Textarea, { TextareaProps } from "./Textarea";
 import Textbox, { TextboxProps } from "./Textbox";
 

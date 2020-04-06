@@ -1,8 +1,8 @@
 import React, { ReactNode, Fragment, PureComponent } from "react";
 
+import { fieldProps, FieldProps } from "../utils/props";
 import { Property } from "../utils/StateProxy";
 import Icon, { IconProps } from "./Icon";
-import { fieldProps, FieldProps } from "./shared";
 
 export type TextboxProps = {
   type: "text" | "email" | "password";

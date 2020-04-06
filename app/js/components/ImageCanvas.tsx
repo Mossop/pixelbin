@@ -1,6 +1,6 @@
 import React, { CSSProperties, ReactNode, PureComponent, createRef, RefObject } from "react";
 
-import { styleProps, StyleProps } from "./shared";
+import { styleProps, StyleProps } from "../utils/props";
 
 type ImageCanvasProps = {
   bitmap?: ImageBitmap;

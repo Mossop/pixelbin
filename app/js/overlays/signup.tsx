@@ -4,7 +4,7 @@ import { signup } from "../api/auth";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import actions from "../store/actions";
-import { connect, ComponentProps } from "../store/component";
+import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";

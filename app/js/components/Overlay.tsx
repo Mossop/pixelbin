@@ -2,7 +2,7 @@ import { Localized } from "@fluent/react";
 import React, { ReactNode, PureComponent } from "react";
 
 import actions from "../store/actions";
-import { connect, ComponentProps } from "../store/component";
+import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";
 import Button from "./Button";
 

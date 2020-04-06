@@ -1,7 +1,7 @@
 import React, { ReactNode, PureComponent } from "react";
 
-import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
+import { connect, ComponentProps } from "../utils/component";
 import Album from "./album";
 import Catalog from "./catalog";
 import Index from "./indexpage";

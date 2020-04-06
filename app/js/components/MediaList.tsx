@@ -10,8 +10,8 @@ import {
   ProcessedMediaData,
   MediaData,
 } from "../api/media";
-import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
+import { connect, ComponentProps } from "../utils/component";
 import { Search } from "../utils/search";
 import MediaThumbnail from "./MediaThumbnail";
 import Throbber from "./Throbber";

@@ -3,8 +3,8 @@ import React, { ReactNode, PureComponent } from "react";
 import { Catalog, Album, catalogs } from "../api/highlevel";
 import { PageType } from "../pages";
 import actions from "../store/actions";
-import { connect, ComponentProps } from "../store/component";
 import { StoreState } from "../store/types";
+import { connect, ComponentProps } from "../utils/component";
 import Button from "./Button";
 import { TreeItem, BaseSiteTree } from "./SiteTree";
 

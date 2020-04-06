@@ -1,6 +1,6 @@
 import React, { ReactNode, PureComponent } from "react";
 
-import { styleProps, StyleProps } from "./shared";
+import { styleProps, StyleProps } from "../utils/props";
 
 export enum IconStyle {
   Solid = "fas",

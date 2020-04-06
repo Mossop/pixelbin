@@ -2,7 +2,7 @@ import { Localized } from "@fluent/react";
 import React, { PureComponent, ReactNode } from "react";
 
 import { L10nProps } from "../l10n";
-import { styleProps, FieldProps } from "./shared";
+import { styleProps, FieldProps } from "../utils/props";
 
 export type FormSubmitProps = FieldProps & L10nProps;
 

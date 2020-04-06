@@ -2,7 +2,7 @@ import { Localized } from "@fluent/react";
 import React, { PureComponent, ReactNode } from "react";
 
 import { L10nProps } from "../l10n";
-import { styleProps, StyleProps } from "./shared";
+import { styleProps, StyleProps } from "../utils/props";
 
 type FieldLabelProps = {
   for: string;

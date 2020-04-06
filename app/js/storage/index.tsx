@@ -3,7 +3,7 @@ import React, { Fragment, PureComponent, ReactNode } from "react";
 import { BackblazeStorageData, ServerStorageData } from "../api/types";
 import { FormField } from "../components/Form";
 import { Option } from "../components/Selectbox";
-import { ComponentProps } from "../store/component";
+import { ComponentProps } from "../utils/component";
 import { makeProperty, Property } from "../utils/StateProxy";
 import { renderBackblazeConfigUI } from "./backblaze";
 

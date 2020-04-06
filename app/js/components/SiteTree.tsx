@@ -3,12 +3,12 @@ import React, { PureComponent, ReactNode } from "react";
 
 import { Catalog, Album, catalogs, Reference, Referencable } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { ComponentProps, MapStateToProps, MapDispatchToProps, connect } from "../store/component";
 import { StoreState, ServerState } from "../store/types";
+import { ComponentProps, MapStateToProps, MapDispatchToProps, connect } from "../utils/component";
+import { StyleProps, styleProps } from "../utils/props";
 import { Property } from "../utils/StateProxy";
 import Button from "./Button";
 import Icon, { IconProps } from "./Icon";
-import { StyleProps, styleProps } from "./shared";
 
 export type TreeItem = Catalog | Album | VirtualTreeItem;
 

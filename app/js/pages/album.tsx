@@ -1,15 +1,15 @@
 import React, { ReactNode, Fragment } from "react";
 
 import { Album, Catalog, Reference } from "../api/highlevel";
-import { BasePage, baseConnect, PageProps } from "../components/BasePage";
 import Button from "../components/Button";
 import MediaList from "../components/MediaList";
 import Sidebar from "../components/Sidebar";
 import Throbber from "../components/Throbber";
 import actions from "../store/actions";
-import { PropsFor } from "../store/component";
 import { StoreState } from "../store/types";
+import { PropsFor } from "../utils/component";
 import { Search, Field, Operation } from "../utils/search";
+import { BasePage, baseConnect, PageProps } from "./BasePage";
 import NotFound from "./notfound";
 
 interface PassedProps {

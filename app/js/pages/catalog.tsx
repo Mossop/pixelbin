@@ -1,14 +1,14 @@
 import React, { ReactNode, Fragment } from "react";
 
 import { Catalog, Reference } from "../api/highlevel";
-import { baseConnect, BasePage } from "../components/BasePage";
 import Button from "../components/Button";
 import MediaList from "../components/MediaList";
 import Sidebar from "../components/Sidebar";
 import actions from "../store/actions";
-import { PropsFor } from "../store/component";
 import { StoreState } from "../store/types";
+import { PropsFor } from "../utils/component";
 import { Search } from "../utils/search";
+import { baseConnect, BasePage } from "./BasePage";
 import NotFound from "./notfound";
 
 interface PassedProps {

@@ -2,7 +2,7 @@ import { Localized } from "@fluent/react";
 import React, { ReactNode, PureComponent } from "react";
 
 import { L10nProps } from "../l10n";
-import { StyleProps, styleProps } from "./shared";
+import { StyleProps, styleProps } from "../utils/props";
 
 export type FormTitleProps = StyleProps & L10nProps;
 

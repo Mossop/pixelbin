@@ -2,6 +2,9 @@ import { Immutable } from "immer";
 import React, { PureComponent, ReactNode, Fragment } from "react";
 
 import { UserData } from "../api/types";
+import Banner from "../components/Banner";
+import Sidebar from "../components/Sidebar";
+import { StoreState } from "../store/types";
 import {
   ComponentProps,
   MapStateToProps,
@@ -9,10 +12,7 @@ import {
   PropsFor,
   mergedConnect,
   MergedMapStateToProps,
-} from "../store/component";
-import { StoreState } from "../store/types";
-import Banner from "./Banner";
-import Sidebar from "./Sidebar";
+} from "../utils/component";
 
 export interface FromStateProps {
   user: Immutable<UserData> | null;

@@ -2,9 +2,9 @@ import { Localized } from "@fluent/react";
 import React, { DragEvent, PureComponent, ReactNode } from "react";
 
 import { OptionalL10nProps } from "../l10n";
-import { connect } from "../store/component";
+import { connect } from "../utils/component";
+import { fieldProps, FieldProps } from "../utils/props";
 import Icon, { IconProps } from "./Icon";
-import { fieldProps, FieldProps } from "./shared";
 
 type PassedProps = {
   onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;

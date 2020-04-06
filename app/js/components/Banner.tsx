@@ -3,7 +3,7 @@ import React, { PureComponent, ReactNode } from "react";
 import { logout } from "../api/auth";
 import { PageType } from "../pages";
 import actions from "../store/actions";
-import { connect, ComponentProps } from "../store/component";
+import { connect, ComponentProps } from "../utils/component";
 import { If, Then, Else } from "../utils/Conditions";
 import { isLoggedIn } from "../utils/helpers";
 import Button from "./Button";
