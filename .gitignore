@@ -5,3 +5,5 @@ data
 public
 .vscode
 config.ini
+test.ini
+testdata
