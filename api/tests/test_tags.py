@@ -1,11 +1,8 @@
 from django.test import TestCase
-from base.utils import CONFIG, path
 
 from ..models import Catalog, Tag
 from ..storage.models import Server
 from ..utils import uuid, ApiException
-
-CONFIG.read(path('test.ini'))
 
 class TagTests(TestCase):
     def test_build_tag_hierarchy(self):
