@@ -1,7 +1,7 @@
 import stream from "stream";
 
 import { path } from "../base/config";
-import { LintInfo, python, VinylFile } from "./utils";
+import { LintInfo, VinylFile, exec } from "./utils";
 
 import through2 = require("through2");
 
@@ -23,8 +23,8 @@ export function pylintCheck(args: string[] = []): stream.Transform {
     files.set(file.path, file);
     callback();
   }, function(callback: (e?: Error) => void): void {
-    let cmdLine = [path("venv/bin/pylint"), ...args, "--exit-zero", "-f", "json", ...files.keys()];
-    python(cmdLine).then((stdout: string[]): void => {
+    let cmdLine = [...args, "--exit-zero", "-f", "json", ...files.keys()];
+    exec("pylint", cmdLine).then((stdout: string[]): void => {
       // eslint-disable-next-line
       let data: any;
       try {
@@ -55,7 +55,7 @@ export function pylintCheck(args: string[] = []): stream.Transform {
       callback();
     }, (e: Error): void => {
       console.error(e);
-      callback();
+      callback(e);
     });
   });
 }
