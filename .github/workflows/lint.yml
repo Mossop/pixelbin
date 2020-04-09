@@ -31,7 +31,7 @@ jobs:
 
     - name: Show python info
       run: |
-        pip3 debug
+        pip3 --version
         pip3 show pylint
         which pylint
 
