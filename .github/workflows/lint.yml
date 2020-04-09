@@ -32,19 +32,12 @@ jobs:
       run: |
         node --version
         python --version
-        python3 --version
-        pip3 --version
 
     - name: Install python packages
       run: |
-        pip3 install -r requirements.txt
-        pip3 install -r requirements_dev.txt
-
-    - name: Show python info
-      run: |
-        pip3 --version
-        pip3 show pylint
-        echo $PATH
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements_dev.txt
 
     - name: Install node packages
       run: npm install
