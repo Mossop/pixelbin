@@ -50,6 +50,8 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -81,6 +83,6 @@ jobs:
 
     - name: Run tests
       env:
-        DATABASE_URL: postgres://postgres:postgres@postgres/pixelbin
+        DATABASE_URL: postgres://postgres:postgres@localhost/pixelbin
       run: |
         ./manage.py test
