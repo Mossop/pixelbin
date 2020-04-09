@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js environment
       uses: actions/setup-node@v1.4.1
       with:
-        node-version: 10.x
+        node-version: 12.x
 
     - name: Install python packages
       run: pip3 install -r requirements.txt
