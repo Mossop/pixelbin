@@ -25,7 +25,7 @@ jobs:
 
     - name: Install python packages
       run: |
-        sudo apt-get install python-setuptools
+        sudo apt-get install python3-setuptools
         pip3 install -r requirements.txt
         pip3 install -r requirements_dev.txt
 
