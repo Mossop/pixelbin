@@ -85,7 +85,7 @@ jobs:
       env:
         DATABASE_URL: postgres://postgres:postgres@localhost/pixelbin
       run: |
-        coverage --branch --source=api run manage.py test
+        coverage run --branch --source=api manage.py test
 
     - name: Upload code coverage
       env:
