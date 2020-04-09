@@ -7,7 +7,7 @@ import { path } from "../base/config";
 
 import through2 = require("through2");
 
-const PYTHON = path("python3");
+const PYTHON = "python3";
 
 export interface VinylFile {
   path: string;
