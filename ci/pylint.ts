@@ -23,7 +23,7 @@ export function pylintCheck(args: string[] = []): stream.Transform {
     files.set(file.path, file);
     callback();
   }, function(callback: (e?: Error) => void): void {
-    let cmdLine = [path("venv/bin/pylint"), ...args, "--exit-zero", "-f", "json", ...files.keys()];
+    let cmdLine = ["pylint", ...args, "--exit-zero", "-f", "json", ...files.keys()];
     python(cmdLine).then((stdout: string[]): void => {
       // eslint-disable-next-line
       let data: any;
