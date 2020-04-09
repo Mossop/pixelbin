@@ -25,6 +25,7 @@ jobs:
 
     - name: Install python packages
       run: |
+        pip3 install -U pip setuptools
         pip3 install -r requirements.txt
         pip3 install -r requirements_dev.txt
 
