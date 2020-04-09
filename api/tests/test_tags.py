@@ -1,15 +1,10 @@
 from django.test import TestCase
-from django.conf import settings
 
 from ..models import Catalog, Tag
 from ..storage.models import Server
 from ..utils import uuid, ApiException
 
 class TagTests(TestCase):
-    def test_runner(self):
-        self.assertTrue(settings.TEST_MODE)
-        self.assertEqual(settings.DATABASES['default']['ENGINE'], 'django.db.backends.postgresql_psycopg2')
-
     def test_build_tag_hierarchy(self):
         storage = Server()
         storage.save()

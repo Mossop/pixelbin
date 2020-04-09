@@ -79,5 +79,7 @@ jobs:
         pip install -r requirements_dev.txt
 
     - name: Run tests
+      env:
+        DATABASE_URL: postgres://postgres:postgres@postgres/pixelbin
       run: |
         ./manage.py test

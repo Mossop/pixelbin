@@ -1,5 +1,6 @@
 import os
-from base.utils import CONFIG, path
+
+from base.config import PATHS
 
 from .base import LocalFileStore
 
@@ -13,4 +14,4 @@ class ServerFileStore(LocalFileStore):
         return cls.STORAGE
 
     def storage_root(self):
-        return os.path.join(path(CONFIG.get('path', 'data')), 'storage', 'server')
+        return os.path.join(PATHS.get('data'), 'storage', 'server')

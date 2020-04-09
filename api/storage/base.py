@@ -2,7 +2,7 @@
 import os
 from shutil import rmtree, copyfile
 
-from base.utils import CONFIG, path
+from base.config import PATHS
 
 def base_path(media):
     return os.path.join(media.catalog.id, media.id)
@@ -13,10 +13,10 @@ def make_target(directory, name):
 
 class BaseFileStore:
     def temp_root(self):
-        return os.path.join(path(CONFIG.get('path', 'data')), 'storage', 'temp')
+        return os.path.join(PATHS.get('data'), 'storage', 'temp')
 
     def local_root(self):
-        return os.path.join(path(CONFIG.get('path', 'data')), 'storage', 'local')
+        return os.path.join(PATHS.get('data'), 'storage', 'local')
 
     def get_temp_path(self, media, name):
         return make_target(os.path.join(self.temp_root(), base_path(media)), name)
