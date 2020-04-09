@@ -55,7 +55,7 @@ export function pylintCheck(args: string[] = []): stream.Transform {
       callback();
     }, (e: Error): void => {
       console.error(e);
-      callback();
+      callback(e);
     });
   });
 }
