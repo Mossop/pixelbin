@@ -86,5 +86,4 @@ jobs:
 
     - name: Run tests
       run: |
-        cp test.ini config.ini
         ./manage.py test
