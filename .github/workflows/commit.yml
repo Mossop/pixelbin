@@ -12,11 +12,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Pull submodules
-      run: |
-        git submodule init
-        git submodule update
+      with:
+        submodules: true
 
     - name: Setup Node.js 12
       uses: actions/setup-node@v1.4.1
@@ -53,6 +50,8 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -62,11 +61,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Pull submodules
-      run: |
-        git submodule init
-        git submodule update
+      with:
+        submodules: true
 
     - name: Setup Python 3.8
       uses: actions/setup-python@v1
@@ -83,7 +79,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements_dev.txt
+        pip install -r requirements_postgres.txt
 
     - name: Run tests
+      env:
+        DATABASE_URL: postgres://postgres:postgres@localhost/pixelbin
       run: |
         ./manage.py test
