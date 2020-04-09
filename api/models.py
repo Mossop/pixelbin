@@ -205,7 +205,7 @@ class Tag(models.Model):
                 return tag
 
         name = path.pop()
-        parent = Tag.get_for_path(catalog, path, False)
+        parent = Tag.get_for_path(catalog, path, match_any)
         (tag, _) = Tag.objects.get_or_create(catalog=catalog, parent=parent, name=name, defaults={
             'id': uuid('T')
         })
@@ -238,7 +238,7 @@ class Tag(models.Model):
 
     class Meta:
         constraints = [
-            UniqueWithExpressionsConstraint(fields=['catalog'],
+            UniqueWithExpressionsConstraint(fields=['catalog', 'parent'],
                                             expressions=[Lower(F('name'))],
                                             name='unique_tag_name'),
         ]
