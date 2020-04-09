@@ -33,7 +33,7 @@ jobs:
       run: |
         pip3 --version
         pip3 show pylint
-        which pylint
+        echo $PATH
 
     - name: Install node packages
       run: npm install
