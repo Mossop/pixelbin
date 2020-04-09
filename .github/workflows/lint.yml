@@ -24,7 +24,9 @@ jobs:
         node-version: 12.x
 
     - name: Install python packages
-      run: pip3 install -r requirements.txt
+      run: |
+        pip3 install -r requirements.txt
+        pip3 install -r requirements_dev.txt
 
     - name: Install node packages
       run: npm install
