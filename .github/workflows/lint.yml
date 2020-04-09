@@ -29,6 +29,12 @@ jobs:
         pip3 install -r requirements.txt
         pip3 install -r requirements_dev.txt
 
+    - name: Show python info
+      run: |
+        pip3 debug
+        pip3 show pylint
+        which pylint
+
     - name: Install node packages
       run: npm install
 
