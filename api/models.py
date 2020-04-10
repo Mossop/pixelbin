@@ -253,7 +253,7 @@ class Tag(models.Model):
 class Person(models.Model):
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
-    fullname = models.CharField(max_length=200)
+    fullnames = models.CharField(max_length=200)
 
     @staticmethod
     def lock_for_create():
