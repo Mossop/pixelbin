@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models.expressions import F
-from django.db.models.functions import Lower
+from django.db.models.functions import Coalesce, Lower
+from django.db.models.expressions import RawSQL
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from rest_framework import status
@@ -145,8 +146,11 @@ class Album(models.Model):
 
     class Meta:
         constraints = [
-            UniqueWithExpressionsConstraint(fields=['parent'],
-                                            expressions=[Lower(F('name'))],
+            UniqueWithExpressionsConstraint(fields=[],
+                                            expressions=[
+                                                Coalesce(F('parent'), RawSQL('\'NONE\'', [])),
+                                                Lower(F('name'))
+                                            ],
                                             name='unique_album_name'),
         ]
 
@@ -238,8 +242,11 @@ class Tag(models.Model):
 
     class Meta:
         constraints = [
-            UniqueWithExpressionsConstraint(fields=['catalog', 'parent'],
-                                            expressions=[Lower(F('name'))],
+            UniqueWithExpressionsConstraint(fields=['catalog'],
+                                            expressions=[
+                                                Coalesce(F('parent'), RawSQL('\'NONE\'', [])),
+                                                Lower(F('name'))
+                                            ],
                                             name='unique_tag_name'),
         ]
 

@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.db.utils import IntegrityError
 
 from ..models import Catalog, Tag
 from ..storage.models import Server
@@ -76,3 +77,35 @@ class TagTests(TestCase):
             tag1.save()
 
         self.assertEqual(assertion.exception.code, 'cyclic-structure')
+
+    def test_duplicate_name_with_parent(self):
+        storage = Server()
+        storage.save()
+        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
+        catalog.save()
+
+        tag1 = Tag.get_for_path(catalog, ['tag'])
+        self.assertIsNone(tag1.parent)
+
+        tag2 = Tag.get_for_path(catalog, ['parent', 'tag'])
+        self.assertNotEqual(tag1, tag2)
+
+        tag1.parent = tag2.parent
+        with self.assertRaises(IntegrityError):
+            tag1.save()
+
+    def test_duplicate_name_without_parent(self):
+        storage = Server()
+        storage.save()
+        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
+        catalog.save()
+
+        tag1 = Tag.get_for_path(catalog, ['tag'])
+        self.assertIsNone(tag1.parent)
+
+        tag2 = Tag.get_for_path(catalog, ['parent', 'tag'])
+        self.assertNotEqual(tag1, tag2)
+
+        tag2.parent = None
+        with self.assertRaises(IntegrityError):
+            tag2.save()
