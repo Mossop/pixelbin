@@ -109,3 +109,19 @@ class TagTests(TestCase):
         tag2.parent = None
         with self.assertRaises(IntegrityError):
             tag2.save()
+
+    def test_duplicate_different_case_name(self):
+        storage = Server()
+        storage.save()
+        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
+        catalog.save()
+
+        tag1 = Tag.get_for_path(catalog, ['tag'])
+        self.assertIsNone(tag1.parent)
+
+        tag2 = Tag.get_for_path(catalog, ['parent', 'TaG'])
+        self.assertNotEqual(tag1, tag2)
+
+        tag2.parent = None
+        with self.assertRaises(IntegrityError):
+            tag2.save()
