@@ -1,5 +1,5 @@
 import { actionCreators } from "deeds/immer";
 
-import { reducers } from "./reducer";
+import type { reducers } from "./reducer";
 
-export default actionCreators(reducers);
+export default actionCreators<typeof reducers>();

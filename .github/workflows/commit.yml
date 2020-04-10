@@ -118,3 +118,35 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
         bash <(curl -s https://codecov.io/bash)
+
+  app-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup Node.js 12
+      uses: actions/setup-node@v1.4.1
+      with:
+        node-version: 12.x
+
+    - name: Show versions
+      run: |
+        node --version
+
+    - name: Install node packages
+      run: npm install
+
+    - name: Run tests
+      env:
+        DATABASE_URL: postgres://postgres:postgres@localhost/pixelbin
+      run: |
+        node_modules/.bin/jest --coverage
+
+    - name: Upload code coverage
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        bash <(curl -s https://codecov.io/bash)

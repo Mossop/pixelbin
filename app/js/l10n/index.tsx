@@ -1,6 +1,6 @@
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { negotiateLanguages } from "@fluent/langneg";
-import { LocalizationProvider } from "@fluent/react";
+import { LocalizationProvider, ReactLocalization } from "@fluent/react";
 import React, { ReactNode, PureComponent } from "react";
 
 export interface L10nArgs {
@@ -54,7 +54,7 @@ interface LocalizationContextProps {
 }
 
 interface LocalizationContextState {
-  generateBundles: FluentBundle[];
+  generatedBundles: FluentBundle[];
 }
 
 export default class LocalizationContext extends PureComponent<
@@ -65,7 +65,7 @@ export default class LocalizationContext extends PureComponent<
     super(props);
 
     this.state = {
-      generateBundles: [],
+      generatedBundles: [],
     };
 
     const supportedLocales = negotiateLanguages(
@@ -90,13 +90,15 @@ export default class LocalizationContext extends PureComponent<
 
     if (isAllBundles(bundles)) {
       this.setState({
-        generateBundles: bundles,
+        generatedBundles: bundles,
       });
     }
   }
 
   public render(): ReactNode {
-    return <LocalizationProvider bundles={this.state.generateBundles}>
+    let l10n = new ReactLocalization(this.state.generatedBundles);
+
+    return <LocalizationProvider l10n={l10n}>
       {this.props.children}
     </LocalizationProvider>;
   }
