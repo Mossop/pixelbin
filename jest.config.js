@@ -1,6 +1,9 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "jsdom",
+  testEnvironmentOptions: {
+    url: "http://pixelbin/",
+  },
   testRegex: [
     "app/tests/[^\\.].*\\.[jt]sx?",
   ],
@@ -11,4 +14,5 @@ module.exports = {
   collectCoverageFrom: [
     "app/js/**/*.(ts|js|tsx|jsx)",
   ],
+  resetModules: true,
 };

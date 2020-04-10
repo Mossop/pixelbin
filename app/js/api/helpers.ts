@@ -18,6 +18,16 @@ export type Patch<D, T> = Partial<D> & {
   id: RequestPk<T>;
 };
 
+type EncodedObject<O> = {
+  [K in keyof O]: Encoded<O[K]>;
+};
+
+export type Encoded<T> =
+  T extends ReadonlyMap<string, infer V> ? Encoded<V>[] :
+    // eslint-disable-next-line @typescript-eslint/array-type
+    T extends ReadonlyArray<infer V> ? Encoded<V>[] :
+      T extends object ? EncodedObject<T> : T;
+
 const API_ROOT = new URL("/api/", window.location.href);
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars

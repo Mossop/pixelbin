@@ -4,18 +4,19 @@ import { createLogger } from "redux-logger";
 
 import { ServerDataDecoder } from "../api/types";
 import { decode } from "../utils/decoders";
-import { addListener, HistoryState } from "../utils/history";
-import { getState, intoUIState } from "../utils/navigation";
-import actions from "./actions";
+import { getState } from "../utils/navigation";
 import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
 import { StoreState, ServerState } from "./types";
 
-export type StoreType = Store<StoreState, Deed> & {
-  asyncDispatch: (action: Deed) => Promise<StoreState>;
-};
+export type StoreType = Store<StoreState, Deed>;
 
-function buildStore(): StoreType {
+interface BuildResult {
+  asyncDispatchListener: AsyncDispatchListener;
+  store: StoreType;
+}
+
+function buildStore(): BuildResult {
   let serverState: ServerState = { user: null };
   let stateElement = document.getElementById("initial-state");
   if (stateElement?.textContent) {
@@ -41,35 +42,29 @@ function buildStore(): StoreType {
     middlewares.push(createLogger());
   }
 
-  let AsyncDispatch: AsyncDispatchListener | undefined;
+  let asyncDispatchListener: AsyncDispatchListener | null = null;
 
   let store = createStore(
     (state: StoreState | undefined, action: Deed): StoreState => {
-      if (AsyncDispatch) {
-        AsyncDispatch.seenAction(action);
+      if (asyncDispatchListener) {
+        asyncDispatchListener.seenAction(action);
       }
+
       return reducer(state, action);
     },
     initialState,
     applyMiddleware(...middlewares),
   );
 
-  addListener((historyState: HistoryState): void => {
-    let uiState = intoUIState(historyState, store.getState().serverState);
-    store.dispatch(actions.historyStateChanged(uiState));
-  });
+  asyncDispatchListener = new AsyncDispatchListener(store);
 
-  AsyncDispatch = new AsyncDispatchListener(store);
-
-  return Object.assign({
-    asyncDispatch: (action: Deed): Promise<StoreState> => {
-      return AsyncDispatch ? AsyncDispatch.dispatch(action) : Promise.resolve(store.getState());
-    },
-  }, store);
+  return { asyncDispatchListener, store };
 }
 
-const store = buildStore();
+const { asyncDispatchListener, store } = buildStore();
 
-export const { asyncDispatch } = store;
+export const asyncDispatch = (action: Deed): Promise<StoreState> => {
+  return asyncDispatchListener.dispatch(action);
+};
 
 export default store;

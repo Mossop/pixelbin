@@ -80,6 +80,8 @@ export class APIItemReference<T> implements Reference<T> {
 
 class PendingAPIItem<T> implements Pending<T> {
   private id: string | undefined = undefined;
+  private foundRef: Reference<T> | undefined = undefined;
+
   public readonly promise: Promise<Reference<T>>;
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private resolver: (ref: Reference<T>) => void = (): void => {};
@@ -92,14 +94,12 @@ class PendingAPIItem<T> implements Pending<T> {
 
   public setId(id: string): void {
     this.id = id;
-    this.resolver(new APIItemReference(this.id, this.builder));
+    this.foundRef = new APIItemReference(this.id, this.builder);
+    this.resolver(this.foundRef);
   }
 
   public get ref(): Reference<T> | undefined {
-    if (this.id === undefined) {
-      return undefined;
-    }
-    return new APIItemReference(this.id, this.builder);
+    return this.foundRef;
   }
 }
 

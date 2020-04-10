@@ -5,12 +5,34 @@ export interface HistoryState {
   state?: unknown;
 }
 
+let listening = false;
+function startListening(): void {
+  if (listening) {
+    return;
+  }
+
+  window.addEventListener("popstate", (): void => {
+    let state = getState();
+
+    for (let listener of listeners) {
+      try {
+        listener(state);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  });
+
+  listening = true;
+}
+
 export type NewStateListener = (state: HistoryState) => void;
 
 const listeners: Set<NewStateListener> = new Set();
 
 export function addListener(listener: NewStateListener): void {
   listeners.add(listener);
+  startListening();
 }
 
 export function removeListener(listener: NewStateListener): void {
@@ -52,15 +74,3 @@ export function pushState(state: HistoryState): void {
 export function replaceState(state: HistoryState): void {
   window.history.replaceState(state.state, "", buildURL(state));
 }
-
-window.addEventListener("popstate", (): void => {
-  let state = getState();
-
-  for (let listener of listeners) {
-    try {
-      listener(state);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-});

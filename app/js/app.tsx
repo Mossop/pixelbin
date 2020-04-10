@@ -9,7 +9,10 @@ import LocalizationContext from "./l10n";
 import Overlay from "./overlays";
 import Page from "./pages";
 import store from "./store";
+import actions from "./store/actions";
 import { decode } from "./utils/decoders";
+import { addListener, HistoryState } from "./utils/history";
+import { intoUIState } from "./utils/navigation";
 
 export interface Paths {
   static: string;
@@ -34,6 +37,11 @@ if (pathsElement?.textContent) {
     console.error(e);
   }
 }
+
+addListener((historyState: HistoryState): void => {
+  let uiState = intoUIState(historyState, store.getState().serverState);
+  store.dispatch(actions.historyStateChanged(uiState));
+});
 
 reactRender(
   <Provider store={store}>
