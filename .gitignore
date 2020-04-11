@@ -8,3 +8,4 @@ config.ini
 test.ini
 testdata
 coverage
+.python-version

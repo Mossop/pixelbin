@@ -1,8 +1,8 @@
 from . import api_view
-from ..utils import ApiException
+from ..utils import ApiException, uuid
 from ..models import Tag
 from ..serializers.tag import TagSerializer, TagFindSerializer
-from ..serializers.wrappers import ListSerializerWrapper
+from ..serializers.wrappers import ListSerializerWrapper, PatchSerializerWrapper
 
 @api_view('PUT', request=TagSerializer, response=TagSerializer)
 def create(request, deserialized):
@@ -13,12 +13,22 @@ def create(request, deserialized):
     if parent is not None and data['catalog'] != parent.catalog:
         raise ApiException('catalog-mismatch')
 
-    name = deserialized.validated_data['name']
-    parent = deserialized.validated_data['parent']
     with Tag.lock_for_create():
-        tag = Tag(catalog=data['catalog'], parent=parent, name=name)
-        tag.save()
-        return tag
+        return deserialized.save(id=uuid('T'))
+
+@api_view('PATCH', request=PatchSerializerWrapper(TagSerializer), response=TagSerializer)
+def edit(request, deserialized):
+    tag = deserialized.instance
+    request.user.check_can_modify(tag.catalog)
+
+    data = deserialized.validated_data
+    if 'catalog' in data and data['catalog'] != tag.catalog:
+        raise ApiException('catalog-change')
+
+    if 'parent' in data and data['parent'] is not None and data['parent'].catalog != tag.catalog:
+        raise ApiException('catalog-mismatch')
+
+    return deserialized.save()
 
 @api_view('POST', request=TagFindSerializer, response=ListSerializerWrapper(TagSerializer))
 def find(request, deserialized):

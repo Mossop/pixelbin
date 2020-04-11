@@ -17,6 +17,7 @@ urlpatterns = [
     path('album/remove_media', album.remove),
 
     path('tag/create', tag.create),
+    path('tag/edit', tag.edit),
     path('tag/find', tag.find),
 
     path('person/create', person.create),
