@@ -19,6 +19,7 @@ const IGNORES = [
   "!venv/**/*",
   "!public/**/*",
   "!api/migrations/**/*",
+  "!coverage/**/*",
 ];
 
 function allScripts(): string[] {

@@ -4,7 +4,8 @@ import { render as testRender, RenderOptions, Queries, RenderResult } from "@tes
 import React, { ReactNode, ReactElement } from "react";
 import { Provider } from "react-redux";
 
-import store from "../js/store";
+import store, { asyncDispatch } from "../js/store";
+import actions from "../js/store/actions";
 
 export function expectElement(node: Node | null): Element {
   expect(node).not.toBeNull();
@@ -37,4 +38,18 @@ export function render(ui: any, options?: any): any {
   return {
     ...results,
   };
+}
+
+export async function reset(): Promise<void> {
+  await asyncDispatch(actions.completeLogout({
+    user: null,
+  }));
+
+  while (document.head.firstChild) {
+    document.head.firstChild.remove();
+  }
+
+  while (document.body.firstChild) {
+    document.body.firstChild.remove();
+  }
 }

@@ -1,7 +1,9 @@
 import React from "react";
 
 import { If, Then, Else } from "../js/utils/Conditions";
-import { render, expectElement } from "./utils";
+import { render, expectElement, reset } from "./utils";
+
+beforeEach(reset);
 
 describe("Simple boolean condition", (): void => {
   it("true", (): void => {
