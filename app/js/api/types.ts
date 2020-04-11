@@ -354,6 +354,7 @@ export enum ApiMethod {
   AlbumAddMedia = "album/add_media",
   AlbumRemoveMedia = "album/remove_media",
   TagCreate = "tag/create",
+  TagEdit = "tag/edit",
   TagFind = "tag/find",
   PersonCreate = "person/create",
   MediaGet = "media/get",
@@ -374,6 +375,7 @@ export const HttpMethods: MethodList = {
   [ApiMethod.AlbumAddMedia]: "PUT",
   [ApiMethod.AlbumRemoveMedia]: "DELETE",
   [ApiMethod.TagCreate]: "PUT",
+  [ApiMethod.TagEdit]: "PATCH",
   [ApiMethod.TagFind]: "POST",
   [ApiMethod.PersonCreate]: "PUT",
   [ApiMethod.MediaGet]: "GET",
@@ -393,6 +395,7 @@ export function request(method: ApiMethod.AlbumEdit, data: Patch<AlbumCreateData
 export function request(method: ApiMethod.AlbumAddMedia, data: AlbumMedia): Promise<AlbumData>;
 export function request(method: ApiMethod.AlbumRemoveMedia, data: AlbumMedia): Promise<AlbumData>;
 export function request(method: ApiMethod.TagCreate, data: TagCreateData): Promise<TagData>;
+export function request(method: ApiMethod.TagEdit, data: Patch<TagCreateData, Tag>): Promise<TagData>;
 export function request(method: ApiMethod.TagFind, data: TagLookup): Promise<TagData[]>;
 export function request(method: ApiMethod.PersonCreate, data: PersonCreateData): Promise<PersonData>;
 export function request(method: ApiMethod.MediaGet, data: Mappable): Promise<UnprocessedMediaData>;
@@ -434,6 +437,9 @@ export function request(path: ApiMethod, data?: any): Promise<object | void> {
       request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.TagCreate:
+      request = new JsonRequestData(data, JsonDecoderDecoder(TagDataDecoder));
+      break;
+    case ApiMethod.TagEdit:
       request = new JsonRequestData(data, JsonDecoderDecoder(TagDataDecoder));
       break;
     case ApiMethod.TagFind:
