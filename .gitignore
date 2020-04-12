@@ -9,3 +9,4 @@ test.ini
 testdata
 coverage
 .python-version
+.coverage

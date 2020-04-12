@@ -1,0 +1,42 @@
+coverage:
+  range: "80...100"
+  status:
+    project:
+      default: off
+      server:
+        informational: true
+        target: auto
+        flags:
+          - server
+        paths:
+          - !api/tests/
+      server-tests:
+        informational: true
+        target: auto
+        flags:
+          - server
+        paths:
+          - api/tests/
+      client:
+        informational: true
+        target: auto
+        flags:
+          - client
+        paths:
+          - app/js/
+      client-tests:
+        informational: true
+        target: auto
+        flags:
+          - client
+        paths:
+          - app/tests/
+    patch: off
+
+flags:
+  server:
+    paths:
+      - api/
+  client:
+    paths:
+      - app/

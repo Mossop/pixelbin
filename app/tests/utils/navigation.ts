@@ -1,8 +1,8 @@
-import { PageType } from "../js/pages";
-import { ServerState } from "../js/store/types";
-import { HistoryState } from "../js/utils/history";
-import { intoUIState, fromUIState } from "../js/utils/navigation";
-import { reset } from "./utils";
+import { PageType } from "../../js/pages";
+import { ServerState } from "../../js/store/types";
+import { HistoryState } from "../../js/utils/history";
+import { intoUIState, fromUIState } from "../../js/utils/navigation";
+import { reset } from "../utils";
 
 beforeEach(reset);
 

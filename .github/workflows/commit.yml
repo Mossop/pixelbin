@@ -111,13 +111,14 @@ jobs:
       env:
         DATABASE_URL: postgres://postgres:postgres@localhost/pixelbin
       run: |
-        coverage run --branch --source=api manage.py test
+        coverage run
+        coverage report
 
     - name: Upload code coverage
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        bash <(curl -s https://codecov.io/bash)
+        bash <(curl -s https://codecov.io/bash) -F server
 
   app-tests:
     runs-on: ubuntu-latest
@@ -149,4 +150,4 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        bash <(curl -s https://codecov.io/bash)
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage.json -F client

@@ -1,6 +1,6 @@
-import { Encoded } from "../js/api/helpers";
-import { PageType } from "../js/pages";
-import { ServerState } from "../js/store/types";
+import { Encoded } from "../../js/api/helpers";
+import { PageType } from "../../js/pages";
+import { ServerState } from "../../js/store/types";
 
 describe("store initialization", (): void => {
   afterEach((): void => {
@@ -11,7 +11,7 @@ describe("store initialization", (): void => {
 
   test("no initial state", (): void => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { default: store } = require("../js/store");
+    const { default: store } = require("../../js/store");
     expect(store.getState()).toEqual({
       serverState: { user: null },
       settings: {
@@ -43,7 +43,7 @@ describe("store initialization", (): void => {
     document.body.appendChild(div);
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { default: store } = require("../js/store");
+    const { default: store } = require("../../js/store");
     expect(store.getState()).toEqual({
       serverState: {
         user: {

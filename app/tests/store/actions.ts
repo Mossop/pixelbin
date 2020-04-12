@@ -1,6 +1,6 @@
-import store, { asyncDispatch } from "../js/store";
-import actions from "../js/store/actions";
-import { reset } from "./utils";
+import store, { asyncDispatch } from "../../js/store";
+import actions from "../../js/store/actions";
+import { reset } from "../utils";
 
 beforeEach(reset);
 

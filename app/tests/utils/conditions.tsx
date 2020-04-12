@@ -1,7 +1,7 @@
 import React from "react";
 
-import { If, Then, Else } from "../js/utils/Conditions";
-import { render, expectElement, reset } from "./utils";
+import { If, Then, Else } from "../../js/utils/Conditions";
+import { render, expectElement, reset } from "../utils";
 
 beforeEach(reset);
 

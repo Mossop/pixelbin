@@ -1,0 +1,4 @@
+[run]
+branch = true
+command_line = manage.py test
+source = api

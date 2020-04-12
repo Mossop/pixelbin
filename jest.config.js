@@ -5,14 +5,20 @@ module.exports = {
     url: "http://pixelbin/",
   },
   testRegex: [
-    "app/tests/[^\\.].*\\.[jt]sx?",
+    "app/tests/.+/.*\\.[jt]sx?",
   ],
   testPathIgnorePatterns: [
-    "/node_modules/",
-    "/utils.tsx",
+    "app/tests/utils.tsx",
   ],
   collectCoverageFrom: [
-    "app/js/**/*.(ts|js|tsx|jsx)",
+    "app/**/*.*",
   ],
+  forceCoverageMatch: [
+    "app/**/*.*",
+  ],
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", ["json", {
+    file: "coverage.json",
+  }]],
   resetModules: true,
 };
