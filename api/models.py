@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models.expressions import F
 from django.db.models.functions import Coalesce, Lower
 from django.db.models.expressions import RawSQL
+from django.db.utils import IntegrityError
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from rest_framework import status
@@ -238,7 +239,10 @@ class Tag(models.Model):
                 raise ApiException('cyclic-structure')
             parent = parent.parent
 
-        super().save(*args, **kwargs)
+        try:
+            super().save(*args, **kwargs)
+        except IntegrityError:
+            raise ApiException('invalid-name')
 
     class Meta:
         constraints = [

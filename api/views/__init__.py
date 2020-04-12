@@ -2,6 +2,7 @@ import logging
 from pprint import pformat
 
 from django.http.response import HttpResponseBase
+from django.db.utils import IntegrityError
 from rest_framework.decorators import api_view as rest_view, parser_classes
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -61,6 +62,12 @@ def api_view(http_method_names=None, requires_login=True, request=None, response
                     if response is not None:
                         return Response(response(result).data)
                     return Response(result)
+
+                except IntegrityError as exception:
+                    LOGGER.exception('Database integrity error.')
+                    raise ApiException('integrity-error',
+                                       status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                       detail=str(exception))
 
                 except exceptions.ValidationError as exception:
                     LOGGER.exception('Validation failure.')

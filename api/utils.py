@@ -28,6 +28,8 @@ EXCEPTION_CODES = [
     'login-failed',
     'not-found',
     'not-allowed',
+    'integrity-error',
+    'invalid-name',
 ]
 
 class ApiException(Exception):
@@ -41,6 +43,7 @@ class ApiException(Exception):
                 self.message_args[key] = value
         else:
             self.code = 'unknown-exception'
+            self.status = status
             self.message_args = {
                 'code': code,
             }

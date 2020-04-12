@@ -1,5 +1,4 @@
 from django.test import TestCase, Client
-from django.db.utils import IntegrityError
 
 from ..models import Catalog, Tag
 from ..storage.models import Server
@@ -93,8 +92,10 @@ class TagTests(TestCase):
         self.assertNotEqual(tag1, tag2)
 
         tag1.parent = tag2.parent
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ApiException) as assertion:
             tag1.save()
+
+        self.assertEqual(assertion.exception.code, 'invalid-name')
 
     def test_duplicate_name_without_parent(self):
         storage = Server()
@@ -109,8 +110,10 @@ class TagTests(TestCase):
         self.assertNotEqual(tag1, tag2)
 
         tag2.parent = None
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ApiException) as assertion:
             tag2.save()
+
+        self.assertEqual(assertion.exception.code, 'invalid-name')
 
     def test_duplicate_different_case_name(self):
         storage = Server()
@@ -125,8 +128,10 @@ class TagTests(TestCase):
         self.assertNotEqual(tag1, tag2)
 
         tag2.parent = None
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ApiException) as assertion:
             tag2.save()
+
+        self.assertEqual(assertion.exception.code, 'invalid-name')
 
     def test_request_find_tag(self):
         user = create_user()
@@ -159,32 +164,42 @@ class TagTests(TestCase):
         self.assertEqual(tag.catalog, catalog)
         self.assertEqual(tag.parent, None)
 
-        response2 = c.post('/api/tag/find', content_type='application/json', data={
+        response = c.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
             'path': ['toplevel'],
         })
 
-        self.assertEqual(response2.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
-        data2 = response2.json()
+        data2 = response.json()
 
         self.assertEqual(data2, data)
 
         self.assertEqual(list(Tag.objects.all()), [tag])
 
-        response3 = c.post('/api/tag/find', content_type='application/json', data={
+        response = c.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
             'path': ['toplevel', 'sublevel'],
         })
 
-        self.assertEqual(response2.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
-        data3 = response3.json()
+        data3 = response.json()
 
         self.assertEqual(data3[0], data[0])
         self.assertEqual(data3[1]['name'], 'sublevel')
         self.assertEqual(data3[1]['parent'], tag.id)
         self.assertEqual(data3[1]['catalog'], catalog.id)
+
+        response = c.post('/api/tag/find', content_type='application/json', data={
+            'catalog': catalog.id,
+            'path': ['ToPleveL'],
+        })
+
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertEqual(data[0]['id'], tag.id)
 
     def test_request_create_tag(self):
         user = create_user()
@@ -292,3 +307,10 @@ class TagTests(TestCase):
         tag3 = Tag.objects.get(name='tag3')
 
         self.assertEqual(tag3.parent, None)
+
+        response = c.patch('/api/tag/edit', content_type='application/json', data={
+            'id': tag3.id,
+            'name': 'Tag2',
+        })
+
+        self.assertEqual(response.status_code, 400)
