@@ -40,6 +40,8 @@ export enum ApiErrorCode {
   LoginFailed = "login-failed",
   NotFound = "not-found",
   NotAllowed = "not-allowed",
+  IntegrityError = "integrity-error",
+  InvalidName = "invalid-name",
 }
 
 export interface ApiErrorData {
