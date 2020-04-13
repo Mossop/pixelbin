@@ -6,7 +6,7 @@ from . import ApiTestCase
 
 class TagTests(ApiTestCase):
     def test_build_tag_hierarchy(self):
-        catalog = self.add_catalog('Test')
+        catalog = self.add_catalog()
 
         tags = Tag.objects.all()
         self.assertEqual(len(tags), 0)
@@ -40,21 +40,21 @@ class TagTests(ApiTestCase):
         self.assertEqual(toplevel, withpath2.parent)
 
     def test_wrong_catalog(self):
-        catalog1 = self.add_catalog('Test')
-        catalog2 = self.add_catalog('Test2')
+        catalog1 = self.add_catalog()
+        catalog2 = self.add_catalog()
 
-        tag1 = Tag.get_for_path(catalog1, ['tag1'])
-        tag2 = Tag.get_for_path(catalog2, ['tag2'])
+        tag1 = Tag.get_for_path(catalog1, [self.random_thing()])
+        tag2 = Tag.get_for_path(catalog2, [self.random_thing()])
 
         tag2.parent = tag1
         with self.assertRaisesApiException('catalog-mismatch'):
             tag2.save()
 
     def test_no_cycles(self):
-        catalog = self.add_catalog('Test')
+        catalog = self.add_catalog()
 
-        tag1 = Tag.get_for_path(catalog, ['tag1'])
-        tag2 = Tag.get_for_path(catalog, ['tag2'])
+        tag1 = Tag.get_for_path(catalog, [self.random_thing()])
+        tag2 = Tag.get_for_path(catalog, [self.random_thing()])
 
         tag2.parent = tag1
         tag2.save()
@@ -64,15 +64,16 @@ class TagTests(ApiTestCase):
             tag1.save()
 
     def test_duplicate_name(self):
-        catalog = self.add_catalog('Test')
+        catalog = self.add_catalog()
 
-        tag1 = catalog.tags.create(name='Tag')
+        name = self.random_thing()
+        tag1 = catalog.tags.create(name=name)
 
         with transaction.atomic():
             with self.assertRaisesApiException('invalid-name'):
-                catalog.tags.create(name='Tag')
+                catalog.tags.create(name=name)
 
-        tag2 = catalog.tags.create(name='Tag', parent=tag1)
+        tag2 = catalog.tags.create(name=name, parent=tag1)
         tag2.parent = None
 
         with transaction.atomic():
@@ -81,17 +82,18 @@ class TagTests(ApiTestCase):
 
         with transaction.atomic():
             with self.assertRaisesApiException('invalid-name'):
-                catalog.tags.create(name='taG', parent=tag1)
+                catalog.tags.create(name=self.amend_case(name), parent=tag1)
 
     def test_request_find_tag(self):
         user = self.create_user()
-        catalog = self.add_catalog('Test', user)
+        catalog = self.add_catalog(user=user)
 
         self.client.force_login(user)
 
+        name = self.random_thing()
         response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
-            'path': ['toplevel'],
+            'path': [name],
         })
 
         data = response.json()
@@ -100,20 +102,20 @@ class TagTests(ApiTestCase):
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]['catalog'], catalog.id)
         self.assertEqual(data[0]['parent'], None)
-        self.assertEqual(data[0]['name'], 'toplevel')
+        self.assertEqual(data[0]['name'], name)
 
         tags = Tag.objects.all()
         self.assertEqual(len(tags), 1)
 
         tag = tags[0]
         self.assertEqual(tag.id, data[0]['id'])
-        self.assertEqual(tag.name, 'toplevel')
+        self.assertEqual(tag.name, name)
         self.assertEqual(tag.catalog, catalog)
         self.assertEqual(tag.parent, None)
 
         response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
-            'path': ['toplevel'],
+            'path': [name],
         })
 
         data2 = response.json()
@@ -122,21 +124,22 @@ class TagTests(ApiTestCase):
 
         self.assertEqual(list(Tag.objects.all()), [tag])
 
+        subname = self.random_thing()
         response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
-            'path': ['toplevel', 'sublevel'],
+            'path': [name, subname],
         })
 
         data3 = response.json()
 
         self.assertEqual(data3[0], data[0])
-        self.assertEqual(data3[1]['name'], 'sublevel')
+        self.assertEqual(data3[1]['name'], subname)
         self.assertEqual(data3[1]['parent'], tag.id)
         self.assertEqual(data3[1]['catalog'], catalog.id)
 
         response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
-            'path': ['ToPleveL'],
+            'path': [self.amend_case(name)],
         })
 
         data = response.json()
@@ -144,14 +147,15 @@ class TagTests(ApiTestCase):
 
     def test_request_create_tag(self):
         user = self.create_user()
-        catalog = self.add_catalog('Test', user)
+        catalog = self.add_catalog(user=user)
 
         self.client.force_login(user)
 
+        name = self.random_thing()
         response = self.client.put('/api/tag/create', content_type='application/json', data={
             'catalog': catalog.id,
             'parent': None,
-            'name': 'toplevel',
+            'name': name,
         })
 
         data = response.json()
@@ -159,44 +163,45 @@ class TagTests(ApiTestCase):
         self.assertIsInstance(data, dict)
         self.assertEqual(data['catalog'], catalog.id)
         self.assertEqual(data['parent'], None)
-        self.assertEqual(data['name'], 'toplevel')
+        self.assertEqual(data['name'], name)
 
         tags = Tag.objects.all()
         self.assertEqual(len(tags), 1)
 
         tag = tags[0]
         self.assertEqual(tag.id, data['id'])
-        self.assertEqual(tag.name, 'toplevel')
+        self.assertEqual(tag.name, name)
         self.assertEqual(tag.catalog, catalog)
         self.assertEqual(tag.parent, None)
 
-        catalog2 = self.add_catalog('Test2', user)
+        catalog2 = self.add_catalog(user=user)
 
         with self.assertRaisesApiException('catalog-mismatch'):
             self.client.put('/api/tag/create', content_type='application/json', data={
                 'catalog': catalog2.id,
                 'parent': tag.id,
-                'name': 'toplevel',
+                'name': name,
             })
 
     def test_request_edit_tag(self):
         user = self.create_user()
-        catalog1 = self.add_catalog('Test', user)
-        catalog2 = self.add_catalog('Test2', user)
+        catalog1 = self.add_catalog(user=user)
+        catalog2 = self.add_catalog(user=user)
 
         self.client.force_login(user)
 
-        tag1 = catalog1.tags.create(name='tag1')
-        tag2 = catalog2.tags.create(name='tag2')
-        tag3 = catalog2.tags.create(name='tag3')
+        tag1 = catalog1.tags.create(name=self.random_thing())
+        tag2 = catalog2.tags.create(name=self.random_thing())
+        tag3 = catalog2.tags.create(name=self.random_thing())
 
+        newname = self.random_thing()
         self.client.patch('/api/tag/edit', content_type='application/json', data={
             'id': tag1.id,
-            'name': 'changed',
+            'name': newname,
         })
 
         tag = Tag.objects.get(catalog=catalog1)
-        self.assertEqual(tag.name, 'changed')
+        self.assertEqual(tag.name, newname)
 
         with self.assertRaisesApiException('catalog-mismatch'):
             self.client.patch('/api/tag/edit', content_type='application/json', data={
@@ -215,8 +220,8 @@ class TagTests(ApiTestCase):
             'parent': tag2.id,
         })
 
-        tag2 = Tag.objects.get(name='tag2')
-        tag3 = Tag.objects.get(name='tag3')
+        tag2 = Tag.objects.get(id=tag2.id)
+        tag3 = Tag.objects.get(id=tag3.id)
 
         self.assertEqual(tag3.parent, tag2)
 
@@ -225,24 +230,24 @@ class TagTests(ApiTestCase):
             'parent': None,
         })
 
-        tag3 = Tag.objects.get(name='tag3')
+        tag3 = Tag.objects.get(id=tag3.id)
 
         self.assertEqual(tag3.parent, None)
 
         with self.assertRaisesApiException('invalid-name'):
             self.client.patch('/api/tag/edit', content_type='application/json', data={
                 'id': tag3.id,
-                'name': 'Tag2',
+                'name': self.amend_case(tag2.name),
             })
 
     def test_request_invalid_access(self):
         user = self.create_user()
-        catalog = self.add_catalog('Invisible')
+        catalog = self.add_catalog()
 
         self.client.force_login(user)
 
         with self.assertRaisesApiException('not-found'):
             self.client.put('/api/tag/create', content_type='application/json', data={
                 'catalog': catalog.id,
-                'name': 'Tag',
+                'name': self.random_thing(),
             })

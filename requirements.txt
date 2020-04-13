@@ -6,3 +6,4 @@ requests==2.22.0
 celery==4.4.0
 redis==3.3.11
 djangorestframework==3.11.0
+faker==4.0.2

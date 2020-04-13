@@ -1,4 +1,7 @@
+from random import Random
+
 from django.test import TestCase, Client
+from faker import Faker
 
 from ..models import User, Catalog
 from ..utils import uuid, ApiException
@@ -56,12 +59,33 @@ class ApiExceptionContext:
 class ApiTestCase(TestCase):
     client_class = ApiClient
 
-    def create_user(self):
-        return User.objects.create_user(email='dtownsend@oxymoronical.com',
-                                        full_name='Dave Townsend',
-                                        password='foobar')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    def add_catalog(self, name, user=None):
+        self.fake = Faker()
+        self.fake.seed_instance(4723)
+
+    def random_bool(self):
+        return self.fake.random_element((True, False))
+
+    def amend_case(self, st):
+        newst = ''.join(map(lambda ch: ch.lower() if self.random_bool() else ch.upper(), st))
+        if newst == st:
+            return self.amend_case(st)
+        return newst
+
+    def random_thing(self):
+        return ' '.join(self.fake.words(nb=2))
+
+    def create_user(self):
+        return User.objects.create_user(email=self.fake.email(),
+                                        full_name=self.fake.name(),
+                                        password=self.fake.password())
+
+    def add_catalog(self, name=None, user=None):
+        if name is None:
+            name = self.random_thing()
+
         storage = Server()
         storage.save()
         catalog = Catalog.objects.create(name=name, storage=storage)
