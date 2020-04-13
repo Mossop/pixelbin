@@ -301,6 +301,12 @@ class Person(models.Model):
                                                  })
         return person
 
+    def save(self, *args, **kwargs):
+        try:
+            super().save(*args, **kwargs)
+        except IntegrityError:
+            raise ApiException('invalid-name')
+
     class Meta:
         constraints = [
             UniqueWithExpressionsConstraint(fields=['catalog'],
