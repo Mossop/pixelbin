@@ -1,17 +1,12 @@
-from django.test import TestCase, Client
+from django.db import transaction
 
-from ..models import Catalog, Tag
-from ..storage.models import Server
-from ..utils import uuid, ApiException
+from ..models import Tag
 
-from . import create_user, add_catalog
+from . import ApiTestCase
 
-class TagTests(TestCase):
+class TagTests(ApiTestCase):
     def test_build_tag_hierarchy(self):
-        storage = Server()
-        storage.save()
-        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
-        catalog.save()
+        catalog = self.add_catalog('Test')
 
         tags = Tag.objects.all()
         self.assertEqual(len(tags), 0)
@@ -20,6 +15,7 @@ class TagTests(TestCase):
         self.assertEqual(tag.name, 'toplevel')
         self.assertEqual(tag.parent, None)
         self.assertEqual(tag.path, ['toplevel'])
+        self.assertEqual(tag.id[0], 'T')
 
         subtag = Tag.get_for_path(catalog, ['toplevel', 'sublevel'])
         self.assertEqual(subtag.name, 'sublevel')
@@ -44,28 +40,18 @@ class TagTests(TestCase):
         self.assertEqual(toplevel, withpath2.parent)
 
     def test_wrong_catalog(self):
-        storage = Server()
-        storage.save()
-        catalog1 = Catalog(id=uuid('C'), name='Test', storage=storage)
-        catalog1.save()
-
-        catalog2 = Catalog(id=uuid('C'), name='Test2', storage=storage)
-        catalog2.save()
+        catalog1 = self.add_catalog('Test')
+        catalog2 = self.add_catalog('Test2')
 
         tag1 = Tag.get_for_path(catalog1, ['tag1'])
         tag2 = Tag.get_for_path(catalog2, ['tag2'])
 
         tag2.parent = tag1
-        with self.assertRaises(ApiException) as assertion:
+        with self.assertRaisesApiException('catalog-mismatch'):
             tag2.save()
 
-        self.assertEqual(assertion.exception.code, 'catalog-mismatch')
-
     def test_no_cycles(self):
-        storage = Server()
-        storage.save()
-        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
-        catalog.save()
+        catalog = self.add_catalog('Test')
 
         tag1 = Tag.get_for_path(catalog, ['tag1'])
         tag2 = Tag.get_for_path(catalog, ['tag2'])
@@ -74,78 +60,39 @@ class TagTests(TestCase):
         tag2.save()
 
         tag1.parent = tag2
-        with self.assertRaises(ApiException) as assertion:
+        with self.assertRaisesApiException('cyclic-structure'):
             tag1.save()
 
-        self.assertEqual(assertion.exception.code, 'cyclic-structure')
+    def test_duplicate_name(self):
+        catalog = self.add_catalog('Test')
 
-    def test_duplicate_name_with_parent(self):
-        storage = Server()
-        storage.save()
-        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
-        catalog.save()
+        tag1 = catalog.tags.create(name='Tag')
 
-        tag1 = Tag.get_for_path(catalog, ['tag'])
-        self.assertIsNone(tag1.parent)
+        with transaction.atomic():
+            with self.assertRaisesApiException('invalid-name'):
+                catalog.tags.create(name='Tag')
 
-        tag2 = Tag.get_for_path(catalog, ['parent', 'tag'])
-        self.assertNotEqual(tag1, tag2)
-
-        tag1.parent = tag2.parent
-        with self.assertRaises(ApiException) as assertion:
-            tag1.save()
-
-        self.assertEqual(assertion.exception.code, 'invalid-name')
-
-    def test_duplicate_name_without_parent(self):
-        storage = Server()
-        storage.save()
-        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
-        catalog.save()
-
-        tag1 = Tag.get_for_path(catalog, ['tag'])
-        self.assertIsNone(tag1.parent)
-
-        tag2 = Tag.get_for_path(catalog, ['parent', 'tag'])
-        self.assertNotEqual(tag1, tag2)
-
+        tag2 = catalog.tags.create(name='Tag', parent=tag1)
         tag2.parent = None
-        with self.assertRaises(ApiException) as assertion:
-            tag2.save()
 
-        self.assertEqual(assertion.exception.code, 'invalid-name')
+        with transaction.atomic():
+            with self.assertRaisesApiException('invalid-name'):
+                tag2.save()
 
-    def test_duplicate_different_case_name(self):
-        storage = Server()
-        storage.save()
-        catalog = Catalog(id=uuid('C'), name='Test', storage=storage)
-        catalog.save()
-
-        tag1 = Tag.get_for_path(catalog, ['tag'])
-        self.assertIsNone(tag1.parent)
-
-        tag2 = Tag.get_for_path(catalog, ['parent', 'TaG'])
-        self.assertNotEqual(tag1, tag2)
-
-        tag2.parent = None
-        with self.assertRaises(ApiException) as assertion:
-            tag2.save()
-
-        self.assertEqual(assertion.exception.code, 'invalid-name')
+        with transaction.atomic():
+            with self.assertRaisesApiException('invalid-name'):
+                catalog.tags.create(name='taG', parent=tag1)
 
     def test_request_find_tag(self):
-        user = create_user()
-        catalog = add_catalog(user, 'Test')
+        user = self.create_user()
+        catalog = self.add_catalog('Test', user)
 
-        c = Client()
-        c.force_login(user)
+        self.client.force_login(user)
 
-        response = c.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
             'path': ['toplevel'],
         })
-
-        self.assertEqual(response.status_code, 200)
 
         data = response.json()
 
@@ -164,12 +111,10 @@ class TagTests(TestCase):
         self.assertEqual(tag.catalog, catalog)
         self.assertEqual(tag.parent, None)
 
-        response = c.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
             'path': ['toplevel'],
         })
-
-        self.assertEqual(response.status_code, 200)
 
         data2 = response.json()
 
@@ -177,12 +122,10 @@ class TagTests(TestCase):
 
         self.assertEqual(list(Tag.objects.all()), [tag])
 
-        response = c.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
             'path': ['toplevel', 'sublevel'],
         })
-
-        self.assertEqual(response.status_code, 200)
 
         data3 = response.json()
 
@@ -191,30 +134,25 @@ class TagTests(TestCase):
         self.assertEqual(data3[1]['parent'], tag.id)
         self.assertEqual(data3[1]['catalog'], catalog.id)
 
-        response = c.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', content_type='application/json', data={
             'catalog': catalog.id,
             'path': ['ToPleveL'],
         })
-
-        self.assertEqual(response.status_code, 200)
 
         data = response.json()
         self.assertEqual(data[0]['id'], tag.id)
 
     def test_request_create_tag(self):
-        user = create_user()
-        catalog = add_catalog(user, 'Test')
+        user = self.create_user()
+        catalog = self.add_catalog('Test', user)
 
-        c = Client()
-        c.force_login(user)
+        self.client.force_login(user)
 
-        response = c.put('/api/tag/create', content_type='application/json', data={
+        response = self.client.put('/api/tag/create', content_type='application/json', data={
             'catalog': catalog.id,
             'parent': None,
             'name': 'toplevel',
         })
-
-        self.assertEqual(response.status_code, 200)
 
         data = response.json()
 
@@ -232,85 +170,79 @@ class TagTests(TestCase):
         self.assertEqual(tag.catalog, catalog)
         self.assertEqual(tag.parent, None)
 
-        catalog2 = add_catalog(user, 'Test2')
+        catalog2 = self.add_catalog('Test2', user)
 
-        response2 = c.put('/api/tag/create', content_type='application/json', data={
-            'catalog': catalog2.id,
-            'parent': tag.id,
-            'name': 'toplevel',
-        })
-
-        self.assertEqual(response2.status_code, 400)
-        self.assertEqual(response2.json()['code'], 'catalog-mismatch')
+        with self.assertRaisesApiException('catalog-mismatch'):
+            self.client.put('/api/tag/create', content_type='application/json', data={
+                'catalog': catalog2.id,
+                'parent': tag.id,
+                'name': 'toplevel',
+            })
 
     def test_request_edit_tag(self):
-        user = create_user()
-        catalog1 = add_catalog(user, 'Test')
-        catalog2 = add_catalog(user, 'Test2')
+        user = self.create_user()
+        catalog1 = self.add_catalog('Test', user)
+        catalog2 = self.add_catalog('Test2', user)
 
-        c = Client()
-        c.force_login(user)
+        self.client.force_login(user)
 
-        tag1 = Tag(id=uuid('T'), catalog=catalog1, parent=None, name='tag1')
-        tag1.save()
+        tag1 = catalog1.tags.create(name='tag1')
+        tag2 = catalog2.tags.create(name='tag2')
+        tag3 = catalog2.tags.create(name='tag3')
 
-        tag2 = Tag(id=uuid('T'), catalog=catalog2, parent=None, name='tag2')
-        tag2.save()
-
-        tag3 = Tag(id=uuid('T'), catalog=catalog2, parent=None, name='tag3')
-        tag3.save()
-
-        response = c.patch('/api/tag/edit', content_type='application/json', data={
+        self.client.patch('/api/tag/edit', content_type='application/json', data={
             'id': tag1.id,
             'name': 'changed',
         })
 
         tag = Tag.objects.get(catalog=catalog1)
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(tag.name, 'changed')
 
-        response = c.patch('/api/tag/edit', content_type='application/json', data={
-            'id': tag1.id,
-            'parent': tag2.id,
-        })
+        with self.assertRaisesApiException('catalog-mismatch'):
+            self.client.patch('/api/tag/edit', content_type='application/json', data={
+                'id': tag1.id,
+                'parent': tag2.id,
+            })
 
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['code'], 'catalog-mismatch')
+        with self.assertRaisesApiException('catalog-change'):
+            self.client.patch('/api/tag/edit', content_type='application/json', data={
+                'id': tag1.id,
+                'catalog': catalog2.id,
+            })
 
-        response = c.patch('/api/tag/edit', content_type='application/json', data={
-            'id': tag1.id,
-            'catalog': catalog2.id,
-        })
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['code'], 'catalog-change')
-
-        response = c.patch('/api/tag/edit', content_type='application/json', data={
+        self.client.patch('/api/tag/edit', content_type='application/json', data={
             'id': tag3.id,
             'parent': tag2.id,
         })
-
-        self.assertEqual(response.status_code, 200)
 
         tag2 = Tag.objects.get(name='tag2')
         tag3 = Tag.objects.get(name='tag3')
 
         self.assertEqual(tag3.parent, tag2)
 
-        response = c.patch('/api/tag/edit', content_type='application/json', data={
+        self.client.patch('/api/tag/edit', content_type='application/json', data={
             'id': tag3.id,
             'parent': None,
         })
-
-        self.assertEqual(response.status_code, 200)
 
         tag3 = Tag.objects.get(name='tag3')
 
         self.assertEqual(tag3.parent, None)
 
-        response = c.patch('/api/tag/edit', content_type='application/json', data={
-            'id': tag3.id,
-            'name': 'Tag2',
-        })
+        with self.assertRaisesApiException('invalid-name'):
+            self.client.patch('/api/tag/edit', content_type='application/json', data={
+                'id': tag3.id,
+                'name': 'Tag2',
+            })
 
-        self.assertEqual(response.status_code, 400)
+    def test_request_invalid_access(self):
+        user = self.create_user()
+        catalog = self.add_catalog('Invisible')
+
+        self.client.force_login(user)
+
+        with self.assertRaisesApiException('not-found'):
+            self.client.put('/api/tag/create', content_type='application/json', data={
+                'catalog': catalog.id,
+                'name': 'Tag',
+            })

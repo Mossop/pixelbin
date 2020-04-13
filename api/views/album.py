@@ -1,5 +1,5 @@
 from . import api_view
-from ..utils import uuid, ApiException
+from ..utils import ApiException
 from ..serializers.album import AlbumSerializer, AlbumMediaSerializer
 from ..serializers.wrappers import PatchSerializerWrapper
 
@@ -12,7 +12,7 @@ def create(request, deserialized):
        data['catalog'] != data['parent'].catalog:
         raise ApiException('catalog-mismatch')
 
-    return deserialized.save(id=uuid("A"))
+    return deserialized.save()
 
 @api_view('PATCH', request=PatchSerializerWrapper(AlbumSerializer), response=AlbumSerializer)
 def edit(request, deserialized):

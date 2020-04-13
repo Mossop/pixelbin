@@ -63,6 +63,9 @@ def api_view(http_method_names=None, requires_login=True, request=None, response
                         return Response(response(result).data)
                     return Response(result)
 
+                except ApiException:
+                    raise
+
                 except IntegrityError as exception:
                     LOGGER.exception('Database integrity error.')
                     raise ApiException('integrity-error',
@@ -74,23 +77,25 @@ def api_view(http_method_names=None, requires_login=True, request=None, response
                     raise ApiException('validation-failure',
                                        status=exception.status_code,
                                        detail=pformat(exception.detail, indent=2))
+
                 except exceptions.ParseError as exception:
                     LOGGER.exception('Parse failure.')
                     raise ApiException('parse-failure',
                                        status=exception.status_code,
                                        detail=pformat(exception.detail, indent=2))
+
                 except exceptions.APIException as exception:
                     LOGGER.exception('Rest API failure.')
                     raise ApiException('api-failure',
                                        status=exception.status_code,
                                        detail=pformat(exception.detail, indent=2))
-                except ApiException as exception:
-                    raise
+
                 except Exception as exception:
                     LOGGER.exception('General exception.')
                     raise ApiException('server-error',
                                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                        detail=str(exception))
+
             except ApiException as exception:
                 serializer = ApiExceptionSerializer(exception)
                 return Response(serializer.data, status=exception.status)

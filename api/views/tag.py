@@ -1,5 +1,5 @@
 from . import api_view
-from ..utils import ApiException, uuid
+from ..utils import ApiException
 from ..models import Tag
 from ..serializers.tag import TagSerializer, TagFindSerializer
 from ..serializers.wrappers import ListSerializerWrapper, PatchSerializerWrapper
@@ -14,7 +14,7 @@ def create(request, deserialized):
         raise ApiException('catalog-mismatch')
 
     with Tag.lock_for_create():
-        return deserialized.save(id=uuid('T'))
+        return deserialized.save()
 
 @api_view('PATCH', request=PatchSerializerWrapper(TagSerializer), response=TagSerializer)
 def edit(request, deserialized):

@@ -23,7 +23,6 @@ class UserManager(BaseUserManager):
             raise ValueError('Users must have an email address')
 
         user = self.model(
-            id=uuid("U"),
             email=self.normalize_email(email),
             full_name=full_name,
         )
@@ -64,6 +63,12 @@ class User(AbstractUser):
     verified = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now_add=True)
 
+    def __init__(self, *args, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = uuid('U')
+
+        super().__init__(*args, **kwargs)
+
     def __str__(self):
         return self.email
 
@@ -74,15 +79,17 @@ class User(AbstractUser):
     def get_full_name(self):
         return self.full_name
 
-    def can_access_catalog(self, catalog):
+    def _can_access_catalog(self, catalog):
         return Access.objects.filter(catalog=catalog, user=self).exists()
 
     def check_can_see(self, catalog):
-        if not self.can_access_catalog(catalog):
+        if not self._can_access_catalog(catalog):
             raise ApiException('not-found', status=status.HTTP_404_NOT_FOUND)
 
     def check_can_modify(self, catalog):
-        if not self.can_access_catalog(catalog):
+        self.check_can_see(catalog)
+
+        if not self._can_access_catalog(catalog):
             raise ApiException('not-allowed', status=status.HTTP_403_FORBIDDEN)
 
     class Meta:
@@ -94,6 +101,12 @@ class Catalog(models.Model):
     users = models.ManyToManyField(User, related_name='catalogs', through='Access')
     storage = models.ForeignKey(Storage, null=False,
                                 on_delete=models.CASCADE, related_name='catalogs')
+
+    def __init__(self, *args, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = uuid('C')
+
+        super().__init__(*args, **kwargs)
 
     @property
     def file_store(self):
@@ -120,6 +133,12 @@ class Album(models.Model):
                                related_name='albums',
                                null=True)
 
+    def __init__(self, *args, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = uuid('A')
+
+        super().__init__(*args, **kwargs)
+
     def descendants(self):
         def make_albums_cte(cte):
             return (
@@ -143,7 +162,10 @@ class Album(models.Model):
                 raise ApiException('cyclic-structure')
             parent = parent.parent
 
-        super().save(*args, **kwargs)
+        try:
+            super().save(*args, **kwargs)
+        except IntegrityError:
+            raise ApiException('invalid-name')
 
     class Meta:
         constraints = [
@@ -165,6 +187,12 @@ class Tag(models.Model):
                                on_delete=models.CASCADE,
                                related_name='children',
                                null=True)
+
+    def __init__(self, *args, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = uuid('T')
+
+        super().__init__(*args, **kwargs)
 
     @property
     def path(self):
@@ -205,15 +233,11 @@ class Tag(models.Model):
                         return tags[0]
 
                 # No tag of this name, create it at the top-level.
-                tag = Tag(id=uuid('T'), catalog=catalog, parent=None, name=path[0])
-                tag.save()
-                return tag
+                return catalog.tags.create(name=path[0])
 
         name = path.pop()
         parent = Tag.get_for_path(catalog, path, match_any)
-        (tag, _) = Tag.objects.get_or_create(catalog=catalog, parent=parent, name=name, defaults={
-            'id': uuid('T')
-        })
+        (tag, _) = Tag.objects.get_or_create(catalog=catalog, parent=parent, name=name)
         return tag
 
     def descendants(self):
@@ -259,6 +283,12 @@ class Person(models.Model):
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
     fullname = models.CharField(max_length=200)
 
+    def __init__(self, *args, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = uuid('P')
+
+        super().__init__(*args, **kwargs)
+
     @staticmethod
     def lock_for_create():
         return lock('Person.create')
@@ -267,7 +297,6 @@ class Person(models.Model):
     def get_for_name(catalog, name):
         person, _ = Person.objects.get_or_create(catalog=catalog, fullname__iexact=name,
                                                  defaults={
-                                                     'id': uuid('P'),
                                                      'fullname': name,
                                                  })
         return person
@@ -305,6 +334,12 @@ class Media(models.Model):
 
     _metadata = None
     _file_store = None
+
+    def __init__(self, *args, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = uuid('M')
+
+        super().__init__(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         for album in self.albums.all():

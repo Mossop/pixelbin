@@ -6,7 +6,7 @@ from filetype import filetype
 
 from . import api_view
 from ..models import Media
-from ..utils import uuid, ApiException
+from ..utils import ApiException
 from ..serializers.media import MediaSerializer, ThumbnailRequestSerializer
 from ..serializers.search import SearchSerializer
 from ..serializers.wrappers import (
@@ -71,7 +71,7 @@ def create(request, deserialized):
 
     validate(request, file, data['catalog'], data['albums'], data['tags'], data['people'])
 
-    media = deserialized.save(id=uuid('M'))
+    media = deserialized.save()
     return perform_upload(media, file)
 
 @api_view('GET', request=ModelIdQuery(Media), response=MediaSerializer)
