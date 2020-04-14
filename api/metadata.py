@@ -446,6 +446,10 @@ def get_metadata_field(key):
 def get_js_spec():
     return [f.get_js_spec() for f in get_metadata_fields()]
 
+def add_metadata_fields_to_model(model):
+    for field in get_metadata_fields():
+        field.add_to_model(model)
+
 def init():
     for key in METADATA:
         if 'type' in METADATA[key]:

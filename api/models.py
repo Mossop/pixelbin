@@ -10,9 +10,9 @@ from rest_framework import status
 from .locks import lock
 from .storage.models import Storage
 from .storage.base import MediaFileStore
-from .utils import uuid, ApiException
+from .utils import uuid, ApiException, validatingModel
 from .constraints import UniqueWithExpressionsConstraint
-from .metadata import MediaMetadata, get_metadata_fields
+from .metadata import MediaMetadata, add_metadata_fields_to_model
 
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
@@ -113,7 +113,7 @@ class Catalog(models.Model):
         return self.storage.file_store
 
 class Access(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
 
     class Meta:
@@ -121,7 +121,26 @@ class Access(models.Model):
             models.UniqueConstraint(fields=['user', 'catalog'], name='unique_owners')
         ]
 
-class Album(models.Model):
+def catalogValidator(related_field):
+    def validator(obj):
+        related_obj = getattr(obj, related_field)
+
+        if related_obj is None:
+            return
+
+        if getattr(obj, related_field).catalog != obj.catalog:
+            raise ApiException('catalog-mismatch')
+    return validator
+
+def parentValidator(obj):
+    parent = obj.parent
+    while parent is not None:
+        if parent.id == obj.id:
+            raise ApiException('cyclic-structure')
+        parent = parent.parent
+
+
+class Album(validatingModel(catalogValidator('parent'), parentValidator)):
     objects = CTEManager()
 
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
@@ -153,15 +172,6 @@ class Album(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        if self.parent is not None and self.parent.catalog != self.catalog:
-            raise ApiException('catalog-mismatch')
-
-        parent = self.parent
-        while parent is not None:
-            if parent.id == self.id:
-                raise ApiException('cyclic-structure')
-            parent = parent.parent
-
         try:
             super().save(*args, **kwargs)
         except IntegrityError:
@@ -177,7 +187,7 @@ class Album(models.Model):
                                             name='unique_album_name'),
         ]
 
-class Tag(models.Model):
+class Tag(validatingModel(catalogValidator('parent'), parentValidator)):
     objects = CTEManager()
 
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
@@ -254,15 +264,6 @@ class Tag(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        if self.parent is not None and self.parent.catalog != self.catalog:
-            raise ApiException('catalog-mismatch')
-
-        parent = self.parent
-        while parent is not None:
-            if parent.id == self.id:
-                raise ApiException('cyclic-structure')
-            parent = parent.parent
-
         try:
             super().save(*args, **kwargs)
         except IntegrityError:
@@ -334,9 +335,9 @@ class Media(models.Model):
     file_size = models.IntegerField(null=True, default=None)
 
     # Relationships. Entirely under API control.
-    tags = models.ManyToManyField(Tag, related_name='media')
-    albums = models.ManyToManyField(Album, related_name='media')
-    people = models.ManyToManyField(Person, related_name='media')
+    tags = models.ManyToManyField(Tag, related_name='media', through='MediaTag')
+    albums = models.ManyToManyField(Album, related_name='media', through='MediaAlbum')
+    people = models.ManyToManyField(Person, related_name='media', through='MediaPerson')
 
     _metadata = None
     _file_store = None
@@ -374,9 +375,56 @@ class Media(models.Model):
             self._file_store = MediaFileStore(self.catalog.file_store, self)
         return self._file_store
 
-    def delete(self, using=None, keep_parents=False):
+    def delete(self, *args, **kwargs):
         self.file_store.delete()
-        super().delete(using, keep_parents)
+        super().delete(*args, **kwargs)
 
-for field in get_metadata_fields():
-    field.add_to_model(Media)
+add_metadata_fields_to_model(Media)
+
+def validateMatchingCatalog(*fields):
+    def validator(obj):
+        catalog = getattr(obj, fields[0]).catalog
+        for field in fields[1:]:
+            if getattr(obj, field).catalog != catalog:
+                raise ApiException('catalog-mismatch')
+
+    return validator
+
+class MediaTag(validatingModel(validateMatchingCatalog('media', 'tag'))):
+    media = models.ForeignKey(Media, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['media', 'tag'], name='unique_tags')
+        ]
+
+class MediaAlbum(validatingModel(validateMatchingCatalog('media', 'album'))):
+    media = models.ForeignKey(Media, on_delete=models.CASCADE)
+    album = models.ForeignKey(Album, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        if self.media.catalog != self.album.catalog:
+            raise ApiException('catalog-mismatch')
+
+        super().save(*args, **kwargs)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['media', 'album'], name='unique_albums')
+        ]
+
+class MediaPerson(validatingModel(validateMatchingCatalog('media', 'person'))):
+    media = models.ForeignKey(Media, on_delete=models.CASCADE)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        if self.media.catalog != self.person.catalog:
+            raise ApiException('catalog-mismatch')
+
+        super().save(*args, **kwargs)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['media', 'person'], name='unique_people')
+        ]

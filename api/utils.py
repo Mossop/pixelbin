@@ -2,6 +2,7 @@ import logging
 from base64 import urlsafe_b64encode
 from uuid import uuid4
 
+from django.db import models
 from rest_framework import status as http_status
 
 LOGGER = logging.getLogger(__name__)
@@ -50,3 +51,27 @@ class ApiException(Exception):
 
 def uuid(start):
     return start + urlsafe_b64encode(uuid4().bytes).decode("utf-8")
+
+def validatingModel(*validators):
+    def call_validators(obj):
+        for validator in validators:
+            validator(obj)
+
+    class ValidatingQuerySet(models.QuerySet):
+        def bulk_create(self, objs, *args, **kwargs):
+            for obj in objs:
+                call_validators(obj)
+
+            return super().bulk_create(objs, *args, **kwargs)
+
+    class ValidatingModel(models.Model):
+        objects = ValidatingQuerySet.as_manager()
+
+        def save(self, *args, **kwargs):
+            call_validators(self)
+            return super().save(*args, **kwargs)
+
+        class Meta:
+            abstract = True
+
+    return ValidatingModel
