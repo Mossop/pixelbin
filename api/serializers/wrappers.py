@@ -56,6 +56,8 @@ class PatchSerializerWrapper(SerializerWrapper):
         super().__init__(serializer)
 
     def build_request_serializer(self, *args, data=None, **kwargs):
+        if data is not None:
+            data = data.copy()
         id_serializer = build_id_serializer(self.serializer.Meta.model)(data=data)
         id_serializer.is_valid(raise_exception=True)
         instance = id_serializer.validated_data['id']

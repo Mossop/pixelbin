@@ -40,11 +40,7 @@ def api_view(http_method_names=None, requires_login=True, request=None, response
                                        status=status.HTTP_403_FORBIDDEN)
 
                 try:
-                    data = req.data
-                    if req.method == 'GET':
-                        data = req.query_params
-                    else:
-                        data = req.data
+                    data = req.query_params if req.method == 'GET' else req.data
 
                     if isinstance(request, SerializerWrapper):
                         result = request.handle_request(req, data, func, *args, **kwargs)

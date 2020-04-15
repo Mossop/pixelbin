@@ -91,7 +91,7 @@ class TagTests(ApiTestCase):
         self.client.force_login(user)
 
         name = self.random_thing()
-        response = self.client.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', data={
             'catalog': catalog.id,
             'path': [name],
         })
@@ -113,7 +113,7 @@ class TagTests(ApiTestCase):
         self.assertEqual(tag.catalog, catalog)
         self.assertEqual(tag.parent, None)
 
-        response = self.client.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', data={
             'catalog': catalog.id,
             'path': [name],
         })
@@ -125,7 +125,7 @@ class TagTests(ApiTestCase):
         self.assertEqual(list(Tag.objects.all()), [tag])
 
         subname = self.random_thing()
-        response = self.client.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', data={
             'catalog': catalog.id,
             'path': [name, subname],
         })
@@ -137,7 +137,7 @@ class TagTests(ApiTestCase):
         self.assertEqual(data3[1]['parent'], tag.id)
         self.assertEqual(data3[1]['catalog'], catalog.id)
 
-        response = self.client.post('/api/tag/find', content_type='application/json', data={
+        response = self.client.post('/api/tag/find', data={
             'catalog': catalog.id,
             'path': [self.amend_case(name)],
         })
@@ -152,7 +152,7 @@ class TagTests(ApiTestCase):
         self.client.force_login(user)
 
         name = self.random_thing()
-        response = self.client.put('/api/tag/create', content_type='application/json', data={
+        response = self.client.put('/api/tag/create', data={
             'catalog': catalog.id,
             'parent': None,
             'name': name,
@@ -177,7 +177,7 @@ class TagTests(ApiTestCase):
         catalog2 = self.add_catalog(user=user)
 
         with self.assertRaisesApiException('catalog-mismatch'):
-            self.client.put('/api/tag/create', content_type='application/json', data={
+            self.client.put('/api/tag/create', data={
                 'catalog': catalog2.id,
                 'parent': tag.id,
                 'name': name,
@@ -195,7 +195,7 @@ class TagTests(ApiTestCase):
         tag3 = catalog2.tags.create(name=self.random_thing())
 
         newname = self.random_thing()
-        self.client.patch('/api/tag/edit', content_type='application/json', data={
+        self.client.patch('/api/tag/edit', data={
             'id': tag1.id,
             'name': newname,
         })
@@ -204,18 +204,18 @@ class TagTests(ApiTestCase):
         self.assertEqual(tag.name, newname)
 
         with self.assertRaisesApiException('catalog-mismatch'):
-            self.client.patch('/api/tag/edit', content_type='application/json', data={
+            self.client.patch('/api/tag/edit', data={
                 'id': tag1.id,
                 'parent': tag2.id,
             })
 
         with self.assertRaisesApiException('catalog-change'):
-            self.client.patch('/api/tag/edit', content_type='application/json', data={
+            self.client.patch('/api/tag/edit', data={
                 'id': tag1.id,
                 'catalog': catalog2.id,
             })
 
-        self.client.patch('/api/tag/edit', content_type='application/json', data={
+        self.client.patch('/api/tag/edit', data={
             'id': tag3.id,
             'parent': tag2.id,
         })
@@ -225,7 +225,7 @@ class TagTests(ApiTestCase):
 
         self.assertEqual(tag3.parent, tag2)
 
-        self.client.patch('/api/tag/edit', content_type='application/json', data={
+        self.client.patch('/api/tag/edit', data={
             'id': tag3.id,
             'parent': None,
         })
@@ -235,7 +235,7 @@ class TagTests(ApiTestCase):
         self.assertEqual(tag3.parent, None)
 
         with self.assertRaisesApiException('invalid-name'):
-            self.client.patch('/api/tag/edit', content_type='application/json', data={
+            self.client.patch('/api/tag/edit', data={
                 'id': tag3.id,
                 'name': self.amend_case(tag2.name),
             })
@@ -247,7 +247,7 @@ class TagTests(ApiTestCase):
         self.client.force_login(user)
 
         with self.assertRaisesApiException('not-found'):
-            self.client.put('/api/tag/create', content_type='application/json', data={
+            self.client.put('/api/tag/create', data={
                 'catalog': catalog.id,
                 'name': self.random_thing(),
             })

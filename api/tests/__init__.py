@@ -1,6 +1,7 @@
 from random import Random
 
 from django.test import TestCase, Client
+from django.test.client import JSON_CONTENT_TYPE_RE
 from faker import Faker
 
 from ..models import User, Catalog
@@ -17,20 +18,26 @@ def check_response(response):
     return response
 
 class ApiClient(Client):
-    def get(self, *args, **kwargs):
-        return check_response(super().get(*args, **kwargs))
+    def get(self, path, data=None, secure=False, **kwargs):
+        return check_response(super().get(path, data, secure, **kwargs))
 
-    def post(self, *args, **kwargs):
-        return check_response(super().post(*args, **kwargs))
+    def post(self, path, data=None, content_type='application/json', secure=False, **kwargs):
+        return check_response(super().post(path, data, content_type, secure, **kwargs))
 
-    def patch(self, *args, **kwargs):
-        return check_response(super().patch(*args, **kwargs))
+    def patch(self, path, data=None, content_type='application/json', secure=False, **kwargs):
+        if not JSON_CONTENT_TYPE_RE.match(content_type):
+            data = self._encode_data(data, content_type)
+        return check_response(super().patch(path, data, content_type, secure, **kwargs))
 
-    def put(self, *args, **kwargs):
-        return check_response(super().put(*args, **kwargs))
+    def put(self, path, data=None, content_type='application/json', secure=False, **kwargs):
+        if not JSON_CONTENT_TYPE_RE.match(content_type):
+            data = self._encode_data(data, content_type)
+        return check_response(super().put(path, data, content_type, secure, **kwargs))
 
-    def delete(self, *args, **kwargs):
-        return check_response(super().delete(*args, **kwargs))
+    def delete(self, path, data=None, content_type='application/json', secure=False, **kwargs):
+        if not JSON_CONTENT_TYPE_RE.match(content_type):
+            data = self._encode_data(data, content_type)
+        return check_response(super().delete(path, data, content_type, secure, **kwargs))
 
 class ApiExceptionContext:
     def __init__(self, code, failureException):

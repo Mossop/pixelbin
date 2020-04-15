@@ -11,7 +11,7 @@ class CatalogTests(ApiTestCase):
         self.client.force_login(user)
 
         name = self.random_thing()
-        response = self.client.put('/api/catalog/create', content_type='application/json', data={
+        response = self.client.put('/api/catalog/create', data={
             'name': name,
             'storage': {
                 'type': 'server',

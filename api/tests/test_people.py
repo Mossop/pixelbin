@@ -21,7 +21,7 @@ class PersonTests(ApiTestCase):
         self.client.force_login(user)
 
         name = self.fake.name()
-        response = self.client.put('/api/person/create', content_type='application/json', data={
+        response = self.client.put('/api/person/create', data={
             'catalog': catalog.id,
             'name': name,
         })
@@ -36,7 +36,7 @@ class PersonTests(ApiTestCase):
             'catalog': catalog.id,
         })
 
-        response = self.client.put('/api/person/create', content_type='application/json', data={
+        response = self.client.put('/api/person/create', data={
             'catalog': catalog.id,
             'name': self.amend_case(name),
         })

@@ -72,7 +72,7 @@ class AlbumTests(ApiTestCase):
         self.client.force_login(user)
 
         name = self.random_thing()
-        response = self.client.put('/api/album/create', content_type='application/json', data={
+        response = self.client.put('/api/album/create', data={
             'catalog': catalog.id,
             'name': name,
         })
@@ -97,7 +97,7 @@ class AlbumTests(ApiTestCase):
         self.client.force_login(user)
 
         newname = self.random_thing()
-        response = self.client.patch('/api/album/edit', content_type='application/json', data={
+        response = self.client.patch('/api/album/edit', data={
             'id': album.id,
             'name': newname,
         })
@@ -117,19 +117,19 @@ class AlbumTests(ApiTestCase):
         catalog2 = self.add_catalog(user=user)
 
         with self.assertRaisesApiException('catalog-change'):
-            self.client.patch('/api/album/edit', content_type='application/json', data={
+            self.client.patch('/api/album/edit', data={
                 'id': album.id,
                 'catalog': catalog2.id,
             })
 
         with self.assertRaisesApiException('cyclic-structure'):
-            self.client.patch('/api/album/edit', content_type='application/json', data={
+            self.client.patch('/api/album/edit', data={
                 'id': album.id,
                 'parent': album2.id,
             })
 
         with self.assertRaisesApiException('catalog-mismatch'):
-            self.client.patch('/api/album/edit', content_type='application/json', data={
+            self.client.patch('/api/album/edit', data={
                 'id': album.id,
                 'parent': album3.id,
             })
@@ -141,7 +141,7 @@ class AlbumTests(ApiTestCase):
         self.client.force_login(user)
 
         with self.assertRaisesApiException('not-found'):
-            self.client.put('/api/album/create', content_type='application/json', data={
+            self.client.put('/api/album/create', data={
                 'catalog': catalog.id,
                 'name': self.random_thing(),
             })
