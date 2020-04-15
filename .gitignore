@@ -10,3 +10,4 @@ testdata
 coverage
 .python-version
 .coverage
+.DS_Store
