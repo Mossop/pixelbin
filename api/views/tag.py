@@ -9,10 +9,6 @@ def create(request, deserialized):
     data = deserialized.validated_data
     request.user.check_can_modify(data['catalog'])
 
-    parent = data['parent']
-    if parent is not None and data['catalog'] != parent.catalog:
-        raise ApiException('catalog-mismatch')
-
     with Tag.lock_for_create():
         return deserialized.save()
 
@@ -24,9 +20,6 @@ def edit(request, deserialized):
     data = deserialized.validated_data
     if 'catalog' in data and data['catalog'] != tag.catalog:
         raise ApiException('catalog-change')
-
-    if 'parent' in data and data['parent'] is not None and data['parent'].catalog != tag.catalog:
-        raise ApiException('catalog-mismatch')
 
     return deserialized.save()
 

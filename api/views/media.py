@@ -42,7 +42,7 @@ def perform_upload(media, file):
 
     return media
 
-def validate(request, file, catalog, albums, tags, people):
+def validate(request, file, catalog):
     request.user.check_can_modify(catalog)
 
     if file is not None:
@@ -52,24 +52,12 @@ def validate(request, file, catalog, albums, tags, people):
                 'type': guessed_mimetype,
             })
 
-    for album in albums:
-        if album.catalog != catalog:
-            raise ApiException('catalog-mismatch')
-
-    for tag in tags:
-        if tag.catalog != catalog:
-            raise ApiException('catalog-mismatch')
-
-    for person in people:
-        if person.catalog != catalog:
-            raise ApiException('catalog-mismatch')
-
 @api_view('PUT', request=MultipartSerializerWrapper(MediaSerializer), response=MediaSerializer)
 def create(request, deserialized):
     data = deserialized.validated_data
     file = data['file']
 
-    validate(request, file, data['catalog'], data['albums'], data['tags'], data['people'])
+    validate(request, file, data['catalog'])
 
     media = deserialized.save()
     return perform_upload(media, file)
@@ -90,11 +78,7 @@ def update(request, deserialized):
     if 'catalog' in data and data['catalog'] != media.catalog:
         raise ApiException('catalog-change')
 
-    validate(request, file,
-             media.catalog,
-             data.get('albums', None) or media.albums.all(),
-             data.get('tags', None) or media.tags.all(),
-             data.get('people', None) or media.people.all())
+    validate(request, file, media.catalog)
 
     media = deserialized.save()
 

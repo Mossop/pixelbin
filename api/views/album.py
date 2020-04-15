@@ -8,10 +8,6 @@ def create(request, deserialized):
     data = deserialized.validated_data
     request.user.check_can_modify(data['catalog'])
 
-    if 'parent' in data and data['parent'] is not None and \
-       data['catalog'] != data['parent'].catalog:
-        raise ApiException('catalog-mismatch')
-
     return deserialized.save()
 
 @api_view('PATCH', request=PatchSerializerWrapper(AlbumSerializer), response=AlbumSerializer)
@@ -23,9 +19,6 @@ def edit(request, deserialized):
     if 'catalog' in data and data['catalog'] != album.catalog:
         raise ApiException('catalog-change')
 
-    if 'parent' in data and data['parent'] is not None and data['parent'].catalog != album.catalog:
-        raise ApiException('catalog-mismatch')
-
     return deserialized.save()
 
 @api_view('PUT', request=AlbumMediaSerializer, response=AlbumSerializer)
@@ -33,10 +26,6 @@ def add(request, deserialized):
     data = deserialized.validated_data
     album = data['album']
     request.user.check_can_modify(album.catalog)
-
-    for media in data['media']:
-        if media.catalog != album.catalog:
-            raise ApiException('catalog-mismatch')
 
     album.media.add(*data['media'])
     return album
