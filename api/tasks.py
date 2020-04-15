@@ -2,7 +2,6 @@ import subprocess
 import json
 from datetime import datetime
 
-from celery.utils.log import get_task_logger
 from django.db import transaction
 from PIL import Image
 from filetype import filetype
@@ -13,39 +12,26 @@ from .media import resize, THUMB_SIZES, ALLOWED_TYPES, is_video, is_image
 
 from .metadata import parse_metadata, parse_iso_datetime
 
-base_logger = get_task_logger(__name__)
-
 PROCESS_VERSION = 1
-
-class MediaLogger:
-    def __init__(self, media):
-        self.id = media.id
-
-    def _build_message(self, message):
-        return '[%s] %s' % (self.id, message)
-
-    def debug(self, message, *args, **kwargs):
-        base_logger.debug(self._build_message(message), *args, **kwargs)
-
-    def info(self, message, *args, **kwargs):
-        base_logger.info(self._build_message(message), *args, **kwargs)
-
-    def exception(self, message, *args, **kwargs):
-        base_logger.exception(self._build_message(message), *args, **kwargs)
 
 @task
 @transaction.atomic
-def process_metadata(media_id):
+def process_metadata(logger, media_id):
     # pylint: disable=bare-except
-    media = Media.objects.select_for_update().get(id=media_id)
-    logger = MediaLogger(media)
+    logger = logger.getChild(media_id)
+
+    try:
+        media = Media.objects.select_for_update().get(id=media_id)
+    except:
+        logger.exception('Failed to find media with "id" %s' % media_id)
+        return
 
     if media.process_version == PROCESS_VERSION:
         logger.info('Skipping processing for already processed media "%s".' % media.id)
         return
 
     try:
-        logger.info('Processing metadata for media "%s"...', media.id)
+        logger.info('Processing metadata for media...')
         meta_path = media.file_store.get_local_path('metadata.json')
         with open(meta_path, 'r') as meta_file:
             metadata = json.load(meta_file)
@@ -53,23 +39,28 @@ def process_metadata(media_id):
         import_metadata(logger, media, metadata)
         media.save()
     except:
-        logger.exception('Failed while processing metadata for media "%s".', media.id)
-        raise
-    logger.info('Processing of metadata for media "%s" is complete.', media.id)
+        logger.exception('Failed while processing metadata for media.')
+        return
+    logger.info('Processing of metadata for media is complete.')
 
 @task
 @transaction.atomic
-def process_new_file(media_id, target_name=None):
+def process_new_file(logger, media_id, target_name=None):
     # pylint: disable=bare-except
-    media = Media.objects.select_for_update().get(id=media_id)
-    logger = MediaLogger(media)
+    logger = logger.getChild(media_id)
+
+    try:
+        media = Media.objects.select_for_update().get(id=media_id)
+    except:
+        logger.exception('Failed to find media.')
+        return
 
     if not media.new_file:
-        logger.info('Skipping new file for already processed media "%s".' % media.id)
+        logger.info('Skipping new file for already processed media.')
         return
 
     try:
-        logger.info('Processing new file for media "%s"...', media.id)
+        logger.info('Processing new file for media...')
         metadata = import_file(logger, media, target_name)
         if metadata is not None:
             import_metadata(logger, media, metadata)
@@ -78,9 +69,9 @@ def process_new_file(media_id, target_name=None):
 
         media.file_store.delete_all_temp()
     except:
-        logger.exception('Failed while processing new file for media "%s".', media.id)
-        raise
-    logger.info('Processing of new file for media "%s" is complete.', media.id)
+        logger.exception('Failed while processing new file for media.')
+        return
+    logger.info('Processing of new file for media is complete.')
 
 def process_image(logger, media, source):
     image = Image.open(source)
@@ -165,9 +156,19 @@ def import_file(logger, media, target_name):
     logger.info('Importing new media file.')
     meta_path = media.file_store.get_local_path('metadata.json')
     source = media.file_store.get_temp_path('original')
-    result = subprocess.run(['exiftool', '-n', '-json', source],
-                            capture_output=True, timeout=10, check=True)
-    results = json.loads(result.stdout)
+    try:
+        result = subprocess.run(['exiftool', '-n', '-json', source],
+                                capture_output=True, timeout=10, check=True)
+    except:
+        logger.exception('Failed while executing exiftool.')
+        return None
+
+    try:
+        results = json.loads(result.stdout)
+    except:
+        logger.exception('Failed while parsing exiftool results.')
+        return None
+
     if len(results) != 1:
         logger.error('Unable to load the file\'s metadata. Abandoning this file.')
         return None

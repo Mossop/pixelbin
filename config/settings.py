@@ -17,5 +17,8 @@ LOGGING = {
         'api': {
             'level': 'DEBUG',
         },
+        'celery': {
+            'level': 'WARNING',
+        },
     },
 }

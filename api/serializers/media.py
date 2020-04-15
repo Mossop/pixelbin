@@ -49,11 +49,12 @@ class MediaSerializer(ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
+        many_keys = []
         for (key, value) in validated_data.items():
-            if key == 'metadata':
+            if key in ['metadata', 'file']:
                 continue
             if isinstance(getattr(Media, key), ManyToManyDescriptor):
-                continue
+                many_keys.append(key)
             setattr(instance, key, value)
 
         if 'metadata' in validated_data:
@@ -61,10 +62,11 @@ class MediaSerializer(ModelSerializer):
 
         instance.save()
 
-        for (key, value) in validated_data.items():
+        # Must update relations after the model has been saved already.
+        for key in many_keys:
             if isinstance(getattr(Media, key), ManyToManyDescriptor):
                 field = getattr(instance, key)
-                field.set(value)
+                field.set(validated_data[key])
 
         return instance
 

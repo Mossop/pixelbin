@@ -223,6 +223,11 @@ class StringMetadataField(MetadataField):
     def fill_js_spec(self, spec):
         spec['max_length'] = self.max_length
 
+    def set_override_value(self, media, value):
+        if value == '':
+            value = None
+        super().set_override_value(media, value)
+
 class FloatMetadataField(MetadataField):
     type = 'float'
 

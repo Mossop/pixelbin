@@ -1,6 +1,8 @@
 import os
+import logging
 
 from celery import Celery, shared_task
+from celery.utils.log import get_task_logger
 
 from base.config import TEST_MODE
 
@@ -20,11 +22,14 @@ APP.autodiscover_tasks()
 
 def task(func):
     instance = shared_task(func)
+    fn_name = '%s.%s' % (func.__module__, func.__name__)
 
     def call_task(*args, **kwargs):
         if TEST_MODE:
-            return instance.apply(args, kwargs)
-        else:
-            return instance.apply_async(args, kwargs)
+            logger = logging.getLogger(fn_name)
+            return instance.apply((logger, ) + args, kwargs)
+
+        logger = get_task_logger(func.__name__)
+        return instance.apply_async((logger, ) + args, kwargs)
 
     return call_task
