@@ -4,10 +4,10 @@ import { ApiMethod, PersonData } from "./types";
 
 export async function createPerson(
   catalog: Reference<Catalog>,
-  fullname: string,
+  name: string,
 ): Promise<PersonData> {
   return request(ApiMethod.PersonCreate, {
     catalog,
-    fullname,
+    name,
   });
 }

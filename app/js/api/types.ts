@@ -60,14 +60,14 @@ export const ApiErrorDataDecoder = JsonDecoder.object<ApiErrorData>(
 export interface PersonData {
   id: string;
   catalog: ResponsePk<Catalog>;
-  fullname: string;
+  name: string;
 }
 
 export const PersonDataDecoder = JsonDecoder.object<PersonData>(
   {
     id: JsonDecoder.string,
     catalog: ResponsePkDecoder(Catalog, "Catalog"),
-    fullname: JsonDecoder.string,
+    name: JsonDecoder.string,
   },
   "PersonData"
 );
@@ -296,7 +296,7 @@ export interface TagLookup {
 
 export interface PersonCreateData {
   catalog: RequestPk<Catalog>;
-  fullname: string;
+  name: string;
 }
 
 export interface MetadataUpdateData {

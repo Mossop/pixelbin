@@ -187,8 +187,8 @@ export class Person implements Referencable<Person> {
     return this.state.id;
   }
 
-  public get fullname(): string {
-    return this.state.fullname;
+  public get name(): string {
+    return this.state.name;
   }
 
   public static ref(data: PersonData): Reference<Person> {

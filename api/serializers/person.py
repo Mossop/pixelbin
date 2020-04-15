@@ -10,4 +10,4 @@ class PersonSerializer(ModelSerializer):
         js_response_type = 'PersonData'
         js_request_type = 'PersonCreateData'
         model = Person
-        fields = ['id', 'catalog', 'fullname']
+        fields = ['id', 'catalog', 'name']

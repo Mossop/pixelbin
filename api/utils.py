@@ -49,6 +49,9 @@ class ApiException(Exception):
                 'code': code,
             }
 
+    def __str__(self):
+        return "%s %s" % (self.code, self.message_args)
+
 def uuid(start):
     return start + urlsafe_b64encode(uuid4().bytes).decode("utf-8")
 

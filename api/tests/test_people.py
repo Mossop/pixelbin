@@ -12,7 +12,7 @@ class PersonTests(ApiTestCase):
         self.assertEqual(person, check)
 
         with self.assertRaisesApiException('invalid-name'):
-            catalog.people.create(fullname=self.amend_case(name))
+            catalog.people.create(name=self.amend_case(name))
 
     def test_request_create(self):
         user = self.create_user()
@@ -23,28 +23,28 @@ class PersonTests(ApiTestCase):
         name = self.fake.name()
         response = self.client.put('/api/person/create', content_type='application/json', data={
             'catalog': catalog.id,
-            'fullname': name,
+            'name': name,
         })
 
         data = response.json()
         person = list(catalog.people.all())[0]
 
-        self.assertEqual(person.fullname, name)
+        self.assertEqual(person.name, name)
         self.assertEqual(data, {
             'id': person.id,
-            'fullname': name,
+            'name': name,
             'catalog': catalog.id,
         })
 
         response = self.client.put('/api/person/create', content_type='application/json', data={
             'catalog': catalog.id,
-            'fullname': self.amend_case(name),
+            'name': self.amend_case(name),
         })
 
         data = response.json()
 
         self.assertEqual(data, {
             'id': person.id,
-            'fullname': name,
+            'name': name,
             'catalog': catalog.id,
         })

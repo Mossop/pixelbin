@@ -2,7 +2,6 @@ from django.db import models
 from django.db.models.expressions import F
 from django.db.models.functions import Coalesce, Lower
 from django.db.models.expressions import RawSQL
-from django.db.utils import IntegrityError
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django_cte import CTEManager, With
 from rest_framework import status
@@ -17,7 +16,7 @@ from .metadata import MediaMetadata, add_metadata_fields_to_model
 class UserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None):
         """
-        Creates and saves a User with the given email, fullname and password.
+        Creates and saves a User with the given email, name and password.
         """
         if not email:
             raise ValueError('Users must have an email address')
@@ -33,7 +32,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, email, full_name, password):
         """
-        Creates and saves a superuser with the given email, fullname and password.
+        Creates and saves a superuser with the given email, name and password.
         """
         user = self.create_user(
             email=self.normalize_email(email),
@@ -121,7 +120,7 @@ class Access(models.Model):
             models.UniqueConstraint(fields=['user', 'catalog'], name='unique_owners')
         ]
 
-def catalogValidator(related_field):
+def catalog_validator(related_field):
     def validator(obj):
         related_obj = getattr(obj, related_field)
 
@@ -132,7 +131,7 @@ def catalogValidator(related_field):
             raise ApiException('catalog-mismatch')
     return validator
 
-def parentValidator(obj):
+def parent_validator(obj):
     parent = obj.parent
     while parent is not None:
         if parent.id == obj.id:
@@ -140,8 +139,22 @@ def parentValidator(obj):
         parent = parent.parent
 
 
-class Album(validatingModel(catalogValidator('parent'), parentValidator)):
-    objects = CTEManager()
+def name_validator(obj):
+    filters = {
+        'catalog': obj.catalog,
+        'name__iexact': obj.name,
+    }
+
+    if hasattr(obj, 'parent'):
+        filters['parent'] = obj.parent
+
+    siblings = obj.__class__.objects.exclude(id=obj.id).filter(**filters)
+
+    if siblings.exists():
+        raise ApiException('invalid-name')
+
+class Album(validatingModel(catalog_validator('parent'), parent_validator, name_validator)):
+    descendants_manager = CTEManager()
 
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     stub = models.CharField(max_length=50, unique=True, default=None, blank=False, null=True)
@@ -161,7 +174,7 @@ class Album(validatingModel(catalogValidator('parent'), parentValidator)):
     def descendants(self):
         def make_albums_cte(cte):
             return (
-                Album.objects.filter(id=self.id).values("id") \
+                Album.descendants_manager.filter(id=self.id).values("id") \
                     .union(cte.join(Album, parent=cte.col.id).values("id"), all=True)
             )
 
@@ -170,12 +183,6 @@ class Album(validatingModel(catalogValidator('parent'), parentValidator)):
         return (
             cte.join(Album, id=cte.col.id).with_cte(cte)
         )
-
-    def save(self, *args, **kwargs):
-        try:
-            super().save(*args, **kwargs)
-        except IntegrityError:
-            raise ApiException('invalid-name')
 
     class Meta:
         constraints = [
@@ -187,8 +194,8 @@ class Album(validatingModel(catalogValidator('parent'), parentValidator)):
                                             name='unique_album_name'),
         ]
 
-class Tag(validatingModel(catalogValidator('parent'), parentValidator)):
-    objects = CTEManager()
+class Tag(validatingModel(catalog_validator('parent'), parent_validator, name_validator)):
+    descendants_manager = CTEManager()
 
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='tags')
@@ -228,8 +235,7 @@ class Tag(validatingModel(catalogValidator('parent'), parentValidator)):
         if len(path) == 1:
             try:
                 # Prefer an unparented tag.
-                tag = Tag.objects.get(catalog=catalog, parent=None, name__iexact=path[0])
-                return tag
+                return Tag.objects.get(catalog=catalog, parent=None, name__iexact=path[0])
             except Tag.DoesNotExist:
                 if match_any:
                     tags = Tag.objects.filter(catalog=catalog, name__iexact=path[0])
@@ -238,7 +244,7 @@ class Tag(validatingModel(catalogValidator('parent'), parentValidator)):
                     if len(tags) == 1:
                         return tags[0]
 
-                    # Hmmm...
+                    # This should never happen..
                     if len(tags) > 1:
                         return tags[0]
 
@@ -253,7 +259,7 @@ class Tag(validatingModel(catalogValidator('parent'), parentValidator)):
     def descendants(self):
         def make_tags_cte(cte):
             return (
-                Tag.objects.filter(id=self.id).values('id') \
+                Tag.descendants_manager.filter(id=self.id).values('id') \
                     .union(cte.join(Tag, parent=cte.col.id).values('id'), all=True)
             )
 
@@ -262,12 +268,6 @@ class Tag(validatingModel(catalogValidator('parent'), parentValidator)):
         return (
             cte.join(Tag, id=cte.col.id).with_cte(cte)
         )
-
-    def save(self, *args, **kwargs):
-        try:
-            super().save(*args, **kwargs)
-        except IntegrityError:
-            raise ApiException('invalid-name')
 
     class Meta:
         constraints = [
@@ -279,10 +279,10 @@ class Tag(validatingModel(catalogValidator('parent'), parentValidator)):
                                             name='unique_tag_name'),
         ]
 
-class Person(models.Model):
+class Person(validatingModel(name_validator)):
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
-    fullname = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
 
     def __init__(self, *args, **kwargs):
         if 'id' not in kwargs:
@@ -296,22 +296,16 @@ class Person(models.Model):
 
     @staticmethod
     def get_for_name(catalog, name):
-        person, _ = Person.objects.get_or_create(catalog=catalog, fullname__iexact=name,
+        person, _ = Person.objects.get_or_create(catalog=catalog, name__iexact=name,
                                                  defaults={
-                                                     'fullname': name,
+                                                     'name': name,
                                                  })
         return person
-
-    def save(self, *args, **kwargs):
-        try:
-            super().save(*args, **kwargs)
-        except IntegrityError:
-            raise ApiException('invalid-name')
 
     class Meta:
         constraints = [
             UniqueWithExpressionsConstraint(fields=['catalog'],
-                                            expressions=[Lower(F('fullname'))],
+                                            expressions=[Lower(F('name'))],
                                             name='unique_person_name')
         ]
 
@@ -348,21 +342,6 @@ class Media(models.Model):
 
         super().__init__(*args, **kwargs)
 
-    def save(self, *args, **kwargs):
-        for album in self.albums.all():
-            if album.catalog != self.catalog:
-                raise ApiException('catalog-mismatch')
-
-        for tag in self.tags.all():
-            if tag.catalog != self.catalog:
-                raise ApiException('catalog-mismatch')
-
-        for person in self.people.all():
-            if person.catalog != self.catalog:
-                raise ApiException('catalog-mismatch')
-
-        super().save(*args, **kwargs)
-
     @property
     def metadata(self):
         if self._metadata is None:
@@ -381,7 +360,7 @@ class Media(models.Model):
 
 add_metadata_fields_to_model(Media)
 
-def validateMatchingCatalog(*fields):
+def validate_matching_catalog(*fields):
     def validator(obj):
         catalog = getattr(obj, fields[0]).catalog
         for field in fields[1:]:
@@ -390,7 +369,7 @@ def validateMatchingCatalog(*fields):
 
     return validator
 
-class MediaTag(validatingModel(validateMatchingCatalog('media', 'tag'))):
+class MediaTag(validatingModel(validate_matching_catalog('media', 'tag'))):
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
@@ -399,7 +378,7 @@ class MediaTag(validatingModel(validateMatchingCatalog('media', 'tag'))):
             models.UniqueConstraint(fields=['media', 'tag'], name='unique_tags')
         ]
 
-class MediaAlbum(validatingModel(validateMatchingCatalog('media', 'album'))):
+class MediaAlbum(validatingModel(validate_matching_catalog('media', 'album'))):
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     album = models.ForeignKey(Album, on_delete=models.CASCADE)
 
@@ -414,7 +393,7 @@ class MediaAlbum(validatingModel(validateMatchingCatalog('media', 'album'))):
             models.UniqueConstraint(fields=['media', 'album'], name='unique_albums')
         ]
 
-class MediaPerson(validatingModel(validateMatchingCatalog('media', 'person'))):
+class MediaPerson(validatingModel(validate_matching_catalog('media', 'person'))):
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
 

@@ -8,4 +8,4 @@ def create(request, deserialized):
     request.user.check_can_modify(data['catalog'])
 
     with Person.lock_for_create():
-        return Person.get_for_name(data['catalog'], data['fullname'])
+        return Person.get_for_name(data['catalog'], data['name'])
