@@ -6,16 +6,18 @@ from rest_framework import fields
 
 from .media import is_video
 
+DATA_TO_ISO = re.compile(r'''^(\d+):(\d+):(\d+)''')
+
 METADATA_CACHE = dict()
 
-def parse_exif_date(text):
-    return datetime.strptime(text, '%Y:%m:%d')
+def into_iso(text):
+    return DATA_TO_ISO.sub('\\1-\\2-\\3', text)
 
 def parse_exif_time(text):
     return time.fromisoformat(text)
 
 def parse_exif_datetime(text):
-    return datetime.strptime(text, '%Y:%m:%d %H:%M:%S')
+    return datetime.fromisoformat(into_iso(text))
 
 def parse_exif_subsec_datetime(text):
     return datetime.strptime(text, '%Y:%m:%d %H:%M:%S.%f')
@@ -280,7 +282,7 @@ class TakenMetadataField(DateTimeMetadataField):
 
         if taken is None:
             taken = parse_metadata(metadata, [
-                ['DigitalCreationDate', parse_exif_date],
+                ['DigitalCreationDate', parse_exif_datetime],
             ])
 
             if taken is None:

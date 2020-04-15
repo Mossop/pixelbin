@@ -104,3 +104,11 @@ class ApiTestCase(TestCase):
 
     def assertRaisesApiException(self, code):
         return ApiExceptionContext(code, self.failureException)
+
+    def assertDictContains(self, found, expected):
+        self.assertIsInstance(found, dict)
+        self.assertIsInstance(expected, dict)
+
+        keys = set(found.keys()) & set(expected.keys())
+        copied = { k: found[k] for k in keys }
+        self.assertEqual(copied, expected)

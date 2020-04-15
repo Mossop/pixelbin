@@ -9,10 +9,10 @@ def startup(sender, **kwargs):
     from .tasks import PROCESS_VERSION, process_new_file, process_metadata
 
     for media in Media.objects.exclude(process_version=PROCESS_VERSION).filter(new_file=False):
-        process_metadata.delay(media.id)
+        process_metadata(media.id)
 
     for media in Media.objects.filter(new_file=True):
-        process_new_file.delay(media.id)
+        process_new_file(media.id)
 
 class ApiConfig(AppConfig):
     name = 'api'

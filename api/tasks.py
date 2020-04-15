@@ -2,12 +2,12 @@ import subprocess
 import json
 from datetime import datetime
 
-from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.db import transaction
 from PIL import Image
 from filetype import filetype
 
+from .celery import task
 from .models import Media
 from .media import resize, THUMB_SIZES, ALLOWED_TYPES, is_video, is_image
 
@@ -33,7 +33,7 @@ class MediaLogger:
     def exception(self, message, *args, **kwargs):
         base_logger.exception(self._build_message(message), *args, **kwargs)
 
-@shared_task
+@task
 @transaction.atomic
 def process_metadata(media_id):
     # pylint: disable=bare-except
@@ -57,7 +57,7 @@ def process_metadata(media_id):
         raise
     logger.info('Processing of metadata for media "%s" is complete.', media.id)
 
-@shared_task
+@task
 @transaction.atomic
 def process_new_file(media_id, target_name=None):
     # pylint: disable=bare-except

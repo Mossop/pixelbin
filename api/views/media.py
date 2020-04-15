@@ -38,7 +38,7 @@ def perform_upload(media, file):
         target_name = os.path.basename(file.name)
     else:
         target_name = None
-    process_new_file.delay(media.id, target_name)
+    process_new_file(media.id, target_name)
 
     return media
 
