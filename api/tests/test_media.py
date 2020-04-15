@@ -1,5 +1,8 @@
+import io
+
 from django.db import transaction
 from django.test.client import MULTIPART_CONTENT
+from PIL import Image
 
 from base.utils import path
 
@@ -284,3 +287,56 @@ class MediaTests(ApiTestCase):
         })
 
         self.assertEqual(response.json()['metadata']['make'], 'NIKON CORPORATION')
+
+    def test_thumbnail(self):
+        user = self.create_user()
+        catalog = self.add_catalog(user=user)
+
+        self.client.force_login(user)
+
+        with open(path('api', 'tests', 'data', 'lamppost.jpg'), mode='rb') as fp:
+            response = self.client.put("/api/media/create", content_type=MULTIPART_CONTENT, data={
+                'catalog': catalog.id,
+                'file': fp,
+            })
+
+        media_id = response.json()['id']
+
+        response = self.client.get('/api/media/thumbnail', data={
+            'media': media_id,
+            'size': 150,
+        })
+
+        self.assertEqual(response.get('Content-Type'), 'image/jpeg')
+        fp = io.BytesIO(response.content)
+
+        im = Image.open(fp)
+
+        self.assertEqual(im.format, 'JPEG')
+        self.assertThumbnailSizeCorrect(im, 150, 500, 331)
+
+        response = self.client.get('/api/media/thumbnail', data={
+            'media': media_id,
+            'size': 170,
+        })
+
+        self.assertEqual(response.get('Content-Type'), 'image/jpeg')
+        fp = io.BytesIO(response.content)
+
+        im = Image.open(fp)
+
+        self.assertEqual(im.format, 'JPEG')
+        self.assertThumbnailSizeCorrect(im, 170, 500, 331)
+
+        response = self.client.get('/api/media/thumbnail', data={
+            'media': media_id,
+            'size': 10,
+        })
+
+        self.assertEqual(response.get('Content-Type'), 'image/jpeg')
+        fp = io.BytesIO(response.content)
+
+        im = Image.open(fp)
+
+        self.assertEqual(im.format, 'JPEG')
+        self.assertThumbnailSizeCorrect(im, 10, 500, 331)

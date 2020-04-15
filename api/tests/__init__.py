@@ -3,6 +3,7 @@ from random import Random
 from django.test import TestCase, Client
 from django.test.client import JSON_CONTENT_TYPE_RE
 from faker import Faker
+from PIL.Image import Image
 
 from ..models import User, Catalog
 from ..utils import uuid, ApiException
@@ -110,5 +111,20 @@ class ApiTestCase(TestCase):
         self.assertIsInstance(expected, dict)
 
         keys = set(found.keys()) & set(expected.keys())
-        copied = { k: found[k] for k in keys }
+        copied = {
+            k: found[k] for k in keys
+        }
         self.assertEqual(copied, expected)
+
+    def assertThumbnailSizeCorrect(self, thumb, target, width, height):
+        self.assertIsInstance(thumb, Image)
+
+        if width == height:
+            self.assertEqual(thumb.width, target)
+            self.assertEqual(thumb.height, target)
+        elif width > height:
+            self.assertEqual(thumb.width, target)
+            self.assertAlmostEqual(thumb.height, target * height / width, delta=1)
+        else:
+            self.assertAlmostEqual(thumb.width, target * width / height, delta=1)
+            self.assertEqual(thumb.height, target)
