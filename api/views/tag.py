@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from . import api_view
 from ..utils import ApiException
 from ..models import Tag
@@ -10,7 +12,8 @@ def create(request, deserialized):
     request.user.check_can_modify(data['catalog'])
 
     with Tag.lock_for_create():
-        return deserialized.save()
+        with transaction.atomic():
+            return deserialized.save()
 
 @api_view('PATCH', request=PatchSerializerWrapper(TagSerializer), response=TagSerializer)
 def edit(request, deserialized):
@@ -21,7 +24,8 @@ def edit(request, deserialized):
     if 'catalog' in data and data['catalog'] != tag.catalog:
         raise ApiException('catalog-change')
 
-    return deserialized.save()
+    with transaction.atomic():
+        return deserialized.save()
 
 @api_view('POST', request=TagFindSerializer, response=ListSerializerWrapper(TagSerializer))
 def find(request, deserialized):
@@ -29,13 +33,14 @@ def find(request, deserialized):
     request.user.check_can_modify(data['catalog'])
 
     with Tag.lock_for_create():
-        tag = Tag.get_for_path(data['catalog'], data['path'])
+        with transaction.atomic():
+            tag = Tag.get_for_path(data['catalog'], data['path'])
 
-        # Build a list of all parents, top-level first.Any of these may have
-        # been created when getting the tag.
-        tags = []
-        while tag is not None:
-            tags.insert(0, tag)
-            tag = tag.parent
+            # Build a list of all parents, top-level first.Any of these may have
+            # been created when getting the tag.
+            tags = []
+            while tag is not None:
+                tags.insert(0, tag)
+                tag = tag.parent
 
-        return tags
+            return tags

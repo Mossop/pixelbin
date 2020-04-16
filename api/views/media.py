@@ -1,6 +1,7 @@
 import os
 import logging
 
+from django.db import transaction
 from django.http.response import HttpResponse
 from filetype import filetype
 
@@ -53,6 +54,7 @@ def validate(request, file, catalog):
             })
 
 @api_view('PUT', request=MultipartSerializerWrapper(MediaSerializer), response=MediaSerializer)
+@transaction.atomic
 def create(request, deserialized):
     data = deserialized.validated_data
     file = data['file']
@@ -80,11 +82,12 @@ def update(request, deserialized):
 
     validate(request, file, media.catalog)
 
-    media = deserialized.save()
+    with transaction.atomic():
+        media = deserialized.save()
 
-    if file is not None:
-        return perform_upload(media, file)
-    return media
+        if file is not None:
+            return perform_upload(media, file)
+        return media
 
 @api_view('POST', request=SearchSerializer, response=ListSerializerWrapper(MediaSerializer))
 def search(request, deserialized):

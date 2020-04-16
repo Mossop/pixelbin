@@ -153,6 +153,7 @@ def process_video(logger, media, source):
     media.file_store.store_storage_from_temp('vp9.mp4')
 
 def import_file(logger, media, target_name):
+    # pylint: disable=bare-except
     logger.info('Importing new media file.')
     meta_path = media.file_store.get_local_path('metadata.json')
     source = media.file_store.get_temp_path('original')

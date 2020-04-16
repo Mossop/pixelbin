@@ -145,3 +145,89 @@ class AlbumTests(ApiTestCase):
                 'catalog': catalog.id,
                 'name': self.random_thing(),
             })
+
+    def test_modify_media(self):
+        user = self.create_user()
+        catalog1 = self.add_catalog(user=user)
+        album1 = catalog1.albums.create(name=self.random_thing())
+        media1 = catalog1.media.create()
+
+        catalog2 = self.add_catalog(user=user)
+        media2 = catalog2.media.create()
+
+        self.client.force_login(user)
+
+        self.client.put('/api/album/add_media', data={
+            'album': album1.id,
+            'media': [
+                media1.id,
+            ],
+        })
+
+        self.assertEqual(list(album1.media.all()), [media1])
+
+        self.client.put('/api/album/add_media', data={
+            'album': album1.id,
+            'media': [
+                media1.id,
+            ],
+        })
+
+        self.assertEqual(list(album1.media.all()), [media1])
+
+        self.client.delete('/api/album/remove_media', data={
+            'album': album1.id,
+            'media': [
+                media1.id,
+            ],
+        })
+
+        self.assertEqual(list(album1.media.all()), [])
+
+        self.client.delete('/api/album/remove_media', data={
+            'album': album1.id,
+            'media': [
+                media1.id,
+            ],
+        })
+
+        self.assertEqual(len(album1.media.all()), 0)
+
+        with self.assertRaisesApiException('catalog-mismatch'):
+            self.client.put('/api/album/add_media', data={
+                'album': album1.id,
+                'media': [
+                    media2.id,
+                ],
+            })
+
+        self.assertEqual(len(album1.media.all()), 0)
+
+        with self.assertRaisesApiException('catalog-mismatch'):
+            self.client.put('/api/album/add_media', data={
+                'album': album1.id,
+                'media': [
+                    media1.id,
+                    media2.id,
+                ],
+            })
+
+        self.assertEqual(len(album1.media.all()), 0)
+
+        self.client.put('/api/album/add_media', data={
+            'album': album1.id,
+            'media': [
+                media1.id,
+            ],
+        })
+
+        self.assertEqual(list(album1.media.all()), [media1])
+
+        self.client.delete('/api/album/remove_media', data={
+            'album': album1.id,
+            'media': [
+                media2.id,
+            ],
+        })
+
+        self.assertEqual(list(album1.media.all()), [media1])

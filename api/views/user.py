@@ -1,5 +1,6 @@
 import logging
 
+from django.db import transaction
 from django.contrib.auth import authenticate, login as login_user, logout as logout_user
 from rest_framework import status
 
@@ -20,7 +21,9 @@ def create(request, deserialized):
     if len(models.User.objects.filter(email=deserialized.validated_data['email'])) > 0:
         raise ApiException('signup-bad-email')
 
-    user = deserialized.save()
+    with transaction.atomic():
+        user = deserialized.save()
+
     if not request.auth:
         login_user(request, user)
     return build_state(request)

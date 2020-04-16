@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from . import api_view
 from ..utils import ApiException
 from ..serializers.album import AlbumSerializer, AlbumMediaSerializer
@@ -8,7 +10,8 @@ def create(request, deserialized):
     data = deserialized.validated_data
     request.user.check_can_modify(data['catalog'])
 
-    return deserialized.save()
+    with transaction.atomic():
+        return deserialized.save()
 
 @api_view('PATCH', request=PatchSerializerWrapper(AlbumSerializer), response=AlbumSerializer)
 def edit(request, deserialized):
@@ -19,7 +22,8 @@ def edit(request, deserialized):
     if 'catalog' in data and data['catalog'] != album.catalog:
         raise ApiException('catalog-change')
 
-    return deserialized.save()
+    with transaction.atomic():
+        return deserialized.save()
 
 @api_view('PUT', request=AlbumMediaSerializer, response=AlbumSerializer)
 def add(request, deserialized):
@@ -27,8 +31,9 @@ def add(request, deserialized):
     album = data['album']
     request.user.check_can_modify(album.catalog)
 
-    album.media.add(*data['media'])
-    return album
+    with transaction.atomic():
+        album.media.add(*data['media'])
+        return album
 
 @api_view('DELETE', request=AlbumMediaSerializer, response=AlbumSerializer)
 def remove(request, deserialized):
@@ -36,5 +41,6 @@ def remove(request, deserialized):
     album = data['album']
     request.user.check_can_modify(album.catalog)
 
-    album.media.remove(*deserialized.validated_data['media'])
-    return album
+    with transaction.atomic():
+        album.media.remove(*deserialized.validated_data['media'])
+        return album
