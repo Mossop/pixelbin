@@ -57,12 +57,14 @@ def validate(request, file, catalog):
 @transaction.atomic
 def create(request, deserialized):
     data = deserialized.validated_data
-    file = data['file']
+    file = data.get('file', None)
 
     validate(request, file, data['catalog'])
 
     media = deserialized.save()
-    return perform_upload(media, file)
+    if file is not None:
+        return perform_upload(media, file)
+    return media
 
 @api_view('GET', request=ModelIdQuery(Media), response=MediaSerializer)
 def get(request, media):

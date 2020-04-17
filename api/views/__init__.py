@@ -6,7 +6,7 @@ from django.db.utils import IntegrityError
 from rest_framework.decorators import api_view as rest_view, parser_classes
 from rest_framework import exceptions, status
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import JSONParser, MultiPartParser
 
 from ..utils import ApiException
 from ..serializers.wrappers import SerializerWrapper, MultipartSerializerWrapper
@@ -97,8 +97,10 @@ def api_view(http_method_names=None, requires_login=True, request=None, response
                 return Response(serializer.data, status=exception.status)
 
         decorated = inner_view
+        pclasses = [JSONParser]
         if isinstance(request, MultipartSerializerWrapper):
-            decorated = parser_classes([MultiPartParser])(decorated)
+            pclasses.append(MultiPartParser)
+        decorated = parser_classes(pclasses)(decorated)
         decorated = rest_decorator(decorated)
 
         return ApiView(decorated, http_method_names, request, response)

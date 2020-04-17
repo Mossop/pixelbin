@@ -200,8 +200,8 @@ class TagTests(ApiTestCase):
             'name': newname,
         })
 
-        tag = Tag.objects.get(catalog=catalog1)
-        self.assertEqual(tag.name, newname)
+        tag1.refresh_from_db()
+        self.assertEqual(tag1.name, newname)
 
         with self.assertRaisesApiException('catalog-mismatch'):
             self.client.patch('/api/tag/edit', data={
@@ -220,8 +220,8 @@ class TagTests(ApiTestCase):
             'parent': tag2.id,
         })
 
-        tag2 = Tag.objects.get(id=tag2.id)
-        tag3 = Tag.objects.get(id=tag3.id)
+        tag2.refresh_from_db()
+        tag3.refresh_from_db()
 
         self.assertEqual(tag3.parent, tag2)
 
@@ -230,7 +230,7 @@ class TagTests(ApiTestCase):
             'parent': None,
         })
 
-        tag3 = Tag.objects.get(id=tag3.id)
+        tag3.refresh_from_db()
 
         self.assertEqual(tag3.parent, None)
 

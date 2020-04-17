@@ -23,7 +23,7 @@ class MediaSerializer(ModelSerializer):
 
     metadata = MetadataSerializer(required=False, allow_null=False)
 
-    file = serializers.FileField(write_only=True)
+    file = serializers.FileField(required=False, write_only=True)
 
     def create(self, validated_data):
         init_data = {}

@@ -139,6 +139,18 @@ class MediaTests(ApiTestCase):
         self.assertEqual(media.overridden_city, 'Portland')
         self.assertEqual(media.media_city, 'City (Core) (ref2017.1)')
 
+        # Don't need to upload a file at all and supports JSON
+        response = self.client.put("/api/media/create", data={
+            'catalog': catalog.id,
+            'metadata': {
+                'city': 'Portland',
+            },
+        })
+
+        media = Media.objects.get(id=response.json()['id'])
+        self.assertEqual(media.catalog, catalog)
+        self.assertEqual(media.metadata.city, 'Portland')
+
     def test_get_media(self):
         user = self.create_user()
         catalog1 = self.add_catalog(user=user)
@@ -181,7 +193,7 @@ class MediaTests(ApiTestCase):
         })
         data = response.json()
 
-        media1 = media1.__class__.objects.get(id=media1.id)
+        media1.refresh_from_db()
 
         self.assertEqual(data['id'], media1.id)
         self.assertEqual(data['metadata']['filename'], 'foo')

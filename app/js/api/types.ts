@@ -328,7 +328,7 @@ export interface MediaCreateData {
   tags?: RequestPk<Tag>[];
   albums?: RequestPk<Album>[];
   people?: RequestPk<Person>[];
-  file: Blob;
+  file?: Blob;
   metadata?: MetadataUpdateData;
 }
 
