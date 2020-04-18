@@ -8,7 +8,7 @@ import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
 import { replaceState, pushState } from "../utils/navigation";
 import { nameSorted } from "../utils/sort";
-import { StoreState, UIState } from "./types";
+import { StoreState, UIState, ServerState } from "./types";
 
 type MappedReducer<S> =
   S extends (state: Draft<StoreState>, user: UserData, ...args: infer A) => void
@@ -227,7 +227,11 @@ export const reducers = {
     state.stateId++;
   },
 
-  historyStateChanged(state: Draft<StoreState>, uiState: Draft<UIState>): void {
+  updateServerState(state: Draft<StoreState>, serverState: Draft<ServerState>): void {
+    state.serverState = serverState;
+  },
+
+  updateUIState(state: Draft<StoreState>, uiState: Draft<UIState>): void {
     state.ui = uiState;
   },
 

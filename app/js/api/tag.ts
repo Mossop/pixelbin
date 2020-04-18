@@ -1,6 +1,7 @@
 import { request } from "./api";
-import { Catalog, Reference } from "./highlevel";
-import { TagData, ApiMethod } from "./types";
+import type { Catalog, Reference } from "./highlevel";
+import { ApiMethod } from "./types";
+import type { TagData } from "./types";
 
 export async function findTag(catalog: Reference<Catalog>, path: string[]): Promise<TagData[]> {
   return request(ApiMethod.TagFind, {

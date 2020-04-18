@@ -97,8 +97,7 @@ class AlbumTests(ApiTestCase):
         self.client.force_login(user)
 
         newname = self.random_thing()
-        response = self.client.patch('/api/album/edit', data={
-            'id': album.id,
+        response = self.client.patch('/api/album/edit/%s' % album.id, data={
             'name': newname,
         })
 
@@ -117,20 +116,17 @@ class AlbumTests(ApiTestCase):
         catalog2 = self.add_catalog(user=user)
 
         with self.assertRaisesApiException('catalog-change'):
-            self.client.patch('/api/album/edit', data={
-                'id': album.id,
+            self.client.patch('/api/album/edit/%s' % album.id, data={
                 'catalog': catalog2.id,
             })
 
         with self.assertRaisesApiException('cyclic-structure'):
-            self.client.patch('/api/album/edit', data={
-                'id': album.id,
+            self.client.patch('/api/album/edit/%s' % album.id, data={
                 'parent': album2.id,
             })
 
         with self.assertRaisesApiException('catalog-mismatch'):
-            self.client.patch('/api/album/edit', data={
-                'id': album.id,
+            self.client.patch('/api/album/edit/%s' % album.id, data={
                 'parent': album3.id,
             })
 

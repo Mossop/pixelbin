@@ -3,11 +3,8 @@ import { JsonDecoder } from "ts.data.json";
 
 import { MappingDecoder } from "../utils/decoders";
 import { exception, ErrorCode, ApiError, processException } from "../utils/exception";
-import { Reference, isReference, APIItemBuilder, APIItemReference } from "./highlevel";
-import { ApiMethod, HttpMethods, ApiErrorDataDecoder } from "./types";
-
-export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-export type MethodList = { [k in ApiMethod]: Method };
+import { isReference, APIItemReference } from "./highlevel";
+import type { Reference, APIItemBuilder } from "./highlevel";
 
 export type RequestPk<T> = Reference<T>;
 export type ResponsePk<T> = Reference<T>;
@@ -207,7 +204,11 @@ export class JsonRequestData<D> extends RequestData<D> {
   }
 }
 
-export async function makeRequest<D>(path: ApiMethod, request: RequestData<D>): Promise<D> {
+export async function makeRequest<D>(
+  method: string,
+  path: string,
+  request: RequestData<D>,
+): Promise<D> {
   let url = new URL(path, API_ROOT);
   request.applyToURL(url);
 
@@ -215,10 +216,10 @@ export async function makeRequest<D>(path: ApiMethod, request: RequestData<D>): 
   headers.append("X-CSRFToken", parseCookie(document.cookie)["csrftoken"]);
   request.applyToHeaders(headers);
 
-  let response;
+  let response: Response;
   try {
     response = await fetch(url.href, {
-      method: HttpMethods[path],
+      method,
       headers,
       body: request.body(),
     });
@@ -229,6 +230,7 @@ export async function makeRequest<D>(path: ApiMethod, request: RequestData<D>): 
   if (!response.ok) {
     let errorData;
     try {
+      const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api/types" */"./types");
       errorData = await ApiErrorDataDecoder.decodePromise(await response.json());
     } catch (e) {
       exception(ErrorCode.DecodeError);

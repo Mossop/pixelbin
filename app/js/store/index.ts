@@ -2,12 +2,10 @@ import { Deed } from "deeds/immer";
 import { applyMiddleware, createStore, Store, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
-import { ServerDataDecoder } from "../api/types";
-import { decode } from "../utils/decoders";
-import { getState } from "../utils/navigation";
+import { PageType } from "../pages";
 import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
-import { StoreState, ServerState } from "./types";
+import { StoreState } from "./types";
 
 export type StoreType = Store<StoreState, Deed>;
 
@@ -17,22 +15,16 @@ interface BuildResult {
 }
 
 function buildStore(): BuildResult {
-  let serverState: ServerState = { user: null };
-  let stateElement = document.getElementById("initial-state");
-  if (stateElement?.textContent) {
-    try {
-      serverState = decode(ServerDataDecoder, JSON.parse(stateElement.textContent));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   let initialState: StoreState = {
-    serverState,
+    serverState: { user: null },
     settings: {
       thumbnailSize: 150,
     },
-    ui: getState(serverState),
+    ui: {
+      page: {
+        type: PageType.Index,
+      },
+    },
     stateId: 0,
   };
 

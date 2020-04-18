@@ -6,21 +6,18 @@ import moment from "moment";
 import { JsonDecoder } from "ts.data.json";
 
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
-import { Mappable, MapOf } from "../utils/maps";
+import type { Mappable, MapOf } from "../utils/maps";
 import {
   makeRequest,
-  MethodList,
   RequestData,
   JsonRequestData,
   QueryRequestData,
   FormRequestData,
   JsonDecoderDecoder,
   BlobDecoder,
-  RequestPk,
-  ResponsePk,
-  Patch,
   ResponsePkDecoder,
 } from "./helpers";
+import type { RequestPk, ResponsePk, Patch } from "./helpers";
 import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 
 export enum ApiErrorCode {
@@ -352,19 +349,22 @@ export enum ApiMethod {
   UserCreate = "user/create",
   CatalogCreate = "catalog/create",
   AlbumCreate = "album/create",
-  AlbumEdit = "album/edit",
+  AlbumEdit = "album/edit/<id>",
   AlbumAddMedia = "album/add_media",
   AlbumRemoveMedia = "album/remove_media",
   TagCreate = "tag/create",
-  TagEdit = "tag/edit",
+  TagEdit = "tag/edit/<id>",
   TagFind = "tag/find",
   PersonCreate = "person/create",
-  MediaGet = "media/get",
+  MediaGet = "media/get/<id>",
   MediaCreate = "media/create",
-  MediaUpdate = "media/update",
+  MediaUpdate = "media/update/<id>",
   MediaSearch = "media/search",
   MediaThumbnail = "media/thumbnail",
 }
+
+export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+export type MethodList = { [k in ApiMethod]: Method };
 
 export const HttpMethods: MethodList = {
   [ApiMethod.State]: "PUT",
@@ -407,65 +407,84 @@ export function request(method: ApiMethod.MediaSearch, data: Search): Promise<Un
 export function request(method: ApiMethod.MediaThumbnail, data: MediaThumbnail): Promise<Blob>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function request(path: ApiMethod, data?: any): Promise<object | void> {
+export function request(method: ApiMethod, data?: any): Promise<object | void> {
   let request: RequestData<object | void>;
+  let path: string;
 
-  switch (path) {
+  switch (method) {
     case ApiMethod.State:
+      path = `state`;
       request = new RequestData(JsonDecoderDecoder(ServerDataDecoder));
       break;
     case ApiMethod.Login:
+      path = `login`;
       request = new JsonRequestData(data, JsonDecoderDecoder(ServerDataDecoder));
       break;
     case ApiMethod.Logout:
+      path = `logout`;
       request = new RequestData(JsonDecoderDecoder(ServerDataDecoder));
       break;
     case ApiMethod.UserCreate:
+      path = `user/create`;
       request = new JsonRequestData(data, JsonDecoderDecoder(ServerDataDecoder));
       break;
     case ApiMethod.CatalogCreate:
+      path = `catalog/create`;
       request = new JsonRequestData(data, JsonDecoderDecoder(CatalogDataDecoder));
       break;
     case ApiMethod.AlbumCreate:
+      path = `album/create`;
       request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.AlbumEdit:
+      path = `album/edit/${data.id}`;
       request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.AlbumAddMedia:
+      path = `album/add_media`;
       request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.AlbumRemoveMedia:
+      path = `album/remove_media`;
       request = new JsonRequestData(data, JsonDecoderDecoder(AlbumDataDecoder));
       break;
     case ApiMethod.TagCreate:
+      path = `tag/create`;
       request = new JsonRequestData(data, JsonDecoderDecoder(TagDataDecoder));
       break;
     case ApiMethod.TagEdit:
+      path = `tag/edit/${data.id}`;
       request = new JsonRequestData(data, JsonDecoderDecoder(TagDataDecoder));
       break;
     case ApiMethod.TagFind:
+      path = `tag/find`;
       request = new JsonRequestData(data, JsonDecoderDecoder(JsonDecoder.array(TagDataDecoder, "TagData[]")));
       break;
     case ApiMethod.PersonCreate:
+      path = `person/create`;
       request = new JsonRequestData(data, JsonDecoderDecoder(PersonDataDecoder));
       break;
     case ApiMethod.MediaGet:
+      path = `media/get/${data.id}`;
       request = new QueryRequestData(data, JsonDecoderDecoder(UnprocessedMediaDataDecoder));
       break;
     case ApiMethod.MediaCreate:
+      path = `media/create`;
       request = new FormRequestData(data, JsonDecoderDecoder(UnprocessedMediaDataDecoder));
       break;
     case ApiMethod.MediaUpdate:
+      path = `media/update/${data.id}`;
       request = new FormRequestData(data, JsonDecoderDecoder(UnprocessedMediaDataDecoder));
       break;
     case ApiMethod.MediaSearch:
+      path = `media/search`;
       request = new JsonRequestData(data, JsonDecoderDecoder(JsonDecoder.array(UnprocessedMediaDataDecoder, "UnprocessedMediaData[]")));
       break;
     case ApiMethod.MediaThumbnail:
+      path = `media/thumbnail`;
       request = new QueryRequestData(data, BlobDecoder);
       break;
   }
 
-  return makeRequest(path, request);
+  return makeRequest(HttpMethods[method], path, request);
 }

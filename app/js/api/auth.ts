@@ -1,5 +1,6 @@
 import { request } from "./api";
-import { ApiMethod, ServerData, UserCreateData } from "./types";
+import { ApiMethod } from "./types";
+import type { ServerData, UserCreateData } from "./types";
 
 export function state(): Promise<ServerData> {
   return request(ApiMethod.State);

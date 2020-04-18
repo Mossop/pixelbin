@@ -1,51 +1,31 @@
 import React, { Fragment } from "react";
 import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
-import { JsonDecoder } from "ts.data.json";
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 
 import LocalizationContext from "./l10n";
 import Overlay from "./overlays";
+import { paths, decodeServerState } from "./page";
 import Page from "./pages";
 import store from "./store";
 import actions from "./store/actions";
-import { decode } from "./utils/decoders";
 import { addListener, HistoryState } from "./utils/history";
-import { intoUIState } from "./utils/navigation";
+import { intoUIState, getState } from "./utils/navigation";
 
-export interface Paths {
-  static: string;
-}
-
-export const PathsDecoder = JsonDecoder.object<Paths>(
-  {
-    static: JsonDecoder.string,
-  },
-  "Paths",
-);
-
-let PATHS: Paths = {
-  static: "/static/",
-};
-
-let pathsElement = document.getElementById("paths");
-if (pathsElement?.textContent) {
-  try {
-    PATHS = decode(PathsDecoder, JSON.parse(pathsElement.textContent));
-  } catch (e) {
-    console.error(e);
-  }
-}
+let serverState = decodeServerState();
+store.dispatch(actions.updateServerState(serverState));
+let uiState = getState(serverState);
+store.dispatch(actions.updateUIState(uiState));
 
 addListener((historyState: HistoryState): void => {
   let uiState = intoUIState(historyState, store.getState().serverState);
-  store.dispatch(actions.historyStateChanged(uiState));
+  store.dispatch(actions.updateUIState(uiState));
 });
 
 reactRender(
   <Provider store={store}>
-    <LocalizationContext baseurl={`${PATHS.static}l10n/`}>
+    <LocalizationContext baseurl={`${paths.static}l10n/`}>
       <Fragment>
         <div id="main">
           <Page/>

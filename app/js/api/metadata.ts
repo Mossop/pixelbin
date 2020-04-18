@@ -1,10 +1,11 @@
 import { Orientation } from "media-metadata/lib/metadata";
 import moment from "moment";
-import { JsonDecoder, Result, err, ok } from "ts.data.json";
+import { JsonDecoder, err, ok } from "ts.data.json";
+import type { Result } from "ts.data.json";
 
 import { decode } from "../utils/decoders";
-import { MediaData } from "./media";
-import { MediaCreateData, MetadataUpdateData } from "./types";
+import type { MediaData } from "./media";
+import type { MediaCreateData, MetadataUpdateData } from "./types";
 
 type MediaWithMetadata = MediaData | MediaCreateData;
 

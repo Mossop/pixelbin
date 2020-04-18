@@ -1,13 +1,12 @@
-import { Immutable } from "immer";
+import type { Immutable } from "immer";
 
 import actions from "../store/actions";
-import { ServerState } from "../store/types";
+import type { ServerState } from "../store/types";
 import { exception, ErrorCode, InternalError, processException } from "../utils/exception";
-import { MapId, intoId, isInstance } from "../utils/maps";
-import { MediaData } from "./media";
-import { createPerson } from "./person";
-import { findTag } from "./tag";
-import { AlbumData, CatalogData, TagData, PersonData } from "./types";
+import { intoId, isInstance } from "../utils/maps";
+import type { MapId } from "../utils/maps";
+import type { MediaData } from "./media";
+import type { AlbumData, CatalogData, TagData, PersonData } from "./types";
 
 interface StateCache {
   readonly albums: Map<string, Album>;
@@ -79,23 +78,12 @@ export class APIItemReference<T> implements Reference<T> {
 }
 
 class PendingAPIItem<T> implements Pending<T> {
-  private id: string | undefined = undefined;
   private foundRef: Reference<T> | undefined = undefined;
 
-  public readonly promise: Promise<Reference<T>>;
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private resolver: (ref: Reference<T>) => void = (): void => {};
-
-  public constructor(private builder: APIItemBuilder<T>) {
-    this.promise = new Promise((resolve: (ref: Reference<T>) => void): void => {
-      this.resolver = resolve;
+  public constructor(public readonly promise: Promise<Reference<T>>) {
+    promise.then((ref: Reference<T>): void => {
+      this.foundRef = ref;
     });
-  }
-
-  public setId(id: string): void {
-    this.id = id;
-    this.foundRef = new APIItemReference(this.id, this.builder);
-    this.resolver(this.foundRef);
   }
 
   public get ref(): Reference<T> | undefined {
@@ -373,15 +361,17 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public findTag(path: string[]): Pending<Tag> {
-    let pending = new PendingAPIItem(Tag);
+    const tagFinder = async (ref: Reference<Catalog>, path: string[]): Promise<Reference<Tag>> => {
+      const { findTag } = await import(/* webpackChunkName: "api/tag" */"./tag");
+      let tags = await findTag(ref, path);
 
-    findTag(this.ref(), path).then(async (tags: TagData[]): Promise<void> => {
-      const { asyncDispatch } = await import("../store");
+      const { asyncDispatch } = await import(/* webpackChunkName: "store" */"../store");
       await asyncDispatch(actions.tagsCreated(tags));
-      pending.setId(tags[tags.length - 1].id);
-    });
 
-    return pending;
+      return new APIItemReference(tags[tags.length - 1].id, Tag);
+    };
+
+    return new PendingAPIItem(tagFinder(this.ref(), path));
   }
 
   public get tags(): Tag[] {
@@ -405,15 +395,20 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public createPerson(fullname: string): Pending<Person> {
-    let pending = new PendingAPIItem(Person);
+    const personCreator = async (
+      ref: Reference<Catalog>,
+      name: string,
+    ): Promise<Reference<Person>> => {
+      const { createPerson } = await import(/* webpackChunkName: "api/person" */"./person");
+      let person = await createPerson(ref, name);
 
-    createPerson(this.ref(), fullname).then(async (person: PersonData): Promise<void> => {
-      const { asyncDispatch } = await import("../store");
+      const { asyncDispatch } = await import(/* webpackChunkName: "store" */"../store");
       await asyncDispatch(actions.personCreated(person));
-      pending.setId(person.id);
-    });
 
-    return pending;
+      return new APIItemReference(person.id, Person);
+    };
+
+    return new PendingAPIItem(personCreator(this.ref(), fullname));
   }
 
   public get people(): Person[] {

@@ -17,26 +17,25 @@ import moment from "moment";
 import { JsonDecoder } from "ts.data.json";
 
 import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
-import { Mappable, MapOf } from "../utils/maps";
+import type { Mappable, MapOf } from "../utils/maps";
 import {
   makeRequest,
-  MethodList,
   RequestData,
   JsonRequestData,
   QueryRequestData,
   FormRequestData,
   JsonDecoderDecoder,
   BlobDecoder,
-  RequestPk,
-  ResponsePk,
-  Patch,
   ResponsePkDecoder,
 } from "./helpers";
+import type { RequestPk, ResponsePk, Patch } from "./helpers";
 import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 """
 
 def method_name(st):
-    return ''.join(map(lambda s: s.capitalize(), st.replace('/', '_').split('_')))
+    parts = st.replace('/', '_').split('_')
+    parts = filter(lambda s: not s[0] == '<' or not s[-1] == '>', parts)
+    return ''.join(map(lambda s: s.capitalize(), parts))
 
 class Command(BaseCommand):
     help = 'Generates the TypeScript types for the API.'
@@ -74,6 +73,9 @@ class Command(BaseCommand):
         self.write('}')
 
     def write_method_map(self, methods):
+        self.write('export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";')
+        self.write('export type MethodList = { [k in ApiMethod]: Method };\n')
+
         self.write('export const HttpMethods: MethodList = {')
         for (method, (method_types, _, _, _)) in methods.items():
             self.write('  [ApiMethod.%s]: "%s",' % (method, method_types[0]))
@@ -90,12 +92,13 @@ class Command(BaseCommand):
 
     def write_request_method(self, methods):
         self.write('// eslint-disable-next-line @typescript-eslint/no-explicit-any')
-        self.write('export function request(path: ApiMethod, data?: any): '
+        self.write('export function request(method: ApiMethod, data?: any): '
                    'Promise<object | void> {')
-        self.write('  let request: RequestData<object | void>;\n')
-        self.write('  switch (path) {')
+        self.write('  let request: RequestData<object | void>;')
+        self.write('  let path: string;\n')
+        self.write('  switch (method) {')
 
-        for (method, (method_types, _, request, response)) in methods.items():
+        for (method, (method_types, url, request, response)) in methods.items():
             if isinstance(response, VoidType):
                 decoder = 'VoidDecoder'
             elif isinstance(response, BlobType):
@@ -113,12 +116,13 @@ class Command(BaseCommand):
                 request_type = 'JsonRequestData(data, '
 
             self.write('    case ApiMethod.%s:' % method)
+            self.write('      path = `%s`;' % url.replace('<', '${data.').replace('>', '}'))
             self.write('      request = new %s%s);' % (request_type, decoder))
             self.write('      break;')
 
         self.write('  }\n')
 
-        self.write('  return makeRequest(path, request);')
+        self.write('  return makeRequest(HttpMethods[method], path, request);')
         self.write('}')
 
     def handle(self, *args, **options):

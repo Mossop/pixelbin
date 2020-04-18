@@ -12,22 +12,22 @@ class SerializerWrapper:
     def __init__(self, serializer):
         self.serializer = serializer
 
-    def build_serializer(self, *args, **kwargs):
-        return self.serializer(*args, **kwargs)
+    def build_serializer(self, **kwargs):
+        return self.serializer(**kwargs)
 
-    def build_request_serializer(self, *args, data=None, **kwargs):
+    def build_request_serializer(self, **kwargs):
         if isinstance(self.serializer, SerializerWrapper):
-            return self.serializer.build_request_serializer(*args, data=data, **kwargs)
+            return self.serializer.build_request_serializer(**kwargs)
 
-        deserialized = self.build_serializer(*args, data=data, **kwargs)
+        deserialized = self.build_serializer(**kwargs)
         deserialized.is_valid(raise_exception=True)
         return deserialized
 
-    def build_response_serializer(self, instance, *args, **kwargs):
+    def build_response_serializer(self, instance):
         if isinstance(self.serializer, SerializerWrapper):
-            return self.serializer.build_response_serializer(instance, *args, **kwargs)
+            return self.serializer.build_response_serializer(instance)
 
-        deserialized = self.build_serializer(instance, *args, **kwargs)
+        deserialized = self.build_serializer(instance=instance)
         return deserialized
 
     def handle_request(self, request, data, func, *args, **kwargs):
@@ -55,23 +55,34 @@ class PatchSerializerWrapper(SerializerWrapper):
             raise Exception('Can only create a patch serializer for a model serializer.')
         super().__init__(serializer)
 
-    def build_request_serializer(self, *args, data=None, **kwargs):
-        if data is not None:
-            data = data.copy()
-        id_serializer = build_id_serializer(self.serializer.Meta.model)(data=data)
+    def build_response_serializer(self, instance):
+        raise Exception('Patch serializers cannot be used in response.')
+
+    def handle_request(self, request, data, func, *args, **kwargs):
+        id_serializer = build_id_serializer(self.serializer.Meta.model)(data={
+            'id': kwargs.pop('id', None),
+        })
         id_serializer.is_valid(raise_exception=True)
         instance = id_serializer.validated_data['id']
-        del data['id']
 
-        return super().build_request_serializer(instance, *args, data=data, partial=True, **kwargs)
-
-    def build_response_serializer(self, *args, data=None, **kwargs):
-        raise Exception('Patch serializers cannot be used in response.')
+        deserialized = self.build_request_serializer(instance=instance, data=data, partial=True)
+        return func(request, deserialized, *args, **kwargs)
 
     def typedef(self):
         return typedefs.PatchType(super().typedef(), self.serializer.Meta.model)
 
-class MultipartSerializerWrapper(SerializerWrapper):
+class DelegatedSerializerWrapper(SerializerWrapper):
+    def handle_request(self, request, data, func, *args, **kwargs):
+        if isinstance(self.serializer, SerializerWrapper):
+            return self.serializer.handle_request(request, data, func, *args, **kwargs)
+        return super().handle_request(request, data, func, *args, **kwargs)
+
+    def handle_response(self, result):
+        if isinstance(self.serializer, SerializerWrapper):
+            return self.serializer.handle_response(result)
+        return super().handle_response(result)
+
+class MultipartSerializerWrapper(DelegatedSerializerWrapper):
     def typedef(self):
         return typedefs.FormDataType(super().typedef())
 
@@ -98,4 +109,6 @@ class ModelIdQuery(SerializerWrapper):
         def callback(req, des, *args, **kwargs):
             return func(req, des.validated_data['id'], *args, **kwargs)
 
-        return super().handle_request(request, data, callback, *args, **kwargs)
+        return super().handle_request(request, {
+            'id': kwargs.pop('id', None),
+        }, callback, *args, **kwargs)

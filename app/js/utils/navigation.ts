@@ -213,7 +213,7 @@ export function fromUIState(uiState: Draft<UIState>): HistoryState {
   }
 }
 
-export function getState(serverState: ServerState): UIState {
+export function getState(serverState: ServerState): Draft<UIState> {
   return intoUIState(history.getState(), serverState);
 }
 

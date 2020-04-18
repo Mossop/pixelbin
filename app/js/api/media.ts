@@ -1,8 +1,10 @@
-import { Search } from "../utils/search";
+import type { Search } from "../utils/search";
 import { request } from "./api";
-import { Patch } from "./helpers";
-import { Catalog, Album, Reference, Media } from "./highlevel";
-import { ApiMethod, UnprocessedMediaData, MediaCreateData } from "./types";
+import type { Patch } from "./helpers";
+import { Catalog, Album } from "./highlevel";
+import type { Reference, Media } from "./highlevel";
+import { ApiMethod } from "./types";
+import type { UnprocessedMediaData, MediaCreateData } from "./types";
 
 export type MediaTarget = Catalog | Album;
 

@@ -72,9 +72,7 @@ class MediaTests(ApiTestCase):
         media = Media.objects.get(id=response.json()['id'])
         self.assertEqual(media.catalog, catalog)
 
-        response = self.client.get("/api/media/get", data={
-            'id': media.id,
-        })
+        response = self.client.get('/api/media/get/%s' % media.id)
 
         self.assertDictContains(response.json(), {
             'id': media.id,
@@ -163,18 +161,14 @@ class MediaTests(ApiTestCase):
 
         self.client.force_login(user)
 
-        response = self.client.get("/api/media/get", data={
-            'id': media1.id,
-        })
+        response = self.client.get('/api/media/get/%s' % media1.id)
         data = response.json()
 
         self.assertEqual(data['id'], media1.id)
         self.assertEqual(data['metadata']['filename'], 'bar')
 
         with self.assertRaisesApiException('not-found'):
-            self.client.get("/api/media/get", {
-                'id': media2.id,
-            })
+            self.client.get('/api/media/get/%s' % media2.id)
 
     def test_edit_media(self):
         user = self.create_user()
@@ -187,10 +181,10 @@ class MediaTests(ApiTestCase):
 
         self.client.force_login(user)
 
-        response = self.client.put("/api/media/update", content_type=MULTIPART_CONTENT, data={
-            'id': media1.id,
-            'metadata.filename': 'foo',
-        })
+        response = self.client.put('/api/media/update/%s' % media1.id,
+                                   content_type=MULTIPART_CONTENT, data={
+                                       'metadata.filename': 'foo',
+                                   })
         data = response.json()
 
         media1.refresh_from_db()
@@ -203,10 +197,10 @@ class MediaTests(ApiTestCase):
         self.assertEqual(media1.media_filename, 'bar')
 
         with self.assertRaisesApiException('catalog-change'):
-            self.client.put("/api/media/update", content_type=MULTIPART_CONTENT, data={
-                'id': media1.id,
-                'catalog': catalog2.id,
-            })
+            self.client.put('/api/media/update/%s' % media1.id,
+                            content_type=MULTIPART_CONTENT, data={
+                                'catalog': catalog2.id,
+                            })
 
     def test_replace_media(self):
         user = self.create_user()
@@ -225,9 +219,7 @@ class MediaTests(ApiTestCase):
         media = Media.objects.get(id=response.json()['id'])
         self.assertEqual(media.catalog, catalog)
 
-        response = self.client.get("/api/media/get", data={
-            'id': media.id,
-        })
+        response = self.client.get('/api/media/get/%s' % media.id)
 
         data = response.json()
         self.assertDictContains(data, {
@@ -248,11 +240,11 @@ class MediaTests(ApiTestCase):
             'lens': None,
         })
 
-        response = self.client.put("/api/media/update", content_type=MULTIPART_CONTENT, data={
-            'id': media.id,
-            'metadata.city': 'Portland',
-            'metadata.make': 'Canon',
-        })
+        response = self.client.put('/api/media/update/%s' % media.id,
+                                   content_type=MULTIPART_CONTENT, data={
+                                       'metadata.city': 'Portland',
+                                       'metadata.make': 'Canon',
+                                   })
         data = response.json()
 
         self.assertDictContains(data['metadata'], {
@@ -265,14 +257,12 @@ class MediaTests(ApiTestCase):
         })
 
         with open(path('api', 'tests', 'data', 'lamppost.jpg'), mode='rb') as fp:
-            self.client.put("/api/media/update", content_type=MULTIPART_CONTENT, data={
-                'id': media.id,
-                'file': fp,
-            })
+            self.client.put('/api/media/update/%s' % media.id, content_type=MULTIPART_CONTENT,
+                            data={
+                                'file': fp,
+                            })
 
-        response = self.client.get('/api/media/get', data={
-            'id': media.id
-        })
+        response = self.client.get('/api/media/get/%s' % media.id)
         data = response.json()
 
         self.assertDictContains(data, {
@@ -293,10 +283,10 @@ class MediaTests(ApiTestCase):
             'lens': '18.0-200.0 mm f/3.5-5.6',
         })
 
-        response = self.client.put("/api/media/update", content_type=MULTIPART_CONTENT, data={
-            'id': media.id,
-            'metadata.make': '',
-        })
+        response = self.client.put('/api/media/update/%s' % media.id,
+                                   content_type=MULTIPART_CONTENT, data={
+                                       'metadata.make': '',
+                                   })
 
         self.assertEqual(response.json()['metadata']['make'], 'NIKON CORPORATION')
 

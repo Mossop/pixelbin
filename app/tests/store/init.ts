@@ -1,6 +1,9 @@
 import { Encoded } from "../../js/api/helpers";
+import { ServerDataDecoder } from "../../js/api/types";
 import { PageType } from "../../js/pages";
+import actions from "../../js/store/actions";
 import { ServerState } from "../../js/store/types";
+import { decode } from "../../js/utils/decoders";
 
 describe("store initialization", (): void => {
   afterEach((): void => {
@@ -26,7 +29,7 @@ describe("store initialization", (): void => {
     });
   });
 
-  test("initial state", (): void => {
+  test("update server state", async (): Promise<void> => {
     let serverState: Encoded<ServerState> = {
       user: {
         email: "dtownsend@oxymoronical.com",
@@ -37,14 +40,13 @@ describe("store initialization", (): void => {
       },
     };
 
-    let div = document.createElement("div");
-    div.id = "initial-state";
-    div.textContent = JSON.stringify(serverState);
-    document.body.appendChild(div);
-
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { default: store } = require("../../js/store");
-    expect(store.getState()).toEqual({
+    const { asyncDispatch } = require("../../js/store");
+    let state = await asyncDispatch(
+      actions.updateServerState(decode(ServerDataDecoder, serverState)),
+    );
+
+    expect(state).toEqual({
       serverState: {
         user: {
           email: "dtownsend@oxymoronical.com",

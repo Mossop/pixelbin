@@ -195,8 +195,7 @@ class TagTests(ApiTestCase):
         tag3 = catalog2.tags.create(name=self.random_thing())
 
         newname = self.random_thing()
-        self.client.patch('/api/tag/edit', data={
-            'id': tag1.id,
+        self.client.patch('/api/tag/edit/%s' % tag1.id, data={
             'name': newname,
         })
 
@@ -204,19 +203,16 @@ class TagTests(ApiTestCase):
         self.assertEqual(tag1.name, newname)
 
         with self.assertRaisesApiException('catalog-mismatch'):
-            self.client.patch('/api/tag/edit', data={
-                'id': tag1.id,
+            self.client.patch('/api/tag/edit/%s' % tag1.id, data={
                 'parent': tag2.id,
             })
 
         with self.assertRaisesApiException('catalog-change'):
-            self.client.patch('/api/tag/edit', data={
-                'id': tag1.id,
+            self.client.patch('/api/tag/edit/%s' % tag1.id, data={
                 'catalog': catalog2.id,
             })
 
-        self.client.patch('/api/tag/edit', data={
-            'id': tag3.id,
+        self.client.patch('/api/tag/edit/%s' % tag3.id, data={
             'parent': tag2.id,
         })
 
@@ -225,8 +221,7 @@ class TagTests(ApiTestCase):
 
         self.assertEqual(tag3.parent, tag2)
 
-        self.client.patch('/api/tag/edit', data={
-            'id': tag3.id,
+        self.client.patch('/api/tag/edit/%s' % tag3.id, data={
             'parent': None,
         })
 
@@ -235,8 +230,7 @@ class TagTests(ApiTestCase):
         self.assertEqual(tag3.parent, None)
 
         with self.assertRaisesApiException('invalid-name'):
-            self.client.patch('/api/tag/edit', data={
-                'id': tag3.id,
+            self.client.patch('/api/tag/edit/%s' % tag3.id, data={
                 'name': self.amend_case(tag2.name),
             })
 
