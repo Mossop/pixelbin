@@ -1,8 +1,9 @@
+import { APIItemReference, Catalog } from "../../js/api/highlevel";
+import { ServerData } from "../../js/api/types";
 import { PageType } from "../../js/pages";
-import { ServerState } from "../../js/store/types";
 import { HistoryState } from "../../js/utils/history";
 import { intoUIState, fromUIState } from "../../js/utils/navigation";
-import { reset } from "../utils";
+import { reset, buildServerData, deref } from "../utils";
 
 beforeEach(reset);
 
@@ -13,9 +14,14 @@ function state(path: string, params?: {}): HistoryState {
   };
 }
 
-const LoggedOut: ServerState = {
+const LoggedOut: ServerData = {
   user: null,
 };
+
+const LoggedIn = buildServerData([{
+  id: "testcatalog",
+  name: "Test1",
+}]);
 
 test("index page", (): void => {
   expect(intoUIState(state("/"), LoggedOut)).toEqual({
@@ -28,7 +34,44 @@ test("index page", (): void => {
     page: {
       type: PageType.Index,
     },
-  })).toEqual({
-    path: "/",
+  })).toEqual(state("/"));
+});
+
+test("not found", (): void => {
+  expect(intoUIState(state("/foo/bar"), LoggedOut)).toEqual({
+    page: {
+      type: PageType.NotFound,
+      history: state("/foo/bar"),
+    },
   });
+
+  expect(fromUIState({
+    page: {
+      type: PageType.NotFound,
+      history: state("/foo/bar"),
+    },
+  })).toEqual(state("/foo/bar"));
+});
+
+test("catalog page", (): void => {
+  expect(intoUIState(state("/catalog/testcatalog"), LoggedOut)).toEqual({
+    page: {
+      type: PageType.NotFound,
+      history: state("/catalog/testcatalog"),
+    },
+  });
+
+  expect(deref(intoUIState(state("/catalog/testcatalog"), LoggedIn))).toEqual({
+    page: {
+      type: PageType.Catalog,
+      catalog: "testcatalog",
+    },
+  });
+
+  expect(fromUIState({
+    page: {
+      type: PageType.Catalog,
+      catalog: new APIItemReference("testcatalog", Catalog),
+    },
+  })).toEqual(state("/catalog/testcatalog"));
 });

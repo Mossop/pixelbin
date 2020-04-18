@@ -2,13 +2,20 @@ import { reducer } from "deeds/immer";
 import { Draft } from "immer";
 
 import { Catalog, Album, Reference } from "../api/highlevel";
-import { MediaTarget } from "../api/media";
-import { CatalogData, AlbumData, TagData, PersonData, ServerData, UserData } from "../api/types";
+import type { MediaTarget } from "../api/media";
+import type {
+  CatalogData,
+  AlbumData,
+  TagData,
+  PersonData,
+  ServerData,
+  UserData,
+} from "../api/types";
 import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
 import { replaceState, pushState } from "../utils/navigation";
 import { nameSorted } from "../utils/sort";
-import { StoreState, UIState, ServerState } from "./types";
+import type { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
   S extends (state: Draft<StoreState>, user: UserData, ...args: infer A) => void
@@ -227,7 +234,7 @@ export const reducers = {
     state.stateId++;
   },
 
-  updateServerState(state: Draft<StoreState>, serverState: Draft<ServerState>): void {
+  updateServerState(state: Draft<StoreState>, serverState: ServerData): void {
     state.serverState = serverState;
   },
 

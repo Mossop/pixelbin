@@ -2,7 +2,7 @@ import type { Immutable } from "immer";
 
 import actions from "../store/actions";
 import type { ServerState } from "../store/types";
-import { exception, ErrorCode, InternalError, processException } from "../utils/exception";
+import { exception, ErrorCode, processException, throwException } from "../utils/exception";
 import { intoId, isInstance } from "../utils/maps";
 import type { MapId } from "../utils/maps";
 import type { MediaData } from "./media";
@@ -127,7 +127,7 @@ export class Tag implements Referencable<Tag> {
     return new APIItemReference(this.id, Tag);
   }
 
-  public static fromState(serverState: ServerState, item: MapId<Immutable<TagData>>): Tag {
+  private static innerFromState(serverState: ServerState, item: MapId<Immutable<TagData>>): Tag {
     let id = intoId(item);
 
     let cache = getStateCache(serverState);
@@ -144,7 +144,7 @@ export class Tag implements Referencable<Tag> {
 
     let { user } = serverState;
     if (!user) {
-      exception(ErrorCode.NotLoggedIn);
+      throwException(ErrorCode.NotLoggedIn);
     }
 
     for (let catalog of user.catalogs.values()) {
@@ -156,7 +156,26 @@ export class Tag implements Referencable<Tag> {
       }
     }
 
-    exception(ErrorCode.UnknownTag);
+    throwException(ErrorCode.UnknownTag);
+  }
+
+  public static safeFromState(
+    serverState: ServerState,
+    item: MapId<Immutable<TagData>>,
+  ): Tag | undefined {
+    try {
+      return Tag.innerFromState(serverState, item);
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  public static fromState(serverState: ServerState, item: MapId<Immutable<TagData>>): Tag {
+    try {
+      return Tag.innerFromState(serverState, item);
+    } catch (e) {
+      processException(e);
+    }
   }
 }
 
@@ -187,7 +206,10 @@ export class Person implements Referencable<Person> {
     return new APIItemReference(this.id, Person);
   }
 
-  public static fromState(serverState: ServerState, item: MapId<Immutable<PersonData>>): Person {
+  private static innerFromState(
+    serverState: ServerState,
+    item: MapId<Immutable<PersonData>>,
+  ): Person {
     let id = intoId(item);
 
     let cache = getStateCache(serverState);
@@ -204,7 +226,7 @@ export class Person implements Referencable<Person> {
 
     let { user } = serverState;
     if (!user) {
-      exception(ErrorCode.NotLoggedIn);
+      throwException(ErrorCode.NotLoggedIn);
     }
 
     for (let catalog of user.catalogs.values()) {
@@ -216,7 +238,26 @@ export class Person implements Referencable<Person> {
       }
     }
 
-    exception(ErrorCode.UnknownPerson);
+    throwException(ErrorCode.UnknownPerson);
+  }
+
+  public static safeFromState(
+    serverState: ServerState,
+    item: MapId<Immutable<PersonData>>,
+  ): Person | undefined {
+    try {
+      return Person.innerFromState(serverState, item);
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  public static fromState(serverState: ServerState, item: MapId<Immutable<PersonData>>): Person {
+    try {
+      return Person.innerFromState(serverState, item);
+    } catch (e) {
+      processException(e);
+    }
   }
 }
 
@@ -305,7 +346,7 @@ export class Album implements Referencable<Album> {
 
     let { user } = serverState;
     if (!user) {
-      throw new InternalError(ErrorCode.NotLoggedIn);
+      throwException(ErrorCode.NotLoggedIn);
     }
 
     for (let catalog of user.catalogs.values()) {
@@ -317,7 +358,7 @@ export class Album implements Referencable<Album> {
       }
     }
 
-    throw new InternalError(ErrorCode.UnknownAlbum);
+    throwException(ErrorCode.UnknownAlbum);
   }
 
   public static safeFromState(
@@ -445,7 +486,7 @@ export class Catalog implements Referencable<Catalog> {
 
     let { user } = serverState;
     if (!user) {
-      exception(ErrorCode.NotLoggedIn);
+      throwException(ErrorCode.NotLoggedIn);
     }
 
     let state = user.catalogs.get(id);
@@ -455,7 +496,7 @@ export class Catalog implements Referencable<Catalog> {
       return catalog;
     }
 
-    exception(ErrorCode.UnknownCatalog);
+    throwException(ErrorCode.UnknownCatalog);
   }
 
   public static safeFromState(

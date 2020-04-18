@@ -45,6 +45,10 @@ export class InternalError extends AppError {
   }
 }
 
+export function throwException(code: ErrorCode, args?: Record<string, string>): never {
+  throw new InternalError(code, args);
+}
+
 export function exception(code: ErrorCode, args?: Record<string, string>): never {
   processException(new InternalError(code, args));
 }

@@ -1,8 +1,7 @@
 import { Encoded } from "../../js/api/helpers";
-import { ServerDataDecoder } from "../../js/api/types";
+import { ServerDataDecoder, ServerData } from "../../js/api/types";
 import { PageType } from "../../js/pages";
 import actions from "../../js/store/actions";
-import { ServerState } from "../../js/store/types";
 import { decode } from "../../js/utils/decoders";
 
 describe("store initialization", (): void => {
@@ -30,7 +29,7 @@ describe("store initialization", (): void => {
   });
 
   test("update server state", async (): Promise<void> => {
-    let serverState: Encoded<ServerState> = {
+    let serverState: Encoded<ServerData> = {
       user: {
         email: "dtownsend@oxymoronical.com",
         fullname: "Dave Townsend",

@@ -26,3 +26,11 @@ export function intoId<T extends Mappable>(item: MapId<T>): string {
 export function intoIds<T extends Mappable>(items: MapId<T>[]): string[] {
   return items.map(intoId);
 }
+
+export function intoMap<T extends Mappable>(items: Iterable<T>): MapOf<T> {
+  let result: MapOf<T> = new Map();
+  for (let item of items) {
+    result.set(item.id, item);
+  }
+  return result;
+}
