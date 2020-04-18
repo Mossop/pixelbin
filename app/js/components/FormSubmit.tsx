@@ -10,7 +10,7 @@ export default class FormSubmit extends PureComponent<FormSubmitProps> {
   public render(): ReactNode {
     return <div {...styleProps(this.props, { className: ["formSubmit"] })}>
       <Localized id={this.props.l10n}>
-        <button type="button" disabled={this.props.disabled}/>
+        <button type="submit" disabled={this.props.disabled}/>
       </Localized>
     </div>;
   }
