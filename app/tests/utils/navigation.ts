@@ -4,7 +4,7 @@ import { OverlayType } from "../../js/overlays";
 import { PageType } from "../../js/pages";
 import { HistoryState } from "../../js/utils/history";
 import { intoUIState, fromUIState } from "../../js/utils/navigation";
-import { reset, buildServerData, pxExpect as expect } from "../utils";
+import { reset, expect, mockServerData } from "../helpers";
 
 beforeEach(reset);
 
@@ -19,7 +19,7 @@ const LoggedOut: ServerData = {
   user: null,
 };
 
-const LoggedIn = buildServerData([{
+const LoggedIn = mockServerData([{
   id: "testcatalog",
   name: "Test Catalog 1",
 

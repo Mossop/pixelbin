@@ -5,10 +5,11 @@ module.exports = {
     url: "http://pixelbin/",
   },
   testRegex: [
-    "app/tests/.+/.*\\.[jt]sx?",
+    "/app/tests/(.+/)?[^\\./][^/]*\\.[jt]sx?$",
   ],
   testPathIgnorePatterns: [
-    "app/tests/utils.tsx",
+    "/node_modules/",
+    "<rootDir>/app/tests/helpers/",
   ],
   collectCoverageFrom: [
     "app/js/**/*.*",
