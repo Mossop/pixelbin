@@ -1,7 +1,6 @@
-import { Localized } from "@fluent/react";
 import React, { ReactNode, Fragment, PureComponent } from "react";
 
-import { L10nProps } from "../l10n";
+import { L10nProps, Localized } from "../l10n";
 import { fieldProps, FieldProps } from "../utils/props";
 import { Property } from "../utils/StateProxy";
 import Icon, { IconProps } from "./Icon";
@@ -16,7 +15,7 @@ export type SelectboxProps = {
 
 export class Option extends PureComponent<OptionProps> {
   public render(): ReactNode {
-    return <Localized id={this.props.l10n}><option value={this.props.value}/></Localized>;
+    return <Localized l10n={this.props.l10n}><option value={this.props.value}/></Localized>;
   }
 }
 

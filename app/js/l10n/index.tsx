@@ -1,37 +1,27 @@
-import { FluentBundle, FluentResource } from "@fluent/bundle";
+import { FluentBundle, FluentResource, FluentArgument } from "@fluent/bundle";
 import { negotiateLanguages } from "@fluent/langneg";
-import { LocalizationProvider, ReactLocalization } from "@fluent/react";
+import {
+  LocalizationProvider,
+  ReactLocalization,
+  LocalizedProps,
+  Localized as FluentLocalized,
+} from "@fluent/react";
 import React, { ReactNode, PureComponent } from "react";
 
-export interface L10nArgs {
-  [key: string]: string | number;
-}
+export type L10nInfo = string | LocalizedProps;
+export type L10nProps = { l10n: L10nInfo };
+export type OptionalL10nProps = Partial<L10nProps>;
 
-export interface LocalizedProps {
-  id: string;
-  [key: string]: string | number;
-}
-
-export function l10nAttributes(id: string, args?: L10nArgs): LocalizedProps {
-  let attributes: LocalizedProps = {
-    id,
-  };
-
-  if (args) {
-    for (let [key, val] of Object.entries(args)) {
-      attributes[`$${key}`] = val;
-    }
+export function l10nInfo(id: string, vars?: Record<string, FluentArgument>): L10nInfo {
+  if (!vars || [...Object.entries(vars)].length == 0) {
+    return id;
   }
 
-  return attributes;
+  return {
+    id,
+    vars,
+  };
 }
-
-export interface L10nProps {
-  l10n: string;
-  args?: L10nArgs;
-}
-
-export type OptionalL10nProps = Partial<L10nProps>;
 
 async function retrieveBundle(baseurl: string, locale: string): Promise<null | FluentBundle> {
   let response = await fetch(`${baseurl}${locale}.txt`);
@@ -57,7 +47,7 @@ interface LocalizationContextState {
   generatedBundles: FluentBundle[];
 }
 
-export default class LocalizationContext extends PureComponent<
+export class LocalizationContext extends PureComponent<
   LocalizationContextProps,
   LocalizationContextState
 > {
@@ -101,5 +91,19 @@ export default class LocalizationContext extends PureComponent<
     return <LocalizationProvider l10n={l10n}>
       {this.props.children}
     </LocalizationProvider>;
+  }
+}
+
+export class Localized extends PureComponent<L10nProps> {
+  public render(): ReactNode {
+    if (typeof this.props.l10n == "string") {
+      return <FluentLocalized id={this.props.l10n}>
+        {this.props.children}
+      </FluentLocalized>;
+    }
+
+    return <FluentLocalized {...this.props.l10n}>
+      {this.props.children}
+    </FluentLocalized>;
   }
 }

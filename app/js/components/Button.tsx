@@ -1,7 +1,6 @@
-import { Localized } from "@fluent/react";
 import React, { DragEvent, PureComponent, ReactNode } from "react";
 
-import { OptionalL10nProps } from "../l10n";
+import { OptionalL10nProps, Localized } from "../l10n";
 import { connect } from "../utils/component";
 import { fieldProps, FieldProps } from "../utils/props";
 import Icon, { IconProps } from "./Icon";
@@ -20,7 +19,7 @@ type PassedProps = {
 class Button extends PureComponent<PassedProps> {
   public renderButtonContent(): ReactNode {
     if (this.props.l10n) {
-      return <Localized id={this.props.l10n}>
+      return <Localized l10n={this.props.l10n}>
         <span/>
       </Localized>;
     } else if (this.props.children) {
@@ -47,7 +46,16 @@ class Button extends PureComponent<PassedProps> {
 
   public render(): ReactNode {
     if (this.props.tooltipL10n) {
-      return <Localized id={this.props.tooltipL10n} attrs={{ title: true }}>
+      return <Localized
+        l10n={
+          {
+            id: this.props.tooltipL10n,
+            attrs: {
+              title: true,
+            },
+          }
+        }
+      >
         {this.renderButton()}
       </Localized>;
     } else {

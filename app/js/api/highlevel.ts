@@ -2,7 +2,7 @@ import type { Immutable } from "immer";
 
 import actions from "../store/actions";
 import type { ServerState } from "../store/types";
-import { exception, ErrorCode, processException, throwException } from "../utils/exception";
+import { exception, ErrorCode } from "../utils/exception";
 import { intoId, isInstance } from "../utils/maps";
 import type { MapId } from "../utils/maps";
 import type { MediaData } from "./media";
@@ -127,7 +127,7 @@ export class Tag implements Referencable<Tag> {
     return new APIItemReference(this.id, Tag);
   }
 
-  private static innerFromState(serverState: ServerState, item: MapId<Immutable<TagData>>): Tag {
+  public static fromState(serverState: ServerState, item: MapId<Immutable<TagData>>): Tag {
     let id = intoId(item);
 
     let cache = getStateCache(serverState);
@@ -144,7 +144,7 @@ export class Tag implements Referencable<Tag> {
 
     let { user } = serverState;
     if (!user) {
-      throwException(ErrorCode.NotLoggedIn);
+      exception(ErrorCode.NotLoggedIn);
     }
 
     for (let catalog of user.catalogs.values()) {
@@ -156,7 +156,7 @@ export class Tag implements Referencable<Tag> {
       }
     }
 
-    throwException(ErrorCode.UnknownTag);
+    exception(ErrorCode.UnknownTag);
   }
 
   public static safeFromState(
@@ -164,17 +164,9 @@ export class Tag implements Referencable<Tag> {
     item: MapId<Immutable<TagData>>,
   ): Tag | undefined {
     try {
-      return Tag.innerFromState(serverState, item);
+      return Tag.fromState(serverState, item);
     } catch (e) {
       return undefined;
-    }
-  }
-
-  public static fromState(serverState: ServerState, item: MapId<Immutable<TagData>>): Tag {
-    try {
-      return Tag.innerFromState(serverState, item);
-    } catch (e) {
-      processException(e);
     }
   }
 }
@@ -206,7 +198,7 @@ export class Person implements Referencable<Person> {
     return new APIItemReference(this.id, Person);
   }
 
-  private static innerFromState(
+  public static fromState(
     serverState: ServerState,
     item: MapId<Immutable<PersonData>>,
   ): Person {
@@ -226,7 +218,7 @@ export class Person implements Referencable<Person> {
 
     let { user } = serverState;
     if (!user) {
-      throwException(ErrorCode.NotLoggedIn);
+      exception(ErrorCode.NotLoggedIn);
     }
 
     for (let catalog of user.catalogs.values()) {
@@ -238,7 +230,7 @@ export class Person implements Referencable<Person> {
       }
     }
 
-    throwException(ErrorCode.UnknownPerson);
+    exception(ErrorCode.UnknownPerson);
   }
 
   public static safeFromState(
@@ -246,17 +238,9 @@ export class Person implements Referencable<Person> {
     item: MapId<Immutable<PersonData>>,
   ): Person | undefined {
     try {
-      return Person.innerFromState(serverState, item);
+      return Person.fromState(serverState, item);
     } catch (e) {
       return undefined;
-    }
-  }
-
-  public static fromState(serverState: ServerState, item: MapId<Immutable<PersonData>>): Person {
-    try {
-      return Person.innerFromState(serverState, item);
-    } catch (e) {
-      processException(e);
     }
   }
 }
@@ -326,7 +310,7 @@ export class Album implements Referencable<Album> {
     return new APIItemReference(this.id, Album);
   }
 
-  private static innerFromState(
+  public static fromState(
     serverState: ServerState,
     item: MapId<Immutable<AlbumData>>,
   ): Album {
@@ -346,7 +330,7 @@ export class Album implements Referencable<Album> {
 
     let { user } = serverState;
     if (!user) {
-      throwException(ErrorCode.NotLoggedIn);
+      exception(ErrorCode.NotLoggedIn);
     }
 
     for (let catalog of user.catalogs.values()) {
@@ -358,7 +342,7 @@ export class Album implements Referencable<Album> {
       }
     }
 
-    throwException(ErrorCode.UnknownAlbum);
+    exception(ErrorCode.UnknownAlbum);
   }
 
   public static safeFromState(
@@ -366,17 +350,9 @@ export class Album implements Referencable<Album> {
     item: MapId<Immutable<AlbumData>>,
   ): Album | undefined {
     try {
-      return Album.innerFromState(serverState, item);
+      return Album.fromState(serverState, item);
     } catch (e) {
       return undefined;
-    }
-  }
-
-  public static fromState(serverState: ServerState, item: MapId<Immutable<AlbumData>>): Album {
-    try {
-      return Album.innerFromState(serverState, item);
-    } catch (e) {
-      processException(e);
     }
   }
 }
@@ -466,7 +442,7 @@ export class Catalog implements Referencable<Catalog> {
     return new APIItemReference(this.id, Catalog);
   }
 
-  private static innerFromState(
+  public static fromState(
     serverState: ServerState,
     item: MapId<Immutable<CatalogData>>,
   ): Catalog {
@@ -486,7 +462,7 @@ export class Catalog implements Referencable<Catalog> {
 
     let { user } = serverState;
     if (!user) {
-      throwException(ErrorCode.NotLoggedIn);
+      exception(ErrorCode.NotLoggedIn);
     }
 
     let state = user.catalogs.get(id);
@@ -496,7 +472,7 @@ export class Catalog implements Referencable<Catalog> {
       return catalog;
     }
 
-    throwException(ErrorCode.UnknownCatalog);
+    exception(ErrorCode.UnknownCatalog);
   }
 
   public static safeFromState(
@@ -504,17 +480,9 @@ export class Catalog implements Referencable<Catalog> {
     item: MapId<Immutable<CatalogData>>,
   ): Catalog | undefined {
     try {
-      return Catalog.innerFromState(serverState, item);
+      return Catalog.fromState(serverState, item);
     } catch (e) {
       return undefined;
-    }
-  }
-
-  public static fromState(serverState: ServerState, item: MapId<Immutable<CatalogData>>): Catalog {
-    try {
-      return Catalog.innerFromState(serverState, item);
-    } catch (e) {
-      processException(e);
     }
   }
 }

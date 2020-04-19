@@ -4,6 +4,7 @@ import { JsonDecoder, err, ok } from "ts.data.json";
 import type { Result } from "ts.data.json";
 
 import { decode } from "../utils/decoders";
+import { ErrorCode, exception } from "../utils/exception";
 import type { MediaData } from "./media";
 import type { MediaCreateData, MetadataUpdateData } from "./types";
 
@@ -116,14 +117,19 @@ type FieldConstructor<T> = new (key: string, spec: {}) => BaseMetadataField<T>;
 function getFieldInstance<T>(key: string, cls: FieldConstructor<T>): BaseMetadataField<T> {
   let field = MetadataFields.get(key);
   if (!field) {
-    throw new Error(`Attempt to access unknown metadata field ${key}.`);
+    exception(ErrorCode.UnknownField, {
+      field: key,
+    });
   }
 
   if (field instanceof cls) {
     return field;
   }
 
-  throw new Error(`Field ${key} did not have the expected type.`);
+  exception(ErrorCode.UnexpectedType, {
+    expected: cls.name,
+    found: field.constructor.name,
+  });
 }
 
 type FieldGetter<T> = (media: MediaWithMetadata, key: string) => T | undefined;

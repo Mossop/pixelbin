@@ -2,7 +2,7 @@ import { parse as parseCookie } from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
 import { MappingDecoder } from "../utils/decoders";
-import { exception, ErrorCode, ApiError, processException } from "../utils/exception";
+import { exception, ErrorCode, ApiError } from "../utils/exception";
 import { isReference, APIItemReference } from "./highlevel";
 import type { Reference, APIItemBuilder } from "./highlevel";
 
@@ -235,7 +235,7 @@ export async function makeRequest<D>(
     } catch (e) {
       exception(ErrorCode.DecodeError);
     }
-    processException(new ApiError(response.status, response.statusText, errorData));
+    throw new ApiError(response.status, response.statusText, errorData);
   }
 
   try {

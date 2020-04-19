@@ -1,6 +1,6 @@
-import { Localized } from "@fluent/react";
 import React, { ReactNode, PureComponent } from "react";
 
+import { Localized } from "../l10n";
 import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";
@@ -20,7 +20,7 @@ const mapDispatchToProps = {
 class Overlay extends PureComponent<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
   public renderError(): ReactNode {
     if (this.props.error) {
-      return <Localized {...this.props.error.l10nAttributes()}>
+      return <Localized l10n={this.props.error.l10nInfo()}>
         <h1 id="overlay-error"/>
       </Localized>;
     } else {
@@ -51,7 +51,7 @@ class Overlay extends PureComponent<ComponentProps<PassedProps, {}, typeof mapDi
   public render(): ReactNode {
     let title: ReactNode;
     if (this.props.title && typeof this.props.title == "string") {
-      title = <Localized id={this.props.title}><h1 className="title"/></Localized>;
+      title = <Localized l10n={this.props.title}><h1 className="title"/></Localized>;
     } else {
       title = this.props.title;
     }

@@ -1,5 +1,5 @@
 import { ApiErrorData, ApiErrorCode } from "../api/types";
-import { l10nAttributes, LocalizedProps } from "../l10n";
+import { l10nInfo, L10nInfo } from "../l10n";
 
 export enum ErrorCode {
   InvalidResponse = "invalid-response",
@@ -12,6 +12,8 @@ export enum ErrorCode {
   DecodeError = "decode-error",
   InvalidData = "invalid-data",
   RequestFailed = "request-failed",
+  UnknownField = "unknown-field",
+  UnexpectedType = "unexpected-type",
 }
 
 export abstract class AppError extends Error {
@@ -22,38 +24,29 @@ export abstract class AppError extends Error {
     super(`Exception ${code}: ${JSON.stringify(args)}`);
   }
 
-  public abstract l10nAttributes(): LocalizedProps;
+  public abstract l10nInfo(): L10nInfo;
 }
 
 export class ApiError extends AppError {
   public constructor(
-    _httpCode: number,
-    _httpStatus: string,
+    protected httpCode: number,
+    protected httpStatus: string,
     data: ApiErrorData,
   ) {
     super(data.code, data.args);
   }
 
-  public l10nAttributes(): LocalizedProps {
-    return l10nAttributes(`api-error-${this.code}`, this.args);
+  public l10nInfo(): L10nInfo {
+    return l10nInfo(`api-error-${this.code}`, this.args);
   }
 }
 
 export class InternalError extends AppError {
-  public l10nAttributes(): LocalizedProps {
-    return l10nAttributes(`internal-error-${this.code}`, this.args);
+  public l10nInfo(): L10nInfo {
+    return l10nInfo(`internal-error-${this.code}`, this.args);
   }
 }
 
-export function throwException(code: ErrorCode, args?: Record<string, string>): never {
-  throw new InternalError(code, args);
-}
-
 export function exception(code: ErrorCode, args?: Record<string, string>): never {
-  processException(new InternalError(code, args));
-}
-
-export function processException(error: AppError): never {
-  console.error(error);
-  throw error;
+  throw new InternalError(code, args);
 }
