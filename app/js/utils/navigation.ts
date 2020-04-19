@@ -4,28 +4,84 @@ import { Catalog, Album } from "../api/highlevel";
 import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
 import { UIState, ServerState } from "../store/types";
+import { exception, ErrorCode } from "./exception";
 import * as history from "./history";
-import { HistoryState } from "./history";
+import { HistoryState, buildState } from "./history";
 
-function encodeHistoryState(historyState: HistoryState): Map<string, string> {
-  let params = new Map();
-  params.set("target", historyState.path + (historyState.hash ? `#${historyState.hash}` : ""));
+function encodeTargetState(uiState: Draft<UIState>): Map<string, string> | undefined {
+  if (uiState.overlay === undefined) {
+    // This would guarantee infinite recursion.
+    exception(ErrorCode.InvalidState);
+  }
+
+  let target: Draft<UIState> = Object.assign({}, uiState, {
+    overlay: undefined,
+  });
+
+  let historyState = fromUIState(target);
+  if (historyState.state !== undefined) {
+    exception(ErrorCode.InvalidState);
+  }
+
+  if (historyState.path == "/" && !historyState.params?.size) {
+    return undefined;
+  }
+
+  let params = new Map<string, string>(historyState.params?.entries() ?? []);
+
+  if (params.has("path")) {
+    exception(ErrorCode.InvalidState);
+  }
+
+  if (historyState.path != "/") {
+    let path = historyState.path;
+    if (historyState.hash) {
+      path += `#${historyState.hash}`;
+    }
+    params.set("path", path);
+  }
+
   return params;
 }
 
-function decodeHistoryState(params: Map<string, string> | undefined): HistoryState {
-  let target = params?.get("target") ?? "/";
-  let pos = target.indexOf("#");
-  if (pos >= 0) {
+function decodeTargetState(
+  params: Map<string, string> | undefined,
+  serverState: ServerState,
+): Draft<UIState> {
+  if (!params) {
     return {
-      path: target.substring(0, pos),
-      hash: target.substring(pos + 1),
-    };
-  } else {
-    return {
-      path: target,
+      page: {
+        type: PageType.Index,
+      },
     };
   }
+
+  let clone = new Map(params);
+  let path = clone.get("path");
+  if (path) {
+    clone.delete("path");
+  } else {
+    path = "";
+  }
+
+  let hash: string | undefined = undefined;
+  let pos = path.indexOf("#");
+  if (pos >= 0) {
+    hash = path.substring(pos + 1);
+    path = path.substring(0, pos);
+  }
+
+  if (!path) {
+    path = "/";
+  }
+
+  let historyState: HistoryState = {
+    path,
+    hash,
+    params: clone.size ? clone : undefined,
+  };
+
+  return intoUIState(historyState, serverState);
 }
 
 function matchesType(path: string, type: string): string | null {
@@ -55,6 +111,10 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
     }
 
     case "/user": {
+      if (!serverState.user) {
+        return notfound(historyState);
+      }
+
       return {
         page: {
           type: PageType.User,
@@ -63,7 +123,26 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
     }
 
     case "/upload": {
-      let id = historyState.params?.get("catalog");
+      if (!serverState.user) {
+        return notfound(historyState);
+      }
+
+      if (!historyState.params || historyState.params.size == 0) {
+        return {
+          page: {
+            type: PageType.User,
+          },
+          overlay: {
+            type: OverlayType.Upload,
+          },
+        };
+      }
+
+      if (historyState.params.size != 1) {
+        break;
+      }
+
+      let id = historyState.params.get("catalog");
       if (id) {
         let catalog = Catalog.safeFromState(serverState, id);
         if (!catalog) {
@@ -81,7 +160,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
         };
       }
 
-      id = historyState.params?.get("album");
+      id = historyState.params.get("album");
       if (id) {
         let album = Album.safeFromState(serverState, id);
         if (!album) {
@@ -99,22 +178,15 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
         };
       }
 
-      return {
-        page: {
-          type: PageType.User,
-        },
-        overlay: {
-          type: OverlayType.Upload,
-        },
-      };
+      break;
     }
 
     case "/login": {
-      let uiState = intoUIState(decodeHistoryState(historyState.params), serverState);
-      uiState.overlay = {
-        type: OverlayType.Login,
-      };
-      return uiState;
+      return Object.assign({}, decodeTargetState(historyState.params, serverState), {
+        overlay: {
+          type: OverlayType.Login,
+        },
+      });
     }
   }
 
@@ -154,57 +226,39 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
 export function fromUIState(uiState: Draft<UIState>): HistoryState {
   switch (uiState.overlay?.type) {
     case OverlayType.Upload: {
-      let params = new Map();
-
       switch (uiState.page.type) {
-        case PageType.Catalog: {
-          params.set("catalog", uiState.page.catalog.id);
-          break;
-        }
-        case PageType.Album: {
-          params.set("album", uiState.page.album.id);
-          break;
-        }
+        case PageType.User:
+          return buildState("/upload");
+        case PageType.Catalog:
+          return buildState("/upload", {
+            catalog: uiState.page.catalog.id,
+          });
+        case PageType.Album:
+          return buildState("/upload", {
+            album: uiState.page.album.id,
+          });
       }
 
-      return {
-        path: "/upload",
-        params,
-      };
+      exception(ErrorCode.InvalidState);
+      break;
     }
     case OverlayType.Login: {
-      let targetState: Draft<UIState> = {
-        page: uiState.page,
-        overlay: undefined,
-      };
-
-      return {
-        path: "/login",
-        params: encodeHistoryState(fromUIState(targetState)),
-      };
+      return buildState("/login", encodeTargetState(uiState));
     }
   }
 
   switch (uiState.page.type) {
     case PageType.Index: {
-      return {
-        path: "/",
-      };
+      return buildState("/");
     }
     case PageType.User: {
-      return {
-        path: "/user",
-      };
+      return buildState("/user");
     }
     case PageType.Catalog: {
-      return {
-        path: `/catalog/${uiState.page.catalog.id}`,
-      };
+      return buildState(`/catalog/${uiState.page.catalog.id}`);
     }
     case PageType.Album: {
-      return {
-        path: `/album/${uiState.page.album.id}`,
-      };
+      return buildState(`/album/${uiState.page.album.id}`);
     }
 
     case PageType.NotFound: {

@@ -119,8 +119,8 @@ export class Tag implements Referencable<Tag> {
     return this.state.parent?.deref(this.serverState);
   }
 
-  public static ref(data: TagData): Reference<Tag> {
-    return new APIItemReference(data.id, Tag);
+  public static ref(data: MapId<TagData>): Reference<Tag> {
+    return new APIItemReference(intoId(data), Tag);
   }
 
   public ref(): Reference<Tag> {
@@ -198,8 +198,8 @@ export class Person implements Referencable<Person> {
     return this.state.name;
   }
 
-  public static ref(data: PersonData): Reference<Person> {
-    return new APIItemReference(data.id, Person);
+  public static ref(data: MapId<PersonData>): Reference<Person> {
+    return new APIItemReference(intoId(data), Person);
   }
 
   public ref(): Reference<Person> {
@@ -318,8 +318,8 @@ export class Album implements Referencable<Album> {
     return false;
   }
 
-  public static ref(data: AlbumData): Reference<Album> {
-    return new APIItemReference(data.id, Album);
+  public static ref(data: MapId<AlbumData>): Reference<Album> {
+    return new APIItemReference(intoId(data), Album);
   }
 
   public ref(): Reference<Album> {
@@ -458,8 +458,8 @@ export class Catalog implements Referencable<Catalog> {
     );
   }
 
-  public static ref(data: CatalogData): Reference<Catalog> {
-    return new APIItemReference(data.id, Catalog);
+  public static ref(data: MapId<CatalogData>): Reference<Catalog> {
+    return new APIItemReference(intoId(data), Catalog);
   }
 
   public ref(): Reference<Catalog> {

@@ -1,3 +1,5 @@
+import { exception, ErrorCode } from "./exception";
+
 export interface HistoryState {
   path: string;
   params?: Map<string, string>;
@@ -47,6 +49,24 @@ export function getState(): HistoryState {
     params: new Map(url.searchParams),
     hash: url.hash ? url.hash.substring(1) : undefined,
     state: window.history.state,
+  };
+}
+
+export function buildState(
+  path: string,
+  params: Record<string, string> | Map<string, string> = {},
+  hash?: string,
+): HistoryState {
+  if (!path.startsWith("/")) {
+    exception(ErrorCode.InvalidState);
+  }
+
+  let newParams = params instanceof Map ? params : new Map<string, string>(Object.entries(params));
+
+  return {
+    path,
+    params: newParams.size > 0 ? newParams : undefined,
+    hash,
   };
 }
 

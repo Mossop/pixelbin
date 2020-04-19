@@ -4,11 +4,33 @@ import { render as testRender, RenderOptions, Queries, RenderResult } from "@tes
 import React, { ReactNode, ReactElement } from "react";
 import { Provider } from "react-redux";
 
-import { Reference, Catalog, Album, Tag, APIItemReference, isReference } from "../js/api/highlevel";
+import { Reference, Catalog, Album, Tag, isReference } from "../js/api/highlevel";
 import { ServerData, AlbumData, CatalogData, TagData, PersonData } from "../js/api/types";
 import store, { asyncDispatch } from "../js/store";
 import actions from "../js/store/actions";
 import { intoMap } from "../js/utils/maps";
+
+expect.extend({
+  toBeRef(received: unknown, id: string): jest.CustomMatcherResult {
+    if (isReference(received) && received.id == id) {
+      return {
+        message: (): string => `expected ${received} not to be a reference with id ${id}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: (): string => `expected ${received} to be a reference with id ${id}`,
+        pass: false,
+      };
+    }
+  },
+});
+
+type ExtendedExpect = jest.Expect & {
+  toBeRef: (id: string) => void;
+};
+
+export const pxExpect = expect as ExtendedExpect;
 
 type MockPerson = Omit<PersonData, "id" | "catalog"> & {
   id?: string;
@@ -28,32 +50,6 @@ type MockCatalog = Omit<CatalogData, "id" | "people" | "tags" | "albums"> & {
   people?: MockPerson[];
 };
 
-type Deref<T> =
-  T extends Reference<unknown> ? string :
-    T extends (infer I)[] ? Deref<I>[] :
-      T extends object ? { [K in keyof T]: Deref<T[K]> } :
-        T;
-
-export function deref<T>(item: T): Deref<T> {
-  if (Array.isArray(item)) {
-    return item.map(deref) as Deref<T>;
-  }
-
-  if (isReference(item)) {
-    return item.id as Deref<T>;
-  }
-
-  if (typeof item == "object") {
-    let result = {};
-    for (let [key, value] of Object.entries(item)) {
-      result[key] = deref(value);
-    }
-    return result as Deref<T>;
-  }
-
-  return item as Deref<T>;
-}
-
 function randomId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
@@ -69,7 +65,7 @@ function *iterAlbums(
 
   for (let mock of mocks) {
     let id = mock.id ?? randomId();
-    let ref = new APIItemReference(id, Album);
+    let ref = Album.ref(id);
 
     yield {
       ...mock,
@@ -93,7 +89,7 @@ function *iterTags(
 
   for (let mock of mocks) {
     let id = mock.id ?? randomId();
-    let ref = new APIItemReference(id, Tag);
+    let ref = Tag.ref(id);
 
     yield {
       ...mock,
@@ -127,7 +123,7 @@ function *iterPeople(
 
 function buildCatalog(mock: MockCatalog): CatalogData {
   let id = mock.id ?? randomId();
-  let ref = new APIItemReference(id, Catalog);
+  let ref = Catalog.ref(id);
 
   return {
     ...mock,
