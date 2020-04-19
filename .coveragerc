@@ -1,3 +1,7 @@
 [run]
 branch = true
 source = api
+omit =
+  api/tests/*
+  api/management/*
+  api/migrations/*

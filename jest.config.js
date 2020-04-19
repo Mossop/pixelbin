@@ -11,10 +11,7 @@ module.exports = {
     "app/tests/utils.tsx",
   ],
   collectCoverageFrom: [
-    "app/**/*.*",
-  ],
-  forceCoverageMatch: [
-    "app/**/*.*",
+    "app/js/**/*.*",
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", ["json", {
