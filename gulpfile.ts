@@ -67,7 +67,7 @@ function buildJsConfig(): Configuration {
     },
     output: {
       publicPath: `${config.url.static}app/js/`,
-      filename: "[name].js",
+      filename: "app.js",
       chunkFilename: "[name].js",
     },
     devtool: "source-map",
@@ -129,14 +129,14 @@ export function watchStaticContent(): void {
 }
 
 export function watchBuildJs(): NodeJS.ReadWriteStream {
-  return src([path("app", "js", "app.tsx")])
+  return src([path("app", "js", "bootstrap.tsx")])
     .pipe(named())
     .pipe(gulpWebpack(watchJsConfig()))
     .pipe(dest(path(config.path.static, "app", "js")));
 }
 
 export function buildJs(): NodeJS.ReadWriteStream {
-  return src([path("app", "js", "app.tsx")])
+  return src([path("app", "js", "bootstrap.tsx")])
     .pipe(named())
     .pipe(gulpWebpack(buildJsConfig()))
     .pipe(dest(path(config.path.static, "app", "js")));
