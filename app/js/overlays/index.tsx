@@ -4,6 +4,7 @@ import React, { ReactNode, PureComponent } from "react";
 import { Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { UserData } from "../api/types";
+import document from "../environment/document";
 import { PageState, PageType } from "../pages";
 import actions from "../store/actions";
 import { StoreState } from "../store/types";

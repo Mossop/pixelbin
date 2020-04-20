@@ -28,5 +28,5 @@ urlpatterns = [
     path('media/search', media.search),
     path('media/thumbnail', media.thumbnail),
 
-    path('', default),
+    path('', default, name='api'),
 ]

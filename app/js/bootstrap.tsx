@@ -5,7 +5,8 @@ import "core-js/stable";
 import "regenerator-runtime/runtime";
 
 import App from "./app";
-import { LocalizationContext } from "./l10n";
+import document from "./environment/document";
+import { LocalizationContext } from "./l10n/LocalizationContext";
 import { paths, decodeServerState } from "./page";
 import store from "./store";
 import actions from "./store/actions";

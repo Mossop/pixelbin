@@ -1,6 +1,8 @@
 import { parseBuffer } from "media-metadata";
 import { Metadata, Orientation } from "media-metadata/lib/metadata";
 
+import document from "../environment/document";
+
 export interface MediaForUpload {
   id: string;
   file: File;

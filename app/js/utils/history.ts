@@ -1,3 +1,6 @@
+import document from "../environment/document";
+import window from "../environment/window";
+import { paths } from "../page";
 import { exception, ErrorCode } from "./exception";
 
 export interface HistoryState {
@@ -71,8 +74,7 @@ export function buildState(
 }
 
 export function buildURL(state: HistoryState): string {
-  let url = new URL(window.location.protocol + window.location.host);
-  url.pathname = state.path;
+  let url = new URL(`${paths.root}${state.path.substring(1)}`, document.URL);
 
   if (state.params) {
     for (let [key, value] of state.params) {

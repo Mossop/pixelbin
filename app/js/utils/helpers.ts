@@ -1,3 +1,4 @@
+import document from "../environment/document";
 import { StoreState } from "../store/types";
 
 export function isLoggedIn(state: StoreState): boolean {

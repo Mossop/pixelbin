@@ -17,7 +17,11 @@
 <link rel="stylesheet" type="text/css" href="{% static 'app/css/app.css' %}">
 {{ state|json_script:"initial-state" }}
 {{ metadata|json_script:"metadata" }}
-<script id="paths" type="application/json">{"static": "{% static 'app/'' %}"}</script>
+<script id="paths" type="application/json">{
+  "root": "{% url 'index' %}",
+  "static": "{% static 'app/'' %}",
+  "api": "{% url 'api' %}"
+}</script>
 {{ keys|json_script:"api-keys" }}
 <script type="text/javascript" src="{% static 'app/scripts/maps.js' %}"></script>
 </head>

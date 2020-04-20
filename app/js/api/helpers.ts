@@ -1,6 +1,9 @@
 import { parse as parseCookie } from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
+import document from "../environment/document";
+import fetch from "../environment/fetch";
+import { paths } from "../page";
 import { MappingDecoder } from "../utils/decoders";
 import { exception, ErrorCode, ApiError } from "../utils/exception";
 import { isReference, APIItemReference } from "./highlevel";
@@ -25,7 +28,7 @@ export type Encoded<T> =
     T extends ReadonlyArray<infer V> ? Encoded<V>[] :
       T extends object ? EncodedObject<T> : T;
 
-const API_ROOT = new URL("/api/", window.location.href);
+const API_ROOT = new URL(paths.api, document.URL);
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
 export const VoidDecoder: Decoder<void> = async (_: Response): Promise<void> => {};

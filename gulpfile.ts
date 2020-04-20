@@ -63,7 +63,7 @@ function buildJsConfig(): Configuration {
   return {
     mode: config.general.debug ? "development" : "production",
     resolve: {
-      extensions: [".wasm", ".mjs", ".js", ".json", ".ts", ".tsx"],
+      extensions: [".js", ".ts", ".tsx"],
     },
     output: {
       publicPath: `${config.url.static}app/js/`,
@@ -74,8 +74,8 @@ function buildJsConfig(): Configuration {
     module: {
       rules: [
         {
-          test: /\.(ts|js)x?$/,
-          exclude: /(node_modules|bower_components)/,
+          test: /\.[jt]sx?$/,
+          exclude: /node_modules/,
           use: {
             loader: "babel-loader",
             options: babelOptions(),

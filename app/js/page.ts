@@ -1,15 +1,20 @@
 import { JsonDecoder } from "ts.data.json";
 
 import { ServerDataDecoder, ServerData } from "./api/types";
+import document from "./environment/document";
 import { decode } from "./utils/decoders";
 
 export interface Paths {
+  readonly root: string;
   readonly static: string;
+  readonly api: string;
 }
 
 export const PathsDecoder = JsonDecoder.object<Paths>(
   {
+    root: JsonDecoder.string,
     static: JsonDecoder.string,
+    api: JsonDecoder.string,
   },
   "Paths",
 );
@@ -24,7 +29,9 @@ function decodePaths(): Paths {
     }
   }
   return {
+    root: "/",
     static: "/static/",
+    api: "/api/",
   };
 }
 
