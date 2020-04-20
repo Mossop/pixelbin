@@ -376,7 +376,7 @@ METADATA = {
     'orientation': {
         'type': OrientationMetadataField,
         # Orientation is handled automatically for videos.
-        'should_import': lambda media: not is_video(media.mimetype),
+        'should_import': lambda media: not is_video(media.info.mimetype),
         'import_fields': [
             ['Orientation', int],
             ['Rotation', rotate],

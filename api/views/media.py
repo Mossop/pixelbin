@@ -107,6 +107,9 @@ def thumbnail(request, deserialized):
     media = deserialized.validated_data['media']
     request.user.check_can_see(media.catalog)
 
+    if media.info is None:
+            raise ApiException('not-found', status=status.HTTP_404_NOT_FOUND)
+
     image = build_thumbnail(media, deserialized.validated_data['size'])
     response = HttpResponse(content_type='image/jpeg')
     response.tell()

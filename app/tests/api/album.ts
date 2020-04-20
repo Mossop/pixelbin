@@ -4,7 +4,7 @@ import fetch from "../../js/environment/fetch";
 import { asyncDispatch } from "../../js/store";
 import actions from "../../js/store/actions";
 import { mockServerData, expect, mockedFunction } from "../helpers";
-import { mockResponse, MockResponse, callInfo, unprocessedMedia } from "../helpers/api";
+import { mockResponse, MockResponse, callInfo, mockMedia } from "../helpers/api";
 
 jest.mock("../../js/environment/fetch");
 
@@ -112,7 +112,7 @@ test("Edit album", async (): Promise<void> => {
 });
 
 test("Add media", async (): Promise<void> => {
-  let media = unprocessedMedia({
+  let media = mockMedia({
     id: "testmedia",
   });
 
@@ -152,7 +152,7 @@ test("Add media", async (): Promise<void> => {
 });
 
 test("Remove media", async (): Promise<void> => {
-  let media = unprocessedMedia({
+  let media = mockMedia({
     id: "testmedia",
   });
 

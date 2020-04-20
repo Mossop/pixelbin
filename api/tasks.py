@@ -7,7 +7,7 @@ from PIL import Image
 from filetype import filetype
 
 from .celery import task
-from .models import Media
+from .models import Media, MediaInfo
 from .media import resize, THUMB_SIZES, ALLOWED_TYPES, is_video, is_image
 
 from .metadata import parse_metadata, parse_iso_datetime
@@ -209,14 +209,17 @@ def import_file(logger, media, target_name):
 def import_metadata(logger, media, metadata):
     logger.info('Parsing metadata.')
 
-    media.mimetype = parse_metadata(metadata, ['MIMEType'])
-    media.file_size = parse_metadata(metadata, ['FileSize'])
-    media.duration = parse_metadata(metadata, ['Duration'])
-    media.width = parse_metadata(metadata, ['ImageWidth'])
-    media.height = parse_metadata(metadata, ['ImageHeight'])
-    media.uploaded = parse_metadata(metadata, [
-        ['FileUploadDate', parse_iso_datetime],
-    ])
+    info_args = {
+        'process_version': PROCESS_VERSION,
+        'mimetype': parse_metadata(metadata, ['MIMEType']),
+        'file_size': parse_metadata(metadata, ['FileSize']),
+        'duration': parse_metadata(metadata, ['Duration']),
+        'width': parse_metadata(metadata, ['ImageWidth']),
+        'height': parse_metadata(metadata, ['ImageHeight']),
+        'uploaded': parse_metadata(metadata, [
+            ['FileUploadDate', parse_iso_datetime],
+        ]),
+    }
 
+    MediaInfo.objects.update_or_create(defaults=info_args, media=media)
     media.metadata.import_from_media(metadata)
-    media.process_version = PROCESS_VERSION

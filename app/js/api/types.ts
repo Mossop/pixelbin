@@ -154,6 +154,29 @@ export const ServerDataDecoder = JsonDecoder.object<ServerData>(
   "ServerData"
 );
 
+export interface MediaInfoData {
+  processVersion: number;
+  uploaded: moment.Moment;
+  mimetype: string;
+  width: number;
+  height: number;
+  duration: number | null;
+  fileSize: number;
+}
+
+export const MediaInfoDataDecoder = JsonDecoder.object<MediaInfoData>(
+  {
+    processVersion: JsonDecoder.number,
+    uploaded: DateDecoder,
+    mimetype: JsonDecoder.string,
+    width: JsonDecoder.number,
+    height: JsonDecoder.number,
+    duration: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
+    fileSize: JsonDecoder.number,
+  },
+  "MediaInfoData"
+);
+
 export interface MetadataData {
   filename: string | null;
   title: string | null;
@@ -208,13 +231,7 @@ export const MetadataDataDecoder = JsonDecoder.object<MetadataData>(
 export interface MediaData {
   id: string;
   created: moment.Moment;
-  processVersion: number | null;
-  uploaded: moment.Moment | null;
-  mimetype: string | null;
-  width: number | null;
-  height: number | null;
-  duration: number | null;
-  fileSize: number | null;
+  info: MediaInfoData | null;
   tags: ResponsePk<Tag>[];
   albums: ResponsePk<Album>[];
   people: ResponsePk<Person>[];
@@ -225,13 +242,7 @@ export const MediaDataDecoder = JsonDecoder.object<MediaData>(
   {
     id: JsonDecoder.string,
     created: DateDecoder,
-    processVersion: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
-    uploaded: JsonDecoder.oneOf([DateDecoder, JsonDecoder.isNull(null)], "moment.Moment | null"),
-    mimetype: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
-    width: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
-    height: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
-    duration: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
-    fileSize: JsonDecoder.oneOf([JsonDecoder.number, JsonDecoder.isNull(null)], "number | null"),
+    info: JsonDecoder.oneOf([MediaInfoDataDecoder, JsonDecoder.isNull(null)], "MediaInfoData | null"),
     tags: JsonDecoder.array(ResponsePkDecoder(Tag, "Tag"), "ResponsePk<Tag>[]"),
     albums: JsonDecoder.array(ResponsePkDecoder(Album, "Album"), "ResponsePk<Album>[]"),
     people: JsonDecoder.array(ResponsePkDecoder(Person, "Person"), "ResponsePk<Person>[]"),

@@ -319,15 +319,6 @@ class Media(models.Model):
     storage_id = models.CharField(max_length=200, default="", blank=True)
     new_file = models.BooleanField(null=False, default=False)
 
-    # Fields generated from the media file.
-    process_version = models.IntegerField(null=True, default=None)
-    uploaded = models.DateTimeField(null=True)
-    mimetype = models.CharField(null=True, blank=False, max_length=50)
-    width = models.IntegerField(null=True, default=None)
-    height = models.IntegerField(null=True, default=None)
-    duration = models.FloatField(null=True, default=None)
-    file_size = models.IntegerField(null=True, default=None)
-
     # Relationships. Entirely under API control.
     tags = models.ManyToManyField(Tag, related_name='media', through='MediaTag')
     albums = models.ManyToManyField(Album, related_name='media', through='MediaAlbum')
@@ -359,6 +350,19 @@ class Media(models.Model):
         super().delete(*args, **kwargs)
 
 add_metadata_fields_to_model(Media)
+
+class MediaInfo(models.Model):
+    media = models.OneToOneField(Media, on_delete=models.CASCADE,
+                                 related_name='info', null=False)
+
+    # Fields generated from the media file.
+    process_version = models.IntegerField(null=False, default=None)
+    uploaded = models.DateTimeField(null=False)
+    mimetype = models.CharField(null=False, blank=False, max_length=50)
+    width = models.IntegerField(null=False, default=None)
+    height = models.IntegerField(null=False, default=None)
+    duration = models.FloatField(null=True, default=None)
+    file_size = models.IntegerField(null=False, default=None)
 
 def validate_matching_catalog(*fields):
     def validator(obj):

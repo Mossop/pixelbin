@@ -1,8 +1,7 @@
 import moment from "moment";
 
 import { randomId } from ".";
-import { UnprocessedMediaData } from "../../js/api/media";
-import { MetadataData } from "../../js/api/types";
+import { MetadataData, MediaData, MediaInfoData } from "../../js/api/types";
 
 type Body = Blob | object | unknown[];
 
@@ -90,7 +89,7 @@ export function callInfo(mockedFetch: jest.MockedFunction<typeof fetch>): CallIn
   return info;
 }
 
-export function metadata(data: Partial<MetadataData>): MetadataData {
+export function mockMetadata(data: Partial<MetadataData>): MetadataData {
   return {
     filename: data.filename ?? null,
     title: data.title ?? null,
@@ -116,20 +115,26 @@ export function metadata(data: Partial<MetadataData>): MetadataData {
   };
 }
 
-export function unprocessedMedia(data: Partial<UnprocessedMediaData>): UnprocessedMediaData {
+export function mockMediaInfo(data: Partial<MediaInfoData>): MediaInfoData {
+  return {
+    processVersion: data.processVersion ?? 1,
+    uploaded: data.uploaded ?? moment(),
+    mimetype: data.mimetype ?? "image/jpeg",
+    width: data.width ?? 1024,
+    height: data.height ?? 768,
+    duration: data.duration ?? null,
+    fileSize: data.fileSize ?? 1000,
+  };
+}
+
+export function mockMedia(data: Partial<MediaData>): MediaData {
   return {
     id: data.id ?? randomId(),
     created: data.created ?? moment(),
-    processVersion: null,
-    uploaded: null,
-    mimetype: null,
-    width: null,
-    height: null,
-    duration: null,
-    fileSize: null,
+    info: data.info ?? null,
     tags: data.tags ?? [],
     albums: data.albums ?? [],
     people: data.people ?? [],
-    metadata: data.metadata ?? metadata({}),
+    metadata: data.metadata ?? mockMetadata({}),
   };
 }

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db.models.fields.related_descriptors import ManyToManyDescriptor
 
-from ..models import Media
+from ..models import Media, MediaInfo
 from ..metadata import get_metadata_fields
 from . import ModelSerializer, Serializer
 
@@ -15,11 +15,31 @@ def init_serializer():
         field.add_to_serializer(MetadataSerializer)
 init_serializer()
 
-class MediaSerializer(ModelSerializer):
+class MediaInfoSerializer(ModelSerializer):
     processVersion = serializers.IntegerField(source='process_version',
-                                              read_only=True, allow_null=True)
-    fileSize = serializers.IntegerField(source='file_size',
-                                        read_only=True, allow_null=True)
+                                              read_only=True)
+    fileSize = serializers.IntegerField(source='file_size', read_only=True)
+
+    def to_representation(self, media):
+        if media.process_version is None:
+            return None
+        return super().to_representation(media)
+
+    class Meta:
+        js_response_type = 'MediaInfoData'
+        model = MediaInfo
+        fields = ['processVersion', 'uploaded', 'mimetype', 'width', 'height',
+                  'duration', 'fileSize']
+        extra_kwargs = {
+            'uploaded': {'read_only': True},
+            'mimetype': {'read_only': True},
+            'width': {'read_only': True},
+            'height': {'read_only': True},
+            'duration': {'read_only': True},
+        }
+
+class MediaSerializer(ModelSerializer):
+    info = MediaInfoSerializer(read_only=True, allow_null=True)
 
     metadata = MetadataSerializer(required=False, allow_null=False)
 
@@ -76,8 +96,7 @@ class MediaSerializer(ModelSerializer):
         model = Media
         fields = ['id', 'catalog', 'created',
 
-                  'processVersion', 'uploaded', 'mimetype', 'width', 'height',
-                  'duration', 'fileSize',
+                  'info',
 
                   'tags', 'albums', 'people', 'file',
 
@@ -86,12 +105,6 @@ class MediaSerializer(ModelSerializer):
             'id': {'read_only': True},
             'catalog': {'write_only': True},
             'created': {'read_only': True},
-
-            'uploaded': {'read_only': True},
-            'mimetype': {'read_only': True},
-            'width': {'read_only': True},
-            'height': {'read_only': True},
-            'duration': {'read_only': True},
 
             'tags': {'required': False, 'default': [], 'allow_empty': True},
             'albums': {'required': False, 'default': [], 'allow_empty': True},

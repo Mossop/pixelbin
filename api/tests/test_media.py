@@ -73,15 +73,10 @@ class MediaTests(ApiTestCase):
         self.assertEqual(media.catalog, catalog)
 
         response = self.client.get('/api/media/get/%s' % media.id)
+        data = response.json()
 
-        self.assertDictContains(response.json(), {
+        self.assertDictContains(data, {
             'id': media.id,
-            'processVersion': 1,
-            'mimetype': 'image/jpeg',
-            'width': 1000,
-            'height': 500,
-            'duration': None,
-            'fileSize': 91435,
             'tags': [],
             'albums': [],
             'people': [],
@@ -110,9 +105,18 @@ class MediaTests(ApiTestCase):
             }
         })
 
-        self.assertEqual(media.width, 1000)
-        self.assertEqual(media.height, 500)
-        self.assertEqual(media.file_size, 91435)
+        self.assertDictContains(data['info'], {
+            'processVersion': 1,
+            'mimetype': 'image/jpeg',
+            'width': 1000,
+            'height': 500,
+            'duration': None,
+            'fileSize': 91435,
+        })
+
+        self.assertEqual(media.info.width, 1000)
+        self.assertEqual(media.info.height, 500)
+        self.assertEqual(media.info.file_size, 91435)
         self.assertEqual(media.metadata.filename, 'iptc.jpg')
         self.assertEqual(media.metadata.orientation, 1)
 
@@ -222,8 +226,9 @@ class MediaTests(ApiTestCase):
         response = self.client.get('/api/media/get/%s' % media.id)
 
         data = response.json()
-        self.assertDictContains(data, {
-            'id': media.id,
+        self.assertEqual(data['id'], media.id)
+
+        self.assertDictContains(data['info'], {
             'processVersion': 1,
             'mimetype': 'image/jpeg',
             'width': 1000,
@@ -265,8 +270,9 @@ class MediaTests(ApiTestCase):
         response = self.client.get('/api/media/get/%s' % media.id)
         data = response.json()
 
-        self.assertDictContains(data, {
-            'id': media.id,
+        self.assertEqual(data['id'], media.id)
+
+        self.assertDictContains(data['info'], {
             'processVersion': 1,
             'mimetype': 'image/jpeg',
             'width': 500,
