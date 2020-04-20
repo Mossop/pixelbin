@@ -71,7 +71,7 @@ class MediaSerializer(ModelSerializer):
         return instance
 
     class Meta:
-        js_response_type = 'UnprocessedMediaData'
+        js_response_type = 'MediaData'
         js_request_type = 'MediaCreateData'
         model = Media
         fields = ['id', 'catalog', 'created',

@@ -20,6 +20,7 @@ export abstract class AppError extends Error {
   public constructor(
     protected code: ErrorCode | ApiErrorCode,
     protected args?: Record<string, string>,
+    protected error?: Error,
   ) {
     super(`Exception ${code}: ${JSON.stringify(args)}`);
   }
@@ -47,6 +48,6 @@ export class InternalError extends AppError {
   }
 }
 
-export function exception(code: ErrorCode, args?: Record<string, string>): never {
-  throw new InternalError(code, args);
+export function exception(code: ErrorCode, args?: Record<string, string>, error?: Error): never {
+  throw new InternalError(code, args, error);
 }

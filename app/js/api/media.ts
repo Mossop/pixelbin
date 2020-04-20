@@ -4,7 +4,7 @@ import type { Patch } from "./helpers";
 import { Catalog, Album } from "./highlevel";
 import type { Reference, Media } from "./highlevel";
 import { ApiMethod } from "./types";
-import type { UnprocessedMediaData, MediaCreateData } from "./types";
+import type { MediaData, MediaCreateData } from "./types";
 
 export type MediaTarget = Catalog | Album;
 
@@ -16,15 +16,23 @@ type ProcessParams =
   "height" |
   "duration" |
   "fileSize";
-type ProcessedParam<K extends keyof UnprocessedMediaData> =
-  K extends ProcessParams ? NonNullable<UnprocessedMediaData[K]> : UnprocessedMediaData[K];
+type ProcessedParam<K extends keyof MediaData> =
+  K extends ProcessParams ? NonNullable<MediaData[K]> : MediaData[K];
 export type ProcessedMediaData = {
-  [K in keyof UnprocessedMediaData]: ProcessedParam<K>;
+  [K in keyof MediaData]: ProcessedParam<K>;
 };
-export type MediaData = ProcessedMediaData | UnprocessedMediaData;
+type UnprocessedParam<K extends keyof MediaData> =
+  K extends ProcessParams ? null : MediaData[K];
+export type UnprocessedMediaData = {
+  [K in keyof MediaData]: UnprocessedParam<K>;
+};
 
 export function isProcessed(media: MediaData): media is ProcessedMediaData {
   return media.processVersion !== null;
+}
+
+export function isUnprocessed(media: MediaData): media is UnprocessedMediaData {
+  return media.processVersion === null;
 }
 
 export function getMedia(id: string): Promise<MediaData> {

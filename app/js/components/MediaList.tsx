@@ -8,8 +8,8 @@ import {
   getMedia,
   isProcessed,
   ProcessedMediaData,
-  MediaData,
 } from "../api/media";
+import { MediaData } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import { Search } from "../utils/search";

@@ -5,7 +5,7 @@ import type { ServerState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId, isInstance } from "../utils/maps";
 import type { MapId } from "../utils/maps";
-import type { MediaData } from "./media";
+import type { ProcessedMediaData, UnprocessedMediaData } from "./media";
 import type { AlbumData, CatalogData, TagData, PersonData } from "./types";
 
 interface StateCache {
@@ -46,7 +46,7 @@ export function isReference<T>(data: any): data is Reference<T> {
   return typeof data == "object" && "deref" in data;
 }
 
-export type Media = MediaData;
+export type Media = ProcessedMediaData | UnprocessedMediaData;
 export function mediaRef(media: Media): Reference<Media> {
   return {
     id: media.id,
@@ -74,6 +74,10 @@ export class APIItemReference<T> implements Reference<T> {
 
   public deref(serverState: ServerState): T {
     return this.cls.fromState(serverState, this.id);
+  }
+
+  public toString(): string {
+    return this.id;
   }
 }
 

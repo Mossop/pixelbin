@@ -6,8 +6,7 @@ import type { Result } from "ts.data.json";
 import document from "../environment/document";
 import { decode } from "../utils/decoders";
 import { ErrorCode, exception } from "../utils/exception";
-import type { MediaData } from "./media";
-import type { MediaCreateData, MetadataUpdateData } from "./types";
+import type { MediaData, MediaCreateData, MetadataUpdateData } from "./types";
 
 type MediaWithMetadata = MediaData | MediaCreateData;
 

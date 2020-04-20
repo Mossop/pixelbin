@@ -227,7 +227,7 @@ export async function makeRequest<D>(
       body: request.body(),
     });
   } catch (e) {
-    exception(ErrorCode.RequestFailed);
+    exception(ErrorCode.RequestFailed, undefined, e);
   }
 
   if (!response.ok) {
@@ -236,7 +236,7 @@ export async function makeRequest<D>(
       const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api/types" */"./types");
       errorData = await ApiErrorDataDecoder.decodePromise(await response.json());
     } catch (e) {
-      exception(ErrorCode.DecodeError);
+      exception(ErrorCode.DecodeError, undefined, e);
     }
     throw new ApiError(response.status, response.statusText, errorData);
   }
@@ -244,7 +244,6 @@ export async function makeRequest<D>(
   try {
     return await request.decode(response);
   } catch (e) {
-    console.error(e);
-    exception(ErrorCode.DecodeError);
+    exception(ErrorCode.DecodeError, undefined, e);
   }
 }

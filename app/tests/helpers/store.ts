@@ -20,7 +20,7 @@ type MockCatalog = Omit<CatalogData, "id" | "people" | "tags" | "albums"> & {
   people?: MockPerson[];
 };
 
-function randomId(): string {
+export function randomId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
