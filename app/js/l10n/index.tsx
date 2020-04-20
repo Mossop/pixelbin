@@ -1,11 +1,6 @@
 import { FluentBundle, FluentResource, FluentArgument } from "@fluent/bundle";
 import { negotiateLanguages } from "@fluent/langneg";
-import {
-  LocalizationProvider,
-  ReactLocalization,
-  LocalizedProps,
-  Localized as FluentLocalized,
-} from "@fluent/react";
+import { LocalizationProvider, ReactLocalization, LocalizedProps } from "@fluent/react";
 import React, { ReactNode, PureComponent } from "react";
 
 export type L10nInfo = string | LocalizedProps;
@@ -94,16 +89,4 @@ export class LocalizationContext extends PureComponent<
   }
 }
 
-export class Localized extends PureComponent<L10nProps> {
-  public render(): ReactNode {
-    if (typeof this.props.l10n == "string") {
-      return <FluentLocalized id={this.props.l10n}>
-        {this.props.children}
-      </FluentLocalized>;
-    }
-
-    return <FluentLocalized {...this.props.l10n}>
-      {this.props.children}
-    </FluentLocalized>;
-  }
-}
+export { Localized } from "./Localized";
