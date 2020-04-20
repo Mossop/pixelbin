@@ -56,7 +56,7 @@ export class RequestData<D> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public applyToHeaders(_: Headers): void {
+  public applyToHeaders(_: Record<string, string>): void {
     return;
   }
 
@@ -198,8 +198,8 @@ export class JsonRequestData<D> extends RequestData<D> {
     }
   }
 
-  public applyToHeaders(headers: Headers): void {
-    headers.append("Content-Type", "application/json");
+  public applyToHeaders(headers: Record<string, string>): void {
+    headers["Content-Type"] = "application/json";
   }
 
   public body(): BodyInit | null {
@@ -215,8 +215,8 @@ export async function makeRequest<D>(
   let url = new URL(path, API_ROOT);
   request.applyToURL(url);
 
-  let headers = new Headers();
-  headers.append("X-CSRFToken", parseCookie(document.cookie)["csrftoken"]);
+  let headers: Record<string, string> = {};
+  headers["X-CSRFToken"] = parseCookie(document.cookie)["csrftoken"];
   request.applyToHeaders(headers);
 
   let response: Response;
