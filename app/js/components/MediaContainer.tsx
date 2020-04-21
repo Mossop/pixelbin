@@ -1,4 +1,4 @@
-import { Orientation } from "media-metadata/lib/metadata";
+import { Orientation } from "media-metadata";
 import React, { ReactNode, SVGProps, PureComponent } from "react";
 
 import { getTransformForOrientation, areDimensionsFlipped } from "../utils/metadata";

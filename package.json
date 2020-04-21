@@ -67,7 +67,7 @@
     "deeds": "^3.0.0",
     "immer": "^5.3.6",
     "intl-pluralrules": "^1.2.0",
-    "media-metadata": "^2.0.0",
+    "media-metadata": "^2.1.0",
     "moment": "^2.24.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",

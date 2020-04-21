@@ -9,6 +9,12 @@ import { exception, ErrorCode, ApiError } from "../utils/exception";
 import { isReference, APIItemReference } from "./highlevel";
 import type { Reference, APIItemBuilder } from "./highlevel";
 
+export function pullParam<O, K extends keyof O>(data: O, param: K): O[K] {
+  let val = data[param];
+  delete data[param];
+  return val;
+}
+
 export type RequestPk<T> = Reference<T>;
 export type ResponsePk<T> = Reference<T>;
 
@@ -60,7 +66,7 @@ export class RequestData<D> {
     return;
   }
 
-  public body(): BodyInit | null {
+  public body(): string | Record<string, string | Blob> | null {
     return null;
   }
 
@@ -147,12 +153,13 @@ export class QueryRequestData<D> extends RequestData<D> {
 }
 
 export class FormRequestData<D> extends RequestData<D> {
-  private formData: FormData;
+  private formData: Record<string, string | Blob>;
+  private json: string | undefined;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(data: any, decoder: Decoder<D>) {
     super(decoder);
-    this.formData = new FormData();
+    this.formData = {};
     if (data === null || data === undefined) {
       return;
     }
@@ -168,13 +175,35 @@ export class FormRequestData<D> extends RequestData<D> {
       });
     }
 
+    let canJSON = true;
+
     for (let [key, value] of items) {
-      this.formData.append(key, value);
+      this.formData[key] = value;
+      if (value instanceof Blob) {
+        canJSON = false;
+      }
+    }
+
+    if (canJSON) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.json = JSON.stringify(data, (_key: string, value: any): any => {
+        if (isReference(value)) {
+          return value.id;
+        }
+
+        return value;
+      });
     }
   }
 
-  public body(): BodyInit | null {
-    return this.formData;
+  public applyToHeaders(headers: Record<string, string>): void {
+    if (this.json) {
+      headers["Content-Type"] = "application/json";
+    }
+  }
+
+  public body(): string | Record<string, string | Blob> | null {
+    return this.json ?? this.formData;
   }
 }
 
@@ -202,7 +231,7 @@ export class JsonRequestData<D> extends RequestData<D> {
     headers["Content-Type"] = "application/json";
   }
 
-  public body(): BodyInit | null {
+  public body(): string | Record<string, string | Blob> | null {
     return this.data;
   }
 }
@@ -224,8 +253,7 @@ export async function makeRequest<D>(
     response = await fetch(url.href, {
       method,
       headers,
-      body: request.body(),
-    });
+    }, request.body());
   } catch (e) {
     exception(ErrorCode.RequestFailed, undefined, e);
   }

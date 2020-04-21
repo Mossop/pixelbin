@@ -1,5 +1,4 @@
-import { parseBuffer } from "media-metadata";
-import { Metadata, Orientation } from "media-metadata/lib/metadata";
+import { Metadata, Orientation, parseBuffer } from "media-metadata";
 
 import document from "../environment/document";
 

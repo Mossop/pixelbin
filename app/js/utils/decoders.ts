@@ -1,5 +1,5 @@
 import { Draft } from "immer";
-import { Orientation } from "media-metadata/lib/metadata";
+import { Orientation } from "media-metadata";
 import moment, { ISO_8601, Moment } from "moment";
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 

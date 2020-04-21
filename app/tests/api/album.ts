@@ -83,7 +83,6 @@ test("Edit album", async (): Promise<void> => {
       "X-CSRFToken": "csrf-foobar",
     },
     body: {
-      id: "testalbum",
       name: "New test album",
       stub: "foo",
     },

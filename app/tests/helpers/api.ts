@@ -1,9 +1,16 @@
+import { Orientation } from "media-metadata";
 import moment from "moment";
 
 import { randomId } from ".";
 import { MetadataData, MediaData, MediaInfoData } from "../../js/api/types";
 
 type Body = Blob | object | unknown[];
+
+type Fetch = (
+  input: RequestInfo,
+  init?: RequestInit,
+  body?: string | Record<string, string | Blob> | null,
+) => Promise<Response>;
 
 export class MockResponse<B extends Body> {
   public constructor(private statusCode: number, private body: B) {}
@@ -35,7 +42,7 @@ type ResponseBuilder<B extends Body> =
   (input: RequestInfo, init?: RequestInit | undefined) => MockResponse<B>;
 
 export function mockResponse<B extends Body>(
-  mockedFetch: jest.MockedFunction<typeof fetch>,
+  mockedFetch: jest.MockedFunction<Fetch>,
   fn: ResponseBuilder<B> | MockResponse<B>,
 ): void {
   mockedFetch.mockImplementationOnce((
@@ -54,11 +61,11 @@ interface CallInfo {
   body?: Body;
 }
 
-export function callInfo(mockedFetch: jest.MockedFunction<typeof fetch>): CallInfo {
+export function callInfo(mockedFetch: jest.MockedFunction<Fetch>): CallInfo {
   expect(mockedFetch).toHaveBeenCalledTimes(1);
   let args = mockedFetch.mock.calls[0];
   expect(args.length).toBeGreaterThanOrEqual(1);
-  expect(args.length).toBeLessThanOrEqual(2);
+  expect(args.length).toBeLessThanOrEqual(3);
   expect(typeof args[0]).toBe("string");
 
   let info: CallInfo = {
@@ -73,20 +80,64 @@ export function callInfo(mockedFetch: jest.MockedFunction<typeof fetch>): CallIn
       info.headers = args[1].headers as Record<string, string>;
     }
 
-    if ("body" in args[1]) {
-      if (args[1].body instanceof Blob) {
-        info.body = args[1].body;
-      } else if (typeof args[1].body == "string") {
-        info.body = JSON.parse(args[1].body);
-      }
-    }
-
     if ("method" in args[1]) {
       info.method = args[1].method as string;
     }
   }
 
+  if (args[2]) {
+    if (typeof args[2] == "string") {
+      info.body = JSON.parse(args[2]);
+    } else {
+      info.body = args[2];
+    }
+  }
+
   return info;
+}
+
+export interface MetadataDataResponse {
+  filename: string | null;
+  title: string | null;
+  taken: string | null;
+  offset: number | null;
+  longitude: number | null;
+  latitude: number | null;
+  altitude: number | null;
+  location: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  orientation: Orientation | null;
+  make: string | null;
+  model: string | null;
+  lens: string | null;
+  photographer: string | null;
+  aperture: number | null;
+  exposure: number | null;
+  iso: number | null;
+  focalLength: number | null;
+  bitrate: number | null;
+}
+
+export interface MediaInfoDataResponse {
+  processVersion: number;
+  uploaded: string;
+  mimetype: string;
+  width: number;
+  height: number;
+  duration: number | null;
+  fileSize: number;
+}
+
+export interface MediaDataResponse {
+  id: string;
+  created: string;
+  info: MediaInfoDataResponse | null;
+  tags: string[];
+  albums: string[];
+  people: string[];
+  metadata: MetadataDataResponse;
 }
 
 export interface TagDataResponse {
@@ -130,6 +181,32 @@ export interface ServerDataResponse {
   user: UserDataResponse | null;
 }
 
+export function mockMetadataResponse(data: Partial<MetadataDataResponse>): MetadataDataResponse {
+  return {
+    filename: data.filename ?? null,
+    title: data.title ?? null,
+    taken: data.taken ?? null,
+    offset: data.offset ?? null,
+    longitude: data.longitude ?? null,
+    latitude: data.latitude ?? null,
+    altitude: data.altitude ?? null,
+    location: data.location ?? null,
+    city: data.city ?? null,
+    state: data.state ?? null,
+    country: data.country ?? null,
+    orientation: data.orientation ?? null,
+    make: data.make ?? null,
+    model: data.model ?? null,
+    lens: data.lens ?? null,
+    photographer: data.photographer ?? null,
+    aperture: data.aperture ?? null,
+    exposure: data.exposure ?? null,
+    iso: data.iso ?? null,
+    focalLength: data.focalLength ?? null,
+    bitrate: data.bitrate ?? null,
+  };
+}
+
 export function mockMetadata(data: Partial<MetadataData>): MetadataData {
   return {
     filename: data.filename ?? null,
@@ -156,6 +233,18 @@ export function mockMetadata(data: Partial<MetadataData>): MetadataData {
   };
 }
 
+export function mockMediaInfoResponse(data: Partial<MediaInfoDataResponse>): MediaInfoDataResponse {
+  return {
+    processVersion: data.processVersion ?? 1,
+    uploaded: data.uploaded ?? moment().toISOString(),
+    mimetype: data.mimetype ?? "image/jpeg",
+    width: data.width ?? 1024,
+    height: data.height ?? 768,
+    duration: data.duration ?? null,
+    fileSize: data.fileSize ?? 1000,
+  };
+}
+
 export function mockMediaInfo(data: Partial<MediaInfoData>): MediaInfoData {
   return {
     processVersion: data.processVersion ?? 1,
@@ -177,5 +266,17 @@ export function mockMedia(data: Partial<MediaData>): MediaData {
     albums: data.albums ?? [],
     people: data.people ?? [],
     metadata: data.metadata ?? mockMetadata({}),
+  };
+}
+
+export function mockMediaResponse(data: Partial<MediaDataResponse>): MediaDataResponse {
+  return {
+    id: data.id ?? randomId(),
+    created: data.created ?? moment().toISOString(),
+    info: data.info ?? null,
+    tags: data.tags ?? [],
+    albums: data.albums ?? [],
+    people: data.people ?? [],
+    metadata: data.metadata ?? mockMetadataResponse({}),
   };
 }

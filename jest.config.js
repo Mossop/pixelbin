@@ -14,6 +14,10 @@ module.exports = {
   collectCoverageFrom: [
     "app/js/**/*.*",
   ],
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "<rootDir>/app/js/environment/",
+  ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", ["json", {
     file: "coverage.json",

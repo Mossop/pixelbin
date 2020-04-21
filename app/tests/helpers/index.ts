@@ -2,6 +2,28 @@ import { isReference } from "../../js/api/highlevel";
 import { ApiErrorCode } from "../../js/api/types";
 import { ErrorCode, AppError } from "../../js/utils/exception";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toBeAppError(received: any, code: ErrorCode | ApiErrorCode): jest.CustomMatcherResult {
+  if (received instanceof AppError) {
+    if (received.code == code) {
+      return {
+        message: (): string => `Did not expect AppError code ${received.code}.`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: (): string => `Expected AppError code ${code} but got ${received.code}.`,
+        pass: false,
+      };
+    }
+  } else {
+    return {
+      message: (): string => `Expected an AppError but got ${received}.`,
+      pass: false,
+    };
+  }
+}
+
 const matchers = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toBeRef(received: any, id: string): jest.CustomMatcherResult {
@@ -18,27 +40,19 @@ const matchers = {
     }
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toBeAppError(received: any, code: ErrorCode | ApiErrorCode): jest.CustomMatcherResult {
-    if (received instanceof AppError) {
-      if (received.code == code) {
-        return {
-          message: (): string => `Did not expect AppError code ${received.code}.`,
-          pass: true,
-        };
-      } else {
-        return {
-          message: (): string => `Expected AppError code ${code} but got ${received.code}.`,
-          pass: false,
-        };
-      }
-    } else {
+  toThrowAppError(received: () => void, code: ErrorCode | ApiErrorCode): jest.CustomMatcherResult {
+    try {
+      received();
       return {
-        message: (): string => `Expected an AppError but got ${received}.`,
+        message: (): string => `expected ${received} to throw an exception.`,
         pass: false,
       };
+    } catch (e) {
+      return toBeAppError(e, code);
     }
   },
+
+  toBeAppError,
 };
 
 expect.extend(matchers);

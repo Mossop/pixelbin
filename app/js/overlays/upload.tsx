@@ -5,7 +5,7 @@ import {
   rotateCounterClockwise90,
   mirrorHorizontal,
   mirrorVertical,
-} from "media-metadata/lib/metadata";
+} from "media-metadata";
 import React, { Fragment, PureComponent, createRef, ReactNode, RefObject } from "react";
 
 import { Reference, Catalog, Derefer, derefer, Tag, Person } from "../api/highlevel";

@@ -3,7 +3,7 @@ import type { Immutable } from "immer";
 import actions from "../store/actions";
 import type { ServerState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
-import { intoId, isInstance } from "../utils/maps";
+import { intoId } from "../utils/maps";
 import type { MapId } from "../utils/maps";
 import type { ProcessedMediaData, UnprocessedMediaData } from "./media";
 import type { AlbumData, CatalogData, TagData, PersonData } from "./types";
@@ -39,6 +39,7 @@ export interface APIItemBuilder<T> {
 export interface Reference<T> {
   readonly id: string;
   readonly deref: (serverState: ServerState) => T;
+  readonly toString: () => string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,6 +52,7 @@ export function mediaRef(media: Media): Reference<Media> {
   return {
     id: media.id,
     deref: (): Media => media,
+    toString: (): string => media.id,
   };
 }
 
@@ -123,6 +125,26 @@ export class Tag implements Referencable<Tag> {
     return this.state.parent?.deref(this.serverState);
   }
 
+  public get children(): Tag[] {
+    let { user } = this.serverState;
+    if (!user) {
+      return [];
+    }
+
+    let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog.id);
+
+    if (!catalogState) {
+      exception(ErrorCode.UnknownCatalog);
+    }
+
+    return Array.from(catalogState.tags.values())
+      .filter((tagState: Immutable<TagData>): boolean => tagState.parent?.id == this.id)
+      .map(
+        (tagState: Immutable<TagData>): Tag =>
+          Tag.fromState(this.serverState, tagState.id),
+      );
+  }
+
   public static ref(data: MapId<TagData>): Reference<Tag> {
     return new APIItemReference(intoId(data), Tag);
   }
@@ -131,18 +153,10 @@ export class Tag implements Referencable<Tag> {
     return new APIItemReference(this.id, Tag);
   }
 
-  public static fromState(serverState: ServerState, item: MapId<Immutable<TagData>>): Tag {
-    let id = intoId(item);
-
+  public static fromState(serverState: ServerState, id: string): Tag {
     let cache = getStateCache(serverState);
     let tag = cache.tags.get(id);
     if (tag) {
-      return tag;
-    }
-
-    if (isInstance(item)) {
-      tag = new Tag(serverState, item);
-      cache.tags.set(id, tag);
       return tag;
     }
 
@@ -165,10 +179,10 @@ export class Tag implements Referencable<Tag> {
 
   public static safeFromState(
     serverState: ServerState,
-    item: MapId<Immutable<TagData>>,
+    id: string,
   ): Tag | undefined {
     try {
-      return Tag.fromState(serverState, item);
+      return Tag.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
@@ -204,19 +218,11 @@ export class Person implements Referencable<Person> {
 
   public static fromState(
     serverState: ServerState,
-    item: MapId<Immutable<PersonData>>,
+    id: string,
   ): Person {
-    let id = intoId(item);
-
     let cache = getStateCache(serverState);
     let person = cache.people.get(id);
     if (person) {
-      return person;
-    }
-
-    if (isInstance(item)) {
-      person = new Person(serverState, item);
-      cache.people.set(id, person);
       return person;
     }
 
@@ -239,10 +245,10 @@ export class Person implements Referencable<Person> {
 
   public static safeFromState(
     serverState: ServerState,
-    item: MapId<Immutable<PersonData>>,
+    id: string,
   ): Person | undefined {
     try {
-      return Person.fromState(serverState, item);
+      return Person.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
@@ -291,7 +297,8 @@ export class Album implements Referencable<Album> {
     return Array.from(catalogState.albums.values())
       .filter((albumState: Immutable<AlbumData>): boolean => albumState.parent?.id == this.id)
       .map(
-        (albumState: Immutable<AlbumData>): Album => Album.fromState(this.serverState, albumState),
+        (albumState: Immutable<AlbumData>): Album =>
+          Album.fromState(this.serverState, albumState.id),
       );
   }
 
@@ -316,19 +323,11 @@ export class Album implements Referencable<Album> {
 
   public static fromState(
     serverState: ServerState,
-    item: MapId<Immutable<AlbumData>>,
+    id: string,
   ): Album {
-    let id = intoId(item);
-
     let cache = getStateCache(serverState);
     let album = cache.albums.get(id);
     if (album) {
-      return album;
-    }
-
-    if (isInstance(item)) {
-      album = new Album(serverState, item);
-      cache.albums.set(id, album);
       return album;
     }
 
@@ -351,10 +350,10 @@ export class Album implements Referencable<Album> {
 
   public static safeFromState(
     serverState: ServerState,
-    item: MapId<Immutable<AlbumData>>,
+    id: string,
   ): Album | undefined {
     try {
-      return Album.fromState(serverState, item);
+      return Album.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
@@ -378,7 +377,13 @@ export class Catalog implements Referencable<Catalog> {
   public get rootAlbums(): Album[] {
     return Array.from(this.state.albums.values())
       .filter((album: Immutable<AlbumData>): boolean => !album.parent)
-      .map((album: Immutable<AlbumData>): Album => Album.fromState(this.serverState, album));
+      .map((album: Immutable<AlbumData>): Album => Album.fromState(this.serverState, album.id));
+  }
+
+  public get rootTags(): Tag[] {
+    return Array.from(this.state.tags.values())
+      .filter((tag: Immutable<TagData>): boolean => !tag.parent)
+      .map((tag: Immutable<TagData>): Tag => Tag.fromState(this.serverState, tag.id));
   }
 
   public findTag(path: string[]): Pending<Tag> {
@@ -396,22 +401,18 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get tags(): Tag[] {
-    return Array.from(this.state.tags.values()).map(
-      (tag: Immutable<TagData>): Tag => Tag.fromState(this.serverState, tag),
+    return Array.from(this.state.tags.keys()).map(
+      (id: string): Tag => Tag.fromState(this.serverState, id),
     );
   }
 
   public getAlbum(id: string): Album | undefined {
-    let albumState = this.state.albums.get(id);
-    if (albumState) {
-      return Album.fromState(this.serverState, albumState);
-    }
-    return undefined;
+    return Album.safeFromState(this.serverState, id);
   }
 
   public get albums(): Album[] {
-    return Array.from(this.state.albums.values()).map(
-      (album: Immutable<AlbumData>): Album => Album.fromState(this.serverState, album),
+    return Array.from(this.state.albums.keys()).map(
+      (id: string): Album => Album.fromState(this.serverState, id),
     );
   }
 
@@ -433,8 +434,8 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get people(): Person[] {
-    return Array.from(this.state.people.values()).map(
-      (person: Immutable<PersonData>): Person => Person.fromState(this.serverState, person),
+    return Array.from(this.state.people.keys()).map(
+      (id: string): Person => Person.fromState(this.serverState, id),
     );
   }
 
@@ -448,19 +449,11 @@ export class Catalog implements Referencable<Catalog> {
 
   public static fromState(
     serverState: ServerState,
-    item: MapId<Immutable<CatalogData>>,
+    id: string,
   ): Catalog {
-    let id: string = intoId(item);
-
     let cache = getStateCache(serverState);
     let catalog = cache.catalogs.get(id);
     if (catalog) {
-      return catalog;
-    }
-
-    if (isInstance(item)) {
-      catalog = new Catalog(serverState, item);
-      cache.catalogs.set(id, catalog);
       return catalog;
     }
 
@@ -481,10 +474,10 @@ export class Catalog implements Referencable<Catalog> {
 
   public static safeFromState(
     serverState: ServerState,
-    item: MapId<Immutable<CatalogData>>,
+    id: string,
   ): Catalog | undefined {
     try {
-      return Catalog.fromState(serverState, item);
+      return Catalog.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
@@ -494,8 +487,8 @@ export class Catalog implements Referencable<Catalog> {
 export function catalogs(serverState: ServerState): Catalog[] {
   if (serverState.user) {
     return Array.from(
-      serverState.user.catalogs.values(),
-      (st: Immutable<CatalogData>): Catalog => Catalog.fromState(serverState, st),
+      serverState.user.catalogs.keys(),
+      (id: string): Catalog => Catalog.fromState(serverState, id),
     );
   }
   return [];
