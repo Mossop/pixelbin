@@ -1,2 +1,23 @@
 coverage:
-  range: "80...100"
+  status:
+    project:
+      default:
+        target: auto
+      app:
+        target: auto
+        flags:
+          - app
+      api:
+        target: auto
+        flags:
+          - api
+
+flags:
+  app:
+    paths:
+      - app
+    carryforward: true
+  api:
+    paths:
+      - api
+    carryforward: true
