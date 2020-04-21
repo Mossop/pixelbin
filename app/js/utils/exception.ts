@@ -18,9 +18,9 @@ export enum ErrorCode {
 
 export abstract class AppError extends Error {
   public constructor(
-    protected code: ErrorCode | ApiErrorCode,
-    protected args?: Record<string, string>,
-    protected error?: Error,
+    public readonly code: ErrorCode | ApiErrorCode,
+    public readonly args?: Record<string, string>,
+    public readonly error?: Error,
   ) {
     super(`Exception ${code}: ${JSON.stringify(args)}`);
   }
@@ -30,8 +30,8 @@ export abstract class AppError extends Error {
 
 export class ApiError extends AppError {
   public constructor(
-    protected httpCode: number,
-    protected httpStatus: string,
+    public readonly httpCode: number,
+    public readonly httpStatus: string,
     data: ApiErrorData,
   ) {
     super(data.code, data.args);

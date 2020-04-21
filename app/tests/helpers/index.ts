@@ -1,7 +1,10 @@
 import { isReference } from "../../js/api/highlevel";
+import { ApiErrorCode } from "../../js/api/types";
+import { ErrorCode, AppError } from "../../js/utils/exception";
 
-expect.extend({
-  toBeRef(received: unknown, id: string): jest.CustomMatcherResult {
+const matchers = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  toBeRef(received: any, id: string): jest.CustomMatcherResult {
     if (isReference(received) && received.id == id) {
       return {
         message: (): string => `expected ${received} not to be a reference with id ${id}`,
@@ -14,13 +17,33 @@ expect.extend({
       };
     }
   },
-});
 
-type ExtendedExpect = jest.Expect & {
-  toBeRef: (id: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  toBeAppError(received: any, code: ErrorCode | ApiErrorCode): jest.CustomMatcherResult {
+    if (received instanceof AppError) {
+      if (received.code == code) {
+        return {
+          message: (): string => `Did not expect AppError code ${received.code}.`,
+          pass: true,
+        };
+      } else {
+        return {
+          message: (): string => `Expected AppError code ${code} but got ${received.code}.`,
+          pass: false,
+        };
+      }
+    } else {
+      return {
+        message: (): string => `Expected an AppError but got ${received}.`,
+        pass: false,
+      };
+    }
+  },
 };
 
-const pxExpect = expect as ExtendedExpect;
+expect.extend(matchers);
+
+const jestExpect = expect as unknown as jest.ExtendedExpect<typeof matchers>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mockedFunction<T extends (...args: any[]) => any>(fn: T): jest.MockedFunction<T> {
@@ -33,6 +56,8 @@ export function mockedClass<T extends jest.Constructable>(cls: T): jest.MockedCl
   return cls as jest.MockedClass<T>;
 }
 
-export { pxExpect as expect };
+export const mapOf = <V>(obj: Record<string, V>): Map<string, V> => new Map(Object.entries(obj));
+
+export { jestExpect as expect };
 export * from "./dom";
 export * from "./store";

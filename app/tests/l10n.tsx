@@ -24,9 +24,8 @@ test("localized element with id", (): void => {
   render(<Localized l10n="foo"/>);
 
   expect(mockLocalized.mock.calls.length).toBe(1);
-  expect(mockLocalized.mock.calls[0][0]).toStrictEqual({
+  expect(mockLocalized.mock.calls[0][0]).toEqual({
     id: "foo",
-    children: undefined,
   });
 });
 
@@ -44,12 +43,11 @@ test("localized element with vars", (): void => {
   />);
 
   expect(mockLocalized.mock.calls.length).toBe(1);
-  expect(mockLocalized.mock.calls[0][0]).toStrictEqual({
+  expect(mockLocalized.mock.calls[0][0]).toEqual({
     id: "foobar",
     vars: {
       id: "test",
       val: 5,
     },
-    children: undefined,
   });
 });

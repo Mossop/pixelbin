@@ -378,7 +378,7 @@ export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export type MethodList = { [k in ApiMethod]: Method };
 
 export const HttpMethods: MethodList = {
-  [ApiMethod.State]: "PUT",
+  [ApiMethod.State]: "GET",
   [ApiMethod.Login]: "POST",
   [ApiMethod.Logout]: "POST",
   [ApiMethod.UserCreate]: "PUT",
@@ -425,7 +425,7 @@ export function request(method: ApiMethod, data?: any): Promise<object | void> {
   switch (method) {
     case ApiMethod.State:
       path = `state`;
-      request = new RequestData(JsonDecoderDecoder(ServerDataDecoder));
+      request = new QueryRequestData(data, JsonDecoderDecoder(ServerDataDecoder));
       break;
     case ApiMethod.Login:
       path = `login`;

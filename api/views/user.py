@@ -12,7 +12,7 @@ from ..serializers.state import ServerDataSerializer, build_state
 
 LOGGER = logging.getLogger(__name__)
 
-@api_view('PUT', requires_login=False, response=ServerDataSerializer)
+@api_view('GET', requires_login=False, response=ServerDataSerializer)
 def state(request):
     return build_state(request)
 

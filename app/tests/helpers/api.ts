@@ -89,6 +89,47 @@ export function callInfo(mockedFetch: jest.MockedFunction<typeof fetch>): CallIn
   return info;
 }
 
+export interface TagDataResponse {
+  id: string;
+  catalog: string;
+  parent: string | null;
+  name: string;
+}
+
+export interface PersonDataResponse {
+  id: string;
+  catalog: string;
+  name: string;
+}
+
+export interface AlbumDataResponse {
+  id: string;
+  catalog: string;
+  stub: string | null;
+  name: string;
+  parent: string | null;
+}
+
+export interface CatalogDataResponse {
+  id: string;
+  name: string;
+  people: PersonDataResponse[];
+  tags: TagDataResponse[];
+  albums: AlbumDataResponse[];
+}
+
+export interface UserDataResponse {
+  email: string;
+  fullname: string;
+  hadCatalog: boolean;
+  verified: boolean;
+  catalogs: CatalogDataResponse[];
+}
+
+export interface ServerDataResponse {
+  user: UserDataResponse | null;
+}
+
 export function mockMetadata(data: Partial<MetadataData>): MetadataData {
   return {
     filename: data.filename ?? null,
