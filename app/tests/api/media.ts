@@ -2,7 +2,7 @@ import moment from "moment";
 
 import { Catalog, mediaRef, Media } from "../../js/api/highlevel";
 import { getMedia, isProcessed, isUnprocessed, createMedia, updateMedia } from "../../js/api/media";
-import { ApiErrorData, ApiErrorCode } from "../../js/api/types";
+import { ApiErrorData, ApiErrorCode, ServerData } from "../../js/api/types";
 import fetch from "../../js/environment/fetch";
 import { expect, mockedFunction } from "../helpers";
 import {
@@ -27,6 +27,14 @@ beforeEach((): void => {
 });
 
 document.cookie = "csrftoken=csrf-foobar";
+
+test("Media reference", (): void => {
+  let media: Media = mockMedia({});
+
+  let ref = mediaRef(media);
+  expect(ref.id).toBe(media.id);
+  expect(ref.deref(null as unknown as ServerData)).toBe(media);
+});
 
 test("Get media", async (): Promise<void> => {
   mockResponse(mockedFetch, new MockResponse<MediaDataResponse>(200, mockMediaResponse({

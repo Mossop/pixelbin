@@ -58,7 +58,7 @@ export function mediaRef(media: Media): Reference<Media> {
 
 export type Derefer = <T>(ref: Reference<T> | undefined) => T | undefined;
 
-export function derefer(serverState: ServerState): Derefer {
+export function dereferencer(serverState: ServerState): Derefer {
   return <T>(ref: Reference<T> | undefined): T | undefined => ref?.deref(serverState);
 }
 
@@ -83,7 +83,7 @@ export class APIItemReference<T> implements Reference<T> {
   }
 }
 
-class PendingAPIItem<T> implements Pending<T> {
+export class PendingAPIItem<T> implements Pending<T> {
   private foundRef: Reference<T> | undefined = undefined;
 
   public constructor(public readonly promise: Promise<Reference<T>>) {
@@ -128,7 +128,7 @@ export class Tag implements Referencable<Tag> {
   public get children(): Tag[] {
     let { user } = this.serverState;
     if (!user) {
-      return [];
+      exception(ErrorCode.NotLoggedIn);
     }
 
     let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog.id);
@@ -285,7 +285,7 @@ export class Album implements Referencable<Album> {
   public get children(): Album[] {
     let { user } = this.serverState;
     if (!user) {
-      return [];
+      exception(ErrorCode.NotLoggedIn);
     }
 
     let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog.id);
@@ -407,7 +407,11 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public getAlbum(id: string): Album | undefined {
-    return Album.safeFromState(this.serverState, id);
+    let album = Album.safeFromState(this.serverState, id);
+    if (album?.catalog !== this) {
+      return undefined;
+    }
+    return album;
   }
 
   public get albums(): Album[] {

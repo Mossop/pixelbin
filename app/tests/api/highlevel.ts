@@ -1,4 +1,4 @@
-import { catalogs, Catalog, Album, Tag, Person } from "../../js/api/highlevel";
+import { catalogs, Catalog, Album, Tag, Person, dereferencer, PendingAPIItem } from "../../js/api/highlevel";
 import { ServerData } from "../../js/api/types";
 import { ErrorCode } from "../../js/utils/exception";
 import { nameSorted } from "../../js/utils/sort";
@@ -118,6 +118,8 @@ test("Catalog structures.", (): void => {
   expect(mutated.id).toBe("testcatalog1");
   expect(mutated.name).toBe("Test catalog 1");
   expect(mutated.rootAlbums).toHaveLength(2);
+
+  expect(cats[1].getAlbum("testalbum1")).toBeUndefined();
 });
 
 test("Album structures.", (): void => {
@@ -140,6 +142,9 @@ test("Album structures.", (): void => {
   expect(roots[0].parent).toBeUndefined();
 
   expect(catalog.rootAlbums[0]).toBe(roots[0]);
+
+  expect(catalog.getAlbum("testalbum1")).toBe(roots[0]);
+  expect(catalog.getAlbum("testalbum5")).toBeUndefined();
 
   expect(Album.ref("testalbum1").deref(LoggedIn)).toBe(roots[0]);
 
@@ -178,10 +183,12 @@ test("Tag structures.", (): void => {
   expect((): void => {
     Tag.fromState(LoggedOut, "testtag1");
   }).toThrowAppError(ErrorCode.NotLoggedIn);
+  expect(Tag.safeFromState(LoggedOut, "foobar")).toBeUndefined();
 
   expect((): void => {
     Tag.fromState(LoggedIn, "testtag5");
   }).toThrowAppError(ErrorCode.UnknownTag);
+  expect(Tag.safeFromState(LoggedIn, "foobar")).toBeUndefined();
 
   let catalog = Catalog.fromState(LoggedIn, "testcatalog1");
 
@@ -216,10 +223,12 @@ test("Person structures.", (): void => {
   expect((): void => {
     Person.fromState(LoggedOut, "testperson1");
   }).toThrowAppError(ErrorCode.NotLoggedIn);
+  expect(Person.safeFromState(LoggedOut, "testperson1")).toBeUndefined();
 
   expect((): void => {
     Person.fromState(LoggedIn, "testperson5");
   }).toThrowAppError(ErrorCode.UnknownPerson);
+  expect(Person.safeFromState(LoggedIn, "testperson5")).toBeUndefined();
 
   let catalog = Catalog.fromState(LoggedIn, "testcatalog1");
 
@@ -229,8 +238,84 @@ test("Person structures.", (): void => {
   expect(people[0].name).toBe("Test person 1");
   expect(people[0].catalog).toBe(catalog);
 
+  expect(Person.ref("testperson1").deref(LoggedIn)).toBe(people[0]);
+
   expect(people[0].ref().deref(LoggedIn)).toBe(people[0]);
 
   let mutated = people[0].ref().deref(Mutated);
   expect(mutated).not.toBe(people[0]);
+});
+
+test("Dereferer.", (): void => {
+  let dereferer = dereferencer(LoggedIn);
+
+  let ref = Album.ref("testalbum1");
+  let album = ref.deref(LoggedIn);
+  expect(dereferer(ref)).toBe(album);
+  expect(dereferer(undefined)).toBeUndefined();
+});
+
+test("Pending.", async (): Promise<void> => {
+  let album = Album.ref("testalbum1").deref(LoggedIn);
+
+  let pending = new PendingAPIItem(Promise.resolve(album.ref()));
+  expect(pending.ref).toBeUndefined();
+
+  let ref = await pending.promise;
+  expect(ref.deref(LoggedIn)).toBe(album);
+  expect(pending.ref).not.toBeUndefined();
+  expect(pending.ref?.deref(LoggedIn)).toBe(album);
+});
+
+test("Bad tag state", (): void => {
+  let state = mockServerData([{
+    id: "catalog",
+    name: "Catalog",
+    tags: [{
+      id: "tag",
+      name: "Tag",
+    }],
+  }]);
+
+  let tag = Tag.ref("tag").deref(state);
+  expect(tag.children).toHaveLength(0);
+
+  state.user?.catalogs.delete("catalog");
+  expect((): void => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let _ = tag.children;
+  }).toThrowAppError(ErrorCode.UnknownCatalog);
+
+  state.user = null;
+  expect((): void => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let _ = tag.children;
+  }).toThrowAppError(ErrorCode.NotLoggedIn);
+});
+
+test("Bad album state", (): void => {
+  let state = mockServerData([{
+    id: "catalog",
+    name: "Catalog",
+    albums: [{
+      id: "album",
+      name: "Album",
+      stub: null,
+    }],
+  }]);
+
+  let album = Album.ref("album").deref(state);
+  expect(album.children).toHaveLength(0);
+
+  state.user?.catalogs.delete("catalog");
+  expect((): void => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let _ = album.children;
+  }).toThrowAppError(ErrorCode.UnknownCatalog);
+
+  state.user = null;
+  expect((): void => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let _ = album.children;
+  }).toThrowAppError(ErrorCode.NotLoggedIn);
 });

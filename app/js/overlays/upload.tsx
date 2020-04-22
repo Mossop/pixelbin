@@ -8,7 +8,7 @@ import {
 } from "media-metadata";
 import React, { Fragment, PureComponent, createRef, ReactNode, RefObject } from "react";
 
-import { Reference, Catalog, Derefer, derefer, Tag, Person } from "../api/highlevel";
+import { Reference, Catalog, Derefer, dereferencer, Tag, Person } from "../api/highlevel";
 import { createMedia, MediaTarget } from "../api/media";
 import { setOrientation } from "../api/metadata";
 import { MediaCreateData } from "../api/types";
@@ -81,7 +81,7 @@ interface FromStateProps {
 function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
   return {
     target: ownProps.target?.deref(state.serverState),
-    deref: derefer(state.serverState),
+    deref: dereferencer(state.serverState),
   };
 }
 

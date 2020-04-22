@@ -3,7 +3,7 @@ import React, { ReactNode, Fragment, PureComponent } from "react";
 
 import { editAlbum, createAlbum } from "../api/album";
 import { Patch } from "../api/helpers";
-import { Album, Catalog, Reference, Derefer, derefer } from "../api/highlevel";
+import { Album, Catalog, Reference, Derefer, dereferencer } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { AlbumCreateData } from "../api/types";
 import Form, { FormField } from "../components/Form";
@@ -41,7 +41,7 @@ function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStatePro
   return {
     album,
     parent: album ? album.parent : ownProps.parent?.deref(state.serverState),
-    deref: derefer(state.serverState),
+    deref: dereferencer(state.serverState),
   };
 }
 

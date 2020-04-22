@@ -19,7 +19,7 @@ module.exports = {
     "<rootDir>/app/js/environment/",
   ],
   coverageDirectory: "coverage",
-  coverageReporters: ["text", ["json", {
+  coverageReporters: ["text", "lcov", ["json", {
     file: "coverage.json",
   }]],
   resetModules: true,
