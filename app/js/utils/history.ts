@@ -31,16 +31,14 @@ function startListening(): void {
   listening = true;
 }
 
-export type NewStateListener = (state: HistoryState) => void;
+const listeners: Set<(state: HistoryState) => void> = new Set();
 
-const listeners: Set<NewStateListener> = new Set();
-
-export function addListener(listener: NewStateListener): void {
+export function addListener(listener: (state: HistoryState) => void): void {
   listeners.add(listener);
   startListening();
 }
 
-export function removeListener(listener: NewStateListener): void {
+export function removeListener(listener: (state: HistoryState) => void): void {
   listeners.delete(listener);
 }
 

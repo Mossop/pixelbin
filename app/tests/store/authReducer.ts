@@ -1,8 +1,12 @@
+import { Deed } from "deeds/immer";
+import { Draft } from "immer";
+
 import { ServerData } from "../../js/api/types";
 import { OverlayType } from "../../js/overlays";
 import { PageType } from "../../js/pages";
 import actions from "../../js/store/actions";
 import reducer from "../../js/store/reducer";
+import { UIState } from "../../js/store/types";
 import { mockStore, mockServerData, expect } from "../helpers";
 
 test("Logging in with a catalog", (): void => {
@@ -134,6 +138,56 @@ test("Show login overlay.", (): void => {
     },
     overlay: {
       type: OverlayType.Login,
+    },
+  };
+
+  expect(newState.ui).toEqual(expectedUI);
+});
+
+test("Creating a user.", (): void => {
+  let state = mockStore({
+    serverState: { user: null },
+    ui: {
+      page: {
+        type: PageType.Index,
+      },
+    },
+  });
+
+  let action: Deed = actions.showSignupOverlay();
+  let newState = reducer(state, action);
+
+  let expectedUI: Draft<UIState> = {
+    page: {
+      type: PageType.Index,
+    },
+    overlay: {
+      type: OverlayType.Signup,
+    },
+  };
+
+  expect(newState.ui).toEqual(expectedUI);
+
+  action = actions.completeSignup(mockServerData([]));
+  newState = reducer(newState, action);
+
+  expectedUI = {
+    page: {
+      type: PageType.User,
+    },
+    overlay: {
+      type: OverlayType.CreateCatalog,
+    },
+  };
+
+  expect(newState.ui).toEqual(expectedUI);
+
+  action = actions.completeLogout(mockServerData([]));
+  newState = reducer(newState, action);
+
+  expectedUI = {
+    page: {
+      type: PageType.Index,
     },
   };
 

@@ -1,5 +1,3 @@
-import { Draft } from "immer";
-
 import { Catalog, Album } from "../api/highlevel";
 import { ServerData } from "../api/types";
 import { OverlayType } from "../overlays";
@@ -8,6 +6,7 @@ import { StoreType } from "../store";
 import actions from "../store/actions";
 import { UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
+import { createDraft } from "./helpers";
 import * as history from "./history";
 import { HistoryState, buildState } from "./history";
 
@@ -270,22 +269,8 @@ export function fromUIState(uiState: UIState): HistoryState {
   }
 }
 
-export function getState(serverState: ServerData): UIState {
-  return intoUIState(history.getState(), serverState);
-}
-
-export function pushState(uiState: Draft<UIState>): void {
-  let historyState = fromUIState(uiState);
-  history.pushState(historyState);
-}
-
-export function replaceState(uiState: Draft<UIState>): void {
-  let historyState = fromUIState(uiState);
-  history.replaceState(historyState);
-}
-
 // Checks that the history states match in all respects other than the state.
-function statesMatch(a: HistoryState, b: HistoryState): boolean {
+export function stateURLMatches(a: HistoryState, b: HistoryState): boolean {
   if (!Object.is(a.path, b.path)) {
     return false;
   }
@@ -324,11 +309,11 @@ function statesMatch(a: HistoryState, b: HistoryState): boolean {
 
 export function watchStore(store: StoreType): void {
   let historyState = history.getState();
-  let uiState = intoUIState(historyState, store.getState().serverState);
+  let uiState = createDraft(intoUIState(historyState, store.getState().serverState));
 
   history.addListener((newHistoryState: HistoryState): void => {
     historyState = newHistoryState;
-    uiState = intoUIState(historyState, store.getState().serverState);
+    uiState = createDraft(intoUIState(historyState, store.getState().serverState));
     store.dispatch(actions.updateUIState(uiState));
   });
 
@@ -340,9 +325,9 @@ export function watchStore(store: StoreType): void {
       return;
     }
 
-    uiState = storeUIState;
+    uiState = createDraft(storeUIState);
     let newHistoryState = fromUIState(uiState);
-    if (statesMatch(historyState, newHistoryState)) {
+    if (stateURLMatches(historyState, newHistoryState)) {
       history.replaceState(newHistoryState);
     } else {
       history.pushState(newHistoryState);

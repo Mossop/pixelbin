@@ -2,9 +2,10 @@ import { Catalog, Album } from "../../js/api/highlevel";
 import { ServerData } from "../../js/api/types";
 import { OverlayType } from "../../js/overlays";
 import { PageType } from "../../js/pages";
+import { ErrorCode } from "../../js/utils/exception";
 import { HistoryState } from "../../js/utils/history";
-import { intoUIState, fromUIState } from "../../js/utils/navigation";
-import { reset, expect, mockServerData } from "../helpers";
+import { intoUIState, fromUIState, stateURLMatches } from "../../js/utils/navigation";
+import { reset, expect, mockServerData, mapOf } from "../helpers";
 
 beforeEach(reset);
 
@@ -264,4 +265,161 @@ test("upload overlay", (): void => {
       type: OverlayType.Upload,
     },
   })).toEqual(state("/upload", { album: "testalbum" }));
+
+  expect((): void => {
+    fromUIState({
+      page: {
+        type: PageType.Index,
+      },
+      overlay: {
+        type: OverlayType.Upload,
+      },
+    });
+  }).toThrowAppError(ErrorCode.InvalidState);
+});
+
+test("stateURLMatches.", (): void => {
+  expect(stateURLMatches({
+    path: "/foo",
+  }, {
+    path: "/foo",
+  })).toBeTruthy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    hash: "bar",
+  }, {
+    path: "/foo",
+    hash: "bar",
+  })).toBeTruthy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+  }, {
+    path: "/foo",
+    hash: "bar",
+  })).toBeFalsy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    hash: "bar",
+  }, {
+    path: "/foo",
+  })).toBeFalsy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+  }, {
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+  })).toBeTruthy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  }, {
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  })).toBeTruthy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    hash: "5",
+  }, {
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  })).toBeFalsy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  }, {
+    path: "/foo",
+    hash: "5",
+  })).toBeFalsy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+      d: "foo",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  }, {
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  })).toBeFalsy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  }, {
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+      d: "foo",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  })).toBeFalsy();
+
+  expect(stateURLMatches({
+    path: "/foo",
+    params: mapOf({
+      a: "5",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  }, {
+    path: "/foo",
+    params: mapOf({
+      a: "6",
+      b: "hello",
+      c: "none",
+    }) as ReadonlyMap<string, string>,
+    hash: "5",
+  })).toBeFalsy();
 });

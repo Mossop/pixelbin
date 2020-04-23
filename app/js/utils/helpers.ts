@@ -48,7 +48,11 @@ export function createDraft<T>(item: T): Draft<T> {
   }
 
   if (typeof item == "object") {
-    return Object.fromEntries(Object.entries(item).map(mapEntries)) as Draft<T>;
+    let draft = Object.create(Object.getPrototypeOf(item));
+    for (let [key, value] of Object.entries(item)) {
+      draft[key] = value;
+    }
+    return draft as Draft<T>;
   }
 
   return item as Draft<T>;

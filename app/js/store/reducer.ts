@@ -228,8 +228,9 @@ export const reducers = {
     state.serverState = createDraft(serverState);
   },
 
-  updateUIState(state: Draft<StoreState>, uiState: UIState): void {
-    state.ui = createDraft(uiState);
+  updateUIState(state: Draft<StoreState>, uiState: Draft<UIState>): void {
+    // It is important that this object not be modified in any way.
+    state.ui = uiState;
   },
 
   navigate(state: Draft<StoreState>, uiState: UIState): void {
