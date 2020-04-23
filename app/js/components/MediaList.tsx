@@ -12,6 +12,7 @@ import {
 import { MediaData } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
+import { createDraft } from "../utils/helpers";
 import { Search } from "../utils/search";
 import MediaThumbnail from "./MediaThumbnail";
 import Throbber from "./Throbber";
@@ -114,7 +115,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
       // eslint-disable-next-line react/no-access-state-in-setstate
       let mediaMap = this.state.mediaMap ?? {};
       mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
-        mediaMap[id].media = processed;
+        mediaMap[id].media = createDraft(processed);
       });
 
       this.setState({
@@ -177,9 +178,9 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
       for (let item of results) {
         current.delete(item.id);
         if (!(item.id in mediaMap)) {
-          mediaMap[item.id] = { media: item };
+          mediaMap[item.id] = { media: createDraft(item) };
         } else {
-          mediaMap[item.id].media = item;
+          mediaMap[item.id].media = createDraft(item);
         }
 
         if (!isProcessed(item)) {

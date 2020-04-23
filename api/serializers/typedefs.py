@@ -169,20 +169,28 @@ class WrappedTypeDef(TypeDef):
 
 class ArrayType(WrappedTypeDef):
     def make_name(self, name):
+        name = self.typedef.response_name()
         if ' ' in name:
             return '(%s)[]' % name
         return '%s[]' % name
+
+    def response_name(self):
+        return 'readonly %s' % self.make_name(self.typedef.response_name())
 
     def decoder(self):
         return 'JsonDecoder.array(%s, "%s[]")' % \
                (self.typedef.nested_decoder(), self.typedef.response_name())
 
 class MapType(WrappedTypeDef):
-    def make_name(self, name):
-        return 'MapOf<%s>' % name
+    def response_name(self):
+        return 'ReadonlyMapOf<%s>' % self.typedef.response_name()
+
+    def request_name(self):
+        return 'MapOf<%s>' % self.typedef.response_name()
 
     def decoder(self):
-        return 'MapDecoder(%s, "%s")' % (self.typedef.nested_decoder(), self.response_name())
+        return 'ReadonlyMapDecoder(%s, "%s")' % (self.typedef.nested_decoder(),
+                                                 self.response_name())
 
 class DictType(WrappedTypeDef):
     def make_name(self, name):

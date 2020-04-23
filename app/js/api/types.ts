@@ -5,8 +5,8 @@ import { Orientation } from "media-metadata";
 import moment from "moment";
 import { JsonDecoder } from "ts.data.json";
 
-import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
-import type { Mappable, MapOf } from "../utils/maps";
+import { DateDecoder, OrientationDecoder, ReadonlyMapDecoder, EnumDecoder } from "../utils/decoders";
+import type { Mappable, MapOf, ReadonlyMapOf } from "../utils/maps";
 import {
   makeRequest,
   RequestData,
@@ -43,8 +43,8 @@ export enum ApiErrorCode {
 }
 
 export interface ApiErrorData {
-  code: ApiErrorCode;
-  args: Record<string, string>;
+  readonly code: ApiErrorCode;
+  readonly args: Record<string, string>;
 }
 
 export const ApiErrorDataDecoder = JsonDecoder.object<ApiErrorData>(
@@ -56,9 +56,9 @@ export const ApiErrorDataDecoder = JsonDecoder.object<ApiErrorData>(
 );
 
 export interface PersonData {
-  id: string;
-  catalog: ResponsePk<Catalog>;
-  name: string;
+  readonly id: string;
+  readonly catalog: ResponsePk<Catalog>;
+  readonly name: string;
 }
 
 export const PersonDataDecoder = JsonDecoder.object<PersonData>(
@@ -71,10 +71,10 @@ export const PersonDataDecoder = JsonDecoder.object<PersonData>(
 );
 
 export interface TagData {
-  id: string;
-  catalog: ResponsePk<Catalog>;
-  parent: ResponsePk<Tag> | null;
-  name: string;
+  readonly id: string;
+  readonly catalog: ResponsePk<Catalog>;
+  readonly parent: ResponsePk<Tag> | null;
+  readonly name: string;
 }
 
 export const TagDataDecoder = JsonDecoder.object<TagData>(
@@ -88,11 +88,11 @@ export const TagDataDecoder = JsonDecoder.object<TagData>(
 );
 
 export interface AlbumData {
-  id: string;
-  catalog: ResponsePk<Catalog>;
-  stub: string | null;
-  name: string;
-  parent: ResponsePk<Album> | null;
+  readonly id: string;
+  readonly catalog: ResponsePk<Catalog>;
+  readonly stub: string | null;
+  readonly name: string;
+  readonly parent: ResponsePk<Album> | null;
 }
 
 export const AlbumDataDecoder = JsonDecoder.object<AlbumData>(
@@ -107,30 +107,30 @@ export const AlbumDataDecoder = JsonDecoder.object<AlbumData>(
 );
 
 export interface CatalogData {
-  id: string;
-  name: string;
-  people: MapOf<PersonData>;
-  tags: MapOf<TagData>;
-  albums: MapOf<AlbumData>;
+  readonly id: string;
+  readonly name: string;
+  readonly people: ReadonlyMapOf<PersonData>;
+  readonly tags: ReadonlyMapOf<TagData>;
+  readonly albums: ReadonlyMapOf<AlbumData>;
 }
 
 export const CatalogDataDecoder = JsonDecoder.object<CatalogData>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
-    people: MapDecoder(PersonDataDecoder, "MapOf<PersonData>"),
-    tags: MapDecoder(TagDataDecoder, "MapOf<TagData>"),
-    albums: MapDecoder(AlbumDataDecoder, "MapOf<AlbumData>"),
+    people: ReadonlyMapDecoder(PersonDataDecoder, "ReadonlyMapOf<PersonData>"),
+    tags: ReadonlyMapDecoder(TagDataDecoder, "ReadonlyMapOf<TagData>"),
+    albums: ReadonlyMapDecoder(AlbumDataDecoder, "ReadonlyMapOf<AlbumData>"),
   },
   "CatalogData"
 );
 
 export interface UserData {
-  email: string;
-  fullname: string;
-  hadCatalog: boolean;
-  verified: boolean;
-  catalogs: MapOf<CatalogData>;
+  readonly email: string;
+  readonly fullname: string;
+  readonly hadCatalog: boolean;
+  readonly verified: boolean;
+  readonly catalogs: ReadonlyMapOf<CatalogData>;
 }
 
 export const UserDataDecoder = JsonDecoder.object<UserData>(
@@ -139,13 +139,13 @@ export const UserDataDecoder = JsonDecoder.object<UserData>(
     fullname: JsonDecoder.string,
     hadCatalog: JsonDecoder.boolean,
     verified: JsonDecoder.boolean,
-    catalogs: MapDecoder(CatalogDataDecoder, "MapOf<CatalogData>"),
+    catalogs: ReadonlyMapDecoder(CatalogDataDecoder, "ReadonlyMapOf<CatalogData>"),
   },
   "UserData"
 );
 
 export interface ServerData {
-  user: UserData | null;
+  readonly user: UserData | null;
 }
 
 export const ServerDataDecoder = JsonDecoder.object<ServerData>(
@@ -156,13 +156,13 @@ export const ServerDataDecoder = JsonDecoder.object<ServerData>(
 );
 
 export interface MediaInfoData {
-  processVersion: number;
-  uploaded: moment.Moment;
-  mimetype: string;
-  width: number;
-  height: number;
-  duration: number | null;
-  fileSize: number;
+  readonly processVersion: number;
+  readonly uploaded: moment.Moment;
+  readonly mimetype: string;
+  readonly width: number;
+  readonly height: number;
+  readonly duration: number | null;
+  readonly fileSize: number;
 }
 
 export const MediaInfoDataDecoder = JsonDecoder.object<MediaInfoData>(
@@ -179,27 +179,27 @@ export const MediaInfoDataDecoder = JsonDecoder.object<MediaInfoData>(
 );
 
 export interface MetadataData {
-  filename: string | null;
-  title: string | null;
-  taken: moment.Moment | null;
-  offset: number | null;
-  longitude: number | null;
-  latitude: number | null;
-  altitude: number | null;
-  location: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  orientation: Orientation | null;
-  make: string | null;
-  model: string | null;
-  lens: string | null;
-  photographer: string | null;
-  aperture: number | null;
-  exposure: number | null;
-  iso: number | null;
-  focalLength: number | null;
-  bitrate: number | null;
+  readonly filename: string | null;
+  readonly title: string | null;
+  readonly taken: moment.Moment | null;
+  readonly offset: number | null;
+  readonly longitude: number | null;
+  readonly latitude: number | null;
+  readonly altitude: number | null;
+  readonly location: string | null;
+  readonly city: string | null;
+  readonly state: string | null;
+  readonly country: string | null;
+  readonly orientation: Orientation | null;
+  readonly make: string | null;
+  readonly model: string | null;
+  readonly lens: string | null;
+  readonly photographer: string | null;
+  readonly aperture: number | null;
+  readonly exposure: number | null;
+  readonly iso: number | null;
+  readonly focalLength: number | null;
+  readonly bitrate: number | null;
 }
 
 export const MetadataDataDecoder = JsonDecoder.object<MetadataData>(
@@ -230,13 +230,13 @@ export const MetadataDataDecoder = JsonDecoder.object<MetadataData>(
 );
 
 export interface MediaData {
-  id: string;
-  created: moment.Moment;
-  info: MediaInfoData | null;
-  tags: ResponsePk<Tag>[];
-  albums: ResponsePk<Album>[];
-  people: ResponsePk<Person>[];
-  metadata: MetadataData;
+  readonly id: string;
+  readonly created: moment.Moment;
+  readonly info: MediaInfoData | null;
+  readonly tags: readonly ResponsePk<Tag>[];
+  readonly albums: readonly ResponsePk<Album>[];
+  readonly people: readonly ResponsePk<Person>[];
+  readonly metadata: MetadataData;
 }
 
 export const MediaDataDecoder = JsonDecoder.object<MediaData>(
@@ -289,7 +289,7 @@ export interface AlbumCreateData {
 
 export interface AlbumMedia {
   album: RequestPk<Album>;
-  media: RequestPk<Media>[];
+  media: ResponsePk<Media>[];
 }
 
 export interface TagCreateData {
@@ -334,9 +334,9 @@ export interface MetadataUpdateData {
 
 export interface MediaCreateData {
   catalog: RequestPk<Catalog>;
-  tags?: RequestPk<Tag>[];
-  albums?: RequestPk<Album>[];
-  people?: RequestPk<Person>[];
+  tags?: ResponsePk<Tag>[];
+  albums?: ResponsePk<Album>[];
+  people?: ResponsePk<Person>[];
   file?: Blob;
   metadata?: MetadataUpdateData;
 }
@@ -410,12 +410,12 @@ export function request(method: ApiMethod.AlbumAddMedia, data: AlbumMedia): Prom
 export function request(method: ApiMethod.AlbumRemoveMedia, data: AlbumMedia): Promise<AlbumData>;
 export function request(method: ApiMethod.TagCreate, data: TagCreateData): Promise<TagData>;
 export function request(method: ApiMethod.TagEdit, data: Patch<TagCreateData, Tag>): Promise<TagData>;
-export function request(method: ApiMethod.TagFind, data: TagLookup): Promise<TagData[]>;
+export function request(method: ApiMethod.TagFind, data: TagLookup): Promise<readonly TagData[]>;
 export function request(method: ApiMethod.PersonCreate, data: PersonCreateData): Promise<PersonData>;
 export function request(method: ApiMethod.MediaGet, data: Mappable): Promise<MediaData>;
 export function request(method: ApiMethod.MediaCreate, data: MediaCreateData): Promise<MediaData>;
 export function request(method: ApiMethod.MediaUpdate, data: Patch<MediaCreateData, Media>): Promise<MediaData>;
-export function request(method: ApiMethod.MediaSearch, data: Search): Promise<MediaData[]>;
+export function request(method: ApiMethod.MediaSearch, data: Search): Promise<readonly MediaData[]>;
 export function request(method: ApiMethod.MediaThumbnail, data: MediaThumbnail): Promise<Blob>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

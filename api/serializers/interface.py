@@ -29,44 +29,35 @@ def flags_from_class(cls, field):
     )
 
 class InterfaceProperty:
-    def __init__(self, name, typedef, flags):
+    def __init__(self, name, typedef):
         self.name = name
         self.typedef = typedef
-        self.flags = flags
-
-    @property
-    def symmetrical(self):
-        if self.readonly or self.writeonly:
-            return False
-        return self.typedef.symmetrical
-
-    @property
-    def writeonly(self):
-        return self.flags.writeonly
-
-    @property
-    def readonly(self):
-        return self.flags.readonly
-
-    @property
-    def required(self):
-        return self.flags.required
-
-    def build_property(self, type_name):
-        return '%s%s: %s' % (
-            self.name,
-            '?' if not self.required else '',
-            type_name,
-        )
-
-    def request_property(self):
-        return self.build_property(self.typedef.request_name())
-
-    def response_property(self):
-        return self.build_property(self.typedef.response_name())
 
     def decoder(self):
         return self.typedef.nested_decoder()
+
+class ResponseProperty(InterfaceProperty):
+    def build_property(self):
+        return 'readonly %s: %s' % (
+            self.name,
+            self.typedef.response_name(),
+        )
+
+class RequestProperty(InterfaceProperty):
+    def __init__(self, name, typedef, required):
+        super().__init__(name, typedef)
+        self._required = required
+
+    @property
+    def required(self):
+        return self._required
+
+    def build_property(self):
+        return '%s%s: %s' % (
+            self.name,
+            '?' if not self.required else '',
+            self.typedef.request_name(),
+        )
 
 INTERFACE_MAP = dict()
 
@@ -76,27 +67,24 @@ class InterfaceType(typedefs.TypeDef):
 
         self.cls = cls
 
-        self.properties = []
-        self._symmetrical = True
+        self._request_properties = []
+        self._response_properties = []
         self.for_request = False
         self.for_response = False
         self._response_name = None
         self._request_name = None
 
-    def add_property(self, prop):
-        if not prop.symmetrical:
-            self._symmetrical = False
-        self.properties.append(prop)
+    def add_request_property(self, prop):
+        self._request_properties.append(prop)
 
-    @property
-    def symmetrical(self):
-        return self._symmetrical
+    def add_response_property(self, prop):
+        self._response_properties.append(prop)
 
     def request_properties(self):
-        return filter(lambda p: not p.readonly, self.properties)
+        return list(self._request_properties)
 
     def response_properties(self):
-        return filter(lambda p: not p.writeonly, self.properties)
+        return list(self._response_properties)
 
     def response_interfaces(self):
         self.for_response = True
@@ -110,7 +98,7 @@ class InterfaceType(typedefs.TypeDef):
         return ifaces
 
     def build_response_type(self):
-        result = map(lambda prop: '  %s;' % prop.response_property(), self.response_properties())
+        result = map(lambda prop: '  %s;' % prop.build_property(), self.response_properties())
         return ['export interface %s {' % self.response_name()] + list(result) + ['}\n']
 
     def request_interfaces(self):
@@ -125,7 +113,7 @@ class InterfaceType(typedefs.TypeDef):
         return ifaces
 
     def build_request_type(self):
-        result = map(lambda prop: '  %s;' % prop.request_property(), self.request_properties())
+        result = map(lambda prop: '  %s;' % prop.build_property(), self.request_properties())
         return ['export interface %s {' % self.request_name()] + list(result) + ['}\n']
 
     def response_name(self):
@@ -136,7 +124,7 @@ class InterfaceType(typedefs.TypeDef):
             return self._response_name
 
         self._response_name = getattr(self.cls.Meta, 'js_response_type', None)
-        if self._response_name is None and (self.symmetrical or not self.for_request):
+        if self._response_name is None and not self.for_request:
             self._response_name = getattr(self.cls.Meta, 'js_request_type', None)
 
         if self._response_name is None:
@@ -152,7 +140,7 @@ class InterfaceType(typedefs.TypeDef):
             return self._request_name
 
         self._request_name = getattr(self.cls.Meta, 'js_request_type', None)
-        if self._request_name is None and (self.symmetrical or not self.for_response):
+        if self._request_name is None and not self.for_response:
             self._request_name = getattr(self.cls.Meta, 'js_response_type', None)
 
         if self._request_name is None:
@@ -203,13 +191,10 @@ class InterfaceType(typedefs.TypeDef):
             else:
                 flags = flags_from_field(field_instance)
 
-            if not flags.required and not flags.readonly and not flags.writeonly:
-                # We're following the assumption that when sending data from the
-                # database it will always be serialized so add two properties,
-                # one required readonly property and one optional writeonly property.
-                iface.add_property(InterfaceProperty(key, typedef, FieldFlags(True, True, False)))
-                iface.add_property(InterfaceProperty(key, typedef, FieldFlags(False, False, True)))
-            else:
-                iface.add_property(InterfaceProperty(key, typedef, flags))
+            if not flags.writeonly:
+                iface.add_response_property(ResponseProperty(key, typedef))
+
+            if not flags.readonly:
+                iface.add_request_property(RequestProperty(key, typedef, flags.required))
 
         return iface

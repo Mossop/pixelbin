@@ -1,11 +1,12 @@
 import { Draft } from "immer";
 
 import { Catalog, Album } from "../api/highlevel";
+import { ServerData } from "../api/types";
 import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
 import { StoreType } from "../store";
 import actions from "../store/actions";
-import { UIState, ServerState } from "../store/types";
+import { UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import * as history from "./history";
 import { HistoryState, buildState } from "./history";
@@ -48,7 +49,7 @@ function encodeTargetState(uiState: UIState): Map<string, string> | undefined {
 
 function decodeTargetState(
   params: ReadonlyMap<string, string> | undefined,
-  serverState: ServerState,
+  serverState: ServerData,
 ): UIState {
   if (!params) {
     return {
@@ -102,7 +103,7 @@ function notfound(historyState: HistoryState): UIState {
   };
 }
 
-export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
+export function intoUIState(historyState: HistoryState, serverState: ServerData): UIState {
   switch (historyState.path) {
     case "/": {
       return {
@@ -269,7 +270,7 @@ export function fromUIState(uiState: UIState): HistoryState {
   }
 }
 
-export function getState(serverState: ServerState): UIState {
+export function getState(serverState: ServerData): UIState {
   return intoUIState(history.getState(), serverState);
 }
 

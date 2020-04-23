@@ -1,3 +1,5 @@
+import { Draft } from "immer";
+
 import { Catalog, Reference, Tag, Album } from "../../js/api/highlevel";
 import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../../js/api/types";
 import { PageType } from "../../js/pages";
@@ -30,7 +32,7 @@ function *iterAlbums(
   catalog: Reference<Catalog>,
   parent: Reference<Album> | null,
   mocks: MockAlbum[] | undefined,
-): Iterable<AlbumData> {
+): Iterable<Draft<AlbumData>> {
   if (!mocks) {
     return;
   }
@@ -54,7 +56,7 @@ function *iterTags(
   catalog: Reference<Catalog>,
   parent: Reference<Tag> | null,
   mocks: MockTag[] | undefined,
-): Iterable<TagData> {
+): Iterable<Draft<TagData>> {
   if (!mocks) {
     return;
   }
@@ -77,7 +79,7 @@ function *iterTags(
 function *iterPeople(
   catalog: Reference<Catalog>,
   mocks: MockPerson[] | undefined,
-): Iterable<PersonData> {
+): Iterable<Draft<PersonData>> {
   if (!mocks) {
     return;
   }
@@ -93,7 +95,7 @@ function *iterPeople(
   }
 }
 
-export function mockCatalog(mock: MockCatalog): CatalogData {
+export function mockCatalog(mock: MockCatalog): Draft<CatalogData> {
   let id = mock.id ?? randomId();
   let ref = Catalog.ref(id);
 
@@ -106,7 +108,7 @@ export function mockCatalog(mock: MockCatalog): CatalogData {
   };
 }
 
-export function mockServerData(catalogs?: MockCatalog[]): ServerData {
+export function mockServerData(catalogs?: MockCatalog[]): Draft<ServerData> {
   if (catalogs === undefined) {
     catalogs = [];
   }
@@ -122,7 +124,7 @@ export function mockServerData(catalogs?: MockCatalog[]): ServerData {
   };
 }
 
-export function mockStore(state?: Partial<StoreState>): StoreState {
+export function mockStore(state?: Partial<Draft<StoreState>>): Draft<StoreState> {
   if (state === undefined) {
     state = {};
   }

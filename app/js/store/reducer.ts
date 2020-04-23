@@ -18,7 +18,7 @@ import { nameSorted } from "../utils/sort";
 import { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
-  S extends (state: Draft<StoreState>, user: UserData, ...args: infer A) => void
+  S extends (state: Draft<StoreState>, user: Draft<UserData>, ...args: infer A) => void
     ? (state: Draft<StoreState>, ...args: A) => void
     : S;
 
@@ -41,14 +41,14 @@ function authedReducers<M>(reducers: M): MappedReducers<M> {
 }
 
 const catalogReducers = {
-  showCatalogCreateOverlay(state: Draft<StoreState>, _user: UserData): void {
+  showCatalogCreateOverlay(state: Draft<StoreState>, _user: Draft<UserData>): void {
     state.ui.overlay = {
       type: OverlayType.CreateCatalog,
     };
   },
 
-  catalogCreated(state: Draft<StoreState>, user: UserData, catalog: CatalogData): void {
-    user.catalogs.set(catalog.id, catalog);
+  catalogCreated(state: Draft<StoreState>, user: Draft<UserData>, catalog: CatalogData): void {
+    user.catalogs.set(catalog.id, createDraft(catalog));
     state.ui = {
       page: {
         type: PageType.Catalog,
@@ -59,7 +59,7 @@ const catalogReducers = {
 
   showCatalogEditOverlay(
     state: Draft<StoreState>,
-    _user: UserData,
+    _user: Draft<UserData>,
     catalog: Reference<Catalog>,
   ): void {
     state.ui.overlay = {
@@ -72,7 +72,7 @@ const catalogReducers = {
 const albumReducers = {
   showAlbumCreateOverlay(
     state: Draft<StoreState>,
-    _user: UserData,
+    _user: Draft<UserData>,
     parent: Reference<MediaTarget>,
   ): void {
     state.ui.overlay = {
@@ -81,7 +81,7 @@ const albumReducers = {
     };
   },
 
-  albumCreated(state: Draft<StoreState>, user: UserData, album: AlbumData): void {
+  albumCreated(state: Draft<StoreState>, user: Draft<UserData>, album: AlbumData): void {
     let catalog = user.catalogs.get(album.catalog.id);
     if (catalog) {
       catalog.albums.set(album.id, album);
@@ -95,14 +95,18 @@ const albumReducers = {
     };
   },
 
-  showAlbumEditOverlay(state: Draft<StoreState>, _user: UserData, album: Reference<Album>): void {
+  showAlbumEditOverlay(
+    state: Draft<StoreState>,
+    _user: Draft<UserData>,
+    album: Reference<Album>,
+  ): void {
     state.ui.overlay = {
       type: OverlayType.EditAlbum,
       album,
     };
   },
 
-  albumEdited(state: Draft<StoreState>, user: UserData, album: AlbumData): void {
+  albumEdited(state: Draft<StoreState>, user: Draft<UserData>, album: AlbumData): void {
     let newCatalog = user.catalogs.get(album.catalog.id);
     if (newCatalog) {
       for (let catalog of user.catalogs.values()) {
@@ -119,7 +123,7 @@ const albumReducers = {
 };
 
 const tagReducers = {
-  tagsCreated(_state: Draft<StoreState>, user: UserData, tags: TagData[]): void {
+  tagsCreated(_state: Draft<StoreState>, user: Draft<UserData>, tags: readonly TagData[]): void {
     for (let tag of tags) {
       let catalog = user.catalogs.get(tag.catalog.id);
       if (catalog) {
@@ -130,7 +134,7 @@ const tagReducers = {
 };
 
 const personReducers = {
-  personCreated(_state: Draft<StoreState>, user: UserData, person: PersonData): void {
+  personCreated(_state: Draft<StoreState>, user: Draft<UserData>, person: PersonData): void {
     let catalog = user.catalogs.get(person.catalog.id);
     if (catalog) {
       catalog.people.set(person.id, person);
@@ -146,7 +150,7 @@ const authReducers = {
   },
 
   completeLogin(state: Draft<StoreState>, serverData: ServerData): void {
-    state.serverState = serverData;
+    state.serverState = createDraft(serverData);
 
     if (serverData.user) {
       let catalogs = nameSorted(Array.from(serverData.user.catalogs.values()));
@@ -179,7 +183,7 @@ const authReducers = {
   },
 
   completeSignup(state: Draft<StoreState>, serverData: ServerData): void {
-    state.serverState = serverData;
+    state.serverState = createDraft(serverData);
     state.ui = {
       page: {
         type: PageType.User,
@@ -191,7 +195,7 @@ const authReducers = {
   },
 
   completeLogout(state: Draft<StoreState>, serverData: ServerData): void {
-    state.serverState = serverData;
+    state.serverState = createDraft(serverData);
     state.ui = {
       page: {
         type: PageType.Index,
@@ -221,7 +225,7 @@ export const reducers = {
   },
 
   updateServerState(state: Draft<StoreState>, serverState: ServerData): void {
-    state.serverState = serverState;
+    state.serverState = createDraft(serverState);
   },
 
   updateUIState(state: Draft<StoreState>, uiState: UIState): void {

@@ -4,6 +4,7 @@ import logging
 from django.db import transaction
 from django.http.response import HttpResponse
 from filetype import filetype
+from rest_framework import status
 
 from . import api_view
 from ..models import Media
@@ -108,7 +109,7 @@ def thumbnail(request, deserialized):
     request.user.check_can_see(media.catalog)
 
     if media.info is None:
-            raise ApiException('not-found', status=status.HTTP_404_NOT_FOUND)
+        raise ApiException('not-found', status=status.HTTP_404_NOT_FOUND)
 
     image = build_thumbnail(media, deserialized.validated_data['size'])
     response = HttpResponse(content_type='image/jpeg')

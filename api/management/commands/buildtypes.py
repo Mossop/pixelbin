@@ -16,8 +16,8 @@ import { Orientation } from "media-metadata";
 import moment from "moment";
 import { JsonDecoder } from "ts.data.json";
 
-import { DateDecoder, OrientationDecoder, MapDecoder, EnumDecoder } from "../utils/decoders";
-import type { Mappable, MapOf } from "../utils/maps";
+import { DateDecoder, OrientationDecoder, ReadonlyMapDecoder, EnumDecoder } from "../utils/decoders";
+import type { Mappable, MapOf, ReadonlyMapOf } from "../utils/maps";
 import {
   makeRequest,
   RequestData,
@@ -116,8 +116,9 @@ class Command(BaseCommand):
             else:
                 request_type = 'JsonRequestData(data, '
 
+            encoded_url = url.replace('<', '${pullParam(data, "').replace('>', '")}')
             self.write('    case ApiMethod.%s:' % method)
-            self.write('      path = `%s`;' % url.replace('<', '${pullParam(data, "').replace('>', '")}'))
+            self.write('      path = `%s`;' % encoded_url)
             self.write('      request = new %s%s);' % (request_type, decoder))
             self.write('      break;')
 

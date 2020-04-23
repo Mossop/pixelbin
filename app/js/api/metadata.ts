@@ -133,7 +133,7 @@ function getFieldInstance<T>(key: string, cls: FieldConstructor<T>): BaseMetadat
 }
 
 type FieldGetter<T> = (media: MediaWithMetadata, key: string) => T | undefined;
-type FieldSetter<T> = (media: MediaWithMetadata, key: string, value: T) => void;
+type FieldSetter<T> = (media: MediaCreateData, key: string, value: T) => void;
 
 function buildFieldGetter<T>(cls: FieldConstructor<T>): FieldGetter<T> {
   return (media: MediaWithMetadata, key: string): T | undefined => {
@@ -147,7 +147,7 @@ function buildFieldGetter<T>(cls: FieldConstructor<T>): FieldGetter<T> {
 }
 
 function buildFieldSetter<T>(cls: FieldConstructor<T>): FieldSetter<T> {
-  return (media: MediaWithMetadata, key: string, value: T): void => {
+  return (media: MediaCreateData, key: string, value: T): void => {
     if (!media.metadata) {
       media.metadata = {};
     }

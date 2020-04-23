@@ -1,12 +1,9 @@
-import type { Immutable } from "immer";
-
 import actions from "../store/actions";
-import type { ServerState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId } from "../utils/maps";
 import type { MapId } from "../utils/maps";
 import type { ProcessedMediaData, UnprocessedMediaData } from "./media";
-import type { AlbumData, CatalogData, TagData, PersonData } from "./types";
+import type { ServerData, AlbumData, CatalogData, TagData, PersonData } from "./types";
 
 interface StateCache {
   readonly albums: Map<string, Album>;
@@ -15,30 +12,30 @@ interface StateCache {
   readonly catalogs: Map<string, Catalog>;
 }
 
-const STATE_CACHE: WeakMap<ServerState, StateCache> = new WeakMap();
+const STATE_CACHE: WeakMap<ServerData, StateCache> = new WeakMap();
 
-function buildStateCache(serverState: ServerState): StateCache {
+function buildStateCache(ServerData: ServerData): StateCache {
   let cache: StateCache = {
     albums: new Map(),
     tags: new Map(),
     people: new Map(),
     catalogs: new Map(),
   };
-  STATE_CACHE.set(serverState, cache);
+  STATE_CACHE.set(ServerData, cache);
   return cache;
 }
 
-function getStateCache(serverState: ServerState): StateCache {
-  return STATE_CACHE.get(serverState) ?? buildStateCache(serverState);
+function getStateCache(ServerData: ServerData): StateCache {
+  return STATE_CACHE.get(ServerData) ?? buildStateCache(ServerData);
 }
 
 export interface APIItemBuilder<T> {
-  fromState: (serverState: ServerState, id: string) => T;
+  fromState: (ServerData: ServerData, id: string) => T;
 }
 
 export interface Reference<T> {
   readonly id: string;
-  readonly deref: (serverState: ServerState) => T;
+  readonly deref: (ServerData: ServerData) => T;
   readonly toString: () => string;
 }
 
@@ -58,8 +55,8 @@ export function mediaRef(media: Media): Reference<Media> {
 
 export type Derefer = <T>(ref: Reference<T> | undefined) => T | undefined;
 
-export function dereferencer(serverState: ServerState): Derefer {
-  return <T>(ref: Reference<T> | undefined): T | undefined => ref?.deref(serverState);
+export function dereferencer(ServerData: ServerData): Derefer {
+  return <T>(ref: Reference<T> | undefined): T | undefined => ref?.deref(ServerData);
 }
 
 export interface Referencable<T> {
@@ -74,8 +71,8 @@ interface Pending<T> {
 export class APIItemReference<T> implements Reference<T> {
   public constructor(public readonly id: string, private cls: APIItemBuilder<T>) {}
 
-  public deref(serverState: ServerState): T {
-    return this.cls.fromState(serverState, this.id);
+  public deref(ServerData: ServerData): T {
+    return this.cls.fromState(ServerData, this.id);
   }
 
   public toString(): string {
@@ -104,13 +101,13 @@ export abstract class APIItem<T> {
 
 export class Tag implements Referencable<Tag> {
   private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: Immutable<TagData>,
+    private readonly ServerData: ServerData,
+    private readonly state: TagData,
   ) {}
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.serverState);
+    return this.state.catalog.deref(this.ServerData);
   }
 
   public get id(): string {
@@ -122,26 +119,26 @@ export class Tag implements Referencable<Tag> {
   }
 
   public get parent(): Tag | undefined {
-    return this.state.parent?.deref(this.serverState);
+    return this.state.parent?.deref(this.ServerData);
   }
 
   public get children(): Tag[] {
-    let { user } = this.serverState;
+    let { user } = this.ServerData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
 
-    let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog.id);
+    let catalogState: CatalogData | undefined = user.catalogs.get(this.state.catalog.id);
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);
     }
 
     return Array.from(catalogState.tags.values())
-      .filter((tagState: Immutable<TagData>): boolean => tagState.parent?.id == this.id)
+      .filter((tagState: TagData): boolean => tagState.parent?.id == this.id)
       .map(
-        (tagState: Immutable<TagData>): Tag =>
-          Tag.fromState(this.serverState, tagState.id),
+        (tagState: TagData): Tag =>
+          Tag.fromState(this.ServerData, tagState.id),
       );
   }
 
@@ -153,14 +150,14 @@ export class Tag implements Referencable<Tag> {
     return new APIItemReference(this.id, Tag);
   }
 
-  public static fromState(serverState: ServerState, id: string): Tag {
-    let cache = getStateCache(serverState);
+  public static fromState(ServerData: ServerData, id: string): Tag {
+    let cache = getStateCache(ServerData);
     let tag = cache.tags.get(id);
     if (tag) {
       return tag;
     }
 
-    let { user } = serverState;
+    let { user } = ServerData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -168,7 +165,7 @@ export class Tag implements Referencable<Tag> {
     for (let catalog of user.catalogs.values()) {
       let tagState = catalog.tags.get(id);
       if (tagState) {
-        tag = new Tag(serverState, tagState);
+        tag = new Tag(ServerData, tagState);
         cache.tags.set(id, tag);
         return tag;
       }
@@ -178,11 +175,11 @@ export class Tag implements Referencable<Tag> {
   }
 
   public static safeFromState(
-    serverState: ServerState,
+    ServerData: ServerData,
     id: string,
   ): Tag | undefined {
     try {
-      return Tag.fromState(serverState, id);
+      return Tag.fromState(ServerData, id);
     } catch (e) {
       return undefined;
     }
@@ -191,13 +188,13 @@ export class Tag implements Referencable<Tag> {
 
 export class Person implements Referencable<Person> {
   private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: Immutable<PersonData>,
+    private readonly ServerData: ServerData,
+    private readonly state: PersonData,
   ) {}
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.serverState);
+    return this.state.catalog.deref(this.ServerData);
   }
 
   public get id(): string {
@@ -217,16 +214,16 @@ export class Person implements Referencable<Person> {
   }
 
   public static fromState(
-    serverState: ServerState,
+    ServerData: ServerData,
     id: string,
   ): Person {
-    let cache = getStateCache(serverState);
+    let cache = getStateCache(ServerData);
     let person = cache.people.get(id);
     if (person) {
       return person;
     }
 
-    let { user } = serverState;
+    let { user } = ServerData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -234,7 +231,7 @@ export class Person implements Referencable<Person> {
     for (let catalog of user.catalogs.values()) {
       let personState = catalog.people.get(id);
       if (personState) {
-        person = new Person(serverState, personState);
+        person = new Person(ServerData, personState);
         cache.people.set(id, person);
         return person;
       }
@@ -244,11 +241,11 @@ export class Person implements Referencable<Person> {
   }
 
   public static safeFromState(
-    serverState: ServerState,
+    ServerData: ServerData,
     id: string,
   ): Person | undefined {
     try {
-      return Person.fromState(serverState, id);
+      return Person.fromState(ServerData, id);
     } catch (e) {
       return undefined;
     }
@@ -257,8 +254,8 @@ export class Person implements Referencable<Person> {
 
 export class Album implements Referencable<Album> {
   private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: Immutable<AlbumData>,
+    private readonly ServerData: ServerData,
+    private readonly state: AlbumData,
   ) {}
 
   public get id(): string {
@@ -267,7 +264,7 @@ export class Album implements Referencable<Album> {
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.serverState);
+    return this.state.catalog.deref(this.ServerData);
   }
 
   public get stub(): string | null {
@@ -279,26 +276,26 @@ export class Album implements Referencable<Album> {
   }
 
   public get parent(): Album | undefined {
-    return this.state.parent?.deref(this.serverState);
+    return this.state.parent?.deref(this.ServerData);
   }
 
   public get children(): Album[] {
-    let { user } = this.serverState;
+    let { user } = this.ServerData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
 
-    let catalogState: Immutable<CatalogData> | undefined = user.catalogs.get(this.state.catalog.id);
+    let catalogState: CatalogData | undefined = user.catalogs.get(this.state.catalog.id);
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);
     }
 
     return Array.from(catalogState.albums.values())
-      .filter((albumState: Immutable<AlbumData>): boolean => albumState.parent?.id == this.id)
+      .filter((albumState: AlbumData): boolean => albumState.parent?.id == this.id)
       .map(
-        (albumState: Immutable<AlbumData>): Album =>
-          Album.fromState(this.serverState, albumState.id),
+        (albumState: AlbumData): Album =>
+          Album.fromState(this.ServerData, albumState.id),
       );
   }
 
@@ -322,16 +319,16 @@ export class Album implements Referencable<Album> {
   }
 
   public static fromState(
-    serverState: ServerState,
+    ServerData: ServerData,
     id: string,
   ): Album {
-    let cache = getStateCache(serverState);
+    let cache = getStateCache(ServerData);
     let album = cache.albums.get(id);
     if (album) {
       return album;
     }
 
-    let { user } = serverState;
+    let { user } = ServerData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -339,7 +336,7 @@ export class Album implements Referencable<Album> {
     for (let catalog of user.catalogs.values()) {
       let state = catalog.albums.get(id);
       if (state) {
-        album = new Album(serverState, state);
+        album = new Album(ServerData, state);
         cache.albums.set(id, album);
         return album;
       }
@@ -349,11 +346,11 @@ export class Album implements Referencable<Album> {
   }
 
   public static safeFromState(
-    serverState: ServerState,
+    ServerData: ServerData,
     id: string,
   ): Album | undefined {
     try {
-      return Album.fromState(serverState, id);
+      return Album.fromState(ServerData, id);
     } catch (e) {
       return undefined;
     }
@@ -362,8 +359,8 @@ export class Album implements Referencable<Album> {
 
 export class Catalog implements Referencable<Catalog> {
   private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: Immutable<CatalogData>,
+    private readonly ServerData: ServerData,
+    private readonly state: CatalogData,
   ) {}
 
   public get id(): string {
@@ -376,14 +373,14 @@ export class Catalog implements Referencable<Catalog> {
 
   public get rootAlbums(): Album[] {
     return Array.from(this.state.albums.values())
-      .filter((album: Immutable<AlbumData>): boolean => !album.parent)
-      .map((album: Immutable<AlbumData>): Album => Album.fromState(this.serverState, album.id));
+      .filter((album: AlbumData): boolean => !album.parent)
+      .map((album: AlbumData): Album => Album.fromState(this.ServerData, album.id));
   }
 
   public get rootTags(): Tag[] {
     return Array.from(this.state.tags.values())
-      .filter((tag: Immutable<TagData>): boolean => !tag.parent)
-      .map((tag: Immutable<TagData>): Tag => Tag.fromState(this.serverState, tag.id));
+      .filter((tag: TagData): boolean => !tag.parent)
+      .map((tag: TagData): Tag => Tag.fromState(this.ServerData, tag.id));
   }
 
   public findTag(path: string[]): Pending<Tag> {
@@ -402,12 +399,12 @@ export class Catalog implements Referencable<Catalog> {
 
   public get tags(): Tag[] {
     return Array.from(this.state.tags.keys()).map(
-      (id: string): Tag => Tag.fromState(this.serverState, id),
+      (id: string): Tag => Tag.fromState(this.ServerData, id),
     );
   }
 
   public getAlbum(id: string): Album | undefined {
-    let album = Album.safeFromState(this.serverState, id);
+    let album = Album.safeFromState(this.ServerData, id);
     if (album?.catalog !== this) {
       return undefined;
     }
@@ -416,7 +413,7 @@ export class Catalog implements Referencable<Catalog> {
 
   public get albums(): Album[] {
     return Array.from(this.state.albums.keys()).map(
-      (id: string): Album => Album.fromState(this.serverState, id),
+      (id: string): Album => Album.fromState(this.ServerData, id),
     );
   }
 
@@ -439,7 +436,7 @@ export class Catalog implements Referencable<Catalog> {
 
   public get people(): Person[] {
     return Array.from(this.state.people.keys()).map(
-      (id: string): Person => Person.fromState(this.serverState, id),
+      (id: string): Person => Person.fromState(this.ServerData, id),
     );
   }
 
@@ -452,23 +449,23 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public static fromState(
-    serverState: ServerState,
+    ServerData: ServerData,
     id: string,
   ): Catalog {
-    let cache = getStateCache(serverState);
+    let cache = getStateCache(ServerData);
     let catalog = cache.catalogs.get(id);
     if (catalog) {
       return catalog;
     }
 
-    let { user } = serverState;
+    let { user } = ServerData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
 
     let state = user.catalogs.get(id);
     if (state) {
-      catalog = new Catalog(serverState, state);
+      catalog = new Catalog(ServerData, state);
       cache.catalogs.set(id, catalog);
       return catalog;
     }
@@ -477,22 +474,22 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public static safeFromState(
-    serverState: ServerState,
+    ServerData: ServerData,
     id: string,
   ): Catalog | undefined {
     try {
-      return Catalog.fromState(serverState, id);
+      return Catalog.fromState(ServerData, id);
     } catch (e) {
       return undefined;
     }
   }
 }
 
-export function catalogs(serverState: ServerState): Catalog[] {
-  if (serverState.user) {
+export function catalogs(ServerData: ServerData): Catalog[] {
+  if (ServerData.user) {
     return Array.from(
-      serverState.user.catalogs.keys(),
-      (id: string): Catalog => Catalog.fromState(serverState, id),
+      ServerData.user.catalogs.keys(),
+      (id: string): Catalog => Catalog.fromState(ServerData, id),
     );
   }
   return [];

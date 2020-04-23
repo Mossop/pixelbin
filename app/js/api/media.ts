@@ -9,11 +9,11 @@ import type { MediaData, MediaCreateData } from "./types";
 export type MediaTarget = Catalog | Album;
 
 export type ProcessedMediaData = Omit<MediaData, "info"> & {
-  info: MediaInfoData;
+  readonly info: MediaInfoData;
 };
 
 export type UnprocessedMediaData = Omit<MediaData, "info"> & {
-  info: null;
+  readonly info: null;
 };
 
 export function isProcessed(media: MediaData): media is ProcessedMediaData {
@@ -36,7 +36,7 @@ export function updateMedia(media: Patch<MediaCreateData, Media>): Promise<Media
   return request(ApiMethod.MediaUpdate, media);
 }
 
-export function searchMedia(search: Search): Promise<MediaData[]> {
+export function searchMedia(search: Search): Promise<readonly MediaData[]> {
   return request(ApiMethod.MediaSearch, search);
 }
 

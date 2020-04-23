@@ -4,7 +4,7 @@ import moment, { ISO_8601, Moment } from "moment";
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 
 import { exception, ErrorCode } from "./exception";
-import { Mappable, MapOf } from "./maps";
+import { Mappable, ReadonlyMapOf } from "./maps";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
@@ -69,14 +69,14 @@ export function EnumDecoder<F, T>(
   return MappingDecoder<F, T>(decoder, (data: F): T => data as unknown as T, name);
 }
 
-export function MapDecoder<A extends Mappable>(
-  decoder: JsonDecoder.Decoder<Draft<A>>,
+export function ReadonlyMapDecoder<A extends Mappable>(
+  decoder: JsonDecoder.Decoder<A>,
   name: string,
-): JsonDecoder.Decoder<Draft<MapOf<A>>> {
-  return MappingDecoder<Draft<A[]>, Draft<MapOf<A>>>(
+): JsonDecoder.Decoder<ReadonlyMapOf<A>> {
+  return MappingDecoder<A[], ReadonlyMapOf<A>>(
     JsonDecoder.array(decoder, name),
-    (arr: Draft<A[]>): Map<string, Draft<A>> => {
-      let result: Map<string, Draft<A>> = new Map();
+    (arr: A[]): ReadonlyMap<string, A> => {
+      let result: Map<string, A> = new Map();
       for (let val of arr) {
         result.set(val.id, val);
       }
