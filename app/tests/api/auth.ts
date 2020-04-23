@@ -14,10 +14,6 @@ jest.mock("../../js/environment/fetch");
 
 const mockedFetch = mockedFunction(fetch);
 
-beforeEach((): void => {
-  mockedFetch.mockClear();
-});
-
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Bad state", async (): Promise<void> => {

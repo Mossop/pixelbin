@@ -23,4 +23,5 @@ module.exports = {
     file: "coverage.json",
   }]],
   resetModules: true,
+  clearMocks: true,
 };

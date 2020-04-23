@@ -3,18 +3,20 @@ import { Draft } from "immer";
 import { Catalog, Album } from "../api/highlevel";
 import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
+import { StoreType } from "../store";
+import actions from "../store/actions";
 import { UIState, ServerState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import * as history from "./history";
 import { HistoryState, buildState } from "./history";
 
-function encodeTargetState(uiState: Draft<UIState>): Map<string, string> | undefined {
+function encodeTargetState(uiState: UIState): Map<string, string> | undefined {
   if (uiState.overlay === undefined) {
     // This would guarantee infinite recursion.
     exception(ErrorCode.InvalidState);
   }
 
-  let target: Draft<UIState> = Object.assign({}, uiState, {
+  let target: UIState = Object.assign({}, uiState, {
     overlay: undefined,
   });
 
@@ -45,9 +47,9 @@ function encodeTargetState(uiState: Draft<UIState>): Map<string, string> | undef
 }
 
 function decodeTargetState(
-  params: Map<string, string> | undefined,
+  params: ReadonlyMap<string, string> | undefined,
   serverState: ServerState,
-): Draft<UIState> {
+): UIState {
   if (!params) {
     return {
       page: {
@@ -91,7 +93,7 @@ function matchesType(path: string, type: string): string | null {
   return null;
 }
 
-function notfound(historyState: HistoryState): Draft<UIState> {
+function notfound(historyState: HistoryState): UIState {
   return {
     page: {
       type: PageType.NotFound,
@@ -100,7 +102,7 @@ function notfound(historyState: HistoryState): Draft<UIState> {
   };
 }
 
-export function intoUIState(historyState: HistoryState, serverState: ServerState): Draft<UIState> {
+export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
   switch (historyState.path) {
     case "/": {
       return {
@@ -223,7 +225,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
   return notfound(historyState);
 }
 
-export function fromUIState(uiState: Draft<UIState>): HistoryState {
+export function fromUIState(uiState: UIState): HistoryState {
   switch (uiState.overlay?.type) {
     case OverlayType.Upload: {
       switch (uiState.page.type) {
@@ -267,7 +269,7 @@ export function fromUIState(uiState: Draft<UIState>): HistoryState {
   }
 }
 
-export function getState(serverState: ServerState): Draft<UIState> {
+export function getState(serverState: ServerState): UIState {
   return intoUIState(history.getState(), serverState);
 }
 
@@ -279,4 +281,72 @@ export function pushState(uiState: Draft<UIState>): void {
 export function replaceState(uiState: Draft<UIState>): void {
   let historyState = fromUIState(uiState);
   history.replaceState(historyState);
+}
+
+// Checks that the history states match in all respects other than the state.
+function statesMatch(a: HistoryState, b: HistoryState): boolean {
+  if (!Object.is(a.path, b.path)) {
+    return false;
+  }
+
+  if (!Object.is(a.hash, b.hash)) {
+    return false;
+  }
+
+  if (Object.is(a.params, b.params)) {
+    return true;
+  }
+
+  if (!a.params || !b.params) {
+    return false;
+  }
+
+  let keys = new Set(a.params.keys());
+  for (let key of b.params.keys()) {
+    if (!keys.has(key)) {
+      return false;
+    }
+  }
+
+  for (let key of keys) {
+    if (!b.params.has(key)) {
+      return false;
+    }
+
+    if (!Object.is(a.params.get(key), b.params.get(key))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function watchStore(store: StoreType): void {
+  let historyState = history.getState();
+  let uiState = intoUIState(historyState, store.getState().serverState);
+
+  history.addListener((newHistoryState: HistoryState): void => {
+    historyState = newHistoryState;
+    uiState = intoUIState(historyState, store.getState().serverState);
+    store.dispatch(actions.updateUIState(uiState));
+  });
+
+  store.dispatch(actions.updateUIState(uiState));
+
+  store.subscribe((): void => {
+    let storeUIState = store.getState().ui;
+    if (storeUIState === uiState) {
+      return;
+    }
+
+    uiState = storeUIState;
+    let newHistoryState = fromUIState(uiState);
+    if (statesMatch(historyState, newHistoryState)) {
+      history.replaceState(newHistoryState);
+    } else {
+      history.pushState(newHistoryState);
+    }
+
+    historyState = newHistoryState;
+  });
 }

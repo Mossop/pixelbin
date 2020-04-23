@@ -16,10 +16,6 @@ jest.mock("@fluent/react", () => {
 
 const mockLocalized = mockedFunction(FluentLocalized);
 
-beforeEach((): void => {
-  mockLocalized.mockClear();
-});
-
 test("localized element with id", (): void => {
   render(<Localized l10n="foo"/>);
 

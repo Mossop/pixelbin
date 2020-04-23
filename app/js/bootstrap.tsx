@@ -10,18 +10,11 @@ import { LocalizationContext } from "./l10n/LocalizationContext";
 import { paths, decodeServerState } from "./page";
 import store from "./store";
 import actions from "./store/actions";
-import { addListener, HistoryState } from "./utils/history";
-import { intoUIState, getState } from "./utils/navigation";
+import { watchStore } from "./utils/navigation";
 
 let serverState = decodeServerState();
 store.dispatch(actions.updateServerState(serverState));
-let uiState = getState(serverState);
-store.dispatch(actions.updateUIState(uiState));
-
-addListener((historyState: HistoryState): void => {
-  let uiState = intoUIState(historyState, store.getState().serverState);
-  store.dispatch(actions.updateUIState(uiState));
-});
+watchStore(store);
 
 reactRender(
   <Provider store={store}>

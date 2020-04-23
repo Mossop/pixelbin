@@ -1,4 +1,12 @@
-import { catalogs, Catalog, Album, Tag, Person, dereferencer, PendingAPIItem } from "../../js/api/highlevel";
+import {
+  catalogs,
+  Catalog,
+  Album,
+  Tag,
+  Person,
+  dereferencer,
+  PendingAPIItem,
+} from "../../js/api/highlevel";
 import { ServerData } from "../../js/api/types";
 import { ErrorCode } from "../../js/utils/exception";
 import { nameSorted } from "../../js/utils/sort";

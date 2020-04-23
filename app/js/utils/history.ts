@@ -4,10 +4,10 @@ import { paths } from "../page";
 import { exception, ErrorCode } from "./exception";
 
 export interface HistoryState {
-  path: string;
-  params?: Map<string, string>;
-  hash?: string;
-  state?: unknown;
+  readonly path: string;
+  readonly params?: ReadonlyMap<string, string>;
+  readonly hash?: string;
+  readonly state?: unknown;
 }
 
 let listening = false;

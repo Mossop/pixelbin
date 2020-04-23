@@ -13,9 +13,9 @@ import type {
 } from "../api/types";
 import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
-import { replaceState, pushState } from "../utils/navigation";
+import { createDraft } from "../utils/helpers";
 import { nameSorted } from "../utils/sort";
-import type { StoreState, UIState } from "./types";
+import { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
   S extends (state: Draft<StoreState>, user: UserData, ...args: infer A) => void
@@ -45,7 +45,6 @@ const catalogReducers = {
     state.ui.overlay = {
       type: OverlayType.CreateCatalog,
     };
-    replaceState(state.ui);
   },
 
   catalogCreated(state: Draft<StoreState>, user: UserData, catalog: CatalogData): void {
@@ -56,7 +55,6 @@ const catalogReducers = {
         catalog: Catalog.ref(catalog),
       },
     };
-    pushState(state.ui);
   },
 
   showCatalogEditOverlay(
@@ -68,7 +66,6 @@ const catalogReducers = {
       type: OverlayType.EditCatalog,
       catalog: catalog,
     };
-    replaceState(state.ui);
   },
 };
 
@@ -82,7 +79,6 @@ const albumReducers = {
       type: OverlayType.CreateAlbum,
       parent,
     };
-    replaceState(state.ui);
   },
 
   albumCreated(state: Draft<StoreState>, user: UserData, album: AlbumData): void {
@@ -97,7 +93,6 @@ const albumReducers = {
         album: Album.ref(album),
       },
     };
-    pushState(state.ui);
   },
 
   showAlbumEditOverlay(state: Draft<StoreState>, _user: UserData, album: Reference<Album>): void {
@@ -105,7 +100,6 @@ const albumReducers = {
       type: OverlayType.EditAlbum,
       album,
     };
-    replaceState(state.ui);
   },
 
   albumEdited(state: Draft<StoreState>, user: UserData, album: AlbumData): void {
@@ -121,7 +115,6 @@ const albumReducers = {
     }
 
     state.ui.overlay = undefined;
-    replaceState(state.ui);
   },
 };
 
@@ -150,7 +143,6 @@ const authReducers = {
     state.ui.overlay = {
       type: OverlayType.Login,
     };
-    replaceState(state.ui);
   },
 
   completeLogin(state: Draft<StoreState>, serverData: ServerData): void {
@@ -177,8 +169,6 @@ const authReducers = {
           };
         }
       }
-
-      pushState(state.ui);
     }
   },
 
@@ -186,7 +176,6 @@ const authReducers = {
     state.ui.overlay = {
       type: OverlayType.Signup,
     };
-    replaceState(state.ui);
   },
 
   completeSignup(state: Draft<StoreState>, serverData: ServerData): void {
@@ -199,7 +188,6 @@ const authReducers = {
         type: OverlayType.CreateCatalog,
       },
     };
-    pushState(state.ui);
   },
 
   completeLogout(state: Draft<StoreState>, serverData: ServerData): void {
@@ -209,7 +197,6 @@ const authReducers = {
         type: PageType.Index,
       },
     };
-    pushState(state.ui);
   },
 };
 
@@ -218,7 +205,6 @@ const mediaReducers = {
     state.ui.overlay = {
       type: OverlayType.Upload,
     };
-    pushState(state.ui);
   },
 };
 
@@ -238,22 +224,16 @@ export const reducers = {
     state.serverState = serverState;
   },
 
-  updateUIState(state: Draft<StoreState>, uiState: Draft<UIState>): void {
-    state.ui = uiState;
+  updateUIState(state: Draft<StoreState>, uiState: UIState): void {
+    state.ui = createDraft(uiState);
   },
 
-  navigate(state: Draft<StoreState>, uiState: Draft<UIState>, replace: boolean = false): void {
-    state.ui = uiState;
-    if (replace) {
-      replaceState(state.ui);
-    } else {
-      pushState(state.ui);
-    }
+  navigate(state: Draft<StoreState>, uiState: UIState): void {
+    state.ui = createDraft(uiState);
   },
 
   closeOverlay(state: Draft<StoreState>): void {
     state.ui.overlay = undefined;
-    replaceState(state.ui);
   },
 };
 

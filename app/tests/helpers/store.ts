@@ -1,5 +1,7 @@
 import { Catalog, Reference, Tag, Album } from "../../js/api/highlevel";
 import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../../js/api/types";
+import { PageType } from "../../js/pages";
+import { StoreState } from "../../js/store/types";
 import { intoMap } from "../../js/utils/maps";
 
 type MockPerson = Omit<PersonData, "id" | "catalog"> & {
@@ -104,7 +106,11 @@ export function mockCatalog(mock: MockCatalog): CatalogData {
   };
 }
 
-export function mockServerData(catalogs: MockCatalog[]): ServerData {
+export function mockServerData(catalogs?: MockCatalog[]): ServerData {
+  if (catalogs === undefined) {
+    catalogs = [];
+  }
+
   return {
     user: {
       email: "dtownsend@oxymoronical.com",
@@ -113,5 +119,24 @@ export function mockServerData(catalogs: MockCatalog[]): ServerData {
       verified: true,
       catalogs: intoMap(catalogs.map(mockCatalog)),
     },
+  };
+}
+
+export function mockStore(state?: Partial<StoreState>): StoreState {
+  if (state === undefined) {
+    state = {};
+  }
+
+  return {
+    serverState: state.serverState ?? mockServerData(),
+    settings: state.settings ?? {
+      thumbnailSize: 150,
+    },
+    ui: state.ui ?? {
+      page: {
+        type: PageType.Index,
+      },
+    },
+    stateId: 0,
   };
 }

@@ -1,3 +1,5 @@
+import { Draft } from "immer";
+
 import document from "../environment/document";
 import { StoreState } from "../store/types";
 
@@ -23,4 +25,31 @@ export function focus(id: string): void {
       element.select();
     }
   }
+}
+
+export function createDraft<T>(item: T): Draft<T> {
+  const mapEntries = <K, V>([key, value]: [K, V]): [Draft<K>, Draft<V>] =>
+    [createDraft(key), createDraft(value)];
+
+  if (item === null || item === undefined) {
+    return item as Draft<T>;
+  }
+
+  if (Array.isArray(item)) {
+    return item.map(createDraft) as unknown as Draft<T>;
+  }
+
+  if (item instanceof Set) {
+    return new Set(Array.from(item.values(), createDraft)) as Draft<T>;
+  }
+
+  if (item instanceof Map) {
+    return new Map(Array.from(item.entries(), mapEntries)) as Draft<T>;
+  }
+
+  if (typeof item == "object") {
+    return Object.fromEntries(Object.entries(item).map(mapEntries)) as Draft<T>;
+  }
+
+  return item as Draft<T>;
 }
