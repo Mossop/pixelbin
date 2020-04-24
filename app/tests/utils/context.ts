@@ -1,4 +1,5 @@
-import { expect, resetDOM } from "../helpers";
+import { expect, resetDOM, mockServerData } from "../helpers";
+import { serverDataIntoResponse } from "../helpers/api";
 
 beforeEach(resetDOM);
 
@@ -32,4 +33,25 @@ test("Path decoding missing some items", async (): Promise<void> => {
   expect(appURL(Url.API).toString()).toEqual("http://pixelbin/api/");
   expect(appURL(Url.Static).toString()).toEqual("http://pixelbin/root/static/");
   expect(appURL(Url.L10n).toString()).toEqual("http://pixelbin/l10n/");
+});
+
+test("App container", async (): Promise<void> => {
+  let element = document.createElement("div");
+  element.id = "app";
+  document.body.append(element);
+
+  const { appContainer } = await import("../../js/context");
+  expect(appContainer()).toBe(element);
+});
+
+test("Initial server state", async (): Promise<void> => {
+  let serverData = mockServerData();
+
+  let element = document.createElement("pre");
+  element.textContent = JSON.stringify(serverDataIntoResponse(serverData));
+  element.id = "initial-state";
+  document.body.append(element);
+
+  const { initialServerState } = await import("../../js/context");
+  expect(initialServerState()).toEqual(serverData);
 });

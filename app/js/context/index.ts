@@ -84,6 +84,8 @@ export function initialServerState(): ServerData {
     } catch (e) {
       console.error(e);
     }
+  } else {
+    console.error("Missing initial state.");
   }
 
   return { user: null };

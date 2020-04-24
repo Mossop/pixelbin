@@ -10,11 +10,9 @@ import {
   MockResponse,
   callInfo,
   MediaDataResponse,
-  mockMediaResponse,
+  mediaIntoResponse,
   mockMedia,
   mockMetadata,
-  mockMetadataResponse,
-  mockMediaInfoResponse,
   mockMediaInfo,
 } from "../helpers/api";
 
@@ -33,17 +31,17 @@ test("Media reference", (): void => {
 });
 
 test("Get media", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<MediaDataResponse>(200, mockMediaResponse({
+  let created = moment("2020-04-21T20:41:20.824Z");
+  let media = mockMedia({
     id: "testmedia",
-    created: "2020-04-21T20:41:20.824Z",
-  })));
+    created,
+  });
+
+  mockResponse(mockedFetch, new MockResponse<MediaDataResponse>(200, mediaIntoResponse(media)));
 
   let result = await getMedia("testmedia");
 
-  expect(result).toEqual(mockMedia({
-    id: "testmedia",
-    created: moment("2020-04-21T20:41:20.824Z"),
-  }));
+  expect(result).toEqual(media);
 
   expect(isProcessed(result)).toBeFalsy();
   expect(isUnprocessed(result)).toBeTruthy();
@@ -68,20 +66,24 @@ test("Missing media", async (): Promise<void> => {
 });
 
 test("Create media", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<MediaDataResponse>(200, mockMediaResponse({
+  let created = moment("2020-04-21T20:41:20.824Z");
+  let uploaded = moment("2020-05-22T20:41:12.824Z");
+  let media = mockMedia({
     id: "testmedia",
-    created: "2020-04-21T20:41:20.824Z",
-    info: mockMediaInfoResponse({
+    created,
+    info: mockMediaInfo({
       processVersion: 10,
-      uploaded: "2020-04-21T20:41:20.824Z",
+      uploaded,
       width: 1280,
       height: 1024,
     }),
-    metadata: mockMetadataResponse({
+    metadata: mockMetadata({
       city: "Portland",
       make: "Nikon",
     }),
-  })));
+  });
+
+  mockResponse(mockedFetch, new MockResponse<MediaDataResponse>(200, mediaIntoResponse(media)));
 
   let result = await createMedia({
     catalog: Catalog.ref("testcatalog"),
@@ -91,20 +93,7 @@ test("Create media", async (): Promise<void> => {
     },
   });
 
-  expect(result).toEqual(mockMedia({
-    id: "testmedia",
-    created: moment("2020-04-21T20:41:20.824Z"),
-    info: mockMediaInfo({
-      processVersion: 10,
-      uploaded: moment("2020-04-21T20:41:20.824Z"),
-      width: 1280,
-      height: 1024,
-    }),
-    metadata: mockMetadata({
-      city: "Portland",
-      make: "Nikon",
-    }),
-  }));
+  expect(result).toEqual(media);
 
   expect(isProcessed(result)).toBeTruthy();
   expect(isUnprocessed(result)).toBeFalsy();
@@ -128,24 +117,24 @@ test("Create media", async (): Promise<void> => {
 });
 
 test("Edit media", async (): Promise<void> => {
+  let created = moment("2020-04-21T20:41:20.824Z");
+  let uploaded = moment("2020-11-21T20:21:20.824Z");
   let media: Media = mockMedia({
     id: "testmedia",
-  });
-
-  mockResponse(mockedFetch, new MockResponse<MediaDataResponse>(200, mockMediaResponse({
-    id: "testmedia",
-    created: "2020-04-21T20:41:20.824Z",
-    info: mockMediaInfoResponse({
+    created,
+    info: mockMediaInfo({
       processVersion: 10,
-      uploaded: "2020-04-21T20:41:20.824Z",
+      uploaded,
       width: 1280,
       height: 1024,
     }),
-    metadata: mockMetadataResponse({
+    metadata: mockMetadata({
       city: "London",
       make: "Nikon",
     }),
-  })));
+  });
+
+  mockResponse(mockedFetch, new MockResponse<MediaDataResponse>(200, mediaIntoResponse(media)));
 
   let result = await updateMedia({
     id: mediaRef(media),
@@ -156,10 +145,10 @@ test("Edit media", async (): Promise<void> => {
 
   expect(result).toEqual(mockMedia({
     id: "testmedia",
-    created: moment("2020-04-21T20:41:20.824Z"),
+    created,
     info: mockMediaInfo({
       processVersion: 10,
-      uploaded: moment("2020-04-21T20:41:20.824Z"),
+      uploaded,
       width: 1280,
       height: 1024,
     }),

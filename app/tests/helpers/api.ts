@@ -2,7 +2,17 @@ import { Orientation } from "media-metadata";
 import moment from "moment";
 
 import { randomId } from ".";
-import { MetadataData, MediaData, MediaInfoData } from "../../js/api";
+import {
+  MetadataData,
+  MediaData,
+  MediaInfoData,
+  CatalogData,
+  AlbumData,
+  TagData,
+  PersonData,
+  ServerData,
+} from "../../js/api";
+import { Tag, Reference, Album, Person } from "../../js/api/highlevel";
 
 type Body = Blob | object | unknown[];
 
@@ -181,32 +191,6 @@ export interface ServerDataResponse {
   user: UserDataResponse | null;
 }
 
-export function mockMetadataResponse(data: Partial<MetadataDataResponse>): MetadataDataResponse {
-  return {
-    filename: data.filename ?? null,
-    title: data.title ?? null,
-    taken: data.taken ?? null,
-    offset: data.offset ?? null,
-    longitude: data.longitude ?? null,
-    latitude: data.latitude ?? null,
-    altitude: data.altitude ?? null,
-    location: data.location ?? null,
-    city: data.city ?? null,
-    state: data.state ?? null,
-    country: data.country ?? null,
-    orientation: data.orientation ?? null,
-    make: data.make ?? null,
-    model: data.model ?? null,
-    lens: data.lens ?? null,
-    photographer: data.photographer ?? null,
-    aperture: data.aperture ?? null,
-    exposure: data.exposure ?? null,
-    iso: data.iso ?? null,
-    focalLength: data.focalLength ?? null,
-    bitrate: data.bitrate ?? null,
-  };
-}
-
 export function mockMetadata(data: Partial<MetadataData>): MetadataData {
   return {
     filename: data.filename ?? null,
@@ -233,15 +217,10 @@ export function mockMetadata(data: Partial<MetadataData>): MetadataData {
   };
 }
 
-export function mockMediaInfoResponse(data: Partial<MediaInfoDataResponse>): MediaInfoDataResponse {
+export function mediaMetadataIntoResponse(metadata: MetadataData): MetadataDataResponse {
   return {
-    processVersion: data.processVersion ?? 1,
-    uploaded: data.uploaded ?? moment().toISOString(),
-    mimetype: data.mimetype ?? "image/jpeg",
-    width: data.width ?? 1024,
-    height: data.height ?? 768,
-    duration: data.duration ?? null,
-    fileSize: data.fileSize ?? 1000,
+    ...metadata,
+    taken: metadata.taken?.toISOString() ?? null,
   };
 }
 
@@ -257,6 +236,13 @@ export function mockMediaInfo(data: Partial<MediaInfoData>): MediaInfoData {
   };
 }
 
+export function mediaInfoIntoResponse(info: MediaInfoData): MediaInfoDataResponse {
+  return {
+    ...info,
+    uploaded: info.uploaded.toISOString(),
+  };
+}
+
 export function mockMedia(data: Partial<MediaData>): MediaData {
   return {
     id: data.id ?? randomId(),
@@ -269,14 +255,60 @@ export function mockMedia(data: Partial<MediaData>): MediaData {
   };
 }
 
-export function mockMediaResponse(data: Partial<MediaDataResponse>): MediaDataResponse {
+export function mediaIntoResponse(media: MediaData): MediaDataResponse {
   return {
-    id: data.id ?? randomId(),
-    created: data.created ?? moment().toISOString(),
-    info: data.info ?? null,
-    tags: data.tags ?? [],
-    albums: data.albums ?? [],
-    people: data.people ?? [],
-    metadata: data.metadata ?? mockMetadataResponse({}),
+    ...media,
+    created: media.created.toISOString(),
+    info: media.info ? mediaInfoIntoResponse(media.info) : null,
+    metadata: mediaMetadataIntoResponse(media.metadata),
+    albums: media.albums.map((ref: Reference<Album>): string => ref.id),
+    tags: media.tags.map((ref: Reference<Tag>): string => ref.id),
+    people: media.people.map((ref: Reference<Person>): string => ref.id),
+  };
+}
+
+export function albumIntoResponse(album: AlbumData): AlbumDataResponse {
+  return {
+    ...album,
+    parent: album.parent?.id ?? null,
+    catalog: album.catalog.id,
+  };
+}
+
+export function tagIntoResponse(tag: TagData): TagDataResponse {
+  return {
+    ...tag,
+    parent: tag.parent?.id ?? null,
+    catalog: tag.catalog.id,
+  };
+}
+
+export function personIntoResponse(person: PersonData): PersonDataResponse {
+  return {
+    ...person,
+    catalog: person.catalog.id,
+  };
+}
+
+export function catalogIntoResponse(catalog: CatalogData): CatalogDataResponse {
+  return {
+    ...catalog,
+    albums: Array.from(catalog.albums.values(), albumIntoResponse),
+    tags: Array.from(catalog.tags.values(), tagIntoResponse),
+    people: Array.from(catalog.people.values(), personIntoResponse),
+  };
+}
+
+export function serverDataIntoResponse(serverData: ServerData): ServerDataResponse {
+  let user: UserDataResponse | null = null;
+  if (serverData.user) {
+    user = {
+      ...serverData.user,
+      catalogs: Array.from(serverData.user.catalogs.values(), catalogIntoResponse),
+    };
+  }
+
+  return {
+    user,
   };
 }
