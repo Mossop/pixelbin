@@ -7,6 +7,8 @@ import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
 import { StoreState } from "./types";
 
+export * from "./types";
+
 export type StoreType = Store<StoreState, Deed>;
 
 interface BuildResult {

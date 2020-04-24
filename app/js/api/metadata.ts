@@ -3,10 +3,10 @@ import moment from "moment";
 import { JsonDecoder, err, ok } from "ts.data.json";
 import type { Result } from "ts.data.json";
 
-import document from "../environment/document";
+import type { MediaData, MediaCreateData, MetadataUpdateData } from ".";
+import { document } from "../environment";
 import { decode } from "../utils/decoders";
 import { ErrorCode, exception } from "../utils/exception";
-import type { MediaData, MediaCreateData, MetadataUpdateData } from "./types";
 
 type MediaWithMetadata = MediaData | MediaCreateData;
 

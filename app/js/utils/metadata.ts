@@ -1,6 +1,6 @@
 import { Metadata, Orientation, parseBuffer } from "media-metadata";
 
-import document from "../environment/document";
+import { document } from "../environment";
 
 export interface MediaForUpload {
   id: string;

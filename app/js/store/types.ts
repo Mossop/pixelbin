@@ -1,4 +1,4 @@
-import { ServerData } from "../api/types";
+import { ServerData } from "../api";
 import { OverlayState } from "../overlays";
 import { PageState } from "../pages";
 

@@ -1,7 +1,7 @@
 import { Deed } from "deeds/immer";
 import { Store } from "redux";
 
-import { StoreState } from "./types";
+import { StoreState } from ".";
 
 type Resolver = (state: StoreState) => void;
 

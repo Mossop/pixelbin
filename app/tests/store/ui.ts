@@ -3,10 +3,9 @@ import { Deed } from "deeds/immer";
 import { Album } from "../../js/api/highlevel";
 import { OverlayType } from "../../js/overlays";
 import { PageType } from "../../js/pages";
-import { StoreType } from "../../js/store";
+import { StoreType, StoreState } from "../../js/store";
 import actions from "../../js/store/actions";
 import reducer from "../../js/store/reducer";
-import { StoreState } from "../../js/store/types";
 import {
   addListener,
   getState,

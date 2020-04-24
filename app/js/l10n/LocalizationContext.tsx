@@ -3,7 +3,7 @@ import { negotiateLanguages } from "@fluent/langneg";
 import { LocalizationProvider, ReactLocalization } from "@fluent/react";
 import React, { PureComponent, ReactNode } from "react";
 
-import fetch from "../environment/fetch";
+import { fetch } from "../environment";
 
 async function retrieveBundle(baseurl: string, locale: string): Promise<null | FluentBundle> {
   let response = await fetch(`${baseurl}${locale}.txt`);

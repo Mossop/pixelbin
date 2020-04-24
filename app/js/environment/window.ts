@@ -1,3 +1,1 @@
-const win = window;
-
-export default win;
+export default window;

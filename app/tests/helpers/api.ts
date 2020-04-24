@@ -2,7 +2,7 @@ import { Orientation } from "media-metadata";
 import moment from "moment";
 
 import { randomId } from ".";
-import { MetadataData, MediaData, MediaInfoData } from "../../js/api/types";
+import { MetadataData, MediaData, MediaInfoData } from "../../js/api";
 
 type Body = Blob | object | unknown[];
 

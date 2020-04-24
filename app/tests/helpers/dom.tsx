@@ -3,8 +3,7 @@ import { RenderOptions, RenderResult, Queries, render as testRender } from "@tes
 import React, { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
 
-import store, { asyncDispatch } from "../../js/store";
-import actions from "../../js/store/actions";
+import store from "../../js/store";
 
 export function expectElement(node: Node | null): Element {
   expect(node).not.toBeNull();
@@ -37,11 +36,7 @@ export function render(ui: any, options?: any): any {
   };
 }
 
-export async function reset(): Promise<void> {
-  await asyncDispatch(actions.updateServerState({
-    user: null,
-  }));
-
+export function resetDOM(): void {
   while (document.head.firstChild) {
     document.head.firstChild.remove();
   }

@@ -1,7 +1,7 @@
+import { ApiMethod } from ".";
+import type { PersonData } from ".";
 import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
-import { ApiMethod } from "./types";
-import type { PersonData } from "./types";
 
 export async function createPerson(
   catalog: Reference<Catalog>,

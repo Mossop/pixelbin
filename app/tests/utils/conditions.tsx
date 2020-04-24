@@ -1,9 +1,17 @@
 import React from "react";
 
+import { asyncDispatch } from "../../js/store";
+import actions from "../../js/store/actions";
 import { If, Then, Else } from "../../js/utils/Conditions";
-import { expect, expectElement, render, reset } from "../helpers";
+import { expect, expectElement, render, resetDOM } from "../helpers";
 
-beforeEach(reset);
+beforeEach(async (): Promise<void> => {
+  resetDOM();
+
+  await asyncDispatch(actions.updateServerState({
+    user: null,
+  }));
+});
 
 describe("Simple boolean condition", (): void => {
   it("true", (): void => {

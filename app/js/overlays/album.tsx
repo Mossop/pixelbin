@@ -1,16 +1,16 @@
 import { Localized } from "@fluent/react";
 import React, { ReactNode, Fragment, PureComponent } from "react";
 
+import { AlbumCreateData } from "../api";
 import { editAlbum, createAlbum } from "../api/album";
 import { Patch } from "../api/helpers";
 import { Album, Catalog, Reference, Derefer, dereferencer } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { AlbumCreateData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { MediaTargetSelector } from "../components/SiteTree";
+import { StoreState } from "../store";
 import actions from "../store/actions";
-import { StoreState } from "../store/types";
 import { ComponentProps, connect } from "../utils/component";
 import { exception, ErrorCode, AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";

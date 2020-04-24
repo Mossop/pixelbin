@@ -1,9 +1,9 @@
 import { Draft } from "immer";
 
+import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../../js/api";
 import { Catalog, Reference, Tag, Album } from "../../js/api/highlevel";
-import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../../js/api/types";
 import { PageType } from "../../js/pages";
-import { StoreState } from "../../js/store/types";
+import { StoreState } from "../../js/store";
 import { intoMap } from "../../js/utils/maps";
 
 type MockPerson = Omit<PersonData, "id" | "catalog"> & {

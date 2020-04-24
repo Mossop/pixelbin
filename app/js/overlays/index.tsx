@@ -1,13 +1,13 @@
 import { Immutable } from "immer";
 import React, { ReactNode, PureComponent } from "react";
 
+import { UserData } from "../api";
 import { Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { UserData } from "../api/types";
-import document from "../environment/document";
+import { document } from "../environment";
 import { PageState, PageType } from "../pages";
+import { StoreState } from "../store";
 import actions from "../store/actions";
-import { StoreState } from "../store/types";
 import { ComponentProps, connect } from "../utils/component";
 import AlbumOverlay from "./album";
 import CatalogOverlay from "./catalog";

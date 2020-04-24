@@ -8,18 +8,18 @@ import {
 } from "media-metadata";
 import React, { Fragment, PureComponent, createRef, ReactNode, RefObject } from "react";
 
+import { MediaCreateData } from "../api";
 import { Reference, Catalog, Derefer, dereferencer, Tag, Person } from "../api/highlevel";
 import { createMedia, MediaTarget } from "../api/media";
 import { setOrientation } from "../api/metadata";
-import { MediaCreateData } from "../api/types";
 import Button from "../components/Button";
 import { FormFields, FormField } from "../components/Form";
 import Media from "../components/Media";
 import Overlay from "../components/Overlay";
 import { MediaTargetSelector } from "../components/SiteTree";
 import Upload from "../components/Upload";
+import { StoreState } from "../store";
 import actions from "../store/actions";
-import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import { If, Then, Else } from "../utils/Conditions";
 import { exception, ErrorCode } from "../utils/exception";

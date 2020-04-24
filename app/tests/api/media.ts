@@ -1,8 +1,8 @@
 import moment from "moment";
 
+import { ApiErrorData, ApiErrorCode, ServerData } from "../../js/api";
 import { Catalog, mediaRef, Media } from "../../js/api/highlevel";
 import { getMedia, isProcessed, isUnprocessed, createMedia, updateMedia } from "../../js/api/media";
-import { ApiErrorData, ApiErrorCode, ServerData } from "../../js/api/types";
 import fetch from "../../js/environment/fetch";
 import { expect, mockedFunction } from "../helpers";
 import {

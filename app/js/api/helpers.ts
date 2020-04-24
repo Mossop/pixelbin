@@ -1,9 +1,8 @@
 import { parse as parseCookie } from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
-import document from "../environment/document";
-import fetch from "../environment/fetch";
-import { paths } from "../page";
+import { appURL, Url } from "../context";
+import { fetch, document } from "../environment";
 import { MappingDecoder } from "../utils/decoders";
 import { exception, ErrorCode, ApiError } from "../utils/exception";
 import { isReference, APIItemReference } from "./highlevel";
@@ -33,8 +32,6 @@ export type Encoded<T> =
     // eslint-disable-next-line @typescript-eslint/array-type
     T extends ReadonlyArray<infer V> ? Encoded<V>[] :
       T extends object ? EncodedObject<T> : T;
-
-const API_ROOT = new URL(paths.api, document.URL);
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
 export const VoidDecoder: Decoder<void> = async (_: Response): Promise<void> => {};
@@ -241,7 +238,7 @@ export async function makeRequest<D>(
   path: string,
   request: RequestData<D>,
 ): Promise<D> {
-  let url = new URL(path, API_ROOT);
+  let url = appURL(Url.API, path);
   request.applyToURL(url);
 
   let headers: Record<string, string> = {};
@@ -261,7 +258,7 @@ export async function makeRequest<D>(
   if (!response.ok) {
     let errorData;
     try {
-      const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api/types" */"./types");
+      const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api" */".");
       errorData = await ApiErrorDataDecoder.decodePromise(await response.json());
     } catch (e) {
       exception(ErrorCode.DecodeError, undefined, e);

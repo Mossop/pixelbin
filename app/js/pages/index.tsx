@@ -1,6 +1,6 @@
 import React, { ReactNode, PureComponent, ErrorInfo } from "react";
 
-import { StoreState } from "../store/types";
+import { StoreState } from "../store";
 import { connect, ComponentProps } from "../utils/component";
 import Album from "./album";
 import Catalog from "./catalog";

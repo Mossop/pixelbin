@@ -1,7 +1,7 @@
 import React, { Context, ReactNode, createContext, PureComponent } from "react";
 import { connect } from "react-redux";
 
-import { StoreState } from "../store/types";
+import { StoreState } from "../store";
 
 const IfContext: Context<boolean> = createContext<boolean>(false);
 

@@ -1,3 +1,4 @@
+import { ServerData } from "../../js/api";
 import {
   catalogs,
   Catalog,
@@ -7,7 +8,6 @@ import {
   dereferencer,
   PendingAPIItem,
 } from "../../js/api/highlevel";
-import { ServerData } from "../../js/api/types";
 import { ErrorCode } from "../../js/utils/exception";
 import { nameSorted } from "../../js/utils/sort";
 import { mockServerData, expect } from "../helpers";

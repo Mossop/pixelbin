@@ -1,10 +1,9 @@
+import { ServerData } from "../api";
 import { Catalog, Album } from "../api/highlevel";
-import { ServerData } from "../api/types";
 import { OverlayType } from "../overlays";
 import { PageType } from "../pages";
-import { StoreType } from "../store";
+import { StoreType, UIState } from "../store";
 import actions from "../store/actions";
-import { UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import { createDraft } from "./helpers";
 import * as history from "./history";

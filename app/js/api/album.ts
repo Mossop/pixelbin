@@ -1,8 +1,8 @@
+import { ApiMethod } from ".";
+import type { AlbumCreateData, AlbumData } from ".";
 import { request } from "./api";
 import type { Patch } from "./helpers";
 import type { Album, Reference, Media } from "./highlevel";
-import { ApiMethod } from "./types";
-import type { AlbumCreateData, AlbumData } from "./types";
 
 export function createAlbum(data: AlbumCreateData): Promise<AlbumData> {
   return request(ApiMethod.AlbumCreate, data);
