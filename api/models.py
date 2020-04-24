@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from django.db.models.expressions import F
 from django.db.models.functions import Coalesce, Lower
@@ -8,7 +9,7 @@ from rest_framework import status
 
 from .locks import lock
 from .storage.models import Storage
-from .storage.base import MediaFileStore
+from .storage.base import InnerFileStore
 from .utils import uuid, ApiException, validatingModel
 from .constraints import UniqueWithExpressionsConstraint
 from .metadata import MediaMetadata, add_metadata_fields_to_model
@@ -342,7 +343,8 @@ class Media(models.Model):
     @property
     def file_store(self):
         if self._file_store is None:
-            self._file_store = MediaFileStore(self.catalog.file_store, self)
+            self._file_store = InnerFileStore(self.catalog.file_store,
+                                              os.path.join(self.catalog.id, self.id))
         return self._file_store
 
     def delete(self, *args, **kwargs):

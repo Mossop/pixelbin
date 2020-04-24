@@ -1,7 +1,5 @@
 import requests
 
-from .base import LocalFileStore
-
 B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
 
 class BackblazeAPI:
@@ -118,30 +116,3 @@ class BackblazeAPI:
         token = data['authorizationToken']
 
         return '%s/file/%s/%s?Authorization=%s' % (self.download_url, self.bucket_name, path, token)
-
-class BackblazeFileStore(LocalFileStore):
-    STORAGE = {}
-
-    @classmethod
-    def build(cls, model):
-        if model.id not in cls.STORAGE:
-            cls.STORAGE[model.id] = BackblazeFileStore(model)
-        return cls.STORAGE[model.id]
-
-    def __init__(self, model):
-        self.model = model
-
-    def private_root(self):
-        raise NotImplementedError("Must implement")
-
-    def temp_root(self):
-        raise NotImplementedError("Must implement")
-
-    def public_root(self):
-        raise NotImplementedError("Must implement")
-
-    def store_file(self, media, file):
-        raise NotImplementedError("Must implement")
-
-    def delete(self, media):
-        raise NotImplementedError("Must implement")

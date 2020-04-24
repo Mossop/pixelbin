@@ -32,7 +32,7 @@ def process_metadata(logger, media_id):
 
     try:
         logger.info('Processing metadata for media...')
-        meta_path = media.file_store.get_local_path('metadata.json')
+        meta_path = media.file_store.local.get_path('metadata.json')
         with open(meta_path, 'r') as meta_file:
             metadata = json.load(meta_file)
 
@@ -67,7 +67,7 @@ def process_new_file(logger, media_id, target_name=None):
         media.new_file = False
         media.save()
 
-        media.file_store.delete_all_temp()
+        media.file_store.temp.delete()
     except:
         logger.exception('Failed while processing new file for media.')
         return
@@ -78,12 +78,12 @@ def process_image(logger, media, source):
     for size in THUMB_SIZES:
         logger.debug('Building thumbnail of size %d.', size)
         resized = resize(image, size)
-        target = media.file_store.get_local_path('sized%d.jpg' % (size))
+        target = media.file_store.local.get_path('sized%d.jpg' % (size))
         resized.save(target, None, quality=95, optimize=True)
 
 def process_video(logger, media, source):
     logger.info('Generating video frame.')
-    tmp = media.file_store.get_temp_path('tmp.jpg')
+    tmp = media.file_store.temp.get_path('tmp.jpg')
     args = [
         'ffmpeg',
         '-y',
@@ -99,7 +99,7 @@ def process_video(logger, media, source):
     process_image(logger, media, tmp)
 
     logger.info('Encoding video using h264 codec.')
-    target = media.file_store.get_temp_path('h264.mp4')
+    target = media.file_store.temp.get_path('h264.mp4')
     args = [
         'ffmpeg',
         '-loglevel', 'warning',
@@ -114,11 +114,11 @@ def process_video(logger, media, source):
         target,
     ]
     subprocess.run(args, check=True)
-    media.file_store.store_storage_from_temp('h264.mp4')
+    media.file_store.copy_local_to_main('h264.mp4')
 
     logger.info('Encoding video using vp9 codec. Pass 1.')
-    target = media.file_store.get_temp_path('vp9.mp4')
-    logroot = media.file_store.get_temp_path('ffmpeg2pass')
+    target = media.file_store.temp.get_path('vp9.mp4')
+    logroot = media.file_store.temp.get_path('ffmpeg2pass')
     args = [
         'ffmpeg',
         '-loglevel', 'warning',
@@ -150,13 +150,13 @@ def process_video(logger, media, source):
         target,
     ]
     subprocess.run(args, check=True)
-    media.file_store.store_storage_from_temp('vp9.mp4')
+    media.file_store.copy_temp_to_main('vp9.mp4')
 
 def import_file(logger, media, target_name):
     # pylint: disable=bare-except
     logger.info('Importing new media file.')
-    meta_path = media.file_store.get_local_path('metadata.json')
-    source = media.file_store.get_temp_path('original')
+    meta_path = media.file_store.local.get_path('metadata.json')
+    source = media.file_store.temp.get_path('original')
     try:
         result = subprocess.run(['exiftool', '-n', '-json', source],
                                 capture_output=True, timeout=10, check=True)
@@ -198,7 +198,7 @@ def import_file(logger, media, target_name):
     elif is_video(mimetype):
         process_video(logger, media, source)
 
-    media.file_store.store_storage_from_temp('original', target_name)
+    media.file_store.copy_temp_to_main('original', target_name)
 
     meta_file = open(meta_path, 'w')
     json.dump(metadata, meta_file, indent=2)

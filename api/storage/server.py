@@ -2,9 +2,9 @@ import os
 
 from base.config import PATHS
 
-from .base import LocalFileStore
+from .base import BaseFileStore, LocalStorageArea
 
-class ServerFileStore(LocalFileStore):
+class ServerFileStore(BaseFileStore):
     STORAGE = None
 
     @classmethod
@@ -13,5 +13,9 @@ class ServerFileStore(LocalFileStore):
             cls.STORAGE = ServerFileStore()
         return cls.STORAGE
 
-    def storage_root(self):
-        return os.path.join(PATHS.get('data'), 'storage', 'server')
+    def __init__(self):
+        super().__init__(
+            LocalStorageArea(os.path.join(PATHS.get('data'), 'storage', 'temp')),
+            LocalStorageArea(os.path.join(PATHS.get('data'), 'storage', 'local')),
+            LocalStorageArea(os.path.join(PATHS.get('data'), 'storage', 'main')),
+        )

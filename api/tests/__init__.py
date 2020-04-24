@@ -1,9 +1,12 @@
 from random import Random
+from contextlib import contextmanager
 
 from django.test import TestCase, Client
 from django.test.client import JSON_CONTENT_TYPE_RE
 from faker import Faker
 from PIL.Image import Image
+
+from base.config import CONFIG
 
 from ..models import User, Catalog
 from ..utils import uuid, ApiException
@@ -128,3 +131,20 @@ class ApiTestCase(TestCase):
         else:
             self.assertAlmostEqual(thumb.width, target * width / height, delta=1)
             self.assertEqual(thumb.height, target)
+
+@contextmanager
+def config_change(section, option, new_value):
+    has_option = CONFIG.has_option(section, option)
+    if has_option:
+        old_value = CONFIG.get(section, option)
+    CONFIG.set(section, option, new_value)
+    try:
+        yield
+    finally:
+        if has_option:
+            CONFIG.set(section, option, old_value)
+        else:
+            try:
+                CONFIG.remove_option(section, option)
+            except: # pylint: disable=bare-except
+                pass

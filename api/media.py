@@ -37,11 +37,11 @@ def resize(image, size):
 def build_thumbnail(media, size):
     for thumbsize in THUMB_SIZES:
         if thumbsize >= size:
-            path = media.file_store.get_local_path('sized%d.jpg' % (thumbsize))
+            path = media.file_store.local.get_path('sized%d.jpg' % (thumbsize))
             image = Image.open(path)
             return resize(image, size)
 
     thumbsize = THUMB_SIZES[-1]
-    path = media.file_store.get_local_path('sized%d.jpg' % (thumbsize))
+    path = media.file_store.local.get_path('sized%d.jpg' % (thumbsize))
     image = Image.open(path)
     return resize(image, size)

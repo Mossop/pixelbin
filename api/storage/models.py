@@ -56,8 +56,7 @@ class Backblaze(Storage):
 
     def build_file_store(self):
         # pylint: disable=import-outside-toplevel
-        from .backblaze import BackblazeFileStore
-        return BackblazeFileStore.build(self)
+        return None
 
 class BackblazeSerializer(ModelSerializer):
     keyId = serializers.CharField(write_only=True, source='key_id')

@@ -25,7 +25,7 @@ LOGGER = logging.getLogger(__name__)
 
 def perform_upload(media, file):
     try:
-        temp = media.file_store.get_temp_path('original')
+        temp = media.file_store.temp.get_path('original')
         with open(temp, "wb") as output:
             for chunk in file.chunks():
                 output.write(chunk)
@@ -33,7 +33,7 @@ def perform_upload(media, file):
         media.new_file = True
         media.save()
     except Exception as exc:
-        media.file_store.delete_all_temp()
+        media.file_store.temp.delete()
         raise exc
 
     if file.name is not None and len(file.name) > 0:
