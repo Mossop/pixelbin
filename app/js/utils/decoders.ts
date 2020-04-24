@@ -37,21 +37,6 @@ export function MappingDecoder<A, B>(
   });
 }
 
-export function SortedDecoder<A>(
-  decoder: JsonDecoder.Decoder<A>,
-  compare: undefined | ((a: A, b: A) => number),
-  name: string,
-): JsonDecoder.Decoder<A[]> {
-  return MappingDecoder(
-    JsonDecoder.array(decoder, `${name}[]`),
-    (arr: A[]): A[] => {
-      arr.sort(compare);
-      return arr;
-    },
-    `${name}[]`,
-  );
-}
-
 export const DateDecoder = MappingDecoder(
   JsonDecoder.string,
   (str: string): Moment => moment(str, ISO_8601),
@@ -88,23 +73,3 @@ export function ReadonlyMapDecoder<A extends Mappable>(
 
 type InterfaceFunctions<T> = ({[P in keyof T]: T[P] extends Function ? P : never })[keyof T];
 type InterfaceProperties<T> = Omit<T, InterfaceFunctions<T>>;
-
-export class Decodable<T> {
-  public constructor(obj: InterfaceProperties<T>) {
-    Object.assign(this, obj);
-  }
-}
-
-export function ClassDecoder<C>(
-  cls: new(obj: InterfaceProperties<C>) => C,
-  decoders: JsonDecoder.DecoderObject<InterfaceProperties<C>>,
-  decoderName: string,
-): JsonDecoder.Decoder<Draft<C>> {
-  return MappingDecoder(
-    JsonDecoder.object(decoders, decoderName),
-    (data: InterfaceProperties<C>): Draft<C> => {
-      return new cls(data) as Draft<C>;
-    },
-    decoderName,
-  );
-}
