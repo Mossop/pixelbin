@@ -8,7 +8,7 @@ class ServerFileStore(BaseFileStore):
     STORAGE = None
 
     @classmethod
-    def build(cls):
+    def build(cls, model): # pylint: disable=unused-argument
         if cls.STORAGE is None:
             cls.STORAGE = ServerFileStore()
         return cls.STORAGE

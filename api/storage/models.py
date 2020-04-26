@@ -34,7 +34,7 @@ class Server(Storage):
     def build_file_store(self):
         # pylint: disable=import-outside-toplevel
         from .server import ServerFileStore
-        return ServerFileStore.build()
+        return ServerFileStore.build(self)
 
 class ServerSerializer(ModelSerializer):
     class Meta:
@@ -56,7 +56,8 @@ class Backblaze(Storage):
 
     def build_file_store(self):
         # pylint: disable=import-outside-toplevel
-        return None
+        from .backblaze import BackblazeFileStore
+        return BackblazeFileStore.build(self)
 
 class BackblazeSerializer(ModelSerializer):
     keyId = serializers.CharField(write_only=True, source='key_id')

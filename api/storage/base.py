@@ -45,7 +45,7 @@ class LocalStorageArea(BaseStorageArea):
         target = self.get_path(path)
         if not os.path.exists(target):
             return
-        elif os.path.isdir(target):
+        if os.path.isdir(target):
             rmtree(target, True)
             if target == self._root:
                 os.makedirs(target, exist_ok=True)
@@ -84,6 +84,22 @@ class BaseFileStore:
     def main(self):
         return self._main
 
+    def copy_temp_to_local(self, temp_name, local_name=None):
+        if local_name is None:
+            local_name = temp_name
+        copyfile(
+            self.temp.get_path(temp_name),
+            self.local.get_path(local_name)
+        )
+
+    def copy_local_to_temp(self, local_name, temp_name=None):
+        if temp_name is None:
+            temp_name = local_name
+        copyfile(
+            self.local.get_path(local_name),
+            self.temp.get_path(temp_name)
+        )
+
     def copy_temp_to_main(self, temp_name, main_name=None):
         if main_name is None:
             main_name = temp_name
@@ -106,6 +122,30 @@ class BaseFileStore:
             )
         else:
             raise NotImplementedError("%s must implement copy_local_to_main." %
+                                      self.__class__.__name__)
+
+    def copy_main_to_temp(self, main_name, temp_name=None):
+        if temp_name is None:
+            temp_name = main_name
+        if isinstance(self.main, LocalStorageArea):
+            copyfile(
+                self.main.get_path(main_name),
+                self.temp.get_path(temp_name)
+            )
+        else:
+            raise NotImplementedError("%s must implement copy_main_to_temp." %
+                                      self.__class__.__name__)
+
+    def copy_main_to_local(self, main_name, local_name=None):
+        if local_name is None:
+            local_name = main_name
+        if isinstance(self.main, LocalStorageArea):
+            copyfile(
+                self.main.get_path(main_name),
+                self.local.get_path(local_name)
+            )
+        else:
+            raise NotImplementedError("%s must implement copy_main_to_local." %
                                       self.__class__.__name__)
 
     def delete(self, path=""):
@@ -152,9 +192,9 @@ class InnerFileStore(BaseFileStore):
         self._store = store
         self._path = path
         super().__init__(
-            InnerStorageArea(store.temp, path),
-            InnerStorageArea(store.local, path),
-            InnerStorageArea(store.main, path),
+            InnerStorageArea(store.temp, self._path),
+            InnerStorageArea(store.local, self._path),
+            InnerStorageArea(store.main, self._path),
         )
 
     def copy_temp_to_main(self, temp_name, main_name=None):
@@ -171,4 +211,20 @@ class InnerFileStore(BaseFileStore):
         self._store.copy_local_to_main(
             self.local.get_target_path(local_name),
             self.main.get_target_path(main_name),
+        )
+
+    def copy_main_to_temp(self, main_name, temp_name=None):
+        if temp_name is None:
+            temp_name = main_name
+        self._store.copy_main_to_temp(
+            self.main.get_target_path(main_name),
+            self.temp.get_target_path(temp_name),
+        )
+
+    def copy_main_to_local(self, main_name, local_name=None):
+        if local_name is None:
+            local_name = main_name
+        self._store.copy_main_to_local(
+            self.main.get_target_path(main_name),
+            self.local.get_target_path(local_name),
         )

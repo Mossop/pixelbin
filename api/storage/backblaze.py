@@ -1,118 +1,99 @@
-import requests
+import os
 
-B2_AUTHORIZE_URL = 'https://api.backblazeb2.com/b2api/v1/b2_authorize_account'
+from b2sdk.v1 import InMemoryAccountInfo, B2Api, DownloadDestLocalFile
+from b2sdk.file_version import FileVersionInfoFactory
 
-class BackblazeAPI:
-    auth_token = None
-    api_url = None
-    download_url = None
+from base.config import PATHS
 
-    def __init__(self, key_id, key, bucket_id, bucket_name):
-        self.key_id = key_id
-        self.key = key
-        self.bucket_id = bucket_id
-        self.bucket_name = bucket_name
+from .base import BaseFileStore, BaseStorageArea, LocalStorageArea
 
-    def get_endpoint(self, version, method):
-        return '%s/b2api/v%s/%s' % (self.api_url, version, method)
+class BackblazeStorageArea(BaseStorageArea):
+    def __init__(self, b2_api, bucket, path):
+        self._b2_api = b2_api
+        self._bucket = bucket
+        self._path = path
 
-    def authorize(self):
-        response = requests.get(B2_AUTHORIZE_URL, auth=(self.key_id, self.key))
-        data = response.json()
-        if response.status_code != 200:
-            raise Exception('Unable to authenticate with B2: %s %s' %
-                            (response.status_code, data['code']))
+    def get_target_path(self, path):
+        if path == "":
+            return self._path
+        return os.path.join(self._path, path)
 
-        self.auth_token = data['authorizationToken']
-        self.api_url = data['apiUrl']
-        self.download_url = data['downloadUrl']
+    def get_url(self, path):
+        target = self.get_target_path(path)
+        bucket = self._b2_api.get_bucket_by_name(self._bucket)
+        token = bucket.get_download_authorization(target, 60)
+        return "%s?Authorization=%s" % (bucket.get_download_url(target), token)
 
-    def ensure_authorized(self):
-        if self.auth_token is not None:
-            return
-        self.authorize()
+    def delete(self, path=""):
+        target = self.get_target_path(path)
+        bucket = self._b2_api.get_bucket_by_name(self._bucket)
+        start_file_name = target
+        start_file_id = None
 
-    def upload(self, path, sha1, file, content_type='application/octet-stream'):
-        self.ensure_authorized()
+        while start_file_name is not None:
+            response = self._b2_api.session.list_file_versions(bucket.id_, start_file_name,
+                                                               start_file_id, 100, target)
+            for entry in response['files']:
+                file_version_info = FileVersionInfoFactory.from_api_response(entry)
+                if not file_version_info.file_name.startswith(target):
+                    # We're past the files we care about
+                    return
+                bucket.delete_file_version(file_version_info.id_, file_version_info.file_name)
 
-        for _ in range(5):
-            url = self.get_endpoint(1, 'b2_get_upload_url')
-            headers = {
-                'Authorization': self.auth_token,
-            }
-            params = {
-                'bucketId': self.bucket_id,
-            }
-            response = requests.post(url, headers=headers, json=params)
-            data = response.json()
+            start_file_name = response['nextFileName']
+            start_file_id = response['nextFileId']
 
-            if response.status_code == 401 and data['code'] == 'expired_auth_token':
-                self.authorize()
-                return self.upload(path, sha1, file, content_type)
+class BackblazeFileStore(BaseFileStore):
+    """A file store that uses Backblaze B2 storage for the main storage area."""
+    STORAGE_CACHE = dict()
 
-            if response.status_code != 200:
-                continue
+    @classmethod
+    def build(cls, model):
+        if model.id in cls.STORAGE_CACHE:
+            return cls.STORAGE_CACHE[model.id]
 
-            upload_url = data['uploadUrl']
-            token = data['authorizationToken']
+        file_store = BackblazeFileStore(model.key_id, model.key, model.bucket, model.path)
+        cls.STORAGE_CACHE[model.id] = file_store
+        return file_store
 
-            headers = {
-                'Authorization': token,
-                'X-Bz-File-Name': path,
-                'Content-Type': content_type,
-                'X-Bz-Content-Sha1': sha1,
-            }
+    def __init__(self, key_id, key, bucket, path, raw_api=None):
+        account_info = InMemoryAccountInfo()
+        b2_api = B2Api(account_info=account_info, raw_api=raw_api)
+        b2_api.authorize_account("production", key_id, key)
+        self._b2_api = b2_api
+        self._bucket = bucket
+        self._path = path
 
-            response = requests.post(upload_url, headers=headers, data=file)
-            data = response.json()
-            if response.status_code != 200:
-                continue
+        super().__init__(
+            LocalStorageArea(os.path.join(PATHS.get('data'), 'storage', 'temp')),
+            LocalStorageArea(os.path.join(PATHS.get('data'), 'storage', 'local')),
+            BackblazeStorageArea(b2_api, bucket, path)
+        )
 
-            return data['fileId']
+    def copy_temp_to_main(self, temp_name, main_name=None):
+        if main_name is None:
+            main_name = temp_name
+        target = self.main.get_target_path(main_name)
+        bucket = self._b2_api.get_bucket_by_name(self._bucket)
+        bucket.upload_local_file(self.temp.get_path(temp_name), target)
 
-        raise Exception('Failed to upload file after five attempts.')
+    def copy_local_to_main(self, local_name, main_name=None):
+        if main_name is None:
+            main_name = local_name
+        target = self.main.get_target_path(main_name)
+        bucket = self._b2_api.get_bucket_by_name(self._bucket)
+        bucket.upload_local_file(self.local.get_path(local_name), target)
 
-    def delete(self, path, storage_id):
-        self.ensure_authorized()
+    def copy_main_to_temp(self, main_name, temp_name=None):
+        if temp_name is None:
+            temp_name = main_name
+        target = self.main.get_target_path(main_name)
+        bucket = self._b2_api.get_bucket_by_name(self._bucket)
+        bucket.download_file_by_name(target, DownloadDestLocalFile(self.temp.get_path(temp_name)))
 
-        url = self.get_endpoint(1, 'b2_delete_file_version')
-        headers = {
-            'Authorization': self.auth_token,
-        }
-        params = {
-            'fileName': path,
-            'fileId': storage_id,
-        }
-        response = requests.post(url, headers=headers, json=params)
-        data = response.json()
-
-        if response.status_code == 401 and data['code'] == 'expired_auth_token':
-            self.authorize()
-            self.delete(path, storage_id)
-            return
-
-        if response.status_code != 200:
-            raise Exception('Failed to delete file: %s %s' % (response.status_code, data['code']))
-
-    def get_download_url(self, path, duration=3600):
-        self.ensure_authorized()
-
-        url = self.get_endpoint(1, 'b2_get_download_authorization')
-        headers = {
-            'Authorization': self.auth_token,
-        }
-        params = {
-            'bucketId': self.bucket_id,
-            'fileNamePrefix': path,
-            'validDurationInSeconds': duration,
-        }
-        response = requests.post(url, headers=headers, json=params)
-        data = response.json()
-
-        if response.status_code == 401 and data['code'] == 'expired_auth_token':
-            self.authorize()
-            return self.get_download_url(path, duration)
-
-        token = data['authorizationToken']
-
-        return '%s/file/%s/%s?Authorization=%s' % (self.download_url, self.bucket_name, path, token)
+    def copy_main_to_local(self, main_name, local_name=None):
+        if local_name is None:
+            local_name = main_name
+        target = self.main.get_target_path(main_name)
+        bucket = self._b2_api.get_bucket_by_name(self._bucket)
+        bucket.download_file_by_name(target, DownloadDestLocalFile(self.local.get_path(local_name)))
