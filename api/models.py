@@ -347,9 +347,9 @@ class Media(models.Model):
                                               os.path.join(self.catalog.id, self.id))
         return self._file_store
 
-    def delete(self, *args, **kwargs):
+    def delete(self, **kwargs):
         self.file_store.delete()
-        super().delete(*args, **kwargs)
+        super().delete(**kwargs)
 
 add_metadata_fields_to_model(Media)
 

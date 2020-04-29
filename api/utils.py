@@ -61,18 +61,18 @@ def validatingModel(*validators):
             validator(obj)
 
     class ValidatingQuerySet(models.QuerySet):
-        def bulk_create(self, objs, *args, **kwargs):
+        def bulk_create(self, objs, **kwargs):
             for obj in objs:
                 call_validators(obj)
 
-            return super().bulk_create(objs, *args, **kwargs)
+            return super().bulk_create(objs, **kwargs)
 
     class ValidatingModel(models.Model):
         objects = ValidatingQuerySet.as_manager()
 
-        def save(self, *args, **kwargs):
+        def save(self, **kwargs):
             call_validators(self)
-            return super().save(*args, **kwargs)
+            return super().save(**kwargs)
 
         class Meta:
             abstract = True
