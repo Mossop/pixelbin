@@ -1,6 +1,7 @@
 FROM python:3.8
 
 ENV PYTHONUNBUFFERED 1
+ENV DATABASE_URL=postgres://pixelbin:pixelbin@postgres/pixelbin
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN \
@@ -29,6 +30,7 @@ RUN \
     watchdog pyyaml argh
 
 ENV DEBIAN_FRONTEND=dialog
+ENV CONTAINER=celery
 
 CMD [ \
   "watchmedo", "auto-restart", "--directory=./", "--pattern=*.py", "--recursive", "--", \

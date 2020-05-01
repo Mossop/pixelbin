@@ -1,16 +1,19 @@
 version: '3'
 
 services:
-  pixelbin:
+  api:
     build:
       context: ..
-      dockerfile: .devcontainer/app/Dockerfile
-    image: pixelbin
-    # Overrides default command so things don't shut down after the process ends.
+      dockerfile: containers/api/Dockerfile
     command: sleep infinity
 
     volumes:
-      - ..:/workspace:delegated
+      - "..:/workspace:cached,ro"
+      - "../data/storage:/workspace/data/storage:delegated,rw"
+      - "../public/media:/workspace/public/media:delegated,rw"
+
+    ports:
+      - 8000:8000
 
     links:
       - postgres
@@ -22,8 +25,7 @@ services:
   celery:
     build:
       context: ..
-      dockerfile: .devcontainer/celery/Dockerfile
-    image: celery
+      dockerfile: containers/celery/Dockerfile
     restart: unless-stopped
 
     volumes:

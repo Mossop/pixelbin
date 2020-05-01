@@ -1,6 +1,7 @@
 FROM python:3.8
 
 ENV PYTHONUNBUFFERED 1
+ENV DATABASE_URL=postgres://pixelbin:pixelbin@postgres/pixelbin
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN \
@@ -12,7 +13,8 @@ RUN \
   apt-get install -y --no-install-recommends \
     less \
     ffmpeg \
-    exiftool && \
+    exiftool \
+    postgresql && \
   apt-get autoremove -y && \
   apt-get clean -y && \
   rm -rf /var/lib/apt/lists/* && \
@@ -20,13 +22,17 @@ RUN \
 
 WORKDIR /workspace
 
+COPY requirements.txt requirements_dev.txt requirements_postgres.txt /tmp/pip-tmp/
+
 RUN \
-  curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
-  apt-get install -y --no-install-recommends \
-    nodejs \
-    postgresql && \
-  npm install -g gulp
+  pip3 install \
+    -r /tmp/pip-tmp/requirements.txt \
+    -r /tmp/pip-tmp/requirements_dev.txt \
+    -r /tmp/pip-tmp/requirements_postgres.txt
 
 ENV DEBIAN_FRONTEND=dialog
+ENV CONTAINER=api
+
+EXPOSE 8000
 
 CMD ["sleep", "infinity"]

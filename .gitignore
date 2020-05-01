@@ -12,3 +12,4 @@ __pycache__
 /.python-version
 /.coverage
 .DS_Store
+*.sqlite
