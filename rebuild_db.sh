@@ -2,16 +2,16 @@
 
 EXEC=python3
 
-docker exec -i pixelbin_db psql -U pixelbin -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = 'pixelbin' AND pid <> pg_backend_pid();"
+export PGPASSWORD=pixelbin
 
-docker exec -i pixelbin_db dropdb -U pixelbin pixelbin
-
-set -e
-docker exec -i pixelbin_db createdb -U pixelbin pixelbin
+echo "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = 'pixelbin' AND pid <> pg_backend_pid();" | psql -h postgres -U pixelbin pixelbin
+dropdb -h postgres -U pixelbin pixelbin
 rm -rf data/storage
+createdb -h postgres -U pixelbin pixelbin
 
 rm -f api/migrations/00*
-${EXEC} ./manage.py makemigrations
-${EXEC} ./manage.py migrate
-${EXEC} ./manage.py buildtypes
-${EXEC} ./manage.py createsuperuser --email dtownsend@oxymoronical.com --full_name="Dave Townsend"
+./manage.py makemigrations
+./manage.py migrate
+./manage.py buildtypes
+
+echo -e "from api.models import User\nUser.objects.create_superuser('dtownsend@oxymoronical.com', 'Dave Townsend', 'pixelbin')" | ./manage.py shell

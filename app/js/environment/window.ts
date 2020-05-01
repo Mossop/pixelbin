@@ -1,1 +1,2 @@
-export default window;
+let win = window;
+export default win;

@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  pixelbin:
+    build:
+      context: ..
+      dockerfile: .devcontainer/app/Dockerfile
+    image: pixelbin
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    volumes:
+      - ..:/workspace:cached
+
+    links:
+      - postgres
+      - redis
+
+  redis:
+    image: redis
+
+  celery:
+    build:
+      context: ..
+      dockerfile: .devcontainer/celery/Dockerfile
+    image: celery
+    restart: unless-stopped
+
+    volumes:
+      - "../api:/workspace/api:ro"
+      - "../app:/workspace/app:ro"
+      - "../base:/workspace/base:ro"
+      - "../config:/workspace/config:ro"
+      - "../public/static:/workspace/public/static:ro"
+      - "../data/storage:/workspace/data/storage:rw"
+      - "../public/media:/workspace/public/media:rw"
+
+    links:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: pixelbin
+      POSTGRES_PASSWORD: pixelbin
+
+    volumes:
+      - ../data/postgres:/var/lib/postgresql/data:delegated

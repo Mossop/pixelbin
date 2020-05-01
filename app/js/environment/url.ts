@@ -1,1 +1,2 @@
-export default URL;
+let url = URL;
+export default url;
