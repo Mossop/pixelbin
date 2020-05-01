@@ -50,7 +50,7 @@ export type FieldProps = {
 } & StyleProps;
 
 type ElementFieldProps = {
-  disabled?: boolean;
+  disabled: boolean;
 } & ElementStyleProps;
 
 export function fieldProps<P extends FieldProps>(
@@ -59,11 +59,8 @@ export function fieldProps<P extends FieldProps>(
 ): ElementFieldProps {
   let result: ElementFieldProps = {
     ...styleProps(props, additional),
+    disabled: props.disabled ?? false,
   };
-
-  if (props.disabled) {
-    result.disabled = true;
-  }
 
   return result;
 }
