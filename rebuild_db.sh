@@ -6,8 +6,9 @@ export PGPASSWORD=pixelbin
 
 echo "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = 'pixelbin' AND pid <> pg_backend_pid();" | psql -h postgres -U pixelbin pixelbin
 dropdb -h postgres -U pixelbin pixelbin
-rm -rf data/storage
 createdb -h postgres -U pixelbin pixelbin
+rm -rf data/storage
+rm -rf public/media/storage
 
 rm -f api/migrations/00*
 ./manage.py makemigrations

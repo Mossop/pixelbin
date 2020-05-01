@@ -133,18 +133,27 @@ class ApiTestCase(TestCase):
             self.assertEqual(thumb.height, target)
 
 @contextmanager
-def config_change(section, option, new_value):
-    has_option = CONFIG.has_option(section, option)
-    if has_option:
-        old_value = CONFIG.get(section, option)
-    CONFIG.set(section, option, new_value)
+def config_change(**kwargs):
+    previous = []
+    for config in kwargs.keys():
+        [section, option] = config.split('_', 1)
+        has_option = CONFIG.has_option(section, option)
+        if has_option:
+            old_value = CONFIG.get(section, option)
+        else:
+            old_value = None
+        previous.append([section, option, has_option, old_value])
+
+        CONFIG.set(section, option, kwargs[config])
+
     try:
         yield
     finally:
-        if has_option:
-            CONFIG.set(section, option, old_value)
-        else:
-            try:
-                CONFIG.remove_option(section, option)
-            except: # pylint: disable=bare-except
-                pass
+        for [section, option, has_option, old_value] in previous:
+            if has_option:
+                CONFIG.set(section, option, old_value)
+            else:
+                try:
+                    CONFIG.remove_option(section, option)
+                except: # pylint: disable=bare-except
+                    pass

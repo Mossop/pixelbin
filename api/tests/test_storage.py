@@ -24,7 +24,7 @@ class StorageTests(ApiTestCase):
         with open(path, 'w') as fp:
             fp.write('Test file')
 
-    def check_area(self, area, root):
+    def check_area(self, area, root, accessible):
         self.assertTrue(os.path.isdir(root))
         path = area.get_path('foobar')
         self.assertEqual(path, os.path.join(root, 'foobar'))
@@ -46,7 +46,10 @@ class StorageTests(ApiTestCase):
 
         self.write_test_file(path)
 
-        self.assertIsNone(area.get_url('foobar'))
+        if accessible:
+            self.assertIsNotNone(area.get_url('foobar'))
+        else:
+            self.assertIsNone(area.get_url('foobar'))
 
         self.check_test_file(area.get_stream('foobar'))
 
@@ -80,9 +83,9 @@ class StorageTests(ApiTestCase):
         self.assertFalse(os.path.isfile(target))
 
     def check_local_store(self, file_store, temp_root, local_root, main_root):
-        self.check_area(file_store.temp, temp_root)
-        self.check_area(file_store.local, local_root)
-        self.check_area(file_store.main, main_root)
+        self.check_area(file_store.temp, temp_root, False)
+        self.check_area(file_store.local, local_root, False)
+        self.check_area(file_store.main, main_root, True)
 
         self.check_copy(os.path.join(temp_root, 'foo'),
                         os.path.join(main_root, 'bar'),
@@ -205,30 +208,34 @@ class StorageTests(ApiTestCase):
 
     def test_server_storage(self):
         with tempfile.TemporaryDirectory() as temp_path:
-            with config_change('path', 'data', temp_path):
+            data = os.path.join(temp_path, 'data')
+            media = os.path.join(temp_path, 'media')
+            with config_change(path_data=data, path_media=media):
                 file_store = ServerFileStore()
 
                 self.check_local_store(file_store,
-                                       os.path.join(temp_path, 'storage', 'temp'),
-                                       os.path.join(temp_path, 'storage', 'local'),
-                                       os.path.join(temp_path, 'storage', 'main'))
+                                       os.path.join(data, 'storage', 'temp'),
+                                       os.path.join(data, 'storage', 'local'),
+                                       os.path.join(media, 'storage'))
                 self.check_any_store(file_store)
 
     def test_inner_storage(self):
         with tempfile.TemporaryDirectory() as temp_path:
-            with config_change('path', 'data', temp_path):
+            data = os.path.join(temp_path, 'data')
+            media = os.path.join(temp_path, 'media')
+            with config_change(path_data=data, path_media=media):
                 file_store = ServerFileStore()
                 inner_store = InnerFileStore(file_store, os.path.join('bar', 'baz'))
 
                 self.check_local_store(inner_store,
-                                       os.path.join(temp_path, 'storage', 'temp', 'bar', 'baz'),
-                                       os.path.join(temp_path, 'storage', 'local', 'bar', 'baz'),
-                                       os.path.join(temp_path, 'storage', 'main', 'bar', 'baz'))
+                                       os.path.join(data, 'storage', 'temp', 'bar', 'baz'),
+                                       os.path.join(data, 'storage', 'local', 'bar', 'baz'),
+                                       os.path.join(media, 'storage', 'bar', 'baz'))
                 self.check_any_store(inner_store)
 
     def test_backblaze_storage(self):
         with tempfile.TemporaryDirectory() as temp_path:
-            with config_change('path', 'data', temp_path):
+            with config_change(path_data=temp_path):
                 account_info = StubAccountInfo()
 
                 simulator = RawSimulator()
