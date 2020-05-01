@@ -10,7 +10,7 @@ services:
     command: sleep infinity
 
     volumes:
-      - ..:/workspace:cached
+      - ..:/workspace:delegated
 
     links:
       - postgres
@@ -27,13 +27,9 @@ services:
     restart: unless-stopped
 
     volumes:
-      - "../api:/workspace/api:ro"
-      - "../app:/workspace/app:ro"
-      - "../base:/workspace/base:ro"
-      - "../config:/workspace/config:ro"
-      - "../public/static:/workspace/public/static:ro"
-      - "../data/storage:/workspace/data/storage:rw"
-      - "../public/media:/workspace/public/media:rw"
+      - "..:/workspace:cached,ro"
+      - "../data/storage:/workspace/data/storage:delegated,rw"
+      - "../public/media:/workspace/public/media:delegated,rw"
 
     links:
       - postgres

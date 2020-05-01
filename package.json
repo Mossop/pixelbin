@@ -5,7 +5,10 @@
   "main": "index.js",
   "author": "Dave Townsend <dtownsend@oxymoronical.com>",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "coverage": "jest --collectCoverage",
+    "build": "gulp build",
+    "watch": "gulp watch"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",

@@ -27,8 +27,18 @@
 
   // Add the IDs of extensions you want installed when the container is created.
   "extensions": [
-    "ms-python.python",
-  ],
+	"ms-python.python",
+	"nathanridley.autotrim",
+	"fractalbrew.backticks",
+	"dlech.chmod",
+	"brainfit.vscode-coverage-highlighter",
+	"shamanu4.django-intellisense",
+	"dbaeumer.vscode-eslint",
+	"eamodio.gitlens",
+	"orta.vscode-jest",
+	"shinnn.stylelint",
+	"spmeesseman.vscode-taskexplorer"
+],
 
   "postCreateCommand": "pip install -r requirements.txt -r requirements_dev.txt -r requirements_postgres.txt && npm install",
 }

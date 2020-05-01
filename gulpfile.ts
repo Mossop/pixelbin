@@ -9,7 +9,7 @@ import { config, path } from "./base/config";
 import { eslintCheck } from "./ci/eslint";
 import { pylintCheck } from "./ci/pylint";
 import { typeScriptCheck } from "./ci/typescript";
-import { exec, logLints } from "./ci/utils";
+import { logLints } from "./ci/utils";
 
 import gulpWebpack = require("webpack-stream");
 
