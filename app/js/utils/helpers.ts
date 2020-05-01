@@ -50,7 +50,7 @@ export function createDraft<T>(item: T): Draft<T> {
   if (typeof item == "object") {
     let draft = Object.create(Object.getPrototypeOf(item));
     for (let [key, value] of Object.entries(item)) {
-      draft[key] = value;
+      draft[key] = createDraft(value);
     }
     return draft as Draft<T>;
   }
