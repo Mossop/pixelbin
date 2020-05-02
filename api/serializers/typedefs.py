@@ -68,7 +68,7 @@ class RefType(DecodableNamedType):
         return 'ResponsePk<%s>' % self.name
 
     def nested_decoder(self):
-        return 'ResponsePkDecoder(%s, "%s")' % (self.name, self.name)
+        return 'JsonDecoder.lazy(() => ResponsePkDecoder(%s, "%s"))' % (self.name, self.name)
 
 class ConstantType(DecodableNamedType):
     def __init__(self, name):

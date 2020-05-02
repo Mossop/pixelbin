@@ -72,10 +72,10 @@ export class RequestData<D> {
   }
 }
 
-type QueryType = Record<string, boolean | string | number> | null | undefined;
+type QueryType = Record<string, Reference<unknown> | boolean | string | number> | null | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isObject = (data: any): boolean => !(data instanceof Blob) && typeof data == "object";
+const isObject = (data: any): boolean => typeof data == "object";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isArray = (data: any): boolean => Array.isArray(data);
 
@@ -91,15 +91,14 @@ function intoString(data: any): string {
 function *objectParams(data: object, prefix: string = ""): Generator<[string, string | Blob]> {
   for (let [key, value] of Object.entries(data)) {
     let param = `${prefix}${key}`;
-    if (isReference(value)) {
+    if (value instanceof Blob) {
+      yield [param, value];
+    } else if (isReference(value)) {
       yield [param, value.id];
     } else if (isArray(value)) {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       yield* arrayParams(value, `${param}`);
     } else if (isObject(value)) {
       yield* objectParams(value, `${param}.`);
-    } else if (value instanceof Blob) {
-      yield [param, value];
     } else {
       yield [param, intoString(value)];
     }
@@ -108,29 +107,44 @@ function *objectParams(data: object, prefix: string = ""): Generator<[string, st
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function *arrayParams(data: any[], prefix: string = ""): Generator<[string, string | Blob]> {
-  // For reference types we can just send a list with the same field name.
-  if (data.every(isReference)) {
-    for (let ref of data) {
-      yield [prefix, ref.id];
-    }
-    return;
-  }
-
   for (let [index, value] of data.entries()) {
     let param = `${prefix}[${index}]`;
 
-    if (isReference(value)) {
+    if (value instanceof Blob) {
+      yield [param, value];
+    } else if (isReference(value)) {
       yield [param, value.id];
     } else if (isArray(value)) {
       yield* arrayParams(value, param);
     } else if (isObject(value)) {
       yield* objectParams(value, param);
-    } else if (value instanceof Blob) {
-      yield [param, value];
     } else {
       yield [param, intoString(value)];
     }
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function *params(data: any): Generator<[string, string | Blob]> {
+  if (isArray(data)) {
+    yield* arrayParams(data);
+  } else if (isObject(data)) {
+    yield* objectParams(data);
+  } else {
+    exception(ErrorCode.InvalidData, {
+      detail: `Unexpected data type ${typeof data}`,
+    });
+  }
+}
+
+function json(data: unknown): string {
+  return JSON.stringify(data, (_key: string, value: unknown): unknown => {
+    if (isReference(value)) {
+      return value.id;
+    }
+
+    return value;
+  });
 }
 
 export class QueryRequestData<D> extends RequestData<D> {
@@ -143,8 +157,13 @@ export class QueryRequestData<D> extends RequestData<D> {
       return;
     }
 
-    for (let [key, value] of Object.entries(this.data)) {
-      url.searchParams.append(key, intoString(value));
+    for (let [key, value] of params(this.data)) {
+      if (value instanceof Blob) {
+        exception(ErrorCode.InvalidData, {
+          detail: "Attempted to pass a Blob through a GET request.",
+        });
+      }
+      url.searchParams.append(key, value);
     }
   }
 }
@@ -161,20 +180,9 @@ export class FormRequestData<D> extends RequestData<D> {
       return;
     }
 
-    let items: Generator<[string, string | Blob]>;
-    if (isArray(data)) {
-      items = arrayParams(data);
-    } else if (isObject(data)) {
-      items = objectParams(data);
-    } else {
-      exception(ErrorCode.InvalidData, {
-        detail: `Unexpected data type ${typeof data}`,
-      });
-    }
-
     let canJSON = true;
 
-    for (let [key, value] of items) {
+    for (let [key, value] of params(data)) {
       this.formData[key] = value;
       if (value instanceof Blob) {
         canJSON = false;
@@ -182,14 +190,7 @@ export class FormRequestData<D> extends RequestData<D> {
     }
 
     if (canJSON) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.json = JSON.stringify(data, (_key: string, value: any): any => {
-        if (isReference(value)) {
-          return value.id;
-        }
-
-        return value;
-      });
+      this.json = json(data);
     }
   }
 
@@ -213,14 +214,7 @@ export class JsonRequestData<D> extends RequestData<D> {
     if (!data) {
       this.data = null;
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.data = JSON.stringify(data, (_key: string, value: any): any => {
-        if (isReference(value)) {
-          return value.id;
-        }
-
-        return value;
-      });
+      this.data = json(data);
     }
   }
 

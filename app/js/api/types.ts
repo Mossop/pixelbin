@@ -64,7 +64,7 @@ export interface PersonData {
 export const PersonDataDecoder = JsonDecoder.object<PersonData>(
   {
     id: JsonDecoder.string,
-    catalog: ResponsePkDecoder(Catalog, "Catalog"),
+    catalog: JsonDecoder.lazy(() => ResponsePkDecoder(Catalog, "Catalog")),
     name: JsonDecoder.string,
   },
   "PersonData"
@@ -80,8 +80,8 @@ export interface TagData {
 export const TagDataDecoder = JsonDecoder.object<TagData>(
   {
     id: JsonDecoder.string,
-    catalog: ResponsePkDecoder(Catalog, "Catalog"),
-    parent: JsonDecoder.oneOf([ResponsePkDecoder(Tag, "Tag"), JsonDecoder.isNull(null)], "ResponsePk<Tag> | null"),
+    catalog: JsonDecoder.lazy(() => ResponsePkDecoder(Catalog, "Catalog")),
+    parent: JsonDecoder.oneOf([JsonDecoder.lazy(() => ResponsePkDecoder(Tag, "Tag")), JsonDecoder.isNull(null)], "ResponsePk<Tag> | null"),
     name: JsonDecoder.string,
   },
   "TagData"
@@ -98,10 +98,10 @@ export interface AlbumData {
 export const AlbumDataDecoder = JsonDecoder.object<AlbumData>(
   {
     id: JsonDecoder.string,
-    catalog: ResponsePkDecoder(Catalog, "Catalog"),
+    catalog: JsonDecoder.lazy(() => ResponsePkDecoder(Catalog, "Catalog")),
     stub: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
     name: JsonDecoder.string,
-    parent: JsonDecoder.oneOf([ResponsePkDecoder(Album, "Album"), JsonDecoder.isNull(null)], "ResponsePk<Album> | null"),
+    parent: JsonDecoder.oneOf([JsonDecoder.lazy(() => ResponsePkDecoder(Album, "Album")), JsonDecoder.isNull(null)], "ResponsePk<Album> | null"),
   },
   "AlbumData"
 );
@@ -244,9 +244,9 @@ export const MediaDataDecoder = JsonDecoder.object<MediaData>(
     id: JsonDecoder.string,
     created: DateDecoder,
     info: JsonDecoder.oneOf([MediaInfoDataDecoder, JsonDecoder.isNull(null)], "MediaInfoData | null"),
-    tags: JsonDecoder.array(ResponsePkDecoder(Tag, "Tag"), "ResponsePk<Tag>[]"),
-    albums: JsonDecoder.array(ResponsePkDecoder(Album, "Album"), "ResponsePk<Album>[]"),
-    people: JsonDecoder.array(ResponsePkDecoder(Person, "Person"), "ResponsePk<Person>[]"),
+    tags: JsonDecoder.array(JsonDecoder.lazy(() => ResponsePkDecoder(Tag, "Tag")), "ResponsePk<Tag>[]"),
+    albums: JsonDecoder.array(JsonDecoder.lazy(() => ResponsePkDecoder(Album, "Album")), "ResponsePk<Album>[]"),
+    people: JsonDecoder.array(JsonDecoder.lazy(() => ResponsePkDecoder(Person, "Person")), "ResponsePk<Person>[]"),
     metadata: MetadataDataDecoder,
   },
   "MediaData"
