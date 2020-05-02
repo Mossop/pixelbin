@@ -1,9 +1,15 @@
 import { ReactLocalization, LocalizationProvider } from "@fluent/react";
 import { RenderOptions, RenderResult, Queries, render as testRender } from "@testing-library/react";
+import { JSDOM } from "jsdom";
 import React, { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
 
 import store from "../../js/store";
+
+// @ts-ignore
+const dom: JSDOM = jsdom;
+
+export { dom as jsdom };
 
 export function expectElement(node: Node | null): Element {
   expect(node).not.toBeNull();

@@ -1,6 +1,6 @@
 module.exports = {
   preset: "ts-jest",
-  testEnvironment: "jsdom",
+  testEnvironment: "jest-environment-jsdom-global",
   testEnvironmentOptions: {
     url: "http://pixelbin/",
   },
