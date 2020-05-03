@@ -135,7 +135,7 @@ class ApiTestCase(TestCase):
 @contextmanager
 def config_change(**kwargs):
     previous = []
-    for config in kwargs.keys():
+    for config in kwargs:
         [section, option] = config.split('_', 1)
         has_option = CONFIG.has_option(section, option)
         if has_option:

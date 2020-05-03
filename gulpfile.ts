@@ -15,6 +15,7 @@ import gulpWebpack = require("webpack-stream");
 
 const IGNORES = [
   "!base/**/*",
+  "!build/**/*",
   "!node_modules/**/*",
   "!venv/**/*",
   "!public/**/*",
