@@ -1,6 +1,12 @@
 #! /bin/bash
 
 if [ -z "$CONTAINER" ]; then
+  container=$(docker container ls -q --filter "ancestor=pixelbin_api")
+  if [ -z "$container" ]; then
+    echo "API container is not running."
+    exit 1
+  fi
+
   WORKSPACE=$(cd $(dirname "${BASH_SOURCE[0]:-$0}") && cd .. && pwd | sed -e s/\\/$//g)
   cd $WORKSPACE
 
@@ -10,7 +16,6 @@ if [ -z "$CONTAINER" ]; then
   ./manage.py makemigrations -v 0
   ./manage.py buildtypes
 
-  container=$(docker container ls -q --filter "ancestor=pixelbin_api")
   exec docker exec -it $container /workspace/containers/rebuild_db.sh
 else
   export PGPASSWORD=pixelbin
