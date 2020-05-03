@@ -35,10 +35,14 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
     this.outer = outer;
   }
 
-  public getOwnPropertyDescriptor<K extends keyof T>(
+  public getOwnPropertyDescriptor<K extends PropertyKey & keyof T>(
     target: T,
     prop: K,
   ): PropertyDescriptor | undefined {
+    if (prop === ProxyMarker) {
+      return undefined;
+    }
+
     let descriptor = Object.getOwnPropertyDescriptor(this.outer.get(), prop);
     if (!descriptor) {
       return undefined;
@@ -50,7 +54,7 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
 
     if (descriptor.get) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      descriptor.get = (): T[K] => {
+      descriptor.get = (): T[K] | undefined => {
         return this.get(target, prop);
       };
     }
@@ -65,15 +69,25 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
     return descriptor;
   }
 
-  public ownKeys(): string[] {
-    return Object.keys(this.outer.get());
+  public ownKeys(): PropertyKey[] {
+    return Object.keys(this.outer.get()).filter((prop: PropertyKey): boolean => {
+      return prop !== ProxyMarker;
+    });
   }
 
-  public has(_: T, prop: string): boolean {
+  public has(_: T, prop: PropertyKey): boolean {
+    if (prop === ProxyMarker) {
+      return false;
+    }
+
     return prop in this.outer.get();
   }
 
-  public get<K extends keyof T>(target: T, prop: K): T[K] {
+  public get<K extends PropertyKey & keyof T>(target: T, prop: K): T[K] | undefined {
+    if (prop === ProxyMarker) {
+      return undefined;
+    }
+
     let obj = this.outer.get();
     let inner = obj[prop];
 
@@ -91,12 +105,20 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
     }
   }
 
-  public set<K extends keyof T>(_: T, prop: K, val: T[K]): boolean {
+  public set<K extends PropertyKey & keyof T>(_: T, prop: K, val: T[K]): boolean {
+    if (prop === ProxyMarker) {
+      return false;
+    }
+
     this.outer.set(Object.assign({}, this.outer.get(), { [prop]: val }));
     return true;
   }
 
-  public deleteProperty<K extends keyof T>(_: T, prop: K): boolean {
+  public deleteProperty<K extends PropertyKey & keyof T>(_: T, prop: K): boolean {
+    if (prop === ProxyMarker) {
+      return false;
+    }
+
     let obj = Object.assign({}, this.outer.get());
     delete obj[prop];
     this.outer.set(obj);
