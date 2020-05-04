@@ -3,7 +3,7 @@ import { Draft } from "immer";
 
 import { ServerData } from "../../js/api";
 import { OverlayType } from "../../js/overlays";
-import { PageType } from "../../js/pages";
+import { PageType } from "../../js/pages/types";
 import { UIState } from "../../js/store";
 import actions from "../../js/store/actions";
 import reducer from "../../js/store/reducer";

@@ -1,7 +1,7 @@
 import { ServerData } from "../../js/api";
 import { Catalog, Album } from "../../js/api/highlevel";
 import { OverlayType } from "../../js/overlays";
-import { PageType } from "../../js/pages";
+import { PageType } from "../../js/pages/types";
 import { ErrorCode } from "../../js/utils/exception";
 import { HistoryState } from "../../js/utils/history";
 import { intoUIState, fromUIState, stateURLMatches } from "../../js/utils/navigation";

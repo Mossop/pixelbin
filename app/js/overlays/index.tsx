@@ -5,7 +5,7 @@ import { UserData } from "../api";
 import { Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { document } from "../environment";
-import { PageState, PageType } from "../pages";
+import { PageState, PageType } from "../pages/types";
 import { StoreState } from "../store";
 import actions from "../store/actions";
 import { ComponentProps, connect } from "../utils/component";

@@ -2,7 +2,7 @@ import { Deed } from "deeds/immer";
 import { applyMiddleware, createStore, Store, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
-import { PageType } from "../pages";
+import { PageType } from "../pages/types";
 import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
 import { StoreState } from "./types";

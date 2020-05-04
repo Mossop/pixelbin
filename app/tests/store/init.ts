@@ -1,6 +1,6 @@
 import { ServerDataDecoder, ServerData } from "../../js/api";
 import { Encoded } from "../../js/api/helpers";
-import { PageType } from "../../js/pages";
+import { PageType } from "../../js/pages/types";
 import actions from "../../js/store/actions";
 import { decode } from "../../js/utils/decoders";
 

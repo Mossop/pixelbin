@@ -1,7 +1,7 @@
 import React, { PureComponent, ReactNode } from "react";
 
 import { logout } from "../api/auth";
-import { PageType } from "../pages";
+import { PageType } from "../pages/types";
 import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";
 import { If, Then, Else } from "../utils/Conditions";

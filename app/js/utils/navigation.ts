@@ -1,7 +1,7 @@
 import { ServerData } from "../api";
 import { Catalog, Album } from "../api/highlevel";
 import { OverlayType } from "../overlays";
-import { PageType } from "../pages";
+import { PageType } from "../pages/types";
 import { StoreType, UIState } from "../store";
 import actions from "../store/actions";
 import { exception, ErrorCode } from "./exception";

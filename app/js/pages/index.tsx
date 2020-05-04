@@ -10,8 +10,6 @@ import NotFound from "./notfound";
 import { PageType, PageState } from "./types";
 import User from "./user";
 
-export * from "./types";
-
 interface FromStateProps {
   page: PageState;
 }

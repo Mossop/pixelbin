@@ -2,7 +2,7 @@ import { Draft } from "immer";
 
 import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../../js/api";
 import { Catalog, Reference, Tag, Album } from "../../js/api/highlevel";
-import { PageType } from "../../js/pages";
+import { PageType } from "../../js/pages/types";
 import { StoreState } from "../../js/store";
 import { intoMap } from "../../js/utils/maps";
 

@@ -72,6 +72,11 @@ export function mockedClass<T extends jest.Constructable>(cls: T): jest.MockedCl
 
 export const mapOf = <V>(obj: Record<string, V>): Map<string, V> => new Map(Object.entries(obj));
 
+export function lastCallArgs<P extends unknown[]>(mock: jest.MockInstance<unknown, P>): P {
+  let count = mock.mock.calls.length;
+  return mock.mock.calls[count - 1];
+}
+
 export { jestExpect as expect };
 export * from "./dom";
 export * from "./store";

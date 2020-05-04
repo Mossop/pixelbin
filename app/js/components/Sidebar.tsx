@@ -1,7 +1,7 @@
 import React, { ReactNode, PureComponent } from "react";
 
 import { Catalog, Album, catalogs } from "../api/highlevel";
-import { PageType } from "../pages";
+import { PageType } from "../pages/types";
 import { StoreState } from "../store";
 import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";

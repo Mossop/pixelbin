@@ -1,6 +1,6 @@
 import { ServerData } from "../api";
 import { OverlayState } from "../overlays";
-import { PageState } from "../pages";
+import { PageState } from "../pages/types";
 
 interface Settings {
   readonly thumbnailSize: number;
