@@ -12,7 +12,7 @@ import type {
 } from "../api";
 import { Catalog, Album, Reference } from "../api/highlevel";
 import type { MediaTarget } from "../api/media";
-import { OverlayType } from "../overlays";
+import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
 import { nameSorted } from "../utils/sort";

@@ -1,5 +1,5 @@
 import { ServerData } from "../api";
-import { OverlayState } from "../overlays";
+import { OverlayState } from "../overlays/types";
 import { PageState } from "../pages/types";
 
 interface Settings {

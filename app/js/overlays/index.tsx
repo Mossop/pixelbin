@@ -16,8 +16,6 @@ import SignupOverlay from "./signup";
 import { OverlayState, OverlayType } from "./types";
 import UploadOverlay from "./upload";
 
-export * from "./types";
-
 interface FromStateProps {
   page: PageState;
   overlay?: OverlayState;

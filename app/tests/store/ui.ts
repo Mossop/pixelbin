@@ -1,7 +1,7 @@
 import { Deed } from "deeds/immer";
 
 import { Album } from "../../js/api/highlevel";
-import { OverlayType } from "../../js/overlays";
+import { OverlayType } from "../../js/overlays/types";
 import { PageType } from "../../js/pages/types";
 import { StoreType, StoreState } from "../../js/store";
 import actions from "../../js/store/actions";

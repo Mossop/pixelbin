@@ -30,7 +30,7 @@ export type PageProps<
   MDP extends MapDispatchToProps<PP> | {} = {},
 > = ComponentProps<PP, MergedMapStateToProps<PP, typeof baseMapStateToProps, MSP>, MDP>;
 
-export class BasePage<
+export abstract class BasePage<
   PP extends {} = {},
   SP extends MapStateToProps<PP> | {} = {},
   DP extends MapDispatchToProps<PP> | {} = {},
@@ -44,9 +44,7 @@ export class BasePage<
     return {};
   }
 
-  protected renderContent(): ReactNode {
-    return null;
-  }
+  protected abstract renderContent(): ReactNode;
 
   public render(): ReactNode {
     if (this.props.user) {

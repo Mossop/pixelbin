@@ -62,14 +62,7 @@ const mockedCatalog = mockedClass(CatalogPage);
 const mockedNotFound = mockedClass(NotFoundPage);
 const mockedError = mockedClass(ErrorPage);
 
-beforeEach((): void => {
-  resetDOM();
-
-  mockedIndex.mockClear();
-  mockedUser.mockClear();
-  mockedAlbum.mockClear();
-  mockedCatalog.mockClear();
-});
+beforeEach(resetDOM);
 
 test("index page", (): void => {
   store.dispatch(actions.updateUIState({

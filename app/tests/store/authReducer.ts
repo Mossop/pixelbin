@@ -2,7 +2,7 @@ import { Deed } from "deeds/immer";
 import { Draft } from "immer";
 
 import { ServerData } from "../../js/api";
-import { OverlayType } from "../../js/overlays";
+import { OverlayType } from "../../js/overlays/types";
 import { PageType } from "../../js/pages/types";
 import { UIState } from "../../js/store";
 import actions from "../../js/store/actions";

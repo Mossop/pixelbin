@@ -1,6 +1,6 @@
 import { ServerData } from "../api";
 import { Catalog, Album } from "../api/highlevel";
-import { OverlayType } from "../overlays";
+import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { StoreType, UIState } from "../store";
 import actions from "../store/actions";

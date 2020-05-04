@@ -1,6 +1,6 @@
 import { ServerData } from "../../js/api";
 import { Catalog, Album } from "../../js/api/highlevel";
-import { OverlayType } from "../../js/overlays";
+import { OverlayType } from "../../js/overlays/types";
 import { PageType } from "../../js/pages/types";
 import { ErrorCode } from "../../js/utils/exception";
 import { HistoryState } from "../../js/utils/history";
