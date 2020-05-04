@@ -1,0 +1,46 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [{
+    "label": "App tests",
+    "type": "npm",
+    "script": "test",
+    "group": "test",
+  }, {
+    "label": "App code coverage",
+    "type": "npm",
+    "script": "test -- --collectCoverage",
+    "group": "test",
+  }, {
+    "label": "App build",
+    "type": "npm",
+    "script": "build",
+    "group": "build",
+  }, {
+    "label": "Api tests",
+    "type": "shell",
+    "command": "${workspaceFolder}/containers/test.sh",
+    "group": "test",
+  }, {
+    "label": "Run server",
+    "type": "shell",
+    "command": "${workspaceFolder}/containers/runserver.sh",
+  }, {
+    "label": "Container build",
+    "type": "shell",
+    "command": "${workspaceFolder}/containers/build.sh",
+  }, {
+    "label": "Container remove",
+    "type": "shell",
+    "command": "${workspaceFolder}/containers/remove.sh",
+  }, {
+    "label": "Container start",
+    "type": "shell",
+    "command": "${workspaceFolder}/containers/start.sh",
+  }, {
+    "label": "Database rebuild",
+    "type": "shell",
+    "command": "${workspaceFolder}/containers/rebuild_db.sh",
+  }]
+}
