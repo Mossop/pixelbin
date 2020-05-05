@@ -1,15 +1,11 @@
 import { Deed } from "deeds/immer";
-import { applyMiddleware, createStore, Store, Middleware } from "redux";
+import { applyMiddleware, createStore, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
 import { PageType } from "../pages/types";
 import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
-import { StoreState } from "./types";
-
-export * from "./types";
-
-export type StoreType = Store<StoreState, Deed>;
+import { StoreState, StoreType } from "./types";
 
 interface BuildResult {
   asyncDispatchListener: AsyncDispatchListener;

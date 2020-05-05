@@ -1,8 +1,8 @@
 import { Draft } from "immer";
 import React, { ReactNode, PureComponent } from "react";
 
-import { UIState } from "../store";
 import actions from "../store/actions";
+import { UIState } from "../store/types";
 import { ComponentProps, connect } from "../utils/component";
 import { buildURL } from "../utils/history";
 import { fromUIState } from "../utils/navigation";

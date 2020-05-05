@@ -1,13 +1,13 @@
 import { Deed } from "deeds/immer";
 import { Draft } from "immer";
 
-import { UIState } from ".";
 import { ServerData } from "../api";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStore, mockServerData, expect } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
+import { UIState } from "./types";
 
 test("Logging in with a catalog", (): void => {
   let state = mockStore({

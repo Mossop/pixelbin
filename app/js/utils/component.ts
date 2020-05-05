@@ -3,7 +3,7 @@ import { Deed } from "deeds/immer";
 import { Component } from "react";
 import { connect as reduxConnect } from "react-redux";
 
-import { StoreState } from "../store";
+import { StoreState } from "../store/types";
 
 // Merges two interfaces such that the properties of B replace those of A.
 type Merged<A extends {}, B extends {}> = Omit<A, keyof B> & B;

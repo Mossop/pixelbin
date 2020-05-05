@@ -1,7 +1,7 @@
 import { Draft } from "immer";
 
 import { document } from "../environment";
-import { StoreState } from "../store";
+import { StoreState } from "../store/types";
 
 export function isLoggedIn(state: StoreState): boolean {
   return !!state.serverState.user;

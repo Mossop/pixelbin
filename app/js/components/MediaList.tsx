@@ -10,7 +10,7 @@ import {
   isProcessed,
   ProcessedMediaData,
 } from "../api/media";
-import { StoreState } from "../store";
+import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import { createDraft } from "../utils/helpers";
 import { Search } from "../utils/search";

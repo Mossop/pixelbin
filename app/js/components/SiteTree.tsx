@@ -4,7 +4,7 @@ import React, { PureComponent, ReactNode } from "react";
 import { ServerData } from "../api";
 import { Catalog, Album, catalogs, Reference, Referencable } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { StoreState } from "../store";
+import { StoreState } from "../store/types";
 import { ComponentProps, MapStateToProps, MapDispatchToProps, connect } from "../utils/component";
 import { StyleProps, styleProps } from "../utils/props";
 import { Property } from "../utils/StateProxy";

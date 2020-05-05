@@ -1,7 +1,6 @@
 import { reducer } from "deeds/immer";
 import { Draft } from "immer";
 
-import { StoreState, UIState } from ".";
 import type {
   CatalogData,
   AlbumData,
@@ -16,6 +15,7 @@ import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
 import { nameSorted } from "../utils/sort";
+import { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
   S extends (state: Draft<StoreState>, user: Draft<UserData>, ...args: infer A) => void

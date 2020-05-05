@@ -3,7 +3,7 @@ import React, { ReactNode, PureComponent } from "react";
 import { MediaData } from "../api";
 import { isProcessed } from "../api/media";
 import { getOrientation } from "../api/metadata";
-import { StoreState } from "../store";
+import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
