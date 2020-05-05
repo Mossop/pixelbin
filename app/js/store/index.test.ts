@@ -1,8 +1,8 @@
-import { ServerDataDecoder, ServerData } from "../../js/api";
-import { Encoded } from "../../js/api/helpers";
-import { PageType } from "../../js/pages/types";
-import actions from "../../js/store/actions";
-import { decode } from "../../js/utils/decoders";
+import { ServerDataDecoder, ServerData } from "../api";
+import { Encoded } from "../api/helpers";
+import { PageType } from "../pages/types";
+import { decode } from "../utils/decoders";
+import actions from "./actions";
 
 describe("store initialization", (): void => {
   afterEach((): void => {

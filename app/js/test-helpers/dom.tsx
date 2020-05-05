@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import React, { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
 
-import store from "../../js/store";
+import store from "../store";
 
 // @ts-ignore
 const dom: JSDOM = jsdom;

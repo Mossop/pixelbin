@@ -1,12 +1,12 @@
-import { createCatalog } from "../../js/api/catalog";
-import fetch from "../../js/environment/fetch";
-import { expect, mockedFunction } from "../helpers";
+import fetch from "../environment/fetch";
+import { expect, mockedFunction } from "../test-helpers";
 import {
   mockResponse,
   MockResponse,
   callInfo,
   CatalogDataResponse,
-} from "../helpers/api";
+} from "../test-helpers/api";
+import { createCatalog } from "./catalog";
 
 jest.mock("../../js/environment/fetch");
 

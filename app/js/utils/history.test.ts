@@ -1,5 +1,6 @@
-import window from "../../js/environment/window";
-import { ErrorCode } from "../../js/utils/exception";
+import window from "../environment/window";
+import { mockedFunction, jsdom, expect } from "../test-helpers";
+import { ErrorCode } from "./exception";
 import {
   getState,
   pushState,
@@ -8,8 +9,7 @@ import {
   removeListener,
   HistoryState,
   buildState,
-} from "../../js/utils/history";
-import { mockedFunction, jsdom, expect } from "../helpers";
+} from "./history";
 
 let globalState: unknown = undefined;
 

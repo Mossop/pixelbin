@@ -1,10 +1,10 @@
 import { Draft } from "immer";
 
-import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../../js/api";
-import { Catalog, Reference, Tag, Album } from "../../js/api/highlevel";
-import { PageType } from "../../js/pages/types";
-import { StoreState } from "../../js/store";
-import { intoMap } from "../../js/utils/maps";
+import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../api";
+import { Catalog, Reference, Tag, Album } from "../api/highlevel";
+import { PageType } from "../pages/types";
+import { StoreState } from "../store";
+import { intoMap } from "../utils/maps";
 
 type MockPerson = Omit<PersonData, "id" | "catalog"> & {
   id?: string;

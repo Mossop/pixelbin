@@ -6,6 +6,7 @@ module.exports = {
   },
   testRegex: [
     "/app/tests/(.+/)?[^\\./][^/]*\\.[jt]sx?$",
+    "/app/js/.*\\.test.[jt]sx?$",
   ],
   testPathIgnorePatterns: [
     "/node_modules/",

@@ -1,6 +1,6 @@
-import { ApiErrorCode } from "../../js/api";
-import { isReference } from "../../js/api/highlevel";
-import { ErrorCode, AppError } from "../../js/utils/exception";
+import { ApiErrorCode } from "../api";
+import { isReference } from "../api/highlevel";
+import { ErrorCode, AppError } from "../utils/exception";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toBeAppError(received: any, code: ErrorCode | ApiErrorCode): jest.CustomMatcherResult {

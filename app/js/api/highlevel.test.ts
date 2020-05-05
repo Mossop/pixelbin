@@ -1,4 +1,7 @@
-import { ServerData } from "../../js/api";
+import { ServerData } from ".";
+import { mockServerData, expect } from "../test-helpers";
+import { ErrorCode } from "../utils/exception";
+import { nameSorted } from "../utils/sort";
 import {
   catalogs,
   Catalog,
@@ -7,10 +10,7 @@ import {
   Person,
   dereferencer,
   PendingAPIItem,
-} from "../../js/api/highlevel";
-import { ErrorCode } from "../../js/utils/exception";
-import { nameSorted } from "../../js/utils/sort";
-import { mockServerData, expect } from "../helpers";
+} from "./highlevel";
 
 const LoggedOut: ServerData = {
   user: null,

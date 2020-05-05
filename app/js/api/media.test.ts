@@ -1,10 +1,8 @@
 import moment from "moment";
 
-import { ApiErrorData, ApiErrorCode, ServerData } from "../../js/api";
-import { Catalog, mediaRef, Media } from "../../js/api/highlevel";
-import { getMedia, isProcessed, isUnprocessed, createMedia, updateMedia } from "../../js/api/media";
-import fetch from "../../js/environment/fetch";
-import { expect, mockedFunction } from "../helpers";
+import { ApiErrorData, ApiErrorCode, ServerData } from ".";
+import fetch from "../environment/fetch";
+import { expect, mockedFunction } from "../test-helpers";
 import {
   mockResponse,
   MockResponse,
@@ -14,7 +12,9 @@ import {
   mockMedia,
   mockMetadata,
   mockMediaInfo,
-} from "../helpers/api";
+} from "../test-helpers/api";
+import { Catalog, mediaRef, Media } from "./highlevel";
+import { getMedia, isProcessed, isUnprocessed, createMedia, updateMedia } from "./media";
 
 jest.mock("../../js/environment/fetch");
 

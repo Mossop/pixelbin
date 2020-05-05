@@ -1,6 +1,6 @@
-import { ApiErrorCode } from "../../js/api";
-import { exception, ErrorCode, ApiError, InternalError } from "../../js/utils/exception";
-import { expect } from "../helpers";
+import { ApiErrorCode } from "../api";
+import { expect } from "../test-helpers";
+import { exception, ErrorCode, ApiError, InternalError } from "./exception";
 
 test("exception", (): void => {
   expect((): void => {

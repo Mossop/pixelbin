@@ -1,17 +1,17 @@
 import React from "react";
 
-import { Album, Catalog } from "../../js/api/highlevel";
-import Page from "../../js/pages";
-import AlbumPage from "../../js/pages/album";
-import CatalogPage from "../../js/pages/catalog";
-import ErrorPage from "../../js/pages/error";
-import IndexPage from "../../js/pages/indexpage";
-import NotFoundPage from "../../js/pages/notfound";
-import { PageType } from "../../js/pages/types";
-import UserPage from "../../js/pages/user";
-import store from "../../js/store";
-import actions from "../../js/store/actions";
-import { expect, render, resetDOM, mockedClass, lastCallArgs } from "../helpers";
+import Page from ".";
+import { Album, Catalog } from "../api/highlevel";
+import store from "../store";
+import actions from "../store/actions";
+import { expect, render, resetDOM, mockedClass, lastCallArgs } from "../test-helpers";
+import AlbumPage from "./album";
+import CatalogPage from "./catalog";
+import ErrorPage from "./error";
+import IndexPage from "./indexpage";
+import NotFoundPage from "./notfound";
+import { PageType } from "./types";
+import UserPage from "./user";
 
 jest.mock("../../js/pages/indexpage", (): unknown => {
   return {

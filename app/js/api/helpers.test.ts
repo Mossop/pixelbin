@@ -1,12 +1,12 @@
+import { expect } from "../test-helpers";
+import { ErrorCode } from "../utils/exception";
 import {
   QueryRequestData,
   FormRequestData,
   JsonRequestData,
   VoidDecoder,
-} from "../../js/api/helpers";
-import { Album } from "../../js/api/highlevel";
-import { ErrorCode } from "../../js/utils/exception";
-import { expect } from "../helpers";
+} from "./helpers";
+import { Album } from "./highlevel";
 
 test("QueryRequestData", (): void => {
   let rd = new QueryRequestData({

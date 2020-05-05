@@ -1,13 +1,13 @@
 import { Deed } from "deeds/immer";
 import { Draft } from "immer";
 
-import { ServerData } from "../../js/api";
-import { OverlayType } from "../../js/overlays/types";
-import { PageType } from "../../js/pages/types";
-import { UIState } from "../../js/store";
-import actions from "../../js/store/actions";
-import reducer from "../../js/store/reducer";
-import { mockStore, mockServerData, expect } from "../helpers";
+import { UIState } from ".";
+import { ServerData } from "../api";
+import { OverlayType } from "../overlays/types";
+import { PageType } from "../pages/types";
+import { mockStore, mockServerData, expect } from "../test-helpers";
+import actions from "./actions";
+import reducer from "./reducer";
 
 test("Logging in with a catalog", (): void => {
   let state = mockStore({

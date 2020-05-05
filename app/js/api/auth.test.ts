@@ -1,14 +1,14 @@
-import { state, login, logout, signup } from "../../js/api/auth";
-import fetch from "../../js/environment/fetch";
-import { ErrorCode } from "../../js/utils/exception";
-import { expect, mockedFunction, mapOf } from "../helpers";
+import fetch from "../environment/fetch";
+import { expect, mockedFunction, mapOf } from "../test-helpers";
 import {
   mockResponse,
   MockResponse,
   callInfo,
   ServerDataResponse,
   AlbumDataResponse,
-} from "../helpers/api";
+} from "../test-helpers/api";
+import { ErrorCode } from "../utils/exception";
+import { state, login, logout, signup } from "./auth";
 
 jest.mock("../../js/environment/fetch");
 

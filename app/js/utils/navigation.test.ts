@@ -1,11 +1,34 @@
-import { ServerData } from "../../js/api";
-import { Catalog, Album } from "../../js/api/highlevel";
-import { OverlayType } from "../../js/overlays/types";
-import { PageType } from "../../js/pages/types";
-import { ErrorCode } from "../../js/utils/exception";
-import { HistoryState } from "../../js/utils/history";
-import { intoUIState, fromUIState, stateURLMatches } from "../../js/utils/navigation";
-import { expect, mockServerData, mapOf } from "../helpers";
+import { Deed } from "deeds/immer";
+
+import { ServerData } from "../api";
+import { Catalog, Album } from "../api/highlevel";
+import { OverlayType } from "../overlays/types";
+import { PageType } from "../pages/types";
+import { StoreType } from "../store";
+import reducer from "../store/reducer";
+import { StoreState } from "../store/types";
+import { expect, mockServerData, mapOf, mockedFunction, mockStore } from "../test-helpers";
+import { ErrorCode } from "./exception";
+import { HistoryState, addListener, getState, pushState, replaceState } from "./history";
+import { intoUIState, fromUIState, stateURLMatches, watchStore } from "./navigation";
+
+/* eslint-disable */
+jest.mock("../../js/utils/history", () => {
+  let actual = jest.requireActual("../../js/utils/history");
+  return {
+    ...actual,
+    addListener: jest.fn(),
+    getState: jest.fn(),
+    pushState: jest.fn(),
+    replaceState: jest.fn(),
+  };
+});
+/* eslint-enable */
+
+const mockedAddListener = mockedFunction(addListener);
+const mockedGetState = mockedFunction(getState);
+const mockedPushState = mockedFunction(pushState);
+const mockedReplaceState = mockedFunction(replaceState);
 
 function state(path: string, params?: {}): HistoryState {
   return {
@@ -420,4 +443,122 @@ test("stateURLMatches.", (): void => {
     }) as ReadonlyMap<string, string>,
     hash: "5",
   })).toBeFalsy();
+});
+
+test("History navigations", (): void => {
+  let mockStoreState: StoreState = mockStore({
+    serverState: { user: null },
+    ui: {
+      page: {
+        type: PageType.Index,
+      },
+    },
+  });
+
+  let mockedStore = {
+    dispatch: jest.fn<void, [Deed]>(),
+    subscribe: jest.fn<void, [() => void]>(),
+    getState: (): StoreState => mockStoreState,
+  };
+
+  mockedGetState.mockImplementationOnce((): HistoryState => ({ path: "/" }));
+  watchStore(mockedStore as unknown as StoreType);
+
+  expect(mockedStore.dispatch).toHaveBeenCalledWith({
+    type: "updateUIState",
+    payload: [{
+      page: {
+        type: PageType.Index,
+      },
+    }],
+  });
+  mockStoreState = reducer(mockStoreState, mockedStore.dispatch.mock.calls[0][0]);
+  mockedStore.dispatch.mockClear();
+
+  expect(mockedStore.subscribe).toHaveBeenCalledTimes(1);
+  expect(mockedStore.subscribe.mock.calls[0]).toHaveLength(1);
+
+  let storeSubscriber = mockedStore.subscribe.mock.calls[0][0];
+
+  expect(mockedPushState).toHaveBeenCalledTimes(0);
+  expect(mockedReplaceState).toHaveBeenCalledTimes(0);
+  expect(mockedAddListener).toHaveBeenCalledTimes(1);
+
+  let historyListener = mockedAddListener.mock.calls[0][0];
+
+  // Re-sending the current state should do nothing...
+  storeSubscriber();
+
+  expect(mockedStore.dispatch).toHaveBeenCalledTimes(0);
+  expect(mockedPushState).toHaveBeenCalledTimes(0);
+  expect(mockedReplaceState).toHaveBeenCalledTimes(0);
+
+  mockStoreState = mockStore({
+    ui: {
+      page: {
+        type: PageType.User,
+      },
+    },
+  });
+
+  // Send out the new state.
+  storeSubscriber();
+
+  expect(mockedStore.dispatch).toHaveBeenCalledTimes(0);
+  expect(mockedReplaceState).toHaveBeenCalledTimes(0);
+
+  expect(mockedPushState).toHaveBeenCalledWith({
+    path: "/user",
+  });
+  mockedPushState.mockClear();
+
+  // Simulate a navigation.
+  historyListener({ path: "/foobar" });
+
+  expect(mockedPushState).toHaveBeenCalledTimes(0);
+  expect(mockedReplaceState).toHaveBeenCalledTimes(0);
+
+  expect(mockedStore.dispatch).toHaveBeenCalledWith({
+    type: "updateUIState",
+    payload: [{
+      page: {
+        type: PageType.NotFound,
+        history: {
+          path: "/foobar",
+        },
+      },
+    }],
+  });
+  mockStoreState = reducer(mockStoreState, mockedStore.dispatch.mock.calls[0][0]);
+  mockedStore.dispatch.mockClear();
+
+  // Re-sending the current state should do nothing...
+  storeSubscriber();
+
+  expect(mockedStore.dispatch).toHaveBeenCalledTimes(0);
+  expect(mockedPushState).toHaveBeenCalledTimes(0);
+  expect(mockedReplaceState).toHaveBeenCalledTimes(0);
+
+  mockStoreState = mockStore({
+    ui: {
+      page: {
+        type: PageType.NotFound,
+        history: {
+          path: "/foobar",
+          state: { any: 5 },
+        },
+      },
+    },
+  });
+
+  // A change that doesn't impact the visible url will cause a replace state.
+  storeSubscriber();
+
+  expect(mockedStore.dispatch).toHaveBeenCalledTimes(0);
+  expect(mockedPushState).toHaveBeenCalledTimes(0);
+
+  expect(mockedReplaceState).toHaveBeenCalledWith({
+    path: "/foobar",
+    state: { any: 5 },
+  });
 });

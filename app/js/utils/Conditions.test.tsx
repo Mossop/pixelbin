@@ -1,9 +1,9 @@
 import React from "react";
 
-import { asyncDispatch } from "../../js/store";
-import actions from "../../js/store/actions";
-import { If, Then, Else } from "../../js/utils/Conditions";
-import { expect, expectElement, render, resetDOM } from "../helpers";
+import { asyncDispatch } from "../store";
+import actions from "../store/actions";
+import { expect, expectElement, render, resetDOM } from "../test-helpers";
+import { If, Then, Else } from "./Conditions";
 
 beforeEach(async (): Promise<void> => {
   resetDOM();

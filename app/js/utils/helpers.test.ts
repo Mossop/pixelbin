@@ -1,5 +1,5 @@
-import { isLoggedIn, focus, createDraft, uuid } from "../../js/utils/helpers";
-import { expect, resetDOM, mockStore, mockServerData } from "../helpers";
+import { expect, resetDOM, mockStore, mockServerData } from "../test-helpers";
+import { isLoggedIn, focus, createDraft, uuid } from "./helpers";
 
 beforeEach(resetDOM);
 

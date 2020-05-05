@@ -11,8 +11,8 @@ import {
   TagData,
   PersonData,
   ServerData,
-} from "../../js/api";
-import { Tag, Reference, Album, Person } from "../../js/api/highlevel";
+} from "../api";
+import { Tag, Reference, Album, Person } from "../api/highlevel";
 
 type Body = Blob | object | unknown[];
 

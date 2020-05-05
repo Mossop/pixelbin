@@ -1,4 +1,4 @@
-import { styleProps, fieldProps } from "../../js/utils/props";
+import { styleProps, fieldProps } from "./props";
 
 test("styleProps", (): void => {
   expect(styleProps({

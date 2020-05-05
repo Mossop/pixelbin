@@ -1,13 +1,13 @@
-import { Catalog } from "../../js/api/highlevel";
-import { findTag } from "../../js/api/tag";
-import fetch from "../../js/environment/fetch";
-import { expect, mockedFunction } from "../helpers";
+import fetch from "../environment/fetch";
+import { expect, mockedFunction } from "../test-helpers";
 import {
   mockResponse,
   MockResponse,
   callInfo,
   TagDataResponse,
-} from "../helpers/api";
+} from "../test-helpers/api";
+import { Catalog } from "./highlevel";
+import { findTag } from "./tag";
 
 jest.mock("../../js/environment/fetch");
 

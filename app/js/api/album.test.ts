@@ -1,8 +1,14 @@
-import { createAlbum, editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "../../js/api/album";
-import { Catalog, Album, mediaRef } from "../../js/api/highlevel";
-import fetch from "../../js/environment/fetch";
-import { expect, mockedFunction } from "../helpers";
-import { mockResponse, MockResponse, callInfo, mockMedia, AlbumDataResponse } from "../helpers/api";
+import fetch from "../environment/fetch";
+import { expect, mockedFunction } from "../test-helpers";
+import {
+  mockResponse,
+  MockResponse,
+  callInfo,
+  mockMedia,
+  AlbumDataResponse,
+} from "../test-helpers/api";
+import { createAlbum, editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "./album";
+import { Catalog, Album, mediaRef } from "./highlevel";
 
 jest.mock("../../js/environment/fetch");
 

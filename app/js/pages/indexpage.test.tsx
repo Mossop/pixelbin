@@ -1,11 +1,18 @@
 import React from "react";
 
-import Banner from "../../js/components/Banner";
-import Sidebar from "../../js/components/Sidebar";
-import Index from "../../js/pages/indexpage";
-import store from "../../js/store";
-import actions from "../../js/store/actions";
-import { expect, render, resetDOM, mockedClass, lastCallArgs, mockServerData } from "../helpers";
+import Banner from "../components/Banner";
+import Sidebar from "../components/Sidebar";
+import store from "../store";
+import actions from "../store/actions";
+import {
+  expect,
+  render,
+  resetDOM,
+  mockedClass,
+  lastCallArgs,
+  mockServerData,
+} from "../test-helpers";
+import Index from "./indexpage";
 
 beforeEach(resetDOM);
 

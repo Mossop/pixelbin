@@ -1,13 +1,13 @@
-import { Catalog } from "../../js/api/highlevel";
-import { createPerson } from "../../js/api/person";
-import fetch from "../../js/environment/fetch";
-import { expect, mockedFunction } from "../helpers";
+import fetch from "../environment/fetch";
+import { expect, mockedFunction } from "../test-helpers";
 import {
   mockResponse,
   MockResponse,
   callInfo,
   PersonDataResponse,
-} from "../helpers/api";
+} from "../test-helpers/api";
+import { Catalog } from "./highlevel";
+import { createPerson } from "./person";
 
 jest.mock("../../js/environment/fetch");
 

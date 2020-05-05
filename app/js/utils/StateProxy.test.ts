@@ -1,5 +1,6 @@
 import { Component } from "react";
 
+import { expect } from "../test-helpers";
 import {
   makeProperty,
   proxy,
@@ -7,8 +8,7 @@ import {
   buildProxy,
   proxyReactState,
   ProxyMarker,
-} from "../../js/utils/StateProxy";
-import { expect } from "../helpers";
+} from "./StateProxy";
 
 test("property", (): void => {
   let obj = {
