@@ -1,6 +1,7 @@
 import React, { DragEvent, PureComponent, ReactNode } from "react";
 
-import { OptionalL10nProps, Localized } from "../l10n";
+import { OptionalL10nProps } from "../l10n";
+import { Localized } from "../l10n/Localized";
 import { connect } from "../utils/component";
 import { fieldProps, FieldProps } from "../utils/props";
 import Icon, { IconProps } from "./Icon";

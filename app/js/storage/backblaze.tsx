@@ -1,6 +1,6 @@
 import React, { Fragment, ReactNode } from "react";
 
-import { BackblazeStorageData } from "../api";
+import { BackblazeStorageData } from "../api/types";
 import { FormField } from "../components/Form";
 import { makeProperty } from "../utils/StateProxy";
 

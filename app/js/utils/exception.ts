@@ -1,4 +1,4 @@
-import { ApiErrorData, ApiErrorCode } from "../api";
+import { ApiErrorData, ApiErrorCode } from "../api/types";
 import { l10nInfo, L10nInfo } from "../l10n";
 
 export enum ErrorCode {

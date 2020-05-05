@@ -1,4 +1,4 @@
-import { ApiErrorCode } from "../api";
+import { ApiErrorCode } from "../api/types";
 import { expect } from "../test-helpers";
 import { exception, ErrorCode, ApiError, InternalError } from "./exception";
 

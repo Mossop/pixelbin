@@ -1,8 +1,8 @@
 import { Immutable } from "immer";
 import React, { ReactNode, PureComponent } from "react";
 
-import { UserData } from "../api";
 import { createCatalog } from "../api/catalog";
+import { UserData } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { renderStorageConfigUI, StorageData } from "../storage";

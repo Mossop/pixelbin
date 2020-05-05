@@ -1,4 +1,3 @@
-import { ServerData } from ".";
 import { mockServerData, expect } from "../test-helpers";
 import { ErrorCode } from "../utils/exception";
 import { nameSorted } from "../utils/sort";
@@ -11,6 +10,7 @@ import {
   dereferencer,
   PendingAPIItem,
 } from "./highlevel";
+import { ServerData } from "./types";
 
 const LoggedOut: ServerData = {
   user: null,

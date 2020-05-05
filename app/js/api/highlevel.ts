@@ -1,9 +1,9 @@
-import type { ServerData, AlbumData, CatalogData, TagData, PersonData } from ".";
 import actions from "../store/actions";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId } from "../utils/maps";
 import type { MapId } from "../utils/maps";
 import type { ProcessedMediaData, UnprocessedMediaData } from "./media";
+import type { ServerData, AlbumData, CatalogData, TagData, PersonData } from "./types";
 
 interface StateCache {
   readonly albums: Map<string, Album>;

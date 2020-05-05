@@ -1,7 +1,6 @@
 import { produce, Draft } from "immer";
 import React, { PureComponent, ReactNode } from "react";
 
-import { MediaData } from "../api";
 import { mediaRef } from "../api/highlevel";
 import {
   thumbnail,
@@ -10,6 +9,7 @@ import {
   isProcessed,
   ProcessedMediaData,
 } from "../api/media";
+import { MediaData } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import { createDraft } from "../utils/helpers";

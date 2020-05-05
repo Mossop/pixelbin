@@ -1,6 +1,8 @@
 import { reducer } from "deeds/immer";
 import { Draft } from "immer";
 
+import { Catalog, Album, Reference } from "../api/highlevel";
+import type { MediaTarget } from "../api/media";
 import type {
   CatalogData,
   AlbumData,
@@ -8,9 +10,7 @@ import type {
   PersonData,
   ServerData,
   UserData,
-} from "../api";
-import { Catalog, Album, Reference } from "../api/highlevel";
-import type { MediaTarget } from "../api/media";
+} from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";

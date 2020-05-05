@@ -1,6 +1,7 @@
 import React, { ReactNode, Fragment, PureComponent } from "react";
 
-import { L10nProps, Localized } from "../l10n";
+import { L10nProps } from "../l10n";
+import { Localized } from "../l10n/Localized";
 import { fieldProps, FieldProps } from "../utils/props";
 import { Property } from "../utils/StateProxy";
 import Icon, { IconProps } from "./Icon";

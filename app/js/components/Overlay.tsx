@@ -1,6 +1,6 @@
 import React, { ReactNode, PureComponent } from "react";
 
-import { Localized } from "../l10n";
+import { Localized } from "../l10n/Localized";
 import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";

@@ -1,6 +1,5 @@
 import moment from "moment";
 
-import { ApiErrorData, ApiErrorCode, ServerData } from ".";
 import fetch from "../environment/fetch";
 import { expect, mockedFunction } from "../test-helpers";
 import {
@@ -15,6 +14,7 @@ import {
 } from "../test-helpers/api";
 import { Catalog, mediaRef, Media } from "./highlevel";
 import { getMedia, isProcessed, isUnprocessed, createMedia, updateMedia } from "./media";
+import { ApiErrorData, ApiErrorCode, ServerData } from "./types";
 
 jest.mock("../../js/environment/fetch");
 

@@ -1,8 +1,8 @@
 import { Localized as FluentLocalized } from "@fluent/react";
 import React from "react";
 
-import { Localized } from ".";
 import { render, mockedFunction } from "../test-helpers";
+import { Localized } from "./Localized";
 
 /* eslint-disable */
 jest.mock("@fluent/react", () => {

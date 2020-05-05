@@ -1,7 +1,7 @@
 import { Draft } from "immer";
 
-import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../api";
 import { Catalog, Reference, Tag, Album } from "../api/highlevel";
+import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../api/types";
 import { PageType } from "../pages/types";
 import { StoreState } from "../store/types";
 import { intoMap } from "../utils/maps";

@@ -1,7 +1,7 @@
 import { Deed } from "deeds/immer";
 
-import { ServerData } from "../api";
 import { Catalog, Album } from "../api/highlevel";
+import { ServerData } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import reducer from "../store/reducer";

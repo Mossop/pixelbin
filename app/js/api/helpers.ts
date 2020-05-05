@@ -252,7 +252,7 @@ export async function makeRequest<D>(
   if (!response.ok) {
     let errorData;
     try {
-      const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api" */".");
+      const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api" */"./types");
       errorData = await ApiErrorDataDecoder.decodePromise(await response.json());
     } catch (e) {
       exception(ErrorCode.DecodeError, undefined, e);

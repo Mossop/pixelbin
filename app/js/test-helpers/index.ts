@@ -1,5 +1,5 @@
-import { ApiErrorCode } from "../api";
 import { isReference } from "../api/highlevel";
+import { ApiErrorCode } from "../api/types";
 import { ErrorCode, AppError } from "../utils/exception";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

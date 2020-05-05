@@ -1,6 +1,6 @@
 import React, { Fragment, PureComponent, ReactNode } from "react";
 
-import { BackblazeStorageData, ServerStorageData } from "../api";
+import { BackblazeStorageData, ServerStorageData } from "../api/types";
 import { FormField } from "../components/Form";
 import { Option } from "../components/Selectbox";
 import { ComponentProps } from "../utils/component";

@@ -2,6 +2,7 @@ import { Orientation } from "media-metadata";
 import moment from "moment";
 
 import { randomId } from ".";
+import { Tag, Reference, Album, Person } from "../api/highlevel";
 import {
   MetadataData,
   MediaData,
@@ -11,8 +12,7 @@ import {
   TagData,
   PersonData,
   ServerData,
-} from "../api";
-import { Tag, Reference, Album, Person } from "../api/highlevel";
+} from "../api/types";
 
 type Body = Blob | object | unknown[];
 

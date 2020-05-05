@@ -1,6 +1,7 @@
 import React, { PureComponent, ReactNode } from "react";
 
-import { L10nProps, Localized } from "../l10n";
+import { L10nProps } from "../l10n";
+import { Localized } from "../l10n/Localized";
 import { styleProps, FieldProps } from "../utils/props";
 
 export type FormSubmitProps = FieldProps & L10nProps;

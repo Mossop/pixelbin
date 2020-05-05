@@ -1,6 +1,6 @@
 import { JsonDecoder } from "ts.data.json";
 
-import { ServerData, ServerDataDecoder } from "../api";
+import { ServerData, ServerDataDecoder } from "../api/types";
 import { document, URL } from "../environment";
 import { decode, MappingDecoder } from "../utils/decoders";
 

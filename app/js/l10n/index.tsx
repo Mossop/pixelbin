@@ -15,5 +15,3 @@ export function l10nInfo(id: string, vars?: Record<string, FluentArgument>): L10
     vars,
   };
 }
-
-export { Localized } from "./Localized";

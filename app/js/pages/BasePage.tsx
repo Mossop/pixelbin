@@ -1,7 +1,7 @@
 import { Immutable } from "immer";
 import React, { PureComponent, ReactNode, Fragment } from "react";
 
-import { UserData } from "../api";
+import { UserData } from "../api/types";
 import Banner from "../components/Banner";
 import Sidebar from "../components/Sidebar";
 import { StoreState } from "../store/types";

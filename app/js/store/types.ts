@@ -1,7 +1,7 @@
 import { Deed } from "deeds/immer";
 import { Store } from "redux";
 
-import { ServerData } from "../api";
+import { ServerData } from "../api/types";
 import { OverlayState } from "../overlays/types";
 import { PageState } from "../pages/types";
 

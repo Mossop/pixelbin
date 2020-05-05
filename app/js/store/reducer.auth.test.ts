@@ -1,7 +1,7 @@
 import { Deed } from "deeds/immer";
 import { Draft } from "immer";
 
-import { ServerData } from "../api";
+import { ServerData } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStore, mockServerData, expect } from "../test-helpers";
