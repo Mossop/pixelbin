@@ -1,5 +1,11 @@
 import { ReactLocalization, LocalizationProvider } from "@fluent/react";
-import { RenderOptions, RenderResult, Queries, render as testRender } from "@testing-library/react";
+import {
+  RenderOptions,
+  RenderResult,
+  Queries,
+  render as testRender,
+  fireEvent,
+} from "@testing-library/react";
 import { JSDOM } from "jsdom";
 import React, { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
@@ -10,6 +16,12 @@ import store from "../store";
 const dom: JSDOM = jsdom;
 
 export { dom as jsdom };
+
+export function expectChild(container: Element, selector: string): Element {
+  let elems = container.querySelectorAll(selector);
+  expect(elems).toHaveLength(1);
+  return elems[0];
+}
 
 export function expectElement(node: Node | null): Element {
   expect(node).not.toBeNull();
@@ -50,4 +62,8 @@ export function resetDOM(): void {
   while (document.body.firstChild) {
     document.body.firstChild.remove();
   }
+}
+
+export function click(element: Element): void {
+  fireEvent.click(element);
 }

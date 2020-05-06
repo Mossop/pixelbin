@@ -8,6 +8,11 @@
     "script": "test",
     "group": "test",
   }, {
+    "label": "App test file",
+    "type": "npm",
+    "script": "test -- ${file}",
+    "group": "test",
+  }, {
     "label": "App code coverage",
     "type": "npm",
     "script": "test -- --collectCoverage",
