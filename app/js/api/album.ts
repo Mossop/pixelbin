@@ -1,6 +1,7 @@
 import type { Patch } from "./helpers";
 import type { Album, Reference, Media } from "./highlevel";
-import { ApiMethod, request } from "./types";
+import request from "./request";
+import { ApiMethod } from "./types";
 import type { AlbumCreateData, AlbumData } from "./types";
 
 export function createAlbum(data: AlbumCreateData): Promise<AlbumData> {

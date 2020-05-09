@@ -1,12 +1,19 @@
-import { Deed } from "deeds/immer";
+import { castDraft } from "immer";
 
 import { Catalog, Album } from "../api/highlevel";
 import { ServerData } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import reducer from "../store/reducer";
-import { StoreType, StoreState } from "../store/types";
-import { expect, mockServerData, mapOf, mockedFunction, mockStore } from "../test-helpers";
+import { StoreType } from "../store/types";
+import {
+  expect,
+  mockServerData,
+  mapOf,
+  mockedFunction,
+  mockStoreState,
+  mockStore,
+} from "../test-helpers";
 import { ErrorCode } from "./exception";
 import { HistoryState, addListener, getState, pushState, replaceState } from "./history";
 import { intoUIState, fromUIState, stateURLMatches, watchStore } from "./navigation";
@@ -445,20 +452,14 @@ test("stateURLMatches.", (): void => {
 });
 
 test("History navigations", (): void => {
-  let mockStoreState: StoreState = mockStore({
+  let mockedStore = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
         type: PageType.Index,
       },
     },
-  });
-
-  let mockedStore = {
-    dispatch: jest.fn<void, [Deed]>(),
-    subscribe: jest.fn<void, [() => void]>(),
-    getState: (): StoreState => mockStoreState,
-  };
+  }));
 
   mockedGetState.mockImplementationOnce((): HistoryState => ({ path: "/" }));
   watchStore(mockedStore as unknown as StoreType);
@@ -471,7 +472,7 @@ test("History navigations", (): void => {
       },
     }],
   });
-  mockStoreState = reducer(mockStoreState, mockedStore.dispatch.mock.calls[0][0]);
+  mockedStore.state = castDraft(reducer(mockedStore.state, mockedStore.dispatch.mock.calls[0][0]));
   mockedStore.dispatch.mockClear();
 
   expect(mockedStore.subscribe).toHaveBeenCalledTimes(1);
@@ -492,7 +493,7 @@ test("History navigations", (): void => {
   expect(mockedPushState).toHaveBeenCalledTimes(0);
   expect(mockedReplaceState).toHaveBeenCalledTimes(0);
 
-  mockStoreState = mockStore({
+  mockedStore.state = mockStoreState({
     ui: {
       page: {
         type: PageType.User,
@@ -528,7 +529,7 @@ test("History navigations", (): void => {
       },
     }],
   });
-  mockStoreState = reducer(mockStoreState, mockedStore.dispatch.mock.calls[0][0]);
+  mockedStore.state = castDraft(reducer(mockedStore.state, mockedStore.dispatch.mock.calls[0][0]));
   mockedStore.dispatch.mockClear();
 
   // Re-sending the current state should do nothing...
@@ -538,7 +539,7 @@ test("History navigations", (): void => {
   expect(mockedPushState).toHaveBeenCalledTimes(0);
   expect(mockedReplaceState).toHaveBeenCalledTimes(0);
 
-  mockStoreState = mockStore({
+  mockedStore.state = mockStoreState({
     ui: {
       page: {
         type: PageType.NotFound,

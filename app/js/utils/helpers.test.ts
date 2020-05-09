@@ -1,16 +1,16 @@
-import { expect, resetDOM, mockStore, mockServerData } from "../test-helpers";
+import { expect, resetDOM, mockStoreState, mockServerData } from "../test-helpers";
 import { isLoggedIn, focus, createDraft, uuid } from "./helpers";
 
 beforeEach(resetDOM);
 
 test("isLoggedIn", (): void => {
-  let loggedIn = mockStore({
+  let loggedIn = mockStoreState({
     serverState: mockServerData(),
   });
 
   expect(isLoggedIn(loggedIn)).toBeTruthy();
 
-  let loggedOut = mockStore({
+  let loggedOut = mockStoreState({
     serverState: { user: null },
   });
 

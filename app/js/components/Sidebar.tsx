@@ -31,7 +31,7 @@ class SidebarTreeComponent extends BaseSiteTree<
   typeof mapStateToSidebarTreeProps,
   typeof mapDispatchToSidebarTreeProps
 > {
-  protected onItemClicked(_: React.MouseEvent, item: TreeItem): void {
+  protected onItemClicked(item: TreeItem): void {
     if (item instanceof Catalog) {
       this.props.navigate({
         page: {

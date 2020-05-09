@@ -77,6 +77,26 @@ export function lastCallArgs<P extends unknown[]>(mock: jest.MockInstance<unknow
   return mock.mock.calls[count - 1];
 }
 
+export function awaitCall<A extends unknown[]>(
+  mock: jest.MockInstance<void, A>,
+): Promise<A>;
+export function awaitCall<A extends unknown[], R>(
+  mock: jest.MockInstance<R, A>,
+  result: R,
+): Promise<A>;
+
+export function awaitCall(
+  mock: jest.MockInstance<unknown, unknown[]>,
+  result?: unknown,
+): Promise<unknown> {
+  return new Promise((resolve: (params: unknown) => void): void => {
+    mock.mockImplementationOnce((...args: unknown[]): unknown => {
+      resolve(args);
+      return result;
+    });
+  });
+}
+
 export { jestExpect as expect };
 export * from "./dom";
 export * from "./store";

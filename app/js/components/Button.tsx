@@ -6,8 +6,8 @@ import { connect } from "../utils/component";
 import { fieldProps, FieldProps } from "../utils/props";
 import Icon, { IconProps } from "./Icon";
 
-type PassedProps = {
-  onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+export type PassedProps = {
+  onClick: () => void;
   draggable?: boolean;
   onDragStart?: (event: DragEvent) => void;
   onDragEnter?: (event: DragEvent) => void;
@@ -18,6 +18,8 @@ type PassedProps = {
 } & FieldProps & OptionalL10nProps & IconProps;
 
 class Button extends PureComponent<PassedProps> {
+  private onClick = (): void => this.props.onClick();
+
   public renderButtonContent(): ReactNode {
     if (this.props.l10n) {
       return <Localized l10n={this.props.l10n}>
@@ -39,7 +41,7 @@ class Button extends PureComponent<PassedProps> {
       onDragLeave: this.props.onDragLeave,
       onDrop: this.props.onDrop,
     });
-    return <button type="button" {...buttonProps} onClick={this.props.onClick}>
+    return <button type="button" {...buttonProps} onClick={this.onClick}>
       <Icon iconStyle={this.props.iconStyle} iconName={this.props.iconName}/>
       {this.renderButtonContent()}
     </button>;

@@ -1,12 +1,12 @@
 import { Album } from "../api/highlevel";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
-import { mockStore, expect } from "../test-helpers";
+import { mockStoreState, expect } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
 
 test("Navigate", (): void => {
-  let state = mockStore({
+  let state = mockStoreState({
     serverState: { user: null },
     ui: {
       page: {

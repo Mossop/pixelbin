@@ -1,4 +1,5 @@
-import { ApiMethod, request } from "./types";
+import request from "./request";
+import { ApiMethod } from "./types";
 import type { ServerData, UserCreateData } from "./types";
 
 export function state(): Promise<ServerData> {

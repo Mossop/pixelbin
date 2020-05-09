@@ -105,7 +105,7 @@ export abstract class BaseSiteTree<
   DP extends MapDispatchToProps = {},
   S = {}
 > extends PureComponent<ComponentProps<PP, SP, DP>, S> {
-  protected onItemClicked(_event: React.MouseEvent, _item: TreeItem): void {
+  protected onItemClicked(_item: TreeItem): void {
     return;
   }
 
@@ -123,7 +123,7 @@ export abstract class BaseSiteTree<
     }
 
     if (this.canClick(item)) {
-      let clickHandler = (event: React.MouseEvent): void => this.onItemClicked(event, item);
+      let clickHandler = (): void => this.onItemClicked(item);
       return <Button {...props} onClick={clickHandler}>{content}</Button>;
     }
     return <p {...styleProps(props)}>
@@ -223,7 +223,7 @@ export class MediaTargetSelectorComponent extends BaseSiteTree<
   MediaTargetSelectorPassedProps,
   typeof mapStateToMediaTargetSelectorProps
 > {
-  protected onItemClicked(_event: React.MouseEvent, item: TreeItem): void {
+  protected onItemClicked(item: TreeItem): void {
     if (item instanceof Album || item instanceof Catalog) {
       this.props.property.set(item.ref());
     }

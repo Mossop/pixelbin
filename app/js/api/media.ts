@@ -2,7 +2,8 @@ import type { Search } from "../utils/search";
 import type { Patch } from "./helpers";
 import { Catalog, Album } from "./highlevel";
 import type { Reference, Media } from "./highlevel";
-import { request, ApiMethod, MediaInfoData } from "./types";
+import request from "./request";
+import { ApiMethod, MediaInfoData } from "./types";
 import type { MediaData, MediaCreateData } from "./types";
 
 export type MediaTarget = Catalog | Album;

@@ -1,16 +1,12 @@
 import { ReactLocalization, LocalizationProvider } from "@fluent/react";
-import {
-  RenderOptions,
-  RenderResult,
-  Queries,
-  render as testRender,
-  fireEvent,
-} from "@testing-library/react";
+import { RenderResult, render as testRender, fireEvent } from "@testing-library/react";
 import { JSDOM } from "jsdom";
 import React, { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
 
-import store from "../store";
+import realStore from "../store";
+import { StoreType } from "../store/types";
+import { MockStore } from "./store";
 
 // @ts-ignore
 const dom: JSDOM = jsdom;
@@ -30,28 +26,22 @@ export function expectElement(node: Node | null): Element {
   return node as Element;
 }
 
-function WrapComponent({ children }: { children?: ReactNode }): ReactElement | null {
-  let l10n = new ReactLocalization([]);
+type Wrapper = (props: { children?: ReactNode }) => ReactElement | null;
+function componentWrapper(store: MockStore | undefined): Wrapper {
+  let fakeStore: StoreType = store ? store as unknown as StoreType : realStore;
+  return function WrappedComponent({ children }: { children?: ReactNode }): ReactElement | null {
+    let l10n = new ReactLocalization([]);
 
-  return <Provider store={store}>
-    <LocalizationProvider l10n={l10n}>
-      {children}
-    </LocalizationProvider>
-  </Provider>;
+    return <Provider store={fakeStore}>
+      <LocalizationProvider l10n={l10n}>
+        {children}
+      </LocalizationProvider>
+    </Provider>;
+  };
 }
 
-export function render(ui: ReactElement, options?: Omit<RenderOptions, "queries">): RenderResult;
-export function render<Q extends Queries>(
-  ui: ReactElement,
-  options: RenderOptions<Q>,
-): RenderResult<Q>;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function render(ui: any, options?: any): any {
-  let results = testRender(ui, { wrapper: WrapComponent, ...options });
-  return {
-    ...results,
-  };
+export function render(ui: ReactElement, store?: MockStore): RenderResult {
+  return testRender(ui, { wrapper: componentWrapper(store) });
 }
 
 export function resetDOM(): void {

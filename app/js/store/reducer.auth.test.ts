@@ -4,13 +4,13 @@ import { Draft } from "immer";
 import { ServerData } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
-import { mockStore, mockServerData, expect } from "../test-helpers";
+import { mockStoreState, mockServerData, expect } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
 import { UIState } from "./types";
 
 test("Logging in with a catalog", (): void => {
-  let state = mockStore({
+  let state = mockStoreState({
     serverState: { user: null },
   });
 
@@ -34,7 +34,7 @@ test("Logging in with a catalog", (): void => {
 });
 
 test("Logging in with multiple catalogs", (): void => {
-  let state = mockStore({
+  let state = mockStoreState({
     serverState: { user: null },
   });
 
@@ -61,7 +61,7 @@ test("Logging in with multiple catalogs", (): void => {
 });
 
 test("Logging in with no catalogs", (): void => {
-  let state = mockStore({
+  let state = mockStoreState({
     serverState: { user: null },
   });
 
@@ -89,7 +89,7 @@ test("Logging in with no catalogs", (): void => {
 });
 
 test("Logging in with no catalogs shows catalog create", (): void => {
-  let state = mockStore({
+  let state = mockStoreState({
     serverState: { user: null },
   });
 
@@ -120,7 +120,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
 });
 
 test("Show login overlay.", (): void => {
-  let state = mockStore({
+  let state = mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -145,7 +145,7 @@ test("Show login overlay.", (): void => {
 });
 
 test("Creating a user.", (): void => {
-  let state = mockStore({
+  let state = mockStoreState({
     serverState: { user: null },
     ui: {
       page: {

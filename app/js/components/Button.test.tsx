@@ -23,7 +23,7 @@ test("button", (): void => {
 
 test("localized button", (): void => {
   let { container } = render(<Button l10n="foobar" tooltipL10n="barfoo" onClick={jest.fn()}/>);
-  let tooltip = expectChild(container, "div.localized[id='barfoo']");
+  let tooltip = expectChild(container, ".mock-localized[data-l10nid='barfoo']");
   let button = expectChild(tooltip, "button[type='button']");
-  expectChild(button, "div.localized[id='foobar']");
+  expectChild(button, ".mock-localized[data-l10nid='foobar']");
 });

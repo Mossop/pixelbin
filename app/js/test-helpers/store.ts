@@ -1,4 +1,6 @@
+import { Deed } from "deeds/immer";
 import { Draft } from "immer";
+import { Unsubscribe } from "redux";
 
 import { Catalog, Reference, Tag, Album } from "../api/highlevel";
 import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../api/types";
@@ -124,7 +126,7 @@ export function mockServerData(catalogs?: MockCatalog[]): Draft<ServerData> {
   };
 }
 
-export function mockStore(state?: Partial<Draft<StoreState>>): Draft<StoreState> {
+export function mockStoreState(state?: Partial<Draft<StoreState>>): Draft<StoreState> {
   if (state === undefined) {
     state = {};
   }
@@ -140,5 +142,23 @@ export function mockStore(state?: Partial<Draft<StoreState>>): Draft<StoreState>
       },
     },
     stateId: 0,
+  };
+}
+
+export interface MockStore {
+  state: Draft<StoreState>;
+  dispatch: jest.MockedFunction<(action: Deed) => void>;
+  subscribe: jest.MockedFunction<(cb: () => void) => Unsubscribe>;
+  getState: () => StoreState;
+}
+
+export function mockStore(initialState: Draft<StoreState>): MockStore {
+  return {
+    state: initialState,
+    dispatch: jest.fn<void, [Deed]>(),
+    subscribe: jest.fn<Unsubscribe, [() => void]>(),
+    getState(): StoreState {
+      return this.state;
+    },
   };
 }
