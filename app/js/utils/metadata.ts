@@ -79,7 +79,11 @@ export function tagsFromString(tags: string): string[][] {
   return tags.split(/[,\n]/)
     .map((t: string): string => t.trim())
     .filter((t: string): number => t.length)
-    .map((t: string): string[] => t.split("/"));
+    .map((t: string): string[] => {
+      return t.split("/")
+        .map((i: string): string => i.trim())
+        .filter((i: string): number => i.length);
+    });
 }
 
 export function peopleToString(people: string[]): string {
@@ -113,7 +117,7 @@ export function getTransformForOrientation(
     case Orientation.RightTop:
       return "rotate(90)";
     case Orientation.BottomRight:
-      return "rotate(180)";
+      return "scale(-1, -1)";
     case Orientation.LeftBottom:
       return "rotate(-90)";
     case Orientation.TopRight:
