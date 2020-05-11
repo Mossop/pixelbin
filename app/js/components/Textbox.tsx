@@ -21,8 +21,9 @@ export default class Textbox extends PureComponent<TextboxProps> {
       classes.push("with-icon");
     }
 
-    let allProps = {
+    let inputProps = {
       ...fieldProps(this.props, { className: classes }),
+      type: this.props.type,
       required: this.props.required,
       value: this.props.property.get(),
       onChange: this.onChange,
@@ -33,10 +34,10 @@ export default class Textbox extends PureComponent<TextboxProps> {
         <span className="field-icon">
           <Icon iconName={this.props.iconName} iconStyle={this.props.iconStyle}/>
         </span>
-        <input {...allProps} type={this.props.type}/>
+        <input {...inputProps}/>
       </Fragment>;
     } else {
-      return <input {...allProps} type={this.props.type}/>;
+      return <input {...inputProps}/>;
     }
   }
 }

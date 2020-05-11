@@ -57,3 +57,33 @@ export function resetDOM(): void {
 export function click(element: Element): void {
   fireEvent.click(element);
 }
+
+const TEXT_INPUTS = [
+  "text",
+  "search",
+  "email",
+  "password",
+];
+
+export function sendKey(element: Element, key: string): void {
+  fireEvent.keyDown(element, {
+    key,
+  });
+
+  fireEvent.keyPress(element, {
+    key,
+  });
+
+  fireEvent.keyUp(element, {
+    key,
+  });
+}
+
+export function sendString(element: Element, str: string): void {
+  let proto = Object.getPrototypeOf(element);
+  let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+  descriptor?.set?.call(element, str);
+  fireEvent.input(element, {
+    data: str,
+  });
+}
