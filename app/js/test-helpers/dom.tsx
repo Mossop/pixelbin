@@ -80,10 +80,17 @@ export function sendKey(element: Element, key: string): void {
 }
 
 export function sendString(element: Element, str: string): void {
-  let proto = Object.getPrototypeOf(element);
-  let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
-  descriptor?.set?.call(element, str);
-  fireEvent.input(element, {
-    data: str,
-  });
+  if (element instanceof HTMLInputElement) {
+    let proto = Object.getPrototypeOf(element);
+    let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+    descriptor?.set?.call(element, str);
+    fireEvent.input(element, {
+      data: str,
+    });
+  } else if (element instanceof HTMLTextAreaElement) {
+    element.textContent = str;
+    fireEvent.input(element, {
+      data: str,
+    });
+  }
 }

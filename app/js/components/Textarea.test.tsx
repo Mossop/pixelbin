@@ -2,19 +2,19 @@ import React from "react";
 
 import { resetDOM, render, sendString, expectChild } from "../test-helpers";
 import { makeProperty } from "../utils/StateProxy";
-import Textbox from "./Textbox";
+import Textarea from "./Textarea";
 
 beforeEach(resetDOM);
 
-test("Textbox", (): void => {
+test("Textarea", (): void => {
   let data = {
     value: "",
   };
 
-  let { container } = render(<Textbox type="text" property={makeProperty(data, "value")}/>);
-  let input = expectChild(container, "input[type='text']");
+  let { container } = render(<Textarea property={makeProperty(data, "value")}/>);
+  let textarea = expectChild(container, "textarea");
 
-  sendString(input, "Hello");
+  sendString(textarea, "Hello");
 
   expect(data.value).toBe("Hello");
 });
