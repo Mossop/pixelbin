@@ -58,13 +58,6 @@ export function click(element: Element): void {
   fireEvent.click(element);
 }
 
-const TEXT_INPUTS = [
-  "text",
-  "search",
-  "email",
-  "password",
-];
-
 export function sendKey(element: Element, key: string): void {
   fireEvent.keyDown(element, {
     key,
