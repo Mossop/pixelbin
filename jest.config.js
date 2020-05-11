@@ -18,6 +18,7 @@ module.exports = {
   coveragePathIgnorePatterns: [
     "/node_modules/",
     "<rootDir>/app/js/environment/",
+    "<rootDir>/app/js/test-helpers/",
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", ["json", {
