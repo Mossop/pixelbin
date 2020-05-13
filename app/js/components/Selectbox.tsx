@@ -12,6 +12,7 @@ export type OptionProps = {
 
 export type SelectboxProps = {
   property: Property<string>;
+  options?: OptionProps[];
 } & FieldProps & IconProps;
 
 export class Option extends PureComponent<OptionProps> {
