@@ -1,9 +1,9 @@
-import { Localized } from "@fluent/react";
 import React, { PureComponent, ReactNode } from "react";
 
 import { Catalog, Album, catalogs, Reference, Referencable } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { ServerData } from "../api/types";
+import { Localized } from "../l10n/Localized";
 import { StoreState } from "../store/types";
 import { ComponentProps, MapStateToProps, MapDispatchToProps, connect } from "../utils/component";
 import { StyleProps, styleProps } from "../utils/props";
@@ -77,7 +77,7 @@ class CatalogAlbums extends VirtualCatalogItem<"albums"> {
   }
 
   public get name(): ReactNode {
-    return <Localized id="catalog-albums">
+    return <Localized l10n="catalog-albums">
       <span/>
     </Localized>;
   }
