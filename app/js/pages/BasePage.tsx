@@ -65,3 +65,15 @@ export abstract class BasePage<
 }
 
 export const baseConnect = mergedConnect(baseMapStateToProps);
+
+export interface AuthenticatedProps {
+  user: Immutable<UserData>;
+}
+
+export abstract class AuthenticatedPage<
+  PP extends AuthenticatedProps = AuthenticatedProps,
+  SP extends MapStateToProps<PP> | {} = {},
+  DP extends MapDispatchToProps<PP> | {} = {},
+  S = {}
+> extends BasePage<PP, SP, DP, S> {
+}

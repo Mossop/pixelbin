@@ -1,6 +1,8 @@
+import { Immutable } from "immer";
 import React, { ReactNode, Fragment } from "react";
 
 import { Album, Catalog, Reference } from "../api/highlevel";
+import { UserData } from "../api/types";
 import Button from "../components/Button";
 import MediaList from "../components/MediaList";
 import Sidebar from "../components/Sidebar";
@@ -9,11 +11,12 @@ import actions from "../store/actions";
 import { StoreState } from "../store/types";
 import { PropsFor } from "../utils/component";
 import { Search, Field, Operation } from "../utils/search";
-import { BasePage, baseConnect, PageProps } from "./BasePage";
+import { AuthenticatedPage, baseConnect, PageProps } from "./BasePage";
 import NotFound from "./notfound";
 
 interface PassedProps {
   album: Reference<Album>;
+  user: Immutable<UserData>;
 }
 
 interface FromStateProps {
@@ -40,7 +43,7 @@ interface AlbumPageState {
 }
 
 type AlbumPageProps = PageProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
-class AlbumPage extends BasePage<
+class AlbumPage extends AuthenticatedPage<
   PassedProps,
   typeof mapStateToProps,
   typeof mapDispatchToProps,
@@ -91,39 +94,23 @@ class AlbumPage extends BasePage<
   }
 
   private onEdit: (() => void) = (): void => {
-    if (!this.props.user || !this.props.album) {
-      return;
-    }
-
     this.props.showAlbumEditOverlay(this.props.album.ref());
   };
 
   private onNewAlbum: (() => void) = (): void => {
-    if (!this.props.user || !this.props.album) {
-      return;
-    }
-
     this.props.showAlbumCreateOverlay(this.props.album.ref());
   };
 
   private onUpload: (() => void) = (): void => {
-    if (!this.props.user || !this.props.album) {
-      return;
-    }
-
     this.props.showUploadOverlay();
   };
 
   protected renderBannerButtons(): ReactNode {
-    if (this.props.user && this.props.album) {
-      return <Fragment>
-        <Button l10n="banner-album-edit" onClick={this.onEdit}/>
-        <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>
-        <Button l10n="banner-upload" onClick={this.onUpload}/>
-      </Fragment>;
-    } else {
-      return null;
-    }
+    return <Fragment>
+      <Button l10n="banner-album-edit" onClick={this.onEdit}/>
+      <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>
+      <Button l10n="banner-upload" onClick={this.onUpload}/>
+    </Fragment>;
   }
 
   protected getSidebarProps(): Partial<PropsFor<typeof Sidebar>> {

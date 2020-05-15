@@ -1,5 +1,7 @@
+import { Immutable } from "immer";
 import React, { ReactNode, PureComponent, ErrorInfo } from "react";
 
+import { UserData } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import Album from "./album";
@@ -12,11 +14,13 @@ import User from "./user";
 
 interface FromStateProps {
   page: PageState;
+  user: Immutable<UserData> | null;
 }
 
 function mapStateToProps(state: StoreState): FromStateProps {
   return {
     page: state.ui.page,
+    user: state.serverState.user,
   };
 }
 
@@ -44,23 +48,30 @@ class PageDisplay extends PureComponent<PageDisplayProps, PageDisplayState> {
       return <ErrorPage error={this.state.error}/>;
     }
 
+    if (this.props.user) {
+      switch (this.props.page.type) {
+        case PageType.User: {
+          return <User user={this.props.user}/>;
+        }
+        case PageType.Catalog: {
+          return <Catalog user={this.props.user} catalog={this.props.page.catalog}/>;
+        }
+        case PageType.Album: {
+          return <Album user={this.props.user} album={this.props.page.album}/>;
+        }
+      }
+    }
+
     switch (this.props.page.type) {
       case PageType.Index: {
         return <Index/>;
       }
-      case PageType.User: {
-        return <User/>;
-      }
       case PageType.NotFound: {
         return <NotFound/>;
       }
-      case PageType.Catalog: {
-        return <Catalog catalog={this.props.page.catalog}/>;
-      }
-      case PageType.Album: {
-        return <Album album={this.props.page.album}/>;
-      }
     }
+
+    return <ErrorPage error="Internal error."/>;
   }
 }
 

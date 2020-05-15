@@ -2,9 +2,15 @@ import React from "react";
 
 import Page from ".";
 import { Album, Catalog } from "../api/highlevel";
-import store from "../store";
-import actions from "../store/actions";
-import { expect, render, resetDOM, mockedClass, lastCallArgs } from "../test-helpers";
+import {
+  expect,
+  render,
+  resetDOM,
+  mockedClass,
+  lastCallArgs,
+  mockStore,
+  mockStoreState,
+} from "../test-helpers";
 import AlbumPage from "./album";
 import CatalogPage from "./catalog";
 import ErrorPage from "./error";
@@ -65,13 +71,15 @@ const mockedError = mockedClass(ErrorPage);
 beforeEach(resetDOM);
 
 test("index page", (): void => {
-  store.dispatch(actions.updateUIState({
-    page: {
-      type: PageType.Index,
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Index,
+      },
     },
   }));
 
-  render(<Page/>);
+  render(<Page/>, store);
 
   expect(mockedIndex).toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -83,14 +91,90 @@ test("index page", (): void => {
   expect(lastCallArgs(mockedIndex)[0]).toEqual({});
 });
 
-test("user page", (): void => {
-  store.dispatch(actions.updateUIState({
-    page: {
-      type: PageType.User,
+test("user page not logged in", (): void => {
+  const store = mockStore(mockStoreState({
+    serverState: { user: null },
+    ui: {
+      page: {
+        type: PageType.User,
+      },
     },
   }));
 
-  render(<Page/>);
+  render(<Page/>, store);
+
+  expect(mockedIndex).not.toHaveBeenCalled();
+  expect(mockedUser).not.toHaveBeenCalled();
+  expect(mockedAlbum).not.toHaveBeenCalled();
+  expect(mockedCatalog).not.toHaveBeenCalled();
+  expect(mockedNotFound).not.toHaveBeenCalled();
+  expect(mockedError).toHaveBeenCalled();
+
+  expect(lastCallArgs(mockedError)[0]).toEqual({
+    error: "Internal error.",
+  });
+});
+
+test("album page not logged in", (): void => {
+  const store = mockStore(mockStoreState({
+    serverState: { user: null },
+    ui: {
+      page: {
+        type: PageType.Album,
+        album: Album.ref("foo"),
+      },
+    },
+  }));
+
+  render(<Page/>, store);
+
+  expect(mockedIndex).not.toHaveBeenCalled();
+  expect(mockedUser).not.toHaveBeenCalled();
+  expect(mockedAlbum).not.toHaveBeenCalled();
+  expect(mockedCatalog).not.toHaveBeenCalled();
+  expect(mockedNotFound).not.toHaveBeenCalled();
+  expect(mockedError).toHaveBeenCalled();
+
+  expect(lastCallArgs(mockedError)[0]).toEqual({
+    error: "Internal error.",
+  });
+});
+
+test("catalog page not logged in", (): void => {
+  const store = mockStore(mockStoreState({
+    serverState: { user: null },
+    ui: {
+      page: {
+        type: PageType.Catalog,
+        catalog: Catalog.ref("foo"),
+      },
+    },
+  }));
+
+  render(<Page/>, store);
+
+  expect(mockedIndex).not.toHaveBeenCalled();
+  expect(mockedUser).not.toHaveBeenCalled();
+  expect(mockedAlbum).not.toHaveBeenCalled();
+  expect(mockedCatalog).not.toHaveBeenCalled();
+  expect(mockedNotFound).not.toHaveBeenCalled();
+  expect(mockedError).toHaveBeenCalled();
+
+  expect(lastCallArgs(mockedError)[0]).toEqual({
+    error: "Internal error.",
+  });
+});
+
+test("user page logged in", (): void => {
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.User,
+      },
+    },
+  }));
+
+  render(<Page/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).toHaveBeenCalled();
@@ -99,18 +183,22 @@ test("user page", (): void => {
   expect(mockedNotFound).not.toHaveBeenCalled();
   expect(mockedError).not.toHaveBeenCalled();
 
-  expect(lastCallArgs(mockedUser)[0]).toEqual({});
+  expect(lastCallArgs(mockedUser)[0]).toEqual({
+    user: store.state.serverState.user,
+  });
 });
 
-test("album page", (): void => {
-  store.dispatch(actions.updateUIState({
-    page: {
-      type: PageType.Album,
-      album: Album.ref("foo"),
+test("album page logged in", (): void => {
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Album,
+        album: Album.ref("foo"),
+      },
     },
   }));
 
-  render(<Page/>);
+  render(<Page/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -121,18 +209,21 @@ test("album page", (): void => {
 
   expect(lastCallArgs(mockedAlbum)[0]).toEqual({
     album: expect.toBeRef("foo"),
+    user: store.state.serverState.user,
   });
 });
 
-test("catalog page", (): void => {
-  store.dispatch(actions.updateUIState({
-    page: {
-      type: PageType.Catalog,
-      catalog: Catalog.ref("foo"),
+test("catalog page logged in", (): void => {
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Catalog,
+        catalog: Catalog.ref("foo"),
+      },
     },
   }));
 
-  render(<Page/>);
+  render(<Page/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -142,21 +233,24 @@ test("catalog page", (): void => {
   expect(mockedError).not.toHaveBeenCalled();
 
   expect(lastCallArgs(mockedCatalog)[0]).toEqual({
+    user: store.state.serverState.user,
     catalog: expect.toBeRef("foo"),
   });
 });
 
 test("not found page", (): void => {
-  store.dispatch(actions.updateUIState({
-    page: {
-      type: PageType.NotFound,
-      history: {
-        path: "/",
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.NotFound,
+        history: {
+          path: "/",
+        },
       },
     },
   }));
 
-  render(<Page/>);
+  render(<Page/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -169,9 +263,11 @@ test("not found page", (): void => {
 });
 
 test("error page", (): void => {
-  store.dispatch(actions.updateUIState({
-    page: {
-      type: PageType.Index,
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Index,
+      },
     },
   }));
 
@@ -179,7 +275,7 @@ test("error page", (): void => {
     throw new Error("Test error message.");
   });
 
-  render(<Page/>);
+  render(<Page/>, store);
 
   expect(mockedIndex).toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();

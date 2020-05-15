@@ -1,11 +1,17 @@
+import { Immutable } from "immer";
 import React, { ReactNode } from "react";
 
-import { BasePage, baseConnect } from "./BasePage";
+import { UserData } from "../api/types";
+import { AuthenticatedPage, baseConnect } from "./BasePage";
 
-class UserPage extends BasePage {
+interface PassedProps {
+  user: Immutable<UserData>;
+}
+
+class UserPage extends AuthenticatedPage<PassedProps> {
   public renderContent(): ReactNode {
     return <h1>User</h1>;
   }
 }
 
-export default baseConnect()(UserPage);
+export default baseConnect<PassedProps>()(UserPage);
