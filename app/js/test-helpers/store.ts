@@ -11,8 +11,9 @@ import { intoMap } from "../utils/maps";
 type MockPerson = Omit<PersonData, "id" | "catalog"> & {
   id?: string;
 };
-type MockAlbum = Omit<AlbumData, "id" | "catalog" | "parent"> & {
+type MockAlbum = Omit<AlbumData, "id" | "stub" | "catalog" | "parent"> & {
   id?: string;
+  stub?: string | null;
   children?: MockAlbum[];
 };
 type MockTag = Omit<TagData, "id" | "catalog" | "parent"> & {
@@ -45,6 +46,7 @@ function *iterAlbums(
 
     yield {
       ...mock,
+      stub: mock.stub ?? null,
       id,
       catalog,
       parent,

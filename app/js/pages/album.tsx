@@ -1,18 +1,16 @@
 import { Immutable } from "immer";
 import React, { ReactNode, Fragment } from "react";
 
-import { Album, Catalog, Reference } from "../api/highlevel";
+import { Album, Reference } from "../api/highlevel";
 import { UserData } from "../api/types";
 import Button from "../components/Button";
 import MediaList from "../components/MediaList";
 import Sidebar from "../components/Sidebar";
-import Throbber from "../components/Throbber";
 import actions from "../store/actions";
 import { StoreState } from "../store/types";
 import { PropsFor } from "../utils/component";
 import { Search, Field, Operation } from "../utils/search";
 import { AuthenticatedPage, baseConnect, PageProps } from "./BasePage";
-import NotFound from "./notfound";
 
 interface PassedProps {
   album: Reference<Album>;
@@ -36,10 +34,7 @@ const mapDispatchToProps = {
 };
 
 interface AlbumPageState {
-  album?: Album;
-  catalog?: Catalog;
-  search?: Search;
-  pending: boolean;
+  search: Search;
 }
 
 type AlbumPageProps = PageProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
@@ -53,43 +48,32 @@ class AlbumPage extends AuthenticatedPage<
     super(props);
 
     this.state = {
-      catalog: props.album.catalog,
-      pending: true,
-    };
-  }
-
-  public componentDidMount(): void {
-    if (this.state.catalog) {
-      let search: Search = {
-        // eslint-disable-next-line react/no-access-state-in-setstate
-        catalog: this.state.catalog.ref(),
+      search: {
+        catalog: this.props.album.catalog.ref(),
         query: {
           invert: false,
           field: Field.Album,
           operation: Operation.Includes,
           value: this.props.album.name,
         },
-      };
-
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({
-        album: this.props.album,
-        search,
-        pending: false,
-      });
-    } else {
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({
-        album: undefined,
-        search: undefined,
-        pending: true,
-      });
-    }
+      },
+    };
   }
 
   public componentDidUpdate(prevProps: AlbumPageProps): void {
     if (prevProps.album !== this.props.album) {
-      this.componentDidMount();
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({
+        search: {
+          catalog: this.props.album.catalog.ref(),
+          query: {
+            invert: false,
+            field: Field.Album,
+            operation: Operation.Includes,
+            value: this.props.album.name,
+          },
+        },
+      });
     }
   }
 
@@ -115,20 +99,12 @@ class AlbumPage extends AuthenticatedPage<
 
   protected getSidebarProps(): Partial<PropsFor<typeof Sidebar>> {
     return {
-      selectedItem: this.state.album,
+      selectedItem: this.props.album,
     };
   }
 
   protected renderContent(): ReactNode {
-    if (!this.state.pending) {
-      if (this.state.search) {
-        return <MediaList search={this.state.search}/>;
-      } else {
-        return <NotFound/>;
-      }
-    } else {
-      return <Throbber/>;
-    }
+    return <MediaList search={this.state.search}/>;
   }
 }
 
