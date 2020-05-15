@@ -9,7 +9,6 @@ import Button from "./Button";
 interface PassedProps {
   title?: string | ReactNode;
   sidebar?: ReactNode;
-  children: ReactNode;
   error?: AppError;
 }
 
