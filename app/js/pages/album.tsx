@@ -33,48 +33,14 @@ const mapDispatchToProps = {
   showUploadOverlay: actions.showUploadOverlay,
 };
 
-interface AlbumPageState {
-  search: Search;
-}
-
 type AlbumPageProps = PageProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
 class AlbumPage extends AuthenticatedPage<
   PassedProps,
   typeof mapStateToProps,
-  typeof mapDispatchToProps,
-  AlbumPageState
+  typeof mapDispatchToProps
 > {
   public constructor(props: AlbumPageProps) {
     super(props);
-
-    this.state = {
-      search: {
-        catalog: this.props.album.catalog.ref(),
-        query: {
-          invert: false,
-          field: Field.Album,
-          operation: Operation.Includes,
-          value: this.props.album.name,
-        },
-      },
-    };
-  }
-
-  public componentDidUpdate(prevProps: AlbumPageProps): void {
-    if (prevProps.album !== this.props.album) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({
-        search: {
-          catalog: this.props.album.catalog.ref(),
-          query: {
-            invert: false,
-            field: Field.Album,
-            operation: Operation.Includes,
-            value: this.props.album.name,
-          },
-        },
-      });
-    }
   }
 
   private onEdit: (() => void) = (): void => {
@@ -104,7 +70,17 @@ class AlbumPage extends AuthenticatedPage<
   }
 
   protected renderContent(): ReactNode {
-    return <MediaList search={this.state.search}/>;
+    let search: Search = {
+      catalog: this.props.album.catalog.ref(),
+      query: {
+        invert: false,
+        field: Field.Album,
+        operation: Operation.Includes,
+        value: this.props.album.name,
+      },
+    };
+
+    return <MediaList search={search}/>;
   }
 }
 
