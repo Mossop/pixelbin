@@ -19,7 +19,7 @@ import { ApiError } from "../utils/exception";
 import LoginOverlay from "./login";
 
 jest.mock("../api/request");
-jest.mock("../l10n/localized");
+jest.mock("../l10n/Localized");
 
 const mockedRequest = mockedFunction(request);
 
