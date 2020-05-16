@@ -72,7 +72,7 @@ export function sendKey(element: Element, key: string): void {
   });
 }
 
-export function sendString(element: Element, str: string): void {
+export function typeString(element: Element, str: string): void {
   if (element instanceof HTMLInputElement) {
     let proto = Object.getPrototypeOf(element);
     let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
@@ -86,4 +86,9 @@ export function sendString(element: Element, str: string): void {
       data: str,
     });
   }
+}
+
+export function submit(element: Element): void {
+  expect(element.localName).toBe("form");
+  (element as HTMLFormElement).submit();
 }

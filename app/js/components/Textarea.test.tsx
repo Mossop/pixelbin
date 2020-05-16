@@ -1,6 +1,6 @@
 import React from "react";
 
-import { resetDOM, render, sendString, expectChild } from "../test-helpers";
+import { resetDOM, render, typeString, expectChild } from "../test-helpers";
 import { makeProperty } from "../utils/StateProxy";
 import Textarea from "./Textarea";
 
@@ -14,7 +14,7 @@ test("Textarea", (): void => {
   let { container } = render(<Textarea property={makeProperty(data, "value")}/>);
   let textarea = expectChild(container, "textarea");
 
-  sendString(textarea, "Hello");
+  typeString(textarea, "Hello");
 
   expect(data.value).toBe("Hello");
 });

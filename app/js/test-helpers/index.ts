@@ -97,6 +97,17 @@ export function awaitCall(
   });
 }
 
+export function after(promise: Promise<unknown>): Promise<void> {
+  return promise.then(
+    (): void => {
+      return;
+    },
+    (): void => {
+      return;
+    },
+  );
+}
+
 export { jestExpect as expect };
 export * from "./dom";
 export * from "./store";
