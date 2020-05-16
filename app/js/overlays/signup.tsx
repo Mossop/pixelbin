@@ -89,6 +89,7 @@ class SignupOverlay extends PureComponent<SignupOverlayProps, SignupOverlayState
           labelL10n="signup-email"
           iconName="at"
           required={true}
+          disabled={this.state.disabled}
           property={makeProperty(this.inputs, "email")}
         />
         <FormField
@@ -96,6 +97,7 @@ class SignupOverlay extends PureComponent<SignupOverlayProps, SignupOverlayState
           type="text"
           labelL10n="signup-name"
           iconName="user"
+          disabled={this.state.disabled}
           property={makeProperty(this.inputs, "name")}
         />
         <FormField
@@ -103,6 +105,7 @@ class SignupOverlay extends PureComponent<SignupOverlayProps, SignupOverlayState
           type="password"
           labelL10n="signup-password"
           iconName="key"
+          disabled={this.state.disabled}
           property={makeProperty(this.inputs, "password")}
         />
       </Form>

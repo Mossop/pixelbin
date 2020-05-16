@@ -17,7 +17,7 @@ import {
   resetDOM,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
-import LoginOverlay from "./login";
+import SignupOverlay from "./signup";
 
 jest.mock("../api/request");
 jest.mock("../l10n/Localized");
@@ -26,19 +26,24 @@ const mockedRequest = mockedFunction(request);
 
 afterEach(resetDOM);
 
-test("login success", async (): Promise<void> => {
+test("signup success", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { container } = render(<LoginOverlay/>, store);
+  let { container } = render(<SignupOverlay/>, store);
 
   let form = expectChild<HTMLFormElement>(container, "form.form");
 
-  let email = expectChild<HTMLInputElement>(form, "#login-overlay-email");
+  let email = expectChild<HTMLInputElement>(form, "#signup-overlay-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "#login-overlay-password");
+  let name = expectChild<HTMLInputElement>(form, "#signup-overlay-name");
+  expect(name.localName).toBe("input");
+  expect(name.type).toBe("text");
+  expect(name.disabled).toBeFalsy();
+
+  let password = expectChild<HTMLInputElement>(form, "#signup-overlay-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
@@ -48,19 +53,23 @@ test("login success", async (): Promise<void> => {
 
   let { resolve } = deferredMock(mockedRequest);
   typeString(email, "foo@bar.com");
+  typeString(name, "Bob Parr");
+  typeString(password, "foopass");
   form.submit();
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
   await waitFor((): void => {
     expect(email.disabled).toBeTruthy();
+    expect(name.disabled).toBeTruthy();
     expect(password.disabled).toBeTruthy();
   });
 
   expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.Login, {
+  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.UserCreate, {
     email: "foo@bar.com",
-    password: "",
+    password: "foopass",
+    fullname: "Bob Parr",
   }]);
 
   resolve();
@@ -68,7 +77,7 @@ test("login success", async (): Promise<void> => {
   let [deed] = await awaitCall(store.dispatch);
 
   expect(deed).toEqual({
-    type: "completeLogin",
+    type: "completeSignup",
     payload: [undefined],
   });
 
@@ -76,53 +85,65 @@ test("login success", async (): Promise<void> => {
   store.dispatch.mockClear();
 });
 
-test("login failed", async (): Promise<void> => {
+test("signup failed", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { container } = render(<LoginOverlay/>, store);
+  let { container } = render(<SignupOverlay/>, store);
 
   let form = expectChild<HTMLFormElement>(container, "form.form");
 
-  let email = expectChild<HTMLInputElement>(form, "#login-overlay-email");
+  let email = expectChild<HTMLInputElement>(form, "#signup-overlay-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "#login-overlay-password");
+  let name = expectChild<HTMLInputElement>(form, "#signup-overlay-name");
+  expect(name.localName).toBe("input");
+  expect(name.type).toBe("text");
+  expect(name.disabled).toBeFalsy();
+
+  let password = expectChild<HTMLInputElement>(form, "#signup-overlay-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
 
-  typeString(email, "foo@bar.com");
-  typeString(password, "foopass");
+  form.submit();
+  expect(store.dispatch).not.toHaveBeenCalled();
 
   let { reject } = deferredMock(mockedRequest);
-
+  typeString(email, "foo@bar.com");
   form.submit();
 
   expect(store.dispatch).not.toHaveBeenCalled();
-  expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.Login, {
-    email: "foo@bar.com",
-    password: "foopass",
-  }]);
 
   await waitFor((): void => {
     expect(email.disabled).toBeTruthy();
+    expect(name.disabled).toBeTruthy();
     expect(password.disabled).toBeTruthy();
   });
 
-  reject(new ApiError(403, "Not Authorized", {
-    code: ApiErrorCode.LoginFailed,
+  expect(mockedRequest).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.UserCreate, {
+    email: "foo@bar.com",
+    password: "",
+    fullname: "",
+  }]);
+
+  reject(new ApiError(400, "Bad Request", {
+    code: ApiErrorCode.SignupBadEmail,
     args: {},
   }));
 
   await waitFor((): void => {
     expect(email.disabled).toBeFalsy();
+    expect(name.disabled).toBeFalsy();
     expect(password.disabled).toBeFalsy();
   });
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  expectChild(container, ".mock-localized[data-l10nid='api-error-login-failed'] #overlay-error");
+  expectChild(
+    container,
+    ".mock-localized[data-l10nid='api-error-signup-bad-email'] #overlay-error",
+  );
 });

@@ -108,6 +108,41 @@ export function after(promise: Promise<unknown>): Promise<void> {
   );
 }
 
+type Resolver<T> = (value?: T | PromiseLike<T> | undefined) => void;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Rejecter = (reason?: any) => void;
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: Resolver<T>;
+  reject: Rejecter;
+}
+
+function defer<T>(): Deferred<T> {
+  let resolve: Resolver<T> | undefined = undefined;
+  let reject: Rejecter | undefined = undefined;
+
+  let promise = new Promise<T>((resolver: Resolver<T>, rejecter: Rejecter): void => {
+    resolve = resolver;
+    reject = rejecter;
+  });
+
+  return {
+    promise,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    resolve: resolve!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    reject: reject!,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deferredMock<T>(mock: jest.MockInstance<any, any[]>): Deferred<T> {
+  let deferred = defer<T>();
+  mock.mockImplementationOnce((): Promise<T> => deferred.promise);
+  return deferred;
+}
+
 export { jestExpect as expect };
 export * from "./dom";
 export * from "./store";

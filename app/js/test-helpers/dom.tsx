@@ -13,10 +13,10 @@ const dom: JSDOM = jsdom;
 
 export { dom as jsdom };
 
-export function expectChild(container: Element, selector: string): Element {
+export function expectChild<T extends Element = Element>(container: Element, selector: string): T {
   let elems = container.querySelectorAll(selector);
   expect(elems).toHaveLength(1);
-  return elems[0];
+  return elems[0] as T;
 }
 
 export function expectElement(node: Node | null): Element {
