@@ -19,42 +19,42 @@ import NotFoundPage from "./notfound";
 import { PageType } from "./types";
 import UserPage from "./user";
 
-jest.mock("../../js/pages/indexpage", (): unknown => {
+jest.mock("./indexpage", (): unknown => {
   return {
     __esModule: true,
     default: jest.fn((): null => null),
   };
 });
 
-jest.mock("../../js/pages/user", (): unknown => {
+jest.mock("./user", (): unknown => {
   return {
     __esModule: true,
     default: jest.fn((): null => null),
   };
 });
 
-jest.mock("../../js/pages/catalog", (): unknown => {
+jest.mock("./catalog", (): unknown => {
   return {
     __esModule: true,
     default: jest.fn((): null => null),
   };
 });
 
-jest.mock("../../js/pages/album", (): unknown => {
+jest.mock("./album", (): unknown => {
   return {
     __esModule: true,
     default: jest.fn((): null => null),
   };
 });
 
-jest.mock("../../js/pages/notfound", (): unknown => {
+jest.mock("./notfound", (): unknown => {
   return {
     __esModule: true,
     default: jest.fn((): null => null),
   };
 });
 
-jest.mock("../../js/pages/error", (): unknown => {
+jest.mock("./error", (): unknown => {
   return {
     __esModule: true,
     default: jest.fn((): null => null),
