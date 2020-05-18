@@ -21,10 +21,15 @@ interface InputFields {
   parent: Reference<MediaTarget> | undefined;
 }
 
-interface PassedProps {
-  album?: Reference<Album>;
-  parent?: Reference<MediaTarget>;
+interface EditPassedProps {
+  album: Reference<Album>;
 }
+
+interface CreatePassedProps {
+  parent: Reference<MediaTarget>;
+}
+
+type PassedProps = EditPassedProps | CreatePassedProps;
 
 interface FromStateProps {
   album: Album | undefined;
@@ -33,16 +38,20 @@ interface FromStateProps {
 }
 
 function mapStateToProps(state: StoreState, ownProps: PassedProps): FromStateProps {
-  if (!ownProps.album && !ownProps.parent) {
-    exception(ErrorCode.InvalidState);
+  if ("album" in ownProps) {
+    let album = ownProps.album.deref(state.serverState);
+    return {
+      album,
+      parent: album.parent,
+      deref: dereferencer(state.serverState),
+    };
+  } else {
+    return {
+      album: undefined,
+      parent: ownProps.parent.deref(state.serverState),
+      deref: dereferencer(state.serverState),
+    };
   }
-
-  let album = ownProps.album?.deref(state.serverState);
-  return {
-    album,
-    parent: album ? album.parent : ownProps.parent?.deref(state.serverState),
-    deref: dereferencer(state.serverState),
-  };
 }
 
 const mapDispatchToProps = {
@@ -106,7 +115,7 @@ class AlbumOverlay extends PureComponent<AlbumOverlayProps, AlbumOverlayState> {
         let data: AlbumCreateData = {
           catalog: catalog.ref(),
           name,
-          parent: album?.ref(),
+          parent: album?.ref() ?? null,
         };
 
         let albumData = await createAlbum(data);
@@ -118,7 +127,7 @@ class AlbumOverlay extends PureComponent<AlbumOverlayProps, AlbumOverlayState> {
           catalog: catalog.ref(),
           name,
           id: this.props.album.ref(),
-          parent: album?.ref(),
+          parent: album?.ref() ?? null,
         };
         let albumData = await editAlbum(updated);
         this.props.albumEdited(albumData);

@@ -13,7 +13,7 @@ import {
   awaitCall,
   lastCallArgs,
   mockedFunction,
-  deferredMock,
+  deferMock,
   resetDOM,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
@@ -51,7 +51,7 @@ test("signup success", async (): Promise<void> => {
   form.submit();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let { resolve } = deferredMock(mockedRequest);
+  let { resolve } = deferMock(mockedRequest);
   typeString(email, "foo@bar.com");
   typeString(name, "Bob Parr");
   typeString(password, "foopass");
@@ -110,7 +110,7 @@ test("signup failed", async (): Promise<void> => {
   form.submit();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let { reject } = deferredMock(mockedRequest);
+  let { reject } = deferMock(mockedRequest);
   typeString(email, "foo@bar.com");
   form.submit();
 

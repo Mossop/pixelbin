@@ -73,6 +73,8 @@ export function mockedClass<T extends jest.Constructable>(cls: T): jest.MockedCl
 export const mapOf = <V>(obj: Record<string, V>): Map<string, V> => new Map(Object.entries(obj));
 
 export function lastCallArgs<P extends unknown[]>(mock: jest.MockInstance<unknown, P>): P {
+  expect(mock).toHaveBeenCalled();
+
   let count = mock.mock.calls.length;
   return mock.mock.calls[count - 1];
 }
@@ -108,14 +110,14 @@ export function after(promise: Promise<unknown>): Promise<void> {
   );
 }
 
-type Resolver<T> = (value?: T | PromiseLike<T> | undefined) => void;
+type Resolver<T, R = void> = (value?: T | PromiseLike<T> | undefined) => R;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Rejecter = (reason?: any) => void;
+type Rejecter<R = void> = (reason?: any) => R;
 
 interface Deferred<T> {
   promise: Promise<T>;
-  resolve: Resolver<T>;
-  reject: Rejecter;
+  resolve: Resolver<T, Promise<void>>;
+  reject: Rejecter<Promise<void>>;
 }
 
 function defer<T>(): Deferred<T> {
@@ -129,15 +131,23 @@ function defer<T>(): Deferred<T> {
 
   return {
     promise,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    resolve: resolve!,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    reject: reject!,
+
+    resolve: (value?: T | PromiseLike<T> | undefined): Promise<void> => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      resolve!(value);
+      return after(promise);
+    },
+
+    reject: (reason?: unknown): Promise<void> => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      reject!(reason);
+      return after(promise);
+    },
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function deferredMock<T>(mock: jest.MockInstance<any, any[]>): Deferred<T> {
+export function deferMock<T>(mock: jest.MockInstance<any, any[]>): Deferred<T> {
   let deferred = defer<T>();
   mock.mockImplementationOnce((): Promise<T> => deferred.promise);
   return deferred;
