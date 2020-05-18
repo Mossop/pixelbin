@@ -12,7 +12,6 @@ import { InternalError, ErrorCode } from "../utils/exception";
 import Overlay from "./Overlay";
 
 jest.mock("./Button");
-jest.mock("../l10n/Localized");
 
 test("overlay", (): void => {
   let store = mockStore(mockStoreState({}));
@@ -33,8 +32,10 @@ test("overlay", (): void => {
     <Overlay title="test-title" error={error} sidebar={testSidebar}/>,
     store,
   ).container;
-  expectChild(container, ".mock-localized[data-l10nid='test-title']");
-  expectChild(container, ".mock-localized[data-l10nid='internal-error-invalid-state']");
+  let title = expectChild(container, ".title");
+  expect(title.textContent).toBe("test-title");
+  let errorMessage = expectChild(container, "#overlay-error");
+  expect(errorMessage.textContent).toBe("internal-error-invalid-state");
   let sidebar = expectChild(container, "#overlay-sidebar");
   expectChild(sidebar, "#test-sidebar");
 });

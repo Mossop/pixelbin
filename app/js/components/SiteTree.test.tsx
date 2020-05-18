@@ -18,7 +18,6 @@ import { Property } from "../utils/StateProxy";
 import { MediaTargetSelector } from "./SiteTree";
 
 jest.mock("./Button");
-jest.mock("../l10n/Localized");
 
 test("media target selector", (): void => {
   let store = mockStore(mockStoreState({

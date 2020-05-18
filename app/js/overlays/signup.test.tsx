@@ -20,7 +20,6 @@ import { ApiError } from "../utils/exception";
 import SignupOverlay from "./signup";
 
 jest.mock("../api/request");
-jest.mock("../l10n/Localized");
 
 const mockedRequest = mockedFunction(request);
 
@@ -142,8 +141,6 @@ test("signup failed", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  expectChild(
-    container,
-    ".mock-localized[data-l10nid='api-error-signup-bad-email'] #overlay-error",
-  );
+  let error = expectChild(container, "#overlay-error");
+  expect(error.textContent).toBe("api-error-signup-bad-email");
 });

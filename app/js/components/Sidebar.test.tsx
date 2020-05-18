@@ -16,7 +16,6 @@ import {
 import Sidebar from "./Sidebar";
 
 jest.mock("./Button");
-jest.mock("../l10n/Localized");
 
 test("sidebar", (): void => {
   let store = mockStore(mockStoreState({
@@ -94,7 +93,7 @@ test("sidebar", (): void => {
   let item = expectChild(virtual, ".depth1 > p");
   expect(item.classList).toContain("item");
   expect(item.classList).toContain("albums");
-  expectChild(item, ".mock-localized[data-l10nid='catalog-albums']");
+  expect(item.textContent).toBe("catalog-albums");
   expectChild(item, ".icon.fa-folder");
 
   children = expectChild(virtual, ".depth1 > ol");

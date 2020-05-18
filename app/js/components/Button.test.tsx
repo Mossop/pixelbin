@@ -1,11 +1,9 @@
 import React from "react";
 
-import { expect, render, resetDOM, expectChild, click } from "../test-helpers";
+import { expect, render, resetDOM, expectChild, click, l10nBundle } from "../test-helpers";
 import Button from "./Button";
 
 beforeEach(resetDOM);
-
-jest.mock("../l10n/Localized");
 
 test("button", (): void => {
   let listener = jest.fn();
@@ -22,8 +20,10 @@ test("button", (): void => {
 });
 
 test("localized button", (): void => {
+  l10nBundle.addTranslation("barfoo", "\n  .title = tooltip title");
+
   let { container } = render(<Button l10n="foobar" tooltipL10n="barfoo" onClick={jest.fn()}/>);
-  let tooltip = expectChild(container, ".mock-localized[data-l10nid='barfoo']");
-  let button = expectChild(tooltip, "button[type='button']");
-  expectChild(button, ".mock-localized[data-l10nid='foobar']");
+  let button = expectChild(container, "button[type='button']");
+  expect(button.getAttribute("title")).toBe("tooltip title");
+  expect(button.textContent).toBe("foobar");
 });

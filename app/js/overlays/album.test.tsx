@@ -21,7 +21,6 @@ import {
 import AlbumOverlay from "./album";
 
 jest.mock("../api/request");
-jest.mock("../l10n/Localized");
 
 const mockedRequest = mockedFunction(request);
 
@@ -56,7 +55,8 @@ test("create album", async (): Promise<void> => {
   let selected = expectChild(container, ".site-tree .selected");
   expect(selected.textContent).toBe("Catalog");
 
-  expectChild(container, ".mock-localized[data-l10nid='album-create-title'] .title");
+  let title = expectChild(container, "#overlay-header .title");
+  expect(title.textContent).toBe("album-create-title");
 
   let { resolve } = deferMock<AlbumData>(mockedRequest);
 
@@ -123,7 +123,8 @@ test("edit album", async (): Promise<void> => {
   let selected = expectChild(container, ".site-tree .selected");
   expect(selected.textContent).toBe("Album 1");
 
-  expectChild(container, ".mock-localized[data-l10nid='album-edit-title'] .title");
+  let title = expectChild(container, "#overlay-header .title");
+  expect(title.textContent).toBe("album-edit-title");
 
   let catalog = expectChild(container, ".site-tree .depth0 > button");
   click(catalog);

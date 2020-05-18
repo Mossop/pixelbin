@@ -20,7 +20,6 @@ import { ApiError } from "../utils/exception";
 import LoginOverlay from "./login";
 
 jest.mock("../api/request");
-jest.mock("../l10n/Localized");
 
 const mockedRequest = mockedFunction(request);
 
@@ -124,5 +123,6 @@ test("login failed", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  expectChild(container, ".mock-localized[data-l10nid='api-error-login-failed'] #overlay-error");
+  let error = expectChild(container, "#overlay-error");
+  expect(error.textContent).toBe("api-error-login-failed");
 });
