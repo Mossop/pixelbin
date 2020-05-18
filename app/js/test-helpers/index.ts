@@ -1,6 +1,6 @@
 import { isReference } from "../api/highlevel";
 import request from "../api/request";
-import { ApiErrorCode } from "../api/types";
+import { ApiErrorCode, ApiMethod } from "../api/types";
 import { ErrorCode, AppError } from "../utils/exception";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,8 +184,8 @@ export function deferCall<F extends (...args: any[]) => any>(
   };
 }
 
-export function deferRequest<R = void, A extends [] = []>(): DeferredCall<A, R> {
-  return deferCall(request as unknown as (...args: A) => Promise<R>);
+export function deferRequest<R = unknown, D = unknown>(): DeferredCall<[ApiMethod, D], R> {
+  return deferCall(request as unknown as (method: ApiMethod, data: D) => Promise<R>);
 }
 
 export { jestExpect as expect };
