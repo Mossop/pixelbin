@@ -17,7 +17,7 @@ watchStore(store);
 
 reactRender(
   <Provider store={store}>
-    <LocalizationContext baseurl={`${appURL(Url.L10n)}`}>
+    <LocalizationContext baseurl={`${appURL(Url.L10n)}`} locales={["en-US"]}>
       <App/>
     </LocalizationContext>
   </Provider>,

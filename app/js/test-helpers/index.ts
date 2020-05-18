@@ -1,4 +1,5 @@
 import { isReference } from "../api/highlevel";
+import request from "../api/request";
 import { ApiErrorCode } from "../api/types";
 import { ErrorCode, AppError } from "../utils/exception";
 
@@ -110,14 +111,15 @@ export function after(promise: Promise<unknown>): Promise<void> {
   );
 }
 
-type Resolver<T, R = void> = (value?: T | PromiseLike<T> | undefined) => R;
+type ResolverArg<T> = T | PromiseLike<T> | undefined;
+type Resolver<T, R = void> = (value?: ResolverArg<T>) => R;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Rejecter<R = void> = (reason?: any) => R;
 
 interface Deferred<T> {
   promise: Promise<T>;
-  resolve: Resolver<T, Promise<void>>;
-  reject: Rejecter<Promise<void>>;
+  resolve: Resolver<T>;
+  reject: Rejecter;
 }
 
 function defer<T>(): Deferred<T> {
@@ -131,26 +133,59 @@ function defer<T>(): Deferred<T> {
 
   return {
     promise,
-
-    resolve: (value?: T | PromiseLike<T> | undefined): Promise<void> => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      resolve!(value);
-      return after(promise);
-    },
-
-    reject: (reason?: unknown): Promise<void> => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      reject!(reason);
-      return after(promise);
-    },
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    resolve: resolve!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    reject: reject!,
   };
 }
 
+type PromiseType<P> = P extends Promise<infer T> ? T : never;
+
+interface DeferredCall<A, R> {
+  promise: Promise<R>;
+  resolve: Resolver<R, Promise<void>>;
+  reject: Rejecter<Promise<void>>;
+  call: Promise<A>;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function deferMock<T>(mock: jest.MockInstance<any, any[]>): Deferred<T> {
-  let deferred = defer<T>();
-  mock.mockImplementationOnce((): Promise<T> => deferred.promise);
-  return deferred;
+export function deferCall<F extends (...args: any[]) => any>(
+  func: F | jest.MockedFunction<F>): DeferredCall<Parameters<F>, PromiseType<ReturnType<F>>> {
+  expect("mock" in func).toBeTruthy();
+
+  let mock = func as unknown as jest.MockInstance<
+    Promise<PromiseType<ReturnType<F>>>,
+    Parameters<F>
+  >;
+
+  let deferredCall = defer<Parameters<F>>();
+
+  let deferredResult = defer<PromiseType<ReturnType<F>>>();
+  mock.mockImplementationOnce((...args: Parameters<F>): Promise<PromiseType<ReturnType<F>>> => {
+    deferredCall.resolve(args);
+    return deferredResult.promise;
+  });
+
+  return {
+    promise: deferredResult.promise,
+
+    resolve: (value?: ResolverArg<PromiseType<ReturnType<F>>>): Promise<void> => {
+      deferredResult.resolve(value);
+      return after(deferredResult.promise);
+    },
+
+    reject: (reason?: unknown): Promise<void> => {
+      deferredResult.reject(reason);
+      return after(deferredResult.promise);
+    },
+
+    call: deferredCall.promise,
+  };
+}
+
+export function deferRequest<R = void, A extends [] = []>(): DeferredCall<A, R> {
+  return deferCall(request as unknown as (...args: A) => Promise<R>);
 }
 
 export { jestExpect as expect };

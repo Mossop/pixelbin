@@ -23,6 +23,7 @@ async function retrieveBundle(baseurl: string, locale: string): Promise<null | F
 
 interface LocalizationContextProps {
   baseurl: string;
+  locales: string[];
 }
 
 interface LocalizationContextState {
@@ -42,29 +43,27 @@ export class LocalizationContext extends PureComponent<
 
     const supportedLocales = negotiateLanguages(
       window.navigator.languages.slice(), // requested locales
-      ["en-US"], // available locales
-      { defaultLocale: "en-US" },
+      props.locales, // available locales
+      { defaultLocale: props.locales[0] },
     );
 
     this.retrieveBundles(supportedLocales);
   }
 
   private async retrieveBundles(locales: string[]): Promise<void> {
-    function isAllBundles(bundles: (null | FluentBundle)[]): bundles is FluentBundle[] {
-      return !!bundles;
+    function isBundle(bundle: FluentBundle | null): bundle is FluentBundle {
+      return !!bundle;
     }
 
     let retrieve = (l: string): Promise<FluentBundle | null> => {
       return retrieveBundle(this.props.baseurl, l);
     };
     let bundles = (await Promise.all(locales.map(retrieve)))
-      .filter((b: null | FluentBundle): boolean => !!b);
+      .filter(isBundle);
 
-    if (isAllBundles(bundles)) {
-      this.setState({
-        generatedBundles: bundles,
-      });
-    }
+    this.setState({
+      generatedBundles: bundles,
+    });
   }
 
   public render(): ReactNode {

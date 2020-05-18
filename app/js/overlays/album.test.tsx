@@ -13,10 +13,10 @@ import {
   typeString,
   lastCallArgs,
   mockedFunction,
-  deferMock,
   resetDOM,
   mockServerData,
   click,
+  deferRequest,
 } from "../test-helpers";
 import AlbumOverlay from "./album";
 
@@ -58,7 +58,7 @@ test("create album", async (): Promise<void> => {
   let title = expectChild(container, "#overlay-header .title");
   expect(title.textContent).toBe("album-create-title");
 
-  let { resolve } = deferMock<AlbumData>(mockedRequest);
+  let { resolve } = deferRequest<AlbumData>();
 
   form.submit();
 
@@ -129,7 +129,7 @@ test("edit album", async (): Promise<void> => {
   let catalog = expectChild(container, ".site-tree .depth0 > button");
   click(catalog);
 
-  let { resolve } = deferMock<AlbumData>(mockedRequest);
+  let { resolve } = deferRequest<AlbumData>();
 
   form.submit();
 

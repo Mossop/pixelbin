@@ -13,8 +13,8 @@ import {
   awaitCall,
   lastCallArgs,
   mockedFunction,
-  deferMock,
   resetDOM,
+  deferRequest,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
 import SignupOverlay from "./signup";
@@ -50,7 +50,7 @@ test("signup success", async (): Promise<void> => {
   form.submit();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let { resolve } = deferMock(mockedRequest);
+  let { resolve } = deferRequest();
   typeString(email, "foo@bar.com");
   typeString(name, "Bob Parr");
   typeString(password, "foopass");
@@ -109,7 +109,7 @@ test("signup failed", async (): Promise<void> => {
   form.submit();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let { reject } = deferMock(mockedRequest);
+  let { reject } = deferRequest();
   typeString(email, "foo@bar.com");
   form.submit();
 
