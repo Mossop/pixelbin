@@ -35,7 +35,7 @@ jobs:
       run: npm install
 
     - name: Run lint checks
-      run: gulp lint
+      run: npm run lint
 
   server-tests:
     runs-on: ubuntu-latest
@@ -122,13 +122,41 @@ jobs:
       run: npm install
 
     - name: Run tests
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost/pixelbin
       run: |
-        node_modules/.bin/jest --coverage
+        npm run jest -- --coverage
 
     - name: Upload code coverage
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
         bash <(curl -s https://codecov.io/bash) -f coverage/coverage.json -F app
+
+  karma-tests:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup Node.js 12
+      uses: actions/setup-node@v1.4.1
+      with:
+        node-version: 12.x
+
+    - name: Show versions
+      run: |
+        node --version
+
+    - name: Install node packages
+      run: npm install
+
+    - name: Run tests
+      run: |
+        npm run karma -- --browsers ChromeHeadless,SafariNative,FirefoxHeadless --reporters progress,coverage-istanbul
+
+    - name: Upload code coverage
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F browser

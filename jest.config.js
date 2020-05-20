@@ -5,12 +5,10 @@ module.exports = {
     url: "http://pixelbin/",
   },
   testRegex: [
-    "/app/tests/(.+/)?[^\\./][^/]*\\.[jt]sx?$",
-    "/app/js/.*\\.test.[jt]sx?$",
+    "/app/js/.*\\.test\\.[jt]sx?$",
   ],
   testPathIgnorePatterns: [
     "/node_modules/",
-    "<rootDir>/app/tests/helpers/",
   ],
   collectCoverageFrom: [
     "app/js/**/*.*",
@@ -19,6 +17,8 @@ module.exports = {
     "/node_modules/",
     "<rootDir>/app/js/environment/",
     "<rootDir>/app/js/test-helpers/",
+    "<rootDir>/app/js/.*\\.karma\\.[jt]sx?$",
+    "<rootDir>/app/js/.*\\.test\\.[jt]sx?$",
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", ["json", {

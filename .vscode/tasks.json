@@ -5,7 +5,7 @@
   "tasks": [{
     "label": "App tests",
     "type": "npm",
-    "script": "test",
+    "script": "jest",
     "group": "test",
     "presentation": {
       "clear": true,
@@ -13,7 +13,7 @@
   }, {
     "label": "App test file",
     "type": "npm",
-    "script": "test -- ${file}",
+    "script": "jest -- ${file}",
     "group": "test",
     "presentation": {
       "clear": true,
@@ -21,7 +21,7 @@
   }, {
     "label": "App code coverage",
     "type": "npm",
-    "script": "test -- --collectCoverage",
+    "script": "jest -- --coverage",
     "group": "test",
     "presentation": {
       "clear": true,
@@ -31,6 +31,14 @@
     "type": "npm",
     "script": "build",
     "group": "build",
+    "presentation": {
+      "clear": true,
+    },
+  }, {
+    "label": "Karma tests",
+    "type": "npm",
+    "script": "karma",
+    "group": "test",
     "presentation": {
       "clear": true,
     },

@@ -1,20 +1,13 @@
 coverage:
   range: 70..100
   precision: 1
-  status:
-    project:
-      default: false
-      app:
-        target: auto
-        flags:
-          - app
-      api:
-        target: auto
-        flags:
-          - api
 
 flags:
   app:
+    paths:
+      - app
+    carryforward: true
+  browser:
     paths:
       - app
     carryforward: true
