@@ -1,3 +1,5 @@
+const webpack = require("webpack");
+
 const babelConfig = {
   passPerPreset: true,
   plugins: [
@@ -28,11 +30,16 @@ const webpackConfig = {
   resolve: {
     extensions: [".js", ".ts", ".tsx"],
   },
-  devtool: "inline-source-map",
+  plugins: [
+    new webpack.SourceMapDevToolPlugin({
+      filename: null, // if no value is provided the sourcemap is inlined
+      test: /\.[jt]sx?$/, // process .js and .ts files only
+    }),
+  ],
   module: {
     rules: [{
       test: /\.[jt]sx?$/,
-      exclude: /node_modules|\.test\.[jt]sx?$/,
+      exclude: /node_modules|\.karma\.[jt]sx?$/,
       use: [
         "@jsdevtools/coverage-istanbul-loader",
         {
@@ -41,17 +48,13 @@ const webpackConfig = {
         },
       ],
     }, {
-      test: /\.karma\.test\.[jt]sx?/,
+      test: /\.karma\.[jt]sx?/,
       exclude: /node_modules/,
       use: [{
         loader: "babel-loader",
         options: babelConfig,
       }],
     }],
-  },
-  externals: {
-    "react": "React",
-    "react-dom": "ReactDOM",
   },
 };
 
@@ -69,7 +72,7 @@ module.exports = function(config) {
     },
     coverageIstanbulReporter: {
       dir: "coverage",
-      reports: ["json"],
+      reports: ["json", "lcov"],
       fixWebpackSourcePaths: true,
     },
     webpack: webpackConfig,

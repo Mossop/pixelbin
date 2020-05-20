@@ -3,6 +3,18 @@ import { Draft } from "immer";
 import { document } from "../environment";
 import { StoreState } from "../store/types";
 
+export function promiseEvent(
+  object: EventTarget,
+  event: string,
+  timeout: number = 5000,
+): Promise<Event> {
+  return new Promise((resolve: (event: Event) => void, reject: () => void): void => {
+    setTimeout(reject, timeout);
+
+    object.addEventListener(event, resolve, { once: true });
+  });
+}
+
 export function isLoggedIn(state: StoreState): boolean {
   return !!state.serverState.user;
 }
