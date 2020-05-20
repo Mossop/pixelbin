@@ -305,6 +305,14 @@ class UploadOverlay extends PureComponent<UploadOverlayProps, UploadOverlayState
     this.addFiles(files);
   };
 
+  private onClose = (): void => {
+    URL.revokeObjectURL(this.state.preview);
+    this.setState({
+      selected: undefined,
+      preview: "",
+    });
+  };
+
   public renderSidebar(): ReactNode {
     if (!this.state.selected) {
       return <Fragment>
@@ -379,14 +387,6 @@ class UploadOverlay extends PureComponent<UploadOverlayProps, UploadOverlayState
       pending.thumbnailOrientation = mirrorVertical(pending.thumbnailOrientation);
     }
 
-    const onClose = (): void => {
-      URL.revokeObjectURL(this.state.preview);
-      this.setState({
-        selected: undefined,
-        preview: "",
-      });
-    };
-
     return <div id="selected-upload">
       <Media
         mimetype={pending.mimetype}
@@ -400,7 +400,7 @@ class UploadOverlay extends PureComponent<UploadOverlayProps, UploadOverlayState
         id="upload-preview-close"
         iconName="times"
         tooltipL10n="upload-preview-close"
-        onClick={onClose}
+        onClick={this.onClose}
       />
       <div id="upload-preview-controls">
         <Button

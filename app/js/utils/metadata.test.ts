@@ -16,7 +16,7 @@ import {
 /* eslint-disable */
 jest.mock("media-metadata", () => {
   return {
-    ...jest.requireActual("media-metadata"),
+    ...jest.requireActual<typeof import("media-metadata")>("media-metadata"),
     parseBuffer: jest.fn(),
   };
 });
