@@ -16,20 +16,11 @@
     "strictFunctionTypes": true,
     "strictBindCallApply": true
   },
-  "include": [
-    "@types",
-    "gulpfile.ts",
-    "stylelint.config.js",
-    "jest.config.js",
-    "app/js",
-    "app/tests",
-    "app/static/scripts",
-    "base",
-    "ci"
-  ],
   "exclude": [
     "node_modules",
     "venv",
-    "public"
+    "public",
+    "coverage",
+    "build"
   ]
 }
