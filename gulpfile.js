@@ -1,19 +1,40 @@
 /* eslint-env node */
-const { src, dest, parallel } = require("gulp");
-const gulpSass = require("gulp-sass");
+const fs = require("fs").promises;
+
+const { src, parallel } = require("gulp");
 const mergeStreams = require("merge-stream");
+const sass = require("node-sass");
 const webpack = require("webpack");
 
 const { config, path } = require("./base/config");
 const { eslintCheck } = require("./ci/eslint");
 const { pylintCheck } = require("./ci/pylint");
 const { typeScriptCheck } = require("./ci/typescript");
-const { logLints } = require("./ci/utils");
+const { logLints, ensureDir } = require("./ci/utils");
 const webpackConfig = require("./webpack.config");
 
 /**
  * @typedef { import("webpack").Stats } Stats
+ * @typedef { import("node-sass").Options } SassOptions
+ * @typedef { import("node-sass").Result } SassResult
  */
+
+/**
+ * @param {SassOptions} options
+ * @return {Promise<SassResult>}
+ */
+function cssRender(options) {
+  return new Promise((resolve, reject) => {
+    sass.render(options, (err, result) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (err) {
+        reject(err.message);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
 
 const IGNORES = [
   "!base/**/*",
@@ -94,14 +115,26 @@ async function buildJs() {
 }
 
 /**
- * @return {NodeJS.ReadWriteStream}
+ * @return {Promise<void>}
  */
-exports.buildCss = function() {
-  return src([path("app", "css", "app.scss")])
-    .pipe(gulpSass().on("error", error => gulpSass.logError(error)))
-    .pipe(dest(path(config.path.build, "app", "css")));
-};
+async function buildCss() {
+  let fileTarget = path(config.path.build, "app", "css", "app.css");
+  let mapTarget = path(config.path.build, "app", "css", "app.css.map");
 
-exports.build = parallel(buildJs, exports.buildCss);
+  await ensureDir(fileTarget);
+
+  let result = await cssRender({
+    file: path("app", "css", "app.scss"),
+    outFile: fileTarget,
+    sourceMap: mapTarget,
+  });
+
+  await Promise.all([
+    fs.writeFile(fileTarget, result.css),
+    fs.writeFile(mapTarget, result.map),
+  ]);
+}
+
+exports.build = parallel(buildJs, buildCss);
 
 exports.default = exports.build;

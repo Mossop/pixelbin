@@ -1,4 +1,6 @@
 const { spawn } = require("child_process");
+const fs = require("fs").promises;
+const path = require("path");
 const stream = require("stream");
 
 const through2 = require("through2");
@@ -101,5 +103,15 @@ exports.logLints = function() {
       }
     }
     return Promise.resolve(file);
+  });
+};
+
+/**
+ * @param {string} file
+ * @return {Promise<void>}
+ */
+exports.ensureDir = async function(file) {
+  await fs.mkdir(path.dirname(file), {
+    recursive: true,
   });
 };

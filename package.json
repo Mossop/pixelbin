@@ -48,8 +48,6 @@
     "gulp": "^4.0.2",
     "gulp-eslint": "^6.0.0",
     "gulp-ignore-errors": "0.0.4",
-    "gulp-sass": "^4.1.0",
-    "gulp-watch": "^5.0.1",
     "ini": "^1.3.5",
     "istanbul-instrumenter-loader": "^3.0.1",
     "jest": "^26.0.1",
