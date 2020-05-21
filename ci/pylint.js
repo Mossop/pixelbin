@@ -1,12 +1,10 @@
-const through2 = require("through2");
-
 const { path } = require("../base/config");
 const { exec } = require("./utils");
 
 /**
  * @typedef { import("stream").Transform } Transform
- * @typedef { import("./utils").LintInfo } LintInfo
- * @typedef { import("./utils").VinylFile } VinylFile
+ * @typedef { import("./types").LintInfo } LintInfo
+ * @typedef { import("./types").LintedFile } LintedFile
  */
 
 /**
@@ -24,50 +22,35 @@ function lintFromPylint(message) {
 }
 
 /**
- * @param {string[]} args
- * @return {Transform}
+ * @return {Promise<LintedFile[]>}
  */
-exports.pylintCheck = function(args = []) {
-  /** @type {Map<string, VinylFile>} */
+exports.pylint = async function() {
+  /** @type {Map<string, LintedFile>} */
   let files = new Map();
 
-  return through2.obj((file, _, callback) => {
-    files.set(file.path, file);
-    callback();
-  }, function(callback) {
-    let cmdLine = [...args, "--exit-zero", "-f", "json", ...files.keys()];
-    exec("pylint", cmdLine).then(stdout => {
-      /** @type {any} */
-      let data;
-      try {
-        data = JSON.parse(stdout.join("\n"));
-      } catch (e) {
-        console.error(`Failed to parse pylint output: ${e}`);
-        console.log(stdout.join("\n"));
-        callback();
-        return;
-      }
+  let cmdLine = [`--rcfile=${path(".pylintrc")}`, "--exit-zero", "-f", "json", "api", "config"];
+  let stdout = await exec("pylint", cmdLine);
 
-      for (let lint of data) {
-        let file = files.get(path(lint.path));
-        if (file) {
-          if (!file.lintResults) {
-            file.lintResults = [];
-          }
+  /** @type {any} */
+  let data;
+  try {
+    data = JSON.parse(stdout.join("\n"));
+  } catch (e) {
+    throw new Error(`Failed to parse pylint output: ${e}\n${stdout.join("\n")}`);
+  }
 
-          file.lintResults.push(lintFromPylint(lint));
-        } else {
-          console.error(`Missing file for ${lint.path}`);
-        }
-      }
+  for (let lint of data) {
+    let file = files.get(lint.path);
+    if (!file) {
+      file = {
+        path: lint.path,
+        lintResults: [],
+      };
+      files.set(lint.path, file);
+    }
 
-      for (let file of files.values()) {
-        this.push(file);
-      }
-      callback();
-    }, e => {
-      console.error(e);
-      callback();
-    });
-  });
+    file.lintResults.push(lintFromPylint(lint));
+  }
+
+  return [...files.values()];
 };

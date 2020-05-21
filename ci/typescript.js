@@ -1,5 +1,4 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("fs").promises;
 
 const {
   sys,
@@ -8,7 +7,7 @@ const {
   flattenDiagnosticMessageText,
 } = require("typescript");
 
-const { through } = require("./utils");
+const { path } = require("../base/config");
 
 /**
  * @typedef { import("stream").Transform } Transform
@@ -16,8 +15,8 @@ const { through } = require("./utils");
  * @typedef { import("typescript").Program } Program
  * @typedef { import("typescript").Diagnostic } Diagnostic
  * @typedef { import("typescript").DiagnosticWithLocation } DiagnosticWithLocation
- * @typedef { import("./utils").LintInfo } LintInfo
- * @typedef { import("./utils").VinylFile } VinylFile
+ * @typedef { import("./types").LintedFile } LintedFile
+ * @typedef { import("./types").LintInfo } LintInfo
  */
 
 /**
@@ -52,11 +51,11 @@ function lintFromDiagnostic(diagnostic) {
 }
 
 /**
- * @param {string} configFile
- * @return {Transform}
+ * @return {Promise<LintedFile[]>}
  */
-exports.typeScriptCheck = function(configFile) {
-  let data = JSON.parse(fs.readFileSync(configFile, {
+exports.typescript = async function() {
+  let configFile = path("tsconfig.json");
+  let data = JSON.parse(await fs.readFile(configFile, {
     encoding: "utf8",
   }));
 
@@ -64,7 +63,7 @@ exports.typeScriptCheck = function(configFile) {
   let parsed = parseJsonConfigFileContent(
     data,
     sys,
-    path.dirname(configFile),
+    path(),
     undefined,
     configFile,
   );
@@ -78,28 +77,31 @@ exports.typeScriptCheck = function(configFile) {
     parsed.errors,
   );
 
-  return through(file => {
-    if (file.path === configFile) {
-      file.lintResults = [
-        ...program.getConfigFileParsingDiagnostics().map(lintFromDiagnostic),
-        ...program.getOptionsDiagnostics().map(lintFromDiagnostic),
-        ...program.getGlobalDiagnostics().map(lintFromDiagnostic),
-      ];
+  /** @type {LintedFile[]} */
+  let results = [{
+    path: configFile,
+    lintResults: [
+      ...program.getConfigFileParsingDiagnostics().map(lintFromDiagnostic),
+      ...program.getOptionsDiagnostics().map(lintFromDiagnostic),
+      ...program.getGlobalDiagnostics().map(lintFromDiagnostic),
+    ],
+  }];
 
-      return Promise.resolve(file);
-    }
-
-    let source = program.getSourceFile(file.path);
+  for (let file of parsed.fileNames) {
+    let source = program.getSourceFile(file);
     if (!source) {
-      return Promise.resolve(file);
+      continue;
     }
 
-    file.lintResults = [
-      ...program.getSyntacticDiagnostics(source).map(lintFromDiagnostic),
-      ...program.getSemanticDiagnostics(source).map(lintFromDiagnostic),
-      ...program.getDeclarationDiagnostics(source).map(lintFromDiagnostic),
-    ];
+    results.push({
+      path: file,
+      lintResults: [
+        ...program.getSyntacticDiagnostics(source).map(lintFromDiagnostic),
+        ...program.getSemanticDiagnostics(source).map(lintFromDiagnostic),
+        ...program.getDeclarationDiagnostics(source).map(lintFromDiagnostic),
+      ],
+    });
+  }
 
-    return Promise.resolve(file);
-  });
+  return results;
 };

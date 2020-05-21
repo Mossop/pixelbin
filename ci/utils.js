@@ -3,39 +3,11 @@ const fs = require("fs").promises;
 const path = require("path");
 const stream = require("stream");
 
-const through2 = require("through2");
-
 /**
- * @typedef { import("stream").Transform } Transform
- * @typedef { import("through2").TransformCallback } TransformCallback
- * @typedef { import("./types").VinylFile } VinylFile
  * @typedef { import("./types").LintInfo } LintInfo
  */
 
 const PYTHON = "python3";
-
-/**
- * @param {(chunk: VinylFile) => Promise<VinylFile>} passthrough
- * @return {Transform}
- */
-exports.through = function(passthrough) {
-  /**
-   * @this {Transform}
-   * @param {VinylFile} chunk
-   * @param {string} _
-   * @param {TransformCallback} callback
-   * @return {void}
-   */
-  function transform(chunk, _, callback) {
-    passthrough(chunk).then(chunk => {
-      callback(null, chunk);
-    }, e => {
-      console.error(e);
-    });
-  }
-
-  return through2.obj(transform);
-};
 
 /**
  * @param {string} command
@@ -90,20 +62,15 @@ exports.python = function(args) {
 };
 
 /**
- * @return {Transform}
+ * @param {string} file
+ * @param {LintInfo} lint
+ * @return {void}
  */
-exports.logLints = function() {
-  return exports.through(file => {
-    if (file.lintResults) {
-      for (let result of file.lintResults) {
-        const { line = 1, column = 1 } = result;
-        console.log(
-          `${file.path}:${line}:${column} ${result.source}(${result.code}) ${result.message}`,
-        );
-      }
-    }
-    return Promise.resolve(file);
-  });
+exports.logLint = function(file, lint) {
+  const { line = 1, column = 1 } = lint;
+  console.log(
+    `${file}:${line}:${column} ${lint.source}(${lint.code}) ${lint.message}`,
+  );
 };
 
 /**

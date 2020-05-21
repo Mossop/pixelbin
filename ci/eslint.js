@@ -1,11 +1,15 @@
-const { CLIEngine } = require("eslint");
+// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+// @ts-ignore
+const { ESLint } = require("eslint");
 
-const { through } = require("./utils");
+const { path } = require("../base/config");
 
 /**
  * @typedef { import("stream").Transform } Transform
  * @typedef { import("eslint").Linter.LintMessage } LintMessage
- * @typedef { import("./utils").LintInfo } LintInfo
+ * @typedef { import("eslint").CLIEngine.LintResult } LintResult
+ * @typedef { import("./types").LintedFile } LintedFile
+ * @typedef { import("./types").LintInfo } LintInfo
  */
 
 /**
@@ -23,14 +27,21 @@ function lintFromLintMessage(message) {
 }
 
 /**
- * @return {Transform}
+ * @return {Promise<LintedFile[]>}
  */
-exports.eslintCheck = function() {
-  let linter = new CLIEngine({});
+exports.eslint = async function() {
+  let eslint = new ESLint({
+    cwd: path(),
+    extensions: ["ts", "tsx", "js", "jsx"],
+    globInputPaths: false,
+  });
+  /** @type {LintResult[]} */
+  let results = await eslint.lintFiles(path());
 
-  return through(file => {
-    let report = linter.executeOnFiles([file.path]);
-    file.lintResults = report.results[0].messages.map(lintFromLintMessage);
-    return Promise.resolve(file);
+  return results.map(result => {
+    return {
+      path: result.filePath,
+      lintResults: result.messages.map(lintFromLintMessage),
+    };
   });
 };

@@ -16,6 +16,13 @@
     "strictFunctionTypes": true,
     "strictBindCallApply": true
   },
+  "include": [
+    "**/.*.js",
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
   "exclude": [
     "node_modules",
     "venv",

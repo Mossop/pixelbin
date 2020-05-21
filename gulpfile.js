@@ -1,22 +1,22 @@
 /* eslint-env node */
 const fs = require("fs").promises;
 
-const { src, parallel } = require("gulp");
-const mergeStreams = require("merge-stream");
+const { parallel } = require("gulp");
 const sass = require("node-sass");
 const webpack = require("webpack");
 
 const { config, path } = require("./base/config");
-const { eslintCheck } = require("./ci/eslint");
-const { pylintCheck } = require("./ci/pylint");
-const { typeScriptCheck } = require("./ci/typescript");
-const { logLints, ensureDir } = require("./ci/utils");
+const { eslint } = require("./ci/eslint");
+const { pylint } = require("./ci/pylint");
+const { typescript } = require("./ci/typescript");
+const { ensureDir, logLint } = require("./ci/utils");
 const webpackConfig = require("./webpack.config");
 
 /**
  * @typedef { import("webpack").Stats } Stats
  * @typedef { import("node-sass").Options } SassOptions
  * @typedef { import("node-sass").Result } SassResult
+ * @typedef { import("./ci/types").LintedFile } LintedFile
  */
 
 /**
@@ -36,59 +36,23 @@ function cssRender(options) {
   });
 }
 
-const IGNORES = [
-  "!base/**/*",
-  "!build/**/*",
-  "!node_modules/**/*",
-  "!venv/**/*",
-  "!public/**/*",
-  "!api/migrations/**/*",
-  "!coverage/**/*",
-];
-
 /**
- * @return {string[]}
+ * @return {Promise<void>}
  */
-function allScripts() {
-  return [
-    "**/*.js",
-    "**/*.jsx",
-    "**/*.ts",
-    "**/*.tsx",
-    ...IGNORES,
-  ];
-}
+exports.lint = async function() {
+  /**
+   * @param {LintedFile[]} files
+   * @return {void}
+   */
+  function log(files) {
+    files.map(file => file.lintResults.map(lint => logLint(file.path, lint)));
+  }
 
-/**
- * @return {NodeJS.ReadWriteStream}
- */
-function pylint() {
-  return src(["**/*.py", ...IGNORES])
-    .pipe(pylintCheck([`--rcfile=${path(".pylintrc")}`]));
-}
-
-/**
- * @return {NodeJS.ReadWriteStream}
- */
-function eslint() {
-  return src(allScripts())
-    .pipe(eslintCheck());
-}
-
-/**
- * @return {NodeJS.ReadWriteStream}
- */
-function typescript() {
-  return src([path("tsconfig.json"), ...allScripts()])
-    .pipe(typeScriptCheck(path("tsconfig.json")));
-}
-
-/**
- * @return {NodeJS.ReadWriteStream}
- */
-exports.lint = function() {
-  return mergeStreams(pylint(), eslint(), typescript())
-    .pipe(logLints());
+  await Promise.all([
+    eslint().then(log),
+    pylint().then(log),
+    typescript().then(log),
+  ]);
 };
 
 /**

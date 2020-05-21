@@ -7,7 +7,7 @@ module.exports = {
     "ecmaFeatures": {
       "jsx": true,
     },
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.json",
   },
 
   "settings": {
@@ -16,7 +16,7 @@ module.exports = {
     },
     "import/ignore": [
       "typescript",
-    ]
+    ],
   },
 
   "env": {

@@ -1,6 +1,6 @@
-export interface VinylFile {
+export interface LintedFile {
   path: string;
-  lintResults?: LintInfo[];
+  lintResults: LintInfo[];
 }
 
 export interface LintInfo {
