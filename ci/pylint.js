@@ -1,12 +1,19 @@
-import stream from "stream";
+const through2 = require("through2");
 
-import { path } from "../base/config";
-import { LintInfo, VinylFile, exec } from "./utils";
+const { path } = require("../base/config");
+const { exec } = require("./utils");
 
-import through2 = require("through2");
+/**
+ * @typedef { import("stream").Transform } Transform
+ * @typedef { import("./utils").LintInfo } LintInfo
+ * @typedef { import("./utils").VinylFile } VinylFile
+ */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function lintFromPylint(message: any): LintInfo {
+/**
+ * @param {any} message
+ * @return {LintInfo}
+ */
+function lintFromPylint(message) {
   return {
     column: message.column + 1,
     line: message.line,
@@ -16,17 +23,22 @@ function lintFromPylint(message: any): LintInfo {
   };
 }
 
-export function pylintCheck(args: string[] = []): stream.Transform {
-  let files: Map<string, VinylFile> = new Map();
+/**
+ * @param {string[]} args
+ * @return {Transform}
+ */
+exports.pylintCheck = function(args = []) {
+  /** @type {Map<string, VinylFile>} */
+  let files = new Map();
 
-  return through2.obj((file: VinylFile, _: string, callback: () => void): void => {
+  return through2.obj((file, _, callback) => {
     files.set(file.path, file);
     callback();
-  }, function(callback: (e?: Error) => void): void {
+  }, function(callback) {
     let cmdLine = [...args, "--exit-zero", "-f", "json", ...files.keys()];
-    exec("pylint", cmdLine).then((stdout: string[]): void => {
-      // eslint-disable-next-line
-      let data: any;
+    exec("pylint", cmdLine).then(stdout => {
+      /** @type {any} */
+      let data;
       try {
         data = JSON.parse(stdout.join("\n"));
       } catch (e) {
@@ -53,9 +65,9 @@ export function pylintCheck(args: string[] = []): stream.Transform {
         this.push(file);
       }
       callback();
-    }, (e: Error): void => {
+    }, e => {
       console.error(e);
-      callback(e);
+      callback();
     });
   });
-}
+};

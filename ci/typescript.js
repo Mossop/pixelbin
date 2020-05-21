@@ -1,25 +1,38 @@
-import fs from "fs";
-import path from "path";
-import stream from "stream";
+const fs = require("fs");
+const path = require("path");
 
-import {
+const {
   sys,
   parseJsonConfigFileContent,
-  ParsedCommandLine,
   createProgram,
-  Program,
-  Diagnostic,
-  DiagnosticWithLocation,
   flattenDiagnosticMessageText,
-} from "typescript";
+} = require("typescript");
 
-import { through, LintInfo, VinylFile } from "./utils";
+const { through } = require("./utils");
 
-function isDiagnosticWithLocation(diagnostic: Diagnostic): diagnostic is DiagnosticWithLocation {
+/**
+ * @typedef { import("stream").Transform } Transform
+ * @typedef { import("typescript").ParsedCommandLine } ParsedCommandLine
+ * @typedef { import("typescript").Program } Program
+ * @typedef { import("typescript").Diagnostic } Diagnostic
+ * @typedef { import("typescript").DiagnosticWithLocation } DiagnosticWithLocation
+ * @typedef { import("./utils").LintInfo } LintInfo
+ * @typedef { import("./utils").VinylFile } VinylFile
+ */
+
+/**
+ * @param {Diagnostic} diagnostic
+ * @return {diagnostic is DiagnosticWithLocation}
+ */
+function isDiagnosticWithLocation(diagnostic) {
   return !!diagnostic.file;
 }
 
-function lintFromDiagnostic(diagnostic: Diagnostic): LintInfo {
+/**
+ * @param {Diagnostic} diagnostic
+ * @return {LintInfo}
+ */
+function lintFromDiagnostic(diagnostic) {
   if (isDiagnosticWithLocation(diagnostic)) {
     let { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
     return {
@@ -38,19 +51,26 @@ function lintFromDiagnostic(diagnostic: Diagnostic): LintInfo {
   }
 }
 
-export function typeScriptCheck(configFile: string): stream.Transform {
+/**
+ * @param {string} configFile
+ * @return {Transform}
+ */
+exports.typeScriptCheck = function(configFile) {
   let data = JSON.parse(fs.readFileSync(configFile, {
     encoding: "utf8",
   }));
 
-  let parsed: ParsedCommandLine = parseJsonConfigFileContent(
+  /** @type {ParsedCommandLine} */
+  let parsed = parseJsonConfigFileContent(
     data,
     sys,
     path.dirname(configFile),
     undefined,
     configFile,
   );
-  let program: Program = createProgram(
+
+  /** @type {Program} */
+  let program = createProgram(
     parsed.fileNames,
     parsed.options,
     undefined,
@@ -58,7 +78,7 @@ export function typeScriptCheck(configFile: string): stream.Transform {
     parsed.errors,
   );
 
-  return through((file: VinylFile): Promise<VinylFile> => {
+  return through(file => {
     if (file.path === configFile) {
       file.lintResults = [
         ...program.getConfigFileParsingDiagnostics().map(lintFromDiagnostic),
@@ -82,4 +102,4 @@ export function typeScriptCheck(configFile: string): stream.Transform {
 
     return Promise.resolve(file);
   });
-}
+};

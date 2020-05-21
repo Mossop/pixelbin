@@ -1,17 +1,20 @@
 /* eslint-env node */
-import { src, dest, series, parallel, watch } from "gulp";
-import gulpSass from "gulp-sass";
-import mergeStreams from "merge-stream";
-import named from "vinyl-named";
-import { Configuration, RuleSetQuery } from "webpack";
+const { src, dest, series, parallel, watch } = require("gulp");
+const gulpSass = require("gulp-sass");
+const mergeStreams = require("merge-stream");
+const named = require("vinyl-named");
+const gulpWebpack = require("webpack-stream");
 
-import { config, path } from "./base/config";
-import { eslintCheck } from "./ci/eslint";
-import { pylintCheck } from "./ci/pylint";
-import { typeScriptCheck } from "./ci/typescript";
-import { logLints } from "./ci/utils";
+const { config, path } = require("./base/config");
+const { eslintCheck } = require("./ci/eslint");
+const { pylintCheck } = require("./ci/pylint");
+const { typeScriptCheck } = require("./ci/typescript");
+const { logLints } = require("./ci/utils");
 
-import gulpWebpack = require("webpack-stream");
+/**
+ * @typedef { import("webpack").Configuration } Configuration
+ * @typedef { import("webpack").RuleSetQuery } RuleSetQuery
+ */
 
 const IGNORES = [
   "!base/**/*",
@@ -23,7 +26,10 @@ const IGNORES = [
   "!coverage/**/*",
 ];
 
-function allScripts(): string[] {
+/**
+ * @return {string[]}
+ */
+function allScripts() {
   return [
     "**/*.js",
     "**/*.jsx",
@@ -33,7 +39,10 @@ function allScripts(): string[] {
   ];
 }
 
-function babelOptions(): RuleSetQuery {
+/**
+ * @return {RuleSetQuery}
+ */
+function babelOptions() {
   return {
     passPerPreset: true,
     plugins: [
@@ -60,7 +69,10 @@ function babelOptions(): RuleSetQuery {
   };
 }
 
-function buildJsConfig(): Configuration {
+/**
+ * @return {Configuration}
+ */
+function buildJsConfig() {
   return {
     mode: config.general.debug ? "development" : "production",
     resolve: {
@@ -91,61 +103,94 @@ function buildJsConfig(): Configuration {
   };
 }
 
-function watchJsConfig(): Configuration {
+/**
+ * @return {Configuration}
+ */
+function watchJsConfig() {
   let config = buildJsConfig();
   config.watch = true;
   return config;
 }
 
-function pylint(): NodeJS.ReadWriteStream {
+/**
+ * @return {NodeJS.ReadWriteStream}
+ */
+function pylint() {
   return src(["**/*.py", ...IGNORES])
     .pipe(pylintCheck([`--rcfile=${path(".pylintrc")}`]));
 }
 
-function eslint(): NodeJS.ReadWriteStream {
+/**
+ * @return {NodeJS.ReadWriteStream}
+ */
+function eslint() {
   return src(allScripts())
     .pipe(eslintCheck());
 }
 
-function typescript(): NodeJS.ReadWriteStream {
+/**
+ * @return {NodeJS.ReadWriteStream}
+ */
+function typescript() {
   return src([path("tsconfig.json"), ...allScripts()])
     .pipe(typeScriptCheck(path("tsconfig.json")));
 }
 
-export function lint(): NodeJS.ReadWriteStream {
+/**
+ * @return {NodeJS.ReadWriteStream}
+ */
+exports.lint = function() {
   return mergeStreams(pylint(), eslint(), typescript())
     .pipe(logLints());
-}
+};
 
-export function watchLint(): void {
-  watch(["**/*.py", ...allScripts()], lint);
-}
+/**
+ * @return {void}
+ */
+exports.watchLint = function() {
+  watch(["**/*.py", ...allScripts()], exports.lint);
+};
 
-export function watchBuildJs(): NodeJS.ReadWriteStream {
+/**
+ * @return {NodeJS.ReadWriteStream}
+ */
+exports.watchBuildJs = function() {
   return src([path("app", "js", "bootstrap.tsx")])
     .pipe(named())
     .pipe(gulpWebpack(watchJsConfig()))
     .pipe(dest(path(config.path.build, "app", "js")));
-}
+};
 
-export function buildJs(): NodeJS.ReadWriteStream {
+/**
+ * @return {NodeJS.ReadWriteStream}
+ */
+exports.buildJs = function() {
   return src([path("app", "js", "bootstrap.tsx")])
     .pipe(named())
     .pipe(gulpWebpack(buildJsConfig()))
     .pipe(dest(path(config.path.build, "app", "js")));
-}
+};
 
-export function buildCss(): NodeJS.ReadWriteStream {
+/**
+ * @return {NodeJS.ReadWriteStream}
+ */
+exports.buildCss = function() {
   return src([path("app", "css", "app.scss")])
-    .pipe(gulpSass().on("error", (error?: string | undefined): void => gulpSass.logError(error)))
+    .pipe(gulpSass().on("error", error => gulpSass.logError(error)))
     .pipe(dest(path(config.path.build, "app", "css")));
-}
+};
 
-export function watchBuildCss(): void {
-  watch(["**/*.scss", ...IGNORES], buildCss);
-}
+/**
+ * @return {void}
+ */
+exports.watchBuildCss = function() {
+  watch(["**/*.scss", ...IGNORES], exports.buildCss);
+};
 
-export const build = parallel(buildJs, buildCss);
-export const watchBuild = series(buildCss, parallel(watchBuildJs, watchBuildCss));
+exports.build = parallel(exports.buildJs, exports.buildCss);
+exports.watchBuild = series(
+  exports.buildCss,
+  parallel(exports.watchBuildJs, exports.watchBuildCss),
+);
 
-export default build;
+exports.default = exports.build;
