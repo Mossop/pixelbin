@@ -1,5 +1,5 @@
 /* eslint-env node */
-const { src, dest, parallel, watch } = require("gulp");
+const { src, dest, parallel } = require("gulp");
 const gulpSass = require("gulp-sass");
 const mergeStreams = require("merge-stream");
 const webpack = require("webpack");
@@ -71,13 +71,6 @@ exports.lint = function() {
 };
 
 /**
- * @return {void}
- */
-exports.watchLint = function() {
-  watch(["**/*.py", ...allScripts()], exports.lint);
-};
-
-/**
  * @return {Promise<void>}
  */
 async function buildJs() {
@@ -107,13 +100,6 @@ exports.buildCss = function() {
   return src([path("app", "css", "app.scss")])
     .pipe(gulpSass().on("error", error => gulpSass.logError(error)))
     .pipe(dest(path(config.path.build, "app", "css")));
-};
-
-/**
- * @return {void}
- */
-exports.watchBuildCss = function() {
-  watch(["**/*.scss", ...IGNORES], exports.buildCss);
 };
 
 exports.build = parallel(buildJs, exports.buildCss);
