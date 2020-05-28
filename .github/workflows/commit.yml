@@ -2,44 +2,51 @@ name: Commit checks
 
 on: [push, pull_request]
 
+env:
+  NODE_VERSION: '14'
+  PYTHON_VERSION: '3.8'
+
+defaults:
+  runs-on: ubuntu-latest
+
 jobs:
   lint:
-    runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
 
-    - name: Setup Node.js 12
-      uses: actions/setup-node@v1.4.1
+    - name: Setup Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v2-beta
       with:
-        node-version: 12.x
+        node-version: ${{ env.NODE_VERSION }}
 
-    - name: Setup Python 3.8
-      uses: actions/setup-python@v1
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Show versions
       run: |
         node --version
+        npm --version
         python --version
 
     - name: Install python packages
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt -r requirements_dev.txt
+        pip install -r requirements.txt -r requirements_dev.txt -r requirements_postgres.txt
 
     - name: Install node packages
-      run: npm install
+      run: |
+        npm install -g gulp
+        npm install
 
     - name: Run lint checks
-      run: npm run lint
+      run: |
+        gulp lint
 
   django-tests:
-    runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres
@@ -64,10 +71,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install ffmpeg exiftool
 
-    - name: Setup Python 3.8
-      uses: actions/setup-python@v1
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Show versions
       run: |
@@ -102,21 +109,20 @@ jobs:
         bash <(curl -s https://codecov.io/bash) -F django
 
   jest-tests:
-    runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
 
-    - name: Setup Node.js 12
-      uses: actions/setup-node@v1.4.1
+    - name: Setup Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v2-beta
       with:
-        node-version: 12.x
+        node-version: ${{ env.NODE_VERSION }}
 
     - name: Show versions
       run: |
         node --version
+        npm --version
 
     - name: Install node packages
       run: |
@@ -141,14 +147,15 @@ jobs:
       with:
         submodules: true
 
-    - name: Setup Node.js 12
-      uses: actions/setup-node@v1.4.1
+    - name: Setup Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v2-beta
       with:
-        node-version: 12.x
+        node-version: ${{ env.NODE_VERSION }}
 
     - name: Show versions
       run: |
         node --version
+        npm --version
 
     - name: Install node packages
       run: |
