@@ -6,7 +6,7 @@ const { config, path } = require("./base/config");
 
 /** @type {Configuration} */
 module.exports = {
-  mode: config.general.debug ? "development" : "production",
+  mode: config.general?.debug ? "development" : "production",
   entry: path("app", "js", "bootstrap.tsx"),
   resolve: {
     extensions: [".js", ".jsx", ".ts", ".tsx"],
