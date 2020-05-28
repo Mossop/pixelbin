@@ -37,7 +37,7 @@ jobs:
     - name: Run lint checks
       run: npm run lint
 
-  server-tests:
+  django-tests:
     runs-on: ubuntu-latest
 
     services:
@@ -99,9 +99,9 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        bash <(curl -s https://codecov.io/bash) -F api
+        bash <(curl -s https://codecov.io/bash) -F django
 
-  app-tests:
+  jest-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -119,17 +119,19 @@ jobs:
         node --version
 
     - name: Install node packages
-      run: npm install
+      run: |
+        npm install -g gulp
+        npm install
 
     - name: Run tests
       run: |
-        npm run jest -- --coverage
+        gulp jest
 
     - name: Upload code coverage
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        bash <(curl -s https://codecov.io/bash) -f coverage/coverage.json -F app
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F jest
 
   karma-tests:
     runs-on: macos-latest
@@ -149,14 +151,16 @@ jobs:
         node --version
 
     - name: Install node packages
-      run: npm install
+      run: |
+        npm install -g gulp
+        npm install
 
     - name: Run tests
       run: |
-        npm run karma -- --browsers ChromeHeadless,SafariNative,FirefoxHeadless --reporters progress,coverage-istanbul
+        gulp karma
 
     - name: Upload code coverage
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F browser
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F karma

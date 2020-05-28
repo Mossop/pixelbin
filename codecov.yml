@@ -3,15 +3,15 @@ coverage:
   precision: 1
 
 flags:
-  app:
+  jest:
     paths:
       - app
     carryforward: true
-  browser:
+  karma:
     paths:
       - app
     carryforward: true
-  api:
+  django:
     paths:
       - api
     carryforward: true

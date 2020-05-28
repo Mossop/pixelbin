@@ -21,8 +21,8 @@ module.exports = {
     "<rootDir>/app/js/.*\\.test\\.[jt]sx?$",
   ],
   coverageDirectory: "coverage",
-  coverageReporters: ["text", "lcov", ["json", {
-    file: "coverage.json",
+  coverageReporters: [["json", {
+    file: "jest-coverage.json",
   }]],
   resetModules: true,
   clearMocks: true,

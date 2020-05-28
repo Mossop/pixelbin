@@ -1,12 +1,15 @@
 /* eslint-env node */
 const fs = require("fs").promises;
 
-const { parallel } = require("gulp");
+const { series, parallel } = require("gulp");
+const { createCoverageMap } = require("istanbul-lib-coverage");
 const sass = require("node-sass");
 const webpack = require("webpack");
 
 const { config, path } = require("./base/config");
 const { eslint } = require("./ci/eslint");
+const { jest } = require("./ci/jest");
+const { karma } = require("./ci/karma");
 const { pylint } = require("./ci/pylint");
 const { typescript } = require("./ci/typescript");
 const { ensureDir, logLint } = require("./ci/utils");
@@ -98,6 +101,30 @@ async function buildCss() {
     fs.writeFile(mapTarget, result.map),
   ]);
 }
+
+/**
+ * @return {Promise<void>}
+ */
+async function mergeCoverage() {
+  let map = createCoverageMap();
+  for (let file of ["karma-coverage.json", "jest-coverage.json"]) {
+    try {
+      await fs.stat(path("coverage", file));
+      map.merge(JSON.parse(await fs.readFile(path("coverage", file), {
+        encoding: "utf8",
+      })));
+    } catch (e) {
+      // Missing or bad file.
+    }
+  }
+
+  await fs.writeFile(path("coverage", "coverage-final.json"), JSON.stringify(map.toJSON()));
+}
+
+exports.karma = series(karma, mergeCoverage);
+exports.jest = series(jest, mergeCoverage);
+
+exports.test = series(jest, karma, mergeCoverage);
 
 exports.build = parallel(buildJs, buildCss);
 

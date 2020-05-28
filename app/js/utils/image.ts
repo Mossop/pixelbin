@@ -217,6 +217,12 @@ class BlobImage extends Image {
   }
 
   public static async decode(data: Blob): Promise<Image> {
+    if (window.navigator.userAgent.includes("Firefox")) {
+      console.log("Hey, this is Firefox!");
+    } else {
+      console.log("This is not Firefox.");
+    }
+
     let url = URL.createObjectURL(data);
     try {
       let img = document.createElement("img");

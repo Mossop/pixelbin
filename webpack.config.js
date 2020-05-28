@@ -9,7 +9,7 @@ module.exports = {
   mode: config.general.debug ? "development" : "production",
   entry: path("app", "js", "bootstrap.tsx"),
   resolve: {
-    extensions: [".js", ".ts", ".tsx"],
+    extensions: [".js", ".jsx", ".ts", ".tsx"],
   },
   output: {
     path: path(config.path.build, "app", "js"),
@@ -22,7 +22,7 @@ module.exports = {
     rules: [
       {
         test: /\.[jt]sx?$/,
-        exclude: /node_modules/,
+        exclude: /node_modules|\.karma\.[jt]sx?$|\.test\.[jt]sx?$/,
         use: {
           loader: "babel-loader",
         },
