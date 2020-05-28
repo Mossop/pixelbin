@@ -6,11 +6,10 @@ env:
   NODE_VERSION: '14'
   PYTHON_VERSION: '3.8'
 
-defaults:
-  runs-on: ubuntu-latest
-
 jobs:
   lint:
+    runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v2
       with:
@@ -47,6 +46,8 @@ jobs:
         gulp lint
 
   django-tests:
+    runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres
@@ -109,6 +110,8 @@ jobs:
         bash <(curl -s https://codecov.io/bash) -F django
 
   jest-tests:
+    runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v2
       with:
