@@ -16,16 +16,12 @@ LOGGER = logging.getLogger(__name__)
 def state(request):
     return build_state(request)
 
-@api_view('PUT', requires_login=True, request=UserSerializer, response=ServerDataSerializer)
+@api_view('PUT', requires_login=False, request=UserSerializer, response=ServerDataSerializer)
 def create(request, deserialized):
-    if len(models.User.objects.filter(email=deserialized.validated_data['email'])) > 0:
-        raise ApiException('signup-bad-email')
-
     with transaction.atomic():
         user = deserialized.save()
 
-    if not request.auth:
-        login_user(request, user)
+    login_user(request, user)
     return build_state(request)
 
 @api_view('POST', requires_login=False, request=LoginSerializer, response=ServerDataSerializer)

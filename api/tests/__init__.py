@@ -3,6 +3,8 @@ from contextlib import contextmanager
 
 from django.test import TestCase, Client
 from django.test.client import JSON_CONTENT_TYPE_RE
+from django.contrib.auth import get_user
+from django.http import HttpRequest
 from faker import Faker
 from PIL.Image import Image
 
@@ -22,6 +24,18 @@ def check_response(response):
     return response
 
 class ApiClient(Client):
+    def get_user(self):
+        session = self.session
+        if session is None:
+            return None
+
+        request = HttpRequest()
+        request.session = session
+        user = get_user(request)
+        if not user.is_authenticated:
+            return None
+        return user
+
     def get(self, path, data=None, secure=False, **kwargs):
         return check_response(super().get(path, data, secure, **kwargs))
 

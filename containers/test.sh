@@ -8,5 +8,5 @@ if [ -z "$CONTAINER" ]; then
   fi
   exec docker exec -it $container /workspace/containers/test.sh
 else
-  ./manage.py test
+  ./manage.py test --no-input
 fi
