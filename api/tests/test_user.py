@@ -1,6 +1,6 @@
 from ..models import User
 
-from . import ApiTestCase
+from . import ApiTestCase, get_authed_user
 
 class UserTests(ApiTestCase):
     def test_create_user(self):
@@ -24,7 +24,7 @@ class UserTests(ApiTestCase):
         created = User.objects.get(email='dtownsend@oxymoronical.com')
         self.assertEqual(created.full_name, 'Dave Townsend')
 
-        logged_in = self.client.get_user()
+        logged_in = get_authed_user(self.client)
         self.assertEqual(logged_in.email, 'dtownsend@oxymoronical.com')
 
         with self.assertRaisesApiException('validation-failure'):
@@ -51,7 +51,7 @@ class UserTests(ApiTestCase):
             },
         })
 
-        logged_in = self.client.get_user()
+        logged_in = get_authed_user(self.client)
         self.assertEqual(logged_in.email, 'bob@oxymoronical.com')
 
     def test_login(self):
@@ -91,7 +91,7 @@ class UserTests(ApiTestCase):
             },
         })
 
-        logged_in = self.client.get_user()
+        logged_in = get_authed_user(self.client)
         self.assertEqual(logged_in.email, 'dtownsend@oxymoronical.com')
 
         response = self.client.post('/api/logout')
@@ -101,7 +101,7 @@ class UserTests(ApiTestCase):
             'user': None,
         })
 
-        logged_in = self.client.get_user()
+        logged_in = get_authed_user(self.client)
         self.assertIsNone(logged_in)
 
         response = self.client.get('/api/state')

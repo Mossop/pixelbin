@@ -3,6 +3,7 @@
 const { ESLint } = require("eslint");
 
 const { path } = require("../base/config");
+const { iterable } = require("./utils");
 
 /**
  * @typedef { import("stream").Transform } Transform
@@ -27,21 +28,27 @@ function lintFromLintMessage(message) {
 }
 
 /**
- * @return {Promise<LintedFile[]>}
+ * @type {() => AsyncIterable<LintedFile>}
  */
-exports.eslint = async function() {
+exports.eslint = iterable(async function(lints) {
   let eslint = new ESLint({
     cwd: path(),
     extensions: ["ts", "tsx", "js", "jsx"],
     globInputPaths: false,
   });
   /** @type {LintResult[]} */
-  let results = await eslint.lintFiles(path());
 
-  return results.map(result => {
-    return {
-      path: result.filePath,
-      lintResults: result.messages.map(lintFromLintMessage),
-    };
-  });
-};
+  /**
+   * @param {LintResult[]} results
+   * @returns {void}
+   */
+  let results = await eslint.lintFiles(path());
+  for (let result of results) {
+    if (result.messages.length) {
+      lints.push({
+        path: result.filePath,
+        lintResults: result.messages.map(lintFromLintMessage),
+      });
+    }
+  }
+});

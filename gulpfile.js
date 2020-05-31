@@ -12,7 +12,7 @@ const { jest } = require("./ci/jest");
 const { karma } = require("./ci/karma");
 const { pylint } = require("./ci/pylint");
 const { typescript } = require("./ci/typescript");
-const { ensureDir, logLint } = require("./ci/utils");
+const { ensureDir, logLint, joined } = require("./ci/utils");
 const webpackConfig = require("./webpack.config");
 
 /**
@@ -43,19 +43,20 @@ function cssRender(options) {
  * @return {Promise<void>}
  */
 exports.lint = async function() {
-  /**
-   * @param {LintedFile[]} files
-   * @return {void}
-   */
-  function log(files) {
-    files.map(file => file.lintResults.map(lint => logLint(file.path, lint)));
+  let fileCount = 0;
+  let lintCount = 0;
+
+  for await (let info of joined(eslint(), pylint(), typescript())) {
+    fileCount++;
+    for (let lint of info.lintResults) {
+      lintCount++;
+      logLint(info.path, lint);
+    }
   }
 
-  await Promise.all([
-    eslint().then(log),
-    pylint().then(log),
-    typescript().then(log),
-  ]);
+  if (fileCount) {
+    throw new Error(`Saw ${lintCount} lint issues across ${fileCount} files.`);
+  }
 };
 
 /**

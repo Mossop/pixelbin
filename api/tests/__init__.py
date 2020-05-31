@@ -23,19 +23,19 @@ def check_response(response):
 
     return response
 
+def get_authed_user(client):
+    session = client.session
+    if session is None:
+        return None
+
+    request = HttpRequest()
+    request.session = session
+    user = get_user(request)
+    if not user.is_authenticated:
+        return None
+    return user
+
 class ApiClient(Client):
-    def get_user(self):
-        session = self.session
-        if session is None:
-            return None
-
-        request = HttpRequest()
-        request.session = session
-        user = get_user(request)
-        if not user.is_authenticated:
-            return None
-        return user
-
     def get(self, path, data=None, secure=False, **kwargs):
         return check_response(super().get(path, data, secure, **kwargs))
 

@@ -5,7 +5,6 @@ from django.contrib.auth import authenticate, login as login_user, logout as log
 from rest_framework import status
 
 from . import api_view
-from .. import models
 from ..utils import ApiException
 from ..serializers.user import UserSerializer, LoginSerializer
 from ..serializers.state import ServerDataSerializer, build_state

@@ -1,5 +1,5 @@
 const { path } = require("../base/config");
-const { exec } = require("./utils");
+const { exec, iterable } = require("./utils");
 
 /**
  * @typedef { import("stream").Transform } Transform
@@ -22,15 +22,14 @@ function lintFromPylint(message) {
 }
 
 /**
- * @return {Promise<LintedFile[]>}
+ * @type {() => AsyncIterable<LintedFile>}
  */
-exports.pylint = async function() {
+exports.pylint = iterable(async function(lints) {
   /** @type {Map<string, LintedFile>} */
   let files = new Map();
 
   let cmdLine = [`--rcfile=${path(".pylintrc")}`, "--exit-zero", "-f", "json", "api", "config"];
   let stdout = await exec("pylint", cmdLine);
-
   /** @type {any} */
   let data;
   try {
@@ -52,5 +51,7 @@ exports.pylint = async function() {
     file.lintResults.push(lintFromPylint(lint));
   }
 
-  return [...files.values()];
-};
+  for (let file of files.values()) {
+    lints.push(file);
+  }
+});

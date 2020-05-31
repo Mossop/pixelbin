@@ -8,6 +8,7 @@ const {
 } = require("typescript");
 
 const { path } = require("../base/config");
+const { iterable } = require("./utils");
 
 /**
  * @typedef { import("stream").Transform } Transform
@@ -51,9 +52,9 @@ function lintFromDiagnostic(diagnostic) {
 }
 
 /**
- * @return {Promise<LintedFile[]>}
+ * @type {() => AsyncIterable<LintedFile>}
  */
-exports.typescript = async function() {
+exports.typescript = iterable(async function(lints) {
   let configFile = path("tsconfig.json");
   let data = JSON.parse(await fs.readFile(configFile, {
     encoding: "utf8",
@@ -77,15 +78,18 @@ exports.typescript = async function() {
     parsed.errors,
   );
 
-  /** @type {LintedFile[]} */
-  let results = [{
-    path: configFile,
-    lintResults: [
-      ...program.getConfigFileParsingDiagnostics().map(lintFromDiagnostic),
-      ...program.getOptionsDiagnostics().map(lintFromDiagnostic),
-      ...program.getGlobalDiagnostics().map(lintFromDiagnostic),
-    ],
-  }];
+  let lintResults = [
+    ...program.getConfigFileParsingDiagnostics().map(lintFromDiagnostic),
+    ...program.getOptionsDiagnostics().map(lintFromDiagnostic),
+    ...program.getGlobalDiagnostics().map(lintFromDiagnostic),
+  ];
+
+  if (lintResults.length) {
+    lints.push({
+      path: configFile,
+      lintResults,
+    });
+  }
 
   for (let file of parsed.fileNames) {
     let source = program.getSourceFile(file);
@@ -93,15 +97,17 @@ exports.typescript = async function() {
       continue;
     }
 
-    results.push({
-      path: file,
-      lintResults: [
-        ...program.getSyntacticDiagnostics(source).map(lintFromDiagnostic),
-        ...program.getSemanticDiagnostics(source).map(lintFromDiagnostic),
-        ...program.getDeclarationDiagnostics(source).map(lintFromDiagnostic),
-      ],
-    });
-  }
+    lintResults = [
+      ...program.getSyntacticDiagnostics(source).map(lintFromDiagnostic),
+      ...program.getSemanticDiagnostics(source).map(lintFromDiagnostic),
+      ...program.getDeclarationDiagnostics(source).map(lintFromDiagnostic),
+    ];
 
-  return results;
-};
+    if (lintResults.length) {
+      lints.push({
+        path: file,
+        lintResults,
+      });
+    }
+  }
+});

@@ -9,6 +9,7 @@ const path = require("path");
 // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 // @ts-ignore
 const pushable = () => require("it-pushable")();
+exports.pushable = pushable;
 
 const { path: appPath } = require("../base/config");
 
@@ -20,6 +21,21 @@ const { path: appPath } = require("../base/config");
  * @typedef { import("child_process").SpawnOptions } SpawnOptions
  * @typedef { import("child_process").SpawnOptionsWithoutStdio } SpawnOptionsWithoutStdio
  */
+
+/**
+ * @template T
+ * @param {(pushable: import("it-pushable").Pushable<T>) => Promise<void>} fn
+ * @returns {() => AsyncIterable<T>}
+ */
+function iterable(fn) {
+  return () => {
+    let pusher = pushable();
+
+    fn(pusher).then(() => pusher.end(), error => pusher.end(error));
+    return pusher;
+  };
+}
+exports.iterable = iterable;
 
 /**
  * @template T

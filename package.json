@@ -71,7 +71,6 @@
     "stylelint": "^13.5.0",
     "stylelint-config-standard": "^20.0.0",
     "ts-jest": "^26.0.0",
-    "ts-node": "^8.10.1",
     "typescript": "^3.9.3",
     "webpack": "^4.43.0"
   },
