@@ -1,4 +1,5 @@
 import os
+from typing import Dict
 
 from b2sdk.v1 import InMemoryAccountInfo, B2Api, DownloadDestLocalFile
 from b2sdk.file_version import FileVersionInfoFactory
@@ -45,7 +46,7 @@ class BackblazeStorageArea(BaseStorageArea):
 
 class BackblazeFileStore(BaseFileStore):
     """A file store that uses Backblaze B2 storage for the main storage area."""
-    STORAGE_CACHE = dict()
+    STORAGE_CACHE: Dict[str, "BackblazeFileStore"] = dict()
 
     @classmethod
     def build(cls, model):

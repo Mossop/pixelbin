@@ -3,14 +3,14 @@ from django.db import models
 from django.db.models.expressions import F
 from django.db.models.functions import Coalesce, Lower
 from django.db.models.expressions import RawSQL
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django_cte import CTEManager, With
 from rest_framework import status
 
 from .locks import lock
 from .storage.models import Storage
 from .storage.base import InnerFileStore
-from .utils import uuid, ApiException, validatingModel
+from .utils import uuid, ApiException, ValidatingModel
 from .constraints import UniqueWithExpressionsConstraint
 from .metadata import MediaMetadata, add_metadata_fields_to_model
 
@@ -46,9 +46,8 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-class User(AbstractUser):
+class User(AbstractBaseUser):
     USERNAME_FIELD = 'email'
-    EMAIL_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
     objects = UserManager()
@@ -56,12 +55,9 @@ class User(AbstractUser):
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=200)
-    username = None
-    first_name = None
-    last_name = None
     had_catalog = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
-    last_seen = models.DateTimeField(auto_now_add=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
 
     def __init__(self, *args, **kwargs):
         if 'id' not in kwargs:
@@ -154,7 +150,13 @@ def name_validator(obj):
     if siblings.exists():
         raise ApiException('invalid-name')
 
-class Album(validatingModel(catalog_validator('parent'), parent_validator, name_validator)):
+class Album(ValidatingModel):
+    validators = [
+        catalog_validator('parent'),
+        parent_validator,
+        name_validator,
+    ]
+
     descendants_manager = CTEManager()
 
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
@@ -195,7 +197,13 @@ class Album(validatingModel(catalog_validator('parent'), parent_validator, name_
                                             name='unique_album_name'),
         ]
 
-class Tag(validatingModel(catalog_validator('parent'), parent_validator, name_validator)):
+class Tag(ValidatingModel):
+    validators = [
+        catalog_validator('parent'),
+        parent_validator,
+        name_validator,
+    ]
+
     descendants_manager = CTEManager()
 
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
@@ -280,7 +288,11 @@ class Tag(validatingModel(catalog_validator('parent'), parent_validator, name_va
                                             name='unique_tag_name'),
         ]
 
-class Person(validatingModel(name_validator)):
+class Person(ValidatingModel):
+    validators = [
+        name_validator,
+    ]
+
     id = models.CharField(max_length=30, primary_key=True, blank=False, null=False)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name='people')
     name = models.CharField(max_length=200)
@@ -375,7 +387,11 @@ def validate_matching_catalog(*fields):
 
     return validator
 
-class MediaTag(validatingModel(validate_matching_catalog('media', 'tag'))):
+class MediaTag(ValidatingModel):
+    validators = [
+        validate_matching_catalog('media', 'tag'),
+    ]
+
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
@@ -384,7 +400,11 @@ class MediaTag(validatingModel(validate_matching_catalog('media', 'tag'))):
             models.UniqueConstraint(fields=['media', 'tag'], name='unique_tags')
         ]
 
-class MediaAlbum(validatingModel(validate_matching_catalog('media', 'album'))):
+class MediaAlbum(ValidatingModel):
+    validators = [
+        validate_matching_catalog('media', 'album'),
+    ]
+
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     album = models.ForeignKey(Album, on_delete=models.CASCADE)
 
@@ -399,7 +419,11 @@ class MediaAlbum(validatingModel(validate_matching_catalog('media', 'album'))):
             models.UniqueConstraint(fields=['media', 'album'], name='unique_albums')
         ]
 
-class MediaPerson(validatingModel(validate_matching_catalog('media', 'person'))):
+class MediaPerson(ValidatingModel):
+    validators = [
+        validate_matching_catalog('media', 'person'),
+    ]
+
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
 

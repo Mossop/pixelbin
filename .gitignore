@@ -5,6 +5,7 @@ __pycache__
 /data
 /public
 /.vscode
+/.mypy_cache
 /config.ini
 /test.ini
 /testdata

@@ -1,5 +1,6 @@
 from datetime import datetime, time
 import re
+from typing import Optional
 
 from django.db import models
 from rest_framework import fields
@@ -114,7 +115,7 @@ class MediaMetadata:
             field.import_from_media(self._media, metadata)
 
 class MetadataField:
-    type = None
+    type: Optional[str] = None
     _key = None
     _default = None
 

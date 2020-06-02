@@ -1,4 +1,4 @@
-from django.db.models.expressions import Q
+from django.db.models import Q
 from .models import Album
 
 class FieldQuery:

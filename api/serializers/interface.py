@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import Dict
 
 from django.db import models
 
@@ -59,7 +60,7 @@ class RequestProperty(InterfaceProperty):
             self.typedef.request_name(),
         )
 
-INTERFACE_MAP = dict()
+INTERFACE_MAP: Dict[str, "InterfaceType"] = dict()
 
 class InterfaceType(typedefs.TypeDef):
     def __init__(self, cls):

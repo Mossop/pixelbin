@@ -4,7 +4,6 @@ from collections import OrderedDict
 
 from rest_framework import serializers, fields, relations
 from rest_framework.response import Response
-from rest_framework.utils import html
 from django.db import models
 from django.core.exceptions import FieldDoesNotExist
 
