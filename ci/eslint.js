@@ -36,12 +36,8 @@ exports.eslint = iterable(async function(lints) {
     extensions: ["ts", "tsx", "js", "jsx"],
     globInputPaths: false,
   });
-  /** @type {LintResult[]} */
 
-  /**
-   * @param {LintResult[]} results
-   * @returns {void}
-   */
+  /** @type {LintResult[]} */
   let results = await eslint.lintFiles(path());
   for (let result of results) {
     if (result.messages.length) {

@@ -10,6 +10,7 @@ const { config, path } = require("./base/config");
 const { eslint } = require("./ci/eslint");
 const { jest } = require("./ci/jest");
 const { karma } = require("./ci/karma");
+const { mypy } = require("./ci/mypy");
 const { pylint } = require("./ci/pylint");
 const { typescript } = require("./ci/typescript");
 const { ensureDir, logLint, joined } = require("./ci/utils");
@@ -46,7 +47,7 @@ exports.lint = async function() {
   let fileCount = 0;
   let lintCount = 0;
 
-  for await (let info of joined(eslint(), pylint(), typescript())) {
+  for await (let info of joined(eslint(), pylint(), typescript(), mypy())) {
     fileCount++;
     for (let lint of info.lintResults) {
       lintCount++;

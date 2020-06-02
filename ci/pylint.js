@@ -2,7 +2,6 @@ const { path } = require("../base/config");
 const { exec, iterable } = require("./utils");
 
 /**
- * @typedef { import("stream").Transform } Transform
  * @typedef { import("./types").LintInfo } LintInfo
  * @typedef { import("./types").LintedFile } LintedFile
  */
