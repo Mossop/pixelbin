@@ -30,5 +30,5 @@ else
 
   ./manage.py migrate
 
-  echo -e "from api.models import User\nUser.objects.create_superuser('dtownsend@oxymoronical.com', 'Dave Townsend', 'pixelbin')" | ./manage.py shell
+  echo -e "from api.models import User\nUser.objects.create_user('dtownsend@oxymoronical.com', 'Dave Townsend', 'pixelbin')" | ./manage.py shell
 fi
