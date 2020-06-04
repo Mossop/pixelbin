@@ -18,6 +18,7 @@ RUN \
   apt-get autoremove -y && \
   apt-get clean -y && \
   rm -rf /var/lib/apt/lists/* && \
+  python -m pip install --upgrade pip && \
   mkdir -p /workspace
 
 WORKDIR /workspace

@@ -6,7 +6,7 @@ if [ -z "$CONTAINER" ]; then
     echo "API container is not running."
     exit 1
   fi
-  exec docker exec -it $container /workspace/containers/test.sh
+  exec docker exec -e PYTHON="${PYTHON:=python}" -it $container /workspace/containers/test.sh
 else
-  ./manage.py test --no-input
+  ${PYTHON} manage.py test --no-input
 fi

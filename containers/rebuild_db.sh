@@ -13,10 +13,10 @@ if [ -z "$CONTAINER" ]; then
   rm pixelbin.sqlite
 
   rm -f api/migrations/00*
-  ./manage.py makemigrations -v 0
-  ./manage.py buildtypes
+  ${PYTHON:=python} manage.py makemigrations -v 0
+  $PYTHON manage.py buildtypes
 
-  exec docker exec -it $container /workspace/containers/rebuild_db.sh
+  exec docker exec -e PYTHON="${PYTHON}" -it $container /workspace/containers/rebuild_db.sh
 else
   export PGPASSWORD=pixelbin
 
@@ -28,7 +28,7 @@ else
   rm -rf data/storage/*
   rm -rf public/media/storage/*
 
-  ./manage.py migrate
+  $PYTHON manage.py migrate
 
   echo -e "from api.models import User\nUser.objects.create_user('dtownsend@oxymoronical.com', 'Dave Townsend', 'pixelbin')" | ./manage.py shell
 fi
