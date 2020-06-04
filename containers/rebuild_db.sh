@@ -12,8 +12,10 @@ if [ -z "$CONTAINER" ]; then
 
   rm pixelbin.sqlite
 
-  rm -f api/migrations/00*
-  ${PYTHON:=python} manage.py makemigrations -v 0
+  if ! ${PYTHON:=python} manage.py makemigrations --noinput --check; then
+    rm -f api/migrations/00*
+    $PYTHON manage.py makemigrations --noinput -v 0
+  fi
   $PYTHON manage.py buildtypes
 
   exec docker exec -e PYTHON="${PYTHON}" -it $container /workspace/containers/rebuild_db.sh
