@@ -1,12 +1,14 @@
 from django.db import transaction
+from rest_framework.request import Request
 
 from . import api_view
+from ..models import Album
 from ..utils import ApiException
 from ..serializers.album import AlbumSerializer, AlbumMediaSerializer
 from ..serializers.wrappers import PatchSerializerWrapper
 
 @api_view('PUT', request=AlbumSerializer, response=AlbumSerializer)
-def create(request, deserialized):
+def create(request: Request, deserialized) -> Album:
     data = deserialized.validated_data
     request.user.check_can_modify(data['catalog'])
 
@@ -14,8 +16,8 @@ def create(request, deserialized):
         return deserialized.save()
 
 @api_view('PATCH', request=PatchSerializerWrapper(AlbumSerializer), response=AlbumSerializer)
-def edit(request, deserialized):
-    album = deserialized.instance
+def edit(request: Request, deserialized) -> Album:
+    album: Album = deserialized.instance
     request.user.check_can_modify(album.catalog)
 
     data = deserialized.validated_data
@@ -26,9 +28,9 @@ def edit(request, deserialized):
         return deserialized.save()
 
 @api_view('PUT', request=AlbumMediaSerializer, response=AlbumSerializer)
-def add(request, deserialized):
+def add(request: Request, deserialized) -> Album:
     data = deserialized.validated_data
-    album = data['album']
+    album: Album = data['album']
     request.user.check_can_modify(album.catalog)
 
     with transaction.atomic():
@@ -36,9 +38,9 @@ def add(request, deserialized):
         return album
 
 @api_view('DELETE', request=AlbumMediaSerializer, response=AlbumSerializer)
-def remove(request, deserialized):
+def remove(request: Request, deserialized) -> Album:
     data = deserialized.validated_data
-    album = data['album']
+    album: Album = data['album']
     request.user.check_can_modify(album.catalog)
 
     with transaction.atomic():

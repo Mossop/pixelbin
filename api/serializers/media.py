@@ -1,4 +1,7 @@
+from typing import Dict, Any
+
 from rest_framework import serializers
+from django.db.models import Model
 from django.db.models.fields.related_descriptors import ManyToManyDescriptor
 
 from ..models import Media, MediaInfo
@@ -10,7 +13,7 @@ class MetadataSerializer(Serializer):
         js_response_type = 'MetadataData'
         js_request_type = 'MetadataUpdateData'
 
-def init_serializer():
+def init_serializer() -> None:
     for field in get_metadata_fields():
         field.add_to_serializer(MetadataSerializer)
 init_serializer()
@@ -20,7 +23,7 @@ class MediaInfoSerializer(ModelSerializer):
                                               read_only=True)
     fileSize = serializers.IntegerField(source='file_size', read_only=True)
 
-    def to_representation(self, media):
+    def to_representation(self, media: MediaInfo) -> Dict[str, Any]:
         if media.process_version is None:
             return None
         return super().to_representation(media)
@@ -45,7 +48,7 @@ class MediaSerializer(ModelSerializer):
 
     file = serializers.FileField(required=False, write_only=True)
 
-    def create(self, validated_data):
+    def create(self, validated_data: Dict[str, Any]) -> Media:
         init_data = {}
         many_keys = []
         for (key, value) in validated_data.items():
@@ -68,7 +71,12 @@ class MediaSerializer(ModelSerializer):
 
         return instance
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Model, validated_data: Dict[str, Any]) -> Media:
+        if not isinstance(instance, Media):
+            raise Exception(
+                'Unexpected attempt to update a non-Media model "%s"' % instance.__class__.__name__
+            )
+
         many_keys = []
         for (key, value) in validated_data.items():
             if key in ['metadata', 'file']:

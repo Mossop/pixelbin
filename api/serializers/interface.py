@@ -1,23 +1,33 @@
+from __future__ import annotations
+
 from collections import OrderedDict
-from typing import Dict
+from typing import List, Dict, Type, Optional, TYPE_CHECKING
 
 from django.db import models
+from rest_framework.fields import Field
 
 from ..utils import merge
 from . import typedefs
 
+if TYPE_CHECKING:
+    from . import Serializer
+
 class FieldFlags:
-    def __init__(self, required, readonly, writeonly):
+    required: bool
+    readonly: bool
+    writeonly: bool
+
+    def __init__(self, required: bool, readonly: bool, writeonly: bool) -> None:
         if readonly and writeonly:
             raise Exception('Cannot have a readonly and writeonly field')
         self.required = required or readonly
         self.readonly = readonly
         self.writeonly = writeonly
 
-def flags_from_field(field_instance):
+def flags_from_field(field_instance: Field) -> FieldFlags:
     return FieldFlags(field_instance.required, field_instance.read_only, field_instance.write_only)
 
-def flags_from_class(cls, field):
+def flags_from_class(cls: Type[typedefs.SerializerMixin], field: str) -> FieldFlags:
     kwargs = getattr(cls.Meta, 'extra_kwargs', None)
     if kwargs is not None and field in kwargs:
         flags = kwargs[field]
@@ -30,40 +40,53 @@ def flags_from_class(cls, field):
     )
 
 class InterfaceProperty:
-    def __init__(self, name, typedef):
+    name: str
+    typedef: typedefs.TypeDef
+
+    def __init__(self, name: str, typedef: typedefs.TypeDef) -> None:
         self.name = name
         self.typedef = typedef
 
-    def decoder(self):
+    def decoder(self) -> str:
         return self.typedef.nested_decoder()
 
 class ResponseProperty(InterfaceProperty):
-    def build_property(self):
+    def build_property(self) -> str:
         return 'readonly %s: %s' % (
             self.name,
             self.typedef.response_name(),
         )
 
 class RequestProperty(InterfaceProperty):
-    def __init__(self, name, typedef, required):
+    _required: bool
+
+    def __init__(self, name: str, typedef: typedefs.TypeDef, required: bool) -> None:
         super().__init__(name, typedef)
         self._required = required
 
     @property
-    def required(self):
+    def required(self) -> bool:
         return self._required
 
-    def build_property(self):
+    def build_property(self) -> str:
         return '%s%s: %s' % (
             self.name,
             '?' if not self.required else '',
             self.typedef.request_name(),
         )
 
-INTERFACE_MAP: Dict[str, "InterfaceType"] = dict()
+INTERFACE_MAP: Dict[str, InterfaceType] = dict()
 
 class InterfaceType(typedefs.TypeDef):
-    def __init__(self, cls):
+    _request_properties: List[RequestProperty]
+    _response_properties: List[ResponseProperty]
+    for_request: bool
+    for_response: bool
+    _request_name: Optional[str]
+    _response_name: Optional[str]
+    cls: Type[typedefs.SerializerMixin]
+
+    def __init__(self, cls: Type[typedefs.SerializerMixin]) -> None:
         super().__init__()
 
         self.cls = cls
@@ -75,22 +98,22 @@ class InterfaceType(typedefs.TypeDef):
         self._response_name = None
         self._request_name = None
 
-    def add_request_property(self, prop):
+    def add_request_property(self, prop: RequestProperty) -> None:
         self._request_properties.append(prop)
 
-    def add_response_property(self, prop):
+    def add_response_property(self, prop: ResponseProperty) -> None:
         self._response_properties.append(prop)
 
-    def request_properties(self):
+    def request_properties(self) -> List[RequestProperty]:
         return list(self._request_properties)
 
-    def response_properties(self):
+    def response_properties(self) -> List[ResponseProperty]:
         return list(self._response_properties)
 
-    def response_interfaces(self):
+    def response_interfaces(self) -> Dict[str, typedefs.ResponseInterface]:
         self.for_response = True
 
-        ifaces = OrderedDict()
+        ifaces: Dict[str, typedefs.ResponseInterface] = OrderedDict()
         for prop in self.response_properties():
             merge(ifaces, prop.typedef.response_interfaces())
 
@@ -98,14 +121,14 @@ class InterfaceType(typedefs.TypeDef):
             ifaces[self.response_name()] = self
         return ifaces
 
-    def build_response_type(self):
+    def build_response_type(self) -> List[str]:
         result = map(lambda prop: '  %s;' % prop.build_property(), self.response_properties())
         return ['export interface %s {' % self.response_name()] + list(result) + ['}\n']
 
-    def request_interfaces(self):
+    def request_interfaces(self) -> Dict[str, typedefs.RequestInterface]:
         self.for_request = True
 
-        ifaces = OrderedDict()
+        ifaces: Dict[str, typedefs.RequestInterface] = OrderedDict()
         for prop in self.request_properties():
             merge(ifaces, prop.typedef.request_interfaces())
 
@@ -113,11 +136,11 @@ class InterfaceType(typedefs.TypeDef):
             ifaces[self.request_name()] = self
         return ifaces
 
-    def build_request_type(self):
+    def build_request_type(self) -> List[str]:
         result = map(lambda prop: '  %s;' % prop.build_property(), self.request_properties())
         return ['export interface %s {' % self.request_name()] + list(result) + ['}\n']
 
-    def response_name(self):
+    def response_name(self) -> str:
         if not self.for_response:
             raise Exception('Trying to get response name for %s which is never used in responses.' %
                             self.cls.__name__)
@@ -132,7 +155,7 @@ class InterfaceType(typedefs.TypeDef):
             raise Exception('No js_response_type found for %s.' % self.cls.__name__)
         return self._response_name
 
-    def request_name(self):
+    def request_name(self) -> str:
         if not self.for_request:
             raise Exception('Trying to get response name for %s which is never used in responses.' %
                             self.cls.__name__)
@@ -148,7 +171,7 @@ class InterfaceType(typedefs.TypeDef):
             raise Exception('No js_request_type found for %s.' % self.cls.__name__)
         return self._request_name
 
-    def decoder(self):
+    def response_decoder(self) -> List[str]:
         if not self.for_response:
             raise Exception('Should not be getting a decoder for %s '
                             'which is never used in responses.' % self.cls.__name__)
@@ -169,7 +192,7 @@ class InterfaceType(typedefs.TypeDef):
         ])
         return decoder
 
-    def nested_decoder(self):
+    def nested_decoder(self) -> str:
         if not self.for_response:
             raise Exception('Should not be getting a decoder for %s '
                             'which is never used in responses.' % self.cls.__name__)
@@ -177,7 +200,7 @@ class InterfaceType(typedefs.TypeDef):
         return '%sDecoder' % self.response_name()
 
     @classmethod
-    def build_typedef(cls, serializer):
+    def build_typedef(cls, serializer: Type[typedefs.SerializerMixin]) -> InterfaceType:
         if serializer.__name__ in INTERFACE_MAP:
             return INTERFACE_MAP[serializer.__name__]
         iface = cls(serializer)
@@ -189,8 +212,10 @@ class InterfaceType(typedefs.TypeDef):
                 flags = flags_from_class(serializer, key)
             elif isinstance(typedef, typedefs.ConstantType):
                 flags = FieldFlags(True, False, False)
-            else:
+            elif isinstance(field_instance, Field):
                 flags = flags_from_field(field_instance)
+            else:
+                continue
 
             if not flags.writeonly:
                 iface.add_response_property(ResponseProperty(key, typedef))

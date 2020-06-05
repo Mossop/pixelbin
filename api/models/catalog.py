@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, TYPE_CHECKING, Protocol, runtime_checkable
-from contextlib import _GeneratorContextManager
+from typing import List, Optional, TYPE_CHECKING, Protocol, runtime_checkable, ContextManager
 
 from django.db import models
 from django.db.models import F, QuerySet
@@ -173,7 +172,7 @@ class Tag(ModelWithId, ValidatingModel):
         return [self.name]
 
     @staticmethod
-    def lock_for_create() -> _GeneratorContextManager:
+    def lock_for_create() -> ContextManager:
         return lock('Tag.create')
 
     # pylint: disable=bad-whitespace
@@ -249,7 +248,7 @@ class Person(ModelWithId, ValidatingModel):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def lock_for_create() -> _GeneratorContextManager:
+    def lock_for_create() -> ContextManager:
         return lock('Person.create')
 
     @staticmethod

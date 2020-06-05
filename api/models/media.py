@@ -96,12 +96,6 @@ class MediaAlbum(ValidatingModel):
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     album = models.ForeignKey(Album, on_delete=models.CASCADE)
 
-    def save(self, *args, **kwargs):
-        if self.media.catalog != self.album.catalog:
-            raise ApiException('catalog-mismatch')
-
-        super().save(*args, **kwargs)
-
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['media', 'album'], name='unique_albums')
@@ -114,12 +108,6 @@ class MediaPerson(ValidatingModel):
 
     media = models.ForeignKey(Media, on_delete=models.CASCADE)
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
-
-    def save(self, *args, **kwargs):
-        if self.media.catalog != self.person.catalog:
-            raise ApiException('catalog-mismatch')
-
-        super().save(*args, **kwargs)
 
     class Meta:
         constraints = [

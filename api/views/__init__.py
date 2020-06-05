@@ -1,7 +1,8 @@
 import logging
 from pprint import pformat
+from typing import Any, Callable, List, Optional, Union
 
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponse, HttpResponseBase
 from django.db.utils import IntegrityError
 from rest_framework.decorators import api_view as rest_view, parser_classes
 from rest_framework import exceptions, status
@@ -15,16 +16,22 @@ from ..serializers import ApiExceptionSerializer
 LOGGER = logging.getLogger(__name__)
 
 class ApiView:
-    def __init__(self, view, methods, request, response):
+    def __init__(self, view: Callable, methods: List[str], request: Any, response: Any) -> None:
         self.view = view
         self.methods = methods
         self.request = request
         self.response = response
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Union[Response, HttpResponse]:
         return self.view(*args, **kwargs)
 
-def api_view(http_method_names=None, requires_login=True, request=None, response=None):
+# pylint: disable=bad-whitespace
+def api_view(
+        http_method_names: Optional[Union[List[str], str]]=None,
+        requires_login: bool=True,
+        request: Optional[Any]=None,
+        response: Optional[Any]=None
+) -> Callable:
     if http_method_names is None:
         http_method_names = ['GET', 'PUT', 'OPTIONS', 'POST', 'DELETE', 'PATCH']
     elif not isinstance(http_method_names, list):

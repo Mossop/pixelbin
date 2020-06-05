@@ -1,7 +1,18 @@
 import logging
 from base64 import urlsafe_b64encode
 from uuid import uuid4
-from typing import List, Dict, Final, Any, Callable, Iterable, TypeVar, Optional, TYPE_CHECKING
+from typing import (
+    Sequence,
+    List,
+    Dict,
+    Final,
+    Any,
+    Callable,
+    Iterable,
+    TypeVar,
+    Optional,
+    TYPE_CHECKING
+)
 
 from django.db import models
 from rest_framework import status as http_status
@@ -57,13 +68,16 @@ class ApiException(Exception):
                 'code': code,
             }
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Code: '%s', Status: %s, Arguments: %s" % (self.code, self.status, self.message_args)
 
 def uuid(start: str) -> str:
     return start + urlsafe_b64encode(uuid4().bytes).decode("utf-8")
 
-def call_validators(validators: Iterable[Callable[[models.Model], None]], obj: models.Model):
+def call_validators(
+        validators: Iterable[Callable[[models.Model], None]],
+        obj: models.Model
+) -> None:
     for validator in validators:
         validator(obj)
 
@@ -85,9 +99,16 @@ class ValidatingModel(models.Model):
     validators: Iterable[Callable[[models.Model], None]]
     objects: models.Manager = ValidatingQuerySet.as_manager()
 
-    def save(self, **kwargs):
+    # pylint: disable=bad-whitespace
+    def save(self, force_insert: bool=False, force_update: bool=False, using=None,
+             update_fields: Optional[Sequence[str]]=None) -> None:
         call_validators(self.validators, self)
-        return super().save(**kwargs)
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields
+        )
 
     class Meta:
         abstract = True

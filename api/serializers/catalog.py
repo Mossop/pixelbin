@@ -1,3 +1,5 @@
+from typing import Any
+
 from ..models import Catalog
 from .album import AlbumSerializer
 from .person import PersonSerializer
@@ -8,7 +10,7 @@ from ..storage.models import StorageField
 class CatalogCreateSerializer(ModelSerializer):
     storage = StorageField(write_only=True)
 
-    def create(self, validated_data):
+    def create(self, validated_data: Any) -> Catalog:
         validated_data['storage'] = validated_data['storage'].save()
         return super().create(validated_data)
 

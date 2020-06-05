@@ -1,4 +1,7 @@
+from typing import List, Optional
+
 from django.db import transaction
+from rest_framework.request import Request
 
 from . import api_view
 from ..utils import ApiException
@@ -7,7 +10,7 @@ from ..serializers.tag import TagSerializer, TagFindSerializer
 from ..serializers.wrappers import ListSerializerWrapper, PatchSerializerWrapper
 
 @api_view('PUT', request=TagSerializer, response=TagSerializer)
-def create(request, deserialized):
+def create(request: Request, deserialized) -> Tag:
     data = deserialized.validated_data
     request.user.check_can_modify(data['catalog'])
 
@@ -16,8 +19,8 @@ def create(request, deserialized):
             return deserialized.save()
 
 @api_view('PATCH', request=PatchSerializerWrapper(TagSerializer), response=TagSerializer)
-def edit(request, deserialized):
-    tag = deserialized.instance
+def edit(request: Request, deserialized) -> Tag:
+    tag: Tag = deserialized.instance
     request.user.check_can_modify(tag.catalog)
 
     data = deserialized.validated_data
@@ -28,17 +31,17 @@ def edit(request, deserialized):
         return deserialized.save()
 
 @api_view('POST', request=TagFindSerializer, response=ListSerializerWrapper(TagSerializer))
-def find(request, deserialized):
+def find(request: Request, deserialized) -> List[Tag]:
     data = deserialized.validated_data
     request.user.check_can_modify(data['catalog'])
 
     with Tag.lock_for_create():
         with transaction.atomic():
-            tag = Tag.get_for_path(data['catalog'], data['path'])
+            tag: Optional[Tag] = Tag.get_for_path(data['catalog'], data['path'])
 
             # Build a list of all parents, top-level first.Any of these may have
             # been created when getting the tag.
-            tags = []
+            tags: List[Tag] = []
             while tag is not None:
                 tags.insert(0, tag)
                 tag = tag.parent

@@ -1,3 +1,4 @@
+from typing import Any, Dict, Mapping, Optional, TextIO
 from collections import OrderedDict
 
 from django.core.management.base import BaseCommand
@@ -6,7 +7,14 @@ from base.utils import path
 from ...urls import urlpatterns
 from ...utils import merge
 from ...views import ApiView
-from ...serializers.typedefs import VoidType, NullType, BlobType, FormDataType
+from ...serializers.typedefs import (
+    VoidType,
+    NullType,
+    BlobType,
+    FormDataType,
+    RequestInterface,
+    ResponseInterface
+)
 from ...serializers import ApiExceptionSerializer
 
 header = """/* eslint-disable */
@@ -33,47 +41,51 @@ import type { RequestPk, ResponsePk, Patch } from "./helpers";
 import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 """
 
-def method_name(st):
-    parts = st.replace('/', '_').split('_')
-    parts = filter(lambda s: not s[0] == '<' or not s[-1] == '>', parts)
+def method_name(st: str) -> str:
+    parts = filter(
+        lambda s: not s[0] == '<' or not s[-1] == '>',
+        st.replace('/', '_').split('_')
+    )
     return ''.join(map(lambda s: s.capitalize(), parts))
 
 class Command(BaseCommand):
+    fp: Optional[TextIO]
     help = 'Generates the TypeScript types for the API.'
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.fp = None
 
-    def write(self, st):
-        self.fp.write('%s\n' % st)
+    def write(self, st: str) -> None:
+        if self.fp is not None:
+            self.fp.write('%s\n' % st)
 
-    def write_response_interfaces(self, ifaces):
+    def write_response_interfaces(self, ifaces: Mapping[str, ResponseInterface]) -> None:
         for iface in ifaces.values():
             if iface.response_name() == 'Mappable':
                 continue
 
             self.write('\n'.join(iface.build_response_type()))
 
-            decoder = iface.decoder()
+            decoder = iface.response_decoder()
             if decoder is not None:
                 self.write('\n'.join(decoder))
                 self.write('')
 
-    def write_request_interfaces(self, ifaces):
+    def write_request_interfaces(self, ifaces: Mapping[str, RequestInterface]) -> None:
         for iface in ifaces.values():
             if iface.request_name() == 'Mappable':
                 continue
 
             self.write('\n'.join(iface.build_request_type()))
 
-    def write_method_enum(self, methods):
+    def write_method_enum(self, methods: Dict[str, Any]) -> None:
         self.write('export enum ApiMethod {')
         for (method, (_, url, _, _)) in methods.items():
             self.write('  %s = "%s",' % (method, url))
         self.write('}')
 
-    def write_method_map(self, methods):
+    def write_method_map(self, methods: Dict[str, Any]) -> None:
         self.write('export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";')
         self.write('export type MethodList = { [k in ApiMethod]: Method };\n')
 
@@ -82,7 +94,7 @@ class Command(BaseCommand):
             self.write('  [ApiMethod.%s]: "%s",' % (method, method_types[0]))
         self.write('};')
 
-    def write_request_overloads(self, methods):
+    def write_request_overloads(self, methods: Dict[str, Any]) -> None:
         for (method, (_, _, request, response)) in methods.items():
             if isinstance(request, NullType):
                 data_param = ''
@@ -91,7 +103,7 @@ class Command(BaseCommand):
             self.write('export function request(method: ApiMethod.%s%s): Promise<%s>;' % \
                        (method, data_param, response.response_name()))
 
-    def write_request_method(self, methods):
+    def write_request_method(self, methods: Dict[str, Any]) -> None:
         self.write('// eslint-disable-next-line @typescript-eslint/no-explicit-any')
         self.write('export function request(method: ApiMethod, data?: any): '
                    'Promise<object | void> {')
@@ -127,9 +139,9 @@ class Command(BaseCommand):
         self.write('  return makeRequest(HttpMethods[method], path, request);')
         self.write('}')
 
-    def handle(self, *args, **options):
-        request_ifaces = OrderedDict()
-        response_ifaces = OrderedDict()
+    def handle(self, *args, **options) -> None:
+        request_ifaces: Dict[str, RequestInterface] = OrderedDict()
+        response_ifaces: Dict[str, ResponseInterface] = OrderedDict()
         methods = dict()
 
         merge(response_ifaces, ApiExceptionSerializer.typedef().response_interfaces())

@@ -1,31 +1,33 @@
 import os
-from typing import Dict
+from typing import Optional, Dict
 
 from b2sdk.v1 import InMemoryAccountInfo, B2Api, DownloadDestLocalFile
 from b2sdk.file_version import FileVersionInfoFactory
+from b2sdk.raw_simulator import RawSimulator
 
 from base.config import PATHS
 
-from .base import BaseFileStore, BaseStorageArea, LocalStorageArea
+from .base import BaseFileStore, BaseStorageArea, FileStorageArea
 
 class BackblazeStorageArea(BaseStorageArea):
-    def __init__(self, b2_api, bucket, path):
+    def __init__(self, b2_api: B2Api, bucket: str, path: str) -> None:
         self._b2_api = b2_api
         self._bucket = bucket
         self._path = path
 
-    def get_target_path(self, path):
+    def get_target_path(self, path: str) -> str:
         if path == "":
             return self._path
         return os.path.join(self._path, path)
 
-    def get_url(self, path):
+    def get_url(self, path: str) -> str:
         target = self.get_target_path(path)
         bucket = self._b2_api.get_bucket_by_name(self._bucket)
         token = bucket.get_download_authorization(target, 60)
         return "%s?Authorization=%s" % (bucket.get_download_url(target), token)
 
-    def delete(self, path=""):
+    # pylint: disable=bad-whitespace
+    def delete(self, path: str="") -> None:
         target = self.get_target_path(path)
         bucket = self._b2_api.get_bucket_by_name(self._bucket)
         start_file_name = target
@@ -57,7 +59,15 @@ class BackblazeFileStore(BaseFileStore):
         cls.STORAGE_CACHE[model.id] = file_store
         return file_store
 
-    def __init__(self, key_id, key, bucket, path, raw_api=None):
+    # pylint: disable=bad-whitespace
+    def __init__(
+            self,
+            key_id: str,
+            key: str,
+            bucket: str,
+            path: str,
+            raw_api: Optional[RawSimulator]=None
+    ) -> None:
         account_info = InMemoryAccountInfo()
         b2_api = B2Api(account_info=account_info, raw_api=raw_api)
         b2_api.authorize_account("production", key_id, key)
@@ -66,33 +76,37 @@ class BackblazeFileStore(BaseFileStore):
         self._path = path
 
         super().__init__(
-            LocalStorageArea(os.path.join(PATHS.get('data'), 'storage', 'temp')),
-            LocalStorageArea(os.path.join(PATHS.get('data'), 'storage', 'local')),
+            FileStorageArea(os.path.join(PATHS.get('data'), 'storage', 'temp')),
+            FileStorageArea(os.path.join(PATHS.get('data'), 'storage', 'local')),
             BackblazeStorageArea(b2_api, bucket, path)
         )
 
-    def copy_temp_to_main(self, temp_name, main_name=None):
+    @property
+    def main(self) -> BackblazeStorageArea:
+        return super().main # type: ignore
+
+    def copy_temp_to_main(self, temp_name: str, main_name: Optional[str]=None) -> None:
         if main_name is None:
             main_name = temp_name
         target = self.main.get_target_path(main_name)
         bucket = self._b2_api.get_bucket_by_name(self._bucket)
         bucket.upload_local_file(self.temp.get_path(temp_name), target)
 
-    def copy_local_to_main(self, local_name, main_name=None):
+    def copy_local_to_main(self, local_name: str, main_name: Optional[str]=None) -> None:
         if main_name is None:
             main_name = local_name
         target = self.main.get_target_path(main_name)
         bucket = self._b2_api.get_bucket_by_name(self._bucket)
         bucket.upload_local_file(self.local.get_path(local_name), target)
 
-    def copy_main_to_temp(self, main_name, temp_name=None):
+    def copy_main_to_temp(self, main_name: str, temp_name: Optional[str]=None) -> None:
         if temp_name is None:
             temp_name = main_name
         target = self.main.get_target_path(main_name)
         bucket = self._b2_api.get_bucket_by_name(self._bucket)
         bucket.download_file_by_name(target, DownloadDestLocalFile(self.temp.get_path(temp_name)))
 
-    def copy_main_to_local(self, main_name, local_name=None):
+    def copy_main_to_local(self, main_name: str, local_name: Optional[str]=None) -> None:
         if local_name is None:
             local_name = main_name
         target = self.main.get_target_path(main_name)

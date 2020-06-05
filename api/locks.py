@@ -1,8 +1,10 @@
+from typing import ContextManager
 from contextlib import nullcontext
 
 from django.db import DEFAULT_DB_ALIAS, connections
 
-def lock(name, using=DEFAULT_DB_ALIAS):
+# pylint: disable=bad-whitespace
+def lock(name: str, using: str=DEFAULT_DB_ALIAS) -> ContextManager:
     # pylint: disable=import-outside-toplevel,import-error
     connection = connections[using]
     if connection.vendor == 'mysql':

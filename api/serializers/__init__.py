@@ -26,11 +26,11 @@ class ListSerializer(serializers.ListSerializer, typedefs.SerializerMixin):
     def create(self, validated_data):
         pass
 
-    def instance_typedef(self):
+    def instance_typedef(self) -> typedefs.TypeDef:
         return typedefs.ArrayType(typedefs.derive_type_from_instance(self.child))
 
 class MapSerializer(ListSerializer):
-    def instance_typedef(self):
+    def instance_typedef(self) -> typedefs.TypeDef:
         return typedefs.MapType(typedefs.derive_type_from_instance(self.child))
 
 class ModelSerializer(serializers.ModelSerializer, typedefs.SerializerMixin):

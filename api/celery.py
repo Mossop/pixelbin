@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Callable
 
 from celery import Celery, shared_task
 from celery.utils.log import get_task_logger
@@ -20,7 +21,7 @@ APP.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django app configs.
 APP.autodiscover_tasks()
 
-def task(func):
+def task(func: Callable) -> Callable:
     instance = shared_task(func)
     fn_name = '%s.%s' % (func.__module__, func.__name__)
 

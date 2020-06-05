@@ -1,5 +1,7 @@
 from PIL import Image
 
+from .storage.base import BaseFileStore
+
 ALLOWED_TYPES = [
     'image/jpeg',
     'image/png',
@@ -11,10 +13,10 @@ ALLOWED_TYPES = [
     'video/mpeg',
 ]
 
-def is_image(mimetype):
+def is_image(mimetype: str) -> bool:
     return mimetype[0:6] == 'image/'
 
-def is_video(mimetype):
+def is_video(mimetype: str) -> bool:
     return mimetype[0:6] == 'video/'
 
 THUMB_SIZES = [
@@ -25,7 +27,7 @@ THUMB_SIZES = [
     500,
 ]
 
-def resize(image, size):
+def resize(image: Image, size: int) -> Image:
     if image.width <= size and image.height <= size:
         return image.copy()
     if image.width > image.height:
@@ -34,14 +36,14 @@ def resize(image, size):
     factor = size / image.height
     return image.resize((round(image.width * factor), size), Image.LANCZOS)
 
-def build_thumbnail(media, size):
+def build_thumbnail(file_store: BaseFileStore, size: int) -> Image:
     for thumbsize in THUMB_SIZES:
         if thumbsize >= size:
-            path = media.file_store.local.get_path('sized%d.jpg' % (thumbsize))
+            path = file_store.local.get_path('sized%d.jpg' % (thumbsize))
             image = Image.open(path)
             return resize(image, size)
 
     thumbsize = THUMB_SIZES[-1]
-    path = media.file_store.local.get_path('sized%d.jpg' % (thumbsize))
+    path = file_store.local.get_path('sized%d.jpg' % (thumbsize))
     image = Image.open(path)
     return resize(image, size)

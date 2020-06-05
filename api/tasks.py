@@ -1,6 +1,8 @@
 import subprocess
 import json
 from datetime import datetime
+from logging import Logger
+from typing import Any, Dict, Optional
 
 from django.db import transaction
 from PIL import Image
@@ -9,7 +11,6 @@ from filetype import filetype
 from .celery import task
 from .models import Media, MediaInfo
 from .media import resize, THUMB_SIZES, ALLOWED_TYPES, is_video, is_image
-
 from .metadata import parse_metadata, parse_iso_datetime
 
 PROCESS_VERSION = 1
@@ -73,7 +74,7 @@ def process_new_file(logger, media_id, target_name=None):
         return
     logger.info('Processing of new file for media is complete.')
 
-def process_image(logger, media, source):
+def process_image(logger: Logger, media: Media, source: str) -> None:
     image = Image.open(source)
     for size in THUMB_SIZES:
         logger.debug('Building thumbnail of size %d.', size)
@@ -152,7 +153,7 @@ def process_video(logger, media, source):
     subprocess.run(args, check=True)
     media.file_store.copy_temp_to_main('vp9.mp4')
 
-def import_file(logger, media, target_name):
+def import_file(logger: Logger, media: Media, target_name: str) -> Optional[Dict[str, Any]]:
     # pylint: disable=bare-except
     logger.info('Importing new media file.')
     meta_path = media.file_store.local.get_path('metadata.json')
@@ -206,7 +207,7 @@ def import_file(logger, media, target_name):
 
     return metadata
 
-def import_metadata(logger, media, metadata):
+def import_metadata(logger: Logger, media: Media, metadata: Dict[str, Any]) -> None:
     logger.info('Parsing metadata.')
 
     info_args = {
@@ -217,7 +218,7 @@ def import_metadata(logger, media, metadata):
         'width': parse_metadata(metadata, ['ImageWidth']),
         'height': parse_metadata(metadata, ['ImageHeight']),
         'uploaded': parse_metadata(metadata, [
-            ['FileUploadDate', parse_iso_datetime],
+            ('FileUploadDate', parse_iso_datetime),
         ]),
     }
 

@@ -1,3 +1,5 @@
+from typing import Dict, Any
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -19,7 +21,7 @@ class UserSerializer(ModelSerializer):
     verified = serializers.BooleanField(read_only=True)
     catalogs = MapSerializer(child=CatalogSerializer(), read_only=True)
 
-    def create(self, validated_data):
+    def create(self, validated_data: Dict[str, Any]) -> User:
         user = get_user_model().objects.create_user(validated_data['email'],
                                                     validated_data['full_name'],
                                                     validated_data['password'])
