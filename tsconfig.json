@@ -1,34 +1,17 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2019",
-    "jsx": "react",
     "allowJs": true,
     "checkJs": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "moduleResolution": "Node",
-    "resolveJsonModule": true,
-
-    "noImplicitAny": false,
-    "noImplicitThis": true,
-    "strictPropertyInitialization": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true
+    "lib": [
+      "ESNext"
+    ]
   },
   "include": [
-    "**/.*.js",
-    "**/*.js",
-    "**/*.jsx",
-    "**/*.ts",
-    "**/*.tsx"
+    "@types/*.d.ts",
+    "ci/*.js",
+    "ci/*.ts",
+    ".*.js",
+    "*.js", "app/jest.config.js"
   ],
-  "exclude": [
-    "node_modules",
-    "venv",
-    "public",
-    "coverage",
-    "build"
-  ]
 }

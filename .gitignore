@@ -11,6 +11,8 @@ __pycache__
 /testdata
 /coverage
 /.python-version
+/server/coverage
+/app/coverage
 /.coverage
 .DS_Store
 *.sqlite

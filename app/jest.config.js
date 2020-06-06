@@ -5,24 +5,24 @@ module.exports = {
     url: "http://pixelbin/",
   },
   testRegex: [
-    "/app/js/.*\\.test\\.[jt]sx?$",
+    "/js/.*\\.test\\.[jt]sx?$",
   ],
   testPathIgnorePatterns: [
     "/node_modules/",
   ],
   collectCoverageFrom: [
-    "app/js/**/*.*",
+    "js/**/*.*",
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",
-    "<rootDir>/app/js/environment/",
-    "<rootDir>/app/js/test-helpers/",
-    "<rootDir>/app/js/.*\\.karma\\.[jt]sx?$",
-    "<rootDir>/app/js/.*\\.test\\.[jt]sx?$",
+    "<rootDir>/js/environment/",
+    "<rootDir>/js/test-helpers/",
+    "<rootDir>/js/.*\\.karma\\.[jt]sx?$",
+    "<rootDir>/js/.*\\.test\\.[jt]sx?$",
   ],
   coverageDirectory: "coverage",
   coverageReporters: [["json", {
-    file: "jest-coverage.json",
+    file: "coverage-final.json",
   }]],
   resetModules: true,
   clearMocks: true,

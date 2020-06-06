@@ -1,5 +1,4 @@
 {
-  "passPerPreset": true,
   "plugins": [
     "@babel/plugin-proposal-class-properties",
     "@babel/plugin-proposal-optional-chaining",
@@ -10,14 +9,6 @@
       "@babel/preset-typescript", {
         "isTSX": true,
         "allExtensions": true
-      }
-    ],
-    ["@babel/preset-react"],
-    [
-      "@babel/preset-env", {
-        "targets": "defaults",
-        "useBuiltIns": "usage",
-        "corejs": 3
       }
     ]
   ]

@@ -7,7 +7,8 @@ module.exports = {
     "ecmaFeatures": {
       "jsx": true,
     },
-    "project": "./tsconfig.json",
+    "tsconfigRootDir": __dirname,
+    "project": ["./tsconfig.json", "./app/tsconfig.json"],
   },
 
   "settings": {

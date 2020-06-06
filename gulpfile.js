@@ -1,7 +1,8 @@
 /* eslint-env node */
 const fs = require("fs").promises;
 
-const { series, parallel } = require("gulp");
+const { series, parallel, src, dest } = require("gulp");
+const babel = require("gulp-babel");
 const { createCoverageMap } = require("istanbul-lib-coverage");
 const sass = require("node-sass");
 const webpack = require("webpack");
@@ -124,9 +125,9 @@ async function mergeCoverage() {
 }
 
 exports.karma = series(karma, mergeCoverage);
-exports.jest = series(jest, mergeCoverage);
+exports.jest = series(jest(path("app", "jest.config.js")), mergeCoverage);
 
-exports.test = series(jest, karma, mergeCoverage);
+exports.test = series(jest(path("app", "jest.config.js")), karma, mergeCoverage);
 
 exports.build = parallel(buildJs, buildCss);
 
