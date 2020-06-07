@@ -8,6 +8,7 @@ import { StoreState } from "../store/types";
 import { ComponentProps, MapStateToProps, MapDispatchToProps, connect } from "../utils/component";
 import { StyleProps, styleProps } from "../utils/props";
 import { Property } from "../utils/StateProxy";
+import { Obj } from "../utils/types";
 import Button from "./Button";
 import Icon, { IconProps } from "./Icon";
 
@@ -100,10 +101,10 @@ const CatalogItemBuilders = {
 };
 
 export abstract class BaseSiteTree<
-  PP extends {} = {},
-  SP extends MapStateToProps | {} = {},
-  DP extends MapDispatchToProps = {},
-  S = {}
+  PP extends Obj = Obj,
+  SP extends MapStateToProps | Obj = Obj,
+  DP extends MapDispatchToProps = Obj,
+  S = Obj
 > extends PureComponent<ComponentProps<PP, SP, DP>, S> {
   protected onItemClicked(_item: TreeItem): void {
     return;

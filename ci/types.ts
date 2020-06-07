@@ -17,6 +17,14 @@ export interface LintInfo {
   message: string;
 }
 
+export interface PylintMessage {
+  path: string;
+  column: number;
+  line: number;
+  symbol: string;
+  message: string;
+}
+
 export interface OutputChunk {
   text: string;
   source: "stdout" | "stderr";

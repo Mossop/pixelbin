@@ -4,6 +4,7 @@ import { Localized } from "../l10n/Localized";
 import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";
+import { Obj } from "../utils/types";
 import Button from "./Button";
 
 interface PassedProps {
@@ -16,7 +17,7 @@ const mapDispatchToProps = {
   closeOverlay: actions.closeOverlay,
 };
 
-class Overlay extends PureComponent<ComponentProps<PassedProps, {}, typeof mapDispatchToProps>> {
+class Overlay extends PureComponent<ComponentProps<PassedProps, Obj, typeof mapDispatchToProps>> {
   public renderError(): ReactNode {
     if (this.props.error) {
       return <Localized l10n={this.props.error.l10nInfo()}>

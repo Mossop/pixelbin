@@ -165,6 +165,7 @@ class AlbumOverlay extends PureComponent<AlbumOverlayProps, AlbumOverlayState> {
           iconName="folder"
           required={true}
           property={makeProperty(this.inputs, "name")}
+          disabled={this.state.disabled}
         />
       </Form>
     </Overlay>;

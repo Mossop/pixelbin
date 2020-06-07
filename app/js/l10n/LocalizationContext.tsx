@@ -47,7 +47,7 @@ export class LocalizationContext extends PureComponent<
       { defaultLocale: props.locales[0] },
     );
 
-    this.retrieveBundles(supportedLocales);
+    void this.retrieveBundles(supportedLocales);
   }
 
   private async retrieveBundles(locales: string[]): Promise<void> {

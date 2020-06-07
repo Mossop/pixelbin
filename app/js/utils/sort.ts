@@ -1,3 +1,5 @@
+import { Obj } from "./types";
+
 type Comparator<A> = (a: A, b: A) => number;
 
 function intoArray<A, B>(items: Map<B, A> | A[]): A[] {
@@ -7,7 +9,7 @@ function intoArray<A, B>(items: Map<B, A> | A[]): A[] {
   return Array.from(items.values());
 }
 
-export function sorted<A extends object, K extends keyof A, B>(
+export function sorted<A extends Obj, K extends keyof A, B>(
   items: Map<B, A> | A[],
   key: K,
   comparator: Comparator<A[K]>,

@@ -9,6 +9,7 @@ import {
   proxyReactState,
   ProxyMarker,
 } from "./StateProxy";
+import { Obj } from "./types";
 
 test("property", (): void => {
   let obj = {
@@ -233,7 +234,7 @@ test("react state", (): void => {
         b: "foobar",
       },
     },
-  } as unknown as Component<{}, StateType>;
+  } as unknown as Component<Obj, StateType>;
 
   let prx = proxyReactState(fakeComponent, "prop");
 

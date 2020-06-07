@@ -10,23 +10,17 @@ import type { MediaData, MediaCreateData, MetadataUpdateData } from "./types";
 
 type MediaWithMetadata = MediaData | MediaCreateData;
 
-const MetadataFields: Map<string, MetadataField> = new Map();
+const MetadataFields: Map<string, MetadataField> = new Map<string, MetadataField>();
 
 abstract class MetadataField {
-  public readonly key: string;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public constructor(key: string, _: object) {
-    this.key = key;
+  public constructor(public readonly key: string) {
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected get(metadata: MetadataUpdateData): any {
-    return metadata[this.key];
+  protected get(metadata: MetadataUpdateData): unknown {
+    return metadata[this.key] as unknown;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected set(metadata: MetadataUpdateData, value: any): void {
+  protected set(metadata: MetadataUpdateData, value: unknown): void {
     metadata[this.key] = value;
   }
 
@@ -36,11 +30,11 @@ abstract class MetadataField {
 }
 
 abstract class BaseMetadataField<T> extends MetadataField {
-  public getValue(metadata: MetadataUpdateData): T | undefined {
-    return this.get(metadata);
+  public getValue(metadata: MetadataUpdateData): T | null {
+    return this.get(metadata) as T || null;
   }
 
-  public setValue(metadata: MetadataUpdateData, value: T): void {
+  public setValue(metadata: MetadataUpdateData, value: T | null): void {
     this.set(metadata, value);
   }
 
@@ -53,13 +47,13 @@ class StringMetadataField extends BaseMetadataField<string> {
 }
 
 class IntegerMetadataField extends BaseMetadataField<number> {
-  public getValue(metadata: MetadataUpdateData): number | undefined {
+  public getValue(metadata: MetadataUpdateData): number | null {
     let val = this.get(metadata);
-    return typeof val == "number" ? Math.round(val) : val;
+    return typeof val == "number" ? Math.round(val) : null;
   }
 
-  public setValue(metadata: MetadataUpdateData, value: number): void {
-    this.set(metadata, Math.round(value));
+  public setValue(metadata: MetadataUpdateData, value: number | null): void {
+    this.set(metadata, value ? Math.round(value) : null);
   }
 }
 
@@ -80,15 +74,15 @@ const MetadataFieldDecoder =
       let type = decode(JsonDecoder.string, json["type"]);
       switch (type) {
         case "string":
-          return ok<MetadataField>(new StringMetadataField(key, json));
+          return ok<MetadataField>(new StringMetadataField(key));
         case "float":
-          return ok<MetadataField>(new FloatMetadataField(key, json));
+          return ok<MetadataField>(new FloatMetadataField(key));
         case "integer":
-          return ok<MetadataField>(new IntegerMetadataField(key, json));
+          return ok<MetadataField>(new IntegerMetadataField(key));
         case "datetime":
-          return ok<MetadataField>(new DateTimeMetadataField(key, json));
+          return ok<MetadataField>(new DateTimeMetadataField(key));
         case "orientation":
-          return ok<MetadataField>(new IntegerMetadataField(key, json));
+          return ok<MetadataField>(new IntegerMetadataField(key));
         default:
           return err<MetadataField>(`Unknown metadata field type ${type}.`);
       }
@@ -112,7 +106,7 @@ if (metadataElement?.textContent) {
   }
 }
 
-type FieldConstructor<T> = new (key: string, spec: {}) => BaseMetadataField<T>;
+type FieldConstructor<T> = new (key: string) => BaseMetadataField<T>;
 
 function getFieldInstance<T>(key: string, cls: FieldConstructor<T>): BaseMetadataField<T> {
   let field = MetadataFields.get(key);
@@ -132,13 +126,13 @@ function getFieldInstance<T>(key: string, cls: FieldConstructor<T>): BaseMetadat
   });
 }
 
-type FieldGetter<T> = (media: MediaWithMetadata, key: string) => T | undefined;
+type FieldGetter<T> = (media: MediaWithMetadata, key: string) => T | null;
 type FieldSetter<T> = (media: MediaCreateData, key: string, value: T) => void;
 
 function buildFieldGetter<T>(cls: FieldConstructor<T>): FieldGetter<T> {
-  return (media: MediaWithMetadata, key: string): T | undefined => {
+  return (media: MediaWithMetadata, key: string): T | null => {
     if (!media.metadata) {
-      return undefined;
+      return null;
     }
 
     let field: BaseMetadataField<T> = getFieldInstance(key, cls);

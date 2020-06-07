@@ -1,13 +1,25 @@
+const { JsonDecoder } = require("ts.data.json");
+
 const { path } = require("../base/config");
 const { exec, iterable } = require("./utils");
 
 /**
- * @typedef { import("./types").LintInfo } LintInfo
- * @typedef { import("./types").LintedFile } LintedFile
+ * @typedef {import("./types").LintInfo} LintInfo
+ * @typedef {import("./types").LintedFile} LintedFile
+ * @typedef {import("./types").PylintMessage} PylintMessage
  */
 
+/** @type {import("ts.data.json").JsonDecoder.Decoder<PylintMessage>} */
+const PylintDecoder = JsonDecoder.object({
+  path: JsonDecoder.string,
+  column: JsonDecoder.number,
+  line: JsonDecoder.number,
+  symbol: JsonDecoder.string,
+  message: JsonDecoder.string,
+}, "PylintMessage");
+
 /**
- * @param {any} message
+ * @param {PylintMessage} message
  * @return {LintInfo}
  */
 function lintFromPylint(message) {
@@ -29,10 +41,12 @@ exports.pylint = iterable(async function(lints) {
 
   let cmdLine = [`--rcfile=${path(".pylintrc")}`, "--exit-zero", "-f", "json", "api", "config"];
   let stdout = await exec("pylint", cmdLine);
-  /** @type {any} */
+
+  /** @type {PylintMessage[]} */
   let data;
   try {
-    data = JSON.parse(stdout.join("\n"));
+    data = await JsonDecoder.array(PylintDecoder, "PylintMessage[]")
+      .decodePromise(JSON.parse(stdout.join("\n")));
   } catch (e) {
     throw new Error(`Failed to parse pylint output: ${e}\n${stdout.join("\n")}`);
   }

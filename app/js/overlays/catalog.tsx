@@ -10,12 +10,13 @@ import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
-import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
+import { proxyReactState, makeProperty, proxy } from "../utils/StateProxy";
+import { Obj } from "../utils/types";
 
-type InputFields = Proxyable<{
+interface InputFields {
   name: string;
   storage: StorageData;
-}>;
+}
 
 interface PassedProps {
   user: Immutable<UserData>;
@@ -31,7 +32,7 @@ interface CatalogOverlayState {
   error?: AppError;
 }
 
-type CatalogOverlayProps = ComponentProps<PassedProps, {}, typeof mapDispatchToProps>;
+type CatalogOverlayProps = ComponentProps<PassedProps, Obj, typeof mapDispatchToProps>;
 class CatalogOverlay extends PureComponent<CatalogOverlayProps, CatalogOverlayState> {
   private inputs: InputFields;
 

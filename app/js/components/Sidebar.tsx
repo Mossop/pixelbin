@@ -5,6 +5,7 @@ import { PageType } from "../pages/types";
 import actions from "../store/actions";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
+import { Obj } from "../utils/types";
 import Button from "./Button";
 import { TreeItem, BaseSiteTree } from "./SiteTree";
 
@@ -75,7 +76,7 @@ interface SidebarPassedProps {
   selectedItem?: TreeItem;
 }
 
-type SidebarProps = ComponentProps<SidebarPassedProps, {}, typeof mapDispatchToProps>;
+type SidebarProps = ComponentProps<SidebarPassedProps, Obj, typeof mapDispatchToProps>;
 class Sidebar extends PureComponent<SidebarProps> {
   public render(): ReactNode {
     return <div id="sidebar">

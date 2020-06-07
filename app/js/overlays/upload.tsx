@@ -33,9 +33,9 @@ import {
   peopleFromString,
   areDimensionsFlipped,
 } from "../utils/metadata";
-import { proxyReactState, makeProperty, Proxyable, proxy } from "../utils/StateProxy";
+import { proxyReactState, makeProperty, proxy } from "../utils/StateProxy";
 
-export type PendingUpload = Proxyable<{
+export interface PendingUpload {
   file: File;
   uploading: boolean;
   failed: boolean;
@@ -47,7 +47,7 @@ export type PendingUpload = Proxyable<{
   people: string;
   orientation?: Orientation;
   thumbnailOrientation?: Orientation;
-}>;
+}
 
 const MEDIA_TYPES = [
   "image/jpeg",
@@ -62,12 +62,12 @@ function itemIsMedia(item: DataTransferItem): boolean {
   return MEDIA_TYPES.includes(item.type);
 }
 
-type InputFields = Proxyable<{
+interface InputFields {
   target: Reference<MediaTarget> | undefined;
   tags: string;
   people: string;
   uploads: Record<string, PendingUpload>;
-}>;
+}
 
 interface PassedProps {
   target?: Reference<MediaTarget>;
@@ -187,7 +187,7 @@ class UploadOverlay extends PureComponent<UploadOverlayProps, UploadOverlayState
 
   private startUploads: (() => void) = (): void => {
     for (let [id, pending] of Object.entries(this.inputs.uploads)) {
-      this.upload(id, pending);
+      void this.upload(id, pending);
     }
   };
 
@@ -260,7 +260,7 @@ class UploadOverlay extends PureComponent<UploadOverlayProps, UploadOverlayState
 
   private addFiles(files: Iterable<File>): void {
     for (let file of files) {
-      this.addFile(file);
+      void this.addFile(file);
     }
   }
 

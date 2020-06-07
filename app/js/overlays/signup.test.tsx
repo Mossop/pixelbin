@@ -71,7 +71,7 @@ test("signup success", async (): Promise<void> => {
     fullname: "Bob Parr",
   }]);
 
-  resolve();
+  void resolve();
 
   let [deed] = await awaitCall(store.dispatch);
 
@@ -128,7 +128,7 @@ test("signup failed", async (): Promise<void> => {
     fullname: "",
   }]);
 
-  reject(new ApiError(400, "Bad Request", {
+  void reject(new ApiError(400, "Bad Request", {
     code: ApiErrorCode.SignupBadEmail,
     args: {},
   }));

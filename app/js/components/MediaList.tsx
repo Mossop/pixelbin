@@ -79,7 +79,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
     super(props);
 
     this.pendingSearch = 0;
-    this.pendingProcessing = new Map();
+    this.pendingProcessing = new Map<string, MediaData>();
     this.pendingTimeout = null;
     this.state = {
       mediaMap: null,
@@ -122,7 +122,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
         mediaMap,
       });
 
-      this.loadThumbnail(media);
+      void this.loadThumbnail(media);
     } catch (e) {
       console.error(e);
 
@@ -150,7 +150,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
 
     if (this.pendingProcessing.size > 0) {
       this.pendingTimeout = setTimeout((): void => {
-        this.pollProcessing();
+        void this.pollProcessing();
       }, POLL_TIMEOUT);
     } else {
       this.pendingTimeout = null;
@@ -186,7 +186,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
         if (!isProcessed(item)) {
           this.pendingProcessing.set(item.id, item);
         } else {
-          this.loadThumbnail(item);
+          void this.loadThumbnail(item);
         }
       }
 
@@ -197,7 +197,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
 
     if (this.pendingProcessing.size > 0 && !this.pendingTimeout) {
       this.pendingTimeout = setTimeout((): void => {
-        this.pollProcessing();
+        void this.pollProcessing();
       }, POLL_TIMEOUT);
     }
 
@@ -217,16 +217,16 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
   };
 
   public componentDidMount(): void {
-    this.startSearch();
+    void this.startSearch();
   }
 
   public componentDidUpdate(prevProps: MediaListProps): void {
     if (prevProps.search !== this.props.search) {
-      this.startSearch();
+      void this.startSearch();
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({ mediaMap: null });
     } else if (prevProps.stateId !== this.props.stateId) {
-      this.startSearch();
+      void this.startSearch();
     }
   }
 

@@ -10,7 +10,7 @@ import realStore from "../store";
 import { StoreType } from "../store/types";
 import { MockStore } from "./store";
 
-// @ts-ignore
+// @ts-ignore: TypeScript doesn't know about this global.
 const dom: JSDOM = jsdom;
 
 export { dom as jsdom };

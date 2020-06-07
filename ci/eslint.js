@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-// @ts-ignore
+// @ts-ignore: @types/eslint isn't updated for eslint 7.
 const { ESLint } = require("eslint");
 
 const { path } = require("../base/config");
@@ -31,6 +30,7 @@ function lintFromLintMessage(message) {
  * @type {() => AsyncIterable<LintedFile>}
  */
 exports.eslint = iterable(async function(lints) {
+  /* eslint-disable */
   let eslint = new ESLint({
     cwd: path(),
     extensions: ["ts", "tsx", "js", "jsx"],

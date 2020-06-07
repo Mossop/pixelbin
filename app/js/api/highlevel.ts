@@ -16,10 +16,10 @@ const STATE_CACHE: WeakMap<ServerData, StateCache> = new WeakMap();
 
 function buildStateCache(ServerData: ServerData): StateCache {
   let cache: StateCache = {
-    albums: new Map(),
-    tags: new Map(),
-    people: new Map(),
-    catalogs: new Map(),
+    albums: new Map<string, Album>(),
+    tags: new Map<string, Tag>(),
+    people: new Map<string, Person>(),
+    catalogs: new Map<string, Catalog>(),
   };
   STATE_CACHE.set(ServerData, cache);
   return cache;
@@ -39,9 +39,8 @@ export interface Reference<T> {
   readonly toString: () => string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isReference<T>(data: any): data is Reference<T> {
-  return typeof data == "object" && "deref" in data;
+export function isReference<T>(data: unknown): data is Reference<T> {
+  return data && typeof data == "object" && "deref" in data;
 }
 
 export type Media = ProcessedMediaData | UnprocessedMediaData;
@@ -84,7 +83,7 @@ export class PendingAPIItem<T> implements Pending<T> {
   private foundRef: Reference<T> | undefined = undefined;
 
   public constructor(public readonly promise: Promise<Reference<T>>) {
-    promise.then((ref: Reference<T>): void => {
+    void promise.then((ref: Reference<T>): void => {
       this.foundRef = ref;
     });
   }
@@ -101,13 +100,13 @@ export abstract class APIItem<T> {
 
 export class Tag implements Referencable<Tag> {
   private constructor(
-    private readonly ServerData: ServerData,
+    private readonly serverData: ServerData,
     private readonly state: TagData,
   ) {}
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.ServerData);
+    return this.state.catalog.deref(this.serverData);
   }
 
   public get id(): string {
@@ -119,11 +118,11 @@ export class Tag implements Referencable<Tag> {
   }
 
   public get parent(): Tag | undefined {
-    return this.state.parent?.deref(this.ServerData);
+    return this.state.parent?.deref(this.serverData);
   }
 
   public get children(): Tag[] {
-    let { user } = this.ServerData;
+    let { user } = this.serverData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -138,7 +137,7 @@ export class Tag implements Referencable<Tag> {
       .filter((tagState: TagData): boolean => tagState.parent?.id == this.id)
       .map(
         (tagState: TagData): Tag =>
-          Tag.fromState(this.ServerData, tagState.id),
+          Tag.fromState(this.serverData, tagState.id),
       );
   }
 
@@ -188,13 +187,13 @@ export class Tag implements Referencable<Tag> {
 
 export class Person implements Referencable<Person> {
   private constructor(
-    private readonly ServerData: ServerData,
+    private readonly serverData: ServerData,
     private readonly state: PersonData,
   ) {}
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.ServerData);
+    return this.state.catalog.deref(this.serverData);
   }
 
   public get id(): string {
@@ -254,7 +253,7 @@ export class Person implements Referencable<Person> {
 
 export class Album implements Referencable<Album> {
   private constructor(
-    private readonly ServerData: ServerData,
+    private readonly serverData: ServerData,
     private readonly state: AlbumData,
   ) {}
 
@@ -264,7 +263,7 @@ export class Album implements Referencable<Album> {
 
   public get catalog(): Catalog {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.ServerData);
+    return this.state.catalog.deref(this.serverData);
   }
 
   public get stub(): string | null {
@@ -276,11 +275,11 @@ export class Album implements Referencable<Album> {
   }
 
   public get parent(): Album | undefined {
-    return this.state.parent?.deref(this.ServerData);
+    return this.state.parent?.deref(this.serverData);
   }
 
   public get children(): Album[] {
-    let { user } = this.ServerData;
+    let { user } = this.serverData;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -295,7 +294,7 @@ export class Album implements Referencable<Album> {
       .filter((albumState: AlbumData): boolean => albumState.parent?.id == this.id)
       .map(
         (albumState: AlbumData): Album =>
-          Album.fromState(this.ServerData, albumState.id),
+          Album.fromState(this.serverData, albumState.id),
       );
   }
 
@@ -359,7 +358,7 @@ export class Album implements Referencable<Album> {
 
 export class Catalog implements Referencable<Catalog> {
   private constructor(
-    private readonly ServerData: ServerData,
+    private readonly serverData: ServerData,
     private readonly state: CatalogData,
   ) {}
 
@@ -374,13 +373,13 @@ export class Catalog implements Referencable<Catalog> {
   public get rootAlbums(): Album[] {
     return Array.from(this.state.albums.values())
       .filter((album: AlbumData): boolean => !album.parent)
-      .map((album: AlbumData): Album => Album.fromState(this.ServerData, album.id));
+      .map((album: AlbumData): Album => Album.fromState(this.serverData, album.id));
   }
 
   public get rootTags(): Tag[] {
     return Array.from(this.state.tags.values())
       .filter((tag: TagData): boolean => !tag.parent)
-      .map((tag: TagData): Tag => Tag.fromState(this.ServerData, tag.id));
+      .map((tag: TagData): Tag => Tag.fromState(this.serverData, tag.id));
   }
 
   public findTag(path: string[]): Pending<Tag> {
@@ -399,12 +398,12 @@ export class Catalog implements Referencable<Catalog> {
 
   public get tags(): Tag[] {
     return Array.from(this.state.tags.keys()).map(
-      (id: string): Tag => Tag.fromState(this.ServerData, id),
+      (id: string): Tag => Tag.fromState(this.serverData, id),
     );
   }
 
   public getAlbum(id: string): Album | undefined {
-    let album = Album.safeFromState(this.ServerData, id);
+    let album = Album.safeFromState(this.serverData, id);
     if (album?.catalog !== this) {
       return undefined;
     }
@@ -413,7 +412,7 @@ export class Catalog implements Referencable<Catalog> {
 
   public get albums(): Album[] {
     return Array.from(this.state.albums.keys()).map(
-      (id: string): Album => Album.fromState(this.ServerData, id),
+      (id: string): Album => Album.fromState(this.serverData, id),
     );
   }
 
@@ -436,7 +435,7 @@ export class Catalog implements Referencable<Catalog> {
 
   public get people(): Person[] {
     return Array.from(this.state.people.keys()).map(
-      (id: string): Person => Person.fromState(this.ServerData, id),
+      (id: string): Person => Person.fromState(this.serverData, id),
     );
   }
 

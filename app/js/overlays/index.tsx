@@ -9,6 +9,7 @@ import { PageState, PageType } from "../pages/types";
 import actions from "../store/actions";
 import { StoreState } from "../store/types";
 import { ComponentProps, connect } from "../utils/component";
+import { Obj } from "../utils/types";
 import AlbumOverlay from "./album";
 import CatalogOverlay from "./catalog";
 import LoginOverlay from "./login";
@@ -35,7 +36,7 @@ const mapDispatchToProps = {
 };
 
 class OverlayDisplay extends PureComponent<
-  ComponentProps<{}, typeof mapStateToProps, typeof mapDispatchToProps>
+  ComponentProps<Obj, typeof mapStateToProps, typeof mapDispatchToProps>
 > {
   public componentDidMount(): void {
     document.addEventListener("keydown", this.onKeyDown, true);

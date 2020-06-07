@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { Component } from "react";
 
 export interface Property<T> {
@@ -5,7 +6,7 @@ export interface Property<T> {
   set: (val: T) => void;
 }
 
-export function makeProperty<T extends object, K extends keyof T>(obj: T, prop: K): Property<T[K]> {
+export function makeProperty<T extends {}, K extends keyof T>(obj: T, prop: K): Property<T[K]> {
   return {
     get(): T[K] {
       return obj[prop];
@@ -19,16 +20,13 @@ export function makeProperty<T extends object, K extends keyof T>(obj: T, prop: 
 
 export const ProxyMarker = Symbol();
 
-export type Proxyable<T> = {
-  -readonly [K in keyof T]: T[K] extends object ? T[K] & Proxyable<T[K]> : T[K];
-} & { [ProxyMarker]?: boolean };
-
-export function proxy<T extends object>(obj: T): T {
+export function proxy<T extends {}>(obj: T): T {
+  // @ts-ignore: TypeScript doesn't seem to accept symbols as an index?
   obj[ProxyMarker] = true;
   return obj;
 }
 
-class SubHandler<T extends object> implements ProxyHandler<T> {
+class SubHandler<T extends {}> implements ProxyHandler<T> {
   private outer: Property<T>;
 
   public constructor(outer: Property<T>) {
@@ -127,7 +125,7 @@ class SubHandler<T extends object> implements ProxyHandler<T> {
 }
 
 export function buildProxy<T>(outer: Property<T>): T {
-  // @ts-ignore
+  // @ts-ignore: TypeScript cannot infer this.
   return new Proxy({}, new SubHandler(outer));
 }
 
@@ -142,7 +140,8 @@ class ReactState<
   public constructor(component: C, prop: K) {
     this.component = component;
     this.prop = prop;
-    // @ts-ignore
+    // @ts-ignore: TypeScript fails to infer this.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.state = component.state[prop];
   }
 

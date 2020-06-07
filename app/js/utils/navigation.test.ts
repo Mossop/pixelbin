@@ -17,6 +17,7 @@ import {
 import { ErrorCode } from "./exception";
 import { HistoryState, addListener, getState, pushState, replaceState } from "./history";
 import { intoUIState, fromUIState, stateURLMatches, watchStore } from "./navigation";
+import { Obj } from "./types";
 
 /* eslint-disable */
 jest.mock("../../js/utils/history", () => {
@@ -36,7 +37,7 @@ const mockedGetState = mockedFunction(getState);
 const mockedPushState = mockedFunction(pushState);
 const mockedReplaceState = mockedFunction(replaceState);
 
-function state(path: string, params?: {}): HistoryState {
+function state(path: string, params?: Obj): HistoryState {
   return {
     path,
     params: params ? new Map(Object.entries(params)) : undefined,

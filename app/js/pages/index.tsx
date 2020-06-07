@@ -4,6 +4,7 @@ import React, { ReactNode, PureComponent, ErrorInfo } from "react";
 import { UserData } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
+import { Obj } from "../utils/types";
 import Album from "./album";
 import Catalog from "./catalog";
 import ErrorPage from "./error";
@@ -28,7 +29,7 @@ interface PageDisplayState {
   error?: string;
 }
 
-type PageDisplayProps = ComponentProps<{}, typeof mapStateToProps>;
+type PageDisplayProps = ComponentProps<Obj, typeof mapStateToProps>;
 class PageDisplay extends PureComponent<PageDisplayProps, PageDisplayState> {
   public constructor(props: PageDisplayProps) {
     super(props);

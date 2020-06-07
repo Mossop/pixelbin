@@ -19,7 +19,7 @@ babelConfigWithCoverage.plugins = [...babelConfig.plugins, "istanbul"];
  * @return {RuleSetRule | null}
  */
 function findRule(test) {
-  if (!webpackConfig.module || !webpackConfig.module.rules) {
+  if (!webpackConfig.module) {
     return null;
   }
 

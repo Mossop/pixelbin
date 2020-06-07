@@ -8,6 +8,7 @@ import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
 import { proxyReactState, makeProperty } from "../utils/StateProxy";
+import { Obj } from "../utils/types";
 
 interface InputFields {
   email: string;
@@ -24,7 +25,7 @@ interface LoginOverlayState {
   error?: AppError;
 }
 
-type LoginOverlayProps = ComponentProps<{}, {}, typeof mapDispatchToProps>;
+type LoginOverlayProps = ComponentProps<Obj, Obj, typeof mapDispatchToProps>;
 class LoginOverlay extends PureComponent<LoginOverlayProps, LoginOverlayState> {
   private inputs: InputFields;
 

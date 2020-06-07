@@ -62,7 +62,7 @@ test("login success", async (): Promise<void> => {
     password: "",
   }]);
 
-  resolve();
+  void resolve();
 
   let [deed] = await awaitCall(store.dispatch);
 
@@ -111,7 +111,7 @@ test("login failed", async (): Promise<void> => {
     expect(password.disabled).toBeTruthy();
   });
 
-  reject(new ApiError(403, "Not Authorized", {
+  void reject(new ApiError(403, "Not Authorized", {
     code: ApiErrorCode.LoginFailed,
     args: {},
   }));

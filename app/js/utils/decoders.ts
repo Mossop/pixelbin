@@ -4,9 +4,9 @@ import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 
 import { exception, ErrorCode } from "./exception";
 import { Mappable, ReadonlyMapOf } from "./maps";
+import { Func } from "./types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: any): A {
+export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: unknown): A {
   let result = decoder.decode(data);
   if (result instanceof Ok) {
     return result.value;
@@ -60,7 +60,7 @@ export function ReadonlyMapDecoder<A extends Mappable>(
   return MappingDecoder<A[], ReadonlyMapOf<A>>(
     JsonDecoder.array(decoder, name),
     (arr: A[]): ReadonlyMap<string, A> => {
-      let result: Map<string, A> = new Map();
+      let result = new Map<string, A>();
       for (let val of arr) {
         result.set(val.id, val);
       }
@@ -70,5 +70,5 @@ export function ReadonlyMapDecoder<A extends Mappable>(
   );
 }
 
-type InterfaceFunctions<T> = ({[P in keyof T]: T[P] extends Function ? P : never })[keyof T];
+type InterfaceFunctions<T> = ({[P in keyof T]: T[P] extends Func ? P : never })[keyof T];
 type InterfaceProperties<T> = Omit<T, InterfaceFunctions<T>>;

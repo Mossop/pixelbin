@@ -96,7 +96,7 @@ export interface FormProps extends StyleProps {
 export default class Form extends PureComponent<FormProps> {
   private onSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    this.props.onSubmit();
+    void this.props.onSubmit();
   };
 
   public render(): ReactNode {

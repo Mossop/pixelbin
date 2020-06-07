@@ -62,7 +62,7 @@ test("create album", async (): Promise<void> => {
 
   form.submit();
 
-  waitFor((): void => {
+  await waitFor((): void => {
     expect(nameInput.disabled).toBeTruthy();
   });
 
@@ -133,7 +133,7 @@ test("edit album", async (): Promise<void> => {
 
   form.submit();
 
-  waitFor((): void => {
+  await waitFor((): void => {
     expect(nameInput.disabled).toBeTruthy();
   });
 

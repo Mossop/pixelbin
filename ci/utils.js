@@ -6,9 +6,11 @@ const path = require("path");
  * @template T
  * @return {import("it-pushable").Pushable<T>}
  */
-// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-// @ts-ignore
-const pushable = () => require("it-pushable")();
+function pushable() {
+  // @ts-ignore: The type definitions for it-pushable are incorrect.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return require("it-pushable")();
+}
 exports.pushable = pushable;
 
 const { path: appPath } = require("../base/config");
@@ -77,8 +79,7 @@ function defer() {
     reject = rejecter;
   });
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-  // @ts-ignore
+  // @ts-ignore: TypeScript cannot infer that resolve and reject are always non-null here.
   return { promise, resolve, reject };
 }
 

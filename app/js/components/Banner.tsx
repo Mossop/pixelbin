@@ -6,6 +6,7 @@ import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";
 import { If, Then, Else } from "../utils/Conditions";
 import { isLoggedIn } from "../utils/helpers";
+import { Obj } from "../utils/types";
 import Button from "./Button";
 import Link from "./Link";
 
@@ -15,7 +16,7 @@ const mapDispatchToProps = {
   completeLogout: actions.completeLogout,
 };
 
-class Banner extends PureComponent<ComponentProps<{}, {}, typeof mapDispatchToProps>> {
+class Banner extends PureComponent<ComponentProps<Obj, Obj, typeof mapDispatchToProps>> {
   private logout = async (): Promise<void> => {
     let state = await logout();
     this.props.completeLogout(state);

@@ -13,6 +13,7 @@ import {
   mergedConnect,
   MergedMapStateToProps,
 } from "../utils/component";
+import { Obj } from "../utils/types";
 
 export interface FromStateProps {
   user: Immutable<UserData> | null;
@@ -25,16 +26,16 @@ function baseMapStateToProps(state: StoreState): FromStateProps {
 }
 
 export type PageProps<
-  PP extends {} = {},
-  MSP extends MapStateToProps<PP> | {} = {},
-  MDP extends MapDispatchToProps<PP> | {} = {},
+  PP extends Obj = Obj,
+  MSP extends MapStateToProps<PP> | Obj = Obj,
+  MDP extends MapDispatchToProps<PP> | Obj = Obj,
 > = ComponentProps<PP, MergedMapStateToProps<PP, typeof baseMapStateToProps, MSP>, MDP>;
 
 export abstract class BasePage<
-  PP extends {} = {},
-  SP extends MapStateToProps<PP> | {} = {},
-  DP extends MapDispatchToProps<PP> | {} = {},
-  S = {}
+  PP extends Obj = Obj,
+  SP extends MapStateToProps<PP> | Obj = Obj,
+  DP extends MapDispatchToProps<PP> | Obj = Obj,
+  S = Obj
 > extends PureComponent<PageProps<PP, SP, DP>, S> {
   protected renderBannerButtons(): ReactNode {
     return null;
@@ -72,8 +73,8 @@ export interface AuthenticatedProps {
 
 export abstract class AuthenticatedPage<
   PP extends AuthenticatedProps = AuthenticatedProps,
-  SP extends MapStateToProps<PP> | {} = {},
-  DP extends MapDispatchToProps<PP> | {} = {},
-  S = {}
+  SP extends MapStateToProps<PP> | Obj = Obj,
+  DP extends MapDispatchToProps<PP> | Obj = Obj,
+  S = Obj
 > extends BasePage<PP, SP, DP, S> {
 }

@@ -42,7 +42,7 @@ test("localization context", async (): Promise<void> => {
   } as unknown as Response);
 
   let span = expectChild(container, "#span");
-  waitFor((): void => {
+  await waitFor((): void => {
     expect(span.textContent).toBe("bar");
   });
 });

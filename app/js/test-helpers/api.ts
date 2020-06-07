@@ -13,8 +13,9 @@ import {
   PersonData,
   ServerData,
 } from "../api/types";
+import { Obj } from "../utils/types";
 
-type Body = Blob | object | unknown[];
+type Body = Blob | Obj | unknown[];
 
 type Fetch = (
   input: RequestInfo,

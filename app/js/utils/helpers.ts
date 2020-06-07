@@ -43,6 +43,7 @@ export function createDraft<T>(item: T): Draft<T> {
   const mapEntries = <K, V>([key, value]: [K, V]): [Draft<K>, Draft<V>] =>
     [createDraft(key), createDraft(value)];
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (item === null || item === undefined) {
     return item as Draft<T>;
   }
@@ -60,8 +61,9 @@ export function createDraft<T>(item: T): Draft<T> {
   }
 
   if (typeof item == "object") {
-    let draft = Object.create(Object.getPrototypeOf(item));
+    let draft: T = Object.create(Object.getPrototypeOf(item)) as T;
     for (let [key, value] of Object.entries(item)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       draft[key] = createDraft(value);
     }
     return draft as Draft<T>;

@@ -1,10 +1,10 @@
 declare module "gulp-eslint" {
   import { CLIEngine } from "eslint";
 
-  function GulpEslint(options?: CLIEngine.Options): NodeJS.ReadWriteStream;
-  export = GulpEslint;
+  function gulpEslint(options?: CLIEngine.Options): NodeJS.ReadWriteStream;
+  export = gulpEslint;
 
-  namespace GulpEslint {
+  namespace gulpEslint {
     type Formatter<O> = string | (<O>(results: CLIEngine.LintResult[]) => O);
     type Outputter<O> = NodeJS.WritableStream | (<O>(output: O) => void);
 

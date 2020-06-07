@@ -5,6 +5,7 @@ import { appURL, Url } from "../context";
 import { fetch, document } from "../environment";
 import { MappingDecoder } from "../utils/decoders";
 import { exception, ErrorCode, ApiError } from "../utils/exception";
+import { Obj } from "../utils/types";
 import { isReference, APIItemReference } from "./highlevel";
 import type { Reference, APIItemBuilder } from "./highlevel";
 
@@ -31,7 +32,7 @@ export type Encoded<T> =
   T extends ReadonlyMap<string, infer V> ? Encoded<V>[] :
     // eslint-disable-next-line @typescript-eslint/array-type
     T extends ReadonlyArray<infer V> ? Encoded<V>[] :
-      T extends object ? EncodedObject<T> : T;
+      T extends Obj ? EncodedObject<T> : T;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
 export const VoidDecoder: Decoder<void> = async (_: Response): Promise<void> => {};
@@ -75,9 +76,9 @@ export class RequestData<D> {
 type QueryType = Record<string, Reference<unknown> | boolean | string | number> | null | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isObject = (data: any): boolean => typeof data == "object";
+const isObject = (data: any): data is Record<string, any> => typeof data == "object";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isArray = (data: any): boolean => Array.isArray(data);
+const isArray = (data: any): data is any[] => Array.isArray(data);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function intoString(data: any): string {
@@ -88,7 +89,10 @@ function intoString(data: any): string {
   return String(data);
 }
 
-function *objectParams(data: object, prefix: string = ""): Generator<[string, string | Blob]> {
+function *objectParams(
+  data: Record<string, unknown>,
+  prefix: string = "",
+): Generator<[string, string | Blob]> {
   for (let [key, value] of Object.entries(data)) {
     let param = `${prefix}${key}`;
     if (value instanceof Blob) {
@@ -172,8 +176,7 @@ export class FormRequestData<D> extends RequestData<D> {
   private formData: Record<string, string | Blob>;
   private json: string | undefined;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public constructor(data: any, decoder: Decoder<D>) {
+  public constructor(data: unknown, decoder: Decoder<D>) {
     super(decoder);
     this.formData = {};
     if (data === null || data === undefined) {
@@ -208,8 +211,7 @@ export class FormRequestData<D> extends RequestData<D> {
 export class JsonRequestData<D> extends RequestData<D> {
   private data: string | null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public constructor(data: any, decoder: Decoder<D>) {
+  public constructor(data: unknown, decoder: Decoder<D>) {
     super(decoder);
     if (!data) {
       this.data = null;

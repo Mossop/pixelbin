@@ -56,6 +56,7 @@ function lintFromDiagnostic(diagnostic) {
  */
 exports.typescript = iterable(async function(lints) {
   let configFile = path("tsconfig.json");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   let data = JSON.parse(await fs.readFile(configFile, {
     encoding: "utf8",
   }));
