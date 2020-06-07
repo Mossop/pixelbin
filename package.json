@@ -45,7 +45,7 @@
     "eslint": "^7.2.0",
     "eslint-import-resolver-ts": "^0.4.2",
     "eslint-plugin-import": "^2.20.2",
-    "eslint-plugin-mossop": "file:../eslint-plugin-mossop",
+    "eslint-plugin-mossop": "github:Mossop/eslint-plugin-mossop#1.0.7",
     "eslint-plugin-react": "^7.20.0",
     "gulp": "^4.0.2",
     "gulp-eslint": "^6.0.0",
