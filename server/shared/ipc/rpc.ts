@@ -5,6 +5,13 @@ import { JsonDecoder } from "ts.data.json";
 import defer from "../defer";
 import { RemotableInterface, IntoPromises, ReturnDecodersFor, ArgDecodersFor } from "./meta";
 
+interface RemoteClosed {
+  type: "closed";
+}
+const RemoteClosedDecoder = JsonDecoder.object<RemoteClosed>({
+  type: JsonDecoder.isExactly("closed"),
+}, "RemoteClosed");
+
 interface RemoteCall {
   type: "call";
   id: string;
@@ -49,9 +56,11 @@ const RemoteCallResultDecoder = JsonDecoder.object<RemoteCallResult>({
   return: JsonDecoder.succeed,
 }, "RemoteCallResult");
 
-type RemoteCallResponse = RemoteCallAck | RemoteCallException | RemoteCallResult;
+type RemoteCallMessage =
+  RemoteClosed | RemoteCall | RemoteCallAck | RemoteCallException | RemoteCallResult;
 
-const RemoteCallMessageDecoder = JsonDecoder.oneOf<RemoteCall | RemoteCallResponse>([
+const RemoteCallMessageDecoder = JsonDecoder.oneOf<RemoteCallMessage>([
+  RemoteClosedDecoder,
   RemoteCallDecoder,
   RemoteCallAckDecoder,
   RemoteCallExceptionDecoder,
@@ -75,7 +84,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
   private nextId: number;
   private calls: Record<string, Call>;
   private closed: boolean;
-  private send: (message: RemoteCall | RemoteCallResponse) => Promise<void>;
+  private send: (message: RemoteCallMessage) => Promise<void>;
   private emitter: EventEmitter;
   private remoteInterface: IntoPromises<R>;
   private options: Required<ChannelOptions<R, L>>;
@@ -87,7 +96,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     this.nextId = 0;
     this.calls = {};
     this.closed = false;
-    this.send = send as (message: RemoteCall | RemoteCallResponse) => Promise<void>;
+    this.send = send as (message: RemoteCallMessage) => Promise<void>;
     this.emitter = new EventEmitter();
 
     this.options = Object.assign({
@@ -95,11 +104,15 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     }, options);
 
     this.remoteInterface = new Proxy({}, {
-      has(): boolean {
-        return true;
+      has(_target: unknown, property: string): boolean {
+        return property != "then";
       },
 
       get: (_target: unknown, property: string): unknown => {
+        if (property == "then") {
+          return undefined;
+        }
+
         return async (argument: unknown = undefined): Promise<unknown> => {
           let result = await this.remoteCall(property, argument);
           if (property in this.options.responseDecoders) {
@@ -126,11 +139,11 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     this.emitter.on(type, listener);
   }
 
-  public get remote(): IntoPromises<R> {
-    return this.remoteInterface;
+  public get remote(): Promise<IntoPromises<R>> {
+    return Promise.resolve(this.remoteInterface);
   }
 
-  public close(): void {
+  private innerClose(): void {
     if (this.closed) {
       return;
     }
@@ -142,32 +155,33 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     this.calls = {};
   }
 
+  public close(): void {
+    if (this.closed) {
+      return;
+    }
+
+    void this.send({
+      type: "closed",
+    });
+
+    this.innerClose();
+  }
+
   public onMessage(message: unknown): void {
+    if (this.closed) {
+      return;
+    }
+
     let decoded = RemoteCallMessageDecoder.decode(message);
 
     if (decoded.isOk()) {
-      if (decoded.value.type == "call") {
-        let call = decoded.value;
-
-        void this.send({
-          type: "ack",
-          id: call.id,
-        });
-
-        this.localCall(call.method, call.argument).then((result: unknown): void => {
-          void this.send({
-            type: "return",
-            id: call.id,
-            return: result,
-          });
-        }, (error: unknown): void => {
-          void this.send({
-            type: "exception",
-            id: call.id,
-            error,
-          });
-        });
-        return;
+      switch (decoded.value.type) {
+        case "call":
+          this.localCall(decoded.value);
+          return;
+        case "closed":
+          this.innerClose();
+          return;
       }
 
       let response = decoded.value;
@@ -196,23 +210,44 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     }
   }
 
-  private async localCall(method: string, argument: unknown): Promise<unknown> {
-    if (!(method in this.options.localInterface)) {
-      throw new Error(`Method ${method} does not exist.`);
-    }
+  private localCall(call: RemoteCall): void {
+    const performCall = async (method: string, argument: unknown): Promise<unknown> => {
+      if (!(method in this.options.localInterface)) {
+        throw new Error(`Method ${method} does not exist.`);
+      }
 
-    if (method in this.options.requestDecoders) {
-      let arg = await this.options.requestDecoders[method](argument);
-      // @ts-ignore: TypeScript can't see the argument for some reason.
+      if (method in this.options.requestDecoders) {
+        let arg = await this.options.requestDecoders[method](argument);
+        // @ts-ignore: TypeScript can't see the argument for some reason.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return this.options.localInterface[method](arg);
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return this.options.localInterface[method](arg);
-    }
+      return this.options.localInterface[method]();
+    };
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.options.localInterface[method]();
+    void this.send({
+      type: "ack",
+      id: call.id,
+    });
+
+    performCall(call.method, call.argument).then((result: unknown): void => {
+      void this.send({
+        type: "return",
+        id: call.id,
+        return: result,
+      });
+    }, (error: unknown): void => {
+      void this.send({
+        type: "exception",
+        id: call.id,
+        error,
+      });
+    });
   }
 
-  private remoteCall(method: string, argument: unknown): Promise<unknown> {
+  private async remoteCall(method: string, argument: unknown): Promise<unknown> {
     if (this.closed) {
       throw new Error("Channel to remote process is closed.");
     }
