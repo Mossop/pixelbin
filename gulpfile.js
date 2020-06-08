@@ -85,6 +85,17 @@ async function buildJs() {
 }
 
 /**
+ * @return {NodeJS.ReadWriteStream}
+ */
+exports.buildServer = function buildServer() {
+  return src(path("server", "**", "*.ts"))
+    .pipe(babel())
+    .pipe(dest(path(config.path.build, "server")));
+};
+
+exports.testServer = jest(path("server", "jest.config.js"));
+
+/**
  * @return {Promise<void>}
  */
 async function buildCss() {

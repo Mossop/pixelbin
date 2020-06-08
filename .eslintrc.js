@@ -8,7 +8,7 @@ module.exports = {
       "jsx": true,
     },
     "tsconfigRootDir": __dirname,
-    "project": ["./tsconfig.json", "./app/tsconfig.json"],
+    "project": ["./tsconfig.json", "./app/tsconfig.json", "./server/tsconfig.json"],
   },
 
   "settings": {
