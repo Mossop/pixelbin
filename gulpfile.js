@@ -93,7 +93,7 @@ exports.buildServer = function buildServer() {
     .pipe(dest(path(config.path.build, "server")));
 };
 
-exports.testServer = jest(path("server", "jest.config.js"));
+exports.testServer = series(jest(path("server", "jest.config.js")), mergeCoverage);
 
 /**
  * @return {Promise<void>}
@@ -121,10 +121,14 @@ async function buildCss() {
  */
 async function mergeCoverage() {
   let map = createCoverageMap();
-  for (let file of ["karma-coverage.json", "jest-coverage.json"]) {
+  for (let file of [
+    path("app", "coverage", "karma-coverage.json"),
+    path("app", "coverage", "jest-coverage.json"),
+    path("server", "coverage", "jest-coverage.json"),
+  ]) {
     try {
-      await fs.stat(path("coverage", file));
-      map.merge(JSON.parse(await fs.readFile(path("coverage", file), {
+      await fs.stat(file);
+      map.merge(JSON.parse(await fs.readFile(file, {
         encoding: "utf8",
       })));
     } catch (e) {

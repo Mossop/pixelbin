@@ -39,7 +39,7 @@ exports.karma = async function() {
     server.start();
   });
 
-  let coverageFile = path("coverage", "karma-coverage.json");
+  let coverageFile = path("app", "coverage", "karma-coverage.json");
   await ensureDir(coverageFile);
   await fs.writeFile(coverageFile, JSON.stringify(coverage.toJSON()));
 };

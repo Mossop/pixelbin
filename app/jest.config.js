@@ -22,7 +22,7 @@ module.exports = {
   ],
   coverageDirectory: "coverage",
   coverageReporters: [["json", {
-    file: "coverage-final.json",
+    file: "jest-coverage.json",
   }]],
   resetModules: true,
   clearMocks: true,
