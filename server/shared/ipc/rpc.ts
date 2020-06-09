@@ -2,8 +2,26 @@ import { EventEmitter } from "events";
 
 import { JsonDecoder } from "ts.data.json";
 
-import defer from "../defer";
+import defer, { Deferred } from "../defer";
 import { RemotableInterface, IntoPromises, ReturnDecodersFor, ArgDecodersFor } from "./meta";
+
+interface RemoteConnect {
+  type: "connect";
+  methods: string[];
+}
+const RemoteConnectDecoder = JsonDecoder.object<RemoteConnect>({
+  type: JsonDecoder.isExactly("connect"),
+  methods: JsonDecoder.array(JsonDecoder.string, "methods"),
+}, "RemoteConnect");
+
+interface RemoteConnected {
+  type: "connected";
+  methods: string[];
+}
+const RemoteConnectedDecoder = JsonDecoder.object<RemoteConnected>({
+  type: JsonDecoder.isExactly("connected"),
+  methods: JsonDecoder.array(JsonDecoder.string, "methods"),
+}, "RemoteConnected");
 
 interface RemoteClosed {
   type: "closed";
@@ -57,9 +75,12 @@ const RemoteCallResultDecoder = JsonDecoder.object<RemoteCallResult>({
 }, "RemoteCallResult");
 
 type RemoteCallMessage =
-  RemoteClosed | RemoteCall | RemoteCallAck | RemoteCallException | RemoteCallResult;
+  RemoteClosed | RemoteConnect | RemoteCall | RemoteCallAck |
+  RemoteCallException | RemoteCallResult | RemoteConnected;
 
 const RemoteCallMessageDecoder = JsonDecoder.oneOf<RemoteCallMessage>([
+  RemoteConnectDecoder,
+  RemoteConnectedDecoder,
   RemoteClosedDecoder,
   RemoteCallDecoder,
   RemoteCallAckDecoder,
@@ -86,10 +107,10 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
   private closed: boolean;
   private send: (message: RemoteCallMessage) => Promise<void>;
   private emitter: EventEmitter;
-  private remoteInterface: IntoPromises<R>;
+  private remoteInterface: Deferred<IntoPromises<R>>;
   private options: Required<ChannelOptions<R, L>>;
 
-  public constructor(
+  private constructor(
     send: (message: unknown) => Promise<void>,
     options: ChannelOptions<R, L>,
   ) {
@@ -98,32 +119,43 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     this.closed = false;
     this.send = send as (message: RemoteCallMessage) => Promise<void>;
     this.emitter = new EventEmitter();
+    this.remoteInterface = defer();
 
     this.options = Object.assign({
       timeout: 2000,
     }, options);
+  }
 
-    this.remoteInterface = new Proxy({}, {
-      has(_target: unknown, property: string): boolean {
-        return property != "then";
-      },
+  private buildRemoteInterface(methods: string[]): void {
+    let remote = {};
+    for (let method of methods) {
+      remote[method] = this.remoteCall.bind(this, method);
+    }
 
-      get: (_target: unknown, property: string): unknown => {
-        if (property == "then") {
-          return undefined;
-        }
+    this.remoteInterface.resolve(remote as IntoPromises<R>);
+  }
 
-        return async (argument: unknown = undefined): Promise<unknown> => {
-          let result = await this.remoteCall(property, argument);
-          if (property in this.options.responseDecoders) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            return this.options.responseDecoders[property](result);
-          }
+  public static create<R extends RemotableInterface, L extends RemotableInterface>(
+    send: (message: unknown) => Promise<void>,
+    options: ChannelOptions<R, L>,
+  ): Channel<R, L> {
+    return new Channel(send, options);
+  }
 
-          return result;
-        };
-      },
-    }) as IntoPromises<R>;
+  public static connect<R extends RemotableInterface, L extends RemotableInterface>(
+    send: (message: unknown) => Promise<void>,
+    options: ChannelOptions<R, L>,
+  ): Channel<R, L> {
+    let channel = new Channel(send, options);
+    channel.handshake();
+    return channel;
+  }
+
+  private handshake(): void {
+    void this.send({
+      type: "connect",
+      methods: Object.keys(this.options.localInterface),
+    });
   }
 
   public once(type: "timeout", listener: () => void): void {
@@ -140,7 +172,8 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
   }
 
   public get remote(): Promise<IntoPromises<R>> {
-    return Promise.resolve(this.remoteInterface);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return this.remoteInterface.promise;
   }
 
   private innerClose(): void {
@@ -181,6 +214,17 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
           return;
         case "closed":
           this.innerClose();
+          return;
+        case "connect":
+          void this.send({
+            type: "connected",
+            methods: Object.keys(this.options.localInterface),
+          });
+
+          this.buildRemoteInterface(decoded.value.methods);
+          return;
+        case "connected":
+          this.buildRemoteInterface(decoded.value.methods);
           return;
       }
 
@@ -277,19 +321,26 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     });
 
     this.emitter.emit("message-call", method);
-    promise.then((): void => {
+
+    try {
+      let result = await promise;
+
+      if (method in this.options.responseDecoders) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        result = this.options.responseDecoders[method](result);
+      }
       this.emitter.emit("message-result", method);
-    }, (): void => {
+      return result;
+    } catch (e) {
       this.emitter.emit("message-fail", method);
-    }).finally((): void => {
+      throw e;
+    } finally {
       if (call.timeout) {
         clearTimeout(call.timeout);
         delete call.timeout;
       }
 
       delete this.calls[id];
-    });
-
-    return promise;
+    }
   }
 }

@@ -14,7 +14,6 @@ export class WorkerProcess {
   private emitter: EventEmitter;
   private worker: Worker;
   private options: WorkerProcessOptions;
-  private busyCount: number;
   private disconnected: boolean;
 
   public constructor(
@@ -22,7 +21,6 @@ export class WorkerProcess {
   ) {
     this.ready = defer();
     this.emitter = new EventEmitter();
-    this.busyCount = 1;
     this.disconnected = false;
 
     this.options = Object.assign({
@@ -45,22 +43,12 @@ export class WorkerProcess {
     });
   }
 
-  public get taskCount(): number {
-    return this.busyCount;
-  }
-
-  private updateBusyCount(delta: number): void {
-    this.busyCount += delta;
-    this.emitter.emit("taskCountChange");
-  }
-
   private onMessage: (message: unknown) => void = (message: unknown): void => {
     let decoded = IPC.MessageDecoder.decode(message);
     if (decoded.isOk()) {
       switch (decoded.value.type) {
         case "ready":
-          this.ready.resolve();
-          this.updateBusyCount(-1);
+          this.emitter.emit("connect");
           break;
         case "rpc":
           break;
@@ -114,7 +102,10 @@ export class WorkerProcess {
     return this.worker.process.pid;
   }
 
-  public on(type: "taskCountChange", callback: () => void): void;
+  public on(type: "connect", callback: () => void): void;
+  public on(type: "task-start", callback: () => void): void;
+  public on(type: "task-end", callback: () => void): void;
+  public on(type: "task-fail", callback: () => void): void;
   public on(type: "disconnect", callback: () => void): void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public on(type: string, callback: (...args: any[]) => void): void {

@@ -1,3 +1,5 @@
+import { setImmediate } from "timers";
+
 import { JsonDecoder } from "ts.data.json";
 
 import {
@@ -29,8 +31,10 @@ async function joinedChannels<L extends RemotableInterface, R extends RemotableI
   rightArgDecoders: ArgDecodersFor<R>,
   rightResultDecoders: ReturnDecodersFor<R>,
 ): Promise<JoinedChannels<L, R>> {
-  let left = new Channel<R, L>((message: unknown): Promise<void> => {
-    right.onMessage(message);
+  let left = Channel.create<R, L>((message: unknown): Promise<void> => {
+    setImmediate((): void => {
+      right.onMessage(message);
+    });
     return Promise.resolve();
   }, {
     timeout: 500000,
@@ -39,8 +43,10 @@ async function joinedChannels<L extends RemotableInterface, R extends RemotableI
     responseDecoders: rightResultDecoders,
   });
 
-  let right = new Channel<L, R>((message: unknown): Promise<void> => {
-    left.onMessage(message);
+  let right = Channel.connect<L, R>((message: unknown): Promise<void> => {
+    setImmediate((): void => {
+      left.onMessage(message);
+    });
     return Promise.resolve();
   }, {
     timeout: 500000,
@@ -114,6 +120,10 @@ test("remote calls", async (): Promise<void> => {
   leftChannel.close();
   await expect(right.decrement(6)).rejects.toThrowError(
     "Channel to remote process is closed.",
+  );
+
+  await expect(left.increment(6)).rejects.toThrowError(
+    "Channel to remote process closed before call returned.",
   );
 
   await expect(left.increment(6)).rejects.toThrowError(

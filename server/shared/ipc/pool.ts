@@ -1,5 +1,3 @@
-import { EventEmitter } from "events";
-
 import { WorkerProcess, WorkerProcessOptions } from "./worker";
 
 export interface WorkerPoolOptions extends Partial<WorkerProcessOptions> {
@@ -10,13 +8,13 @@ export interface WorkerPoolOptions extends Partial<WorkerProcessOptions> {
 
 interface WorkerRecord {
   worker: WorkerProcess;
+  taskCount: number;
   idleTimeout?: NodeJS.Timeout;
 }
 
 export class WorkerPool {
   private workers: WorkerRecord[];
   private options: WorkerPoolOptions;
-  private emitter: EventEmitter;
   private quitting: boolean;
 
   public constructor(
@@ -33,8 +31,6 @@ export class WorkerPool {
     if (this.options.maxWorkers < 1) {
       throw new Error("Cannot create a worker pool that allows no workers.");
     }
-
-    this.emitter = new EventEmitter();
 
     this.ensureTargetWorkers();
   }
@@ -54,6 +50,25 @@ export class WorkerPool {
     this.workers = [];
   }
 
+  public getWorker(): WorkerProcess {
+    if (!this.workers.length) {
+      return this.createWorker();
+    }
+
+    let min = this.workers[0];
+    for (let i = 1; i < this.workers.length; i++) {
+      if (min.taskCount > this.workers[i].taskCount) {
+        min = this.workers[i];
+      }
+    }
+
+    if (min.taskCount > 0 && this.workers.length < this.options.maxWorkers) {
+      return this.createWorker();
+    }
+
+    return min.worker;
+  }
+
   private createWorker(): WorkerProcess {
     console.log(process.pid, "Creating new worker.");
 
@@ -61,9 +76,45 @@ export class WorkerPool {
 
     let record: WorkerRecord = {
       worker: workerProcess,
+      taskCount: 1,
+    };
+
+    const updateTaskCount = (delta: number): void => {
+      if (record.idleTimeout) {
+        clearTimeout(record.idleTimeout);
+        delete record.idleTimeout;
+      }
+
+      record.taskCount += delta;
+
+      if (record.taskCount == 0) {
+        record.idleTimeout = setTimeout((): void => {
+          delete record.idleTimeout;
+          if (this.workers.length > this.options.minWorkers) {
+            console.log(process.pid, `Shutting down worker ${workerProcess.pid} due to timeout.`);
+            void workerProcess.kill();
+          }
+        }, this.options.idleTimeout);
+      }
     };
 
     this.workers.push(record);
+
+    workerProcess.on("connect", (): void => {
+      updateTaskCount(-1);
+    });
+
+    workerProcess.on("task-start", (): void => {
+      updateTaskCount(1);
+    });
+
+    workerProcess.on("task-end", (): void => {
+      updateTaskCount(-1);
+    });
+
+    workerProcess.on("task-fail", (): void => {
+      updateTaskCount(-1);
+    });
 
     workerProcess.on("disconnect", (): void => {
       console.log(process.pid, `Saw disconnect from worker ${workerProcess.pid}.`);
@@ -80,23 +131,6 @@ export class WorkerPool {
       }
 
       this.ensureTargetWorkers();
-    });
-
-    workerProcess.on("taskCountChange", (): void => {
-      if (record.idleTimeout) {
-        clearTimeout(record.idleTimeout);
-        delete record.idleTimeout;
-      }
-
-      if (workerProcess.taskCount == 0) {
-        record.idleTimeout = setTimeout((): void => {
-          delete record.idleTimeout;
-          if (this.workers.length > this.options.minWorkers) {
-            console.log(process.pid, `Shutting down worker ${workerProcess.pid} due to timeout.`);
-            void workerProcess.kill();
-          }
-        }, this.options.idleTimeout);
-      }
     });
 
     return workerProcess;
