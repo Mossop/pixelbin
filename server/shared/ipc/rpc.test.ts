@@ -12,7 +12,14 @@ import {
 import { Channel } from "./rpc";
 
 function decoderFrom<T>(js: JsonDecoder.Decoder<T>): Decoder<T> {
-  return (val: unknown): Promise<T> => js.decodePromise(val);
+  return async (val: unknown): Promise<T> => {
+    try {
+      return await js.decodePromise(val);
+    } catch (e) {
+      // JsonDecoder "throws" as plain string.
+      throw new Error(e);
+    }
+  };
 }
 
 interface JoinedChannels<L extends RemotableInterface, R extends RemotableInterface> {
@@ -116,6 +123,15 @@ test("remote calls", async (): Promise<void> => {
   result = await left.noop();
   expect(result).toBeUndefined();
   expect(leftInterface.noop).toHaveBeenCalledTimes(1);
+
+  leftInterface.increment.mockImplementationOnce((val: number): number => {
+    throw new Error(`Bad call ${val}.`);
+  });
+
+  await expect(left.increment(5)).rejects.toThrow("Bad call 5.");
+
+  // @ts-ignore: Testing what happens for invalid arguments.
+  await expect(left.increment("test")).rejects.toThrow("\"test\" is not a valid number");
 
   leftChannel.close();
   await expect(right.decrement(6)).rejects.toThrowError(
