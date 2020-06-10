@@ -1,18 +1,12 @@
 import { SendHandle } from "child_process";
 
 import getLogger from "../logging";
-import Channel, { ChannelOptions } from "./channel";
+import Channel, { RemoteInterface, ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
-import { RemotableInterface, RemoteInterface } from "./meta";
-
-type Always<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
 
 export type AbstractProcess = Pick<NodeJS.Process, "send" | "on" | "off" | "disconnect">;
 
-interface MasterProcessOptions<
-  R extends RemotableInterface,
-  L extends RemotableInterface
-> extends ChannelOptions<R, L> {
+interface MasterProcessOptions<L> extends ChannelOptions<L> {
   process?: AbstractProcess;
 }
 
@@ -25,12 +19,12 @@ const logger = getLogger({
  * Provides a communication mechanism back to the main process.
  */
 
-export class MasterProcess<R extends RemotableInterface, L extends RemotableInterface> {
+export class MasterProcess<R = undefined, L = undefined> {
   private channel: Channel<R, L>;
   private process: AbstractProcess;
   private disconnected: boolean;
 
-  public constructor(options: MasterProcessOptions<R, L>) {
+  public constructor(options: MasterProcessOptions<L> = {}) {
     this.disconnected = false;
     this.process = options.process ?? process;
     if (!process.send) {
@@ -41,7 +35,7 @@ export class MasterProcess<R extends RemotableInterface, L extends RemotableInte
     this.process.on("disconnect", this.onDisconnect);
     this.process.on("error", this.onError);
 
-    this.channel = Channel.create(
+    this.channel = Channel.create<R, L>(
       (message: unknown, handle: undefined | SendHandle): Promise<void> => {
         if (this.disconnected) {
           return Promise.resolve();

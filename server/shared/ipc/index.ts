@@ -1,1 +1,1 @@
-export type { RemoteInterface } from "./meta";
+export type { RemoteInterface } from "./channel";

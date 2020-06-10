@@ -2,7 +2,6 @@ import child_process from "child_process";
 import net from "net";
 import path from "path";
 
-import { ServerInterface, ServerMasterInterface } from "../shared/comms";
 import { WorkerPool } from "../shared/ipc/pool";
 import { AbstractChildProcess } from "../shared/ipc/worker";
 import getLogger from "../shared/logging";
@@ -21,12 +20,10 @@ function startupServers(): void {
   const server = net.createServer();
   server.listen(3000);
 
-  let pool = new WorkerPool<ServerInterface, ServerMasterInterface>({
+  let pool = new WorkerPool({
     localInterface: {
       getServer: (): net.Server => server,
     },
-    requestDecoders: {},
-    responseDecoders: {},
     minWorkers: 4,
     maxWorkers: 8,
     fork: async (): Promise<AbstractChildProcess> => {

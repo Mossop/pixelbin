@@ -6,29 +6,43 @@ import { JsonDecoder } from "ts.data.json";
 
 import defer, { Deferred } from "../defer";
 import getLogger from "../logging";
-import { RemotableInterface, RemoteInterface, ReturnDecodersFor, ArgDecodersFor } from "./meta";
+import { MakeRequired } from "../utility";
 
 const logger = getLogger({
   name: "Channel",
   level: "debug",
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MakePromise<T> = T extends Promise<any> ? T : Promise<T>;
+export type RemoteInterface<T> = {
+  [K in keyof T]: T[K] extends (...args: infer A) => infer R ?
+    (...args: A) => MakePromise<R> :
+    never;
+};
+
 interface RemoteConnect {
   type: "connect";
-  methods: string[];
+  methods: string[] | undefined;
 }
 const RemoteConnectDecoder = JsonDecoder.object<RemoteConnect>({
   type: JsonDecoder.isExactly("connect"),
-  methods: JsonDecoder.array(JsonDecoder.string, "methods"),
+  methods: JsonDecoder.oneOf<string[] | undefined>([
+    JsonDecoder.isUndefined(undefined),
+    JsonDecoder.array(JsonDecoder.string, "methods"),
+  ], "string[] | undefined"),
 }, "RemoteConnect");
 
 interface RemoteConnected {
   type: "connected";
-  methods: string[];
+  methods: string[] | undefined;
 }
 const RemoteConnectedDecoder = JsonDecoder.object<RemoteConnected>({
   type: JsonDecoder.isExactly("connected"),
-  methods: JsonDecoder.array(JsonDecoder.string, "methods"),
+  methods: JsonDecoder.oneOf<string[] | undefined>([
+    JsonDecoder.isUndefined(undefined),
+    JsonDecoder.array(JsonDecoder.string, "methods"),
+  ], "string[] | undefined"),
 }, "RemoteConnected");
 
 interface RemoteClosed {
@@ -42,13 +56,13 @@ interface RemoteCall {
   type: "call";
   id: string;
   method: string;
-  argument: unknown;
+  arguments: unknown[];
 }
 const RemoteCallDecoder = JsonDecoder.object<RemoteCall>({
   type: JsonDecoder.isExactly("call"),
   id: JsonDecoder.string,
   method: JsonDecoder.string,
-  argument: JsonDecoder.succeed,
+  arguments: JsonDecoder.array(JsonDecoder.succeed, "arguments"),
 }, "RemoteCall");
 
 interface RemoteCallAck {
@@ -102,24 +116,22 @@ interface Call {
   timeout?: NodeJS.Timeout;
 }
 
-export interface ChannelOptions<R extends RemotableInterface, L extends RemotableInterface> {
+export interface ChannelOptions<L> {
+  localInterface?: L,
   timeout?: number;
-  localInterface: L;
-  requestDecoders: ArgDecodersFor<L>;
-  responseDecoders: ReturnDecodersFor<R>;
 }
 
-export default class Channel<R extends RemotableInterface, L extends RemotableInterface> {
+export default class Channel<R = undefined, L = undefined> {
   private nextId: number;
   private calls: Record<string, Call>;
   private closed: boolean;
   private emitter: EventEmitter;
   private remoteInterface: Deferred<RemoteInterface<R>>;
-  private options: Required<ChannelOptions<R, L>>;
+  private options: MakeRequired<ChannelOptions<L>, "timeout">;
 
   private constructor(
     private sendFn: (message: unknown, handle: undefined | SendHandle) => Promise<void>,
-    options: ChannelOptions<R, L>,
+    options: ChannelOptions<L> = {},
   ) {
     this.nextId = 0;
     this.calls = {};
@@ -132,8 +144,13 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
     }, options);
   }
 
-  private buildRemoteInterface(methods: string[]): void {
+  private buildRemoteInterface(methods: string[] | undefined): void {
     logger.trace({ methods }, "Remote reported methods.");
+    if (methods == undefined) {
+      this.remoteInterface.resolve(undefined);
+      return;
+    }
+
     let remote = {};
     for (let method of methods) {
       remote[method] = this.remoteCall.bind(this, method);
@@ -142,22 +159,22 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
     this.remoteInterface.resolve(remote as RemoteInterface<R>);
   }
 
-  public static create<R extends RemotableInterface, L extends RemotableInterface>(
+  public static create<R = undefined, L = undefined>(
     send: (message: unknown, handle?: net.Socket | net.Server) => Promise<void>,
-    options: ChannelOptions<R, L>,
+    options: ChannelOptions<L> = {},
   ): Channel<R, L> {
     logger.trace("Creating new channel.");
 
-    return new Channel(send, options);
+    return new Channel<R, L>(send, options);
   }
 
-  public static connect<R extends RemotableInterface, L extends RemotableInterface>(
+  public static connect<R = undefined, L = undefined>(
     send: (message: unknown, handle?: net.Socket | net.Server) => Promise<void>,
-    options: ChannelOptions<R, L>,
+    options: ChannelOptions<L> = {},
   ): Channel<R, L> {
     logger.trace("Connecting to channel.");
 
-    let channel = new Channel(send, options);
+    let channel = new Channel<R, L>(send, options);
     channel.handshake();
     return channel;
   }
@@ -165,7 +182,7 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
   private handshake(): void {
     void this.send({
       type: "connect",
-      methods: Object.keys(this.options.localInterface),
+      methods: this.options.localInterface ? Object.keys(this.options.localInterface) : undefined,
     });
 
     let connectTimeout = setTimeout((): void => {
@@ -194,7 +211,6 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
   }
 
   public get remote(): Promise<RemoteInterface<R>> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return this.remoteInterface.promise;
   }
 
@@ -245,7 +261,9 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
         case "connect":
           void this.send({
             type: "connected",
-            methods: Object.keys(this.options.localInterface),
+            methods: this.options.localInterface ?
+              Object.keys(this.options.localInterface) :
+              undefined,
           });
 
           this.buildRemoteInterface(decoded.value.methods);
@@ -285,21 +303,18 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
   }
 
   private async localCall(call: RemoteCall): Promise<void> {
-    const performCall = async (method: string, argument: unknown): Promise<unknown> => {
+    const performCall = async (method: string, args: unknown[]): Promise<unknown> => {
+      if (!this.options.localInterface) {
+        throw new Error("This remote provides no interface.");
+      }
+
       if (!(method in this.options.localInterface)) {
         logger.error("Remote called an unknown method: %s.", method);
         throw new Error(`Method ${method} does not exist.`);
       }
 
-      if (method in this.options.requestDecoders) {
-        let arg = await this.options.requestDecoders[method](argument);
-        // @ts-ignore: TypeScript can't see the argument for some reason.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return this.options.localInterface[method](arg);
-      }
-
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return this.options.localInterface[method]();
+      return this.options.localInterface[method](...args);
     };
 
     void this.send({
@@ -308,7 +323,7 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
     });
 
     try {
-      let result = await performCall(call.method, call.argument);
+      let result = await performCall(call.method, call.arguments);
 
       if (result instanceof net.Socket || result instanceof net.Server) {
         logger.trace("Returning handle.");
@@ -343,7 +358,7 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
     return this.sendFn(message, handle);
   }
 
-  private async remoteCall(method: string, argument: unknown): Promise<unknown> {
+  private async remoteCall(method: string, ...args: unknown[]): Promise<unknown> {
     if (this.closed) {
       throw new Error("Channel to remote process is closed.");
     }
@@ -368,7 +383,7 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
       type: "call",
       id,
       method,
-      argument,
+      arguments: args,
     }).catch((error: Error): void => {
       reject(error);
     });
@@ -377,16 +392,8 @@ export default class Channel<R extends RemotableInterface, L extends RemotableIn
 
     try {
       let result = await promise;
-
-      if (method in this.options.responseDecoders) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        result = await this.options.responseDecoders[method](result);
-        this.emitter.emit("message-result", method);
-        return result;
-      }
-
       this.emitter.emit("message-result", method);
-      return;
+      return result;
     } catch (e) {
       this.emitter.emit("message-fail", method);
       throw e;

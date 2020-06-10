@@ -4,17 +4,13 @@ import { clearTimeout } from "timers";
 
 import defer, { Deferred } from "../defer";
 import getLogger, { Logger } from "../logging";
-import Channel, { ChannelOptions } from "./channel";
+import Channel, { ChannelOptions, RemoteInterface } from "./channel";
 import * as IPC from "./ipc";
-import { RemotableInterface, RemoteInterface } from "./meta";
 
 type NeededProperties = "send" | "kill" | "on" | "off" | "pid" | "disconnect";
 export type AbstractChildProcess = Pick<ChildProcess, NeededProperties>;
 
-export interface WorkerProcessOptions<
-  R extends RemotableInterface,
-  L extends RemotableInterface
-> extends ChannelOptions<R, L> {
+export interface WorkerProcessOptions<L> extends ChannelOptions<L> {
   connectTimeout?: number;
   process: AbstractChildProcess;
 }
@@ -24,7 +20,7 @@ const logger = getLogger({
   level: "trace",
 });
 
-export class WorkerProcess<R extends RemotableInterface, L extends RemotableInterface> {
+export class WorkerProcess<R = undefined, L = undefined> {
   private ready: Deferred<void>;
   private channel: Deferred<Channel<R, L>>;
   private emitter: EventEmitter;
@@ -32,7 +28,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
   private logger: Logger;
 
   public constructor(
-    private options: WorkerProcessOptions<R, L>,
+    private options: WorkerProcessOptions<L>,
   ) {
     this.logger = logger.child({ worker: options.process.pid });
 
@@ -76,7 +72,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
   }
 
   private async buildChannel(): Promise<void> {
-    let channel = Channel.connect((message: unknown, handle?: SendHandle): Promise<void> => {
+    let channel = Channel.connect<R, L>((message: unknown, handle?: SendHandle): Promise<void> => {
       if (this.disconnected) {
         return Promise.resolve();
       }

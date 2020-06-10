@@ -1,9 +1,7 @@
-import net from "net";
-
 import express from "express";
 import expressLogger from "express-pino-logger";
 
-import { ServerMasterInterface, ServerInterface } from "../shared/comms";
+import { ServerMasterInterface } from "../shared/comms";
 import { MasterProcess } from "../shared/ipc/master";
 import getLogger from "../shared/logging";
 
@@ -15,19 +13,7 @@ const logger = getLogger({
 async function main(): Promise<void> {
   logger.info("Server startup.");
 
-  let connection = new MasterProcess<ServerMasterInterface, ServerInterface>({
-    localInterface: {},
-    requestDecoders: {},
-    responseDecoders: {
-      getServer: (server: unknown): net.Server => {
-        if (server instanceof net.Server) {
-          return server;
-        } else {
-          throw new Error("Invalid server response.");
-        }
-      },
-    },
-  });
+  let connection = new MasterProcess<ServerMasterInterface>();
   let master = await connection.remote;
 
   try {

@@ -1,20 +1,16 @@
 import getLogger from "../logging";
-import { RemotableInterface, RemoteInterface } from "./meta";
+import { MakeRequired } from "../utility";
+import { RemoteInterface } from "./channel";
 import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
 
-export interface WorkerPoolOptions<
-  R extends RemotableInterface,
-  L extends RemotableInterface
-> extends Omit<WorkerProcessOptions<R, L>, "process"> {
+export interface WorkerPoolOptions<L> extends Omit<WorkerProcessOptions<L>, "process"> {
   fork: () => Promise<AbstractChildProcess>;
   minWorkers?: number;
   maxWorkers?: number;
   idleTimeout?: number;
 }
 
-type Always<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
-
-interface WorkerRecord<R extends RemotableInterface, L extends RemotableInterface> {
+interface WorkerRecord<R, L> {
   worker: WorkerProcess<R, L>;
   taskCount: number;
   idleTimeout?: NodeJS.Timeout;
@@ -25,13 +21,13 @@ const logger = getLogger({
   level: "trace",
 });
 
-export class WorkerPool<R extends RemotableInterface, L extends RemotableInterface> {
+export class WorkerPool<R = undefined, L = undefined> {
   private workers: WorkerRecord<R, L>[];
-  private options: Always<WorkerPoolOptions<R, L>, "minWorkers" | "maxWorkers" | "idleTimeout">;
+  private options: MakeRequired<WorkerPoolOptions<L>, "minWorkers" | "maxWorkers" | "idleTimeout">;
   private quitting: boolean;
 
   public constructor(
-    options: WorkerPoolOptions<R, L>,
+    options: WorkerPoolOptions<L>,
   ) {
     this.quitting = false;
     this.workers = [];
@@ -106,7 +102,7 @@ export class WorkerPool<R extends RemotableInterface, L extends RemotableInterfa
   private async createWorker(): Promise<WorkerProcess<R, L>> {
     logger.info("Creating new worker.");
 
-    let workerProcess = new WorkerProcess({
+    let workerProcess = new WorkerProcess<R, L>({
       ...this.options,
       process: await this.options.fork(),
     });
