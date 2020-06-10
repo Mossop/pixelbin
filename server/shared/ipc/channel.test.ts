@@ -380,4 +380,36 @@ test("remote calling", async (): Promise<void> => {
   expect(callbacks["message-result"]).not.toHaveBeenCalled();
   expect(callbacks["message-timeout"]).toHaveBeenCalledTimes(1);
   callbacks["message-timeout"].mockClear();
+
+  // -------------------------------------
+
+  result = remote.decrement(22);
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).toHaveBeenCalledTimes(1);
+  callbacks["message-call"].mockClear();
+  expect(callbacks["message-fail"]).not.toHaveBeenCalled();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
+
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(send)).toEqual([{
+    type: "call",
+    id: "3",
+    method: "decrement",
+    argument: 22,
+  }, undefined]);
+  send.mockClear();
+
+  channel.close();
+
+  await expect(result).rejects.toThrow("Channel to remote process closed before call returned.");
+
+  expect(callbacks.close).toHaveBeenCalledTimes(1);
+  callbacks.close.mockClear();
+  expect(callbacks["message-call"]).not.toHaveBeenCalled();
+  expect(callbacks["message-fail"]).toHaveBeenCalledTimes(1);
+  callbacks["message-fail"].mockClear();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
 });
