@@ -9,12 +9,10 @@ export const ReadyDecoder = JsonDecoder.object<Ready>({
 
 export interface RPC {
   type: "rpc";
-  channel: string;
   message: unknown;
 }
 export const RPCDecoder = JsonDecoder.object<RPC>({
   type: JsonDecoder.isExactly("rpc"),
-  channel: JsonDecoder.string,
   message: JsonDecoder.succeed,
 }, "IPC.Ready");
 

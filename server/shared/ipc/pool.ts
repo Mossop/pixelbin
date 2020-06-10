@@ -1,30 +1,47 @@
-import { WorkerProcess, WorkerProcessOptions } from "./worker";
+import pino from "pino";
 
-export interface WorkerPoolOptions extends Partial<WorkerProcessOptions> {
-  minWorkers: number;
-  maxWorkers: number;
-  idleTimeout: number;
+import { RemotableInterface, IntoPromises } from "./meta";
+import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
+
+export interface WorkerPoolOptions<
+  R extends RemotableInterface,
+  L extends RemotableInterface
+> extends Omit<WorkerProcessOptions<R, L>, "process"> {
+  fork: () => Promise<AbstractChildProcess>;
+  minWorkers?: number;
+  maxWorkers?: number;
+  idleTimeout?: number;
 }
 
-interface WorkerRecord {
-  worker: WorkerProcess;
+type Always<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
+
+interface WorkerRecord<R extends RemotableInterface, L extends RemotableInterface> {
+  worker: WorkerProcess<R, L>;
   taskCount: number;
   idleTimeout?: NodeJS.Timeout;
 }
 
-export class WorkerPool {
-  private workers: WorkerRecord[];
-  private options: WorkerPoolOptions;
+const logger = pino({
+  name: "WorkerPool",
+  level: "trace",
+  base: {
+    pid: process.pid,
+  },
+});
+
+export class WorkerPool<R extends RemotableInterface, L extends RemotableInterface> {
+  private workers: WorkerRecord<R, L>[];
+  private options: Always<WorkerPoolOptions<R, L>, "minWorkers" | "maxWorkers" | "idleTimeout">;
   private quitting: boolean;
 
   public constructor(
-    options: Partial<WorkerPoolOptions>,
+    options: WorkerPoolOptions<R, L>,
   ) {
     this.quitting = false;
     this.workers = [];
     this.options = Object.assign({
       minWorkers: 0,
-      maxWorkers: 5,
+      maxWorkers: options.minWorkers ? Math.max(1, options.minWorkers) * 2 : 5,
       idleTimeout: 60 * 1000,
     }, options);
 
@@ -32,6 +49,16 @@ export class WorkerPool {
       throw new Error("Cannot create a worker pool that allows no workers.");
     }
 
+    if (this.options.maxWorkers < this.options.minWorkers) {
+      throw new Error(
+        "Cannot create a worker pool that allows less than the minimum number of workers.",
+      );
+    }
+
+    logger.debug({
+      minWorkers: this.options.minWorkers,
+      maxWorkers: this.options.maxWorkers,
+    }, "Created worker pool.");
     this.ensureTargetWorkers();
   }
 
@@ -40,17 +67,25 @@ export class WorkerPool {
       return;
     }
 
-    console.log(process.pid, "Quitting worker pool.");
+    logger.info("Quitting worker pool.");
 
     this.quitting = true;
     for (let record of this.workers) {
       void record.worker.kill();
     }
-
-    this.workers = [];
   }
 
-  public getWorker(): WorkerProcess {
+  public get remote(): Promise<IntoPromises<R>> {
+    return this.getWorker().then(
+      (worker: WorkerProcess<R, L>): Promise<IntoPromises<R>> => worker.remote,
+    );
+  }
+
+  public async getWorker(): Promise<WorkerProcess<R, L>> {
+    if (this.quitting) {
+      throw new Error("Cannot get a new worker while the pool is quitting.");
+    }
+
     if (!this.workers.length) {
       return this.createWorker();
     }
@@ -69,15 +104,20 @@ export class WorkerPool {
     return min.worker;
   }
 
-  private createWorker(): WorkerProcess {
-    console.log(process.pid, "Creating new worker.");
+  private async createWorker(): Promise<WorkerProcess<R, L>> {
+    logger.info("Creating new worker.");
 
-    let workerProcess = new WorkerProcess(this.options);
+    let workerProcess = new WorkerProcess({
+      ...this.options,
+      process: await this.options.fork(),
+    });
 
-    let record: WorkerRecord = {
+    let record: WorkerRecord<R, L> = {
       worker: workerProcess,
       taskCount: 1,
     };
+
+    this.workers.push(record);
 
     const updateTaskCount = (delta: number): void => {
       if (record.idleTimeout) {
@@ -91,14 +131,12 @@ export class WorkerPool {
         record.idleTimeout = setTimeout((): void => {
           delete record.idleTimeout;
           if (this.workers.length > this.options.minWorkers) {
-            console.log(process.pid, `Shutting down worker ${workerProcess.pid} due to timeout.`);
+            logger.info(`Shutting down worker ${workerProcess.pid} due to timeout.`);
             void workerProcess.kill();
           }
         }, this.options.idleTimeout);
       }
     };
-
-    this.workers.push(record);
 
     workerProcess.on("connect", (): void => {
       updateTaskCount(-1);
@@ -117,13 +155,14 @@ export class WorkerPool {
     });
 
     workerProcess.on("disconnect", (): void => {
-      console.log(process.pid, `Saw disconnect from worker ${workerProcess.pid}.`);
       let pos = this.workers.indexOf(record);
       if (pos < 0) {
+        logger.warn("Received disconnect from an already disconnected worker.");
         return;
       }
 
       this.workers.splice(pos, 1);
+      logger.info({ workerCount: this.workers.length }, "Saw disconnect from worker.");
 
       if (record.idleTimeout) {
         clearTimeout(record.idleTimeout);
@@ -143,7 +182,7 @@ export class WorkerPool {
 
     let count = this.options.minWorkers;
     for (let i = this.workers.length; i < count; i++) {
-      this.createWorker();
+      void this.createWorker();
     }
   }
 }

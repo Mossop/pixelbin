@@ -1,9 +1,18 @@
 import { EventEmitter } from "events";
 
+import pino from "pino";
 import { JsonDecoder } from "ts.data.json";
 
 import defer, { Deferred } from "../defer";
 import { RemotableInterface, IntoPromises, ReturnDecodersFor, ArgDecodersFor } from "./meta";
+
+const logger = pino({
+  name: "Channel",
+  level: "debug",
+  base: {
+    pid: process.pid,
+  },
+});
 
 interface RemoteConnect {
   type: "connect";
@@ -105,19 +114,17 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
   private nextId: number;
   private calls: Record<string, Call>;
   private closed: boolean;
-  private send: (message: RemoteCallMessage) => Promise<void>;
   private emitter: EventEmitter;
   private remoteInterface: Deferred<IntoPromises<R>>;
   private options: Required<ChannelOptions<R, L>>;
 
   private constructor(
-    send: (message: unknown) => Promise<void>,
+    private sendFn: (message: unknown) => Promise<void>,
     options: ChannelOptions<R, L>,
   ) {
     this.nextId = 0;
     this.calls = {};
     this.closed = false;
-    this.send = send as (message: RemoteCallMessage) => Promise<void>;
     this.emitter = new EventEmitter();
     this.remoteInterface = defer();
 
@@ -127,6 +134,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
   }
 
   private buildRemoteInterface(methods: string[]): void {
+    logger.trace({ methods }, "Remote reported methods.");
     let remote = {};
     for (let method of methods) {
       remote[method] = this.remoteCall.bind(this, method);
@@ -139,6 +147,8 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     send: (message: unknown) => Promise<void>,
     options: ChannelOptions<R, L>,
   ): Channel<R, L> {
+    logger.trace("Creating new channel.");
+
     return new Channel(send, options);
   }
 
@@ -146,6 +156,8 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     send: (message: unknown) => Promise<void>,
     options: ChannelOptions<R, L>,
   ): Channel<R, L> {
+    logger.trace("Connecting to channel.");
+
     let channel = new Channel(send, options);
     channel.handshake();
     return channel;
@@ -158,14 +170,11 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     });
   }
 
-  public once(type: "timeout", listener: () => void): void {
-    this.emitter.once(type, listener);
-  }
-
   public on(type: "timeout", listener: () => void): void;
   public on(type: "message-call", listener: (method: string) => void): void;
   public on(type: "message-result", listener: (method: string) => void): void;
   public on(type: "message-fail", listener: (method: string) => void): void;
+  public on(type: "close", listener: () => void): void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public on(type: string, listener: (...args: any[]) => void): void {
     this.emitter.on(type, listener);
@@ -180,7 +189,10 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     if (this.closed) {
       return;
     }
+
+    logger.trace("Closing channel.");
     this.closed = true;
+    this.emitter.emit("close");
 
     for (let call of Object.values(this.calls)) {
       call.reject(new Error("Channel to remote process closed before call returned."));
@@ -208,6 +220,8 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     let decoded = RemoteCallMessageDecoder.decode(message);
 
     if (decoded.isOk()) {
+      logger.trace({ type: decoded.value.type }, "Message received.");
+
       switch (decoded.value.type) {
         case "call":
           this.localCall(decoded.value);
@@ -250,13 +264,14 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
           break;
       }
     } else {
-      throw new Error(decoded.error);
+      logger.error("Received invalid message: '%s'.", decoded.error);
     }
   }
 
   private localCall(call: RemoteCall): void {
     const performCall = async (method: string, argument: unknown): Promise<unknown> => {
       if (!(method in this.options.localInterface)) {
+        logger.error("Remote called an unknown method: %s.", method);
         throw new Error(`Method ${method} does not exist.`);
       }
 
@@ -291,6 +306,11 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     });
   }
 
+  private send(message: RemoteCallMessage): Promise<void> {
+    logger.trace({ type: message.type }, "Sending message.");
+    return this.sendFn(message);
+  }
+
   private async remoteCall(method: string, argument: unknown): Promise<unknown> {
     if (this.closed) {
       throw new Error("Channel to remote process is closed.");
@@ -305,9 +325,10 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
       reject,
       timeout: setTimeout((): void => {
         delete call.timeout;
+        logger.error("Call to remote process timed out.");
         call.reject("Call to remote process timed out.");
         this.emitter.emit("timeout");
-      }, 2000),
+      }, this.options.timeout),
     };
     this.calls[id] = call;
 

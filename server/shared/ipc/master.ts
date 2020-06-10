@@ -1,29 +1,67 @@
-import cluster, { Worker } from "cluster";
+import pino from "pino";
 
 import * as IPC from "./ipc";
-import { Channel } from "./rpc";
+import { RemotableInterface, IntoPromises } from "./meta";
+import { Channel, ChannelOptions } from "./rpc";
+
+type Always<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
+
+export type AbstractProcess = Pick<NodeJS.Process, "send" | "on" | "off" | "disconnect">;
+
+interface MasterProcessOptions<
+  R extends RemotableInterface,
+  L extends RemotableInterface
+> extends ChannelOptions<R, L> {
+  process?: AbstractProcess;
+}
+
+const logger = pino({
+  name: "MasterProcess",
+  level: "trace",
+  base: {
+    pid: process.pid,
+  },
+});
 
 /**
  * Provides a communication mechanism back to the main process.
  */
 
-export class MasterProcess {
-  private worker: Worker;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private channels: Record<string, Channel<any, any>>;
+export class MasterProcess<R extends RemotableInterface, L extends RemotableInterface> {
+  private channel: Channel<R, L>;
+  private process: AbstractProcess;
+  private disconnected: boolean;
 
-  public constructor() {
-    this.worker = cluster.worker;
-    this.channels = {};
+  public constructor(options: MasterProcessOptions<R, L>) {
+    this.disconnected = false;
+    this.process = options.process ?? process;
+    if (!process.send) {
+      throw new Error("Provided process instance has no IPC channel.");
+    }
 
-    this.worker.on("message", this.onMessage);
-    this.worker.on("disconnect", this.onDisconnect);
-    this.worker.on("error", this.onError);
+    this.process.on("message", this.onMessage);
+    this.process.on("disconnect", this.onDisconnect);
+    this.process.on("error", this.onError);
 
-    this.send({
+    this.channel = Channel.create((message: unknown): Promise<void> => {
+      if (this.disconnected) {
+        return Promise.resolve();
+      }
+
+      return this.send({
+        type: "rpc",
+        message,
+      });
+    }, options);
+
+    logger.trace("Signalling worker ready.");
+    void this.send({
       type: "ready",
     });
-    console.log(process.pid, "Worker process ready");
+  }
+
+  public get remote(): Promise<IntoPromises<R>> {
+    return this.channel.remote;
   }
 
   private onMessage: (message: unknown) => void = (message: unknown): void => {
@@ -31,36 +69,60 @@ export class MasterProcess {
     if (decoded.isOk()) {
       switch (decoded.value.type) {
         case "rpc": {
+          this.channel.onMessage(decoded.value.message);
           break;
         }
       }
+    } else {
+      logger.error("Received invalid message: '%s'.", decoded.error);
     }
   };
 
   public shutdown(): void {
-    for (let channel of Object.values(this.channels)) {
-      channel.close();
+    if (this.disconnected) {
+      return;
     }
-    this.channels = {};
+    this.disconnected = true;
 
-    this.worker.off("message", this.onMessage);
-    this.worker.off("disconnect", this.onDisconnect);
-    this.worker.off("error", this.onError);
+    logger.trace("Worker shutdown");
 
-    this.worker.disconnect();
+    this.channel.close();
+
+    this.process.off("message", this.onMessage);
+    this.process.off("disconnect", this.onDisconnect);
+    this.process.off("error", this.onError);
+
+    this.process.disconnect();
   }
 
   private onDisconnect: () => void = (): void => {
-    console.log(process.pid, "Disconnected from master.");
+    logger.debug("Master process disconnected.");
     void this.shutdown();
   };
 
   private onError: (err: Error) => void = (err: Error): void => {
-    console.log(process.pid, "Worker saw error.", err);
+    logger.debug({ error: err }, "Saw error.");
     void this.shutdown();
   };
 
-  private send(message: IPC.Ready | IPC.RPC): void {
-    this.worker.send(message);
+  private send(message: IPC.Ready | IPC.RPC): Promise<void> {
+    if (this.disconnected) {
+      return Promise.reject(new Error("Worker has disconnected."));
+    }
+
+    return new Promise((resolve: () => void, reject: (error: Error) => void): void => {
+      if (!this.process.send) {
+        reject(new Error("Process has no IPC channel."));
+        return;
+      }
+
+      this.process.send(message, undefined, undefined, (error: Error | null): void => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 }

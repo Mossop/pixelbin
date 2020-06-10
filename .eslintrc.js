@@ -33,4 +33,8 @@ module.exports = {
     "plugin:mossop/typescript",
     "plugin:mossop/react",
   ],
+
+  "rules": {
+    "@typescript-eslint/require-await": "off",
+  },
 };

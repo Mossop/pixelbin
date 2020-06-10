@@ -1,46 +1,122 @@
-import cluster, { Worker } from "cluster";
+import { ChildProcess } from "child_process";
 import { EventEmitter } from "events";
+import { clearTimeout } from "timers";
+
+import pino from "pino";
 
 import defer, { Deferred } from "../defer";
 import * as IPC from "./ipc";
+import { RemotableInterface, IntoPromises } from "./meta";
+import { Channel, ChannelOptions } from "./rpc";
 
-export interface WorkerProcessOptions {
-  environment: Record<string, string>;
-  timeout: number;
+type NeededProperties = "send" | "kill" | "on" | "off" | "pid" | "disconnect";
+export type AbstractChildProcess = Pick<ChildProcess, NeededProperties>;
+
+export interface WorkerProcessOptions<
+  R extends RemotableInterface,
+  L extends RemotableInterface
+> extends ChannelOptions<R, L> {
+  connectTimeout?: number;
+  process: AbstractChildProcess;
 }
 
-export class WorkerProcess {
+const logger = pino({
+  name: "WorkerProcess",
+  level: "trace",
+  base: {
+    pid: process.pid,
+  },
+});
+
+export class WorkerProcess<R extends RemotableInterface, L extends RemotableInterface> {
   private ready: Deferred<void>;
+  private channel: Deferred<Channel<R, L>>;
   private emitter: EventEmitter;
-  private worker: Worker;
-  private options: WorkerProcessOptions;
   private disconnected: boolean;
+  private logger: pino.Logger;
 
   public constructor(
-    options: Partial<WorkerProcessOptions>,
+    private options: WorkerProcessOptions<R, L>,
   ) {
+    this.logger = logger.child({ worker: options.process.pid });
+
     this.ready = defer();
+    this.channel = defer();
     this.emitter = new EventEmitter();
     this.disconnected = false;
 
-    this.options = Object.assign({
-      environment: {},
-      timeout: 2000,
-    }, options);
+    this.options.process.on("message", this.onMessage);
+    this.options.process.on("disconnect", this.onDisconnect);
+    this.options.process.on("exit", this.onExit);
+    this.options.process.on("error", this.onError);
 
-    this.worker = cluster.fork(this.options.environment);
+    let connectTimeout = setTimeout((): void => {
+      this.logger.error("Worker process timed out.");
+      this.channel.reject(new Error("Worker process connection timed out."));
+      this.shutdown();
+    }, this.options.connectTimeout ?? 2000);
 
-    this.worker.on("message", this.onMessage);
-    this.worker.on("disconnect", this.onDisconnect);
-    this.worker.on("exit", this.onExit);
-    this.worker.on("error", this.onError);
+    this.emitter.once("connect", (): void => {
+      clearTimeout(connectTimeout);
+    });
+
+    this.logger.trace("Created WorkerProcess.");
   }
 
-  public kill(signal?: string): Promise<void> {
+  public get remote(): Promise<IntoPromises<R>> {
+    return this.channel.promise.then((channel: Channel<R, L>): Promise<IntoPromises<R>> => {
+      return channel.remote;
+    });
+  }
+
+  public kill(...args: Parameters<ChildProcess["kill"]>): Promise<void> {
+    this.logger.info("Killing worker.");
+    this.options.process.disconnect();
+
     return new Promise((resolve: () => void): void => {
       this.emitter.once("disconnect", resolve);
-      this.worker.kill(signal);
+      this.options.process.kill(...args);
     });
+  }
+
+  private async buildChannel(): Promise<void> {
+    let channel = Channel.connect((message: unknown): Promise<void> => {
+      if (this.disconnected) {
+        return Promise.resolve();
+      }
+
+      return this.send({
+        type: "rpc",
+        message,
+      });
+    }, this.options);
+
+    channel.on("message-call", (): void => {
+      this.emitter.emit("task-start");
+    });
+    channel.on("message-result", (): void => {
+      this.emitter.emit("task-end");
+    });
+    channel.on("message-fail", (): void => {
+      this.emitter.emit("task-fail");
+    });
+    channel.on("timeout", (): void => {
+      this.shutdown();
+    });
+    channel.on("close", (): void => {
+      this.shutdown();
+    });
+
+    this.emitter.on("disconnect", (): void => {
+      channel.close();
+    });
+
+    this.channel.resolve(channel);
+
+    // Wait for channel to connect.
+    await channel.remote;
+    this.logger.info("Worker channel connected.");
+    this.emitter.emit("connect");
   }
 
   private onMessage: (message: unknown) => void = (message: unknown): void => {
@@ -48,11 +124,19 @@ export class WorkerProcess {
     if (decoded.isOk()) {
       switch (decoded.value.type) {
         case "ready":
-          this.emitter.emit("connect");
+          this.ready.resolve();
+          void this.buildChannel();
           break;
-        case "rpc":
+        case "rpc": {
+          let rpcMessage = decoded.value.message;
+          void this.channel.promise.then((channel: Channel<R, L>): void => {
+            channel.onMessage(rpcMessage);
+          });
           break;
+        }
       }
+    } else {
+      this.logger.error("Received invalid message: '%s'.", decoded.error);
     }
   };
 
@@ -61,7 +145,7 @@ export class WorkerProcess {
       return;
     }
 
-    console.log(`Worker ${this.pid} disconnected.`);
+    this.logger.debug("Worker disconnected.");
     this.shutdown();
   };
 
@@ -70,7 +154,7 @@ export class WorkerProcess {
       return;
     }
 
-    console.log(`Worker ${this.pid} exited.`);
+    this.logger.debug("Worker exited.");
     this.shutdown();
   };
 
@@ -79,7 +163,7 @@ export class WorkerProcess {
       return;
     }
 
-    console.log(`Worker ${this.pid} errored.`, err);
+    this.logger.error({ error: err }, "Worker reported error.");
     this.shutdown();
   };
 
@@ -88,18 +172,20 @@ export class WorkerProcess {
       return;
     }
 
+    this.logger.trace("Worker shutdown");
+
     this.disconnected = true;
 
-    this.worker.off("message", this.onMessage);
-    this.worker.off("disconnect", this.onDisconnect);
-    this.worker.off("exit", this.onExit);
-    this.worker.off("error", this.onError);
+    this.options.process.off("message", this.onMessage);
+    this.options.process.off("disconnect", this.onDisconnect);
+    this.options.process.off("exit", this.onExit);
+    this.options.process.off("error", this.onError);
 
     this.emitter.emit("disconnect");
   }
 
   public get pid(): number {
-    return this.worker.process.pid;
+    return this.options.process.pid;
   }
 
   public on(type: "connect", callback: () => void): void;
@@ -120,7 +206,7 @@ export class WorkerProcess {
     }
 
     return new Promise((resolve: () => void, reject: (error: Error) => void): void => {
-      this.worker.send(message, undefined, (error: Error | null): void => {
+      this.options.process.send(message, undefined, (error: Error | null): void => {
         if (error) {
           reject(error);
         } else {
