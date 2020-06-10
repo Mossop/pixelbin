@@ -1,12 +1,12 @@
 import child_process from "child_process";
+import net from "net";
 import path from "path";
-import { setInterval, clearInterval } from "timers";
 
-import { ServerInterface, MasterInterface } from "../shared/comms";
-import { IntoPromises } from "../shared/ipc/meta";
+import { ServerInterface, ServerMasterInterface } from "../shared/comms";
 import { WorkerPool } from "../shared/ipc/pool";
 import { AbstractChildProcess } from "../shared/ipc/worker";
 import getLogger from "../shared/logging";
+import events from "./events";
 
 const logger = getLogger({
   name: "master",
@@ -15,14 +15,20 @@ const logger = getLogger({
 
 const basedir = path.dirname(path.resolve(__dirname));
 
-function main(): void {
-  logger.info("Master startup.");
+logger.info("Master startup.");
 
-  let pool = new WorkerPool<ServerInterface, MasterInterface>({
-    localInterface: {},
+function startupServers(): void {
+  const server = net.createServer();
+  server.listen(3000);
+
+  let pool = new WorkerPool<ServerInterface, ServerMasterInterface>({
+    localInterface: {
+      getServer: (): net.Server => server,
+    },
     requestDecoders: {},
     responseDecoders: {},
     minWorkers: 4,
+    maxWorkers: 8,
     fork: async (): Promise<AbstractChildProcess> => {
       let server = path.join(basedir, "server", "index.js");
       return child_process.fork(server, [], {
@@ -31,38 +37,33 @@ function main(): void {
     },
   });
 
-  let interval = setInterval((): void => {
-    void pool.remote.then((remote: IntoPromises<ServerInterface>): Promise<void> => {
-      logger.info("Serve called.");
-      return remote.serve();
-    }).then((): void => {
-      logger.info("Serve returned.");
-    }, (error: unknown): void => {
-      logger.error({ error }, "Serve threw exception.");
-    });
-  }, 1000);
+  events.on("shutdown", (): void => {
+    server.close();
+    pool.shutdown();
+  });
+}
 
+function main(): void {
   function quit(): void {
-    clearInterval(interval);
-    pool.quit();
+    events.emit("shutdown");
 
     let quitTimeout = setTimeout((): void => {
       logger.warn("Forcibly quitting main process.");
-      process.exit(0);
-    }, 3000);
+      process.exit(1);
+    }, 5000);
 
     quitTimeout.unref();
   }
 
   process.on("SIGTERM", (): void => {
-    logger.info("Saw SIGTERM.");
     quit();
   });
 
   process.on("SIGINT", (): void => {
-    logger.info("Saw SIGINT.");
     quit();
   });
+
+  startupServers();
 }
 
 main();

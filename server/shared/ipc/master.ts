@@ -1,7 +1,9 @@
+import { SendHandle } from "child_process";
+
 import getLogger from "../logging";
+import Channel, { ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
-import { RemotableInterface, IntoPromises } from "./meta";
-import { Channel, ChannelOptions } from "./rpc";
+import { RemotableInterface, RemoteInterface } from "./meta";
 
 type Always<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
 
@@ -39,16 +41,19 @@ export class MasterProcess<R extends RemotableInterface, L extends RemotableInte
     this.process.on("disconnect", this.onDisconnect);
     this.process.on("error", this.onError);
 
-    this.channel = Channel.create((message: unknown): Promise<void> => {
-      if (this.disconnected) {
-        return Promise.resolve();
-      }
+    this.channel = Channel.create(
+      (message: unknown, handle: undefined | SendHandle): Promise<void> => {
+        if (this.disconnected) {
+          return Promise.resolve();
+        }
 
-      return this.send({
-        type: "rpc",
-        message,
-      });
-    }, options);
+        return this.send({
+          type: "rpc",
+          message,
+        }, handle);
+      },
+      options,
+    );
 
     logger.trace("Signalling worker ready.");
     void this.send({
@@ -56,16 +61,16 @@ export class MasterProcess<R extends RemotableInterface, L extends RemotableInte
     });
   }
 
-  public get remote(): Promise<IntoPromises<R>> {
+  public get remote(): Promise<RemoteInterface<R>> {
     return this.channel.remote;
   }
 
-  private onMessage: (message: unknown) => void = (message: unknown): void => {
+  private onMessage: NodeJS.MessageListener = (message: unknown, sendHandle: unknown): void => {
     let decoded = IPC.RPCDecoder.decode(message);
     if (decoded.isOk()) {
       switch (decoded.value.type) {
         case "rpc": {
-          this.channel.onMessage(decoded.value.message);
+          this.channel.onMessage(decoded.value.message, sendHandle);
           break;
         }
       }
@@ -101,7 +106,7 @@ export class MasterProcess<R extends RemotableInterface, L extends RemotableInte
     void this.shutdown();
   };
 
-  private send(message: IPC.Ready | IPC.RPC): Promise<void> {
+  private send(message: IPC.Ready | IPC.RPC, handle?: undefined | SendHandle): Promise<void> {
     if (this.disconnected) {
       return Promise.reject(new Error("Worker has disconnected."));
     }
@@ -112,7 +117,7 @@ export class MasterProcess<R extends RemotableInterface, L extends RemotableInte
         return;
       }
 
-      this.process.send(message, undefined, undefined, (error: Error | null): void => {
+      this.process.send(message, handle, undefined, (error: Error | null): void => {
         if (error) {
           reject(error);
         } else {

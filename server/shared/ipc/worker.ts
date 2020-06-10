@@ -1,12 +1,12 @@
-import { ChildProcess } from "child_process";
+import { ChildProcess, SendHandle } from "child_process";
 import { EventEmitter } from "events";
 import { clearTimeout } from "timers";
 
 import defer, { Deferred } from "../defer";
 import getLogger, { Logger } from "../logging";
+import Channel, { ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
-import { RemotableInterface, IntoPromises } from "./meta";
-import { Channel, ChannelOptions } from "./rpc";
+import { RemotableInterface, RemoteInterface } from "./meta";
 
 type NeededProperties = "send" | "kill" | "on" | "off" | "pid" | "disconnect";
 export type AbstractChildProcess = Pick<ChildProcess, NeededProperties>;
@@ -59,8 +59,8 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
     this.logger.trace("Created WorkerProcess.");
   }
 
-  public get remote(): Promise<IntoPromises<R>> {
-    return this.channel.promise.then((channel: Channel<R, L>): Promise<IntoPromises<R>> => {
+  public get remote(): Promise<RemoteInterface<R>> {
+    return this.channel.promise.then((channel: Channel<R, L>): Promise<RemoteInterface<R>> => {
       return channel.remote;
     });
   }
@@ -76,7 +76,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
   }
 
   private async buildChannel(): Promise<void> {
-    let channel = Channel.connect((message: unknown): Promise<void> => {
+    let channel = Channel.connect((message: unknown, handle?: SendHandle): Promise<void> => {
       if (this.disconnected) {
         return Promise.resolve();
       }
@@ -84,7 +84,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
       return this.send({
         type: "rpc",
         message,
-      });
+      }, handle);
     }, this.options);
 
     channel.on("message-call", (): void => {
@@ -118,7 +118,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
     this.emitter.emit("connect");
   }
 
-  private onMessage: (message: unknown) => void = (message: unknown): void => {
+  private onMessage: NodeJS.MessageListener = (message: unknown, handle: unknown): void => {
     let decoded = IPC.MessageDecoder.decode(message);
     if (decoded.isOk()) {
       switch (decoded.value.type) {
@@ -129,7 +129,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
         case "rpc": {
           let rpcMessage = decoded.value.message;
           void this.channel.promise.then((channel: Channel<R, L>): void => {
-            channel.onMessage(rpcMessage);
+            channel.onMessage(rpcMessage, handle);
           });
           break;
         }
@@ -197,7 +197,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
     this.emitter.on(type, callback);
   }
 
-  private async send(message: IPC.RPC): Promise<void> {
+  private async send(message: IPC.RPC, handle?: SendHandle): Promise<void> {
     await this.ready.promise;
 
     if (this.disconnected) {
@@ -205,7 +205,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
     }
 
     return new Promise((resolve: () => void, reject: (error: Error) => void): void => {
-      this.options.process.send(message, undefined, (error: Error | null): void => {
+      this.options.process.send(message, handle, (error: Error | null): void => {
         if (error) {
           reject(error);
         } else {

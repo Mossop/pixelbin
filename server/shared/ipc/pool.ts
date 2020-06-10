@@ -1,5 +1,5 @@
 import getLogger from "../logging";
-import { RemotableInterface, IntoPromises } from "./meta";
+import { RemotableInterface, RemoteInterface } from "./meta";
 import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
 
 export interface WorkerPoolOptions<
@@ -58,12 +58,12 @@ export class WorkerPool<R extends RemotableInterface, L extends RemotableInterfa
     this.ensureTargetWorkers();
   }
 
-  public quit(): void {
+  public shutdown(): void {
     if (this.quitting) {
       return;
     }
 
-    logger.info("Quitting worker pool.");
+    logger.info("Shutting down worker pool.");
 
     this.quitting = true;
     for (let record of this.workers) {
@@ -71,9 +71,9 @@ export class WorkerPool<R extends RemotableInterface, L extends RemotableInterfa
     }
   }
 
-  public get remote(): Promise<IntoPromises<R>> {
+  public get remote(): Promise<RemoteInterface<R>> {
     return this.getWorker().then(
-      (worker: WorkerProcess<R, L>): Promise<IntoPromises<R>> => worker.remote,
+      (worker: WorkerProcess<R, L>): Promise<RemoteInterface<R>> => worker.remote,
     );
   }
 

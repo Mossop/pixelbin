@@ -1,16 +1,17 @@
+import { SendHandle } from "child_process";
 import { setImmediate } from "timers";
 
 import { JsonDecoder } from "ts.data.json";
 
 import { lastCallArgs } from "../../test-helpers";
+import Channel from "./channel";
 import {
   Decoder,
   RemotableInterface,
   ArgDecodersFor,
   ReturnDecodersFor,
-  IntoPromises,
+  RemoteInterface,
 } from "./meta";
-import { Channel } from "./rpc";
 
 jest.useFakeTimers();
 
@@ -29,8 +30,8 @@ interface JoinedChannels<L extends RemotableInterface, R extends RemotableInterf
   leftChannel: Channel<R, L>;
   rightChannel: Channel<L, R>;
 
-  left: IntoPromises<L>;
-  right: IntoPromises<R>;
+  left: RemoteInterface<L>;
+  right: RemoteInterface<R>;
 }
 
 async function joinedChannels<L extends RemotableInterface, R extends RemotableInterface>(
@@ -41,9 +42,12 @@ async function joinedChannels<L extends RemotableInterface, R extends RemotableI
   rightArgDecoders: ArgDecodersFor<R>,
   rightResultDecoders: ReturnDecodersFor<R>,
 ): Promise<JoinedChannels<L, R>> {
-  let left = Channel.create<R, L>((message: unknown): Promise<void> => {
+  let left = Channel.create<
+    R,
+    L
+  >((message: unknown, handle: undefined | SendHandle): Promise<void> => {
     setImmediate((): void => {
-      right.onMessage(message);
+      right.onMessage(message, handle);
     });
     return Promise.resolve();
   }, {
@@ -53,9 +57,12 @@ async function joinedChannels<L extends RemotableInterface, R extends RemotableI
     responseDecoders: rightResultDecoders,
   });
 
-  let right = Channel.connect<L, R>((message: unknown): Promise<void> => {
+  let right = Channel.connect<
+    L,
+    R
+  >((message: unknown, handle: undefined | SendHandle): Promise<void> => {
     setImmediate((): void => {
-      left.onMessage(message);
+      left.onMessage(message, handle);
     });
     return Promise.resolve();
   }, {
@@ -186,7 +193,7 @@ test("connect timeout", async (): Promise<void> => {
   expect(lastCallArgs(send)).toEqual([{
     type: "connect",
     methods: ["increment", "noop"],
-  }]);
+  }, undefined]);
 
   jest.runAllTimers();
 
@@ -239,13 +246,13 @@ test("remote calling", async (): Promise<void> => {
   expect(lastCallArgs(send)).toEqual([{
     type: "connect",
     methods: ["increment", "noop"],
-  }]);
+  }, undefined]);
   send.mockClear();
 
   channel.onMessage({
     type: "connected",
     methods: ["decrement"],
-  });
+  }, undefined);
 
   jest.runAllTimers();
 
@@ -275,13 +282,13 @@ test("remote calling", async (): Promise<void> => {
     id: "0",
     method: "decrement",
     argument: 5,
-  }]);
+  }, undefined]);
   send.mockClear();
 
   channel.onMessage({
     type: "ack",
     id: "0",
-  });
+  }, undefined);
 
   jest.runAllTimers();
 
@@ -289,7 +296,7 @@ test("remote calling", async (): Promise<void> => {
     type: "exception",
     id: "0",
     error: new Error("Test call failure"),
-  });
+  }, undefined);
 
   await expect(result).rejects.toThrow("Test call failure");
 
@@ -317,13 +324,13 @@ test("remote calling", async (): Promise<void> => {
     id: "1",
     method: "decrement",
     argument: 7,
-  }]);
+  }, undefined]);
   send.mockClear();
 
   channel.onMessage({
     type: "ack",
     id: "1",
-  });
+  }, undefined);
 
   jest.runAllTimers();
 
@@ -331,7 +338,7 @@ test("remote calling", async (): Promise<void> => {
     type: "return",
     id: "1",
     return: 8,
-  });
+  }, undefined);
 
   await expect(result).resolves.toBe(8);
 
@@ -359,7 +366,7 @@ test("remote calling", async (): Promise<void> => {
     id: "2",
     method: "decrement",
     argument: 58,
-  }]);
+  }, undefined]);
   send.mockClear();
 
   jest.runAllTimers();

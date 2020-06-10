@@ -1,10 +1,12 @@
+import { SendHandle } from "child_process";
 import { EventEmitter } from "events";
+import net from "net";
 
 import { JsonDecoder } from "ts.data.json";
 
 import defer, { Deferred } from "../defer";
 import getLogger from "../logging";
-import { RemotableInterface, IntoPromises, ReturnDecodersFor, ArgDecodersFor } from "./meta";
+import { RemotableInterface, RemoteInterface, ReturnDecodersFor, ArgDecodersFor } from "./meta";
 
 const logger = getLogger({
   name: "Channel",
@@ -58,7 +60,7 @@ const RemoteCallAckDecoder = JsonDecoder.object<RemoteCallAck>({
   id: JsonDecoder.string,
 }, "RemoteCallAck");
 
-export interface RemoteCallException {
+interface RemoteCallException {
   type: "exception";
   id: string;
   error: unknown;
@@ -107,16 +109,16 @@ export interface ChannelOptions<R extends RemotableInterface, L extends Remotabl
   responseDecoders: ReturnDecodersFor<R>;
 }
 
-export class Channel<R extends RemotableInterface, L extends RemotableInterface> {
+export default class Channel<R extends RemotableInterface, L extends RemotableInterface> {
   private nextId: number;
   private calls: Record<string, Call>;
   private closed: boolean;
   private emitter: EventEmitter;
-  private remoteInterface: Deferred<IntoPromises<R>>;
+  private remoteInterface: Deferred<RemoteInterface<R>>;
   private options: Required<ChannelOptions<R, L>>;
 
   private constructor(
-    private sendFn: (message: unknown) => Promise<void>,
+    private sendFn: (message: unknown, handle: undefined | SendHandle) => Promise<void>,
     options: ChannelOptions<R, L>,
   ) {
     this.nextId = 0;
@@ -137,11 +139,11 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
       remote[method] = this.remoteCall.bind(this, method);
     }
 
-    this.remoteInterface.resolve(remote as IntoPromises<R>);
+    this.remoteInterface.resolve(remote as RemoteInterface<R>);
   }
 
   public static create<R extends RemotableInterface, L extends RemotableInterface>(
-    send: (message: unknown) => Promise<void>,
+    send: (message: unknown, handle?: net.Socket | net.Server) => Promise<void>,
     options: ChannelOptions<R, L>,
   ): Channel<R, L> {
     logger.trace("Creating new channel.");
@@ -150,7 +152,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
   }
 
   public static connect<R extends RemotableInterface, L extends RemotableInterface>(
-    send: (message: unknown) => Promise<void>,
+    send: (message: unknown, handle?: net.Socket | net.Server) => Promise<void>,
     options: ChannelOptions<R, L>,
   ): Channel<R, L> {
     logger.trace("Connecting to channel.");
@@ -191,7 +193,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     this.emitter.on(type, listener);
   }
 
-  public get remote(): Promise<IntoPromises<R>> {
+  public get remote(): Promise<RemoteInterface<R>> {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return this.remoteInterface.promise;
   }
@@ -223,7 +225,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     this.innerClose();
   }
 
-  public onMessage(message: unknown): void {
+  public onMessage(message: unknown, handle: unknown): void {
     if (this.closed) {
       return;
     }
@@ -235,7 +237,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
 
       switch (decoded.value.type) {
         case "call":
-          this.localCall(decoded.value);
+          void this.localCall(decoded.value);
           return;
         case "closed":
           this.innerClose();
@@ -271,7 +273,10 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
           call.reject(response.error);
           break;
         case "return":
-          call.resolve(response.return);
+          if (handle) {
+            logger.trace("Got handle in response.");
+          }
+          call.resolve(handle ?? response.return);
           break;
       }
     } else {
@@ -279,7 +284,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
     }
   }
 
-  private localCall(call: RemoteCall): void {
+  private async localCall(call: RemoteCall): Promise<void> {
     const performCall = async (method: string, argument: unknown): Promise<unknown> => {
       if (!(method in this.options.localInterface)) {
         logger.error("Remote called an unknown method: %s.", method);
@@ -302,24 +307,40 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
       id: call.id,
     });
 
-    performCall(call.method, call.argument).then((result: unknown): void => {
-      void this.send({
-        type: "return",
-        id: call.id,
-        return: result,
-      });
-    }, (error: unknown): void => {
-      void this.send({
-        type: "exception",
-        id: call.id,
-        error,
-      });
-    });
+    try {
+      let result = await performCall(call.method, call.argument);
+
+      if (result instanceof net.Socket || result instanceof net.Server) {
+        logger.trace("Returning handle.");
+        await this.send({
+          type: "return",
+          id: call.id,
+          return: undefined,
+        }, result);
+      } else {
+        await this.send({
+          type: "return",
+          id: call.id,
+          return: result,
+        });
+      }
+    } catch (error) {
+      try {
+        await this.send({
+          type: "exception",
+          id: call.id,
+          error,
+        });
+      } catch (e) {
+        logger.error({ method: call.method }, "Failed to send response from method call.");
+        this.close();
+      }
+    }
   }
 
-  private send(message: RemoteCallMessage): Promise<void> {
+  private send(message: RemoteCallMessage, handle?: net.Socket | net.Server): Promise<void> {
     logger.trace({ type: message.type }, "Sending message.");
-    return this.sendFn(message);
+    return this.sendFn(message, handle);
   }
 
   private async remoteCall(method: string, argument: unknown): Promise<unknown> {
@@ -359,10 +380,13 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
 
       if (method in this.options.responseDecoders) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        result = this.options.responseDecoders[method](result);
+        result = await this.options.responseDecoders[method](result);
+        this.emitter.emit("message-result", method);
+        return result;
       }
+
       this.emitter.emit("message-result", method);
-      return result;
+      return;
     } catch (e) {
       this.emitter.emit("message-fail", method);
       throw e;

@@ -20,7 +20,7 @@ export type ReturnDecodersFor<T extends RemotableInterface> = {
   [K in MethodsWithReturns<T>]: ReturnDecoderFor<T[K]>;
 };
 
-export type IntoPromises<T extends RemotableInterface> = {
+export type RemoteInterface<T extends RemotableInterface> = {
   [K in keyof T]: (...args: Parameters<T[K]>) => Promise<Return<T[K]>>;
 };
 
