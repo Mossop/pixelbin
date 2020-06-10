@@ -1,5 +1,4 @@
-import pino from "pino";
-
+import getLogger from "../logging";
 import * as IPC from "./ipc";
 import { RemotableInterface, IntoPromises } from "./meta";
 import { Channel, ChannelOptions } from "./rpc";
@@ -15,12 +14,9 @@ interface MasterProcessOptions<
   process?: AbstractProcess;
 }
 
-const logger = pino({
+const logger = getLogger({
   name: "MasterProcess",
   level: "trace",
-  base: {
-    pid: process.pid,
-  },
 });
 
 /**

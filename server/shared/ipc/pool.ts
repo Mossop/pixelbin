@@ -1,5 +1,4 @@
-import pino from "pino";
-
+import getLogger from "../logging";
 import { RemotableInterface, IntoPromises } from "./meta";
 import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
 
@@ -21,12 +20,9 @@ interface WorkerRecord<R extends RemotableInterface, L extends RemotableInterfac
   idleTimeout?: NodeJS.Timeout;
 }
 
-const logger = pino({
+const logger = getLogger({
   name: "WorkerPool",
   level: "trace",
-  base: {
-    pid: process.pid,
-  },
 });
 
 export class WorkerPool<R extends RemotableInterface, L extends RemotableInterface> {
@@ -90,18 +86,21 @@ export class WorkerPool<R extends RemotableInterface, L extends RemotableInterfa
       return this.createWorker();
     }
 
-    let min = this.workers[0];
+    // Generate a list of all the workers with the minimum number of running tasks.
+    let min = [this.workers[0]];
     for (let i = 1; i < this.workers.length; i++) {
-      if (min.taskCount > this.workers[i].taskCount) {
-        min = this.workers[i];
+      if (min[0].taskCount > this.workers[i].taskCount) {
+        min = [this.workers[i]];
+      } else if (min[0].taskCount == this.workers[i].taskCount) {
+        min.push(this.workers[i]);
       }
     }
 
-    if (min.taskCount > 0 && this.workers.length < this.options.maxWorkers) {
+    if (min[0].taskCount > 0 && this.workers.length < this.options.maxWorkers) {
       return this.createWorker();
     }
 
-    return min.worker;
+    return min[Math.floor(Math.random() * min.length)].worker;
   }
 
   private async createWorker(): Promise<WorkerProcess<R, L>> {

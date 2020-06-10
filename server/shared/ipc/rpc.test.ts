@@ -2,6 +2,7 @@ import { setImmediate } from "timers";
 
 import { JsonDecoder } from "ts.data.json";
 
+import { lastCallArgs } from "../../test-helpers";
 import {
   Decoder,
   RemotableInterface,
@@ -10,6 +11,8 @@ import {
   IntoPromises,
 } from "./meta";
 import { Channel } from "./rpc";
+
+jest.useFakeTimers();
 
 function decoderFrom<T>(js: JsonDecoder.Decoder<T>): Decoder<T> {
   return async (val: unknown): Promise<T> => {
@@ -145,4 +148,229 @@ test("remote calls", async (): Promise<void> => {
   await expect(left.increment(6)).rejects.toThrowError(
     "Channel to remote process is closed.",
   );
+});
+
+test("connect timeout", async (): Promise<void> => {
+  let local = {
+    increment: jest.fn((val: number): number => val + 1),
+    noop: jest.fn((): void => {
+      // Do nothing
+    }),
+  };
+
+  let argDecoders = {
+    increment: decoderFrom(JsonDecoder.number),
+  };
+
+  let responseDecoders = {
+    decrement: decoderFrom(JsonDecoder.number),
+  };
+
+  interface RemoteInterface extends RemotableInterface {
+    decrement: (val: number) => number;
+  }
+
+  let send = jest.fn((_message: unknown): Promise<void> => Promise.resolve());
+  let channel = Channel.connect<RemoteInterface, typeof local>(send, {
+    localInterface: local,
+    requestDecoders: argDecoders,
+    responseDecoders: responseDecoders,
+  });
+
+  let timeoutCallback = jest.fn();
+  channel.on("connection-timeout", timeoutCallback);
+  let closeCallback = jest.fn();
+  channel.on("close", closeCallback);
+
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(send)).toEqual([{
+    type: "connect",
+    methods: ["increment", "noop"],
+  }]);
+
+  jest.runAllTimers();
+
+  await expect(channel.remote).rejects.toThrow("Channel connection timed out.");
+  expect(closeCallback).toHaveBeenCalledTimes(1);
+  expect(timeoutCallback).toHaveBeenCalledTimes(1);
+});
+
+test("remote calling", async (): Promise<void> => {
+  let local = {
+    increment: jest.fn((val: number): number => val + 1),
+    noop: jest.fn((): void => {
+      // Do nothing
+    }),
+  };
+
+  let argDecoders = {
+    increment: decoderFrom(JsonDecoder.number),
+  };
+
+  let responseDecoders = {
+    decrement: decoderFrom(JsonDecoder.number),
+  };
+
+  interface RemoteInterface extends RemotableInterface {
+    decrement: (val: number) => number;
+  }
+
+  let send = jest.fn((_message: unknown): Promise<void> => Promise.resolve());
+  let channel = Channel.connect<RemoteInterface, typeof local>(send, {
+    localInterface: local,
+    requestDecoders: argDecoders,
+    responseDecoders: responseDecoders,
+  });
+
+  let callbacks: Record<string, jest.Mock<void, [string]>> = {};
+  for (let event of [
+    "close",
+    "message-call",
+    "message-fail",
+    "message-result",
+    "message-timeout",
+  ]) {
+    callbacks[event] = jest.fn();
+    // @ts-ignore: Trust me, this is fine.
+    channel.on(event, (): void => callbacks[event](event));
+  }
+
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(send)).toEqual([{
+    type: "connect",
+    methods: ["increment", "noop"],
+  }]);
+  send.mockClear();
+
+  channel.onMessage({
+    type: "connected",
+    methods: ["decrement"],
+  });
+
+  jest.runAllTimers();
+
+  let remote = await channel.remote;
+  expect(Object.keys(remote)).toEqual(["decrement"]);
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).not.toHaveBeenCalled();
+  expect(callbacks["message-fail"]).not.toHaveBeenCalled();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
+
+  // -------------------------------------
+
+  let result = remote.decrement(5);
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).toHaveBeenCalledTimes(1);
+  callbacks["message-call"].mockClear();
+  expect(callbacks["message-fail"]).not.toHaveBeenCalled();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
+
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(send)).toEqual([{
+    type: "call",
+    id: "0",
+    method: "decrement",
+    argument: 5,
+  }]);
+  send.mockClear();
+
+  channel.onMessage({
+    type: "ack",
+    id: "0",
+  });
+
+  jest.runAllTimers();
+
+  channel.onMessage({
+    type: "exception",
+    id: "0",
+    error: new Error("Test call failure"),
+  });
+
+  await expect(result).rejects.toThrow("Test call failure");
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).not.toHaveBeenCalled();
+  expect(callbacks["message-fail"]).toHaveBeenCalledTimes(1);
+  callbacks["message-fail"].mockClear();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
+
+  // -------------------------------------
+
+  result = remote.decrement(7);
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).toHaveBeenCalledTimes(1);
+  callbacks["message-call"].mockClear();
+  expect(callbacks["message-fail"]).not.toHaveBeenCalled();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
+
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(send)).toEqual([{
+    type: "call",
+    id: "1",
+    method: "decrement",
+    argument: 7,
+  }]);
+  send.mockClear();
+
+  channel.onMessage({
+    type: "ack",
+    id: "1",
+  });
+
+  jest.runAllTimers();
+
+  channel.onMessage({
+    type: "return",
+    id: "1",
+    return: 8,
+  });
+
+  await expect(result).resolves.toBe(8);
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).not.toHaveBeenCalled();
+  expect(callbacks["message-fail"]).not.toHaveBeenCalled();
+  expect(callbacks["message-result"]).toHaveBeenCalledTimes(1);
+  callbacks["message-result"].mockClear();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
+
+  // -------------------------------------
+
+  result = remote.decrement(58);
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).toHaveBeenCalledTimes(1);
+  callbacks["message-call"].mockClear();
+  expect(callbacks["message-fail"]).not.toHaveBeenCalled();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).not.toHaveBeenCalled();
+
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(send)).toEqual([{
+    type: "call",
+    id: "2",
+    method: "decrement",
+    argument: 58,
+  }]);
+  send.mockClear();
+
+  jest.runAllTimers();
+
+  await expect(result).rejects.toThrow("Call to remote process timed out.");
+
+  expect(callbacks.close).not.toHaveBeenCalled();
+  expect(callbacks["message-call"]).not.toHaveBeenCalled();
+  expect(callbacks["message-fail"]).toHaveBeenCalledTimes(1);
+  callbacks["message-fail"].mockClear();
+  expect(callbacks["message-result"]).not.toHaveBeenCalled();
+  expect(callbacks["message-timeout"]).toHaveBeenCalledTimes(1);
+  callbacks["message-timeout"].mockClear();
 });

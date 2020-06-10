@@ -2,9 +2,8 @@ import { ChildProcess } from "child_process";
 import { EventEmitter } from "events";
 import { clearTimeout } from "timers";
 
-import pino from "pino";
-
 import defer, { Deferred } from "../defer";
+import getLogger, { Logger } from "../logging";
 import * as IPC from "./ipc";
 import { RemotableInterface, IntoPromises } from "./meta";
 import { Channel, ChannelOptions } from "./rpc";
@@ -20,12 +19,9 @@ export interface WorkerProcessOptions<
   process: AbstractChildProcess;
 }
 
-const logger = pino({
+const logger = getLogger({
   name: "WorkerProcess",
   level: "trace",
-  base: {
-    pid: process.pid,
-  },
 });
 
 export class WorkerProcess<R extends RemotableInterface, L extends RemotableInterface> {
@@ -33,7 +29,7 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
   private channel: Deferred<Channel<R, L>>;
   private emitter: EventEmitter;
   private disconnected: boolean;
-  private logger: pino.Logger;
+  private logger: Logger;
 
   public constructor(
     private options: WorkerProcessOptions<R, L>,
@@ -100,7 +96,10 @@ export class WorkerProcess<R extends RemotableInterface, L extends RemotableInte
     channel.on("message-fail", (): void => {
       this.emitter.emit("task-fail");
     });
-    channel.on("timeout", (): void => {
+    channel.on("message-timeout", (): void => {
+      this.shutdown();
+    });
+    channel.on("connection-timeout", (): void => {
       this.shutdown();
     });
     channel.on("close", (): void => {

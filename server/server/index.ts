@@ -1,14 +1,10 @@
-import pino from "pino";
-
 import { MasterInterface, ServerInterface } from "../shared/comms";
 import { MasterProcess } from "../shared/ipc/master";
+import getLogger from "../shared/logging";
 
-const logger = pino({
+const logger = getLogger({
   name: "server",
   level: "trace",
-  base: {
-    pid: process.pid,
-  },
 });
 
 function main(): void {
@@ -17,7 +13,7 @@ function main(): void {
   new MasterProcess<MasterInterface, ServerInterface>({
     localInterface: {
       serve(): void {
-        // foo
+        logger.debug("Handling call to serve.");
       },
     },
     requestDecoders: {},

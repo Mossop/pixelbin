@@ -1,17 +1,14 @@
 import { EventEmitter } from "events";
 
-import pino from "pino";
 import { JsonDecoder } from "ts.data.json";
 
 import defer, { Deferred } from "../defer";
+import getLogger from "../logging";
 import { RemotableInterface, IntoPromises, ReturnDecodersFor, ArgDecodersFor } from "./meta";
 
-const logger = pino({
+const logger = getLogger({
   name: "Channel",
   level: "debug",
-  base: {
-    pid: process.pid,
-  },
 });
 
 interface RemoteConnect {
@@ -168,9 +165,23 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
       type: "connect",
       methods: Object.keys(this.options.localInterface),
     });
+
+    let connectTimeout = setTimeout((): void => {
+      logger.error("Channel connection timed out.");
+      this.remoteInterface.reject(new Error("Channel connection timed out."));
+      this.emitter.emit("connection-timeout");
+    }, this.options.timeout);
+
+    void this.remoteInterface.promise.then((): void => {
+      clearTimeout(connectTimeout);
+    }, (): void => {
+      this.closed = true;
+      this.emitter.emit("close");
+    });
   }
 
-  public on(type: "timeout", listener: () => void): void;
+  public on(type: "connection-timeout", listener: () => void): void;
+  public on(type: "message-timeout", listener: () => void): void;
   public on(type: "message-call", listener: (method: string) => void): void;
   public on(type: "message-result", listener: (method: string) => void): void;
   public on(type: "message-fail", listener: (method: string) => void): void;
@@ -326,8 +337,8 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
       timeout: setTimeout((): void => {
         delete call.timeout;
         logger.error("Call to remote process timed out.");
-        call.reject("Call to remote process timed out.");
-        this.emitter.emit("timeout");
+        reject(new Error("Call to remote process timed out."));
+        this.emitter.emit("message-timeout");
       }, this.options.timeout),
     };
     this.calls[id] = call;
@@ -338,7 +349,7 @@ export class Channel<R extends RemotableInterface, L extends RemotableInterface>
       method,
       argument,
     }).catch((error: Error): void => {
-      call.reject(error);
+      reject(error);
     });
 
     this.emitter.emit("message-call", method);

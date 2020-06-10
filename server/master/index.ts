@@ -2,19 +2,15 @@ import child_process from "child_process";
 import path from "path";
 import { setInterval, clearInterval } from "timers";
 
-import pino from "pino";
-
 import { ServerInterface, MasterInterface } from "../shared/comms";
 import { IntoPromises } from "../shared/ipc/meta";
 import { WorkerPool } from "../shared/ipc/pool";
 import { AbstractChildProcess } from "../shared/ipc/worker";
+import getLogger from "../shared/logging";
 
-const logger = pino({
+const logger = getLogger({
   name: "master",
   level: "trace",
-  base: {
-    pid: process.pid,
-  },
 });
 
 const basedir = path.dirname(path.resolve(__dirname));
@@ -26,8 +22,7 @@ function main(): void {
     localInterface: {},
     requestDecoders: {},
     responseDecoders: {},
-    minWorkers: 1,
-    maxWorkers: 1,
+    minWorkers: 4,
     fork: async (): Promise<AbstractChildProcess> => {
       let server = path.join(basedir, "server", "index.js");
       return child_process.fork(server, [], {
