@@ -2,7 +2,7 @@ import express from "express";
 import expressLogger from "express-pino-logger";
 
 import { ServerMasterInterface } from "../shared/comms";
-import { MasterProcess } from "../shared/ipc/master";
+import { MasterProcess } from "../shared/ipc";
 import getLogger from "../shared/logging";
 
 const logger = getLogger({

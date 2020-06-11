@@ -3,6 +3,7 @@ const fs = require("fs").promises;
 
 const { series, parallel, src, dest } = require("gulp");
 const babel = require("gulp-babel");
+const sourcemaps = require("gulp-sourcemaps");
 const { createCoverageMap } = require("istanbul-lib-coverage");
 const sass = require("node-sass");
 const webpack = require("webpack");
@@ -88,8 +89,11 @@ async function buildJs() {
  * @return {NodeJS.ReadWriteStream}
  */
 exports.buildServer = function buildServer() {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return src(path("server", "**", "*.ts"))
+    .pipe(sourcemaps.init())
     .pipe(babel())
+    .pipe(sourcemaps.write("."))
     .pipe(dest(path(config.path.build, "server")));
 };
 

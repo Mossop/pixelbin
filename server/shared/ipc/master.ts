@@ -6,7 +6,7 @@ import * as IPC from "./ipc";
 
 export type AbstractProcess = Pick<NodeJS.Process, "send" | "on" | "off" | "disconnect">;
 
-interface MasterProcessOptions<L> extends ChannelOptions<L> {
+export interface MasterProcessOptions<L> extends ChannelOptions<L> {
   process?: AbstractProcess;
 }
 
