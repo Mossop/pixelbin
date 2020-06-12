@@ -1,5 +1,4 @@
-import express from "express";
-import expressLogger from "express-pino-logger";
+import Koa from "koa";
 
 import { ServerMasterInterface } from "../shared/comms";
 import { MasterProcess } from "../shared/ipc";
@@ -19,18 +18,13 @@ async function main(): Promise<void> {
   try {
     let server = await master.getServer();
 
-    let appLogger = expressLogger({
-      logger,
-    });
-    let app = express();
-    app.use(appLogger);
+    let app = new Koa();
 
-    app.get("/", (req, res): void => {
-      res.send("Hello World");
+    app.use(async (ctx): Promise<void> => {
+      ctx.body = "Hello World";
     });
 
     app.listen(server);
-    logger.info({ listening: server.listening }, "Listening.");
   } catch (e) {
     connection.shutdown();
     throw e;
@@ -38,6 +32,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: Error): void => {
-  console.error(error);
   logger.error({ error }, "Server threw error while connecting.");
 });
