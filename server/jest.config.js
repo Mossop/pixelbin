@@ -19,4 +19,7 @@ module.exports = {
   }]],
   resetModules: true,
   clearMocks: true,
+
+  // We only have one test database.
+  maxConcurrency: 1,
 };

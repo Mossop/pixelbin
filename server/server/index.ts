@@ -1,8 +1,7 @@
-import Koa from "koa";
-
 import { ServerMasterInterface } from "../shared/comms";
 import { MasterProcess } from "../shared/ipc";
 import getLogger from "../shared/logging";
+import buildApp from "./app";
 
 const logger = getLogger({
   name: "server",
@@ -18,12 +17,7 @@ async function main(): Promise<void> {
   try {
     let server = await master.getServer();
 
-    let app = new Koa();
-
-    app.use(async (ctx): Promise<void> => {
-      ctx.body = "Hello World";
-    });
-
+    let app = buildApp();
     app.listen(server);
   } catch (e) {
     connection.shutdown();

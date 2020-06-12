@@ -1,42 +1,6 @@
 version: '3'
 
 services:
-  api:
-    build:
-      context: ..
-      dockerfile: containers/api/Dockerfile
-    command: sleep infinity
-
-    volumes:
-      - "..:/workspace:cached,ro"
-      - "../data/storage:/workspace/data/storage:delegated,rw"
-      - "../public/media:/workspace/public/media:delegated,rw"
-
-    ports:
-      - 8000:8000
-
-    links:
-      - postgres
-      - redis
-
-  redis:
-    image: redis
-
-  celery:
-    build:
-      context: ..
-      dockerfile: containers/celery/Dockerfile
-    restart: unless-stopped
-
-    volumes:
-      - "..:/workspace:cached,ro"
-      - "../data/storage:/workspace/data/storage:delegated,rw"
-      - "../public/media:/workspace/public/media:delegated,rw"
-
-    links:
-      - postgres
-      - redis
-
   postgres:
     image: postgres
     restart: unless-stopped
@@ -44,6 +8,11 @@ services:
     environment:
       POSTGRES_USER: pixelbin
       POSTGRES_PASSWORD: pixelbin
+      CONTAINER: postgres
 
     volumes:
+      - ../containers:/containers
       - ../data/postgres:/var/lib/postgresql/data:delegated
+
+    ports:
+      - 5432:5432
