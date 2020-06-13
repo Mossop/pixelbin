@@ -5,6 +5,8 @@ import Koa from "koa";
 import mount from "koa-mount";
 import serve from "koa-static";
 
+import { ServerConfig } from "../shared/comms";
+
 type Context = Koa.ParameterizedContext;
 type Next = Koa.Next;
 
@@ -20,25 +22,25 @@ function buildAppContent(): string {
 <link href="https://use.fontawesome.com/releases/v5.11.2/css/all.css" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
-<link rel="stylesheet" type="text/css" href="/public/app/css/app.css">
-<script id="paths" type="application/json">{
+<link rel="stylesheet" type="text/css" href="/app/css/app.css">
+<script id="initial-state" type="application/json">{
   "user": null
 }</script>
 <script id="paths" type="application/json">{
   "root": "/",
-  "static": "/public/static/",
-  "api": "/api"
+  "static": "/static/",
+  "api": "/api/"
 }</script>
 </head>
 <body>
 <div id="app"></div>
-<script type="text/javascript" src="/public/app/js/app.js"></script>
+<script type="text/javascript" src="/app/js/app.js"></script>
 </body>
 </html>
 `;
 }
 
-export default function buildApp(staticRoot: string): Koa {
+export default function buildApp(config: ServerConfig): Koa {
   const router = new Router();
 
   router.get("/healthcheck", async (ctx: Context): Promise<void> => {
@@ -62,12 +64,9 @@ export default function buildApp(staticRoot: string): Koa {
 
   app.use(router.routes());
 
-  app.use(mount("/public", serve(path.join(staticRoot))));
+  app.use(mount("/static", serve(path.join(config.staticRoot))));
 
-  app.use(mount("/public", async (ctx: Context): Promise<void> => {
-    ctx.status = 404;
-    ctx.body = "Not Found.";
-  }));
+  app.use(mount("/app", serve(path.join(config.appRoot))));
 
   app.use(async (ctx: Context): Promise<void> => {
     ctx.set("Content-Type", "text/html");

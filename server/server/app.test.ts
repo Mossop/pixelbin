@@ -2,7 +2,10 @@ import supertest from "supertest";
 
 import buildApp from "./app";
 
-const server = buildApp(__dirname).listen();
+const server = buildApp({
+  staticRoot: __dirname,
+  appRoot: __dirname,
+}).listen();
 const request = supertest(server);
 
 afterAll((): void => {

@@ -5,6 +5,7 @@ import path from "path";
 import { ServerMasterInterface, ServerConfig } from "../shared/comms";
 import { WorkerPool, AbstractChildProcess } from "../shared/ipc";
 import getLogger from "../shared/logging";
+import { listen } from "../shared/utility";
 import events from "./events";
 
 const logger = getLogger({
@@ -14,16 +15,17 @@ const logger = getLogger({
 
 const basedir = path.dirname(path.resolve(__dirname));
 
-function startupServers(): void {
+async function startupServers(): Promise<void> {
   const server = net.createServer();
-  server.listen(3000);
-  logger.info("Listening on http://localhost:3000");
+  await listen(server, 8000);
+  logger.info("Listening on http://localhost:8000");
 
   let pool = new WorkerPool<undefined, ServerMasterInterface>({
     localInterface: {
       getServer: (): net.Server => server,
       getConfig: (): ServerConfig => ({
-        staticRoot: path.resolve(path.join(__dirname, "..", "..", "..", "public")),
+        staticRoot: path.resolve(path.join(__dirname, "..", "..", "..", "static")),
+        appRoot: path.resolve(path.join(__dirname, "..", "..", "..", "build", "app")),
       }),
     },
     minWorkers: 4,
@@ -63,7 +65,9 @@ function main(): void {
     quit();
   });
 
-  startupServers();
+  startupServers().catch((error: Error): void => {
+    logger.error({ error }, "Server startup threw error.");
+  });
 }
 
 main();

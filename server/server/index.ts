@@ -18,7 +18,7 @@ async function main(): Promise<void> {
     let config = await master.getConfig();
     let server = await master.getServer();
 
-    let app = buildApp(config.staticRoot);
+    let app = buildApp(config);
     app.listen(server);
   } catch (e) {
     connection.shutdown();

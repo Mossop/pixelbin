@@ -2,7 +2,6 @@
   "name": "pixelbinserver",
   "version": "1.0.0",
   "description": "JS scripts for the PixelBinServer.",
-  "main": "index.js",
   "author": "Dave Townsend <dtownsend@oxymoronical.com>",
   "scripts": {
     "jest": "jest",

@@ -88,14 +88,14 @@ async function buildJs() {
 /**
  * @return {NodeJS.ReadWriteStream}
  */
-exports.buildServer = function buildServer() {
+function buildServer() {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return src(path("server", "**", "*.ts"))
     .pipe(sourcemaps.init())
     .pipe(babel())
     .pipe(sourcemaps.write("."))
     .pipe(dest(path(config.path.build, "server")));
-};
+}
 
 exports.testServer = series(jest(path("server", "jest.config.js")), mergeCoverage);
 
@@ -103,8 +103,8 @@ exports.testServer = series(jest(path("server", "jest.config.js")), mergeCoverag
  * @return {Promise<void>}
  */
 async function buildCss() {
-  let fileTarget = path("public", "app", "css", "app.css");
-  let mapTarget = path("public", "app", "css", "app.css.map");
+  let fileTarget = path(config.path.build, "app", "css", "app.css");
+  let mapTarget = path(config.path.build, "app", "css", "app.css.map");
 
   await ensureDir(fileTarget);
 
@@ -148,6 +148,6 @@ exports.jest = series(jest(path("app", "jest.config.js")), mergeCoverage);
 
 exports.test = series(jest(path("app", "jest.config.js")), karma, mergeCoverage);
 
-exports.build = parallel(buildJs, buildCss);
+exports.build = parallel(buildServer, buildJs, buildCss);
 
 exports.default = exports.build;

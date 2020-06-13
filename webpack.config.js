@@ -1,4 +1,4 @@
-const { config, path } = require("./base/config");
+const { path } = require("./base/config");
 
 /**
  * @typedef { import("webpack").Configuration } Configuration
@@ -6,13 +6,13 @@ const { config, path } = require("./base/config");
 
 /** @type {Configuration} */
 module.exports = {
-  mode: config.general?.debug ? "development" : "production",
+  mode: "development",
   entry: path("app", "js", "bootstrap.tsx"),
   resolve: {
     extensions: [".js", ".jsx", ".ts", ".tsx"],
   },
   output: {
-    path: path("public", "app", "js"),
+    path: path("build", "app", "js"),
     publicPath: "/public/app/js/",
     filename: "app.js",
     chunkFilename: "[name].js",

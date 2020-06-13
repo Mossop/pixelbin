@@ -3,7 +3,7 @@ const webpack = require("webpack");
 
 const babelConfig = require("./babel.config.json");
 const { path } = require("./base/config");
-const webpackConfig = require("./webpack.config");
+const sourceWebpackConfig = require("./webpack.config");
 
 /**
  * @typedef { import("webpack").RuleSetRule } RuleSetRule
@@ -14,15 +14,20 @@ const babelConfigWithCoverage = {
 };
 babelConfigWithCoverage.plugins = [...babelConfig.plugins, "istanbul"];
 
+const webpackConfig = {
+  ...sourceWebpackConfig,
+  module: {
+    ...sourceWebpackConfig.module,
+    rules: [...sourceWebpackConfig.module?.rules ?? []],
+  },
+  plugins: [...sourceWebpackConfig.plugins ?? []],
+};
+
 /**
  * @param {string} test
  * @return {RuleSetRule | null}
  */
 function findRule(test) {
-  if (!webpackConfig.module) {
-    return null;
-  }
-
   for (let rule of webpackConfig.module.rules) {
     if (!rule.test) {
       continue;
@@ -51,10 +56,6 @@ if (mainRule) {
   };
 }
 
-if (!webpackConfig.module) {
-  webpackConfig.module = { rules: [] };
-}
-
 webpackConfig.module.rules.push({
   test: /\.karma\.[jt]sx?/,
   exclude: /node_modules/,
@@ -64,10 +65,6 @@ webpackConfig.module.rules.push({
 });
 delete webpackConfig.output;
 delete webpackConfig.entry;
-
-if (!webpackConfig.plugins) {
-  webpackConfig.plugins = [];
-}
 
 delete webpackConfig.devtool;
 webpackConfig.plugins.push(new webpack.SourceMapDevToolPlugin({
