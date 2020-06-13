@@ -3,7 +3,8 @@ __pycache__
 /node_modules
 /build
 /data
-/public
+/public/media
+/public/app
 /.vscode
 /.mypy_cache
 /config.ini

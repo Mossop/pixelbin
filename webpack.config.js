@@ -12,8 +12,8 @@ module.exports = {
     extensions: [".js", ".jsx", ".ts", ".tsx"],
   },
   output: {
-    path: path(config.path.build, "app", "js"),
-    publicPath: `${config.url.static}app/js/`,
+    path: path("public", "app", "js"),
+    publicPath: "/public/app/js/",
     filename: "app.js",
     chunkFilename: "[name].js",
   },

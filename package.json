@@ -82,7 +82,8 @@
     "supertest": "^4.0.2",
     "ts-jest": "^26.1.0",
     "typescript": "^3.9.5",
-    "webpack": "^4.43.0"
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11"
   },
   "dependencies": {
     "@fluent/bundle": "^0.15.1",
@@ -95,6 +96,8 @@
     "intl-pluralrules": "^1.2.0",
     "knex": "^0.21.1",
     "koa": "^2.12.0",
+    "koa-mount": "^4.0.0",
+    "koa-static": "^5.0.0",
     "media-metadata": "^2.1.0",
     "moment": "^2.26.0",
     "pg": "^8.2.1",

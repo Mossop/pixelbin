@@ -2,6 +2,7 @@ import child_process from "child_process";
 import net from "net";
 import path from "path";
 
+import { ServerMasterInterface, ServerConfig } from "../shared/comms";
 import { WorkerPool, AbstractChildProcess } from "../shared/ipc";
 import getLogger from "../shared/logging";
 import events from "./events";
@@ -18,9 +19,12 @@ function startupServers(): void {
   server.listen(3000);
   logger.info("Listening on http://localhost:3000");
 
-  let pool = new WorkerPool({
+  let pool = new WorkerPool<undefined, ServerMasterInterface>({
     localInterface: {
       getServer: (): net.Server => server,
+      getConfig: (): ServerConfig => ({
+        staticRoot: path.resolve(path.join(__dirname, "..", "..", "..", "public")),
+      }),
     },
     minWorkers: 4,
     maxWorkers: 8,

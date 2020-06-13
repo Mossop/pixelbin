@@ -54,7 +54,7 @@ function url(paths: Paths, key: Url): URL {
     case Url.Root:
       return paths[Url.Root];
     case Url.Static:
-      return paths[key] ?? new URL("static/", paths[Url.Root]);
+      return paths[key] ?? new URL("public/static/", paths[Url.Root]);
     case Url.API:
       return paths[key] ?? new URL("api/", paths[Url.Root]);
     case Url.L10n:

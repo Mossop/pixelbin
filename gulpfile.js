@@ -103,8 +103,8 @@ exports.testServer = series(jest(path("server", "jest.config.js")), mergeCoverag
  * @return {Promise<void>}
  */
 async function buildCss() {
-  let fileTarget = path(config.path.build, "app", "css", "app.css");
-  let mapTarget = path(config.path.build, "app", "css", "app.css.map");
+  let fileTarget = path("public", "app", "css", "app.css");
+  let mapTarget = path("public", "app", "css", "app.css.map");
 
   await ensureDir(fileTarget);
 
