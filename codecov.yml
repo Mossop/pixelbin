@@ -11,7 +11,3 @@ flags:
     paths:
       - app
     carryforward: true
-  django:
-    paths:
-      - api
-    carryforward: true

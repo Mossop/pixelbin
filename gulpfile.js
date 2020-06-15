@@ -3,7 +3,7 @@ const path = require("path");
 
 const asyncDone = require("async-done");
 const log = require("gulplog");
-const { ansi, tsLint, eslint, logLints, joined, mergeCoverage, ensureDir } = require("pixelbin-ci");
+const { ansi, tsLint, eslint, logLints, joined, mergeCoverage } = require("pixelbin-ci");
 const prettyTime = require("pretty-hrtime");
 
 /**
@@ -61,6 +61,8 @@ async function loadGraph(root) {
   return packages;
 }
 
+const packageGraph = loadGraph(path.join(__dirname, "packages"));
+
 /**
  * Runs an action for a package first running the action for all of its
  * dependency tree. Actions will be parallelized where possible.
@@ -71,7 +73,7 @@ async function loadGraph(root) {
  * @return {Promise<void>}
  */
 async function applyToPackage(root, package, doAction) {
-  let graph = await loadGraph(root);
+  let graph = await packageGraph;
 
   /** @type {Map<string, Promise<void>>} */
   let actionCache = new Map();
@@ -111,7 +113,7 @@ async function applyToPackage(root, package, doAction) {
  * @return {Promise<void>}
  */
 async function applyToAllPackages(root, doAction) {
-  let graph = await loadGraph(root);
+  let graph = await packageGraph;
 
   /** @type {Map<string, Promise<void>>} */
   let actionCache = new Map();
@@ -156,15 +158,21 @@ async function runPackageTask(package, task, verb = task) {
   try {
     let module = require(path.join(package.path, "gulpfile"));
 
-    await new Promise((resolve, reject) => {
-      asyncDone(module[task], err => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+    if (task in module) {
+      await new Promise((resolve, reject) => {
+        asyncDone(module[task], err => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
       });
-    });
+    } else {
+      log.info(
+        `Nothing to do in '${ansi.cyan(id)}'`,
+      );
+    }
 
     let time = prettyTime(process.hrtime(startTime));
     log.info(
@@ -177,6 +185,18 @@ async function runPackageTask(package, task, verb = task) {
     );
 
     throw e;
+  }
+}
+
+/**
+ * @param {string} task
+ * @param {string} verb
+ * @return {Promise<void>}
+ */
+async function runInAllPackages(task, verb = task) {
+  let graph = await packageGraph;
+  for (let package of Object.values(graph)) {
+    await runPackageTask(package, task, verb);
   }
 }
 
@@ -206,11 +226,32 @@ exports.mergeCoverage = async function() {
   );
 };
 
+exports.jest = async function() {
+  let graph = await packageGraph;
+
+  await runInAllPackages("jest", "Running jest");
+
+  return mergeCoverage(
+    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
+    path.join(__dirname, "coverage", "coverage-final.json"),
+  );
+};
+
+exports.karma = async function() {
+  let graph = await packageGraph;
+
+  await runInAllPackages("karma", "Running karma");
+
+  return mergeCoverage(
+    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
+    path.join(__dirname, "coverage", "coverage-final.json"),
+  );
+};
+
 exports.test = async function() {
-  let graph = await loadGraph(path.join(__dirname, "packages"));
-  for (let package of Object.values(graph)) {
-    await runPackageTask(package, "test", "Testing");
-  }
+  let graph = await packageGraph;
+
+  await runInAllPackages("test", "Testing");
 
   return mergeCoverage(
     Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),

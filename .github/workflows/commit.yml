@@ -20,93 +20,19 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
 
-    - name: Setup Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
     - name: Show versions
       run: |
         echo "Node $(node --version)"
         echo "NPM $(npm --version)"
-        echo "Python $(python --version)"
-
-    - name: Install python packages
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt -r requirements_dev.txt -r requirements_postgres.txt
 
     - name: Install node packages
       run: |
-        npm install -g gulp
-        npm install
+        npm install -g gulp lerna
+        lerna bootstrap
 
     - name: Run lint checks
       run: |
         gulp lint
-
-  django-tests:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
-
-    - name: Install packages
-      run: |
-        sudo apt-get update
-        sudo apt-get install ffmpeg exiftool
-
-    - name: Setup Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Show versions
-      run: |
-        python --version
-
-    - name: Install python packages
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt -r requirements_dev.txt -r requirements_postgres.txt
-
-    - name: Check migrations
-      run: |
-        coverage run -a manage.py makemigrations --noinput --check
-
-    - name: Check types
-      run: |
-        coverage run -a manage.py buildtypes
-        git diff --exit-code
-
-    - name: Run tests
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost/pixelbin
-      run: |
-        coverage run -a manage.py test
-        coverage report
-
-    - name: Upload code coverage
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      run: |
-        bash <(curl -s https://codecov.io/bash) -F django
 
   jest-tests:
     runs-on: ubuntu-latest
@@ -128,8 +54,8 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp
-        npm install
+        npm install -g gulp lerna
+        lerna bootstrap
 
     - name: Run tests
       run: |
@@ -161,8 +87,8 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp
-        npm install
+        npm install -g gulp lerna
+        lerna bootstrap
 
     - name: Run tests
       run: |
