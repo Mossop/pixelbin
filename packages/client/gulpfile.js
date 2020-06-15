@@ -32,22 +32,28 @@ function cssRender(options) {
 /**
  * @return {Promise<void>}
  */
-async function buildJs() {
+function buildJs() {
   const webpackConfig = require("./webpack.config");
   let compiler = webpack(webpackConfig);
 
   return new Promise((resolve, reject) => {
     compiler.run((err, stats) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (err) {
+        reject(err);
+        return;
+      }
+
       console.log(stats.toString({
         colors: true,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
+      if (stats.hasErrors()) {
+        reject(new Error("Compilation failed."));
+        return;
       }
+
+      resolve();
     });
   });
 }

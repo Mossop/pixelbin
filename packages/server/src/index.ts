@@ -2,7 +2,8 @@ import child_process from "child_process";
 import net from "net";
 import path from "path";
 
-import { ServerMasterInterface, ServerConfig, getLogger, listen } from "pixelbin-utils";
+import { getLogger, listen } from "pixelbin-utils";
+import type { MasterInterface, WebserverConfig } from "pixelbin-webserver";
 import { WorkerPool, AbstractChildProcess } from "pixelbin-worker";
 
 import events from "./events";
@@ -19,10 +20,10 @@ async function startupServers(): Promise<void> {
   await listen(server, 8000);
   logger.info("Listening on http://localhost:8000");
 
-  let pool = new WorkerPool<undefined, ServerMasterInterface>({
+  let pool = new WorkerPool<undefined, MasterInterface>({
     localInterface: {
       getServer: (): net.Server => server,
-      getConfig: (): ServerConfig => ({
+      getConfig: (): WebserverConfig => ({
         staticRoot: path.resolve(path.join(basedir, "node_modules", "pixelbin-client", "static")),
         appRoot: path.resolve(path.join(basedir, "node_modules", "pixelbin-client", "build")),
       }),

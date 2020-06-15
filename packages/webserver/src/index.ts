@@ -1,7 +1,10 @@
-import { ServerMasterInterface, getLogger } from "pixelbin-utils";
+import { getLogger } from "pixelbin-utils";
 import { MasterProcess } from "pixelbin-worker";
 
 import buildApp from "./app";
+import { MasterInterface } from "./types";
+
+export type { WebserverConfig, MasterInterface } from "./types";
 
 const logger = getLogger({
   name: "server",
@@ -11,7 +14,7 @@ const logger = getLogger({
 async function main(): Promise<void> {
   logger.info("Server startup.");
 
-  let connection = new MasterProcess<ServerMasterInterface>();
+  let connection = new MasterProcess<MasterInterface>();
   let master = await connection.remote;
 
   try {

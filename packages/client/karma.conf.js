@@ -47,7 +47,7 @@ const karmaConfig = {
   },
   colors: true,
   autoWatch: false,
-  browsers: ["FirefoxHeadless", "ChromeHeadless", "SafariNative"],
+  browsers: ["FirefoxHeadless"], // "ChromeHeadless", "SafariNative"],
   singleRun: false,
   concurrency: 1,
 };

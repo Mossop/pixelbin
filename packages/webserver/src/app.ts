@@ -4,7 +4,8 @@ import Router from "@koa/router";
 import Koa from "koa";
 import mount from "koa-mount";
 import serve from "koa-static";
-import { ServerConfig } from "pixelbin-utils";
+
+import { WebserverConfig } from "./types";
 
 type Context = Koa.ParameterizedContext;
 type Next = Koa.Next;
@@ -39,7 +40,7 @@ function buildAppContent(): string {
 `;
 }
 
-export default function buildApp(config: ServerConfig): Koa {
+export default function buildApp(config: WebserverConfig): Koa {
   const router = new Router();
 
   router.get("/healthcheck", async (ctx: Context): Promise<void> => {

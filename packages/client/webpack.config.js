@@ -21,28 +21,17 @@ module.exports = {
   },
   devtool: ENV == "test" ? "inline-source-map" : "source-map",
   module: {
-    rules: [
-      {
-        test: /\.[jt]sx?$/,
-        exclude: /node_modules|\.karma\.[jt]sx?$|\.test\.[jt]sx?$/,
-        use: {
-          loader: "babel-loader",
-          options: {
-            plugins: ENV == "test" ? ["istanbul"] : [],
-            cacheDirectory: true,
-          },
+    rules: [{
+      test: /\.[jt]sx?$/,
+      exclude: /node_modules/,
+      use: [{
+        loader: "ts-loader",
+        options: {
+          transpileOnly: true,
+          configFile: path.join(__dirname, "tsconfig.build.json"),
         },
-      }, {
-        test: /\.karma\.[jt]sx?/,
-        exclude: /node_modules/,
-        use: [{
-          loader: "babel-loader",
-          options: {
-            cacheDirectory: true,
-          },
-        }],
-      },
-    ],
+      }],
+    }],
   },
   externals: {
     "react": "React",
