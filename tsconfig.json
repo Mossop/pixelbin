@@ -8,10 +8,9 @@
     ]
   },
   "include": [
-    "@types/*.d.ts",
-    "ci/*.js",
-    "ci/*.ts",
     ".*.js",
-    "*.js", "app/jest.config.js"
-  ],
+    "*.js",
+    "packages/*/.*.js",
+    "packages/*/*.js"
+  ]
 }

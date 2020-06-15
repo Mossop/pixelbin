@@ -1,8 +1,0 @@
-Django==3.0.2
-django-cte==1.1.4
-Pillow==7.0.0
-filetype==1.0.5
-celery==4.4.0
-redis==3.3.11
-djangorestframework==3.11.0
-b2sdk==1.0.2

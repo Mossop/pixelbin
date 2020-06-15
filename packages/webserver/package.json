@@ -1,0 +1,22 @@
+{
+  "name": "pixelbin-webserver",
+  "version": "1.0.0",
+  "description": "The PixelBin webserver worker.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mossop/pixelbin.git",
+    "directory": "packages/webserver"
+  },
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "main": "build/index.js",
+  "dependencies": {
+    "@koa/router": "^9.0.1",
+    "koa": "^2.12.1",
+    "koa-mount": "^4.0.0",
+    "koa-static": "^5.0.0",
+    "pixelbin-utils": "^1.0.0",
+    "pixelbin-worker": "^1.0.0"
+  }
+}

@@ -1,2 +1,0 @@
-django-mysql==3.2.0
-mysqlclient==1.4.6

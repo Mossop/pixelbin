@@ -1,0 +1,20 @@
+{
+  "name": "pixelbin-server",
+  "version": "1.0.0",
+  "description": "The main PixelBin server.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mossop/pixelbin.git",
+    "directory": "packages/server"
+  },
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "main": "build/index.js",
+  "dependencies": {
+    "pixelbin-client": "^1.0.0",
+    "pixelbin-utils": "^1.0.0",
+    "pixelbin-webserver": "^1.0.0",
+    "pixelbin-worker": "^1.0.0"
+  }
+}

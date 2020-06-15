@@ -8,13 +8,10 @@ module.exports = {
       "jsx": true,
     },
     "tsconfigRootDir": __dirname,
-    "project": ["./tsconfig.json", "./app/tsconfig.json", "./server/tsconfig.json"],
+    "project": ["./tsconfig.json", "./packages/*/tsconfig.json"],
   },
 
   "settings": {
-    "react": {
-      "version": "detect",
-    },
     "import/ignore": [
       "typescript",
     ],
@@ -31,10 +28,11 @@ module.exports = {
 
   "extends": [
     "plugin:mossop/typescript",
-    "plugin:mossop/react",
   ],
 
   "rules": {
     "@typescript-eslint/require-await": "off",
   },
+
+  "ignorePatterns": ["packages/*/build"],
 };

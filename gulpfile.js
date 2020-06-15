@@ -1,153 +1,231 @@
-/* eslint-env node */
 const fs = require("fs").promises;
+const path = require("path");
 
-const { series, parallel, src, dest } = require("gulp");
-const babel = require("gulp-babel");
-const sourcemaps = require("gulp-sourcemaps");
-const { createCoverageMap } = require("istanbul-lib-coverage");
-const sass = require("node-sass");
-const webpack = require("webpack");
-
-const { config, path } = require("./base/config");
-const { eslint } = require("./ci/eslint");
-const { jest } = require("./ci/jest");
-const { karma } = require("./ci/karma");
-const { mypy } = require("./ci/mypy");
-const { pylint } = require("./ci/pylint");
-const { typescript } = require("./ci/typescript");
-const { ensureDir, logLint, joined } = require("./ci/utils");
-const webpackConfig = require("./webpack.config");
+const asyncDone = require("async-done");
+const log = require("gulplog");
+const { ansi, tsLint, eslint, logLints, joined, mergeCoverage, ensureDir } = require("pixelbin-ci");
+const prettyTime = require("pretty-hrtime");
 
 /**
- * @typedef { import("webpack").Stats } Stats
- * @typedef { import("node-sass").Options } SassOptions
- * @typedef { import("node-sass").Result } SassResult
- * @typedef { import("./ci/types").LintedFile } LintedFile
+ * @typedef {Object} Package
+ * @property {string} path
+ * @property {string} name
+ * @property {string[]} dependencies
  */
 
 /**
- * @param {SassOptions} options
- * @return {Promise<SassResult>}
+ * Loads the graph of packages.
+ *
+ * @param {string} root
+ * @return {Promise<Record<string, Package>>}
  */
-function cssRender(options) {
-  return new Promise((resolve, reject) => {
-    sass.render(options, (err, result) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (err) {
-        reject(err.message);
-      } else {
-        resolve(result);
+async function loadGraph(root) {
+  /** @type {Record<string, Package>} */
+  let packages = {};
+  let packageInfos = {};
+  let packageDirs = await fs.readdir(path.join(root));
+
+  for (let dir of packageDirs) {
+    try {
+      let stats = await fs.stat(path.join(root, dir));
+      if (!stats.isDirectory()) {
+        continue;
       }
-    });
-  });
-}
+    } catch (e) {
+      continue;
+    }
 
-/**
- * @return {Promise<void>}
- */
-exports.lint = async function() {
-  let fileCount = 0;
-  let lintCount = 0;
+    let packageInfo = require(path.join(root, dir, "package.json"));
+    packages[packageInfo.name] = {
+      path: path.join(root, dir),
+      name: packageInfo.name,
+      dependencies: [],
+    };
+    packageInfos[packageInfo.name] = packageInfo;
+  }
 
-  for await (let info of joined(eslint(), pylint(), typescript(), mypy())) {
-    fileCount++;
-    for (let lint of info.lintResults) {
-      lintCount++;
-      logLint(info.path, lint);
+  for (let package of Object.keys(packages)) {
+    let deps = packageInfos[package].dependencies ?? {};
+    let devDeps = packageInfos[package].devDependencies ?? {};
+    for (let key of Object.keys(packages)) {
+      if (key == package) {
+        continue;
+      }
+
+      if (key in deps || key in devDeps) {
+        packages[package].dependencies.push(key);
+      }
     }
   }
 
-  if (fileCount) {
-    throw new Error(`Saw ${lintCount} lint issues across ${fileCount} files.`);
+  return packages;
+}
+
+/**
+ * Runs an action for a package first running the action for all of its
+ * dependency tree. Actions will be parallelized where possible.
+ *
+ * @param {string} root
+ * @param {string} package
+ * @param {(package: Package) => Promise<void>} doAction
+ * @return {Promise<void>}
+ */
+async function applyToPackage(root, package, doAction) {
+  let graph = await loadGraph(root);
+
+  /** @type {Map<string, Promise<void>>} */
+  let actionCache = new Map();
+
+  /**
+   * @param {string} id
+   * @return {Promise<void>}
+   */
+  function getAction(id) {
+    let pending = actionCache.get(id);
+    if (pending) {
+      return pending;
+    }
+
+    let package = graph[id];
+
+    // Run the action for all dependencies first.
+    let deps = package.dependencies.map(d => getAction(d));
+
+    let action = Promise.all(deps).then(() => {
+      return doAction(graph[id]);
+    });
+
+    actionCache.set(id, action);
+    return action;
   }
+
+  return getAction(package);
+}
+
+/**
+ * Runs an action for all packages first running the action for all of their
+ * dependency tree. Actions will be parallelized where possible.
+ *
+ * @param {string} root
+ * @param {(package: Package) => Promise<void>} doAction
+ * @return {Promise<void>}
+ */
+async function applyToAllPackages(root, doAction) {
+  let graph = await loadGraph(root);
+
+  /** @type {Map<string, Promise<void>>} */
+  let actionCache = new Map();
+
+  /**
+   * @param {string} id
+   * @return {Promise<void>}
+   */
+  function getAction(id) {
+    let pending = actionCache.get(id);
+    if (pending) {
+      return pending;
+    }
+
+    let package = graph[id];
+
+    // Run the action for all dependencies first.
+    let deps = package.dependencies.map(d => getAction(d));
+
+    let action = Promise.all(deps).then(() => {
+      return doAction(graph[id]);
+    });
+
+    actionCache.set(id, action);
+    return action;
+  }
+
+  await Promise.all(Object.keys(graph).map(getAction));
+}
+
+/**
+ * @param {Package} package
+ * @param {string} task
+ * @param {string} [verb]
+ * @return {Promise<void>}
+ */
+async function runPackageTask(package, task, verb = task) {
+  let id = package.name;
+  log.info(`${verb} '${ansi.cyan(id)}'...`);
+  let startTime = process.hrtime();
+
+  try {
+    let module = require(path.join(package.path, "gulpfile"));
+
+    await new Promise((resolve, reject) => {
+      asyncDone(module[task], err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    let time = prettyTime(process.hrtime(startTime));
+    log.info(
+      `Finished ${verb.toLocaleLowerCase()} '${ansi.cyan(id)}' after ${ansi.magenta(time)}`,
+    );
+  } catch (e) {
+    let time = prettyTime(process.hrtime(startTime));
+    log.error(
+      `${verb} '${ansi.cyan(id)}' ${ansi.red("errored after")} ${ansi.magenta(time)}`,
+    );
+
+    throw e;
+  }
+}
+
+exports.buildServer = async function() {
+  return applyToPackage(path.join(__dirname, "packages"), "pixelbin-server", async package => {
+    return runPackageTask(package, "build", "Building");
+  });
 };
 
-/**
- * @return {Promise<void>}
- */
-async function buildJs() {
-  let compiler = webpack(webpackConfig);
-
-  /** @type {Stats} */
-  let stats = await new Promise((resolve, reject) => {
-    compiler.run((err, stats) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (err) {
-        reject(err);
-      } else {
-        resolve(stats);
-      }
-    });
+exports.buildClient = async function() {
+  return applyToPackage(path.join(__dirname, "packages"), "pixelbin-client", async package => {
+    return runPackageTask(package, "build", "Building");
   });
+};
 
-  console.log(stats.toString({
-    colors: true,
-  }));
-}
-
-/**
- * @return {NodeJS.ReadWriteStream}
- */
-function buildServer() {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return src(path("server", "**", "*.ts"))
-    .pipe(sourcemaps.init())
-    .pipe(babel())
-    .pipe(sourcemaps.write("."))
-    .pipe(dest(path(config.path.build, "server")));
-}
-
-exports.testServer = series(jest(path("server", "jest.config.js")), mergeCoverage);
-
-/**
- * @return {Promise<void>}
- */
-async function buildCss() {
-  let fileTarget = path(config.path.build, "app", "css", "app.css");
-  let mapTarget = path(config.path.build, "app", "css", "app.css.map");
-
-  await ensureDir(fileTarget);
-
-  let result = await cssRender({
-    file: path("app", "css", "app.scss"),
-    outFile: fileTarget,
-    sourceMap: mapTarget,
+exports.build = async function() {
+  return applyToAllPackages(path.join(__dirname, "packages"), async package => {
+    return runPackageTask(package, "build", "Building");
   });
+};
 
-  await Promise.all([
-    fs.writeFile(fileTarget, result.css),
-    fs.writeFile(mapTarget, result.map),
-  ]);
-}
+exports.mergeCoverage = async function() {
+  let graph = await loadGraph(path.join(__dirname, "packages"));
+  return mergeCoverage(
+    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
+    path.join(__dirname, "coverage", "coverage-final.json"),
+  );
+};
 
-/**
- * @return {Promise<void>}
- */
-async function mergeCoverage() {
-  let map = createCoverageMap();
-  for (let file of [
-    path("app", "coverage", "karma-coverage.json"),
-    path("app", "coverage", "jest-coverage.json"),
-    path("server", "coverage", "jest-coverage.json"),
-  ]) {
-    try {
-      await fs.stat(file);
-      map.merge(JSON.parse(await fs.readFile(file, {
-        encoding: "utf8",
-      })));
-    } catch (e) {
-      // Missing or bad file.
-    }
+exports.test = async function() {
+  let graph = await loadGraph(path.join(__dirname, "packages"));
+  for (let package of Object.values(graph)) {
+    await runPackageTask(package, "test", "Testing");
   }
 
-  await fs.writeFile(path("coverage", "coverage-final.json"), JSON.stringify(map.toJSON()));
-}
+  return mergeCoverage(
+    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
+    path.join(__dirname, "coverage", "coverage-final.json"),
+  );
+};
 
-exports.karma = series(karma, mergeCoverage);
-exports.jest = series(jest(path("app", "jest.config.js")), mergeCoverage);
+exports.lint = async function() {
+  let graph = await loadGraph(path.join(__dirname, "packages"));
+  let tsLints = Object.values(graph).map(package => {
+    return tsLint(package.path);
+  });
 
-exports.test = series(jest(path("app", "jest.config.js")), karma, mergeCoverage);
-
-exports.build = parallel(buildServer, buildJs, buildCss);
-
-exports.default = exports.build;
+  let succeeded = await logLints(joined(eslint(__dirname), tsLint(__dirname), ...tsLints));
+  if (!succeeded) {
+    throw new Error("Failed lint checks.");
+  }
+};

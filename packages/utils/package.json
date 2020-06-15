@@ -1,0 +1,17 @@
+{
+  "name": "pixelbin-utils",
+  "version": "1.0.0",
+  "description": "General shared utils for PixelBin.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mossop/pixelbin.git",
+    "directory": "packages/utils"
+  },
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "main": "build/index.js",
+  "dependencies": {
+    "pino": "^6.3.2"
+  }
+}

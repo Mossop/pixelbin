@@ -1,8 +1,0 @@
-bin
-build
-include
-lib
-public/static
-node_modules
-base
-coverage

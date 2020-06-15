@@ -1,0 +1,16 @@
+{
+  "name": "pixelbin-db",
+  "version": "1.0.0",
+  "description": "PixelBin database.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mossop/pixelbin.git",
+    "directory": "packages/database"
+  },
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "dependencies": {
+    "knex": "^0.21.1"
+  }
+}
