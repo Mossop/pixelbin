@@ -6,4 +6,4 @@ if [ -z "$container" ]; then
   exit 1
 fi
 
-exec docker exec -e PYTHON="${PYTHON}" -it $container psql -h localhost -U pixelbin pixelbin
+exec docker exec -e PYTHON="${PYTHON}" -it $container psql -h localhost -U pixelbin ${1:-pixelbin}

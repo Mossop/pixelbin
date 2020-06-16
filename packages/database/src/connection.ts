@@ -1,7 +1,16 @@
-import knex from "knex";
+import Knex from "knex";
 
 import config from "../knexfile";
 
-const environment = process.env.NODE_ENV ?? "development";
+interface ExtendedKnex extends Knex {
+  userParams: {
+    schema?: string;
+  }
+}
 
-export default knex(config[environment]);
+let environment = process.env.NODE_ENV ?? "development";
+if (!(environment in config)) {
+  environment = "development";
+}
+
+export const knex = Knex(config[environment]) as ExtendedKnex;
