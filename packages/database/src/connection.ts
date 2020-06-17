@@ -1,6 +1,5 @@
 import Knex from "knex";
-
-import config from "../knexfile";
+import { defer, Deferred } from "pixelbin-utils";
 
 interface ExtendedKnex extends Knex {
   userParams: {
@@ -8,9 +7,12 @@ interface ExtendedKnex extends Knex {
   }
 }
 
-let environment = process.env.NODE_ENV ?? "development";
-if (!(environment in config)) {
-  environment = "development";
+const deferredKnex: Deferred<ExtendedKnex> = defer();
+
+export function connect(config: Knex.Config): ExtendedKnex {
+  let knex = Knex(config) as ExtendedKnex;
+  deferredKnex.resolve(knex);
+  return knex;
 }
 
-export const knex = Knex(config[environment]) as ExtendedKnex;
+export const connection = deferredKnex.promise;

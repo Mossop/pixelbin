@@ -1,13 +1,9 @@
 import type { Orientation } from "media-metadata";
 import moment from "moment";
 
-export interface IdTable<K = string> {
-  id: K;
-}
+import { IdTable, ForeignKey } from "./meta";
 
-export type ForeignKey<T, I = "id"> = I extends keyof T ? T[I] : never;
-
-export interface UserData extends IdTable {
+export interface User extends IdTable {
   id: string;
   email: string;
   fullname: string;
@@ -15,29 +11,29 @@ export interface UserData extends IdTable {
   verified: boolean;
 }
 
-export interface CatalogData extends IdTable {
+export interface Catalog extends IdTable {
   name: string;
 }
 
-export interface PersonData extends IdTable {
-  catalog: ForeignKey<CatalogData>;
+export interface Person extends IdTable {
+  catalog: ForeignKey<Catalog>;
   name: string;
 }
 
-export interface TagData extends IdTable {
-  catalog: ForeignKey<CatalogData>;
-  parent: ForeignKey<TagData> | null;
+export interface Tag extends IdTable {
+  catalog: ForeignKey<Catalog>;
+  parent: ForeignKey<Tag> | null;
   name: string;
 }
 
-export interface AlbumData extends IdTable {
-  catalog: ForeignKey<CatalogData>;
-  parent: ForeignKey<AlbumData> | null;
+export interface Album extends IdTable {
+  catalog: ForeignKey<Catalog>;
+  parent: ForeignKey<Album> | null;
   stub: string | null;
   name: string;
 }
 
-export interface MetadataData {
+export interface Metadata {
   filename: string | null;
   title: string | null;
   taken: moment.Moment | null;
@@ -61,13 +57,13 @@ export interface MetadataData {
   bitrate: number | null;
 }
 
-export interface MediaData extends IdTable, MetadataData {
-  catalog: ForeignKey<CatalogData>;
+export interface Media extends IdTable, Metadata {
+  catalog: ForeignKey<Catalog>;
   created: moment.Moment;
 }
 
-export interface MediaInfoData extends IdTable, MetadataData {
-  media: ForeignKey<MediaData>;
+export interface MediaInfo extends IdTable, Metadata {
+  media: ForeignKey<Media>;
   processVersion: number;
   uploaded: moment.Moment;
   mimetype: string;

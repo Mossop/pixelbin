@@ -1,7 +1,11 @@
-import { knex } from "./connection";
-import { CatalogData } from "./tables";
+import config from "../knexfile";
+import { connection, connect } from "./connection";
+import { from, insert } from "./queries";
+import { Table } from "./types";
 
 beforeAll(async (): Promise<void> => {
+  let knex = connect(config["test"]);
+
   if (knex.userParams.schema) {
     await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);
     await knex.raw("CREATE SCHEMA ??;", [knex.userParams.schema]);
@@ -11,6 +15,8 @@ beforeAll(async (): Promise<void> => {
 });
 
 beforeEach(async (): Promise<void> => {
+  let knex = await connection;
+
   for (let table of [
     "media_person",
     "media_tag",
@@ -29,6 +35,8 @@ beforeEach(async (): Promise<void> => {
 });
 
 afterAll(async (): Promise<void> => {
+  let knex = await connection;
+
   if (knex.userParams.schema) {
     await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);
   }
@@ -36,6 +44,17 @@ afterAll(async (): Promise<void> => {
 });
 
 test("Basic database connection", async (): Promise<void> => {
-  let results = await knex<CatalogData>("catalog").select("*");
-  expect(results).toHaveLength(0);
+  let knex = await connection;
+
+  await insert(Table.Catalog, {
+    id: "foo",
+    name: "bar",
+  });
+
+  let results = await from(knex, Table.Catalog).select("*");
+  expect(results).toHaveLength(1);
+  expect(results[0]).toEqual({
+    id: "foo",
+    name: "bar",
+  });
 });
