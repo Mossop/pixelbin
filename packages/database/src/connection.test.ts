@@ -1,10 +1,16 @@
-import config from "../knexfile";
-import { connection, connect } from "./connection";
+import { connection, connect, DatabaseConfig } from "./connection";
 import { from, insert } from "./queries";
 import { Table } from "./types";
 
 beforeAll(async (): Promise<void> => {
-  let knex = connect(config["test"]);
+  let config: DatabaseConfig = {
+    username: process.env.PX_DB_USERNAME ?? "pixelbin",
+    password: process.env.PX_DB_PASSWORD ?? "pixelbin",
+    host: process.env.PX_DB_HOST ?? "localhost",
+    database: process.env.PX_DB_NAME ?? "pixelbin_test",
+  };
+
+  let knex = connect(config);
 
   if (knex.userParams.schema) {
     await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);

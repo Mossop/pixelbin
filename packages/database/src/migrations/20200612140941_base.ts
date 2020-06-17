@@ -1,23 +1,15 @@
-/**
- * @typedef {import("knex")} Knex
- */
+import Knex from "knex";
 
-/**
- * @param {Knex.CreateTableBuilder} table
- * @return {void}
- */
-function id(table) {
+function id(table: Knex.CreateTableBuilder): void {
   table.string("id", 30).notNullable().unique().primary();
 }
 
-/**
- * @param {Knex.CreateTableBuilder} table
- * @param {string} target
- * @param {boolean} nullable
- * @param {string} column
- * @return {void}
- */
-function foreignId(table, target, nullable = false, column = target) {
+function foreignId(
+  table: Knex.CreateTableBuilder,
+  target: string,
+  nullable: boolean = false,
+  column: string = target,
+): void {
   let col = table.string(column, 30);
   if (!nullable) {
     col.notNullable();
@@ -27,12 +19,8 @@ function foreignId(table, target, nullable = false, column = target) {
   table.foreign(column).references(`${target}.id`).onDelete("CASCADE");
 }
 
-/**
- * @param {Knex} knex
- * @return {Knex.SchemaBuilder}
- */
-exports.up = function(knex) {
-  function addMetadata(table) {
+exports.up = function(knex: Knex): Knex.SchemaBuilder {
+  function addMetadata(table: Knex.CreateTableBuilder): void {
     for (let name of [
       "filename",
       "title",
@@ -70,37 +58,37 @@ exports.up = function(knex) {
     table.dateTime("taken").nullable();
   }
 
-  return knex.schema.createTable("user", table => {
+  return knex.schema.createTable("user", (table: Knex.CreateTableBuilder): void => {
     id(table);
     table.string("email", 100).notNullable().unique();
     table.string("fullname", 200);
     table.boolean("hadCatalog");
     table.boolean("verified");
-  }).createTable("catalog", table => {
+  }).createTable("catalog", (table: Knex.CreateTableBuilder): void => {
     id(table);
     table.string("name", 100).notNullable();
-  }).createTable("person", table => {
+  }).createTable("person", (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, "catalog");
     table.string("name", 200).notNullable();
-  }).createTable("tag", table => {
+  }).createTable("tag", (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, "catalog");
     foreignId(table, "tag", true, "parent");
     table.string("name", 100).notNullable();
-  }).createTable("album", table => {
+  }).createTable("album", (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, "catalog");
     foreignId(table, "album", true, "parent");
     table.string("stub", 50).nullable();
     table.string("name", 100).notNullable();
-  }).createTable("media", table => {
+  }).createTable("media", (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, "catalog");
     table.dateTime("created").notNullable();
 
     addMetadata(table);
-  }).createTable("mediaInfo", table => {
+  }).createTable("mediaInfo", (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, "media");
     table.integer("processVersion").notNullable();
@@ -112,16 +100,16 @@ exports.up = function(knex) {
     table.integer("fileSize").nullable();
 
     addMetadata(table);
-  }).createTable("user_catalog", table => {
+  }).createTable("user_catalog", (table: Knex.CreateTableBuilder): void => {
     foreignId(table, "user");
     foreignId(table, "catalog");
-  }).createTable("media_album", table => {
+  }).createTable("media_album", (table: Knex.CreateTableBuilder): void => {
     foreignId(table, "media");
     foreignId(table, "album");
-  }).createTable("media_tag", table => {
+  }).createTable("media_tag", (table: Knex.CreateTableBuilder): void => {
     foreignId(table, "media");
     foreignId(table, "tag");
-  }).createTable("media_person", table => {
+  }).createTable("media_person", (table: Knex.CreateTableBuilder): void => {
     foreignId(table, "media");
     foreignId(table, "album");
   });
@@ -131,7 +119,7 @@ exports.up = function(knex) {
  * @param {Knex} knex
  * @return {Knex.SchemaBuilder}
  */
-exports.down = async function(knex) {
+exports.down = function(knex: Knex): Knex.SchemaBuilder {
   return knex.schema
     .dropTable("media_person")
     .dropTable("media_tag")
