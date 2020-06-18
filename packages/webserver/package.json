@@ -18,6 +18,7 @@
     "koa-mount": "^4.0.0",
     "koa-static": "^5.0.0",
     "pixelbin-database": "^1.0.0",
+    "pixelbin-object-model": "^1.0.0",
     "pixelbin-utils": "^1.0.0",
     "pixelbin-worker": "^1.0.0",
     "ts.data.json": "^1.1.0"

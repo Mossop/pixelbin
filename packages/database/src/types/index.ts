@@ -1,9 +1,7 @@
 import * as Joins from "./joins";
-import { RecordFor } from "./meta";
 import * as Tables from "./tables";
 
 export { Joins, Tables };
-export type { RecordFor };
 
 export enum Table {
   User = "user",
@@ -35,6 +33,4 @@ export interface TableMapping {
   [Table.MediaPerson]: Joins.MediaPerson;
 }
 
-export type TableType<T extends Table> = TableMapping[T];
-
-export type TableRecord<T extends Table> = RecordFor<TableType<T>>;
+export type TableRecord<T extends Table> = TableMapping[T];

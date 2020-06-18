@@ -1,29 +1,26 @@
-import { Tables, RecordFor } from "pixelbin-database";
+import * as ObjectModel from "pixelbin-object-model";
+import { Dereferenced, WithoutLists, WithoutReferences } from "pixelbin-object-model";
 
-// Fake interface
-export interface MapOf<T> {
-  fakeType: "MapOf",
-  type: T;
-}
+export type ResponseFor<Table> = Dereferenced<WithoutLists<Table>>;
 
-export type PersonState = RecordFor<Tables.Person>;
-
-export type TagState = RecordFor<Tables.Tag>;
-
-export type AlbumState = RecordFor<Tables.Album>;
-
-export type CatalogState = RecordFor<Tables.Catalog> & {
-  people: MapOf<PersonState>;
-  tags: MapOf<TagState>;
-  albums: MapOf<AlbumState>;
+export type Media = ResponseFor<ObjectModel.Media> & ResponseFor<ObjectModel.Metadata> & {
+  info: MediaInfo | null;
 };
+export type MediaInfo = ResponseFor<WithoutReferences<ObjectModel.MediaInfo>>;
+export type Catalog = ResponseFor<ObjectModel.Catalog>;
+export type Album = ResponseFor<ObjectModel.Album>;
+export type Person = ResponseFor<ObjectModel.Person>;
+export type Tag = ResponseFor<ObjectModel.Tag>;
 
-export type UserState = RecordFor<Tables.User> & {
-  catalogs: MapOf<CatalogState>;
+export type User = ResponseFor<ObjectModel.User> & {
+  catalogs: Catalog[],
+  people: Person[],
+  tags: Tag[],
+  albums: Album[],
 };
 
 export interface State {
-  user: UserState | null;
+  user: User | null;
 }
 
 export enum Method {

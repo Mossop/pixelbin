@@ -1,22 +1,19 @@
-import { ForeignKey } from "./meta";
-import * as Table from "./tables";
-
 export interface UserCatalog {
-  user: ForeignKey<Table.User>;
-  catalog: ForeignKey<Table.Catalog>;
+  user: string;
+  catalog: string;
 }
 
 export interface MediaAlbum {
-  media: ForeignKey<Table.Media>;
-  album: ForeignKey<Table.Album>;
+  media: string;
+  album: string;
 }
 
 export interface MediaTag {
-  media: ForeignKey<Table.Media>;
-  tag: ForeignKey<Table.Tag>;
+  media: string;
+  tag: string;
 }
 
 export interface MediaPerson {
-  media: ForeignKey<Table.Media>;
-  tag: ForeignKey<Table.Tag>;
+  media: string;
+  tag: string;
 }

@@ -1,5 +1,4 @@
 import Koa from "koa";
-import { Primitive } from "pixelbin-utils";
 import { JsonDecoder } from "ts.data.json";
 
 import * as Api from ".";
@@ -13,20 +12,11 @@ type RequestDecoder<Signature> =
       : JsonDecoder.Decoder<Request>
     : never;
 
-type ResponseType<Type> =
-  Type extends Primitive
-    ? Type
-    : Type extends (infer T)[]
-      ? ResponseType<T>[]
-      : Type extends Api.MapOf<infer T>
-        ? ResponseType<T>[]
-        : { [Key in keyof Type]: ResponseType<Type[Key]> };
-
 type ApiHandler<Signature> =
   Signature extends Api.Signature<infer Request, infer Response>
     ? Request extends Api.None
-      ? (ctx: Context) => ResponseType<Response>
-      : (ctx: Context, item: Request) => ResponseType<Response>
+      ? (ctx: Context) => Response
+      : (ctx: Context, item: Request) => Response
     : never;
 
 type RequestDecoders = {
@@ -42,7 +32,7 @@ type ApiInterface = {
 };
 
 export const apiMethods: ApiInterface = {
-  [Api.Method.State]: (): ResponseType<Api.State> => {
+  [Api.Method.State]: (): Api.State => {
     return { user: null };
   },
 };

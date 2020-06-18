@@ -1,39 +1,84 @@
-import { Primitive } from "pixelbin-utils";
+import * as ObjectModel from "pixelbin-object-model";
+import { WithoutLinks } from "pixelbin-object-model";
 import * as Api from "pixelbin-webserver/build/api";
 import { JsonDecoder } from "ts.data.json";
 
-import { ReadonlyMapDecoder } from "../utils/decoders";
-import { ReadonlyMapOf } from "../utils/maps";
+import { MapOf } from "../utils/maps";
+import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
 
-type ClientState<Type> =
-  Type extends Primitive
-    ? Type
-    : Type extends (infer T)[]
-      ? readonly ClientState<T>[]
-      : Type extends Api.MapOf<infer T>
-        ? ReadonlyMapOf<ClientState<T>>
-        : { readonly [Key in keyof Type]: ClientState<Type[Key]> };
+type StateFor<Table> =
+  Table extends ObjectModel.Person
+    ? PersonState
+    : Table extends ObjectModel.Tag
+      ? TagState
+      : Table extends ObjectModel.Album
+        ? AlbumState
+        : Table extends ObjectModel.Catalog
+          ? CatalogState
+          : Table extends ObjectModel.User
+            ? UserState
+            : Table extends ObjectModel.Media
+              ? MediaState
+              : never;
 
-const PersonStateDecoder = JsonDecoder.object<ClientState<Api.PersonState>>(
+type HighLevelFor<Table> =
+  Table extends ObjectModel.Person
+    ? Person
+    : Table extends ObjectModel.Tag
+      ? Tag
+      : Table extends ObjectModel.Album
+        ? Album
+        : Table extends ObjectModel.Catalog
+          ? Catalog
+          : Table extends ObjectModel.Media
+            ? Media
+            : never;
+
+type Dereference<T> =
+  T extends ObjectModel.List<infer Table>
+    ? MapOf<StateFor<Table>>
+    : T extends ObjectModel.Reference<infer Table>
+      ? Reference<HighLevelFor<Table>>
+      : T;
+
+type Dereferenced<Table> = {
+  [Column in keyof Table]: Dereference<Table[Column]>;
+};
+
+export interface PersonState extends Dereferenced<ObjectModel.Person> {}
+export interface TagState extends Dereferenced<WithoutLinks<ObjectModel.Tag>> {}
+export interface AlbumState extends Dereferenced<WithoutLinks<ObjectModel.Album>> {}
+export interface CatalogState extends ObjectModel.Catalog {}
+export interface UserState extends ObjectModel.User {}
+export interface UnprocessedMediaState extends ObjectModel.Media {
+  info?: null;
+}
+export interface ProcessedMediaState extends ObjectModel.Media {
+  info: MediaInfoState;
+}
+export type MediaState = UnprocessedMediaState | ProcessedMediaState;
+export interface MediaInfoState extends WithoutLinks<ObjectModel.MediaInfo> {}
+
+const PersonDecoder = JsonDecoder.object<Api.Person>(
   {
     id: JsonDecoder.string,
     catalog: JsonDecoder.string,
     name: JsonDecoder.string,
   },
-  "PersonState",
+  "Person",
 );
 
-const TagStateDecoder = JsonDecoder.object<ClientState<Api.TagState>>(
+const TagDecoder = JsonDecoder.object<Api.Tag>(
   {
     id: JsonDecoder.string,
     catalog: JsonDecoder.string,
     parent: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
     name: JsonDecoder.string,
   },
-  "TagState",
+  "Tag",
 );
 
-const AlbumStateDecoder = JsonDecoder.object<ClientState<Api.AlbumState>>(
+const AlbumDecoder = JsonDecoder.object<Api.Album>(
   {
     id: JsonDecoder.string,
     catalog: JsonDecoder.string,
@@ -41,35 +86,34 @@ const AlbumStateDecoder = JsonDecoder.object<ClientState<Api.AlbumState>>(
     name: JsonDecoder.string,
     parent: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
   },
-  "AlbumState",
+  "Album",
 );
 
-const CatalogStateDecoder = JsonDecoder.object<ClientState<Api.CatalogState>>(
+const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
-    people: ReadonlyMapDecoder(PersonStateDecoder, "ReadonlyMapOf<PersonData>"),
-    tags: ReadonlyMapDecoder(TagStateDecoder, "ReadonlyMapOf<TagData>"),
-    albums: ReadonlyMapDecoder(AlbumStateDecoder, "ReadonlyMapOf<AlbumData>"),
   },
-  "CatalogState",
+  "Catalog",
 );
 
-const UserStateDecoder = JsonDecoder.object<ClientState<Api.UserState>>(
+const UserDecoder = JsonDecoder.object<Api.User>(
   {
-    id: JsonDecoder.string,
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
     hadCatalog: JsonDecoder.boolean,
     verified: JsonDecoder.boolean,
-    catalogs: ReadonlyMapDecoder(CatalogStateDecoder, "ReadonlyMapOf<CatalogData>"),
+    catalogs: JsonDecoder.array(CatalogDecoder, "Catalog[]"),
+    people: JsonDecoder.array(PersonDecoder, "Person[]"),
+    tags: JsonDecoder.array(TagDecoder, "Tag[]"),
+    albums: JsonDecoder.array(AlbumDecoder, "Album[]"),
   },
   "UserState",
 );
 
-const StateDecoder = JsonDecoder.object<ClientState<Api.State>>(
+const StateDecoder = JsonDecoder.object<Api.State>(
   {
-    user: JsonDecoder.oneOf([UserStateDecoder, JsonDecoder.isNull(null)], "string | null"),
+    user: JsonDecoder.oneOf([UserDecoder, JsonDecoder.isNull(null)], "User | null"),
   },
   "State",
 );
@@ -82,7 +126,7 @@ type ResponseType<T extends Api.Method> =
 
 type ResponseDecoder<Signature> =
   Signature extends Api.Signature<unknown, infer Response>
-    ? JsonDecoder.Decoder<ClientState<Response>>
+    ? JsonDecoder.Decoder<Response>
     : never;
 
 type ResponseDecoders = {
