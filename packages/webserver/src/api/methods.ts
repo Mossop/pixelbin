@@ -37,20 +37,15 @@ export const apiMethods: ApiInterface = {
   },
 };
 
-export function apiRequestHandler(method: Api.Method): (ctx: Context) => Promise<void> {
+export function apiRequestHandler<T extends Api.Method>(
+  method: T,
+): (ctx: Context) => Promise<void> {
   return async (ctx: Context): Promise<void> => {
     if (ctx.method.toLocaleUpperCase() != Api.HttpMethods[method]) {
       throw new Error("Invalid method.");
     }
 
-    // let decoder = apiDecoders[method];
-    let response: unknown;
-    // if (decoder) {
-    //   let param = await decoder.decode(ctx.request.body);
-    //   response = apiMethods[method](ctx, param);
-    // } else {
-    response = apiMethods[method](ctx);
-    // }
+    let response = apiMethods[method](ctx);
 
     ctx.set("Content-Type", "application/json");
     ctx.body = JSON.stringify(response);

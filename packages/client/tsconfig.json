@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compileOptions": {
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": true
   },
   "include": [
     "src/**/*.js",

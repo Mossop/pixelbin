@@ -3,61 +3,90 @@ import { WithoutLinks } from "pixelbin-object-model";
 import * as Api from "pixelbin-webserver/build/api";
 import { JsonDecoder } from "ts.data.json";
 
-import { MapOf } from "../utils/maps";
+import { ReadonlyMapOf } from "../utils/maps";
+import { JsonRequestData, JsonDecoderDecoder, makeRequest } from "./helpers";
 import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
 
-type StateFor<Table> =
-  Table extends ObjectModel.Person
+type StateForObject<Obj> =
+  Obj extends ObjectModel.Person
     ? PersonState
-    : Table extends ObjectModel.Tag
+    : Obj extends ObjectModel.Tag
       ? TagState
-      : Table extends ObjectModel.Album
+      : Obj extends ObjectModel.Album
         ? AlbumState
-        : Table extends ObjectModel.Catalog
+        : Obj extends ObjectModel.Catalog
           ? CatalogState
-          : Table extends ObjectModel.User
+          : Obj extends ObjectModel.User
             ? UserState
-            : Table extends ObjectModel.Media
+            : Obj extends ObjectModel.Media
               ? MediaState
               : never;
 
-type HighLevelFor<Table> =
-  Table extends ObjectModel.Person
+type HighLevelForState<State> =
+  State extends PersonState
     ? Person
-    : Table extends ObjectModel.Tag
+    : State extends TagState
       ? Tag
-      : Table extends ObjectModel.Album
+      : State extends AlbumState
         ? Album
-        : Table extends ObjectModel.Catalog
+        : State extends CatalogState
           ? Catalog
-          : Table extends ObjectModel.Media
+          : State extends MediaState
+            ? Media
+            : never;
+
+type StateForHighLevel<HighLevel> =
+  HighLevel extends Person
+    ? PersonState
+    : HighLevel extends Tag
+      ? TagState
+      : HighLevel extends Album
+        ? AlbumState
+        : HighLevel extends Catalog
+          ? CatalogState
+          : HighLevel extends Media
+            ? MediaState
+            : never;
+
+type HighLevelForObject<Obj> =
+  Obj extends ObjectModel.Person
+    ? Person
+    : Obj extends ObjectModel.Tag
+      ? Tag
+      : Obj extends ObjectModel.Album
+        ? Album
+        : Obj extends ObjectModel.Catalog
+          ? Catalog
+          : Obj extends ObjectModel.Media
             ? Media
             : never;
 
 type Dereference<T> =
-  T extends ObjectModel.List<infer Table>
-    ? MapOf<StateFor<Table>>
-    : T extends ObjectModel.Reference<infer Table>
-      ? Reference<HighLevelFor<Table>>
+  T extends ObjectModel.List<infer Obj>
+    ? ReadonlyMapOf<StateForObject<Obj>>
+    : T extends ObjectModel.Reference<infer Obj>
+      ? Reference<HighLevelForObject<Obj>>
       : T;
 
-type Dereferenced<Table> = {
-  [Column in keyof Table]: Dereference<Table[Column]>;
+type Dereferenced<Obj> = {
+  [Column in keyof Obj]: Dereference<Obj[Column]>;
 };
 
-export interface PersonState extends Dereferenced<ObjectModel.Person> {}
-export interface TagState extends Dereferenced<WithoutLinks<ObjectModel.Tag>> {}
-export interface AlbumState extends Dereferenced<WithoutLinks<ObjectModel.Album>> {}
-export interface CatalogState extends ObjectModel.Catalog {}
-export interface UserState extends ObjectModel.User {}
-export interface UnprocessedMediaState extends ObjectModel.Media {
-  info?: null;
+export interface PersonState extends Readonly<Dereferenced<ObjectModel.Person>> {}
+export interface TagState extends Readonly<Dereferenced<WithoutLinks<ObjectModel.Tag>>> {}
+export interface AlbumState extends Readonly<Dereferenced<WithoutLinks<ObjectModel.Album>>> {}
+export interface CatalogState extends Readonly<Dereference<ObjectModel.Catalog>> {}
+export interface UserState extends Readonly<ObjectModel.User> {
+  readonly catalogs: ReadonlyMapOf<CatalogState>;
 }
-export interface ProcessedMediaState extends ObjectModel.Media {
+export interface UnprocessedMediaState extends Readonly<ObjectModel.Media> {
+  readonly info?: null;
+}
+export interface ProcessedMediaState extends Readonly<ObjectModel.Media> {
   info: MediaInfoState;
 }
 export type MediaState = UnprocessedMediaState | ProcessedMediaState;
-export interface MediaInfoState extends WithoutLinks<ObjectModel.MediaInfo> {}
+export interface MediaInfoState extends Readonly<WithoutLinks<ObjectModel.MediaInfo>> {}
 
 const PersonDecoder = JsonDecoder.object<Api.Person>(
   {
@@ -108,7 +137,7 @@ const UserDecoder = JsonDecoder.object<Api.User>(
     tags: JsonDecoder.array(TagDecoder, "Tag[]"),
     albums: JsonDecoder.array(AlbumDecoder, "Album[]"),
   },
-  "UserState",
+  "User",
 );
 
 const StateDecoder = JsonDecoder.object<Api.State>(
@@ -119,7 +148,11 @@ const StateDecoder = JsonDecoder.object<Api.State>(
 );
 
 type RequestType<T extends Api.Method> =
-  Api.Signatures[T] extends Api.Signature<infer Request, unknown> ? Request : never;
+  Api.Signatures[T] extends Api.Signature<infer Request, unknown>
+    ? Request extends Api.None
+      ? []
+      : [Request]
+    : never;
 type ArgOrUndefined<T> = T extends Api.None ? undefined : T;
 type ResponseType<T extends Api.Method> =
   Api.Signatures[T] extends Api.Signature<unknown, infer Response> ? Response : never;
@@ -138,8 +171,11 @@ const decoders: ResponseDecoders = {
 };
 
 export function request<T extends Api.Method>(
-  _method: T,
-  _data: ArgOrUndefined<RequestType<T>>,
+  method: T,
+  ...data: RequestType<T>
 ): Promise<ResponseType<T>> {
-  throw new Error("Not implemented");
+  let request = new JsonRequestData(data, JsonDecoderDecoder(decoders[method]));
+
+  // @ts-ignore: Not sure what is going wrong here.
+  return makeRequest(Api.HttpMethods[method], method, request);
 }
