@@ -28,5 +28,23 @@ export async function insert<T extends Table>(
   table: T,
   data: TableRecord<T> | TableRecord<T>[],
 ): Promise<void> {
-  await (await connection).from(table).insert(data);
+  let knex = await connection;
+  await knex(table).insert(data);
+}
+
+export async function update<T extends Table>(
+  table: T,
+  where: Partial<TableRecord<T>>,
+  update: Partial<TableRecord<T>>,
+): Promise<void> {
+  let knex = await connection;
+  await knex(table).where(where).update(update);
+}
+
+export async function drop<T extends Table>(
+  table: T,
+  where: Partial<TableRecord<T>>,
+): Promise<void> {
+  let knex = await connection;
+  await knex<TableRecord<T>>(table).where(where).delete();
 }
