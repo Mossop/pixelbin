@@ -6,7 +6,7 @@ import koaBody from "koa-body";
 import mount from "koa-mount";
 import serve from "koa-static";
 
-import { ApiMethod } from "./api";
+import { Method } from "./api";
 import { apiRequestHandler } from "./api/methods";
 import { WebserverConfig } from "./types";
 
@@ -47,11 +47,10 @@ export default function buildApp(config: WebserverConfig): Koa {
   const router = new Router();
 
   router.get("/healthcheck", async (ctx: Context): Promise<void> => {
-    console.log(ctx.path);
     ctx.body = "Ok";
   });
 
-  for (let method of Object.values(ApiMethod)) {
+  for (let method of Object.values(Method)) {
     router.all(`/api/${method}`, koaBody(), apiRequestHandler(method));
   }
 

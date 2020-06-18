@@ -6,19 +6,19 @@ export interface MapOf<T> {
   type: T;
 }
 
-type PersonState = RecordFor<Tables.Person>;
+export type PersonState = RecordFor<Tables.Person>;
 
-type TagState = RecordFor<Tables.Tag>;
+export type TagState = RecordFor<Tables.Tag>;
 
-type AlbumState = RecordFor<Tables.Album>;
+export type AlbumState = RecordFor<Tables.Album>;
 
-type CatalogState = RecordFor<Tables.Catalog> & {
+export type CatalogState = RecordFor<Tables.Catalog> & {
   people: MapOf<PersonState>;
   tags: MapOf<TagState>;
   albums: MapOf<AlbumState>;
 };
 
-type UserState = RecordFor<Tables.User> & {
+export type UserState = RecordFor<Tables.User> & {
   catalogs: MapOf<CatalogState>;
 };
 
@@ -26,53 +26,53 @@ export interface State {
   user: UserState | null;
 }
 
-export enum ApiMethod {
+export enum Method {
   State = "state",
-  Login = "login",
-  Logout = "logout",
-  UserCreate = "user/create",
-  CatalogCreate = "catalog/create",
-  AlbumCreate = "album/create",
-  AlbumEdit = "album/edit",
-  AlbumAddMedia = "album/add_media",
-  AlbumRemoveMedia = "album/remove_media",
-  TagCreate = "tag/create",
-  TagEdit = "tag/edit",
-  TagFind = "tag/find",
-  PersonCreate = "person/create",
-  MediaGet = "media/get",
-  MediaCreate = "media/create",
-  MediaUpdate = "media/update",
-  MediaSearch = "media/search",
-  MediaThumbnail = "media/thumbnail",
+  // Login = "login",
+  // Logout = "logout",
+  // UserCreate = "user/create",
+  // CatalogCreate = "catalog/create",
+  // AlbumCreate = "album/create",
+  // AlbumEdit = "album/edit",
+  // AlbumAddMedia = "album/add_media",
+  // AlbumRemoveMedia = "album/remove_media",
+  // TagCreate = "tag/create",
+  // TagEdit = "tag/edit",
+  // TagFind = "tag/find",
+  // PersonCreate = "person/create",
+  // MediaGet = "media/get",
+  // MediaCreate = "media/create",
+  // MediaUpdate = "media/update",
+  // MediaSearch = "media/search",
+  // MediaThumbnail = "media/thumbnail",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-export type MethodList = { [k in ApiMethod]: HttpMethod };
+export type MethodList = { [k in Method]: HttpMethod };
 
 export const HttpMethods: MethodList = {
-  [ApiMethod.State]: "GET",
-  [ApiMethod.Login]: "POST",
-  [ApiMethod.Logout]: "POST",
-  [ApiMethod.UserCreate]: "PUT",
-  [ApiMethod.CatalogCreate]: "PUT",
-  [ApiMethod.AlbumCreate]: "PUT",
-  [ApiMethod.AlbumEdit]: "PATCH",
-  [ApiMethod.AlbumAddMedia]: "PUT",
-  [ApiMethod.AlbumRemoveMedia]: "DELETE",
-  [ApiMethod.TagCreate]: "PUT",
-  [ApiMethod.TagEdit]: "PATCH",
-  [ApiMethod.TagFind]: "POST",
-  [ApiMethod.PersonCreate]: "PUT",
-  [ApiMethod.MediaGet]: "GET",
-  [ApiMethod.MediaCreate]: "PUT",
-  [ApiMethod.MediaUpdate]: "PUT",
-  [ApiMethod.MediaSearch]: "POST",
-  [ApiMethod.MediaThumbnail]: "GET",
+  [Method.State]: "GET",
+  // [Method.Login]: "POST",
+  // [Method.Logout]: "POST",
+  // [Method.UserCreate]: "PUT",
+  // [Method.CatalogCreate]: "PUT",
+  // [Method.AlbumCreate]: "PUT",
+  // [Method.AlbumEdit]: "PATCH",
+  // [Method.AlbumAddMedia]: "PUT",
+  // [Method.AlbumRemoveMedia]: "DELETE",
+  // [Method.TagCreate]: "PUT",
+  // [Method.TagEdit]: "PATCH",
+  // [Method.TagFind]: "POST",
+  // [Method.PersonCreate]: "PUT",
+  // [Method.MediaGet]: "GET",
+  // [Method.MediaCreate]: "PUT",
+  // [Method.MediaUpdate]: "PUT",
+  // [Method.MediaSearch]: "POST",
+  // [Method.MediaThumbnail]: "GET",
 };
 
 // Fake interface
-export interface ApiMethodSignature<Request, Response> {
+export interface Signature<Request, Response> {
   fakeType: "ApiMethodSignature",
   requestType: Request;
   responseType: Response;
@@ -83,8 +83,8 @@ export interface None {
   fakeType: "None";
 }
 
-export interface ApiMethodSignatures {
-  [ApiMethod.State]: ApiMethodSignature<None, State>;
+export interface Signatures {
+  [Method.State]: Signature<None, State>;
   // [ApiMethod.Login]: ApiMethodSignature<LoginData, ServerData>;
   // [ApiMethod.Logout]: ApiMethodSignature<never, ServerData>;
   // [ApiMethod.UserCreate]: ApiMethodSignature<UserCreateData, ServerData>;

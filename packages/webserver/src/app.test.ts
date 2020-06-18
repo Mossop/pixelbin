@@ -21,3 +21,13 @@ test("basic connection", async (): Promise<void> => {
     .expect("Content-Type", "text/plain; charset=utf-8")
     .expect(200, "Ok");
 });
+
+test("state", async (): Promise<void> => {
+  let response = await request.get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: null,
+  });
+});

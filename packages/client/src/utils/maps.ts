@@ -4,8 +4,8 @@ export interface Mappable {
 
 export type MapId<T extends Mappable> = T | string;
 
-export type MapOf<R extends Mappable> = Map<string, R>;
-export type ReadonlyMapOf<R extends Mappable> = ReadonlyMap<string, R>;
+export type MapOf<R> = Map<string, R>;
+export interface ReadonlyMapOf<R> extends ReadonlyMap<string, R> {}
 export type MapType<M> = M extends MapOf<infer T> ? T : never;
 
 export function intoId<T extends Mappable>(item: MapId<T>): string {
