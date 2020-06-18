@@ -2,9 +2,12 @@ import path from "path";
 
 import Router from "@koa/router";
 import Koa from "koa";
+import koaBody from "koa-body";
 import mount from "koa-mount";
 import serve from "koa-static";
 
+import { ApiMethod } from "./api";
+import { apiRequestHandler } from "./api/methods";
 import { WebserverConfig } from "./types";
 
 type Context = Koa.ParameterizedContext;
@@ -47,6 +50,10 @@ export default function buildApp(config: WebserverConfig): Koa {
     console.log(ctx.path);
     ctx.body = "Ok";
   });
+
+  for (let method of Object.values(ApiMethod)) {
+    router.all(`/api/${method}`, koaBody(), apiRequestHandler(method));
+  }
 
   const app = new Koa();
   app.use(async (ctx: Context, next: Next): Promise<void> => {

@@ -1,3 +1,4 @@
+import { getTestDatabaseConfig } from "pixelbin-database/build/test-helpers";
 import supertest from "supertest";
 
 import buildApp from "./app";
@@ -5,6 +6,7 @@ import buildApp from "./app";
 const server = buildApp({
   staticRoot: __dirname,
   appRoot: __dirname,
+  database: getTestDatabaseConfig(),
 }).listen();
 const request = supertest(server);
 

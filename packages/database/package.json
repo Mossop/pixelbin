@@ -1,5 +1,5 @@
 {
-  "name": "pixelbin-db",
+  "name": "pixelbin-database",
   "version": "1.0.0",
   "description": "PixelBin database.",
   "repository": {
@@ -10,6 +10,7 @@
   "private": true,
   "license": "UNLICENSED",
   "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "main": "build/index.js",
   "dependencies": {
     "knex": "^0.21.1",
     "moment": "^2.26.0",

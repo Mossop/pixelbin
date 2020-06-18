@@ -1,6 +1,9 @@
-import * as JoinTypes from "./joins";
+import * as Joins from "./joins";
 import { RecordFor } from "./meta";
-import * as TableTypes from "./tables";
+import * as Tables from "./tables";
+
+export { Joins, Tables };
+export type { RecordFor };
 
 export enum Table {
   User = "user",
@@ -18,18 +21,18 @@ export enum Table {
 }
 
 export interface TableMapping {
-  [Table.User]: TableTypes.User;
-  [Table.Catalog]: TableTypes.Catalog;
-  [Table.Album]: TableTypes.Album;
-  [Table.Tag]: TableTypes.Tag;
-  [Table.Person]: TableTypes.Person;
-  [Table.Media]: TableTypes.Media;
-  [Table.MediaInfo]: TableTypes.MediaInfo;
+  [Table.User]: Tables.User;
+  [Table.Catalog]: Tables.Catalog;
+  [Table.Album]: Tables.Album;
+  [Table.Tag]: Tables.Tag;
+  [Table.Person]: Tables.Person;
+  [Table.Media]: Tables.Media;
+  [Table.MediaInfo]: Tables.MediaInfo;
 
-  [Table.UserCatalog]: JoinTypes.UserCatalog;
-  [Table.MediaAlbum]: JoinTypes.MediaAlbum;
-  [Table.MediaTag]: JoinTypes.MediaTag;
-  [Table.MediaPerson]: JoinTypes.MediaPerson;
+  [Table.UserCatalog]: Joins.UserCatalog;
+  [Table.MediaAlbum]: Joins.MediaAlbum;
+  [Table.MediaTag]: Joins.MediaTag;
+  [Table.MediaPerson]: Joins.MediaPerson;
 }
 
 export type TableType<T extends Table> = TableMapping[T];

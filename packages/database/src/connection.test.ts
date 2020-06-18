@@ -1,53 +1,17 @@
-import { connection, connect, DatabaseConfig } from "./connection";
+import { connection, connect } from "./connection";
 import { from, insert, update, drop } from "./queries";
+import { getTestDatabaseConfig, initDB, resetDB, destroyDB } from "./test-helpers";
 import { Table } from "./types";
 
 beforeAll(async (): Promise<void> => {
-  let config: DatabaseConfig = {
-    username: process.env.PX_DB_USERNAME ?? "pixelbin",
-    password: process.env.PX_DB_PASSWORD ?? "pixelbin",
-    host: process.env.PX_DB_HOST ?? "localhost",
-    database: process.env.PX_DB_NAME ?? "pixelbin_test",
-  };
+  connect(getTestDatabaseConfig());
 
-  let knex = connect(config);
-
-  if (knex.userParams.schema) {
-    await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);
-    await knex.raw("CREATE SCHEMA ??;", [knex.userParams.schema]);
-  }
-
-  await knex.migrate.latest();
+  await initDB();
 });
 
-beforeEach(async (): Promise<void> => {
-  let knex = await connection;
+beforeEach(resetDB);
 
-  for (let table of [
-    "media_person",
-    "media_tag",
-    "media_album",
-    "user_catalog",
-    "mediaInfo",
-    "media",
-    "person",
-    "tag",
-    "album",
-    "catalog",
-    "user",
-  ]) {
-    await knex.raw("TRUNCATE ?? CASCADE;", [table]);
-  }
-});
-
-afterAll(async (): Promise<void> => {
-  let knex = await connection;
-
-  if (knex.userParams.schema) {
-    await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);
-  }
-  await knex.destroy();
-});
+afterAll(destroyDB);
 
 test("Basic database connection", async (): Promise<void> => {
   let knex = await connection;

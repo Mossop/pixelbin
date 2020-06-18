@@ -13,6 +13,7 @@
   "main": "build/index.js",
   "dependencies": {
     "pixelbin-client": "^1.0.0",
+    "pixelbin-database": "^1.0.0",
     "pixelbin-utils": "^1.0.0",
     "pixelbin-webserver": "^1.0.0",
     "pixelbin-worker": "^1.0.0"

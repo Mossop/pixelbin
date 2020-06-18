@@ -6,6 +6,7 @@ import { getLogger, listen } from "pixelbin-utils";
 import type { MasterInterface, WebserverConfig } from "pixelbin-webserver";
 import { WorkerPool, AbstractChildProcess } from "pixelbin-worker";
 
+import config from "./config";
 import events from "./events";
 
 const logger = getLogger({
@@ -24,8 +25,9 @@ async function startupServers(): Promise<void> {
     localInterface: {
       getServer: (): net.Server => server,
       getConfig: (): WebserverConfig => ({
-        staticRoot: path.resolve(path.join(basedir, "node_modules", "pixelbin-client", "static")),
-        appRoot: path.resolve(path.join(basedir, "node_modules", "pixelbin-client", "build")),
+        staticRoot: path.join(config.clientRoot, "static"),
+        appRoot: path.join(config.clientRoot, "build"),
+        database: config.database,
       }),
     },
     minWorkers: 4,
