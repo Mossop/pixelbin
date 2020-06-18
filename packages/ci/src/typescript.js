@@ -130,9 +130,20 @@ exports.tsLint = function(root) {
 
   return iterable(async function(lints) {
     /** @type {Program} */
-    let program = await buildProgram(configFile);
-    for await (let lint of listLints(program, configFile)) {
-      lints.push(lint);
+    try {
+      let program = await buildProgram(configFile);
+      for await (let lint of listLints(program, configFile)) {
+        lints.push(lint);
+      }
+    } catch (e) {
+      lints.push({
+        path: configFile,
+        lintResults: [{
+          source: "typescript",
+          code: "exception",
+          message: String(e),
+        }],
+      });
     }
   });
 };
