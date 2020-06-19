@@ -106,16 +106,19 @@ export async function insertData(data: Seed): Promise<void> {
 export const testData = {
   [Table.User]: [{
     email: "someone1@nowhere.com",
+    password: "password1",
     fullname: "Someone 1",
     hadCatalog: false,
     verified: true,
   }, {
     email: "someone2@nowhere.com",
+    password: "password2",
     fullname: "Someone 2",
     hadCatalog: false,
     verified: true,
   }, {
     email: "someone3@nowhere.com",
+    password: "password3",
     fullname: "Someone 3",
     hadCatalog: false,
     verified: true,

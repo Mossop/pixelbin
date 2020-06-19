@@ -63,6 +63,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
   return knex.schema.createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
     table.string("email", 100).notNullable().unique().primary();
+    table.string("password", 200);
     table.string("fullname", 200);
     table.boolean("hadCatalog");
     table.boolean("verified");

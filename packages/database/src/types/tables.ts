@@ -2,7 +2,7 @@ import * as ObjectModel from "pixelbin-object-model";
 
 import { DbRecord } from "./meta";
 
-export type User = DbRecord<ObjectModel.User>;
+export type User = DbRecord<ObjectModel.User> & { password: string };
 
 export type Catalog = DbRecord<ObjectModel.Catalog>;
 
