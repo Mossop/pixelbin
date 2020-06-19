@@ -53,7 +53,6 @@
     "karma-sourcemap-loader": "^0.3.7",
     "karma-typescript": "^5.0.3",
     "karma-webpack": "^4.0.2",
-    "lerna": "^3.22.1",
     "node-sass": "^4.14.1",
     "pino-pretty": "^4.0.0",
     "pixelbin-ci": "file:packages/ci",

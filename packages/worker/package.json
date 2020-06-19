@@ -12,7 +12,7 @@
   "author": "Dave Townsend <dtownsend@oxymoronical.com>",
   "main": "build/index.js",
   "dependencies": {
-    "pixelbin-utils": "^1.0.0",
+    "pixelbin-utils": "file:../utils",
     "ts.data.json": "^1.1.0"
   }
 }
