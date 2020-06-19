@@ -7,9 +7,11 @@ buildTestDB({
   beforeEach,
   afterAll,
 });
-const { request } = buildTestApp(afterAll);
+const { agent } = buildTestApp(afterAll);
 
 test("basic connection", async (): Promise<void> => {
+  const request = agent();
+
   await request.get("/healthcheck")
     .expect("X-Worker-Id", String(process.pid))
     .expect("X-Response-Time", /\d+ms/)

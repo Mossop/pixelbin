@@ -1,52 +1,71 @@
-import Koa from "koa";
 import { JsonDecoder } from "ts.data.json";
 
 import * as Api from ".";
-import { getState } from "./state";
+import { AppContext } from "../app";
+import { LoginRequestDecoder } from "./decoders";
+import { getState, login, logout } from "./state";
 
-type Context = Koa.ParameterizedContext;
-
-type RequestDecoder<Signature> =
-  Signature extends Api.Signature<infer Request, unknown>
-    ? Request extends Api.None
-      ? undefined
-      : JsonDecoder.Decoder<Request>
-    : never;
-
-type ApiHandler<Signature> =
-  Signature extends Api.Signature<infer Request, infer Response>
-    ? Request extends Api.None
-      ? (ctx: Context) => Promise<Response>
-      : (ctx: Context, item: Request) => Promise<Response>
-    : never;
+type WithArguments = {
+  [Method in Api.Method]: Api.SignatureRequest<Method> extends Api.None
+    ? never
+    : Method;
+}[Api.Method];
 
 type RequestDecoders = {
-  [Key in keyof Api.Signatures]: RequestDecoder<Api.Signatures[Key]>;
+  [Key in WithArguments]: JsonDecoder.Decoder<Api.SignatureRequest<Key>>;
 };
 
 export const apiDecoders: RequestDecoders = {
-  state: undefined,
+  [Api.Method.Login]: LoginRequestDecoder,
 };
 
 type ApiInterface = {
-  [Key in keyof Api.Signatures]: ApiHandler<Api.Signatures[Key]>;
+  [Key in Api.Method]: Api.SignatureRequest<Key> extends Api.None
+    ? (ctx: AppContext) => Promise<Api.SignatureResponse<Key>>
+    : (ctx: AppContext, data: Api.SignatureRequest<Key>) => Promise<Api.SignatureResponse<Key>>;
 };
 
-export const apiMethods: ApiInterface = {
+const apiMethods: ApiInterface = {
   [Api.Method.State]: getState,
+  [Api.Method.Login]: login,
+  [Api.Method.Logout]: logout,
 };
 
 export function apiRequestHandler<T extends Api.Method>(
   method: T,
-): (ctx: Context) => Promise<void> {
-  return async (ctx: Context): Promise<void> => {
+): (ctx: AppContext) => Promise<void> {
+  return async (ctx: AppContext): Promise<void> => {
     if (ctx.method.toLocaleUpperCase() != Api.HttpMethods[method]) {
       throw new Error("Invalid method.");
     }
 
-    let response = await apiMethods[method](ctx);
+    let response: unknown = undefined;
+    if (!(method in apiDecoders)) {
+      // @ts-ignore: TypeScript is falling over here.
+      let apiMethod: (ctx: Context) => Promise<unknown> = apiMethods[method];
+      response = await apiMethod(ctx);
+    } else {
+      let body = ctx.request.body;
+      if (!Array.isArray(body) && typeof body == "object" && ctx.request.files) {
+        for (let [key, file] of Object.entries(ctx.request.files)) {
+          body[key] = file;
+        }
+      }
 
-    ctx.set("Content-Type", "application/json");
-    ctx.body = JSON.stringify(response);
+      // @ts-ignore: TypeScript is falling over here.
+      let decoder: JsonDecoder.Decoder<Api.SignatureRequest<T>> = apiDecoders[method];
+      // @ts-ignore: TypeScript is falling over here.
+      let apiMethod: (
+        ctx: AppContext, data: Api.SignatureRequest<T>,
+      ) => Promise<unknown> = apiMethods[method];
+
+      let decoded = await decoder.decodePromise(body);
+      response = await apiMethod(ctx, decoded);
+    }
+
+    if (response) {
+      ctx.set("Content-Type", "application/json");
+      ctx.body = JSON.stringify(response);
+    }
   };
 }

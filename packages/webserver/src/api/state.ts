@@ -1,29 +1,40 @@
-import Koa from "koa";
-import { listCatalogs, listPeople, listTags, listAlbums } from "pixelbin-database";
+import * as Db from "pixelbin-database";
 
-import { State, User } from ".";
+import { State, User, LoginRequest } from ".";
+import { AppContext } from "../app";
 
-type Context = Koa.ParameterizedContext;
+export async function buildUser(ctx: AppContext): Promise<User | null> {
+  if (!ctx.user) {
+    return null;
+  }
 
-export async function buildUser(_ctx: Context): Promise<User | null> {
   return {
-    email: "dtownsend@oxymoronical.com",
-    fullname: "Dave Townsend",
-    hadCatalog: false,
-    verified: true,
-    catalogs: await listCatalogs("dtownsend@oxymoronical.com"),
-    people: await listPeople("dtownsend@oxymoronical.com"),
-    tags: await listTags("dtownsend@oxymoronical.com"),
-    albums: await listAlbums("dtownsend@oxymoronical.com"),
+    ...ctx.user,
+    catalogs: await Db.listCatalogs(ctx.user.email),
+    people: await Db.listPeople(ctx.user.email),
+    tags: await Db.listTags(ctx.user.email),
+    albums: await Db.listAlbums(ctx.user.email),
   };
 }
 
-async function buildState(ctx: Context): Promise<State> {
+async function buildState(ctx: AppContext): Promise<State> {
   return {
     user: await buildUser(ctx),
   };
 }
 
-export async function getState(ctx: Context): Promise<State> {
+export async function getState(ctx: AppContext): Promise<State> {
+  return buildState(ctx);
+}
+
+export async function login(ctx: AppContext, data: LoginRequest): Promise<State> {
+  await ctx.login(data.email, data.password);
+
+  return buildState(ctx);
+}
+
+export async function logout(ctx: AppContext): Promise<State> {
+  await ctx.logout();
+
   return buildState(ctx);
 }

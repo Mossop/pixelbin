@@ -23,10 +23,15 @@ export interface State {
   user: User | null;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
 export enum Method {
   State = "state",
-  // Login = "login",
-  // Logout = "logout",
+  Login = "login",
+  Logout = "logout",
   // UserCreate = "user/create",
   // CatalogCreate = "catalog/create",
   // AlbumCreate = "album/create",
@@ -49,8 +54,8 @@ export type MethodList = { [k in Method]: HttpMethod };
 
 export const HttpMethods: MethodList = {
   [Method.State]: "GET",
-  // [Method.Login]: "POST",
-  // [Method.Logout]: "POST",
+  [Method.Login]: "POST",
+  [Method.Logout]: "POST",
   // [Method.UserCreate]: "PUT",
   // [Method.CatalogCreate]: "PUT",
   // [Method.AlbumCreate]: "PUT",
@@ -69,7 +74,7 @@ export const HttpMethods: MethodList = {
 };
 
 // Fake interface
-export interface Signature<Request, Response> {
+export interface Signature<Request = unknown, Response = unknown> {
   fakeType: "ApiMethodSignature",
   requestType: Request;
   responseType: Response;
@@ -82,8 +87,8 @@ export interface None {
 
 export interface Signatures {
   [Method.State]: Signature<None, State>;
-  // [ApiMethod.Login]: ApiMethodSignature<LoginData, ServerData>;
-  // [ApiMethod.Logout]: ApiMethodSignature<never, ServerData>;
+  [Method.Login]: Signature<LoginRequest, State>;
+  [Method.Logout]: Signature<None, State>;
   // [ApiMethod.UserCreate]: ApiMethodSignature<UserCreateData, ServerData>;
   // [ApiMethod.CatalogCreate]: ApiMethodSignature<CatalogCreateData, CatalogData>;
   // [ApiMethod.AlbumCreate]: ApiMethodSignature<AlbumCreateData, AlbumData>;
@@ -100,3 +105,13 @@ export interface Signatures {
   // [ApiMethod.MediaSearch]: ApiMethodSignature<Search, MediaData[]>;
   // [ApiMethod.MediaThumbnail]: ApiMethodSignature<MediaThumbnail, Blob>;
 }
+
+export type SignatureRequest<M extends Method> =
+  Signatures[M] extends Signature<infer Request>
+    ? Request
+    : never;
+
+export type SignatureResponse<M extends Method> =
+  Signatures[M] extends Signature<unknown, infer Response>
+    ? Response
+    : never;
