@@ -2,6 +2,7 @@ import Koa from "koa";
 import { JsonDecoder } from "ts.data.json";
 
 import * as Api from ".";
+import { buildState } from "./state";
 
 type Context = Koa.ParameterizedContext;
 
@@ -15,8 +16,8 @@ type RequestDecoder<Signature> =
 type ApiHandler<Signature> =
   Signature extends Api.Signature<infer Request, infer Response>
     ? Request extends Api.None
-      ? (ctx: Context) => Response
-      : (ctx: Context, item: Request) => Response
+      ? (ctx: Context) => Promise<Response>
+      : (ctx: Context, item: Request) => Promise<Response>
     : never;
 
 type RequestDecoders = {
@@ -32,8 +33,8 @@ type ApiInterface = {
 };
 
 export const apiMethods: ApiInterface = {
-  [Api.Method.State]: (): Api.State => {
-    return { user: null };
+  [Api.Method.State]: (ctx: Context): Promise<Api.State> => {
+    return buildState(ctx);
   },
 };
 

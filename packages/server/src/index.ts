@@ -28,6 +28,7 @@ async function startupServers(): Promise<void> {
         staticRoot: path.join(config.clientRoot, "static"),
         appRoot: path.join(config.clientRoot, "build"),
         database: config.database,
+        secretKeys: ["Random secret"],
       }),
     },
     minWorkers: 4,

@@ -1,7 +1,7 @@
 import Knex from "knex";
 
 import { connection } from "./connection";
-import { Table, TableRecord } from "./types";
+import { Table, TableRecord, ref } from "./types";
 
 // Because DeferredKeySelection is private in knex it is impossible to correctly
 // define the types of these functions, just let TypeScript infer them.
@@ -47,4 +47,19 @@ export async function drop<T extends Table>(
 ): Promise<void> {
   let knex = await connection;
   await knex<TableRecord<T>>(table).where(where).delete();
+}
+
+export async function withChildren<T extends Table.Tag | Table.Album>(
+  table: T,
+  queryBuilder: Knex.QueryBuilder<TableRecord<T>>,
+): Promise<Knex.QueryBuilder<TableRecord<T>, TableRecord<T>[]>> {
+  let knex = await connection;
+  // @ts-ignore: Trust me!
+  return knex.withRecursive(
+    "parents",
+    queryBuilder.select(ref(table)).union((qb: Knex.QueryBuilder) => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      qb.from(table).select(ref(table)).join("parents", "parents.id", ref(table, "parent"));
+    }),
+  ).from("parents");
 }

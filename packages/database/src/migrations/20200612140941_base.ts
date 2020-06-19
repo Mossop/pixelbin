@@ -7,6 +7,7 @@ function id(table: Knex.CreateTableBuilder): void {
 function foreignId(
   table: Knex.CreateTableBuilder,
   target: string,
+  targetColumn: string = "id",
   nullable: boolean = false,
   column: string = target,
 ): void {
@@ -16,7 +17,7 @@ function foreignId(
   } else {
     col.nullable();
   }
-  table.foreign(column).references(`${target}.id`).onDelete("CASCADE");
+  table.foreign(column).references(`${target}.${targetColumn}`).onDelete("CASCADE");
 }
 
 exports.up = function(knex: Knex): Knex.SchemaBuilder {
@@ -59,8 +60,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
   }
 
   return knex.schema.createTable("user", (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    table.string("email", 100).notNullable().unique();
+    table.string("email", 100).notNullable().unique().primary();
     table.string("fullname", 200);
     table.boolean("hadCatalog");
     table.boolean("verified");
@@ -74,12 +74,12 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
   }).createTable("tag", (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, "catalog");
-    foreignId(table, "tag", true, "parent");
+    foreignId(table, "tag", "id", true, "parent");
     table.string("name", 100).notNullable();
   }).createTable("album", (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, "catalog");
-    foreignId(table, "album", true, "parent");
+    foreignId(table, "album", "id", true, "parent");
     table.string("stub", 50).nullable();
     table.string("name", 100).notNullable();
   }).createTable("media", (table: Knex.CreateTableBuilder): void => {
@@ -101,7 +101,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
     addMetadata(table);
   }).createTable("user_catalog", (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, "user");
+    foreignId(table, "user", "email");
     foreignId(table, "catalog");
   }).createTable("media_album", (table: Knex.CreateTableBuilder): void => {
     foreignId(table, "media");

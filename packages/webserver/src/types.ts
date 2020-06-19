@@ -6,6 +6,7 @@ export interface WebserverConfig {
   staticRoot: string;
   appRoot: string;
   database: DatabaseConfig;
+  secretKeys: string[];
 }
 
 export interface MasterInterface {

@@ -4,6 +4,7 @@ import Router from "@koa/router";
 import Koa from "koa";
 import koaBody from "koa-body";
 import mount from "koa-mount";
+import session from "koa-session";
 import serve from "koa-static";
 
 import { Method } from "./api";
@@ -55,6 +56,12 @@ export default function buildApp(config: WebserverConfig): Koa {
   }
 
   const app = new Koa();
+
+  app.keys = config.secretKeys;
+  app.use(session({
+    renew: true,
+  }, app));
+
   app.use(async (ctx: Context, next: Next): Promise<void> => {
     let start = Date.now();
     await next();

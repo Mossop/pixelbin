@@ -6,6 +6,7 @@ import buildApp from "./app";
 const server = buildApp({
   staticRoot: __dirname,
   appRoot: __dirname,
+  secretKeys: ["foo"],
   database: getTestDatabaseConfig(),
 }).listen();
 const request = supertest(server);

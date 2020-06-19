@@ -34,3 +34,10 @@ export interface TableMapping {
 }
 
 export type TableRecord<T extends Table> = TableMapping[T];
+
+export function ref<
+  T extends Table,
+  K extends keyof TableRecord<T>
+>(table: T, column?: K): string {
+  return `${table}.${column ?? "*"}`;
+}
