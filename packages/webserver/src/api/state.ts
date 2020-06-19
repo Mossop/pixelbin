@@ -18,8 +18,12 @@ export async function buildUser(_ctx: Context): Promise<User | null> {
   };
 }
 
-export async function buildState(ctx: Context): Promise<State> {
+async function buildState(ctx: Context): Promise<State> {
   return {
     user: await buildUser(ctx),
   };
+}
+
+export async function getState(ctx: Context): Promise<State> {
+  return buildState(ctx);
 }

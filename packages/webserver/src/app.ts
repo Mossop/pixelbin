@@ -58,16 +58,16 @@ export default function buildApp(config: WebserverConfig): Koa {
   const app = new Koa();
 
   app.keys = config.secretKeys;
-  app.use(session({
-    renew: true,
-  }, app));
-
   app.use(async (ctx: Context, next: Next): Promise<void> => {
     let start = Date.now();
     await next();
     let ms = Date.now() - start;
     ctx.set("X-Response-Time", `${ms}ms`);
   });
+
+  app.use(session({
+    renew: true,
+  }, app));
 
   app.use(async (ctx: Context, next: Next): Promise<void> => {
     await next();

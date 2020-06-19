@@ -1,4 +1,4 @@
-import { DatabaseConfig, connection } from "./connection";
+import { DatabaseConfig, connection, connect } from "./connection";
 import { insert } from "./queries";
 import { Table, TableRecord } from "./types";
 
@@ -11,8 +11,32 @@ export function getTestDatabaseConfig(): DatabaseConfig {
   };
 }
 
+type Lifecycle = (cb: () => Promise<void>) => void;
+interface Lifecycles {
+  beforeAll: Lifecycle;
+  beforeEach: Lifecycle;
+  afterAll: Lifecycle;
+}
+export function buildTestDB({
+  beforeAll,
+  beforeEach,
+  afterAll,
+}: Lifecycles): void {
+  beforeAll((): Promise<void> => {
+    return initDB();
+  });
+
+  beforeEach((): Promise<void> => {
+    return resetDB();
+  });
+
+  afterAll((): Promise<void> => {
+    return destroyDB();
+  });
+}
+
 export async function initDB(): Promise<void> {
-  let knex = await connection;
+  let knex = connect(getTestDatabaseConfig());
 
   if (knex.userParams.schema) {
     await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);
@@ -26,17 +50,17 @@ export async function resetDB(): Promise<void> {
   let knex = await connection;
 
   for (let table of [
-    "media_person",
-    "media_tag",
-    "media_album",
-    "user_catalog",
-    "mediaInfo",
-    "media",
-    "person",
-    "tag",
-    "album",
-    "catalog",
-    "user",
+    Table.MediaPerson,
+    Table.MediaTag,
+    Table.MediaAlbum,
+    Table.UserCatalog,
+    Table.MediaInfo,
+    Table.Media,
+    Table.Person,
+    Table.Tag,
+    Table.Album,
+    Table.Catalog,
+    Table.User,
   ]) {
     await knex.raw("TRUNCATE ?? CASCADE;", [table]);
   }

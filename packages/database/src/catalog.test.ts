@@ -1,31 +1,22 @@
 import { idSorted } from "pixelbin-utils";
 
 import { listCatalogs, listTags, listAlbums, listPeople } from "./catalog";
-import { connect, connection } from "./connection";
+import { connection } from "./connection";
 import { insert, withChildren, from } from "./queries";
-import {
-  getTestDatabaseConfig,
-  initDB,
-  resetDB,
-  destroyDB,
-  insertTestData,
-  testData,
-} from "./test-helpers";
+import { insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
 
-beforeAll(async (): Promise<void> => {
-  connect(getTestDatabaseConfig());
-
-  await initDB();
+buildTestDB({
+  beforeAll,
+  beforeEach,
+  afterAll,
 });
 
-beforeEach(resetDB);
-
-afterAll(destroyDB);
+beforeEach((): Promise<void> => {
+  return insertTestData();
+});
 
 test("Catalog table tests", async (): Promise<void> => {
-  await insertTestData();
-
   let catalogs = idSorted(await listCatalogs("someone1@nowhere.com"));
   expect(catalogs).toHaveLength(3);
   expect(catalogs).toEqual(testData[Table.Catalog]);
@@ -56,7 +47,6 @@ test("Catalog table tests", async (): Promise<void> => {
 
 test("Tag table tests", async (): Promise<void> => {
   let knex = await connection;
-  await insertTestData();
 
   let tags = idSorted(await listTags("someone1@nowhere.com"));
   expect(tags).toHaveLength(8);
@@ -116,7 +106,6 @@ test("Tag table tests", async (): Promise<void> => {
 
 test("Album table tests", async (): Promise<void> => {
   let knex = await connection;
-  await insertTestData();
 
   let albums = idSorted(await listAlbums("someone1@nowhere.com"));
   expect(albums).toHaveLength(8);
@@ -186,8 +175,6 @@ test("Album table tests", async (): Promise<void> => {
 });
 
 test("Person table tests", async (): Promise<void> => {
-  await insertTestData();
-
   let people = idSorted(await listPeople("someone1@nowhere.com"));
   expect(people).toHaveLength(6);
   expect(people).toEqual(testData[Table.Person]);

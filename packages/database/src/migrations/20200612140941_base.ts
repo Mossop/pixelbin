@@ -1,15 +1,17 @@
 import Knex from "knex";
 
+import { Table } from "../types";
+
 function id(table: Knex.CreateTableBuilder): void {
   table.string("id", 30).notNullable().unique().primary();
 }
 
 function foreignId(
   table: Knex.CreateTableBuilder,
-  target: string,
+  target: Table,
   targetColumn: string = "id",
   nullable: boolean = false,
-  column: string = target,
+  column: string = target.toLocaleLowerCase(),
 ): void {
   let col = table.string(column, 30);
   if (!nullable) {
@@ -59,38 +61,38 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.dateTime("taken").nullable();
   }
 
-  return knex.schema.createTable("user", (table: Knex.CreateTableBuilder): void => {
+  return knex.schema.createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
     table.string("email", 100).notNullable().unique().primary();
     table.string("fullname", 200);
     table.boolean("hadCatalog");
     table.boolean("verified");
-  }).createTable("catalog", (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.Catalog, (table: Knex.CreateTableBuilder): void => {
     id(table);
     table.string("name", 100).notNullable();
-  }).createTable("person", (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.Person, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, "catalog");
+    foreignId(table, Table.Catalog);
     table.string("name", 200).notNullable();
-  }).createTable("tag", (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.Tag, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, "catalog");
-    foreignId(table, "tag", "id", true, "parent");
+    foreignId(table, Table.Catalog);
+    foreignId(table, Table.Tag, "id", true, "parent");
     table.string("name", 100).notNullable();
-  }).createTable("album", (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.Album, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, "catalog");
-    foreignId(table, "album", "id", true, "parent");
+    foreignId(table, Table.Catalog);
+    foreignId(table, Table.Album, "id", true, "parent");
     table.string("stub", 50).nullable();
     table.string("name", 100).notNullable();
-  }).createTable("media", (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, "catalog");
+    foreignId(table, Table.Catalog);
     table.dateTime("created").notNullable();
 
     addMetadata(table);
-  }).createTable("mediaInfo", (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.MediaInfo, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, "media");
+    foreignId(table, Table.Media);
     table.integer("processVersion").notNullable();
     table.dateTime("uploaded").notNullable();
     table.string("mimetype", 50).notNullable();
@@ -100,18 +102,18 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.integer("fileSize").nullable();
 
     addMetadata(table);
-  }).createTable("user_catalog", (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, "user", "email");
-    foreignId(table, "catalog");
-  }).createTable("media_album", (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, "media");
-    foreignId(table, "album");
-  }).createTable("media_tag", (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, "media");
-    foreignId(table, "tag");
-  }).createTable("media_person", (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, "media");
-    foreignId(table, "album");
+  }).createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {
+    foreignId(table, Table.User, "email");
+    foreignId(table, Table.Catalog);
+  }).createTable(Table.MediaAlbum, (table: Knex.CreateTableBuilder): void => {
+    foreignId(table, Table.Media);
+    foreignId(table, Table.Album);
+  }).createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
+    foreignId(table, Table.Media);
+    foreignId(table, Table.Tag);
+  }).createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
+    foreignId(table, Table.Media);
+    foreignId(table, Table.Person);
   });
 };
 

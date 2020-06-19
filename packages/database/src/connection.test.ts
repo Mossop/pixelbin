@@ -1,17 +1,13 @@
-import { connection, connect } from "./connection";
+import { connection } from "./connection";
 import { from, insert, update, drop } from "./queries";
-import { getTestDatabaseConfig, initDB, resetDB, destroyDB } from "./test-helpers";
+import { buildTestDB } from "./test-helpers";
 import { Table } from "./types";
 
-beforeAll(async (): Promise<void> => {
-  connect(getTestDatabaseConfig());
-
-  await initDB();
+buildTestDB({
+  beforeAll,
+  beforeEach,
+  afterAll,
 });
-
-beforeEach(resetDB);
-
-afterAll(destroyDB);
 
 test("Basic database connection", async (): Promise<void> => {
   let knex = await connection;

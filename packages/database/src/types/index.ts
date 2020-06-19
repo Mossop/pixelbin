@@ -4,18 +4,18 @@ import * as Tables from "./tables";
 export { Joins, Tables };
 
 export enum Table {
-  User = "user",
-  Catalog = "catalog",
-  Album = "album",
-  Tag = "tag",
-  Person = "person",
-  Media = "media",
-  MediaInfo = "mediaInfo",
+  User = "User",
+  Catalog = "Catalog",
+  Album = "Album",
+  Tag = "Tag",
+  Person = "Person",
+  Media = "Media",
+  MediaInfo = "MediaInfo",
 
-  UserCatalog = "user_catalog",
-  MediaAlbum = "media_album",
-  MediaTag = "media_tag",
-  MediaPerson = "media_person",
+  UserCatalog = "User_Catalog",
+  MediaAlbum = "Media_Album",
+  MediaTag = "Media_Tag",
+  MediaPerson = "Media_Person",
 }
 
 export interface TableMapping {

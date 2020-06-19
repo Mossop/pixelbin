@@ -2,7 +2,7 @@ import Koa from "koa";
 import { JsonDecoder } from "ts.data.json";
 
 import * as Api from ".";
-import { buildState } from "./state";
+import { getState } from "./state";
 
 type Context = Koa.ParameterizedContext;
 
@@ -33,9 +33,7 @@ type ApiInterface = {
 };
 
 export const apiMethods: ApiInterface = {
-  [Api.Method.State]: (ctx: Context): Promise<Api.State> => {
-    return buildState(ctx);
-  },
+  [Api.Method.State]: getState,
 };
 
 export function apiRequestHandler<T extends Api.Method>(
@@ -46,7 +44,7 @@ export function apiRequestHandler<T extends Api.Method>(
       throw new Error("Invalid method.");
     }
 
-    let response = apiMethods[method](ctx);
+    let response = await apiMethods[method](ctx);
 
     ctx.set("Content-Type", "application/json");
     ctx.body = JSON.stringify(response);
