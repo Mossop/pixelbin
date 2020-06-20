@@ -2,6 +2,7 @@ import child_process from "child_process";
 import net from "net";
 import path from "path";
 
+import { connect } from "pixelbin-database";
 import { getLogger, listen } from "pixelbin-utils";
 import type { MasterInterface, WebserverConfig } from "pixelbin-webserver";
 import { WorkerPool, AbstractChildProcess } from "pixelbin-worker";
@@ -15,6 +16,17 @@ const logger = getLogger({
 });
 
 const basedir = path.dirname(path.resolve(__dirname));
+
+async function initDatabase(): Promise<void> {
+  let knex = connect(config.database);
+  await knex.migrate.latest();
+
+  events.on("shutdown", (): void => {
+    knex.destroy().catch((error: Error): void => {
+      logger.error({ error }, "Database shutdown threw error.");
+    });
+  });
+}
 
 async function startupServers(): Promise<void> {
   const server = net.createServer();
@@ -48,6 +60,11 @@ async function startupServers(): Promise<void> {
   });
 }
 
+async function startup(): Promise<void> {
+  await initDatabase();
+  await startupServers();
+}
+
 function main(): void {
   function quit(): void {
     events.emit("shutdown");
@@ -68,7 +85,7 @@ function main(): void {
     quit();
   });
 
-  startupServers().catch((error: Error): void => {
+  startup().catch((error: Error): void => {
     logger.error({ error }, "Server startup threw error.");
   });
 }

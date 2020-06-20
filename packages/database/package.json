@@ -14,11 +14,13 @@
   "dependencies": {
     "knex": "^0.21.1",
     "moment": "^2.26.0",
+    "nanoid": "^3.1.10",
+    "pg": "^8.2.1",
     "pixelbin-object-model": "file:../object-model",
-    "pixelbin-utils": "file:../utils",
-    "pg": "^8.2.1"
+    "pixelbin-utils": "file:../utils"
   },
   "devDependencies": {
+    "@types/nanoid": "^2.1.0",
     "media-metadata": "^2.1.0"
   }
 }

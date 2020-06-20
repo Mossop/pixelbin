@@ -1,15 +1,15 @@
 import Knex from "knex";
 
-import { Table } from "../types";
+import { Table, ref, TableRecord } from "../types";
 
 function id(table: Knex.CreateTableBuilder): void {
   table.string("id", 30).notNullable().unique().primary();
 }
 
-function foreignId(
+function foreignId<T extends Table, C extends keyof TableRecord<T>>(
   table: Knex.CreateTableBuilder,
-  target: Table,
-  targetColumn: string = "id",
+  target: T,
+  targetColumn: C,
   nullable: boolean = false,
   column: string = target.toLocaleLowerCase(),
 ): void {
@@ -19,7 +19,7 @@ function foreignId(
   } else {
     col.nullable();
   }
-  table.foreign(column).references(`${target}.${targetColumn}`).onDelete("CASCADE");
+  table.foreign(column).references(ref(target, targetColumn)).onDelete("CASCADE");
 }
 
 exports.up = function(knex: Knex): Knex.SchemaBuilder {
@@ -72,28 +72,28 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.string("name", 100).notNullable();
   }).createTable(Table.Person, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, Table.Catalog);
+    foreignId(table, Table.Catalog, "id");
     table.string("name", 200).notNullable();
   }).createTable(Table.Tag, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, Table.Catalog);
+    foreignId(table, Table.Catalog, "id");
     foreignId(table, Table.Tag, "id", true, "parent");
     table.string("name", 100).notNullable();
   }).createTable(Table.Album, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, Table.Catalog);
+    foreignId(table, Table.Catalog, "id");
     foreignId(table, Table.Album, "id", true, "parent");
     table.string("stub", 50).nullable();
     table.string("name", 100).notNullable();
   }).createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, Table.Catalog);
+    foreignId(table, Table.Catalog, "id");
     table.dateTime("created").notNullable();
 
     addMetadata(table);
   }).createTable(Table.MediaInfo, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, Table.Media);
+    foreignId(table, Table.Media, "id");
     table.integer("processVersion").notNullable();
     table.dateTime("uploaded").notNullable();
     table.string("mimetype", 50).notNullable();
@@ -105,16 +105,16 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     addMetadata(table);
   }).createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {
     foreignId(table, Table.User, "email");
-    foreignId(table, Table.Catalog);
+    foreignId(table, Table.Catalog, "id");
   }).createTable(Table.MediaAlbum, (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, Table.Media);
-    foreignId(table, Table.Album);
+    foreignId(table, Table.Media, "id");
+    foreignId(table, Table.Album, "id");
   }).createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, Table.Media);
-    foreignId(table, Table.Tag);
+    foreignId(table, Table.Media, "id");
+    foreignId(table, Table.Tag, "id");
   }).createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, Table.Media);
-    foreignId(table, Table.Person);
+    foreignId(table, Table.Media, "id");
+    foreignId(table, Table.Person, "id");
   });
 };
 

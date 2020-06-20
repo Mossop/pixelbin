@@ -28,12 +28,13 @@ export interface LoginRequest {
   password: string;
 }
 
+export type CatalogCreateRequest = Omit<Catalog, "id">;
+
 export enum Method {
   State = "state",
   Login = "login",
   Logout = "logout",
-  // UserCreate = "user/create",
-  // CatalogCreate = "catalog/create",
+  CatalogCreate = "catalog/create",
   // AlbumCreate = "album/create",
   // AlbumEdit = "album/edit",
   // AlbumAddMedia = "album/add_media",
@@ -56,8 +57,7 @@ export const HttpMethods: MethodList = {
   [Method.State]: "GET",
   [Method.Login]: "POST",
   [Method.Logout]: "POST",
-  // [Method.UserCreate]: "PUT",
-  // [Method.CatalogCreate]: "PUT",
+  [Method.CatalogCreate]: "PUT",
   // [Method.AlbumCreate]: "PUT",
   // [Method.AlbumEdit]: "PATCH",
   // [Method.AlbumAddMedia]: "PUT",
@@ -89,8 +89,7 @@ export interface Signatures {
   [Method.State]: Signature<None, State>;
   [Method.Login]: Signature<LoginRequest, State>;
   [Method.Logout]: Signature<None, State>;
-  // [ApiMethod.UserCreate]: ApiMethodSignature<UserCreateData, ServerData>;
-  // [ApiMethod.CatalogCreate]: ApiMethodSignature<CatalogCreateData, CatalogData>;
+  [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
   // [ApiMethod.AlbumCreate]: ApiMethodSignature<AlbumCreateData, AlbumData>;
   // [ApiMethod.AlbumEdit]: ApiMethodSignature<Patch<AlbumCreateData, Album>, AlbumData>;
   // [ApiMethod.AlbumAddMedia]: ApiMethodSignature<AlbumMedia, AlbumData>;

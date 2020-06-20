@@ -1,6 +1,6 @@
 import { idSorted } from "pixelbin-utils";
 
-import { listCatalogs, listTags, listAlbums, listPeople } from "./catalog";
+import { listCatalogs, listTags, listAlbums, listPeople, createCatalog } from "./catalog";
 import { connection } from "./connection";
 import { insert, withChildren, from } from "./queries";
 import { insertTestData, testData, buildTestDB } from "./test-helpers";
@@ -43,6 +43,21 @@ test("Catalog table tests", async (): Promise<void> => {
     id: "c15",
     name: "Catalog 1",
   });
+
+  let catalog = await createCatalog("someone2@nowhere.com", "New catalog");
+  expect(catalog).toEqual({
+    id: expect.stringMatching(/[a-zA-Z0-9]+/),
+    name: "New catalog",
+  });
+
+  catalogs = idSorted(await listCatalogs("someone2@nowhere.com"));
+  expect(catalogs).toHaveLength(2);
+  expect(catalogs).toEqual([
+    catalog,
+    testData[Table.Catalog][0],
+  ]);
+
+  await expect(createCatalog("someone5@nowhere.com", "New catalog")).rejects.toThrow("foreign key");
 });
 
 test("Tag table tests", async (): Promise<void> => {

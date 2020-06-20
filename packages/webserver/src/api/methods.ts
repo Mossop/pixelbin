@@ -2,7 +2,8 @@ import { JsonDecoder } from "ts.data.json";
 
 import * as Api from ".";
 import { AppContext } from "../app";
-import { LoginRequestDecoder } from "./decoders";
+import { createCatalog } from "./catalog";
+import * as Decoders from "./decoders";
 import { getState, login, logout } from "./state";
 
 type WithArguments = {
@@ -16,7 +17,8 @@ type RequestDecoders = {
 };
 
 export const apiDecoders: RequestDecoders = {
-  [Api.Method.Login]: LoginRequestDecoder,
+  [Api.Method.Login]: Decoders.LoginRequest,
+  [Api.Method.CatalogCreate]: Decoders.CatalogCreateRequest,
 };
 
 type ApiInterface = {
@@ -29,6 +31,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.State]: getState,
   [Api.Method.Login]: login,
   [Api.Method.Logout]: logout,
+  [Api.Method.CatalogCreate]: createCatalog,
 };
 
 export function apiRequestHandler<T extends Api.Method>(

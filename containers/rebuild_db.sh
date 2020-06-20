@@ -22,6 +22,7 @@ else
          WHERE pg_stat_activity.datname = 'pixelbin' AND pid <> pg_backend_pid();"
   echo $QUERY | psql -h localhost -U pixelbin pixelbin > /dev/null
   dropdb -h localhost -U pixelbin pixelbin
+  dropdb -h localhost -U pixelbin pixelbin_test
   createdb -h localhost -U pixelbin pixelbin
   createdb -h localhost -U pixelbin pixelbin_test
   rm -rf data/storage/*

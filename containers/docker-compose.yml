@@ -16,3 +16,18 @@ services:
 
     ports:
       - 5432:5432
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_LISTEN_PORT: 9192
+      PGADMIN_DEFAULT_EMAIL: dtownsend@oxymoronical.com
+      PGADMIN_DEFAULT_PASSWORD: pgadmin
+
+    volumes:
+      - ../data/pgadmin:/var/lib/pgadmin
+
+    ports:
+      - 9192:9192
