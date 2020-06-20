@@ -5,10 +5,7 @@ export interface LoggingContext {
   logger: Logger;
 }
 
-const mainLogger = getLogger({
-  name: "request",
-  level: "trace",
-});
+const mainLogger = getLogger("webserver.request");
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 let loggers = new WeakMap<object, Logger>();

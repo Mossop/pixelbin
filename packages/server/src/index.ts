@@ -10,10 +10,7 @@ import { WorkerPool, AbstractChildProcess } from "pixelbin-worker";
 import config from "./config";
 import events from "./events";
 
-const logger = getLogger({
-  name: "master",
-  level: "trace",
-});
+const logger = getLogger("server");
 
 const basedir = path.dirname(path.resolve(__dirname));
 
@@ -41,6 +38,7 @@ async function startupServers(): Promise<void> {
         appRoot: path.join(config.clientRoot, "build"),
         database: config.database,
         secretKeys: ["Random secret"],
+        logConfig: config.logConfig,
       }),
     },
     minWorkers: 4,

@@ -3,10 +3,7 @@ import path from "path";
 import Knex from "knex";
 import { defer, Deferred, getLogger, Obj } from "pixelbin-utils";
 
-const logger = getLogger({
-  name: "database",
-  level: "trace",
-});
+const logger = getLogger("database");
 
 export interface DatabaseConfig {
   username: string;

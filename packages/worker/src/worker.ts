@@ -15,10 +15,7 @@ export interface WorkerProcessOptions<L> extends ChannelOptions<L> {
   process: AbstractChildProcess;
 }
 
-const logger = getLogger({
-  name: "WorkerProcess",
-  level: "trace",
-});
+const logger = getLogger("worker.child");
 
 export class WorkerProcess<R = undefined, L = undefined> {
   private ready: Deferred<void>;
@@ -62,7 +59,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
   }
 
   public kill(...args: Parameters<ChildProcess["kill"]>): Promise<void> {
-    this.logger.info("Killing worker.");
+    this.logger.debug("Killing worker.");
     this.options.process.disconnect();
 
     return new Promise((resolve: () => void): void => {
@@ -110,7 +107,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
 
     // Wait for channel to connect.
     await channel.remote;
-    this.logger.info("Worker channel connected.");
+    this.logger.debug("Worker channel connected.");
     this.emitter.emit("connect");
   }
 

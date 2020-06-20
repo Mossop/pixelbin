@@ -5,10 +5,7 @@ import net from "net";
 import { defer, Deferred, getLogger, MakeRequired } from "pixelbin-utils";
 import { JsonDecoder } from "ts.data.json";
 
-const logger = getLogger({
-  name: "Channel",
-  level: "debug",
-});
+const logger = getLogger("worker.channel");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MakePromise<T> = T extends Promise<any> ? T : Promise<T>;

@@ -11,10 +11,7 @@ export interface MasterProcessOptions<L> extends ChannelOptions<L> {
   process?: AbstractProcess;
 }
 
-const logger = getLogger({
-  name: "MasterProcess",
-  level: "trace",
-});
+const logger = getLogger("worker.master");
 
 /**
  * Provides a communication mechanism back to the main process.

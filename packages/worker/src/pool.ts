@@ -16,10 +16,7 @@ interface WorkerRecord<R, L> {
   idleTimeout?: NodeJS.Timeout;
 }
 
-const logger = getLogger({
-  name: "WorkerPool",
-  level: "trace",
-});
+const logger = getLogger("worker.pool");
 
 export class WorkerPool<R = undefined, L = undefined> {
   private workers: WorkerRecord<R, L>[];
@@ -59,7 +56,7 @@ export class WorkerPool<R = undefined, L = undefined> {
       return;
     }
 
-    logger.info("Shutting down worker pool.");
+    logger.debug("Shutting down worker pool.");
 
     this.quitting = true;
     for (let record of this.workers) {
@@ -100,7 +97,7 @@ export class WorkerPool<R = undefined, L = undefined> {
   }
 
   private async createWorker(): Promise<WorkerProcess<R, L>> {
-    logger.info("Creating new worker.");
+    logger.debug("Creating new worker.");
 
     let workerProcess = new WorkerProcess<R, L>({
       ...this.options,
@@ -126,7 +123,7 @@ export class WorkerPool<R = undefined, L = undefined> {
         record.idleTimeout = setTimeout((): void => {
           delete record.idleTimeout;
           if (this.workers.length > this.options.minWorkers) {
-            logger.info(`Shutting down worker ${workerProcess.pid} due to timeout.`);
+            logger.debug(`Shutting down worker ${workerProcess.pid} due to timeout.`);
             void workerProcess.kill();
           }
         }, this.options.idleTimeout);
@@ -157,7 +154,7 @@ export class WorkerPool<R = undefined, L = undefined> {
       }
 
       this.workers.splice(pos, 1);
-      logger.info({ workerCount: this.workers.length }, "Saw disconnect from worker.");
+      logger.debug({ workerCount: this.workers.length }, "Saw disconnect from worker.");
 
       if (record.idleTimeout) {
         clearTimeout(record.idleTimeout);

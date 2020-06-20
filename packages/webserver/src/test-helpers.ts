@@ -16,6 +16,9 @@ export function buildTestApp(afterAll: Lifecycle): TestApp {
     appRoot: __dirname,
     secretKeys: ["foo"],
     database: getTestDatabaseConfig(),
+    logConfig: {
+      default: "silent",
+    },
   });
 
   let server = koa.listen();

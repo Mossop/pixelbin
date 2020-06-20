@@ -49,7 +49,7 @@ export async function errorHandler(
     if (e instanceof ApiError) {
       error = e;
     } else {
-      ctx.logger.warn(`Application threw unknown exception: '${e}'`);
+      ctx.logger.warn({ error: e }, "Application threw unknown exception");
       error = new ApiError(ApiErrorCode.UnknownException, {
         message: String(e),
       });

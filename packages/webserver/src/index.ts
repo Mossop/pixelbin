@@ -8,10 +8,7 @@ import { MasterInterface } from "./types";
 export type { WebserverConfig, MasterInterface } from "./types";
 export * as Api from "./api";
 
-const logger = getLogger({
-  name: "server",
-  level: "trace",
-});
+const logger = getLogger("webserver");
 
 async function main(): Promise<void> {
   logger.info("Server startup.");
