@@ -7,6 +7,7 @@ import {
 } from "pixelbin-database/build/test-helpers";
 import { Table } from "pixelbin-database/build/types";
 
+import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
 
 beforeAll(initDB);
@@ -30,10 +31,19 @@ test("state", async (): Promise<void> => {
   });
 });
 
-test("login", async (): Promise<void> => {
+test("login and logout", async (): Promise<void> => {
   const request = agent();
 
   let response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: null,
+  });
+
+  response = await request
     .post("/api/login")
     .send({
       email: "someone1@nowhere.com",
@@ -80,6 +90,44 @@ test("login", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: null,
+  });
+});
+
+test("login failure", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: null,
+  });
+
+  response = await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "badpassword",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(403);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.LoginFailed,
+    data: {
+      message: "Incorrect credentials.",
+    },
   });
 
   response = await request

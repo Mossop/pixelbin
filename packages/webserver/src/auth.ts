@@ -1,6 +1,9 @@
-import Koa, { Context } from "koa";
+import Koa, { Context, DefaultState, DefaultContext } from "koa";
 import * as Db from "pixelbin-database";
 import { User } from "pixelbin-object-model";
+
+import { ApiError, ApiErrorCode } from "./error";
+import { LoggingContext } from "./logging";
 
 export interface AuthContext {
   user: User | null;
@@ -9,7 +12,9 @@ export interface AuthContext {
   logout: () => Promise<void>;
 }
 
-export default function<S, C>(app: Koa<S, C>): Koa<S, C & AuthContext> {
+export default function(
+  app: Koa<DefaultState, DefaultContext & LoggingContext>,
+): Koa<DefaultState, DefaultContext & LoggingContext & AuthContext> {
   Object.defineProperties(app.context, {
     user: {
       get(this: Context & AuthContext): User | null {
@@ -43,7 +48,9 @@ export default function<S, C>(app: Koa<S, C>): Koa<S, C & AuthContext> {
             this.session.save();
           } else {
             await this.logout();
-            throw new Error("Incorrect credentials.");
+            throw new ApiError(ApiErrorCode.LoginFailed, {
+              message: "Incorrect credentials.",
+            });
           }
         };
       },
@@ -63,5 +70,5 @@ export default function<S, C>(app: Koa<S, C>): Koa<S, C & AuthContext> {
     },
   });
 
-  return app as unknown as Koa<S, C & AuthContext>;
+  return app as unknown as Koa<DefaultState, DefaultContext & LoggingContext & AuthContext>;
 }

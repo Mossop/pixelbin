@@ -1,11 +1,11 @@
-import Koa, { DefaultContext } from "koa";
+import Koa, { DefaultState } from "koa";
 import { getTestDatabaseConfig } from "pixelbin-database/build/test-helpers";
 import { agent, SuperTest, Test } from "supertest";
 
-import buildApp, { AppContext } from "./app";
+import buildApp, { AppContext, RouterContext } from "./app";
 
 interface TestApp {
-  app: Koa<DefaultContext, AppContext>;
+  app: Koa<DefaultState, RouterContext<AppContext>>;
   agent: () => SuperTest<Test>;
 }
 

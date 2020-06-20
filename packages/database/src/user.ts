@@ -13,5 +13,8 @@ export async function getUser(
     password,
   }).first();
 
+  if (result) {
+    delete result.password;
+  }
   return result;
 }

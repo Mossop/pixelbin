@@ -1,7 +1,7 @@
 import path from "path";
 
 import Router, { RouterParamContext } from "@koa/router";
-import Koa, { DefaultState, Context } from "koa";
+import Koa, { DefaultState, Context, DefaultContext } from "koa";
 import koaBody from "koa-body";
 import mount from "koa-mount";
 import session from "koa-session";
@@ -10,6 +10,8 @@ import serve from "koa-static";
 import { Method } from "./api";
 import { apiRequestHandler } from "./api/methods";
 import auth, { AuthContext } from "./auth";
+import { errorHandler } from "./error";
+import logging, { LoggingContext } from "./logging";
 import { WebserverConfig } from "./types";
 
 function buildAppContent(): string {
@@ -42,13 +44,15 @@ function buildAppContent(): string {
 `;
 }
 
-export type AppContext =
-  Context & AuthContext & RouterParamContext<DefaultState, Context & AuthContext>;
+export type AppContext = Context & AuthContext & LoggingContext;
+export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 
-export default function buildApp(config: WebserverConfig): Koa<DefaultState, AppContext> {
-  const router = new Router<DefaultState, Context & AuthContext>();
+export default function buildApp(
+  config: WebserverConfig,
+): Koa<DefaultState, RouterContext<AppContext>> {
+  const router = new Router<DefaultState, AppContext>();
 
-  router.get("/healthcheck", async (ctx: Context & AuthContext): Promise<void> => {
+  router.get("/healthcheck", async (ctx: AppContext): Promise<void> => {
     ctx.body = "Ok";
   });
 
@@ -56,11 +60,11 @@ export default function buildApp(config: WebserverConfig): Koa<DefaultState, App
     router.all(`/api/${method}`, koaBody(), apiRequestHandler(method));
   }
 
-  const app = new Koa();
+  const app = new Koa<DefaultState, DefaultContext>();
   app.keys = config.secretKeys;
 
   app
-    .use(async (ctx: Koa.BaseContext, next: Koa.Next): Promise<void> => {
+    .use(async (ctx: Context, next: Koa.Next): Promise<void> => {
       let start = Date.now();
       await next();
       let ms = Date.now() - start;
@@ -73,7 +77,9 @@ export default function buildApp(config: WebserverConfig): Koa<DefaultState, App
       renew: true,
     }, app));
 
-  return auth(app)
+  return auth(logging(app)
+    .use(errorHandler))
+
     .use(router.routes())
 
     .use(mount("/static", serve(path.join(config.staticRoot))))
