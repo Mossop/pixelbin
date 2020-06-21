@@ -1,4 +1,5 @@
-import { SpawnOptionsWithoutStdio } from "child_process";
+import { SpawnOptionsWithoutStdio, SpawnOptions } from "child_process";
+import { Writable, Readable } from "stream";
 
 import { Pushable } from "it-pushable";
 
@@ -40,6 +41,24 @@ export function karma(root: string, config?: string): () => Promise<void>;
 export function logLints(lints: AsyncIterable<LintedFile>): Promise<boolean>;
 export function linter(...lints: AsyncIterable<LintedFile>[]): () => Promise<void>;
 
+// process.js
+declare class Process {
+  public constructor(command: string, args?: string[], options?: SpawnOptions);
+  public pipe(process: Process): void;
+  public pipeStdErr(process: Process): void;
+  public readonly stdin: Writable | null;
+  public readonly stdout: Readable | null;
+  public readonly stderr: Readable | null;
+  public kill(signal: NodeJS.Signals | number): boolean;
+  public readonly pid: number;
+  public readonly exitCode: Promise<number>;
+}
+export function spawn(
+  command: string,
+  args?: string[],
+  options?: SpawnOptionsWithoutStdio,
+): Promise<number>;
+
 // typescript.js
 export function tsLint(root: string): AsyncIterable<LintedFile>;
 export function tsCompile(root: string): () => Promise<void>;
@@ -48,15 +67,5 @@ export function tsCompile(root: string): () => Promise<void>;
 export function pushable<T>(): Pushable<T>;
 export function iterable<T>(fn: (pushable: Pushable<T>) => Promise<void>): () => AsyncIterable<T>;
 export function joined<T>(...iterables: AsyncIterable<T>[]): AsyncIterable<T>;
-export function exec(
-  command: string,
-  args?: string[],
-  options?: SpawnOptionsWithoutStdio,
-): Promise<string[]>;
-export function spawn(
-  command: string,
-  args?: string[],
-  options?: SpawnOptionsWithoutStdio,
-): Promise<number>;
 export function ensureDir(file: string): Promise<void>;
 export function findBin(dir: string, name: string): Promise<string>;

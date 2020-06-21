@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import child_process from "child_process";
 import net from "net";
 import path from "path";

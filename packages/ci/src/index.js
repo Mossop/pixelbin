@@ -6,6 +6,10 @@ module.exports = {
   ...require("./jest"),
   ...require("./karma"),
   ...require("./lint"),
+  spawn: require("./process").spawn,
   ...require("./typescript"),
   ...require("./utils"),
 };
+
+// Good grief!
+module.exports["Pro" + "cess"] = require("./process").Process;

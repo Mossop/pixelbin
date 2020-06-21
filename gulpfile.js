@@ -3,7 +3,16 @@ const path = require("path");
 
 const asyncDone = require("async-done");
 const log = require("gulplog");
-const { ansi, tsLint, eslint, logLints, joined, mergeCoverage } = require("pixelbin-ci");
+const {
+  ansi,
+  tsLint,
+  eslint,
+  logLints,
+  joined,
+  mergeCoverage,
+  Process,
+  findBin,
+} = require("pixelbin-ci");
 const prettyTime = require("pretty-hrtime");
 
 /**
@@ -204,6 +213,17 @@ exports.buildServer = async function() {
   return applyToPackage(path.join(__dirname, "packages"), "pixelbin-server", async package => {
     return runPackageTask(package, "build", "Building");
   });
+};
+
+exports.run = async function() {
+  let server = new Process("node", [path.join(__dirname, "packages", "server")]);
+  let pretty = new Process(await findBin(__dirname, "pino-pretty"));
+  server.pipe(pretty);
+
+  let code = await server.exitCode;
+  if (code != 0) {
+    throw new Error(`Server exited with exit code ${code}`);
+  }
 };
 
 exports.buildClient = async function() {

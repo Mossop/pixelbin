@@ -1,6 +1,7 @@
 const path = require("path");
 
-const { spawn, findBin } = require("./utils");
+const { spawn } = require("./process");
+const { findBin } = require("./utils");
 
 /**
  * @return {import("./types").JestConfig}

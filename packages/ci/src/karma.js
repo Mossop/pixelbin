@@ -2,7 +2,8 @@ const { promises: fs } = require("fs");
 const path = require("path");
 
 const { mergeCoverage } = require("./coverage");
-const { findBin, spawn } = require("./utils");
+const { spawn } = require("./process");
+const { findBin } = require("./utils");
 
 /**
  * @typedef {import("./types").KarmaSpecResult} KarmaSpecResult
