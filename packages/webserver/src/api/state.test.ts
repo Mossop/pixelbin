@@ -125,9 +125,6 @@ test("login failure", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.LoginFailed,
-    data: {
-      message: "Incorrect credentials.",
-    },
   });
 
   response = await request

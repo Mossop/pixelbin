@@ -2,6 +2,7 @@ import { JsonDecoder } from "ts.data.json";
 
 import * as Api from ".";
 import { AppContext } from "../app";
+import { ApiError, ApiErrorCode } from "../error";
 import { createCatalog } from "./catalog";
 import * as Decoders from "./decoders";
 import { getState, login, logout } from "./state";
@@ -39,7 +40,10 @@ export function apiRequestHandler<T extends Api.Method>(
 ): (ctx: AppContext) => Promise<void> {
   return async (ctx: AppContext): Promise<void> => {
     if (ctx.method.toLocaleUpperCase() != Api.HttpMethods[method]) {
-      throw new Error("Invalid method.");
+      throw new ApiError(ApiErrorCode.BadMethod, {
+        received: ctx.method,
+        expected: Api.HttpMethods[method],
+      });
     }
 
     let response: unknown = undefined;
