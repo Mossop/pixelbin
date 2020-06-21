@@ -74,18 +74,34 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     id(table);
     foreignId(table, Table.Catalog, "id");
     table.string("name", 200).notNullable();
-  }).createTable(Table.Tag, (table: Knex.CreateTableBuilder): void => {
+    table.unique([Table.Catalog.toLocaleLowerCase(), "name"]);
+  }).raw(
+    `CREATE UNIQUE INDEX "person_unique_name" ON "${Table.Person}" ` +
+    `("${Table.Catalog.toLocaleLowerCase()}", (LOWER("name")))`,
+  ).createTable(Table.Tag, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Catalog, "id");
-    foreignId(table, Table.Tag, "id", true, "parent");
+    table.string("parent", 30).nullable();
     table.string("name", 100).notNullable();
-  }).createTable(Table.Album, (table: Knex.CreateTableBuilder): void => {
+    table.unique([Table.Catalog.toLocaleLowerCase(), "id"]);
+    table.foreign([Table.Catalog.toLocaleLowerCase(), "parent"])
+      .references([Table.Catalog.toLocaleLowerCase(), "id"]).inTable(Table.Tag);
+  }).raw(
+    `CREATE UNIQUE INDEX "tag_unique_name" ON "${Table.Tag}" ` +
+    `("${Table.Catalog.toLocaleLowerCase()}", (COALESCE("parent", 'NONE')), (LOWER("name")))`,
+  ).createTable(Table.Album, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Catalog, "id");
-    foreignId(table, Table.Album, "id", true, "parent");
+    table.string("parent", 30).nullable();
+    table.string("name", 100).notNullable();
     table.string("stub", 50).nullable();
-    table.string("name", 100).notNullable();
-  }).createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
+    table.unique([Table.Catalog.toLocaleLowerCase(), "id"]);
+    table.foreign([Table.Catalog.toLocaleLowerCase(), "parent"])
+      .references([Table.Catalog.toLocaleLowerCase(), "id"]).inTable(Table.Album);
+  }).raw(
+    `CREATE UNIQUE INDEX "album_unique_name" ON "${Table.Album}" ` +
+    `("${Table.Catalog.toLocaleLowerCase()}", (COALESCE("parent", 'NONE')), (LOWER("name")))`,
+  ).createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Catalog, "id");
     table.dateTime("created").notNullable();
@@ -106,15 +122,19 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
   }).createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {
     foreignId(table, Table.User, "email");
     foreignId(table, Table.Catalog, "id");
+    table.unique([Table.User.toLocaleLowerCase(), Table.Catalog.toLocaleLowerCase()]);
   }).createTable(Table.MediaAlbum, (table: Knex.CreateTableBuilder): void => {
     foreignId(table, Table.Media, "id");
     foreignId(table, Table.Album, "id");
+    table.unique([Table.Media.toLocaleLowerCase(), Table.Album.toLocaleLowerCase()]);
   }).createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
     foreignId(table, Table.Media, "id");
     foreignId(table, Table.Tag, "id");
+    table.unique([Table.Media.toLocaleLowerCase(), Table.Tag.toLocaleLowerCase()]);
   }).createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
     foreignId(table, Table.Media, "id");
     foreignId(table, Table.Person, "id");
+    table.unique([Table.Media.toLocaleLowerCase(), Table.Person.toLocaleLowerCase()]);
   });
 };
 

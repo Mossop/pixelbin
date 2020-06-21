@@ -95,28 +95,28 @@ test("Tag table tests", async (): Promise<void> => {
   })).rejects.toThrow("duplicate key");
 
   // Should not allow duplicate name in the same parent.
-  // await expect(insert(Table.Tag, {
-  //   id: "t9",
-  //   catalog: "c1",
-  //   parent: "t2",
-  //   name: "tag6",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Tag, {
+    id: "t9",
+    catalog: "c1",
+    parent: "t2",
+    name: "tag6",
+  })).rejects.toThrow("unique constraint");
 
   // // Disregarding case.
-  // await expect(insert(Table.Tag, {
-  //   id: "t9",
-  //   catalog: "c1",
-  //   parent: "t2",
-  //   name: "tAg6",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Tag, {
+    id: "t9",
+    catalog: "c1",
+    parent: "t2",
+    name: "tAg6",
+  })).rejects.toThrow("unique constraint");
 
   // // Should not allow adding to a different catalog to its parent.
-  // await expect(insert(Table.Tag, {
-  //   id: "t9",
-  //   catalog: "c2",
-  //   parent: "t2",
-  //   name: "tag9",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Tag, {
+    id: "t9",
+    catalog: "c2",
+    parent: "t2",
+    name: "tag9",
+  })).rejects.toThrow("foreign key constraint");
 });
 
 test("Album table tests", async (): Promise<void> => {
@@ -163,30 +163,31 @@ test("Album table tests", async (): Promise<void> => {
   })).rejects.toThrow("duplicate key");
 
   // Should not allow duplicate name in the same parent.
-  // await expect(insert(Table.Album, {
-  //   id: "a9",
-  //   catalog: "c1",
-  //   parent: "a1",
-  //   stub: null,
-  //   name: "Album 3",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Album, {
+    id: "a9",
+    catalog: "c1",
+    parent: "a1",
+    stub: null,
+    name: "Album 3",
+  })).rejects.toThrow("unique constraint");
 
   // // Disregarding case.
-  // await expect(insert(Table.Album, {
-  //   id: "a9",
-  //   catalog: "c1",
-  //   parent: "a1",
-  //   stub: null,
-  //   name: "alBuM 3",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Album, {
+    id: "a9",
+    catalog: "c1",
+    parent: "a1",
+    stub: null,
+    name: "alBuM 3",
+  })).rejects.toThrow("unique constraint");
 
   // // Should not allow adding to a different catalog to its parent.
-  // await expect(insert(Table.Album, {
-  //   id: "a9",
-  //   catalog: "c2",
-  //   parent: "a1",
-  //   name: "Album 9",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Album, {
+    id: "a9",
+    catalog: "c2",
+    parent: "a1",
+    stub: null,
+    name: "Album 9",
+  })).rejects.toThrow("foreign key constraint");
 });
 
 test("Person table tests", async (): Promise<void> => {
@@ -218,16 +219,16 @@ test("Person table tests", async (): Promise<void> => {
   })).rejects.toThrow("duplicate key");
 
   // Should not allow duplicate name in the same catalog.
-  // await expect(insert(Table.Person, {
-  //   id: "p7",
-  //   catalog: "c1",
-  //   name: "Person 1",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Person, {
+    id: "p7",
+    catalog: "c1",
+    name: "Person 1",
+  })).rejects.toThrow("unique constraint");
 
   // // Disregarding case.
-  // await expect(insert(Table.Person, {
-  //   id: "p7",
-  //   catalog: "c1",
-  //   name: "peRsOn 1",
-  // })).rejects.toThrow();
+  await expect(insert(Table.Person, {
+    id: "p7",
+    catalog: "c1",
+    name: "peRsOn 1",
+  })).rejects.toThrow("unique constraint");
 });
