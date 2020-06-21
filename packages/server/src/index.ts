@@ -86,7 +86,7 @@ function main(): void {
   });
 
   startup().catch((error: Error): void => {
-    logger.error({ error }, "Server startup threw error.");
+    logger.error(error, "Server startup threw error.");
   });
 }
 

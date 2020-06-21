@@ -1,7 +1,6 @@
-import pino, { Bindings } from "pino";
+import pino, { Bindings, Level, LevelWithSilent } from "pino";
 
-type Level = "trace" | "debug" | "info" | "warn" | "error" | "silent";
-export type Logger = Pick<pino.Logger, Level | "isLevelEnabled" | "setLevel"> & {
+export type Logger = Pick<pino.Logger, Level | "isLevelEnabled"> & {
   child: (bindings: Bindings) => Logger;
 };
 
@@ -20,7 +19,7 @@ function buildLogger(name: string, pinoLogger: pino.Logger): Logger {
 }
 
 export interface LogConfig {
-  default: Level;
+  default: LevelWithSilent;
   levels?: Record<string, Level>;
 }
 
@@ -31,7 +30,7 @@ let Config: Required<LogConfig> = {
 
 const Loggers = new Map<string, Logger[]>();
 
-function getLoggerLevel(loggerName: string): Level {
+function getLoggerLevel(loggerName: string): LevelWithSilent {
   for (let [name, level] of Object.entries(Config.levels)) {
     if (loggerName == name || name.startsWith(loggerName + ".")) {
       return level;
@@ -41,15 +40,22 @@ function getLoggerLevel(loggerName: string): Level {
   return Config.default;
 }
 
-export function setLogConfig(config: LogConfig): void {
-  Config = {
-    default: config.default,
-    levels: config.levels ?? {},
-  };
+export function setLogConfig(config: Level | LogConfig): void {
+  if (typeof config == "string") {
+    Config = {
+      default: config,
+      levels: {},
+    };
+  } else {
+    Config = {
+      default: config.default,
+      levels: config.levels ?? {},
+    };
+  }
 
   for (let [name, loggers] of Loggers.entries()) {
     loggers.forEach((logger: Logger): void => {
-      logger.setLevel(getLoggerLevel(name));
+      logger["level"] = getLoggerLevel(name);
     });
   }
 }

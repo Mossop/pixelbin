@@ -1,3 +1,6 @@
+import Knex from "knex";
+import { Obj } from "pixelbin-utils";
+
 import * as Joins from "./joins";
 import * as Tables from "./tables";
 
@@ -35,9 +38,20 @@ export interface TableMapping {
 
 export type TableRecord<T extends Table> = TableMapping[T];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Ref<T extends Table = any> = Knex.Ref<T, TableRecord<T>>;
+
 export function ref<
   T extends Table,
   K extends keyof TableRecord<T>
 >(table: T, column?: K): string {
   return `${table}.${column ?? "*"}`;
+}
+
+export function isRef<T extends Table>(ref: Obj): ref is Ref<T> {
+  if (!ref) {
+    return false;
+  }
+
+  return ref.constructor.name == "Ref";
 }

@@ -31,5 +31,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: Error): void => {
-  logger.error({ error }, "Server threw error while connecting.");
+  logger.error(error, "Server threw error while connecting.");
 });

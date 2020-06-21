@@ -9,6 +9,7 @@ export enum ApiErrorCode {
   BadMethod = "bad-method",
   NotLoggedIn = "not-logged-in",
   LoginFailed = "login-failed",
+  UnknownCatalog = "unknown-catalog",
 }
 
 const ApiErrorStatus: Record<ApiErrorCode, number> = {
@@ -16,6 +17,7 @@ const ApiErrorStatus: Record<ApiErrorCode, number> = {
   [ApiErrorCode.BadMethod]: 401,
   [ApiErrorCode.NotLoggedIn]: 403,
   [ApiErrorCode.LoginFailed]: 403,
+  [ApiErrorCode.UnknownCatalog]: 404,
 };
 
 export interface ApiErrorData {
@@ -55,7 +57,7 @@ export async function errorHandler(
     if (e instanceof ApiError) {
       error = e;
     } else {
-      ctx.logger.warn({ error: e }, "Application threw unknown exception");
+      ctx.logger.warn(e, "Application threw unknown exception");
       error = new ApiError(ApiErrorCode.UnknownException, {
         message: String(e),
       });

@@ -10,3 +10,10 @@ export const LoginRequest = JsonDecoder.object<Api.LoginRequest>({
 export const CatalogCreateRequest = JsonDecoder.object<Api.CatalogCreateRequest>({
   name: JsonDecoder.string,
 }, "CatalogCreateReqeust");
+
+export const AlbumCreateRequest = JsonDecoder.object<Api.AlbumCreateRequest>({
+  catalog: JsonDecoder.string,
+  name: JsonDecoder.string,
+  stub: JsonDecoder.nullable(JsonDecoder.string),
+  parent: JsonDecoder.nullable(JsonDecoder.string),
+}, "AlbumCreateRequest");

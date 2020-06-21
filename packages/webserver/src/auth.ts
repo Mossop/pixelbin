@@ -73,9 +73,9 @@ export default function(
 }
 
 export function ensureAuthenticated<A, R>(
-  cb: (ctx: AppContext, user: User, arg: A) => R,
-): (ctx: AppContext, arg: A) => R {
-  return (ctx: AppContext, arg: A): R => {
+  cb: (ctx: AppContext, user: User, arg: A) => Promise<R>,
+): (ctx: AppContext, arg: A) => Promise<R> {
+  return async (ctx: AppContext, arg: A): Promise<R> => {
     let user = ctx.user;
     if (!user) {
       throw new ApiError(ApiErrorCode.NotLoggedIn);

@@ -112,6 +112,7 @@ export function logged(knex: ExtendedKnex): ExtendedKnex {
 
   cloned.on("query-response", (response: Obj, data: Obj): void => {
     logger.info({
+      ...data,
       sql: data["sql"],
       bindings: data["bindings"],
       response: Object.fromEntries(Object.entries(response).filter(

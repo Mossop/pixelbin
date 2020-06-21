@@ -1,6 +1,13 @@
 import { idSorted } from "pixelbin-utils";
 
-import { listCatalogs, listTags, listAlbums, listPeople, createCatalog } from "./catalog";
+import {
+  listCatalogs,
+  listTags,
+  listAlbums,
+  listPeople,
+  createCatalog,
+  createAlbum,
+} from "./catalog";
 import { connection } from "./connection";
 import { insert, withChildren, from } from "./queries";
 import { insertTestData, testData, buildTestDB } from "./test-helpers";
@@ -44,7 +51,9 @@ test("Catalog table tests", async (): Promise<void> => {
     name: "Catalog 1",
   });
 
-  let catalog = await createCatalog("someone2@nowhere.com", "New catalog");
+  let catalog = await createCatalog("someone2@nowhere.com", {
+    name: "New catalog",
+  });
   expect(catalog).toEqual({
     id: expect.stringMatching(/[a-zA-Z0-9]+/),
     name: "New catalog",
@@ -57,7 +66,9 @@ test("Catalog table tests", async (): Promise<void> => {
     testData[Table.Catalog][0],
   ]);
 
-  await expect(createCatalog("someone5@nowhere.com", "New catalog")).rejects.toThrow("foreign key");
+  await expect(createCatalog("someone5@nowhere.com", {
+    name: "New catalog",
+  })).rejects.toThrow("foreign key");
 });
 
 test("Tag table tests", async (): Promise<void> => {
@@ -102,7 +113,7 @@ test("Tag table tests", async (): Promise<void> => {
     name: "tag6",
   })).rejects.toThrow("unique constraint");
 
-  // // Disregarding case.
+  // Disregarding case.
   await expect(insert(Table.Tag, {
     id: "t9",
     catalog: "c1",
@@ -110,7 +121,7 @@ test("Tag table tests", async (): Promise<void> => {
     name: "tAg6",
   })).rejects.toThrow("unique constraint");
 
-  // // Should not allow adding to a different catalog to its parent.
+  // Should not allow adding to a different catalog to its parent.
   await expect(insert(Table.Tag, {
     id: "t9",
     catalog: "c2",
@@ -171,7 +182,7 @@ test("Album table tests", async (): Promise<void> => {
     name: "Album 3",
   })).rejects.toThrow("unique constraint");
 
-  // // Disregarding case.
+  // Disregarding case.
   await expect(insert(Table.Album, {
     id: "a9",
     catalog: "c1",
@@ -180,7 +191,7 @@ test("Album table tests", async (): Promise<void> => {
     name: "alBuM 3",
   })).rejects.toThrow("unique constraint");
 
-  // // Should not allow adding to a different catalog to its parent.
+  // Should not allow adding to a different catalog to its parent.
   await expect(insert(Table.Album, {
     id: "a9",
     catalog: "c2",
@@ -188,6 +199,41 @@ test("Album table tests", async (): Promise<void> => {
     stub: null,
     name: "Album 9",
   })).rejects.toThrow("foreign key constraint");
+
+  let album = await createAlbum("someone1@nowhere.com", "c1", {
+    parent: null,
+    stub: "foo",
+    name: "New Album",
+  });
+
+  expect(album).toEqual({
+    id: expect.stringMatching(/^A:[A-Za-z0-9]+/),
+    catalog: "c1",
+    parent: null,
+    stub: "foo",
+    name: "New Album",
+  });
+
+  // Shouldn't allow adding to a catalog that doesn't exist.
+  await expect(createAlbum("someone1@nowhere.com", "c8", {
+    parent: null,
+    stub: "foo",
+    name: "New Album",
+  })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
+
+  // Or with a user that doesn't exist.
+  await expect(createAlbum("foobar@nowhere.com", "c1", {
+    parent: null,
+    stub: "foo",
+    name: "New Album",
+  })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
+
+  // Or with a user that doesn't have access to the catalog
+  await expect(createAlbum("someone3@nowhere.com", "c1", {
+    parent: null,
+    stub: "foo",
+    name: "New Album",
+  })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
 });
 
 test("Person table tests", async (): Promise<void> => {
@@ -225,7 +271,7 @@ test("Person table tests", async (): Promise<void> => {
     name: "Person 1",
   })).rejects.toThrow("unique constraint");
 
-  // // Disregarding case.
+  // Disregarding case.
   await expect(insert(Table.Person, {
     id: "p7",
     catalog: "c1",

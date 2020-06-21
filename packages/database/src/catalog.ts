@@ -2,7 +2,7 @@ import Knex from "knex";
 import { customAlphabet } from "nanoid/async";
 
 import { connection } from "./connection";
-import { from, insert } from "./queries";
+import { from, insert, insertFromSelect } from "./queries";
 import { Table, Tables, ref } from "./types";
 
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 10);
@@ -18,12 +18,15 @@ export async function listCatalogs(user: string): Promise<Tables.Catalog[]> {
     .select(ref(Table.Catalog));
 }
 
-export async function createCatalog(user: string, name: string): Promise<Tables.Catalog> {
+export async function createCatalog(
+  user: string,
+  data: Omit<Tables.Catalog, "id">,
+): Promise<Tables.Catalog> {
   let knex = await connection;
   return knex.transaction(async (trx: Knex): Promise<Tables.Catalog> => {
     let catalog: Tables.Catalog = {
+      ...data,
       id: await uuid("C"),
-      name,
     };
 
     await insert(Table.Catalog, catalog, trx);
@@ -42,6 +45,35 @@ export async function listAlbums(user: string): Promise<Tables.Album[]> {
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
     .where(ref(Table.UserCatalog, "user"), user)
     .select(ref(Table.Album));
+}
+
+export async function createAlbum(
+  user: string,
+  catalog: string,
+  data: Omit<Tables.Album, "id" | "catalog">,
+): Promise<Tables.Album> {
+  let knex = await connection;
+
+  let select = knex.from(Table.UserCatalog).where({
+    user,
+    catalog,
+  });
+
+  let results = await insertFromSelect(knex, Table.Album, select, {
+    ...data,
+    id: await uuid("A"),
+    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+  }).returning("id");
+
+  if (results.length) {
+    return {
+      ...data,
+      catalog,
+      id: results[0],
+    };
+  }
+
+  throw new Error("Invalid user or catalog passed to createAlbum");
 }
 
 export async function listPeople(user: string): Promise<Tables.Person[]> {
