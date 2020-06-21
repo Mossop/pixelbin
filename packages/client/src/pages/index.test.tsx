@@ -1,3 +1,4 @@
+import mockConsole from "jest-mock-console";
 import React from "react";
 
 import Page from ".";
@@ -92,6 +93,8 @@ test("index page", (): void => {
 });
 
 test("user page not logged in", (): void => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
@@ -116,6 +119,8 @@ test("user page not logged in", (): void => {
 });
 
 test("album page not logged in", (): void => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
@@ -141,6 +146,8 @@ test("album page not logged in", (): void => {
 });
 
 test("catalog page not logged in", (): void => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
@@ -263,6 +270,8 @@ test("not found page", (): void => {
 });
 
 test("error page", (): void => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({
     ui: {
       page: {

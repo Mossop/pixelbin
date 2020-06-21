@@ -1,4 +1,5 @@
 import { fireEvent } from "@testing-library/react";
+import mockConsole from "jest-mock-console";
 import React from "react";
 
 import Overlay from ".";
@@ -142,6 +143,8 @@ test("login overlay", (): void => {
 });
 
 test("bad login", (): void => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({
     ui: {
       page: {
@@ -189,6 +192,8 @@ test("signup overlay", (): void => {
 });
 
 test("bad signup", (): void => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({
     ui: {
       page: {
@@ -264,6 +269,8 @@ test("edit album overlay", (): void => {
 });
 
 test("bad album", (): void => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {

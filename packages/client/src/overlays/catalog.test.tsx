@@ -1,4 +1,5 @@
 import { waitFor, fireEvent } from "@testing-library/react";
+import mockConsole from "jest-mock-console";
 import React from "react";
 
 import request from "../api/request";
@@ -24,6 +25,8 @@ beforeEach(resetDOM);
 const mockedRequest = mockedFunction(request);
 
 test("create catalog first", async (): Promise<void> => {
+  mockConsole();
+
   const store = mockStore(mockStoreState({}));
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let user = store.state.serverState.user!;

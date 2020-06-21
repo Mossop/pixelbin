@@ -4,7 +4,7 @@ import * as Api from "pixelbin-webserver/build/api";
 import { JsonDecoder } from "ts.data.json";
 
 import { ReadonlyMapOf } from "../utils/maps";
-import { JsonRequestData, JsonDecoderDecoder, makeRequest } from "./helpers";
+import { JsonRequestData, makeRequest } from "./helpers";
 import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
 
 type StateForObject<Obj> =
@@ -163,19 +163,22 @@ type ResponseDecoder<Signature> =
     : never;
 
 type ResponseDecoders = {
-  [Key in keyof Api.Signatures]: ResponseDecoder<Api.Signatures[Key]>;
+  [Key in keyof Api.Signatures]: JsonDecoder.Decoder<ResponseType<Key>>;
 };
 
 const decoders: ResponseDecoders = {
   [Api.Method.State]: StateDecoder,
+  [Api.Method.Login]: StateDecoder,
+  [Api.Method.Logout]: StateDecoder,
+  [Api.Method.CatalogCreate]: CatalogDecoder,
 };
 
 export function request<T extends Api.Method>(
   method: T,
   ...data: RequestType<T>
 ): Promise<ResponseType<T>> {
-  let request = new JsonRequestData(data, JsonDecoderDecoder(decoders[method]));
+  // @ts-ignore: Bleh
+  let request = new JsonRequestData<ResponseType<T>>(data, decoders[method]);
 
-  // @ts-ignore: Not sure what is going wrong here.
   return makeRequest(Api.HttpMethods[method], method, request);
 }

@@ -1,5 +1,6 @@
 import { Buffer } from "buffer";
 
+import mockConsole from "jest-mock-console";
 import { Orientation, parseBuffer, Metadata } from "media-metadata";
 
 import { mockedFunction } from "../test-helpers";
@@ -120,6 +121,8 @@ qr/ //s`;
 });
 
 test("blob", async (): Promise<void> => {
+  mockConsole();
+
   let file = new File(["This is a test blob!"], "foobar.jpg");
 
   mockedParser.mockImplementationOnce(

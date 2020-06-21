@@ -27,6 +27,9 @@ exports.jestConfig = function() {
     coverageReporters: [["json", {
       file: "coverage-final.json",
     }]],
+    setupFilesAfterEnv: [
+      "jest-mock-console/dist/setupTestFramework.js",
+    ],
     resetModules: true,
     clearMocks: true,
   };
