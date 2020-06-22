@@ -9,7 +9,7 @@ export enum ApiErrorCode {
   BadMethod = "bad-method",
   NotLoggedIn = "not-logged-in",
   LoginFailed = "login-failed",
-  UnknownCatalog = "unknown-catalog",
+  InvalidData = "unknown-catalog",
 }
 
 const ApiErrorStatus: Record<ApiErrorCode, number> = {
@@ -17,7 +17,7 @@ const ApiErrorStatus: Record<ApiErrorCode, number> = {
   [ApiErrorCode.BadMethod]: 401,
   [ApiErrorCode.NotLoggedIn]: 403,
   [ApiErrorCode.LoginFailed]: 403,
-  [ApiErrorCode.UnknownCatalog]: 404,
+  [ApiErrorCode.InvalidData]: 401,
 };
 
 export interface ApiErrorData {

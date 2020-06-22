@@ -6,7 +6,6 @@ import {
   testData,
 } from "pixelbin-database/build/test-helpers";
 import { Table } from "pixelbin-database/build/types";
-import { setLogConfig } from "pixelbin-utils";
 
 import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
@@ -165,12 +164,9 @@ test("Create album", async (): Promise<void> => {
       parent: null,
     })
     .expect("Content-Type", "application/json")
-    .expect(404);
+    .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.UnknownCatalog,
-    data: {
-      catalog: "c1",
-    },
+    code: ApiErrorCode.InvalidData,
   });
 });

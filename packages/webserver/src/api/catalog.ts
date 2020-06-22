@@ -18,9 +18,7 @@ export const createAlbum = ensureAuthenticated(
       return await Db.createAlbum(user.email, data.catalog, data);
     } catch (e) {
       // For the moment just assume that the user or catalog were invalid.
-      throw new ApiError(ApiErrorCode.UnknownCatalog, {
-        catalog: data.catalog,
-      });
+      throw new ApiError(ApiErrorCode.InvalidData);
     }
   },
 );
