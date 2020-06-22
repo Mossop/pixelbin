@@ -43,7 +43,8 @@ export enum Method {
   TagCreate = "tag/create",
   TagEdit = "tag/edit",
   // TagFind = "tag/find",
-  // PersonCreate = "person/create",
+  PersonCreate = "person/create",
+  PersonEdit = "person/edit",
   // MediaGet = "media/get",
   // MediaCreate = "media/create",
   // MediaUpdate = "media/update",
@@ -66,7 +67,8 @@ export const HttpMethods: MethodList = {
   [Method.TagCreate]: "PUT",
   [Method.TagEdit]: "PATCH",
   // [Method.TagFind]: "POST",
-  // [Method.PersonCreate]: "PUT",
+  [Method.PersonCreate]: "PUT",
+  [Method.PersonEdit]: "PATCH",
   // [Method.MediaGet]: "GET",
   // [Method.MediaCreate]: "PUT",
   // [Method.MediaUpdate]: "PUT",
@@ -76,7 +78,7 @@ export const HttpMethods: MethodList = {
 
 // Fake interface
 export interface Signature<Request = unknown, Response = unknown> {
-  fakeType: "ApiMethodSignature",
+  fakeType: "Signature",
   requestType: Request;
   responseType: Response;
 }
@@ -93,17 +95,18 @@ export interface Signatures {
   [Method.CatalogCreate]: Signature<Create<Catalog>, Catalog>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
-  // [ApiMethod.AlbumAddMedia]: ApiMethodSignature<AlbumMedia, AlbumData>;
-  // [ApiMethod.AlbumRemoveMedia]: ApiMethodSignature<AlbumMedia, AlbumData>;
+  // [ApiMethod.AlbumAddMedia]: Signature<AlbumMedia, AlbumData>;
+  // [ApiMethod.AlbumRemoveMedia]: Signature<AlbumMedia, AlbumData>;
   [Method.TagCreate]: Signature<Create<Tag>, Tag>;
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
-  // [ApiMethod.TagFind]: ApiMethodSignature<TagLookup, TagData[]>;
-  // [ApiMethod.PersonCreate]: ApiMethodSignature<PersonCreateData, PersonData>;
-  // [ApiMethod.MediaGet]: ApiMethodSignature<Mappable, MediaData>;
-  // [ApiMethod.MediaCreate]: ApiMethodSignature<MediaCreateData, MediaData>;
-  // [ApiMethod.MediaUpdate]: ApiMethodSignature<Patch<MediaCreateData, Media>, MediaData>;
-  // [ApiMethod.MediaSearch]: ApiMethodSignature<Search, MediaData[]>;
-  // [ApiMethod.MediaThumbnail]: ApiMethodSignature<MediaThumbnail, Blob>;
+  // [ApiMethod.TagFind]: Signature<TagLookup, TagData[]>;
+  [Method.PersonCreate]: Signature<Create<Person>, Person>;
+  [Method.PersonEdit]: Signature<Patch<Person>, Person>;
+  // [ApiMethod.MediaGet]: Signature<Mappable, MediaData>;
+  // [ApiMethod.MediaCreate]: Signature<MediaCreateData, MediaData>;
+  // [ApiMethod.MediaUpdate]: Signature<Patch<MediaCreateData, Media>, MediaData>;
+  // [ApiMethod.MediaSearch]: Signature<Search, MediaData[]>;
+  // [ApiMethod.MediaThumbnail]: Signature<MediaThumbnail, Blob>;
 }
 
 export type SignatureRequest<M extends Method> =

@@ -37,3 +37,13 @@ export const TagEditRequest = JsonDecoder.object<Patch<Api.Tag>>({
   name: JsonDecoder.optional(JsonDecoder.string),
   parent: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
 }, "TagEditRequest");
+
+export const PersonCreateRequest = JsonDecoder.object<Create<Api.Person>>({
+  catalog: JsonDecoder.string,
+  name: JsonDecoder.string,
+}, "PersonCreateRequest");
+
+export const PersonEditRequest = JsonDecoder.object<Patch<Api.Person>>({
+  id: JsonDecoder.string,
+  name: JsonDecoder.optional(JsonDecoder.string),
+}, "PersonEditRequest");

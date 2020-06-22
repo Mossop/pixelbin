@@ -127,7 +127,7 @@ export async function createTag(
 
   let results = await insertFromSelect(knex, Table.Tag, select, {
     ...data,
-    id: await uuid("A"),
+    id: await uuid("T"),
     catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
   }).returning("*");
 
@@ -161,4 +161,54 @@ export async function editTag(
   }
 
   throw new Error("Invalid user or album passed to editTag");
+}
+
+export async function createPerson(
+  user: string,
+  catalog: string,
+  data: Omit<Tables.Person, "id" | "catalog">,
+): Promise<Tables.Person> {
+  let knex = await connection;
+
+  let select = knex.from(Table.UserCatalog).where({
+    user,
+    catalog,
+  });
+
+  let results = await insertFromSelect(knex, Table.Person, select, {
+    ...data,
+    id: await uuid("P"),
+    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+  }).returning("*");
+
+  if (results.length) {
+    return results[0];
+  }
+
+  throw new Error("Invalid user or catalog passed to createPerson");
+}
+
+export async function editPerson(
+  user: string,
+  id: string,
+  data: Partial<Omit<Tables.Person, "id" | "catalog">>,
+): Promise<Tables.Person> {
+  let knex = await connection;
+  let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
+
+  let results = await into(knex, Table.Person)
+    .where("id", id)
+    .andWhere("catalog", "in", catalogs)
+    .update({
+      ...data,
+      id: undefined,
+      catalog: undefined,
+    })
+    .returning("*");
+
+  if (results.length) {
+    return results[0];
+  }
+
+  throw new Error("Invalid user or album passed to editPerson");
 }

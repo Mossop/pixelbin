@@ -56,3 +56,23 @@ export const editTag = ensureAuthenticated(
     }
   },
 );
+
+export const createPerson = ensureAuthenticated(
+  async (ctx: AppContext, user: User, data: Create<Api.Person>): Promise<Api.Person> => {
+    try {
+      return await Db.createPerson(user.email, data.catalog, data);
+    } catch (e) {
+      throw new ApiError(ApiErrorCode.InvalidData);
+    }
+  },
+);
+
+export const editPerson = ensureAuthenticated(
+  async (ctx: AppContext, user: User, data: Patch<Api.Person>): Promise<Api.Person> => {
+    try {
+      return await Db.editPerson(user.email, data.id, data);
+    } catch (e) {
+      throw new ApiError(ApiErrorCode.InvalidData);
+    }
+  },
+);

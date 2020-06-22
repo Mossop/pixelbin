@@ -294,7 +294,7 @@ test("Create Tag", async (): Promise<void> => {
 
   let newTag = response.body;
   expect(newTag).toEqual({
-    id: expect.stringMatching(/^A:[a-zA-Z0-9]+/),
+    id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
     name: "Good user",
     parent: null,
     catalog: "c1",
@@ -381,7 +381,7 @@ test("Edit tag", async (): Promise<void> => {
     code: ApiErrorCode.InvalidData,
   });
 
-  // Can't update albums in unowned catalogs.
+  // Can't update tags in unowned catalogs.
   response = await request
     .patch("/api/tag/edit")
     .send({
@@ -428,5 +428,175 @@ test("Edit tag", async (): Promise<void> => {
     "albums": fromCatalogs("c1", testData[Table.Album]),
     "people": fromCatalogs("c1", testData[Table.Person]),
     "tags": tags,
+  });
+});
+
+test("Create Person", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .put("/api/person/create")
+    .send({
+      catalog: "c1",
+      name: "Bad user",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(401);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.NotLoggedIn,
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .put("/api/person/create")
+    .send({
+      catalog: "c1",
+      name: "Good user",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let newPerson = response.body;
+  expect(newPerson).toEqual({
+    id: expect.stringMatching(/^P:[a-zA-Z0-9]+/),
+    name: "Good user",
+    catalog: "c1",
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expectUserState(response.body, {
+    "email": "someone1@nowhere.com",
+    "fullname": "Someone 1",
+    "hadCatalog": false,
+    "verified": true,
+    "catalogs": testData[Table.Catalog],
+    "albums": testData[Table.Album],
+    "people": [
+      ...testData[Table.Person],
+      newPerson,
+    ],
+    "tags": testData[Table.Tag],
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone3@nowhere.com",
+      password: "password3",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .put("/api/person/create")
+    .send({
+      catalog: "c1",
+      name: "Bad catalog",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.InvalidData,
+  });
+});
+
+test("Edit person", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .patch("/api/person/edit")
+    .send({
+      id: "c1",
+      name: "Bad name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(401);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.NotLoggedIn,
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone2@nowhere.com",
+      password: "password2",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  // Not including the ID is a failure.
+  response = await request
+    .patch("/api/person/edit")
+    .send({
+      name: "New name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.InvalidData,
+  });
+
+  // Can't update people in unowned catalogs.
+  response = await request
+    .patch("/api/person/edit")
+    .send({
+      id: "p4",
+      name: "New name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.InvalidData,
+  });
+
+  response = await request
+    .patch("/api/person/edit")
+    .send({
+      id: "p1",
+      name: "New name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let updatedPerson = response.body;
+  expect(updatedPerson).toEqual({
+    id: "p1",
+    name: "New name",
+    catalog: "c1",
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let people = fromCatalogs("c1", testData[Table.Person]);
+  people[0] = updatedPerson;
+  expectUserState(response.body, {
+    "email": "someone2@nowhere.com",
+    "fullname": "Someone 2",
+    "hadCatalog": false,
+    "verified": true,
+    "catalogs": catalogs("c1", testData[Table.Catalog]),
+    "albums": fromCatalogs("c1", testData[Table.Album]),
+    "people": people,
+    "tags": fromCatalogs("c1", testData[Table.Tag]),
   });
 });

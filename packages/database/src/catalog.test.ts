@@ -10,6 +10,8 @@ import {
   editAlbum,
   createTag,
   editTag,
+  createPerson,
+  editPerson,
 } from "./catalog";
 import { insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
@@ -95,7 +97,7 @@ test("Tag table tests", async (): Promise<void> => {
 
   expect(tag.id).not.toBe("Bad");
   expect(tag).toEqual({
-    id: expect.stringMatching(/^A:[A-Za-z0-9]+/),
+    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
     catalog: "c1",
     parent: null,
     name: "New Tag",
@@ -264,4 +266,57 @@ test("Person table tests", async (): Promise<void> => {
     testData[Table.Person][4],
     testData[Table.Person][5],
   ]);
+
+  let person = await createPerson("someone1@nowhere.com", "c1", {
+    // @ts-ignore: Supplying an ID should not affect anything.
+    id: "Bad",
+    // @ts-ignore: Supplying a catalog should not affect anything.
+    catalog: "c2",
+    name: "New Person",
+  });
+
+  expect(person.id).not.toBe("Bad");
+  expect(person).toEqual({
+    id: expect.stringMatching(/^P:[A-Za-z0-9]+/),
+    catalog: "c1",
+    name: "New Person",
+  });
+
+  // Shouldn't allow adding to a catalog that doesn't exist.
+  await expect(createPerson("someone1@nowhere.com", "c8", {
+    name: "New Person",
+  })).rejects.toThrow("Invalid user or catalog passed to createPerson");
+
+  // Or with a user that doesn't exist.
+  await expect(createPerson("foobar@nowhere.com", "c1", {
+    name: "New Person",
+  })).rejects.toThrow("Invalid user or catalog passed to createPerson");
+
+  // Or with a user that doesn't have access to the catalog
+  await expect(createPerson("someone3@nowhere.com", "c1", {
+    name: "New Tag",
+  })).rejects.toThrow("Invalid user or catalog passed to createPerson");
+
+  let updated = await editPerson("someone1@nowhere.com", person.id, {
+    // @ts-ignore: Attempts to change id should be ignored.
+    id: "newId",
+    // @ts-ignore: Ditto for catalog.
+    catalog: "c2",
+    name: "New name",
+  });
+
+  expect(updated).toEqual({
+    ...person,
+    name: "New name",
+  });
+
+  // Attempting to alter a person in a catalog the user cannot access should fail.
+  await expect(editPerson("someone3@nowhere.com", "p2", {
+    name: "Bad name",
+  })).rejects.toThrow("Invalid user or album passed to editPerson");
+
+  // Attempting to alter a person that doesn't exist should fail.
+  await expect(editPerson("someone3@nowhere.com", "p16", {
+    name: "Bad name",
+  })).rejects.toThrow("Invalid user or album passed to editPerson");
 });

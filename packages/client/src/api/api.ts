@@ -175,6 +175,8 @@ const decoders: ResponseDecoders = {
   [Api.Method.AlbumEdit]: AlbumDecoder,
   [Api.Method.TagCreate]: TagDecoder,
   [Api.Method.TagEdit]: TagDecoder,
+  [Api.Method.PersonCreate]: PersonDecoder,
+  [Api.Method.PersonEdit]: PersonDecoder,
 };
 
 export function request<T extends Api.Method>(
