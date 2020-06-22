@@ -6,7 +6,6 @@ import {
   testData,
 } from "pixelbin-database/build/test-helpers";
 import { Table } from "pixelbin-database/build/types";
-import { idSorted } from "pixelbin-utils";
 
 import { ApiErrorCode } from "../error";
 import { buildTestApp, expectUserState, fromCatalogs, catalogs } from "../test-helpers";

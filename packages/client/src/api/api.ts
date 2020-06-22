@@ -148,7 +148,7 @@ const StateDecoder = JsonDecoder.object<Api.State>(
 );
 
 type RequestType<T extends Api.Method> =
-  Api.Signatures[T] extends Api.Signature<infer Request, unknown>
+  Api.Signatures[T] extends Api.Signature<infer Request>
     ? Request extends Api.None
       ? []
       : [Request]
@@ -171,6 +171,8 @@ const decoders: ResponseDecoders = {
   [Api.Method.Login]: StateDecoder,
   [Api.Method.Logout]: StateDecoder,
   [Api.Method.CatalogCreate]: CatalogDecoder,
+  [Api.Method.AlbumCreate]: AlbumDecoder,
+  [Api.Method.AlbumEdit]: AlbumDecoder,
 };
 
 export function request<T extends Api.Method>(

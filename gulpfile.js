@@ -232,6 +232,18 @@ exports.buildClient = async function() {
   });
 };
 
+exports.install = async function() {
+  return applyToAllPackages(path.join(__dirname, "packages"), async package => {
+    let npm = new Process("npm", ["install", "-q"], {
+      cwd: package.path,
+    });
+    let code = await npm.exitCode;
+    if (code != 0) {
+      throw new Error(`Running npm in ${package.name} failed.`);
+    }
+  });
+};
+
 exports.build = async function() {
   return applyToAllPackages(path.join(__dirname, "packages"), async package => {
     return runPackageTask(package, "build", "Building");

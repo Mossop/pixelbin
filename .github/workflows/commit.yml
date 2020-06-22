@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 env:
   NODE_VERSION: '14'
-  PYTHON_VERSION: '3.8'
 
 jobs:
   lint:
@@ -27,8 +26,9 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp lerna
-        lerna bootstrap
+        npm install -g gulp
+        npm install
+        gulp install
 
     - name: Run lint checks
       run: |
@@ -54,8 +54,9 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp lerna
-        lerna bootstrap
+        npm install -g gulp
+        npm install
+        gulp install
 
     - name: Run tests
       run: |
@@ -87,8 +88,9 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp lerna
-        lerna bootstrap
+        npm install -g gulp
+        npm install
+        gulp install
 
     - name: Run tests
       run: |
