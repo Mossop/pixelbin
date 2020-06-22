@@ -3,7 +3,7 @@ import { JsonDecoder } from "ts.data.json";
 import * as Api from ".";
 import { AppContext } from "../app";
 import { ApiError, ApiErrorCode } from "../error";
-import { createCatalog, createAlbum, editAlbum } from "./catalog";
+import { createCatalog, createAlbum, editAlbum, createTag, editTag } from "./catalog";
 import * as Decoders from "./decoders";
 import { getState, login, logout } from "./state";
 
@@ -22,6 +22,8 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.CatalogCreate]: Decoders.CatalogCreateRequest,
   [Api.Method.AlbumCreate]: Decoders.AlbumCreateRequest,
   [Api.Method.AlbumEdit]: Decoders.AlbumEditRequest,
+  [Api.Method.TagCreate]: Decoders.TagCreateRequest,
+  [Api.Method.TagEdit]: Decoders.TagEditRequest,
 };
 
 type ApiInterface = {
@@ -37,6 +39,8 @@ const apiMethods: ApiInterface = {
   [Api.Method.CatalogCreate]: createCatalog,
   [Api.Method.AlbumCreate]: createAlbum,
   [Api.Method.AlbumEdit]: editAlbum,
+  [Api.Method.TagCreate]: createTag,
+  [Api.Method.TagEdit]: editTag,
 };
 
 export function apiRequestHandler<T extends Api.Method>(

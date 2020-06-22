@@ -8,6 +8,8 @@ import {
   createCatalog,
   createAlbum,
   editAlbum,
+  createTag,
+  editTag,
 } from "./catalog";
 import { insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
@@ -81,6 +83,71 @@ test("Tag table tests", async (): Promise<void> => {
     testData[Table.Tag][6],
     testData[Table.Tag][7],
   ]);
+
+  let tag = await createTag("someone1@nowhere.com", "c1", {
+    // @ts-ignore: Supplying an ID should not affect anything.
+    id: "Bad",
+    // @ts-ignore: Supplying a catalog should not affect anything.
+    catalog: "c2",
+    parent: null,
+    name: "New Tag",
+  });
+
+  expect(tag.id).not.toBe("Bad");
+  expect(tag).toEqual({
+    id: expect.stringMatching(/^A:[A-Za-z0-9]+/),
+    catalog: "c1",
+    parent: null,
+    name: "New Tag",
+  });
+
+  // Shouldn't allow adding to a catalog that doesn't exist.
+  await expect(createTag("someone1@nowhere.com", "c8", {
+    parent: null,
+    name: "New Tag",
+  })).rejects.toThrow("Invalid user or catalog passed to createTag");
+
+  // Or with a user that doesn't exist.
+  await expect(createTag("foobar@nowhere.com", "c1", {
+    parent: null,
+    name: "New Tag",
+  })).rejects.toThrow("Invalid user or catalog passed to createTag");
+
+  // Or with a user that doesn't have access to the catalog
+  await expect(createTag("someone3@nowhere.com", "c1", {
+    parent: null,
+    name: "New Tag",
+  })).rejects.toThrow("Invalid user or catalog passed to createTag");
+
+  let updated = await editTag("someone1@nowhere.com", tag.id, {
+    // @ts-ignore: Attempts to change id should be ignored.
+    id: "newId",
+    // @ts-ignore: Ditto for catalog.
+    catalog: "c2",
+    name: "New name",
+    parent: "t1",
+  });
+
+  expect(updated).toEqual({
+    ...tag,
+    parent: "t1",
+    name: "New name",
+  });
+
+  // Attempting to alter a tag in a catalog the user cannot access should fail.
+  await expect(editTag("someone3@nowhere.com", "t1", {
+    name: "Bad name",
+  })).rejects.toThrow("Invalid user or album passed to editTag");
+
+  // Attempting to alter a tag that doesn't exist should fail.
+  await expect(editTag("someone3@nowhere.com", "t16", {
+    name: "Bad name",
+  })).rejects.toThrow("Invalid user or album passed to editTag");
+
+  // Changing to a bad parent should fail.
+  await expect(editTag("someone2@nowhere.com", tag.id, {
+    parent: "t3",
+  })).rejects.toThrow("foreign key constraint");
 });
 
 test("Album table tests", async (): Promise<void> => {

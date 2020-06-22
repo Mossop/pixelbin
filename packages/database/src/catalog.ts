@@ -112,3 +112,53 @@ export async function listTags(user: string): Promise<Tables.Tag[]> {
     .where(ref(Table.UserCatalog, "user"), user)
     .select(ref(Table.Tag));
 }
+
+export async function createTag(
+  user: string,
+  catalog: string,
+  data: Omit<Tables.Tag, "id" | "catalog">,
+): Promise<Tables.Tag> {
+  let knex = await connection;
+
+  let select = knex.from(Table.UserCatalog).where({
+    user,
+    catalog,
+  });
+
+  let results = await insertFromSelect(knex, Table.Tag, select, {
+    ...data,
+    id: await uuid("A"),
+    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+  }).returning("*");
+
+  if (results.length) {
+    return results[0];
+  }
+
+  throw new Error("Invalid user or catalog passed to createTag");
+}
+
+export async function editTag(
+  user: string,
+  id: string,
+  data: Partial<Omit<Tables.Tag, "id" | "catalog">>,
+): Promise<Tables.Tag> {
+  let knex = await connection;
+  let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
+
+  let results = await into(knex, Table.Tag)
+    .where("id", id)
+    .andWhere("catalog", "in", catalogs)
+    .update({
+      ...data,
+      id: undefined,
+      catalog: undefined,
+    })
+    .returning("*");
+
+  if (results.length) {
+    return results[0];
+  }
+
+  throw new Error("Invalid user or album passed to editTag");
+}

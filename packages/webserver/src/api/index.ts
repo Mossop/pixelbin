@@ -23,17 +23,13 @@ export interface State {
   user: User | null;
 }
 
-type Create<T> = Omit<T, "id">;
-type Patch<T> = Partial<Omit<T, "id" | "catalog">> & { id: string };
+export type Create<T> = Omit<T, "id">;
+export type Patch<T> = Partial<Omit<T, "id" | "catalog">> & { id: string };
 
 export interface LoginRequest {
   email: string;
   password: string;
 }
-
-export type CatalogCreateRequest = Create<Catalog>;
-export type AlbumCreateRequest = Create<Album>;
-export type AlbumEditRequest = Patch<Album>;
 
 export enum Method {
   State = "state",
@@ -44,8 +40,8 @@ export enum Method {
   AlbumEdit = "album/edit",
   // AlbumAddMedia = "album/add_media",
   // AlbumRemoveMedia = "album/remove_media",
-  // TagCreate = "tag/create",
-  // TagEdit = "tag/edit",
+  TagCreate = "tag/create",
+  TagEdit = "tag/edit",
   // TagFind = "tag/find",
   // PersonCreate = "person/create",
   // MediaGet = "media/get",
@@ -67,8 +63,8 @@ export const HttpMethods: MethodList = {
   [Method.AlbumEdit]: "PATCH",
   // [Method.AlbumAddMedia]: "PUT",
   // [Method.AlbumRemoveMedia]: "DELETE",
-  // [Method.TagCreate]: "PUT",
-  // [Method.TagEdit]: "PATCH",
+  [Method.TagCreate]: "PUT",
+  [Method.TagEdit]: "PATCH",
   // [Method.TagFind]: "POST",
   // [Method.PersonCreate]: "PUT",
   // [Method.MediaGet]: "GET",
@@ -94,13 +90,13 @@ export interface Signatures {
   [Method.State]: Signature<None, State>;
   [Method.Login]: Signature<LoginRequest, State>;
   [Method.Logout]: Signature<None, State>;
-  [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
-  [Method.AlbumCreate]: Signature<AlbumCreateRequest, Album>;
-  [Method.AlbumEdit]: Signature<AlbumEditRequest, Album>;
+  [Method.CatalogCreate]: Signature<Create<Catalog>, Catalog>;
+  [Method.AlbumCreate]: Signature<Create<Album>, Album>;
+  [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
   // [ApiMethod.AlbumAddMedia]: ApiMethodSignature<AlbumMedia, AlbumData>;
   // [ApiMethod.AlbumRemoveMedia]: ApiMethodSignature<AlbumMedia, AlbumData>;
-  // [ApiMethod.TagCreate]: ApiMethodSignature<TagCreateData, TagData>;
-  // [ApiMethod.TagEdit]: ApiMethodSignature<Patch<TagCreateData, Tag>, TagData>;
+  [Method.TagCreate]: Signature<Create<Tag>, Tag>;
+  [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
   // [ApiMethod.TagFind]: ApiMethodSignature<TagLookup, TagData[]>;
   // [ApiMethod.PersonCreate]: ApiMethodSignature<PersonCreateData, PersonData>;
   // [ApiMethod.MediaGet]: ApiMethodSignature<Mappable, MediaData>;

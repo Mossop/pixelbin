@@ -255,3 +255,178 @@ test("Edit album", async (): Promise<void> => {
     "tags": fromCatalogs("c1", testData[Table.Tag]),
   });
 });
+
+test("Create Tag", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .put("/api/tag/create")
+    .send({
+      catalog: "c1",
+      name: "Bad user",
+      parent: null,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(401);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.NotLoggedIn,
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .put("/api/tag/create")
+    .send({
+      catalog: "c1",
+      name: "Good user",
+      parent: null,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let newTag = response.body;
+  expect(newTag).toEqual({
+    id: expect.stringMatching(/^A:[a-zA-Z0-9]+/),
+    name: "Good user",
+    parent: null,
+    catalog: "c1",
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expectUserState(response.body, {
+    "email": "someone1@nowhere.com",
+    "fullname": "Someone 1",
+    "hadCatalog": false,
+    "verified": true,
+    "catalogs": testData[Table.Catalog],
+    "albums": testData[Table.Album],
+    "people": testData[Table.Person],
+    "tags": [
+      ...testData[Table.Tag],
+      newTag,
+    ],
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone3@nowhere.com",
+      password: "password3",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .put("/api/tag/create")
+    .send({
+      catalog: "c1",
+      name: "Bad catalog",
+      parent: null,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.InvalidData,
+  });
+});
+
+test("Edit tag", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .patch("/api/tag/edit")
+    .send({
+      id: "c1",
+      name: "Bad name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(401);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.NotLoggedIn,
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone2@nowhere.com",
+      password: "password2",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  // Not including the ID is a failure.
+  response = await request
+    .patch("/api/tag/edit")
+    .send({
+      name: "New name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.InvalidData,
+  });
+
+  // Can't update albums in unowned catalogs.
+  response = await request
+    .patch("/api/tag/edit")
+    .send({
+      id: "t5",
+      name: "New name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  expect(response.body).toEqual({
+    code: ApiErrorCode.InvalidData,
+  });
+
+  response = await request
+    .patch("/api/tag/edit")
+    .send({
+      id: "t1",
+      name: "New name",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let updatedTag = response.body;
+  expect(updatedTag).toEqual({
+    id: "t1",
+    name: "New name",
+    parent: null,
+    catalog: "c1",
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let tags = fromCatalogs("c1", testData[Table.Tag]);
+  tags[0] = updatedTag;
+  expectUserState(response.body, {
+    "email": "someone2@nowhere.com",
+    "fullname": "Someone 2",
+    "hadCatalog": false,
+    "verified": true,
+    "catalogs": catalogs("c1", testData[Table.Catalog]),
+    "albums": fromCatalogs("c1", testData[Table.Album]),
+    "people": fromCatalogs("c1", testData[Table.Person]),
+    "tags": tags,
+  });
+});
