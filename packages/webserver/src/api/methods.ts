@@ -3,7 +3,7 @@ import { JsonDecoder } from "ts.data.json";
 import * as Api from ".";
 import { AppContext } from "../app";
 import { ApiError, ApiErrorCode } from "../error";
-import { createCatalog, createAlbum } from "./catalog";
+import { createCatalog, createAlbum, editAlbum } from "./catalog";
 import * as Decoders from "./decoders";
 import { getState, login, logout } from "./state";
 
@@ -21,6 +21,7 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.Login]: Decoders.LoginRequest,
   [Api.Method.CatalogCreate]: Decoders.CatalogCreateRequest,
   [Api.Method.AlbumCreate]: Decoders.AlbumCreateRequest,
+  [Api.Method.AlbumEdit]: Decoders.AlbumEditRequest,
 };
 
 type ApiInterface = {
@@ -35,6 +36,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.Logout]: logout,
   [Api.Method.CatalogCreate]: createCatalog,
   [Api.Method.AlbumCreate]: createAlbum,
+  [Api.Method.AlbumEdit]: editAlbum,
 };
 
 export function apiRequestHandler<T extends Api.Method>(
@@ -68,7 +70,14 @@ export function apiRequestHandler<T extends Api.Method>(
         ctx: AppContext, data: Api.SignatureRequest<T>,
       ) => Promise<unknown> = apiMethods[method];
 
-      let decoded = await decoder.decodePromise(body);
+      let decoded;
+      try {
+        decoded = await decoder.decodePromise(body);
+      } catch (e) {
+        ctx.logger.warn(e, "Client provided invalid data.");
+        throw new ApiError(ApiErrorCode.InvalidData);
+      }
+
       response = await apiMethod(ctx, decoded);
     }
 

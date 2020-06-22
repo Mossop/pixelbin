@@ -121,7 +121,7 @@ test("login failure", async (): Promise<void> => {
       password: "badpassword",
     })
     .expect("Content-Type", "application/json")
-    .expect(403);
+    .expect(401);
 
   expect(response.body).toEqual({
     code: ApiErrorCode.LoginFailed,

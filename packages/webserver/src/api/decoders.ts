@@ -17,3 +17,10 @@ export const AlbumCreateRequest = JsonDecoder.object<Api.AlbumCreateRequest>({
   stub: JsonDecoder.nullable(JsonDecoder.string),
   parent: JsonDecoder.nullable(JsonDecoder.string),
 }, "AlbumCreateRequest");
+
+export const AlbumEditRequest = JsonDecoder.object<Api.AlbumEditRequest>({
+  id: JsonDecoder.string,
+  name: JsonDecoder.optional(JsonDecoder.string),
+  stub: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  parent: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+}, "AlbumEditRequest");

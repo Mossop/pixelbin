@@ -7,6 +7,7 @@ import {
   listPeople,
   createCatalog,
   createAlbum,
+  editAlbum,
 } from "./catalog";
 import { insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
@@ -106,11 +107,16 @@ test("Album table tests", async (): Promise<void> => {
   ]);
 
   let album = await createAlbum("someone1@nowhere.com", "c1", {
+    // @ts-ignore: Supplying an ID should not affect anything.
+    id: "Bad",
+    // @ts-ignore: Supplying a catalog should not affect anything.
+    catalog: "c2",
     parent: null,
     stub: "foo",
     name: "New Album",
   });
 
+  expect(album.id).not.toBe("Bad");
   expect(album).toEqual({
     id: expect.stringMatching(/^A:[A-Za-z0-9]+/),
     catalog: "c1",
@@ -139,6 +145,36 @@ test("Album table tests", async (): Promise<void> => {
     stub: "foo",
     name: "New Album",
   })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
+
+  let updated = await editAlbum("someone1@nowhere.com", album.id, {
+    // @ts-ignore: Attempts to change id should be ignored.
+    id: "newId",
+    // @ts-ignore: Ditto for catalog.
+    catalog: "c2",
+    name: "New name",
+    parent: "a1",
+  });
+
+  expect(updated).toEqual({
+    ...album,
+    parent: "a1",
+    name: "New name",
+  });
+
+  // Attempting to alter an album in a catalog the user cannot access should fail.
+  await expect(editAlbum("someone3@nowhere.com", "a1", {
+    name: "Bad name",
+  })).rejects.toThrow("Invalid user or album passed to editAlbum");
+
+  // Attempting to alter an album that doesn't exist should fail.
+  await expect(editAlbum("someone3@nowhere.com", "a16", {
+    name: "Bad name",
+  })).rejects.toThrow("Invalid user or album passed to editAlbum");
+
+  // Changing to a bad parent should fail.
+  await expect(editAlbum("someone2@nowhere.com", album.id, {
+    parent: "a6",
+  })).rejects.toThrow("foreign key constraint");
 });
 
 test("Person table tests", async (): Promise<void> => {
