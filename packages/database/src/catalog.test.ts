@@ -46,12 +46,15 @@ test("Catalog table tests", async (): Promise<void> => {
   })).rejects.toThrow("duplicate key");
 
   // Can duplicate name.
-  await insert(Table.Catalog, {
-    id: "c15",
+  let catalog = await createCatalog("someone1@nowhere.com", {
+    name: "Catalog 1",
+  });
+  expect(catalog).toEqual({
+    id: expect.stringMatching(/[a-zA-Z0-9]+/),
     name: "Catalog 1",
   });
 
-  let catalog = await createCatalog("someone2@nowhere.com", {
+  catalog = await createCatalog("someone2@nowhere.com", {
     name: "New catalog",
   });
   expect(catalog).toEqual({
