@@ -1,5 +1,6 @@
 import * as ObjectModel from "pixelbin-object-model";
 import { WithoutLinks } from "pixelbin-object-model";
+import { DateDecoder } from "pixelbin-utils";
 import * as Api from "pixelbin-webserver/build/api";
 import { JsonDecoder } from "ts.data.json";
 
@@ -118,7 +119,7 @@ const AlbumDecoder = JsonDecoder.object<Api.Album>(
   "Album",
 );
 
-const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
+const CatalogDecoder = JsonDecoder.object<Omit<Api.Catalog, "storage">>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
@@ -146,6 +147,32 @@ const StateDecoder = JsonDecoder.object<Api.State>(
   },
   "State",
 );
+
+const MediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>({
+  id: JsonDecoder.string,
+  created: DateDecoder,
+  filename: JsonDecoder.nullable(JsonDecoder.string),
+  title: JsonDecoder.nullable(JsonDecoder.string),
+  taken: JsonDecoder.nullable(DateDecoder),
+  offset: JsonDecoder.nullable(JsonDecoder.number),
+  longitude: JsonDecoder.nullable(JsonDecoder.number),
+  latitude: JsonDecoder.nullable(JsonDecoder.number),
+  altitude: JsonDecoder.nullable(JsonDecoder.number),
+  location: JsonDecoder.nullable(JsonDecoder.string),
+  city: JsonDecoder.nullable(JsonDecoder.string),
+  state: JsonDecoder.nullable(JsonDecoder.string),
+  country: JsonDecoder.nullable(JsonDecoder.string),
+  orientation: JsonDecoder.nullable(JsonDecoder.number),
+  make: JsonDecoder.nullable(JsonDecoder.string),
+  model: JsonDecoder.nullable(JsonDecoder.string),
+  lens: JsonDecoder.nullable(JsonDecoder.string),
+  photographer: JsonDecoder.nullable(JsonDecoder.string),
+  aperture: JsonDecoder.nullable(JsonDecoder.number),
+  exposure: JsonDecoder.nullable(JsonDecoder.number),
+  iso: JsonDecoder.nullable(JsonDecoder.number),
+  focalLength: JsonDecoder.nullable(JsonDecoder.number),
+  bitrate: JsonDecoder.nullable(JsonDecoder.number),
+}, "Media");
 
 type RequestType<T extends Api.Method> =
   Api.Signatures[T] extends Api.Signature<infer Request>
@@ -177,6 +204,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.TagEdit]: TagDecoder,
   [Api.Method.PersonCreate]: PersonDecoder,
   [Api.Method.PersonEdit]: PersonDecoder,
+  [Api.Method.MediaCreate]: MediaDecoder,
 };
 
 export function request<T extends Api.Method>(

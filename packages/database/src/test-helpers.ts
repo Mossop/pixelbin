@@ -60,6 +60,7 @@ export async function resetDB(): Promise<void> {
     Table.Tag,
     Table.Album,
     Table.Catalog,
+    Table.Storage,
     Table.User,
   ]) {
     await knex.raw("TRUNCATE ?? CASCADE;", [table]);
@@ -93,6 +94,7 @@ export async function insertData(data: Seed): Promise<void> {
   }
 
   await doInsert(Table.User);
+  await doInsert(Table.Storage);
   await doInsert(Table.Catalog);
   await doInsert(Table.Album);
   await doInsert(Table.Tag);
@@ -126,14 +128,35 @@ export const testData = {
     verified: true,
   }],
 
+  [Table.Storage]: [{
+    id: "s1",
+    name: "Storage 1",
+    accessKeyId: "accessKey",
+    secretAccessKey: "secret",
+    region: "us-random-001",
+    endpoint: "https://s3.us-random-001.private.com",
+    publicUrl: "https://www.public.com/",
+  }, {
+    id: "s2",
+    name: "Storage 2",
+    accessKeyId: "otheraccessKey",
+    secretAccessKey: "othersecret",
+    region: "us-elsewhere-001",
+    endpoint: "https://s3.us-elsewhere-001.private.com",
+    publicUrl: "https://www.public.com/",
+  }],
+
   [Table.Catalog]: [{
     id: "c1",
+    storage: "s1",
     name: "Catalog 1",
   }, {
     id: "c2",
+    storage: "s1",
     name: "Catalog 2",
   }, {
     id: "c3",
+    storage: "s2",
     name: "Catalog 3",
   }],
 

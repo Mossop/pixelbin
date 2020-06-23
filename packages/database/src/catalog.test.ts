@@ -12,6 +12,8 @@ import {
   editTag,
   createPerson,
   editPerson,
+  listStorage,
+  createStorage,
 } from "./catalog";
 import { insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
@@ -24,6 +26,35 @@ buildTestDB({
 
 beforeEach((): Promise<void> => {
   return insertTestData();
+});
+
+test("Storage tests", async (): Promise<void> => {
+  let allStorage = idSorted(await listStorage("someone1@nowhere.com"));
+  expect(allStorage).toHaveLength(2);
+  expect(allStorage).toEqual(testData[Table.Storage]);
+
+  allStorage = idSorted(await listStorage("someone2@nowhere.com"));
+  expect(allStorage).toHaveLength(1);
+  expect(allStorage).toEqual([testData[Table.Storage][0]]);
+
+  let storage = await createStorage({
+    name: "My new storage",
+    accessKeyId: "foobar",
+    secretAccessKey: "baz",
+    publicUrl: null,
+    region: "fooend",
+    endpoint: null,
+  });
+
+  expect(storage).toEqual({
+    id: expect.stringMatching(/S:[a-zA-Z0-9]+/),
+    name: "My new storage",
+    accessKeyId: "foobar",
+    secretAccessKey: "baz",
+    publicUrl: null,
+    region: "fooend",
+    endpoint: null,
+  });
 });
 
 test("Catalog tests", async (): Promise<void> => {
@@ -44,18 +75,22 @@ test("Catalog tests", async (): Promise<void> => {
 
   // Can duplicate name.
   let catalog = await createCatalog("someone1@nowhere.com", {
+    storage: "s1",
     name: "Catalog 1",
   });
   expect(catalog).toEqual({
     id: expect.stringMatching(/[a-zA-Z0-9]+/),
+    storage: "s1",
     name: "Catalog 1",
   });
 
   catalog = await createCatalog("someone2@nowhere.com", {
+    storage: "s1",
     name: "New catalog",
   });
   expect(catalog).toEqual({
     id: expect.stringMatching(/[a-zA-Z0-9]+/),
+    storage: "s1",
     name: "New catalog",
   });
 
@@ -67,6 +102,12 @@ test("Catalog tests", async (): Promise<void> => {
   ]);
 
   await expect(createCatalog("someone5@nowhere.com", {
+    storage: "s1",
+    name: "New catalog",
+  })).rejects.toThrow("foreign key");
+
+  await expect(createCatalog("someone1@nowhere.com", {
+    storage: "s5",
     name: "New catalog",
   })).rejects.toThrow("foreign key");
 });

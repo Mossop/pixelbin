@@ -1,5 +1,3 @@
-import { JsonDecoder } from "ts.data.json";
-
 import * as Api from ".";
 import { AppContext } from "../app";
 import { ApiError, ApiErrorCode } from "../error";
@@ -13,6 +11,8 @@ import {
   editPerson,
 } from "./catalog";
 import * as Decoders from "./decoders";
+import { DeBlobbed } from "./decoders";
+import { createMedia } from "./media";
 import { getState, login, logout } from "./state";
 
 type WithArguments = {
@@ -22,7 +22,7 @@ type WithArguments = {
 }[Api.Method];
 
 type RequestDecoders = {
-  [Key in WithArguments]: JsonDecoder.Decoder<Api.SignatureRequest<Key>>;
+  [Key in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<Key>>>;
 };
 
 export const apiDecoders: RequestDecoders = {
@@ -34,12 +34,14 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.TagEdit]: Decoders.TagEditRequest,
   [Api.Method.PersonCreate]: Decoders.PersonCreateRequest,
   [Api.Method.PersonEdit]: Decoders.PersonEditRequest,
+  [Api.Method.MediaCreate]: Decoders.MediaCreateRequest,
 };
 
 type ApiInterface = {
   [Key in Api.Method]: Api.SignatureRequest<Key> extends Api.None
     ? (ctx: AppContext) => Promise<Api.SignatureResponse<Key>>
-    : (ctx: AppContext, data: Api.SignatureRequest<Key>) => Promise<Api.SignatureResponse<Key>>;
+    : (ctx: AppContext, data: DeBlobbed<Api.SignatureRequest<Key>>) =>
+    Promise<Api.SignatureResponse<Key>>;
 };
 
 const apiMethods: ApiInterface = {
@@ -53,6 +55,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.TagEdit]: editTag,
   [Api.Method.PersonCreate]: createPerson,
   [Api.Method.PersonEdit]: editPerson,
+  [Api.Method.MediaCreate]: createMedia,
 };
 
 export function apiRequestHandler<T extends Api.Method>(
@@ -72,15 +75,8 @@ export function apiRequestHandler<T extends Api.Method>(
       let apiMethod: (ctx: Context) => Promise<unknown> = apiMethods[method];
       response = await apiMethod(ctx);
     } else {
-      let body = ctx.request.body;
-      if (!Array.isArray(body) && typeof body == "object" && ctx.request.files) {
-        for (let [key, file] of Object.entries(ctx.request.files)) {
-          body[key] = file;
-        }
-      }
-
       // @ts-ignore: TypeScript is falling over here.
-      let decoder: JsonDecoder.Decoder<Api.SignatureRequest<T>> = apiDecoders[method];
+      let decoder: RequestDecoder<DeBlobbed<Api.SignatureRequest<T>>> = apiDecoders[method];
       // @ts-ignore: TypeScript is falling over here.
       let apiMethod: (
         ctx: AppContext, data: Api.SignatureRequest<T>,
@@ -88,7 +84,7 @@ export function apiRequestHandler<T extends Api.Method>(
 
       let decoded;
       try {
-        decoded = await decoder.decodePromise(body);
+        decoded = await decoder(ctx.request.body, ctx.request.files);
       } catch (e) {
         ctx.logger.warn(e, "Client provided invalid data.");
         throw new ApiError(ApiErrorCode.InvalidData);

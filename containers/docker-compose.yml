@@ -31,3 +31,19 @@ services:
 
     ports:
       - 9192:9192
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+
+    environment:
+      MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
+      MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+    volumes:
+      - ../data/minio:/data:delegated
+
+    ports:
+      - 9000:9000
+
+    command: server /data

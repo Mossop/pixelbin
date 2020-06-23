@@ -8,6 +8,7 @@ export { Joins, Tables };
 
 export enum Table {
   User = "User",
+  Storage = "Storage",
   Catalog = "Catalog",
   Album = "Album",
   Tag = "Tag",
@@ -23,6 +24,7 @@ export enum Table {
 
 export interface TableMapping {
   [Table.User]: Tables.User;
+  [Table.Storage]: Tables.Storage;
   [Table.Catalog]: Tables.Catalog;
   [Table.Album]: Tables.Album;
   [Table.Tag]: Tables.Tag;

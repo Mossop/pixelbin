@@ -1,19 +1,31 @@
+import { Files } from "formidable";
 import * as ObjectModel from "pixelbin-object-model";
 import { Dereferenced, WithoutLists, WithoutReferences } from "pixelbin-object-model";
 
+export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Promise<R>;
 export type ResponseFor<Table> = Dereferenced<WithoutLists<Table>>;
 
-export type Media = ResponseFor<ObjectModel.Media> & ResponseFor<ObjectModel.Metadata> & {
-  info: MediaInfo | null;
-};
-export type MediaInfo = ResponseFor<WithoutReferences<ObjectModel.MediaInfo>>;
+export type UnprocessedMedia =
+  Omit<ResponseFor<ObjectModel.Media>, "catalog"> & ResponseFor<ObjectModel.Metadata>;
+export type MediaInfo = Omit<ResponseFor<WithoutReferences<ObjectModel.MediaInfo>>, "media">;
+export type ProcessedMedia = UnprocessedMedia & MediaInfo;
+export type Media = UnprocessedMedia | ProcessedMedia;
+
+export type Storage = ResponseFor<ObjectModel.Storage>;
+export type PublicStorage = Omit<Storage, "accessKeyId" | "secretAccessKey">;
 export type Catalog = ResponseFor<ObjectModel.Catalog>;
 export type Album = ResponseFor<ObjectModel.Album>;
 export type Person = ResponseFor<ObjectModel.Person>;
 export type Tag = ResponseFor<ObjectModel.Tag>;
 
+export interface StorageCreateRequest {
+  storage: string | Create<Storage>;
+}
+
+export type CatalogCreateRequest = Omit<Create<Catalog>, "storage"> & StorageCreateRequest;
+
 export type User = ResponseFor<ObjectModel.User> & {
-  catalogs: Catalog[],
+  catalogs: Omit<Catalog, "storage">[],
   people: Person[],
   tags: Tag[],
   albums: Album[],
@@ -31,6 +43,12 @@ export interface LoginRequest {
   password: string;
 }
 
+export type MediaCreateRequest =
+  Omit<ResponseFor<ObjectModel.Media>, "created" | "id"> &
+  Partial<ResponseFor<ObjectModel.Metadata>> & {
+    file: Blob;
+  };
+
 export enum Method {
   State = "state",
   Login = "login",
@@ -46,7 +64,7 @@ export enum Method {
   PersonCreate = "person/create",
   PersonEdit = "person/edit",
   // MediaGet = "media/get",
-  // MediaCreate = "media/create",
+  MediaCreate = "media/create",
   // MediaUpdate = "media/update",
   // MediaSearch = "media/search",
   // MediaThumbnail = "media/thumbnail",
@@ -70,7 +88,7 @@ export const HttpMethods: MethodList = {
   [Method.PersonCreate]: "PUT",
   [Method.PersonEdit]: "PATCH",
   // [Method.MediaGet]: "GET",
-  // [Method.MediaCreate]: "PUT",
+  [Method.MediaCreate]: "PUT",
   // [Method.MediaUpdate]: "PUT",
   // [Method.MediaSearch]: "POST",
   // [Method.MediaThumbnail]: "GET",
@@ -92,7 +110,7 @@ export interface Signatures {
   [Method.State]: Signature<None, State>;
   [Method.Login]: Signature<LoginRequest, State>;
   [Method.Logout]: Signature<None, State>;
-  [Method.CatalogCreate]: Signature<Create<Catalog>, Catalog>;
+  [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
   // [ApiMethod.AlbumAddMedia]: Signature<AlbumMedia, AlbumData>;
@@ -103,7 +121,7 @@ export interface Signatures {
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   // [ApiMethod.MediaGet]: Signature<Mappable, MediaData>;
-  // [ApiMethod.MediaCreate]: Signature<MediaCreateData, MediaData>;
+  [Method.MediaCreate]: Signature<MediaCreateRequest, Media>;
   // [ApiMethod.MediaUpdate]: Signature<Patch<MediaCreateData, Media>, MediaData>;
   // [ApiMethod.MediaSearch]: Signature<Search, MediaData[]>;
   // [ApiMethod.MediaThumbnail]: Signature<MediaThumbnail, Blob>;

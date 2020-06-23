@@ -67,8 +67,18 @@ export interface User {
   verified: boolean;
 }
 
+export interface Storage extends IdType {
+  name: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+  endpoint: string | null;
+  publicUrl: string | null;
+}
+
 export interface Catalog extends IdType {
   name: string;
+  storage: Reference<Storage>;
 }
 
 export interface Person extends IdType {

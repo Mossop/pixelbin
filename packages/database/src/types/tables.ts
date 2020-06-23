@@ -5,6 +5,8 @@ import { DbRecord } from "./meta";
 
 export type User = DbRecord<ObjectModel.User> & { password: string };
 
+export type Storage = DbRecord<ObjectModel.Storage>;
+
 export type Catalog = DbRecord<ObjectModel.Catalog>;
 
 export type Person = DbRecord<ObjectModel.Person>;

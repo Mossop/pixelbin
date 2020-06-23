@@ -72,8 +72,17 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.string("fullname", 200);
     table.boolean("hadCatalog");
     table.boolean("verified");
+  }).createTable(Table.Storage, (table: Knex.CreateTableBuilder): void => {
+    id(table);
+    table.string("name", 100).notNullable();
+    table.string("accessKeyId", 200).notNullable();
+    table.string("secretAccessKey", 200).notNullable();
+    table.string("region", 100).notNullable();
+    table.string("endpoint", 200).nullable();
+    table.string("publicUrl", 200).nullable();
   }).createTable(Table.Catalog, (table: Knex.CreateTableBuilder): void => {
     id(table);
+    foreignId(table, Table.Storage, "id");
     table.string("name", 100).notNullable();
   }).createTable(Table.Person, (table: Knex.CreateTableBuilder): void => {
     id(table);

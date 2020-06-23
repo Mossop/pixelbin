@@ -3,16 +3,6 @@ import Knex from "knex";
 import { Table, TableRecord, ref, isRef } from "./types";
 import { WithRefs, intoDBTypes, DBTypes } from "./types/meta";
 
-export async function insert<T extends Table>(
-  knex: Knex,
-  table: T,
-  data: TableRecord<T> | TableRecord<T>[],
-): Promise<void> {
-  // @ts-ignore: This is correct.
-  let dbData = (Array.isArray(data) ? data : [data]).map(intoDBTypes);
-  await knex(table).insert(dbData);
-}
-
 export async function drop<T extends Table>(
   knex: Knex,
   table: T,
@@ -102,3 +92,13 @@ export function from<
 export const into = from;
 export const table = from;
 
+export function insert<T extends Table>(
+  knex: Knex,
+  table: T,
+  data: TableRecord<T> | TableRecord<T>[],
+) {
+  // @ts-ignore: This is correct.
+  let dbData: TableRecord<T>[] = (Array.isArray(data) ? data : [data]).map(intoDBTypes);
+  // @ts-ignore: This is also correct.
+  return knex<TableRecord<T>>(table).insert(dbData);
+}

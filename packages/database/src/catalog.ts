@@ -10,6 +10,29 @@ export async function uuid(start: string): Promise<string> {
   return start + ":" + await nanoid();
 }
 
+export async function listStorage(user: string): Promise<Tables.Storage[]> {
+  let knex = await connection;
+  return from(knex, Table.Storage)
+    .innerJoin(Table.Catalog, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
+    .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Catalog, "id"))
+    .where(ref(Table.UserCatalog, "user"), user)
+    .select(ref(Table.Storage)).distinct();
+}
+
+export async function createStorage(data: Omit<Tables.Storage, "id">): Promise<Tables.Storage> {
+  let knex = await connection;
+  let results = await insert(knex, Table.Storage, {
+    ...data,
+    id: await uuid("S"),
+  }).returning("*");
+
+  if (results.length) {
+    return results[0];
+  }
+
+  throw new Error("Invalid user or catalog passed to createStorage");
+}
+
 export async function listCatalogs(user: string): Promise<Tables.Catalog[]> {
   let knex = await connection;
   return from(knex, Table.Catalog)

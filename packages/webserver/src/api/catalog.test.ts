@@ -24,6 +24,14 @@ test("Create catalog", async (): Promise<void> => {
   let response = await request
     .put("/api/catalog/create")
     .send({
+      storage: {
+        name: "My storage",
+        accessKeyId: "foo",
+        secretAccessKey: "bar",
+        region: "Anywhere",
+        endpoint: null,
+        publicUrl: null,
+      },
       name: "Bad user",
     })
     .expect("Content-Type", "application/json")
@@ -45,6 +53,14 @@ test("Create catalog", async (): Promise<void> => {
   response = await request
     .put("/api/catalog/create")
     .send({
+      storage: {
+        name: "My storage",
+        accessKeyId: "foo",
+        secretAccessKey: "bar",
+        region: "Anywhere",
+        endpoint: null,
+        publicUrl: null,
+      },
       name: "Good user",
     })
     .expect("Content-Type", "application/json")
@@ -53,6 +69,7 @@ test("Create catalog", async (): Promise<void> => {
   let newCatalog = response.body;
   expect(newCatalog).toEqual({
     id: expect.stringMatching(/^C:[a-zA-Z0-9]+/),
+    storage: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
     name: "Good user",
   });
 
@@ -74,6 +91,35 @@ test("Create catalog", async (): Promise<void> => {
     "people": testData[Table.Person],
     "tags": testData[Table.Tag],
   });
+
+  // Can add to an existing storage.
+  await request
+    .put("/api/catalog/create")
+    .send({
+      storage: "s1",
+      name: "Existing catalog",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone2@nowhere.com",
+      password: "password2",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  // But not if the storage is not accessible by the user.
+  await request
+    .put("/api/catalog/create")
+    .send({
+      storage: "s3",
+      name: "Inaccessible",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
 });
 
 test("Create album", async (): Promise<void> => {

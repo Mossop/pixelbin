@@ -8,9 +8,23 @@ import { ensureAuthenticated } from "../auth";
 import { ApiError, ApiErrorCode } from "../error";
 
 export const createCatalog = ensureAuthenticated(
-  async (ctx: AppContext, user: User, data: Create<Api.Catalog>): Promise<Api.Catalog> => {
+  async (ctx: AppContext, user: User, data: Api.CatalogCreateRequest): Promise<Api.Catalog> => {
     try {
-      return await Db.createCatalog(user.email, data);
+      let catalogData: Create<Api.Catalog>;
+      if (typeof data.storage != "string") {
+        let storage = await Db.createStorage(data.storage);
+        catalogData = {
+          ...data,
+          storage: storage.id,
+        };
+      } else {
+        catalogData = {
+          ...data,
+          storage: data.storage,
+        };
+      }
+
+      return await Db.createCatalog(user.email, catalogData);
     } catch (e) {
       throw new ApiError(ApiErrorCode.InvalidData);
     }

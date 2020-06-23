@@ -12,8 +12,19 @@ buildTestDB({
 test("Basic database connection", async (): Promise<void> => {
   let knex = await connection;
 
+  await insert(knex, Table.Storage, {
+    id: "s1",
+    name: "Test storage",
+    accessKeyId: "bar",
+    secretAccessKey: "foo",
+    region: "nowhere",
+    endpoint: "anywhere",
+    publicUrl: null,
+  });
+
   await insert(knex, Table.Catalog, {
     id: "foo",
+    storage: "s1",
     name: "bar",
   });
 
@@ -21,6 +32,7 @@ test("Basic database connection", async (): Promise<void> => {
   expect(results).toHaveLength(1);
   expect(results[0]).toEqual({
     id: "foo",
+    storage: "s1",
     name: "bar",
   });
 
@@ -30,6 +42,7 @@ test("Basic database connection", async (): Promise<void> => {
   expect(results).toHaveLength(1);
   expect(results[0]).toEqual({
     id: "foo",
+    storage: "s1",
     name: "baz",
   });
 

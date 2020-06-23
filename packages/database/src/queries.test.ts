@@ -19,6 +19,7 @@ test("Catalog table tests", async (): Promise<void> => {
   // Should not allow duplicate IDs.
   await expect(insert(await connection, Table.Catalog, {
     id: "c1",
+    storage: "s1",
     name: "Bad ID Catalog",
   })).rejects.toThrow("duplicate key");
 });
