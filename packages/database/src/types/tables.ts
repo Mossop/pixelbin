@@ -1,4 +1,5 @@
 import * as ObjectModel from "pixelbin-object-model";
+import { Obj } from "pixelbin-utils";
 
 import { DbRecord } from "./meta";
 
@@ -12,6 +13,11 @@ export type Tag = DbRecord<ObjectModel.Tag>;
 
 export type Album = DbRecord<ObjectModel.Album>;
 
-export type Media = DbRecord<ObjectModel.Media> & DbRecord<ObjectModel.Metadata>;
+// Not actually a table.
+export type Metadata = DbRecord<ObjectModel.Metadata>;
 
-export type MediaInfo = DbRecord<ObjectModel.MediaInfo> & DbRecord<ObjectModel.Metadata>;
+export type Media = DbRecord<ObjectModel.Media> & Metadata;
+
+export type MediaInfo = DbRecord<ObjectModel.MediaInfo> & Metadata;
+
+export type MediaWithInfo = Media & (Obj | Omit<MediaInfo, "media">);

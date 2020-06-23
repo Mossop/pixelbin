@@ -1,42 +1,31 @@
 import Knex from "knex";
 
-import { connection } from "./connection";
-import { Table, TableRecord, ref, Ref, isRef } from "./types";
+import { Table, TableRecord, ref, isRef } from "./types";
+import { WithRefs, intoDBTypes, DBTypes } from "./types/meta";
 
 export async function insert<T extends Table>(
+  knex: Knex,
   table: T,
   data: TableRecord<T> | TableRecord<T>[],
-  knex?: Knex,
 ): Promise<void> {
-  knex = knex ?? await connection;
-  await knex(table).insert(data);
-}
-
-export async function update<T extends Table>(
-  table: T,
-  where: Partial<TableRecord<T>>,
-  update: Partial<TableRecord<T>>,
-  knex?: Knex,
-): Promise<void> {
-  knex = knex ?? await connection;
-  return knex(table).where(where).update(update);
+  // @ts-ignore: This is correct.
+  let dbData = (Array.isArray(data) ? data : [data]).map(intoDBTypes);
+  await knex(table).insert(dbData);
 }
 
 export async function drop<T extends Table>(
+  knex: Knex,
   table: T,
   where: Partial<TableRecord<T>>,
-  knex?: Knex,
 ): Promise<void> {
-  knex = knex ?? await connection;
   return knex<TableRecord<T>>(table).where(where).delete();
 }
 
 export async function withChildren<T extends Table.Tag | Table.Album>(
+  knex: Knex,
   table: T,
   queryBuilder: Knex.QueryBuilder<TableRecord<T>>,
-  knex?: Knex,
 ): Promise<Knex.QueryBuilder<TableRecord<T>, TableRecord<T>[]>> {
-  knex = knex ?? await connection;
   // @ts-ignore: Trust me!
   return knex.withRecursive(
     "parents",
@@ -49,15 +38,16 @@ export async function withChildren<T extends Table.Tag | Table.Album>(
   ).from("parents");
 }
 
-type ColumnTypes = null | string | number | Ref;
 export function insertFromSelect<T extends Table>(
   knex: Knex,
   table: T,
   query: Knex.QueryInterface,
-  columns: Record<keyof TableRecord<T>, ColumnTypes>,
+  columns: WithRefs<TableRecord<T>>,
 ): Knex.QueryBuilder<TableRecord<T>, number[]> {
-  let names = Object.keys(columns);
-  let values: ColumnTypes[] = Object.values(columns);
+  // @ts-ignore: Going to have to trust that this is correct.
+  let dbColumns = intoDBTypes(columns);
+  let names = Object.keys(dbColumns);
+  let values: DBTypes[] = Object.values(dbColumns);
 
   // Builds a raw query like `?? (??, ??, ...)` from insert table name and column names.
   let intoList = knex.raw(
@@ -68,8 +58,8 @@ export function insertFromSelect<T extends Table>(
     ],
   );
 
-  let bindings: (string | number | Ref)[] = [];
-  let selectList = values.map((value: ColumnTypes): string => {
+  let bindings: Exclude<DBTypes, null>[] = [];
+  let selectList = values.map((value: DBTypes): string => {
     if (value === null) {
       return "NULL";
     }
@@ -80,6 +70,15 @@ export function insertFromSelect<T extends Table>(
   });
 
   return knex.into(intoList).insert(query.select(knex.raw(selectList.join(", "), bindings)));
+}
+
+export function update<T extends Table>(
+  table: T,
+  query: Knex.QueryInterface,
+  columns: WithRefs<Partial<TableRecord<T>>>,
+): Knex.QueryBuilder<TableRecord<T>, number> {
+  // @ts-ignore: Going to have to trust that this is correct.
+  return query.into<TableRecord<T>>(table).update(intoDBTypes(columns));
 }
 
 // Because DeferredKeySelection is private in knex it is impossible to correctly

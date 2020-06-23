@@ -80,6 +80,8 @@ export type Seed = {
 };
 
 export async function insertData(data: Seed): Promise<void> {
+  let knex = await connection;
+
   async function doInsert<T extends Table>(table: T): Promise<void> {
     if (!(table in data)) {
       return;
@@ -87,7 +89,7 @@ export async function insertData(data: Seed): Promise<void> {
 
     let records = data[table] as TableRecord<T>[];
 
-    await insert(table, records);
+    await insert(knex, table, records);
   }
 
   await doInsert(Table.User);

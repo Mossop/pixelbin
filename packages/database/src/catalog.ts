@@ -2,11 +2,11 @@ import Knex from "knex";
 import { customAlphabet } from "nanoid/async";
 
 import { connection } from "./connection";
-import { into, from, insert, insertFromSelect } from "./queries";
+import { from, insert, insertFromSelect, update } from "./queries";
 import { Table, Tables, ref } from "./types";
 
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 10);
-async function uuid(start: string): Promise<string> {
+export async function uuid(start: string): Promise<string> {
   return start + ":" + await nanoid();
 }
 
@@ -29,11 +29,11 @@ export async function createCatalog(
       id: await uuid("C"),
     };
 
-    await insert(Table.Catalog, catalog, trx);
-    await insert(Table.UserCatalog, {
+    await insert(trx, Table.Catalog, catalog);
+    await insert(trx, Table.UserCatalog, {
       user,
       catalog: catalog.id,
-    }, trx);
+    });
 
     return catalog;
   });
@@ -80,15 +80,16 @@ export async function editAlbum(
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
-  let results = await into(knex, Table.Album)
-    .where("id", id)
-    .andWhere("catalog", "in", catalogs)
-    .update({
+  let results = await update(
+    Table.Album,
+    knex.where("id", id)
+      .andWhere("catalog", "in", catalogs),
+    {
       ...data,
       id: undefined,
       catalog: undefined,
-    })
-    .returning("*");
+    },
+  ).returning("*");
 
   if (results.length) {
     return results[0];
@@ -146,15 +147,16 @@ export async function editTag(
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
-  let results = await into(knex, Table.Tag)
-    .where("id", id)
-    .andWhere("catalog", "in", catalogs)
-    .update({
+  let results = await update(
+    Table.Tag,
+    knex.where("id", id)
+      .andWhere("catalog", "in", catalogs),
+    {
       ...data,
       id: undefined,
       catalog: undefined,
-    })
-    .returning("*");
+    },
+  ).returning("*");
 
   if (results.length) {
     return results[0];
@@ -196,15 +198,16 @@ export async function editPerson(
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
-  let results = await into(knex, Table.Person)
-    .where("id", id)
-    .andWhere("catalog", "in", catalogs)
-    .update({
+  let results = await update(
+    Table.Person,
+    knex.where("id", id)
+      .andWhere("catalog", "in", catalogs),
+    {
       ...data,
       id: undefined,
       catalog: undefined,
-    })
-    .returning("*");
+    },
+  ).returning("*");
 
   if (results.length) {
     return results[0];

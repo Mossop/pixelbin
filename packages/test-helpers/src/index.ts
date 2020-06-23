@@ -1,4 +1,48 @@
+import { expect as jestExpect } from "@jest/globals";
+import diff from "jest-diff";
+import moment, { Moment, isMoment } from "moment";
 import { defer } from "pixelbin-utils";
+
+const matchers = {
+  toEqualDate(
+    this: jest.MatcherContext,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    received: any,
+    expected: Moment | string,
+  ): jest.CustomMatcherResult {
+    const receivedMoment = isMoment(received) ? received : moment(received);
+    const expectedMoment = isMoment(expected) ? expected : moment(expected);
+
+    const receivedAsString = receivedMoment.format("L");
+    const expectedAsString = expectedMoment.format("L");
+
+    const pass = receivedMoment.isSame(expectedMoment);
+
+    const message = pass ?
+      (): string =>
+        `${this.utils.matcherHint(".not.toBe")}\n\n` +
+          "Expected date to not be same date as:\n" +
+          `  ${this.utils.printExpected(expectedAsString)}\n` +
+          "Received:\n" +
+          `  ${this.utils.printReceived(receivedAsString)}` :
+      (): string => {
+        const diffString = diff(expectedAsString, receivedAsString, {
+          expand: this.expand,
+        });
+        return `${this.utils.matcherHint(".toBe")}\n\n` +
+            "Expected value to be (using ===):\n" +
+            `  ${this.utils.printExpected(expectedAsString)}\n` +
+            "Received:\n" +
+            `  ${this.utils.printReceived(receivedAsString)}${diffString ?
+              `\n\nDifference:\n\n${diffString}` :
+              ""}`;
+      };
+    return { message, pass };
+  },
+};
+
+jestExpect.extend(matchers);
+export const expect = jestExpect as unknown as jest.ExtendedExpect<typeof matchers>;
 
 export function after(promise: Promise<unknown>): Promise<void> {
   return promise.then(

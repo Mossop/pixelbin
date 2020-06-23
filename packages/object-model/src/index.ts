@@ -1,4 +1,5 @@
-import moment from "moment";
+import type { Orientation } from "media-metadata";
+import type { Moment } from "moment";
 
 export interface IdType<K = string> {
   id: K;
@@ -91,7 +92,7 @@ export interface Album extends IdType {
 export interface Metadata {
   filename: string | null;
   title: string | null;
-  taken: moment.Moment | null;
+  taken: Moment | null;
   offset: number | null;
   longitude: number | null;
   latitude: number | null;
@@ -100,7 +101,7 @@ export interface Metadata {
   city: string | null;
   state: string | null;
   country: string | null;
-  orientation: number | null;
+  orientation: Orientation | null;
   make: string | null;
   model: string | null;
   lens: string | null;
@@ -112,15 +113,39 @@ export interface Metadata {
   bitrate: number | null;
 }
 
+export const metadataColumns: (keyof Metadata)[] = [
+  "filename",
+  "title",
+  "taken",
+  "offset",
+  "longitude",
+  "latitude",
+  "altitude",
+  "location",
+  "city",
+  "state",
+  "country",
+  "orientation",
+  "make",
+  "model",
+  "lens",
+  "photographer",
+  "aperture",
+  "exposure",
+  "iso",
+  "focalLength",
+  "bitrate",
+];
+
 export interface Media extends IdType {
   catalog: Reference<Catalog>;
-  created: moment.Moment;
+  created: Moment;
 }
 
 export interface MediaInfo extends IdType {
   media: Reference<Media>;
   processVersion: number;
-  uploaded: moment.Moment;
+  uploaded: Moment;
   mimetype: string;
   width: number;
   height: number;

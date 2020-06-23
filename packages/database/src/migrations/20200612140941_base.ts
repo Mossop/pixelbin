@@ -47,6 +47,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       "orientation",
       "iso",
       "bitrate",
+      "offset",
     ]) {
       table.integer(name).nullable();
     }

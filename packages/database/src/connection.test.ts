@@ -1,5 +1,5 @@
 import { connection } from "./connection";
-import { from, insert, update, drop } from "./queries";
+import { from, insert, drop, into } from "./queries";
 import { buildTestDB } from "./test-helpers";
 import { Table } from "./types";
 
@@ -12,7 +12,7 @@ buildTestDB({
 test("Basic database connection", async (): Promise<void> => {
   let knex = await connection;
 
-  await insert(Table.Catalog, {
+  await insert(knex, Table.Catalog, {
     id: "foo",
     name: "bar",
   });
@@ -24,7 +24,7 @@ test("Basic database connection", async (): Promise<void> => {
     name: "bar",
   });
 
-  await update(Table.Catalog, { id: "foo" }, { name: "baz" });
+  await into(knex, Table.Catalog).where({ id: "foo" }).update({ name: "baz" });
 
   results = await from(knex, Table.Catalog).select("*");
   expect(results).toHaveLength(1);
@@ -33,7 +33,7 @@ test("Basic database connection", async (): Promise<void> => {
     name: "baz",
   });
 
-  await drop(Table.Catalog, { id: "foo" });
+  await drop(knex, Table.Catalog, { id: "foo" });
 
   results = await from(knex, Table.Catalog).select("*");
   expect(results).toHaveLength(0);
