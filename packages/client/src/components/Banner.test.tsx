@@ -1,3 +1,4 @@
+import { awaitCall } from "pixelbin-test-helpers";
 import React from "react";
 
 import request from "../api/request";
@@ -11,7 +12,6 @@ import {
   mockStore,
   mockStoreState,
   mockServerData,
-  awaitCall,
 } from "../test-helpers";
 import Banner from "./Banner";
 

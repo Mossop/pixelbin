@@ -1,10 +1,10 @@
 import { Orientation } from "media-metadata";
 import moment from "moment";
+import { decode } from "pixelbin-utils";
 import { JsonDecoder, err, ok } from "ts.data.json";
 import type { Result } from "ts.data.json";
 
 import { document } from "../environment";
-import { decode } from "../utils/decoders";
 import { ErrorCode, exception } from "../utils/exception";
 import type { MediaData, MediaCreateData, MetadataUpdateData } from "./types";
 

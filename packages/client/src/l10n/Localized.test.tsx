@@ -1,7 +1,8 @@
 import { Localized as FluentLocalized } from "@fluent/react";
+import { mockedFunction } from "pixelbin-test-helpers";
 import React from "react";
 
-import { render, mockedFunction } from "../test-helpers";
+import { render } from "../test-helpers";
 import { Localized } from "./Localized";
 
 /* eslint-disable */

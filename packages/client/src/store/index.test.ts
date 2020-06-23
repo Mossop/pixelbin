@@ -1,7 +1,8 @@
+import { decode } from "pixelbin-utils";
+
 import { Encoded } from "../api/helpers";
 import { ServerDataDecoder, ServerData } from "../api/types";
 import { PageType } from "../pages/types";
-import { decode } from "../utils/decoders";
 import actions from "./actions";
 
 describe("store initialization", (): void => {

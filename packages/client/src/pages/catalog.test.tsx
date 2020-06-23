@@ -1,3 +1,4 @@
+import { mockedClass, lastCallArgs } from "pixelbin-test-helpers";
 import React from "react";
 
 import { Catalog } from "../api/highlevel";
@@ -9,8 +10,6 @@ import {
   render,
   mockStoreState,
   mockServerData,
-  mockedClass,
-  lastCallArgs,
   expectChild,
   click,
 } from "../test-helpers";

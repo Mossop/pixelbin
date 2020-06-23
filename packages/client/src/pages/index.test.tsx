@@ -1,4 +1,5 @@
 import mockConsole from "jest-mock-console";
+import { mockedClass, lastCallArgs } from "pixelbin-test-helpers";
 import React from "react";
 
 import Page from ".";
@@ -7,8 +8,6 @@ import {
   expect,
   render,
   resetDOM,
-  mockedClass,
-  lastCallArgs,
   mockStore,
   mockStoreState,
 } from "../test-helpers";

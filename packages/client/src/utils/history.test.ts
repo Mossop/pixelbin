@@ -1,5 +1,7 @@
+import { mockedFunction } from "pixelbin-test-helpers";
+
 import window from "../environment/window";
-import { mockedFunction, jsdom, expect } from "../test-helpers";
+import { jsdom, expect } from "../test-helpers";
 import { ErrorCode } from "./exception";
 import {
   getState,

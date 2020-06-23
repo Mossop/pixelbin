@@ -17,7 +17,7 @@ type Resolver<T, R = void> = (value?: ResolverArg<T>) => R;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Rejecter<R = void> = (reason?: any) => R;
 
-interface DeferredCall<A, R> {
+export interface DeferredCall<A, R> {
   promise: Promise<R>;
   resolve: Resolver<R, Promise<void>>;
   reject: Rejecter<Promise<void>>;
@@ -77,6 +77,17 @@ export function awaitCall(
       return result;
     });
   });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mockedFunction<T extends (...args: any[]) => any>(fn: T): jest.MockedFunction<T> {
+  expect("mock" in fn).toBeTruthy();
+  return fn as jest.MockedFunction<T>;
+}
+
+export function mockedClass<T extends jest.Constructable>(cls: T): jest.MockedClass<T> {
+  expect("mock" in cls).toBeTruthy();
+  return cls as jest.MockedClass<T>;
 }
 
 export function lastCallArgs<P extends unknown[]>(mock: jest.MockInstance<unknown, P>): P {

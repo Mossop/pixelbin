@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { lastCallArgs } from "pixelbin-test-helpers";
 import React from "react";
 
 import { Album, Reference, Catalog } from "../api/highlevel";
@@ -12,7 +13,6 @@ import {
   render,
   expectChild,
   expectElement,
-  lastCallArgs,
 } from "../test-helpers";
 import { Property } from "../utils/StateProxy";
 import { MediaTargetSelector } from "./SiteTree";

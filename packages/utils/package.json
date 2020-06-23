@@ -12,6 +12,8 @@
   "author": "Dave Townsend <dtownsend@oxymoronical.com>",
   "main": "build/index.js",
   "dependencies": {
-    "pino": "^6.3.2"
+    "moment": "^2.27.0",
+    "pino": "^6.3.2",
+    "ts.data.json": "^1.1.0"
   }
 }

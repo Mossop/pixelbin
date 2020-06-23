@@ -1,3 +1,4 @@
+import { lastCallArgs } from "pixelbin-test-helpers";
 import React from "react";
 
 import {
@@ -6,7 +7,6 @@ import {
   mockStoreState,
   expectChild,
   click,
-  lastCallArgs,
 } from "../test-helpers";
 import { InternalError, ErrorCode } from "../utils/exception";
 import Overlay from "./Overlay";

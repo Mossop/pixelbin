@@ -1,9 +1,9 @@
 import { parse as parseCookie } from "cookie";
+import { MappingDecoder } from "pixelbin-utils";
 import { JsonDecoder } from "ts.data.json";
 
 import { appURL, Url } from "../context";
 import { fetch, document } from "../environment";
-import { MappingDecoder } from "../utils/decoders";
 import { exception, ErrorCode, ApiError } from "../utils/exception";
 import { Obj } from "../utils/types";
 import { isReference, APIItemReference } from "./highlevel";

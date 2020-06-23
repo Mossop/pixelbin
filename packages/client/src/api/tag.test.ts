@@ -1,5 +1,7 @@
+import { mockedFunction } from "pixelbin-test-helpers";
+
 import fetch from "../environment/fetch";
-import { expect, mockedFunction } from "../test-helpers";
+import { expect } from "../test-helpers";
 import {
   mockResponse,
   MockResponse,

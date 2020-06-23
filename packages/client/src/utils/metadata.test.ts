@@ -2,8 +2,8 @@ import { Buffer } from "buffer";
 
 import mockConsole from "jest-mock-console";
 import { Orientation, parseBuffer, Metadata } from "media-metadata";
+import { mockedFunction } from "pixelbin-test-helpers";
 
-import { mockedFunction } from "../test-helpers";
 import {
   areDimensionsFlipped,
   peopleFromString,

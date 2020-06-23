@@ -1,5 +1,6 @@
 import { fireEvent } from "@testing-library/react";
 import mockConsole from "jest-mock-console";
+import { mockedClass, lastCallArgs } from "pixelbin-test-helpers";
 import React from "react";
 
 import Overlay from ".";
@@ -7,12 +8,10 @@ import { Catalog, Album } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import {
   expect,
-  mockedClass,
   mockStore,
   mockStoreState,
   render,
   expectChild,
-  lastCallArgs,
   click,
 } from "../test-helpers";
 import AlbumOverlay from "./album";

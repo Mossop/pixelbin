@@ -1,3 +1,4 @@
+import { mockedClass, lastCallArgs } from "pixelbin-test-helpers";
 import React from "react";
 
 import Banner from "../components/Banner";
@@ -8,8 +9,6 @@ import {
   expect,
   render,
   resetDOM,
-  mockedClass,
-  lastCallArgs,
   mockServerData,
 } from "../test-helpers";
 import Index from "./indexpage";

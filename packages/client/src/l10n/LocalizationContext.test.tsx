@@ -1,8 +1,9 @@
 import { render, waitFor } from "@testing-library/react";
+import { deferCall } from "pixelbin-test-helpers";
 import React from "react";
 
 import fetch from "../environment/fetch";
-import { deferCall, expectChild } from "../test-helpers";
+import { expectChild } from "../test-helpers";
 import { LocalizationContext } from "./LocalizationContext";
 import { Localized } from "./Localized";
 

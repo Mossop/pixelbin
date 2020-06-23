@@ -1,5 +1,6 @@
 import { waitFor, fireEvent } from "@testing-library/react";
 import mockConsole from "jest-mock-console";
+import { lastCallArgs, mockedFunction } from "pixelbin-test-helpers";
 import React from "react";
 
 import request from "../api/request";
@@ -11,8 +12,6 @@ import {
   mockStore,
   mockStoreState,
   typeString,
-  lastCallArgs,
-  mockedFunction,
   resetDOM,
   deferRequest,
 } from "../test-helpers";
