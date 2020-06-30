@@ -6,12 +6,14 @@ import koaBody from "koa-body";
 import mount from "koa-mount";
 import session from "koa-session";
 import serve from "koa-static";
+import { StorageService } from "pixelbin-storage";
 
 import { Method } from "./api";
 import { apiRequestHandler } from "./api/methods";
 import auth, { AuthContext } from "./auth";
 import { errorHandler } from "./error";
 import logging, { LoggingContext } from "./logging";
+import services, { ServicesContext } from "./services";
 import { WebserverConfig } from "./types";
 
 function buildAppContent(): string {
@@ -44,7 +46,8 @@ function buildAppContent(): string {
 `;
 }
 
-export type AppContext = Context & AuthContext & LoggingContext;
+type AddedContexts = AuthContext & LoggingContext & ServicesContext;
+export type AppContext = Context & AddedContexts;
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 
 export default function buildApp(
@@ -57,14 +60,22 @@ export default function buildApp(
   });
 
   for (let method of Object.values(Method)) {
-    router.all(`/api/${method}`, koaBody(), apiRequestHandler(method));
+    router.all(`/api/${method}`, koaBody({
+      multipart: true,
+    }), apiRequestHandler(method));
   }
 
-  const app = new Koa<DefaultState, DefaultContext>();
+  const app = new Koa<DefaultState, DefaultContext & AddedContexts>();
   app.keys = config.secretKeys;
 
+  Object.defineProperties(app.context, {
+    ...logging(),
+    ...auth(),
+    ...services(new StorageService(config.tempStorage, config.localStorage)),
+  });
+
   app
-    .use(async (ctx: Context, next: Koa.Next): Promise<void> => {
+    .use(async (ctx: AppContext, next: Koa.Next): Promise<void> => {
       let start = Date.now();
       await next();
       let ms = Date.now() - start;
@@ -75,10 +86,10 @@ export default function buildApp(
 
     .use(session({
       renew: true,
-    }, app));
+    }, app as unknown as Koa));
 
-  return auth(logging(app)
-    .use(errorHandler))
+  return app
+    .use(errorHandler)
 
     .use(router.routes())
 

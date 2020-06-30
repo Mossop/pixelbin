@@ -15,7 +15,9 @@ export const createMedia = ensureAuthenticated(
   ): Promise<Api.Media> => {
     let file = data.file;
 
-    let mediaData: Exclude<DeBlobbed<Api.MediaCreateRequest>, "file" | "catalog"> = data;
+    let mediaData: Exclude<DeBlobbed<Api.MediaCreateRequest>, "file" | "catalog"> = {
+      ...data,
+    };
     delete mediaData.file;
     delete mediaData.catalog;
 
@@ -25,6 +27,10 @@ export const createMedia = ensureAuthenticated(
     } catch (e) {
       throw new ApiError(ApiErrorCode.InvalidData);
     }
+
+    let storage = await ctx.storage.getStorage(media.catalog);
+    await storage.get().copyUploadedFile(media.id, file.path, file.name);
+    storage.release();
 
     return media;
   },

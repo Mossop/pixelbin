@@ -20,6 +20,7 @@
     "koa-static": "^5.0.0",
     "pixelbin-database": "file:../database",
     "pixelbin-object-model": "file:../object-model",
+    "pixelbin-storage": "file:../storage",
     "pixelbin-utils": "file:../utils",
     "pixelbin-worker": "file:../worker",
     "ts.data.json": "^1.1.0"

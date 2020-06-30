@@ -5,8 +5,7 @@ import { Dereferenced, WithoutLists, WithoutReferences } from "pixelbin-object-m
 export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Promise<R>;
 export type ResponseFor<Table> = Dereferenced<WithoutLists<Table>>;
 
-export type UnprocessedMedia =
-  Omit<ResponseFor<ObjectModel.Media>, "catalog"> & ResponseFor<ObjectModel.Metadata>;
+export type UnprocessedMedia = ResponseFor<ObjectModel.Media> & ResponseFor<ObjectModel.Metadata>;
 export type MediaInfo = Omit<ResponseFor<WithoutReferences<ObjectModel.MediaInfo>>, "media">;
 export type ProcessedMedia = UnprocessedMedia & MediaInfo;
 export type Media = UnprocessedMedia | ProcessedMedia;
@@ -121,7 +120,7 @@ export interface Signatures {
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   // [ApiMethod.MediaGet]: Signature<Mappable, MediaData>;
-  [Method.MediaCreate]: Signature<MediaCreateRequest, Media>;
+  [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<Media, "catalog">>;
   // [ApiMethod.MediaUpdate]: Signature<Patch<MediaCreateData, Media>, MediaData>;
   // [ApiMethod.MediaSearch]: Signature<Search, MediaData[]>;
   // [ApiMethod.MediaThumbnail]: Signature<MediaThumbnail, Blob>;

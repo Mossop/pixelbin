@@ -9,6 +9,8 @@ export interface WebserverConfig {
   database: DatabaseConfig;
   logConfig: LogConfig;
   secretKeys: string[];
+  tempStorage: string;
+  localStorage: string;
 }
 
 export interface MasterInterface {

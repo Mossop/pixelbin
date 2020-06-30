@@ -1,5 +1,6 @@
-import Koa, { Context } from "koa";
 import { getLogger, Logger } from "pixelbin-utils";
+
+import { AppContext } from "./app";
 
 export interface LoggingContext {
   logger: Logger;
@@ -9,13 +10,12 @@ const mainLogger = getLogger("webserver.request");
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 let loggers = new WeakMap<object, Logger>();
+let requestId = 0;
 
-export default function<S, C>(app: Koa<S, C>): Koa<S, C & LoggingContext> {
-  let requestId = 0;
-
-  Object.defineProperties(app.context, {
+export default function(): Record<string, PropertyDescriptor> {
+  return {
     logger: {
-      get(this: Context): Logger {
+      get(this: AppContext): Logger {
         let logger = loggers.get(this);
         if (logger) {
           return logger;
@@ -31,8 +31,5 @@ export default function<S, C>(app: Koa<S, C>): Koa<S, C & LoggingContext> {
         return logger;
       },
     },
-  });
-
-  return app as unknown as Koa<S, C & LoggingContext>;
+  };
 }
-

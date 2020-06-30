@@ -119,9 +119,10 @@ const AlbumDecoder = JsonDecoder.object<Api.Album>(
   "Album",
 );
 
-const CatalogDecoder = JsonDecoder.object<Omit<Api.Catalog, "storage">>(
+const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
   {
     id: JsonDecoder.string,
+    storage: JsonDecoder.string,
     name: JsonDecoder.string,
   },
   "Catalog",

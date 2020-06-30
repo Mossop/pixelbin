@@ -1,4 +1,5 @@
-import { RefCounted } from "./gc";
+import { RefCounted } from "pixelbin-utils";
+
 import { promiseEvent } from "./helpers";
 
 type ImageSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;

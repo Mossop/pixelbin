@@ -6,7 +6,7 @@ import { from, insert, insertFromSelect, update } from "./queries";
 import { Table, Tables, ref } from "./types";
 
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 10);
-export async function uuid(start: string): Promise<string> {
+async function uuid(start: string): Promise<string> {
   return start + ":" + await nanoid();
 }
 

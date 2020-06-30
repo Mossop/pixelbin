@@ -1,13 +1,18 @@
 import Knex from "knex";
 import moment from "moment";
+import { customAlphabet } from "nanoid/async";
 import { metadataColumns } from "pixelbin-object-model";
 
-import { uuid } from "./catalog";
 import { connection } from "./connection";
 import { coalesce } from "./functions";
 import { insertFromSelect, from, update } from "./queries";
 import { Tables, Table, ref } from "./types";
 import { Metadata } from "./types/tables";
+
+const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 25);
+async function uuid(start: string): Promise<string> {
+  return start + ":" + await nanoid();
+}
 
 export function fillMetadata<T>(data: T): T & Metadata {
   let result = { ...data };

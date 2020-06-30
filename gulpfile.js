@@ -302,3 +302,10 @@ exports.lint = async function() {
     throw new Error("Failed lint checks.");
   }
 };
+
+exports.showGraph = async function() {
+  let graph = await loadGraph(path.join(__dirname, "packages"));
+  for (let package of Object.values(graph)) {
+    console.log(package.name, package.dependencies);
+  }
+};

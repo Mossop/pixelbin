@@ -2,6 +2,7 @@ interface CachedItem<T> {
   item: T,
   expiryTimer: NodeJS.Timeout | null,
   refCounted: RefCounted<T> | null,
+  released: boolean,
 }
 
 export class Cache<K, T> {
@@ -11,12 +12,29 @@ export class Cache<K, T> {
     this.cache = new Map();
   }
 
+  public release(): void {
+    for (let cached of this.cache.values()) {
+      if (cached.expiryTimer) {
+        clearTimeout(cached.expiryTimer);
+        cached.expiryTimer = null;
+      }
+      cached.released = true;
+    }
+
+    this.cache.clear();
+  }
+
   public take(key: K, item: T): RefCounted<T> {
     let cached: CachedItem<T> = {
       item,
       expiryTimer: null,
+      released: false,
       refCounted: new RefCounted(item, (): void => {
         cached.refCounted = null;
+        if (cached.released) {
+          return;
+        }
+
         cached.expiryTimer = setTimeout((): void => {
           if (this.cache.get(key) === cached) {
             this.cache.delete(key);

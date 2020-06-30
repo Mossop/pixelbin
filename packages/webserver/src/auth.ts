@@ -1,10 +1,8 @@
-import Koa, { Context, DefaultState, DefaultContext } from "koa";
 import * as Db from "pixelbin-database";
 import { User } from "pixelbin-object-model";
 
 import { AppContext } from "./app";
 import { ApiError, ApiErrorCode } from "./error";
-import { LoggingContext } from "./logging";
 
 export interface AuthContext {
   user: User | null;
@@ -13,12 +11,10 @@ export interface AuthContext {
   logout: () => Promise<void>;
 }
 
-export default function(
-  app: Koa<DefaultState, DefaultContext & LoggingContext>,
-): Koa<DefaultState, DefaultContext & LoggingContext & AuthContext> {
-  Object.defineProperties(app.context, {
+export default function(): Record<string, PropertyDescriptor> {
+  return {
     user: {
-      get(this: Context & AuthContext): User | null {
+      get(this: AppContext): User | null {
         if (!this.session) {
           throw new Error("Session not correctly implemented.");
         }
@@ -31,13 +27,13 @@ export default function(
     },
 
     isLoggedIn: {
-      get(this: Context & AuthContext): () => boolean {
+      get(this: AppContext): () => boolean {
         return (): boolean => !!this.user;
       },
     },
 
     login: {
-      get(this: Context & AuthContext): (email: string, password: string) => Promise<void> {
+      get(this: AppContext): (email: string, password: string) => Promise<void> {
         return async (email: string, password: string): Promise<void> => {
           if (!this.session) {
             throw new Error("Session not correctly implemented.");
@@ -56,7 +52,7 @@ export default function(
     },
 
     logout: {
-      get(this: Context & AuthContext): () => Promise<void> {
+      get(this: AppContext): () => Promise<void> {
         return async (): Promise<void> => {
           if (!this.session) {
             return;
@@ -67,9 +63,7 @@ export default function(
         };
       },
     },
-  });
-
-  return app as unknown as Koa<DefaultState, DefaultContext & LoggingContext & AuthContext>;
+  };
 }
 
 export function ensureAuthenticated<A, R>(

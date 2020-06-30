@@ -1,3 +1,5 @@
+import path from "path";
+
 import Koa, { DefaultState } from "koa";
 import { getTestDatabaseConfig } from "pixelbin-database/build/test-helpers";
 import { idSorted, Obj } from "pixelbin-utils";
@@ -21,6 +23,8 @@ export function buildTestApp(afterAll: Lifecycle): TestApp {
     logConfig: {
       default: "silent",
     },
+    tempStorage: path.join(path.basename(__dirname), "tmp", "temp"),
+    localStorage: path.join(path.basename(__dirname), "tmp", "local"),
   });
 
   let server = koa.listen();
