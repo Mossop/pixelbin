@@ -154,6 +154,7 @@ async function serverJest() {
 
 exports.testServer = gulp.series(serverJest, buildCoverage);
 
+exports.build = gulp.parallel(exports.buildClient, exports.buildServer);
 exports.test = gulp.series(serverJest, clientJest, clientKarma, buildCoverage);
 
 exports.run = async function() {

@@ -1,3 +1,13 @@
 coverage:
   range: 70..100
   precision: 1
+
+flags:
+  jest:
+    paths:
+      - app
+    carryforward: true
+  karma:
+    paths:
+      - app
+    carryforward: true

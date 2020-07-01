@@ -26,14 +26,32 @@ jobs:
 
     - name: Install node packages
       run: |
+        npm install -g gulp
         npm install
 
     - name: Run lint checks
       run: |
-        ./node_modules/.bin/eslint --ext .ts,.tsx,.js,.jsx .
+        gulp build
+        npx eslint --ext .ts,.tsx,.js,.jsx .
 
-  tests:
+  jest-tests:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: pixelbin
+          POSTGRES_PASSWORD: pixelbin
+          POSTGRES_DB: pixelbin_test
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - uses: actions/checkout@v2
@@ -57,10 +75,44 @@ jobs:
 
     - name: Run tests
       run: |
-        gulp test
+        gulp testClientJest
+        gulp testServer
 
     - name: Upload code coverage
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F jest
+
+  karma-tests:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v2-beta
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Show versions
+      run: |
+        node --version
+        npm --version
+
+    - name: Install node packages
+      run: |
+        npm install -g gulp
+        npm install
+
+    - name: Run tests
+      run: |
+        gulp testClientKarma
+
+    - name: Upload code coverage
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F karma
