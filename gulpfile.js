@@ -1,311 +1,168 @@
-const fs = require("fs").promises;
+const { promises: fs } = require("fs");
 const path = require("path");
 
-const asyncDone = require("async-done");
-const log = require("gulplog");
-const {
-  ansi,
-  tsLint,
-  eslint,
-  logLints,
-  joined,
-  mergeCoverage,
-  Process,
-  findBin,
-} = require("pixelbin-ci");
-const prettyTime = require("pretty-hrtime");
+const gulp = require("gulp");
+const sass = require("node-sass");
+const webpack = require("webpack");
+
+const { mergeCoverage } = require("./ci/coverage");
+const { checkSpawn, Process } = require("./ci/process");
+const { findBin, ensureDir } = require("./ci/utils");
 
 /**
- * @typedef {Object} Package
- * @property {string} path
- * @property {string} name
- * @property {string[]} dependencies
+ * @typedef { import("webpack").Stats } Stats
+ * @typedef { import("node-sass").Options } SassOptions
+ * @typedef { import("node-sass").Result } SassResult
  */
 
-/**
- * Loads the graph of packages.
- *
- * @param {string} root
- * @return {Promise<Record<string, Package>>}
- */
-async function loadGraph(root) {
-  /** @type {Record<string, Package>} */
-  let packages = {};
-  let packageInfos = {};
-  let packageDirs = await fs.readdir(path.join(root));
-
-  for (let dir of packageDirs) {
-    try {
-      let stats = await fs.stat(path.join(root, dir));
-      if (!stats.isDirectory()) {
-        continue;
-      }
-    } catch (e) {
-      continue;
-    }
-
-    let packageInfo = require(path.join(root, dir, "package.json"));
-    packages[packageInfo.name] = {
-      path: path.join(root, dir),
-      name: packageInfo.name,
-      dependencies: [],
-    };
-    packageInfos[packageInfo.name] = packageInfo;
-  }
-
-  for (let package of Object.keys(packages)) {
-    let deps = packageInfos[package].dependencies ?? {};
-    let devDeps = packageInfos[package].devDependencies ?? {};
-    for (let key of Object.keys(packages)) {
-      if (key == package) {
-        continue;
-      }
-
-      if (key in deps || key in devDeps) {
-        packages[package].dependencies.push(key);
-      }
-    }
-  }
-
-  return packages;
+async function buildCoverage() {
+  return mergeCoverage([
+    path.join(__dirname, "coverage", "coverage-jest.json"),
+    path.join(__dirname, "src", "client", "coverage", "coverage-jest.json"),
+    path.join(__dirname, "src", "client", "coverage", "coverage-karma.json"),
+  ], path.join(__dirname, "coverage", "coverage-final.json"));
 }
 
-const packageGraph = loadGraph(path.join(__dirname, "packages"));
-
 /**
- * Runs an action for a package first running the action for all of its
- * dependency tree. Actions will be parallelized where possible.
- *
- * @param {string} root
- * @param {string} package
- * @param {(package: Package) => Promise<void>} doAction
- * @return {Promise<void>}
+ * @param {SassOptions} options
+ * @return {Promise<SassResult>}
  */
-async function applyToPackage(root, package, doAction) {
-  let graph = await packageGraph;
-
-  /** @type {Map<string, Promise<void>>} */
-  let actionCache = new Map();
-
-  /**
-   * @param {string} id
-   * @return {Promise<void>}
-   */
-  function getAction(id) {
-    let pending = actionCache.get(id);
-    if (pending) {
-      return pending;
-    }
-
-    let package = graph[id];
-
-    // Run the action for all dependencies first.
-    let deps = package.dependencies.map(d => getAction(d));
-
-    let action = Promise.all(deps).then(() => {
-      return doAction(graph[id]);
+function cssRender(options) {
+  return new Promise((resolve, reject) => {
+    sass.render(options, (err, result) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (err) {
+        reject(err.message);
+      } else {
+        resolve(result);
+      }
     });
+  });
+}
 
-    actionCache.set(id, action);
-    return action;
-  }
-
-  return getAction(package);
+function buildClientStatic() {
+  return gulp.src(path.join(__dirname, "src", "client", "static", "**", "*"))
+    .pipe(gulp.dest(path.join(__dirname, "build", "client", "static")));
 }
 
 /**
- * Runs an action for all packages first running the action for all of their
- * dependency tree. Actions will be parallelized where possible.
- *
- * @param {string} root
- * @param {(package: Package) => Promise<void>} doAction
  * @return {Promise<void>}
  */
-async function applyToAllPackages(root, doAction) {
-  let graph = await packageGraph;
+function buildClientJs() {
+  const webpackConfig = require("./src/client/webpack.config");
+  let compiler = webpack(webpackConfig);
 
-  /** @type {Map<string, Promise<void>>} */
-  let actionCache = new Map();
+  return new Promise((resolve, reject) => {
+    compiler.run((err, stats) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (err) {
+        reject(err);
+        return;
+      }
 
-  /**
-   * @param {string} id
-   * @return {Promise<void>}
-   */
-  function getAction(id) {
-    let pending = actionCache.get(id);
-    if (pending) {
-      return pending;
-    }
+      console.log(stats.toString(webpackConfig.stats));
 
-    let package = graph[id];
+      if (stats.hasErrors()) {
+        reject(new Error("Compilation failed."));
+        return;
+      }
 
-    // Run the action for all dependencies first.
-    let deps = package.dependencies.map(d => getAction(d));
-
-    let action = Promise.all(deps).then(() => {
-      return doAction(graph[id]);
+      resolve();
     });
-
-    actionCache.set(id, action);
-    return action;
-  }
-
-  await Promise.all(Object.keys(graph).map(getAction));
+  });
 }
 
 /**
- * @param {Package} package
- * @param {string} task
- * @param {string} [verb]
  * @return {Promise<void>}
  */
-async function runPackageTask(package, task, verb = task) {
-  let id = package.name;
-  log.info(`${verb} '${ansi.cyan(id)}'...`);
-  let startTime = process.hrtime();
+async function buildClientCss() {
+  let fileTarget = path.join(__dirname, "build", "client", "css", "app.css");
+  let mapTarget = path.join(__dirname, "build", "client", "css", "app.css.map");
 
-  try {
-    let module = require(path.join(package.path, "gulpfile"));
+  await ensureDir(fileTarget);
 
-    if (task in module) {
-      await new Promise((resolve, reject) => {
-        asyncDone(module[task], err => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-    } else {
-      log.info(
-        `Nothing to do in '${ansi.cyan(id)}'`,
-      );
-    }
+  let result = await cssRender({
+    file: path.join(__dirname, "src", "client", "css", "app.scss"),
+    outFile: fileTarget,
+    sourceMap: mapTarget,
+  });
 
-    let time = prettyTime(process.hrtime(startTime));
-    log.info(
-      `Finished ${verb.toLocaleLowerCase()} '${ansi.cyan(id)}' after ${ansi.magenta(time)}`,
-    );
-  } catch (e) {
-    let time = prettyTime(process.hrtime(startTime));
-    log.error(
-      `${verb} '${ansi.cyan(id)}' ${ansi.red("errored after")} ${ansi.magenta(time)}`,
-    );
-
-    throw e;
-  }
+  await Promise.all([
+    fs.writeFile(fileTarget, result.css),
+    fs.writeFile(mapTarget, result.map),
+  ]);
 }
 
-/**
- * @param {string} task
- * @param {string} verb
- * @return {Promise<void>}
- */
-async function runInAllPackages(task, verb = task) {
-  let graph = await packageGraph;
-  for (let package of Object.values(graph)) {
-    await runPackageTask(package, task, verb);
-  }
+exports.buildClient = gulp.parallel(buildClientStatic, buildClientCss, buildClientJs);
+
+async function clientJest() {
+  let jest = await findBin(__dirname, "jest");
+
+  await checkSpawn(jest, [
+    "--config",
+    path.join(__dirname, "src", "client", "jest.config.js"),
+  ]);
 }
+
+async function clientKarma() {
+  let karma = await findBin(__dirname, "karma");
+
+  await checkSpawn(karma, [
+    "start",
+    path.join(__dirname, "src", "client", "karma.config.js"),
+    "--single-run",
+  ], {
+    env: {
+      ...process.env,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      NODE_ENV: "test",
+    },
+  });
+}
+
+exports.testClientJest = gulp.series(clientJest, buildCoverage);
+exports.testClientKarma = gulp.series(clientKarma, buildCoverage);
+exports.testClient = gulp.series(clientJest, clientKarma, buildCoverage);
 
 exports.buildServer = async function() {
-  return applyToPackage(path.join(__dirname, "packages"), "pixelbin-server", async package => {
-    return runPackageTask(package, "build", "Building");
-  });
+  let tsc = await findBin(__dirname, "tsc");
+
+  await checkSpawn(tsc, [
+    "--build",
+    path.join(__dirname, "src", "server", "tsconfig.build.json"),
+  ]);
+
+  // Knex strenuously objects to declaration files in the migrations directory.
+  // See https://github.com/knex/knex/issues/1922
+  let migrations = path.join(__dirname, "build", "server", "database", "migrations");
+  let files = await fs.readdir(migrations);
+  for (let file of files) {
+    if (file.endsWith(".ts") || file.endsWith(".ts.map")) {
+      await fs.unlink(path.join(migrations, file));
+    }
+  }
 };
 
+async function serverJest() {
+  let jest = await findBin(__dirname, "jest");
+
+  await checkSpawn(jest, [
+    "--config",
+    path.join(__dirname, "jest.config.js"),
+  ]);
+}
+
+exports.testServer = gulp.series(serverJest, buildCoverage);
+
+exports.test = gulp.series(serverJest, clientJest, clientKarma, buildCoverage);
+
 exports.run = async function() {
-  let server = new Process("node", [path.join(__dirname, "packages", "server")]);
+  let server = new Process("node", [path.join(__dirname, "build", "server")]);
   let pretty = new Process(await findBin(__dirname, "pino-pretty"));
   server.pipe(pretty);
 
   let code = await server.exitCode;
   if (code != 0) {
     throw new Error(`Server exited with exit code ${code}`);
-  }
-};
-
-exports.buildClient = async function() {
-  return applyToPackage(path.join(__dirname, "packages"), "pixelbin-client", async package => {
-    return runPackageTask(package, "build", "Building");
-  });
-};
-
-exports.install = async function() {
-  return applyToAllPackages(path.join(__dirname, "packages"), async package => {
-    let npm = new Process("npm", ["install", "-q"], {
-      cwd: package.path,
-    });
-    let code = await npm.exitCode;
-    if (code != 0) {
-      throw new Error(`Running npm in ${package.name} failed.`);
-    }
-  });
-};
-
-exports.build = async function() {
-  return applyToAllPackages(path.join(__dirname, "packages"), async package => {
-    return runPackageTask(package, "build", "Building");
-  });
-};
-
-exports.mergeCoverage = async function() {
-  let graph = await loadGraph(path.join(__dirname, "packages"));
-  return mergeCoverage(
-    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
-    path.join(__dirname, "coverage", "coverage-final.json"),
-  );
-};
-
-exports.jest = async function() {
-  let graph = await packageGraph;
-
-  await runInAllPackages("jest", "Running jest");
-
-  return mergeCoverage(
-    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
-    path.join(__dirname, "coverage", "coverage-final.json"),
-  );
-};
-
-exports.karma = async function() {
-  let graph = await packageGraph;
-
-  await runInAllPackages("karma", "Running karma");
-
-  return mergeCoverage(
-    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
-    path.join(__dirname, "coverage", "coverage-final.json"),
-  );
-};
-
-exports.test = async function() {
-  let graph = await packageGraph;
-
-  await runInAllPackages("test", "Testing");
-
-  return mergeCoverage(
-    Object.values(graph).map(pkg => path.join(pkg.path, "coverage", "coverage-final.json")),
-    path.join(__dirname, "coverage", "coverage-final.json"),
-  );
-};
-
-exports.lint = async function() {
-  let graph = await loadGraph(path.join(__dirname, "packages"));
-  let tsLints = Object.values(graph).map(package => {
-    return tsLint(package.path);
-  });
-
-  let succeeded = await logLints(joined(eslint(__dirname), tsLint(__dirname), ...tsLints));
-  if (!succeeded) {
-    throw new Error("Failed lint checks.");
-  }
-};
-
-exports.showGraph = async function() {
-  let graph = await loadGraph(path.join(__dirname, "packages"));
-  for (let package of Object.values(graph)) {
-    console.log(package.name, package.dependencies);
   }
 };

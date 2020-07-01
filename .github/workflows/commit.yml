@@ -26,15 +26,13 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp
         npm install
-        gulp install
 
     - name: Run lint checks
       run: |
-        gulp lint
+        ./node_modules/.bin/eslint --ext .ts,.tsx,.js,.jsx .
 
-  jest-tests:
+  tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -56,48 +54,13 @@ jobs:
       run: |
         npm install -g gulp
         npm install
-        gulp install
 
     - name: Run tests
       run: |
-        gulp jest
+        gulp test
 
     - name: Upload code coverage
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F jest
-
-  karma-tests:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
-
-    - name: Setup Node.js ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v2-beta
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-
-    - name: Show versions
-      run: |
-        node --version
-        npm --version
-
-    - name: Install node packages
-      run: |
-        npm install -g gulp
-        npm install
-        gulp install
-
-    - name: Run tests
-      run: |
-        gulp karma
-
-    - name: Upload code coverage
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      run: |
-        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F karma
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json

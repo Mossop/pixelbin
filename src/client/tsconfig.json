@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../build/client/js",
+    "composite": true,
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "references": [{
+    "path": "../model/tsconfig.json"
+  }, {
+    "path": "../utils/tsconfig.json"
+  }, {
+    "path": "../test-helpers/tsconfig.json"
+  }],
+  "include": [
+    "**/*",
+  ]
+}

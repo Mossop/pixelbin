@@ -3,14 +3,16 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
+    "outDir": "build",
     "lib": [
       "ESNext"
     ]
   },
   "include": [
-    ".*.js",
-    "*.js",
-    "packages/*/.*.js",
-    "packages/*/*.js"
+    "ci/*",
+    ".*",
+    "*",
+    "src/client/*",
+    "src/client/.*"
   ]
 }

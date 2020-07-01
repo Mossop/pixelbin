@@ -8,7 +8,7 @@ module.exports = {
       "jsx": true,
     },
     "tsconfigRootDir": __dirname,
-    "project": ["./tsconfig.json", "./packages/*/tsconfig.json"],
+    "project": ["./tsconfig.json", "./src/*/tsconfig.json"],
   },
 
   "settings": {
@@ -34,5 +34,20 @@ module.exports = {
     "@typescript-eslint/require-await": "off",
   },
 
-  "ignorePatterns": ["packages/*/build"],
+  "ignorePatterns": ["build/**/*"],
+
+  "overrides": [{
+    "files": [
+      "**/*.test.js",
+      "**/*.test.jsx",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/__mocks__/*.js",
+      "**/__mocks__/*.ts",
+    ],
+
+    "env": {
+      "jest": true,
+    },
+  }],
 };
