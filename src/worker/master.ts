@@ -1,6 +1,6 @@
 import { SendHandle } from "child_process";
 
-import { getLogger } from "../../utils";
+import { getLogger } from "../utils";
 import Channel, { RemoteInterface, ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
 

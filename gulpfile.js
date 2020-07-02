@@ -133,7 +133,7 @@ exports.testClientJest = gulp.series(clientJest, buildCoverage);
 exports.testClientKarma = gulp.series(clientKarma, buildCoverage);
 exports.testClient = gulp.series(clientJest, clientKarma, buildCoverage);
 
-exports.buildServer = async function() {
+exports.buildServer = async function buildServer() {
   let tsc = await findBin(__dirname, "tsc");
 
   await checkSpawn(tsc, [

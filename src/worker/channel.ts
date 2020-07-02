@@ -4,7 +4,7 @@ import net from "net";
 
 import { JsonDecoder } from "ts.data.json";
 
-import { defer, Deferred, getLogger, MakeRequired } from "../../utils";
+import { defer, Deferred, getLogger, MakeRequired } from "../utils";
 
 const logger = getLogger("worker.channel");
 

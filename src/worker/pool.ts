@@ -1,4 +1,4 @@
-import { getLogger, MakeRequired } from "../../utils";
+import { getLogger, MakeRequired } from "../utils";
 import { RemoteInterface } from "./channel";
 import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
 

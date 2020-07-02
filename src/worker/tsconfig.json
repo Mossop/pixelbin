@@ -1,20 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../../build/server",
+    "outDir": "../../build/worker",
     "composite": true,
     "lib": [
       "ESNext"
     ]
   },
   "references": [{
-    "path": "../model/tsconfig.json"
-  }, {
-    "path": "../test-helpers/tsconfig.json"
-  }, {
     "path": "../utils/tsconfig.json"
   }, {
-    "path": "../worker/tsconfig.json"
+    "path": "../test-helpers/tsconfig.json"
   }],
   "include": [
     "**/*"

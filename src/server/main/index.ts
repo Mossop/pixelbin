@@ -5,9 +5,9 @@ import net from "net";
 import path from "path";
 
 import { getLogger, listen } from "../../utils";
+import { WorkerPool, AbstractChildProcess } from "../../worker";
 import { connect } from "../database";
 import type { MasterInterface, WebserverConfig } from "../webserver";
-import { WorkerPool, AbstractChildProcess } from "../worker";
 import config from "./config";
 import events from "./events";
 

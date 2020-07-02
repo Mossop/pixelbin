@@ -2,7 +2,7 @@ import { ChildProcess, SendHandle } from "child_process";
 import { EventEmitter } from "events";
 import { clearTimeout } from "timers";
 
-import { defer, Deferred, getLogger, Logger } from "../../utils";
+import { defer, Deferred, getLogger, Logger } from "../utils";
 import Channel, { ChannelOptions, RemoteInterface } from "./channel";
 import * as IPC from "./ipc";
 

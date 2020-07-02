@@ -1,6 +1,6 @@
 import { getLogger } from "../../utils";
+import { MasterProcess } from "../../worker";
 import { connect } from "../database";
-import { MasterProcess } from "../worker";
 import buildApp from "./app";
 import { MasterInterface } from "./types";
 
