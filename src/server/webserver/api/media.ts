@@ -1,3 +1,5 @@
+import { promises as fs } from "fs";
+
 import * as Api from "../../../model/api";
 import { User } from "../../../model/models";
 import * as Db from "../../database";
@@ -30,6 +32,12 @@ export const createMedia = ensureAuthenticated(
     let storage = await ctx.storage.getStorage(data.catalog);
     await storage.get().copyUploadedFile(media.id, file.path, file.name);
     storage.release();
+
+    try {
+      await fs.unlink(file.path);
+    } catch (e) {
+      ctx.logger.warn(e, "Failed to delete temporary file.");
+    }
 
     return media;
   },
