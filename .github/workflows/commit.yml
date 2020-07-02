@@ -31,8 +31,7 @@ jobs:
 
     - name: Run lint checks
       run: |
-        gulp build
-        npx eslint --ext .ts,.tsx,.js,.jsx .
+        gulp lint
 
   jest-tests:
     runs-on: ubuntu-latest

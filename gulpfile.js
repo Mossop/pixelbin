@@ -5,7 +5,7 @@ const gulp = require("gulp");
 const sass = require("node-sass");
 const webpack = require("webpack");
 
-const { mergeCoverage } = require("./ci/coverage");
+const { mergeCoverage, reportCoverage } = require("./ci/coverage");
 const { checkSpawn, Process } = require("./ci/process");
 const { findBin, ensureDir } = require("./ci/utils");
 
@@ -22,6 +22,15 @@ async function buildCoverage() {
     path.join(__dirname, "src", "client", "coverage", "coverage-karma.json"),
   ], path.join(__dirname, "coverage", "coverage-final.json"));
 }
+
+async function showCoverage() {
+  return reportCoverage(
+    path.join(__dirname, "coverage", "coverage-final.json"),
+    "text",
+  );
+}
+
+exports.showCoverage = showCoverage;
 
 /**
  * @param {SassOptions} options
@@ -156,6 +165,16 @@ exports.testServer = gulp.series(serverJest, buildCoverage);
 
 exports.build = gulp.parallel(exports.buildClient, exports.buildServer);
 exports.test = gulp.series(serverJest, clientJest, clientKarma, buildCoverage);
+
+exports.lint = gulp.series(exports.build, async function() {
+  let eslint = await findBin(__dirname, "eslint");
+
+  await checkSpawn(eslint, [
+    "--ext",
+    ".ts,.js,.tsx,.jsx",
+    __dirname,
+  ]);
+});
 
 exports.run = async function() {
   let server = new Process("node", [path.join(__dirname, "build", "server")]);
