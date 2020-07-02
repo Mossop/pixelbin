@@ -39,6 +39,7 @@ test("Media tests", async (): Promise<void> => {
     id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
+
     title: "My title",
   }));
 
@@ -47,7 +48,8 @@ test("Media tests", async (): Promise<void> => {
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
-    title: "My title",
+
+    title: "My title", // Media set
 
     processVersion: null,
     uploaded: null,
@@ -70,6 +72,7 @@ test("Media tests", async (): Promise<void> => {
     height: 768,
     duration: null,
     fileSize: 1000,
+
     title: "Info title",
     photographer: "Me",
   }));
@@ -84,6 +87,7 @@ test("Media tests", async (): Promise<void> => {
     height: 768,
     duration: null,
     fileSize: 1000,
+
     title: "Info title",
     photographer: "Me",
   }));
@@ -93,8 +97,9 @@ test("Media tests", async (): Promise<void> => {
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
-    title: "My title",
-    photographer: "Me",
+
+    title: "My title", // Media set
+    photographer: "Me", // MediaInfo set
 
     uploaded: expect.toEqualDate(uploadedMoment),
     processVersion: 1,
@@ -115,9 +120,10 @@ test("Media tests", async (): Promise<void> => {
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
-    title: "Info title",
-    photographer: "Me",
-    city: "Portland",
+
+    title: "Info title", // MediaInfo set
+    photographer: "Me", // MediaInfo set
+    city: "Portland", // Media set
 
     uploaded: expect.toEqualDate(uploadedMoment),
     processVersion: 1,
@@ -126,6 +132,57 @@ test("Media tests", async (): Promise<void> => {
     height: 768,
     duration: null,
     fileSize: 1000,
+  }));
+
+  let uploaded2Moment: Moment = realMoment("2020-01-04T15:31:01");
+  mockedMoment.mockImplementationOnce((): Moment => {
+    return uploaded2Moment;
+  });
+
+  info = await createMediaInfo("someone3@nowhere.com", id, fillMetadata({
+    processVersion: 1,
+    mimetype: "image/jpeg",
+    width: 2048,
+    height: 1024,
+    duration: null,
+    fileSize: 2000,
+
+    title: "Different title",
+    model: "Some model",
+  }));
+
+  expect(info).toEqual(fillMetadata({
+    id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    media: id,
+    uploaded: expect.toEqualDate(uploaded2Moment),
+    processVersion: 1,
+    mimetype: "image/jpeg",
+    width: 2048,
+    height: 1024,
+    duration: null,
+    fileSize: 2000,
+
+    title: "Different title",
+    model: "Some model",
+  }));
+
+  foundMedia = await getMedia("someone3@nowhere.com", id);
+  expect(foundMedia).toEqual(fillMetadata({
+    id: id,
+    catalog: "c3",
+    created: expect.toEqualDate(createdMoment),
+
+    title: "Different title", // MediaInfo set
+    model: "Some model", // MediaInfo set
+    city: "Portland", // Media set
+
+    uploaded: expect.toEqualDate(uploaded2Moment),
+    processVersion: 1,
+    mimetype: "image/jpeg",
+    width: 2048,
+    height: 1024,
+    duration: null,
+    fileSize: 2000,
   }));
 
   // Cannot create media in a catalog the user cannot access.

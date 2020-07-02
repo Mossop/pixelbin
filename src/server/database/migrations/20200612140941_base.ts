@@ -136,7 +136,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.integer("width").notNullable();
     table.integer("height").notNullable();
     table.integer("duration").nullable();
-    table.integer("fileSize").nullable();
+    table.integer("fileSize").notNullable();
 
     addMetadata(table);
   }).createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {

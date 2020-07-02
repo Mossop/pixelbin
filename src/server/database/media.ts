@@ -46,17 +46,14 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     ]);
   }
 
-  return from(knex, Table.Media).leftJoin((qb: Knex.QueryBuilder): void => {
-    void qb.from(Table.MediaInfo)
-      .groupBy("media")
-      .select("media", knex.raw("MAX(\"uploaded\") as current"))
-      .as("NewestInfo");
-  }, {
-    [ref(Table.Media, "id")]: "NewestInfo.media",
-  }).leftJoin(Table.MediaInfo, {
-    [ref(Table.MediaInfo, "uploaded")]: "NewestInfo.current",
-    [ref(Table.MediaInfo, "media")]: ref(Table.Media, "id"),
-  }).select(mappings);
+  return from(knex, Table.Media)
+    .leftJoin(Table.MediaInfo, ref(Table.Media, "id"), ref(Table.MediaInfo, "media"))
+    .orderBy([
+      { column: "id", order: "asc" },
+      { column: "uploaded", order: "desc" },
+    ])
+    .distinctOn(ref(Table.Media, "id"))
+    .select(mappings);
 }
 
 export async function createMedia(
