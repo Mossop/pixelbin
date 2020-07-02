@@ -19,6 +19,8 @@ if (ENV == "test") {
   loaders.unshift("@jsdevtools/coverage-istanbul-loader");
 }
 
+loaders.unshift("cache-loader");
+
 /** @type {Configuration} */
 module.exports = {
   mode: ENV == "test" ? "development" : ENV,
