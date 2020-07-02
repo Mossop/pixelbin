@@ -5,9 +5,9 @@ coverage:
 flags:
   jest:
     paths:
-      - app
+      - src
     carryforward: true
   karma:
     paths:
-      - app
+      - src
     carryforward: true

@@ -81,7 +81,6 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        cat coverage/coverage-final.json
         bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F jest
 
   karma-tests:
