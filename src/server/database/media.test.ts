@@ -51,7 +51,6 @@ test("Media tests", async (): Promise<void> => {
 
     title: "My title", // Media set
 
-    processVersion: null,
     uploaded: null,
     mimetype: null,
     width: null,
@@ -66,7 +65,6 @@ test("Media tests", async (): Promise<void> => {
   });
 
   let info = await createMediaInfo("someone3@nowhere.com", id, fillMetadata({
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -81,7 +79,6 @@ test("Media tests", async (): Promise<void> => {
     id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     media: id,
     uploaded: expect.toEqualDate(uploadedMoment),
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -102,7 +99,6 @@ test("Media tests", async (): Promise<void> => {
     photographer: "Me", // MediaInfo set
 
     uploaded: expect.toEqualDate(uploadedMoment),
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -126,7 +122,6 @@ test("Media tests", async (): Promise<void> => {
     city: "Portland", // Media set
 
     uploaded: expect.toEqualDate(uploadedMoment),
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -140,7 +135,6 @@ test("Media tests", async (): Promise<void> => {
   });
 
   info = await createMediaInfo("someone3@nowhere.com", id, fillMetadata({
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -155,7 +149,6 @@ test("Media tests", async (): Promise<void> => {
     id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     media: id,
     uploaded: expect.toEqualDate(uploaded2Moment),
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -177,7 +170,6 @@ test("Media tests", async (): Promise<void> => {
     city: "Portland", // Media set
 
     uploaded: expect.toEqualDate(uploaded2Moment),
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -194,7 +186,6 @@ test("Media tests", async (): Promise<void> => {
 
   // Cannot add media info to media in a catalog the user cannot access.
   await expect(createMediaInfo("someone3@nowhere.com", newMedia.id, fillMetadata({
-    processVersion: 1,
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,

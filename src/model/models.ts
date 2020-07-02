@@ -154,7 +154,6 @@ export interface Media extends IdType {
 
 export interface MediaInfo extends IdType {
   media: Reference<Media>;
-  processVersion: number;
   uploaded: Moment;
   mimetype: string;
   width: number;

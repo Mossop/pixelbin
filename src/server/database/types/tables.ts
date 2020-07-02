@@ -19,6 +19,8 @@ export type Metadata = DbRecord<ObjectModel.Metadata>;
 
 export type Media = DbRecord<ObjectModel.Media> & Metadata;
 
-export type MediaInfo = DbRecord<ObjectModel.MediaInfo> & Metadata;
+export type MediaInfo = DbRecord<ObjectModel.MediaInfo> & Metadata & {
+  processVersion: number;
+};
 
-export type MediaWithInfo = Media & (Obj | Omit<MediaInfo, "media">);
+export type MediaWithInfo = Media & (Obj | Omit<MediaInfo, "media" | "processVersion">);

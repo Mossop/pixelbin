@@ -9,6 +9,8 @@ import { insertFromSelect, from, update } from "./queries";
 import { Tables, Table, ref } from "./types";
 import { Metadata } from "./types/tables";
 
+const PROCESS_VERSION = 1;
+
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 25);
 async function uuid(start: string): Promise<string> {
   return start + ":" + await nanoid();
@@ -30,7 +32,6 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
     created: ref(Table.Media, "created"),
-    processVersion: ref(Table.MediaInfo, "processVersion"),
     uploaded: ref(Table.MediaInfo, "uploaded"),
     mimetype: ref(Table.MediaInfo, "mimetype"),
     width: ref(Table.MediaInfo, "width"),
@@ -108,8 +109,8 @@ export async function editMedia(
 export async function createMediaInfo(
   user: string,
   media: string,
-  data: Omit<Tables.MediaInfo, "id" | "media" | "uploaded">,
-): Promise<Tables.MediaInfo> {
+  data: Omit<Tables.MediaInfo, "id" | "processVersion" | "media" | "uploaded">,
+): Promise<Omit<Tables.MediaInfo, "processVersion">> {
   let knex = await connection;
 
   let select = from(knex, Table.Media)
@@ -124,7 +125,18 @@ export async function createMediaInfo(
     id: await uuid("I"),
     media: knex.ref(ref(Table.Media, "id")),
     uploaded: moment(),
-  }).returning("*");
+    processVersion: PROCESS_VERSION,
+  }).returning([
+    "id",
+    "media",
+    "uploaded",
+    "mimetype",
+    "width",
+    "height",
+    "duration",
+    "fileSize",
+    ...metadataColumns,
+  ]);
 
   if (results.length) {
     return results[0];
