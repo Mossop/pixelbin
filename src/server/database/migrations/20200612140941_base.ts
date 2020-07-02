@@ -63,7 +63,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.float(name).nullable();
     }
 
-    table.dateTime("taken").nullable();
+    table.dateTime("taken", { useTz: false }).nullable();
   }
 
   return knex.schema.createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
@@ -122,7 +122,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
   ).createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Catalog, "id");
-    table.dateTime("created").notNullable();
+    table.dateTime("created", { useTz: true }).notNullable();
 
     addMetadata(table);
 
@@ -131,7 +131,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     id(table);
     foreignId(table, Table.Media, "id");
     table.integer("processVersion").notNullable();
-    table.dateTime("uploaded").notNullable();
+    table.dateTime("uploaded", { useTz: true }).notNullable();
     table.string("mimetype", 50).notNullable();
     table.integer("width").notNullable();
     table.integer("height").notNullable();
