@@ -166,7 +166,7 @@ exports.testServer = gulp.series(serverJest, buildCoverage);
 exports.build = gulp.parallel(exports.buildClient, exports.buildServer);
 exports.test = gulp.series(serverJest, clientJest, clientKarma, buildCoverage);
 
-exports.lint = gulp.series(exports.build, async function() {
+exports.lint = gulp.series(exports.build, async function eslint() {
   let eslint = await findBin(__dirname, "eslint");
 
   await checkSpawn(eslint, [

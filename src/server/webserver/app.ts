@@ -71,7 +71,7 @@ export default function buildApp(
   Object.defineProperties(app.context, {
     ...logging(),
     ...auth(),
-    ...services(new StorageService(config.tempStorage, config.localStorage)),
+    ...services(new StorageService(config.storageConfig)),
   });
 
   app

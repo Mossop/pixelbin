@@ -32,7 +32,10 @@ mockedMoment.mockImplementation((): Moment => realMoment());
 
 test("Media upload", async (): Promise<void> => {
   const request = agent();
-  const storageService = new StorageService("", "");
+  const storageService = new StorageService({
+    tempDirectory: "",
+    localDirectory: "",
+  });
   const storage = (await storageService.getStorage("")).get();
 
   /* eslint-disable @typescript-eslint/unbound-method */

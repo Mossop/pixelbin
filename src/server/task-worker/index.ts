@@ -1,28 +1,27 @@
 import { getLogger } from "../../utils";
 import { MasterProcess } from "../../worker";
 import { connect } from "../database";
-import buildApp from "./app";
-import { MasterInterface } from "./types";
+import { MasterInterface, TaskWorkerInterface } from "./types";
 
-export type { WebserverConfig, MasterInterface } from "./types";
-export * as Api from "../../model/api";
+export type { TaskWorkerInterface, MasterInterface } from "./types";
 
 const logger = getLogger("webserver");
 
 async function main(): Promise<void> {
-  logger.info("Server startup.");
+  logger.info("Task worker startup.");
 
-  let connection = new MasterProcess<MasterInterface>();
+  let connection = new MasterProcess<MasterInterface, TaskWorkerInterface>({
+    localInterface: {
+      handleUploadedFile: (_id: string): void => {
+        return;
+      },
+    },
+  });
   let master = await connection.remote;
 
   try {
     let config = await master.getConfig();
     connect(config.databaseConfig);
-
-    let server = await master.getServer();
-
-    let app = buildApp(config);
-    app.listen(server);
   } catch (e) {
     connection.shutdown();
     throw e;
@@ -30,5 +29,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: Error): void => {
-  logger.error(error, "Server threw error while connecting.");
+  logger.error(error, "Task worker threw error while connecting.");
 });

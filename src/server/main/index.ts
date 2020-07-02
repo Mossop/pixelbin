@@ -10,6 +10,7 @@ import { connect } from "../database";
 import type { MasterInterface, WebserverConfig } from "../webserver";
 import config from "./config";
 import events from "./events";
+import { TaskManager } from "./tasks";
 
 const logger = getLogger("server");
 
@@ -29,18 +30,33 @@ async function startupServers(): Promise<void> {
   await listen(server, 8000);
   logger.info("Listening on http://localhost:8000");
 
+  let taskManager = new TaskManager({
+    databaseConfig: config.database,
+    logConfig: config.logConfig,
+    taskWorkerPackage: config.taskWorkerPackage,
+    storageConfig: {
+      tempDirectory: "",
+      localDirectory: "",
+    },
+  });
+
   let pool = new WorkerPool<undefined, MasterInterface>({
     localInterface: {
       getServer: (): net.Server => server,
       getConfig: (): WebserverConfig => ({
         staticRoot: path.join(config.clientRoot, "static"),
         appRoot: path.join(config.clientRoot),
-        database: config.database,
+        databaseConfig: config.database,
         secretKeys: ["Random secret"],
         logConfig: config.logConfig,
-        tempStorage: "",
-        localStorage: "",
+        storageConfig: {
+          tempDirectory: "",
+          localDirectory: "",
+        },
       }),
+      handleUploadedFile: (id: string): void => {
+        taskManager.handleUploadedFile(id);
+      },
     },
     minWorkers: 4,
     maxWorkers: 8,

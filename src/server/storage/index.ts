@@ -5,6 +5,11 @@ import { Cache, RefCounted, getLogger, Logger } from "../../utils";
 
 const logger = getLogger("storage");
 
+export interface StorageConfig {
+  tempDirectory: string;
+  localDirectory: string;
+}
+
 export interface FileInfo {
   name: string;
   path: string;
@@ -85,15 +90,14 @@ export class StorageService {
   private cache: Cache<string, Storage>;
 
   public constructor(
-    private readonly tempDirectory: string,
-    private readonly localDirectory: string,
+    private readonly config: StorageConfig,
   ) {
     this.cache = new Cache();
   }
 
   public async getStorage(id: string): Promise<RefCounted<Storage>> {
     return this.cache.getOrCreate(id, (): Storage => {
-      return new Storage(id, this.tempDirectory, this.localDirectory);
+      return new Storage(id, this.config.tempDirectory, this.config.localDirectory);
     });
   }
 }

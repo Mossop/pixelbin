@@ -11,7 +11,10 @@ test("storage", async (): Promise<void> => {
   let local = await fs.mkdtemp(path.join(os.tmpdir(), "local-"));
 
   try {
-    let service = new StorageService(temp, local);
+    let service = new StorageService({
+      tempDirectory: temp,
+      localDirectory: local,
+    });
 
     let storage = await service.getStorage("myid");
 

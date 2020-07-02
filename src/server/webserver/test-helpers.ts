@@ -19,12 +19,14 @@ export function buildTestApp(afterAll: Lifecycle): TestApp {
     staticRoot: __dirname,
     appRoot: __dirname,
     secretKeys: ["foo"],
-    database: getTestDatabaseConfig(),
+    databaseConfig: getTestDatabaseConfig(),
     logConfig: {
       default: "silent",
     },
-    tempStorage: path.join(path.basename(__dirname), "tmp", "temp"),
-    localStorage: path.join(path.basename(__dirname), "tmp", "local"),
+    storageConfig: {
+      tempDirectory: path.join(path.basename(__dirname), "tmp", "temp"),
+      localDirectory: path.join(path.basename(__dirname), "tmp", "local"),
+    },
   });
 
   let server = koa.listen();
