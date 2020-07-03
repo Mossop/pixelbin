@@ -46,10 +46,16 @@ export async function initDB(): Promise<void> {
   await knex.migrate.latest();
 }
 
+let first = true;
 export async function resetDB(): Promise<void> {
+  if (first) {
+    first = false;
+    return;
+  }
+
   let knex = await connection;
 
-  for (let table of [
+  let tables = [
     Table.MediaPerson,
     Table.MediaTag,
     Table.MediaAlbum,
@@ -62,9 +68,9 @@ export async function resetDB(): Promise<void> {
     Table.Catalog,
     Table.Storage,
     Table.User,
-  ]) {
-    await knex.raw("TRUNCATE ?? CASCADE;", [table]);
-  }
+  ];
+
+  await knex.raw(`TRUNCATE ${tables.map((_: string): string => "??").join(", ")} CASCADE;`, tables);
 }
 
 export async function destroyDB(): Promise<void> {

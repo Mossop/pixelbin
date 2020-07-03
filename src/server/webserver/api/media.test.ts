@@ -25,7 +25,6 @@ jest.mock("moment-timezone", (): unknown => {
   moment.isMoment = actualMoment.isMoment;
   return moment;
 });
-
 /* eslint-enable */
 
 beforeAll(initDB);
