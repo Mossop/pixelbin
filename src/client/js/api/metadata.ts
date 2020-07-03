@@ -1,5 +1,5 @@
 import { Orientation } from "media-metadata";
-import moment from "moment";
+import moment from "moment-timezone";
 import { JsonDecoder, err, ok } from "ts.data.json";
 import type { Result } from "ts.data.json";
 
