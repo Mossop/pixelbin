@@ -26,7 +26,9 @@ export const createCatalog = ensureAuthenticated(
 
       return await Db.createCatalog(user.email, catalogData);
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
   },
 );
@@ -36,7 +38,9 @@ export const createAlbum = ensureAuthenticated(
     try {
       return await Db.createAlbum(user.email, data.catalog, data);
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
   },
 );
@@ -46,7 +50,9 @@ export const editAlbum = ensureAuthenticated(
     try {
       return await Db.editAlbum(user.email, data.id, data);
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
   },
 );
@@ -56,7 +62,9 @@ export const createTag = ensureAuthenticated(
     try {
       return await Db.createTag(user.email, data.catalog, data);
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
   },
 );
@@ -66,7 +74,9 @@ export const editTag = ensureAuthenticated(
     try {
       return await Db.editTag(user.email, data.id, data);
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
   },
 );
@@ -76,7 +86,9 @@ export const createPerson = ensureAuthenticated(
     try {
       return await Db.createPerson(user.email, data.catalog, data);
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
   },
 );
@@ -86,7 +98,9 @@ export const editPerson = ensureAuthenticated(
     try {
       return await Db.editPerson(user.email, data.id, data);
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
   },
 );

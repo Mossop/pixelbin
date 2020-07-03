@@ -209,6 +209,9 @@ test("Create album", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("Invalid user or catalog"),
+    },
   });
 });
 
@@ -248,6 +251,9 @@ test("Edit album", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("decoder failed at key \"id\""),
+    },
   });
 
   // Can't update albums in unowned catalogs.
@@ -262,6 +268,9 @@ test("Edit album", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("Invalid user or album"),
+    },
   });
 
   response = await request
@@ -385,6 +394,9 @@ test("Create Tag", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("Invalid user or catalog"),
+    },
   });
 });
 
@@ -424,6 +436,9 @@ test("Edit tag", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("decoder failed at key \"id\""),
+    },
   });
 
   // Can't update tags in unowned catalogs.
@@ -438,6 +453,9 @@ test("Edit tag", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("Invalid user or album"),
+    },
   });
 
   response = await request
@@ -556,6 +574,9 @@ test("Create Person", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("Invalid user or catalog"),
+    },
   });
 });
 
@@ -595,6 +616,9 @@ test("Edit person", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("decoder failed at key \"id\""),
+    },
   });
 
   // Can't update people in unowned catalogs.
@@ -609,6 +633,9 @@ test("Edit person", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
+    data: {
+      message: expect.stringContaining("Invalid user or album"),
+    },
   });
 
   response = await request

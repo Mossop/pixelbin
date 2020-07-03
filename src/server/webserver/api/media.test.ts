@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 
-import moment, { Moment } from "moment";
+import moment, { Moment } from "moment-timezone";
 
 import { expect, mockedFunction, deferCall } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
@@ -14,8 +14,19 @@ import { StorageService } from "../../storage";
 import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
 
+/* eslint-disable */
 jest.mock("../../storage");
-jest.mock("moment");
+jest.mock("moment-timezone", (): unknown => {
+  const actualMoment = jest.requireActual("moment-timezone");
+  let moment = jest.fn(actualMoment);
+  // @ts-ignore: Mocking.
+  moment.tz = jest.fn(actualMoment.tz);
+  // @ts-ignore: Mocking.
+  moment.isMoment = actualMoment.isMoment;
+  return moment;
+});
+
+/* eslint-enable */
 
 beforeAll(initDB);
 beforeEach(resetDB);
@@ -26,9 +37,7 @@ beforeEach(insertTestData);
 const { agent } = buildTestApp(afterAll);
 
 const mockedMoment = mockedFunction(moment);
-const realMoment: typeof moment = jest.requireActual("moment");
-
-mockedMoment.mockImplementation((): Moment => realMoment());
+const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 test("Media upload", async (): Promise<void> => {
   const request = agent();
@@ -69,10 +78,8 @@ test("Media upload", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  let createdMoment: Moment = realMoment("2016-01-01T23:35:01");
-  mockedMoment.mockImplementationOnce((): Moment => {
-    return createdMoment;
-  });
+  let createdMoment: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => createdMoment);
 
   let copyCall = deferCall(copyUploadedFileMock);
 

@@ -1,6 +1,6 @@
 import { expect as jestExpect } from "@jest/globals";
 import diff from "jest-diff";
-import moment, { Moment, isMoment } from "moment";
+import moment, { Moment, isMoment } from "moment-timezone";
 
 import { defer } from "../utils";
 
@@ -11,8 +11,8 @@ const matchers = {
     received: any,
     expected: Moment | string,
   ): jest.CustomMatcherResult {
-    const receivedMoment = isMoment(received) ? received : moment(received);
-    const expectedMoment = isMoment(expected) ? expected : moment(expected);
+    const receivedMoment = isMoment(received) ? received : moment.tz(received, "UTC");
+    const expectedMoment = isMoment(expected) ? expected : moment.tz(expected, "UTC");
 
     const receivedAsString = receivedMoment.format("L");
     const expectedAsString = expectedMoment.format("L");

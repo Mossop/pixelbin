@@ -1,5 +1,5 @@
 import Knex from "knex";
-import moment from "moment";
+import moment from "moment-timezone";
 import { customAlphabet } from "nanoid/async";
 
 import { metadataColumns } from "../../model/models";
@@ -73,11 +73,14 @@ export async function createMedia(
     ...data,
     id: await uuid("M"),
     catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
-    created: moment(),
+    created: moment().tz("UTC"),
   }).returning("*");
 
   if (results.length) {
-    return results[0];
+    return {
+      ...results[0],
+      created: moment.tz(results[0].created, "UTC"),
+    };
   }
 
   throw new Error("Invalid user or catalog passed to createMedia");
@@ -124,7 +127,7 @@ export async function createMediaInfo(
     ...data,
     id: await uuid("I"),
     media: knex.ref(ref(Table.Media, "id")),
-    uploaded: moment(),
+    uploaded: moment().tz("UTC"),
     processVersion: PROCESS_VERSION,
   }).returning([
     "id",
@@ -139,7 +142,10 @@ export async function createMediaInfo(
   ]);
 
   if (results.length) {
-    return results[0];
+    return {
+      ...results[0],
+      uploaded: moment.tz(results[0].uploaded, "UTC"),
+    };
   }
 
   throw new Error("Invalid user or catalog passed to createMediaInfo");
@@ -162,6 +168,12 @@ export async function getMedia(user: string, id: string): Promise<Tables.MediaWi
   } else if (results.length != 1) {
     throw new Error("Found multiple matching media records.");
   } else {
-    return results[0] as Tables.MediaWithInfo;
+    let result: Tables.MediaWithInfo = {
+      ...results[0] as Tables.MediaWithInfo,
+      created: moment.tz(results[0].created, "UTC"),
+      // @ts-ignore: This is absolutely right.
+      uploaded: results[0].uploaded ? moment.tz(results[0].uploaded, "UTC") : null,
+    };
+    return result;
   }
 }

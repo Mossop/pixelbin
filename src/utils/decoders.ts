@@ -1,5 +1,5 @@
 import type { Orientation } from "media-metadata";
-import moment, { ISO_8601, Moment } from "moment";
+import moment, { Moment } from "moment-timezone";
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
 
 export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: unknown): A {
@@ -32,7 +32,7 @@ export function MappingDecoder<A, B>(
 
 export const DateDecoder = MappingDecoder(
   JsonDecoder.string,
-  (str: string): Moment => moment(str, ISO_8601),
+  (str: string): Moment => moment.tz(str, "UTC"),
   "Moment",
 );
 export const OrientationDecoder = MappingDecoder(

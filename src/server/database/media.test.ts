@@ -1,10 +1,18 @@
-import moment, { Moment } from "moment";
+import moment, { Moment } from "moment-timezone";
 
 import { expect, mockedFunction } from "../../test-helpers";
 import { createMedia, fillMetadata, getMedia, createMediaInfo, editMedia } from "./media";
 import { buildTestDB, insertTestData } from "./test-helpers";
 
-jest.mock("moment");
+jest.mock("moment-timezone", (): unknown => {
+  const actualMoment = jest.requireActual("moment-timezone");
+  let moment = jest.fn(actualMoment);
+  // @ts-ignore: Mocking.
+  moment.tz = jest.fn(actualMoment.tz);
+  // @ts-ignore: Mocking.
+  moment.isMoment = actualMoment.isMoment;
+  return moment;
+});
 
 buildTestDB({
   beforeAll,
@@ -17,18 +25,14 @@ beforeEach((): Promise<void> => {
 });
 
 const mockedMoment = mockedFunction(moment);
-const realMoment: typeof moment = jest.requireActual("moment");
-
-mockedMoment.mockImplementation((): Moment => realMoment());
+const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 test("Media tests", async (): Promise<void> => {
   await expect(createMedia("someone3@nowhere.com", "c1", fillMetadata({})))
     .rejects.toThrow("Invalid user or catalog passed to createMedia");
 
-  let createdMoment: Moment = realMoment("2016-01-01T23:35:01");
-  mockedMoment.mockImplementationOnce((): Moment => {
-    return createdMoment;
-  });
+  let createdMoment: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => createdMoment);
 
   let newMedia = await createMedia("someone3@nowhere.com", "c3", fillMetadata({
     title: "My title",
@@ -59,10 +63,8 @@ test("Media tests", async (): Promise<void> => {
     fileSize: null,
   }));
 
-  let uploadedMoment: Moment = realMoment("2020-01-03T15:31:01");
-  mockedMoment.mockImplementationOnce((): Moment => {
-    return uploadedMoment;
-  });
+  let uploadedMoment: Moment = realMoment.tz("2020-01-03T15:31:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => uploadedMoment);
 
   let info = await createMediaInfo("someone3@nowhere.com", id, fillMetadata({
     mimetype: "image/jpeg",
@@ -129,10 +131,8 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 1000,
   }));
 
-  let uploaded2Moment: Moment = realMoment("2020-01-04T15:31:01");
-  mockedMoment.mockImplementationOnce((): Moment => {
-    return uploaded2Moment;
-  });
+  let uploaded2Moment: Moment = realMoment.tz("2020-01-04T15:31:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => uploaded2Moment);
 
   info = await createMediaInfo("someone3@nowhere.com", id, fillMetadata({
     mimetype: "image/jpeg",

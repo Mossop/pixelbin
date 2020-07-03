@@ -110,6 +110,7 @@ async function clientJest() {
   await checkSpawn(jest, [
     "--config",
     path.join(__dirname, "src", "client", "jest.config.js"),
+    "--collectCoverage",
   ]);
 }
 
@@ -158,6 +159,7 @@ async function serverJest() {
   await checkSpawn(jest, [
     "--config",
     path.join(__dirname, "jest.config.js"),
+    "--collectCoverage",
   ]);
 }
 

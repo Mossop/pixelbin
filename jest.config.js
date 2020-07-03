@@ -10,7 +10,6 @@ module.exports = {
     "/src/client/",
     "/node_modules/",
   ],
-  collectCoverage: true,
   collectCoverageFrom: [
     "src/**/*.ts",
   ],
@@ -27,4 +26,5 @@ module.exports = {
   ],
   resetModules: true,
   clearMocks: true,
+  testTimeout: 10000,
 };

@@ -26,7 +26,9 @@ export const createMedia = ensureAuthenticated(
     try {
       media = await Db.createMedia(user.email, data.catalog, Db.fillMetadata(mediaData));
     } catch (e) {
-      throw new ApiError(ApiErrorCode.InvalidData);
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     }
 
     let storage = await ctx.storage.getStorage(data.catalog);

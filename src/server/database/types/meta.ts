@@ -1,5 +1,5 @@
 import { Raw, Ref } from "knex";
-import { Moment, isMoment } from "moment";
+import { Moment, isMoment } from "moment-timezone";
 
 import { Dereference, ListsIn } from "../../../model/models";
 import { Obj } from "../../../utils";
@@ -19,7 +19,7 @@ export type WithRefs<Record> = {
 
 function mapColumn(value: Exclude<JSTypes, undefined>): DBTypes {
   if (isMoment(value)) {
-    return value.toISOString();
+    return value.tz("UTC").toISOString();
   }
   return value;
 }

@@ -1,5 +1,4 @@
 import * as ObjectModel from "../../../model/models";
-import { Obj } from "../../../utils";
 import { DbRecord } from "./meta";
 
 export type User = DbRecord<ObjectModel.User> & { password: string };
@@ -23,4 +22,10 @@ export type MediaInfo = DbRecord<ObjectModel.MediaInfo> & Metadata & {
   processVersion: number;
 };
 
-export type MediaWithInfo = Media & (Obj | Omit<MediaInfo, "media" | "processVersion">);
+type AllNull<T> = {
+  [K in keyof T]: null;
+};
+
+type AllOrNulls<T> = T | AllNull<T>;
+
+export type MediaWithInfo = Media & AllOrNulls<Omit<MediaInfo, "media" | "processVersion">>;

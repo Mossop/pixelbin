@@ -1,5 +1,5 @@
 import type { Orientation } from "media-metadata";
-import type { Moment } from "moment";
+import type { Moment } from "moment-timezone";
 
 export interface IdType<K = string> {
   id: K;

@@ -87,7 +87,9 @@ export function apiRequestHandler<T extends Api.Method>(
         decoded = await decoder(ctx.request.body, ctx.request.files);
       } catch (e) {
         ctx.logger.warn(e, "Client provided invalid data.");
-        throw new ApiError(ApiErrorCode.InvalidData);
+        throw new ApiError(ApiErrorCode.InvalidData, {
+          message: String(e),
+        });
       }
 
       response = await apiMethod(ctx, decoded);
