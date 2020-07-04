@@ -19,7 +19,7 @@ export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
 
   public constructor(private readonly config: TaskConfig) {
-    super();
+    super(logger);
 
     this.pool = new WorkerPool<TaskWorkerInterface, ParentProcessInterface>({
       localInterface: bound(this.interface, this),

@@ -175,10 +175,10 @@ export default class Channel<R = undefined, L = undefined> {
   }
 
   private handshake(): void {
-    void this.send({
+    logger.catch(this.send({
       type: "connect",
       methods: this.options.localInterface ? Object.keys(this.options.localInterface) : undefined,
-    });
+    }));
 
     let connectTimeout = setTimeout((): void => {
       logger.error("Channel connection timed out.");
@@ -186,12 +186,12 @@ export default class Channel<R = undefined, L = undefined> {
       this.emitter.emit("connection-timeout");
     }, this.options.timeout);
 
-    void this.remoteInterface.promise.then((): void => {
+    logger.catch(this.remoteInterface.promise.then((): void => {
       clearTimeout(connectTimeout);
     }, (): void => {
       this.closed = true;
       this.emitter.emit("close");
-    });
+    }));
   }
 
   public on(type: "connection-timeout", listener: () => void): void;
@@ -229,9 +229,9 @@ export default class Channel<R = undefined, L = undefined> {
       return;
     }
 
-    void this.send({
+    logger.catch(this.send({
       type: "closed",
-    });
+    }));
 
     this.innerClose();
   }
@@ -248,18 +248,18 @@ export default class Channel<R = undefined, L = undefined> {
 
       switch (decoded.value.type) {
         case "call":
-          void this.localCall(decoded.value);
+          logger.catch(this.localCall(decoded.value));
           return;
         case "closed":
           this.innerClose();
           return;
         case "connect":
-          void this.send({
+          logger.catch(this.send({
             type: "connected",
             methods: this.options.localInterface ?
               Object.keys(this.options.localInterface) :
               undefined,
-          });
+          }));
 
           this.buildRemoteInterface(decoded.value.methods);
           return;
@@ -312,10 +312,10 @@ export default class Channel<R = undefined, L = undefined> {
       return this.options.localInterface[method](...args);
     };
 
-    void this.send({
+    logger.catch(this.send({
       type: "ack",
       id: call.id,
-    });
+    }));
 
     try {
       let result = await performCall(call.method, call.arguments);

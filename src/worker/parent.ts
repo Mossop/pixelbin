@@ -47,9 +47,9 @@ export class ParentProcess<R = undefined, L = undefined> {
     );
 
     logger.trace("Signalling worker ready.");
-    void this.send({
+    logger.catch(this.send({
       type: "ready",
-    });
+    }));
   }
 
   public get remote(): Promise<RemoteInterface<R>> {
@@ -89,12 +89,12 @@ export class ParentProcess<R = undefined, L = undefined> {
 
   private onDisconnect: () => void = (): void => {
     logger.debug("Parent process disconnected.");
-    void this.shutdown();
+    this.shutdown();
   };
 
   private onError: (err: Error) => void = (err: Error): void => {
     logger.debug({ error: err }, "Saw error.");
-    void this.shutdown();
+    this.shutdown();
   };
 
   private send(message: IPC.Ready | IPC.RPC, handle?: undefined | SendHandle): Promise<void> {

@@ -59,7 +59,7 @@ export class WorkerPool<R = undefined, L = undefined> {
 
     this.quitting = true;
     for (let record of this.workers) {
-      void record.worker.kill();
+      logger.catch(record.worker.kill());
     }
   }
 
@@ -123,7 +123,7 @@ export class WorkerPool<R = undefined, L = undefined> {
           delete record.idleTimeout;
           if (this.workers.length > this.options.minWorkers) {
             logger.debug(`Shutting down worker ${workerProcess.pid} due to timeout.`);
-            void workerProcess.kill();
+            logger.catch(workerProcess.kill());
           }
         }, this.options.idleTimeout);
       }
@@ -173,7 +173,7 @@ export class WorkerPool<R = undefined, L = undefined> {
 
     let count = this.options.minWorkers;
     for (let i = this.workers.length; i < count; i++) {
-      void this.createWorker();
+      logger.catch(this.createWorker());
     }
   }
 }

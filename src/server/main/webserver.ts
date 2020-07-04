@@ -21,9 +21,9 @@ export class WebserverManager extends Service {
     private readonly config: WebConfig,
     private readonly taskManager: TaskManager,
   ) {
-    super();
+    super(logger);
     this.server = net.createServer();
-    void listen(this.server, 8000).then((): void => {
+    this.logger.catch(listen(this.server, 8000).then((): void => {
       let address = this.server.address();
       if (address) {
         if (typeof address != "string") {
@@ -31,7 +31,7 @@ export class WebserverManager extends Service {
         }
       }
       logger.info(`Listening on http://${address}`);
-    });
+    }));
 
     this.pool = new WorkerPool<undefined, ParentProcessInterface>({
       localInterface: bound(this.interface, this),

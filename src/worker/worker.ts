@@ -116,13 +116,13 @@ export class WorkerProcess<R = undefined, L = undefined> {
       switch (decoded.value.type) {
         case "ready":
           this.ready.resolve();
-          void this.buildChannel();
+          logger.catch(this.buildChannel());
           break;
         case "rpc": {
           let rpcMessage = decoded.value.message;
-          void this.channel.promise.then((channel: Channel<R, L>): void => {
+          logger.catch(this.channel.promise.then((channel: Channel<R, L>): void => {
             channel.onMessage(rpcMessage, handle);
-          });
+          }));
           break;
         }
       }

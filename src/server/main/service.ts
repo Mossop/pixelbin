@@ -1,9 +1,10 @@
+import { Logger } from "../../utils";
 import events from "./events";
 
 export abstract class Service {
-  protected constructor() {
+  protected constructor(protected readonly logger: Logger) {
     events.on("shutdown", (): void => {
-      void this.shutdown();
+      this.logger.catch(this.shutdown());
     });
   }
 

@@ -2,6 +2,7 @@ import pino, { Bindings, Level, LevelWithSilent } from "pino";
 
 export type Logger = Pick<pino.Logger, Level | "isLevelEnabled"> & {
   child: (bindings: Bindings) => Logger;
+  catch: (promise: Promise<unknown>) => void;
 };
 
 function buildLogger(name: string, pinoLogger: pino.Logger): Logger {
@@ -10,6 +11,12 @@ function buildLogger(name: string, pinoLogger: pino.Logger): Logger {
   let logger = pinoLogger as unknown as Logger;
   logger.child = (bindings: Bindings): Logger => {
     return buildLogger(name, child(bindings));
+  };
+  logger.catch = (promise: Promise<unknown>): void => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    promise.catch((err: any): void => {
+      logger.warn(err, "Unexpected promise rejection.");
+    });
   };
 
   let loggers = Loggers.get(name);
