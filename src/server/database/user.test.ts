@@ -2,11 +2,7 @@ import { buildTestDB, insertTestData, testData } from "./test-helpers";
 import { Table } from "./types";
 import { getUser } from "./user";
 
-buildTestDB({
-  beforeAll,
-  beforeEach,
-  afterAll,
-});
+buildTestDB();
 
 beforeEach((): Promise<void> => {
   return insertTestData();

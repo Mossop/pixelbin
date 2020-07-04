@@ -5,9 +5,7 @@ import moment, { Moment } from "moment-timezone";
 import { expect, mockedFunction, deferCall } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import {
-  initDB,
-  resetDB,
-  destroyDB,
+  buildTestDB,
   insertTestData,
 } from "../../database/test-helpers";
 import { StorageService } from "../../storage";
@@ -27,13 +25,11 @@ jest.mock("moment-timezone", (): unknown => {
 });
 /* eslint-enable */
 
-beforeAll(initDB);
-beforeEach(resetDB);
-afterAll(destroyDB);
+buildTestDB();
 
 beforeEach(insertTestData);
 
-const { agent } = buildTestApp(afterAll);
+const agent = buildTestApp();
 
 const mockedMoment = mockedFunction(moment);
 const realMoment: typeof moment = jest.requireActual("moment-timezone");

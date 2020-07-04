@@ -1,44 +1,61 @@
+import net from "net";
 import path from "path";
 
-import Koa, { DefaultState } from "koa";
 import { agent, SuperTest, Test } from "supertest";
 
 import { User, Person, Tag, Album, Catalog } from "../../model/api";
-import { idSorted, Obj } from "../../utils";
+import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
+import { RemoteInterface } from "../../worker";
 import { getTestDatabaseConfig } from "../database/test-helpers";
-import buildApp, { AppContext, RouterContext } from "./app";
+import buildApp from "./app";
+import { MasterInterface, WebserverConfig } from "./interfaces";
 
-interface TestApp {
-  app: Koa<DefaultState, RouterContext<AppContext>>;
-  agent: () => SuperTest<Test>;
-}
+export function buildTestApp(
+  masterInterface: Partial<RemoteInterface<MasterInterface>> = {},
+): (() => SuperTest<Test>) {
+  let server = net.createServer();
+  server.listen();
 
-type Lifecycle = (cb: () => void) => void;
-export function buildTestApp(afterAll: Lifecycle): TestApp {
-  let koa = buildApp({
-    staticRoot: __dirname,
-    appRoot: __dirname,
-    secretKeys: ["foo"],
-    databaseConfig: getTestDatabaseConfig(),
-    logConfig: {
-      default: "silent",
+  let master: RemoteInterface<MasterInterface> = {
+    async getConfig(): Promise<WebserverConfig> {
+      return {
+        staticRoot: __dirname,
+        appRoot: __dirname,
+        secretKeys: ["foo"],
+        databaseConfig: getTestDatabaseConfig(),
+        logConfig: {
+          default: "silent",
+        },
+        storageConfig: {
+          tempDirectory: path.join(path.basename(__dirname), "tmp", "temp"),
+          localDirectory: path.join(path.basename(__dirname), "tmp", "local"),
+        },
+      };
     },
-    storageConfig: {
-      tempDirectory: path.join(path.basename(__dirname), "tmp", "temp"),
-      localDirectory: path.join(path.basename(__dirname), "tmp", "local"),
+
+    async getServer(): Promise<net.Server> {
+      return server;
     },
-  });
 
-  let server = koa.listen();
+    handleUploadedFile: (): Promise<void> => Promise.resolve(),
 
-  afterAll((): void => {
-    server.close();
-  });
-
-  return {
-    app: koa,
-    agent: (): SuperTest<Test> => agent(server),
+    ...masterInterface,
   };
+
+  afterAll((): Promise<void> => {
+    return new Promise((resolve: Resolver<void>, reject: Rejecter): void => {
+      server.close((err: Error | undefined): void => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  void buildApp(master);
+  return (): SuperTest<Test> => agent(server);
 }
 
 export function catalogs(catalogs: string | string[], items: Catalog[]): Catalog[] {

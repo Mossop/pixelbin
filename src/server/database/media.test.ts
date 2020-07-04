@@ -14,11 +14,7 @@ jest.mock("moment-timezone", (): unknown => {
   return moment;
 });
 
-buildTestDB({
-  beforeAll,
-  beforeEach,
-  afterAll,
-});
+buildTestDB();
 
 beforeEach((): Promise<void> => {
   return insertTestData();

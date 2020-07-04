@@ -3,6 +3,7 @@ import net from "net";
 import { LogConfig } from "../../utils";
 import { DatabaseConfig } from "../database";
 import { StorageConfig } from "../storage";
+import { TaskWorkerInterface } from "../task-worker/interfaces";
 
 export interface WebserverConfig {
   staticRoot: string;
@@ -13,8 +14,7 @@ export interface WebserverConfig {
   secretKeys: string[];
 }
 
-export interface MasterInterface {
+export type MasterInterface = TaskWorkerInterface & {
   getServer: () => net.Server;
   getConfig: () => WebserverConfig;
-  handleUploadedFile: (id: string) => void;
-}
+};

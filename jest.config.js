@@ -16,6 +16,7 @@ module.exports = {
   coveragePathIgnorePatterns: [
     "<rootDir>/src/.*\\.test\\.ts$",
     "<rootDir>/src/client/.*",
+    "/test-helpers",
   ],
   coverageDirectory: "coverage",
   coverageReporters: [["json", {

@@ -1,9 +1,7 @@
 import { getLogger } from "../../utils";
 import { MasterProcess } from "../../worker";
 import { connect } from "../database";
-import { MasterInterface, TaskWorkerInterface } from "./types";
-
-export type { TaskWorkerInterface, MasterInterface } from "./types";
+import { MasterInterface, TaskWorkerInterface } from "./interfaces";
 
 const logger = getLogger("webserver");
 

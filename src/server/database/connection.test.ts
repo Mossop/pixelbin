@@ -3,11 +3,7 @@ import { from, insert, drop, into } from "./queries";
 import { buildTestDB } from "./test-helpers";
 import { Table } from "./types";
 
-buildTestDB({
-  beforeAll,
-  beforeEach,
-  afterAll,
-});
+buildTestDB();
 
 test("Basic database connection", async (): Promise<void> => {
   let knex = await connection;

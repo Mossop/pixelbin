@@ -109,6 +109,7 @@
     "react-redux": "^7.2.0",
     "redux": "^4.0.5",
     "redux-logger": "^3.0.6",
-    "ts.data.json": "^1.1.0"
+    "ts.data.json": "^1.1.0",
+    "wtfnode": "^0.8.1"
   }
 }

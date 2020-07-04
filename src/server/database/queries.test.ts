@@ -4,11 +4,7 @@ import { insert, withChildren, from } from "./queries";
 import { insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
 
-buildTestDB({
-  beforeAll,
-  beforeEach,
-  afterAll,
-});
+buildTestDB();
 
 beforeEach((): Promise<void> => {
   return insertTestData();

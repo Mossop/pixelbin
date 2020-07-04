@@ -11,17 +11,7 @@ export function getTestDatabaseConfig(): DatabaseConfig {
   };
 }
 
-type Lifecycle = (cb: () => Promise<void>) => void;
-interface Lifecycles {
-  beforeAll: Lifecycle;
-  beforeEach: Lifecycle;
-  afterAll: Lifecycle;
-}
-export function buildTestDB({
-  beforeAll,
-  beforeEach,
-  afterAll,
-}: Lifecycles): void {
+export function buildTestDB(): void {
   beforeAll((): Promise<void> => {
     return initDB();
   });

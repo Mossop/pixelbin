@@ -1,16 +1,19 @@
+import { RemoteInterface } from "../../worker";
 import { StorageService } from "../storage";
+import { TaskWorkerInterface } from "../task-worker/interfaces";
+import { MasterInterface } from "./interfaces";
 
-export interface ServicesContext {
-  storage: StorageService;
-}
+export type ServicesContext = RemoteInterface<TaskWorkerInterface> & {
+  readonly storage: StorageService;
+};
 
-export default function(storage: StorageService): Record<string, PropertyDescriptor> {
+export async function initServices(
+  master: RemoteInterface<MasterInterface>,
+): Promise<ServicesContext> {
+  let config = await master.getConfig();
+
   return {
-    storage: {
-      get(): StorageService {
-        return storage;
-      },
-    },
+    storage: new StorageService(config.storageConfig),
+    ...master,
   };
 }
-

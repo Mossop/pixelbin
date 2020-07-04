@@ -1,7 +1,5 @@
 import {
-  initDB,
-  resetDB,
-  destroyDB,
+  buildTestDB,
   insertTestData,
   testData,
 } from "../../database/test-helpers";
@@ -9,13 +7,11 @@ import { Table } from "../../database/types";
 import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
 
-beforeAll(initDB);
-beforeEach(resetDB);
-afterAll(destroyDB);
+buildTestDB();
 
 beforeEach(insertTestData);
 
-const { agent } = buildTestApp(afterAll);
+const agent = buildTestApp();
 
 test("state", async (): Promise<void> => {
   const request = agent();

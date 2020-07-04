@@ -2,10 +2,7 @@ import { getLogger } from "../../utils";
 import { MasterProcess } from "../../worker";
 import { connect } from "../database";
 import buildApp from "./app";
-import { MasterInterface } from "./types";
-
-export type { WebserverConfig, MasterInterface } from "./types";
-export * as Api from "../../model/api";
+import { MasterInterface } from "./interfaces";
 
 const logger = getLogger("webserver");
 
@@ -16,13 +13,10 @@ async function main(): Promise<void> {
   let master = await connection.remote;
 
   try {
-    let config = await master.getConfig();
-    connect(config.databaseConfig);
+    let { databaseConfig } = await master.getConfig();
+    connect(databaseConfig);
 
-    let server = await master.getServer();
-
-    let app = buildApp(config);
-    app.listen(server);
+    await buildApp(master);
   } catch (e) {
     connection.shutdown();
     throw e;

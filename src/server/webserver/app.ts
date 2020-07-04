@@ -8,13 +8,13 @@ import session from "koa-session";
 import serve from "koa-static";
 
 import { Method } from "../../model/api";
-import { StorageService } from "../storage";
+import { RemoteInterface } from "../../worker";
 import { apiRequestHandler } from "./api/methods";
 import auth, { AuthContext } from "./auth";
 import { errorHandler } from "./error";
+import { MasterInterface } from "./interfaces";
 import logging, { LoggingContext } from "./logging";
-import services, { ServicesContext } from "./services";
-import { WebserverConfig } from "./types";
+import { ServicesContext, initServices } from "./services";
 
 function buildAppContent(): string {
   return `
@@ -50,9 +50,12 @@ type AddedContexts = AuthContext & LoggingContext & ServicesContext;
 export type AppContext = Context & AddedContexts;
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 
-export default function buildApp(
-  config: WebserverConfig,
-): Koa<DefaultState, RouterContext<AppContext>> {
+export default async function buildApp(
+  master: RemoteInterface<MasterInterface>,
+): Promise<void> {
+  let config = await master.getConfig();
+  let services = await initServices(master);
+
   const router = new Router<DefaultState, AppContext>();
 
   router.get("/healthcheck", async (ctx: AppContext): Promise<void> => {
@@ -71,7 +74,7 @@ export default function buildApp(
   Object.defineProperties(app.context, {
     ...logging(),
     ...auth(),
-    ...services(new StorageService(config.storageConfig)),
+    ...Object.getOwnPropertyDescriptors(services),
   });
 
   app
@@ -86,9 +89,8 @@ export default function buildApp(
 
     .use(session({
       renew: true,
-    }, app as unknown as Koa));
+    }, app as unknown as Koa))
 
-  return app
     .use(errorHandler)
 
     .use(router.routes())
@@ -101,4 +103,7 @@ export default function buildApp(
       ctx.set("Content-Type", "text/html");
       ctx.body = buildAppContent();
     });
+
+  let server = await master.getServer();
+  app.listen(server);
 }

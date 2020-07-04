@@ -2,7 +2,7 @@ import child_process from "child_process";
 
 import { getLogger } from "../../utils";
 import { WorkerPool, AbstractChildProcess } from "../../worker";
-import { TaskWorkerConfig, MasterInterface, TaskWorkerInterface } from "../task-worker/types";
+import { TaskWorkerConfig, MasterInterface, TaskWorkerInterface } from "../task-worker/interfaces";
 
 export type TaskConfig = TaskWorkerConfig & {
   taskWorkerPackage: string;

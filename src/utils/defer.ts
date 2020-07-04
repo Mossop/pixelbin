@@ -1,7 +1,7 @@
 type ResolverArg<T> = T | PromiseLike<T> | undefined;
-type Resolver<T, R = void> = (value?: ResolverArg<T>) => R;
+export type Resolver<T, R = void> = (value?: ResolverArg<T>) => R;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Rejecter<R = void> = (reason?: any) => R;
+export type Rejecter<R = void> = (reason?: any) => R;
 
 export interface Deferred<T> {
   promise: Promise<T>;
