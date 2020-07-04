@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 
-import child_process from "child_process";
-import net from "net";
 import path from "path";
 
-import { getLogger, listen } from "../../utils";
-import { WorkerPool, AbstractChildProcess } from "../../worker";
+import { getLogger } from "../../utils";
 import { connect } from "../database";
-import type { ParentProcessInterface, WebserverConfig } from "../webserver/interfaces";
 import config from "./config";
 import events from "./events";
 import { TaskManager } from "./tasks";
+import { WebserverManager } from "./webserver";
 
 const logger = getLogger("server");
 
@@ -26,10 +23,6 @@ async function initDatabase(): Promise<void> {
 }
 
 async function startupServers(): Promise<void> {
-  const server = net.createServer();
-  await listen(server, 8000);
-  logger.info("Listening on http://localhost:8000");
-
   let taskManager = new TaskManager({
     databaseConfig: config.database,
     logConfig: config.logConfig,
@@ -40,38 +33,18 @@ async function startupServers(): Promise<void> {
     },
   });
 
-  let pool = new WorkerPool<undefined, ParentProcessInterface>({
-    localInterface: {
-      getServer: (): net.Server => server,
-      getConfig: (): WebserverConfig => ({
-        staticRoot: path.join(config.clientRoot, "static"),
-        appRoot: path.join(config.clientRoot),
-        databaseConfig: config.database,
-        secretKeys: ["Random secret"],
-        logConfig: config.logConfig,
-        storageConfig: {
-          tempDirectory: "",
-          localDirectory: "",
-        },
-      }),
-      handleUploadedFile: (id: string): void => {
-        taskManager.handleUploadedFile(id);
-      },
+  new WebserverManager({
+    webserverPackage: config.webserverPackage,
+    staticRoot: path.join(config.clientRoot, "static"),
+    appRoot: path.join(config.clientRoot),
+    databaseConfig: config.database,
+    secretKeys: ["Random secret"],
+    logConfig: config.logConfig,
+    storageConfig: {
+      tempDirectory: "",
+      localDirectory: "",
     },
-    minWorkers: 4,
-    maxWorkers: 8,
-    fork: async (): Promise<AbstractChildProcess> => {
-      logger.trace("Forking new process.");
-      return child_process.fork(config.webserverPackage, [], {
-        serialization: "advanced",
-      });
-    },
-  });
-
-  events.on("shutdown", (): void => {
-    server.close();
-    pool.shutdown();
-  });
+  }, taskManager);
 }
 
 async function startup(): Promise<void> {
@@ -92,10 +65,12 @@ export function main(): void {
   }
 
   process.on("SIGTERM", (): void => {
+    logger.trace("Received SIGTERM.");
     quit();
   });
 
   process.on("SIGINT", (): void => {
+    logger.trace("Received SIGINT.");
     quit();
   });
 

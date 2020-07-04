@@ -1,12 +1,13 @@
 import child_process from "child_process";
 
-import { getLogger } from "../../utils";
+import { getLogger, bound } from "../../utils";
 import { WorkerPool, AbstractChildProcess } from "../../worker";
 import {
   TaskWorkerConfig,
   ParentProcessInterface,
   TaskWorkerInterface,
 } from "../task-worker/interfaces";
+import { Service } from "./service";
 
 export type TaskConfig = TaskWorkerConfig & {
   taskWorkerPackage: string;
@@ -14,14 +15,14 @@ export type TaskConfig = TaskWorkerConfig & {
 
 const logger = getLogger("tasks");
 
-export class TaskManager {
+export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
 
   public constructor(private readonly config: TaskConfig) {
+    super();
+
     this.pool = new WorkerPool<TaskWorkerInterface, ParentProcessInterface>({
-      localInterface: {
-        getConfig: (): TaskWorkerConfig => this.config,
-      },
+      localInterface: bound(this.interface, this),
       minWorkers: 0,
       maxWorkers: 4,
       fork: async (): Promise<AbstractChildProcess> => {
@@ -33,7 +34,18 @@ export class TaskManager {
     });
   }
 
-  public handleUploadedFile(_id: string): void {
+  protected async shutdown(): Promise<void> {
+    this.pool.shutdown();
+  }
+
+  public handleUploadedFile(this: TaskManager, _id: string): void {
     return;
   }
+
+  // ParentProcessInterface
+  private interface: ParentProcessInterface = {
+    getConfig(this: TaskManager): TaskWorkerConfig {
+      return this.config;
+    },
+  };
 }

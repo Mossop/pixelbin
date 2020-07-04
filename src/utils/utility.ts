@@ -14,3 +14,19 @@ export function listen(server: Server, source: unknown): Promise<void> {
     server.listen(source, resolve);
   });
 }
+
+export function bound<I>(methods: I, base: unknown): I {
+  let entries = Object.entries(methods).map(
+    // @ts-ignore: Object.entries is not well typed.
+    <K extends keyof I>([key, member]: [K, I[K]]): [K, I[K]] => {
+      if (typeof member == "function") {
+        return [key, member.bind(base)];
+      } else {
+        return [key, member];
+      }
+    },
+  );
+
+  // @ts-ignore: Object.entries is not well typed.
+  return Object.fromEntries(entries);
+}
