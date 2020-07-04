@@ -1,22 +1,22 @@
 import { getLogger } from "../../utils";
-import { MasterProcess } from "../../worker";
+import { ParentProcess } from "../../worker";
 import { connect } from "../database";
 import buildApp from "./app";
-import { MasterInterface } from "./interfaces";
+import { ParentProcessInterface } from "./interfaces";
 
 const logger = getLogger("webserver");
 
 async function main(): Promise<void> {
   logger.info("Server startup.");
 
-  let connection = new MasterProcess<MasterInterface>();
-  let master = await connection.remote;
+  let connection = new ParentProcess<ParentProcessInterface>();
+  let parent = await connection.remote;
 
   try {
-    let { databaseConfig } = await master.getConfig();
+    let { databaseConfig } = await parent.getConfig();
     connect(databaseConfig);
 
-    await buildApp(master);
+    await buildApp(parent);
   } catch (e) {
     connection.shutdown();
     throw e;

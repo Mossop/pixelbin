@@ -14,7 +14,7 @@ export interface WebserverConfig {
   secretKeys: string[];
 }
 
-export type MasterInterface = TaskWorkerInterface & {
+export type ParentProcessInterface = TaskWorkerInterface & {
   getServer: () => net.Server;
   getConfig: () => WebserverConfig;
 };

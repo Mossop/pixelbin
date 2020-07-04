@@ -1,24 +1,24 @@
 import { getLogger } from "../../utils";
-import { MasterProcess } from "../../worker";
+import { ParentProcess } from "../../worker";
 import { connect } from "../database";
-import { MasterInterface, TaskWorkerInterface } from "./interfaces";
+import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
 
 const logger = getLogger("webserver");
 
 async function main(): Promise<void> {
   logger.info("Task worker startup.");
 
-  let connection = new MasterProcess<MasterInterface, TaskWorkerInterface>({
+  let connection = new ParentProcess<ParentProcessInterface, TaskWorkerInterface>({
     localInterface: {
       handleUploadedFile: (_id: string): void => {
         return;
       },
     },
   });
-  let master = await connection.remote;
+  let parent = await connection.remote;
 
   try {
-    let config = await master.getConfig();
+    let config = await parent.getConfig();
     connect(config.databaseConfig);
   } catch (e) {
     connection.shutdown();

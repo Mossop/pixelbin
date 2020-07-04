@@ -8,7 +8,7 @@ export interface TaskWorkerConfig {
   storageConfig: StorageConfig;
 }
 
-export interface MasterInterface {
+export interface ParentProcessInterface {
   getConfig: () => TaskWorkerConfig;
 }
 

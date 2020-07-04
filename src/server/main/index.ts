@@ -7,7 +7,7 @@ import path from "path";
 import { getLogger, listen } from "../../utils";
 import { WorkerPool, AbstractChildProcess } from "../../worker";
 import { connect } from "../database";
-import type { MasterInterface, WebserverConfig } from "../webserver/interfaces";
+import type { ParentProcessInterface, WebserverConfig } from "../webserver/interfaces";
 import config from "./config";
 import events from "./events";
 import { TaskManager } from "./tasks";
@@ -40,7 +40,7 @@ async function startupServers(): Promise<void> {
     },
   });
 
-  let pool = new WorkerPool<undefined, MasterInterface>({
+  let pool = new WorkerPool<undefined, ParentProcessInterface>({
     localInterface: {
       getServer: (): net.Server => server,
       getConfig: (): WebserverConfig => ({

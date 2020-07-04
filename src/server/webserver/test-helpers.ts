@@ -8,15 +8,15 @@ import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
 import { RemoteInterface } from "../../worker";
 import { getTestDatabaseConfig } from "../database/test-helpers";
 import buildApp from "./app";
-import { MasterInterface, WebserverConfig } from "./interfaces";
+import { ParentProcessInterface, WebserverConfig } from "./interfaces";
 
 export function buildTestApp(
-  masterInterface: Partial<RemoteInterface<MasterInterface>> = {},
+  parentInterface: Partial<RemoteInterface<ParentProcessInterface>> = {},
 ): (() => SuperTest<Test>) {
   let server = net.createServer();
   server.listen();
 
-  let master: RemoteInterface<MasterInterface> = {
+  let parent: RemoteInterface<ParentProcessInterface> = {
     async getConfig(): Promise<WebserverConfig> {
       return {
         staticRoot: __dirname,
@@ -39,7 +39,7 @@ export function buildTestApp(
 
     handleUploadedFile: (): Promise<void> => Promise.resolve(),
 
-    ...masterInterface,
+    ...parentInterface,
   };
 
   afterAll((): Promise<void> => {
@@ -54,7 +54,7 @@ export function buildTestApp(
     });
   });
 
-  void buildApp(master);
+  void buildApp(parent);
   return (): SuperTest<Test> => agent(server);
 }
 

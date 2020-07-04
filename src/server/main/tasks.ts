@@ -2,7 +2,11 @@ import child_process from "child_process";
 
 import { getLogger } from "../../utils";
 import { WorkerPool, AbstractChildProcess } from "../../worker";
-import { TaskWorkerConfig, MasterInterface, TaskWorkerInterface } from "../task-worker/interfaces";
+import {
+  TaskWorkerConfig,
+  ParentProcessInterface,
+  TaskWorkerInterface,
+} from "../task-worker/interfaces";
 
 export type TaskConfig = TaskWorkerConfig & {
   taskWorkerPackage: string;
@@ -11,10 +15,10 @@ export type TaskConfig = TaskWorkerConfig & {
 const logger = getLogger("tasks");
 
 export class TaskManager {
-  private readonly pool: WorkerPool<TaskWorkerInterface, MasterInterface>;
+  private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
 
   public constructor(private readonly config: TaskConfig) {
-    this.pool = new WorkerPool<TaskWorkerInterface, MasterInterface>({
+    this.pool = new WorkerPool<TaskWorkerInterface, ParentProcessInterface>({
       localInterface: {
         getConfig: (): TaskWorkerConfig => this.config,
       },

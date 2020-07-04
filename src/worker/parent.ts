@@ -6,22 +6,22 @@ import * as IPC from "./ipc";
 
 export type AbstractProcess = Pick<NodeJS.Process, "send" | "on" | "off" | "disconnect">;
 
-export interface MasterProcessOptions<L> extends ChannelOptions<L> {
+export interface ParentProcessOptions<L> extends ChannelOptions<L> {
   process?: AbstractProcess;
 }
 
-const logger = getLogger("worker.master");
+const logger = getLogger("worker.parent");
 
 /**
  * Provides a communication mechanism back to the main process.
  */
 
-export class MasterProcess<R = undefined, L = undefined> {
+export class ParentProcess<R = undefined, L = undefined> {
   private channel: Channel<R, L>;
   private process: AbstractProcess;
   private disconnected: boolean;
 
-  public constructor(options: MasterProcessOptions<L> = {}) {
+  public constructor(options: ParentProcessOptions<L> = {}) {
     this.disconnected = false;
     this.process = options.process ?? process;
     if (!process.send) {
@@ -88,7 +88,7 @@ export class MasterProcess<R = undefined, L = undefined> {
   }
 
   private onDisconnect: () => void = (): void => {
-    logger.debug("Master process disconnected.");
+    logger.debug("Parent process disconnected.");
     void this.shutdown();
   };
 

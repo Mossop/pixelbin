@@ -12,7 +12,7 @@ import { RemoteInterface } from "../../worker";
 import { apiRequestHandler } from "./api/methods";
 import auth, { AuthContext } from "./auth";
 import { errorHandler } from "./error";
-import { MasterInterface } from "./interfaces";
+import { ParentProcessInterface } from "./interfaces";
 import logging, { LoggingContext } from "./logging";
 import { ServicesContext, initServices } from "./services";
 
@@ -51,10 +51,10 @@ export type AppContext = Context & AddedContexts;
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 
 export default async function buildApp(
-  master: RemoteInterface<MasterInterface>,
+  parent: RemoteInterface<ParentProcessInterface>,
 ): Promise<void> {
-  let config = await master.getConfig();
-  let services = await initServices(master);
+  let config = await parent.getConfig();
+  let services = await initServices(parent);
 
   const router = new Router<DefaultState, AppContext>();
 
@@ -104,6 +104,6 @@ export default async function buildApp(
       ctx.body = buildAppContent();
     });
 
-  let server = await master.getServer();
+  let server = await parent.getServer();
   app.listen(server);
 }
