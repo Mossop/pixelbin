@@ -1,13 +1,30 @@
-import { SendHandle } from "child_process";
+import { SendHandle, Serializable } from "child_process";
+import { EventEmitter } from "events";
 
 import { getLogger } from "../utils";
 import Channel, { RemoteInterface, ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
 
-export type AbstractProcess = Pick<NodeJS.Process, "send" | "on" | "off" | "disconnect">;
+export type AbstractProcess = EventEmitter & {
+  send: (
+    message: Serializable,
+    sendHandle: SendHandle | undefined,
+    options: undefined,
+    callback: (error: Error | null) => void,
+  ) => void;
+  disconnect: () => void;
+};
 
 export interface ParentProcessOptions<L> extends ChannelOptions<L> {
   process?: AbstractProcess;
+}
+
+function getProcess(): AbstractProcess {
+  if (process.send) {
+    // @ts-ignore: send cannot become undefined at runtime.
+    return process;
+  }
+  throw new Error("Process has no IPC channel.");
 }
 
 const logger = getLogger("worker.parent");
@@ -23,10 +40,7 @@ export class ParentProcess<R = undefined, L = undefined> {
 
   public constructor(options: ParentProcessOptions<L> = {}) {
     this.disconnected = false;
-    this.process = options.process ?? process;
-    if (!process.send) {
-      throw new Error("Provided process instance has no IPC channel.");
-    }
+    this.process = options.process ?? getProcess();
 
     this.process.on("message", this.onMessage);
     this.process.on("disconnect", this.onDisconnect);
@@ -74,11 +88,11 @@ export class ParentProcess<R = undefined, L = undefined> {
     if (this.disconnected) {
       return;
     }
-    this.disconnected = true;
 
     logger.trace("Worker shutdown");
 
     this.channel.close();
+    this.disconnected = true;
 
     this.process.off("message", this.onMessage);
     this.process.off("disconnect", this.onDisconnect);
@@ -103,11 +117,6 @@ export class ParentProcess<R = undefined, L = undefined> {
     }
 
     return new Promise((resolve: () => void, reject: (error: Error) => void): void => {
-      if (!this.process.send) {
-        reject(new Error("Process has no IPC channel."));
-        return;
-      }
-
       this.process.send(message, handle, undefined, (error: Error | null): void => {
         if (error) {
           reject(error);

@@ -117,8 +117,14 @@ export function awaitCall(
   result?: unknown,
 ): Promise<unknown> {
   return new Promise((resolve: (params: unknown) => void): void => {
+    let previous = mock.getMockImplementation();
     mock.mockImplementationOnce((...args: unknown[]): unknown => {
       resolve(args);
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (result !== undefined && previous !== undefined) {
+        return previous(...args);
+      }
       return result;
     });
   });
@@ -140,4 +146,13 @@ export function lastCallArgs<P extends unknown[]>(mock: jest.MockInstance<unknow
 
   let count = mock.mock.calls.length;
   return mock.mock.calls[count - 1];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Mocked<Fn extends (...args: any[]) => any> = jest.Mock<ReturnType<Fn>, Parameters<Fn>>;
+export function mock<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Fn extends (...args: any[]) => any
+>(implementation?: Fn): Mocked<Fn> {
+  return jest.fn<ReturnType<Fn>, Parameters<Fn>>(implementation);
 }

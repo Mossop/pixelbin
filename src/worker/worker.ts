@@ -1,4 +1,4 @@
-import { ChildProcess, SendHandle } from "child_process";
+import { ChildProcess, SendHandle, Serializable } from "child_process";
 import { EventEmitter } from "events";
 import { clearTimeout } from "timers";
 
@@ -6,8 +6,16 @@ import { defer, Deferred, getLogger, Logger } from "../utils";
 import Channel, { ChannelOptions, RemoteInterface } from "./channel";
 import * as IPC from "./ipc";
 
-type NeededProperties = "send" | "kill" | "on" | "off" | "pid" | "disconnect";
-export type AbstractChildProcess = Pick<ChildProcess, NeededProperties>;
+export type AbstractChildProcess = EventEmitter & {
+  send: (
+    message: Serializable,
+    sendHandle?: SendHandle,
+    callback?: (error: Error | null) => void,
+  ) => void;
+  kill: (signal?: NodeJS.Signals | number) => boolean;
+  pid: number;
+  disconnect: () => void;
+};
 
 export interface WorkerProcessOptions<L> extends ChannelOptions<L> {
   connectTimeout?: number;
@@ -113,6 +121,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
   private onMessage: NodeJS.MessageListener = (message: unknown, handle: unknown): void => {
     let decoded = IPC.MessageDecoder.decode(message);
     if (decoded.isOk()) {
+      this.logger.trace(decoded.value, "Saw message");
       switch (decoded.value.type) {
         case "ready":
           this.ready.resolve();
@@ -127,7 +136,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
         }
       }
     } else {
-      this.logger.error("Received invalid message: '%s'.", decoded.error);
+      this.logger.error(decoded.error, "Received invalid message: '%s'.");
     }
   };
 
@@ -187,6 +196,16 @@ export class WorkerProcess<R = undefined, L = undefined> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public on(type: string, callback: (...args: any[]) => void): void {
     this.emitter.on(type, callback);
+  }
+
+  public once(type: "connect", callback: () => void): void;
+  public once(type: "task-start", callback: () => void): void;
+  public once(type: "task-end", callback: () => void): void;
+  public once(type: "task-fail", callback: () => void): void;
+  public once(type: "disconnect", callback: () => void): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public once(type: string, callback: (...args: any[]) => void): void {
+    this.emitter.once(type, callback);
   }
 
   private async send(message: IPC.RPC, handle?: SendHandle): Promise<void> {
