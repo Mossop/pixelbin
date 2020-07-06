@@ -58,7 +58,8 @@ export class WorkerPool<R = undefined, L = undefined> {
     logger.debug("Shutting down worker pool.");
 
     this.quitting = true;
-    for (let record of this.workers) {
+    for (let record of this.workers.slice(0)) {
+      logger.debug({ worker: record.worker.pid }, "Shutting down worker.");
       logger.catch(record.worker.kill());
     }
   }
@@ -96,8 +97,6 @@ export class WorkerPool<R = undefined, L = undefined> {
   }
 
   private async createWorker(): Promise<WorkerProcess<R, L>> {
-    logger.debug("Creating new worker.");
-
     let workerProcess = new WorkerProcess<R, L>({
       ...this.options,
       process: await this.options.fork(),
@@ -110,7 +109,18 @@ export class WorkerPool<R = undefined, L = undefined> {
 
     this.workers.push(record);
 
+    logger.debug({
+      workerCount: this.workers.length,
+      worker: workerProcess.pid,
+    }, "Created new worker.");
+
     const updateTaskCount = (delta: number): void => {
+      logger.trace({
+        worker: workerProcess.pid,
+        hasTimeout: !!record.idleTimeout,
+        taskCount: record.taskCount,
+        delta,
+      }, "updateTaskCount");
       if (record.idleTimeout) {
         clearTimeout(record.idleTimeout);
         delete record.idleTimeout;
@@ -122,7 +132,7 @@ export class WorkerPool<R = undefined, L = undefined> {
         record.idleTimeout = setTimeout((): void => {
           delete record.idleTimeout;
           if (this.workers.length > this.options.minWorkers) {
-            logger.debug(`Shutting down worker ${workerProcess.pid} due to timeout.`);
+            logger.debug({ worker: workerProcess.pid }, "Shutting down worker due to timeout.");
             logger.catch(workerProcess.kill());
           }
         }, this.options.idleTimeout);
@@ -130,6 +140,7 @@ export class WorkerPool<R = undefined, L = undefined> {
     };
 
     workerProcess.on("connect", (): void => {
+      logger.trace({ worker: workerProcess.pid }, "Saw connect");
       updateTaskCount(-1);
     });
 
@@ -153,7 +164,10 @@ export class WorkerPool<R = undefined, L = undefined> {
       }
 
       this.workers.splice(pos, 1);
-      logger.debug({ workerCount: this.workers.length }, "Saw disconnect from worker.");
+      logger.debug({
+        workerCount: this.workers.length,
+        worker: workerProcess.pid,
+      }, "Saw disconnect from worker.");
 
       if (record.idleTimeout) {
         clearTimeout(record.idleTimeout);
