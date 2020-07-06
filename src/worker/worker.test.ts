@@ -1,10 +1,57 @@
 import { Serializable, SendHandle } from "child_process";
 import { EventEmitter } from "events";
 
-import { mock, Mocked, awaitCall } from "../test-helpers";
+import { mock, Mocked, awaitCall, awaitEvent, mockEvent } from "../test-helpers";
+import { defer, Deferred } from "../utils";
+import Channel from "./channel";
 import { AbstractChildProcess, WorkerProcess } from "./worker";
 
+/* eslint-disable */
+jest.mock("./channel", () => {
+  let realChannel = jest.requireActual("./channel").default;
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn((...args) => realChannel.create(...args)),
+      connect: jest.fn((...args) => realChannel.connect(...args)),
+    },
+  };
+});
+/* eslint-enable */
+
 jest.useFakeTimers();
+
+interface Remote {
+  foo: (val: number) => string;
+  bar: (val: string) => number;
+}
+
+class MockChannel<R = unknown> extends EventEmitter {
+  public close: Mocked<() => void>;
+  public onMessage: Mocked<(message: unknown, handle: unknown) => void>;
+  public readonly deferredRemote: Deferred<R>;
+
+  public constructor() {
+    super();
+    this.close = jest.fn();
+    this.onMessage = jest.fn();
+    this.deferredRemote = defer<R>();
+  }
+
+  public get remote(): Promise<R> {
+    return this.deferredRemote.promise;
+  }
+}
+
+function mockConnect<R = unknown>(): MockChannel<R> {
+  let channel = new MockChannel<R>();
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let connect = Channel.connect;
+  if (jest.isMockFunction(connect)) {
+    connect.mockReturnValueOnce(channel);
+  }
+  return channel;
+}
 
 class MockChildProcess extends EventEmitter {
   public send: Mocked<AbstractChildProcess["send"]>;
@@ -44,18 +91,8 @@ test("worker", async (): Promise<void> => {
   let mockProcess = new MockChildProcess();
   mockProcess.pid = 2425;
 
-  interface Remote {
-    foo: (val: number) => string;
-    bar: (val: string) => number;
-  }
-
-  let localInterface = {
-
-  };
-
-  let worker = new WorkerProcess<Remote, typeof localInterface>({
+  let worker = new WorkerProcess<Remote>({
     process: mockProcess,
-    localInterface,
   });
   let connected = jest.fn();
   worker.on("connect", connected);
@@ -78,7 +115,7 @@ test("worker", async (): Promise<void> => {
     type: "rpc",
     message: {
       type: "connect",
-      methods: [],
+      methods: undefined,
     },
   },
   undefined]);
@@ -195,4 +232,115 @@ test("worker", async (): Promise<void> => {
   await dead;
 
   expect(mockProcess.kill).toHaveBeenCalledTimes(1);
+});
+
+test("connect timeout", async (): Promise<void> => {
+  let mockProcess = new MockChildProcess();
+  mockProcess.pid = 24225;
+
+  let worker = new WorkerProcess<Remote>({
+    process: mockProcess,
+  });
+
+  let disconnected = jest.fn();
+  worker.on("disconnect", disconnected);
+
+  jest.runAllTimers();
+
+  expect(disconnected).toHaveBeenCalledTimes(1);
+  await expect(worker.remote).rejects.toThrow("Worker process connection timed out");
+});
+
+test("channel connect timeout", async (): Promise<void> => {
+  let mockProcess = new MockChildProcess();
+  mockProcess.pid = 2575;
+
+  let mockChannel = mockConnect();
+
+  let worker = new WorkerProcess<Remote>({
+    process: mockProcess,
+  });
+
+  let connected = mockEvent(worker, "connect");
+  let disconnected = awaitEvent(worker, "disconnect");
+
+  mockProcess.emit("message", { type: "ready" });
+
+  mockChannel.emit("connection-timeout");
+
+  await disconnected;
+
+  expect(connected).not.toHaveBeenCalled();
+});
+
+test("channel message timeout", async (): Promise<void> => {
+  let mockProcess = new MockChildProcess();
+  mockProcess.pid = 2575;
+
+  let mockChannel = mockConnect<Remote>();
+
+  let worker = new WorkerProcess<Remote>({
+    process: mockProcess,
+  });
+
+  let connected = awaitEvent(worker, "connect");
+  let disconnected = awaitEvent(worker, "disconnect");
+
+  mockProcess.emit("message", { type: "ready" });
+
+  mockChannel.deferredRemote.resolve();
+
+  await connected;
+
+  mockChannel.emit("message-timeout");
+
+  await disconnected;
+});
+
+test("worker exit", async (): Promise<void> => {
+  let mockProcess = new MockChildProcess();
+  mockProcess.pid = 2575;
+
+  let mockChannel = mockConnect<Remote>();
+
+  let worker = new WorkerProcess<Remote>({
+    process: mockProcess,
+  });
+
+  let connected = awaitEvent(worker, "connect");
+  let disconnected = awaitEvent(worker, "disconnect");
+
+  mockProcess.emit("message", { type: "ready" });
+
+  mockChannel.deferredRemote.resolve();
+
+  await connected;
+
+  mockProcess.emit("exit");
+
+  await disconnected;
+});
+
+test("worker error", async (): Promise<void> => {
+  let mockProcess = new MockChildProcess();
+  mockProcess.pid = 2575;
+
+  let mockChannel = mockConnect<Remote>();
+
+  let worker = new WorkerProcess<Remote>({
+    process: mockProcess,
+  });
+
+  let connected = awaitEvent(worker, "connect");
+  let disconnected = awaitEvent(worker, "disconnect");
+
+  mockProcess.emit("message", { type: "ready" });
+
+  mockChannel.deferredRemote.resolve();
+
+  await connected;
+
+  mockProcess.emit("error");
+
+  await disconnected;
 });

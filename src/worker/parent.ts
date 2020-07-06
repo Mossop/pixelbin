@@ -1,7 +1,7 @@
 import { SendHandle, Serializable } from "child_process";
 import { EventEmitter } from "events";
 
-import { getLogger } from "../utils";
+import { getLogger, TypedEmitter } from "../utils";
 import Channel, { RemoteInterface, ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
 
@@ -33,12 +33,18 @@ const logger = getLogger("worker.parent");
  * Provides a communication mechanism back to the main process.
  */
 
-export class ParentProcess<R = undefined, L = undefined> {
+interface EventMap {
+  connect: [];
+  disconnect: [];
+}
+
+export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<EventMap> {
   private channel: Channel<R, L>;
   private process: AbstractProcess;
   private disconnected: boolean;
 
   public constructor(options: ParentProcessOptions<L> = {}) {
+    super();
     this.disconnected = false;
     this.process = options.process ?? getProcess();
 
@@ -59,6 +65,18 @@ export class ParentProcess<R = undefined, L = undefined> {
       },
       options,
     );
+
+    this.channel.on("connection-timeout", (): void => {
+      this.shutdown();
+    });
+
+    this.channel.on("message-timeout", (): void => {
+      this.shutdown();
+    });
+
+    logger.catch(this.channel.remote.then((): void => {
+      this.emit("connect");
+    }));
 
     logger.trace("Signalling worker ready.");
     logger.catch(this.send({
@@ -93,6 +111,7 @@ export class ParentProcess<R = undefined, L = undefined> {
 
     this.channel.close();
     this.disconnected = true;
+    this.emit("disconnect");
 
     this.process.off("message", this.onMessage);
     this.process.off("disconnect", this.onDisconnect);

@@ -3,12 +3,53 @@ import { EventEmitter } from "events";
 import { Socket, Server } from "net";
 import { setImmediate } from "timers";
 
-import { mock, Mocked, awaitCall, deferCall } from "../test-helpers";
+import { mock, Mocked, awaitCall, deferCall, awaitEvent, mockEvent } from "../test-helpers";
+import { defer, Deferred } from "../utils";
 import Channel from "./channel";
 import { RPC } from "./ipc";
 import { AbstractProcess, ParentProcess } from "./parent";
 
+/* eslint-disable */
+jest.mock("./channel", () => {
+  let realChannel = jest.requireActual("./channel").default;
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn((...args) => realChannel.create(...args)),
+      connect: jest.fn((...args) => realChannel.connect(...args)),
+    },
+  };
+});
+/* eslint-enable */
+
 jest.useFakeTimers();
+
+class MockChannel<R = unknown> extends EventEmitter {
+  public close: Mocked<() => void>;
+  public onMessage: Mocked<(message: unknown, handle: unknown) => void>;
+  public readonly deferredRemote: Deferred<R>;
+
+  public constructor() {
+    super();
+    this.close = jest.fn();
+    this.onMessage = jest.fn();
+    this.deferredRemote = defer<R>();
+  }
+
+  public get remote(): Promise<R> {
+    return this.deferredRemote.promise;
+  }
+}
+
+function mockCreate<R = unknown>(): MockChannel<R> {
+  let channel = new MockChannel<R>();
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let create = Channel.create;
+  if (jest.isMockFunction(create)) {
+    create.mockReturnValueOnce(channel);
+  }
+  return channel;
+}
 
 class MockParentProcess extends EventEmitter {
   public send: Mocked<AbstractProcess["send"]>;
@@ -66,6 +107,8 @@ async function connect<R>(remoteInterface: R): Promise<Connected<R>> {
     process,
   });
 
+  let connected = awaitEvent(parent, "connect");
+
   let readyArgs = await readyMsg;
   expect(readyArgs[0]).toEqual({
     type: "ready",
@@ -84,6 +127,8 @@ async function connect<R>(remoteInterface: R): Promise<Connected<R>> {
       localInterface: remoteInterface,
     },
   );
+
+  await connected;
 
   return {
     process,
@@ -117,17 +162,101 @@ test("parent", async (): Promise<void> => {
 
   await expect(result).resolves.toBe("bizzy");
 
-  let closed = jest.fn();
-  channel.on("close", closed);
-  let called = awaitCall(closed);
+  let closed = awaitEvent(channel, "close");
+  let disconnected = awaitEvent(parent, "disconnect");
 
   parent.shutdown();
 
-  await called;
+  await closed;
+  await disconnected;
 
   expect(process.disconnect).toHaveBeenCalledTimes(1);
 
   parent.shutdown();
 
   expect(process.disconnect).toHaveBeenCalledTimes(1);
+});
+
+test("channel connect timeout", async (): Promise<void> => {
+  let mockProcess = new MockParentProcess();
+
+  let mockChannel = mockCreate();
+
+  let parent = new ParentProcess({
+    process: mockProcess,
+  });
+
+  let connect = mockEvent(parent, "connect");
+  let disconnect = awaitEvent(parent, "disconnect");
+
+  mockChannel.emit("connection-timeout");
+
+  await disconnect;
+  expect(connect).not.toHaveBeenCalled();
+});
+
+test("channel message timeout", async (): Promise<void> => {
+  let mockProcess = new MockParentProcess();
+
+  let mockChannel = mockCreate();
+
+  let parent = new ParentProcess({
+    process: mockProcess,
+  });
+
+  let connect = awaitEvent(parent, "connect");
+
+  let disconnect = awaitEvent(parent, "disconnect");
+
+  mockChannel.deferredRemote.resolve({});
+
+  await connect;
+
+  mockChannel.emit("message-timeout");
+
+  await disconnect;
+});
+
+test("process disconnect", async (): Promise<void> => {
+  let mockProcess = new MockParentProcess();
+
+  let mockChannel = mockCreate();
+
+  let parent = new ParentProcess({
+    process: mockProcess,
+  });
+
+  let connect = awaitEvent(parent, "connect");
+
+  let disconnect = awaitEvent(parent, "disconnect");
+
+  mockChannel.deferredRemote.resolve({});
+
+  await connect;
+
+  mockProcess.emit("disconnect");
+
+  await disconnect;
+});
+
+test("process error", async (): Promise<void> => {
+  let mockProcess = new MockParentProcess();
+
+  let mockChannel = mockCreate();
+
+  let parent = new ParentProcess({
+    process: mockProcess,
+  });
+
+  let connect = awaitEvent(parent, "connect");
+
+  let disconnect = awaitEvent(parent, "disconnect");
+
+  mockChannel.deferredRemote.resolve({});
+
+  await connect;
+
+  mockProcess.emit("error");
+
+  await disconnect;
 });

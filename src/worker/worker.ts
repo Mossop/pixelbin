@@ -2,7 +2,7 @@ import { ChildProcess, SendHandle, Serializable } from "child_process";
 import { EventEmitter } from "events";
 import { clearTimeout } from "timers";
 
-import { defer, Deferred, getLogger, Logger } from "../utils";
+import { defer, Deferred, getLogger, Logger, TypedEmitter } from "../utils";
 import Channel, { ChannelOptions, RemoteInterface } from "./channel";
 import * as IPC from "./ipc";
 
@@ -24,21 +24,28 @@ export interface WorkerProcessOptions<L> extends ChannelOptions<L> {
 
 const logger = getLogger("worker.child");
 
-export class WorkerProcess<R = undefined, L = undefined> {
+interface EventMap {
+  connect: [];
+  disconnect: [];
+  ["task-start"]: [];
+  ["task-end"]: [];
+  ["task-fail"]: [];
+}
+
+export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<EventMap> {
   private ready: Deferred<void>;
   private channel: Deferred<Channel<R, L>>;
-  private emitter: EventEmitter;
   private disconnected: boolean;
   private logger: Logger;
 
   public constructor(
     private options: WorkerProcessOptions<L>,
   ) {
+    super();
     this.logger = logger.child({ worker: options.process.pid });
 
     this.ready = defer();
     this.channel = defer();
-    this.emitter = new EventEmitter();
     this.disconnected = false;
 
     this.options.process.on("message", this.onMessage);
@@ -52,7 +59,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
       this.shutdown();
     }, this.options.connectTimeout ?? 2000);
 
-    this.emitter.once("connect", (): void => {
+    this.once("connect", (): void => {
       clearTimeout(connectTimeout);
     });
 
@@ -70,7 +77,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
     this.options.process.disconnect();
 
     return new Promise((resolve: () => void): void => {
-      this.emitter.once("disconnect", resolve);
+      this.once("disconnect", resolve);
       this.options.process.kill(...args);
     });
   }
@@ -88,13 +95,13 @@ export class WorkerProcess<R = undefined, L = undefined> {
     }, this.options);
 
     channel.on("message-call", (): void => {
-      this.emitter.emit("task-start");
+      this.emit("task-start");
     });
     channel.on("message-result", (): void => {
-      this.emitter.emit("task-end");
+      this.emit("task-end");
     });
     channel.on("message-fail", (): void => {
-      this.emitter.emit("task-fail");
+      this.emit("task-fail");
     });
     channel.on("message-timeout", (): void => {
       this.shutdown();
@@ -106,7 +113,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
       this.shutdown();
     });
 
-    this.emitter.on("disconnect", (): void => {
+    this.on("disconnect", (): void => {
       channel.close();
     });
 
@@ -115,7 +122,7 @@ export class WorkerProcess<R = undefined, L = undefined> {
     // Wait for channel to connect.
     await channel.remote;
     this.logger.debug("Worker channel connected.");
-    this.emitter.emit("connect");
+    this.emit("connect");
   }
 
   private onMessage: NodeJS.MessageListener = (message: unknown, handle: unknown): void => {
@@ -181,31 +188,11 @@ export class WorkerProcess<R = undefined, L = undefined> {
     this.options.process.off("exit", this.onExit);
     this.options.process.off("error", this.onError);
 
-    this.emitter.emit("disconnect");
+    this.emit("disconnect");
   }
 
   public get pid(): number {
     return this.options.process.pid;
-  }
-
-  public on(type: "connect", callback: () => void): void;
-  public on(type: "task-start", callback: () => void): void;
-  public on(type: "task-end", callback: () => void): void;
-  public on(type: "task-fail", callback: () => void): void;
-  public on(type: "disconnect", callback: () => void): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public on(type: string, callback: (...args: any[]) => void): void {
-    this.emitter.on(type, callback);
-  }
-
-  public once(type: "connect", callback: () => void): void;
-  public once(type: "task-start", callback: () => void): void;
-  public once(type: "task-end", callback: () => void): void;
-  public once(type: "task-fail", callback: () => void): void;
-  public once(type: "disconnect", callback: () => void): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public once(type: string, callback: (...args: any[]) => void): void {
-    this.emitter.once(type, callback);
   }
 
   private async send(message: IPC.RPC, handle?: SendHandle): Promise<void> {

@@ -1,7 +1,7 @@
 import { SendHandle } from "child_process";
 import { setImmediate } from "timers";
 
-import { lastCallArgs } from "../test-helpers";
+import { lastCallArgs, mockEvent } from "../test-helpers";
 import Channel, { RemoteInterface } from "./channel";
 
 jest.useFakeTimers();
@@ -119,16 +119,28 @@ test("connect timeout", async (): Promise<void> => {
     localInterface: local,
   });
 
-  let timeoutCallback = jest.fn();
-  channel.on("connection-timeout", timeoutCallback);
-  let closeCallback = jest.fn();
-  channel.on("close", closeCallback);
+  let timeoutCallback = mockEvent(channel, "connection-timeout");
+  let closeCallback = mockEvent(channel, "close");
 
   expect(send).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(send)).toEqual([{
     type: "connect",
     methods: ["increment", "noop"],
   }, undefined]);
+
+  jest.runAllTimers();
+
+  await expect(channel.remote).rejects.toThrow("Channel connection timed out.");
+  expect(closeCallback).toHaveBeenCalledTimes(1);
+  expect(timeoutCallback).toHaveBeenCalledTimes(1);
+});
+
+test("create timeout", async (): Promise<void> => {
+  let send = jest.fn((_message: unknown): Promise<void> => Promise.resolve());
+  let channel = Channel.create(send);
+
+  let timeoutCallback = mockEvent(channel, "connection-timeout");
+  let closeCallback = mockEvent(channel, "close");
 
   jest.runAllTimers();
 

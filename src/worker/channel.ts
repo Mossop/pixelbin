@@ -1,10 +1,9 @@
 import { SendHandle } from "child_process";
-import { EventEmitter } from "events";
 import net from "net";
 
 import { JsonDecoder } from "ts.data.json";
 
-import { defer, Deferred, getLogger, MakeRequired } from "../utils";
+import { defer, Deferred, getLogger, MakeRequired, TypedEmitter } from "../utils";
 
 const logger = getLogger("worker.channel");
 
@@ -116,11 +115,19 @@ export interface ChannelOptions<L> {
   timeout?: number;
 }
 
-export default class Channel<R = undefined, L = undefined> {
+interface EventMap {
+  ["connection-timeout"]: [];
+  close: [];
+  ["message-timeout"]: [string];
+  ["message-call"]: [string];
+  ["message-fail"]: [string];
+  ["message-result"]: [string];
+}
+
+export default class Channel<R = undefined, L = undefined> extends TypedEmitter<EventMap> {
   private nextId: number;
   private calls: Record<string, Call>;
   private closed: boolean;
-  private emitter: EventEmitter;
   private remoteInterface: Deferred<RemoteInterface<R>>;
   private options: MakeRequired<ChannelOptions<L>, "timeout">;
 
@@ -128,10 +135,10 @@ export default class Channel<R = undefined, L = undefined> {
     private sendFn: (message: unknown, handle: undefined | SendHandle) => Promise<void>,
     options: ChannelOptions<L> = {},
   ) {
+    super();
     this.nextId = 0;
     this.calls = {};
     this.closed = false;
-    this.emitter = new EventEmitter();
     this.remoteInterface = defer();
 
     this.options = Object.assign({
@@ -160,7 +167,22 @@ export default class Channel<R = undefined, L = undefined> {
   ): Channel<R, L> {
     logger.trace("Creating new channel.");
 
-    return new Channel<R, L>(send, options);
+    let channel = new Channel<R, L>(send, options);
+
+    let connectTimeout = setTimeout((): void => {
+      logger.error("Channel connection timed out.");
+      channel.remoteInterface.reject(new Error("Channel connection timed out."));
+      channel.emit("connection-timeout");
+    }, options.timeout);
+
+    logger.catch(channel.remoteInterface.promise.then((): void => {
+      clearTimeout(connectTimeout);
+    }, (): void => {
+      channel.closed = true;
+      channel.emit("close");
+    }));
+
+    return channel;
   }
 
   public static connect<R = undefined, L = undefined>(
@@ -183,26 +205,15 @@ export default class Channel<R = undefined, L = undefined> {
     let connectTimeout = setTimeout((): void => {
       logger.error("Channel connection timed out.");
       this.remoteInterface.reject(new Error("Channel connection timed out."));
-      this.emitter.emit("connection-timeout");
+      this.emit("connection-timeout");
     }, this.options.timeout);
 
     logger.catch(this.remoteInterface.promise.then((): void => {
       clearTimeout(connectTimeout);
     }, (): void => {
       this.closed = true;
-      this.emitter.emit("close");
+      this.emit("close");
     }));
-  }
-
-  public on(type: "connection-timeout", listener: () => void): void;
-  public on(type: "message-timeout", listener: () => void): void;
-  public on(type: "message-call", listener: (method: string) => void): void;
-  public on(type: "message-result", listener: (method: string) => void): void;
-  public on(type: "message-fail", listener: (method: string) => void): void;
-  public on(type: "close", listener: () => void): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public on(type: string, listener: (...args: any[]) => void): void {
-    this.emitter.on(type, listener);
   }
 
   public get remote(): Promise<RemoteInterface<R>> {
@@ -216,7 +227,7 @@ export default class Channel<R = undefined, L = undefined> {
 
     logger.trace("Closing channel.");
     this.closed = true;
-    this.emitter.emit("close");
+    this.emit("close");
 
     for (let call of Object.values(this.calls)) {
       call.reject(new Error("Channel to remote process closed before call returned."));
@@ -369,7 +380,7 @@ export default class Channel<R = undefined, L = undefined> {
         delete call.timeout;
         logger.error("Call to remote process timed out.");
         reject(new Error("Call to remote process timed out."));
-        this.emitter.emit("message-timeout");
+        this.emit("message-timeout", method);
       }, this.options.timeout),
     };
     this.calls[id] = call;
@@ -383,14 +394,14 @@ export default class Channel<R = undefined, L = undefined> {
       reject(error);
     });
 
-    this.emitter.emit("message-call", method);
+    this.emit("message-call", method);
 
     try {
       let result = await promise;
-      this.emitter.emit("message-result", method);
+      this.emit("message-result", method);
       return result;
     } catch (e) {
-      this.emitter.emit("message-fail", method);
+      this.emit("message-fail", method);
       throw e;
     } finally {
       if (call.timeout) {

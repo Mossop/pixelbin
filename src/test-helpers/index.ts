@@ -1,3 +1,5 @@
+import assert from "assert";
+
 import { expect as jestExpect } from "@jest/globals";
 import diff from "jest-diff";
 import moment, { Moment, isMoment } from "moment-timezone";
@@ -72,17 +74,12 @@ export interface DeferredCall<A, R> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function deferCall<F extends (...args: any[]) => any>(
   func: F | jest.MockedFunction<F>): DeferredCall<Parameters<F>, PromiseType<ReturnType<F>>> {
-  expect("mock" in func).toBeTruthy();
-
-  let mock = func as unknown as jest.MockInstance<
-    Promise<PromiseType<ReturnType<F>>>,
-    Parameters<F>
-  >;
+  assert(jest.isMockFunction(func));
 
   let deferredCall = defer<Parameters<F>>();
 
   let deferredResult = defer<PromiseType<ReturnType<F>>>();
-  mock.mockImplementationOnce((...args: Parameters<F>): Promise<PromiseType<ReturnType<F>>> => {
+  func.mockImplementationOnce((...args: Parameters<F>): Promise<PromiseType<ReturnType<F>>> => {
     deferredCall.resolve(args);
     return deferredResult.promise;
   });
@@ -130,15 +127,54 @@ export function awaitCall(
   });
 }
 
+interface BaseEmitterOnce<S, P extends unknown[]> {
+  once: (event: S, cb: (...args: P) => void) => void;
+}
+
+interface BaseEmitter<S, P extends unknown[]> {
+  on: (event: S, cb: (...args: P) => void) => void;
+}
+
+export function awaitEvent<
+  S,
+  P extends unknown[]
+>(emitter: BaseEmitterOnce<S, P>, event: S): Promise<P> {
+  let deferred = defer<P>();
+
+  emitter.once(event, (...args: P): void => {
+    deferred.resolve(args);
+  });
+
+  return deferred.promise;
+}
+
+export function mockEvent<
+  S,
+  P extends unknown[]
+>(emitter: BaseEmitter<S, P>, event: S): jest.Mock<void, P> {
+  let mock = jest.fn<void, P>();
+  emitter.on(event, mock);
+  return mock;
+}
+
+export function mockEventOnce<
+  S,
+  P extends unknown[]
+>(emitter: BaseEmitterOnce<S, P>, event: S): jest.Mock<void, P> {
+  let mock = jest.fn<void, P>();
+  emitter.once(event, mock);
+  return mock;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mockedFunction<T extends (...args: any[]) => any>(fn: T): jest.MockedFunction<T> {
-  expect("mock" in fn).toBeTruthy();
-  return fn as jest.MockedFunction<T>;
+  assert(jest.isMockFunction(fn));
+  return fn;
 }
 
 export function mockedClass<T extends jest.Constructable>(cls: T): jest.MockedClass<T> {
-  expect("mock" in cls).toBeTruthy();
-  return cls as jest.MockedClass<T>;
+  assert(jest.isMockFunction(cls));
+  return cls;
 }
 
 export function lastCallArgs<P extends unknown[]>(mock: jest.MockInstance<unknown, P>): P {

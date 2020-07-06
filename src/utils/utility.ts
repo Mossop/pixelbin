@@ -15,7 +15,11 @@ export function listen(server: Server, source: unknown): Promise<void> {
   });
 }
 
-export function bound<I>(methods: I, base: unknown): I {
+type Bound<I> = {
+  [K in keyof I]: OmitThisParameter<I[K]>;
+};
+
+export function bound<I>(methods: I, base: unknown): Bound<I> {
   let entries = Object.entries(methods).map(
     // @ts-ignore: Object.entries is not well typed.
     <K extends keyof I>([key, member]: [K, I[K]]): [K, I[K]] => {
