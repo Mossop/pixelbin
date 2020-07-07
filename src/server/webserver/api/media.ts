@@ -41,6 +41,8 @@ export const createMedia = ensureAuthenticated(
       ctx.logger.warn(e, "Failed to delete temporary file.");
     }
 
+    ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
+
     return media;
   },
 );

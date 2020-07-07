@@ -34,3 +34,16 @@ export function bound<I>(methods: I, base: unknown): Bound<I> {
   // @ts-ignore: Object.entries is not well typed.
   return Object.fromEntries(entries);
 }
+
+export function entries<T, K extends keyof T = keyof T>(obj: T): [K, T[K]][] {
+  return Object.entries(obj) as unknown as [K, T[K]][];
+}
+
+// function fromEntries<O, K extends keyof O = keyof O>(entries: [K, O[K]][]): O {
+//   return Object.fromEntries(entries) as unknown as O;
+// }
+
+// type SharedKeys<O, R> = Extract<keyof O, keyof R>;
+// function map<O, R>(obj: O, cb: <K extends SharedKeys<O, R>>(key: K, value: O[K]) => R[K]): R {
+//   return fromEntries(entries(obj).map(cb));
+// }

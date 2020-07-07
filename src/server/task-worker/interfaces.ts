@@ -13,5 +13,5 @@ export interface ParentProcessInterface {
 }
 
 export interface TaskWorkerInterface {
-  handleUploadedFile: (id: string) => void;
+  handleUploadedFile: (media: string) => void;
 }

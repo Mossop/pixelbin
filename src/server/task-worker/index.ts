@@ -1,25 +1,30 @@
 import { getLogger } from "../../utils";
 import { ParentProcess } from "../../worker";
 import { connect } from "../database";
+import { StorageService } from "../storage";
 import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
+import { handleUploadedFile } from "./process";
+import { provideService } from "./services";
 
-const logger = getLogger("webserver");
+const logger = getLogger("task-worker");
 
 async function main(): Promise<void> {
   logger.info("Task worker startup.");
 
   let connection = new ParentProcess<ParentProcessInterface, TaskWorkerInterface>({
     localInterface: {
-      handleUploadedFile: (_id: string): void => {
-        return;
-      },
+      handleUploadedFile,
     },
   });
   let parent = await connection.remote;
 
   try {
+    provideService("parent", parent);
+
     let config = await parent.getConfig();
     connect(config.databaseConfig);
+
+    provideService("storage", new StorageService(config.storageConfig));
   } catch (e) {
     connection.shutdown();
     throw e;

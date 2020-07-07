@@ -3,8 +3,9 @@ import { StorageService } from "../storage";
 import { TaskWorkerInterface } from "../task-worker/interfaces";
 import { ParentProcessInterface } from "./interfaces";
 
-export type ServicesContext = RemoteInterface<TaskWorkerInterface> & {
+export type ServicesContext = {
   readonly storage: StorageService;
+  readonly taskWorker: RemoteInterface<TaskWorkerInterface>;
 };
 
 export async function initServices(
@@ -14,6 +15,6 @@ export async function initServices(
 
   return {
     storage: new StorageService(config.storageConfig),
-    ...parent,
+    taskWorker: parent,
   };
 }

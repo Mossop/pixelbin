@@ -38,8 +38,9 @@ export class TaskManager extends Service {
     this.pool.shutdown();
   }
 
-  public handleUploadedFile(this: TaskManager, _id: string): void {
-    return;
+  public async handleUploadedFile(this: TaskManager, id: string): Promise<void> {
+    let remote = await this.pool.remote;
+    return remote.handleUploadedFile(id);
   }
 
   // ParentProcessInterface

@@ -29,7 +29,10 @@ buildTestDB();
 
 beforeEach(insertTestData);
 
-const agent = buildTestApp();
+let parent = {
+  handleUploadedFile: jest.fn<Promise<void>, [string]>((): Promise<void> => Promise.resolve()),
+};
+const agent = buildTestApp(parent);
 
 const mockedMoment = mockedFunction(moment);
 const realMoment: typeof moment = jest.requireActual("moment-timezone");
@@ -112,6 +115,9 @@ test("Media upload", async (): Promise<void> => {
     created: expect.toEqualDate(createdMoment),
     catalog: "c1",
   }));
+
+  expect(parent.handleUploadedFile).toHaveBeenCalledTimes(1);
+  expect(parent.handleUploadedFile).toHaveBeenLastCalledWith(response.body.id);
 
   expect(getStorageMock).toHaveBeenCalledTimes(1);
   expect(getStorageMock).toHaveBeenLastCalledWith("c1");

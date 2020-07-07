@@ -19,19 +19,19 @@ export class Storage {
   private readonly logger: Logger;
 
   public constructor(
-    private readonly id: string,
+    private readonly catalog: string,
     private readonly tempDirectory: string,
     private readonly localDirectory: string,
   ) {
-    this.logger = logger.child({ id });
+    this.logger = logger.child({ id: catalog });
   }
 
-  private getPath(root: string, storageId: string): string {
-    return path.join(root, this.id, storageId);
+  private getPath(root: string, media: string): string {
+    return path.join(root, this.catalog, media);
   }
 
-  public async copyUploadedFile(storageId: string, filepath: string, name: string): Promise<void> {
-    let targetDir = this.getPath(this.tempDirectory, storageId);
+  public async copyUploadedFile(media: string, filepath: string, name: string): Promise<void> {
+    let targetDir = this.getPath(this.tempDirectory, media);
     await fs.mkdir(targetDir, {
       recursive: true,
     });
@@ -44,8 +44,8 @@ export class Storage {
     await fs.writeFile(path.join(targetDir, "uploaded.meta"), JSON.stringify(info));
   }
 
-  public async getUploadedFile(storageId: string): Promise<FileInfo | null> {
-    let targetDir = this.getPath(this.tempDirectory, storageId);
+  public async getUploadedFile(media: string): Promise<FileInfo | null> {
+    let targetDir = this.getPath(this.tempDirectory, media);
 
     try {
       let stat = await fs.stat(path.join(targetDir, "uploaded"));
@@ -78,8 +78,8 @@ export class Storage {
     return null;
   }
 
-  public async deleteUploadedFile(storageId: string): Promise<void> {
-    let targetDir = this.getPath(this.tempDirectory, storageId);
+  public async deleteUploadedFile(media: string): Promise<void> {
+    let targetDir = this.getPath(this.tempDirectory, media);
     await fs.rmdir(targetDir, {
       recursive: true,
     });
@@ -95,9 +95,9 @@ export class StorageService {
     this.cache = new Cache();
   }
 
-  public async getStorage(id: string): Promise<RefCounted<Storage>> {
-    return this.cache.getOrCreate(id, (): Storage => {
-      return new Storage(id, this.config.tempDirectory, this.config.localDirectory);
+  public async getStorage(catalog: string): Promise<RefCounted<Storage>> {
+    return this.cache.getOrCreate(catalog, (): Storage => {
+      return new Storage(catalog, this.config.tempDirectory, this.config.localDirectory);
     });
   }
 }

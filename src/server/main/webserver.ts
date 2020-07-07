@@ -61,8 +61,8 @@ export class WebserverManager extends Service {
       return this.config;
     },
 
-    handleUploadedFile(this: WebserverManager, id: string): void {
-      this.taskManager.handleUploadedFile(id);
+    handleUploadedFile(this: WebserverManager, id: string): Promise<void> {
+      return this.taskManager.handleUploadedFile(id);
     },
   };
 }
