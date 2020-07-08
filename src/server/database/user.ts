@@ -14,7 +14,8 @@ export async function getUser(
   }).first();
 
   if (result) {
-    delete result.password;
+    let { password, ...user } = result;
+    return user;
   }
   return result;
 }

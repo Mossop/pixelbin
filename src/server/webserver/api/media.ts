@@ -14,13 +14,11 @@ export const createMedia = ensureAuthenticated(
     user: User,
     data: DeBlobbed<Api.MediaCreateRequest>,
   ): Promise<Api.Media> => {
-    let file = data.file;
-
-    let mediaData: Exclude<DeBlobbed<Api.MediaCreateRequest>, "file" | "catalog"> = {
-      ...data,
-    };
-    delete mediaData.file;
-    delete mediaData.catalog;
+    let {
+      file,
+      catalog,
+      ...mediaData
+    } = data;
 
     let media: Api.Media;
     try {

@@ -89,18 +89,22 @@ export async function createMedia(
 export async function editMedia(
   user: string,
   id: string,
-  data: Partial<Omit<Tables.Media, "id" | "catalog" | "created">>,
+  data: Partial<Tables.Media>,
 ): Promise<Tables.Media> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
-  let results = await update(Table.Media, knex.where("id", id)
-    .andWhere("catalog", "in", catalogs), {
-    ...data,
-    id: undefined,
-    catalog: undefined,
-    created: undefined,
-  }).returning("*");
+  let {
+    id: removedId,
+    catalog: removedCatalog,
+    created: removedCreated,
+    ...mediaUpdateData
+  } = data;
+  let results = await update(
+    Table.Media,
+    knex.where("id", id).andWhere("catalog", "in", catalogs),
+    mediaUpdateData,
+  ).returning("*");
 
   if (results.length) {
     return results[0];

@@ -98,20 +98,21 @@ export async function createAlbum(
 export async function editAlbum(
   user: string,
   id: string,
-  data: Partial<Omit<Tables.Album, "id" | "catalog">>,
+  data: Partial<Tables.Album>,
 ): Promise<Tables.Album> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
+  let {
+    id: removedId,
+    catalog: removedCatalog,
+    ...albumUpdateData
+  } = data;
   let results = await update(
     Table.Album,
     knex.where("id", id)
       .andWhere("catalog", "in", catalogs),
-    {
-      ...data,
-      id: undefined,
-      catalog: undefined,
-    },
+    albumUpdateData,
   ).returning("*");
 
   if (results.length) {
@@ -165,20 +166,21 @@ export async function createTag(
 export async function editTag(
   user: string,
   id: string,
-  data: Partial<Omit<Tables.Tag, "id" | "catalog">>,
+  data: Partial<Tables.Tag>,
 ): Promise<Tables.Tag> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
+  let {
+    id: removedId,
+    catalog: removedCatalog,
+    ...tagUpdateData
+  } = data;
   let results = await update(
     Table.Tag,
     knex.where("id", id)
       .andWhere("catalog", "in", catalogs),
-    {
-      ...data,
-      id: undefined,
-      catalog: undefined,
-    },
+    tagUpdateData,
   ).returning("*");
 
   if (results.length) {
@@ -216,20 +218,21 @@ export async function createPerson(
 export async function editPerson(
   user: string,
   id: string,
-  data: Partial<Omit<Tables.Person, "id" | "catalog">>,
+  data: Partial<Tables.Person>,
 ): Promise<Tables.Person> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
+  let {
+    id: removedId,
+    catalog: removedCatalog,
+    ...personUpdateData
+  } = data;
   let results = await update(
     Table.Person,
     knex.where("id", id)
       .andWhere("catalog", "in", catalogs),
-    {
-      ...data,
-      id: undefined,
-      catalog: undefined,
-    },
+    personUpdateData,
   ).returning("*");
 
   if (results.length) {

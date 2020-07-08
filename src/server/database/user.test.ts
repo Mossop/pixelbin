@@ -13,16 +13,12 @@ test("Test user retrieval", async (): Promise<void> => {
   expect(user).toBeUndefined();
 
   user = await getUser("someone1@nowhere.com", "password1");
-  expect(user).toEqual({
-    ...testData[Table.User][0],
-    password: undefined,
-  });
+  let { password, ...expected } = testData[Table.User][0];
+  expect(user).toEqual(expected);
 
   user = await getUser("someone2@nowhere.com", "password2");
-  expect(user).toEqual({
-    ...testData[Table.User][1],
-    password: undefined,
-  });
+  let { password: password2, ...expected2 } = testData[Table.User][1];
+  expect(user).toEqual(expected2);
 
   user = await getUser("someone2@nowhere.com", "password1");
   expect(user).toBeUndefined();
