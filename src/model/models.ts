@@ -100,27 +100,27 @@ export interface Album extends IdType {
 }
 
 export interface Metadata {
-  filename: string | null;
-  title: string | null;
-  taken: Moment | null;
-  offset: number | null;
-  longitude: number | null;
-  latitude: number | null;
-  altitude: number | null;
-  location: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  orientation: Orientation | null;
-  make: string | null;
-  model: string | null;
-  lens: string | null;
-  photographer: string | null;
-  aperture: number | null;
-  exposure: number | null;
-  iso: number | null;
-  focalLength: number | null;
-  bitrate: number | null;
+  filename: string;
+  title: string;
+  taken: Moment;
+  offset: number;
+  longitude: number;
+  latitude: number;
+  altitude: number;
+  location: string;
+  city: string;
+  state: string;
+  country: string;
+  orientation: Orientation;
+  make: string;
+  model: string;
+  lens: string;
+  photographer: string;
+  aperture: number;
+  exposure: number;
+  iso: number;
+  focalLength: number;
+  bitrate: number;
 }
 
 export const metadataColumns: (keyof Metadata)[] = [

@@ -1,4 +1,5 @@
 import * as ObjectModel from "../../../model/models";
+import { Nullable } from "../../../utils";
 import { DbRecord } from "./meta";
 
 export type User = DbRecord<ObjectModel.User> & { password: string };
@@ -14,7 +15,7 @@ export type Tag = DbRecord<ObjectModel.Tag>;
 export type Album = DbRecord<ObjectModel.Album>;
 
 // Not actually a table.
-export type Metadata = DbRecord<ObjectModel.Metadata>;
+export type Metadata = DbRecord<Nullable<ObjectModel.Metadata>>;
 
 export type Media = DbRecord<ObjectModel.Media> & Metadata;
 

@@ -9,6 +9,10 @@ export type Func<A extends unknown[] = unknown[], R = unknown> = (...args: A) =>
 
 export type Primitive = string | number | symbol | undefined | null;
 
+export type Nullable<T> = {
+  [K in keyof T]: T[K] | null;
+};
+
 export function listen(server: Server, source: unknown): Promise<void> {
   return new Promise((resolve: () => void): void => {
     server.listen(source, resolve);

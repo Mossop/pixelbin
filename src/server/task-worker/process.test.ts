@@ -1,5 +1,7 @@
 import path from "path";
 
+import { exiftool } from "exiftool-vendored";
+
 import { mockedFunction } from "../../test-helpers";
 import { createMedia, fillMetadata } from "../database";
 import { insertTestData, buildTestDB } from "../database/test-helpers";
@@ -12,6 +14,9 @@ jest.mock("../storage");
 buildTestDB();
 
 beforeEach(insertTestData);
+
+afterAll((): Promise<void> => exiftool.end());
+provideService("exiftool", exiftool);
 
 test("Process metadata", async (): Promise<void> => {
   const storageService = new StorageService({
@@ -27,8 +32,8 @@ test("Process metadata", async (): Promise<void> => {
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
   getUploadedFileMock.mockResolvedValueOnce({
-    name: "iptc.jpg",
-    path: path.join(__dirname, "..", "..", "..", "testdata", "iptc.jpg"),
+    name: "lamppost.jpg",
+    path: path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg"),
   });
 
   let media = await createMedia("someone1@nowhere.com", "c1", fillMetadata({

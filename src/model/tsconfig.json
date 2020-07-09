@@ -7,6 +7,9 @@
       "ESNext"
     ]
   },
+  "references": [{
+    "path": "../utils/tsconfig.json"
+  }],
   "include": [
     "**/*"
   ]

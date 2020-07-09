@@ -1,5 +1,6 @@
 import { Files } from "formidable";
 
+import { Nullable } from "../utils";
 import * as ObjectModel from "./models";
 import { Dereferenced, WithoutLists, WithoutReferences } from "./models";
 
@@ -7,7 +8,7 @@ export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Pro
 export type ResponseFor<Table> = Dereferenced<WithoutLists<Table>>;
 
 export type UnprocessedMedia =
-  Omit<ResponseFor<ObjectModel.Media>, "catalog"> & ResponseFor<ObjectModel.Metadata>;
+  Omit<ResponseFor<ObjectModel.Media>, "catalog"> & ResponseFor<Nullable<ObjectModel.Metadata>>;
 export type MediaInfo = Omit<ResponseFor<WithoutReferences<ObjectModel.MediaInfo>>, "media">;
 export type ProcessedMedia = UnprocessedMedia & MediaInfo;
 export type Media = UnprocessedMedia | ProcessedMedia;
@@ -46,7 +47,7 @@ export interface LoginRequest {
 
 export type MediaCreateRequest =
   Omit<ResponseFor<ObjectModel.Media>, "created" | "id"> &
-  Partial<ResponseFor<ObjectModel.Metadata>> & {
+  Partial<ResponseFor<Nullable<ObjectModel.Metadata>>> & {
     file: Blob;
   };
 

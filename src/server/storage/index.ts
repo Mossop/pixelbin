@@ -26,15 +26,29 @@ export class Storage {
     this.logger = logger.child({ id: catalog });
   }
 
-  private getPath(root: string, media: string): string {
-    return path.join(root, this.catalog, media);
+  private async getPath(root: string, media: string): Promise<string> {
+    let dir = path.join(root, this.catalog, media);
+    await fs.mkdir(dir, {
+      recursive: true,
+    });
+
+    return dir;
+  }
+
+  public async getLocalFilePath(media: string, name: string): Promise<string> {
+    let targetDir = await this.getPath(this.localDirectory, media);
+    return path.join(targetDir, name);
+  }
+
+  public async deleteLocalFiles(media: string): Promise<void> {
+    let targetDir = await this.getPath(this.localDirectory, media);
+    await fs.rmdir(targetDir, {
+      recursive: true,
+    });
   }
 
   public async copyUploadedFile(media: string, filepath: string, name: string): Promise<void> {
-    let targetDir = this.getPath(this.tempDirectory, media);
-    await fs.mkdir(targetDir, {
-      recursive: true,
-    });
+    let targetDir = await this.getPath(this.tempDirectory, media);
 
     await fs.copyFile(filepath, path.join(targetDir, "uploaded"));
 
@@ -45,7 +59,7 @@ export class Storage {
   }
 
   public async getUploadedFile(media: string): Promise<FileInfo | null> {
-    let targetDir = this.getPath(this.tempDirectory, media);
+    let targetDir = await this.getPath(this.tempDirectory, media);
 
     try {
       let stat = await fs.stat(path.join(targetDir, "uploaded"));
@@ -79,7 +93,7 @@ export class Storage {
   }
 
   public async deleteUploadedFile(media: string): Promise<void> {
-    let targetDir = this.getPath(this.tempDirectory, media);
+    let targetDir = await this.getPath(this.tempDirectory, media);
     await fs.rmdir(targetDir, {
       recursive: true,
     });

@@ -1,3 +1,5 @@
+import { exiftool } from "exiftool-vendored";
+
 import { getLogger } from "../../utils";
 import { ParentProcess } from "../../worker";
 import { connect } from "../database";
@@ -17,6 +19,12 @@ async function main(): Promise<void> {
     },
   });
   let parent = await connection.remote;
+
+  connection.on("disconnect", (): void => {
+    logger.catch(exiftool.end());
+  });
+
+  provideService("exiftool", exiftool);
 
   try {
     provideService("parent", parent);
