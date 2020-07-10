@@ -120,7 +120,6 @@ export interface Metadata {
   exposure: number;
   iso: number;
   focalLength: number;
-  bitrate: number;
 }
 
 export const metadataColumns: (keyof Metadata)[] = [
@@ -144,7 +143,6 @@ export const metadataColumns: (keyof Metadata)[] = [
   "exposure",
   "iso",
   "focalLength",
-  "bitrate",
 ];
 
 export interface Media extends IdType {
@@ -155,9 +153,11 @@ export interface Media extends IdType {
 export interface MediaInfo extends IdType {
   media: Reference<Media>;
   uploaded: Moment;
+  fileSize: number;
   mimetype: string;
   width: number;
   height: number;
   duration: number | null;
-  fileSize: number;
+  frameRate: number | null;
+  bitRate: number | null;
 }

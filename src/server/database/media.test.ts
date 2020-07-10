@@ -67,6 +67,8 @@ test("Media tests", async (): Promise<void> => {
     width: 1024,
     height: 768,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 1000,
 
     title: "Info title",
@@ -81,6 +83,8 @@ test("Media tests", async (): Promise<void> => {
     width: 1024,
     height: 768,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 1000,
 
     title: "Info title",
@@ -135,6 +139,8 @@ test("Media tests", async (): Promise<void> => {
     width: 2048,
     height: 1024,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 2000,
 
     title: "Different title",
@@ -149,6 +155,8 @@ test("Media tests", async (): Promise<void> => {
     width: 2048,
     height: 1024,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 2000,
 
     title: "Different title",
@@ -186,6 +194,8 @@ test("Media tests", async (): Promise<void> => {
     width: 1024,
     height: 768,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 1000,
   }))).rejects.toThrow("Invalid user or catalog passed to createMediaInfo");
 

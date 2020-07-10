@@ -46,7 +46,6 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     for (let name of [
       "orientation",
       "iso",
-      "bitrate",
       "offset",
     ]) {
       table.integer(name).nullable();
@@ -136,6 +135,8 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.integer("width").notNullable();
     table.integer("height").notNullable();
     table.integer("duration").nullable();
+    table.float("frameRate").nullable();
+    table.float("bitRate").nullable();
     table.integer("fileSize").notNullable();
 
     addMetadata(table);

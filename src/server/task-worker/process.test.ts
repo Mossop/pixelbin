@@ -1,6 +1,7 @@
 import path from "path";
 
 import { exiftool } from "exiftool-vendored";
+import moment from "moment-timezone";
 
 import { mockedFunction } from "../../test-helpers";
 import { createMedia, fillMetadata } from "../database";
@@ -31,8 +32,11 @@ test("Process metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
+  let uploaded = moment("2015-06-21T02:56:53");
+
   getUploadedFileMock.mockResolvedValueOnce({
     name: "lamppost.jpg",
+    uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg"),
   });
 

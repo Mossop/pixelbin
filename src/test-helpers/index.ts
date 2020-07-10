@@ -13,8 +13,8 @@ const matchers = {
     received: any,
     expected: Moment | string,
   ): jest.CustomMatcherResult {
-    const receivedMoment = isMoment(received) ? received : moment.tz(received, "UTC");
-    const expectedMoment = isMoment(expected) ? expected : moment.tz(expected, "UTC");
+    const receivedMoment = isMoment(received) ? received.utc() : moment.tz(received, "UTC");
+    const expectedMoment = isMoment(expected) ? expected.utc() : moment.tz(expected, "UTC");
 
     const receivedAsString = receivedMoment.format("L");
     const expectedAsString = expectedMoment.format("L");

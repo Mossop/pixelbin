@@ -1,46 +1,60 @@
-import { ExifDate, ExifDateTime, ExifTime, Tags } from "exiftool-vendored";
-import moment, { Moment } from "moment-timezone";
+import { promises as fs } from "fs";
 
-import { Metadata } from "../../model/models";
+import { ExifDate, ExifDateTime, ExifTime, Tags } from "exiftool-vendored";
+import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
+import moment, { Moment } from "moment-timezone";
+import sharp from "sharp";
+
+import { Metadata, MediaInfo } from "../../model/models";
 import { entries } from "../../utils";
+import { FileInfo } from "../storage";
+import { probe } from "./ffmpeg";
+import Services from "./services";
+
+const badTags = ["FileAccessDate", "FileInodeChangeDate", "FileModifyDate", "FilePermissions"];
+type ExcludedTags = "FileAccessDate" | "FileInodeChangeDate" | "FileModifyDate" | "FilePermissions";
 
 type StoredTag<T> =
   T extends ExifDate | ExifDateTime | ExifTime ? string : T;
 
-export type StoredTags = {
-  [K in keyof Tags]?: StoredTag<Tags[K]>;
+type ExifTags = { [K in keyof Omit<Tags, ExcludedTags>]?: StoredTag<Tags[K]>; };
+
+export type StoredData = Omit<MediaInfo, "id" | "media" | "uploaded"> & {
+  exif: ExifTags;
+  fileName: string;
+  uploaded: string;
 };
 
-type MetadataParser<T> = (tags: StoredTags) => T | null;
+type MetadataParser<T> = (data: StoredData) => T | null;
 
 type MetadataParsers = {
   [K in keyof Metadata]: MetadataParser<Metadata[K]>[];
 };
 
-function straight<K extends keyof StoredTags>(key: K): MetadataParser<NonNullable<StoredTags[K]>> {
-  return (tags: StoredTags): NonNullable<StoredTags[K]> | null => {
-    if (tags[key] === undefined) {
+function straight<K extends keyof ExifTags>(key: K): MetadataParser<NonNullable<ExifTags[K]>> {
+  return (data: StoredData): NonNullable<ExifTags[K]> | null => {
+    if (data.exif[key] === undefined) {
       return null;
     }
 
     // @ts-ignore: This is definitely correct.
-    return tags[key];
+    return data.exif[key];
   };
 }
 
 function forced<T>(key: string): MetadataParser<T> {
-  return (tags: StoredTags): T | null => {
-    if (tags[key] === undefined) {
+  return (data: StoredData): T | null => {
+    if (data.exif[key] === undefined) {
       return null;
     }
 
-    return tags[key] as T;
+    return data.exif[key] as T;
   };
 }
 
 function joined(inner: MetadataParser<string[]>): MetadataParser<string> {
-  return (tags: StoredTags): string | null => {
-    let strs = inner(tags);
+  return (data: StoredData): string | null => {
+    let strs = inner(data);
     if (!strs || strs.length == 0) {
       return null;
     }
@@ -50,8 +64,8 @@ function joined(inner: MetadataParser<string[]>): MetadataParser<string> {
 }
 
 function float(inner: MetadataParser<string>): MetadataParser<number> {
-  return (tags: StoredTags): number | null => {
-    let str = inner(tags);
+  return (data: StoredData): number | null => {
+    let str = inner(data);
     if (!str) {
       return null;
     }
@@ -60,16 +74,12 @@ function float(inner: MetadataParser<string>): MetadataParser<number> {
   };
 }
 
-type StringArrayKeys = {
-  [K in keyof StoredTags]: StoredTags[K] extends string[] ? K : never;
-}[keyof StoredTags];
-
-function fieldParser<K extends keyof StoredTags, R>(
+function fieldParser<K extends keyof ExifTags, R>(
   key: K,
-  parser: (value: NonNullable<StoredTags[K]>) => R | null,
+  parser: (value: NonNullable<ExifTags[K]>) => R | null,
 ): MetadataParser<R> {
-  return (metadata: StoredTags): R | null => {
-    let value: StoredTags[K] = metadata[key];
+  return (data: StoredData): R | null => {
+    let value: ExifTags[K] = data.exif[key];
     if (value === undefined) {
       return null;
     }
@@ -87,8 +97,8 @@ function dateParser(date: string): Moment | null {
   }
 }
 
-function rotationParser(tags: StoredTags): number | null {
-  let value = tags.Rotation;
+function rotationParser(data: StoredData): number | null {
+  let value = data.exif.Rotation;
   if (value === undefined) {
     return null;
   }
@@ -108,9 +118,9 @@ function rotationParser(tags: StoredTags): number | null {
   }
 }
 
-function parse<T>(tags: StoredTags, parsers: MetadataParser<T>[]): T | null {
+function parse<T>(data: StoredData, parsers: MetadataParser<T>[]): T | null {
   for (let parser of parsers) {
-    let result = parser(tags);
+    let result = parser(data);
     if (result !== null) {
       return result;
     }
@@ -119,11 +129,11 @@ function parse<T>(tags: StoredTags, parsers: MetadataParser<T>[]): T | null {
   return null;
 }
 
-function splitTakenParser(tags: StoredTags): Moment | null {
-  if (tags.DigitalCreationDate) {
-    let datestr = tags.DigitalCreationDate;
-    if (tags.DigitalCreationTime) {
-      datestr += `T${tags.DigitalCreationTime}`;
+function splitTakenParser(data: StoredData): Moment | null {
+  if (data.exif.DigitalCreationDate) {
+    let datestr = data.exif.DigitalCreationDate;
+    if (data.exif.DigitalCreationTime) {
+      datestr += `T${data.exif.DigitalCreationTime}`;
     }
 
     try {
@@ -136,8 +146,19 @@ function splitTakenParser(tags: StoredTags): Moment | null {
   return null;
 }
 
-function takenParser(tags: StoredTags): Moment | null {
-  let taken = parse(tags, [
+function ignoreVideos(data: StoredData): number | null {
+  if (data.mimetype.startsWith("video/")) {
+    return 1;
+  }
+  return null;
+}
+
+function filenameParser(data: StoredData): string {
+  return data.fileName;
+}
+
+function takenParser(data: StoredData): Moment | null {
+  let taken = parse(data, [
     fieldParser("SubSecDateTimeOriginal", dateParser),
     fieldParser("SubSecCreateDate", dateParser),
   ]);
@@ -146,10 +167,10 @@ function takenParser(tags: StoredTags): Moment | null {
     return taken;
   }
 
-  taken = parse(tags, [
+  taken = parse(data, [
     fieldParser("DateTimeOriginal", dateParser),
-    fieldParser("CreateDate", dateParser),
     fieldParser("DateTimeCreated", dateParser),
+    fieldParser("CreateDate", dateParser),
     fieldParser("DigitalCreationDateTime", dateParser),
     splitTakenParser,
   ]);
@@ -158,7 +179,7 @@ function takenParser(tags: StoredTags): Moment | null {
     return null;
   }
 
-  let subsec = parse(tags, [
+  let subsec = parse(data, [
     straight("SubSecTimeOriginal"),
     straight("SubSecTimeDigitized"),
     straight("SubSecTime"),
@@ -172,7 +193,7 @@ function takenParser(tags: StoredTags): Moment | null {
 }
 
 const parsers: MetadataParsers = {
-  filename: [straight("FileName")],
+  filename: [filenameParser],
   title: [straight("Title")],
   taken: [takenParser],
   offset: [],
@@ -193,6 +214,7 @@ const parsers: MetadataParsers = {
     straight("Country-PrimaryLocationName"),
   ],
   orientation: [
+    ignoreVideos,
     straight("Orientation"),
     rotationParser,
   ],
@@ -224,10 +246,9 @@ const parsers: MetadataParsers = {
   ],
   iso: [straight("ISO")],
   focalLength: [float(straight("FocalLength"))],
-  bitrate: [float(straight("AvgBitrate"))],
 };
 
-export function parseMetadata(tags: StoredTags): Metadata {
+export function parseMetadata(data: StoredData): Metadata {
   // @ts-ignore: I hate fromEntries!
   let metadata: Metadata = Object.fromEntries(
     entries(parsers).map(
@@ -235,7 +256,7 @@ export function parseMetadata(tags: StoredTags): Metadata {
         [key, parsers]: [K, MetadataParser<Metadata[K]>[]],
       ): [K, Metadata[K] | null] => {
         for (let parser of parsers) {
-          let result = parser(tags);
+          let result = parser(data);
           if (result) {
             return [key, result];
           }
@@ -246,9 +267,86 @@ export function parseMetadata(tags: StoredTags): Metadata {
     ),
   );
 
-  if (metadata.taken) {
+  if (data.exif.tz && metadata.taken) {
     metadata.offset = metadata.taken.utcOffset();
   }
 
   return metadata;
+}
+
+function detectMimetype(file: string): Promise<string> {
+  return new Promise((resolve: (mime: string) => void, reject: (err: Error) => void): void => {
+    let magic = new Magic(MAGIC_MIME_TYPE);
+    magic.detectFile(file, (err: Error | null, result: string): void => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
+
+export async function parseFile(file: FileInfo): Promise<StoredData> {
+  let exiftool = await Services.exiftool;
+  let tags = await exiftool.read(file.path, ["-c", "-n"]);
+  let stat = await fs.stat(file.path);
+
+  let mimetype = await detectMimetype(file.path);
+
+  let exif: ExifTags = {
+    ...Object.fromEntries(
+      Object.entries(tags)
+        .filter(([key, _value]: [string, unknown]): boolean => !badTags.includes(key))
+        .map(([key, value]: [string, unknown]): [string, unknown] => {
+          if (
+            value instanceof ExifDate ||
+            value instanceof ExifDateTime ||
+            value instanceof ExifTime
+          ) {
+            return [key, value.toISOString()];
+          }
+          return [key, value];
+        }),
+    ),
+  };
+
+  if (mimetype.startsWith("image/")) {
+    let metadata = await sharp(file.path).metadata();
+    return {
+      exif,
+      fileName: file.name,
+      fileSize: stat.size,
+      width: metadata.width ?? exif.ImageWidth ?? 0,
+      height: metadata.height ?? exif.ImageHeight ?? 0,
+      uploaded: file.uploaded.toISOString(),
+      mimetype,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    };
+  }
+
+  if (!mimetype.startsWith("video/")) {
+    throw new Error(`Unknown mimetype ${mimetype}`);
+  }
+
+  let videoInfo = await probe(file.path);
+
+  return {
+    exif,
+    fileName: file.name,
+    fileSize: stat.size,
+    uploaded: file.uploaded.toISOString(),
+    mimetype,
+    ...videoInfo,
+  };
+}
+
+export function getMediaInfo(data: StoredData): Omit<MediaInfo, "id" | "media"> {
+  let { uploaded, exif, fileName, ...info } = data;
+  return {
+    ...info,
+    uploaded: moment(uploaded),
+  };
 }

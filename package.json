@@ -29,6 +29,7 @@
     "@types/koa-mount": "^4.0.0",
     "@types/koa-static": "^4.0.1",
     "@types/koa__router": "^8.0.2",
+    "@types/mmmagic": "^0.4.29",
     "@types/nanoid": "^2.1.0",
     "@types/node": "^14.0.20",
     "@types/node-sass": "^4.11.1",
@@ -36,6 +37,7 @@
     "@types/pretty-hrtime": "^1.0.0",
     "@types/react": "^16.9.41",
     "@types/react-redux": "^7.1.9",
+    "@types/sharp": "^0.25.0",
     "@types/supertest": "^2.0.10",
     "@types/webpack": "^4.41.21",
     "@types/webpack-dev-middleware": "^3.7.1",
@@ -96,10 +98,12 @@
     "core-js": "^3.6.5",
     "deeds": "^3.0.0",
     "exiftool-vendored": "^11.4.0",
+    "ffprobe-client": "^1.1.6",
     "formidable": "^1.2.2",
     "immer": "^7.0.1",
     "knex": "^0.21.1",
     "media-metadata": "^2.1.0",
+    "mmmagic": "^0.5.3",
     "moment": "^2.27.0",
     "moment-timezone": "^0.5.31",
     "nanoid": "^3.1.10",
@@ -110,6 +114,7 @@
     "react-redux": "^7.2.0",
     "redux": "^4.0.5",
     "redux-logger": "^3.0.6",
+    "sharp": "^0.25.4",
     "ts.data.json": "^1.1.0"
   }
 }

@@ -131,7 +131,6 @@ export async function MediaCreateRequest(
     exposure: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
     iso: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
     focalLength: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
-    bitrate: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
   }, "MediaCreateRequest");
 
   try {

@@ -42,9 +42,17 @@ test("storage", async (): Promise<void> => {
 
     expect(await storage.get().getUploadedFile("storage_id")).toBeNull();
 
-    let localBar = await storage.get().getLocalFilePath("foo", "bar");
-    expect(localBar).toBe(path.join(local, "myid", "foo", "bar"));
-    let stat = await fs.stat(path.join(local, "myid", "foo"));
+    let localBar = await storage.get().getLocalFilePath("foo", "info", "bar");
+    expect(localBar).toBe(path.join(local, "myid", "foo", "info", "bar"));
+    let stat = await fs.stat(path.join(local, "myid", "foo", "info"));
+    expect(stat.isDirectory()).toBeTruthy();
+
+    await storage.get().deleteLocalFiles("foo", "info");
+    await expect(
+      fs.stat(path.join(local, "myid", "foo", "info")),
+    ).rejects.toThrow("no such file or directory");
+
+    stat = await fs.stat(path.join(local, "myid", "foo"));
     expect(stat.isDirectory()).toBeTruthy();
 
     await storage.get().deleteLocalFiles("foo");

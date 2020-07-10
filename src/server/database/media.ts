@@ -141,6 +141,8 @@ export async function createMediaInfo(
     "width",
     "height",
     "duration",
+    "frameRate",
+    "bitRate",
     "fileSize",
     ...metadataColumns,
   ]);
