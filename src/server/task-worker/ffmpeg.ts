@@ -2,8 +2,8 @@
 import ffprobe from "ffprobe-client";
 import { JsonDecoder } from "ts.data.json";
 
-import { MappingDecoder } from "../../utils";
 import { MediaInfo } from "../../model/models";
+import { MappingDecoder } from "../../utils";
 
 const StringNumberDecoder = MappingDecoder(JsonDecoder.string, (value: string): number => {
   return parseFloat(value);

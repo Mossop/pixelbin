@@ -13,7 +13,7 @@ afterAll((): Promise<void> => exiftool.end());
 provideService("exiftool", exiftool);
 
 test("lamppost", async (): Promise<void> => {
-  let uploaded = moment("2020-02-04T12:53:23");
+  let uploaded = moment.tz("2020-02-04T12:53:23", "UTC");
   let data = await parseFile({
     name: "Testname.jpg",
     uploaded,
@@ -70,7 +70,7 @@ test("lamppost", async (): Promise<void> => {
 });
 
 test("iptc", async (): Promise<void> => {
-  let uploaded = moment("2019-12-03T12:30:23");
+  let uploaded = moment.tz("2019-12-03T12:30:23", "UTC");
   let data = await parseFile({
     name: "IPTC.JPG",
     uploaded,
@@ -127,7 +127,7 @@ test("iptc", async (): Promise<void> => {
 });
 
 test("video", async (): Promise<void> => {
-  let uploaded = moment("2010-01-03T09:30:23");
+  let uploaded = moment.tz("2010-01-03T09:30:23", "UTC");
   let tags = await parseFile({
     name: "test_video.foo",
     uploaded,

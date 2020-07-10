@@ -1,6 +1,5 @@
 import { Logger } from "../../utils";
 import { getMedia } from "../database/unsafe";
-import { parseFile, parseMetadata } from "./metadata";
 import Services from "./services";
 import { bindTask } from "./task";
 

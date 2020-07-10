@@ -96,7 +96,6 @@ Object {
     "Description": "The description aka caption (ref2017.1)",
     "DigitalImageGUID": "http://example.com/imageGUIDs/TestGUID12345/ref2017.1",
     "DigitalSourceType": "http://cv.iptc.org/newscodes/digitalsourcetype/softwareImage",
-    "Directory": "/Users/dave/workspace/pixelbin/testdata",
     "EmbdEncRightsExpr": Array [
       Object {
         "EncRightsExpr": "The Encoded Rights Expression (ref2017.1)",
@@ -309,7 +308,6 @@ Object {
       "IPTC-Scene-Code2 (ref2017.1)",
     ],
     "Source": "Source (ref2017.1)",
-    "SourceFile": "/Users/dave/workspace/pixelbin/testdata/iptc.jpg",
     "SpecialInstructions": "An Instruction (ref2017.1)",
     "State": "Province/State (Core) (ref2017.1)",
     "Sub-location": "Sublocation (Core) (ref2017.1)",
@@ -346,7 +344,7 @@ Object {
   "frameRate": null,
   "height": 500,
   "mimetype": "image/jpeg",
-  "uploaded": toEqualDate<Tue Dec 03 2019 20:30:23 GMT+0000>,
+  "uploaded": toEqualDate<Tue Dec 03 2019 12:30:23 GMT+0000>,
   "width": 1000,
 }
 `;
@@ -428,7 +426,6 @@ Object {
     "DigitalCreationDateTime": "2018-08-22T18:51:25.000-07:00",
     "DigitalCreationTime": "18:51:25",
     "DigitalZoomRatio": 1,
-    "Directory": "/Users/dave/workspace/pixelbin/testdata",
     "DisplayedUnitsX": "inches",
     "DisplayedUnitsY": "inches",
     "DistortionCorrectionAlreadyApplied": true,
@@ -683,7 +680,6 @@ Object {
     "ShutterSpeed": "1/2000",
     "ShutterSpeedValue": "1/2000",
     "Software": "Adobe Photoshop Lightroom Classic 7.5 (Macintosh)",
-    "SourceFile": "/Users/dave/workspace/pixelbin/testdata/lamppost.jpg",
     "SplitToningBalance": 0,
     "SplitToningHighlightHue": 0,
     "SplitToningHighlightSaturation": 0,
@@ -774,7 +770,7 @@ Object {
   "frameRate": null,
   "height": 331,
   "mimetype": "image/jpeg",
-  "uploaded": toEqualDate<Tue Feb 04 2020 20:53:23 GMT+0000>,
+  "uploaded": toEqualDate<Tue Feb 04 2020 12:53:23 GMT+0000>,
   "width": 500,
 }
 `;
@@ -803,7 +799,6 @@ Object {
     "CompressorID": "avc1",
     "CreateDate": "2019-11-03T23:07:19.000-08:00",
     "CurrentTime": "0 s",
-    "Directory": "/Users/dave/workspace/pixelbin/testdata",
     "Duration": 1.74,
     "ExifToolVersion": 12.01,
     "FileName": "video.mp4",
@@ -845,7 +840,6 @@ Object {
     "Rotation": 90,
     "SelectionDuration": 0,
     "SelectionTime": "0 s",
-    "SourceFile": "/Users/dave/workspace/pixelbin/testdata/video.mp4",
     "SourceImageHeight": 1080,
     "SourceImageWidth": 1920,
     "TimeScale": 1000,
@@ -868,7 +862,7 @@ Object {
   "frameRate": 59.202207150247155,
   "height": 1080,
   "mimetype": "video/mp4",
-  "uploaded": toEqualDate<Sun Jan 03 2010 17:30:23 GMT+0000>,
+  "uploaded": toEqualDate<Sun Jan 03 2010 09:30:23 GMT+0000>,
   "width": 1920,
 }
 `;

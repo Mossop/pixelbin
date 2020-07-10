@@ -6,13 +6,22 @@ import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
 import { Metadata, MediaInfo } from "../../model/models";
-import { entries } from "../../utils";
+import { entries, Nullable } from "../../utils";
 import { FileInfo } from "../storage";
 import { probe } from "./ffmpeg";
 import Services from "./services";
 
-const badTags = ["FileAccessDate", "FileInodeChangeDate", "FileModifyDate", "FilePermissions"];
-type ExcludedTags = "FileAccessDate" | "FileInodeChangeDate" | "FileModifyDate" | "FilePermissions";
+type ExcludedTags =
+  "FileAccessDate" | "FileInodeChangeDate" | "FileModifyDate" | "FilePermissions" | "Directory" |
+  "SourceFile";
+const BadTags: ExcludedTags[] = [
+  "FileAccessDate",
+  "FileInodeChangeDate",
+  "FileModifyDate",
+  "FilePermissions",
+  "Directory",
+  "SourceFile",
+];
 
 type StoredTag<T> =
   T extends ExifDate | ExifDateTime | ExifTime ? string : T;
@@ -248,9 +257,9 @@ const parsers: MetadataParsers = {
   focalLength: [float(straight("FocalLength"))],
 };
 
-export function parseMetadata(data: StoredData): Metadata {
+export function parseMetadata(data: StoredData): Nullable<Metadata> {
   // @ts-ignore: I hate fromEntries!
-  let metadata: Metadata = Object.fromEntries(
+  let metadata: Nullable<Metadata> = Object.fromEntries(
     entries(parsers).map(
       <K extends keyof MetadataParsers>(
         [key, parsers]: [K, MetadataParser<Metadata[K]>[]],
@@ -297,7 +306,7 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
   let exif: ExifTags = {
     ...Object.fromEntries(
       Object.entries(tags)
-        .filter(([key, _value]: [string, unknown]): boolean => !badTags.includes(key))
+        .filter(([key, _value]: [string, unknown]): boolean => !(BadTags as string[]).includes(key))
         .map(([key, value]: [string, unknown]): [string, unknown] => {
           if (
             value instanceof ExifDate ||
