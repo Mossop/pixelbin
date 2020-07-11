@@ -1,7 +1,7 @@
 import Knex from "knex";
 
 import { Table, TableRecord, ref, isRef } from "./types";
-import { WithRefs, intoDBTypes, DBTypes } from "./types/meta";
+import { WithRefs, intoDBTypes } from "./types/meta";
 
 export async function drop<T extends Table>(
   knex: Knex,
@@ -9,6 +9,13 @@ export async function drop<T extends Table>(
   where: Partial<TableRecord<T>>,
 ): Promise<void> {
   return knex<TableRecord<T>>(table).where(where).delete();
+}
+
+export async function select<T extends Table>(
+  query: Knex.QueryBuilder,
+  table: T,
+): Promise<TableRecord<T>[]> {
+  return query.select(`${table}.*`);
 }
 
 export async function withChildren<T extends Table.Tag | Table.Album>(
@@ -21,9 +28,9 @@ export async function withChildren<T extends Table.Tag | Table.Album>(
     "parents",
     queryBuilder.select(ref(table)).union((qb: Knex.QueryBuilder): void => {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      qb.from(table)
-        .select(ref(table))
-        .join("parents", "parents.id", ref(table, "parent"));
+      qb.from<TableRecord<T>>(table)
+        .select(`${table}.*`)
+        .join("parents", "parents.id", `${table}.parent`);
     }),
   ).from("parents");
 }
@@ -34,10 +41,8 @@ export function insertFromSelect<T extends Table>(
   query: Knex.QueryInterface,
   columns: WithRefs<TableRecord<T>>,
 ): Knex.QueryBuilder<TableRecord<T>, number[]> {
-  // @ts-ignore: Going to have to trust that this is correct.
-  let dbColumns = intoDBTypes(columns);
-  let names = Object.keys(dbColumns);
-  let values: DBTypes[] = Object.values(dbColumns);
+  let names = Object.keys(columns);
+  let values: (Knex.RawBinding | null)[] = Object.values(columns);
 
   // Builds a raw query like `?? (??, ??, ...)` from insert table name and column names.
   let intoList = knex.raw(
@@ -48,8 +53,8 @@ export function insertFromSelect<T extends Table>(
     ],
   );
 
-  let bindings: Exclude<DBTypes, null>[] = [];
-  let selectList = values.map((value: DBTypes): string => {
+  let bindings: Knex.RawBinding[] = [];
+  let selectList = values.map((value: Knex.RawBinding | null): string => {
     if (value === null) {
       return "NULL";
     }

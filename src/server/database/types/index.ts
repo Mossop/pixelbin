@@ -2,6 +2,7 @@ import Knex from "knex";
 
 import { Obj } from "../../../utils";
 import * as Joins from "./joins";
+import { DBRecord, DBAPI } from "./meta";
 import * as Tables from "./tables";
 
 export { Joins, Tables };
@@ -38,15 +39,16 @@ export interface TableMapping {
   [Table.MediaPerson]: Joins.MediaPerson;
 }
 
-export type TableRecord<T extends Table> = TableMapping[T];
+export type TableRecord<T extends Table> = DBRecord<TableMapping[T]>;
+
+export type UserRef = DBAPI<Tables.User>["email"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Ref<T extends Table = any> = Knex.Ref<T, TableRecord<T>>;
 
 export function ref<
   T extends Table,
-  K extends keyof TableRecord<T>
->(table: T, column?: K): string {
+>(table: T, column?: keyof TableRecord<T>): string {
   return `${table}.${column ?? "*"}`;
 }
 

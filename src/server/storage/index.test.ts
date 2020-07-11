@@ -2,7 +2,23 @@ import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
 
+import moment, { Moment } from "moment-timezone";
+
 import { StorageService } from ".";
+import { expect, mockedFunction } from "../../test-helpers";
+
+jest.mock("moment-timezone", (): unknown => {
+  const actualMoment = jest.requireActual("moment-timezone");
+  let moment = jest.fn(actualMoment);
+  // @ts-ignore: Mocking.
+  moment.tz = jest.fn(actualMoment.tz);
+  // @ts-ignore: Mocking.
+  moment.isMoment = actualMoment.isMoment;
+  return moment;
+});
+
+const mockedMoment = mockedFunction(moment);
+const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 test("storage", async (): Promise<void> => {
   let testTemp = await fs.mkdtemp(path.join(os.tmpdir(), "temp-"));
@@ -20,6 +36,9 @@ test("storage", async (): Promise<void> => {
 
     let testFile = path.join(testTemp, "test1");
     await fs.writeFile(testFile, "MYDATA");
+
+    let uploaded: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
+    mockedMoment.mockImplementationOnce((): Moment => uploaded);
     await storage.get().copyUploadedFile("storage_id", testFile, "spoecial.txt");
 
     await fs.unlink(testFile);
@@ -28,8 +47,12 @@ test("storage", async (): Promise<void> => {
     expect(fileData).toBeNull();
 
     fileData = await storage.get().getUploadedFile("storage_id");
+    expect(fileData).toEqual({
+      name: "spoecial.txt",
+      uploaded: expect.toEqualDate(uploaded),
+      path: expect.stringMatching(new RegExp(`^${temp}/`)),
+    });
     expect(fileData).not.toBeNull();
-    expect(fileData?.name).toBe("spoecial.txt");
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let data = await fs.readFile(fileData!.path, {

@@ -33,6 +33,7 @@
     "@types/nanoid": "^2.1.0",
     "@types/node": "^14.0.20",
     "@types/node-sass": "^4.11.1",
+    "@types/pg": "^7.14.4",
     "@types/pino": "^6.3.0",
     "@types/pretty-hrtime": "^1.0.0",
     "@types/react": "^16.9.41",

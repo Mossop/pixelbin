@@ -1,20 +1,14 @@
 import Knex from "knex";
 import moment from "moment-timezone";
-import { customAlphabet } from "nanoid/async";
 
 import { metadataColumns } from "../../model/models";
 import { connection } from "./connection";
 import { coalesce } from "./functions";
+import { mediaId } from "./id";
 import { insertFromSelect, from, update } from "./queries";
-import { Tables, Table, ref } from "./types";
+import { Tables, Table, ref, UserRef } from "./types";
+import { DBAPI, intoDBTypes, intoAPITypes } from "./types/meta";
 import { Metadata } from "./types/tables";
-
-const PROCESS_VERSION = 1;
-
-const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 25);
-async function uuid(start: string): Promise<string> {
-  return start + ":" + await nanoid();
-}
 
 export function fillMetadata<T>(data: T): T & Metadata {
   let result = { ...data };
@@ -38,6 +32,8 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     height: ref(Table.MediaInfo, "height"),
     duration: ref(Table.MediaInfo, "duration"),
     fileSize: ref(Table.MediaInfo, "fileSize"),
+    frameRate: ref(Table.MediaInfo, "frameRate"),
+    bitRate: ref(Table.MediaInfo, "bitRate"),
   };
 
   for (let field of metadataColumns) {
@@ -58,10 +54,10 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
 }
 
 export async function createMedia(
-  user: string,
-  catalog: string,
-  data: Omit<Tables.Media, "id" | "catalog" | "created">,
-): Promise<Tables.Media> {
+  user: UserRef,
+  catalog: DBAPI<Tables.Media>["catalog"],
+  data: DBAPI<Omit<Tables.Media, "id" | "catalog" | "created">>,
+): Promise<DBAPI<Tables.Media>> {
   let knex = await connection;
 
   let select = from(knex, Table.UserCatalog).where({
@@ -70,27 +66,24 @@ export async function createMedia(
   });
 
   let results = await insertFromSelect(knex, Table.Media, select, {
-    ...data,
-    id: await uuid("M"),
+    ...intoDBTypes(data),
+    id: await mediaId("M"),
     catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
-    created: moment().tz("UTC"),
+    created: moment().utc().toISOString(),
   }).returning("*");
 
   if (results.length) {
-    return {
-      ...results[0],
-      created: moment.tz(results[0].created, "UTC"),
-    };
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or catalog passed to createMedia");
 }
 
 export async function editMedia(
-  user: string,
-  id: string,
-  data: Partial<Tables.Media>,
-): Promise<Tables.Media> {
+  user: UserRef,
+  id: DBAPI<Tables.Media>["id"],
+  data: DBAPI<Partial<Tables.Media>>,
+): Promise<DBAPI<Tables.Media>> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
@@ -103,61 +96,20 @@ export async function editMedia(
   let results = await update(
     Table.Media,
     knex.where("id", id).andWhere("catalog", "in", catalogs),
-    mediaUpdateData,
+    intoDBTypes(mediaUpdateData),
   ).returning("*");
 
   if (results.length) {
-    return results[0];
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or album passed to editAlbum");
 }
 
-export async function createMediaInfo(
-  user: string,
-  media: string,
-  data: Omit<Tables.MediaInfo, "id" | "processVersion" | "media" | "uploaded">,
-): Promise<Omit<Tables.MediaInfo, "processVersion">> {
-  let knex = await connection;
-
-  let select = from(knex, Table.Media)
-    .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
-    .where({
-      user,
-      id: media,
-    });
-
-  let results = await insertFromSelect(knex, Table.MediaInfo, select, {
-    ...data,
-    id: await uuid("I"),
-    media: knex.ref(ref(Table.Media, "id")),
-    uploaded: moment().tz("UTC"),
-    processVersion: PROCESS_VERSION,
-  }).returning([
-    "id",
-    "media",
-    "uploaded",
-    "mimetype",
-    "width",
-    "height",
-    "duration",
-    "frameRate",
-    "bitRate",
-    "fileSize",
-    ...metadataColumns,
-  ]);
-
-  if (results.length) {
-    return {
-      ...results[0],
-      uploaded: moment.tz(results[0].uploaded, "UTC"),
-    };
-  }
-
-  throw new Error("Invalid user or catalog passed to createMediaInfo");
-}
-
-export async function getMedia(user: string, id: string): Promise<Tables.MediaWithInfo | null> {
+export async function getMedia(
+  user: UserRef,
+  id: DBAPI<Tables.MediaWithInfo>["id"],
+): Promise<DBAPI<Tables.MediaWithInfo> | null> {
   let knex = await connection;
 
   let results = await buildMediaView(knex).join(
@@ -174,12 +126,6 @@ export async function getMedia(user: string, id: string): Promise<Tables.MediaWi
   } else if (results.length != 1) {
     throw new Error("Found multiple matching media records.");
   } else {
-    let result: Tables.MediaWithInfo = {
-      ...results[0] as Tables.MediaWithInfo,
-      created: moment.tz(results[0].created, "UTC"),
-      // @ts-ignore: This is absolutely right.
-      uploaded: results[0].uploaded ? moment.tz(results[0].uploaded, "UTC") : null,
-    };
-    return result;
+    return intoAPITypes(results[0]);
   }
 }

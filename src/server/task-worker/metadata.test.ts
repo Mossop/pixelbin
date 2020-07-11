@@ -128,13 +128,13 @@ test("iptc", async (): Promise<void> => {
 
 test("video", async (): Promise<void> => {
   let uploaded = moment.tz("2010-01-03T09:30:23", "UTC");
-  let tags = await parseFile({
+  let data = await parseFile({
     name: "test_video.foo",
     uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "video.mp4"),
   });
 
-  expect(tags).toMatchSnapshot({
+  expect(data).toMatchSnapshot({
     fileName: "test_video.foo",
     fileSize: 4059609,
     uploaded: expect.toEqualDate(uploaded),
@@ -146,7 +146,7 @@ test("video", async (): Promise<void> => {
     frameRate: 59.202207150247155,
   }, "video-tags");
 
-  let metadata = parseMetadata(tags);
+  let metadata = parseMetadata(data);
   expect(metadata).toEqual({
     filename: "test_video.foo",
     title: null,
@@ -168,5 +168,17 @@ test("video", async (): Promise<void> => {
     exposure: null,
     iso: null,
     focalLength: null,
+  });
+
+  let info = getMediaInfo(data);
+  expect(info).toEqual({
+    uploaded: expect.toEqualDate(uploaded),
+    mimetype: "video/mp4",
+    width: 1920,
+    height: 1080,
+    duration: 1.74,
+    frameRate: 59.202207150247155,
+    bitRate: 18664868,
+    fileSize: 4059609,
   });
 });

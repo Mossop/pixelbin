@@ -84,7 +84,7 @@ export async function insertData(data: Seed): Promise<void> {
       return;
     }
 
-    let records = data[table] as TableRecord<T>[];
+    let records = data[table] as unknown as TableRecord<T>[];
 
     await insert(knex, table, records);
   }

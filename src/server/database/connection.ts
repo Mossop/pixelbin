@@ -1,6 +1,8 @@
 import path from "path";
 
 import Knex from "knex";
+import moment, { Moment } from "moment-timezone";
+import { types } from "pg";
 
 import { defer, Deferred, getLogger, Obj } from "../../utils";
 
@@ -22,6 +24,12 @@ interface ExtendedKnex extends Knex {
 }
 
 const deferredKnex: Deferred<ExtendedKnex> = defer();
+
+function parseTimestamp(value: string): Moment {
+  return moment(value).utc();
+}
+types.setTypeParser(types.builtins.TIMESTAMPTZ, parseTimestamp);
+types.setTypeParser(types.builtins.TIMESTAMP, parseTimestamp);
 
 export function connect(config: DatabaseConfig): ExtendedKnex {
   let schema = process.env.NODE_ENV == "test" ? `test${process.pid}` : undefined;

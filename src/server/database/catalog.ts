@@ -1,16 +1,12 @@
 import Knex from "knex";
-import { customAlphabet } from "nanoid/async";
 
 import { connection } from "./connection";
-import { from, insert, insertFromSelect, update } from "./queries";
-import { Table, Tables, ref } from "./types";
+import { uuid } from "./id";
+import { from, insert, insertFromSelect, update, select } from "./queries";
+import { Table, Tables, ref, UserRef } from "./types";
+import { DBAPI, intoAPITypes, DBRecord, intoDBTypes } from "./types/meta";
 
-const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 10);
-async function uuid(start: string): Promise<string> {
-  return start + ":" + await nanoid();
-}
-
-export async function listStorage(user: string): Promise<Tables.Storage[]> {
+export async function listStorage(user: UserRef): Promise<DBAPI<Tables.Storage>[]> {
   let knex = await connection;
   return from(knex, Table.Storage)
     .innerJoin(Table.Catalog, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
@@ -19,7 +15,9 @@ export async function listStorage(user: string): Promise<Tables.Storage[]> {
     .select(ref(Table.Storage)).distinct();
 }
 
-export async function createStorage(data: Omit<Tables.Storage, "id">): Promise<Tables.Storage> {
+export async function createStorage(
+  data: Omit<DBAPI<Tables.Storage>, "id">,
+): Promise<DBAPI<Tables.Storage>> {
   let knex = await connection;
   let results = await insert(knex, Table.Storage, {
     ...data,
@@ -27,28 +25,28 @@ export async function createStorage(data: Omit<Tables.Storage, "id">): Promise<T
   }).returning("*");
 
   if (results.length) {
-    return results[0];
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or catalog passed to createStorage");
 }
 
-export async function listCatalogs(user: string): Promise<Tables.Catalog[]> {
+export async function listCatalogs(user: UserRef): Promise<DBAPI<Tables.Catalog>[]> {
   let knex = await connection;
-  return from(knex, Table.Catalog)
+  let results = await select(from(knex, Table.Catalog)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Catalog, "id"))
-    .where(ref(Table.UserCatalog, "user"), user)
-    .select(ref(Table.Catalog));
+    .where(ref(Table.UserCatalog, "user"), user), Table.Catalog);
+  return results.map(intoAPITypes);
 }
 
 export async function createCatalog(
-  user: string,
-  data: Omit<Tables.Catalog, "id">,
-): Promise<Tables.Catalog> {
+  user: UserRef,
+  data: DBAPI<Omit<Tables.Catalog, "id">>,
+): Promise<DBAPI<Tables.Catalog>> {
   let knex = await connection;
-  return knex.transaction(async (trx: Knex): Promise<Tables.Catalog> => {
-    let catalog: Tables.Catalog = {
-      ...data,
+  return knex.transaction(async (trx: Knex): Promise<DBAPI<Tables.Catalog>> => {
+    let catalog: DBRecord<Tables.Catalog> = {
+      ...intoDBTypes(data),
       id: await uuid("C"),
     };
 
@@ -58,23 +56,26 @@ export async function createCatalog(
       catalog: catalog.id,
     });
 
-    return catalog;
+    return {
+      ...data,
+      id: catalog.id,
+    };
   });
 }
 
-export async function listAlbums(user: string): Promise<Tables.Album[]> {
+export async function listAlbums(user: UserRef): Promise<DBAPI<Tables.Album>[]> {
   let knex = await connection;
-  return from(knex, Table.Album)
+  let results = await select(from(knex, Table.Album)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
-    .where(ref(Table.UserCatalog, "user"), user)
-    .select(ref(Table.Album));
+    .where(ref(Table.UserCatalog, "user"), user), Table.Album);
+  return results.map(intoAPITypes);
 }
 
 export async function createAlbum(
-  user: string,
-  catalog: string,
-  data: Omit<Tables.Album, "id" | "catalog">,
-): Promise<Tables.Album> {
+  user: UserRef,
+  catalog: DBAPI<Tables.Album>["catalog"],
+  data: DBAPI<Omit<Tables.Album, "id" | "catalog">>,
+): Promise<DBAPI<Tables.Album>> {
   let knex = await connection;
 
   let select = knex.from(Table.UserCatalog).where({
@@ -83,7 +84,7 @@ export async function createAlbum(
   });
 
   let results = await insertFromSelect(knex, Table.Album, select, {
-    ...data,
+    ...intoDBTypes(data),
     id: await uuid("A"),
     catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
   }).returning("*");
@@ -96,10 +97,10 @@ export async function createAlbum(
 }
 
 export async function editAlbum(
-  user: string,
-  id: string,
-  data: Partial<Tables.Album>,
-): Promise<Tables.Album> {
+  user: UserRef,
+  id: DBAPI<Tables.Album>["id"],
+  data: Partial<DBAPI<Tables.Album>>,
+): Promise<DBAPI<Tables.Album>> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
@@ -112,37 +113,37 @@ export async function editAlbum(
     Table.Album,
     knex.where("id", id)
       .andWhere("catalog", "in", catalogs),
-    albumUpdateData,
+    intoDBTypes(albumUpdateData),
   ).returning("*");
 
   if (results.length) {
-    return results[0];
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or album passed to editAlbum");
 }
 
-export async function listPeople(user: string): Promise<Tables.Person[]> {
+export async function listPeople(user: UserRef): Promise<DBAPI<Tables.Person>[]> {
   let knex = await connection;
-  return from(knex, Table.Person)
+  let results = await select(from(knex, Table.Person)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Person, "catalog"))
-    .where(ref(Table.UserCatalog, "user"), user)
-    .select(ref(Table.Person));
+    .where(ref(Table.UserCatalog, "user"), user), Table.Person);
+  return results.map(intoAPITypes);
 }
 
-export async function listTags(user: string): Promise<Tables.Tag[]> {
+export async function listTags(user: UserRef): Promise<DBAPI<Tables.Tag>[]> {
   let knex = await connection;
-  return from(knex, Table.Tag)
+  let results = await select(from(knex, Table.Tag)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Tag, "catalog"))
-    .where(ref(Table.UserCatalog, "user"), user)
-    .select(ref(Table.Tag));
+    .where(ref(Table.UserCatalog, "user"), user), Table.Tag);
+  return results.map(intoAPITypes);
 }
 
 export async function createTag(
-  user: string,
-  catalog: string,
-  data: Omit<Tables.Tag, "id" | "catalog">,
-): Promise<Tables.Tag> {
+  user: UserRef,
+  catalog: DBAPI<Tables.Tag>["catalog"],
+  data: DBAPI<Omit<Tables.Tag, "id" | "catalog">>,
+): Promise<DBAPI<Tables.Tag>> {
   let knex = await connection;
 
   let select = knex.from(Table.UserCatalog).where({
@@ -151,23 +152,23 @@ export async function createTag(
   });
 
   let results = await insertFromSelect(knex, Table.Tag, select, {
-    ...data,
+    ...intoDBTypes(data),
     id: await uuid("T"),
     catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
   }).returning("*");
 
   if (results.length) {
-    return results[0];
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or catalog passed to createTag");
 }
 
 export async function editTag(
-  user: string,
-  id: string,
-  data: Partial<Tables.Tag>,
-): Promise<Tables.Tag> {
+  user: UserRef,
+  id: DBAPI<Tables.Tag>["id"],
+  data: DBAPI<Partial<Tables.Tag>>,
+): Promise<DBAPI<Tables.Tag>> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
@@ -180,21 +181,21 @@ export async function editTag(
     Table.Tag,
     knex.where("id", id)
       .andWhere("catalog", "in", catalogs),
-    tagUpdateData,
+    intoDBTypes(tagUpdateData),
   ).returning("*");
 
   if (results.length) {
-    return results[0];
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or album passed to editTag");
 }
 
 export async function createPerson(
-  user: string,
-  catalog: string,
-  data: Omit<Tables.Person, "id" | "catalog">,
-): Promise<Tables.Person> {
+  user: UserRef,
+  catalog: DBAPI<Tables.Person>["catalog"],
+  data: DBAPI<Omit<Tables.Person, "id" | "catalog">>,
+): Promise<DBAPI<Tables.Person>> {
   let knex = await connection;
 
   let select = knex.from(Table.UserCatalog).where({
@@ -203,23 +204,23 @@ export async function createPerson(
   });
 
   let results = await insertFromSelect(knex, Table.Person, select, {
-    ...data,
+    ...intoDBTypes(data),
     id: await uuid("P"),
     catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
   }).returning("*");
 
   if (results.length) {
-    return results[0];
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or catalog passed to createPerson");
 }
 
 export async function editPerson(
-  user: string,
-  id: string,
-  data: Partial<Tables.Person>,
-): Promise<Tables.Person> {
+  user: UserRef,
+  id: DBAPI<Tables.Person>["id"],
+  data: DBAPI<Partial<Tables.Person>>,
+): Promise<DBAPI<Tables.Person>> {
   let knex = await connection;
   let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
 
@@ -232,11 +233,11 @@ export async function editPerson(
     Table.Person,
     knex.where("id", id)
       .andWhere("catalog", "in", catalogs),
-    personUpdateData,
+    intoDBTypes(personUpdateData),
   ).returning("*");
 
   if (results.length) {
-    return results[0];
+    return intoAPITypes(results[0]);
   }
 
   throw new Error("Invalid user or album passed to editPerson");

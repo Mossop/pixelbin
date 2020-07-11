@@ -1,37 +1,65 @@
 import { Raw, Ref } from "knex";
-import { Moment, isMoment } from "moment-timezone";
+import moment, { Moment, isMoment } from "moment-timezone";
 
 import { Dereference, ListsIn } from "../../../model/models";
 import { Obj } from "../../../utils";
 
-type DBType<JSType> = JSType extends Moment ? string : JSType;
+type DBType<J> = J extends Moment
+  ? string
+  : undefined extends J
+    ? never
+    : J;
 
-export type DbRecord<Table> = {
+type DBTyped<T> = {
+  [K in keyof T]: DBType<T[K]>;
+};
+
+// Translates a model into the API view.
+export type DBAPI<Table> = {
   [Column in keyof Omit<Table, ListsIn<Table>>]: Dereference<Table[Column]>;
 };
 
-export type DBTypes = Raw | Ref<string, Obj> | number | string | null;
-export type JSTypes = DBTypes | Moment | undefined;
+// Translates a model into the DB fields
+export type DBRecord<Table> = DBTyped<DBAPI<Table>>;
 
 export type WithRefs<Record> = {
   [K in keyof Record]: Raw | Ref<string, Obj> | Record[K];
 };
 
-function mapColumn(value: Exclude<JSTypes, undefined>): DBTypes {
+function intoDBType(_key: string, value: unknown): unknown {
   if (isMoment(value)) {
-    return value.tz("UTC").toISOString();
+    return value.utc().toISOString();
   }
   return value;
 }
 
-export function intoDBTypes<T extends Record<string, JSTypes>>(data: T): Record<keyof T, DBTypes> {
+export function intoDBTypes<T>(data: DBAPI<T>): DBRecord<T> {
   // @ts-ignore: Bad TypeScript.
   return Object.fromEntries(
     Object.entries(data)
-      .filter(([_key, value]: [string, JSTypes]): boolean => value !== undefined)
-      // @ts-ignore: TypeScript can't track the filtering above.
-      .map(([key, value]: [string, Exclude<JSTypes, undefined>]): [string, DBTypes] => {
-        return [key, mapColumn(value)];
+      .filter(([_key, value]: [string, unknown]): boolean => value !== undefined)
+      .map(([key, value]: [string, unknown]): [string, unknown] => {
+        return [key, intoDBType(key, value)];
+      }),
+  );
+}
+
+function intoAPIType(key: string, value: unknown): unknown {
+  if (value instanceof Date) {
+    console.log("Got from DB:", value);
+    return moment(value).utc();
+  }
+
+  return value;
+}
+
+export function intoAPITypes<T>(data: DBRecord<T>): DBAPI<T> {
+  // @ts-ignore: Bad TypeScript.
+  return Object.fromEntries(
+    Object.entries(data)
+      .filter(([_key, value]: [string, unknown]): boolean => value !== undefined)
+      .map(([key, value]: [string, unknown]): [string, unknown] => {
+        return [key, intoAPIType(key, value)];
       }),
   );
 }

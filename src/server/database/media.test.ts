@@ -1,8 +1,9 @@
 import moment, { Moment } from "moment-timezone";
 
 import { expect, mockedFunction } from "../../test-helpers";
-import { createMedia, fillMetadata, getMedia, createMediaInfo, editMedia } from "./media";
+import { createMedia, fillMetadata, getMedia, editMedia } from "./media";
 import { buildTestDB, insertTestData } from "./test-helpers";
+import { createMediaInfo } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
   const actualMoment = jest.requireActual("moment-timezone");
@@ -57,12 +58,13 @@ test("Media tests", async (): Promise<void> => {
     height: null,
     duration: null,
     fileSize: null,
+    bitRate: null,
+    frameRate: null,
   }));
 
   let uploadedMoment: Moment = realMoment.tz("2020-01-03T15:31:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => uploadedMoment);
 
-  let info = await createMediaInfo("someone3@nowhere.com", id, fillMetadata({
+  let info = await createMediaInfo(id, fillMetadata({
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -70,6 +72,8 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
+    processVersion: 5,
+    uploaded: uploadedMoment,
 
     title: "Info title",
     photographer: "Me",
@@ -105,6 +109,8 @@ test("Media tests", async (): Promise<void> => {
     width: 1024,
     height: 768,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 1000,
   }));
 
@@ -128,13 +134,15 @@ test("Media tests", async (): Promise<void> => {
     width: 1024,
     height: 768,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 1000,
   }));
 
   let uploaded2Moment: Moment = realMoment.tz("2020-01-04T15:31:01", "UTC");
   mockedMoment.mockImplementationOnce((): Moment => uploaded2Moment);
 
-  info = await createMediaInfo("someone3@nowhere.com", id, fillMetadata({
+  info = await createMediaInfo(id, fillMetadata({
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -142,6 +150,8 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 2000,
+    processVersion: 5,
+    uploaded: uploaded2Moment,
 
     title: "Different title",
     model: "Some model",
@@ -178,6 +188,8 @@ test("Media tests", async (): Promise<void> => {
     width: 2048,
     height: 1024,
     duration: null,
+    bitRate: null,
+    frameRate: null,
     fileSize: 2000,
   }));
 
@@ -188,8 +200,8 @@ test("Media tests", async (): Promise<void> => {
 
   newMedia = await createMedia("someone1@nowhere.com", "c1", fillMetadata({}));
 
-  // Cannot add media info to media in a catalog the user cannot access.
-  await expect(createMediaInfo("someone3@nowhere.com", newMedia.id, fillMetadata({
+  // Cannot add media info to a missing media.
+  await expect(createMediaInfo("biz", fillMetadata({
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -197,7 +209,9 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
-  }))).rejects.toThrow("Invalid user or catalog passed to createMediaInfo");
+    processVersion: 5,
+    uploaded: moment(),
+  }))).rejects.toThrow("violates foreign key constraint");
 
   // Cannot get media in a catalog the user cannot access.
   foundMedia = await getMedia("someone3@nowhere.com", newMedia.id);

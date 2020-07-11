@@ -62,7 +62,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.float(name).nullable();
     }
 
-    table.dateTime("taken", { useTz: false }).nullable();
+    table.dateTime("taken", { useTz: true }).nullable();
   }
 
   return knex.schema.createTable(Table.User, (table: Knex.CreateTableBuilder): void => {

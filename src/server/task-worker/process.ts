@@ -1,7 +1,10 @@
 import { Logger } from "../../utils";
-import { getMedia } from "../database/unsafe";
+import { getMedia, createMediaInfo } from "../database/unsafe";
+import { parseFile, parseMetadata, getMediaInfo } from "./metadata";
 import Services from "./services";
 import { bindTask } from "./task";
+
+const PROCESS_VERSION = 1;
 
 export const handleUploadedFile = bindTask(
   async function handleUploadedFile(logger: Logger, mediaId: string): Promise<void> {
@@ -25,8 +28,15 @@ export const handleUploadedFile = bindTask(
         return;
       }
 
-      // let tags = await parseFile(file);
-      // let metadata = parseMetadata(tags);
+      let data = await parseFile(file);
+      let metadata = parseMetadata(data);
+      let info = getMediaInfo(data);
+
+      await createMediaInfo(mediaId, {
+        ...metadata,
+        ...info,
+        processVersion: PROCESS_VERSION,
+      });
 
       await storage.get().deleteUploadedFile(mediaId);
     } finally {

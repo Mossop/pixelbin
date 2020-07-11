@@ -1,25 +1,24 @@
 import * as ObjectModel from "../../../model/models";
 import { Nullable } from "../../../utils";
-import { DbRecord } from "./meta";
 
-export type User = DbRecord<ObjectModel.User> & { password: string };
+export type User = ObjectModel.User & { password: string };
 
-export type Storage = DbRecord<ObjectModel.Storage>;
+export type Storage = ObjectModel.Storage;
 
-export type Catalog = DbRecord<ObjectModel.Catalog>;
+export type Catalog = ObjectModel.Catalog;
 
-export type Person = DbRecord<ObjectModel.Person>;
+export type Person = ObjectModel.Person;
 
-export type Tag = DbRecord<ObjectModel.Tag>;
+export type Tag = ObjectModel.Tag;
 
-export type Album = DbRecord<ObjectModel.Album>;
+export type Album = ObjectModel.Album;
 
 // Not actually a table.
-export type Metadata = DbRecord<Nullable<ObjectModel.Metadata>>;
+export type Metadata = Nullable<ObjectModel.Metadata>;
 
-export type Media = DbRecord<ObjectModel.Media> & Metadata;
+export type Media = ObjectModel.Media & Metadata;
 
-export type MediaInfo = DbRecord<ObjectModel.MediaInfo> & Metadata & {
+export type MediaInfo = ObjectModel.MediaInfo & Metadata & {
   processVersion: number;
 };
 
@@ -29,4 +28,4 @@ type AllNull<T> = {
 
 type AllOrNulls<T> = T | AllNull<T>;
 
-export type MediaWithInfo = Media & AllOrNulls<Omit<MediaInfo, "media" | "processVersion">>;
+export type MediaWithInfo = Media & AllOrNulls<Omit<MediaInfo, "media">>;
