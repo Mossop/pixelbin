@@ -12,7 +12,6 @@ import { insertTestData, buildTestDB } from "../database/test-helpers";
 import { StorageService } from "../storage";
 import { handleUploadedFile } from "./process";
 import services, { provideService } from "./services";
-import { setLogConfig } from "../../utils";
 
 jest.mock("../storage");
 
