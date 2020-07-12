@@ -39,6 +39,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       "model",
       "lens",
       "photographer",
+      "timeZone",
     ]) {
       table.string(name, 200).nullable();
     }
@@ -46,7 +47,6 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     for (let name of [
       "orientation",
       "iso",
-      "offset",
     ]) {
       table.integer(name).nullable();
     }

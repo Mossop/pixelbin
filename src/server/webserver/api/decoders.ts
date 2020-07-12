@@ -114,7 +114,7 @@ export async function MediaCreateRequest(
     filename: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     title: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     taken: JsonDecoder.optional(JsonDecoder.nullable(DateDecoder)),
-    offset: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
+    timeZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     longitude: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
     latitude: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
     altitude: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),

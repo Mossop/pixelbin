@@ -67,7 +67,7 @@ test("Process metadata", async (): Promise<void> => {
     filename: "Testname.jpg",
     title: null,
     taken: expect.toEqualDate("2018-08-22T18:51:25.800-07:00"),
-    offset: -420,
+    timeZone: "America/Los_Angeles",
     longitude: -121.517784,
     latitude: 45.715054,
     altitude: 28.4597,

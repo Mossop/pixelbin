@@ -228,7 +228,7 @@ export function mediaMetadataIntoResponse(metadata: MetadataData): MetadataDataR
 export function mockMediaInfo(data: Partial<MediaInfoData>): MediaInfoData {
   return {
     processVersion: data.processVersion ?? 1,
-    uploaded: data.uploaded ?? moment().tz("UTC"),
+    uploaded: data.uploaded ?? moment().utc(),
     mimetype: data.mimetype ?? "image/jpeg",
     width: data.width ?? 1024,
     height: data.height ?? 768,
@@ -247,7 +247,7 @@ export function mediaInfoIntoResponse(info: MediaInfoData): MediaInfoDataRespons
 export function mockMedia(data: Partial<MediaData>): MediaData {
   return {
     id: data.id ?? randomId(),
-    created: data.created ?? moment().tz("UTC"),
+    created: data.created ?? moment().utc(),
     info: data.info ?? null,
     tags: data.tags ?? [],
     albums: data.albums ?? [],

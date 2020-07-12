@@ -103,7 +103,7 @@ export interface Metadata {
   filename: string;
   title: string;
   taken: Moment;
-  offset: number;
+  timeZone: string;
   longitude: number;
   latitude: number;
   altitude: number;
@@ -126,7 +126,7 @@ export const metadataColumns: (keyof Metadata)[] = [
   "filename",
   "title",
   "taken",
-  "offset",
+  "timeZone",
   "longitude",
   "latitude",
   "altitude",
