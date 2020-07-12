@@ -155,7 +155,7 @@ const MediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>({
   filename: JsonDecoder.nullable(JsonDecoder.string),
   title: JsonDecoder.nullable(JsonDecoder.string),
   taken: JsonDecoder.nullable(DateDecoder),
-  offset: JsonDecoder.nullable(JsonDecoder.number),
+  timeZone: JsonDecoder.nullable(JsonDecoder.string),
   longitude: JsonDecoder.nullable(JsonDecoder.number),
   latitude: JsonDecoder.nullable(JsonDecoder.number),
   altitude: JsonDecoder.nullable(JsonDecoder.number),
