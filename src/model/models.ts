@@ -161,3 +161,11 @@ export interface MediaInfo extends IdType {
   frameRate: number | null;
   bitRate: number | null;
 }
+
+export const MEDIA_THUMBNAIL_SIZES = [
+  150,
+  200,
+  300,
+  400,
+  500,
+];

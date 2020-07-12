@@ -134,7 +134,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.string("mimetype", 50).notNullable();
     table.integer("width").notNullable();
     table.integer("height").notNullable();
-    table.integer("duration").nullable();
+    table.float("duration").nullable();
     table.float("frameRate").nullable();
     table.float("bitRate").nullable();
     table.integer("fileSize").notNullable();

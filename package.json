@@ -21,6 +21,7 @@
     "@types/istanbul-lib-report": "^3.0.0",
     "@types/istanbul-reports": "^1.1.2",
     "@types/jest": "^26.0.4",
+    "@types/jest-image-snapshot": "^3.1.0",
     "@types/karma": "^5.0.0",
     "@types/karma-coverage": "^1.1.2",
     "@types/karma-coverage-istanbul-reporter": "^2.1.0",
@@ -64,6 +65,7 @@
     "jest": "^26.1.0",
     "jest-environment-jsdom-global": "^2.0.2",
     "jest-environment-jsdom-sixteen": "^1.0.3",
+    "jest-image-snapshot": "^4.0.2",
     "jest-mock-console": "^1.0.1",
     "jsdom": "^16.2.2",
     "karma": "^5.1.0",
@@ -98,6 +100,7 @@
     "aws-sdk": "^2.712.0",
     "core-js": "^3.6.5",
     "deeds": "^3.0.0",
+    "execa": "^4.0.3",
     "exiftool-vendored": "^11.4.0",
     "ffprobe-client": "^1.1.6",
     "formidable": "^1.2.2",
@@ -116,6 +119,7 @@
     "redux": "^4.0.5",
     "redux-logger": "^3.0.6",
     "sharp": "^0.25.4",
+    "tmp-promise": "^3.0.2",
     "ts.data.json": "^1.1.0"
   }
 }

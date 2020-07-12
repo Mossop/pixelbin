@@ -115,12 +115,12 @@ export abstract class RefCountedObject {
 }
 
 export class RefCounted<T> extends RefCountedObject {
-  public constructor(private inner: T, private destroyer: (item: T) => void) {
+  public constructor(private inner: T, private destroyer?: (item: T) => void) {
     super();
   }
 
   protected destroy(): void {
-    this.destroyer.call(null, this.inner);
+    this.destroyer?.call(null, this.inner);
   }
 
   public get(): T {

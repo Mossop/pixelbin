@@ -2,11 +2,14 @@ import assert from "assert";
 
 import { expect as jestExpect } from "@jest/globals";
 import diff from "jest-diff";
+import { toMatchImageSnapshot } from "jest-image-snapshot";
 import moment, { Moment, isMoment } from "moment-timezone";
 
 import { defer } from "../utils";
 
 const matchers = {
+  toMatchImageSnapshot,
+
   toEqualDate(
     this: jest.MatcherContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
