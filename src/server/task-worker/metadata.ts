@@ -299,11 +299,6 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
 
   let mimetype = await detectMimetype(file.path);
 
-  let parser = new Intl.DateTimeFormat("en-US", {
-    timeZone: "UTC",
-  });
-  let current = new Date();
-
   let exif: ExifTags = {
     ...Object.fromEntries(
       Object.entries(tags)
@@ -312,32 +307,7 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
           if (value instanceof ExifDate || value instanceof ExifDateTime) {
             return [key, value.toISOString()];
           } else if (value instanceof ExifTime) {
-            let date = new Date(
-              current.getFullYear(),
-              current.getMonth(),
-              current.getDate(),
-              value.hour,
-              value.minute,
-              value.second,
-              value.millisecond,
-            );
-
-            let time = [
-              date.getUTCHours().toString().padStart(2, "0"),
-              date.getUTCMinutes().toString().padStart(2, "0"),
-              date.getUTCSeconds().toString().padStart(2, "0"),
-            ].join(":");
-
-            let millis = date.getUTCMilliseconds().toString().padStart(3, "0");
-            if (millis == "000") {
-              return [key, `${time}+00:00`];
-            }
-
-            while (millis.charAt(millis.length - 1) == "0") {
-              millis = millis.substring(0, millis.length - 2);
-            }
-
-            return [key, `${time}${millis}+00:00`];
+            return [key, value.toISOString()];
           }
           return [key, value];
         }),

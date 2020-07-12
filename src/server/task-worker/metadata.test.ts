@@ -19,6 +19,8 @@ test("lamppost", async (): Promise<void> => {
     uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg"),
   });
+  // This field is problematic and not important.
+  delete data.exif.TimeCreated;
 
   expect(data).toMatchSnapshot({
     fileName: "Testname.jpg",
@@ -76,6 +78,8 @@ test("iptc", async (): Promise<void> => {
     uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "iptc.jpg"),
   });
+  // This field is problematic and not important.
+  delete data.exif.TimeCreated;
 
   expect(data).toMatchSnapshot({
     fileName: "IPTC.JPG",
@@ -133,6 +137,8 @@ test("video", async (): Promise<void> => {
     uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "video.mp4"),
   });
+  // This field is problematic and not important.
+  delete data.exif.TimeCreated;
 
   expect(data).toMatchSnapshot({
     fileName: "test_video.foo",
