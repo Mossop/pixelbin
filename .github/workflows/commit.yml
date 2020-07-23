@@ -59,7 +59,8 @@ jobs:
           MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
         ports:
           - 9000:9000
-        command: server /data
+        options: >-
+          server /data
 
     steps:
     - uses: actions/checkout@v2
