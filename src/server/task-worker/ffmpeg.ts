@@ -79,7 +79,8 @@ const ProbeResultsDecoder = JsonDecoder.object<ProbeResults>({
   format: FormatDecoder,
 }, "ProbeResults");
 
-type VideoInfo = Omit<MediaInfo, "id" | "media" | "uploaded" | "fileSize" | "mimetype">;
+type VideoInfo =
+  Omit<MediaInfo, "id" | "media" | "uploaded" | "fileSize" | "mimetype" | "hostedName">;
 
 export async function probe(file: string): Promise<VideoInfo> {
   let data = await ffprobe(file);

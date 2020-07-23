@@ -39,6 +39,7 @@ services:
     environment:
       MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
       MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      MINIO_REGION_NAME: us-west-001
 
     volumes:
       - ../data/minio:/data:delegated

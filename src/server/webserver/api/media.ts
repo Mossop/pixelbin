@@ -22,7 +22,7 @@ export const createMedia = ensureAuthenticated(
 
     let media: Api.Media;
     try {
-      media = await Db.createMedia(user.email, data.catalog, Db.fillMetadata(mediaData));
+      media = await Db.createMedia(user.email, catalog, Db.fillMetadata(mediaData));
     } catch (e) {
       throw new ApiError(ApiErrorCode.InvalidData, {
         message: String(e),

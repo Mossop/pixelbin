@@ -74,6 +74,7 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 1000,
     processVersion: 5,
     uploaded: uploadedMoment,
+    hostedName: "biz.jpg",
 
     title: "Info title",
     photographer: "Me",
@@ -90,6 +91,7 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
+    hostedName: "biz.jpg",
 
     title: "Info title",
     photographer: "Me",
@@ -152,6 +154,7 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 2000,
     processVersion: 5,
     uploaded: uploaded2Moment,
+    hostedName: "bar.jpg",
 
     title: "Different title",
     model: "Some model",
@@ -168,6 +171,7 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 2000,
+    hostedName: "bar.jpg",
 
     title: "Different title",
     model: "Some model",
@@ -211,6 +215,7 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 1000,
     processVersion: 5,
     uploaded: moment(),
+    hostedName: "foo.jpg",
   }))).rejects.toThrow("violates foreign key constraint");
 
   // Cannot get media in a catalog the user cannot access.

@@ -1,6 +1,7 @@
 import path from "path";
 
 import execa, { ExecaError } from "execa";
+import mimeext from "mime2ext";
 import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
@@ -13,6 +14,17 @@ import Services from "./services";
 import { bindTask } from "./task";
 
 const PROCESS_VERSION = 1;
+
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "video/mp4",
+  "video/x-m4v",
+  "video/x-matroska",
+  "video/webm",
+  "video/quicktime",
+  "video/mpeg",
+];
 
 async function getThumbSource(
   logger: Logger,
@@ -82,8 +94,16 @@ export const handleUploadedFile = bindTask(
       logger.trace("Parsing file metadata.");
 
       let data = await parseFile(file);
+
+      if (!ALLOWED_TYPES.includes(data.mimetype)) {
+        await storage.get().deleteUploadedFile(mediaId);
+        throw new Error(`Unrecognised mimetype: ${data.mimetype}`);
+      }
+
       let metadata = parseMetadata(data);
       let info = getMediaInfo(data);
+
+      let hostedName = metadata.filename ?? `original.${mimeext(data.mimetype)}`;
 
       /**
        * TODO: There is a race condition here, the webserver will see the mediainfo complete
@@ -94,6 +114,7 @@ export const handleUploadedFile = bindTask(
         ...metadata,
         ...info,
         processVersion: PROCESS_VERSION,
+        hostedName,
       });
 
       let source = await getThumbSource(logger, file, info.mimetype);
@@ -117,6 +138,8 @@ export const handleUploadedFile = bindTask(
       } finally {
         source.release();
       }
+
+      await storage.get().storeFile(mediaId, mediaInfo.id, hostedName, file.path);
 
       await storage.get().deleteUploadedFile(mediaId);
     } finally {

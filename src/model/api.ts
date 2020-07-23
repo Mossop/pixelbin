@@ -9,7 +9,8 @@ export type ResponseFor<Table> = Dereferenced<WithoutLists<Table>>;
 
 export type UnprocessedMedia =
   Omit<ResponseFor<ObjectModel.Media>, "catalog"> & ResponseFor<Nullable<ObjectModel.Metadata>>;
-export type MediaInfo = Omit<ResponseFor<WithoutReferences<ObjectModel.MediaInfo>>, "media">;
+export type MediaInfo =
+  Omit<ResponseFor<WithoutReferences<ObjectModel.MediaInfo>>, "media" | "hostedName">;
 export type ProcessedMedia = UnprocessedMedia & MediaInfo;
 export type Media = UnprocessedMedia | ProcessedMedia;
 

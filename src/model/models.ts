@@ -72,6 +72,8 @@ export interface Storage extends IdType {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
+  bucket: string;
+  path: string | null;
   endpoint: string | null;
   publicUrl: string | null;
 }
@@ -160,6 +162,7 @@ export interface MediaInfo extends IdType {
   duration: number | null;
   frameRate: number | null;
   bitRate: number | null;
+  hostedName: string;
 }
 
 export const MEDIA_THUMBNAIL_SIZES = [

@@ -62,6 +62,7 @@ test("lamppost", async (): Promise<void> => {
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",
+    hostedName: "Testname.jpg",
     width: 500,
     height: 331,
     duration: null,
@@ -121,6 +122,7 @@ test("iptc", async (): Promise<void> => {
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",
+    hostedName: "IPTC.JPG",
     width: 1000,
     height: 500,
     duration: null,
@@ -180,6 +182,7 @@ test("video", async (): Promise<void> => {
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "video/mp4",
+    hostedName: "test_video.foo",
     width: 1920,
     height: 1080,
     duration: 1.74,

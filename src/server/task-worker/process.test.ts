@@ -56,11 +56,12 @@ test("Process image metadata", async (): Promise<void> => {
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
   let uploaded = moment("2015-06-21T02:56:53");
+  let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
   getUploadedFileMock.mockResolvedValueOnce({
     name: "Testname.jpg",
     uploaded,
-    path: path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg"),
+    path: sourceFile,
   });
 
   let media = await createMedia("someone1@nowhere.com", "c1", fillMetadata({
@@ -74,6 +75,9 @@ test("Process image metadata", async (): Promise<void> => {
       return Promise.resolve(path.join(temp.path, name));
     },
   );
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let storeFileMock = mockedFunction(storage.storeFile);
 
   await handleUploadedFile(media.id);
 
@@ -127,6 +131,14 @@ test("Process image metadata", async (): Promise<void> => {
     });
   }
 
+  expect(storeFileMock).toHaveBeenCalledTimes(1);
+  expect(storeFileMock).toHaveBeenLastCalledWith(
+    media.id,
+    expect.anything(),
+    "Testname.jpg",
+    sourceFile,
+  );
+
   await temp.cleanup();
 });
 
@@ -143,11 +155,12 @@ test("Process video metadata", async (): Promise<void> => {
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
   let uploaded = moment("2017-01-02T02:56:53");
+  let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
 
   getUploadedFileMock.mockResolvedValueOnce({
     name: "Testvideo.mp4",
     uploaded,
-    path: path.join(__dirname, "..", "..", "..", "testdata", "video.mp4"),
+    path: sourceFile,
   });
 
   let media = await createMedia("someone1@nowhere.com", "c1", fillMetadata({
@@ -160,6 +173,9 @@ test("Process video metadata", async (): Promise<void> => {
       return Promise.resolve(path.join(temp.path, name));
     },
   );
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let storeFileMock = mockedFunction(storage.storeFile);
 
   await handleUploadedFile(media.id);
 
@@ -212,6 +228,14 @@ test("Process video metadata", async (): Promise<void> => {
       customSnapshotIdentifier: `video-thumb-${size}`,
     });
   }
+
+  expect(storeFileMock).toHaveBeenCalledTimes(1);
+  expect(storeFileMock).toHaveBeenLastCalledWith(
+    media.id,
+    expect.anything(),
+    "Testvideo.mp4",
+    sourceFile,
+  );
 
   await temp.cleanup();
 });

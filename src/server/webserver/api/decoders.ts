@@ -38,6 +38,8 @@ const StorageCreateDecoder = JsonDecoder.object<Create<Api.Storage>>({
   accessKeyId: JsonDecoder.string,
   secretAccessKey: JsonDecoder.string,
   region: JsonDecoder.string,
+  bucket: JsonDecoder.string,
+  path: JsonDecoder.nullable(JsonDecoder.string),
   endpoint: JsonDecoder.nullable(JsonDecoder.string),
   publicUrl: JsonDecoder.nullable(JsonDecoder.string),
 }, "StorageCreateDecoder");

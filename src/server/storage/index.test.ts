@@ -1,11 +1,12 @@
 import { promises as fs } from "fs";
-import os from "os";
 import path from "path";
 
 import moment, { Moment } from "moment-timezone";
+import { dir as tmpdir } from "tmp-promise";
 
 import { StorageService } from ".";
 import { expect, mockedFunction } from "../../test-helpers";
+import { insertTestData, buildTestDB } from "../database/test-helpers";
 
 jest.mock("moment-timezone", (): unknown => {
   const actualMoment = jest.requireActual("moment-timezone");
@@ -20,21 +21,29 @@ jest.mock("moment-timezone", (): unknown => {
 const mockedMoment = mockedFunction(moment);
 const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
-test("storage", async (): Promise<void> => {
-  let testTemp = await fs.mkdtemp(path.join(os.tmpdir(), "temp-"));
+buildTestDB();
 
-  let temp = await fs.mkdtemp(path.join(os.tmpdir(), "temp-"));
-  let local = await fs.mkdtemp(path.join(os.tmpdir(), "local-"));
+test("Basic storage", async (): Promise<void> => {
+  let testTemp = await tmpdir({
+    unsafeCleanup: true,
+  });
+
+  let temp = await tmpdir({
+    unsafeCleanup: true,
+  });
+  let local = await tmpdir({
+    unsafeCleanup: true,
+  });
 
   try {
     let service = new StorageService({
-      tempDirectory: temp,
-      localDirectory: local,
+      tempDirectory: temp.path,
+      localDirectory: local.path,
     });
 
     let storage = await service.getStorage("myid");
 
-    let testFile = path.join(testTemp, "test1");
+    let testFile = path.join(testTemp.path, "test1");
     await fs.writeFile(testFile, "MYDATA");
 
     let uploaded: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
@@ -50,7 +59,7 @@ test("storage", async (): Promise<void> => {
     expect(fileData).toEqual({
       name: "spoecial.txt",
       uploaded: expect.toEqualDate(uploaded),
-      path: expect.stringMatching(new RegExp(`^${temp}/`)),
+      path: expect.stringMatching(new RegExp(`^${temp.path}/`)),
     });
     expect(fileData).not.toBeNull();
 
@@ -66,31 +75,79 @@ test("storage", async (): Promise<void> => {
     expect(await storage.get().getUploadedFile("storage_id")).toBeNull();
 
     let localBar = await storage.get().getLocalFilePath("foo", "info", "bar");
-    expect(localBar).toBe(path.join(local, "myid", "foo", "info", "bar"));
-    let stat = await fs.stat(path.join(local, "myid", "foo", "info"));
+    expect(localBar).toBe(path.join(local.path, "myid", "foo", "info", "bar"));
+    let stat = await fs.stat(path.join(local.path, "myid", "foo", "info"));
     expect(stat.isDirectory()).toBeTruthy();
 
     await storage.get().deleteLocalFiles("foo", "info");
     await expect(
-      fs.stat(path.join(local, "myid", "foo", "info")),
+      fs.stat(path.join(local.path, "myid", "foo", "info")),
     ).rejects.toThrow("no such file or directory");
 
-    stat = await fs.stat(path.join(local, "myid", "foo"));
+    stat = await fs.stat(path.join(local.path, "myid", "foo"));
     expect(stat.isDirectory()).toBeTruthy();
 
     await storage.get().deleteLocalFiles("foo");
     await expect(
-      fs.stat(path.join(local, "myid", "foo")),
+      fs.stat(path.join(local.path, "myid", "foo")),
     ).rejects.toThrow("no such file or directory");
   } finally {
-    await fs.rmdir(testTemp, {
-      recursive: true,
+    await testTemp.cleanup();
+    await temp.cleanup();
+    await local.cleanup();
+  }
+});
+
+test("AWS upload", async (): Promise<void> => {
+  await insertTestData();
+
+  let testTemp = await tmpdir({
+    unsafeCleanup: true,
+  });
+
+  let temp = await tmpdir({
+    unsafeCleanup: true,
+  });
+  let local = await tmpdir({
+    unsafeCleanup: true,
+  });
+
+  try {
+    let service = new StorageService({
+      tempDirectory: temp.path,
+      localDirectory: local.path,
     });
-    await fs.rmdir(temp, {
-      recursive: true,
+
+    let testFile = path.join(testTemp.path, "file.txt");
+    await fs.writeFile(testFile, "MYDATA");
+
+    let storage = await service.getStorage("c1");
+
+    await storage.get().storeFile("media", "info", "file.txt", testFile);
+
+    let url = await storage.get().getFileUrl("media", "info", "file.txt");
+    expect(url).toMatch(/^http:\/\/localhost:9000\//);
+
+    let stream = await storage.get().streamFile("media", "info", "file.txt");
+    let content = await new Promise((resolve: ((content: string) => void)): void => {
+      const chunks: Buffer[] = [];
+
+      stream.on("data", (chunk: Buffer): void => {
+        chunks.push(chunk);
+      });
+
+      // Send the buffer or you can put it into a var
+      stream.on("end", (): void => {
+        resolve(Buffer.concat(chunks).toString("utf8"));
+      });
     });
-    await fs.rmdir(local, {
-      recursive: true,
-    });
+
+    expect(content).toBe("MYDATA");
+
+    await storage.get().deleteFile("media", "info", "file.txt");
+  } finally {
+    await testTemp.cleanup();
+    await temp.cleanup();
+    await local.cleanup();
   }
 });

@@ -1,6 +1,8 @@
 import { RefCounted } from "../../../utils";
 
 export const StorageMock = {
+  storeFile: jest.fn((): Promise<void> => Promise.resolve()),
+
   getLocalFilePath: jest.fn((): Promise<string> =>
     Promise.reject(new Error("No implementation provided."))),
 

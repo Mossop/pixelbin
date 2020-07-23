@@ -4,6 +4,7 @@ import path from "path";
 import moment, { Moment } from "moment-timezone";
 
 import { Cache, RefCounted, getLogger, Logger } from "../../utils";
+import { AWSRemote } from "./aws";
 
 const logger = getLogger("storage");
 
@@ -13,20 +14,58 @@ export interface StorageConfig {
 }
 
 export interface FileInfo {
-  name: string;
+  name: string | null;
   path: string;
   uploaded: Moment;
 }
 
 export class Storage {
   private readonly logger: Logger;
+  private aws: Promise<AWSRemote> | undefined;
 
   public constructor(
     private readonly catalog: string,
     private readonly tempDirectory: string,
     private readonly localDirectory: string,
   ) {
-    this.logger = logger.child({ id: catalog });
+    this.logger = logger.child({ catalog });
+  }
+
+  private get remote(): Promise<AWSRemote> {
+    if (!this.aws) {
+      this.aws = AWSRemote.getRemote(this.catalog);
+    }
+
+    return this.aws;
+  }
+
+  public async getFileUrl(media: string, mediaInfo: string, name: string): Promise<string> {
+    let remote = await this.remote;
+    return remote.getUrl(path.join(media, mediaInfo, name));
+  }
+
+  public async streamFile(
+    media: string,
+    mediaInfo: string,
+    name: string,
+  ): Promise<NodeJS.ReadableStream> {
+    let remote = await this.remote;
+    return remote.stream(path.join(media, mediaInfo, name));
+  }
+
+  public async storeFile(
+    media: string,
+    mediaInfo: string,
+    name: string,
+    file: string,
+  ): Promise<void> {
+    let remote = await this.remote;
+    await remote.upload(path.join(media, mediaInfo, name), file);
+  }
+
+  public async deleteFile(media: string, mediaInfo: string, name: string): Promise<void> {
+    let remote = await this.remote;
+    await remote.delete(path.join(media, mediaInfo, name));
   }
 
   public async getLocalFilePath(media: string, mediaInfo: string, name: string): Promise<string> {
@@ -57,7 +96,7 @@ export class Storage {
     await fs.copyFile(filepath, path.join(targetDir, "uploaded"));
 
     let info: Omit<FileInfo, "path"> = {
-      name,
+      name: name.length ? name : null,
       uploaded: moment(),
     };
     await fs.writeFile(path.join(targetDir, "uploaded.meta"), JSON.stringify(info));

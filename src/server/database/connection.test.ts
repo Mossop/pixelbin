@@ -15,6 +15,8 @@ test("Basic database connection", async (): Promise<void> => {
     secretAccessKey: "foo",
     region: "nowhere",
     endpoint: "anywhere",
+    bucket: "buckit",
+    path: null,
     publicUrl: null,
   });
 

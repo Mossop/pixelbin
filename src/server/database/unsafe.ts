@@ -1,8 +1,8 @@
 import { metadataColumns } from "../../model/models";
 import { connection } from "./connection";
 import { uuid } from "./id";
-import { from, into } from "./queries";
-import { Table, Tables } from "./types";
+import { from, into, select } from "./queries";
+import { Table, Tables, ref } from "./types";
 import { DBAPI, intoDBTypes, intoAPITypes } from "./types/meta";
 
 export async function getMedia(id: DBAPI<Tables.Media>["id"]): Promise<DBAPI<Tables.Media> | null> {
@@ -38,6 +38,7 @@ export async function createMediaInfo(
     "frameRate",
     "bitRate",
     "fileSize",
+    "hostedName",
     ...metadataColumns,
   ]);
 
@@ -46,4 +47,20 @@ export async function createMediaInfo(
   }
 
   throw new Error("Invalid media ID passed to createMediaInfo");
+}
+
+export async function getStorageConfig(
+  catalog: DBAPI<Tables.Catalog>["id"],
+): Promise<DBAPI<Tables.Storage>> {
+  let knex = await connection;
+
+  let results = await select(from(knex, Table.Storage)
+    .join(Table.Catalog, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
+    .where(ref(Table.Catalog, "id"), catalog), Table.Storage);
+
+  if (results.length) {
+    return intoAPITypes(results[0]);
+  }
+
+  throw new Error("Invalid catalog ID passed to getStorageConfig.");
 }

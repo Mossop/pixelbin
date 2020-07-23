@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 
 import { ExifDate, ExifDateTime, ExifTime, Tags } from "exiftool-vendored";
+import mimeext from "mime2ext";
 import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
@@ -28,7 +29,7 @@ type StoredTag<T> =
 
 type ExifTags = { [K in keyof Omit<Tags, ExcludedTags>]?: StoredTag<Tags[K]>; };
 
-export type StoredData = Omit<MediaInfo, "id" | "media" | "uploaded"> & {
+export type StoredData = Omit<MediaInfo, "id" | "media" | "uploaded" | "hostedName"> & {
   exif: ExifTags;
   fileName: string;
   uploaded: string;
@@ -314,11 +315,13 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
     ),
   };
 
+  let fileName = file.name ?? `original.${mimeext(mimetype)}`;
+
   if (mimetype.startsWith("image/")) {
     let metadata = await sharp(file.path).metadata();
     return {
       exif,
-      fileName: file.name,
+      fileName,
       fileSize: stat.size,
       width: metadata.width ?? exif.ImageWidth ?? 0,
       height: metadata.height ?? exif.ImageHeight ?? 0,
@@ -338,7 +341,7 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
 
   return {
     exif,
-    fileName: file.name,
+    fileName,
     fileSize: stat.size,
     uploaded: file.uploaded.toISOString(),
     mimetype,
@@ -348,8 +351,10 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
 
 export function getMediaInfo(data: StoredData): Omit<MediaInfo, "id" | "media"> {
   let { uploaded, exif, fileName, ...info } = data;
+
   return {
     ...info,
+    hostedName: fileName,
     uploaded: moment(uploaded),
   };
 }

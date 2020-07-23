@@ -39,6 +39,8 @@ test("Storage tests", async (): Promise<void> => {
     publicUrl: null,
     region: "fooend",
     endpoint: null,
+    path: null,
+    bucket: "buckit",
   });
 
   expect(storage).toEqual({
@@ -49,6 +51,8 @@ test("Storage tests", async (): Promise<void> => {
     publicUrl: null,
     region: "fooend",
     endpoint: null,
+    path: null,
+    bucket: "buckit",
   });
 });
 
