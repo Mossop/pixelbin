@@ -57,6 +57,7 @@ jobs:
         env:
           MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
           MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+          MINIO_REGION_NAME: us-west-001
         ports:
           - 9000:9000
 
