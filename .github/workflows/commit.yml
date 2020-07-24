@@ -53,14 +53,12 @@ jobs:
           --health-retries 5
 
       minio:
-        image: minio/minio
+        image: mossop/minio-server
         env:
           MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
           MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
         ports:
           - 9000:9000
-        options: >-
-          --entrypoint "/usr/bin/docker-entrypoint.sh minio server /data"
 
     steps:
     - uses: actions/checkout@v2
