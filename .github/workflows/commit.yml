@@ -60,7 +60,7 @@ jobs:
         ports:
           - 9000:9000
         options: >-
-          server /data
+          --entrypoint "/usr/bin/docker-entrypoint.sh minio server /data"
 
     steps:
     - uses: actions/checkout@v2
