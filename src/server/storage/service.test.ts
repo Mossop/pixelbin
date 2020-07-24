@@ -4,9 +4,9 @@ import path from "path";
 import moment, { Moment } from "moment-timezone";
 import { dir as tmpdir } from "tmp-promise";
 
-import { StorageService } from ".";
 import { expect, mockedFunction } from "../../test-helpers";
 import { insertTestData, buildTestDB } from "../database/test-helpers";
+import { StorageService } from "./service";
 
 jest.mock("moment-timezone", (): unknown => {
   const actualMoment = jest.requireActual("moment-timezone");
