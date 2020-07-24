@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 
 import { ExifDate, ExifDateTime, ExifTime, Tags } from "exiftool-vendored";
-import mimeext from "mime2ext";
+import { extension as mimeExtension } from "mime-types";
 import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
@@ -315,7 +315,7 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
     ),
   };
 
-  let fileName = file.name ?? `original.${mimeext(mimetype)}`;
+  let fileName = file.name ?? `original.${mimeExtension(mimetype)}`;
 
   if (mimetype.startsWith("image/")) {
     let metadata = await sharp(file.path).metadata();

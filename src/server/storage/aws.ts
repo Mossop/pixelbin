@@ -1,4 +1,3 @@
-import fs, { promises as fsp } from "fs";
 import path from "path";
 import { Duplex, Readable } from "stream";
 
@@ -30,11 +29,29 @@ class DBCredentials extends Credentials {
   }
 }
 
-export class AWSRemote {
+export abstract class Remote {
+  public abstract upload(
+    target: string,
+    stream: NodeJS.ReadableStream,
+    size?: number,
+  ): Promise<void>;
+  public abstract getUrl(target: string): Promise<string>;
+  public abstract stream(target: string): Promise<NodeJS.ReadableStream>;
+  public abstract delete(target: string): Promise<void>;
+
+  public static async getAWSRemote(catalog: string): Promise<Remote> {
+    let storage = await getStorageConfig(catalog);
+    return new AWSRemote(catalog, storage);
+  }
+}
+
+class AWSRemote extends Remote {
   private s3: AWS.S3;
   private logger: Logger;
 
-  private constructor(private catalog: string, private storage: Storage) {
+  public constructor(private catalog: string, private storage: Storage) {
+    super();
+
     this.logger = logger.child({ catalog });
     this.logger.trace({
       endpoint: storage.endpoint ?? undefined,
@@ -58,32 +75,35 @@ export class AWSRemote {
   }
 
   public async getUrl(target: string): Promise<string> {
+    /* eslint-disable @typescript-eslint/naming-convention */
     return this.s3.getSignedUrlPromise("getObject", {
       Bucket: this.storage.bucket,
       Key: this.storage.path ? path.join(this.storage.path, target) : target,
       Expires: 60 * 5,
     });
+    /* eslint-enable @typescript-eslint/naming-convention */
   }
 
-  public async upload(target: string, file: string): Promise<void> {
-    let stat = await fsp.stat(file);
-    let stream = fs.createReadStream(file);
-
+  public async upload(target: string, stream: NodeJS.ReadableStream, size?: number): Promise<void> {
+    /* eslint-disable @typescript-eslint/naming-convention */
     let request = this.s3.upload({
       Bucket: this.storage.bucket,
       Key: this.storage.path ? path.join(this.storage.path, target) : target,
       Body: stream,
-      ContentLength: stat.size,
+      ContentLength: size,
     });
+    /* eslint-enable @typescript-eslint/naming-convention */
 
     await request.promise();
   }
 
   public async stream(target: string): Promise<NodeJS.ReadableStream> {
+    /* eslint-disable @typescript-eslint/naming-convention */
     let request = this.s3.getObject({
       Bucket: this.storage.bucket,
       Key: this.storage.path ? path.join(this.storage.path, target) : target,
     });
+    /* eslint-enable @typescript-eslint/naming-convention */
 
     let result = await request.promise();
     let body = result.Body;
@@ -102,16 +122,13 @@ export class AWSRemote {
   }
 
   public async delete(target: string): Promise<void> {
+    /* eslint-disable @typescript-eslint/naming-convention */
     let request = this.s3.deleteObject({
       Bucket: this.storage.bucket,
       Key: this.storage.path ? path.join(this.storage.path, target) : target,
     });
+    /* eslint-enable @typescript-eslint/naming-convention */
 
     await request.promise();
-  }
-
-  public static async getRemote(catalog: string): Promise<AWSRemote> {
-    let storage = await getStorageConfig(catalog);
-    return new AWSRemote(catalog, storage);
   }
 }

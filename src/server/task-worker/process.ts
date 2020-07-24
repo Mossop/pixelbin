@@ -1,7 +1,7 @@
 import path from "path";
 
 import execa, { ExecaError } from "execa";
-import mimeext from "mime2ext";
+import { extension as mimeExtension } from "mime-types";
 import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
@@ -103,7 +103,7 @@ export const handleUploadedFile = bindTask(
       let metadata = parseMetadata(data);
       let info = getMediaInfo(data);
 
-      let hostedName = metadata.filename ?? `original.${mimeext(data.mimetype)}`;
+      let hostedName = metadata.filename ?? `original.${mimeExtension(data.mimetype)}`;
 
       /**
        * TODO: There is a race condition here, the webserver will see the mediainfo complete

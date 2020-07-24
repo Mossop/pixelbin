@@ -11,6 +11,7 @@ test("Path decoding missing items", async (): Promise<void> => {
   element.id = "paths";
   document.body.append(element);
 
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { Url, appURL } = await import(".");
   expect(appURL(Url.Root).toString()).toEqual("http://pixelbin/root/");
   expect(appURL(Url.API).toString()).toEqual("http://pixelbin/root/api/");
@@ -28,6 +29,7 @@ test("Path decoding missing some items", async (): Promise<void> => {
   element.id = "paths";
   document.body.append(element);
 
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { Url, appURL } = await import(".");
   expect(appURL(Url.Root).toString()).toEqual("http://pixelbin/root/");
   expect(appURL(Url.API).toString()).toEqual("http://pixelbin/api/");

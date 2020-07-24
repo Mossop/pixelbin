@@ -291,13 +291,13 @@ test("Bad tag state", (): void => {
   state.user?.catalogs.delete("catalog");
   expect((): void => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let _ = tag.children;
+    let children = tag.children;
   }).toThrowAppError(ErrorCode.UnknownCatalog);
 
   state.user = null;
   expect((): void => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let _ = tag.children;
+    let children = tag.children;
   }).toThrowAppError(ErrorCode.NotLoggedIn);
 });
 
@@ -318,12 +318,12 @@ test("Bad album state", (): void => {
   state.user?.catalogs.delete("catalog");
   expect((): void => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let _ = album.children;
+    let children = album.children;
   }).toThrowAppError(ErrorCode.UnknownCatalog);
 
   state.user = null;
   expect((): void => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let _ = album.children;
+    let children = album.children;
   }).toThrowAppError(ErrorCode.NotLoggedIn);
 });

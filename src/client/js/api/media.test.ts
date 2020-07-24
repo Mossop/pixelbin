@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import moment from "moment-timezone";
 
 import { mockedFunction } from "../../../test-helpers";

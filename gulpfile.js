@@ -6,6 +6,7 @@ const sass = require("node-sass");
 const webpack = require("webpack");
 
 const { mergeCoverage, reportCoverage } = require("./ci/coverage");
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const { checkSpawn, Process } = require("./ci/process");
 const { findBin, ensureDir } = require("./ci/utils");
 
@@ -58,7 +59,7 @@ function buildClientStatic() {
  * @return {Promise<void>}
  */
 function buildClientJs() {
-  const webpackConfig = require("./src/client/webpack.config");
+  let webpackConfig = require("./src/client/webpack.config");
   let compiler = webpack(webpackConfig);
 
   return new Promise((resolve, reject) => {

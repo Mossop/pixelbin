@@ -253,6 +253,7 @@ export async function makeRequest<D>(
   if (!response.ok) {
     let errorData;
     try {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api" */"./types");
       errorData = await ApiErrorDataDecoder.decodePromise(await response.json());
     } catch (e) {

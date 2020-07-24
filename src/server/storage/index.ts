@@ -1,10 +1,10 @@
-import { promises as fs } from "fs";
+import { promises as fs, createReadStream } from "fs";
 import path from "path";
 
 import moment, { Moment } from "moment-timezone";
 
 import { Cache, RefCounted, getLogger, Logger } from "../../utils";
-import { AWSRemote } from "./aws";
+import { Remote } from "./aws";
 
 const logger = getLogger("storage");
 
@@ -21,7 +21,7 @@ export interface FileInfo {
 
 export class Storage {
   private readonly logger: Logger;
-  private aws: Promise<AWSRemote> | undefined;
+  private aws: Promise<Remote> | undefined;
 
   public constructor(
     private readonly catalog: string,
@@ -31,9 +31,9 @@ export class Storage {
     this.logger = logger.child({ catalog });
   }
 
-  private get remote(): Promise<AWSRemote> {
+  private get remote(): Promise<Remote> {
     if (!this.aws) {
-      this.aws = AWSRemote.getRemote(this.catalog);
+      this.aws = Remote.getAWSRemote(this.catalog);
     }
 
     return this.aws;
@@ -60,7 +60,11 @@ export class Storage {
     file: string,
   ): Promise<void> {
     let remote = await this.remote;
-    await remote.upload(path.join(media, mediaInfo, name), file);
+
+    let stat = await fs.stat(file);
+    let stream = createReadStream(file);
+
+    await remote.upload(path.join(media, mediaInfo, name), stream, stat.size);
   }
 
   public async deleteFile(media: string, mediaInfo: string, name: string): Promise<void> {

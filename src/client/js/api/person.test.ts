@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";

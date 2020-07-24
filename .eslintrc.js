@@ -31,13 +31,6 @@ module.exports = {
   ],
 
   "rules": {
-    "@typescript-eslint/require-await": "off",
-    "@typescript-eslint/no-unused-vars": ["warn", {
-      "args": "after-used",
-      "argsIgnorePattern": "^_",
-      "ignoreRestSiblings": true,
-      "caughtErrors": "none",
-    }],
   },
 
   "ignorePatterns": ["build/**/*"],

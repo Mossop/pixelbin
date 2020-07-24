@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { expect } from "../test-helpers";
 import { ErrorCode } from "../utils/exception";
 import {

@@ -5,7 +5,7 @@ const { constants } = require("karma");
 const sourceWebpackConfig = require("./webpack.config");
 
 /** @type {import("webpack").Configuration} */
-const webpackConfig = {
+let webpackConfig = {
   ...sourceWebpackConfig,
 };
 
@@ -13,7 +13,7 @@ delete webpackConfig.output;
 delete webpackConfig.entry;
 
 /** @type {import("karma").ConfigOptions} */
-const karmaConfig = {
+let karmaConfig = {
   basePath: __dirname,
   frameworks: ["jasmine"],
   files: [
