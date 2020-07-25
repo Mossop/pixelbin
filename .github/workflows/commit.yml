@@ -64,7 +64,9 @@ jobs:
     steps:
     - name: Setup data directory
       run: |
-        docker exec minio mkdir /data/pixelbin
+        docker container ls
+        container=$(docker container ls -q --filter "publish=9000")
+        docker exec ${container} mkdir /data/pixelbin
 
     - uses: actions/checkout@v2
       with:
