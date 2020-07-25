@@ -66,6 +66,7 @@ jobs:
     steps:
     - name: Setup data directory
       run: |
+        pwd
         mkdir -p /github/workspace/data/pixelbin
 
     - uses: actions/checkout@v2
