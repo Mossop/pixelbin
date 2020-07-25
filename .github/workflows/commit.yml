@@ -59,14 +59,14 @@ jobs:
           MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
           MINIO_REGION_NAME: us-west-001
         volumes:
-          - /github/home/data:/data
+          - $HOME/data:/data
         ports:
           - 9000:9000
 
     steps:
     - name: Setup data directory
       run: |
-        mkdir -p /github/home/data/pixelbin
+        mkdir -p $HOME/data/pixelbin
 
     - uses: actions/checkout@v2
       with:
