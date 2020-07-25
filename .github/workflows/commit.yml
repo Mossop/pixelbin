@@ -58,15 +58,13 @@ jobs:
           MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
           MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
           MINIO_REGION_NAME: us-west-001
-        volumes:
-          - /home/runner/work/pixelbin/pixelbin/data:/data
         ports:
           - 9000:9000
 
     steps:
     - name: Setup data directory
       run: |
-        mkdir -p /home/runner/work/pixelbin/pixelbin/data/pixelbin
+        docker exec minio mkdir /data/pixelbin
 
     - uses: actions/checkout@v2
       with:
