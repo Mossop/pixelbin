@@ -6,33 +6,6 @@ env:
   NODE_VERSION: '14'
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
-
-    - name: Setup Node.js ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v2-beta
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-
-    - name: Show versions
-      run: |
-        echo "Node $(node --version)"
-        echo "NPM $(npm --version)"
-
-    - name: Install node packages
-      run: |
-        npm install -g gulp
-        npm install
-
-    - name: Run lint checks
-      run: |
-        gulp lint
-
   jest-tests:
     runs-on: ubuntu-latest
 
@@ -72,6 +45,18 @@ jobs:
       with:
         submodules: true
 
+    - name: Cache node modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.cache-name }}-
+
     - name: Install dependencies
       run: |
         sudo apt-get update && sudo apt-get install ffmpeg
@@ -102,6 +87,10 @@ jobs:
       run: |
         bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F jest
 
+    - name: Run lint checks
+      run: |
+        gulp lint
+
   karma-tests:
     runs-on: macos-latest
 
@@ -109,6 +98,18 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: true
+
+    - name: Cache node modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.cache-name }}-
 
     - name: Setup Node.js ${{ env.NODE_VERSION }}
       uses: actions/setup-node@v2-beta
