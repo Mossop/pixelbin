@@ -1,14 +1,14 @@
 import path from "path";
 
-import execa, { ExecaError } from "execa";
 import { extension as mimeExtension } from "mime-types";
 import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
 import { MEDIA_THUMBNAIL_SIZES } from "../../model/models";
 import { Logger, RefCounted } from "../../utils";
-import { getMedia, createMediaInfo } from "../database/unsafe";
+import { getMedia, withNewMediaInfo, MediaInfoAPIResult } from "../database/unsafe";
 import { FileInfo } from "../storage";
+import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
 import { parseFile, parseMetadata, getMediaInfo } from "./metadata";
 import Services from "./services";
 import { bindTask } from "./task";
@@ -42,26 +42,9 @@ async function getThumbSource(
 
   try {
     logger.trace("Generating video poster frame.");
-    /* eslint-disable array-element-newline */
-    await execa("ffmpeg", [
-      "-y",
-      "-loglevel", "warning",
-      "-i", file.path,
-      "-frames:v", "1",
-      "-q:v", "3",
-      "-f", "singlejpeg",
-      "-y",
-      source,
-    ], {
-      all: true,
-    });
-    /* eslint-enable array-element-newline */
+    await extractFrame(file.path, source);
   } catch (e) {
-    let error: ExecaError = e;
-    logger.error({
-      output: error.all,
-    }, "Failed to extract video frame.");
-    throw e;
+    logger.error({ output: e }, "Failed to extract video frame.");
   }
 
   return new RefCounted(source, (): void => {
@@ -91,6 +74,8 @@ export const handleUploadedFile = bindTask(
         return;
       }
 
+      let fileInfo = file;
+
       logger.trace("Parsing file metadata.");
 
       let data = await parseFile(file);
@@ -105,43 +90,64 @@ export const handleUploadedFile = bindTask(
 
       let hostedName = metadata.filename ?? `original.${mimeExtension(data.mimetype)}`;
 
-      /**
-       * TODO: There is a race condition here, the webserver will see the mediainfo complete
-       * before the thumbnails are written and file uploaded...
-       */
-
-      let mediaInfo = await createMediaInfo(mediaId, {
+      await withNewMediaInfo(mediaId, {
         ...metadata,
         ...info,
         processVersion: PROCESS_VERSION,
         hostedName,
-      });
+      }, async ({ id: mediaInfoId }: MediaInfoAPIResult): Promise<void> => {
+        try {
+          let source = await getThumbSource(logger, fileInfo, info.mimetype);
+          try {
+            logger.trace("Building thumbnails.");
+            for (let size of MEDIA_THUMBNAIL_SIZES) {
+              let target = await storage.get().getLocalFilePath(
+                mediaId,
+                mediaInfoId,
+                `thumb${size}.jpg`,
+              );
+              await sharp(source.get())
+                .resize(size, size, {
+                  fit: "inside",
+                })
+                .jpeg({
+                  quality: 90,
+                })
+                .toFile(target);
+            }
+          } finally {
+            source.release();
+          }
 
-      let source = await getThumbSource(logger, file, info.mimetype);
-      try {
-        logger.trace("Building thumbnails.");
-        for (let size of MEDIA_THUMBNAIL_SIZES) {
-          let target = await storage.get().getLocalFilePath(
-            mediaId,
-            mediaInfo.id,
-            `thumb${size}.jpg`,
-          );
-          await sharp(source.get())
-            .resize(size, size, {
-              fit: "inside",
-            })
-            .jpeg({
-              quality: 90,
-            })
-            .toFile(target);
+          await storage.get().storeFile(mediaId, mediaInfoId, hostedName, fileInfo.path);
+
+          if (info.mimetype.startsWith("video/")) {
+            let dir = await tmpdir({
+              unsafeCleanup: true,
+            });
+
+            try {
+              logger.trace("Encoding video using h264 codec.");
+              let target = path.join(dir.path, "h264.mp4");
+              await encodeVideo(
+                fileInfo.path,
+                VideoCodec.H264,
+                AudioCodec.AAC,
+                Container.MP4,
+                target,
+              );
+              await storage.get().storeFile(mediaId, mediaInfoId, "h264.mp4", target);
+            } finally {
+              await dir.cleanup();
+            }
+          }
+
+          await storage.get().deleteUploadedFile(mediaId);
+        } catch (e) {
+          await storage.get().deleteLocalFiles(mediaId, mediaInfoId);
+          throw e;
         }
-      } finally {
-        source.release();
-      }
-
-      await storage.get().storeFile(mediaId, mediaInfo.id, hostedName, file.path);
-
-      await storage.get().deleteUploadedFile(mediaId);
+      });
     } finally {
       storage.release();
     }

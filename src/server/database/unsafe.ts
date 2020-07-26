@@ -1,3 +1,5 @@
+import Knex from "knex";
+
 import { metadataColumns } from "../../model/models";
 import { connection } from "./connection";
 import { uuid } from "./id";
@@ -17,36 +19,40 @@ export async function getMedia(id: DBAPI<Tables.Media>["id"]): Promise<DBAPI<Tab
   }
 }
 
-export async function createMediaInfo(
+export type MediaInfoAPIResult = DBAPI<Omit<Tables.MediaInfo, "processVersion">>;
+export async function withNewMediaInfo<T>(
   media: DBAPI<Tables.MediaInfo>["media"],
   data: DBAPI<Omit<Tables.MediaInfo, "id" | "media">>,
-): Promise<DBAPI<Omit<Tables.MediaInfo, "processVersion">>> {
+  operation: (mediaInfo: MediaInfoAPIResult) => Promise<T>,
+): Promise<T> {
   let knex = await connection;
 
-  let results = await into(knex, Table.MediaInfo).insert({
-    ...intoDBTypes(data),
-    id: await uuid("I"),
-    media,
-  }).returning([
-    "id",
-    "media",
-    "uploaded",
-    "mimetype",
-    "width",
-    "height",
-    "duration",
-    "frameRate",
-    "bitRate",
-    "fileSize",
-    "hostedName",
-    ...metadataColumns,
-  ]);
+  return knex.transaction(async (trx: Knex.Transaction): Promise<T> => {
+    let results = await into(trx, Table.MediaInfo).insert({
+      ...intoDBTypes(data),
+      id: await uuid("I"),
+      media,
+    }).returning([
+      "id",
+      "media",
+      "uploaded",
+      "mimetype",
+      "width",
+      "height",
+      "duration",
+      "frameRate",
+      "bitRate",
+      "fileSize",
+      "hostedName",
+      ...metadataColumns,
+    ]);
 
-  if (results.length) {
-    return intoAPITypes(results[0]);
-  }
+    if (results.length) {
+      return operation(intoAPITypes(results[0]));
+    }
 
-  throw new Error("Invalid media ID passed to createMediaInfo");
+    throw new Error("Invalid media ID passed to createMediaInfo");
+  });
 }
 
 export async function getStorageConfig(

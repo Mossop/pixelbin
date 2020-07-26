@@ -3,7 +3,9 @@ import moment, { Moment } from "moment-timezone";
 import { expect, mockedFunction } from "../../test-helpers";
 import { createMedia, fillMetadata, getMedia, editMedia } from "./media";
 import { buildTestDB, insertTestData } from "./test-helpers";
-import { createMediaInfo } from "./unsafe";
+import { Tables } from "./types";
+import { DBAPI } from "./types/meta";
+import { withNewMediaInfo, MediaInfoAPIResult } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
   const actualMoment = jest.requireActual("moment-timezone");
@@ -23,6 +25,17 @@ beforeEach((): Promise<void> => {
 
 const mockedMoment = mockedFunction(moment);
 const realMoment: typeof moment = jest.requireActual("moment-timezone");
+
+function createMediaInfo(
+  media: DBAPI<Tables.MediaInfo>["media"],
+  data: DBAPI<Omit<Tables.MediaInfo, "id" | "media">>,
+): Promise<MediaInfoAPIResult> {
+  return withNewMediaInfo(
+    media,
+    data,
+    (mediaInfo: MediaInfoAPIResult): Promise<MediaInfoAPIResult> => Promise.resolve(mediaInfo),
+  );
+}
 
 test("Media tests", async (): Promise<void> => {
   await expect(createMedia("someone3@nowhere.com", "c1", fillMetadata({})))

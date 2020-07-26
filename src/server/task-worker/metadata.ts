@@ -9,7 +9,7 @@ import sharp from "sharp";
 import { Metadata, MediaInfo } from "../../model/models";
 import { entries, Nullable } from "../../utils";
 import { FileInfo } from "../storage";
-import { probe } from "./ffmpeg";
+import { probe, Stream, VideoStream } from "./ffmpeg";
 import Services from "./services";
 
 type ExcludedTags =
@@ -339,13 +339,24 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
 
   let videoInfo = await probe(file.path);
 
+  const isVideoStream = (stream: Stream): stream is VideoStream => stream.type == "video";
+
+  let videoStreams = videoInfo.streams.filter(isVideoStream);
+  if (!videoStreams.length) {
+    throw new Error("Video includes no video streams.");
+  }
+
   return {
     exif,
     fileName,
     fileSize: stat.size,
     uploaded: file.uploaded.toISOString(),
     mimetype,
-    ...videoInfo,
+    width: videoStreams[0].width,
+    height: videoStreams[0].height,
+    duration: videoInfo.format.duration,
+    bitRate: videoInfo.format.bitRate,
+    frameRate: videoStreams[0].frameRate,
   };
 }
 

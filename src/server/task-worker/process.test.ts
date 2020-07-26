@@ -10,14 +10,26 @@ import { mockedFunction, expect } from "../../test-helpers";
 import { createMedia, fillMetadata, getMedia } from "../database";
 import { insertTestData, buildTestDB } from "../database/test-helpers";
 import { StorageService } from "../storage";
+import { encodeVideo, AudioCodec, VideoCodec, Container } from "./ffmpeg";
 import { handleUploadedFile } from "./process";
 import services, { provideService } from "./services";
 
+/* eslint-disable */
 jest.mock("../storage");
+jest.mock("./ffmpeg", () => {
+  let actual = jest.requireActual("./ffmpeg");
+  return {
+    ...actual,
+    encodeVideo: jest.fn(() => Promise.resolve()),
+  };
+});
+/* eslint-enable */
 
 buildTestDB();
 
 beforeEach(insertTestData);
+
+let mockedEncodeVideo = mockedFunction(encodeVideo);
 
 let temp: DirectoryResult | undefined;
 
@@ -139,6 +151,8 @@ test("Process image metadata", async (): Promise<void> => {
     sourceFile,
   );
 
+  expect(mockedEncodeVideo).not.toHaveBeenCalled();
+
   await temp.cleanup();
 });
 
@@ -229,13 +243,16 @@ test("Process video metadata", async (): Promise<void> => {
     });
   }
 
-  expect(storeFileMock).toHaveBeenCalledTimes(1);
-  expect(storeFileMock).toHaveBeenLastCalledWith(
-    media.id,
-    expect.anything(),
-    "Testvideo.mp4",
-    sourceFile,
-  );
+  expect(mockedEncodeVideo).toHaveBeenCalledTimes(1);
+  expect(mockedEncodeVideo.mock.calls).toEqual([
+    [sourceFile, VideoCodec.H264, AudioCodec.AAC, Container.MP4, expect.anything()],
+  ]);
+
+  expect(storeFileMock).toHaveBeenCalledTimes(2);
+  expect(storeFileMock.mock.calls).toEqual([
+    [media.id, expect.anything(), "Testvideo.mp4", sourceFile],
+    [media.id, storeFileMock.mock.calls[0][1], "h264.mp4", mockedEncodeVideo.mock.calls[0][4]],
+  ]);
 
   await temp.cleanup();
 });
