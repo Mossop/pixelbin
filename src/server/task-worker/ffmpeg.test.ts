@@ -72,4 +72,4 @@ test("h264 encode", async (): Promise<void> => {
   } finally {
     await dir.cleanup();
   }
-}, 10000);
+}, 20000);

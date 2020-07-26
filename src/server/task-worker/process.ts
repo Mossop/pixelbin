@@ -127,16 +127,15 @@ export const handleUploadedFile = bindTask(
             });
 
             try {
-              logger.trace("Encoding video using h264 codec.");
-              let target = path.join(dir.path, "h264.mp4");
-              await encodeVideo(
-                fileInfo.path,
-                VideoCodec.H264,
-                AudioCodec.AAC,
-                Container.MP4,
-                target,
-              );
-              await storage.get().storeFile(mediaId, mediaInfoId, "h264.mp4", target);
+              let videoCodec = VideoCodec.H264;
+              let audioCodec = AudioCodec.AAC;
+              let container = Container.MP4;
+
+              let filename = `${videoCodec}.${container}`;
+              logger.trace(`Re-encoding video using ${videoCodec} codec.`);
+              let target = path.join(dir.path, filename);
+              await encodeVideo(fileInfo.path, videoCodec, audioCodec, container, target);
+              await storage.get().storeFile(mediaId, mediaInfoId, filename, target);
             } finally {
               await dir.cleanup();
             }
