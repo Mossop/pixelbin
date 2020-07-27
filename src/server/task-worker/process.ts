@@ -7,14 +7,13 @@ import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType } from "../../model/models";
-import { Logger, RefCounted } from "../../utils";
+import { Logger } from "../../utils";
 import {
   getMedia,
   withNewUploadedMedia,
   UploadedMediaInfo,
   addAlternateFile,
 } from "../database/unsafe";
-import { StoredFile } from "../storage";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
 import { parseFile, parseMetadata, getUploadedMedia } from "./metadata";
 import Services from "./services";
