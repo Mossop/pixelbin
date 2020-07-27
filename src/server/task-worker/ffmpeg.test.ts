@@ -3,6 +3,7 @@ import path from "path";
 
 import { dir as tmpdir } from "tmp-promise";
 
+import { expect } from "../../test-helpers";
 import { probe, VideoCodec, AudioCodec, Container, encodeVideo } from "./ffmpeg";
 
 const TEST_VIDEO = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
@@ -53,13 +54,13 @@ test("h264 encode", async (): Promise<void> => {
     expect(results).toEqual({
       "format": {
         "container": "mp4",
-        "bitRate": expect.anything(),
+        "bitRate": expect.toBeBetween(5000000, 7000000),
         "duration": expect.anything(),
-        "size": 1400738,
+        "size": expect.toBeBetween(1400000, 1600000),
       },
       "videoStream": {
         "codec": "h264",
-        "frameRate": expect.anything(),
+        "frameRate": expect.toBeBetween(videoStream.frameRate - 5, videoStream.frameRate + 5),
         "width": 1080,
         "height": 1920,
       },
@@ -68,11 +69,7 @@ test("h264 encode", async (): Promise<void> => {
       },
     });
 
-    expect(results.format.bitRate).toBeLessThan(7000000);
-    expect(results.format.bitRate).toBeGreaterThan(5000000);
     expect(results.format.duration).toBeCloseTo(original.format.duration, 1);
-    expect(results.videoStream?.frameRate).toBeLessThan(videoStream.frameRate + 5);
-    expect(results.videoStream?.frameRate).toBeGreaterThan(videoStream.frameRate - 5);
   } finally {
     await dir.cleanup();
   }

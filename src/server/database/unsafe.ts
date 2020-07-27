@@ -51,7 +51,7 @@ export async function withNewUploadedMedia<T>(
       return operation(intoAPITypes(results[0]), trx);
     }
 
-    throw new Error("Invalid media ID passed to createMediaInfo");
+    throw new Error("Invalid media ID passed to withNewUploadedMedia");
   });
 }
 

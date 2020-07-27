@@ -10,6 +10,28 @@ import { defer } from "../utils";
 const matchers = {
   toMatchImageSnapshot,
 
+  toBeBetween(
+    this: jest.MatcherContext,
+    received: number,
+    floor: number,
+    ceiling: number,
+  ): jest.CustomMatcherResult {
+    const pass = received >= floor && received <= ceiling;
+    if (pass) {
+      return {
+        message: (): string =>
+          `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: (): string =>
+          `expected ${received} to be within range ${floor} - ${ceiling}`,
+        pass: false,
+      };
+    }
+  },
+
   toEqualDate(
     this: jest.MatcherContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

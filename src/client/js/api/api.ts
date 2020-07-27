@@ -81,13 +81,13 @@ export interface UserState extends Readonly<ObjectModel.User> {
   readonly catalogs: ReadonlyMapOf<CatalogState>;
 }
 export interface UnprocessedMediaState extends Readonly<ObjectModel.Media> {
-  readonly info?: null;
+  readonly upload?: null;
 }
 export interface ProcessedMediaState extends Readonly<ObjectModel.Media> {
-  info: MediaInfoState;
+  upload: UploadedMediaState;
 }
 export type MediaState = UnprocessedMediaState | ProcessedMediaState;
-export interface MediaInfoState extends Readonly<WithoutLinks<ObjectModel.MediaInfo>> {}
+export interface UploadedMediaState extends Readonly<WithoutLinks<ObjectModel.UploadedMedia>> {}
 
 const PersonDecoder = JsonDecoder.object<Api.Person>(
   {

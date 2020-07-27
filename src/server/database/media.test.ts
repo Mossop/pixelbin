@@ -120,7 +120,7 @@ test("Media tests", async (): Promise<void> => {
     created: expect.toEqualDate(createdMoment),
 
     title: "My title", // Media set
-    photographer: "Me", // MediaInfo set
+    photographer: "Me", // UploadedMediaInfo set
 
     uploaded: expect.toEqualDate(uploadedMoment),
     mimetype: "image/jpeg",
@@ -143,8 +143,8 @@ test("Media tests", async (): Promise<void> => {
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
 
-    title: "Info title", // MediaInfo set
-    photographer: "Me", // MediaInfo set
+    title: "Info title", // UploadedMediaInfo set
+    photographer: "Me", // UploadedMediaInfo set
     city: "Portland", // Media set
 
     uploaded: expect.toEqualDate(uploadedMoment),
@@ -199,8 +199,8 @@ test("Media tests", async (): Promise<void> => {
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
 
-    title: "Different title", // MediaInfo set
-    model: "Some model", // MediaInfo set
+    title: "Different title", // UploadedMediaInfo set
+    model: "Some model", // UploadedMediaInfo set
     city: "Portland", // Media set
 
     uploaded: expect.toEqualDate(uploaded2Moment),

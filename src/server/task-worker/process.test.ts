@@ -450,7 +450,7 @@ test("Process video metadata", async (): Promise<void> => {
     "uploadedMedia": thumbnails[0].uploadedMedia,
     "type": AlternateFileType.Poster,
     "fileName": "Testvideo-poster.jpg",
-    "fileSize": 150797,
+    "fileSize": expect.toBeBetween(140000, 160000),
     "mimetype": "image/jpeg",
     "width": 1080,
     "height": 1920,
