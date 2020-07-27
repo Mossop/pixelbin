@@ -1,11 +1,13 @@
 import moment, { Moment } from "moment-timezone";
 
+import { AlternateFileType } from "../../model/models";
 import { expect, mockedFunction } from "../../test-helpers";
-import { createMedia, fillMetadata, getMedia, editMedia } from "./media";
+import { createMedia, fillMetadata, getMedia, editMedia, listAlternateFiles } from "./media";
 import { buildTestDB, insertTestData } from "./test-helpers";
 import { Tables } from "./types";
 import { DBAPI } from "./types/meta";
-import { withNewMediaInfo, MediaInfoAPIResult } from "./unsafe";
+import { AlternateFile } from "./types/tables";
+import { withNewUploadedMedia, UploadedMediaInfo, addAlternateFile } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
   const actualMoment = jest.requireActual("moment-timezone");
@@ -26,14 +28,15 @@ beforeEach((): Promise<void> => {
 const mockedMoment = mockedFunction(moment);
 const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
-function createMediaInfo(
-  media: DBAPI<Tables.MediaInfo>["media"],
-  data: DBAPI<Omit<Tables.MediaInfo, "id" | "media">>,
-): Promise<MediaInfoAPIResult> {
-  return withNewMediaInfo(
+function createUploadedMedia(
+  media: DBAPI<Tables.UploadedMedia>["media"],
+  data: DBAPI<Omit<Tables.UploadedMedia, "id" | "media">>,
+): Promise<UploadedMediaInfo> {
+  return withNewUploadedMedia(
     media,
     data,
-    (mediaInfo: MediaInfoAPIResult): Promise<MediaInfoAPIResult> => Promise.resolve(mediaInfo),
+    (uploadedMedia: UploadedMediaInfo): Promise<UploadedMediaInfo> =>
+      Promise.resolve(uploadedMedia),
   );
 }
 
@@ -77,7 +80,7 @@ test("Media tests", async (): Promise<void> => {
 
   let uploadedMoment: Moment = realMoment.tz("2020-01-03T15:31:01", "UTC");
 
-  let info = await createMediaInfo(id, fillMetadata({
+  let info = await createUploadedMedia(id, fillMetadata({
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -87,7 +90,7 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 1000,
     processVersion: 5,
     uploaded: uploadedMoment,
-    hostedName: "biz.jpg",
+    fileName: "biz.jpg",
 
     title: "Info title",
     photographer: "Me",
@@ -104,7 +107,7 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
-    hostedName: "biz.jpg",
+    fileName: "biz.jpg",
 
     title: "Info title",
     photographer: "Me",
@@ -157,7 +160,7 @@ test("Media tests", async (): Promise<void> => {
   let uploaded2Moment: Moment = realMoment.tz("2020-01-04T15:31:01", "UTC");
   mockedMoment.mockImplementationOnce((): Moment => uploaded2Moment);
 
-  info = await createMediaInfo(id, fillMetadata({
+  info = await createUploadedMedia(id, fillMetadata({
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -167,7 +170,7 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 2000,
     processVersion: 5,
     uploaded: uploaded2Moment,
-    hostedName: "bar.jpg",
+    fileName: "bar.jpg",
 
     title: "Different title",
     model: "Some model",
@@ -184,7 +187,7 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 2000,
-    hostedName: "bar.jpg",
+    fileName: "bar.jpg",
 
     title: "Different title",
     model: "Some model",
@@ -210,6 +213,86 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 2000,
   }));
 
+  await addAlternateFile(info.id, {
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb.webp",
+    fileSize: 200,
+    mimetype: "image/webp",
+    width: 600,
+    height: 300,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
+
+  await addAlternateFile(info.id, {
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb.jpg",
+    fileSize: 400,
+    mimetype: "image/jpeg",
+    width: 500,
+    height: 300,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
+
+  await addAlternateFile(info.id, {
+    type: AlternateFileType.Poster,
+    fileName: "poster.jpg",
+    fileSize: 300,
+    mimetype: "image/jpeg",
+    width: 200,
+    height: 100,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
+
+  let list = await listAlternateFiles("someone3@nowhere.com", id, AlternateFileType.Thumbnail);
+  list.sort((a: DBAPI<AlternateFile>, b: DBAPI<AlternateFile>): number => a.width - b.width);
+  expect(list).toEqual([{
+    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    uploadedMedia: info.id,
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb.jpg",
+    fileSize: 400,
+    mimetype: "image/jpeg",
+    width: 500,
+    height: 300,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  }, {
+    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    uploadedMedia: info.id,
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb.webp",
+    fileSize: 200,
+    mimetype: "image/webp",
+    width: 600,
+    height: 300,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  }]);
+
+  list = await listAlternateFiles("someone3@nowhere.com", id, AlternateFileType.Poster);
+  list.sort((a: DBAPI<AlternateFile>, b: DBAPI<AlternateFile>): number => a.width - b.width);
+  expect(list).toEqual([{
+    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    uploadedMedia: info.id,
+    type: AlternateFileType.Poster,
+    fileName: "poster.jpg",
+    fileSize: 300,
+    mimetype: "image/jpeg",
+    width: 200,
+    height: 100,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  }]);
+
   // Cannot create media in a catalog the user cannot access.
   await expect(createMedia("someone3@nowhere.com", "c1", fillMetadata({
     title: "My title",
@@ -218,7 +301,7 @@ test("Media tests", async (): Promise<void> => {
   newMedia = await createMedia("someone1@nowhere.com", "c1", fillMetadata({}));
 
   // Cannot add media info to a missing media.
-  await expect(createMediaInfo("biz", fillMetadata({
+  await expect(createUploadedMedia("biz", fillMetadata({
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -228,10 +311,14 @@ test("Media tests", async (): Promise<void> => {
     fileSize: 1000,
     processVersion: 5,
     uploaded: moment(),
-    hostedName: "foo.jpg",
+    fileName: "foo.jpg",
   }))).rejects.toThrow("violates foreign key constraint");
 
   // Cannot get media in a catalog the user cannot access.
   foundMedia = await getMedia("someone3@nowhere.com", newMedia.id);
   expect(foundMedia).toBeNull();
+
+  // Cannot list alternates for media the user cannot access.
+  list = await listAlternateFiles("someone2@nowhere.com", id, AlternateFileType.Poster);
+  expect(list).toHaveLength(0);
 });

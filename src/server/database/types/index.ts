@@ -15,7 +15,8 @@ export enum Table {
   Tag = "Tag",
   Person = "Person",
   Media = "Media",
-  MediaInfo = "MediaInfo",
+  UploadedMedia = "UploadedMedia",
+  AlternateFile = "AlternateFile",
 
   UserCatalog = "User_Catalog",
   MediaAlbum = "Media_Album",
@@ -31,7 +32,8 @@ export interface TableMapping {
   [Table.Tag]: Tables.Tag;
   [Table.Person]: Tables.Person;
   [Table.Media]: Tables.Media;
-  [Table.MediaInfo]: Tables.MediaInfo;
+  [Table.UploadedMedia]: Tables.UploadedMedia;
+  [Table.AlternateFile]: Tables.AlternateFile;
 
   [Table.UserCatalog]: Joins.UserCatalog;
   [Table.MediaAlbum]: Joins.MediaAlbum;

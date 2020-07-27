@@ -1,3 +1,3 @@
 export { StorageService } from "./service";
 export type { StorageConfig } from "./service";
-export type { Storage, FileInfo } from "./storage";
+export type { Storage, StoredFile } from "./storage";

@@ -4,7 +4,7 @@ import { exiftool } from "exiftool-vendored";
 import moment from "moment-timezone";
 
 import { expect } from "../../test-helpers";
-import { parseFile, parseMetadata, getMediaInfo } from "./metadata";
+import { parseFile, parseMetadata, getUploadedMedia } from "./metadata";
 import { provideService } from "./services";
 
 jest.mock("../storage");
@@ -58,11 +58,11 @@ test("lamppost", async (): Promise<void> => {
     focalLength: 95,
   });
 
-  let info = getMediaInfo(data);
+  let info = getUploadedMedia(data);
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",
-    hostedName: "Testname.jpg",
+    fileName: "Testname.jpg",
     width: 500,
     height: 331,
     duration: null,
@@ -118,11 +118,11 @@ test("iptc", async (): Promise<void> => {
     focalLength: null,
   });
 
-  let info = getMediaInfo(data);
+  let info = getUploadedMedia(data);
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",
-    hostedName: "IPTC.JPG",
+    fileName: "IPTC.JPG",
     width: 1000,
     height: 500,
     duration: null,
@@ -178,11 +178,11 @@ test("video", async (): Promise<void> => {
     focalLength: null,
   });
 
-  let info = getMediaInfo(data);
+  let info = getUploadedMedia(data);
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "video/mp4",
-    hostedName: "test_video.foo",
+    fileName: "test_video.foo",
     width: 1920,
     height: 1080,
     duration: 1.74,

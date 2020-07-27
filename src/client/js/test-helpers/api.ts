@@ -237,7 +237,7 @@ export function mockMediaInfo(data: Partial<MediaInfoData>): MediaInfoData {
   };
 }
 
-export function mediaInfoIntoResponse(info: MediaInfoData): MediaInfoDataResponse {
+export function uploadedMediaIntoResponse(info: MediaInfoData): MediaInfoDataResponse {
   return {
     ...info,
     uploaded: info.uploaded.toISOString(),
@@ -260,7 +260,7 @@ export function mediaIntoResponse(media: MediaData): MediaDataResponse {
   return {
     ...media,
     created: media.created.toISOString(),
-    info: media.info ? mediaInfoIntoResponse(media.info) : null,
+    info: media.info ? uploadedMediaIntoResponse(media.info) : null,
     metadata: mediaMetadataIntoResponse(media.metadata),
     albums: media.albums.map((ref: Reference<Album>): string => ref.id),
     tags: media.tags.map((ref: Reference<Tag>): string => ref.id),

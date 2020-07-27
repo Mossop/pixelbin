@@ -152,9 +152,8 @@ export interface Media extends IdType {
   created: Moment;
 }
 
-export interface MediaInfo extends IdType {
-  media: Reference<Media>;
-  uploaded: Moment;
+export interface FileInfo {
+  fileName: string;
   fileSize: number;
   mimetype: string;
   width: number;
@@ -162,13 +161,21 @@ export interface MediaInfo extends IdType {
   duration: number | null;
   frameRate: number | null;
   bitRate: number | null;
-  hostedName: string;
 }
 
-export const MEDIA_THUMBNAIL_SIZES = [
-  150,
-  200,
-  300,
-  400,
-  500,
-];
+export type UploadedMedia = IdType & FileInfo & {
+  media: Reference<Media>;
+  uploaded: Moment;
+};
+
+export enum AlternateFileType {
+  Thumbnail = "thumbnail",
+  Poster = "poster",
+  Reencode = "reencode",
+}
+
+export type AlternateFile = IdType & FileInfo & {
+  uploadedMedia: Reference<UploadedMedia>;
+  type: AlternateFileType;
+};
+

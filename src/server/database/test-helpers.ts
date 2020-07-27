@@ -50,7 +50,7 @@ export async function resetDB(): Promise<void> {
     Table.MediaTag,
     Table.MediaAlbum,
     Table.UserCatalog,
-    Table.MediaInfo,
+    Table.UploadedMedia,
     Table.Media,
     Table.Person,
     Table.Tag,
@@ -96,7 +96,7 @@ export async function insertData(data: Seed): Promise<void> {
   await doInsert(Table.Tag);
   await doInsert(Table.Person);
   await doInsert(Table.Media);
-  await doInsert(Table.MediaInfo);
+  await doInsert(Table.UploadedMedia);
   await doInsert(Table.UserCatalog);
   await doInsert(Table.MediaAlbum);
   await doInsert(Table.MediaTag);

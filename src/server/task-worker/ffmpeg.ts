@@ -5,7 +5,6 @@ import ffprobe from "ffprobe-client";
 import { dir as tmpdir } from "tmp-promise";
 import { JsonDecoder } from "ts.data.json";
 
-import { MediaInfo } from "../../model/models";
 import { MappingDecoder } from "../../utils";
 
 const StringNumberDecoder = MappingDecoder(JsonDecoder.string, (value: string): number => {
@@ -122,7 +121,8 @@ const StreamDecoder = JsonDecoder.oneOf<Stream>([
 interface Format {
   duration: number;
   bitRate: number;
-  container: Container
+  container: Container;
+  size: number;
 }
 
 const ContainerDecoder = MappingDecoder(JsonDecoder.string, (value: string): Container => {
@@ -145,6 +145,7 @@ const FormatDecoder = JsonDecoder.object<Format>({
   duration: StringNumberDecoder,
   bitRate: StringNumberDecoder,
   container: ContainerDecoder,
+  size: StringNumberDecoder,
 }, "Format", {
   bitRate: "bit_rate",
   container: "format_name",
@@ -160,12 +161,44 @@ const ProbeResultsDecoder = JsonDecoder.object<ProbeResults>({
   format: FormatDecoder,
 }, "ProbeResults");
 
-type VideoInfo =
-  Omit<MediaInfo, "id" | "media" | "uploaded" | "fileSize" | "mimetype" | "hostedName">;
+export interface VideoInfo {
+  format: Format;
+  videoStream: Omit<VideoStream, "type"> | null;
+  audioStream: Omit<AudioStream, "type"> | null;
+}
 
-export async function probe(file: string): Promise<ProbeResults> {
+export async function probe(file: string): Promise<VideoInfo> {
   let data = await ffprobe(file);
-  return ProbeResultsDecoder.decodePromise(data);
+  let results = await ProbeResultsDecoder.decodePromise(data);
+  let audio = results.streams.filter(
+    (stream: Stream): stream is AudioStream => stream.type == "audio",
+  );
+  if (audio.length > 1) {
+    throw new Error("Videos with multiple audio streams are not supported.");
+  }
+  let audioStream: Omit<AudioStream, "type"> | null = null;
+  if (audio.length) {
+    let { type, ...stream } = audio[0];
+    audioStream = stream;
+  }
+
+  let video = results.streams.filter(
+    (stream: Stream): stream is VideoStream => stream.type == "video",
+  );
+  if (video.length > 1) {
+    throw new Error("Videos with multiple video streams are not supported.");
+  }
+  let videoStream: Omit<VideoStream, "type"> | null = null;
+  if (video.length) {
+    let { type, ...stream } = video[0];
+    videoStream = stream;
+  }
+
+  return {
+    format: results.format,
+    videoStream,
+    audioStream,
+  };
 }
 
 export async function extractFrame(video: string, target: string): Promise<void> {
@@ -196,7 +229,7 @@ export async function encodeVideo(
   audioCodec: AudioCodec,
   container: Container,
   target: string,
-): Promise<void> {
+): Promise<VideoInfo> {
   let dir = await tmpdir({
     unsafeCleanup: true,
   });
@@ -231,6 +264,8 @@ export async function encodeVideo(
       all: true,
     });
     /* eslint-enable array-element-newline */
+
+    return probe(target);
   } catch (e) {
     let error: ExecaError = e;
     throw error.all;

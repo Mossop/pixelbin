@@ -1,7 +1,7 @@
 import Knex from "knex";
 import moment from "moment-timezone";
 
-import { metadataColumns } from "../../model/models";
+import { metadataColumns, AlternateFileType } from "../../model/models";
 import { connection } from "./connection";
 import { coalesce } from "./functions";
 import { mediaId } from "./id";
@@ -26,25 +26,25 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
     created: ref(Table.Media, "created"),
-    uploaded: ref(Table.MediaInfo, "uploaded"),
-    mimetype: ref(Table.MediaInfo, "mimetype"),
-    width: ref(Table.MediaInfo, "width"),
-    height: ref(Table.MediaInfo, "height"),
-    duration: ref(Table.MediaInfo, "duration"),
-    fileSize: ref(Table.MediaInfo, "fileSize"),
-    frameRate: ref(Table.MediaInfo, "frameRate"),
-    bitRate: ref(Table.MediaInfo, "bitRate"),
+    uploaded: ref(Table.UploadedMedia, "uploaded"),
+    mimetype: ref(Table.UploadedMedia, "mimetype"),
+    width: ref(Table.UploadedMedia, "width"),
+    height: ref(Table.UploadedMedia, "height"),
+    duration: ref(Table.UploadedMedia, "duration"),
+    fileSize: ref(Table.UploadedMedia, "fileSize"),
+    frameRate: ref(Table.UploadedMedia, "frameRate"),
+    bitRate: ref(Table.UploadedMedia, "bitRate"),
   };
 
   for (let field of metadataColumns) {
     mappings[field] = coalesce(knex, [
       knex.ref(ref(Table.Media, field)),
-      knex.ref(ref(Table.MediaInfo, field)),
+      knex.ref(ref(Table.UploadedMedia, field)),
     ]);
   }
 
   return from(knex, Table.Media)
-    .leftJoin(Table.MediaInfo, ref(Table.Media, "id"), ref(Table.MediaInfo, "media"))
+    .leftJoin(Table.UploadedMedia, ref(Table.Media, "id"), ref(Table.UploadedMedia, "media"))
     .orderBy([
       { column: "id", order: "asc" },
       { column: "uploaded", order: "desc" },
@@ -128,4 +128,31 @@ export async function getMedia(
   } else {
     return intoAPITypes(results[0]);
   }
+}
+
+export async function listAlternateFiles(
+  user: UserRef,
+  id: DBAPI<Tables.MediaWithInfo>["id"],
+  type: AlternateFileType,
+): Promise<DBAPI<Tables.AlternateFile>[]> {
+  let knex = await connection;
+
+  return from(knex, Table.AlternateFile).join((builder: Knex.QueryBuilder): void => {
+    void builder.from(Table.Media)
+      .leftJoin(Table.UploadedMedia, ref(Table.Media, "id"), ref(Table.UploadedMedia, "media"))
+      .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
+      .orderBy([
+        { column: ref(Table.UploadedMedia, "media"), order: "asc" },
+        { column: ref(Table.UploadedMedia, "uploaded"), order: "desc" },
+      ])
+      .where({
+        [ref(Table.UserCatalog, "user")]: user,
+      })
+      .distinctOn(ref(Table.UploadedMedia, "media"))
+      .select(ref(Table.UploadedMedia))
+      .as("Uploaded");
+  }, ref(Table.AlternateFile, "uploadedMedia"), "Uploaded.id")
+    .where(ref(Table.AlternateFile, "type"), type)
+    .andWhere("Uploaded.media", id)
+    .select(ref(Table.AlternateFile));
 }

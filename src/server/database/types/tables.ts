@@ -18,9 +18,11 @@ export type Metadata = Nullable<ObjectModel.Metadata>;
 
 export type Media = ObjectModel.Media & Metadata;
 
-export type MediaInfo = ObjectModel.MediaInfo & Metadata & {
+export type UploadedMedia = ObjectModel.UploadedMedia & Metadata & {
   processVersion: number;
 };
+
+export type AlternateFile = ObjectModel.AlternateFile;
 
 type AllNull<T> = {
   [K in keyof T]: null;
@@ -28,4 +30,4 @@ type AllNull<T> = {
 
 type AllOrNulls<T> = T | AllNull<T>;
 
-export type MediaWithInfo = Media & AllOrNulls<Omit<MediaInfo, "media">>;
+export type MediaWithInfo = Media & AllOrNulls<Omit<UploadedMedia, "id" | "media">>;

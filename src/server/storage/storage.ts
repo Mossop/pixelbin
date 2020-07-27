@@ -6,7 +6,7 @@ import moment, { Moment } from "moment-timezone";
 import { getLogger, Logger } from "../../utils";
 import { Remote } from "./aws";
 
-export interface FileInfo {
+export interface StoredFile {
   name: string | null;
   path: string;
   uploaded: Moment;
@@ -34,23 +34,23 @@ export class Storage {
     return this.aws;
   }
 
-  public async getFileUrl(media: string, mediaInfo: string, name: string): Promise<string> {
+  public async getFileUrl(media: string, uploadedMedia: string, name: string): Promise<string> {
     let remote = await this.remote;
-    return remote.getUrl(path.join(media, mediaInfo, name));
+    return remote.getUrl(path.join(media, uploadedMedia, name));
   }
 
   public async streamFile(
     media: string,
-    mediaInfo: string,
+    uploadedMedia: string,
     name: string,
   ): Promise<NodeJS.ReadableStream> {
     let remote = await this.remote;
-    return remote.stream(path.join(media, mediaInfo, name));
+    return remote.stream(path.join(media, uploadedMedia, name));
   }
 
   public async storeFile(
     media: string,
-    mediaInfo: string,
+    uploadedMedia: string,
     name: string,
     file: string,
   ): Promise<void> {
@@ -59,16 +59,20 @@ export class Storage {
     let stat = await fs.stat(file);
     let stream = createReadStream(file);
 
-    await remote.upload(path.join(media, mediaInfo, name), stream, stat.size);
+    await remote.upload(path.join(media, uploadedMedia, name), stream, stat.size);
   }
 
-  public async deleteFile(media: string, mediaInfo: string, name: string): Promise<void> {
+  public async deleteFile(media: string, uploadedMedia: string, name: string): Promise<void> {
     let remote = await this.remote;
-    await remote.delete(path.join(media, mediaInfo, name));
+    await remote.delete(path.join(media, uploadedMedia, name));
   }
 
-  public async getLocalFilePath(media: string, mediaInfo: string, name: string): Promise<string> {
-    let targetDir = path.join(this.localDirectory, this.catalog, media, mediaInfo);
+  public async getLocalFilePath(
+    media: string,
+    uploadedMedia: string,
+    name: string,
+  ): Promise<string> {
+    let targetDir = path.join(this.localDirectory, this.catalog, media, uploadedMedia);
     await fs.mkdir(targetDir, {
       recursive: true,
     });
@@ -76,10 +80,10 @@ export class Storage {
     return path.join(targetDir, name);
   }
 
-  public async deleteLocalFiles(media: string, mediaInfo?: string): Promise<void> {
+  public async deleteLocalFiles(media: string, uploadedMedia?: string): Promise<void> {
     let targetDir = path.join(this.localDirectory, this.catalog, media);
-    if (mediaInfo) {
-      targetDir = path.join(targetDir, mediaInfo);
+    if (uploadedMedia) {
+      targetDir = path.join(targetDir, uploadedMedia);
     }
     await fs.rmdir(targetDir, {
       recursive: true,
@@ -94,14 +98,14 @@ export class Storage {
 
     await fs.copyFile(filepath, path.join(targetDir, "uploaded"));
 
-    let info: Omit<FileInfo, "path"> = {
+    let info: Omit<StoredFile, "path"> = {
       name: name.length ? name : null,
       uploaded: moment(),
     };
     await fs.writeFile(path.join(targetDir, "uploaded.meta"), JSON.stringify(info));
   }
 
-  public async getUploadedFile(media: string): Promise<FileInfo | null> {
+  public async getUploadedFile(media: string): Promise<StoredFile | null> {
     let targetDir = path.join(this.tempDirectory, this.catalog, media);
 
     try {

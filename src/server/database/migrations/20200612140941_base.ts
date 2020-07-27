@@ -7,7 +7,7 @@ function id(table: Knex.CreateTableBuilder): void {
 }
 
 function columnFor(table: Table): string {
-  return table.toLocaleLowerCase();
+  return table.charAt(0).toLocaleLowerCase() + table.substr(1);
 }
 
 function foreignId<T extends Table, C extends keyof TableRecord<T>>(
@@ -63,6 +63,17 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     }
 
     table.dateTime("taken", { useTz: true }).nullable();
+  }
+
+  function addFileInfo(table: Knex.CreateTableBuilder): void {
+    table.string("fileName", 200).notNullable();
+    table.integer("fileSize").notNullable();
+    table.string("mimetype", 50).notNullable();
+    table.integer("width").notNullable();
+    table.integer("height").notNullable();
+    table.float("duration").nullable();
+    table.float("frameRate").nullable();
+    table.float("bitRate").nullable();
   }
 
   return knex.schema.createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
@@ -128,21 +139,20 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     addMetadata(table);
 
     table.unique([columnFor(Table.Catalog), "id"]);
-  }).createTable(Table.MediaInfo, (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.UploadedMedia, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Media, "id");
     table.integer("processVersion").notNullable();
     table.dateTime("uploaded", { useTz: true }).notNullable();
-    table.string("mimetype", 50).notNullable();
-    table.string("hostedName", 200).notNullable();
-    table.integer("width").notNullable();
-    table.integer("height").notNullable();
-    table.float("duration").nullable();
-    table.float("frameRate").nullable();
-    table.float("bitRate").nullable();
-    table.integer("fileSize").notNullable();
 
+    addFileInfo(table);
     addMetadata(table);
+  }).createTable(Table.AlternateFile, (table: Knex.CreateTableBuilder): void => {
+    id(table);
+    foreignId(table, Table.UploadedMedia, "id");
+    table.string("type", 20).notNullable();
+
+    addFileInfo(table);
   }).createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {
     foreignId(table, Table.User, "email");
     foreignId(table, Table.Catalog, "id");
@@ -194,7 +204,7 @@ exports.down = function(knex: Knex): Knex.SchemaBuilder {
     .dropTable("media_tag")
     .dropTable("media_album")
     .dropTable("user_catalog")
-    .dropTable("mediaInfo")
+    .dropTable("uploadedMedia")
     .dropTable("media")
     .dropTable("album")
     .dropTable("tag")

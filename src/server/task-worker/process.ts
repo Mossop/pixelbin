@@ -1,15 +1,22 @@
+import { promises as fs } from "fs";
 import path from "path";
 
+import Knex from "knex";
 import { extension as mimeExtension } from "mime-types";
 import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
-import { MEDIA_THUMBNAIL_SIZES } from "../../model/models";
+import { AlternateFileType } from "../../model/models";
 import { Logger, RefCounted } from "../../utils";
-import { getMedia, withNewMediaInfo, MediaInfoAPIResult } from "../database/unsafe";
-import { FileInfo } from "../storage";
+import {
+  getMedia,
+  withNewUploadedMedia,
+  UploadedMediaInfo,
+  addAlternateFile,
+} from "../database/unsafe";
+import { StoredFile } from "../storage";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
-import { parseFile, parseMetadata, getMediaInfo } from "./metadata";
+import { parseFile, parseMetadata, getUploadedMedia } from "./metadata";
 import Services from "./services";
 import { bindTask } from "./task";
 
@@ -26,31 +33,13 @@ const ALLOWED_TYPES = [
   "video/mpeg",
 ];
 
-async function getThumbSource(
-  logger: Logger,
-  file: FileInfo,
-  mimetype: string,
-): Promise<RefCounted<string>> {
-  if (mimetype.startsWith("image/")) {
-    return new RefCounted(file.path);
-  }
-
-  let dir = await tmpdir({
-    unsafeCleanup: true,
-  });
-  let source = path.join(dir.path, "temp.jpg");
-
-  try {
-    logger.trace("Generating video poster frame.");
-    await extractFrame(file.path, source);
-  } catch (e) {
-    logger.error({ output: e }, "Failed to extract video frame.");
-  }
-
-  return new RefCounted(source, (): void => {
-    logger.catch(dir.cleanup());
-  });
-}
+export const MEDIA_THUMBNAIL_SIZES = [
+  150,
+  200,
+  300,
+  400,
+  500,
+];
 
 export const handleUploadedFile = bindTask(
   async function handleUploadedFile(logger: Logger, mediaId: string): Promise<void> {
@@ -66,6 +55,9 @@ export const handleUploadedFile = bindTask(
 
     let storageService = await Services.storage;
 
+    let dir = await tmpdir({
+      unsafeCleanup: true,
+    });
     let storage = await storageService.getStorage(media.catalog);
     try {
       let file = await storage.get().getUploadedFile(mediaId);
@@ -86,69 +78,121 @@ export const handleUploadedFile = bindTask(
       }
 
       let metadata = parseMetadata(data);
-      let info = getMediaInfo(data);
+      let info = getUploadedMedia(data);
 
-      let hostedName = metadata.filename ?? `original.${mimeExtension(data.mimetype)}`;
+      let fileName = metadata.filename ?? `original.${mimeExtension(data.mimetype)}`;
+      let baseName = fileName.substr(0, fileName.length - path.extname(fileName).length);
 
-      await withNewMediaInfo(mediaId, {
+      let uploadedMedia = await withNewUploadedMedia(mediaId, {
         ...metadata,
         ...info,
         processVersion: PROCESS_VERSION,
-        hostedName,
-      }, async ({ id: mediaInfoId }: MediaInfoAPIResult): Promise<void> => {
+        fileName,
+      }, async (uploadedMedia: UploadedMediaInfo, knex: Knex): Promise<UploadedMediaInfo> => {
         try {
-          let source = await getThumbSource(logger, fileInfo, info.mimetype);
-          try {
-            logger.trace("Building thumbnails.");
-            for (let size of MEDIA_THUMBNAIL_SIZES) {
-              let target = await storage.get().getLocalFilePath(
-                mediaId,
-                mediaInfoId,
-                `thumb${size}.jpg`,
-              );
-              await sharp(source.get())
-                .resize(size, size, {
-                  fit: "inside",
-                })
-                .jpeg({
-                  quality: 90,
-                })
-                .toFile(target);
-            }
-          } finally {
-            source.release();
-          }
-
-          await storage.get().storeFile(mediaId, mediaInfoId, hostedName, fileInfo.path);
-
+          let source = fileInfo.path;
           if (info.mimetype.startsWith("video/")) {
-            let dir = await tmpdir({
-              unsafeCleanup: true,
-            });
+            logger.trace("Generating video poster frame.");
+            source = path.join(dir.path, `${baseName}-poster.jpg`);
+            await extractFrame(fileInfo.path, source);
 
-            try {
-              let videoCodec = VideoCodec.H264;
-              let audioCodec = AudioCodec.AAC;
-              let container = Container.MP4;
-
-              let filename = `${videoCodec}.${container}`;
-              logger.trace(`Re-encoding video using ${videoCodec} codec.`);
-              let target = path.join(dir.path, filename);
-              await encodeVideo(fileInfo.path, videoCodec, audioCodec, container, target);
-              await storage.get().storeFile(mediaId, mediaInfoId, filename, target);
-            } finally {
-              await dir.cleanup();
-            }
+            let stat = await fs.stat(source);
+            let metadata = await sharp(source).metadata();
+            await addAlternateFile(uploadedMedia.id, {
+              type: AlternateFileType.Poster,
+              fileName: path.basename(source),
+              fileSize: stat.size,
+              width: metadata.width ?? 0,
+              height: metadata.height ?? 0,
+              mimetype: "image/jpeg",
+              duration: null,
+              frameRate: null,
+              bitRate: null,
+            }, knex);
           }
 
-          await storage.get().deleteUploadedFile(mediaId);
+          logger.trace("Building thumbnails.");
+          for (let size of MEDIA_THUMBNAIL_SIZES) {
+            let fileName = `${baseName}-${size}.jpg`;
+            let target = await storage.get().getLocalFilePath(
+              mediaId,
+              uploadedMedia.id,
+              fileName,
+            );
+            let info = await sharp(source)
+              .resize(size, size, {
+                fit: "inside",
+              })
+              .jpeg({
+                quality: 90,
+              })
+              .toFile(target);
+
+            await addAlternateFile(uploadedMedia.id, {
+              type: AlternateFileType.Thumbnail,
+              fileName,
+              fileSize: info.size,
+              width: info.width,
+              height: info.height,
+              mimetype: `image/${info.format}`,
+              duration: null,
+              frameRate: null,
+              bitRate: null,
+            }, knex);
+          }
+
+          await storage.get().storeFile(mediaId, uploadedMedia.id, fileName, fileInfo.path);
+
+          return uploadedMedia;
         } catch (e) {
-          await storage.get().deleteLocalFiles(mediaId, mediaInfoId);
+          await storage.get().deleteLocalFiles(mediaId, uploadedMedia.id);
           throw e;
         }
       });
+
+      if (info.mimetype.startsWith("video/")) {
+        let dir = await tmpdir({
+          unsafeCleanup: true,
+        });
+
+        try {
+          let videoCodec = VideoCodec.H264;
+          let audioCodec = AudioCodec.AAC;
+          let container = Container.MP4;
+
+          let fileName = `${baseName}-${videoCodec}.${container}`;
+          logger.trace(`Re-encoding video using ${videoCodec} codec.`);
+          let target = path.join(dir.path, fileName);
+          let videoInfo = await encodeVideo(
+            fileInfo.path,
+            videoCodec,
+            audioCodec,
+            container,
+            target,
+          );
+
+          await storage.get().storeFile(mediaId, uploadedMedia.id, fileName, target);
+
+          await addAlternateFile(uploadedMedia.id, {
+            type: AlternateFileType.Reencode,
+            fileName,
+            fileSize: videoInfo.format.size,
+            width: videoInfo.videoStream?.width ?? 0,
+            height: videoInfo.videoStream?.height ?? 0,
+            mimetype: `video/${videoInfo.format.container}`,
+            duration: videoInfo.format.duration,
+            bitRate: videoInfo.format.bitRate,
+            frameRate: videoInfo.videoStream?.frameRate ?? null,
+          });
+        } finally {
+          await dir.cleanup();
+        }
+      }
+
+      await storage.get().deleteUploadedFile(mediaId);
     } finally {
       storage.release();
+      await dir.cleanup();
     }
   },
 );

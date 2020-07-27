@@ -6,10 +6,10 @@ import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
-import { Metadata, MediaInfo } from "../../model/models";
+import { Metadata, UploadedMedia, FileInfo } from "../../model/models";
 import { entries, Nullable } from "../../utils";
-import { FileInfo } from "../storage";
-import { probe, Stream, VideoStream } from "./ffmpeg";
+import { StoredFile } from "../storage";
+import { probe } from "./ffmpeg";
 import Services from "./services";
 
 type ExcludedTags =
@@ -29,9 +29,8 @@ type StoredTag<T> =
 
 type ExifTags = { [K in keyof Omit<Tags, ExcludedTags>]?: StoredTag<Tags[K]>; };
 
-export type StoredData = Omit<MediaInfo, "id" | "media" | "uploaded" | "hostedName"> & {
+export type StoredData = FileInfo & {
   exif: ExifTags;
-  fileName: string;
   uploaded: string;
 };
 
@@ -293,10 +292,9 @@ function detectMimetype(file: string): Promise<string> {
   });
 }
 
-export async function parseFile(file: FileInfo): Promise<StoredData> {
+export async function parseFile(file: StoredFile): Promise<StoredData> {
   let exiftool = await Services.exiftool;
   let tags = await exiftool.read(file.path, ["-c", "-n"]);
-  let stat = await fs.stat(file.path);
 
   let mimetype = await detectMimetype(file.path);
 
@@ -318,6 +316,7 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
   let fileName = file.name ?? `original.${mimeExtension(mimetype)}`;
 
   if (mimetype.startsWith("image/")) {
+    let stat = await fs.stat(file.path);
     let metadata = await sharp(file.path).metadata();
     return {
       exif,
@@ -339,33 +338,26 @@ export async function parseFile(file: FileInfo): Promise<StoredData> {
 
   let videoInfo = await probe(file.path);
 
-  const isVideoStream = (stream: Stream): stream is VideoStream => stream.type == "video";
-
-  let videoStreams = videoInfo.streams.filter(isVideoStream);
-  if (!videoStreams.length) {
-    throw new Error("Video includes no video streams.");
-  }
-
   return {
     exif,
     fileName,
-    fileSize: stat.size,
+    fileSize: videoInfo.format.size,
     uploaded: file.uploaded.toISOString(),
     mimetype,
-    width: videoStreams[0].width,
-    height: videoStreams[0].height,
+    width: videoInfo.videoStream?.width ?? 0,
+    height: videoInfo.videoStream?.height ?? 0,
     duration: videoInfo.format.duration,
     bitRate: videoInfo.format.bitRate,
-    frameRate: videoStreams[0].frameRate,
+    frameRate: videoInfo.videoStream?.frameRate ?? null,
   };
 }
 
-export function getMediaInfo(data: StoredData): Omit<MediaInfo, "id" | "media"> {
+export function getUploadedMedia(data: StoredData): Omit<UploadedMedia, "id" | "media"> {
   let { uploaded, exif, fileName, ...info } = data;
 
   return {
     ...info,
-    hostedName: fileName,
+    fileName,
     uploaded: moment(uploaded),
   };
 }
