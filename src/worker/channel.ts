@@ -173,7 +173,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       logger.error("Channel connection timed out.");
       channel.remoteInterface.reject(new Error("Channel connection timed out."));
       channel.emit("connection-timeout");
-    }, options.timeout);
+    }, channel.options.timeout);
 
     logger.catch(channel.remoteInterface.promise.then((): void => {
       clearTimeout(connectTimeout);
