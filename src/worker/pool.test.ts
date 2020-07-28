@@ -1,7 +1,7 @@
 import { Serializable, SendHandle } from "child_process";
 import { EventEmitter } from "events";
 
-import { Mocked, mock, mockedClass, awaitCall } from "../test-helpers";
+import { Mocked, mock, mockedClass, awaitCall, awaitEvent } from "../test-helpers";
 import { defer, Deferred } from "../utils";
 import { WorkerPool } from "./pool";
 import { AbstractChildProcess, WorkerProcess, WorkerProcessOptions } from "./worker";
@@ -254,4 +254,38 @@ test("pool", async (): Promise<void> => {
   pool.shutdown();
 
   await killed;
+});
+
+test("bad workers", async (): Promise<void> => {
+  mockedWorkerProcess.mockImplementation(
+    (_options: WorkerProcessOptions<unknown>): WorkerProcess<unknown, unknown> => {
+      let worker = new MockWorker(0);
+      setImmediate((): void => {
+        worker.emit("disconnect");
+      });
+      return worker as unknown as WorkerProcess<unknown, unknown>;
+    },
+  );
+
+  let nextId = 0;
+  let pool = new WorkerPool({
+    minWorkers: 0,
+    maxWorkers: 3,
+
+    fork: (): Promise<AbstractChildProcess> => {
+      let process = new MockChildProcess();
+      process.pid = nextId;
+      return Promise.resolve(process);
+    },
+  });
+
+  let shutdown = awaitEvent(pool, "shutdown");
+
+  await expect(pool.remote).rejects.toThrow("disconnected before it connected");
+  await expect(pool.remote).rejects.toThrow("disconnected before it connected");
+  await expect(pool.remote).rejects.toThrow("disconnected before it connected");
+  await expect(pool.remote).rejects.toThrow("disconnected before it connected");
+  await expect(pool.remote).rejects.toThrow("disconnected before it connected");
+
+  await shutdown;
 });

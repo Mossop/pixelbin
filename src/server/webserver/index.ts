@@ -1,9 +1,12 @@
-import { getLogger } from "../../utils";
+import { install } from "source-map-support";
+
+import { getLogger, setLogConfig } from "../../utils";
 import { ParentProcess } from "../../worker";
 import { connect } from "../database";
 import buildApp from "./app";
 import { ParentProcessInterface } from "./interfaces";
 
+install();
 const logger = getLogger("webserver");
 
 async function main(): Promise<void> {
@@ -13,7 +16,8 @@ async function main(): Promise<void> {
   let parent = await connection.remote;
 
   try {
-    let { databaseConfig } = await parent.getConfig();
+    let { databaseConfig, logConfig } = await parent.getConfig();
+    setLogConfig(logConfig);
     connect(databaseConfig);
 
     await buildApp(parent);

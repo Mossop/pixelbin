@@ -1,4 +1,4 @@
-import { getLogger, MakeRequired } from "../utils";
+import { getLogger, MakeRequired, TypedEmitter, defer } from "../utils";
 import { RemoteInterface } from "./channel";
 import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
 
@@ -17,14 +17,22 @@ interface WorkerRecord<R, L> {
 
 const logger = getLogger("worker.pool");
 
-export class WorkerPool<R = undefined, L = undefined> {
+const MAX_BAD_WORKERS = 5;
+
+interface EventMap {
+  shutdown: [];
+}
+
+export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<EventMap> {
   private workers: WorkerRecord<R, L>[];
   private options: MakeRequired<WorkerPoolOptions<L>, "minWorkers" | "maxWorkers" | "idleTimeout">;
   private quitting: boolean;
+  private badWorkerCount: number;
 
   public constructor(
     options: WorkerPoolOptions<L>,
   ) {
+    super();
     this.quitting = false;
     this.workers = [];
     this.options = Object.assign({
@@ -32,6 +40,7 @@ export class WorkerPool<R = undefined, L = undefined> {
       maxWorkers: options.minWorkers ? Math.max(1, options.minWorkers) * 2 : 5,
       idleTimeout: 60 * 1000,
     }, options);
+    this.badWorkerCount = 0;
 
     if (this.options.maxWorkers < 1) {
       throw new Error("Cannot create a worker pool that allows no workers.");
@@ -62,6 +71,8 @@ export class WorkerPool<R = undefined, L = undefined> {
       logger.debug({ worker: record.worker.pid }, "Shutting down worker.");
       logger.catch(record.worker.kill());
     }
+
+    this.emit("shutdown");
   }
 
   public get remote(): Promise<RemoteInterface<R>> {
@@ -139,9 +150,14 @@ export class WorkerPool<R = undefined, L = undefined> {
       }
     };
 
+    let deferred = defer<WorkerProcess<R, L>>();
+
+    let connected = false;
     workerProcess.on("connect", (): void => {
       logger.trace({ worker: workerProcess.pid }, "Saw connect");
+      this.badWorkerCount = 0;
       updateTaskCount(-1);
+      deferred.resolve(workerProcess);
     });
 
     workerProcess.on("task-start", (): void => {
@@ -174,10 +190,23 @@ export class WorkerPool<R = undefined, L = undefined> {
         delete record.idleTimeout;
       }
 
+      if (!connected) {
+        logger.warn("Saw worker disconnect before it connected.");
+        deferred.reject(new Error("Worker disconnected before it connected."));
+
+        this.badWorkerCount++;
+
+        if (this.badWorkerCount == MAX_BAD_WORKERS) {
+          logger.error("Saw too many worker failures, shutting down pool.");
+          this.shutdown();
+          return;
+        }
+      }
+
       this.ensureTargetWorkers();
     });
 
-    return workerProcess;
+    return deferred.promise;
   }
 
   private ensureTargetWorkers(): void {

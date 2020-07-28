@@ -4,6 +4,7 @@ import net from "net";
 import { getLogger, listen, bound } from "../../utils";
 import { WorkerPool, AbstractChildProcess } from "../../worker";
 import { WebserverConfig, ParentProcessInterface } from "../webserver/interfaces";
+import { quit } from "./events";
 import { Service } from "./service";
 import { TaskManager } from "./tasks";
 
@@ -44,6 +45,8 @@ export class WebserverManager extends Service {
         });
       },
     });
+
+    this.pool.on("shutdown", quit);
   }
 
   protected async shutdown(): Promise<void> {

@@ -1,6 +1,7 @@
 import { exiftool } from "exiftool-vendored";
+import { install } from "source-map-support";
 
-import { getLogger } from "../../utils";
+import { getLogger, setLogConfig } from "../../utils";
 import { ParentProcess } from "../../worker";
 import { connect } from "../database";
 import { StorageService } from "../storage";
@@ -8,6 +9,7 @@ import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
 import { handleUploadedFile } from "./process";
 import { provideService } from "./services";
 
+install();
 const logger = getLogger("task-worker");
 
 async function main(): Promise<void> {
@@ -30,6 +32,7 @@ async function main(): Promise<void> {
     provideService("parent", parent);
 
     let config = await parent.getConfig();
+    setLogConfig(config.logConfig);
     connect(config.databaseConfig);
 
     provideService("storage", new StorageService(config.storageConfig));

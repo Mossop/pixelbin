@@ -2,13 +2,16 @@
 
 import path from "path";
 
-import { getLogger } from "../../utils";
+import { install } from "source-map-support";
+
+import { getLogger, setLogConfig } from "../../utils";
 import { connect } from "../database";
 import config from "./config";
-import events from "./events";
+import events, { quit } from "./events";
 import { TaskManager } from "./tasks";
 import { WebserverManager } from "./webserver";
 
+install();
 const logger = getLogger("server");
 
 async function initDatabase(): Promise<void> {
@@ -48,22 +51,13 @@ async function startupServers(): Promise<void> {
 }
 
 async function startup(): Promise<void> {
+  setLogConfig(config.logConfig);
+
   await initDatabase();
   await startupServers();
 }
 
 export function main(): void {
-  function quit(): void {
-    events.emit("shutdown");
-
-    let quitTimeout = setTimeout((): void => {
-      logger.warn("Forcibly quitting main process.");
-      process.exit(1);
-    }, 5000);
-
-    quitTimeout.unref();
-  }
-
   process.on("SIGTERM", (): void => {
     logger.trace("Received SIGTERM.");
     quit();

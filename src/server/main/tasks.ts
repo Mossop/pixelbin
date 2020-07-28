@@ -7,6 +7,7 @@ import {
   ParentProcessInterface,
   TaskWorkerInterface,
 } from "../task-worker/interfaces";
+import { quit } from "./events";
 import { Service } from "./service";
 
 export type TaskConfig = TaskWorkerConfig & {
@@ -32,6 +33,8 @@ export class TaskManager extends Service {
         });
       },
     });
+
+    this.pool.on("shutdown", quit);
   }
 
   protected async shutdown(): Promise<void> {
