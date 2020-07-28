@@ -7,7 +7,6 @@ import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType } from "../../model/models";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
-import { setLogConfig } from "../../utils";
 import { createMedia, fillMetadata, getMedia, listAlternateFiles } from "../database";
 import { insertTestData, buildTestDB } from "../database/test-helpers";
 import { DBAPI } from "../database/types/meta";
@@ -288,7 +287,6 @@ test("Process video metadata", async (): Promise<void> => {
     },
   }));
 
-  setLogConfig("info");
   await handleUploadedFile(media.id);
 
   expect(deleteUploadedFileMock).toHaveBeenCalledTimes(1);
