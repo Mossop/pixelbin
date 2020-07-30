@@ -47,7 +47,7 @@ function getLoggerLevel(loggerName: string): LevelWithSilent {
   return Config.default;
 }
 
-export function setLogConfig(config: Level | LogConfig): void {
+export function setLogConfig(config: LevelWithSilent | LogConfig): void {
   if (typeof config == "string") {
     Config = {
       default: config,

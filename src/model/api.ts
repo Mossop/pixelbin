@@ -5,21 +5,21 @@ import * as ObjectModel from "./models";
 import { Dereferenced, WithoutLists, WithoutReferences } from "./models";
 
 export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Promise<R>;
-export type ResponseFor<Table> = Dereferenced<WithoutLists<Table>>;
+export type ApiType<Table> = Dereferenced<WithoutLists<Table>>;
 
 export type UnprocessedMedia =
-  Omit<ResponseFor<ObjectModel.Media>, "catalog"> & ResponseFor<Nullable<ObjectModel.Metadata>>;
+  Omit<ApiType<ObjectModel.Media>, "catalog"> & ApiType<Nullable<ObjectModel.Metadata>>;
 export type UploadedMedia =
-  Omit<ResponseFor<WithoutReferences<ObjectModel.UploadedMedia>>, "media" | "fileName">;
+  Omit<ApiType<WithoutReferences<ObjectModel.UploadedMedia>>, "media" | "fileName">;
 export type ProcessedMedia = UnprocessedMedia & UploadedMedia;
 export type Media = UnprocessedMedia | ProcessedMedia;
 
-export type Storage = ResponseFor<ObjectModel.Storage>;
+export type Storage = ApiType<ObjectModel.Storage>;
 export type PublicStorage = Omit<Storage, "accessKeyId" | "secretAccessKey">;
-export type Catalog = ResponseFor<ObjectModel.Catalog>;
-export type Album = ResponseFor<ObjectModel.Album>;
-export type Person = ResponseFor<ObjectModel.Person>;
-export type Tag = ResponseFor<ObjectModel.Tag>;
+export type Catalog = ApiType<ObjectModel.Catalog>;
+export type Album = ApiType<ObjectModel.Album>;
+export type Person = ApiType<ObjectModel.Person>;
+export type Tag = ApiType<ObjectModel.Tag>;
 
 export interface StorageCreateRequest {
   storage: string | Create<Storage>;
@@ -27,7 +27,7 @@ export interface StorageCreateRequest {
 
 export type CatalogCreateRequest = Omit<Create<Catalog>, "storage"> & StorageCreateRequest;
 
-export type User = ResponseFor<ObjectModel.User> & {
+export type User = ApiType<ObjectModel.User> & {
   catalogs: Omit<Catalog, "storage">[],
   people: Person[],
   tags: Tag[],
@@ -47,8 +47,8 @@ export interface LoginRequest {
 }
 
 export type MediaCreateRequest =
-  Omit<ResponseFor<ObjectModel.Media>, "created" | "id"> &
-  Partial<ResponseFor<Nullable<ObjectModel.Metadata>>> & {
+  Omit<ApiType<ObjectModel.Media>, "created" | "id"> &
+  Partial<ApiType<Nullable<ObjectModel.Metadata>>> & {
     file: Blob;
   };
 
@@ -120,7 +120,6 @@ export interface Signatures {
   // [ApiMethod.AlbumRemoveMedia]: Signature<AlbumMedia, AlbumData>;
   [Method.TagCreate]: Signature<Create<Tag>, Tag>;
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
-  // [ApiMethod.TagFind]: Signature<TagLookup, TagData[]>;
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   // [ApiMethod.MediaGet]: Signature<Mappable, MediaData>;

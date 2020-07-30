@@ -1,9 +1,11 @@
 import Knex from "knex";
 
+import { setLogConfig } from "../../utils";
 import { connection } from "./connection";
 import { uuid } from "./id";
 import { from, insert, insertFromSelect, update, select } from "./queries";
 import { Table, Tables, ref, UserRef } from "./types";
+import { nameConstraint } from "./types/constraints";
 import { DBAPI, intoAPITypes, DBRecord, intoDBTypes } from "./types/meta";
 
 export async function listStorage(user: UserRef): Promise<DBAPI<Tables.Storage>[]> {
@@ -146,19 +148,34 @@ export async function createTag(
 ): Promise<DBAPI<Tables.Tag>> {
   let knex = await connection;
 
-  let select = knex.from(Table.UserCatalog).where({
+  let userLookup = knex.from(Table.UserCatalog).where({
     user,
     catalog,
   });
 
-  let results = await insertFromSelect(knex, Table.Tag, select, {
+  let query = insertFromSelect(knex, Table.Tag, userLookup, {
     ...intoDBTypes(data),
     id: await uuid("T"),
     catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
-  }).returning("*");
+  });
 
-  if (results.length) {
-    return intoAPITypes(results[0]);
+  let results = await knex.raw(`
+    :query
+    ON CONFLICT :constraint DO
+      UPDATE SET :name: = :newName
+    RETURNING :result
+  `, {
+    query,
+    constraint: nameConstraint(knex, Table.Catalog),
+    name: "name",
+    newName: data.name,
+    result: knex.ref(ref(Table.Tag)),
+  });
+  setLogConfig("silent");
+  let rows = results.rows ?? [];
+
+  if (rows.length) {
+    return intoAPITypes(rows[0]);
   }
 
   throw new Error("Invalid user or catalog passed to createTag");

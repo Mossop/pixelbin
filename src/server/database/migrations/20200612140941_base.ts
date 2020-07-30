@@ -1,13 +1,11 @@
 import Knex from "knex";
 
 import { Table, ref, TableRecord } from "../types";
+import { nameConstraint } from "../types/constraints";
+import { columnFor } from "../types/meta";
 
 function id(table: Knex.CreateTableBuilder): void {
   table.string("id", 30).notNullable().unique().primary();
-}
-
-function columnFor(table: Table): string {
-  return table.charAt(0).toLocaleLowerCase() + table.substr(1);
 }
 
 function foreignId<T extends Table, C extends keyof TableRecord<T>>(
@@ -65,6 +63,14 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.dateTime("taken", { useTz: true }).nullable();
   }
 
+  function nameIndex(table: Table, target: Table, parent: string | null = "parent"): string {
+    return knex.raw("CREATE UNIQUE INDEX :index: ON :table: :constraint:", {
+      index: table.toLocaleLowerCase(),
+      table: table,
+      constraint: nameConstraint(knex, target, parent),
+    }).toSQL().sql;
+  }
+
   function addFileInfo(table: Knex.CreateTableBuilder): void {
     table.string("fileName", 200).notNullable();
     table.integer("fileSize").notNullable();
@@ -103,8 +109,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
     table.unique([columnFor(Table.Catalog), "id"]);
   }).raw(
-    `CREATE UNIQUE INDEX "${Table.Person.toLocaleLowerCase()}_unique_name" ON "${Table.Person}" ` +
-    `("${columnFor(Table.Catalog)}", (LOWER("name")))`,
+    nameIndex(Table.Person, Table.Catalog, null),
   ).createTable(Table.Tag, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Catalog, "id");
@@ -115,8 +120,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.foreign([columnFor(Table.Catalog), "parent"])
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
   }).raw(
-    `CREATE UNIQUE INDEX "${Table.Tag.toLocaleLowerCase()}_unique_name" ON "${Table.Tag}" ` +
-    `((COALESCE("parent", "${columnFor(Table.Catalog)}")), (LOWER("name")))`,
+    nameIndex(Table.Tag, Table.Catalog),
   ).createTable(Table.Album, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Catalog, "id");
@@ -129,8 +133,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.foreign([columnFor(Table.Catalog), "parent"])
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
   }).raw(
-    `CREATE UNIQUE INDEX "${Table.Album.toLocaleLowerCase()}_unique_name" ON "${Table.Album}" ` +
-    `((COALESCE("parent", "${columnFor(Table.Catalog)}")), (LOWER("name")))`,
+    nameIndex(Table.Album, Table.Catalog),
   ).createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Catalog, "id");

@@ -1,6 +1,7 @@
 import { Raw, Ref } from "knex";
 import moment, { Moment, isMoment } from "moment-timezone";
 
+import { Table } from ".";
 import { Dereference, ListsIn } from "../../../model/models";
 import { Obj } from "../../../utils";
 
@@ -62,4 +63,8 @@ export function intoAPITypes<T>(data: DBRecord<T>): DBAPI<T> {
         return [key, intoAPIType(key, value)];
       }),
   );
+}
+
+export function columnFor(table: Table): string {
+  return table.charAt(0).toLocaleLowerCase() + table.substr(1);
 }

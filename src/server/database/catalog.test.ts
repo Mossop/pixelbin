@@ -143,6 +143,19 @@ test("Tag table tests", async (): Promise<void> => {
     name: "New Tag",
   });
 
+  // Creating a tag that already exists should return the tag.
+  tag = await createTag("someone1@nowhere.com", "c1", {
+    parent: null,
+    name: "Tag1",
+  });
+
+  expect(tag).toEqual({
+    id: "t1",
+    catalog: "c1",
+    parent: null,
+    name: "Tag1",
+  });
+
   // Shouldn't allow adding to a catalog that doesn't exist.
   await expect(createTag("someone1@nowhere.com", "c8", {
     parent: null,
