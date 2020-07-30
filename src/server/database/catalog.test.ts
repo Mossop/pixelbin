@@ -335,6 +335,16 @@ test("Person table tests", async (): Promise<void> => {
     name: "New Person",
   });
 
+  // Creating a person with the same name should just return the same person.
+  person = await createPerson("someone1@nowhere.com", "c1", {
+    name: "person 1",
+  });
+  expect(person).toEqual({
+    id: "p1",
+    catalog: "c1",
+    name: "person 1",
+  });
+
   // Shouldn't allow adding to a catalog that doesn't exist.
   await expect(createPerson("someone1@nowhere.com", "c8", {
     name: "New Person",
