@@ -1,11 +1,29 @@
 import assert from "assert";
 
 import { expect as jestExpect } from "@jest/globals";
-import diff from "jest-diff";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
 import moment, { Moment, isMoment } from "moment-timezone";
 
 import { defer } from "../utils";
+
+function expectMessage(
+  context: jest.MatcherContext,
+  term: string,
+  expected: unknown,
+  received: unknown,
+): () => string {
+  return (): string => {
+    return [
+      context.utils.matcherHint(term, undefined, undefined, {
+        isNot: context.isNot,
+        promise: context.promise,
+      }),
+      "",
+      `Expected: ${context.utils.printExpected(expected)}\n`,
+      `Received: ${context.utils.printReceived(received)}\n`,
+    ].join("\n");
+  };
+}
 
 const matchers = {
   toMatchImageSnapshot,
@@ -17,19 +35,11 @@ const matchers = {
     ceiling: number,
   ): jest.CustomMatcherResult {
     const pass = received >= floor && received <= ceiling;
-    if (pass) {
-      return {
-        message: (): string =>
-          `expected ${received} not to be within range ${floor} - ${ceiling}`,
-        pass: true,
-      };
-    } else {
-      return {
-        message: (): string =>
-          `expected ${received} to be within range ${floor} - ${ceiling}`,
-        pass: false,
-      };
-    }
+
+    return {
+      pass,
+      message: expectMessage(this, "toBeBetween", `${floor} - ${ceiling}`, received.toString()),
+    };
   },
 
   toEqualDate(
@@ -46,26 +56,40 @@ const matchers = {
 
     const pass = receivedMoment.isSame(expectedMoment);
 
-    const message = pass ?
-      (): string =>
-        `${this.utils.matcherHint(".not.toBe")}\n\n` +
-          "Expected date to not be same date as:\n" +
-          `  ${this.utils.printExpected(expectedAsString)}\n` +
-          "Received:\n" +
-          `  ${this.utils.printReceived(receivedAsString)}` :
-      (): string => {
-        const diffString = diff(expectedAsString, receivedAsString, {
-          expand: this.expand,
-        });
-        return `${this.utils.matcherHint(".toBe")}\n\n` +
-            "Expected value to be (using ===):\n" +
-            `  ${this.utils.printExpected(expectedAsString)}\n` +
-            "Received:\n" +
-            `  ${this.utils.printReceived(receivedAsString)}${diffString ?
-              `\n\nDifference:\n\n${diffString}` :
-              ""}`;
-      };
-    return { message, pass };
+    return {
+      pass,
+      message: expectMessage(this, "toEqualDate", expectedAsString, receivedAsString),
+    };
+  },
+
+  toInclude(
+    this: jest.MatcherContext,
+    received: unknown[],
+    expected: unknown[],
+  ): jest.CustomMatcherResult {
+    let pass = Array.isArray(received) && Array.isArray(expected) &&
+      received.length == expected.length;
+
+    let remaining = [...expected];
+
+    let rPos = 0;
+    while (pass && rPos < received.length) {
+      pass = false;
+      let ePos = 0;
+      while (!pass && ePos < remaining.length) {
+        if (this.equals(received[rPos], remaining[ePos])) {
+          remaining.splice(ePos, 1);
+          pass = true;
+        }
+        ePos++;
+      }
+      rPos++;
+    }
+
+    return {
+      pass,
+      message: expectMessage(this, "toContain", expected, received),
+    };
   },
 };
 
