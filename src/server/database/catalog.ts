@@ -121,7 +121,7 @@ export async function editAlbum(
   let results = await update(
     Table.Album,
     knex.where("id", id)
-      .andWhere("catalog", "in", catalogs),
+      .where("catalog", "in", catalogs),
     intoDBTypes(albumUpdateData),
   ).returning("*");
 
@@ -130,6 +130,52 @@ export async function editAlbum(
   }
 
   throw new Error("Invalid user or album passed to editAlbum");
+}
+
+export async function albumAddMedia(
+  user: UserRef,
+  album: DBAPI<Tables.Album>["id"],
+  media: DBAPI<Tables.Media>["id"][],
+): Promise<string[]> {
+  let knex = await connection;
+
+  let existing = from(knex, Table.MediaAlbum)
+    .where(ref(Table.MediaAlbum, "album"), album)
+    .select("media");
+
+  let select = from(knex, Table.UserCatalog)
+    .join(Table.Album, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
+    .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
+    .whereIn(ref(Table.Media, "id"), media)
+    .whereNotIn(ref(Table.Media, "id"), existing)
+    .where({
+      [ref(Table.UserCatalog, "user")]: user,
+      [ref(Table.Album, "id")]: album,
+    });
+
+  return insertFromSelect(knex, Table.MediaAlbum, select, {
+    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+    media: knex.ref(ref(Table.Media, "id")),
+    album,
+  }).returning(ref(Table.MediaAlbum, "media"));
+}
+
+export async function albumRemoveMedia(
+  user: UserRef,
+  album: DBAPI<Tables.Album>["id"],
+  media: DBAPI<Tables.Media>["id"][],
+): Promise<void> {
+  let knex = await connection;
+
+  let catalogs = from(knex, Table.UserCatalog)
+    .where(ref(Table.UserCatalog, "user"), user)
+    .select("catalog");
+
+  await from(knex, Table.MediaAlbum)
+    .whereIn(ref(Table.MediaAlbum, "catalog"), catalogs)
+    .whereIn(ref(Table.MediaAlbum, "media"), media)
+    .where(ref(Table.MediaAlbum, "album"), album)
+    .delete();
 }
 
 export async function listPeople(user: UserRef): Promise<DBAPI<Tables.Person>[]> {
@@ -203,7 +249,7 @@ export async function editTag(
   let results = await update(
     Table.Tag,
     knex.where("id", id)
-      .andWhere("catalog", "in", catalogs),
+      .where("catalog", "in", catalogs),
     intoDBTypes(tagUpdateData),
   ).returning("*");
 
@@ -269,7 +315,7 @@ export async function editPerson(
   let results = await update(
     Table.Person,
     knex.where("id", id)
-      .andWhere("catalog", "in", catalogs),
+      .where("catalog", "in", catalogs),
     intoDBTypes(personUpdateData),
   ).returning("*");
 

@@ -107,7 +107,7 @@ export async function editMedia(
   } = data;
   let results = await update(
     Table.Media,
-    knex.where("id", id).andWhere("catalog", "in", catalogs),
+    knex.where("id", id).where("catalog", "in", catalogs),
     intoDBTypes(mediaUpdateData),
   ).returning("*");
 
@@ -165,6 +165,6 @@ export async function listAlternateFiles(
       .as("Uploaded");
   }, ref(Table.AlternateFile, "uploadedMedia"), "Uploaded.id")
     .where(ref(Table.AlternateFile, "type"), type)
-    .andWhere("Uploaded.media", id)
+    .where("Uploaded.media", id)
     .select(ref(Table.AlternateFile));
 }

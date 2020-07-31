@@ -4,6 +4,7 @@ export interface UserCatalog {
 }
 
 export interface MediaAlbum {
+  catalog: string;
   media: string;
   album: string;
 }
