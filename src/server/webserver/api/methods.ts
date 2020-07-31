@@ -1,4 +1,4 @@
-import * as Api from "../../../model/api";
+import { Api } from "../../../model";
 import { AppContext } from "../app";
 import { ApiError, ApiErrorCode } from "../error";
 import {

@@ -6,7 +6,7 @@ import { extension as mimeExtension } from "mime-types";
 import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
-import { AlternateFileType } from "../../model/models";
+import { AlternateFileType } from "../../model";
 import { Logger } from "../../utils";
 import {
   getMedia,

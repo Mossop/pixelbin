@@ -7,6 +7,9 @@ import * as Tables from "./tables";
 
 export { Joins, Tables };
 
+export * from "./constraints";
+export * from "./meta";
+
 export enum Table {
   User = "User",
   Storage = "Storage",

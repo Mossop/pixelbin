@@ -1,10 +1,10 @@
-import { User } from "../../model/models";
+import { ObjectModel } from "../../model";
 import * as Db from "../database";
 import { AppContext } from "./app";
 import { ApiError, ApiErrorCode } from "./error";
 
 export interface AuthContext {
-  user: User | null;
+  user: ObjectModel.User | null;
   isLoggedIn: () => boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -13,13 +13,13 @@ export interface AuthContext {
 export default function(): Record<string, PropertyDescriptor> {
   return {
     user: {
-      get(this: AppContext): User | null {
+      get(this: AppContext): ObjectModel.User | null {
         if (!this.session) {
           throw new Error("Session not correctly implemented.");
         }
 
         if (this.session.user) {
-          return this.session.user as User;
+          return this.session.user as ObjectModel.User;
         }
         return null;
       },
@@ -66,7 +66,7 @@ export default function(): Record<string, PropertyDescriptor> {
 }
 
 export function ensureAuthenticated<A, R>(
-  cb: (ctx: AppContext, user: User, arg: A) => Promise<R>,
+  cb: (ctx: AppContext, user: ObjectModel.User, arg: A) => Promise<R>,
 ): (ctx: AppContext, arg: A) => Promise<R> {
   return async (ctx: AppContext, arg: A): Promise<R> => {
     let user = ctx.user;

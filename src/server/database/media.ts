@@ -1,27 +1,39 @@
 import Knex from "knex";
 import moment from "moment-timezone";
 
-import { metadataColumns, AlternateFileType } from "../../model/models";
+import { ObjectModel, AlternateFileType } from "../../model";
 import { connection } from "./connection";
 import { coalesce } from "./functions";
 import { mediaId } from "./id";
-import { insertFromSelect, from, update } from "./queries";
-import { Tables, Table, ref, UserRef } from "./types";
-import { DBAPI, intoDBTypes, intoAPITypes } from "./types/meta";
-import { Metadata } from "./types/tables";
+import { insertFromSelect, from, update, QueryBuilder } from "./queries";
+import {
+  Tables,
+  Table,
+  ref,
+  UserRef,
+  AllOrNulls,
+  DBAPI,
+  intoDBTypes,
+  intoAPITypes,
+  DBRecord,
+} from "./types";
 
-export function fillMetadata<T>(data: T): T & Metadata {
+export type MediaWithInfo = Tables.Media & AllOrNulls<
+  Omit<Tables.UploadedMedia, "id" | "media" | "processVersion" | "fileName">
+>;
+
+export function fillMetadata<T>(data: T): T & Tables.Metadata {
   let result = { ...data };
-  for (let field of metadataColumns) {
+  for (let field of ObjectModel.metadataColumns) {
     if (!(field in result)) {
       result[field] = null;
     }
   }
 
-  return result as T & Metadata;
+  return result as T & Tables.Metadata;
 }
 
-function buildMediaView(knex: Knex): Knex.QueryBuilder {
+function buildMediaView(knex: Knex): QueryBuilder<DBRecord<MediaWithInfo>> {
   let mappings = {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
@@ -36,7 +48,7 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     bitRate: ref(Table.UploadedMedia, "bitRate"),
   };
 
-  for (let field of metadataColumns) {
+  for (let field of ObjectModel.metadataColumns) {
     mappings[field] = coalesce(knex, [
       knex.ref(ref(Table.Media, field)),
       knex.ref(ref(Table.UploadedMedia, field)),
@@ -50,7 +62,7 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
       { column: "uploaded", order: "desc" },
     ])
     .distinctOn(ref(Table.Media, "id"))
-    .select(mappings);
+    .select(mappings) as QueryBuilder<DBRecord<MediaWithInfo>>;
 }
 
 export async function createMedia(
@@ -108,8 +120,8 @@ export async function editMedia(
 
 export async function getMedia(
   user: UserRef,
-  id: DBAPI<Tables.MediaWithInfo>["id"],
-): Promise<DBAPI<Tables.MediaWithInfo> | null> {
+  id: DBAPI<MediaWithInfo>["id"],
+): Promise<DBAPI<MediaWithInfo> | null> {
   let knex = await connection;
 
   let results = await buildMediaView(knex).join(
@@ -132,7 +144,7 @@ export async function getMedia(
 
 export async function listAlternateFiles(
   user: UserRef,
-  id: DBAPI<Tables.MediaWithInfo>["id"],
+  id: DBAPI<MediaWithInfo>["id"],
   type: AlternateFileType,
 ): Promise<DBAPI<Tables.AlternateFile>[]> {
   let knex = await connection;

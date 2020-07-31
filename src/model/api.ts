@@ -1,17 +1,14 @@
-import { Files } from "formidable";
+import { Files as Api } from "formidable";
 
 import { Nullable } from "../utils";
 import * as ObjectModel from "./models";
-import { Dereferenced, WithoutLists, WithoutReferences } from "./models";
+import { Dereferenced, WithoutLists } from "./models";
 
-export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Promise<R>;
-export type ApiType<Table> = Dereferenced<WithoutLists<Table>>;
+export type RequestDecoder<R> = (data: unknown, files: Api | undefined) => Promise<R>;
+type ApiType<Table> = Dereferenced<WithoutLists<Table>>;
 
-export type UnprocessedMedia =
-  Omit<ApiType<ObjectModel.Media>, "catalog"> & ApiType<Nullable<ObjectModel.Metadata>>;
-export type UploadedMedia =
-  Omit<ApiType<WithoutReferences<ObjectModel.UploadedMedia>>, "media" | "fileName">;
-export type ProcessedMedia = UnprocessedMedia & UploadedMedia;
+export type UnprocessedMedia = Omit<ApiType<ObjectModel.UnprocessedMedia>, "catalog">;
+export type ProcessedMedia = Omit<ApiType<ObjectModel.ProcessedMedia>, "catalog">;
 export type Media = UnprocessedMedia | ProcessedMedia;
 
 export type Storage = ApiType<ObjectModel.Storage>;

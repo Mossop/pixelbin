@@ -5,7 +5,7 @@ import moment from "moment-timezone";
 import sharp from "sharp";
 import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
-import { AlternateFileType } from "../../model/models";
+import { AlternateFileType } from "../../model";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
 import { createMedia, fillMetadata, getMedia, listAlternateFiles } from "../database";
 import { insertTestData, buildTestDB } from "../database/test-helpers";

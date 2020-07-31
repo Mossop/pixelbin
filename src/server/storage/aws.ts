@@ -3,14 +3,14 @@ import { Duplex, Readable } from "stream";
 
 import AWS, { Credentials, AWSError } from "aws-sdk";
 
-import { Storage } from "../../model/api";
+import { Api } from "../../model";
 import { getLogger, Logger } from "../../utils";
 import { getStorageConfig } from "../database/unsafe";
 
 const logger = getLogger("aws");
 
 class DBCredentials extends Credentials {
-  public constructor(private catalog: string, private storage: Storage) {
+  public constructor(private catalog: string, private storage: Api.Storage) {
     super(storage.accessKeyId, storage.secretAccessKey);
   }
 
@@ -49,7 +49,7 @@ class AWSRemote extends Remote {
   private s3: AWS.S3;
   private logger: Logger;
 
-  public constructor(private catalog: string, private storage: Storage) {
+  public constructor(private catalog: string, private storage: Api.Storage) {
     super();
 
     this.logger = logger.child({ catalog });

@@ -1,7 +1,6 @@
 import { connection } from "./connection";
 import { from } from "./queries";
-import { Tables, Table } from "./types";
-import { DBAPI, intoAPITypes } from "./types/meta";
+import { Tables, Table, DBAPI, intoAPITypes } from "./types";
 
 type UserWithoutPassword = Omit<Tables.User, "password">;
 export async function getUser(

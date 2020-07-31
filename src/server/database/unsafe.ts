@@ -1,11 +1,10 @@
 import Knex from "knex";
 
-import { metadataColumns } from "../../model/models";
+import { ObjectModel } from "../../model";
 import { connection } from "./connection";
 import { uuid } from "./id";
 import { from, into, select } from "./queries";
-import { Table, Tables, ref } from "./types";
-import { DBAPI, intoDBTypes, intoAPITypes } from "./types/meta";
+import { Table, Tables, ref, DBAPI, intoDBTypes, intoAPITypes } from "./types";
 
 export async function getMedia(id: DBAPI<Tables.Media>["id"]): Promise<DBAPI<Tables.Media> | null> {
   let results = await from(await connection, Table.Media).where({ id }).select("*");
@@ -44,7 +43,7 @@ export async function withNewUploadedMedia<T>(
       "bitRate",
       "fileSize",
       "fileName",
-      ...metadataColumns,
+      ...ObjectModel.metadataColumns,
     ]);
 
     if (results.length) {

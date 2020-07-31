@@ -6,7 +6,7 @@ import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
-import { Metadata, UploadedMedia, FileInfo } from "../../model/models";
+import { ObjectModel } from "../../model";
 import { entries, Nullable } from "../../utils";
 import { StoredFile } from "../storage";
 import { probe } from "./ffmpeg";
@@ -29,7 +29,7 @@ type StoredTag<T> =
 
 type ExifTags = { [K in keyof Omit<Tags, ExcludedTags>]?: StoredTag<Tags[K]>; };
 
-export type StoredData = FileInfo & {
+export type StoredData = ObjectModel.FileInfo & {
   exif: ExifTags;
   uploaded: string;
 };
@@ -37,7 +37,7 @@ export type StoredData = FileInfo & {
 type MetadataParser<T> = (data: StoredData) => T | null;
 
 type MetadataParsers = {
-  [K in keyof Metadata]: MetadataParser<Metadata[K]>[];
+  [K in keyof ObjectModel.Metadata]: MetadataParser<ObjectModel.Metadata[K]>[];
 };
 
 function straight<K extends keyof ExifTags>(key: K): MetadataParser<NonNullable<ExifTags[K]>> {
@@ -257,13 +257,13 @@ const parsers: MetadataParsers = {
   focalLength: [float(straight("FocalLength"))],
 };
 
-export function parseMetadata(data: StoredData): Nullable<Metadata> {
+export function parseMetadata(data: StoredData): Nullable<ObjectModel.Metadata> {
   // @ts-ignore: I hate fromEntries!
-  let metadata: Nullable<Metadata> = Object.fromEntries(
+  let metadata: Nullable<ObjectModel.Metadata> = Object.fromEntries(
     entries(parsers).map(
       <K extends keyof MetadataParsers>(
-        [key, parsers]: [K, MetadataParser<Metadata[K]>[]],
-      ): [K, Metadata[K] | null] => {
+        [key, parsers]: [K, MetadataParser<ObjectModel.Metadata[K]>[]],
+      ): [K, ObjectModel.Metadata[K] | null] => {
         for (let parser of parsers) {
           let result = parser(data);
           if (result) {
@@ -352,7 +352,9 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
   };
 }
 
-export function getUploadedMedia(data: StoredData): Omit<UploadedMedia, "id" | "media"> {
+export function getUploadedMedia(
+  data: StoredData,
+): Omit<ObjectModel.UploadedMedia, "id" | "media"> {
   let { uploaded, exif, fileName, ...info } = data;
 
   return {

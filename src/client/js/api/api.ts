@@ -1,8 +1,6 @@
 import { JsonDecoder } from "ts.data.json";
 
-import * as Api from "../../../model/api";
-import * as ObjectModel from "../../../model/models";
-import { WithoutLinks } from "../../../model/models";
+import { Api, ObjectModel, WithoutLinks } from "../../../model";
 import { DateDecoder } from "../../../utils";
 import { ReadonlyMapOf } from "../utils/maps";
 import { JsonRequestData, makeRequest } from "./helpers";

@@ -2,8 +2,14 @@ import { Raw, Ref } from "knex";
 import moment, { Moment, isMoment } from "moment-timezone";
 
 import { Table } from ".";
-import { Dereference, ListsIn } from "../../../model/models";
+import { Dereference, ListsIn } from "../../../model";
 import { Obj } from "../../../utils";
+
+type AllNull<T> = {
+  [K in keyof T]: null;
+};
+
+export type AllOrNulls<T> = T | AllNull<T>;
 
 type DBType<J> = J extends Moment
   ? string

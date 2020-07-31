@@ -1,7 +1,8 @@
 import Knex from "knex";
 
-import { Table, TableRecord, ref, isRef } from "./types";
-import { WithRefs, intoDBTypes } from "./types/meta";
+import { Table, TableRecord, ref, isRef, WithRefs, intoDBTypes } from "./types";
+
+export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
 
 export async function drop<T extends Table>(
   knex: Knex,
@@ -21,8 +22,8 @@ export async function select<T extends Table>(
 export async function withChildren<T extends Table.Tag | Table.Album>(
   knex: Knex,
   table: T,
-  queryBuilder: Knex.QueryBuilder<TableRecord<T>>,
-): Promise<Knex.QueryBuilder<TableRecord<T>, TableRecord<T>[]>> {
+  queryBuilder: QueryBuilder<TableRecord<T>>,
+): Promise<QueryBuilder<TableRecord<T>>> {
   // @ts-ignore: Trust me!
   return knex.withRecursive(
     "parents",

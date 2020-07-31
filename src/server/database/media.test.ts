@@ -1,12 +1,10 @@
 import moment, { Moment } from "moment-timezone";
 
-import { AlternateFileType } from "../../model/models";
+import { AlternateFileType } from "../../model";
 import { expect, mockedFunction } from "../../test-helpers";
 import { createMedia, fillMetadata, getMedia, editMedia, listAlternateFiles } from "./media";
 import { buildTestDB, insertTestData } from "./test-helpers";
-import { Tables } from "./types";
-import { DBAPI } from "./types/meta";
-import { AlternateFile } from "./types/tables";
+import { Tables, DBAPI } from "./types";
 import { withNewUploadedMedia, UploadedMediaInfo, addAlternateFile } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
@@ -250,7 +248,9 @@ test("Media tests", async (): Promise<void> => {
   });
 
   let list = await listAlternateFiles("someone3@nowhere.com", id, AlternateFileType.Thumbnail);
-  list.sort((a: DBAPI<AlternateFile>, b: DBAPI<AlternateFile>): number => a.width - b.width);
+  list.sort(
+    (a: DBAPI<Tables.AlternateFile>, b: DBAPI<Tables.AlternateFile>): number => a.width - b.width,
+  );
   expect(list).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
     uploadedMedia: info.id,
@@ -278,7 +278,9 @@ test("Media tests", async (): Promise<void> => {
   }]);
 
   list = await listAlternateFiles("someone3@nowhere.com", id, AlternateFileType.Poster);
-  list.sort((a: DBAPI<AlternateFile>, b: DBAPI<AlternateFile>): number => a.width - b.width);
+  list.sort(
+    (a: DBAPI<Tables.AlternateFile>, b: DBAPI<Tables.AlternateFile>): number => a.width - b.width,
+  );
   expect(list).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
     uploadedMedia: info.id,

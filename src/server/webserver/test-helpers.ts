@@ -3,7 +3,7 @@ import path from "path";
 
 import { agent, SuperTest, Test } from "supertest";
 
-import { User, Person, Tag, Album, Catalog } from "../../model/api";
+import { Api } from "../../model";
 import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
 import { RemoteInterface } from "../../worker";
 import { getTestDatabaseConfig } from "../database/test-helpers";
@@ -58,15 +58,15 @@ export function buildTestApp(
   return (): SuperTest<Test> => agent(server);
 }
 
-export function catalogs(catalogs: string | string[], items: Catalog[]): Catalog[] {
+export function catalogs(catalogs: string | string[], items: Api.Catalog[]): Api.Catalog[] {
   if (!Array.isArray(catalogs)) {
     catalogs = [catalogs];
   }
 
-  return items.filter((catalog: Catalog): boolean => catalogs.includes(catalog.id));
+  return items.filter((catalog: Api.Catalog): boolean => catalogs.includes(catalog.id));
 }
 
-export function fromCatalogs<T extends Person | Tag | Album>(
+export function fromCatalogs<T extends Api.Person | Api.Tag | Api.Album>(
   catalogs: string | string[],
   items: T[],
 ): T[] {
@@ -77,7 +77,7 @@ export function fromCatalogs<T extends Person | Tag | Album>(
   return items.filter((item: T): boolean => catalogs.includes(item.catalog));
 }
 
-export function expectUserState(received: Obj, state: User | null): void {
+export function expectUserState(received: Obj, state: Api.User | null): void {
   if (!state) {
     expect(received).toEqual({ user: null });
     return;

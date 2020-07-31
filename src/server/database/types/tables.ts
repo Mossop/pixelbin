@@ -1,4 +1,4 @@
-import * as ObjectModel from "../../../model/models";
+import { ObjectModel } from "../../../model";
 import { Nullable } from "../../../utils";
 
 export type User = ObjectModel.User & { password: string };
@@ -23,11 +23,3 @@ export type UploadedMedia = ObjectModel.UploadedMedia & Metadata & {
 };
 
 export type AlternateFile = ObjectModel.AlternateFile;
-
-type AllNull<T> = {
-  [K in keyof T]: null;
-};
-
-type AllOrNulls<T> = T | AllNull<T>;
-
-export type MediaWithInfo = Media & AllOrNulls<Omit<UploadedMedia, "id" | "media">>;

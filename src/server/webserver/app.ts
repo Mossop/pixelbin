@@ -7,7 +7,7 @@ import mount from "koa-mount";
 import session from "koa-session";
 import serve from "koa-static";
 
-import { Method } from "../../model/api";
+import { Api } from "../../model";
 import { RemoteInterface } from "../../worker";
 import { apiRequestHandler } from "./api/methods";
 import auth, { AuthContext } from "./auth";
@@ -62,7 +62,7 @@ export default async function buildApp(
     ctx.body = "Ok";
   });
 
-  for (let method of Object.values(Method)) {
+  for (let method of Object.values(Api.Method)) {
     router.all(`/api/${method}`, koaBody({
       multipart: true,
     }), apiRequestHandler(method));

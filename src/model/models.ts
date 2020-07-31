@@ -1,5 +1,7 @@
-import type { Orientation } from "media-metadata";
+import type { Orientation as ObjectModel } from "media-metadata";
 import type { Moment } from "moment-timezone";
+
+import { Nullable } from "../utils";
 
 export interface IdType<K = string> {
   id: K;
@@ -113,7 +115,7 @@ export interface Metadata {
   city: string;
   state: string;
   country: string;
-  orientation: Orientation;
+  orientation: ObjectModel;
   make: string;
   model: string;
   lens: string;
@@ -167,6 +169,9 @@ export type UploadedMedia = IdType & FileInfo & {
   media: Reference<Media>;
   uploaded: Moment;
 };
+
+export type UnprocessedMedia = Media & Nullable<Metadata>;
+export type ProcessedMedia = UnprocessedMedia & Omit<UploadedMedia, "id" | "media">;
 
 export enum AlternateFileType {
   Thumbnail = "thumbnail",

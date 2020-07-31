@@ -1,7 +1,6 @@
 import { promises as fs } from "fs";
 
-import * as Api from "../../../model/api";
-import { User } from "../../../model/models";
+import { Api, ObjectModel } from "../../../model";
 import * as Db from "../../database";
 import { AppContext } from "../app";
 import { ensureAuthenticated } from "../auth";
@@ -11,7 +10,7 @@ import { DeBlobbed } from "./decoders";
 export const createMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
-    user: User,
+    user: ObjectModel.User,
     data: DeBlobbed<Api.MediaCreateRequest>,
   ): Promise<Api.Media> => {
     let {

@@ -3,9 +3,17 @@ import Knex from "knex";
 import { connection } from "./connection";
 import { uuid } from "./id";
 import { from, insert, insertFromSelect, update, select } from "./queries";
-import { Table, Tables, ref, UserRef } from "./types";
-import { nameConstraint } from "./types/constraints";
-import { DBAPI, intoAPITypes, DBRecord, intoDBTypes } from "./types/meta";
+import {
+  Table,
+  Tables,
+  ref,
+  UserRef,
+  nameConstraint,
+  DBAPI,
+  intoAPITypes,
+  DBRecord,
+  intoDBTypes,
+} from "./types";
 
 export async function listStorage(user: UserRef): Promise<DBAPI<Tables.Storage>[]> {
   let knex = await connection;

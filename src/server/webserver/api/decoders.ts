@@ -3,8 +3,7 @@ import { promises as fs } from "fs";
 import { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
-import * as Api from "../../../model/api";
-import { Create, Patch, RequestDecoder } from "../../../model/api";
+import { Api, Create, Patch } from "../../../model";
 import { getLogger, DateDecoder } from "../../../utils";
 
 export type DeBlobbed<T> = {
@@ -13,7 +12,7 @@ export type DeBlobbed<T> = {
 
 const logger = getLogger("jsonDecoder");
 
-function jsonDecoder<R>(decoder: JsonDecoder.Decoder<R>): RequestDecoder<R> {
+function jsonDecoder<R>(decoder: JsonDecoder.Decoder<R>): Api.RequestDecoder<R> {
   return async (data: unknown, files: Files | undefined): Promise<R> => {
     if (files) {
       for (let file of Object.values(files)) {
