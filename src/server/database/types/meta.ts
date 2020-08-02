@@ -1,9 +1,11 @@
-import { Raw, Ref } from "knex";
+import Knex, { Raw, Ref } from "knex";
 import moment, { Moment, isMoment } from "moment-timezone";
 
 import { Table } from ".";
 import { Dereference, ListsIn } from "../../../model";
 import { Obj } from "../../../utils";
+
+export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
 
 type AllNull<T> = {
   [K in keyof T]: null;

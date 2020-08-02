@@ -64,3 +64,7 @@ export function isRef<T extends Table>(ref: Obj): ref is Ref<T> {
 
   return ref.constructor.name == "Ref";
 }
+
+export function bindingParam(val: Knex.RawBinding | Ref): string {
+  return isRef(val) ? "??" : "?";
+}

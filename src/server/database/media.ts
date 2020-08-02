@@ -5,7 +5,7 @@ import { ObjectModel, AlternateFileType } from "../../model";
 import { connection } from "./connection";
 import { coalesce } from "./functions";
 import { mediaId } from "./id";
-import { insertFromSelect, from, update, QueryBuilder } from "./queries";
+import { insertFromSelect, from, update } from "./queries";
 import {
   Tables,
   Table,
@@ -16,6 +16,7 @@ import {
   intoDBTypes,
   intoAPITypes,
   DBRecord,
+  QueryBuilder,
 } from "./types";
 
 export type MediaWithInfo = Tables.Media & AllOrNulls<

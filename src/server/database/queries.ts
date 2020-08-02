@@ -1,8 +1,14 @@
 import Knex from "knex";
 
-import { Table, TableRecord, ref, isRef, WithRefs, intoDBTypes } from "./types";
-
-export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
+import {
+  Table,
+  TableRecord,
+  ref,
+  WithRefs,
+  intoDBTypes,
+  bindingParam,
+  QueryBuilder,
+} from "./types";
 
 export async function drop<T extends Table>(
   knex: Knex,
@@ -62,7 +68,7 @@ export function insertFromSelect<T extends Table>(
 
     bindings.push(value);
 
-    return isRef(value) ? "??" : "?";
+    return bindingParam(value);
   });
 
   return knex.into(intoList).insert(query.select(knex.raw(selectList.join(", "), bindings)));
