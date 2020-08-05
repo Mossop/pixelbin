@@ -1,8 +1,9 @@
-import Knex, { Raw } from "knex";
+import { Raw } from "knex";
 
+import { DatabaseConnection } from "./connection";
 import { Ref, bindingParam } from "./types";
 
-export function coalesce(knex: Knex, refs: (string | Ref)[]): Raw {
+export function coalesce(this: DatabaseConnection, refs: (string | Ref)[]): Raw {
   let bindings = refs.map(bindingParam);
-  return knex.raw(`COALESCE(${bindings.join(", ")})`, refs);
+  return this.raw(`COALESCE(${bindings.join(", ")})`, refs);
 }

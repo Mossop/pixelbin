@@ -5,6 +5,7 @@ import moment, { Moment } from "moment-timezone";
 import { expect, mockedFunction, deferCall } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import {
+  connection,
   buildTestDB,
   insertTestData,
 } from "../../database/test-helpers";
@@ -42,7 +43,7 @@ test("Media upload", async (): Promise<void> => {
   const storageService = new StorageService({
     tempDirectory: "",
     localDirectory: "",
-  });
+  }, await connection);
   const storage = (await storageService.getStorage("")).get();
 
   /* eslint-disable @typescript-eslint/unbound-method */

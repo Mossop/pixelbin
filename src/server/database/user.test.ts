@@ -1,6 +1,5 @@
-import { buildTestDB, insertTestData, testData } from "./test-helpers";
+import { buildTestDB, insertTestData, connection, testData } from "./test-helpers";
 import { Table } from "./types";
-import { getUser } from "./user";
 
 buildTestDB();
 
@@ -9,17 +8,19 @@ beforeEach((): Promise<void> => {
 });
 
 test("Test user retrieval", async (): Promise<void> => {
-  let user = await getUser("noone", "unknown");
+  let dbConnection = await connection;
+
+  let user = await dbConnection.getUser("noone", "unknown");
   expect(user).toBeUndefined();
 
-  user = await getUser("someone1@nowhere.com", "password1");
+  user = await dbConnection.getUser("someone1@nowhere.com", "password1");
   let { password, ...expected } = testData[Table.User][0];
   expect(user).toEqual(expected);
 
-  user = await getUser("someone2@nowhere.com", "password2");
+  user = await dbConnection.getUser("someone2@nowhere.com", "password2");
   let { password: password2, ...expected2 } = testData[Table.User][1];
   expect(user).toEqual(expected2);
 
-  user = await getUser("someone2@nowhere.com", "password1");
+  user = await dbConnection.getUser("someone2@nowhere.com", "password1");
   expect(user).toBeUndefined();
 });

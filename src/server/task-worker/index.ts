@@ -3,7 +3,7 @@ import { install } from "source-map-support";
 
 import { getLogger, setLogConfig } from "../../utils";
 import { ParentProcess } from "../../worker";
-import { connect } from "../database";
+import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
 import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
 import { handleUploadedFile } from "./process";
@@ -33,9 +33,11 @@ async function main(): Promise<void> {
 
     let config = await parent.getConfig();
     setLogConfig(config.logConfig);
-    connect(config.databaseConfig);
 
-    provideService("storage", new StorageService(config.storageConfig));
+    let dbConnection = await DatabaseConnection.connect(config.databaseConfig);
+    provideService("database", dbConnection);
+
+    provideService("storage", new StorageService(config.storageConfig, dbConnection));
   } catch (e) {
     connection.shutdown();
     throw e;

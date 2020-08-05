@@ -1,6 +1,10 @@
-import { DatabaseConfig, connection, connect } from "./connection";
+import { defer } from "../../utils";
+import { DatabaseConfig, DatabaseConnection } from "./connection";
 import { insert } from "./queries";
 import { Table, TableRecord } from "./types";
+
+const deferredConnection = defer<DatabaseConnection>();
+export const connection = deferredConnection.promise;
 
 export function getTestDatabaseConfig(): DatabaseConfig {
   return {
@@ -26,14 +30,17 @@ export function buildTestDB(): void {
 }
 
 export async function initDB(): Promise<void> {
-  let knex = connect(getTestDatabaseConfig());
+  let dbConnection = await DatabaseConnection.connect(getTestDatabaseConfig());
+  deferredConnection.resolve(dbConnection);
 
-  if (knex.userParams.schema) {
-    await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);
-    await knex.raw("CREATE SCHEMA ??;", [knex.userParams.schema]);
+  let params = dbConnection.knex["userParams"];
+
+  if (params.schema) {
+    await dbConnection.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [params.schema]);
+    await dbConnection.raw("CREATE SCHEMA ??;", [params.schema]);
   }
 
-  await knex.migrate.latest();
+  await dbConnection.knex.migrate.latest();
 }
 
 let first = true;
@@ -43,7 +50,7 @@ export async function resetDB(): Promise<void> {
     return;
   }
 
-  let knex = await connection;
+  let dbConnection = await connection;
 
   let tables = [
     Table.MediaPerson,
@@ -60,16 +67,21 @@ export async function resetDB(): Promise<void> {
     Table.User,
   ];
 
-  await knex.raw(`TRUNCATE ${tables.map((_: string): string => "??").join(", ")} CASCADE;`, tables);
+  await dbConnection.raw(
+    `TRUNCATE ${tables.map((_: string): string => "??").join(", ")} CASCADE;`,
+    tables,
+  );
 }
 
 export async function destroyDB(): Promise<void> {
-  let knex = await connection;
+  let dbConnection = await connection;
 
-  if (knex.userParams.schema) {
-    await knex.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [knex.userParams.schema]);
+  let params = dbConnection.knex["userParams"];
+
+  if (params.schema) {
+    await dbConnection.raw("DROP SCHEMA IF EXISTS ?? CASCADE;", [params.schema]);
   }
-  await knex.destroy();
+  await dbConnection.destroy();
 }
 
 export type Seed = {
@@ -77,7 +89,7 @@ export type Seed = {
 };
 
 export async function insertData(data: Seed): Promise<void> {
-  let knex = await connection;
+  let dbConnection = await connection;
 
   async function doInsert<T extends Table>(table: T): Promise<void> {
     if (!(table in data)) {
@@ -86,7 +98,7 @@ export async function insertData(data: Seed): Promise<void> {
 
     let records = data[table] as unknown as TableRecord<T>[];
 
-    await insert(knex, table, records);
+    await insert(dbConnection.knex, table, records);
   }
 
   await doInsert(Table.User);

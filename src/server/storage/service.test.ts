@@ -5,7 +5,7 @@ import moment, { Moment } from "moment-timezone";
 import { dir as tmpdir } from "tmp-promise";
 
 import { expect, mockedFunction } from "../../test-helpers";
-import { insertTestData, buildTestDB } from "../database/test-helpers";
+import { insertTestData, buildTestDB, connection } from "../database/test-helpers";
 import { StorageService } from "./service";
 
 jest.mock("moment-timezone", (): unknown => {
@@ -39,7 +39,7 @@ test("Basic storage", async (): Promise<void> => {
     let service = new StorageService({
       tempDirectory: temp.path,
       localDirectory: local.path,
-    });
+    }, await connection);
 
     let storage = await service.getStorage("myid");
 
@@ -116,7 +116,7 @@ test("AWS upload", async (): Promise<void> => {
     let service = new StorageService({
       tempDirectory: temp.path,
       localDirectory: local.path,
-    });
+    }, await connection);
 
     let testFile = path.join(testTemp.path, "file.txt");
     await fs.writeFile(testFile, "MYDATA");

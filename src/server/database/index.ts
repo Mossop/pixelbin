@@ -1,5 +1,3 @@
-export { connect } from "./connection";
+export { DatabaseConnection, UserScopedConnection } from "./connection";
 export type { DatabaseConfig } from "./connection";
-export * from "./catalog";
-export * from "./media";
-export * from "./user";
+export { fillMetadata } from "./media";

@@ -1,5 +1,4 @@
 import { Api } from "../../../model";
-import * as Db from "../../database";
 import { AppContext } from "../app";
 
 export async function buildUser(ctx: AppContext): Promise<Api.User | null> {
@@ -7,12 +6,14 @@ export async function buildUser(ctx: AppContext): Promise<Api.User | null> {
     return null;
   }
 
+  let userDb = ctx.dbConnection.forUser(ctx.user.email);
+
   return {
     ...ctx.user,
-    catalogs: await Db.listCatalogs(ctx.user.email),
-    people: await Db.listPeople(ctx.user.email),
-    tags: await Db.listTags(ctx.user.email),
-    albums: await Db.listAlbums(ctx.user.email),
+    catalogs: await userDb.listCatalogs(),
+    people: await userDb.listPeople(),
+    tags: await userDb.listTags(),
+    albums: await userDb.listAlbums(),
   };
 }
 

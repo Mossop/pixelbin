@@ -1,7 +1,6 @@
 import { idSorted } from "../../utils";
-import { connection } from "./connection";
 import { insert, withChildren, from } from "./queries";
-import { insertTestData, testData, buildTestDB } from "./test-helpers";
+import { insertTestData, testData, buildTestDB, connection } from "./test-helpers";
 import { Table } from "./types";
 
 buildTestDB();
@@ -11,8 +10,10 @@ beforeEach((): Promise<void> => {
 });
 
 test("Catalog table tests", async (): Promise<void> => {
+  let dbConnection = await connection;
+
   // Should not allow duplicate IDs.
-  await expect(insert(await connection, Table.Catalog, {
+  await expect(insert(dbConnection.knex, Table.Catalog, {
     id: "c1",
     storage: "s1",
     name: "Bad ID Catalog",
@@ -20,9 +21,15 @@ test("Catalog table tests", async (): Promise<void> => {
 });
 
 test("Tag table tests", async (): Promise<void> => {
-  let knex = await connection;
+  let dbConnection = await connection;
 
-  let tags = idSorted(await withChildren(knex, Table.Tag, from(knex, Table.Tag).where("id", "t2")));
+  let tags = idSorted(
+    await withChildren(
+      dbConnection.knex,
+      Table.Tag,
+      from(dbConnection.knex, Table.Tag).where("id", "t2"),
+    ),
+  );
   expect(tags).toHaveLength(4);
   expect(tags).toEqual([
     testData[Table.Tag][1],
@@ -32,7 +39,7 @@ test("Tag table tests", async (): Promise<void> => {
   ]);
 
   // Should not allow duplicate IDs.
-  await expect(insert(knex, Table.Tag, {
+  await expect(insert(dbConnection.knex, Table.Tag, {
     id: "t1",
     catalog: "c1",
     parent: null,
@@ -40,7 +47,7 @@ test("Tag table tests", async (): Promise<void> => {
   })).rejects.toThrow("duplicate key");
 
   // Should not allow duplicate name in the same parent.
-  await expect(insert(knex, Table.Tag, {
+  await expect(insert(dbConnection.knex, Table.Tag, {
     id: "t9",
     catalog: "c1",
     parent: "t2",
@@ -48,7 +55,7 @@ test("Tag table tests", async (): Promise<void> => {
   })).rejects.toThrow("unique constraint");
 
   // Disregarding case.
-  await expect(insert(knex, Table.Tag, {
+  await expect(insert(dbConnection.knex, Table.Tag, {
     id: "t9",
     catalog: "c1",
     parent: "t2",
@@ -56,7 +63,7 @@ test("Tag table tests", async (): Promise<void> => {
   })).rejects.toThrow("unique constraint");
 
   // Should not allow adding to a different catalog to its parent.
-  await expect(insert(knex, Table.Tag, {
+  await expect(insert(dbConnection.knex, Table.Tag, {
     id: "t9",
     catalog: "c2",
     parent: "t2",
@@ -65,10 +72,14 @@ test("Tag table tests", async (): Promise<void> => {
 });
 
 test("Album table tests", async (): Promise<void> => {
-  let knex = await connection;
+  let dbConnection = await connection;
 
   let albums = idSorted(
-    await withChildren(knex, Table.Album, from(knex, Table.Album).where("id", "a1")),
+    await withChildren(
+      dbConnection.knex,
+      Table.Album,
+      from(dbConnection.knex, Table.Album).where("id", "a1"),
+    ),
   );
   expect(albums).toHaveLength(4);
   expect(albums).toEqual([
@@ -79,7 +90,7 @@ test("Album table tests", async (): Promise<void> => {
   ]);
 
   // Should not allow duplicate IDs.
-  await expect(insert(knex, Table.Album, {
+  await expect(insert(dbConnection.knex, Table.Album, {
     id: "a1",
     catalog: "c1",
     parent: null,
@@ -88,7 +99,7 @@ test("Album table tests", async (): Promise<void> => {
   })).rejects.toThrow("duplicate key");
 
   // Should not allow duplicate name in the same parent.
-  await expect(insert(knex, Table.Album, {
+  await expect(insert(dbConnection.knex, Table.Album, {
     id: "a9",
     catalog: "c1",
     parent: "a1",
@@ -97,7 +108,7 @@ test("Album table tests", async (): Promise<void> => {
   })).rejects.toThrow("unique constraint");
 
   // Disregarding case.
-  await expect(insert(knex, Table.Album, {
+  await expect(insert(dbConnection.knex, Table.Album, {
     id: "a9",
     catalog: "c1",
     parent: "a1",
@@ -106,7 +117,7 @@ test("Album table tests", async (): Promise<void> => {
   })).rejects.toThrow("unique constraint");
 
   // Should not allow adding to a different catalog to its parent.
-  await expect(insert(knex, Table.Album, {
+  await expect(insert(dbConnection.knex, Table.Album, {
     id: "a9",
     catalog: "c2",
     parent: "a1",
@@ -116,24 +127,24 @@ test("Album table tests", async (): Promise<void> => {
 });
 
 test("Person table tests", async (): Promise<void> => {
-  let knex = await connection;
+  let dbConnection = await connection;
 
   // Should not allow duplicate IDs.
-  await expect(insert(knex, Table.Person, {
+  await expect(insert(dbConnection.knex, Table.Person, {
     id: "p1",
     catalog: "c3",
     name: "Bad ID Person",
   })).rejects.toThrow("duplicate key");
 
   // Should not allow duplicate name in the same catalog.
-  await expect(insert(knex, Table.Person, {
+  await expect(insert(dbConnection.knex, Table.Person, {
     id: "p7",
     catalog: "c1",
     name: "Person 1",
   })).rejects.toThrow("unique constraint");
 
   // Disregarding case.
-  await expect(insert(knex, Table.Person, {
+  await expect(insert(dbConnection.knex, Table.Person, {
     id: "p7",
     catalog: "c1",
     name: "peRsOn 1",

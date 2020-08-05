@@ -1,26 +1,8 @@
 import { expect } from "../../test-helpers";
 import { idSorted } from "../../utils";
-import {
-  listCatalogs,
-  listTags,
-  listAlbums,
-  listPeople,
-  createCatalog,
-  createAlbum,
-  editAlbum,
-  createTag,
-  editTag,
-  createPerson,
-  editPerson,
-  listStorage,
-  createStorage,
-  albumAddMedia,
-  albumRemoveMedia,
-} from "./catalog";
-import { connection } from "./connection";
-import { createMedia, fillMetadata } from "./media";
+import { fillMetadata } from "./media";
 import { from } from "./queries";
-import { insertTestData, testData, buildTestDB } from "./test-helpers";
+import { connection, insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
 import { MediaAlbum } from "./types/joins";
 
@@ -31,15 +13,19 @@ beforeEach((): Promise<void> => {
 });
 
 test("Storage tests", async (): Promise<void> => {
-  let allStorage = idSorted(await listStorage("someone1@nowhere.com"));
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  let user2Db = dbConnection.forUser("someone2@nowhere.com");
+
+  let allStorage = idSorted(await user1Db.listStorage());
   expect(allStorage).toHaveLength(2);
   expect(allStorage).toEqual(testData[Table.Storage]);
 
-  allStorage = idSorted(await listStorage("someone2@nowhere.com"));
+  allStorage = idSorted(await user2Db.listStorage());
   expect(allStorage).toHaveLength(1);
   expect(allStorage).toEqual([testData[Table.Storage][0]]);
 
-  let storage = await createStorage({
+  let storage = await user1Db.createStorage({
     name: "My new storage",
     accessKeyId: "foobar",
     secretAccessKey: "baz",
@@ -64,15 +50,21 @@ test("Storage tests", async (): Promise<void> => {
 });
 
 test("Catalog tests", async (): Promise<void> => {
-  let catalogs = idSorted(await listCatalogs("someone1@nowhere.com"));
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  let user2Db = dbConnection.forUser("someone2@nowhere.com");
+  let user3Db = dbConnection.forUser("someone3@nowhere.com");
+  let user5Db = dbConnection.forUser("someone5@nowhere.com");
+
+  let catalogs = idSorted(await user1Db.listCatalogs());
   expect(catalogs).toHaveLength(3);
   expect(catalogs).toEqual(testData[Table.Catalog]);
 
-  catalogs = idSorted(await listCatalogs("someone2@nowhere.com"));
+  catalogs = idSorted(await user2Db.listCatalogs());
   expect(catalogs).toHaveLength(1);
   expect(catalogs).toEqual([testData[Table.Catalog][0]]);
 
-  catalogs = idSorted(await listCatalogs("someone3@nowhere.com"));
+  catalogs = idSorted(await user3Db.listCatalogs());
   expect(catalogs).toHaveLength(2);
   expect(catalogs).toEqual([
     testData[Table.Catalog][1],
@@ -80,7 +72,7 @@ test("Catalog tests", async (): Promise<void> => {
   ]);
 
   // Can duplicate name.
-  let catalog = await createCatalog("someone1@nowhere.com", {
+  let catalog = await user1Db.createCatalog({
     storage: "s1",
     name: "Catalog 1",
   });
@@ -90,7 +82,7 @@ test("Catalog tests", async (): Promise<void> => {
     name: "Catalog 1",
   });
 
-  catalog = await createCatalog("someone2@nowhere.com", {
+  catalog = await user2Db.createCatalog({
     storage: "s1",
     name: "New catalog",
   });
@@ -100,30 +92,37 @@ test("Catalog tests", async (): Promise<void> => {
     name: "New catalog",
   });
 
-  catalogs = idSorted(await listCatalogs("someone2@nowhere.com"));
+  catalogs = idSorted(await user2Db.listCatalogs());
   expect(catalogs).toHaveLength(2);
   expect(catalogs).toEqual([
     catalog,
     testData[Table.Catalog][0],
   ]);
 
-  await expect(createCatalog("someone5@nowhere.com", {
+  await expect(user5Db.createCatalog({
     storage: "s1",
     name: "New catalog",
   })).rejects.toThrow("foreign key");
 
-  await expect(createCatalog("someone1@nowhere.com", {
+  await expect(user1Db.createCatalog({
     storage: "s5",
     name: "New catalog",
   })).rejects.toThrow("foreign key");
 });
 
 test("Tag table tests", async (): Promise<void> => {
-  let tags = idSorted(await listTags("someone1@nowhere.com"));
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  let user2Db = dbConnection.forUser("someone2@nowhere.com");
+  let user3Db = dbConnection.forUser("someone3@nowhere.com");
+
+  let fooUser = dbConnection.forUser("foobar@nowhere.com");
+
+  let tags = idSorted(await user1Db.listTags());
   expect(tags).toHaveLength(8);
   expect(tags).toEqual(testData[Table.Tag]);
 
-  tags = idSorted(await listTags("someone2@nowhere.com"));
+  tags = idSorted(await user2Db.listTags());
   expect(tags).toHaveLength(5);
   expect(tags).toEqual([
     testData[Table.Tag][0],
@@ -133,7 +132,7 @@ test("Tag table tests", async (): Promise<void> => {
     testData[Table.Tag][7],
   ]);
 
-  let tag = await createTag("someone1@nowhere.com", "c1", {
+  let tag = await user1Db.createTag("c1", {
     // @ts-ignore: Supplying an ID should not affect anything.
     id: "Bad",
     // @ts-ignore: Supplying a catalog should not affect anything.
@@ -151,7 +150,7 @@ test("Tag table tests", async (): Promise<void> => {
   });
 
   // Creating a tag that already exists should return the tag.
-  tag = await createTag("someone1@nowhere.com", "c1", {
+  tag = await user1Db.createTag("c1", {
     parent: null,
     name: "Tag1",
   });
@@ -164,24 +163,24 @@ test("Tag table tests", async (): Promise<void> => {
   });
 
   // Shouldn't allow adding to a catalog that doesn't exist.
-  await expect(createTag("someone1@nowhere.com", "c8", {
+  await expect(user1Db.createTag("c8", {
     parent: null,
     name: "New Tag",
   })).rejects.toThrow("Invalid user or catalog passed to createTag");
 
   // Or with a user that doesn't exist.
-  await expect(createTag("foobar@nowhere.com", "c1", {
+  await expect(fooUser.createTag("c1", {
     parent: null,
     name: "New Tag",
   })).rejects.toThrow("Invalid user or catalog passed to createTag");
 
   // Or with a user that doesn't have access to the catalog
-  await expect(createTag("someone3@nowhere.com", "c1", {
+  await expect(user3Db.createTag("c1", {
     parent: null,
     name: "New Tag",
   })).rejects.toThrow("Invalid user or catalog passed to createTag");
 
-  let updated = await editTag("someone1@nowhere.com", tag.id, {
+  let updated = await user1Db.editTag(tag.id, {
     // @ts-ignore: Attempts to change id should be ignored.
     id: "newId",
     // @ts-ignore: Ditto for catalog.
@@ -197,27 +196,34 @@ test("Tag table tests", async (): Promise<void> => {
   });
 
   // Attempting to alter a tag in a catalog the user cannot access should fail.
-  await expect(editTag("someone3@nowhere.com", "t1", {
+  await expect(user3Db.editTag("t1", {
     name: "Bad name",
   })).rejects.toThrow("Invalid user or album passed to editTag");
 
   // Attempting to alter a tag that doesn't exist should fail.
-  await expect(editTag("someone3@nowhere.com", "t16", {
+  await expect(user3Db.editTag("t16", {
     name: "Bad name",
   })).rejects.toThrow("Invalid user or album passed to editTag");
 
   // Changing to a bad parent should fail.
-  await expect(editTag("someone2@nowhere.com", tag.id, {
+  await expect(user2Db.editTag(tag.id, {
     parent: "t3",
   })).rejects.toThrow("foreign key constraint");
 });
 
 test("Album table tests", async (): Promise<void> => {
-  let albums = idSorted(await listAlbums("someone1@nowhere.com"));
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  let user2Db = dbConnection.forUser("someone2@nowhere.com");
+  let user3Db = dbConnection.forUser("someone3@nowhere.com");
+
+  let fooUser = dbConnection.forUser("foobar@nowhere.com");
+
+  let albums = idSorted(await user1Db.listAlbums());
   expect(albums).toHaveLength(8);
   expect(albums).toEqual(testData[Table.Album]);
 
-  albums = idSorted(await listAlbums("someone2@nowhere.com"));
+  albums = idSorted(await user2Db.listAlbums());
   expect(albums).toHaveLength(5);
   expect(albums).toEqual([
     testData[Table.Album][0],
@@ -227,7 +233,7 @@ test("Album table tests", async (): Promise<void> => {
     testData[Table.Album][4],
   ]);
 
-  albums = idSorted(await listAlbums("someone3@nowhere.com"));
+  albums = idSorted(await user3Db.listAlbums());
   expect(albums).toHaveLength(3);
   expect(albums).toEqual([
     testData[Table.Album][5],
@@ -235,7 +241,7 @@ test("Album table tests", async (): Promise<void> => {
     testData[Table.Album][7],
   ]);
 
-  let album = await createAlbum("someone1@nowhere.com", "c1", {
+  let album = await user1Db.createAlbum("c1", {
     // @ts-ignore: Supplying an ID should not affect anything.
     id: "Bad",
     // @ts-ignore: Supplying a catalog should not affect anything.
@@ -255,27 +261,27 @@ test("Album table tests", async (): Promise<void> => {
   });
 
   // Shouldn't allow adding to a catalog that doesn't exist.
-  await expect(createAlbum("someone1@nowhere.com", "c8", {
+  await expect(user1Db.createAlbum("c8", {
     parent: null,
     stub: "foo",
     name: "New Album",
   })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
 
   // Or with a user that doesn't exist.
-  await expect(createAlbum("foobar@nowhere.com", "c1", {
+  await expect(fooUser.createAlbum("c1", {
     parent: null,
     stub: "foo",
     name: "New Album",
   })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
 
   // Or with a user that doesn't have access to the catalog
-  await expect(createAlbum("someone3@nowhere.com", "c1", {
+  await expect(user3Db.createAlbum("c1", {
     parent: null,
     stub: "foo",
     name: "New Album",
   })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
 
-  let updated = await editAlbum("someone1@nowhere.com", album.id, {
+  let updated = await user1Db.editAlbum(album.id, {
     // @ts-ignore: Attempts to change id should be ignored.
     id: "newId",
     // @ts-ignore: Ditto for catalog.
@@ -291,38 +297,40 @@ test("Album table tests", async (): Promise<void> => {
   });
 
   // Attempting to alter an album in a catalog the user cannot access should fail.
-  await expect(editAlbum("someone3@nowhere.com", "a1", {
+  await expect(user3Db.editAlbum("a1", {
     name: "Bad name",
   })).rejects.toThrow("Invalid user or album passed to editAlbum");
 
   // Attempting to alter an album that doesn't exist should fail.
-  await expect(editAlbum("someone3@nowhere.com", "a16", {
+  await expect(user3Db.editAlbum("a16", {
     name: "Bad name",
   })).rejects.toThrow("Invalid user or album passed to editAlbum");
 
   // Changing to a bad parent should fail.
-  await expect(editAlbum("someone2@nowhere.com", album.id, {
+  await expect(user2Db.editAlbum(album.id, {
     parent: "a6",
   })).rejects.toThrow("foreign key constraint");
 });
 
 test("Album media tests", async (): Promise<void> => {
-  let knex = await connection;
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   let mediaInAlbum = async (album: string): Promise<string[]> => {
-    let media = await from(knex, Table.MediaAlbum).where("album", album).select("*");
+    let media = await from(dbConnection.knex, Table.MediaAlbum).where("album", album).select("*");
     return media.map((item: MediaAlbum): string => item.media);
   };
 
-  let media1 = await createMedia("someone1@nowhere.com", "c1", fillMetadata({}));
-  let media2 = await createMedia("someone1@nowhere.com", "c1", fillMetadata({}));
-  let media3 = await createMedia("someone1@nowhere.com", "c1", fillMetadata({}));
-  let media4 = await createMedia("someone1@nowhere.com", "c2", fillMetadata({}));
-  let media5 = await createMedia("someone1@nowhere.com", "c2", fillMetadata({}));
+  let media1 = await user1Db.createMedia("c1", fillMetadata({}));
+  let media2 = await user1Db.createMedia("c1", fillMetadata({}));
+  let media3 = await user1Db.createMedia("c1", fillMetadata({}));
+  let media4 = await user1Db.createMedia("c2", fillMetadata({}));
+  let media5 = await user1Db.createMedia("c2", fillMetadata({}));
 
   expect(await mediaInAlbum("a1")).toEqual([]);
 
-  let added = await albumAddMedia("someone1@nowhere.com", "a1", [
+  let added = await user1Db.albumAddMedia("a1", [
     media1.id,
     media2.id,
     media3.id,
@@ -341,7 +349,7 @@ test("Album media tests", async (): Promise<void> => {
     media3.id,
   ]);
 
-  added = await albumAddMedia("someone1@nowhere.com", "a1", [
+  added = await user1Db.albumAddMedia("a1", [
     media1.id,
     media2.id,
     media3.id,
@@ -355,7 +363,7 @@ test("Album media tests", async (): Promise<void> => {
     media3.id,
   ]);
 
-  await albumRemoveMedia("someone1@nowhere.com", "a1", [
+  await user1Db.albumRemoveMedia("a1", [
     media1.id,
     "unknown",
     media4.id,
@@ -366,14 +374,14 @@ test("Album media tests", async (): Promise<void> => {
     media3.id,
   ]);
 
-  await albumRemoveMedia("someone1@nowhere.com", "a1", [
+  await user1Db.albumRemoveMedia("a1", [
     media2.id,
     media3.id,
   ]);
 
   expect(await mediaInAlbum("a1")).toEqual([]);
 
-  added = await albumAddMedia("someone2@nowhere.com", "a6", [
+  added = await user2Db.albumAddMedia("a6", [
     media4.id,
     media5.id,
   ]);
@@ -382,7 +390,7 @@ test("Album media tests", async (): Promise<void> => {
 
   expect(await mediaInAlbum("a6")).toEqual([]);
 
-  added = await albumAddMedia("someone1@nowhere.com", "a6", [
+  added = await user1Db.albumAddMedia("a6", [
     media4.id,
     media5.id,
   ]);
@@ -397,7 +405,7 @@ test("Album media tests", async (): Promise<void> => {
     media5.id,
   ]);
 
-  await albumRemoveMedia("someone2@nowhere.com", "a6", [
+  await user2Db.albumRemoveMedia("a6", [
     media4.id,
     media5.id,
   ]);
@@ -409,18 +417,25 @@ test("Album media tests", async (): Promise<void> => {
 });
 
 test("Person table tests", async (): Promise<void> => {
-  let people = idSorted(await listPeople("someone1@nowhere.com"));
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  let user2Db = dbConnection.forUser("someone2@nowhere.com");
+  let user3Db = dbConnection.forUser("someone3@nowhere.com");
+
+  let fooUser = dbConnection.forUser("foobar@nowhere.com");
+
+  let people = idSorted(await user1Db.listPeople());
   expect(people).toHaveLength(6);
   expect(people).toEqual(testData[Table.Person]);
 
-  people = idSorted(await listPeople("someone2@nowhere.com"));
+  people = idSorted(await user2Db.listPeople());
   expect(people).toHaveLength(2);
   expect(people).toEqual([
     testData[Table.Person][0],
     testData[Table.Person][1],
   ]);
 
-  people = idSorted(await listPeople("someone3@nowhere.com"));
+  people = idSorted(await user3Db.listPeople());
   expect(people).toHaveLength(4);
   expect(people).toEqual([
     testData[Table.Person][2],
@@ -429,7 +444,7 @@ test("Person table tests", async (): Promise<void> => {
     testData[Table.Person][5],
   ]);
 
-  let person = await createPerson("someone1@nowhere.com", "c1", {
+  let person = await user1Db.createPerson("c1", {
     // @ts-ignore: Supplying an ID should not affect anything.
     id: "Bad",
     // @ts-ignore: Supplying a catalog should not affect anything.
@@ -445,7 +460,7 @@ test("Person table tests", async (): Promise<void> => {
   });
 
   // Creating a person with the same name should just return the same person.
-  person = await createPerson("someone1@nowhere.com", "c1", {
+  person = await user1Db.createPerson("c1", {
     name: "person 1",
   });
   expect(person).toEqual({
@@ -455,21 +470,21 @@ test("Person table tests", async (): Promise<void> => {
   });
 
   // Shouldn't allow adding to a catalog that doesn't exist.
-  await expect(createPerson("someone1@nowhere.com", "c8", {
+  await expect(user1Db.createPerson("c8", {
     name: "New Person",
   })).rejects.toThrow("Invalid user or catalog passed to createPerson");
 
   // Or with a user that doesn't exist.
-  await expect(createPerson("foobar@nowhere.com", "c1", {
+  await expect(fooUser.createPerson("c1", {
     name: "New Person",
   })).rejects.toThrow("Invalid user or catalog passed to createPerson");
 
   // Or with a user that doesn't have access to the catalog
-  await expect(createPerson("someone3@nowhere.com", "c1", {
+  await expect(user3Db.createPerson("c1", {
     name: "New Tag",
   })).rejects.toThrow("Invalid user or catalog passed to createPerson");
 
-  let updated = await editPerson("someone1@nowhere.com", person.id, {
+  let updated = await user1Db.editPerson(person.id, {
     // @ts-ignore: Attempts to change id should be ignored.
     id: "newId",
     // @ts-ignore: Ditto for catalog.
@@ -483,12 +498,12 @@ test("Person table tests", async (): Promise<void> => {
   });
 
   // Attempting to alter a person in a catalog the user cannot access should fail.
-  await expect(editPerson("someone3@nowhere.com", "p2", {
+  await expect(user3Db.editPerson("p2", {
     name: "Bad name",
   })).rejects.toThrow("Invalid user or album passed to editPerson");
 
   // Attempting to alter a person that doesn't exist should fail.
-  await expect(editPerson("someone3@nowhere.com", "p16", {
+  await expect(user3Db.editPerson("p16", {
     name: "Bad name",
   })).rejects.toThrow("Invalid user or album passed to editPerson");
 });

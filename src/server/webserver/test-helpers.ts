@@ -55,6 +55,7 @@ export function buildTestApp(
   });
 
   void buildApp(parent);
+
   return (): SuperTest<Test> => agent(server);
 }
 

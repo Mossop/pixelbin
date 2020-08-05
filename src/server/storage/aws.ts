@@ -5,17 +5,21 @@ import AWS, { Credentials, AWSError } from "aws-sdk";
 
 import { Api } from "../../model";
 import { getLogger, Logger } from "../../utils";
-import { getStorageConfig } from "../database/unsafe";
+import { DatabaseConnection } from "../database";
 
 const logger = getLogger("aws");
 
 class DBCredentials extends Credentials {
-  public constructor(private catalog: string, private storage: Api.Storage) {
+  public constructor(
+    private dbConnection: DatabaseConnection,
+    private catalog: string,
+    private storage: Api.Storage,
+  ) {
     super(storage.accessKeyId, storage.secretAccessKey);
   }
 
   private async refreshCredentials(): Promise<void> {
-    this.storage = await getStorageConfig(this.catalog);
+    this.storage = await this.dbConnection.getStorageConfig(this.catalog);
     this.accessKeyId = this.storage.accessKeyId;
     this.secretAccessKey = this.storage.secretAccessKey;
   }
@@ -39,9 +43,12 @@ export abstract class Remote {
   public abstract stream(target: string): Promise<NodeJS.ReadableStream>;
   public abstract delete(target: string): Promise<void>;
 
-  public static async getAWSRemote(catalog: string): Promise<Remote> {
-    let storage = await getStorageConfig(catalog);
-    return new AWSRemote(catalog, storage);
+  public static async getAWSRemote(
+    dbConnection: DatabaseConnection,
+    catalog: string,
+  ): Promise<Remote> {
+    let storage = await dbConnection.getStorageConfig(catalog);
+    return new AWSRemote(dbConnection, catalog, storage);
   }
 }
 
@@ -49,7 +56,11 @@ class AWSRemote extends Remote {
   private s3: AWS.S3;
   private logger: Logger;
 
-  public constructor(private catalog: string, private storage: Api.Storage) {
+  public constructor(
+    dbConnection: DatabaseConnection,
+    private catalog: string,
+    private storage: Api.Storage,
+  ) {
     super();
 
     this.logger = logger.child({ catalog });
@@ -60,7 +71,7 @@ class AWSRemote extends Remote {
     }, "Creating S3 service");
     this.s3 = new AWS.S3({
       endpoint: storage.endpoint ?? undefined,
-      credentials: new DBCredentials(catalog, storage),
+      credentials: new DBCredentials(dbConnection, catalog, storage),
       region: storage.region,
       apiVersion: "2006-03-01",
       s3ForcePathStyle: true,

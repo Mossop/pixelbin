@@ -1,19 +1,14 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import Knex from "knex";
 import { extension as mimeExtension } from "mime-types";
 import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
 import { Logger } from "../../utils";
-import {
-  getMedia,
-  withNewUploadedMedia,
-  UploadedMediaInfo,
-  addAlternateFile,
-} from "../database/unsafe";
+import { DatabaseConnection } from "../database";
+import { UploadedMediaInfo } from "../database/unsafe";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
 import { parseFile, parseMetadata, getUploadedMedia } from "./metadata";
 import Services from "./services";
@@ -46,7 +41,9 @@ export const handleUploadedFile = bindTask(
       media: mediaId,
     });
 
-    let media = await getMedia(mediaId);
+    let dbConnection = await Services.database;
+
+    let media = await dbConnection.getMedia(mediaId);
     if (!media) {
       logger.warn("Media does not exist.");
       return;
@@ -82,12 +79,15 @@ export const handleUploadedFile = bindTask(
       let fileName = metadata.filename ?? `original.${mimeExtension(data.mimetype)}`;
       let baseName = fileName.substr(0, fileName.length - path.extname(fileName).length);
 
-      let uploadedMedia = await withNewUploadedMedia(mediaId, {
+      let uploadedMedia = await dbConnection.withNewUploadedMedia(mediaId, {
         ...metadata,
         ...info,
         processVersion: PROCESS_VERSION,
         fileName,
-      }, async (uploadedMedia: UploadedMediaInfo, knex: Knex): Promise<UploadedMediaInfo> => {
+      }, async (
+        dbConnection: DatabaseConnection,
+        uploadedMedia: UploadedMediaInfo,
+      ): Promise<UploadedMediaInfo> => {
         try {
           let source = fileInfo.path;
           if (info.mimetype.startsWith("video/")) {
@@ -97,7 +97,7 @@ export const handleUploadedFile = bindTask(
 
             let stat = await fs.stat(source);
             let metadata = await sharp(source).metadata();
-            await addAlternateFile(uploadedMedia.id, {
+            await dbConnection.addAlternateFile(uploadedMedia.id, {
               type: AlternateFileType.Poster,
               fileName: path.basename(source),
               fileSize: stat.size,
@@ -107,7 +107,7 @@ export const handleUploadedFile = bindTask(
               duration: null,
               frameRate: null,
               bitRate: null,
-            }, knex);
+            });
           }
 
           logger.trace("Building thumbnails.");
@@ -127,7 +127,7 @@ export const handleUploadedFile = bindTask(
               })
               .toFile(target);
 
-            await addAlternateFile(uploadedMedia.id, {
+            await dbConnection.addAlternateFile(uploadedMedia.id, {
               type: AlternateFileType.Thumbnail,
               fileName,
               fileSize: info.size,
@@ -137,7 +137,7 @@ export const handleUploadedFile = bindTask(
               duration: null,
               frameRate: null,
               bitRate: null,
-            }, knex);
+            });
           }
 
           await storage.get().storeFile(mediaId, uploadedMedia.id, fileName, fileInfo.path);
@@ -172,7 +172,7 @@ export const handleUploadedFile = bindTask(
 
           await storage.get().storeFile(mediaId, uploadedMedia.id, fileName, target);
 
-          await addAlternateFile(uploadedMedia.id, {
+          await dbConnection.addAlternateFile(uploadedMedia.id, {
             type: AlternateFileType.Reencode,
             fileName,
             fileSize: videoInfo.format.size,

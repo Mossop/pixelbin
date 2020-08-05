@@ -51,5 +51,26 @@ module.exports = {
     "env": {
       "jest": true,
     },
+  }, {
+    "files": ["*.ts", "*.tsx"],
+
+    "rules": {
+      "@typescript-eslint/explicit-function-return-type": ["warn", {
+        "allowExpressions": true,
+        "allowTypedFunctionExpressions": true,
+        "allowHigherOrderFunctions": true,
+        "allowConciseArrowFunctionExpressionsStartingWithVoid": true,
+      }],
+      "@typescript-eslint/typedef": ["warn", {
+        "arrayDestructuring": false,
+        "arrowParameter": true,
+        "memberVariableDeclaration": false,
+        "objectDestructuring": false,
+        "parameter": true,
+        "propertyDeclaration": true,
+        "variableDeclaration": false,
+        "variableDeclarationIgnoreFunction": true,
+      }],
+    },
   }],
 };

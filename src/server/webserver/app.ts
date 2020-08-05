@@ -46,13 +46,13 @@ function buildAppContent(): string {
 `;
 }
 
-type AddedContexts = AuthContext & LoggingContext & ServicesContext;
+export type AddedContexts = AuthContext & LoggingContext & ServicesContext;
 export type AppContext = Context & AddedContexts;
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 
 export default async function buildApp(
   parent: RemoteInterface<ParentProcessInterface>,
-): Promise<void> {
+): Promise<Koa<DefaultState, DefaultContext & AddedContexts>> {
   let config = await parent.getConfig();
   let services = await initServices(parent);
 
@@ -106,4 +106,6 @@ export default async function buildApp(
 
   let server = await parent.getServer();
   app.listen(server);
+
+  return app;
 }

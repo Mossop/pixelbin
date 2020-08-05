@@ -1,13 +1,12 @@
 import Knex from "knex";
 
-import { connection } from "./connection";
+import { UserScopedConnection } from "./connection";
 import { uuid } from "./id";
 import { from, insert, insertFromSelect, update, select } from "./queries";
 import {
   Table,
   Tables,
   ref,
-  UserRef,
   nameConstraint,
   DBAPI,
   intoAPITypes,
@@ -15,20 +14,19 @@ import {
   intoDBTypes,
 } from "./types";
 
-export async function listStorage(user: UserRef): Promise<DBAPI<Tables.Storage>[]> {
-  let knex = await connection;
-  return from(knex, Table.Storage)
+export async function listStorage(this: UserScopedConnection): Promise<DBAPI<Tables.Storage>[]> {
+  return from(this.knex, Table.Storage)
     .innerJoin(Table.Catalog, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Catalog, "id"))
-    .where(ref(Table.UserCatalog, "user"), user)
+    .where(ref(Table.UserCatalog, "user"), this.user)
     .select(ref(Table.Storage)).distinct();
 }
 
 export async function createStorage(
+  this: UserScopedConnection,
   data: Omit<DBAPI<Tables.Storage>, "id">,
 ): Promise<DBAPI<Tables.Storage>> {
-  let knex = await connection;
-  let results = await insert(knex, Table.Storage, {
+  let results = await insert(this.knex, Table.Storage, {
     ...data,
     id: await uuid("S"),
   }).returning("*");
@@ -40,20 +38,18 @@ export async function createStorage(
   throw new Error("Invalid user or catalog passed to createStorage");
 }
 
-export async function listCatalogs(user: UserRef): Promise<DBAPI<Tables.Catalog>[]> {
-  let knex = await connection;
-  let results = await select(from(knex, Table.Catalog)
+export async function listCatalogs(this: UserScopedConnection): Promise<DBAPI<Tables.Catalog>[]> {
+  let results = await select(from(this.knex, Table.Catalog)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Catalog, "id"))
-    .where(ref(Table.UserCatalog, "user"), user), Table.Catalog);
+    .where(ref(Table.UserCatalog, "user"), this.user), Table.Catalog);
   return results.map(intoAPITypes);
 }
 
 export async function createCatalog(
-  user: UserRef,
+  this: UserScopedConnection,
   data: DBAPI<Omit<Tables.Catalog, "id">>,
 ): Promise<DBAPI<Tables.Catalog>> {
-  let knex = await connection;
-  return knex.transaction(async (trx: Knex): Promise<DBAPI<Tables.Catalog>> => {
+  return this.knex.transaction(async (trx: Knex): Promise<DBAPI<Tables.Catalog>> => {
     let catalog: DBRecord<Tables.Catalog> = {
       ...intoDBTypes(data),
       id: await uuid("C"),
@@ -61,7 +57,7 @@ export async function createCatalog(
 
     await insert(trx, Table.Catalog, catalog);
     await insert(trx, Table.UserCatalog, {
-      user,
+      user: this.user,
       catalog: catalog.id,
     });
 
@@ -72,30 +68,27 @@ export async function createCatalog(
   });
 }
 
-export async function listAlbums(user: UserRef): Promise<DBAPI<Tables.Album>[]> {
-  let knex = await connection;
-  let results = await select(from(knex, Table.Album)
+export async function listAlbums(this: UserScopedConnection): Promise<DBAPI<Tables.Album>[]> {
+  let results = await select(from(this.knex, Table.Album)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
-    .where(ref(Table.UserCatalog, "user"), user), Table.Album);
+    .where(ref(Table.UserCatalog, "user"), this.user), Table.Album);
   return results.map(intoAPITypes);
 }
 
 export async function createAlbum(
-  user: UserRef,
+  this: UserScopedConnection,
   catalog: DBAPI<Tables.Album>["catalog"],
   data: DBAPI<Omit<Tables.Album, "id" | "catalog">>,
 ): Promise<DBAPI<Tables.Album>> {
-  let knex = await connection;
-
-  let select = knex.from(Table.UserCatalog).where({
-    user,
+  let select = this.knex.from(Table.UserCatalog).where({
+    user: this.user,
     catalog,
   });
 
-  let results = await insertFromSelect(knex, Table.Album, select, {
+  let results = await insertFromSelect(this.knex, Table.Album, select, {
     ...intoDBTypes(data),
     id: await uuid("A"),
-    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
   }).returning("*");
 
   if (results.length) {
@@ -106,12 +99,11 @@ export async function createAlbum(
 }
 
 export async function editAlbum(
-  user: UserRef,
+  this: UserScopedConnection,
   id: DBAPI<Tables.Album>["id"],
   data: Partial<DBAPI<Tables.Album>>,
 ): Promise<DBAPI<Tables.Album>> {
-  let knex = await connection;
-  let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
+  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
 
   let {
     id: removedId,
@@ -120,7 +112,7 @@ export async function editAlbum(
   } = data;
   let results = await update(
     Table.Album,
-    knex.where("id", id)
+    this.knex.where("id", id)
       .where("catalog", "in", catalogs),
     intoDBTypes(albumUpdateData),
   ).returning("*");
@@ -133,96 +125,88 @@ export async function editAlbum(
 }
 
 export async function albumAddMedia(
-  user: UserRef,
+  this: UserScopedConnection,
   album: DBAPI<Tables.Album>["id"],
   media: DBAPI<Tables.Media>["id"][],
 ): Promise<string[]> {
-  let knex = await connection;
-
-  let existing = from(knex, Table.MediaAlbum)
+  let existing = from(this.knex, Table.MediaAlbum)
     .where(ref(Table.MediaAlbum, "album"), album)
     .select("media");
 
-  let select = from(knex, Table.UserCatalog)
+  let select = from(this.knex, Table.UserCatalog)
     .join(Table.Album, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
     .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
     .whereIn(ref(Table.Media, "id"), media)
     .whereNotIn(ref(Table.Media, "id"), existing)
     .where({
-      [ref(Table.UserCatalog, "user")]: user,
+      [ref(Table.UserCatalog, "user")]: this.user,
       [ref(Table.Album, "id")]: album,
     });
 
-  return insertFromSelect(knex, Table.MediaAlbum, select, {
-    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
-    media: knex.ref(ref(Table.Media, "id")),
+  return insertFromSelect(this.knex, Table.MediaAlbum, select, {
+    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
+    media: this.connection.ref(ref(Table.Media, "id")),
     album,
   }).returning(ref(Table.MediaAlbum, "media"));
 }
 
 export async function albumRemoveMedia(
-  user: UserRef,
+  this: UserScopedConnection,
   album: DBAPI<Tables.Album>["id"],
   media: DBAPI<Tables.Media>["id"][],
 ): Promise<void> {
-  let knex = await connection;
-
-  let catalogs = from(knex, Table.UserCatalog)
-    .where(ref(Table.UserCatalog, "user"), user)
+  let catalogs = from(this.knex, Table.UserCatalog)
+    .where(ref(Table.UserCatalog, "user"), this.user)
     .select("catalog");
 
-  await from(knex, Table.MediaAlbum)
+  await from(this.knex, Table.MediaAlbum)
     .whereIn(ref(Table.MediaAlbum, "catalog"), catalogs)
     .whereIn(ref(Table.MediaAlbum, "media"), media)
     .where(ref(Table.MediaAlbum, "album"), album)
     .delete();
 }
 
-export async function listPeople(user: UserRef): Promise<DBAPI<Tables.Person>[]> {
-  let knex = await connection;
-  let results = await select(from(knex, Table.Person)
+export async function listPeople(this: UserScopedConnection): Promise<DBAPI<Tables.Person>[]> {
+  let results = await select(from(this.knex, Table.Person)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Person, "catalog"))
-    .where(ref(Table.UserCatalog, "user"), user), Table.Person);
+    .where(ref(Table.UserCatalog, "user"), this.user), Table.Person);
   return results.map(intoAPITypes);
 }
 
-export async function listTags(user: UserRef): Promise<DBAPI<Tables.Tag>[]> {
-  let knex = await connection;
-  let results = await select(from(knex, Table.Tag)
+export async function listTags(this: UserScopedConnection): Promise<DBAPI<Tables.Tag>[]> {
+  let results = await select(from(this.knex, Table.Tag)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Tag, "catalog"))
-    .where(ref(Table.UserCatalog, "user"), user), Table.Tag);
+    .where(ref(Table.UserCatalog, "user"), this.user), Table.Tag);
   return results.map(intoAPITypes);
 }
 
 export async function createTag(
-  user: UserRef,
+  this: UserScopedConnection,
   catalog: DBAPI<Tables.Tag>["catalog"],
   data: DBAPI<Omit<Tables.Tag, "id" | "catalog">>,
 ): Promise<DBAPI<Tables.Tag>> {
-  let knex = await connection;
-
-  let userLookup = knex.from(Table.UserCatalog).where({
-    user,
+  let userLookup = this.knex.from(Table.UserCatalog).where({
+    user: this.user,
     catalog,
   });
 
-  let query = insertFromSelect(knex, Table.Tag, userLookup, {
+  let query = insertFromSelect(this.knex, Table.Tag, userLookup, {
     ...intoDBTypes(data),
     id: await uuid("T"),
-    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
   });
 
-  let results = await knex.raw(`
+  let results = await this.connection.raw(`
     :query
     ON CONFLICT :constraint DO
       UPDATE SET :name: = :newName
     RETURNING :result
   `, {
     query,
-    constraint: nameConstraint(knex, Table.Catalog),
+    constraint: nameConstraint(this.knex, Table.Catalog),
     name: "name",
     newName: data.name,
-    result: knex.ref(ref(Table.Tag)),
+    result: this.connection.ref(ref(Table.Tag)),
   });
   let rows = results.rows ?? [];
 
@@ -234,12 +218,11 @@ export async function createTag(
 }
 
 export async function editTag(
-  user: UserRef,
+  this: UserScopedConnection,
   id: DBAPI<Tables.Tag>["id"],
   data: DBAPI<Partial<Tables.Tag>>,
 ): Promise<DBAPI<Tables.Tag>> {
-  let knex = await connection;
-  let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
+  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
 
   let {
     id: removedId,
@@ -248,7 +231,7 @@ export async function editTag(
   } = data;
   let results = await update(
     Table.Tag,
-    knex.where("id", id)
+    this.knex.where("id", id)
       .where("catalog", "in", catalogs),
     intoDBTypes(tagUpdateData),
   ).returning("*");
@@ -261,34 +244,32 @@ export async function editTag(
 }
 
 export async function createPerson(
-  user: UserRef,
+  this: UserScopedConnection,
   catalog: DBAPI<Tables.Person>["catalog"],
   data: DBAPI<Omit<Tables.Person, "id" | "catalog">>,
 ): Promise<DBAPI<Tables.Person>> {
-  let knex = await connection;
-
-  let userLookup = knex.from(Table.UserCatalog).where({
-    user,
+  let userLookup = this.knex.from(Table.UserCatalog).where({
+    user: this.user,
     catalog,
   });
 
-  let query = insertFromSelect(knex, Table.Person, userLookup, {
+  let query = insertFromSelect(this.knex, Table.Person, userLookup, {
     ...intoDBTypes(data),
     id: await uuid("P"),
-    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
   });
 
-  let results = await knex.raw(`
+  let results = await this.connection.raw(`
     :query
     ON CONFLICT :constraint DO
       UPDATE SET :name: = :newName
     RETURNING :result
   `, {
     query,
-    constraint: nameConstraint(knex, Table.Catalog, null),
+    constraint: nameConstraint(this.knex, Table.Catalog, null),
     name: "name",
     newName: data.name,
-    result: knex.ref(ref(Table.Person)),
+    result: this.connection.ref(ref(Table.Person)),
   });
   let rows = results.rows ?? [];
 
@@ -300,12 +281,11 @@ export async function createPerson(
 }
 
 export async function editPerson(
-  user: UserRef,
+  this: UserScopedConnection,
   id: DBAPI<Tables.Person>["id"],
   data: DBAPI<Partial<Tables.Person>>,
 ): Promise<DBAPI<Tables.Person>> {
-  let knex = await connection;
-  let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
+  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
 
   let {
     id: removedId,
@@ -314,7 +294,7 @@ export async function editPerson(
   } = data;
   let results = await update(
     Table.Person,
-    knex.where("id", id)
+    this.knex.where("id", id)
       .where("catalog", "in", catalogs),
     intoDBTypes(personUpdateData),
   ).returning("*");

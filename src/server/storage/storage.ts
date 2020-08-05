@@ -4,6 +4,7 @@ import path from "path";
 import moment, { Moment } from "moment-timezone";
 
 import { getLogger, Logger } from "../../utils";
+import { DatabaseConnection } from "../database";
 import { Remote } from "./aws";
 
 export interface StoredFile {
@@ -19,6 +20,7 @@ export class Storage {
   private aws: Promise<Remote> | undefined;
 
   public constructor(
+    private readonly dbConnection: DatabaseConnection,
     private readonly catalog: string,
     private readonly tempDirectory: string,
     private readonly localDirectory: string,
@@ -28,7 +30,7 @@ export class Storage {
 
   private get remote(): Promise<Remote> {
     if (!this.aws) {
-      this.aws = Remote.getAWSRemote(this.catalog);
+      this.aws = Remote.getAWSRemote(this.dbConnection, this.catalog);
     }
 
     return this.aws;

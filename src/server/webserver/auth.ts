@@ -1,5 +1,4 @@
 import { ObjectModel } from "../../model";
-import * as Db from "../database";
 import { AppContext } from "./app";
 import { ApiError, ApiErrorCode } from "./error";
 
@@ -38,7 +37,7 @@ export default function(): Record<string, PropertyDescriptor> {
             throw new Error("Session not correctly implemented.");
           }
 
-          let user = await Db.getUser(email, password);
+          let user = await this.dbConnection.getUser(email, password);
           if (user) {
             this.session.user = user;
             this.session.save();

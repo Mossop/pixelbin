@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 
 import { Api, ObjectModel } from "../../../model";
-import * as Db from "../../database";
+import { fillMetadata } from "../../database";
 import { AppContext } from "../app";
 import { ensureAuthenticated } from "../auth";
 import { ApiError, ApiErrorCode } from "../error";
@@ -13,6 +13,8 @@ export const createMedia = ensureAuthenticated(
     user: ObjectModel.User,
     data: DeBlobbed<Api.MediaCreateRequest>,
   ): Promise<Api.Media> => {
+    let userDb = ctx.dbConnection.forUser(user.email);
+
     let {
       file,
       catalog,
@@ -21,7 +23,7 @@ export const createMedia = ensureAuthenticated(
 
     let media: Api.Media;
     try {
-      media = await Db.createMedia(user.email, catalog, Db.fillMetadata(mediaData));
+      media = await userDb.createMedia(catalog, fillMetadata(mediaData));
     } catch (e) {
       throw new ApiError(ApiErrorCode.InvalidData, {
         message: String(e),

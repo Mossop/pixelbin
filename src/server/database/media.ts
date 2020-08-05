@@ -2,15 +2,13 @@ import Knex from "knex";
 import moment from "moment-timezone";
 
 import { ObjectModel, AlternateFileType } from "../../model";
-import { connection } from "./connection";
-import { coalesce } from "./functions";
+import { DatabaseConnection, UserScopedConnection } from "./connection";
 import { mediaId } from "./id";
 import { insertFromSelect, from, update } from "./queries";
 import {
   Tables,
   Table,
   ref,
-  UserRef,
   AllOrNulls,
   DBAPI,
   intoDBTypes,
@@ -34,7 +32,7 @@ export function fillMetadata<T>(data: T): T & Tables.Metadata {
   return result as T & Tables.Metadata;
 }
 
-function buildMediaView(knex: Knex): QueryBuilder<DBRecord<MediaWithInfo>> {
+function buildMediaView(connection: DatabaseConnection): QueryBuilder<DBRecord<MediaWithInfo>> {
   let mappings = {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
@@ -50,13 +48,13 @@ function buildMediaView(knex: Knex): QueryBuilder<DBRecord<MediaWithInfo>> {
   };
 
   for (let field of ObjectModel.metadataColumns) {
-    mappings[field] = coalesce(knex, [
-      knex.ref(ref(Table.Media, field)),
-      knex.ref(ref(Table.UploadedMedia, field)),
+    mappings[field] = connection.coalesce([
+      connection.ref(ref(Table.Media, field)),
+      connection.ref(ref(Table.UploadedMedia, field)),
     ]);
   }
 
-  return from(knex, Table.Media)
+  return from(connection.knex, Table.Media)
     .leftJoin(Table.UploadedMedia, ref(Table.Media, "id"), ref(Table.UploadedMedia, "media"))
     .orderBy([
       { column: "id", order: "asc" },
@@ -67,21 +65,19 @@ function buildMediaView(knex: Knex): QueryBuilder<DBRecord<MediaWithInfo>> {
 }
 
 export async function createMedia(
-  user: UserRef,
+  this: UserScopedConnection,
   catalog: DBAPI<Tables.Media>["catalog"],
   data: DBAPI<Omit<Tables.Media, "id" | "catalog" | "created">>,
 ): Promise<DBAPI<Tables.Media>> {
-  let knex = await connection;
-
-  let select = from(knex, Table.UserCatalog).where({
-    user,
+  let select = from(this.knex, Table.UserCatalog).where({
+    user: this.user,
     catalog,
   });
 
-  let results = await insertFromSelect(knex, Table.Media, select, {
+  let results = await insertFromSelect(this.knex, Table.Media, select, {
     ...intoDBTypes(data),
-    id: await mediaId("M"),
-    catalog: knex.ref(ref(Table.UserCatalog, "catalog")),
+    id: await mediaId(),
+    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
     created: moment().utc().toISOString(),
   }).returning("*");
 
@@ -93,12 +89,11 @@ export async function createMedia(
 }
 
 export async function editMedia(
-  user: UserRef,
+  this: UserScopedConnection,
   id: DBAPI<Tables.Media>["id"],
   data: DBAPI<Partial<Tables.Media>>,
 ): Promise<DBAPI<Tables.Media>> {
-  let knex = await connection;
-  let catalogs = from(knex, Table.UserCatalog).where("user", user).select("catalog");
+  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
 
   let {
     id: removedId,
@@ -108,7 +103,7 @@ export async function editMedia(
   } = data;
   let results = await update(
     Table.Media,
-    knex.where("id", id).where("catalog", "in", catalogs),
+    this.knex.where("id", id).where("catalog", "in", catalogs),
     intoDBTypes(mediaUpdateData),
   ).returning("*");
 
@@ -120,17 +115,15 @@ export async function editMedia(
 }
 
 export async function getMedia(
-  user: UserRef,
+  this: UserScopedConnection,
   id: DBAPI<MediaWithInfo>["id"],
 ): Promise<DBAPI<MediaWithInfo> | null> {
-  let knex = await connection;
-
-  let results = await buildMediaView(knex).join(
+  let results = await buildMediaView(this.connection).join(
     Table.UserCatalog,
     ref(Table.UserCatalog, "catalog"),
     ref(Table.Media, "catalog"),
   ).where({
-    [ref(Table.UserCatalog, "user")]: user,
+    [ref(Table.UserCatalog, "user")]: this.user,
     [ref(Table.Media, "id")]: id,
   });
 
@@ -144,13 +137,11 @@ export async function getMedia(
 }
 
 export async function listAlternateFiles(
-  user: UserRef,
+  this: UserScopedConnection,
   id: DBAPI<MediaWithInfo>["id"],
   type: AlternateFileType,
 ): Promise<DBAPI<Tables.AlternateFile>[]> {
-  let knex = await connection;
-
-  return from(knex, Table.AlternateFile).join((builder: Knex.QueryBuilder): void => {
+  return from(this.knex, Table.AlternateFile).join((builder: Knex.QueryBuilder): void => {
     void builder.from(Table.Media)
       .leftJoin(Table.UploadedMedia, ref(Table.Media, "id"), ref(Table.UploadedMedia, "media"))
       .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
@@ -159,7 +150,7 @@ export async function listAlternateFiles(
         { column: ref(Table.UploadedMedia, "uploaded"), order: "desc" },
       ])
       .where({
-        [ref(Table.UserCatalog, "user")]: user,
+        [ref(Table.UserCatalog, "user")]: this.user,
       })
       .distinctOn(ref(Table.UploadedMedia, "media"))
       .select(ref(Table.UploadedMedia))

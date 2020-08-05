@@ -7,8 +7,8 @@ import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
-import { createMedia, fillMetadata, getMedia, listAlternateFiles } from "../database";
-import { insertTestData, buildTestDB } from "../database/test-helpers";
+import { fillMetadata } from "../database";
+import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
 import { DBAPI } from "../database/types/meta";
 import { AlternateFile } from "../database/types/tables";
 import { StorageService } from "../storage";
@@ -36,6 +36,9 @@ let mockedEncodeVideo = mockedFunction(encodeVideo);
 let temp: DirectoryResult | undefined;
 
 beforeAll(async (): Promise<void> => {
+  let dbConnection = await connection;
+  provideService("database", dbConnection);
+
   temp = await tmpdir({
     unsafeCleanup: true,
   });
@@ -43,7 +46,7 @@ beforeAll(async (): Promise<void> => {
   const storageService = new StorageService({
     tempDirectory: path.join(temp.path, "temp"),
     localDirectory: path.join(temp.path, "local"),
-  });
+  }, dbConnection);
   provideService("storage", storageService);
 });
 
@@ -58,6 +61,9 @@ afterAll(async (): Promise<void> => {
 provideService("exiftool", exiftool);
 
 test("Process image metadata", async (): Promise<void> => {
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+
   let temp = await tmpdir({
     unsafeCleanup: true,
   });
@@ -78,7 +84,7 @@ test("Process image metadata", async (): Promise<void> => {
     path: sourceFile,
   });
 
-  let media = await createMedia("someone1@nowhere.com", "c1", fillMetadata({
+  let media = await user1Db.createMedia("c1", fillMetadata({
     city: "Portland",
   }));
 
@@ -98,7 +104,7 @@ test("Process image metadata", async (): Promise<void> => {
   expect(deleteUploadedFileMock).toHaveBeenCalledTimes(1);
   expect(deleteUploadedFileMock).toHaveBeenLastCalledWith(media.id);
 
-  let fullMedia = await getMedia("someone1@nowhere.com", media.id);
+  let fullMedia = await user1Db.getMedia(media.id);
   expect(fullMedia).toEqual({
     id: media.id,
     catalog: "c1",
@@ -145,8 +151,7 @@ test("Process image metadata", async (): Promise<void> => {
     });
   }
 
-  let thumbnails = await listAlternateFiles(
-    "someone1@nowhere.com",
+  let thumbnails = await user1Db.listAlternateFiles(
     media.id,
     AlternateFileType.Thumbnail,
   );
@@ -235,6 +240,9 @@ test("Process image metadata", async (): Promise<void> => {
 });
 
 test("Process video metadata", async (): Promise<void> => {
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+
   let temp = await tmpdir({
     unsafeCleanup: true,
   });
@@ -255,7 +263,7 @@ test("Process video metadata", async (): Promise<void> => {
     path: sourceFile,
   });
 
-  let media = await createMedia("someone1@nowhere.com", "c1", fillMetadata({
+  let media = await user1Db.createMedia("c1", fillMetadata({
   }));
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -292,7 +300,7 @@ test("Process video metadata", async (): Promise<void> => {
   expect(deleteUploadedFileMock).toHaveBeenCalledTimes(1);
   expect(deleteUploadedFileMock).toHaveBeenLastCalledWith(media.id);
 
-  let fullMedia = await getMedia("someone1@nowhere.com", media.id);
+  let fullMedia = await user1Db.getMedia(media.id);
   expect(fullMedia).toEqual({
     id: media.id,
     catalog: "c1",
@@ -339,8 +347,7 @@ test("Process video metadata", async (): Promise<void> => {
     });
   }
 
-  let thumbnails = await listAlternateFiles(
-    "someone1@nowhere.com",
+  let thumbnails = await user1Db.listAlternateFiles(
     media.id,
     AlternateFileType.Thumbnail,
   );
@@ -415,8 +422,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }]);
 
-  let encodes = await listAlternateFiles(
-    "someone1@nowhere.com",
+  let encodes = await user1Db.listAlternateFiles(
     media.id,
     AlternateFileType.Reencode,
   );
@@ -436,8 +442,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": 100,
   }]);
 
-  let posters = await listAlternateFiles(
-    "someone1@nowhere.com",
+  let posters = await user1Db.listAlternateFiles(
     media.id,
     AlternateFileType.Poster,
   );
