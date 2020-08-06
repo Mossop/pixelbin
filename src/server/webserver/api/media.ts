@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 
-import { Api, ObjectModel } from "../../../model";
-import { fillMetadata } from "../../database";
+import { Api } from "../../../model";
+import { fillMetadata, UserScopedConnection } from "../../database";
 import { ensureAuthenticated } from "../auth";
 import { AppContext } from "../context";
 import { ApiError, ApiErrorCode } from "../error";
@@ -10,11 +10,9 @@ import { DeBlobbed } from "./decoders";
 export const createMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
-    user: ObjectModel.User,
+    userDb: UserScopedConnection,
     data: DeBlobbed<Api.MediaCreateRequest>,
   ): Promise<Api.Media> => {
-    let userDb = ctx.dbConnection.forUser(user.email);
-
     let {
       file,
       catalog,

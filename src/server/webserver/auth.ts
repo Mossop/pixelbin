@@ -1,4 +1,5 @@
 import { ObjectModel } from "../../model";
+import { UserScopedConnection } from "../database";
 import { AppContext, DescriptorsFor } from "./context";
 import { ApiError, ApiErrorCode } from "./error";
 
@@ -65,14 +66,14 @@ export default function(): DescriptorsFor<AuthContext> {
 }
 
 export function ensureAuthenticated<A, R>(
-  cb: (ctx: AppContext, user: ObjectModel.User, arg: A) => Promise<R>,
+  cb: (ctx: AppContext, userDb: UserScopedConnection, arg: A) => Promise<R>,
 ): (ctx: AppContext, arg: A) => Promise<R> {
   return async (ctx: AppContext, arg: A): Promise<R> => {
-    let user = ctx.user;
-    if (!user) {
+    let userDb = ctx.userDb;
+    if (!userDb) {
       throw new ApiError(ApiErrorCode.NotLoggedIn);
     }
 
-    return cb(ctx, user, arg);
+    return cb(ctx, userDb, arg);
   };
 }
