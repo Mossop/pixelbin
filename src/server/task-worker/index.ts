@@ -5,6 +5,7 @@ import { getLogger, setLogConfig } from "../../utils";
 import { ParentProcess } from "../../worker";
 import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
+import events from "./events";
 import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
 import { handleUploadedFile } from "./process";
 import { provideService } from "./services";
@@ -22,11 +23,10 @@ async function main(): Promise<void> {
   });
   let parent = await connection.remote;
 
-  connection.on("disconnect", (): void => {
-    logger.catch(exiftool.end());
-  });
+  connection.on("disconnect", () => void events.emit("shutdown"));
 
   provideService("exiftool", exiftool);
+  events.on("shutdown", () => logger.catch(exiftool.end()));
 
   try {
     provideService("parent", parent);
@@ -36,6 +36,7 @@ async function main(): Promise<void> {
 
     let dbConnection = await DatabaseConnection.connect(config.databaseConfig);
     provideService("database", dbConnection);
+    events.on("shutdown", () => logger.catch(dbConnection.destroy()));
 
     provideService("storage", new StorageService(config.storageConfig, dbConnection));
   } catch (e) {

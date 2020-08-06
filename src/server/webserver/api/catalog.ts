@@ -1,6 +1,6 @@
 import { Api, ObjectModel, Create, Patch } from "../../../model";
-import { AppContext } from "../app";
 import { ensureAuthenticated } from "../auth";
+import { AppContext } from "../context";
 import { ApiError, ApiErrorCode } from "../error";
 
 export const createCatalog = ensureAuthenticated(

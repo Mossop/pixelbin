@@ -28,6 +28,7 @@ jest.mock("./ffmpeg", () => {
 /* eslint-enable */
 
 buildTestDB();
+provideService("database", connection);
 
 beforeEach(insertTestData);
 
@@ -37,7 +38,6 @@ let temp: DirectoryResult | undefined;
 
 beforeAll(async (): Promise<void> => {
   let dbConnection = await connection;
-  provideService("database", dbConnection);
 
   temp = await tmpdir({
     unsafeCleanup: true,

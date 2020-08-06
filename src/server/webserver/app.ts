@@ -1,20 +1,17 @@
 import path from "path";
 
 import Router, { RouterParamContext } from "@koa/router";
-import Koa, { DefaultState, Context, DefaultContext } from "koa";
+import Koa, { DefaultState, DefaultContext } from "koa";
 import koaBody from "koa-body";
 import mount from "koa-mount";
 import session from "koa-session";
 import serve from "koa-static";
 
 import { Api } from "../../model";
-import { RemoteInterface } from "../../worker";
 import { apiRequestHandler } from "./api/methods";
-import auth, { AuthContext } from "./auth";
+import { AppContext, ServicesContext, buildContext } from "./context";
 import { errorHandler } from "./error";
-import { ParentProcessInterface } from "./interfaces";
-import logging, { LoggingContext } from "./logging";
-import { ServicesContext, initServices } from "./services";
+import Services from "./services";
 
 function buildAppContent(): string {
   return `
@@ -46,15 +43,13 @@ function buildAppContent(): string {
 `;
 }
 
-export type AddedContexts = AuthContext & LoggingContext & ServicesContext;
-export type AppContext = Context & AddedContexts;
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
+type App = Koa<DefaultState, DefaultContext & ServicesContext>;
 
-export default async function buildApp(
-  parent: RemoteInterface<ParentProcessInterface>,
-): Promise<Koa<DefaultState, DefaultContext & AddedContexts>> {
+export default async function buildApp(): Promise<App> {
+  let parent = await Services.parent;
   let config = await parent.getConfig();
-  let services = await initServices(parent);
+  let context = await buildContext();
 
   const router = new Router<DefaultState, AppContext>();
 
@@ -68,13 +63,11 @@ export default async function buildApp(
     }), apiRequestHandler(method));
   }
 
-  const app = new Koa<DefaultState, DefaultContext & AddedContexts>();
+  const app = new Koa() as App;
   app.keys = config.secretKeys;
 
   Object.defineProperties(app.context, {
-    ...logging(),
-    ...auth(),
-    ...Object.getOwnPropertyDescriptors(services),
+    ...context,
   });
 
   app

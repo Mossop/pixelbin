@@ -51,3 +51,9 @@ export class TypedEmitter<M extends EventMap> {
     emitterFor(this).on(message, listener);
   }
 }
+
+export class SharedEmitter<M extends EventMap> extends TypedEmitter<M> {
+  public emit<E extends Events<M>>(message: E, ...payload: Payload<M, E>): void {
+    super.emit(message, ...payload);
+  }
+}

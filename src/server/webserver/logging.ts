@@ -1,8 +1,8 @@
 import { getLogger, Logger } from "../../utils";
-import { AppContext } from "./app";
+import { AppContext, DescriptorsFor } from "./context";
 
 export interface LoggingContext {
-  logger: Logger;
+  readonly logger: Logger;
 }
 
 const mainLogger = getLogger("webserver.request");
@@ -11,7 +11,7 @@ const mainLogger = getLogger("webserver.request");
 let loggers = new WeakMap<object, Logger>();
 let requestId = 0;
 
-export default function(): Record<string, PropertyDescriptor> {
+export default function(): DescriptorsFor<LoggingContext> {
   return {
     logger: {
       get(this: AppContext): Logger {

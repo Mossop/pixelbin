@@ -57,6 +57,7 @@ export async function resetDB(): Promise<void> {
     Table.MediaTag,
     Table.MediaAlbum,
     Table.UserCatalog,
+    Table.AlternateFile,
     Table.UploadedMedia,
     Table.Media,
     Table.Person,

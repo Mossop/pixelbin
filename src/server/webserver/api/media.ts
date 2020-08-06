@@ -2,8 +2,8 @@ import { promises as fs } from "fs";
 
 import { Api, ObjectModel } from "../../../model";
 import { fillMetadata } from "../../database";
-import { AppContext } from "../app";
 import { ensureAuthenticated } from "../auth";
+import { AppContext } from "../context";
 import { ApiError, ApiErrorCode } from "../error";
 import { DeBlobbed } from "./decoders";
 

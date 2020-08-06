@@ -1,10 +1,10 @@
-import { EventEmitter } from "events";
-
-import { getLogger } from "../../utils";
+import { getLogger, SharedEmitter } from "../../utils";
 
 const logger = getLogger("server");
 
-const events = new EventEmitter();
+const events = new SharedEmitter<{
+  shutdown: [];
+}>();
 
 export default events;
 

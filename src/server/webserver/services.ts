@@ -1,24 +1,15 @@
+import { defer, buildServices, serviceProvider } from "../../utils";
 import { RemoteInterface } from "../../worker";
 import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
-import { TaskWorkerInterface } from "../task-worker/interfaces";
 import { ParentProcessInterface } from "./interfaces";
 
-export type ServicesContext = {
-  readonly storage: StorageService;
-  readonly taskWorker: RemoteInterface<TaskWorkerInterface>;
-  readonly dbConnection: DatabaseConnection;
+const services = {
+  parent: defer<RemoteInterface<ParentProcessInterface>>(),
+  storage: defer<StorageService>(),
+  database: defer<DatabaseConnection>(),
 };
 
-export async function initServices(
-  parent: RemoteInterface<ParentProcessInterface>,
-): Promise<ServicesContext> {
-  let config = await parent.getConfig();
-  let dbConnection = await DatabaseConnection.connect(config.databaseConfig);
+export const provideService = serviceProvider(services);
 
-  return {
-    storage: new StorageService(config.storageConfig, dbConnection),
-    taskWorker: parent,
-    dbConnection,
-  };
-}
+export default buildServices(services);

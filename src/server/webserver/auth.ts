@@ -1,15 +1,15 @@
 import { ObjectModel } from "../../model";
-import { AppContext } from "./app";
+import { AppContext, DescriptorsFor } from "./context";
 import { ApiError, ApiErrorCode } from "./error";
 
 export interface AuthContext {
-  user: ObjectModel.User | null;
-  isLoggedIn: () => boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  readonly user: ObjectModel.User | null;
+  readonly isLoggedIn: () => boolean;
+  readonly login: (email: string, password: string) => Promise<void>;
+  readonly logout: () => Promise<void>;
 }
 
-export default function(): Record<string, PropertyDescriptor> {
+export default function(): DescriptorsFor<AuthContext> {
   return {
     user: {
       get(this: AppContext): ObjectModel.User | null {

@@ -18,11 +18,12 @@ export function buildServices<SM>(map: SM): Services<SM> {
   ) as unknown as Services<SM>;
 }
 
+type ServiceResolution<SM, S extends keyof SM> = ServiceType<SM, S> | Promise<ServiceType<SM, S>>;
 export function serviceProvider<SM>(
   map: SM,
-): <S extends keyof SM>(service: S, value: ServiceType<SM, S>) => void {
-  return <S extends keyof SM>(service: S, value: ServiceType<SM, S>): void => {
-    // @ts-ignore: No idea why this is failing.
+): <S extends keyof SM>(service: S, value: ServiceResolution<SM, S>) => void {
+  return <S extends keyof SM>(service: S, value: ServiceResolution<SM, S>): void => {
+    // @ts-ignore: The properties of SM cannot be defined.
     map[service].resolve(value);
   };
 }

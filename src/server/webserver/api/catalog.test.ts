@@ -1,17 +1,11 @@
-import {
-  buildTestDB,
-  insertTestData,
-  testData,
-} from "../../database/test-helpers";
+import { insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { ApiErrorCode } from "../error";
 import { buildTestApp, expectUserState, fromCatalogs, catalogs } from "../test-helpers";
 
-buildTestDB();
+const agent = buildTestApp();
 
 beforeEach(insertTestData);
-
-const agent = buildTestApp();
 
 test("Create catalog", async (): Promise<void> => {
   const request = agent();

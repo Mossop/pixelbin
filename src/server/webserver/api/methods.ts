@@ -1,5 +1,5 @@
 import { Api } from "../../../model";
-import { AppContext } from "../app";
+import { AppContext } from "../context";
 import { ApiError, ApiErrorCode } from "../error";
 import {
   createCatalog,

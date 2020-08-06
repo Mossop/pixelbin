@@ -6,13 +6,30 @@ import { agent, SuperTest, Test } from "supertest";
 import { Api } from "../../model";
 import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
 import { RemoteInterface } from "../../worker";
-import { getTestDatabaseConfig } from "../database/test-helpers";
+import { DatabaseConnection } from "../database";
+import { buildTestDB, connection, getTestDatabaseConfig } from "../database/test-helpers";
+import { StorageService } from "../storage";
 import buildApp from "./app";
+import events from "./events";
 import { ParentProcessInterface, WebserverConfig } from "./interfaces";
+import { provideService } from "./services";
 
 export function buildTestApp(
   parentInterface: Partial<RemoteInterface<ParentProcessInterface>> = {},
 ): (() => SuperTest<Test>) {
+  buildTestDB();
+  provideService("database", connection);
+
+  let storageConfig = {
+    tempDirectory: path.join(path.basename(__dirname), "tmp", "temp"),
+    localDirectory: path.join(path.basename(__dirname), "tmp", "local"),
+  };
+
+  void connection.then((dbConnection: DatabaseConnection): void => {
+    let storage = new StorageService(storageConfig, dbConnection);
+    provideService("storage", storage);
+  });
+
   let server = net.createServer();
   server.listen();
 
@@ -26,10 +43,7 @@ export function buildTestApp(
         logConfig: {
           default: "silent",
         },
-        storageConfig: {
-          tempDirectory: path.join(path.basename(__dirname), "tmp", "temp"),
-          localDirectory: path.join(path.basename(__dirname), "tmp", "local"),
-        },
+        storageConfig,
       };
     },
 
@@ -42,7 +56,10 @@ export function buildTestApp(
     ...parentInterface,
   };
 
+  provideService("parent", parent);
+
   afterAll((): Promise<void> => {
+    events.emit("shutdown");
     return new Promise((resolve: Resolver<void>, reject: Rejecter): void => {
       server.close((err: Error | undefined): void => {
         if (err) {
@@ -54,7 +71,7 @@ export function buildTestApp(
     });
   });
 
-  void buildApp(parent);
+  void buildApp();
 
   return (): SuperTest<Test> => agent(server);
 }

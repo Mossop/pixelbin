@@ -1,5 +1,5 @@
 import { Api } from "../../../model";
-import { AppContext } from "../app";
+import { AppContext } from "../context";
 
 export async function buildUser(ctx: AppContext): Promise<Api.User | null> {
   if (!ctx.user) {

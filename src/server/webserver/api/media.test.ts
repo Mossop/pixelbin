@@ -4,11 +4,7 @@ import moment, { Moment } from "moment-timezone";
 
 import { expect, mockedFunction, deferCall } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
-import {
-  connection,
-  buildTestDB,
-  insertTestData,
-} from "../../database/test-helpers";
+import { connection, insertTestData } from "../../database/test-helpers";
 import { StorageService } from "../../storage";
 import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
@@ -26,14 +22,12 @@ jest.mock("moment-timezone", (): unknown => {
 });
 /* eslint-enable */
 
-buildTestDB();
-
-beforeEach(insertTestData);
-
 let parent = {
   handleUploadedFile: jest.fn<Promise<void>, [string]>((): Promise<void> => Promise.resolve()),
 };
 const agent = buildTestApp(parent);
+
+beforeEach(insertTestData);
 
 const mockedMoment = mockedFunction(moment);
 const realMoment: typeof moment = jest.requireActual("moment-timezone");

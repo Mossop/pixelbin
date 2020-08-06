@@ -1,7 +1,5 @@
-import { buildTestDB } from "../database/test-helpers";
 import { buildTestApp } from "./test-helpers";
 
-buildTestDB();
 const agent = buildTestApp();
 
 test("basic connection", async (): Promise<void> => {

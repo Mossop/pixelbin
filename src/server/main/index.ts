@@ -7,7 +7,7 @@ import { install } from "source-map-support";
 import { getLogger, setLogConfig } from "../../utils";
 import { DatabaseConnection } from "../database";
 import config from "./config";
-import events, { quit } from "./events";
+import { quit } from "./events";
 import { TaskManager } from "./tasks";
 import { WebserverManager } from "./webserver";
 
@@ -17,12 +17,7 @@ const logger = getLogger("server");
 async function initDatabase(): Promise<void> {
   let dbConnection = await DatabaseConnection.connect(config.database);
   await dbConnection.knex.migrate.latest();
-
-  events.on("shutdown", (): void => {
-    dbConnection.destroy().catch((error: Error): void => {
-      logger.error({ error }, "Database shutdown threw error.");
-    });
-  });
+  await dbConnection.destroy();
 }
 
 async function startupServers(): Promise<void> {
