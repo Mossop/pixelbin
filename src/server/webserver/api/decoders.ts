@@ -56,14 +56,12 @@ export const CatalogCreateRequest = jsonDecoder(
 export const AlbumCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Album>>({
   catalog: JsonDecoder.string,
   name: JsonDecoder.string,
-  stub: JsonDecoder.nullable(JsonDecoder.string),
   parent: JsonDecoder.nullable(JsonDecoder.string),
 }, "AlbumCreateRequest"));
 
 export const AlbumEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Album>>({
   id: JsonDecoder.string,
   name: JsonDecoder.optional(JsonDecoder.string),
-  stub: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   parent: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
 }, "AlbumEditRequest"));
 

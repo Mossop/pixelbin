@@ -263,21 +263,18 @@ test("Album table tests", async (): Promise<void> => {
   // Shouldn't allow adding to a catalog that doesn't exist.
   await expect(user1Db.createAlbum("c8", {
     parent: null,
-    stub: "foo",
     name: "New Album",
   })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
 
   // Or with a user that doesn't exist.
   await expect(fooUser.createAlbum("c1", {
     parent: null,
-    stub: "foo",
     name: "New Album",
   })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
 
   // Or with a user that doesn't have access to the catalog
   await expect(user3Db.createAlbum("c1", {
     parent: null,
-    stub: "foo",
     name: "New Album",
   })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
 

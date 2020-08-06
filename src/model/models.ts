@@ -99,7 +99,6 @@ export interface Tag extends IdType {
 export interface Album extends IdType {
   catalog: Reference<Catalog>;
   parent: Reference<Album> | null;
-  stub: string | null;
   name: string;
 }
 

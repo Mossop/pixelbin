@@ -94,7 +94,6 @@ test("Album table tests", async (): Promise<void> => {
     id: "a1",
     catalog: "c1",
     parent: null,
-    stub: null,
     name: "Bad ID Album",
   })).rejects.toThrow("duplicate key");
 
@@ -103,7 +102,6 @@ test("Album table tests", async (): Promise<void> => {
     id: "a9",
     catalog: "c1",
     parent: "a1",
-    stub: null,
     name: "Album 3",
   })).rejects.toThrow("unique constraint");
 
@@ -112,7 +110,6 @@ test("Album table tests", async (): Promise<void> => {
     id: "a9",
     catalog: "c1",
     parent: "a1",
-    stub: null,
     name: "alBuM 3",
   })).rejects.toThrow("unique constraint");
 
@@ -121,7 +118,6 @@ test("Album table tests", async (): Promise<void> => {
     id: "a9",
     catalog: "c2",
     parent: "a1",
-    stub: null,
     name: "Album 9",
   })).rejects.toThrow("foreign key constraint");
 });
