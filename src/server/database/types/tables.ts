@@ -1,5 +1,6 @@
 import { ObjectModel } from "../../../model";
 import { Nullable } from "../../../utils";
+import { AllOrNulls } from "./meta";
 
 export type User = ObjectModel.User & { password: string };
 
@@ -18,8 +19,12 @@ export type Metadata = Nullable<ObjectModel.Metadata>;
 
 export type Media = ObjectModel.Media & Metadata;
 
-export type UploadedMedia = ObjectModel.UploadedMedia & Metadata & {
+export type Original = ObjectModel.Original & Metadata & {
   processVersion: number;
 };
 
 export type AlternateFile = ObjectModel.AlternateFile;
+
+export type StoredMedia = Media & AllOrNulls<
+  Omit<ObjectModel.Original, "id" | "media" | "fileName">
+>;

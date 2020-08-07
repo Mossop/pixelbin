@@ -2,24 +2,17 @@ import Knex from "knex";
 import moment from "moment-timezone";
 
 import { ObjectModel, AlternateFileType } from "../../model";
-import { DatabaseConnection, UserScopedConnection } from "./connection";
+import { UserScopedConnection } from "./connection";
 import { mediaId } from "./id";
 import { insertFromSelect, from, update } from "./queries";
 import {
   Tables,
   Table,
   ref,
-  AllOrNulls,
   DBAPI,
   intoDBTypes,
   intoAPITypes,
-  DBRecord,
-  QueryBuilder,
 } from "./types";
-
-export type MediaWithInfo = Tables.Media & AllOrNulls<
-  Omit<Tables.UploadedMedia, "id" | "media" | "processVersion" | "fileName">
->;
 
 export function fillMetadata<T>(data: T): T & Tables.Metadata {
   let result = { ...data };
@@ -30,38 +23,6 @@ export function fillMetadata<T>(data: T): T & Tables.Metadata {
   }
 
   return result as T & Tables.Metadata;
-}
-
-function buildMediaView(connection: DatabaseConnection): QueryBuilder<DBRecord<MediaWithInfo>> {
-  let mappings = {
-    id: ref(Table.Media, "id"),
-    catalog: ref(Table.Media, "catalog"),
-    created: ref(Table.Media, "created"),
-    uploaded: ref(Table.UploadedMedia, "uploaded"),
-    mimetype: ref(Table.UploadedMedia, "mimetype"),
-    width: ref(Table.UploadedMedia, "width"),
-    height: ref(Table.UploadedMedia, "height"),
-    duration: ref(Table.UploadedMedia, "duration"),
-    fileSize: ref(Table.UploadedMedia, "fileSize"),
-    frameRate: ref(Table.UploadedMedia, "frameRate"),
-    bitRate: ref(Table.UploadedMedia, "bitRate"),
-  };
-
-  for (let field of ObjectModel.metadataColumns) {
-    mappings[field] = connection.coalesce([
-      connection.ref(ref(Table.Media, field)),
-      connection.ref(ref(Table.UploadedMedia, field)),
-    ]);
-  }
-
-  return from(connection.knex, Table.Media)
-    .leftJoin(Table.UploadedMedia, ref(Table.Media, "id"), ref(Table.UploadedMedia, "media"))
-    .orderBy([
-      { column: "id", order: "asc" },
-      { column: "uploaded", order: "desc" },
-    ])
-    .distinctOn(ref(Table.Media, "id"))
-    .select(mappings) as QueryBuilder<DBRecord<MediaWithInfo>>;
 }
 
 export async function createMedia(
@@ -116,16 +77,16 @@ export async function editMedia(
 
 export async function getMedia(
   this: UserScopedConnection,
-  id: DBAPI<MediaWithInfo>["id"],
-): Promise<DBAPI<MediaWithInfo> | null> {
-  let results = await buildMediaView(this.connection).join(
+  id: DBAPI<Tables.StoredMedia>["id"],
+): Promise<DBAPI<Tables.StoredMedia> | null> {
+  let results = await from(this.knex, Table.StoredMedia).join(
     Table.UserCatalog,
     ref(Table.UserCatalog, "catalog"),
-    ref(Table.Media, "catalog"),
+    ref(Table.StoredMedia, "catalog"),
   ).where({
     [ref(Table.UserCatalog, "user")]: this.user,
-    [ref(Table.Media, "id")]: id,
-  });
+    [ref(Table.StoredMedia, "id")]: id,
+  }).select(ref(Table.StoredMedia));
 
   if (results.length == 0) {
     return null;
@@ -138,24 +99,24 @@ export async function getMedia(
 
 export async function listAlternateFiles(
   this: UserScopedConnection,
-  id: DBAPI<MediaWithInfo>["id"],
+  id: DBAPI<Tables.StoredMedia>["id"],
   type: AlternateFileType,
 ): Promise<DBAPI<Tables.AlternateFile>[]> {
   return from(this.knex, Table.AlternateFile).join((builder: Knex.QueryBuilder): void => {
     void builder.from(Table.Media)
-      .leftJoin(Table.UploadedMedia, ref(Table.Media, "id"), ref(Table.UploadedMedia, "media"))
+      .leftJoin(Table.Original, ref(Table.Media, "id"), ref(Table.Original, "media"))
       .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
       .orderBy([
-        { column: ref(Table.UploadedMedia, "media"), order: "asc" },
-        { column: ref(Table.UploadedMedia, "uploaded"), order: "desc" },
+        { column: ref(Table.Original, "media"), order: "asc" },
+        { column: ref(Table.Original, "uploaded"), order: "desc" },
       ])
       .where({
         [ref(Table.UserCatalog, "user")]: this.user,
       })
-      .distinctOn(ref(Table.UploadedMedia, "media"))
-      .select(ref(Table.UploadedMedia))
+      .distinctOn(ref(Table.Original, "media"))
+      .select(ref(Table.Original))
       .as("Uploaded");
-  }, ref(Table.AlternateFile, "uploadedMedia"), "Uploaded.id")
+  }, ref(Table.AlternateFile, "original"), "Uploaded.id")
     .where(ref(Table.AlternateFile, "type"), type)
     .where("Uploaded.media", id)
     .select(ref(Table.AlternateFile));

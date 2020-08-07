@@ -91,7 +91,7 @@ test("Process image metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
   getLocalFilePathMock.mockImplementation(
-    (media: string, uploadedMedia: string, name: string): Promise<string> => {
+    (media: string, original: string, name: string): Promise<string> => {
       return Promise.resolve(path.join(temp.path, name));
     },
   );
@@ -166,7 +166,7 @@ test("Process image metadata", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    "original": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-150.jpg",
     "fileSize": 3661,
@@ -178,7 +178,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-200.jpg",
     "fileSize": 5055,
@@ -190,7 +190,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-300.jpg",
     "fileSize": 9446,
@@ -202,7 +202,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-400.jpg",
     "fileSize": 14375,
@@ -214,7 +214,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-500.jpg",
     "fileSize": 22144,
@@ -269,7 +269,7 @@ test("Process video metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
   getLocalFilePathMock.mockImplementation(
-    (media: string, uploadedMedia: string, name: string): Promise<string> => {
+    (media: string, original: string, name: string): Promise<string> => {
       return Promise.resolve(path.join(temp.path, name));
     },
   );
@@ -362,7 +362,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    "original": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-150.jpg",
     "fileSize": 6011,
@@ -374,7 +374,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-200.jpg",
     "fileSize": 9465,
@@ -386,7 +386,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-300.jpg",
     "fileSize": 18545,
@@ -398,7 +398,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-400.jpg",
     "fileSize": 28956,
@@ -410,7 +410,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-500.jpg",
     "fileSize": 42363,
@@ -430,7 +430,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(encodes).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Reencode,
     "fileName": "Testvideo-h264.mp4",
     "fileSize": 2000000,
@@ -450,7 +450,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(posters).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "uploadedMedia": thumbnails[0].uploadedMedia,
+    "original": thumbnails[0].original,
     "type": AlternateFileType.Poster,
     "fileName": "Testvideo-poster.jpg",
     "fileSize": expect.toBeBetween(140000, 160000),

@@ -164,13 +164,13 @@ export interface FileInfo {
   bitRate: number | null;
 }
 
-export type UploadedMedia = IdType & FileInfo & {
+export type Original = IdType & FileInfo & {
   media: Reference<Media>;
   uploaded: Moment;
 };
 
 export type UnprocessedMedia = Media & Nullable<Metadata>;
-export type ProcessedMedia = UnprocessedMedia & Omit<UploadedMedia, "id" | "media">;
+export type ProcessedMedia = UnprocessedMedia & Omit<Original, "id" | "media">;
 
 export enum AlternateFileType {
   Thumbnail = "thumbnail",
@@ -179,7 +179,7 @@ export enum AlternateFileType {
 }
 
 export type AlternateFile = IdType & FileInfo & {
-  uploadedMedia: Reference<UploadedMedia>;
+  original: Reference<Original>;
   type: AlternateFileType;
 };
 

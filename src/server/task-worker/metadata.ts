@@ -352,9 +352,9 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
   };
 }
 
-export function getUploadedMedia(
+export function getOriginal(
   data: StoredData,
-): Omit<ObjectModel.UploadedMedia, "id" | "media"> {
+): Omit<ObjectModel.Original, "id" | "media"> {
   let { uploaded, exif, fileName, ...info } = data;
 
   return {

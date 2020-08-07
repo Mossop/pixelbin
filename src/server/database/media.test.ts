@@ -6,7 +6,7 @@ import { DatabaseConnection } from "./connection";
 import { fillMetadata } from "./media";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
 import { Tables, DBAPI } from "./types";
-import { UploadedMediaInfo } from "./unsafe";
+import { OriginalInfo } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
   const actualMoment = jest.requireActual("moment-timezone");
@@ -27,19 +27,19 @@ beforeEach((): Promise<void> => {
 const mockedMoment = mockedFunction(moment);
 const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
-function createUploadedMedia(
+function createOriginal(
   connection: DatabaseConnection,
-  media: DBAPI<Tables.UploadedMedia>["media"],
-  data: DBAPI<Omit<Tables.UploadedMedia, "id" | "media">>,
-): Promise<UploadedMediaInfo> {
-  return connection.withNewUploadedMedia(
+  media: DBAPI<Tables.Original>["media"],
+  data: DBAPI<Omit<Tables.Original, "id" | "media">>,
+): Promise<OriginalInfo> {
+  return connection.withNewOriginal(
     media,
     data,
     (
       dbConnection: DatabaseConnection,
-      uploadedMedia: UploadedMediaInfo,
-    ): Promise<UploadedMediaInfo> =>
-      Promise.resolve(uploadedMedia),
+      original: OriginalInfo,
+    ): Promise<OriginalInfo> =>
+      Promise.resolve(original),
   );
 }
 
@@ -88,7 +88,7 @@ test("Media tests", async (): Promise<void> => {
 
   let uploadedMoment: Moment = realMoment.tz("2020-01-03T15:31:01", "UTC");
 
-  let info = await createUploadedMedia(dbConnection, id, fillMetadata({
+  let info = await createOriginal(dbConnection, id, fillMetadata({
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -128,7 +128,7 @@ test("Media tests", async (): Promise<void> => {
     created: expect.toEqualDate(createdMoment),
 
     title: "My title", // Media set
-    photographer: "Me", // UploadedMediaInfo set
+    photographer: "Me", // OriginalInfo set
 
     uploaded: expect.toEqualDate(uploadedMoment),
     mimetype: "image/jpeg",
@@ -151,8 +151,8 @@ test("Media tests", async (): Promise<void> => {
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
 
-    title: "Info title", // UploadedMediaInfo set
-    photographer: "Me", // UploadedMediaInfo set
+    title: "Info title", // OriginalInfo set
+    photographer: "Me", // OriginalInfo set
     city: "Portland", // Media set
 
     uploaded: expect.toEqualDate(uploadedMoment),
@@ -168,7 +168,7 @@ test("Media tests", async (): Promise<void> => {
   let uploaded2Moment: Moment = realMoment.tz("2020-01-04T15:31:01", "UTC");
   mockedMoment.mockImplementationOnce((): Moment => uploaded2Moment);
 
-  info = await createUploadedMedia(dbConnection, id, fillMetadata({
+  info = await createOriginal(dbConnection, id, fillMetadata({
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -207,8 +207,8 @@ test("Media tests", async (): Promise<void> => {
     catalog: "c3",
     created: expect.toEqualDate(createdMoment),
 
-    title: "Different title", // UploadedMediaInfo set
-    model: "Some model", // UploadedMediaInfo set
+    title: "Different title", // OriginalInfo set
+    model: "Some model", // OriginalInfo set
     city: "Portland", // Media set
 
     uploaded: expect.toEqualDate(uploaded2Moment),
@@ -263,7 +263,7 @@ test("Media tests", async (): Promise<void> => {
   );
   expect(list).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    uploadedMedia: info.id,
+    original: info.id,
     type: AlternateFileType.Thumbnail,
     fileName: "thumb.jpg",
     fileSize: 400,
@@ -275,7 +275,7 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    uploadedMedia: info.id,
+    original: info.id,
     type: AlternateFileType.Thumbnail,
     fileName: "thumb.webp",
     fileSize: 200,
@@ -293,7 +293,7 @@ test("Media tests", async (): Promise<void> => {
   );
   expect(list).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    uploadedMedia: info.id,
+    original: info.id,
     type: AlternateFileType.Poster,
     fileName: "poster.jpg",
     fileSize: 300,
@@ -313,7 +313,7 @@ test("Media tests", async (): Promise<void> => {
   newMedia = await user1Db.createMedia("c1", fillMetadata({}));
 
   // Cannot add media info to a missing media.
-  await expect(createUploadedMedia(dbConnection, "biz", fillMetadata({
+  await expect(createOriginal(dbConnection, "biz", fillMetadata({
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,

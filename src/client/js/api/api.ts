@@ -82,10 +82,10 @@ export interface UnprocessedMediaState extends Readonly<ObjectModel.Media> {
   readonly upload?: null;
 }
 export interface ProcessedMediaState extends Readonly<ObjectModel.Media> {
-  upload: UploadedMediaState;
+  original: OriginalState;
 }
 export type MediaState = UnprocessedMediaState | ProcessedMediaState;
-export interface UploadedMediaState extends Readonly<WithoutLinks<ObjectModel.UploadedMedia>> {}
+export interface OriginalState extends Readonly<WithoutLinks<ObjectModel.Original>> {}
 
 const PersonDecoder = JsonDecoder.object<Api.Person>(
   {
@@ -110,7 +110,6 @@ const AlbumDecoder = JsonDecoder.object<Api.Album>(
   {
     id: JsonDecoder.string,
     catalog: JsonDecoder.string,
-    stub: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
     name: JsonDecoder.string,
     parent: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
   },

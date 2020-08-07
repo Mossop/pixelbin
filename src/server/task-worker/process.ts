@@ -8,9 +8,9 @@ import { dir as tmpdir } from "tmp-promise";
 import { AlternateFileType } from "../../model";
 import { Logger } from "../../utils";
 import { DatabaseConnection } from "../database";
-import { UploadedMediaInfo } from "../database/unsafe";
+import { OriginalInfo } from "../database/unsafe";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
-import { parseFile, parseMetadata, getUploadedMedia } from "./metadata";
+import { parseFile, parseMetadata, getOriginal } from "./metadata";
 import Services from "./services";
 import { bindTask } from "./task";
 
@@ -74,20 +74,20 @@ export const handleUploadedFile = bindTask(
       }
 
       let metadata = parseMetadata(data);
-      let info = getUploadedMedia(data);
+      let info = getOriginal(data);
 
       let fileName = metadata.filename ?? `original.${mimeExtension(data.mimetype)}`;
       let baseName = fileName.substr(0, fileName.length - path.extname(fileName).length);
 
-      let uploadedMedia = await dbConnection.withNewUploadedMedia(mediaId, {
+      let original = await dbConnection.withNewOriginal(mediaId, {
         ...metadata,
         ...info,
         processVersion: PROCESS_VERSION,
         fileName,
       }, async (
         dbConnection: DatabaseConnection,
-        uploadedMedia: UploadedMediaInfo,
-      ): Promise<UploadedMediaInfo> => {
+        original: OriginalInfo,
+      ): Promise<OriginalInfo> => {
         try {
           let source = fileInfo.path;
           if (info.mimetype.startsWith("video/")) {
@@ -97,7 +97,7 @@ export const handleUploadedFile = bindTask(
 
             let stat = await fs.stat(source);
             let metadata = await sharp(source).metadata();
-            await dbConnection.addAlternateFile(uploadedMedia.id, {
+            await dbConnection.addAlternateFile(original.id, {
               type: AlternateFileType.Poster,
               fileName: path.basename(source),
               fileSize: stat.size,
@@ -115,7 +115,7 @@ export const handleUploadedFile = bindTask(
             let fileName = `${baseName}-${size}.jpg`;
             let target = await storage.get().getLocalFilePath(
               mediaId,
-              uploadedMedia.id,
+              original.id,
               fileName,
             );
             let info = await sharp(source)
@@ -127,7 +127,7 @@ export const handleUploadedFile = bindTask(
               })
               .toFile(target);
 
-            await dbConnection.addAlternateFile(uploadedMedia.id, {
+            await dbConnection.addAlternateFile(original.id, {
               type: AlternateFileType.Thumbnail,
               fileName,
               fileSize: info.size,
@@ -140,11 +140,11 @@ export const handleUploadedFile = bindTask(
             });
           }
 
-          await storage.get().storeFile(mediaId, uploadedMedia.id, fileName, fileInfo.path);
+          await storage.get().storeFile(mediaId, original.id, fileName, fileInfo.path);
 
-          return uploadedMedia;
+          return original;
         } catch (e) {
-          await storage.get().deleteLocalFiles(mediaId, uploadedMedia.id);
+          await storage.get().deleteLocalFiles(mediaId, original.id);
           throw e;
         }
       });
@@ -170,9 +170,9 @@ export const handleUploadedFile = bindTask(
             target,
           );
 
-          await storage.get().storeFile(mediaId, uploadedMedia.id, fileName, target);
+          await storage.get().storeFile(mediaId, original.id, fileName, target);
 
-          await dbConnection.addAlternateFile(uploadedMedia.id, {
+          await dbConnection.addAlternateFile(original.id, {
             type: AlternateFileType.Reencode,
             fileName,
             fileSize: videoInfo.format.size,

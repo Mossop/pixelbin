@@ -85,7 +85,7 @@ export class DatabaseConnection {
   public readonly coalesce = Functions.coalesce;
 
   public readonly getMedia = Unsafe.getMedia;
-  public readonly withNewUploadedMedia = Unsafe.withNewUploadedMedia;
+  public readonly withNewOriginal = Unsafe.withNewOriginal;
   public readonly addAlternateFile = Unsafe.addAlternateFile;
   public readonly getStorageConfig = Unsafe.getStorageConfig;
 

@@ -19,15 +19,15 @@ export async function getMedia(
   }
 }
 
-export type UploadedMediaInfo = DBAPI<Omit<Tables.UploadedMedia, "processVersion">>;
-export async function withNewUploadedMedia<T>(
+export type OriginalInfo = DBAPI<Omit<Tables.Original, "processVersion">>;
+export async function withNewOriginal<T>(
   this: DatabaseConnection,
-  media: DBAPI<Tables.UploadedMedia>["media"],
-  data: DBAPI<Omit<Tables.UploadedMedia, "id" | "media">>,
-  operation: (dbConnection: DatabaseConnection, uploadedMedia: UploadedMediaInfo) => Promise<T>,
+  media: DBAPI<Tables.Original>["media"],
+  data: DBAPI<Omit<Tables.Original, "id" | "media">>,
+  operation: (dbConnection: DatabaseConnection, original: OriginalInfo) => Promise<T>,
 ): Promise<T> {
   return this.inTransaction(async (dbConnection: DatabaseConnection): Promise<T> => {
-    let results = await into(dbConnection.knex, Table.UploadedMedia).insert({
+    let results = await into(dbConnection.knex, Table.Original).insert({
       ...intoDBTypes(data),
       id: await uuid("I"),
       media,
@@ -50,19 +50,19 @@ export async function withNewUploadedMedia<T>(
       return operation(dbConnection, intoAPITypes(results[0]));
     }
 
-    throw new Error("Invalid media ID passed to withNewUploadedMedia");
+    throw new Error("Invalid media ID passed to withNewOriginal");
   });
 }
 
 export async function addAlternateFile(
   this: DatabaseConnection,
-  uploadedMedia: DBAPI<Tables.UploadedMedia>["id"],
-  data: DBAPI<Omit<Tables.AlternateFile, "id" | "uploadedMedia">>,
+  original: DBAPI<Tables.Original>["id"],
+  data: DBAPI<Omit<Tables.AlternateFile, "id" | "original">>,
 ): Promise<void> {
   await into(this.knex, Table.AlternateFile).insert({
     ...intoDBTypes(data),
     id: await uuid("F"),
-    uploadedMedia,
+    original,
   });
 }
 

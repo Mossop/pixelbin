@@ -1,5 +1,6 @@
 import Knex from "knex";
 
+import { ObjectModel } from "../../../model";
 import { Table, ref, TableRecord, nameConstraint, columnFor } from "../types";
 
 function id(table: Knex.CreateTableBuilder): void {
@@ -20,6 +21,38 @@ function foreignId<T extends Table, C extends keyof TableRecord<T>>(
     col.nullable();
   }
   table.foreign(column).references(ref(target, targetColumn)).onDelete("CASCADE");
+}
+
+function buildMediaView(knex: Knex): Knex.QueryBuilder {
+  let mappings = {
+    id: ref(Table.Media, "id"),
+    catalog: ref(Table.Media, "catalog"),
+    created: ref(Table.Media, "created"),
+    uploaded: ref(Table.Original, "uploaded"),
+    mimetype: ref(Table.Original, "mimetype"),
+    width: ref(Table.Original, "width"),
+    height: ref(Table.Original, "height"),
+    duration: ref(Table.Original, "duration"),
+    fileSize: ref(Table.Original, "fileSize"),
+    frameRate: ref(Table.Original, "frameRate"),
+    bitRate: ref(Table.Original, "bitRate"),
+  };
+
+  for (let field of ObjectModel.metadataColumns) {
+    mappings[field] = knex.raw("COALESCE(?, ?)", [
+      knex.ref(ref(Table.Media, field)),
+      knex.ref(ref(Table.Original, field)),
+    ]);
+  }
+
+  return knex(Table.Media)
+    .leftJoin(Table.Original, ref(Table.Media, "id"), ref(Table.Original, "media"))
+    .orderBy([
+      { column: "id", order: "asc" },
+      { column: "uploaded", order: "desc" },
+    ])
+    .distinctOn(ref(Table.Media, "id"))
+    .select(mappings);
 }
 
 exports.up = function(knex: Knex): Knex.SchemaBuilder {
@@ -140,7 +173,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     addMetadata(table);
 
     table.unique([columnFor(Table.Catalog), "id"]);
-  }).createTable(Table.UploadedMedia, (table: Knex.CreateTableBuilder): void => {
+  }).createTable(Table.Original, (table: Knex.CreateTableBuilder): void => {
     id(table);
     foreignId(table, Table.Media, "id");
     table.integer("processVersion").notNullable();
@@ -150,7 +183,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     addMetadata(table);
   }).createTable(Table.AlternateFile, (table: Knex.CreateTableBuilder): void => {
     id(table);
-    foreignId(table, Table.UploadedMedia, "id");
+    foreignId(table, Table.Original, "id");
     table.string("type", 20).notNullable();
 
     addFileInfo(table);
@@ -192,7 +225,10 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
     table.foreign([columnFor(Table.Catalog), columnFor(Table.Person)])
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Person);
-  });
+  }).raw(knex.raw("CREATE VIEW ?? AS ?", [
+    Table.StoredMedia,
+    buildMediaView(knex),
+  ]).toString());
 };
 
 /**
@@ -201,15 +237,17 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
  */
 exports.down = function(knex: Knex): Knex.SchemaBuilder {
   return knex.schema
-    .dropTable("media_person")
-    .dropTable("media_tag")
-    .dropTable("media_album")
-    .dropTable("user_catalog")
-    .dropTable("uploadedMedia")
-    .dropTable("media")
-    .dropTable("album")
-    .dropTable("tag")
-    .dropTable("person")
-    .dropTable("catalog")
-    .dropTable("user");
+    .raw(knex.raw("DROP VIEW ??", [Table.StoredMedia]).toString())
+    .dropTable(Table.MediaPerson)
+    .dropTable(Table.MediaTag)
+    .dropTable(Table.MediaAlbum)
+    .dropTable(Table.UserCatalog)
+    .dropTable(Table.AlternateFile)
+    .dropTable(Table.Original)
+    .dropTable(Table.Media)
+    .dropTable(Table.Album)
+    .dropTable(Table.Tag)
+    .dropTable(Table.Person)
+    .dropTable(Table.Catalog)
+    .dropTable(Table.User);
 };

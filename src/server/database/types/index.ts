@@ -18,13 +18,16 @@ export enum Table {
   Tag = "Tag",
   Person = "Person",
   Media = "Media",
-  UploadedMedia = "UploadedMedia",
+  Original = "Original",
   AlternateFile = "AlternateFile",
 
   UserCatalog = "User_Catalog",
   MediaAlbum = "Media_Album",
   MediaTag = "Media_Tag",
   MediaPerson = "Media_Person",
+
+  // Not a real table.
+  StoredMedia = "StoredMedia",
 }
 
 export interface TableMapping {
@@ -35,13 +38,15 @@ export interface TableMapping {
   [Table.Tag]: Tables.Tag;
   [Table.Person]: Tables.Person;
   [Table.Media]: Tables.Media;
-  [Table.UploadedMedia]: Tables.UploadedMedia;
+  [Table.Original]: Tables.Original;
   [Table.AlternateFile]: Tables.AlternateFile;
 
   [Table.UserCatalog]: Joins.UserCatalog;
   [Table.MediaAlbum]: Joins.MediaAlbum;
   [Table.MediaTag]: Joins.MediaTag;
   [Table.MediaPerson]: Joins.MediaPerson;
+
+  [Table.StoredMedia]: Tables.StoredMedia;
 }
 
 export type TableRecord<T extends Table> = DBRecord<TableMapping[T]>;
