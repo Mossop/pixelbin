@@ -1,5 +1,5 @@
 import { idSorted } from "../../utils";
-import { insert, withChildren, from } from "./queries";
+import { insert, withChildren, withParents, from } from "./queries";
 import { insertTestData, testData, buildTestDB, connection } from "./test-helpers";
 import { Table } from "./types";
 
@@ -36,6 +36,20 @@ test("Tag table tests", async (): Promise<void> => {
     testData[Table.Tag][5],
     testData[Table.Tag][6],
     testData[Table.Tag][7],
+  ]);
+
+  tags = idSorted(
+    await withParents(
+      dbConnection.knex,
+      Table.Tag,
+      from(dbConnection.knex, Table.Tag).where("id", "t7"),
+    ),
+  );
+  expect(tags).toHaveLength(3);
+  expect(tags).toEqual([
+    testData[Table.Tag][1],
+    testData[Table.Tag][5],
+    testData[Table.Tag][6],
   ]);
 
   // Should not allow duplicate IDs.

@@ -42,6 +42,23 @@ export async function withChildren<T extends Table.Tag | Table.Album>(
   ).from("parents");
 }
 
+export async function withParents<T extends Table.Tag | Table.Album>(
+  knex: Knex,
+  table: T,
+  queryBuilder: QueryBuilder<TableRecord<T>>,
+): Promise<QueryBuilder<TableRecord<T>>> {
+  // @ts-ignore: Trust me!
+  return knex.withRecursive(
+    "children",
+    queryBuilder.select(ref(table)).union((qb: Knex.QueryBuilder): void => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      qb.from<TableRecord<T>>(table)
+        .select(`${table}.*`)
+        .join("children", "children.parent", `${table}.id`);
+    }),
+  ).from("children");
+}
+
 export function insertFromSelect<T extends Table>(
   knex: Knex,
   table: T,
