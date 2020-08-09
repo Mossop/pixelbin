@@ -14,7 +14,10 @@ if [ -z "$CONTAINER" ]; then
 
   rm -rf data/storage/*
   rm -rf public/media/storage/*
-  exec docker exec -e PYTHON="${PYTHON}" -it $container /containers/rebuild_db.sh
+  rm -rf data/minio/*
+  mkdir -p data/minio/pixelbin
+  docker exec -e PYTHON="${PYTHON}" -it $container /containers/rebuild_db.sh
+  gulp migrate
 else
   export PGPASSWORD=pixelbin
 
@@ -25,5 +28,4 @@ else
   dropdb -h localhost -U pixelbin pixelbin_test
   createdb -h localhost -U pixelbin pixelbin
   createdb -h localhost -U pixelbin pixelbin_test
-  rm -rf data/storage/*
 fi

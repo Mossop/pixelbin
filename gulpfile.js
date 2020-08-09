@@ -189,3 +189,19 @@ exports.run = async function() {
     throw new Error(`Server exited with exit code ${code}`);
   }
 };
+
+exports.migrate = gulp.series(exports.build, async function migrate() {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const { DatabaseConnection } = require("./build/server/database");
+
+  let connection = await DatabaseConnection.connect({
+    username: "pixelbin",
+    password: "pixelbin",
+    host: "localhost",
+    port: 5432,
+    database: "pixelbin",
+  });
+
+  await connection.knex.migrate.latest();
+  await connection.destroy();
+});
