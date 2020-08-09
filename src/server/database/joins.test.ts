@@ -409,13 +409,23 @@ test("Album media tests", async (): Promise<void> => {
 
     tags: [],
     people: [],
-    albums: ["a1"],
+    albums: [{
+      id: "a1",
+      catalog: "c1",
+      name: "Album 1",
+      parent: null,
+    }],
   }, {
     id: media2.id,
     catalog: "c1",
 
     tags: [],
     people: [],
-    albums: ["a3"],
+    albums: [{
+      id: "a3",
+      catalog: "c1",
+      name: "Album 3",
+      parent: "a1",
+    }],
   }]);
 });

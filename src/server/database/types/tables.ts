@@ -20,9 +20,9 @@ export type Metadata = Nullable<ObjectModel.Metadata>;
 export type Media = ObjectModel.Media & Metadata;
 
 export interface MediaLists {
-  tags: Tag["id"][];
-  albums: Album["id"][];
-  people: Person["id"][];
+  tags: Tag[];
+  albums: Album[];
+  people: Person[];
 }
 
 export type Original = ObjectModel.Original & Metadata & {

@@ -60,31 +60,55 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
 
 function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
   let tags = knex(Table.MediaTag)
+    .join((builder: Knex.QueryBuilder): void => {
+      void builder.from(Table.Tag)
+        .select({
+          id: ref(Table.Tag, "id"),
+          tag: knex.raw(`row_to_json("${Table.Tag}")`),
+        })
+        .as("TagJson");
+    }, ref(Table.MediaTag, "tag"), "TagJson.id")
     .groupBy(ref(Table.MediaTag, "media"))
     .select({
       media: ref(Table.MediaTag, "media"),
-      tags: knex.raw("array_agg(?)", [
-        knex.ref(ref(Table.MediaTag, "tag")),
+      tags: knex.raw("json_agg(?)", [
+        knex.ref("TagJson.tag"),
       ]),
     })
     .as("TagList");
 
   let albums = knex(Table.MediaAlbum)
+    .join((builder: Knex.QueryBuilder): void => {
+      void builder.from(Table.Album)
+        .select({
+          id: ref(Table.Album, "id"),
+          album: knex.raw(`row_to_json("${Table.Album}")`),
+        })
+        .as("AlbumJson");
+    }, ref(Table.MediaAlbum, "album"), "AlbumJson.id")
     .groupBy(ref(Table.MediaAlbum, "media"))
     .select({
       media: ref(Table.MediaAlbum, "media"),
-      albums: knex.raw("array_agg(?)", [
-        knex.ref(ref(Table.MediaAlbum, "album")),
+      albums: knex.raw("json_agg(?)", [
+        knex.ref("AlbumJson.album"),
       ]),
     })
     .as("AlbumList");
 
   let people = knex(Table.MediaPerson)
+    .join((builder: Knex.QueryBuilder): void => {
+      void builder.from(Table.Person)
+        .select({
+          id: ref(Table.Person, "id"),
+          person: knex.raw(`row_to_json("${Table.Person}")`),
+        })
+        .as("PersonJson");
+    }, ref(Table.MediaPerson, "person"), "PersonJson.id")
     .groupBy(ref(Table.MediaPerson, "media"))
     .select({
       media: ref(Table.MediaPerson, "media"),
-      people: knex.raw("array_agg(?)", [
-        knex.ref(ref(Table.MediaPerson, "person")),
+      people: knex.raw("json_agg(?)", [
+        knex.ref("PersonJson.person"),
       ]),
     })
     .as("PersonList");
@@ -95,13 +119,13 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     .leftJoin(people, "PersonList.media", ref(Table.StoredMedia, "id"))
     .select(ref(Table.StoredMedia))
     .select({
-      tags: knex.raw("COALESCE(?, ARRAY[]::varchar(30)[])", [
+      tags: knex.raw("COALESCE(?, '[]'::json)", [
         knex.ref("TagList.tags"),
       ]),
-      albums: knex.raw("COALESCE(?, ARRAY[]::varchar(30)[])", [
+      albums: knex.raw("COALESCE(?, '[]'::json)", [
         knex.ref("AlbumList.albums"),
       ]),
-      people: knex.raw("COALESCE(?, ARRAY[]::varchar(30)[])", [
+      people: knex.raw("COALESCE(?, '[]'::json)", [
         knex.ref("PersonList.people"),
       ]),
     });
@@ -209,7 +233,6 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     foreignId(table, Table.Catalog, "id");
     table.string("parent", 30).nullable();
     table.string("name", 100).notNullable();
-    table.string("stub", 50).nullable();
 
     table.unique([columnFor(Table.Catalog), "id"]);
 

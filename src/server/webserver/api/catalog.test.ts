@@ -121,7 +121,6 @@ test("Create album", async (): Promise<void> => {
   let response = await request
     .put("/api/album/create")
     .send({
-      stub: null,
       catalog: "c1",
       name: "Bad user",
       parent: null,
@@ -145,7 +144,6 @@ test("Create album", async (): Promise<void> => {
   response = await request
     .put("/api/album/create")
     .send({
-      stub: null,
       catalog: "c1",
       name: "Good user",
       parent: null,
@@ -157,7 +155,6 @@ test("Create album", async (): Promise<void> => {
   expect(newAlbum).toEqual({
     id: expect.stringMatching(/^A:[a-zA-Z0-9]+/),
     name: "Good user",
-    stub: null,
     parent: null,
     catalog: "c1",
   });
@@ -193,7 +190,6 @@ test("Create album", async (): Promise<void> => {
   response = await request
     .put("/api/album/create")
     .send({
-      stub: null,
       catalog: "c1",
       name: "Bad catalog",
       parent: null,
@@ -280,7 +276,6 @@ test("Edit album", async (): Promise<void> => {
   expect(updatedAlbum).toEqual({
     id: "a1",
     name: "New name",
-    stub: null,
     parent: null,
     catalog: "c1",
   });

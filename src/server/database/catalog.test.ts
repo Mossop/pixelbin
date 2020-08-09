@@ -244,7 +244,6 @@ test("Album table tests", async (): Promise<void> => {
     // @ts-ignore: Supplying a catalog should not affect anything.
     catalog: "c2",
     parent: null,
-    stub: "foo",
     name: "New Album",
   });
 
@@ -253,7 +252,6 @@ test("Album table tests", async (): Promise<void> => {
     id: expect.stringMatching(/^A:[A-Za-z0-9]+/),
     catalog: "c1",
     parent: null,
-    stub: "foo",
     name: "New Album",
   });
 
