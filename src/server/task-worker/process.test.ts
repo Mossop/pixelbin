@@ -139,6 +139,10 @@ test("Process image metadata", async (): Promise<void> => {
     exposure: 1,
     iso: 400,
     focalLength: 95,
+
+    albums: [],
+    tags: [],
+    people: [],
   });
 
   expect(getLocalFilePathMock).toHaveBeenCalledTimes(5);
@@ -335,6 +339,10 @@ test("Process video metadata", async (): Promise<void> => {
     exposure: null,
     iso: null,
     focalLength: null,
+
+    albums: [],
+    tags: [],
+    people: [],
   });
 
   expect(getLocalFilePathMock).toHaveBeenCalledTimes(5);

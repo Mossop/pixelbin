@@ -13,6 +13,7 @@ import {
   intoDBTypes,
   intoAPITypes,
 } from "./types";
+import { filterColumns } from "./utils";
 
 export function fillMetadata<T>(data: T): T & Tables.Metadata {
   let result = { ...data };
@@ -36,7 +37,7 @@ export async function createMedia(
   });
 
   let results = await insertFromSelect(this.knex, Table.Media, select, {
-    ...intoDBTypes(data),
+    ...intoDBTypes(filterColumns(Table.Media, data)),
     id: await mediaId(),
     catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
     created: moment().utc().toISOString(),
@@ -65,7 +66,7 @@ export async function editMedia(
   let results = await update(
     Table.Media,
     this.knex.where("id", id).where("catalog", "in", catalogs),
-    intoDBTypes(mediaUpdateData),
+    intoDBTypes(filterColumns(Table.Media, mediaUpdateData)),
   ).returning("*");
 
   if (results.length) {
@@ -79,14 +80,14 @@ export async function getMedia(
   this: UserScopedConnection,
   id: DBAPI<Tables.StoredMedia>["id"],
 ): Promise<DBAPI<Tables.StoredMedia> | null> {
-  let results = await from(this.knex, Table.StoredMedia).join(
+  let results = await from(this.knex, Table.StoredMediaDetail).join(
     Table.UserCatalog,
     ref(Table.UserCatalog, "catalog"),
-    ref(Table.StoredMedia, "catalog"),
+    ref(Table.StoredMediaDetail, "catalog"),
   ).where({
     [ref(Table.UserCatalog, "user")]: this.user,
-    [ref(Table.StoredMedia, "id")]: id,
-  }).select(ref(Table.StoredMedia));
+    [ref(Table.StoredMediaDetail, "id")]: id,
+  }).select(ref(Table.StoredMediaDetail));
 
   if (results.length == 0) {
     return null;

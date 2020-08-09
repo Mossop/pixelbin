@@ -1,5 +1,6 @@
 import Knex from "knex";
 
+import { ObjectModel } from "../../../model";
 import { Obj } from "../../../utils";
 import * as Joins from "./joins";
 import { DBRecord, DBAPI } from "./meta";
@@ -77,3 +78,12 @@ export function isRef<T extends Table>(ref: Obj): ref is Ref<T> {
 export function bindingParam(val: Knex.RawBinding | Ref): string {
   return isRef(val) ? "??" : "?";
 }
+
+export const COLUMNS = {
+  [Table.Media]: [
+    "id",
+    "catalog",
+    "created",
+    ...ObjectModel.metadataColumns,
+  ],
+};

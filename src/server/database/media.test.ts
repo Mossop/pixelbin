@@ -84,6 +84,10 @@ test("Media tests", async (): Promise<void> => {
     fileSize: null,
     bitRate: null,
     frameRate: null,
+
+    albums: [],
+    tags: [],
+    people: [],
   }));
 
   let uploadedMoment: Moment = realMoment.tz("2020-01-03T15:31:01", "UTC");
@@ -138,6 +142,10 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
+
+    albums: [],
+    tags: [],
+    people: [],
   }));
 
   await user3Db.editMedia(id, {
@@ -163,6 +171,10 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
+
+    albums: [],
+    tags: [],
+    people: [],
   }));
 
   let uploaded2Moment: Moment = realMoment.tz("2020-01-04T15:31:01", "UTC");
@@ -219,6 +231,10 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 2000,
+
+    albums: [],
+    tags: [],
+    people: [],
   }));
 
   await dbConnection.addAlternateFile(info.id, {
@@ -333,4 +349,11 @@ test("Media tests", async (): Promise<void> => {
   // Cannot list alternates for media the user cannot access.
   list = await user2Db.listAlternateFiles(id, AlternateFileType.Poster);
   expect(list).toHaveLength(0);
+
+  // Unknown properties should be ignored.
+  newMedia = await user1Db.createMedia("c1", fillMetadata({
+    bob: "baz",
+  }));
+
+  expect(newMedia["bob"]).toBeUndefined();
 });
