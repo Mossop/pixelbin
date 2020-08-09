@@ -124,48 +124,6 @@ export async function editAlbum(
   throw new Error("Invalid user or album passed to editAlbum");
 }
 
-export async function albumAddMedia(
-  this: UserScopedConnection,
-  album: DBAPI<Tables.Album>["id"],
-  media: DBAPI<Tables.Media>["id"][],
-): Promise<string[]> {
-  let existing = from(this.knex, Table.MediaAlbum)
-    .where(ref(Table.MediaAlbum, "album"), album)
-    .select("media");
-
-  let select = from(this.knex, Table.UserCatalog)
-    .join(Table.Album, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
-    .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
-    .whereIn(ref(Table.Media, "id"), media)
-    .whereNotIn(ref(Table.Media, "id"), existing)
-    .where({
-      [ref(Table.UserCatalog, "user")]: this.user,
-      [ref(Table.Album, "id")]: album,
-    });
-
-  return insertFromSelect(this.knex, Table.MediaAlbum, select, {
-    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
-    media: this.connection.ref(ref(Table.Media, "id")),
-    album,
-  }).returning(ref(Table.MediaAlbum, "media"));
-}
-
-export async function albumRemoveMedia(
-  this: UserScopedConnection,
-  album: DBAPI<Tables.Album>["id"],
-  media: DBAPI<Tables.Media>["id"][],
-): Promise<void> {
-  let catalogs = from(this.knex, Table.UserCatalog)
-    .where(ref(Table.UserCatalog, "user"), this.user)
-    .select("catalog");
-
-  await from(this.knex, Table.MediaAlbum)
-    .whereIn(ref(Table.MediaAlbum, "catalog"), catalogs)
-    .whereIn(ref(Table.MediaAlbum, "media"), media)
-    .where(ref(Table.MediaAlbum, "album"), album)
-    .delete();
-}
-
 export async function listPeople(this: UserScopedConnection): Promise<DBAPI<Tables.Person>[]> {
   let results = await select(from(this.knex, Table.Person)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Person, "catalog"))

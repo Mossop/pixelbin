@@ -7,6 +7,7 @@ import { types } from "pg";
 import { getLogger, Obj } from "../../utils";
 import * as CatalogQueries from "./catalog";
 import * as Functions from "./functions";
+import * as Joins from "./joins";
 import * as MediaQueries from "./media";
 import { UserRef } from "./types";
 import * as Unsafe from "./unsafe";
@@ -46,7 +47,7 @@ export class DatabaseConnection {
     return new UserScopedConnection(this, user);
   }
 
-  protected inTransaction<T>(
+  public inTransaction<T>(
     transactionFn: (dbConnection: DatabaseConnection) => Promise<T>,
   ): Promise<T> {
     if (this._transaction) {
@@ -167,6 +168,14 @@ export class UserScopedConnection {
   public constructor(protected connection: DatabaseConnection, public readonly user: UserRef) {
   }
 
+  protected inTransaction<T>(
+    transactionFn: (connection: UserScopedConnection) => Promise<T>,
+  ): Promise<T> {
+    return this.connection.inTransaction((dbConnection: DatabaseConnection): Promise<T> => {
+      return transactionFn(dbConnection.forUser(this.user));
+    });
+  }
+
   public readonly listStorage = CatalogQueries.listStorage;
   public readonly createStorage = CatalogQueries.createStorage;
   public readonly listCatalogs = CatalogQueries.listCatalogs;
@@ -174,14 +183,16 @@ export class UserScopedConnection {
   public readonly listAlbums = CatalogQueries.listAlbums;
   public readonly createAlbum = CatalogQueries.createAlbum;
   public readonly editAlbum = CatalogQueries.editAlbum;
-  public readonly albumAddMedia = CatalogQueries.albumAddMedia;
-  public readonly albumRemoveMedia = CatalogQueries.albumRemoveMedia;
   public readonly listPeople = CatalogQueries.listPeople;
   public readonly listTags = CatalogQueries.listTags;
   public readonly createTag = CatalogQueries.createTag;
   public readonly editTag = CatalogQueries.editTag;
   public readonly createPerson = CatalogQueries.createPerson;
   public readonly editPerson = CatalogQueries.editPerson;
+
+  public readonly addMedia = Joins.addMedia;
+  public readonly removeMedia = Joins.removeMedia;
+  public readonly setMedia = Joins.setMedia;
 
   public readonly createMedia = MediaQueries.createMedia;
   public readonly editMedia = MediaQueries.editMedia;

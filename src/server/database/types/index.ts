@@ -27,7 +27,9 @@ export enum Table {
   MediaPerson = "Media_Person",
 
   // Not a real table.
+  CurrentOriginal = "CurrentOriginal",
   StoredMedia = "StoredMedia",
+  StoredMediaDetail = "StoredMediaDetail",
 }
 
 export interface TableMapping {
@@ -46,7 +48,9 @@ export interface TableMapping {
   [Table.MediaTag]: Joins.MediaTag;
   [Table.MediaPerson]: Joins.MediaPerson;
 
+  [Table.CurrentOriginal]: Tables.CurrentOriginal;
   [Table.StoredMedia]: Tables.StoredMedia;
+  [Table.StoredMediaDetail]: Tables.StoredMedia;
 }
 
 export type TableRecord<T extends Table> = DBRecord<TableMapping[T]>;

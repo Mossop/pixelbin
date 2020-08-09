@@ -10,11 +10,13 @@ export interface MediaAlbum {
 }
 
 export interface MediaTag {
+  catalog: string;
   media: string;
   tag: string;
 }
 
 export interface MediaPerson {
+  catalog: string;
   media: string;
-  tag: string;
+  person: string;
 }

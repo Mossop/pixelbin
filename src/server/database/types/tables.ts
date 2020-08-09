@@ -19,12 +19,20 @@ export type Metadata = Nullable<ObjectModel.Metadata>;
 
 export type Media = ObjectModel.Media & Metadata;
 
+export interface MediaLists {
+  tags: Tag["id"][];
+  albums: Album["id"][];
+  people: Person["id"][];
+}
+
 export type Original = ObjectModel.Original & Metadata & {
   processVersion: number;
 };
+
+export type CurrentOriginal = Omit<Original, "id">;
 
 export type AlternateFile = ObjectModel.AlternateFile;
 
 export type StoredMedia = Media & AllOrNulls<
   Omit<ObjectModel.Original, "id" | "media" | "fileName">
->;
+> & Partial<MediaLists>;

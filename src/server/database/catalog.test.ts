@@ -1,10 +1,7 @@
 import { expect } from "../../test-helpers";
 import { idSorted } from "../../utils";
-import { fillMetadata } from "./media";
-import { from } from "./queries";
 import { connection, insertTestData, testData, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
-import { MediaAlbum } from "./types/joins";
 
 buildTestDB();
 
@@ -307,110 +304,6 @@ test("Album table tests", async (): Promise<void> => {
   await expect(user2Db.editAlbum(album.id, {
     parent: "a6",
   })).rejects.toThrow("foreign key constraint");
-});
-
-test("Album media tests", async (): Promise<void> => {
-  let dbConnection = await connection;
-  let user1Db = dbConnection.forUser("someone1@nowhere.com");
-  let user2Db = dbConnection.forUser("someone2@nowhere.com");
-
-  let mediaInAlbum = async (album: string): Promise<string[]> => {
-    let media = await from(dbConnection.knex, Table.MediaAlbum).where("album", album).select("*");
-    return media.map((item: MediaAlbum): string => item.media);
-  };
-
-  let media1 = await user1Db.createMedia("c1", fillMetadata({}));
-  let media2 = await user1Db.createMedia("c1", fillMetadata({}));
-  let media3 = await user1Db.createMedia("c1", fillMetadata({}));
-  let media4 = await user1Db.createMedia("c2", fillMetadata({}));
-  let media5 = await user1Db.createMedia("c2", fillMetadata({}));
-
-  expect(await mediaInAlbum("a1")).toEqual([]);
-
-  let added = await user1Db.albumAddMedia("a1", [
-    media1.id,
-    media2.id,
-    media3.id,
-    media4.id,
-  ]);
-
-  expect(added).toInclude([
-    media1.id,
-    media2.id,
-    media3.id,
-  ]);
-
-  expect(await mediaInAlbum("a1")).toInclude([
-    media1.id,
-    media2.id,
-    media3.id,
-  ]);
-
-  added = await user1Db.albumAddMedia("a1", [
-    media1.id,
-    media2.id,
-    media3.id,
-  ]);
-
-  expect(added).toEqual([]);
-
-  expect(await mediaInAlbum("a1")).toInclude([
-    media1.id,
-    media2.id,
-    media3.id,
-  ]);
-
-  await user1Db.albumRemoveMedia("a1", [
-    media1.id,
-    "unknown",
-    media4.id,
-  ]);
-
-  expect(await mediaInAlbum("a1")).toInclude([
-    media2.id,
-    media3.id,
-  ]);
-
-  await user1Db.albumRemoveMedia("a1", [
-    media2.id,
-    media3.id,
-  ]);
-
-  expect(await mediaInAlbum("a1")).toEqual([]);
-
-  added = await user2Db.albumAddMedia("a6", [
-    media4.id,
-    media5.id,
-  ]);
-
-  expect(added).toEqual([]);
-
-  expect(await mediaInAlbum("a6")).toEqual([]);
-
-  added = await user1Db.albumAddMedia("a6", [
-    media4.id,
-    media5.id,
-  ]);
-
-  expect(added).toInclude([
-    media4.id,
-    media5.id,
-  ]);
-
-  expect(await mediaInAlbum("a6")).toInclude([
-    media4.id,
-    media5.id,
-  ]);
-
-  await user2Db.albumRemoveMedia("a6", [
-    media4.id,
-    media5.id,
-  ]);
-
-  expect(await mediaInAlbum("a6")).toInclude([
-    media4.id,
-    media5.id,
-  ]);
 });
 
 test("Person table tests", async (): Promise<void> => {

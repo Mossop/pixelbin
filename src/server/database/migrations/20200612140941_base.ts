@@ -28,31 +28,77 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
     created: ref(Table.Media, "created"),
-    uploaded: ref(Table.Original, "uploaded"),
-    mimetype: ref(Table.Original, "mimetype"),
-    width: ref(Table.Original, "width"),
-    height: ref(Table.Original, "height"),
-    duration: ref(Table.Original, "duration"),
-    fileSize: ref(Table.Original, "fileSize"),
-    frameRate: ref(Table.Original, "frameRate"),
-    bitRate: ref(Table.Original, "bitRate"),
+    uploaded: "CurrentOriginal.uploaded",
+    mimetype: "CurrentOriginal.mimetype",
+    width: "CurrentOriginal.width",
+    height: "CurrentOriginal.height",
+    duration: "CurrentOriginal.duration",
+    fileSize: "CurrentOriginal.fileSize",
+    frameRate: "CurrentOriginal.frameRate",
+    bitRate: "CurrentOriginal.bitRate",
   };
 
   for (let field of ObjectModel.metadataColumns) {
     mappings[field] = knex.raw("COALESCE(?, ?)", [
       knex.ref(ref(Table.Media, field)),
-      knex.ref(ref(Table.Original, field)),
+      knex.ref(`CurrentOriginal.${field}`),
     ]);
   }
 
-  return knex(Table.Media)
-    .leftJoin(Table.Original, ref(Table.Media, "id"), ref(Table.Original, "media"))
+  let currentOriginals = knex(Table.Original)
     .orderBy([
-      { column: "id", order: "asc" },
-      { column: "uploaded", order: "desc" },
+      { column: ref(Table.Original, "media"), order: "asc" },
+      { column: ref(Table.Original, "uploaded"), order: "desc" },
     ])
-    .distinctOn(ref(Table.Media, "id"))
+    .distinctOn(ref(Table.Original, "media"))
+    .as("CurrentOriginal");
+
+  return knex(Table.Media)
+    .leftJoin(currentOriginals, "CurrentOriginal.media", ref(Table.Media, "id"))
     .select(mappings);
+}
+
+function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
+  let tags = knex(Table.MediaTag)
+    .groupBy(ref(Table.MediaTag, "media"))
+    .select({
+      media: ref(Table.MediaTag, "media"),
+      tags: knex.raw("COALESCE(array_agg(?), ARRAY[]::varchar(30)[])", [
+        knex.ref(ref(Table.MediaTag, "tag")),
+      ]),
+    })
+    .as("TagList");
+
+  let albums = knex(Table.MediaAlbum)
+    .groupBy(ref(Table.MediaAlbum, "media"))
+    .select({
+      media: ref(Table.MediaAlbum, "media"),
+      albums: knex.raw("COALESCE(array_agg(?), ARRAY[]::varchar(30)[])", [
+        knex.ref(ref(Table.MediaAlbum, "album")),
+      ]),
+    })
+    .as("AlbumList");
+
+  let people = knex(Table.MediaPerson)
+    .groupBy(ref(Table.MediaPerson, "media"))
+    .select({
+      media: ref(Table.MediaPerson, "media"),
+      people: knex.raw("COALESCE(array_agg(?), ARRAY[]::varchar(30)[])", [
+        knex.ref(ref(Table.MediaPerson, "person")),
+      ]),
+    })
+    .as("PersonList");
+
+  return knex(Table.StoredMedia)
+    .leftJoin(tags, "TagList.media", ref(Table.StoredMedia, "id"))
+    .leftJoin(albums, "AlbumList.media", ref(Table.StoredMedia, "id"))
+    .leftJoin(people, "PersonList.media", ref(Table.StoredMedia, "id"))
+    .select(ref(Table.StoredMedia))
+    .select({
+      tags: "TagList.tags",
+      albums: "AlbumList.albums",
+      people: "PersonList.people",
+    });
 }
 
 exports.up = function(knex: Knex): Knex.SchemaBuilder {
@@ -197,7 +243,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.string(columnFor(Table.Media), 30).notNullable();
     table.string(columnFor(Table.Album), 30).notNullable();
 
-    table.unique([columnFor(Table.Media), columnFor(Table.Album)]);
+    table.unique([columnFor(Table.Media), columnFor(Table.Album)], "uniqueAlbumMedia");
 
     table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)])
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
@@ -208,7 +254,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.string(columnFor(Table.Media), 30).notNullable();
     table.string(columnFor(Table.Tag), 30).notNullable();
 
-    table.unique([columnFor(Table.Media), columnFor(Table.Tag)]);
+    table.unique([columnFor(Table.Media), columnFor(Table.Tag)], "uniqueTagMedia");
 
     table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)])
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
@@ -219,7 +265,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.string(columnFor(Table.Media), 30).notNullable();
     table.string(columnFor(Table.Person), 30).notNullable();
 
-    table.unique([columnFor(Table.Media), columnFor(Table.Person)]);
+    table.unique([columnFor(Table.Media), columnFor(Table.Person)], "uniquePersonMedia");
 
     table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)])
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
@@ -228,6 +274,9 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
   }).raw(knex.raw("CREATE VIEW ?? AS ?", [
     Table.StoredMedia,
     buildMediaView(knex),
+  ]).toString()).raw(knex.raw("CREATE VIEW ?? AS ?", [
+    Table.StoredMediaDetail,
+    buildMediaDetailView(knex),
   ]).toString());
 };
 
@@ -237,6 +286,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
  */
 exports.down = function(knex: Knex): Knex.SchemaBuilder {
   return knex.schema
+    .raw(knex.raw("DROP VIEW ??", [Table.StoredMediaDetail]).toString())
     .raw(knex.raw("DROP VIEW ??", [Table.StoredMedia]).toString())
     .dropTable(Table.MediaPerson)
     .dropTable(Table.MediaTag)
