@@ -2,7 +2,7 @@ import Knex from "knex";
 
 import { UserScopedConnection } from "./connection";
 import { uuid } from "./id";
-import { from, insert, insertFromSelect, update, select } from "./queries";
+import { from, insert, insertFromSelect, update, select, withChildren } from "./queries";
 import {
   Table,
   Tables,
@@ -122,6 +122,35 @@ export async function editAlbum(
   }
 
   throw new Error("Invalid user or album passed to editAlbum");
+}
+
+export async function listMediaInAlbum(
+  this: UserScopedConnection,
+  id: DBAPI<Tables.Album>["id"],
+  recursive: boolean = false,
+): Promise<DBAPI<Tables.StoredMedia>[]> {
+  let albums: Knex.QueryBuilder;
+  if (recursive) {
+    albums = withChildren(
+      this.knex,
+      Table.Album,
+      from(this.knex, Table.Album)
+        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
+        .where(ref(Table.UserCatalog, "user"), this.user)
+        .where(ref(Table.Album, "id"), id),
+    ).select("id");
+  } else {
+    albums = from(this.knex, Table.Album)
+      .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
+      .where(ref(Table.UserCatalog, "user"), this.user)
+      .where(ref(Table.Album, "id"), id)
+      .select(ref(Table.Album, "id"));
+  }
+
+  return from(this.knex, Table.StoredMediaDetail)
+    .join(Table.MediaAlbum, ref(Table.MediaAlbum, "media"), ref(Table.StoredMediaDetail, "id"))
+    .whereIn(ref(Table.MediaAlbum, "album"), albums)
+    .select(ref(Table.StoredMediaDetail));
 }
 
 export async function listPeople(this: UserScopedConnection): Promise<DBAPI<Tables.Person>[]> {

@@ -88,7 +88,7 @@ const matchers = {
 
     return {
       pass,
-      message: expectMessage(this, "toContain", expected, received),
+      message: expectMessage(this, "toInclude", expected, received),
     };
   },
 };

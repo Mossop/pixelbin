@@ -180,6 +180,7 @@ export class UserScopedConnection {
   public readonly listAlbums = CatalogQueries.listAlbums;
   public readonly createAlbum = CatalogQueries.createAlbum;
   public readonly editAlbum = CatalogQueries.editAlbum;
+  public readonly listMediaInAlbum = CatalogQueries.listMediaInAlbum;
   public readonly listPeople = CatalogQueries.listPeople;
   public readonly listTags = CatalogQueries.listTags;
   public readonly createTag = CatalogQueries.createTag;

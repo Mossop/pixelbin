@@ -1,9 +1,8 @@
 import { expect } from "../../test-helpers";
 import { fillMetadata } from "./media";
-import { from } from "./queries";
 import { buildTestDB, connection, insertTestData } from "./test-helpers";
-import { Table } from "./types";
-import { MediaAlbum } from "./types/joins";
+import { DBAPI, Table } from "./types";
+import { StoredMedia } from "./types/tables";
 
 buildTestDB();
 
@@ -11,14 +10,24 @@ beforeEach((): Promise<void> => {
   return insertTestData();
 });
 
+function extracted(media: DBAPI<StoredMedia>): unknown {
+  return {
+    id: media.id,
+    catalog: media.catalog,
+    tags: media.tags,
+    albums: media.albums,
+    people: media.people,
+  };
+}
+
 test("Album media tests", async (): Promise<void> => {
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   let mediaInAlbum = async (album: string): Promise<string[]> => {
-    let media = await from(dbConnection.knex, Table.MediaAlbum).where("album", album).select("*");
-    return media.map((item: MediaAlbum): string => item.media);
+    let media = await user1Db.listMediaInAlbum(album);
+    return media.map((item: DBAPI<StoredMedia>): string => item.id);
   };
 
   let media1 = await user1Db.createMedia("c1", fillMetadata({}));
@@ -389,4 +398,24 @@ test("Album media tests", async (): Promise<void> => {
     media6.id,
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
+
+  let media = await user2Db.listMediaInAlbum("a7");
+  expect(media).toEqual([]);
+
+  media = await user1Db.listMediaInAlbum("a1", true);
+  expect(media.map(extracted)).toInclude([{
+    id: media3.id,
+    catalog: "c1",
+
+    tags: [],
+    people: [],
+    albums: ["a1"],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+
+    tags: [],
+    people: [],
+    albums: ["a3"],
+  }]);
 });

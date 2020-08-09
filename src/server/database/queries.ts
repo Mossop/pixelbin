@@ -25,11 +25,11 @@ export async function select<T extends Table>(
   return query.select(`${table}.*`);
 }
 
-export async function withChildren<T extends Table.Tag | Table.Album>(
+export function withChildren<T extends Table.Tag | Table.Album>(
   knex: Knex,
   table: T,
   queryBuilder: QueryBuilder<TableRecord<T>>,
-): Promise<QueryBuilder<TableRecord<T>>> {
+): QueryBuilder<TableRecord<T>> {
   // @ts-ignore: Trust me!
   return knex.withRecursive(
     "parents",
@@ -42,11 +42,11 @@ export async function withChildren<T extends Table.Tag | Table.Album>(
   ).from("parents");
 }
 
-export async function withParents<T extends Table.Tag | Table.Album>(
+export function withParents<T extends Table.Tag | Table.Album>(
   knex: Knex,
   table: T,
   queryBuilder: QueryBuilder<TableRecord<T>>,
-): Promise<QueryBuilder<TableRecord<T>>> {
+): QueryBuilder<TableRecord<T>> {
   // @ts-ignore: Trust me!
   return knex.withRecursive(
     "children",

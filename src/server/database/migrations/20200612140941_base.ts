@@ -63,7 +63,7 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     .groupBy(ref(Table.MediaTag, "media"))
     .select({
       media: ref(Table.MediaTag, "media"),
-      tags: knex.raw("COALESCE(array_agg(?), ARRAY[]::varchar(30)[])", [
+      tags: knex.raw("array_agg(?)", [
         knex.ref(ref(Table.MediaTag, "tag")),
       ]),
     })
@@ -73,7 +73,7 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     .groupBy(ref(Table.MediaAlbum, "media"))
     .select({
       media: ref(Table.MediaAlbum, "media"),
-      albums: knex.raw("COALESCE(array_agg(?), ARRAY[]::varchar(30)[])", [
+      albums: knex.raw("array_agg(?)", [
         knex.ref(ref(Table.MediaAlbum, "album")),
       ]),
     })
@@ -83,7 +83,7 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     .groupBy(ref(Table.MediaPerson, "media"))
     .select({
       media: ref(Table.MediaPerson, "media"),
-      people: knex.raw("COALESCE(array_agg(?), ARRAY[]::varchar(30)[])", [
+      people: knex.raw("array_agg(?)", [
         knex.ref(ref(Table.MediaPerson, "person")),
       ]),
     })
@@ -95,9 +95,15 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     .leftJoin(people, "PersonList.media", ref(Table.StoredMedia, "id"))
     .select(ref(Table.StoredMedia))
     .select({
-      tags: "TagList.tags",
-      albums: "AlbumList.albums",
-      people: "PersonList.people",
+      tags: knex.raw("COALESCE(?, ARRAY[]::varchar(30)[])", [
+        knex.ref("TagList.tags"),
+      ]),
+      albums: knex.raw("COALESCE(?, ARRAY[]::varchar(30)[])", [
+        knex.ref("AlbumList.albums"),
+      ]),
+      people: knex.raw("COALESCE(?, ARRAY[]::varchar(30)[])", [
+        knex.ref("PersonList.people"),
+      ]),
     });
 }
 
