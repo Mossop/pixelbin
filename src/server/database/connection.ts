@@ -6,7 +6,6 @@ import { types } from "pg";
 
 import { getLogger, Obj } from "../../utils";
 import * as CatalogQueries from "./catalog";
-import * as Functions from "./functions";
 import * as Joins from "./joins";
 import * as MediaQueries from "./media";
 import { UserRef } from "./types";
@@ -82,8 +81,6 @@ export class DatabaseConnection {
 
     return this.knex.destroy();
   }
-
-  public readonly coalesce = Functions.coalesce;
 
   public readonly getMedia = Unsafe.getMedia;
   public readonly withNewOriginal = Unsafe.withNewOriginal;
