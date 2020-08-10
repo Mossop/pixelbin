@@ -6,6 +6,7 @@ import { types } from "pg";
 
 import { getLogger, Obj } from "../../utils";
 import * as CatalogQueries from "./catalog";
+import { DatabaseError, DatabaseErrorCode } from "./error";
 import * as Joins from "./joins";
 import * as MediaQueries from "./media";
 import { UserRef } from "./types";
@@ -34,6 +35,29 @@ function parseTimestamp(value: string): Moment {
 }
 types.setTypeParser(types.builtins.TIMESTAMPTZ, parseTimestamp);
 types.setTypeParser(types.builtins.TIMESTAMP, parseTimestamp);
+
+function wrapped<T, A extends unknown[], R>(
+  fn: (this: T, ...args: A) => Promise<R>,
+): (this: T, ...args: A) => Promise<R> {
+  return async function(...args: A): Promise<R> {
+    try {
+      return await fn.apply(this, args);
+    } catch (e) {
+      if (e instanceof DatabaseError) {
+        throw e;
+      }
+
+      if (e.table && e.constraint && e.constraint.startsWith("foreign_")) {
+        throw new DatabaseError(
+          DatabaseErrorCode.MissingRelationship,
+          `Unknown ${e.constraint.substring(8)} when creating ${e.table}.`,
+        );
+      }
+
+      throw new DatabaseError(DatabaseErrorCode.UnknownError, String(e));
+    }
+  };
+}
 
 export class DatabaseConnection {
   private constructor(
@@ -82,12 +106,12 @@ export class DatabaseConnection {
     return this.knex.destroy();
   }
 
-  public readonly getMedia = Unsafe.getMedia;
-  public readonly withNewOriginal = Unsafe.withNewOriginal;
-  public readonly addAlternateFile = Unsafe.addAlternateFile;
-  public readonly getStorageConfig = Unsafe.getStorageConfig;
+  public readonly getMedia = wrapped(Unsafe.getMedia);
+  public readonly withNewOriginal = wrapped(Unsafe.withNewOriginal);
+  public readonly addAlternateFile = wrapped(Unsafe.addAlternateFile);
+  public readonly getStorageConfig = wrapped(Unsafe.getStorageConfig);
 
-  public readonly getUser = UserQueries.getUser;
+  public readonly getUser = wrapped(UserQueries.getUser);
 
   public static async connect(config: DatabaseConfig): Promise<DatabaseConnection> {
     let schema = process.env.NODE_ENV == "test" ? `test${process.pid}` : undefined;
@@ -173,27 +197,27 @@ export class UserScopedConnection {
     });
   }
 
-  public readonly listStorage = CatalogQueries.listStorage;
-  public readonly createStorage = CatalogQueries.createStorage;
-  public readonly listCatalogs = CatalogQueries.listCatalogs;
-  public readonly createCatalog = CatalogQueries.createCatalog;
-  public readonly listAlbums = CatalogQueries.listAlbums;
-  public readonly createAlbum = CatalogQueries.createAlbum;
-  public readonly editAlbum = CatalogQueries.editAlbum;
-  public readonly listMediaInAlbum = CatalogQueries.listMediaInAlbum;
-  public readonly listPeople = CatalogQueries.listPeople;
-  public readonly listTags = CatalogQueries.listTags;
-  public readonly createTag = CatalogQueries.createTag;
-  public readonly editTag = CatalogQueries.editTag;
-  public readonly createPerson = CatalogQueries.createPerson;
-  public readonly editPerson = CatalogQueries.editPerson;
+  public readonly listStorage = wrapped(CatalogQueries.listStorage);
+  public readonly createStorage = wrapped(CatalogQueries.createStorage);
+  public readonly listCatalogs = wrapped(CatalogQueries.listCatalogs);
+  public readonly createCatalog = wrapped(CatalogQueries.createCatalog);
+  public readonly listAlbums = wrapped(CatalogQueries.listAlbums);
+  public readonly createAlbum = wrapped(CatalogQueries.createAlbum);
+  public readonly editAlbum = wrapped(CatalogQueries.editAlbum);
+  public readonly listMediaInAlbum = wrapped(CatalogQueries.listMediaInAlbum);
+  public readonly listPeople = wrapped(CatalogQueries.listPeople);
+  public readonly listTags = wrapped(CatalogQueries.listTags);
+  public readonly createTag = wrapped(CatalogQueries.createTag);
+  public readonly editTag = wrapped(CatalogQueries.editTag);
+  public readonly createPerson = wrapped(CatalogQueries.createPerson);
+  public readonly editPerson = wrapped(CatalogQueries.editPerson);
 
-  public readonly addMedia = Joins.addMedia;
-  public readonly removeMedia = Joins.removeMedia;
-  public readonly setMedia = Joins.setMedia;
+  public readonly addMedia = wrapped(Joins.addMedia);
+  public readonly removeMedia = wrapped(Joins.removeMedia);
+  public readonly setMedia = wrapped(Joins.setMedia);
 
-  public readonly createMedia = MediaQueries.createMedia;
-  public readonly editMedia = MediaQueries.editMedia;
-  public readonly getMedia = MediaQueries.getMedia;
-  public readonly listAlternateFiles = MediaQueries.listAlternateFiles;
+  public readonly createMedia = wrapped(MediaQueries.createMedia);
+  public readonly editMedia = wrapped(MediaQueries.editMedia);
+  public readonly getMedia = wrapped(MediaQueries.getMedia);
+  public readonly listAlternateFiles = wrapped(MediaQueries.listAlternateFiles);
 }

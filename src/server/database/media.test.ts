@@ -340,7 +340,7 @@ test("Media tests", async (): Promise<void> => {
     processVersion: 5,
     uploaded: moment(),
     fileName: "foo.jpg",
-  }))).rejects.toThrow("violates foreign key constraint");
+  }))).rejects.toThrow("Unknown Media");
 
   // Cannot get media in a catalog the user cannot access.
   foundMedia = await user3Db.getMedia(newMedia.id);

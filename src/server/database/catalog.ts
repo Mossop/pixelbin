@@ -1,6 +1,7 @@
 import Knex from "knex";
 
 import { UserScopedConnection } from "./connection";
+import { DatabaseError, DatabaseErrorCode } from "./error";
 import { uuid } from "./id";
 import { from, insert, insertFromSelect, update, select, withChildren } from "./queries";
 import {
@@ -35,7 +36,7 @@ export async function createStorage(
     return intoAPITypes(results[0]);
   }
 
-  throw new Error("Invalid user or catalog passed to createStorage");
+  throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Storage record.");
 }
 
 export async function listCatalogs(this: UserScopedConnection): Promise<DBAPI<Tables.Catalog>[]> {
@@ -51,20 +52,22 @@ export async function createCatalog(
 ): Promise<DBAPI<Tables.Catalog>> {
   return this.knex.transaction(async (trx: Knex): Promise<DBAPI<Tables.Catalog>> => {
     let catalog: DBRecord<Tables.Catalog> = {
-      ...intoDBTypes(data),
+      ...data,
       id: await uuid("C"),
     };
 
-    await insert(trx, Table.Catalog, catalog);
+    let results = await insert(trx, Table.Catalog, catalog)
+      .returning("*") as DBRecord<Tables.Catalog>[];
     await insert(trx, Table.UserCatalog, {
       user: this.user,
       catalog: catalog.id,
     });
 
-    return {
-      ...data,
-      id: catalog.id,
-    };
+    if (!results.length) {
+      throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Catalog record.");
+    }
+
+    return results[0];
   });
 }
 

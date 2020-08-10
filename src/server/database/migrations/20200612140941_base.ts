@@ -20,7 +20,9 @@ function foreignId<T extends Table, C extends keyof TableRecord<T>>(
   } else {
     col.nullable();
   }
-  table.foreign(column).references(ref(target, targetColumn)).onDelete("CASCADE");
+  table.foreign(column, `foreign_${target}`)
+    .references(ref(target, targetColumn))
+    .onDelete("CASCADE");
 }
 
 function buildMediaView(knex: Knex): Knex.QueryBuilder {

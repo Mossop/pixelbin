@@ -99,12 +99,12 @@ test("Catalog tests", async (): Promise<void> => {
   await expect(user5Db.createCatalog({
     storage: "s1",
     name: "New catalog",
-  })).rejects.toThrow("foreign key");
+  })).rejects.toThrow("Unknown User");
 
   await expect(user1Db.createCatalog({
     storage: "s5",
     name: "New catalog",
-  })).rejects.toThrow("foreign key");
+  })).rejects.toThrow("Unknown Storage");
 });
 
 test("Tag table tests", async (): Promise<void> => {
