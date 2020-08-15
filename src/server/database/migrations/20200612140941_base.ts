@@ -226,7 +226,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.string("name", 100).notNullable();
     table.unique([columnFor(Table.Catalog), "id"]);
 
-    table.foreign([columnFor(Table.Catalog), "parent"])
+    table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Tag}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
   }).raw(
     nameIndex(Table.Tag, Table.Catalog),
@@ -238,7 +238,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
     table.unique([columnFor(Table.Catalog), "id"]);
 
-    table.foreign([columnFor(Table.Catalog), "parent"])
+    table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Album}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
   }).raw(
     nameIndex(Table.Album, Table.Catalog),
@@ -276,9 +276,9 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
     table.unique([columnFor(Table.Media), columnFor(Table.Album)], "uniqueAlbumMedia");
 
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)])
+    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Album)])
+    table.foreign([columnFor(Table.Catalog), columnFor(Table.Album)], `foreign_${Table.Album}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
   }).createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
     table.string(columnFor(Table.Catalog), 30).notNullable();
@@ -287,9 +287,9 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
     table.unique([columnFor(Table.Media), columnFor(Table.Tag)], "uniqueTagMedia");
 
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)])
+    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Tag)])
+    table.foreign([columnFor(Table.Catalog), columnFor(Table.Tag)], `foreign_${Table.Tag}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
   }).createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
     table.string(columnFor(Table.Catalog), 30).notNullable();
@@ -298,9 +298,9 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
     table.unique([columnFor(Table.Media), columnFor(Table.Person)], "uniquePersonMedia");
 
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)])
+    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Person)])
+    table.foreign([columnFor(Table.Catalog), columnFor(Table.Person)], `foreign_${Table.Person}`)
       .references([columnFor(Table.Catalog), "id"]).inTable(Table.Person);
   }).raw(knex.raw("CREATE VIEW ?? AS ?", [
     Table.StoredMedia,

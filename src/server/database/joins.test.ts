@@ -46,11 +46,28 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  let added = await user1Db.addMedia(Table.MediaAlbum, [
+  await expect(user1Db.addMedia(Table.MediaAlbum, [
     media1.id,
     media2.id,
     media3.id,
     media4.id,
+  ], [
+    "a1",
+  ])).rejects.toThrow("Unknown items passed");
+
+  expect(await mediaInAlbum("a1")).toEqual([]);
+  expect(await mediaInAlbum("a2")).toEqual([]);
+  expect(await mediaInAlbum("a3")).toEqual([]);
+  expect(await mediaInAlbum("a4")).toEqual([]);
+  expect(await mediaInAlbum("a5")).toEqual([]);
+  expect(await mediaInAlbum("a6")).toEqual([]);
+  expect(await mediaInAlbum("a7")).toEqual([]);
+  expect(await mediaInAlbum("a8")).toEqual([]);
+
+  let added = await user1Db.addMedia(Table.MediaAlbum, [
+    media1.id,
+    media2.id,
+    media3.id,
   ], [
     "a1",
   ]);
@@ -138,15 +155,13 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user2Db.addMedia(Table.MediaAlbum, [
+  expect(user2Db.addMedia(Table.MediaAlbum, [
     media1.id,
     media4.id,
     media5.id,
   ], [
     "a6",
-  ]);
-
-  expect(added).toEqual([]);
+  ])).rejects.toThrow("Unknown items passed");
 
   expect(await mediaInAlbum("a1")).toEqual([]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -212,7 +227,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.setMedia(Table.MediaAlbum, [
+  await expect(user1Db.setMedia(Table.MediaAlbum, [
     media1.id,
     media3.id,
     media4.id,
@@ -222,6 +237,23 @@ test("Album media tests", async (): Promise<void> => {
     "a2",
     "a6",
     "a7",
+  ])).rejects.toThrow("Unknown items passed");
+
+  expect(await mediaInAlbum("a1")).toEqual([]);
+  expect(await mediaInAlbum("a2")).toEqual([]);
+  expect(await mediaInAlbum("a3")).toEqual([]);
+  expect(await mediaInAlbum("a4")).toEqual([]);
+  expect(await mediaInAlbum("a5")).toEqual([]);
+  expect(await mediaInAlbum("a6")).toEqual([]);
+  expect(await mediaInAlbum("a7")).toEqual([]);
+  expect(await mediaInAlbum("a8")).toEqual([]);
+
+  added = await user1Db.setMedia(Table.MediaAlbum, [
+    media1.id,
+    media3.id,
+  ], [
+    "a1",
+    "a2",
   ]);
 
   expect(added).toInclude([
@@ -229,6 +261,17 @@ test("Album media tests", async (): Promise<void> => {
     { media: media3.id, album: "a1" },
     { media: media1.id, album: "a2" },
     { media: media3.id, album: "a2" },
+  ]);
+
+  added = await user1Db.setMedia(Table.MediaAlbum, [
+    media4.id,
+    media5.id,
+  ], [
+    "a6",
+    "a7",
+  ]);
+
+  expect(added).toInclude([
     { media: media4.id, album: "a6" },
     { media: media5.id, album: "a6" },
     { media: media4.id, album: "a7" },
@@ -283,7 +326,7 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.addMedia(Table.MediaAlbum, [
+  await expect(user1Db.addMedia(Table.MediaAlbum, [
     media2.id,
     media6.id,
   ], [
@@ -291,11 +334,27 @@ test("Album media tests", async (): Promise<void> => {
     "a3",
     "a7",
     "a8",
+  ])).rejects.toThrow("Unknown items");
+
+  added = await user1Db.addMedia(Table.MediaAlbum, [
+    media2.id,
+  ], [
+    "a2",
+    "a3",
   ]);
 
   expect(added).toInclude([
     { media: media2.id, album: "a2" },
     { media: media2.id, album: "a3" },
+  ]);
+
+  added = await user1Db.addMedia(Table.MediaAlbum, [
+    media6.id,
+  ], [
+    "a7",
+  ]);
+
+  expect(added).toInclude([
     { media: media6.id, album: "a7" },
   ]);
 

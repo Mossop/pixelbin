@@ -94,11 +94,11 @@ export async function createAlbum(
     catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
   }).returning("*");
 
-  if (results.length) {
-    return results[0];
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Album record.");
   }
 
-  throw new Error("Invalid user or catalog passed to createAlbum");
+  return results[0];
 }
 
 export async function editAlbum(
@@ -120,11 +120,11 @@ export async function editAlbum(
     intoDBTypes(albumUpdateData),
   ).returning("*");
 
-  if (results.length) {
-    return intoAPITypes(results[0]);
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Album record.");
   }
 
-  throw new Error("Invalid user or album passed to editAlbum");
+  return intoAPITypes(results[0]);
 }
 
 export async function listMediaInAlbum(
@@ -200,11 +200,11 @@ export async function createTag(
   });
   let rows = results.rows ?? [];
 
-  if (rows.length) {
-    return intoAPITypes(rows[0]);
+  if (!rows.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Tag record.");
   }
 
-  throw new Error("Invalid user or catalog passed to createTag");
+  return intoAPITypes(rows[0]);
 }
 
 export async function editTag(
@@ -226,11 +226,11 @@ export async function editTag(
     intoDBTypes(tagUpdateData),
   ).returning("*");
 
-  if (results.length) {
-    return intoAPITypes(results[0]);
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Tag record.");
   }
 
-  throw new Error("Invalid user or album passed to editTag");
+  return intoAPITypes(results[0]);
 }
 
 export async function createPerson(
@@ -263,11 +263,11 @@ export async function createPerson(
   });
   let rows = results.rows ?? [];
 
-  if (rows.length) {
-    return intoAPITypes(rows[0]);
+  if (!rows.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Person record.");
   }
 
-  throw new Error("Invalid user or catalog passed to createPerson");
+  return intoAPITypes(rows[0]);
 }
 
 export async function editPerson(
@@ -289,9 +289,9 @@ export async function editPerson(
     intoDBTypes(personUpdateData),
   ).returning("*");
 
-  if (results.length) {
-    return intoAPITypes(results[0]);
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Person record.");
   }
 
-  throw new Error("Invalid user or album passed to editPerson");
+  return intoAPITypes(results[0]);
 }

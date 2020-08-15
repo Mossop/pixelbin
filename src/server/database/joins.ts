@@ -1,6 +1,7 @@
 import Knex from "knex";
 
 import { UserScopedConnection } from "./connection";
+import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insertFromSelect } from "./queries";
 import { ref, Table } from "./types";
 
@@ -31,36 +32,50 @@ export async function addMedia<T extends List>(
   media: string[],
   items: string[],
 ): Promise<Updated<T>[]> {
-  let select = from(this.knex, Table.UserCatalog)
-    .join(TABLE_LINK[table], ref(Table.UserCatalog, "catalog"), `${TABLE_LINK[table]}.catalog`)
-    .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
-    .whereIn(ref(Table.Media, "id"), media)
-    .whereIn(`${TABLE_LINK[table]}.id`, items)
-    .where(ref(Table.UserCatalog, "user"), this.user);
+  // Use a transaction so we can rollback the change if it didn't affect the expected number
+  // of rows.
+  return this.inTransaction(async (connection: UserScopedConnection): Promise<Updated<T>[]> => {
+    let select = from(connection.knex, Table.UserCatalog)
+      .join(TABLE_LINK[table], ref(Table.UserCatalog, "catalog"), `${TABLE_LINK[table]}.catalog`)
+      .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
+      .whereIn(ref(Table.Media, "id"), media)
+      .whereIn(`${TABLE_LINK[table]}.id`, items)
+      .where(ref(Table.UserCatalog, "user"), connection.user);
 
-  let insert = insertFromSelect(this.knex, table, select, {
+    let insert = insertFromSelect(connection.knex, table, select, {
     // @ts-ignore: TypeScript cannot infer that catalog is a shared column.
-    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
-    media: this.connection.ref(ref(Table.Media, "id")),
-    [ITEM_LINK[table]]: this.connection.ref(`${TABLE_LINK[table]}.id`),
-  });
+      catalog: connection.connection.ref(ref(Table.UserCatalog, "catalog")),
+      media: connection.connection.ref(ref(Table.Media, "id")),
+      [ITEM_LINK[table]]: connection.connection.ref(`${TABLE_LINK[table]}.id`),
+    });
 
-  let results = await this.connection.raw(`
+    /**
+     * The update on conflict here is a no-op to allow returning the rows that
+     * were already present but unaltered.
+     */
+    let results = await connection.connection.raw(`
     :insert
     ON CONFLICT (:mediaRef:, :itemRef:) DO
       UPDATE SET :catalog: = :excludedCatalog:
     RETURNING :media, :item
   `, {
-    insert,
-    mediaRef: "media",
-    itemRef: ITEM_LINK[table],
-    catalog: "catalog",
-    excludedCatalog: "excluded.catalog",
-    media: this.connection.ref(`${table}.media`),
-    item: this.connection.ref(`${table}.${ITEM_LINK[table]}`),
-  });
+      insert,
+      mediaRef: "media",
+      itemRef: ITEM_LINK[table],
+      catalog: "catalog",
+      excludedCatalog: "excluded.catalog",
+      media: connection.connection.ref(`${table}.media`),
+      item: connection.connection.ref(`${table}.${ITEM_LINK[table]}`),
+    });
 
-  return (results.rows ?? []) as Updated<T>[];
+    let rows = (results.rows ?? []) as Updated<T>[];
+
+    if (rows.length != media.length * items.length) {
+      throw new DatabaseError(DatabaseErrorCode.MissingRelationship, "Unknown items passed.");
+    }
+
+    return rows;
+  });
 }
 
 export async function removeMedia<T extends List>(

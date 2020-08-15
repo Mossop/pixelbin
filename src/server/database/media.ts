@@ -3,6 +3,7 @@ import moment from "moment-timezone";
 
 import { ObjectModel, AlternateFileType } from "../../model";
 import { UserScopedConnection } from "./connection";
+import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
 import { insertFromSelect, from, update } from "./queries";
 import {
@@ -43,11 +44,11 @@ export async function createMedia(
     created: moment().utc().toISOString(),
   }).returning("*");
 
-  if (results.length) {
-    return intoAPITypes(results[0]);
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
   }
 
-  throw new Error("Invalid user or catalog passed to createMedia");
+  return intoAPITypes(results[0]);
 }
 
 export async function editMedia(
@@ -69,11 +70,11 @@ export async function editMedia(
     intoDBTypes(filterColumns(Table.Media, mediaUpdateData)),
   ).returning("*");
 
-  if (results.length) {
-    return intoAPITypes(results[0]);
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Media record.");
   }
 
-  throw new Error("Invalid user or album passed to editAlbum");
+  return intoAPITypes(results[0]);
 }
 
 export async function getMedia(
@@ -89,13 +90,11 @@ export async function getMedia(
     [ref(Table.StoredMediaDetail, "id")]: id,
   }).select(ref(Table.StoredMediaDetail));
 
-  if (results.length == 0) {
+  if (!results.length) {
     return null;
-  } else if (results.length != 1) {
-    throw new Error("Found multiple matching media records.");
-  } else {
-    return intoAPITypes(results[0]);
   }
+
+  return intoAPITypes(results[0]);
 }
 
 export async function listAlternateFiles(

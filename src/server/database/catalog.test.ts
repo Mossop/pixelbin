@@ -163,19 +163,19 @@ test("Tag table tests", async (): Promise<void> => {
   await expect(user1Db.createTag("c8", {
     parent: null,
     name: "New Tag",
-  })).rejects.toThrow("Invalid user or catalog passed to createTag");
+  })).rejects.toThrow("Failed to insert Tag record");
 
   // Or with a user that doesn't exist.
   await expect(fooUser.createTag("c1", {
     parent: null,
     name: "New Tag",
-  })).rejects.toThrow("Invalid user or catalog passed to createTag");
+  })).rejects.toThrow("Failed to insert Tag record");
 
   // Or with a user that doesn't have access to the catalog
   await expect(user3Db.createTag("c1", {
     parent: null,
     name: "New Tag",
-  })).rejects.toThrow("Invalid user or catalog passed to createTag");
+  })).rejects.toThrow("Failed to insert Tag record");
 
   let updated = await user1Db.editTag(tag.id, {
     // @ts-ignore: Attempts to change id should be ignored.
@@ -195,17 +195,17 @@ test("Tag table tests", async (): Promise<void> => {
   // Attempting to alter a tag in a catalog the user cannot access should fail.
   await expect(user3Db.editTag("t1", {
     name: "Bad name",
-  })).rejects.toThrow("Invalid user or album passed to editTag");
+  })).rejects.toThrow("Failed to edit Tag record");
 
   // Attempting to alter a tag that doesn't exist should fail.
   await expect(user3Db.editTag("t16", {
     name: "Bad name",
-  })).rejects.toThrow("Invalid user or album passed to editTag");
+  })).rejects.toThrow("Failed to edit Tag record");
 
   // Changing to a bad parent should fail.
   await expect(user2Db.editTag(tag.id, {
     parent: "t3",
-  })).rejects.toThrow("foreign key constraint");
+  })).rejects.toThrow("Unknown Tag");
 });
 
 test("Album table tests", async (): Promise<void> => {
@@ -259,19 +259,19 @@ test("Album table tests", async (): Promise<void> => {
   await expect(user1Db.createAlbum("c8", {
     parent: null,
     name: "New Album",
-  })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
+  })).rejects.toThrow("Failed to insert Album record");
 
   // Or with a user that doesn't exist.
   await expect(fooUser.createAlbum("c1", {
     parent: null,
     name: "New Album",
-  })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
+  })).rejects.toThrow("Failed to insert Album record");
 
   // Or with a user that doesn't have access to the catalog
   await expect(user3Db.createAlbum("c1", {
     parent: null,
     name: "New Album",
-  })).rejects.toThrow("Invalid user or catalog passed to createAlbum");
+  })).rejects.toThrow("Failed to insert Album record");
 
   let updated = await user1Db.editAlbum(album.id, {
     // @ts-ignore: Attempts to change id should be ignored.
@@ -291,17 +291,17 @@ test("Album table tests", async (): Promise<void> => {
   // Attempting to alter an album in a catalog the user cannot access should fail.
   await expect(user3Db.editAlbum("a1", {
     name: "Bad name",
-  })).rejects.toThrow("Invalid user or album passed to editAlbum");
+  })).rejects.toThrow("Failed to edit Album record");
 
   // Attempting to alter an album that doesn't exist should fail.
   await expect(user3Db.editAlbum("a16", {
     name: "Bad name",
-  })).rejects.toThrow("Invalid user or album passed to editAlbum");
+  })).rejects.toThrow("Failed to edit Album record");
 
   // Changing to a bad parent should fail.
   await expect(user2Db.editAlbum(album.id, {
     parent: "a6",
-  })).rejects.toThrow("foreign key constraint");
+  })).rejects.toThrow("Unknown Album");
 });
 
 test("Person table tests", async (): Promise<void> => {
@@ -360,17 +360,17 @@ test("Person table tests", async (): Promise<void> => {
   // Shouldn't allow adding to a catalog that doesn't exist.
   await expect(user1Db.createPerson("c8", {
     name: "New Person",
-  })).rejects.toThrow("Invalid user or catalog passed to createPerson");
+  })).rejects.toThrow("Failed to insert Person record");
 
   // Or with a user that doesn't exist.
   await expect(fooUser.createPerson("c1", {
     name: "New Person",
-  })).rejects.toThrow("Invalid user or catalog passed to createPerson");
+  })).rejects.toThrow("Failed to insert Person record");
 
   // Or with a user that doesn't have access to the catalog
   await expect(user3Db.createPerson("c1", {
     name: "New Tag",
-  })).rejects.toThrow("Invalid user or catalog passed to createPerson");
+  })).rejects.toThrow("Failed to insert Person record");
 
   let updated = await user1Db.editPerson(person.id, {
     // @ts-ignore: Attempts to change id should be ignored.
@@ -388,10 +388,10 @@ test("Person table tests", async (): Promise<void> => {
   // Attempting to alter a person in a catalog the user cannot access should fail.
   await expect(user3Db.editPerson("p2", {
     name: "Bad name",
-  })).rejects.toThrow("Invalid user or album passed to editPerson");
+  })).rejects.toThrow("Failed to edit Person record");
 
   // Attempting to alter a person that doesn't exist should fail.
   await expect(user3Db.editPerson("p16", {
     name: "Bad name",
-  })).rejects.toThrow("Invalid user or album passed to editPerson");
+  })).rejects.toThrow("Failed to edit Person record");
 });

@@ -200,7 +200,7 @@ test("Create album", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
     data: {
-      message: expect.stringContaining("Invalid user or catalog"),
+      message: expect.stringContaining("Failed to insert Album record."),
     },
   });
 });
@@ -259,7 +259,7 @@ test("Edit album", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
     data: {
-      message: expect.stringContaining("Invalid user or album"),
+      message: expect.stringContaining("Failed to edit Album record."),
     },
   });
 
@@ -384,7 +384,7 @@ test("Create Tag", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
     data: {
-      message: expect.stringContaining("Invalid user or catalog"),
+      message: expect.stringContaining("Failed to insert Tag record."),
     },
   });
 });
@@ -443,7 +443,7 @@ test("Edit tag", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
     data: {
-      message: expect.stringContaining("Invalid user or album"),
+      message: expect.stringContaining("Failed to edit Tag record."),
     },
   });
 
@@ -564,7 +564,7 @@ test("Create Person", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
     data: {
-      message: expect.stringContaining("Invalid user or catalog"),
+      message: expect.stringContaining("Failed to insert Person record."),
     },
   });
 });
@@ -623,7 +623,7 @@ test("Edit person", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ApiErrorCode.InvalidData,
     data: {
-      message: expect.stringContaining("Invalid user or album"),
+      message: expect.stringContaining("Failed to edit Person record."),
     },
   });
 

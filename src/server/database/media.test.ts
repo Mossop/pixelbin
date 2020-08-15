@@ -50,7 +50,7 @@ test("Media tests", async (): Promise<void> => {
   let user3Db = dbConnection.forUser("someone3@nowhere.com");
 
   await expect(user3Db.createMedia("c1", fillMetadata({})))
-    .rejects.toThrow("Invalid user or catalog passed to createMedia");
+    .rejects.toThrow("Failed to insert Media record");
 
   let createdMoment: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
   mockedMoment.mockImplementationOnce((): Moment => createdMoment);
@@ -324,7 +324,7 @@ test("Media tests", async (): Promise<void> => {
   // Cannot create media in a catalog the user cannot access.
   await expect(user3Db.createMedia("c1", fillMetadata({
     title: "My title",
-  }))).rejects.toThrow("Invalid user or catalog passed to createMedia");
+  }))).rejects.toThrow("Failed to insert Media record");
 
   newMedia = await user1Db.createMedia("c1", fillMetadata({}));
 
