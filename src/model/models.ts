@@ -153,6 +153,12 @@ export interface Media extends IdType {
   created: Moment;
 }
 
+export interface MediaLists {
+  tags: Tag[];
+  albums: Album[];
+  people: Person[];
+}
+
 export interface FileInfo {
   fileName: string;
   fileSize: number;
@@ -169,7 +175,7 @@ export type Original = IdType & FileInfo & {
   uploaded: Moment;
 };
 
-export type UnprocessedMedia = Media & Nullable<Metadata>;
+export type UnprocessedMedia = Media & Nullable<Metadata> & MediaLists;
 export type ProcessedMedia = UnprocessedMedia & Omit<Original, "id" | "media">;
 
 export enum AlternateFileType {

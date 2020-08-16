@@ -2,6 +2,7 @@ import { STATUS_CODES } from "http";
 
 import { Next, DefaultContext, DefaultState, ParameterizedContext, BaseContext } from "koa";
 
+import { DatabaseError } from "../database";
 import { LoggingContext } from "./logging";
 
 export enum ApiErrorCode {
@@ -56,6 +57,10 @@ export async function errorHandler(
     let error: ApiError;
     if (e instanceof ApiError) {
       error = e;
+    } else if (e instanceof DatabaseError) {
+      error = new ApiError(ApiErrorCode.InvalidData, {
+        message: String(e),
+      });
     } else {
       ctx.logger.warn(e, "Application threw unknown exception");
       error = new ApiError(ApiErrorCode.UnknownException, {

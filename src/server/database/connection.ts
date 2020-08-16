@@ -189,7 +189,7 @@ export class UserScopedConnection {
   public constructor(protected connection: DatabaseConnection, public readonly user: UserRef) {
   }
 
-  protected inTransaction<T>(
+  public inTransaction<T>(
     transactionFn: (connection: UserScopedConnection) => Promise<T>,
   ): Promise<T> {
     return this.connection.inTransaction((dbConnection: DatabaseConnection): Promise<T> => {

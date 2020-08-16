@@ -77,3 +77,16 @@ export function ensureAuthenticated<A, R>(
     return cb(ctx, userDb, arg);
   };
 }
+
+export function ensureAuthenticatedTransaction<A, R>(
+  cb: (ctx: AppContext, userDb: UserScopedConnection, arg: A) => Promise<R>,
+): (ctx: AppContext, arg: A) => Promise<R> {
+  return async (ctx: AppContext, arg: A): Promise<R> => {
+    let userDb = ctx.userDb;
+    if (!userDb) {
+      throw new ApiError(ApiErrorCode.NotLoggedIn);
+    }
+
+    return userDb.inTransaction((userDb: UserScopedConnection): Promise<R> => cb(ctx, userDb, arg));
+  };
+}

@@ -5,48 +5,66 @@ import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insertFromSelect } from "./queries";
 import { ref, Table } from "./types";
 
+export enum Relation {
+  Album,
+  Tag,
+  Person,
+}
+
 type List = Table.MediaAlbum | Table.MediaTag | Table.MediaPerson;
 
-const TABLE_LINK = {
+const RELATION_TABLE: Record<Relation, List> = {
+  [Relation.Album]: Table.MediaAlbum,
+  [Relation.Tag]: Table.MediaTag,
+  [Relation.Person]: Table.MediaPerson,
+};
+
+const SOURCE_TABLE: Record<List, Table> = {
   [Table.MediaAlbum]: Table.Album,
   [Table.MediaTag]: Table.Tag,
   [Table.MediaPerson]: Table.Person,
 };
 
-const ITEM_LINK = {
+const ITEM_LINK: Record<List, string> = {
   [Table.MediaAlbum]: "album",
   [Table.MediaTag]: "tag",
   [Table.MediaPerson]: "person",
 };
 
-type Updated<T extends List> =
-  T extends Table.MediaAlbum
+type Updated<T extends Relation> =
+  T extends Relation.Album
     ? { media: string; album: string; }
-    : T extends Table.MediaTag
+    : T extends Relation.Tag
       ? { media: string; tag: string; }
       : { media: string; person: string; };
 
-export async function addMedia<T extends List>(
+export async function addMedia<T extends Relation>(
   this: UserScopedConnection,
-  table: T,
+  relation: T,
   media: string[],
   items: string[],
 ): Promise<Updated<T>[]> {
+  let table = RELATION_TABLE[relation];
+
   // Use a transaction so we can rollback the change if it didn't affect the expected number
   // of rows.
   return this.inTransaction(async (connection: UserScopedConnection): Promise<Updated<T>[]> => {
     let select = from(connection.knex, Table.UserCatalog)
-      .join(TABLE_LINK[table], ref(Table.UserCatalog, "catalog"), `${TABLE_LINK[table]}.catalog`)
+      .join(
+        SOURCE_TABLE[table],
+        ref(Table.UserCatalog, "catalog"),
+        `${SOURCE_TABLE[table]}.catalog`,
+      )
       .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
       .whereIn(ref(Table.Media, "id"), media)
-      .whereIn(`${TABLE_LINK[table]}.id`, items)
+      .whereIn(`${SOURCE_TABLE[table]}.id`, items)
       .where(ref(Table.UserCatalog, "user"), connection.user);
 
     let insert = insertFromSelect(connection.knex, table, select, {
     // @ts-ignore: TypeScript cannot infer that catalog is a shared column.
       catalog: connection.connection.ref(ref(Table.UserCatalog, "catalog")),
       media: connection.connection.ref(ref(Table.Media, "id")),
-      [ITEM_LINK[table]]: connection.connection.ref(`${TABLE_LINK[table]}.id`),
+      [ITEM_LINK[table]]: connection.connection.ref(`${SOURCE_TABLE[table]}.id`),
     });
 
     /**
@@ -54,11 +72,11 @@ export async function addMedia<T extends List>(
      * were already present but unaltered.
      */
     let results = await connection.connection.raw(`
-    :insert
-    ON CONFLICT (:mediaRef:, :itemRef:) DO
-      UPDATE SET :catalog: = :excludedCatalog:
-    RETURNING :media, :item
-  `, {
+      :insert
+      ON CONFLICT (:mediaRef:, :itemRef:) DO
+        UPDATE SET :catalog: = :excludedCatalog:
+      RETURNING :media, :item
+    `, {
       insert,
       mediaRef: "media",
       itemRef: ITEM_LINK[table],
@@ -78,12 +96,14 @@ export async function addMedia<T extends List>(
   });
 }
 
-export async function removeMedia<T extends List>(
+export async function removeMedia<T extends Relation>(
   this: UserScopedConnection,
-  table: T,
+  relation: T,
   media: string[],
   items: string[],
 ): Promise<void> {
+  let table = RELATION_TABLE[relation];
+
   let catalogs = from(this.knex, Table.UserCatalog)
     .where(ref(Table.UserCatalog, "user"), this.user)
     .select("catalog");
@@ -95,15 +115,17 @@ export async function removeMedia<T extends List>(
     .delete();
 }
 
-export async function setMedia<T extends List>(
+export async function setMedia<T extends Relation>(
   this: UserScopedConnection,
-  table: T,
+  relation: T,
   media: string[],
   items: string[],
 ): Promise<Updated<T>[]> {
   if (!media.length && !items.length) {
     return [];
   }
+
+  let table = RELATION_TABLE[relation];
 
   const catalogQuery = (userDb: UserScopedConnection): Knex.QueryBuilder => {
     return from(userDb.knex, Table.UserCatalog)
@@ -141,6 +163,6 @@ export async function setMedia<T extends List>(
       })
       .delete();
 
-    return userConnection.addMedia(table, media, items);
+    return userConnection.addMedia(relation, media, items);
   });
 }

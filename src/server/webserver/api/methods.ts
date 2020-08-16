@@ -1,4 +1,5 @@
 import { Api } from "../../../model";
+import { Obj } from "../../../utils";
 import { AppContext } from "../context";
 import { ApiError, ApiErrorCode } from "../error";
 import {
@@ -22,7 +23,7 @@ type WithArguments = {
 }[Api.Method];
 
 type RequestDecoders = {
-  [Key in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<Key>>>;
+  [Method in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<Method>>>;
 };
 
 export const apiDecoders: RequestDecoders = {
@@ -58,6 +59,68 @@ const apiMethods: ApiInterface = {
   [Api.Method.MediaCreate]: createMedia,
 };
 
+const KEY_PARSE = /^(?<part>[^.[]+)(?:\[(?<index>\d+)\])?(?:\.(?<rest>.+))?$/;
+
+function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string = key): void {
+  if (key.length == 0) {
+    throw new ApiError(ApiErrorCode.InvalidData, {
+      message: `Invalid field '${fullkey}'`,
+    });
+  }
+
+  let matches = KEY_PARSE.exec(key);
+
+  if (!matches) {
+    throw new ApiError(ApiErrorCode.InvalidData, {
+      message: `Invalid field '${fullkey}'.`,
+    });
+  }
+
+  let part = matches.groups?.part ?? "";
+  let index = matches.groups?.index ? parseInt(matches.groups.index) : undefined;
+  let rest = matches.groups?.rest;
+
+  if (index !== undefined) {
+    if (!(part in obj)) {
+      obj[part] = [];
+    } else if (!Array.isArray(obj[part])) {
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: `Invalid repeated field '${fullkey}'.`,
+      });
+    }
+
+    if (rest) {
+      let inner = {};
+      obj[part][index] = inner;
+      addKeyToObject(inner, rest, value, fullkey);
+    } else {
+      obj[part][index] = value;
+    }
+  } else if (rest) {
+    if (!(part in obj)) {
+      obj[part] = {};
+    } else if (Array.isArray(obj[part]) || typeof obj[part] != "object") {
+      throw new ApiError(ApiErrorCode.InvalidData, {
+        message: `Invalid repeated field '${fullkey}'.`,
+      });
+    }
+
+    addKeyToObject(obj[part], rest, value, fullkey);
+  } else {
+    obj[part] = value;
+  }
+}
+
+export function decodeBody(body: Obj): Obj {
+  let result = {};
+
+  for (let [key, value] of Object.entries(body)) {
+    addKeyToObject(result, key, value);
+  }
+
+  return result;
+}
+
 export function apiRequestHandler<T extends Api.Method>(
   method: T,
 ): (ctx: AppContext) => Promise<void> {
@@ -82,9 +145,14 @@ export function apiRequestHandler<T extends Api.Method>(
         ctx: AppContext, data: Api.SignatureRequest<T>,
       ) => Promise<unknown> = apiMethods[method];
 
+      let body = ctx.request["body"];
+      if (!ctx.request.type.endsWith("/json")) {
+        body = decodeBody(body);
+      }
+
       let decoded;
       try {
-        decoded = await decoder(ctx.request.body, ctx.request.files);
+        decoded = await decoder(body, ctx.request["files"]);
       } catch (e) {
         ctx.logger.warn(e, "Client provided invalid data.");
         throw new ApiError(ApiErrorCode.InvalidData, {

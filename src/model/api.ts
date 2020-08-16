@@ -47,7 +47,14 @@ export type MediaCreateRequest =
   Omit<ApiType<ObjectModel.Media>, "created" | "id"> &
   Partial<ApiType<Nullable<ObjectModel.Metadata>>> & {
     file: Blob;
+    albums?: string[];
+    tags?: string[];
+    people?: string[];
   };
+
+export type MediaUpdateRequest = Partial<Omit<MediaCreateRequest, "catalog">> & {
+  id: string;
+};
 
 export enum Method {
   State = "state",
@@ -89,7 +96,7 @@ export const HttpMethods: MethodList = {
   [Method.PersonEdit]: "PATCH",
   // [Method.MediaGet]: "GET",
   [Method.MediaCreate]: "PUT",
-  // [Method.MediaUpdate]: "PUT",
+  // [Method.MediaUpdate]: "PATCH",
   // [Method.MediaSearch]: "POST",
   // [Method.MediaThumbnail]: "GET",
 };
@@ -113,17 +120,17 @@ export interface Signatures {
   [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
-  // [ApiMethod.AlbumAddMedia]: Signature<AlbumMedia, AlbumData>;
-  // [ApiMethod.AlbumRemoveMedia]: Signature<AlbumMedia, AlbumData>;
+  // [Method.AlbumAddMedia]: Signature<AlbumMedia, AlbumData>;
+  // [Method.AlbumRemoveMedia]: Signature<AlbumMedia, AlbumData>;
   [Method.TagCreate]: Signature<Create<Tag>, Tag>;
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   // [ApiMethod.MediaGet]: Signature<Mappable, MediaData>;
-  [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<Media, "catalog">>;
-  // [ApiMethod.MediaUpdate]: Signature<Patch<MediaCreateData, Media>, MediaData>;
-  // [ApiMethod.MediaSearch]: Signature<Search, MediaData[]>;
-  // [ApiMethod.MediaThumbnail]: Signature<MediaThumbnail, Blob>;
+  [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
+  // [Method.MediaUpdate]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
+  // [Method.MediaSearch]: Signature<Search, MediaData[]>;
+  // [Method.MediaThumbnail]: Signature<MediaThumbnail, Blob>;
 }
 
 export type SignatureRequest<M extends Method> =

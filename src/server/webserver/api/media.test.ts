@@ -79,6 +79,10 @@ test("Media upload", async (): Promise<void> => {
   let responsePromise = request
     .put("/api/media/create")
     .field("catalog", "c1")
+    .field("albums[0]", "a1")
+    .field("tags[0]", "t1")
+    .field("tags[1]", "t2")
+    .field("people[0]", "p1")
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
@@ -109,6 +113,37 @@ test("Media upload", async (): Promise<void> => {
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.toEqualDate(createdMoment),
     catalog: "c1",
+    uploaded: null,
+    width: null,
+    height: null,
+    mimetype: null,
+    bitRate: null,
+    frameRate: null,
+    duration: null,
+    fileSize: null,
+    albums: [{
+      "catalog": "c1",
+      "id": "a1",
+      "name": "Album 1",
+      "parent": null,
+    }],
+    people: [{
+      "catalog": "c1",
+      "id": "p1",
+      "name": "Person 1",
+    }],
+    tags: [{
+      "catalog": "c1",
+      "id": "t1",
+      "name": "tag1",
+      "parent": null,
+    },
+    {
+      "catalog": "c1",
+      "id": "t2",
+      "name": "tag2",
+      "parent": null,
+    }],
   }));
 
   expect(parent.handleUploadedFile).toHaveBeenCalledTimes(1);
