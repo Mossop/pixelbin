@@ -156,7 +156,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  expect(user2Db.addMedia(Relation.Album, [
+  await expect(user2Db.addMedia(Relation.Album, [
     media1.id,
     media4.id,
     media5.id,
