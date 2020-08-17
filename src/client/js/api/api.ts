@@ -169,6 +169,10 @@ const MediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>({
   exposure: JsonDecoder.nullable(JsonDecoder.number),
   iso: JsonDecoder.nullable(JsonDecoder.number),
   focalLength: JsonDecoder.nullable(JsonDecoder.number),
+
+  albums: JsonDecoder.array(AlbumDecoder, "album[]"),
+  tags: JsonDecoder.array(TagDecoder, "tag[]"),
+  people: JsonDecoder.array(PersonDecoder, "person[]"),
 }, "Media");
 
 type RequestType<T extends Api.Method> =

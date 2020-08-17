@@ -154,9 +154,9 @@ export interface Media extends IdType {
 }
 
 export interface MediaLists {
-  tags: Tag[];
-  albums: Album[];
-  people: Person[];
+  tags: Dereferenced<Tag>[];
+  albums: Dereferenced<Album>[];
+  people: Dereferenced<Person>[];
 }
 
 export interface FileInfo {
