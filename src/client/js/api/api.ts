@@ -1,10 +1,10 @@
 import { JsonDecoder } from "ts.data.json";
 
-import { Api, ObjectModel, WithoutLinks } from "../../../model";
+import { Api, ObjectModel } from "../../../model";
 import { DateDecoder } from "../../../utils";
 import { ReadonlyMapOf } from "../utils/maps";
 import { JsonRequestData, makeRequest } from "./helpers";
-import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
+import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 
 type StateForObject<Obj> =
   Obj extends ObjectModel.Person
@@ -60,21 +60,10 @@ type HighLevelForObject<Obj> =
             ? Media
             : never;
 
-type Dereference<T> =
-  T extends ObjectModel.List<infer Obj>
-    ? ReadonlyMapOf<StateForObject<Obj>>
-    : T extends ObjectModel.Reference<infer Obj>
-      ? Reference<HighLevelForObject<Obj>>
-      : T;
-
-type Dereferenced<Obj> = {
-  [Column in keyof Obj]: Dereference<Obj[Column]>;
-};
-
-export interface PersonState extends Readonly<Dereferenced<ObjectModel.Person>> {}
-export interface TagState extends Readonly<Dereferenced<WithoutLinks<ObjectModel.Tag>>> {}
-export interface AlbumState extends Readonly<Dereferenced<WithoutLinks<ObjectModel.Album>>> {}
-export interface CatalogState extends Readonly<Dereference<ObjectModel.Catalog>> {}
+export interface PersonState extends Readonly<ObjectModel.Person> {}
+export interface TagState extends Readonly<ObjectModel.Tag> {}
+export interface AlbumState extends Readonly<ObjectModel.Album> {}
+export interface CatalogState extends Readonly<ObjectModel.Catalog> {}
 export interface UserState extends Readonly<ObjectModel.User> {
   readonly catalogs: ReadonlyMapOf<CatalogState>;
 }
@@ -85,7 +74,7 @@ export interface ProcessedMediaState extends Readonly<ObjectModel.Media> {
   original: OriginalState;
 }
 export type MediaState = UnprocessedMediaState | ProcessedMediaState;
-export interface OriginalState extends Readonly<WithoutLinks<ObjectModel.Original>> {}
+export interface OriginalState extends Readonly<ObjectModel.Original> {}
 
 const PersonDecoder = JsonDecoder.object<Api.Person>(
   {
@@ -181,17 +170,18 @@ type RequestType<T extends Api.Method> =
       ? []
       : [Request]
     : never;
-type ArgOrUndefined<T> = T extends Api.None ? undefined : T;
 type ResponseType<T extends Api.Method> =
   Api.Signatures[T] extends Api.Signature<unknown, infer Response> ? Response : never;
 
-type ResponseDecoder<Signature> =
-  Signature extends Api.Signature<unknown, infer Response>
-    ? JsonDecoder.Decoder<Response>
+type ResponseDecoder<T extends Api.Method> =
+  Api.Signatures[T] extends Api.Signature<unknown, infer Response>
+    ? Response extends Blob
+      ? null
+      : JsonDecoder.Decoder<Response>
     : never;
 
 type ResponseDecoders = {
-  [Key in keyof Api.Signatures]: JsonDecoder.Decoder<ResponseType<Key>>;
+  [Key in keyof Api.Signatures]: ResponseDecoder<Key>;
 };
 
 const decoders: ResponseDecoders = {
@@ -206,6 +196,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.PersonCreate]: PersonDecoder,
   [Api.Method.PersonEdit]: PersonDecoder,
   [Api.Method.MediaCreate]: MediaDecoder,
+  [Api.Method.MediaThumbnail]: null,
 };
 
 export function request<T extends Api.Method>(
