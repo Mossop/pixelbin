@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 
 import moment, { Moment } from "moment-timezone";
+import sharp from "sharp";
 
 import { AlternateFileType } from "../../../model";
 import { expect, mockedFunction, deferCall } from "../../../test-helpers";
@@ -272,7 +273,7 @@ test("Media thumbnail", async (): Promise<void> => {
     })
     .expect(404);
 
-  await request
+  let response = await request
     .get("/api/media/thumbnail")
     .query({
       id: media.id,
@@ -284,4 +285,35 @@ test("Media thumbnail", async (): Promise<void> => {
   expect(getLocalFilePath).toHaveBeenCalledTimes(1);
   expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb2.jpg");
   getLocalFilePath.mockClear();
+
+  let image = sharp(response.body);
+  let metadata = await image.metadata();
+  expect(metadata.width).toBe(150);
+  expect(metadata.format).toBe("jpeg");
+
+  expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
+    customSnapshotIdentifier: "media-thumb-150",
+  });
+
+  response = await request
+    .get("/api/media/thumbnail")
+    .query({
+      id: media.id,
+      size: 200,
+    })
+    .expect("Content-Type", "image/jpeg")
+    .expect(200);
+
+  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb1.jpg");
+  getLocalFilePath.mockClear();
+
+  image = sharp(response.body);
+  metadata = await image.metadata();
+  expect(metadata.width).toBe(200);
+  expect(metadata.format).toBe("jpeg");
+
+  expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
+    customSnapshotIdentifier: "media-thumb-200",
+  });
 });
