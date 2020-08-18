@@ -1,11 +1,15 @@
-import { promises as fs } from "fs";
+import fss, { promises as fs } from "fs";
 
-import { Api } from "../../../model";
+import sharp from "sharp";
+
+import { AlternateFileType, Api } from "../../../model";
+import { chooseSize } from "../../../utils";
 import { fillMetadata, Relation, UserScopedConnection } from "../../database";
-import { ensureAuthenticatedTransaction } from "../auth";
+import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
 import { ApiError, ApiErrorCode } from "../error";
 import { DeBlobbed } from "./decoders";
+import { DirectResponse } from "./methods";
 
 export const createMedia = ensureAuthenticatedTransaction(
   async (
@@ -56,5 +60,45 @@ export const createMedia = ensureAuthenticatedTransaction(
     ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
 
     return media;
+  },
+);
+
+export const thumbnail = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Api.MediaThumbnailRequest,
+  ): Promise<DirectResponse> => {
+    let media = await userDb.getMedia(data.id);
+
+    if (!media) {
+      throw new ApiError(ApiErrorCode.NotFound, {
+        message: "Media does not exist.",
+      });
+    }
+
+    let source = chooseSize(
+      await userDb.listAlternateFiles(media.id, AlternateFileType.Thumbnail),
+      data.size,
+    );
+
+    if (!source) {
+      throw new ApiError(ApiErrorCode.NotFound, {
+        message: "Media not yet processed.",
+      });
+    }
+
+    let storage = await ctx.storage.getStorage(media.catalog);
+
+    let path = await storage.get().getLocalFilePath(media.id, source.original, source.fileName);
+
+    if (source.width > source.height && source.width == data.size ||
+        source.height > source.width && source.height == data.size) {
+      return new DirectResponse(source.mimetype, fss.createReadStream(path));
+    }
+
+    return new DirectResponse("image/jpeg", await sharp(path).resize(data.size, data.size, {
+      fit: "inside",
+    }).jpeg({ quality: 85 }).toBuffer());
   },
 );

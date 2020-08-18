@@ -18,13 +18,6 @@ export async function drop<T extends Table>(
   return knex<TableRecord<T>>(table).where(where).delete();
 }
 
-export async function select<T extends Table>(
-  query: Knex.QueryBuilder,
-  table: T,
-): Promise<TableRecord<T>[]> {
-  return query.select(`${table}.*`);
-}
-
 export function withChildren<T extends Table.Tag | Table.Album>(
   knex: Knex,
   table: T,
@@ -100,22 +93,11 @@ export function update<T extends Table>(
   return query.into<TableRecord<T>>(table).update(intoDBTypes(columns));
 }
 
-// Because DeferredKeySelection is private in knex it is impossible to correctly
-// define the types of these functions, just let TypeScript infer them.
-
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-/* eslint-disable @typescript-eslint/ban-types */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function from<
-  T extends Table,
-  TRecord extends {} = any,
-  TResult = unknown[]
->(
-  knex: Knex.QueryInterface<TRecord, TResult>,
+export function from<T extends Table>(
+  knex: Knex.QueryInterface,
   tableName: T,
-) {
-  return knex.table<TableRecord<T>>(tableName);
+): QueryBuilder<TableRecord<T>> {
+  return knex.table(tableName) as QueryBuilder<TableRecord<T>>;
 }
 
 export const into = from;
@@ -125,9 +107,9 @@ export function insert<T extends Table>(
   knex: Knex,
   table: T,
   data: TableRecord<T> | TableRecord<T>[],
-) {
+): QueryBuilder<TableRecord<T>> {
   // @ts-ignore: This is correct.
   let dbData: TableRecord<T>[] = (Array.isArray(data) ? data : [data]).map(intoDBTypes);
   // @ts-ignore: This is also correct.
-  return knex<TableRecord<T>>(table).insert(dbData);
+  return knex<TableRecord<T>>(table).insert(dbData) as QueryBuilder<TableRecord<T>>;
 }

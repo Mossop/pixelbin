@@ -1,13 +1,13 @@
 import { ObjectModel } from "../../model";
 import { DatabaseConnection } from "./connection";
 import { uuid } from "./id";
-import { from, into, select } from "./queries";
-import { Table, Tables, ref, DBAPI, intoDBTypes, intoAPITypes } from "./types";
+import { from, into } from "./queries";
+import { Table, Tables, ref, intoDBTypes, intoAPITypes } from "./types";
 
 export async function getMedia(
   this: DatabaseConnection,
-  id: DBAPI<Tables.Media>["id"],
-): Promise<DBAPI<Tables.Media> | null> {
+  id: Tables.Media["id"],
+): Promise<Tables.Media | null> {
   let results = await from(this.knex, Table.Media).where({ id }).select("*");
 
   if (results.length == 0) {
@@ -19,11 +19,11 @@ export async function getMedia(
   }
 }
 
-export type OriginalInfo = DBAPI<Omit<Tables.Original, "processVersion">>;
+export type OriginalInfo = Omit<Tables.Original, "processVersion">;
 export async function withNewOriginal<T>(
   this: DatabaseConnection,
-  media: DBAPI<Tables.Original>["media"],
-  data: DBAPI<Omit<Tables.Original, "id" | "media">>,
+  media: Tables.Original["media"],
+  data: Omit<Tables.Original, "id" | "media">,
   operation: (dbConnection: DatabaseConnection, original: OriginalInfo) => Promise<T>,
 ): Promise<T> {
   return this.inTransaction(async (dbConnection: DatabaseConnection): Promise<T> => {
@@ -56,8 +56,8 @@ export async function withNewOriginal<T>(
 
 export async function addAlternateFile(
   this: DatabaseConnection,
-  original: DBAPI<Tables.Original>["id"],
-  data: DBAPI<Omit<Tables.AlternateFile, "id" | "original">>,
+  original: Tables.Original["id"],
+  data: Omit<Tables.AlternateFile, "id" | "original">,
 ): Promise<void> {
   await into(this.knex, Table.AlternateFile).insert({
     ...intoDBTypes(data),
@@ -68,11 +68,12 @@ export async function addAlternateFile(
 
 export async function getStorageConfig(
   this: DatabaseConnection,
-  catalog: DBAPI<Tables.Catalog>["id"],
-): Promise<DBAPI<Tables.Storage>> {
-  let results = await select(from(this.knex, Table.Storage)
+  catalog: Tables.Catalog["id"],
+): Promise<Tables.Storage> {
+  let results = await from(this.knex, Table.Storage)
     .join(Table.Catalog, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
-    .where(ref(Table.Catalog, "id"), catalog), Table.Storage);
+    .where(ref(Table.Catalog, "id"), catalog)
+    .select<Tables.Storage[]>(ref(Table.Storage));
 
   if (results.length) {
     return intoAPITypes(results[0]);

@@ -13,8 +13,16 @@ import {
 } from "./catalog";
 import * as Decoders from "./decoders";
 import { DeBlobbed } from "./decoders";
-import { createMedia } from "./media";
+import { createMedia, thumbnail } from "./media";
 import { getState, login, logout } from "./state";
+
+export class DirectResponse {
+  public constructor(
+    public readonly type: string,
+    public readonly body: Buffer | NodeJS.ReadableStream,
+  ) {
+  }
+}
 
 type WithArguments = {
   [Method in Api.Method]: Api.SignatureRequest<Method> extends Api.None
@@ -26,6 +34,8 @@ type RequestDecoders = {
   [Method in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<Method>>>;
 };
 
+type ResponseType<T> = T extends Blob ? DirectResponse : T;
+
 export const apiDecoders: RequestDecoders = {
   [Api.Method.Login]: Decoders.LoginRequest,
   [Api.Method.CatalogCreate]: Decoders.CatalogCreateRequest,
@@ -36,13 +46,14 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.PersonCreate]: Decoders.PersonCreateRequest,
   [Api.Method.PersonEdit]: Decoders.PersonEditRequest,
   [Api.Method.MediaCreate]: Decoders.MediaCreateRequest,
+  [Api.Method.MediaThumbnail]: Decoders.MediaThumbnailRequest,
 };
 
 type ApiInterface = {
   [Key in Api.Method]: Api.SignatureRequest<Key> extends Api.None
-    ? (ctx: AppContext) => Promise<Api.SignatureResponse<Key>>
+    ? (ctx: AppContext) => Promise<ResponseType<Api.SignatureResponse<Key>>>
     : (ctx: AppContext, data: DeBlobbed<Api.SignatureRequest<Key>>) =>
-    Promise<Api.SignatureResponse<Key>>;
+    Promise<ResponseType<Api.SignatureResponse<Key>>>;
 };
 
 const apiMethods: ApiInterface = {
@@ -57,6 +68,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.PersonCreate]: createPerson,
   [Api.Method.PersonEdit]: editPerson,
   [Api.Method.MediaCreate]: createMedia,
+  [Api.Method.MediaThumbnail]: thumbnail,
 };
 
 const KEY_PARSE = /^(?<part>[^.[]+)(?:\[(?<index>\d+)\])?(?:\.(?<rest>.+))?$/;
@@ -146,7 +158,9 @@ export function apiRequestHandler<T extends Api.Method>(
       ) => Promise<unknown> = apiMethods[method];
 
       let body = ctx.request["body"];
-      if (!ctx.request.type.endsWith("/json")) {
+      if (ctx.request.method == "GET") {
+        body = decodeBody(ctx.request.query);
+      } else if (!ctx.request.type.endsWith("/json")) {
         body = decodeBody(body);
       }
 
@@ -164,8 +178,13 @@ export function apiRequestHandler<T extends Api.Method>(
     }
 
     if (response) {
-      ctx.set("Content-Type", "application/json");
-      ctx.body = JSON.stringify(response);
+      if (response instanceof DirectResponse) {
+        ctx.set("Content-Type", response.type);
+        ctx.body = response.body;
+      } else {
+        ctx.set("Content-Type", "application/json");
+        ctx.body = JSON.stringify(response);
+      }
     }
   };
 }

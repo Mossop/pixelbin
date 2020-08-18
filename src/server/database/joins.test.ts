@@ -2,7 +2,6 @@ import { expect } from "../../test-helpers";
 import { Relation } from "./joins";
 import { fillMetadata } from "./media";
 import { buildTestDB, connection, insertTestData } from "./test-helpers";
-import { DBAPI } from "./types";
 import { StoredMedia } from "./types/tables";
 
 buildTestDB();
@@ -11,7 +10,7 @@ beforeEach((): Promise<void> => {
   return insertTestData();
 });
 
-function extracted(media: DBAPI<StoredMedia>): unknown {
+function extracted(media: StoredMedia): unknown {
   return {
     id: media.id,
     catalog: media.catalog,
@@ -28,7 +27,7 @@ test("Album media tests", async (): Promise<void> => {
 
   let mediaInAlbum = async (album: string): Promise<string[]> => {
     let media = await user1Db.listMediaInAlbum(album);
-    return media.map((item: DBAPI<StoredMedia>): string => item.id);
+    return media.map((item: StoredMedia): string => item.id);
   };
 
   let media1 = await user1Db.createMedia("c1", fillMetadata({}));

@@ -1,13 +1,13 @@
 import { DatabaseConnection } from "./connection";
 import { from } from "./queries";
-import { Tables, Table, DBAPI, intoAPITypes } from "./types";
+import { Tables, Table, intoAPITypes } from "./types";
 
 type UserWithoutPassword = Omit<Tables.User, "password">;
 export async function getUser(
   this: DatabaseConnection,
-  email: DBAPI<Tables.User>["email"],
-  password: DBAPI<Tables.User>["password"],
-): Promise<DBAPI<UserWithoutPassword> | undefined> {
+  email: Tables.User["email"],
+  password: Tables.User["password"],
+): Promise<UserWithoutPassword | undefined> {
   let result = await from(this.knex, Table.User).where({
     email,
     password,

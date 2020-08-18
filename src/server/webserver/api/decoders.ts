@@ -4,7 +4,7 @@ import { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
 import { Api, Create, Patch } from "../../../model";
-import { getLogger, DateDecoder } from "../../../utils";
+import { getLogger, DateDecoder, NumericDecoder } from "../../../utils";
 
 export type DeBlobbed<T> = {
   [K in keyof T]: T[K] extends Blob ? File : T[K];
@@ -147,3 +147,8 @@ export async function MediaCreateRequest(
     throw e;
   }
 }
+
+export const MediaThumbnailRequest = jsonDecoder(JsonDecoder.object<Api.MediaThumbnailRequest>({
+  id: JsonDecoder.string,
+  size: NumericDecoder,
+}, "MediaThumbnailRequest"));

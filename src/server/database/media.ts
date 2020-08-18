@@ -6,14 +6,7 @@ import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
 import { insertFromSelect, from, update } from "./queries";
-import {
-  Tables,
-  Table,
-  ref,
-  DBAPI,
-  intoDBTypes,
-  intoAPITypes,
-} from "./types";
+import { Tables, Table, ref, intoDBTypes, intoAPITypes } from "./types";
 import { filterColumns } from "./utils";
 
 export function fillMetadata<T>(data: T): T & Tables.Metadata {
@@ -29,20 +22,20 @@ export function fillMetadata<T>(data: T): T & Tables.Metadata {
 
 export async function createMedia(
   this: UserScopedConnection,
-  catalog: DBAPI<Tables.Media>["catalog"],
-  data: DBAPI<Omit<Tables.Media, "id" | "catalog" | "created">>,
-): Promise<DBAPI<Tables.Media>> {
+  catalog: Tables.Media["catalog"],
+  data: Omit<Tables.Media, "id" | "catalog" | "created">,
+): Promise<Tables.Media> {
   let select = from(this.knex, Table.UserCatalog).where({
     user: this.user,
     catalog,
   });
 
-  let results = await insertFromSelect(this.knex, Table.Media, select, {
-    ...intoDBTypes(filterColumns(Table.Media, data)),
+  let results = await insertFromSelect(this.knex, Table.Media, select, intoDBTypes({
+    ...filterColumns(Table.Media, data),
     id: await mediaId(),
     catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
-    created: moment().utc().toISOString(),
-  }).returning("*");
+    created: moment(),
+  })).returning("*");
 
   if (!results.length) {
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
@@ -53,9 +46,9 @@ export async function createMedia(
 
 export async function editMedia(
   this: UserScopedConnection,
-  id: DBAPI<Tables.Media>["id"],
-  data: DBAPI<Partial<Tables.Media>>,
-): Promise<DBAPI<Tables.Media>> {
+  id: Tables.Media["id"],
+  data: Partial<Tables.Media>,
+): Promise<Tables.Media> {
   let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
 
   let {
@@ -79,8 +72,8 @@ export async function editMedia(
 
 export async function getMedia(
   this: UserScopedConnection,
-  id: DBAPI<Tables.StoredMedia>["id"],
-): Promise<DBAPI<Tables.StoredMedia> | null> {
+  id: Tables.StoredMedia["id"],
+): Promise<Tables.StoredMedia | null> {
   let results = await from(this.knex, Table.StoredMediaDetail).join(
     Table.UserCatalog,
     ref(Table.UserCatalog, "catalog"),
@@ -88,7 +81,7 @@ export async function getMedia(
   ).where({
     [ref(Table.UserCatalog, "user")]: this.user,
     [ref(Table.StoredMediaDetail, "id")]: id,
-  }).select(ref(Table.StoredMediaDetail));
+  }).select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
 
   if (!results.length) {
     return null;
@@ -99,9 +92,9 @@ export async function getMedia(
 
 export async function listAlternateFiles(
   this: UserScopedConnection,
-  id: DBAPI<Tables.StoredMedia>["id"],
+  id: Tables.StoredMedia["id"],
   type: AlternateFileType,
-): Promise<DBAPI<Tables.AlternateFile>[]> {
+): Promise<Tables.AlternateFile[]> {
   return from(this.knex, Table.AlternateFile).join((builder: Knex.QueryBuilder): void => {
     void builder.from(Table.Media)
       .leftJoin(Table.Original, ref(Table.Media, "id"), ref(Table.Original, "media"))

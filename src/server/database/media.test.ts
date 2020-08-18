@@ -5,7 +5,7 @@ import { expect, mockedFunction } from "../../test-helpers";
 import { DatabaseConnection } from "./connection";
 import { fillMetadata } from "./media";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
-import { Tables, DBAPI } from "./types";
+import { Tables } from "./types";
 import { OriginalInfo } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
@@ -29,8 +29,8 @@ const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 function createOriginal(
   connection: DatabaseConnection,
-  media: DBAPI<Tables.Original>["media"],
-  data: DBAPI<Omit<Tables.Original, "id" | "media">>,
+  media: Tables.Original["media"],
+  data: Omit<Tables.Original, "id" | "media">,
 ): Promise<OriginalInfo> {
   return connection.withNewOriginal(
     media,
@@ -275,7 +275,7 @@ test("Media tests", async (): Promise<void> => {
 
   let list = await user3Db.listAlternateFiles(id, AlternateFileType.Thumbnail);
   list.sort(
-    (a: DBAPI<Tables.AlternateFile>, b: DBAPI<Tables.AlternateFile>): number => a.width - b.width,
+    (a: Tables.AlternateFile, b: Tables.AlternateFile): number => a.width - b.width,
   );
   expect(list).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
@@ -305,7 +305,7 @@ test("Media tests", async (): Promise<void> => {
 
   list = await user3Db.listAlternateFiles(id, AlternateFileType.Poster);
   list.sort(
-    (a: DBAPI<Tables.AlternateFile>, b: DBAPI<Tables.AlternateFile>): number => a.width - b.width,
+    (a: Tables.AlternateFile, b: Tables.AlternateFile): number => a.width - b.width,
   );
   expect(list).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),

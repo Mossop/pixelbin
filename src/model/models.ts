@@ -7,61 +7,6 @@ export interface IdType<K = string> {
   id: K;
 }
 
-export type Reference<Table, Column = "id"> = Column extends keyof Table ? {
-  fakeType: "ForeignKey",
-  table: Table,
-  column: Column,
-} : never;
-
-export type ReferenceType<T> =
-  T extends Reference<infer Table, infer Column>
-    ? Column extends keyof Table
-      ? Table[Column]
-      : never
-    : T;
-
-export type List<Table, Column = "id"> = Column extends keyof Table ? {
-  fakeType: "List",
-  table: Table,
-  column: Column,
-} : never;
-
-export type ListType<T> =
-  T extends List<infer Table, infer Column>
-    ? Column extends keyof Table
-      ? Table[Column][]
-      : never
-    : T;
-
-export type Dereference<T> =
-  T extends List<infer Table, infer Column>
-    ? Column extends keyof Table
-      ? Table[Column][]
-      : never
-    : T extends Reference<infer Table, infer Column>
-      ? Column extends keyof Table
-        ? Table[Column]
-        : never
-      : T;
-
-export type Dereferenced<Table> = {
-  [Column in keyof Table]: Dereference<Table[Column]>;
-};
-
-export type ReferencesIn<Table> = {
-  [Column in keyof Table]: Table[Column] extends Reference<unknown> ? Column : never;
-}[keyof Table];
-
-export type WithoutReferences<Table> = Omit<Table, ReferencesIn<Table>>;
-
-export type ListsIn<Table> = {
-  [Column in keyof Table]: Table[Column] extends List<unknown> ? Column : never;
-}[keyof Table];
-
-export type WithoutLists<Table> = Omit<Table, ListsIn<Table>>;
-
-export type WithoutLinks<Table> = Omit<Table, ReferencesIn<Table> | ListsIn<Table>>;
-
 export interface User {
   email: string;
   fullname: string;
@@ -82,23 +27,23 @@ export interface Storage extends IdType {
 
 export interface Catalog extends IdType {
   name: string;
-  storage: Reference<Storage>;
+  storage: Storage["id"];
 }
 
 export interface Person extends IdType {
-  catalog: Reference<Catalog>;
+  catalog: Catalog["id"];
   name: string;
 }
 
 export interface Tag extends IdType {
-  catalog: Reference<Catalog>;
-  parent: Reference<Tag> | null;
+  catalog: Catalog["id"];
+  parent: Tag["id"] | null;
   name: string;
 }
 
 export interface Album extends IdType {
-  catalog: Reference<Catalog>;
-  parent: Reference<Album> | null;
+  catalog: Catalog["id"];
+  parent: Album["id"] | null;
   name: string;
 }
 
@@ -149,14 +94,14 @@ export const metadataColumns: (keyof Metadata)[] = [
 ];
 
 export interface Media extends IdType {
-  catalog: Reference<Catalog>;
+  catalog: Catalog["id"];
   created: Moment;
 }
 
 export interface MediaLists {
-  tags: Dereferenced<Tag>[];
-  albums: Dereferenced<Album>[];
-  people: Dereferenced<Person>[];
+  tags: Tag[];
+  albums: Album[];
+  people: Person[];
 }
 
 export interface FileInfo {
@@ -171,7 +116,7 @@ export interface FileInfo {
 }
 
 export type Original = IdType & FileInfo & {
-  media: Reference<Media>;
+  media: Media["id"];
   uploaded: Moment;
 };
 
@@ -185,7 +130,7 @@ export enum AlternateFileType {
 }
 
 export type AlternateFile = IdType & FileInfo & {
-  original: Reference<Original>;
+  original: Original["id"];
   type: AlternateFileType;
 };
 

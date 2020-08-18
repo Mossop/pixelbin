@@ -48,8 +48,8 @@ export async function addMedia<T extends Relation>(
 
   // Use a transaction so we can rollback the change if it didn't affect the expected number
   // of rows.
-  return this.inTransaction(async (connection: UserScopedConnection): Promise<Updated<T>[]> => {
-    let select = from(connection.knex, Table.UserCatalog)
+  return this.inTransaction(async (userDb: UserScopedConnection): Promise<Updated<T>[]> => {
+    let select = from(userDb.knex, Table.UserCatalog)
       .join(
         SOURCE_TABLE[table],
         ref(Table.UserCatalog, "catalog"),
@@ -58,20 +58,20 @@ export async function addMedia<T extends Relation>(
       .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
       .whereIn(ref(Table.Media, "id"), media)
       .whereIn(`${SOURCE_TABLE[table]}.id`, items)
-      .where(ref(Table.UserCatalog, "user"), connection.user);
+      .where(ref(Table.UserCatalog, "user"), userDb.user);
 
-    let insert = insertFromSelect(connection.knex, table, select, {
-    // @ts-ignore: TypeScript cannot infer that catalog is a shared column.
-      catalog: connection.connection.ref(ref(Table.UserCatalog, "catalog")),
-      media: connection.connection.ref(ref(Table.Media, "id")),
-      [ITEM_LINK[table]]: connection.connection.ref(`${SOURCE_TABLE[table]}.id`),
+    // @ts-ignore: Can't figure out the computed property.
+    let insert = insertFromSelect(userDb.knex, table, select, {
+      catalog: userDb.connection.ref(ref(Table.UserCatalog, "catalog")),
+      media: userDb.connection.ref(ref(Table.Media, "id")),
+      [ITEM_LINK[table]]: userDb.connection.ref(`${SOURCE_TABLE[table]}.id`),
     });
 
     /**
      * The update on conflict here is a no-op to allow returning the rows that
      * were already present but unaltered.
      */
-    let results = await connection.connection.raw(`
+    let results = await userDb.connection.raw(`
       :insert
       ON CONFLICT (:mediaRef:, :itemRef:) DO
         UPDATE SET :catalog: = :excludedCatalog:
@@ -82,8 +82,8 @@ export async function addMedia<T extends Relation>(
       itemRef: ITEM_LINK[table],
       catalog: "catalog",
       excludedCatalog: "excluded.catalog",
-      media: connection.connection.ref(`${table}.media`),
-      item: connection.connection.ref(`${table}.${ITEM_LINK[table]}`),
+      media: userDb.connection.ref(`${table}.media`),
+      item: userDb.connection.ref(`${table}.${ITEM_LINK[table]}`),
     });
 
     let rows = (results.rows ?? []) as Updated<T>[];

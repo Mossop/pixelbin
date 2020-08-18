@@ -2,21 +2,19 @@ import { Files as Api } from "formidable";
 
 import { Nullable } from "../utils";
 import * as ObjectModel from "./models";
-import { Dereferenced, WithoutLists } from "./models";
 
 export type RequestDecoder<R> = (data: unknown, files: Api | undefined) => Promise<R>;
-type ApiType<Table> = Dereferenced<WithoutLists<Table>>;
 
-export type UnprocessedMedia = Omit<ApiType<ObjectModel.UnprocessedMedia>, "catalog">;
-export type ProcessedMedia = Omit<ApiType<ObjectModel.ProcessedMedia>, "catalog">;
+export type UnprocessedMedia = Omit<ObjectModel.UnprocessedMedia, "catalog">;
+export type ProcessedMedia = Omit<ObjectModel.ProcessedMedia, "catalog">;
 export type Media = UnprocessedMedia | ProcessedMedia;
 
-export type Storage = ApiType<ObjectModel.Storage>;
+export type Storage = ObjectModel.Storage;
 export type PublicStorage = Omit<Storage, "accessKeyId" | "secretAccessKey">;
-export type Catalog = ApiType<ObjectModel.Catalog>;
-export type Album = ApiType<ObjectModel.Album>;
-export type Person = ApiType<ObjectModel.Person>;
-export type Tag = ApiType<ObjectModel.Tag>;
+export type Catalog = ObjectModel.Catalog;
+export type Album = ObjectModel.Album;
+export type Person = ObjectModel.Person;
+export type Tag = ObjectModel.Tag;
 
 export interface StorageCreateRequest {
   storage: string | Create<Storage>;
@@ -24,7 +22,7 @@ export interface StorageCreateRequest {
 
 export type CatalogCreateRequest = Omit<Create<Catalog>, "storage"> & StorageCreateRequest;
 
-export type User = ApiType<ObjectModel.User> & {
+export type User = ObjectModel.User & {
   catalogs: Omit<Catalog, "storage">[],
   people: Person[],
   tags: Tag[],
@@ -44,8 +42,8 @@ export interface LoginRequest {
 }
 
 export type MediaCreateRequest =
-  Omit<ApiType<ObjectModel.Media>, "created" | "id"> &
-  Partial<ApiType<Nullable<ObjectModel.Metadata>>> & {
+  Omit<ObjectModel.Media, "created" | "id"> &
+  Partial<Nullable<ObjectModel.Metadata>> & {
     file: Blob;
     albums?: string[];
     tags?: string[];
@@ -55,6 +53,11 @@ export type MediaCreateRequest =
 export type MediaUpdateRequest = Partial<Omit<MediaCreateRequest, "catalog">> & {
   id: string;
 };
+
+export interface MediaThumbnailRequest {
+  id: string;
+  size: number;
+}
 
 export enum Method {
   State = "state",
@@ -74,7 +77,7 @@ export enum Method {
   MediaCreate = "media/create",
   // MediaUpdate = "media/update",
   // MediaSearch = "media/search",
-  // MediaThumbnail = "media/thumbnail",
+  MediaThumbnail = "media/thumbnail",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -98,7 +101,7 @@ export const HttpMethods: MethodList = {
   [Method.MediaCreate]: "PUT",
   // [Method.MediaUpdate]: "PATCH",
   // [Method.MediaSearch]: "POST",
-  // [Method.MediaThumbnail]: "GET",
+  [Method.MediaThumbnail]: "GET",
 };
 
 // Fake interface
@@ -130,7 +133,7 @@ export interface Signatures {
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
   // [Method.MediaUpdate]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
   // [Method.MediaSearch]: Signature<Search, MediaData[]>;
-  // [Method.MediaThumbnail]: Signature<MediaThumbnail, Blob>;
+  [Method.MediaThumbnail]: Signature<MediaThumbnailRequest, Blob>;
 }
 
 export type SignatureRequest<M extends Method> =

@@ -35,11 +35,13 @@ export const DateDecoder = MappingDecoder(
   (str: string): Moment => moment.tz(str, "UTC"),
   "Moment",
 );
+
 export const OrientationDecoder = MappingDecoder(
   JsonDecoder.number,
   (num: number): Orientation => num,
   "Orientation",
 );
+
 export function EnumDecoder<F, T>(
   decoder: JsonDecoder.Decoder<F>,
   name: string,
@@ -47,3 +49,15 @@ export function EnumDecoder<F, T>(
   return MappingDecoder<F, T>(decoder, (data: F): T => data as unknown as T, name);
 }
 
+const NUMERIC = /^-?\d+$/;
+
+export const NumericDecoder = JsonDecoder.oneOf([
+  JsonDecoder.number,
+  MappingDecoder(JsonDecoder.string, (str: string): number => {
+    if (NUMERIC.exec(str)) {
+      return parseInt(str);
+    }
+
+    throw new Error(`'${str}' is not a number.`);
+  }, "number"),
+], "number");

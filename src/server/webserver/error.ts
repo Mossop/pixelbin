@@ -11,6 +11,7 @@ export enum ApiErrorCode {
   NotLoggedIn = "not-logged-in",
   LoginFailed = "login-failed",
   InvalidData = "invalid-data",
+  NotFound = "not-found",
 }
 
 const ApiErrorStatus: Record<ApiErrorCode, number> = {
@@ -19,6 +20,7 @@ const ApiErrorStatus: Record<ApiErrorCode, number> = {
   [ApiErrorCode.NotLoggedIn]: 401,
   [ApiErrorCode.LoginFailed]: 401,
   [ApiErrorCode.InvalidData]: 400,
+  [ApiErrorCode.NotFound]: 404,
 };
 
 export interface ApiErrorData {

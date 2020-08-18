@@ -1,10 +1,13 @@
 import { promises as fs } from "fs";
+import path from "path";
 
 import moment, { Moment } from "moment-timezone";
 
+import { AlternateFileType } from "../../../model";
 import { expect, mockedFunction, deferCall } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
+import { OriginalInfo } from "../../database/unsafe";
 import { StorageService } from "../../storage";
 import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
@@ -158,4 +161,127 @@ test("Media upload", async (): Promise<void> => {
   expect(copyUploadedFileMock).toHaveBeenCalledTimes(1);
 
   await expect(fs.stat(path)).rejects.toThrowError("no such file or directory");
+});
+
+test("Media thumbnail", async (): Promise<void> => {
+  const request = agent();
+  const storageService = new StorageService({
+    tempDirectory: "",
+    localDirectory: "",
+  }, await connection);
+  const storage = (await storageService.getStorage("")).get();
+
+  /* eslint-disable @typescript-eslint/unbound-method */
+  let getLocalFilePath = mockedFunction(storage.getLocalFilePath);
+  /* eslint-enable @typescript-eslint/unbound-method */
+
+  let testfile = path.join(
+    path.dirname(path.dirname(path.dirname(path.dirname(__dirname)))),
+    "testdata",
+    "lamppost.jpg",
+  );
+
+  getLocalFilePath.mockImplementation(() => Promise.resolve(testfile));
+
+  let db = await connection;
+
+  let user1Db = db.forUser("someone1@nowhere.com");
+
+  let media = await user1Db.createMedia("c1", fillMetadata({}));
+
+  let original = await db.withNewOriginal(
+    media.id,
+    fillMetadata({
+      uploaded: moment(),
+      processVersion: 2,
+      fileName: "",
+      fileSize: 0,
+      mimetype: "image/jpeg",
+      width: 800,
+      height: 800,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }),
+    async (db: unknown, original: OriginalInfo) => original,
+  );
+
+  await db.addAlternateFile(original.id, {
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb1.jpg",
+    fileSize: 0,
+    mimetype: "image/jpeg",
+    width: 200,
+    height: 200,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+  });
+
+  await db.addAlternateFile(original.id, {
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb2.jpg",
+    fileSize: 0,
+    mimetype: "image/jpeg",
+    width: 300,
+    height: 300,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+  });
+
+  await db.addAlternateFile(original.id, {
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb3.jpg",
+    fileSize: 0,
+    mimetype: "image/jpeg",
+    width: 400,
+    height: 400,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  await request
+    .get("/api/media/thumbnail")
+    .query({
+      id: media.id,
+      size: 200,
+    })
+    .expect("Content-Type", "image/jpeg")
+    .expect(200);
+
+  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb1.jpg");
+  getLocalFilePath.mockClear();
+
+  await request
+    .get("/api/media/thumbnail")
+    .query({
+      id: "foo",
+      size: 200,
+    })
+    .expect(404);
+
+  await request
+    .get("/api/media/thumbnail")
+    .query({
+      id: media.id,
+      size: 150,
+    })
+    .expect("Content-Type", "image/jpeg")
+    .expect(200);
+
+  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb2.jpg");
+  getLocalFilePath.mockClear();
 });

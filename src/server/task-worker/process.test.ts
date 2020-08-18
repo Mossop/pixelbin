@@ -9,7 +9,6 @@ import { AlternateFileType } from "../../model";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
 import { fillMetadata } from "../database";
 import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
-import { DBAPI } from "../database/types/meta";
 import { AlternateFile } from "../database/types/tables";
 import { StorageService } from "../storage";
 import { encodeVideo, AudioCodec, VideoCodec, Container, VideoInfo } from "./ffmpeg";
@@ -160,12 +159,12 @@ test("Process image metadata", async (): Promise<void> => {
     AlternateFileType.Thumbnail,
   );
   expect(thumbnails).toHaveLength(MEDIA_THUMBNAIL_SIZES.length);
-  thumbnails.sort((a: DBAPI<AlternateFile>, b: DBAPI<AlternateFile>): number => {
+  thumbnails.sort((a: AlternateFile, b: AlternateFile): number => {
     return a.width - b.width;
   });
 
   expect(
-    thumbnails.map((t: DBAPI<AlternateFile>): number => t.width),
+    thumbnails.map((t: AlternateFile): number => t.width),
   ).toEqual(MEDIA_THUMBNAIL_SIZES);
 
   expect(thumbnails).toEqual([{
@@ -360,12 +359,12 @@ test("Process video metadata", async (): Promise<void> => {
     AlternateFileType.Thumbnail,
   );
   expect(thumbnails).toHaveLength(MEDIA_THUMBNAIL_SIZES.length);
-  thumbnails.sort((a: DBAPI<AlternateFile>, b: DBAPI<AlternateFile>): number => {
+  thumbnails.sort((a: AlternateFile, b: AlternateFile): number => {
     return a.height - b.height;
   });
 
   expect(
-    thumbnails.map((t: DBAPI<AlternateFile>): number => t.height),
+    thumbnails.map((t: AlternateFile): number => t.height),
   ).toEqual(MEDIA_THUMBNAIL_SIZES);
 
   expect(thumbnails).toEqual([{
