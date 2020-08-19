@@ -215,7 +215,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.setMedia(Relation.Album, [], ["a6"]);
+  added = await user1Db.setReferencedMedia(Relation.Album, ["a6"], []);
   expect(added).toEqual([]);
 
   expect(await mediaInAlbum("a1")).toEqual([]);
@@ -227,7 +227,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await expect(user1Db.setMedia(Relation.Album, [
+  await expect(user1Db.setMediaReferences(Relation.Album, [
     media1.id,
     media3.id,
     media4.id,
@@ -248,7 +248,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.setMedia(Relation.Album, [
+  added = await user1Db.setMediaReferences(Relation.Album, [
     media1.id,
     media3.id,
   ], [
@@ -263,7 +263,7 @@ test("Album media tests", async (): Promise<void> => {
     { media: media3.id, album: "a2" },
   ]);
 
-  added = await user1Db.setMedia(Relation.Album, [
+  added = await user1Db.setMediaReferences(Relation.Album, [
     media4.id,
     media5.id,
   ], [
@@ -381,7 +381,7 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user2Db.setMedia(Relation.Album, [
+  added = await user2Db.setMediaReferences(Relation.Album, [
     media1.id,
     media5.id,
   ], []);
@@ -410,9 +410,9 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.setMedia(Relation.Album, [], [
+  added = await user1Db.setReferencedMedia(Relation.Album, [
     "a2",
-  ]);
+  ], []);
 
   expect(added).toEqual([]);
 
@@ -434,10 +434,6 @@ test("Album media tests", async (): Promise<void> => {
     media6.id,
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
-
-  added = await user1Db.setMedia(Relation.Album, [], []);
-
-  expect(added).toEqual([]);
 
   expect(await mediaInAlbum("a1")).toInclude([
     media3.id,

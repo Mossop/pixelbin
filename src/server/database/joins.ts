@@ -115,13 +115,51 @@ export async function removeMedia<T extends Relation>(
     .delete();
 }
 
-export async function setMedia<T extends Relation>(
+export async function setMediaReferences<T extends Relation>(
   this: UserScopedConnection,
   relation: T,
   media: string[],
-  items: string[],
+  references: string[],
 ): Promise<Updated<T>[]> {
-  if (!media.length && !items.length) {
+  if (!media.length) {
+    return [];
+  }
+
+  let table = RELATION_TABLE[relation];
+
+  const catalogQuery = (userDb: UserScopedConnection): Knex.QueryBuilder => {
+    return from(userDb.knex, Table.UserCatalog)
+      .where(ref(Table.UserCatalog, "user"), userDb.user)
+      .select("catalog");
+  };
+
+  if (references.length == 0) {
+    await from(this.knex, table)
+      .whereIn(`${table}.catalog`, catalogQuery(this))
+      .whereIn(`${table}.media`, media)
+      .delete();
+
+    return [];
+  }
+
+  return this.inTransaction(async (userConnection: UserScopedConnection): Promise<Updated<T>[]> => {
+    await from(this.knex, table)
+      .whereIn(`${table}.catalog`, catalogQuery(this))
+      .whereIn(`${table}.media`, media)
+      .whereNotIn(`${table}.${ITEM_LINK[table]}`, references)
+      .delete();
+
+    return userConnection.addMedia(relation, media, references);
+  });
+}
+
+export async function setReferencedMedia<T extends Relation>(
+  this: UserScopedConnection,
+  relation: T,
+  references: string[],
+  media: string[],
+): Promise<Updated<T>[]> {
+  if (!references.length) {
     return [];
   }
 
@@ -136,33 +174,19 @@ export async function setMedia<T extends Relation>(
   if (media.length == 0) {
     await from(this.knex, table)
       .whereIn(`${table}.catalog`, catalogQuery(this))
-      .whereIn(`${table}.${ITEM_LINK[table]}`, items)
-      .delete();
-
-    return [];
-  } else if (items.length == 0) {
-    await from(this.knex, table)
-      .whereIn(`${table}.catalog`, catalogQuery(this))
-      .whereIn(`${table}.media`, media)
+      .whereIn(`${table}.${ITEM_LINK[table]}`, references)
       .delete();
 
     return [];
   }
 
   return this.inTransaction(async (userConnection: UserScopedConnection): Promise<Updated<T>[]> => {
-    await from(userConnection.knex, table)
-      .whereIn(`${table}.catalog`, catalogQuery(userConnection))
-      .where((builder: Knex.QueryBuilder) => {
-        void builder.where((builder: Knex.QueryBuilder) => {
-          void builder.whereIn(`${table}.${ITEM_LINK[table]}`, items)
-            .whereNotIn(`${table}.media`, media);
-        }).orWhere((builder: Knex.QueryBuilder) => {
-          void builder.whereNotIn(`${table}.${ITEM_LINK[table]}`, items)
-            .whereIn(`${table}.media`, media);
-        });
-      })
+    await from(this.knex, table)
+      .whereIn(`${table}.catalog`, catalogQuery(this))
+      .whereIn(`${table}.${ITEM_LINK[table]}`, references)
+      .whereNotIn(`${table}.media`, media)
       .delete();
 
-    return userConnection.addMedia(relation, media, items);
+    return userConnection.addMedia(relation, media, references);
   });
 }

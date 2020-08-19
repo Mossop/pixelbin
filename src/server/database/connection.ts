@@ -214,7 +214,8 @@ export class UserScopedConnection {
 
   public readonly addMedia = wrapped(Joins.addMedia);
   public readonly removeMedia = wrapped(Joins.removeMedia);
-  public readonly setMedia = wrapped(Joins.setMedia);
+  public readonly setMediaReferences = wrapped(Joins.setMediaReferences);
+  public readonly setReferencedMedia = wrapped(Joins.setReferencedMedia);
 
   public readonly createMedia = wrapped(MediaQueries.createMedia);
   public readonly editMedia = wrapped(MediaQueries.editMedia);
