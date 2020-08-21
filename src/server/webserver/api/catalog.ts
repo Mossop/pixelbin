@@ -47,6 +47,16 @@ export const editAlbum = ensureAuthenticated(
   },
 );
 
+export const listAlbum = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Api.AlbumListRequest,
+  ): Promise<Api.Media[]> => {
+    return userDb.listMediaInAlbum(data.id, data.recursive);
+  },
+);
+
 export const createTag = ensureAuthenticated(
   async (
     ctx: AppContext,

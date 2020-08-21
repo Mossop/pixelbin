@@ -60,11 +60,12 @@ export async function errorHandler(
     if (e instanceof ApiError) {
       error = e;
     } else if (e instanceof DatabaseError) {
+      ctx.logger.warn(e, "Database error occured.");
       error = new ApiError(ApiErrorCode.InvalidData, {
         message: String(e),
       });
     } else {
-      ctx.logger.warn(e, "Application threw unknown exception");
+      ctx.logger.warn(e, "Application threw unknown exception.");
       error = new ApiError(ApiErrorCode.UnknownException, {
         message: String(e),
       });

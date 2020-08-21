@@ -1,4 +1,7 @@
-import { insertTestData, testData } from "../../database/test-helpers";
+import { RelationType } from "../../../model/api";
+import { expect } from "../../../test-helpers";
+import { fillMetadata } from "../../database";
+import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { ApiErrorCode } from "../error";
 import { buildTestApp, expectUserState, fromCatalogs, catalogs } from "../test-helpers";
@@ -297,6 +300,79 @@ test("Edit album", async (): Promise<void> => {
     "people": fromCatalogs("c1", testData[Table.Person]),
     "tags": fromCatalogs("c1", testData[Table.Tag]),
   });
+});
+
+test("List album", async (): Promise<void> => {
+  /* eslint-disable-next-line */
+  const ids = items => items.map(item => item.id);
+
+  const request = agent();
+  let db = await connection;
+  let user1Db = db.forUser("someone1@nowhere.com");
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
+  await user1Db.setMediaRelations(RelationType.Album, [id1], ["a1"]);
+
+  let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
+  await user1Db.setMediaRelations(RelationType.Album, [id2], ["a3"]);
+
+  let { id: id3 } = await user1Db.createMedia("c1", fillMetadata({}));
+  await user1Db.setMediaRelations(RelationType.Album, [id3], ["a1", "a3"]);
+
+  let { id: id4 } = await user1Db.createMedia("c1", fillMetadata({}));
+  await user1Db.setMediaRelations(RelationType.Album, [id4], ["a2"]);
+
+  let response = await request
+    .get("/api/album/list")
+    .query({
+      id: "a1",
+      recursive: false,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(ids(response.body)).toInclude([
+    id1,
+    id3,
+  ]);
+
+  response = await request
+    .get("/api/album/list")
+    .query({
+      id: "a3",
+      recursive: false,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(ids(response.body)).toInclude([
+    id2,
+    id3,
+  ]);
+
+  response = await request
+    .get("/api/album/list")
+    .query({
+      id: "a1",
+      recursive: true,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(ids(response.body)).toInclude([
+    id1,
+    id2,
+    id3,
+  ]);
 });
 
 test("Create Tag", async (): Promise<void> => {

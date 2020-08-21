@@ -3,7 +3,7 @@ import { JsonDecoder } from "ts.data.json";
 import { Api, ObjectModel } from "../../../model";
 import { DateDecoder } from "../../../utils";
 import { ReadonlyMapOf } from "../utils/maps";
-import { JsonRequestData, makeRequest } from "./helpers";
+import { JsonRequestData, makeRequest, QueryRequestData, RequestData } from "./helpers";
 import { Album, Catalog, Person, Tag, Media } from "./highlevel";
 
 type StateForObject<Obj> =
@@ -215,6 +215,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.CatalogCreate]: CatalogDecoder,
   [Api.Method.AlbumCreate]: AlbumDecoder,
   [Api.Method.AlbumEdit]: AlbumDecoder,
+  [Api.Method.AlbumList]: MediaArrayDecoder,
   [Api.Method.TagCreate]: TagDecoder,
   [Api.Method.TagEdit]: TagDecoder,
   [Api.Method.PersonCreate]: PersonDecoder,
@@ -229,8 +230,14 @@ export function request<T extends Api.Method>(
   method: T,
   ...data: RequestType<T>
 ): Promise<ResponseType<T>> {
-  // @ts-ignore: Bleh
-  let request = new JsonRequestData<ResponseType<T>>(data, decoders[method]);
+  let request: RequestData<ResponseType<T>>;
+  if (Api.HttpMethods[method] == "GET") {
+    // @ts-ignore: Trust me
+    request = new QueryRequestData<ResponseType<T>>(data, decoders[method]);
+  } else {
+    // @ts-ignore: Trust me
+    request = new JsonRequestData<ResponseType<T>>(data, decoders[method]);
+  }
 
   return makeRequest(Api.HttpMethods[method], method, request);
 }

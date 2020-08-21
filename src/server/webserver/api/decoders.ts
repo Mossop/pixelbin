@@ -65,6 +65,15 @@ export const AlbumEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Album>>
   parent: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
 }, "AlbumEditRequest"));
 
+export const AlbumListRequest = jsonDecoder(JsonDecoder.object<Api.AlbumListRequest>({
+  id: JsonDecoder.string,
+  recursive: MappingDecoder(
+    JsonDecoder.string,
+    (val: string): boolean => val == "true",
+    "recursive",
+  ),
+}, "AlbumListRequest"));
+
 export const TagCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Tag>>({
   catalog: JsonDecoder.string,
   name: JsonDecoder.string,

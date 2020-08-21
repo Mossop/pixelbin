@@ -146,6 +146,8 @@ export async function listMediaInAlbum(
   return from(this.knex, Table.StoredMediaDetail)
     .join(Table.MediaAlbum, ref(Table.MediaAlbum, "media"), ref(Table.StoredMediaDetail, "id"))
     .whereIn(ref(Table.MediaAlbum, "album"), albums)
+    .orderBy(ref(Table.StoredMediaDetail, "id"))
+    .distinctOn(ref(Table.StoredMediaDetail, "id"))
     .select(ref(Table.StoredMediaDetail));
 }
 
