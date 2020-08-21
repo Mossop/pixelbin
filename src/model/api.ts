@@ -105,11 +105,8 @@ export enum Method {
   CatalogCreate = "catalog/create",
   AlbumCreate = "album/create",
   AlbumEdit = "album/edit",
-  // AlbumAddMedia = "album/add_media",
-  // AlbumRemoveMedia = "album/remove_media",
   TagCreate = "tag/create",
   TagEdit = "tag/edit",
-  // TagFind = "tag/find",
   PersonCreate = "person/create",
   PersonEdit = "person/edit",
   MediaGet = "media/get",
@@ -130,11 +127,8 @@ export const HttpMethods: MethodList = {
   [Method.CatalogCreate]: "PUT",
   [Method.AlbumCreate]: "PUT",
   [Method.AlbumEdit]: "PATCH",
-  // [Method.AlbumAddMedia]: "PUT",
-  // [Method.AlbumRemoveMedia]: "DELETE",
   [Method.TagCreate]: "PUT",
   [Method.TagEdit]: "PATCH",
-  // [Method.TagFind]: "POST",
   [Method.PersonCreate]: "PUT",
   [Method.PersonEdit]: "PATCH",
   [Method.MediaGet]: "GET",
@@ -164,8 +158,6 @@ export interface Signatures {
   [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
-  // [Method.AlbumAddMedia]: Signature<AlbumMedia, AlbumData>;
-  // [Method.AlbumRemoveMedia]: Signature<AlbumMedia, AlbumData>;
   [Method.TagCreate]: Signature<Create<Tag>, Tag>;
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
