@@ -89,7 +89,7 @@ const TagDecoder = JsonDecoder.object<Api.Tag>(
   {
     id: JsonDecoder.string,
     catalog: JsonDecoder.string,
-    parent: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
+    parent: JsonDecoder.nullable(JsonDecoder.string),
     name: JsonDecoder.string,
   },
   "Tag",
@@ -100,7 +100,7 @@ const AlbumDecoder = JsonDecoder.object<Api.Album>(
     id: JsonDecoder.string,
     catalog: JsonDecoder.string,
     name: JsonDecoder.string,
-    parent: JsonDecoder.oneOf([JsonDecoder.string, JsonDecoder.isNull(null)], "string | null"),
+    parent: JsonDecoder.nullable(JsonDecoder.string),
   },
   "Album",
 );
@@ -130,12 +130,12 @@ const UserDecoder = JsonDecoder.object<Api.User>(
 
 const StateDecoder = JsonDecoder.object<Api.State>(
   {
-    user: JsonDecoder.oneOf([UserDecoder, JsonDecoder.isNull(null)], "User | null"),
+    user: JsonDecoder.nullable(UserDecoder),
   },
   "State",
 );
 
-const MediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>({
+const UnprocessedMediaProperties = {
   id: JsonDecoder.string,
   created: DateDecoder,
   filename: JsonDecoder.nullable(JsonDecoder.string),
@@ -162,7 +162,31 @@ const MediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>({
   albums: JsonDecoder.array(AlbumDecoder, "album[]"),
   tags: JsonDecoder.array(TagDecoder, "tag[]"),
   people: JsonDecoder.array(PersonDecoder, "person[]"),
-}, "Media");
+};
+
+const UnprocessedMediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>(
+  UnprocessedMediaProperties,
+  "UnprocessedMedia",
+);
+
+const ProcessedMediaDecoder = JsonDecoder.object<Api.ProcessedMedia>({
+  ...UnprocessedMediaProperties,
+  height: JsonDecoder.number,
+  width: JsonDecoder.number,
+  fileSize: JsonDecoder.number,
+  mimetype: JsonDecoder.string,
+  uploaded: DateDecoder,
+  duration: JsonDecoder.nullable(JsonDecoder.number),
+  bitRate: JsonDecoder.nullable(JsonDecoder.number),
+  frameRate: JsonDecoder.nullable(JsonDecoder.number),
+}, "ProcessedMedia");
+
+const MediaDecoder = JsonDecoder.oneOf<Api.Media>([
+  UnprocessedMediaDecoder,
+  ProcessedMediaDecoder,
+], "Media");
+
+const MediaArrayDecoder = JsonDecoder.array(MediaDecoder, "Media[]");
 
 type RequestType<T extends Api.Method> =
   Api.Signatures[T] extends Api.Signature<infer Request>
@@ -195,8 +219,10 @@ const decoders: ResponseDecoders = {
   [Api.Method.TagEdit]: TagDecoder,
   [Api.Method.PersonCreate]: PersonDecoder,
   [Api.Method.PersonEdit]: PersonDecoder,
-  [Api.Method.MediaCreate]: MediaDecoder,
+  [Api.Method.MediaCreate]: UnprocessedMediaDecoder,
+  [Api.Method.MediaGet]: MediaArrayDecoder,
   [Api.Method.MediaThumbnail]: null,
+  [Api.Method.MediaRelations]: MediaArrayDecoder,
 };
 
 export function request<T extends Api.Method>(

@@ -121,7 +121,7 @@ export type Original = IdType & FileInfo & {
 };
 
 export type UnprocessedMedia = Media & Nullable<Metadata> & MediaLists;
-export type ProcessedMedia = UnprocessedMedia & Omit<Original, "id" | "media">;
+export type ProcessedMedia = UnprocessedMedia & Omit<Original, "id" | "media" | "fileName">;
 
 export enum AlternateFileType {
   Thumbnail = "thumbnail",
