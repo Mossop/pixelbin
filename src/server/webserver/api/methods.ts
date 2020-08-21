@@ -13,7 +13,7 @@ import {
 } from "./catalog";
 import * as Decoders from "./decoders";
 import { DeBlobbed } from "./decoders";
-import { createMedia, thumbnail } from "./media";
+import { getMedia, createMedia, thumbnail, relations } from "./media";
 import { getState, login, logout } from "./state";
 
 export class DirectResponse {
@@ -45,8 +45,10 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.TagEdit]: Decoders.TagEditRequest,
   [Api.Method.PersonCreate]: Decoders.PersonCreateRequest,
   [Api.Method.PersonEdit]: Decoders.PersonEditRequest,
+  [Api.Method.MediaGet]: Decoders.MediaGetRequest,
   [Api.Method.MediaCreate]: Decoders.MediaCreateRequest,
   [Api.Method.MediaThumbnail]: Decoders.MediaThumbnailRequest,
+  [Api.Method.MediaRelations]: Decoders.MediaRelationsRequest,
 };
 
 type ApiInterface = {
@@ -67,8 +69,10 @@ const apiMethods: ApiInterface = {
   [Api.Method.TagEdit]: editTag,
   [Api.Method.PersonCreate]: createPerson,
   [Api.Method.PersonEdit]: editPerson,
+  [Api.Method.MediaGet]: getMedia,
   [Api.Method.MediaCreate]: createMedia,
   [Api.Method.MediaThumbnail]: thumbnail,
+  [Api.Method.MediaRelations]: relations,
 };
 
 const KEY_PARSE = /^(?<part>[^.[]+)(?:\[(?<index>\d+)\])?(?:\.(?<rest>.+))?$/;

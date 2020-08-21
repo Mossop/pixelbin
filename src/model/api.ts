@@ -41,6 +41,8 @@ export interface LoginRequest {
   password: string;
 }
 
+export type MediaGetRequest = string[];
+
 export type MediaCreateRequest =
   Omit<ObjectModel.Media, "created" | "id"> &
   Partial<Nullable<ObjectModel.Metadata>> & {
@@ -59,6 +61,43 @@ export interface MediaThumbnailRequest {
   size: number;
 }
 
+export enum RelationType {
+  Tag = "tag",
+  Album = "album",
+  Person = "person",
+}
+
+export interface MediaRelationAdd {
+  operation: "add",
+  type: RelationType,
+  media: string[],
+  items: string[],
+}
+
+export interface MediaRelationDelete {
+  operation: "delete",
+  type: RelationType,
+  media: string[],
+  items: string[],
+}
+
+export interface MediaSetRelations {
+  operation: "setRelations",
+  type: RelationType,
+  media: string[],
+  items: string[],
+}
+
+export interface RelationsSetMedia {
+  operation: "setMedia",
+  type: RelationType,
+  items: string[],
+  media: string[],
+}
+
+export type MediaRelationChange =
+  MediaRelationAdd | MediaRelationDelete | MediaSetRelations | RelationsSetMedia;
+
 export enum Method {
   State = "state",
   Login = "login",
@@ -73,11 +112,12 @@ export enum Method {
   // TagFind = "tag/find",
   PersonCreate = "person/create",
   PersonEdit = "person/edit",
-  // MediaGet = "media/get",
+  MediaGet = "media/get",
   MediaCreate = "media/create",
   // MediaUpdate = "media/update",
   // MediaSearch = "media/search",
   MediaThumbnail = "media/thumbnail",
+  MediaRelations = "media/relations",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -97,11 +137,12 @@ export const HttpMethods: MethodList = {
   // [Method.TagFind]: "POST",
   [Method.PersonCreate]: "PUT",
   [Method.PersonEdit]: "PATCH",
-  // [Method.MediaGet]: "GET",
+  [Method.MediaGet]: "GET",
   [Method.MediaCreate]: "PUT",
   // [Method.MediaUpdate]: "PATCH",
   // [Method.MediaSearch]: "POST",
   [Method.MediaThumbnail]: "GET",
+  [Method.MediaRelations]: "PATCH",
 };
 
 // Fake interface
@@ -129,11 +170,12 @@ export interface Signatures {
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
-  // [ApiMethod.MediaGet]: Signature<Mappable, MediaData>;
+  [Method.MediaGet]: Signature<MediaGetRequest, Media[]>;
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
   // [Method.MediaUpdate]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
   // [Method.MediaSearch]: Signature<Search, MediaData[]>;
   [Method.MediaThumbnail]: Signature<MediaThumbnailRequest, Blob>;
+  [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;
 }
 
 export type SignatureRequest<M extends Method> =

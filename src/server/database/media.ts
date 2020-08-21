@@ -72,22 +72,23 @@ export async function editMedia(
 
 export async function getMedia(
   this: UserScopedConnection,
-  id: Tables.StoredMedia["id"],
-): Promise<Tables.StoredMedia | null> {
-  let results = await from(this.knex, Table.StoredMediaDetail).join(
-    Table.UserCatalog,
-    ref(Table.UserCatalog, "catalog"),
-    ref(Table.StoredMediaDetail, "catalog"),
-  ).where({
-    [ref(Table.UserCatalog, "user")]: this.user,
-    [ref(Table.StoredMediaDetail, "id")]: id,
-  }).select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
+  ids: Tables.StoredMedia["id"][],
+): Promise<Tables.StoredMedia[]> {
+  let results = await from(this.knex, Table.StoredMediaDetail)
+    .join(
+      Table.UserCatalog,
+      ref(Table.UserCatalog, "catalog"),
+      ref(Table.StoredMediaDetail, "catalog"),
+    )
+    .where(ref(Table.UserCatalog, "user"), this.user)
+    .whereIn(ref(Table.StoredMediaDetail, "id"), ids)
+    .select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
 
-  if (!results.length) {
-    return null;
-  }
-
-  return intoAPITypes(results[0]);
+  let sorted = results.map(intoAPITypes);
+  sorted.sort((a: Tables.StoredMedia, b: Tables.StoredMedia): number => {
+    return ids.indexOf(a.id) - ids.indexOf(b.id);
+  });
+  return sorted;
 }
 
 export async function listAlternateFiles(

@@ -68,7 +68,7 @@ test("Media tests", async (): Promise<void> => {
     title: "My title",
   }));
 
-  let foundMedia = await user3Db.getMedia(id);
+  let [foundMedia] = await user3Db.getMedia([id]);
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
@@ -125,7 +125,7 @@ test("Media tests", async (): Promise<void> => {
     photographer: "Me",
   }));
 
-  foundMedia = await user3Db.getMedia(id);
+  [foundMedia] = await user3Db.getMedia([id]);
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
@@ -153,7 +153,7 @@ test("Media tests", async (): Promise<void> => {
     city: "Portland",
   });
 
-  foundMedia = await user3Db.getMedia(id);
+  [foundMedia] = await user3Db.getMedia([id]);
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
@@ -213,7 +213,7 @@ test("Media tests", async (): Promise<void> => {
     model: "Some model",
   }));
 
-  foundMedia = await user3Db.getMedia(id);
+  [foundMedia] = await user3Db.getMedia([id]);
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
@@ -343,7 +343,7 @@ test("Media tests", async (): Promise<void> => {
   }))).rejects.toThrow("Unknown Media");
 
   // Cannot get media in a catalog the user cannot access.
-  foundMedia = await user3Db.getMedia(newMedia.id);
+  [foundMedia] = await user3Db.getMedia([newMedia.id]);
   expect(foundMedia).toBeNull();
 
   // Cannot list alternates for media the user cannot access.

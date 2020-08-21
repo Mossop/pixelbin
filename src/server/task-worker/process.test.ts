@@ -103,7 +103,7 @@ test("Process image metadata", async (): Promise<void> => {
   expect(deleteUploadedFileMock).toHaveBeenCalledTimes(1);
   expect(deleteUploadedFileMock).toHaveBeenLastCalledWith(media.id);
 
-  let fullMedia = await user1Db.getMedia(media.id);
+  let [fullMedia] = await user1Db.getMedia([media.id]);
   expect(fullMedia).toEqual({
     id: media.id,
     catalog: "c1",
@@ -303,7 +303,7 @@ test("Process video metadata", async (): Promise<void> => {
   expect(deleteUploadedFileMock).toHaveBeenCalledTimes(1);
   expect(deleteUploadedFileMock).toHaveBeenLastCalledWith(media.id);
 
-  let fullMedia = await user1Db.getMedia(media.id);
+  let [fullMedia] = await user1Db.getMedia([media.id]);
   expect(fullMedia).toEqual({
     id: media.id,
     catalog: "c1",

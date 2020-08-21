@@ -42,13 +42,6 @@ export const OrientationDecoder = MappingDecoder(
   "Orientation",
 );
 
-export function EnumDecoder<F, T>(
-  decoder: JsonDecoder.Decoder<F>,
-  name: string,
-): JsonDecoder.Decoder<T> {
-  return MappingDecoder<F, T>(decoder, (data: F): T => data as unknown as T, name);
-}
-
 const NUMERIC = /^-?\d+$/;
 
 export const NumericDecoder = JsonDecoder.oneOf([

@@ -212,10 +212,10 @@ export class UserScopedConnection {
   public readonly createPerson = wrapped(CatalogQueries.createPerson);
   public readonly editPerson = wrapped(CatalogQueries.editPerson);
 
-  public readonly addMedia = wrapped(Joins.addMedia);
-  public readonly removeMedia = wrapped(Joins.removeMedia);
-  public readonly setMediaReferences = wrapped(Joins.setMediaReferences);
-  public readonly setReferencedMedia = wrapped(Joins.setReferencedMedia);
+  public readonly addMediaRelations = wrapped(Joins.addMediaRelations);
+  public readonly removeMediaRelations = wrapped(Joins.removeMediaRelations);
+  public readonly setMediaRelations = wrapped(Joins.setMediaRelations);
+  public readonly setRelationMedia = wrapped(Joins.setRelationMedia);
 
   public readonly createMedia = wrapped(MediaQueries.createMedia);
   public readonly editMedia = wrapped(MediaQueries.editMedia);

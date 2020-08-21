@@ -1,22 +1,17 @@
 import Knex from "knex";
 
+import { Api } from "../../model";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insertFromSelect } from "./queries";
 import { ref, Table } from "./types";
 
-export enum Relation {
-  Album,
-  Tag,
-  Person,
-}
-
 type List = Table.MediaAlbum | Table.MediaTag | Table.MediaPerson;
 
-const RELATION_TABLE: Record<Relation, List> = {
-  [Relation.Album]: Table.MediaAlbum,
-  [Relation.Tag]: Table.MediaTag,
-  [Relation.Person]: Table.MediaPerson,
+const RELATION_TABLE: Record<Api.RelationType, List> = {
+  [Api.RelationType.Album]: Table.MediaAlbum,
+  [Api.RelationType.Tag]: Table.MediaTag,
+  [Api.RelationType.Person]: Table.MediaPerson,
 };
 
 const SOURCE_TABLE: Record<List, Table> = {
@@ -31,14 +26,14 @@ const ITEM_LINK: Record<List, string> = {
   [Table.MediaPerson]: "person",
 };
 
-type Updated<T extends Relation> =
-  T extends Relation.Album
+type Updated<T extends Api.RelationType> =
+  T extends Api.RelationType.Album
     ? { media: string; album: string; }
-    : T extends Relation.Tag
+    : T extends Api.RelationType.Tag
       ? { media: string; tag: string; }
       : { media: string; person: string; };
 
-export async function addMedia<T extends Relation>(
+export async function addMediaRelations<T extends Api.RelationType>(
   this: UserScopedConnection,
   relation: T,
   media: string[],
@@ -96,7 +91,7 @@ export async function addMedia<T extends Relation>(
   });
 }
 
-export async function removeMedia<T extends Relation>(
+export async function removeMediaRelations<T extends Api.RelationType>(
   this: UserScopedConnection,
   relation: T,
   media: string[],
@@ -115,11 +110,11 @@ export async function removeMedia<T extends Relation>(
     .delete();
 }
 
-export async function setMediaReferences<T extends Relation>(
+export async function setMediaRelations<T extends Api.RelationType>(
   this: UserScopedConnection,
   relation: T,
   media: string[],
-  references: string[],
+  relations: string[],
 ): Promise<Updated<T>[]> {
   if (!media.length) {
     return [];
@@ -133,7 +128,7 @@ export async function setMediaReferences<T extends Relation>(
       .select("catalog");
   };
 
-  if (references.length == 0) {
+  if (relations.length == 0) {
     await from(this.knex, table)
       .whereIn(`${table}.catalog`, catalogQuery(this))
       .whereIn(`${table}.media`, media)
@@ -146,20 +141,20 @@ export async function setMediaReferences<T extends Relation>(
     await from(this.knex, table)
       .whereIn(`${table}.catalog`, catalogQuery(this))
       .whereIn(`${table}.media`, media)
-      .whereNotIn(`${table}.${ITEM_LINK[table]}`, references)
+      .whereNotIn(`${table}.${ITEM_LINK[table]}`, relations)
       .delete();
 
-    return userConnection.addMedia(relation, media, references);
+    return userConnection.addMediaRelations(relation, media, relations);
   });
 }
 
-export async function setReferencedMedia<T extends Relation>(
+export async function setRelationMedia<T extends Api.RelationType>(
   this: UserScopedConnection,
   relation: T,
-  references: string[],
+  relations: string[],
   media: string[],
 ): Promise<Updated<T>[]> {
-  if (!references.length) {
+  if (!relations.length) {
     return [];
   }
 
@@ -174,7 +169,7 @@ export async function setReferencedMedia<T extends Relation>(
   if (media.length == 0) {
     await from(this.knex, table)
       .whereIn(`${table}.catalog`, catalogQuery(this))
-      .whereIn(`${table}.${ITEM_LINK[table]}`, references)
+      .whereIn(`${table}.${ITEM_LINK[table]}`, relations)
       .delete();
 
     return [];
@@ -183,10 +178,10 @@ export async function setReferencedMedia<T extends Relation>(
   return this.inTransaction(async (userConnection: UserScopedConnection): Promise<Updated<T>[]> => {
     await from(this.knex, table)
       .whereIn(`${table}.catalog`, catalogQuery(this))
-      .whereIn(`${table}.${ITEM_LINK[table]}`, references)
+      .whereIn(`${table}.${ITEM_LINK[table]}`, relations)
       .whereNotIn(`${table}.media`, media)
       .delete();
 
-    return userConnection.addMedia(relation, media, references);
+    return userConnection.addMediaRelations(relation, media, relations);
   });
 }

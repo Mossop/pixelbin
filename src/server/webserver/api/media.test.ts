@@ -4,7 +4,7 @@ import path from "path";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
-import { AlternateFileType } from "../../../model";
+import { AlternateFileType, Api } from "../../../model";
 import { expect, mockedFunction, deferCall } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
@@ -141,8 +141,7 @@ test("Media upload", async (): Promise<void> => {
       "id": "t1",
       "name": "tag1",
       "parent": null,
-    },
-    {
+    }, {
       "catalog": "c1",
       "id": "t2",
       "name": "tag2",
@@ -316,4 +315,535 @@ test("Media thumbnail", async (): Promise<void> => {
   expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
     customSnapshotIdentifier: "media-thumb-200",
   });
+});
+
+test("Get media", async (): Promise<void> => {
+  const request = agent();
+  let db = await connection;
+  let user1Db = db.forUser("someone1@nowhere.com");
+
+  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => createdMoment1);
+  let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
+
+  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => createdMoment2);
+  let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .get("/api/media/get")
+    .query({
+      id: id1,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    fillMetadata({
+      id: id1,
+      catalog: "c1",
+      created: expect.toEqualDate(createdMoment1),
+
+      height: null,
+      width: null,
+      bitRate: null,
+      frameRate: null,
+      duration: null,
+      fileSize: null,
+      mimetype: null,
+      uploaded: null,
+
+      albums: [],
+      tags: [],
+      people: [],
+    }),
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: id2,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    fillMetadata({
+      id: id2,
+      catalog: "c1",
+      created: expect.toEqualDate(createdMoment2),
+
+      height: null,
+      width: null,
+      bitRate: null,
+      frameRate: null,
+      duration: null,
+      fileSize: null,
+      mimetype: null,
+      uploaded: null,
+
+      albums: [],
+      tags: [],
+      people: [],
+    }),
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    fillMetadata({
+      id: id1,
+      catalog: "c1",
+      created: expect.toEqualDate(createdMoment1),
+
+      height: null,
+      width: null,
+      bitRate: null,
+      frameRate: null,
+      duration: null,
+      fileSize: null,
+      mimetype: null,
+      uploaded: null,
+
+      albums: [],
+      tags: [],
+      people: [],
+    }),
+    fillMetadata({
+      id: id2,
+      catalog: "c1",
+      created: expect.toEqualDate(createdMoment2),
+
+      height: null,
+      width: null,
+      bitRate: null,
+      frameRate: null,
+      duration: null,
+      fileSize: null,
+      mimetype: null,
+      uploaded: null,
+
+      albums: [],
+      tags: [],
+      people: [],
+    }),
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id2},${id1}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    fillMetadata({
+      id: id2,
+      catalog: "c1",
+      created: expect.toEqualDate(createdMoment2),
+
+      height: null,
+      width: null,
+      bitRate: null,
+      frameRate: null,
+      duration: null,
+      fileSize: null,
+      mimetype: null,
+      uploaded: null,
+
+      albums: [],
+      tags: [],
+      people: [],
+    }),
+    fillMetadata({
+      id: id1,
+      catalog: "c1",
+      created: expect.toEqualDate(createdMoment1),
+
+      height: null,
+      width: null,
+      bitRate: null,
+      frameRate: null,
+      duration: null,
+      fileSize: null,
+      mimetype: null,
+      uploaded: null,
+
+      albums: [],
+      tags: [],
+      people: [],
+    }),
+  ]);
+});
+
+test("Media relations", async (): Promise<void> => {
+  const request = agent();
+  let db = await connection;
+  let user1Db = db.forUser("someone1@nowhere.com");
+
+  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => createdMoment1);
+  let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
+
+  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
+  mockedMoment.mockImplementationOnce((): Moment => createdMoment2);
+  let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let media1 = fillMetadata({
+    id: id1,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment1),
+
+    height: null,
+    width: null,
+    bitRate: null,
+    frameRate: null,
+    duration: null,
+    fileSize: null,
+    mimetype: null,
+    uploaded: null,
+
+    albums: [] as Api.Album[],
+    tags: [] as Api.Tag[],
+    people: [] as Api.Person[],
+  });
+
+  let media2 = fillMetadata({
+    id: id2,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment2),
+
+    height: null,
+    width: null,
+    bitRate: null,
+    frameRate: null,
+    duration: null,
+    fileSize: null,
+    mimetype: null,
+    uploaded: null,
+
+    albums: [] as Api.Album[],
+    tags: [] as Api.Tag[],
+    people: [] as Api.Person[],
+  });
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "add",
+      type: "tag",
+      media: [id1],
+      items: ["t1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  media1.tags = [{
+    "catalog": "c1",
+    "id": "t1",
+    "name": "tag1",
+    "parent": null,
+  }];
+
+  expect(response.body).toEqual([
+    media1,
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "add",
+      type: "tag",
+      media: [id1],
+      items: ["t2"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  media1.tags = [{
+    "catalog": "c1",
+    "id": "t1",
+    "name": "tag1",
+    "parent": null,
+  }, {
+    "catalog": "c1",
+    "id": "t2",
+    "name": "tag2",
+    "parent": null,
+  }];
+
+  expect(response.body).toEqual([
+    media1,
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "delete",
+      type: "tag",
+      media: [id1],
+      items: ["t1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  media1.tags = [{
+    "catalog": "c1",
+    "id": "t2",
+    "name": "tag2",
+    "parent": null,
+  }];
+
+  expect(response.body).toEqual([
+    media1,
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "setRelations",
+      type: "tag",
+      media: [id1],
+      items: ["t1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  media1.tags = [{
+    "catalog": "c1",
+    "id": "t1",
+    "name": "tag1",
+    "parent": null,
+  }];
+
+  expect(response.body).toEqual([
+    media1,
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "add",
+      type: "tag",
+      media: [id1],
+      items: ["t2"],
+    }, {
+      operation: "delete",
+      type: "tag",
+      media: [id1],
+      items: ["t1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  media1.tags = [{
+    "catalog": "c1",
+    "id": "t2",
+    "name": "tag2",
+    "parent": null,
+  }];
+
+  expect(response.body).toEqual([
+    media1,
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "add",
+      type: "tag",
+      media: [id1],
+      items: ["t1"],
+    }, {
+      operation: "add",
+      type: "tag",
+      media: [id1],
+      items: ["t5"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "setMedia",
+      type: "tag",
+      media: [id2],
+      items: ["t2"],
+    }, {
+      operation: "setMedia",
+      type: "tag",
+      media: [id1],
+      items: ["t1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  media1.tags = [{
+    "catalog": "c1",
+    "id": "t1",
+    "name": "tag1",
+    "parent": null,
+  }];
+  media2.tags = [{
+    "catalog": "c1",
+    "id": "t2",
+    "name": "tag2",
+    "parent": null,
+  }];
+
+  expect(response.body).toInclude([
+    media1,
+    media2,
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id1},${id2}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    media1,
+    media2,
+  ]);
 });

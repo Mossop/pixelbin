@@ -4,7 +4,7 @@ import { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
 import { Api, Create, Patch } from "../../../model";
-import { getLogger, DateDecoder, NumericDecoder } from "../../../utils";
+import { getLogger, DateDecoder, NumericDecoder, MappingDecoder } from "../../../utils";
 
 export type DeBlobbed<T> = {
   [K in keyof T]: T[K] extends Blob ? File : T[K];
@@ -87,6 +87,18 @@ export const PersonEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Person
   name: JsonDecoder.optional(JsonDecoder.string),
 }, "PersonEditRequest"));
 
+export const MediaGetRequest = jsonDecoder(
+  MappingDecoder(
+    JsonDecoder.object({
+      id: JsonDecoder.string,
+    }, "MediaGetRequest"),
+    (data: { id: string }): string[] => {
+      return data.id.split(",");
+    },
+    "media[]",
+  ),
+);
+
 export async function MediaCreateRequest(
   data: unknown,
   files: Files | undefined,
@@ -152,3 +164,41 @@ export const MediaThumbnailRequest = jsonDecoder(JsonDecoder.object<Api.MediaThu
   id: JsonDecoder.string,
   size: NumericDecoder,
 }, "MediaThumbnailRequest"));
+
+const RelationTypeDecoder = JsonDecoder.oneOf([
+  JsonDecoder.isExactly(Api.RelationType.Album),
+  JsonDecoder.isExactly(Api.RelationType.Tag),
+  JsonDecoder.isExactly(Api.RelationType.Person),
+], "RelationType");
+
+const MediaRelationChangeDecoder = JsonDecoder.oneOf<Api.MediaRelationChange>([
+  JsonDecoder.object<Api.MediaRelationAdd>({
+    operation: JsonDecoder.isExactly("add"),
+    type: RelationTypeDecoder,
+    media: JsonDecoder.array(JsonDecoder.string, "media[]"),
+    items: JsonDecoder.array(JsonDecoder.string, "item[]"),
+  }, "MediaRelationAdd"),
+  JsonDecoder.object<Api.MediaRelationDelete>({
+    operation: JsonDecoder.isExactly("delete"),
+    type: RelationTypeDecoder,
+    media: JsonDecoder.array(JsonDecoder.string, "media[]"),
+    items: JsonDecoder.array(JsonDecoder.string, "item[]"),
+  }, "MediaRelationDelete"),
+  JsonDecoder.object<Api.MediaSetRelations>({
+    operation: JsonDecoder.isExactly("setRelations"),
+    type: RelationTypeDecoder,
+    media: JsonDecoder.array(JsonDecoder.string, "media[]"),
+    items: JsonDecoder.array(JsonDecoder.string, "item[]"),
+  }, "MediaSetRelations"),
+  JsonDecoder.object<Api.RelationsSetMedia>({
+    operation: JsonDecoder.isExactly("setMedia"),
+    type: RelationTypeDecoder,
+    items: JsonDecoder.array(JsonDecoder.string, "item[]"),
+    media: JsonDecoder.array(JsonDecoder.string, "media[]"),
+  }, "RelationsSetMedia"),
+], "MediaRelationChange");
+
+export const MediaRelationsRequest = jsonDecoder(JsonDecoder.array(
+  MediaRelationChangeDecoder,
+  "MediaRelationChange[]",
+));
