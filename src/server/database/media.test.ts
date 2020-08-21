@@ -344,7 +344,7 @@ test("Media tests", async (): Promise<void> => {
 
   // Cannot get media in a catalog the user cannot access.
   [foundMedia] = await user3Db.getMedia([newMedia.id]);
-  expect(foundMedia).toBeNull();
+  expect(foundMedia).toBeUndefined();
 
   // Cannot list alternates for media the user cannot access.
   list = await user2Db.listAlternateFiles(id, AlternateFileType.Poster);
