@@ -32,6 +32,12 @@ export const LoginRequest = jsonDecoder(JsonDecoder.object<Api.LoginRequest>({
   password: JsonDecoder.string,
 }, "LoginRequest"));
 
+export const SignupRequest = jsonDecoder(JsonDecoder.object<Api.SignupRequest>({
+  email: JsonDecoder.string,
+  password: JsonDecoder.string,
+  fullname: JsonDecoder.string,
+}, "SignupRequest"));
+
 const StorageCreateDecoder = JsonDecoder.object<Create<Api.Storage>>({
   name: JsonDecoder.string,
   accessKeyId: JsonDecoder.string,

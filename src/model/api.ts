@@ -94,6 +94,10 @@ export interface MediaThumbnailRequest {
   size: number;
 }
 
+export type SignupRequest = Omit<ObjectModel.User, "hadCatalog" | "verified"> & {
+  password: string;
+};
+
 export enum RelationType {
   Tag = "tag",
   Album = "album",
@@ -135,6 +139,7 @@ export enum Method {
   State = "state",
   Login = "login",
   Logout = "logout",
+  Signup = "signup",
   CatalogCreate = "catalog/create",
   AlbumCreate = "album/create",
   AlbumEdit = "album/edit",
@@ -158,6 +163,7 @@ export const HttpMethods: MethodList = {
   [Method.State]: "GET",
   [Method.Login]: "POST",
   [Method.Logout]: "POST",
+  [Method.Signup]: "PUT",
   [Method.CatalogCreate]: "PUT",
   [Method.AlbumCreate]: "PUT",
   [Method.AlbumEdit]: "PATCH",
@@ -190,6 +196,7 @@ export interface Signatures {
   [Method.State]: Signature<None, State>;
   [Method.Login]: Signature<LoginRequest, State>;
   [Method.Logout]: Signature<None, State>;
+  [Method.Signup]: Signature<SignupRequest, State>;
   [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;

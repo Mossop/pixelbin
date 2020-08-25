@@ -20,12 +20,7 @@ export async function logout(): Promise<ServerState> {
   return serverStateIntoState(state);
 }
 
-export interface SignupRequest {
-  email: string;
-  fullname: string;
-  password: string;
-}
-
-export async function signup(_data: SignupRequest): Promise<ServerState> {
-  throw new Error("Not implemented");
+export async function signup(data: Api.SignupRequest): Promise<ServerState> {
+  let state = await request(Api.Method.Signup, data);
+  return serverStateIntoState(state);
 }

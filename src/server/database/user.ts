@@ -1,5 +1,6 @@
 import { DatabaseConnection } from "./connection";
-import { from } from "./queries";
+import { DatabaseError, DatabaseErrorCode } from "./error";
+import { from, insert } from "./queries";
 import { Tables, Table, intoAPITypes } from "./types";
 
 type UserWithoutPassword = Omit<Tables.User, "password">;
@@ -18,4 +19,22 @@ export async function getUser(
     return intoAPITypes(user);
   }
   return result;
+}
+
+export async function createUser(
+  this: DatabaseConnection,
+  user: Omit<Tables.User, "hadCatalog" | "verified">,
+): Promise<UserWithoutPassword> {
+  let results = await insert(this.knex, Table.User, {
+    ...user,
+    hadCatalog: false,
+    verified: true,
+  }).returning("*");
+
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Error creating user.");
+  }
+
+  let { password, ...newUser } = intoAPITypes(results[0]);
+  return newUser;
 }

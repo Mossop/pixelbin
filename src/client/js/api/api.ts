@@ -27,6 +27,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.State]: JsonDecoderDecoder(Decoders.StateDecoder),
   [Api.Method.Login]: JsonDecoderDecoder(Decoders.StateDecoder),
   [Api.Method.Logout]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Api.Method.Signup]: JsonDecoderDecoder(Decoders.StateDecoder),
   [Api.Method.CatalogCreate]: JsonDecoderDecoder(Decoders.CatalogDecoder),
   [Api.Method.AlbumCreate]: JsonDecoderDecoder(Decoders.AlbumDecoder),
   [Api.Method.AlbumEdit]: JsonDecoderDecoder(Decoders.AlbumDecoder),

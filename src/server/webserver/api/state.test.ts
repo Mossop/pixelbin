@@ -125,3 +125,97 @@ test("login failure", async (): Promise<void> => {
     user: null,
   });
 });
+
+test("signup", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: null,
+  });
+
+  response = await request
+    .put("/api/signup")
+    .send({
+      email: "foo@bar.com",
+      fullname: "Me",
+      password: "dfght56",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: {
+      email: "foo@bar.com",
+      fullname: "Me",
+      hadCatalog: false,
+      verified: true,
+      catalogs: [],
+      albums: [],
+      tags: [],
+      people: [],
+    },
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: {
+      email: "foo@bar.com",
+      fullname: "Me",
+      hadCatalog: false,
+      verified: true,
+      catalogs: [],
+      albums: [],
+      tags: [],
+      people: [],
+    },
+  });
+
+  response = await request
+    .post("/api/logout")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: null,
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: null,
+  });
+
+  response = await request
+    .post("/api/login")
+    .send({
+      email: "foo@bar.com",
+      password: "dfght56",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    user: {
+      email: "foo@bar.com",
+      fullname: "Me",
+      hadCatalog: false,
+      verified: true,
+      catalogs: [],
+      albums: [],
+      tags: [],
+      people: [],
+    },
+  });
+});

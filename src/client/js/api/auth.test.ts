@@ -9,7 +9,7 @@ import {
   callInfo,
 } from "../test-helpers/api";
 import { ErrorCode } from "../utils/exception";
-import { state, login, logout } from "./auth";
+import { state, login, logout, signup } from "./auth";
 
 jest.mock("../environment/fetch");
 
@@ -161,6 +161,52 @@ test("Logout", async (): Promise<void> => {
     path: "http://pixelbin/api/logout",
     headers: {
       "X-CSRFToken": "csrf-foobar",
+    },
+  });
+});
+
+test("Signup", async (): Promise<void> => {
+  mockResponse(mockedFetch, new MockResponse<Api.State>(200, {
+    user: {
+      email: "dtownsend@oxymoronical.com",
+      fullname: "Dave Townsend",
+      hadCatalog: false,
+      verified: true,
+      catalogs: [],
+      people: [],
+      tags: [],
+      albums: [],
+    },
+  }));
+
+  let result = await signup({
+    email: "dtownsend@oxymoronical.com",
+    fullname: "Dave Townsend",
+    password: "foobar67",
+  });
+
+  expect(result).toEqual({
+    user: {
+      email: "dtownsend@oxymoronical.com",
+      fullname: "Dave Townsend",
+      hadCatalog: false,
+      verified: true,
+      catalogs: mapOf({}),
+    },
+  });
+
+  let info = callInfo(mockedFetch);
+  expect(info).toEqual({
+    method: "PUT",
+    path: "http://pixelbin/api/signup",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": "csrf-foobar",
+    },
+    body: {
+      email: "dtownsend@oxymoronical.com",
+      fullname: "Dave Townsend",
+      password: "foobar67",
     },
   });
 });

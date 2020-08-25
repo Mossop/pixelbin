@@ -38,3 +38,10 @@ export async function logout(ctx: AppContext): Promise<Api.State> {
 
   return buildState(ctx);
 }
+
+export async function signup(ctx: AppContext, data: Api.SignupRequest): Promise<Api.State> {
+  await ctx.dbConnection.createUser(data);
+  await ctx.login(data.email, data.password);
+
+  return buildState(ctx);
+}

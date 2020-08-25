@@ -112,6 +112,7 @@ export class DatabaseConnection {
   public readonly getStorageConfig = wrapped(Unsafe.getStorageConfig);
 
   public readonly getUser = wrapped(UserQueries.getUser);
+  public readonly createUser = wrapped(UserQueries.createUser);
 
   public static async connect(config: DatabaseConfig): Promise<DatabaseConnection> {
     let schema = process.env.NODE_ENV == "test" ? `test${process.pid}` : undefined;

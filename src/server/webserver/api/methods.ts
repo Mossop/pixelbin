@@ -15,7 +15,7 @@ import {
 import * as Decoders from "./decoders";
 import { DeBlobbed } from "./decoders";
 import { getMedia, createMedia, thumbnail, relations } from "./media";
-import { getState, login, logout } from "./state";
+import { getState, login, logout, signup } from "./state";
 
 export class DirectResponse {
   public constructor(
@@ -39,6 +39,7 @@ type ResponseType<T> = T extends Blob ? DirectResponse : Api.ResponseFor<T>;
 
 export const apiDecoders: RequestDecoders = {
   [Api.Method.Login]: Decoders.LoginRequest,
+  [Api.Method.Signup]: Decoders.SignupRequest,
   [Api.Method.CatalogCreate]: Decoders.CatalogCreateRequest,
   [Api.Method.AlbumCreate]: Decoders.AlbumCreateRequest,
   [Api.Method.AlbumEdit]: Decoders.AlbumEditRequest,
@@ -64,6 +65,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.State]: getState,
   [Api.Method.Login]: login,
   [Api.Method.Logout]: logout,
+  [Api.Method.Signup]: signup,
   [Api.Method.CatalogCreate]: createCatalog,
   [Api.Method.AlbumCreate]: createAlbum,
   [Api.Method.AlbumEdit]: editAlbum,
