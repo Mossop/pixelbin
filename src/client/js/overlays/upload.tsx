@@ -9,9 +9,7 @@ import {
 import React, { Fragment, PureComponent, createRef, ReactNode, RefObject } from "react";
 
 import { Reference, Catalog, Derefer, dereferencer, Tag, Person } from "../api/highlevel";
-import { createMedia, MediaTarget } from "../api/media";
-import { setOrientation } from "../api/metadata";
-import { MediaCreateData } from "../api/types";
+import { createMedia, MediaCreateData, MediaTarget } from "../api/media";
 import Button from "../components/Button";
 import { FormFields, FormField } from "../components/Form";
 import Media from "../components/Media";
@@ -166,7 +164,7 @@ class UploadOverlay extends PureComponent<UploadOverlayProps, UploadOverlayState
     };
 
     if (pending.orientation) {
-      setOrientation(media, pending.orientation);
+      media.orientation = pending.orientation;
     }
 
     try {

@@ -1,10 +1,10 @@
 import { Deed } from "deeds/immer";
 import { Draft } from "immer";
 
-import { ServerData } from "../api/types";
+import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
-import { mockStoreState, mockServerData, expect } from "../test-helpers";
+import { mockStoreState, mockServerState, expect } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
 import { UIState } from "./types";
@@ -14,12 +14,12 @@ test("Logging in with a catalog", (): void => {
     serverState: { user: null },
   });
 
-  let newServerData = mockServerData([{
+  let newServerState = mockServerState([{
     id: "testcatalog",
     name: "Test catalog",
   }]);
 
-  let action = actions.completeLogin(newServerData);
+  let action = actions.completeLogin(newServerState);
   let newState = reducer(state, action);
 
   let expectedUI = {
@@ -29,7 +29,7 @@ test("Logging in with a catalog", (): void => {
     },
   };
 
-  expect(newState.serverState).toEqual(newServerData);
+  expect(newState.serverState).toEqual(newServerState);
   expect(newState.ui).toEqual(expectedUI);
 });
 
@@ -38,7 +38,7 @@ test("Logging in with multiple catalogs", (): void => {
     serverState: { user: null },
   });
 
-  let newServerData = mockServerData([{
+  let newServerState = mockServerState([{
     id: "testcatalog1",
     name: "Test catalog",
   }, {
@@ -46,7 +46,7 @@ test("Logging in with multiple catalogs", (): void => {
     name: "Another test catalog",
   }]);
 
-  let action = actions.completeLogin(newServerData);
+  let action = actions.completeLogin(newServerState);
   let newState = reducer(state, action);
 
   let expectedUI = {
@@ -56,7 +56,7 @@ test("Logging in with multiple catalogs", (): void => {
     },
   };
 
-  expect(newState.serverState).toEqual(newServerData);
+  expect(newState.serverState).toEqual(newServerState);
   expect(newState.ui).toEqual(expectedUI);
 });
 
@@ -65,7 +65,7 @@ test("Logging in with no catalogs", (): void => {
     serverState: { user: null },
   });
 
-  let newServerData: ServerData = {
+  let newServerState: ServerState = {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
@@ -75,7 +75,7 @@ test("Logging in with no catalogs", (): void => {
     },
   };
 
-  let action = actions.completeLogin(newServerData);
+  let action = actions.completeLogin(newServerState);
   let newState = reducer(state, action);
 
   let expectedUI = {
@@ -84,7 +84,7 @@ test("Logging in with no catalogs", (): void => {
     },
   };
 
-  expect(newState.serverState).toEqual(newServerData);
+  expect(newState.serverState).toEqual(newServerState);
   expect(newState.ui).toEqual(expectedUI);
 });
 
@@ -93,7 +93,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
     serverState: { user: null },
   });
 
-  let newServerData: ServerData = {
+  let newServerState: ServerState = {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
@@ -103,7 +103,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
     },
   };
 
-  let action = actions.completeLogin(newServerData);
+  let action = actions.completeLogin(newServerState);
   let newState = reducer(state, action);
 
   let expectedUI = {
@@ -115,7 +115,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
     },
   };
 
-  expect(newState.serverState).toEqual(newServerData);
+  expect(newState.serverState).toEqual(newServerState);
   expect(newState.ui).toEqual(expectedUI);
 });
 
@@ -168,7 +168,7 @@ test("Creating a user.", (): void => {
 
   expect(newState.ui).toEqual(expectedUI);
 
-  action = actions.completeSignup(mockServerData([]));
+  action = actions.completeSignup(mockServerState([]));
   newState = reducer(newState, action);
 
   expectedUI = {
@@ -182,7 +182,7 @@ test("Creating a user.", (): void => {
 
   expect(newState.ui).toEqual(expectedUI);
 
-  action = actions.completeLogout(mockServerData([]));
+  action = actions.completeLogout(mockServerState([]));
   newState = reducer(newState, action);
 
   expectedUI = {

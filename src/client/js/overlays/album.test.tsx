@@ -1,10 +1,11 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
+import { Api } from "../../../model";
 import { lastCallArgs, mockedFunction } from "../../../test-helpers";
+import { request } from "../api/api";
 import { Catalog, Album } from "../api/highlevel";
-import request from "../api/request";
-import { ApiMethod, AlbumData } from "../api/types";
+import { AlbumState } from "../api/types";
 import {
   expect,
   render,
@@ -13,13 +14,13 @@ import {
   mockStoreState,
   typeString,
   resetDOM,
-  mockServerData,
+  mockServerState,
   click,
   deferRequest,
 } from "../test-helpers";
 import AlbumOverlay from "./album";
 
-jest.mock("../api/request");
+jest.mock("../api/api");
 
 const mockedRequest = mockedFunction(request);
 
@@ -27,7 +28,7 @@ afterEach(resetDOM);
 
 test("create album", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
-    serverState: mockServerData([{
+    serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
       albums: [{
@@ -57,7 +58,7 @@ test("create album", async (): Promise<void> => {
   let title = expectChild(container, "#overlay-header .title");
   expect(title.textContent).toBe("album-create-title");
 
-  let { resolve } = deferRequest<AlbumData>();
+  let { resolve } = deferRequest<AlbumState>();
 
   form.submit();
 
@@ -65,31 +66,30 @@ test("create album", async (): Promise<void> => {
     expect(nameInput.disabled).toBeTruthy();
   });
 
-  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.AlbumCreate, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.AlbumCreate, {
     catalog: expect.toBeRef("catalog"),
     parent: null,
     name: "Foo",
   }]);
 
-  let albumData: AlbumData = {
+  let albumState: AlbumState = {
     id: "album3",
     catalog: Catalog.ref("catalog"),
-    stub: null,
     name: "Foo",
     parent: null,
   };
 
-  await resolve(albumData);
+  await resolve(albumState);
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumCreated",
-    payload: [albumData],
+    payload: [albumState],
   });
 });
 
 test("edit album", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
-    serverState: mockServerData([{
+    serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
       albums: [{
@@ -128,7 +128,7 @@ test("edit album", async (): Promise<void> => {
   let catalog = expectChild(container, ".site-tree .depth0 > button");
   click(catalog);
 
-  let { resolve } = deferRequest<AlbumData>();
+  let { resolve } = deferRequest<AlbumState>();
 
   form.submit();
 
@@ -136,25 +136,24 @@ test("edit album", async (): Promise<void> => {
     expect(nameInput.disabled).toBeTruthy();
   });
 
-  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.AlbumEdit, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.AlbumEdit, {
     id: expect.toBeRef("album2"),
     catalog: expect.toBeRef("catalog"),
     parent: null,
     name: "Foo",
   }]);
 
-  let albumData: AlbumData = {
+  let AlbumState: AlbumState = {
     id: "album2",
     catalog: Catalog.ref("catalog"),
-    stub: null,
     name: "Foo",
     parent: null,
   };
 
-  await resolve(albumData);
+  await resolve(AlbumState);
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumEdited",
-    payload: [albumData],
+    payload: [AlbumState],
   });
 });

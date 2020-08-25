@@ -1,7 +1,8 @@
 import { JsonDecoder } from "ts.data.json";
 
 import { decode, MappingDecoder } from "../../../utils";
-import { ServerData, ServerDataDecoder } from "../api/types";
+import { StateDecoder } from "../api/decoders";
+import { ServerState, serverStateIntoState } from "../api/types";
 import { document, URL } from "../environment";
 
 export enum Url {
@@ -76,11 +77,12 @@ export function appURL(key: Url, relative?: string): URL {
   return base;
 }
 
-export function initialServerState(): ServerData {
+export function initialServerState(): ServerState {
   let stateElement = document.getElementById("initial-state");
   if (stateElement?.textContent) {
     try {
-      return decode(ServerDataDecoder, JSON.parse(stateElement.textContent));
+      let apiState = decode(StateDecoder, JSON.parse(stateElement.textContent));
+      return serverStateIntoState(apiState);
     } catch (e) {
       console.error(e);
     }

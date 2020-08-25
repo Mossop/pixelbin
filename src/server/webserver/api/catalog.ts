@@ -1,7 +1,8 @@
-import { Api, Create, Patch } from "../../../model";
+import { Api, Create, ObjectModel, Patch, ResponseFor } from "../../../model";
 import { UserScopedConnection } from "../../database";
 import { ensureAuthenticated } from "../auth";
 import { AppContext } from "../context";
+import { buildResponseMedia } from "./media";
 
 export const createCatalog = ensureAuthenticated(
   async (
@@ -9,7 +10,7 @@ export const createCatalog = ensureAuthenticated(
     userDb: UserScopedConnection,
     data: Api.CatalogCreateRequest,
   ): Promise<Api.Catalog> => {
-    let catalogData: Create<Api.Catalog>;
+    let catalogData: Create<ObjectModel.Catalog>;
     if (typeof data.storage != "string") {
       let storage = await userDb.createStorage(data.storage);
       catalogData = {
@@ -52,8 +53,10 @@ export const listAlbum = ensureAuthenticated(
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: Api.AlbumListRequest,
-  ): Promise<Api.Media[]> => {
-    return userDb.listMediaInAlbum(data.id, data.recursive);
+  ): Promise<ResponseFor<Api.Media>[]> => {
+    let media = await userDb.listMediaInAlbum(data.id, data.recursive);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return media.map(buildResponseMedia);
   },
 );
 

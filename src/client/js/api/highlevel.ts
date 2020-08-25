@@ -2,8 +2,14 @@ import actions from "../store/actions";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId } from "../utils/maps";
 import type { MapId } from "../utils/maps";
-import type { ProcessedMediaData, UnprocessedMediaData } from "./media";
-import type { ServerData, AlbumData, CatalogData, TagData, PersonData } from "./types";
+import {
+  ServerState,
+  CatalogState,
+  AlbumState,
+  TagState,
+  PersonState,
+  MediaState,
+} from "./types";
 
 interface StateCache {
   readonly albums: Map<string, Album>;
@@ -12,50 +18,48 @@ interface StateCache {
   readonly catalogs: Map<string, Catalog>;
 }
 
-const STATE_CACHE: WeakMap<ServerData, StateCache> = new WeakMap();
+const STATE_CACHE: WeakMap<ServerState, StateCache> = new WeakMap();
 
-function buildStateCache(serverData: ServerData): StateCache {
+function buildStateCache(serverState: ServerState): StateCache {
   let cache: StateCache = {
     albums: new Map<string, Album>(),
     tags: new Map<string, Tag>(),
     people: new Map<string, Person>(),
     catalogs: new Map<string, Catalog>(),
   };
-  STATE_CACHE.set(serverData, cache);
+  STATE_CACHE.set(serverState, cache);
   return cache;
 }
 
-function getStateCache(serverData: ServerData): StateCache {
-  return STATE_CACHE.get(serverData) ?? buildStateCache(serverData);
+function getStateCache(serverState: ServerState): StateCache {
+  return STATE_CACHE.get(serverState) ?? buildStateCache(serverState);
 }
 
 export interface APIItemBuilder<T> {
-  fromState: (ServerData: ServerData, id: string) => T;
+  fromState: (serverState: ServerState, id: string) => T;
 }
 
 export interface Reference<T> {
   readonly id: string;
-  readonly deref: (ServerData: ServerData) => T;
+  readonly deref: (serverState: ServerState) => T;
   readonly toString: () => string;
 }
 
-export function isReference<T>(data: unknown): data is Reference<T> {
-  return data && typeof data == "object" && "deref" in data;
-}
-
-export type Media = ProcessedMediaData | UnprocessedMediaData;
-export function mediaRef(media: Media): Reference<Media> {
+export type Media = MediaState;
+export function mediaRef(media: MediaState): Reference<Media> {
   return {
     id: media.id,
-    deref: (): Media => media,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    deref: (): MediaState => media,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     toString: (): string => media.id,
   };
 }
 
 export type Derefer = <T>(ref: Reference<T> | undefined) => T | undefined;
 
-export function dereferencer(serverData: ServerData): Derefer {
-  return <T>(ref: Reference<T> | undefined): T | undefined => ref?.deref(serverData);
+export function dereferencer(serverState: ServerState): Derefer {
+  return <T>(ref: Reference<T> | undefined): T | undefined => ref?.deref(serverState);
 }
 
 export interface Referencable<T> {
@@ -70,8 +74,8 @@ interface Pending<T> {
 export class APIItemReference<T> implements Reference<T> {
   public constructor(public readonly id: string, private cls: APIItemBuilder<T>) {}
 
-  public deref(serverData: ServerData): T {
-    return this.cls.fromState(serverData, this.id);
+  public deref(serverState: ServerState): T {
+    return this.cls.fromState(serverState, this.id);
   }
 
   public toString(): string {
@@ -100,48 +104,58 @@ export abstract class APIItem<T> {
 
 export class Tag implements Referencable<Tag> {
   private constructor(
-    private readonly serverData: ServerData,
-    private readonly state: TagData,
+    private readonly serverState: ServerState,
+    private readonly state: TagState,
   ) {}
 
+  public toState(): TagState {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      ...this.state,
+    };
+  }
+
   public get catalog(): Catalog {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.serverData);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.state.catalog.deref(this.serverState);
   }
 
   public get id(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get name(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 
   public get parent(): Tag | undefined {
-    return this.state.parent?.deref(this.serverData);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.state.parent?.deref(this.serverState);
   }
 
   public get children(): Tag[] {
-    let { user } = this.serverData;
+    let { user } = this.serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
 
-    let catalogState: CatalogData | undefined = user.catalogs.get(this.state.catalog.id);
+    let catalogState: CatalogState | undefined = user.catalogs.get(this.state.catalog.id);
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);
     }
 
     return Array.from(catalogState.tags.values())
-      .filter((tagState: TagData): boolean => tagState.parent?.id == this.id)
+      .filter((tagState: TagState): boolean => tagState.parent?.id == this.id)
       .map(
-        (tagState: TagData): Tag =>
-          Tag.fromState(this.serverData, tagState.id),
+        (tagState: TagState): Tag =>
+          Tag.fromState(this.serverState, tagState.id),
       );
   }
 
-  public static ref(data: MapId<TagData>): Reference<Tag> {
+  public static ref(data: MapId<TagState>): Reference<Tag> {
     return new APIItemReference(intoId(data), Tag);
   }
 
@@ -149,14 +163,14 @@ export class Tag implements Referencable<Tag> {
     return new APIItemReference(this.id, Tag);
   }
 
-  public static fromState(serverData: ServerData, id: string): Tag {
-    let cache = getStateCache(serverData);
+  public static fromState(serverState: ServerState, id: string): Tag {
+    let cache = getStateCache(serverState);
     let tag = cache.tags.get(id);
     if (tag) {
       return tag;
     }
 
-    let { user } = serverData;
+    let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -164,7 +178,7 @@ export class Tag implements Referencable<Tag> {
     for (let catalog of user.catalogs.values()) {
       let tagState = catalog.tags.get(id);
       if (tagState) {
-        tag = new Tag(serverData, tagState);
+        tag = new Tag(serverState, tagState);
         cache.tags.set(id, tag);
         return tag;
       }
@@ -174,11 +188,11 @@ export class Tag implements Referencable<Tag> {
   }
 
   public static safeFromState(
-    serverData: ServerData,
+    serverState: ServerState,
     id: string,
   ): Tag | undefined {
     try {
-      return Tag.fromState(serverData, id);
+      return Tag.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
@@ -187,24 +201,33 @@ export class Tag implements Referencable<Tag> {
 
 export class Person implements Referencable<Person> {
   private constructor(
-    private readonly serverData: ServerData,
-    private readonly state: PersonData,
+    private readonly serverState: ServerState,
+    private readonly state: PersonState,
   ) {}
 
+  public toState(): PersonState {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      ...this.state,
+    };
+  }
+
   public get catalog(): Catalog {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.serverData);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.state.catalog.deref(this.serverState);
   }
 
   public get id(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get name(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 
-  public static ref(data: MapId<PersonData>): Reference<Person> {
+  public static ref(data: MapId<PersonState>): Reference<Person> {
     return new APIItemReference(intoId(data), Person);
   }
 
@@ -213,16 +236,16 @@ export class Person implements Referencable<Person> {
   }
 
   public static fromState(
-    serverData: ServerData,
+    serverState: ServerState,
     id: string,
   ): Person {
-    let cache = getStateCache(serverData);
+    let cache = getStateCache(serverState);
     let person = cache.people.get(id);
     if (person) {
       return person;
     }
 
-    let { user } = serverData;
+    let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -230,7 +253,7 @@ export class Person implements Referencable<Person> {
     for (let catalog of user.catalogs.values()) {
       let personState = catalog.people.get(id);
       if (personState) {
-        person = new Person(serverData, personState);
+        person = new Person(serverState, personState);
         cache.people.set(id, person);
         return person;
       }
@@ -240,11 +263,11 @@ export class Person implements Referencable<Person> {
   }
 
   public static safeFromState(
-    serverData: ServerData,
+    serverState: ServerState,
     id: string,
   ): Person | undefined {
     try {
-      return Person.fromState(serverData, id);
+      return Person.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
@@ -253,48 +276,54 @@ export class Person implements Referencable<Person> {
 
 export class Album implements Referencable<Album> {
   private constructor(
-    private readonly serverData: ServerData,
-    private readonly state: AlbumData,
+    private readonly serverState: ServerState,
+    private readonly state: AlbumState,
   ) {}
 
+  public toState(): AlbumState {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      ...this.state,
+    };
+  }
+
   public get id(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get catalog(): Catalog {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return this.state.catalog.deref(this.serverData);
-  }
-
-  public get stub(): string | null {
-    return this.state.stub;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.state.catalog.deref(this.serverState);
   }
 
   public get name(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 
   public get parent(): Album | undefined {
-    return this.state.parent?.deref(this.serverData);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.state.parent?.deref(this.serverState);
   }
 
   public get children(): Album[] {
-    let { user } = this.serverData;
+    let { user } = this.serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
 
-    let catalogState: CatalogData | undefined = user.catalogs.get(this.state.catalog.id);
+    let catalogState: CatalogState | undefined = user.catalogs.get(this.state.catalog.id);
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);
     }
 
     return Array.from(catalogState.albums.values())
-      .filter((albumState: AlbumData): boolean => albumState.parent?.id == this.id)
+      .filter((albumState: AlbumState): boolean => albumState.parent?.id == this.id)
       .map(
-        (albumState: AlbumData): Album =>
-          Album.fromState(this.serverData, albumState.id),
+        (albumState: AlbumState): Album =>
+          Album.fromState(this.serverState, albumState.id),
       );
   }
 
@@ -309,7 +338,7 @@ export class Album implements Referencable<Album> {
     return false;
   }
 
-  public static ref(data: MapId<AlbumData>): Reference<Album> {
+  public static ref(data: MapId<AlbumState>): Reference<Album> {
     return new APIItemReference(intoId(data), Album);
   }
 
@@ -318,16 +347,16 @@ export class Album implements Referencable<Album> {
   }
 
   public static fromState(
-    serverData: ServerData,
+    serverState: ServerState,
     id: string,
   ): Album {
-    let cache = getStateCache(serverData);
+    let cache = getStateCache(serverState);
     let album = cache.albums.get(id);
     if (album) {
       return album;
     }
 
-    let { user } = serverData;
+    let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
@@ -335,7 +364,7 @@ export class Album implements Referencable<Album> {
     for (let catalog of user.catalogs.values()) {
       let state = catalog.albums.get(id);
       if (state) {
-        album = new Album(serverData, state);
+        album = new Album(serverState, state);
         cache.albums.set(id, album);
         return album;
       }
@@ -345,11 +374,11 @@ export class Album implements Referencable<Album> {
   }
 
   public static safeFromState(
-    serverData: ServerData,
+    serverState: ServerState,
     id: string,
   ): Album | undefined {
     try {
-      return Album.fromState(serverData, id);
+      return Album.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
@@ -358,28 +387,37 @@ export class Album implements Referencable<Album> {
 
 export class Catalog implements Referencable<Catalog> {
   private constructor(
-    private readonly serverData: ServerData,
-    private readonly state: CatalogData,
+    private readonly serverState: ServerState,
+    private readonly state: CatalogState,
   ) {}
 
+  public toState(): CatalogState {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      ...this.state,
+    };
+  }
+
   public get id(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get name(): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 
   public get rootAlbums(): Album[] {
     return Array.from(this.state.albums.values())
-      .filter((album: AlbumData): boolean => !album.parent)
-      .map((album: AlbumData): Album => Album.fromState(this.serverData, album.id));
+      .filter((album: AlbumState): boolean => !album.parent)
+      .map((album: AlbumState): Album => Album.fromState(this.serverState, album.id));
   }
 
   public get rootTags(): Tag[] {
     return Array.from(this.state.tags.values())
-      .filter((tag: TagData): boolean => !tag.parent)
-      .map((tag: TagData): Tag => Tag.fromState(this.serverData, tag.id));
+      .filter((tag: TagState): boolean => !tag.parent)
+      .map((tag: TagState): Tag => Tag.fromState(this.serverState, tag.id));
   }
 
   public findTag(path: string[]): Pending<Tag> {
@@ -398,12 +436,12 @@ export class Catalog implements Referencable<Catalog> {
 
   public get tags(): Tag[] {
     return Array.from(this.state.tags.keys()).map(
-      (id: string): Tag => Tag.fromState(this.serverData, id),
+      (id: string): Tag => Tag.fromState(this.serverState, id),
     );
   }
 
   public getAlbum(id: string): Album | undefined {
-    let album = Album.safeFromState(this.serverData, id);
+    let album = Album.safeFromState(this.serverState, id);
     if (album?.catalog !== this) {
       return undefined;
     }
@@ -412,7 +450,7 @@ export class Catalog implements Referencable<Catalog> {
 
   public get albums(): Album[] {
     return Array.from(this.state.albums.keys()).map(
-      (id: string): Album => Album.fromState(this.serverData, id),
+      (id: string): Album => Album.fromState(this.serverState, id),
     );
   }
 
@@ -435,11 +473,11 @@ export class Catalog implements Referencable<Catalog> {
 
   public get people(): Person[] {
     return Array.from(this.state.people.keys()).map(
-      (id: string): Person => Person.fromState(this.serverData, id),
+      (id: string): Person => Person.fromState(this.serverState, id),
     );
   }
 
-  public static ref(data: MapId<CatalogData>): Reference<Catalog> {
+  public static ref(data: MapId<CatalogState>): Reference<Catalog> {
     return new APIItemReference(intoId(data), Catalog);
   }
 
@@ -448,23 +486,23 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public static fromState(
-    serverData: ServerData,
+    serverState: ServerState,
     id: string,
   ): Catalog {
-    let cache = getStateCache(serverData);
+    let cache = getStateCache(serverState);
     let catalog = cache.catalogs.get(id);
     if (catalog) {
       return catalog;
     }
 
-    let { user } = serverData;
+    let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
     }
 
     let state = user.catalogs.get(id);
     if (state) {
-      catalog = new Catalog(serverData, state);
+      catalog = new Catalog(serverState, state);
       cache.catalogs.set(id, catalog);
       return catalog;
     }
@@ -473,22 +511,22 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public static safeFromState(
-    serverData: ServerData,
+    serverState: ServerState,
     id: string,
   ): Catalog | undefined {
     try {
-      return Catalog.fromState(serverData, id);
+      return Catalog.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }
   }
 }
 
-export function catalogs(serverData: ServerData): Catalog[] {
-  if (serverData.user) {
+export function catalogs(serverState: ServerState): Catalog[] {
+  if (serverState.user) {
     return Array.from(
-      serverData.user.catalogs.keys(),
-      (id: string): Catalog => Catalog.fromState(serverData, id),
+      serverState.user.catalogs.keys(),
+      (id: string): Catalog => Catalog.fromState(serverState, id),
     );
   }
   return [];

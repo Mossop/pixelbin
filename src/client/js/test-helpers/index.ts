@@ -1,11 +1,10 @@
+import { Api } from "../../../model";
 import { deferCall, DeferredCall } from "../../../test-helpers";
-import { isReference } from "../api/highlevel";
-import request from "../api/request";
-import { ApiErrorCode, ApiMethod } from "../api/types";
+import { request } from "../api/api";
 import { ErrorCode, AppError } from "../utils/exception";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toBeAppError(received: any, code: ErrorCode | ApiErrorCode): jest.CustomMatcherResult {
+function toBeAppError(received: any, code: ErrorCode | Api.ErrorCode): jest.CustomMatcherResult {
   if (received instanceof AppError) {
     if (received.code == code) {
       return {
@@ -29,7 +28,7 @@ function toBeAppError(received: any, code: ErrorCode | ApiErrorCode): jest.Custo
 const matchers = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toBeRef(received: any, id: string): jest.CustomMatcherResult {
-    if (isReference(received) && received.id == id) {
+    if (received && typeof received == "object" && "deref" in received && received.id == id) {
       return {
         message: (): string => `expected ${received} not to be a reference with id ${id}`,
         pass: true,
@@ -42,7 +41,7 @@ const matchers = {
     }
   },
 
-  toThrowAppError(received: () => void, code: ErrorCode | ApiErrorCode): jest.CustomMatcherResult {
+  toThrowAppError(received: () => void, code: ErrorCode | Api.ErrorCode): jest.CustomMatcherResult {
     try {
       received();
       return {
@@ -63,9 +62,9 @@ const jestExpect = expect as unknown as jest.ExtendedExpect<typeof matchers>;
 
 export const mapOf = <V>(obj: Record<string, V>): Map<string, V> => new Map(Object.entries(obj));
 
-export function deferRequest<R = unknown, D = unknown>(): DeferredCall<[ApiMethod, D], R> {
+export function deferRequest<R = unknown, D = unknown>(): DeferredCall<[Api.Method, D], R> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return deferCall(request as unknown as (method: ApiMethod, data: D) => Promise<R>);
+  return deferCall(request as unknown as (method: Api.Method, data: D) => Promise<R>);
 }
 
 export { jestExpect as expect };

@@ -1,22 +1,31 @@
-import request from "./request";
-import { ApiMethod } from "./types";
-import type { ServerData, UserCreateData } from "./types";
+import { Api } from "../../../model";
+import { request } from "./api";
+import { ServerState, serverStateIntoState } from "./types";
 
-export function state(): Promise<ServerData> {
-  return request(ApiMethod.State);
+export async function state(): Promise<ServerState> {
+  let state = await request(Api.Method.State);
+  return serverStateIntoState(state);
 }
 
-export function login(email: string, password: string): Promise<ServerData> {
-  return request(ApiMethod.Login, {
+export async function login(email: string, password: string): Promise<ServerState> {
+  let state = await request(Api.Method.Login, {
     email,
     password,
   });
+  return serverStateIntoState(state);
 }
 
-export function signup(data: UserCreateData): Promise<ServerData> {
-  return request(ApiMethod.UserCreate, data);
+export async function logout(): Promise<ServerState> {
+  let state = await request(Api.Method.Logout);
+  return serverStateIntoState(state);
 }
 
-export function logout(): Promise<ServerData> {
-  return request(ApiMethod.Logout);
+export interface SignupRequest {
+  email: string;
+  fullname: string;
+  password: string;
+}
+
+export async function signup(_data: SignupRequest): Promise<ServerState> {
+  throw new Error("Not implemented");
 }

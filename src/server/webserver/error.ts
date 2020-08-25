@@ -2,42 +2,29 @@ import { STATUS_CODES } from "http";
 
 import { Next, DefaultContext, DefaultState, ParameterizedContext, BaseContext } from "koa";
 
+import { Api } from "../../model";
 import { DatabaseError } from "../database";
 import { LoggingContext } from "./logging";
 
-export enum ApiErrorCode {
-  UnknownException = "server-failure",
-  BadMethod = "bad-method",
-  NotLoggedIn = "not-logged-in",
-  LoginFailed = "login-failed",
-  InvalidData = "invalid-data",
-  NotFound = "not-found",
-}
-
-const ApiErrorStatus: Record<ApiErrorCode, number> = {
-  [ApiErrorCode.UnknownException]: 500,
-  [ApiErrorCode.BadMethod]: 405,
-  [ApiErrorCode.NotLoggedIn]: 401,
-  [ApiErrorCode.LoginFailed]: 401,
-  [ApiErrorCode.InvalidData]: 400,
-  [ApiErrorCode.NotFound]: 404,
+const ApiErrorStatus: Record<Api.ErrorCode, number> = {
+  [Api.ErrorCode.UnknownException]: 500,
+  [Api.ErrorCode.BadMethod]: 405,
+  [Api.ErrorCode.NotLoggedIn]: 401,
+  [Api.ErrorCode.LoginFailed]: 401,
+  [Api.ErrorCode.InvalidData]: 400,
+  [Api.ErrorCode.NotFound]: 404,
 };
-
-export interface ApiErrorData {
-  readonly code: ApiErrorCode;
-  readonly data: unknown;
-}
 
 export class ApiError extends Error {
   public constructor(
-    public readonly code: ApiErrorCode,
-    public readonly data?: Record<string, unknown>,
+    public readonly code: Api.ErrorCode,
+    public readonly data?: Record<string, string>,
   ) {
     super(`Api error: ${code}`);
   }
 
   public send(ctx: BaseContext): void {
-    let body: ApiErrorData = {
+    let body: Api.ErrorData = {
       code: this.code,
       data: this.data,
     };
@@ -61,12 +48,12 @@ export async function errorHandler(
       error = e;
     } else if (e instanceof DatabaseError) {
       ctx.logger.warn(e, "Database error occured.");
-      error = new ApiError(ApiErrorCode.InvalidData, {
+      error = new ApiError(Api.ErrorCode.InvalidData, {
         message: String(e),
       });
     } else {
       ctx.logger.warn(e, "Application threw unknown exception.");
-      error = new ApiError(ApiErrorCode.UnknownException, {
+      error = new ApiError(Api.ErrorCode.UnknownException, {
         message: String(e),
       });
     }

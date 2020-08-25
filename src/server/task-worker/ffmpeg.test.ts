@@ -36,7 +36,6 @@ test("h264 encode", async (): Promise<void> => {
 
   try {
     let original = await probe(TEST_VIDEO);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let videoStream = original.videoStream!;
 
     let target = path.join(dir.path, "test.mp4");

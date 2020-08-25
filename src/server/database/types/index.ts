@@ -86,3 +86,7 @@ export const COLUMNS = {
     ...ObjectModel.metadataColumns,
   ],
 };
+
+export type UnprocessedMedia = ObjectModel.UnprocessedMedia;
+export type ProcessedMedia = ObjectModel.ProcessedMedia;
+export type Media = UnprocessedMedia | ProcessedMedia;

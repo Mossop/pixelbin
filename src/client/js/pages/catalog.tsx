@@ -1,8 +1,7 @@
-import { Immutable } from "immer";
 import React, { ReactNode, Fragment } from "react";
 
 import { Catalog, Reference } from "../api/highlevel";
-import { UserData } from "../api/types";
+import { UserState } from "../api/types";
 import Button from "../components/Button";
 import MediaList from "../components/MediaList";
 import Sidebar from "../components/Sidebar";
@@ -14,7 +13,7 @@ import { baseConnect, AuthenticatedPage } from "./BasePage";
 
 interface PassedProps {
   catalog: Reference<Catalog>;
-  user: Immutable<UserData>;
+  user: UserState;
 }
 
 interface FromStateProps {

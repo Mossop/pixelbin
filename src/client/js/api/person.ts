@@ -1,14 +1,17 @@
+import { Api } from "../../../model";
+import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
-import request from "./request";
-import { ApiMethod } from "./types";
-import type { PersonData } from "./types";
+import { personIntoState, PersonState } from "./types";
 
 export async function createPerson(
   catalog: Reference<Catalog>,
   name: string,
-): Promise<PersonData> {
-  return request(ApiMethod.PersonCreate, {
-    catalog,
+): Promise<PersonState> {
+  let result = await request(Api.Method.PersonCreate, {
+    catalog: catalog.id,
     name,
   });
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return personIntoState(result);
 }

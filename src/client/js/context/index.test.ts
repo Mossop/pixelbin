@@ -1,4 +1,4 @@
-import { expect, resetDOM, mockServerData } from "../test-helpers";
+import { expect, resetDOM, mockServerState } from "../test-helpers";
 import { serverDataIntoResponse } from "../test-helpers/api";
 
 beforeEach(resetDOM);
@@ -47,7 +47,7 @@ test("App container", async (): Promise<void> => {
 });
 
 test("Initial server state", async (): Promise<void> => {
-  let serverData = mockServerData();
+  let serverData = mockServerState();
 
   let element = document.createElement("pre");
   element.textContent = JSON.stringify(serverDataIntoResponse(serverData));

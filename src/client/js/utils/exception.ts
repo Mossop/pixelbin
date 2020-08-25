@@ -1,4 +1,4 @@
-import { ApiErrorData, ApiErrorCode } from "../api/types";
+import { Api } from "../../../model";
 import { l10nInfo, L10nInfo } from "../l10n";
 
 export enum ErrorCode {
@@ -17,12 +17,28 @@ export enum ErrorCode {
 }
 
 export abstract class AppError extends Error {
+  public readonly code: ErrorCode | Api.ErrorCode;
+  public readonly args: Record<string, string> | undefined;
+  public readonly error: Error | undefined;
+
   public constructor(
-    public readonly code: ErrorCode | ApiErrorCode,
-    public readonly args?: Record<string, string>,
-    public readonly error?: Error,
+    code: ErrorCode | Api.ErrorCode,
+    args?: Record<string, string>,
+    error?: Error,
   ) {
-    super(`Exception ${code}: ${JSON.stringify(args)}`);
+    let message = `Exception ${code}`;
+    if (error) {
+      message += `: ${error}`;
+    }
+    if (args) {
+      message += ` (${JSON.stringify(args)})`;
+    }
+
+    super(message);
+
+    this.code = code;
+    this.args = args;
+    this.error = error;
   }
 
   public abstract l10nInfo(): L10nInfo;
@@ -32,9 +48,9 @@ export class ApiError extends AppError {
   public constructor(
     public readonly httpCode: number,
     public readonly httpStatus: string,
-    data: ApiErrorData,
+    data: Api.ErrorData,
   ) {
-    super(data.code, data.args);
+    super(data.code, data.data);
   }
 
   public l10nInfo(): L10nInfo {

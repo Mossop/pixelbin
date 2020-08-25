@@ -2,13 +2,9 @@ import Knex, { Raw, Ref } from "knex";
 import { isMoment } from "moment-timezone";
 
 import { Table } from ".";
-import { Obj } from "../../../utils";
+import { AllNull, Obj } from "../../../utils";
 
 export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
-
-type AllNull<T> = {
-  [K in keyof T]: null;
-};
 
 export type AllOrNulls<T> = T | AllNull<T>;
 

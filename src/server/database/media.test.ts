@@ -66,6 +66,10 @@ test("Media tests", async (): Promise<void> => {
     created: expect.toEqualDate(createdMoment),
 
     title: "My title",
+
+    albums: [],
+    tags: [],
+    people: [],
   }));
 
   let [foundMedia] = await user3Db.getMedia([id]);
@@ -75,15 +79,6 @@ test("Media tests", async (): Promise<void> => {
     created: expect.toEqualDate(createdMoment),
 
     title: "My title", // Media set
-
-    uploaded: null,
-    mimetype: null,
-    width: null,
-    height: null,
-    duration: null,
-    fileSize: null,
-    bitRate: null,
-    frameRate: null,
 
     albums: [],
     tags: [],

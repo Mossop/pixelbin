@@ -1,8 +1,8 @@
 import React from "react";
 
+import { Api } from "../../../model";
 import { awaitCall } from "../../../test-helpers";
-import request from "../api/request";
-import { ApiMethod } from "../api/types";
+import { request } from "../api/api";
 import {
   expect,
   render,
@@ -11,14 +11,14 @@ import {
   click,
   mockStore,
   mockStoreState,
-  mockServerData,
+  mockServerState,
 } from "../test-helpers";
 import Banner from "./Banner";
 
 beforeEach(resetDOM);
 
 jest.mock("./Button");
-jest.mock("../api/request");
+jest.mock("../api/api");
 
 test("banner", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
@@ -49,7 +49,7 @@ test("banner", async (): Promise<void> => {
   });
   store.dispatch.mockClear();
 
-  store.state.serverState = mockServerData([]);
+  store.state.serverState = mockServerState([]);
   container = render(<Banner/>, store).container;
   banner = expectChild(container, "div#banner");
   store.dispatch.mockClear();
@@ -63,7 +63,7 @@ test("banner", async (): Promise<void> => {
   await promise;
 
   expect(request).toHaveBeenCalledTimes(1);
-  expect(request).toHaveBeenLastCalledWith(ApiMethod.Logout);
+  expect(request).toHaveBeenLastCalledWith(Api.Method.Logout);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
     type: "completeLogout",

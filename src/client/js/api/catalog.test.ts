@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { Api } from "../../../model";
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";
@@ -6,7 +7,6 @@ import {
   mockResponse,
   MockResponse,
   callInfo,
-  CatalogDataResponse,
 } from "../test-helpers/api";
 import { createCatalog } from "./catalog";
 
@@ -17,17 +17,12 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create catalog", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<CatalogDataResponse>(200, {
+  mockResponse(mockedFetch, new MockResponse<Api.Catalog>(200, {
     id: "testcatalog",
     name: "Test catalog",
-    people: [],
-    tags: [],
-    albums: [],
   }));
 
-  let result = await createCatalog("Test catalog", {
-    type: "server",
-  });
+  let result = await createCatalog("Test catalog");
 
   expect(result).toEqual({
     id: "testcatalog",

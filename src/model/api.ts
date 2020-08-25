@@ -1,9 +1,35 @@
-import { Files as Api } from "formidable";
+import { Files } from "formidable";
+import { Moment } from "moment-timezone";
 
-import { Nullable } from "../utils";
+import { Nullable, Primitive } from "../utils";
 import * as ObjectModel from "./models";
 
-export type RequestDecoder<R> = (data: unknown, files: Api | undefined) => Promise<R>;
+export enum ErrorCode {
+  UnknownException = "server-failure",
+  BadMethod = "bad-method",
+  NotLoggedIn = "not-logged-in",
+  LoginFailed = "login-failed",
+  InvalidData = "invalid-data",
+  NotFound = "not-found",
+}
+
+export interface ErrorData {
+  readonly code: ErrorCode;
+  readonly data?: Record<string, string>;
+}
+
+export type ResponseFor<T> =
+  T extends Moment
+    ? string
+    : T extends Primitive
+      ? T
+      : T extends (infer A)[]
+        ? ResponseFor<A>[]
+        : {
+          [K in keyof T]: ResponseFor<T[K]>;
+        };
+
+export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Promise<R>;
 
 export type UnprocessedMedia = Omit<ObjectModel.UnprocessedMedia, "catalog">;
 export type ProcessedMedia = Omit<ObjectModel.ProcessedMedia, "catalog">;
@@ -11,7 +37,7 @@ export type Media = UnprocessedMedia | ProcessedMedia;
 
 export type Storage = ObjectModel.Storage;
 export type PublicStorage = Omit<Storage, "accessKeyId" | "secretAccessKey">;
-export type Catalog = ObjectModel.Catalog;
+export type Catalog = Omit<ObjectModel.Catalog, "storage">;
 export type Album = ObjectModel.Album;
 export type Person = ObjectModel.Person;
 export type Tag = ObjectModel.Tag;
@@ -20,10 +46,10 @@ export interface StorageCreateRequest {
   storage: string | Create<Storage>;
 }
 
-export type CatalogCreateRequest = Omit<Create<Catalog>, "storage"> & StorageCreateRequest;
+export type CatalogCreateRequest = Create<Catalog> & StorageCreateRequest;
 
 export type User = ObjectModel.User & {
-  catalogs: Omit<Catalog, "storage">[],
+  catalogs: Catalog[],
   people: Person[],
   tags: Tag[],
   albums: Album[],
@@ -46,7 +72,9 @@ export interface AlbumListRequest {
   recursive: boolean;
 }
 
-export type MediaGetRequest = string[];
+export interface MediaGetRequest {
+  id: string;
+}
 
 export type MediaCreateRequest =
   Omit<ObjectModel.Media, "created" | "id"> &

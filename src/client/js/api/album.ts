@@ -1,33 +1,44 @@
-import type { Patch } from "./helpers";
-import type { Album, Reference, Media } from "./highlevel";
-import request from "./request";
-import { ApiMethod } from "./types";
-import type { AlbumCreateData, AlbumData } from "./types";
+import { Api } from "../../../model";
+import { request } from "./api";
+import { Album, Reference, Media } from "./highlevel";
+import { AlbumState, Create, albumIntoState, Patch } from "./types";
 
-export function createAlbum(data: AlbumCreateData): Promise<AlbumData> {
-  return request(ApiMethod.AlbumCreate, data);
+export function createAlbum(album: Create<AlbumState>): Promise<AlbumState> {
+  return request(Api.Method.AlbumCreate, {
+    ...album,
+    catalog: album.catalog.id,
+    parent: album.parent?.id ?? null,
+  }).then(albumIntoState);
 }
 
-export function editAlbum(album: Patch<AlbumCreateData, Album>): Promise<AlbumData> {
-  return request(ApiMethod.AlbumEdit, album);
+export function editAlbum(album: Patch<AlbumState>): Promise<AlbumState> {
+  return request(Api.Method.AlbumEdit, {
+    ...album,
+    id: album.id.id,
+    parent: album.parent ? album.parent.id : undefined,
+  }).then(albumIntoState);
 }
 
-export function addMediaToAlbum(
+export async function addMediaToAlbum(
   album: Reference<Album>,
   media: Reference<Media>[],
-): Promise<AlbumData> {
-  return request(ApiMethod.AlbumAddMedia, {
-    album,
-    media,
-  });
+): Promise<void> {
+  await request(Api.Method.MediaRelations, [{
+    operation: "add",
+    type: Api.RelationType.Album,
+    media: media.map((m: Reference<Media>): string => m.id),
+    items: [album.id],
+  }]);
 }
 
-export function removeMediaFromAlbum(
+export async function removeMediaFromAlbum(
   album: Reference<Album>,
   media: Reference<Media>[],
-): Promise<AlbumData> {
-  return request(ApiMethod.AlbumRemoveMedia, {
-    album,
-    media,
-  });
+): Promise<void> {
+  await request(Api.Method.MediaRelations, [{
+    operation: "delete",
+    type: Api.RelationType.Album,
+    media: media.map((m: Reference<Media>): string => m.id),
+    items: [album.id],
+  }]);
 }

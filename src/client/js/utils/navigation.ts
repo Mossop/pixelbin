@@ -1,5 +1,5 @@
 import { Catalog, Album } from "../api/highlevel";
-import { ServerData } from "../api/types";
+import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import actions from "../store/actions";
@@ -47,7 +47,7 @@ function encodeTargetState(uiState: UIState): Map<string, string> | undefined {
 
 function decodeTargetState(
   params: ReadonlyMap<string, string> | undefined,
-  serverState: ServerData,
+  serverState: ServerState,
 ): UIState {
   if (!params) {
     return {
@@ -101,7 +101,7 @@ function notfound(historyState: HistoryState): UIState {
   };
 }
 
-export function intoUIState(historyState: HistoryState, serverState: ServerData): UIState {
+export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
   switch (historyState.path) {
     case "/": {
       return {

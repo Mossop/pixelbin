@@ -2,9 +2,10 @@ import { waitFor, fireEvent } from "@testing-library/react";
 import mockConsole from "jest-mock-console";
 import React from "react";
 
+import { Api } from "../../../model";
 import { lastCallArgs, mockedFunction } from "../../../test-helpers";
-import request from "../api/request";
-import { ApiMethod, CatalogData, CatalogCreateData } from "../api/types";
+import { request } from "../api/api";
+import { CatalogState } from "../api/types";
 import {
   expect,
   render,
@@ -17,7 +18,7 @@ import {
 } from "../test-helpers";
 import CatalogOverlay from "./catalog";
 
-jest.mock("../api/request");
+jest.mock("../api/api");
 
 beforeEach(resetDOM);
 
@@ -27,7 +28,7 @@ test("create catalog first", async (): Promise<void> => {
   mockConsole();
 
   const store = mockStore(mockStoreState({}));
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
 
   user.hadCatalog = false;
@@ -51,11 +52,11 @@ test("create catalog first", async (): Promise<void> => {
 
   expect(typeSelector.parentElement?.nextElementSibling).toBeNull();
 
-  let { call, resolve } = deferRequest<CatalogData, CatalogCreateData>();
+  let { call, resolve } = deferRequest<CatalogState, Api.CatalogCreateRequest>();
 
   form.submit();
 
-  expect(await call).toEqual([ApiMethod.CatalogCreate, {
+  expect(await call).toEqual([Api.Method.CatalogCreate, {
     storage: {
       type: "server",
     },
@@ -84,12 +85,11 @@ test("create catalog first", async (): Promise<void> => {
 
 test("create catalog", async (): Promise<void> => {
   const store = mockStore(mockStoreState({}));
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
 
   user.hadCatalog = true;
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let { container } = render(<CatalogOverlay user={user}/>, store);
 
   let title = expectChild(container, "#overlay-header .title");
@@ -113,12 +113,12 @@ test("create catalog", async (): Promise<void> => {
   typeString(expectChild<HTMLInputElement>(container, "#backblaze-config-bucket"), "test bucket");
   typeString(expectChild<HTMLInputElement>(container, "#backblaze-config-path"), "/test/path");
 
-  let { call, resolve } = deferRequest<CatalogData, CatalogCreateData>();
+  let { call, resolve } = deferRequest<CatalogState, Api.CatalogCreateRequest>();
 
   let form = expectChild<HTMLFormElement>(container, "form.form");
   form.submit();
 
-  expect(await call).toEqual([ApiMethod.CatalogCreate, {
+  expect(await call).toEqual([Api.Method.CatalogCreate, {
     storage: {
       type: "backblaze",
       keyId: "test key id",

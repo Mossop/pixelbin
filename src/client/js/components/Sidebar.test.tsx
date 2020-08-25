@@ -8,7 +8,7 @@ import {
   click,
   mockStore,
   mockStoreState,
-  mockServerData,
+  mockServerState,
   render,
   expectChild,
   expectElement,
@@ -19,7 +19,7 @@ jest.mock("./Button");
 
 test("sidebar", (): void => {
   let store = mockStore(mockStoreState({
-    serverState: mockServerData([{
+    serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
       albums: [{

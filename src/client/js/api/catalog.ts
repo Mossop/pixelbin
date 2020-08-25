@@ -1,11 +1,17 @@
-import type { StorageData } from "../storage";
-import request from "./request";
-import { ApiMethod } from "./types";
-import type { CatalogData } from "./types";
+import { Api } from "../../../model";
+import { request } from "./api";
+import { CatalogState } from "./types";
 
-export function createCatalog(name: string, storage: StorageData): Promise<CatalogData> {
-  return request(ApiMethod.CatalogCreate, {
+export async function createCatalog(name: string): Promise<CatalogState> {
+  let result = await request(Api.Method.CatalogCreate, {
     name,
-    storage,
+    storage: "",
   });
+
+  return {
+    ...result,
+    albums: new Map(),
+    tags: new Map(),
+    people: new Map(),
+  };
 }

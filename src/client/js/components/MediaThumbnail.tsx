@@ -1,15 +1,14 @@
+import { Orientation } from "media-metadata";
 import React, { ReactNode, PureComponent } from "react";
 
-import { isProcessed } from "../api/media";
-import { getOrientation } from "../api/metadata";
-import { MediaData } from "../api/types";
+import { isProcessed, MediaState } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import ImageCanvas from "./ImageCanvas";
 import MediaContainer from "./MediaContainer";
 
 interface PassedProps {
-  media: MediaData;
+  media: MediaState;
   thumbnail?: ImageBitmap;
   draggable?: boolean;
   onDragStart?: (event: React.DragEvent) => void;
@@ -29,7 +28,7 @@ class MediaThumbnail extends PureComponent<ComponentProps<PassedProps, typeof ma
   public render(): ReactNode {
     let size = `${this.props.size}px`;
     if (isProcessed(this.props.media) && this.props.thumbnail) {
-      let orientation = getOrientation(this.props.media);
+      let orientation = this.props.media.orientation ?? Orientation.TopLeft;
       return <div
         className="media"
         draggable={this.props.draggable}

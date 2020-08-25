@@ -1,30 +1,35 @@
 import Knex from "knex";
 import moment from "moment-timezone";
 
-import { ObjectModel, AlternateFileType } from "../../model";
+import { AlternateFileType, emptyMetadata } from "../../model";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
 import { insertFromSelect, from, update } from "./queries";
-import { Tables, Table, ref, intoDBTypes, intoAPITypes } from "./types";
+import {
+  Tables,
+  Table,
+  ref,
+  intoDBTypes,
+  intoAPITypes,
+  Media,
+  UnprocessedMedia,
+} from "./types";
 import { filterColumns } from "./utils";
 
 export function fillMetadata<T>(data: T): T & Tables.Metadata {
-  let result = { ...data };
-  for (let field of ObjectModel.metadataColumns) {
-    if (!(field in result)) {
-      result[field] = null;
-    }
-  }
-
-  return result as T & Tables.Metadata;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return {
+    ...emptyMetadata(),
+    ...data,
+  };
 }
 
 export async function createMedia(
   this: UserScopedConnection,
   catalog: Tables.Media["catalog"],
   data: Omit<Tables.Media, "id" | "catalog" | "created">,
-): Promise<Tables.Media> {
+): Promise<UnprocessedMedia> {
   let select = from(this.knex, Table.UserCatalog).where({
     user: this.user,
     catalog,
@@ -41,39 +46,51 @@ export async function createMedia(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
   }
 
-  return intoAPITypes(results[0]);
+  return {
+    ...intoAPITypes(results[0]),
+    albums: [],
+    tags: [],
+    people: [],
+  };
 }
 
 export async function editMedia(
   this: UserScopedConnection,
   id: Tables.Media["id"],
   data: Partial<Tables.Media>,
-): Promise<Tables.Media> {
-  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+): Promise<Media> {
+  return this.inTransaction(
+    async (userDb: UserScopedConnection): Promise<Media> => {
+      let catalogs = from(userDb.knex, Table.UserCatalog)
+        .where("user", userDb.user)
+        .select("catalog");
 
-  let {
-    id: removedId,
-    catalog: removedCatalog,
-    created: removedCreated,
-    ...mediaUpdateData
-  } = data;
-  let results = await update(
-    Table.Media,
-    this.knex.where("id", id).where("catalog", "in", catalogs),
-    intoDBTypes(filterColumns(Table.Media, mediaUpdateData)),
-  ).returning("*");
+      let {
+        id: removedId,
+        catalog: removedCatalog,
+        created: removedCreated,
+        ...mediaUpdateData
+      } = data;
+      let updateCount = await update(
+        Table.Media,
+        userDb.knex.where("id", id).where("catalog", "in", catalogs),
+        intoDBTypes(filterColumns(Table.Media, mediaUpdateData)),
+      );
 
-  if (!results.length) {
-    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Media record.");
-  }
+      if (updateCount != 1) {
+        throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Media record.");
+      }
 
-  return intoAPITypes(results[0]);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return (await userDb.getMedia([id]))[0];
+    },
+  );
 }
 
 export async function getMedia(
   this: UserScopedConnection,
   ids: Tables.StoredMedia["id"][],
-): Promise<Tables.StoredMedia[]> {
+): Promise<Media[]> {
   let results = await from(this.knex, Table.StoredMediaDetail)
     .join(
       Table.UserCatalog,
@@ -84,8 +101,28 @@ export async function getMedia(
     .whereIn(ref(Table.StoredMediaDetail, "id"), ids)
     .select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
 
-  let sorted = results.map(intoAPITypes);
-  sorted.sort((a: Tables.StoredMedia, b: Tables.StoredMedia): number => {
+  let sorted = results.map((item: Tables.StoredMedia): Media => {
+    let forApi = intoAPITypes(item);
+
+    if (forApi.uploaded) {
+      return forApi;
+    }
+
+    let {
+      uploaded,
+      fileSize,
+      mimetype,
+      width,
+      height,
+      duration,
+      frameRate,
+      bitRate,
+      ...unprocessed
+    } = forApi;
+
+    return unprocessed;
+  });
+  sorted.sort((a: Media, b: Media): number => {
     return ids.indexOf(a.id) - ids.indexOf(b.id);
   });
   return sorted;

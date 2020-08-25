@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { Api } from "../../../model";
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
-import { expect } from "../test-helpers";
+import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
 import {
   mockResponse,
   MockResponse,
   callInfo,
-  mockMedia,
-  AlbumDataResponse,
+  mediaIntoResponse,
 } from "../test-helpers/api";
 import { createAlbum, editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "./album";
 import { Catalog, Album, mediaRef } from "./highlevel";
@@ -19,10 +19,9 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create album", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<AlbumDataResponse>(200, {
+  mockResponse(mockedFetch, new MockResponse<Api.Album>(200, {
     id: "newalbum",
     catalog: "testcatalog",
-    stub: null,
     name: "Test album",
     parent: null,
   }));
@@ -30,13 +29,13 @@ test("Create album", async (): Promise<void> => {
   let result = await createAlbum({
     catalog: Catalog.ref("testcatalog"),
     name: "Test album",
+    parent: null,
   });
 
   expect(result).toEqual({
     id: "newalbum",
     catalog: expect.toBeRef("testcatalog"),
     name: "Test album",
-    stub: null,
     parent: null,
   });
 
@@ -51,15 +50,15 @@ test("Create album", async (): Promise<void> => {
     body: {
       catalog: "testcatalog",
       name: "Test album",
+      parent: null,
     },
   });
 });
 
 test("Edit album", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<AlbumDataResponse>(200, {
+  mockResponse(mockedFetch, new MockResponse<Api.Album>(200, {
     id: "testalbum",
     catalog: "testcatalog",
-    stub: "foo",
     name: "New test album",
     parent: "parentalbum",
   }));
@@ -67,108 +66,100 @@ test("Edit album", async (): Promise<void> => {
   let result = await editAlbum({
     id: Album.ref("testalbum"),
     name: "New test album",
-    stub: "foo",
   });
 
   expect(result).toEqual({
     id: "testalbum",
     catalog: expect.toBeRef("testcatalog"),
     name: "New test album",
-    stub: "foo",
     parent: expect.toBeRef("parentalbum"),
   });
 
   let info = callInfo(mockedFetch);
   expect(info).toEqual({
     method: "PATCH",
-    path: "http://pixelbin/api/album/edit/testalbum",
+    path: "http://pixelbin/api/album/edit",
     headers: {
       "Content-Type": "application/json",
       "X-CSRFToken": "csrf-foobar",
     },
     body: {
+      id: "testalbum",
       name: "New test album",
-      stub: "foo",
     },
   });
 });
 
 test("Add media", async (): Promise<void> => {
-  let media = mockMedia({
+  let state = mockServerState([{
+    id: "testcatalog",
+    name: "Test catalog",
+    albums: [{
+      id: "testalbum",
+      name: "Test album",
+    }],
+  }]);
+  let media = mockUnprocessedMedia({
     id: "testmedia",
+    albums: [
+      Album.ref("testalbum"),
+    ],
   });
 
-  mockResponse(mockedFetch, new MockResponse<AlbumDataResponse>(200, {
-    id: "testalbum",
-    catalog: "testcatalog",
-    stub: "foo",
-    name: "New test album",
-    parent: "parentalbum",
-  }));
+  mockResponse(mockedFetch, new MockResponse<Api.UnprocessedMedia[]>(200, [
+    mediaIntoResponse(state, media),
+  ]));
 
-  let result = await addMediaToAlbum(Album.ref("testalbum"), [mediaRef(media)]);
-
-  expect(result).toEqual({
-    id: "testalbum",
-    catalog: expect.toBeRef("testcatalog"),
-    name: "New test album",
-    stub: "foo",
-    parent: expect.toBeRef("parentalbum"),
-  });
+  await addMediaToAlbum(Album.ref("testalbum"), [mediaRef(media)]);
 
   let info = callInfo(mockedFetch);
   expect(info).toEqual({
-    method: "PUT",
-    path: "http://pixelbin/api/album/add_media",
+    method: "PATCH",
+    path: "http://pixelbin/api/media/relations",
     headers: {
       "Content-Type": "application/json",
       "X-CSRFToken": "csrf-foobar",
     },
-    body: {
-      album: "testalbum",
-      media: [
-        "testmedia",
-      ],
-    },
+    body: [{
+      operation: "add",
+      type: "album",
+      items: ["testalbum"],
+      media: ["testmedia"],
+    }],
   });
 });
 
 test("Remove media", async (): Promise<void> => {
-  let media = mockMedia({
+  let state = mockServerState([{
+    name: "Test catalog",
+    albums: [{
+      id: "testalbum",
+      name: "Test album",
+    }],
+  }]);
+  let media = mockUnprocessedMedia({
     id: "testmedia",
   });
 
-  mockResponse(mockedFetch, new MockResponse<AlbumDataResponse>(200, {
-    id: "testalbum",
-    catalog: "testcatalog",
-    stub: "foo",
-    name: "New test album",
-    parent: "parentalbum",
-  }));
+  mockResponse(mockedFetch, new MockResponse<Api.UnprocessedMedia[]>(200, [
+    mediaIntoResponse(state, media),
+  ]));
 
-  let result = await removeMediaFromAlbum(Album.ref("testalbum"), [mediaRef(media)]);
-
-  expect(result).toEqual({
-    id: "testalbum",
-    catalog: expect.toBeRef("testcatalog"),
-    name: "New test album",
-    stub: "foo",
-    parent: expect.toBeRef("parentalbum"),
-  });
+  await removeMediaFromAlbum(Album.ref("testalbum"), [mediaRef(media)]);
 
   let info = callInfo(mockedFetch);
   expect(info).toEqual({
-    method: "DELETE",
-    path: "http://pixelbin/api/album/remove_media",
+    method: "PATCH",
+    path: "http://pixelbin/api/media/relations",
     headers: {
       "Content-Type": "application/json",
       "X-CSRFToken": "csrf-foobar",
     },
-    body: {
-      album: "testalbum",
-      media: [
-        "testmedia",
-      ],
-    },
+    body: [{
+      operation: "delete",
+      type: "album",
+      items: ["testalbum"],
+      media: ["testmedia"],
+    }],
   });
 });

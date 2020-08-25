@@ -7,14 +7,13 @@ import {
   JsonRequestData,
   VoidDecoder,
 } from "./helpers";
-import { Album } from "./highlevel";
 
 test("QueryRequestData", (): void => {
   let rd = new QueryRequestData({
     a: "foo",
     b: 5,
     c: true,
-    d: Album.ref("foobar"),
+    d: "foobar",
   }, VoidDecoder);
 
   let url = new URL("https://example.com/");
@@ -38,22 +37,22 @@ test("FormRequestData", (): void => {
       1,
       2,
       3,
-      Album.ref("baz"),
+      "baz",
       blob2,
       [4, 5, 6],
     ],
     c: [{
       d: 6,
       e: 7,
-      f: Album.ref("foobar"),
+      f: "foobar",
     }, {
       d: {
         t: "s",
       },
     }],
     ref: [
-      Album.ref("1"),
-      Album.ref("2"),
+      "1",
+      "2",
     ],
     blb: blob1,
   }, VoidDecoder);
@@ -97,7 +96,7 @@ test("FormRequestData", (): void => {
     a: 5,
     b: 6,
     c: [1, 3, 5],
-    d: Album.ref("foo6"),
+    d: "foo6",
   }, VoidDecoder);
   expect(rd.body()).toEqual(JSON.stringify({
     a: 5,
@@ -117,7 +116,7 @@ test("FormRequestData", (): void => {
 test("JsonRequestData", (): void => {
   let rd = new JsonRequestData({
     a: 5,
-    b: Album.ref("5"),
+    b: "5",
   }, VoidDecoder);
 
   let url = new URL("https://example.com/");

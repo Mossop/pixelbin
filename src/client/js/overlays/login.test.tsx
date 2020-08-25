@@ -1,9 +1,9 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
+import { Api } from "../../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../../test-helpers";
-import request from "../api/request";
-import { ApiMethod, ApiErrorCode } from "../api/types";
+import { request } from "../api/api";
 import {
   expect,
   render,
@@ -17,7 +17,7 @@ import {
 import { ApiError } from "../utils/exception";
 import LoginOverlay from "./login";
 
-jest.mock("../api/request");
+jest.mock("../api/api");
 
 const mockedRequest = mockedFunction(request);
 
@@ -55,7 +55,7 @@ test("login success", async (): Promise<void> => {
   });
 
   expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.Login, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.Login, {
     email: "foo@bar.com",
     password: "",
   }]);
@@ -99,7 +99,7 @@ test("login failed", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
   expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([ApiMethod.Login, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.Login, {
     email: "foo@bar.com",
     password: "foopass",
   }]);
@@ -110,8 +110,8 @@ test("login failed", async (): Promise<void> => {
   });
 
   void reject(new ApiError(403, "Not Authorized", {
-    code: ApiErrorCode.LoginFailed,
-    args: {},
+    code: Api.ErrorCode.LoginFailed,
+    data: {},
   }));
 
   await waitFor((): void => {

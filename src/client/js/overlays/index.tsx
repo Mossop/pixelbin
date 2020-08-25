@@ -1,10 +1,9 @@
-import { Immutable } from "immer";
 import React, { ReactNode, PureComponent } from "react";
 
 import { Obj } from "../../../utils";
 import { Reference } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { UserData } from "../api/types";
+import { UserState } from "../api/types";
 import { document } from "../environment";
 import { PageState, PageType } from "../pages/types";
 import actions from "../store/actions";
@@ -20,7 +19,7 @@ import UploadOverlay from "./upload";
 interface FromStateProps {
   page: PageState;
   overlay?: OverlayState;
-  user: Immutable<UserData> | null;
+  user: UserState | null;
 }
 
 function mapStateToProps(state: StoreState): FromStateProps {

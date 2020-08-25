@@ -1,7 +1,7 @@
 import { Deed } from "deeds/immer";
 import { Store } from "redux";
 
-import { ServerData } from "../api/types";
+import { ServerState } from "../api/types";
 import { OverlayState } from "../overlays/types";
 import { PageState } from "../pages/types";
 
@@ -15,7 +15,7 @@ export interface UIState {
 }
 
 export interface StoreState {
-  readonly serverState: ServerData;
+  readonly serverState: ServerState;
   readonly ui: UIState;
   readonly settings: Settings;
   readonly stateId: number;

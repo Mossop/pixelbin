@@ -1,7 +1,7 @@
 import { Api } from "../../../model";
 import { Obj } from "../../../utils";
 import { AppContext } from "../context";
-import { ApiError, ApiErrorCode } from "../error";
+import { ApiError } from "../error";
 import {
   createCatalog,
   createAlbum,
@@ -35,7 +35,7 @@ type RequestDecoders = {
   [Method in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<Method>>>;
 };
 
-type ResponseType<T> = T extends Blob ? DirectResponse : T;
+type ResponseType<T> = T extends Blob ? DirectResponse : Api.ResponseFor<T>;
 
 export const apiDecoders: RequestDecoders = {
   [Api.Method.Login]: Decoders.LoginRequest,
@@ -82,7 +82,7 @@ const KEY_PARSE = /^(?<part>[^.[]+)(?:\[(?<index>\d+)\])?(?:\.(?<rest>.+))?$/;
 
 function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string = key): void {
   if (key.length == 0) {
-    throw new ApiError(ApiErrorCode.InvalidData, {
+    throw new ApiError(Api.ErrorCode.InvalidData, {
       message: `Invalid field '${fullkey}'`,
     });
   }
@@ -90,7 +90,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
   let matches = KEY_PARSE.exec(key);
 
   if (!matches) {
-    throw new ApiError(ApiErrorCode.InvalidData, {
+    throw new ApiError(Api.ErrorCode.InvalidData, {
       message: `Invalid field '${fullkey}'.`,
     });
   }
@@ -103,7 +103,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
     if (!(part in obj)) {
       obj[part] = [];
     } else if (!Array.isArray(obj[part])) {
-      throw new ApiError(ApiErrorCode.InvalidData, {
+      throw new ApiError(Api.ErrorCode.InvalidData, {
         message: `Invalid repeated field '${fullkey}'.`,
       });
     }
@@ -119,7 +119,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
     if (!(part in obj)) {
       obj[part] = {};
     } else if (Array.isArray(obj[part]) || typeof obj[part] != "object") {
-      throw new ApiError(ApiErrorCode.InvalidData, {
+      throw new ApiError(Api.ErrorCode.InvalidData, {
         message: `Invalid repeated field '${fullkey}'.`,
       });
     }
@@ -145,7 +145,7 @@ export function apiRequestHandler<T extends Api.Method>(
 ): (ctx: AppContext) => Promise<void> {
   return async (ctx: AppContext): Promise<void> => {
     if (ctx.method.toLocaleUpperCase() != Api.HttpMethods[method]) {
-      throw new ApiError(ApiErrorCode.BadMethod, {
+      throw new ApiError(Api.ErrorCode.BadMethod, {
         received: ctx.method,
         expected: Api.HttpMethods[method],
       });
@@ -176,7 +176,7 @@ export function apiRequestHandler<T extends Api.Method>(
         decoded = await decoder(body, ctx.request["files"]);
       } catch (e) {
         ctx.logger.warn(e, "Client provided invalid data.");
-        throw new ApiError(ApiErrorCode.InvalidData, {
+        throw new ApiError(Api.ErrorCode.InvalidData, {
           message: String(e),
         });
       }

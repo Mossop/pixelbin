@@ -1,9 +1,9 @@
+import { Api } from "../../../model";
 import { RelationType } from "../../../model/api";
 import { expect } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
-import { ApiErrorCode } from "../error";
 import { buildTestApp, expectUserState, fromCatalogs, catalogs } from "../test-helpers";
 
 const agent = buildTestApp();
@@ -32,7 +32,7 @@ test("Create catalog", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -132,7 +132,7 @@ test("Create album", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -201,7 +201,7 @@ test("Create album", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("Failed to insert Album record."),
     },
@@ -221,7 +221,7 @@ test("Edit album", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -243,7 +243,7 @@ test("Edit album", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("decoder failed at key \"id\""),
     },
@@ -260,7 +260,7 @@ test("Edit album", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("Failed to edit Album record."),
     },
@@ -389,7 +389,7 @@ test("Create Tag", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -458,7 +458,7 @@ test("Create Tag", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("Failed to insert Tag record."),
     },
@@ -478,7 +478,7 @@ test("Edit tag", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -500,7 +500,7 @@ test("Edit tag", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("decoder failed at key \"id\""),
     },
@@ -517,7 +517,7 @@ test("Edit tag", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("Failed to edit Tag record."),
     },
@@ -572,7 +572,7 @@ test("Create Person", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -638,7 +638,7 @@ test("Create Person", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("Failed to insert Person record."),
     },
@@ -658,7 +658,7 @@ test("Edit person", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -680,7 +680,7 @@ test("Edit person", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("decoder failed at key \"id\""),
     },
@@ -697,7 +697,7 @@ test("Edit person", async (): Promise<void> => {
     .expect(400);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.InvalidData,
+    code: Api.ErrorCode.InvalidData,
     data: {
       message: expect.stringContaining("Failed to edit Person record."),
     },

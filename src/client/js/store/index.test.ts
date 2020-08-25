@@ -1,6 +1,7 @@
+import { Api } from "../../../model";
 import { decode } from "../../../utils";
-import { Encoded } from "../api/helpers";
-import { ServerDataDecoder, ServerData } from "../api/types";
+import { StateDecoder } from "../api/decoders";
+import { serverStateIntoState } from "../api/types";
 import { PageType } from "../pages/types";
 import actions from "./actions";
 
@@ -29,20 +30,23 @@ describe("store initialization", (): void => {
   });
 
   test("update server state", async (): Promise<void> => {
-    let serverState: Encoded<ServerData> = {
+    let serverState: Api.State = {
       user: {
         email: "dtownsend@oxymoronical.com",
         fullname: "Dave Townsend",
         hadCatalog: false,
         verified: true,
         catalogs: [],
+        albums: [],
+        people: [],
+        tags: [],
       },
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { asyncDispatch } = require("../store");
     let state = await asyncDispatch(
-      actions.updateServerState(decode(ServerDataDecoder, serverState)),
+      actions.updateServerState(serverStateIntoState(decode(StateDecoder, serverState))),
     );
 
     expect(state).toEqual({

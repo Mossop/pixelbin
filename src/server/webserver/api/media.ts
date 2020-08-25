@@ -2,22 +2,50 @@ import fss, { promises as fs } from "fs";
 
 import sharp from "sharp";
 
-import { AlternateFileType, Api } from "../../../model";
+import { AlternateFileType, Api, ResponseFor } from "../../../model";
 import { chooseSize } from "../../../utils";
-import { fillMetadata, UserScopedConnection } from "../../database";
+import { fillMetadata, UserScopedConnection, Media } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
-import { ApiError, ApiErrorCode } from "../error";
+import { ApiError } from "../error";
 import { DeBlobbed } from "./decoders";
 import { DirectResponse } from "./methods";
+
+function isProcessedMedia(media: Api.Media): media is Api.ProcessedMedia {
+  return "uploaded" in media && !!media.uploaded;
+}
+
+export function buildResponseMedia(
+  media: Media,
+): ResponseFor<Api.Media> {
+  if (isProcessedMedia(media)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      ...media,
+      created: media.created.toISOString(),
+      uploaded: media.uploaded.toISOString(),
+      taken: media.taken?.toISOString() ?? null,
+    };
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      ...media,
+      created: media.created.toISOString(),
+      taken: media.taken?.toISOString() ?? null,
+    };
+  }
+}
 
 export const getMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: Api.MediaGetRequest,
-  ): Promise<Api.Media[]> => {
-    return userDb.getMedia(data);
+  ): Promise<ResponseFor<Api.Media>[]> => {
+    let ids = data.id.split(",");
+    let media = await userDb.getMedia(ids);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return media.map(buildResponseMedia);
   },
 );
 
@@ -26,7 +54,7 @@ export const createMedia = ensureAuthenticatedTransaction(
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: DeBlobbed<Api.MediaCreateRequest>,
-  ): Promise<Api.UnprocessedMedia> => {
+  ): Promise<ResponseFor<Api.UnprocessedMedia>> => {
     let {
       file,
       catalog,
@@ -63,7 +91,8 @@ export const createMedia = ensureAuthenticatedTransaction(
 
     ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
 
-    return media;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return buildResponseMedia(media);
   },
 );
 
@@ -77,7 +106,7 @@ export const thumbnail = ensureAuthenticated(
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!media) {
-      throw new ApiError(ApiErrorCode.NotFound, {
+      throw new ApiError(Api.ErrorCode.NotFound, {
         message: "Media does not exist.",
       });
     }
@@ -88,7 +117,7 @@ export const thumbnail = ensureAuthenticated(
     );
 
     if (!source) {
-      throw new ApiError(ApiErrorCode.NotFound, {
+      throw new ApiError(Api.ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
@@ -113,7 +142,7 @@ export const relations = ensureAuthenticatedTransaction(
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: DeBlobbed<Api.MediaRelationChange[]>,
-  ): Promise<Api.Media[]> => {
+  ): Promise<ResponseFor<Api.Media>[]> => {
     let media = new Set<string>();
 
     for (let change of data) {
@@ -130,6 +159,8 @@ export const relations = ensureAuthenticatedTransaction(
       }
     }
 
-    return userDb.getMedia(Array.from(media.values()));
+    let results = await userDb.getMedia(Array.from(media.values()));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return results.map(buildResponseMedia);
   },
 );

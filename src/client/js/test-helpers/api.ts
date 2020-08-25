@@ -1,18 +1,14 @@
-import { Orientation } from "media-metadata";
-import moment from "moment-timezone";
-
-import { randomId } from ".";
+import { Api, ResponseFor } from "../../../model";
 import { Obj } from "../../../utils";
 import { Tag, Reference, Album, Person } from "../api/highlevel";
 import {
-  MetadataData,
-  MediaData,
-  MediaInfoData,
-  CatalogData,
-  AlbumData,
-  TagData,
-  PersonData,
-  ServerData,
+  CatalogState,
+  AlbumState,
+  TagState,
+  PersonState,
+  ServerState,
+  MediaState,
+  isProcessed,
 } from "../api/types";
 
 type Body = Blob | Obj | unknown[];
@@ -24,7 +20,7 @@ type Fetch = (
 ) => Promise<Response>;
 
 export class MockResponse<B extends Body> {
-  public constructor(private statusCode: number, private body: B) {}
+  public constructor(private statusCode: number, private body: ResponseFor<B>) {}
 
   public get ok(): boolean {
     return this.status < 400;
@@ -38,12 +34,12 @@ export class MockResponse<B extends Body> {
     return `Status ${this.status}`;
   }
 
-  public blob(): Promise<B> {
+  public blob(): Promise<ResponseFor<B>> {
     expect(this.body).toBeInstanceOf(Blob);
     return Promise.resolve(this.body);
   }
 
-  public json(): Promise<B> {
+  public json(): Promise<ResponseFor<B>> {
     expect(this.body).not.toBeInstanceOf(Blob);
     return Promise.resolve(this.body);
   }
@@ -107,205 +103,109 @@ export function callInfo(mockedFetch: jest.MockedFunction<Fetch>): CallInfo {
   return info;
 }
 
-export interface MetadataDataResponse {
-  filename: string | null;
-  title: string | null;
-  taken: string | null;
-  offset: number | null;
-  longitude: number | null;
-  latitude: number | null;
-  altitude: number | null;
-  location: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  orientation: Orientation | null;
-  make: string | null;
-  model: string | null;
-  lens: string | null;
-  photographer: string | null;
-  aperture: number | null;
-  exposure: number | null;
-  iso: number | null;
-  focalLength: number | null;
-  bitrate: number | null;
-}
+export function mediaIntoResponse(
+  serverState: ServerState,
+  media: MediaState,
+): ResponseFor<Api.Media> {
+  let response: ResponseFor<MediaState>;
+  if (isProcessed(media)) {
+    response = {
+      ...media,
+      created: media.created.toISOString(),
+      uploaded: media.uploaded.toISOString(),
+      taken: media.taken?.toISOString() ?? null,
+    };
+  } else {
+    response = {
+      ...media,
+      created: media.created.toISOString(),
+      taken: media.taken?.toISOString() ?? null,
+    };
+  }
 
-export interface MediaInfoDataResponse {
-  processVersion: number;
-  uploaded: string;
-  mimetype: string;
-  width: number;
-  height: number;
-  duration: number | null;
-  fileSize: number;
-}
-
-export interface MediaDataResponse {
-  id: string;
-  created: string;
-  info: MediaInfoDataResponse | null;
-  tags: string[];
-  albums: string[];
-  people: string[];
-  metadata: MetadataDataResponse;
-}
-
-export interface TagDataResponse {
-  id: string;
-  catalog: string;
-  parent: string | null;
-  name: string;
-}
-
-export interface PersonDataResponse {
-  id: string;
-  catalog: string;
-  name: string;
-}
-
-export interface AlbumDataResponse {
-  id: string;
-  catalog: string;
-  stub: string | null;
-  name: string;
-  parent: string | null;
-}
-
-export interface CatalogDataResponse {
-  id: string;
-  name: string;
-  people: PersonDataResponse[];
-  tags: TagDataResponse[];
-  albums: AlbumDataResponse[];
-}
-
-export interface UserDataResponse {
-  email: string;
-  fullname: string;
-  hadCatalog: boolean;
-  verified: boolean;
-  catalogs: CatalogDataResponse[];
-}
-
-export interface ServerDataResponse {
-  user: UserDataResponse | null;
-}
-
-export function mockMetadata(data: Partial<MetadataData>): MetadataData {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {
-    filename: data.filename ?? null,
-    title: data.title ?? null,
-    taken: data.taken ?? null,
-    offset: data.offset ?? null,
-    longitude: data.longitude ?? null,
-    latitude: data.latitude ?? null,
-    altitude: data.altitude ?? null,
-    location: data.location ?? null,
-    city: data.city ?? null,
-    state: data.state ?? null,
-    country: data.country ?? null,
-    orientation: data.orientation ?? null,
-    make: data.make ?? null,
-    model: data.model ?? null,
-    lens: data.lens ?? null,
-    photographer: data.photographer ?? null,
-    aperture: data.aperture ?? null,
-    exposure: data.exposure ?? null,
-    iso: data.iso ?? null,
-    focalLength: data.focalLength ?? null,
-    bitrate: data.bitrate ?? null,
+    ...response,
+    albums: media.albums.map(
+      (ref: Reference<Album>): Api.Album => albumIntoResponse(ref.deref(serverState).toState()),
+    ),
+    tags: media.tags.map(
+      (ref: Reference<Tag>): Api.Tag => tagIntoResponse(ref.deref(serverState).toState()),
+    ),
+    people: media.people.map(
+      (ref: Reference<Person>): Api.Person => personIntoResponse(ref.deref(serverState).toState()),
+    ),
   };
 }
 
-export function mediaMetadataIntoResponse(metadata: MetadataData): MetadataDataResponse {
-  return {
-    ...metadata,
-    taken: metadata.taken?.toISOString() ?? null,
+export function personIntoResponse(person: PersonState): Api.Person {
+  let result: Api.Person = {
+    ...person,
+    catalog: person.catalog.id,
   };
+
+  return result;
 }
 
-export function mockMediaInfo(data: Partial<MediaInfoData>): MediaInfoData {
-  return {
-    processVersion: data.processVersion ?? 1,
-    uploaded: data.uploaded ?? moment().utc(),
-    mimetype: data.mimetype ?? "image/jpeg",
-    width: data.width ?? 1024,
-    height: data.height ?? 768,
-    duration: data.duration ?? null,
-    fileSize: data.fileSize ?? 1000,
-  };
-}
-
-export function uploadedMediaIntoResponse(info: MediaInfoData): MediaInfoDataResponse {
-  return {
-    ...info,
-    uploaded: info.uploaded.toISOString(),
-  };
-}
-
-export function mockMedia(data: Partial<MediaData>): MediaData {
-  return {
-    id: data.id ?? randomId(),
-    created: data.created ?? moment().utc(),
-    info: data.info ?? null,
-    tags: data.tags ?? [],
-    albums: data.albums ?? [],
-    people: data.people ?? [],
-    metadata: data.metadata ?? mockMetadata({}),
-  };
-}
-
-export function mediaIntoResponse(media: MediaData): MediaDataResponse {
-  return {
-    ...media,
-    created: media.created.toISOString(),
-    info: media.info ? uploadedMediaIntoResponse(media.info) : null,
-    metadata: mediaMetadataIntoResponse(media.metadata),
-    albums: media.albums.map((ref: Reference<Album>): string => ref.id),
-    tags: media.tags.map((ref: Reference<Tag>): string => ref.id),
-    people: media.people.map((ref: Reference<Person>): string => ref.id),
-  };
-}
-
-export function albumIntoResponse(album: AlbumData): AlbumDataResponse {
-  return {
+export function albumIntoResponse(album: AlbumState): Api.Album {
+  let result: Api.Album = {
     ...album,
     parent: album.parent?.id ?? null,
     catalog: album.catalog.id,
   };
+
+  return result;
 }
 
-export function tagIntoResponse(tag: TagData): TagDataResponse {
-  return {
+export function tagIntoResponse(tag: TagState): Api.Tag {
+  let result: Api.Tag = {
     ...tag,
     parent: tag.parent?.id ?? null,
     catalog: tag.catalog.id,
   };
+
+  return result;
 }
 
-export function personIntoResponse(person: PersonData): PersonDataResponse {
-  return {
-    ...person,
-    catalog: person.catalog.id,
-  };
-}
-
-export function catalogIntoResponse(catalog: CatalogData): CatalogDataResponse {
-  return {
+export function catalogIntoResponse(catalog: CatalogState): Api.Catalog {
+  let result: Api.Catalog = {
     ...catalog,
-    albums: Array.from(catalog.albums.values(), albumIntoResponse),
-    tags: Array.from(catalog.tags.values(), tagIntoResponse),
-    people: Array.from(catalog.people.values(), personIntoResponse),
   };
+
+  return result;
 }
 
-export function serverDataIntoResponse(serverData: ServerData): ServerDataResponse {
-  let user: UserDataResponse | null = null;
-  if (serverData.user) {
+export function serverDataIntoResponse(serverState: ServerState): Api.State {
+  let user: Api.User | null = null;
+  if (serverState.user) {
+    let albums: Api.Album[] = [];
+    let tags: Api.Tag[] = [];
+    let people: Api.Person[] = [];
+    let catalogs: Api.Catalog[] = [];
+
+    for (let catalog of serverState.user.catalogs.values()) {
+      catalogs.push(catalogIntoResponse(catalog));
+
+      for (let album of catalog.albums.values()) {
+        albums.push(albumIntoResponse(album));
+      }
+
+      for (let person of catalog.people.values()) {
+        people.push(personIntoResponse(person));
+      }
+
+      for (let album of catalog.albums.values()) {
+        albums.push(albumIntoResponse(album));
+      }
+    }
+
     user = {
-      ...serverData.user,
-      catalogs: Array.from(serverData.user.catalogs.values(), catalogIntoResponse),
+      ...serverState.user,
+
+      catalogs,
+      people,
+      tags,
+      albums,
     };
   }
 

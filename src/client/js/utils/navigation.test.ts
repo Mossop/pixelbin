@@ -3,14 +3,14 @@ import { castDraft } from "immer";
 import { mockedFunction } from "../../../test-helpers";
 import { Obj } from "../../../utils";
 import { Catalog, Album } from "../api/highlevel";
-import { ServerData } from "../api/types";
+import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import reducer from "../store/reducer";
 import { StoreType } from "../store/types";
 import {
   expect,
-  mockServerData,
+  mockServerState,
   mapOf,
   mockStoreState,
   mockStore,
@@ -44,18 +44,17 @@ function state(path: string, params?: Obj): HistoryState {
   };
 }
 
-const LoggedOut: ServerData = {
+const LoggedOut: ServerState = {
   user: null,
 };
 
-const LoggedIn = mockServerData([{
+const LoggedIn = mockServerState([{
   id: "testcatalog",
   name: "Test Catalog 1",
 
   albums: [{
     id: "testalbum",
     name: "Test Album 1",
-    stub: null,
   }],
 }]);
 

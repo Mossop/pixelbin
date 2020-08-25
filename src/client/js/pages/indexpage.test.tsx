@@ -9,7 +9,7 @@ import {
   expect,
   render,
   resetDOM,
-  mockServerData,
+  mockServerState,
 } from "../test-helpers";
 import Index from "./indexpage";
 
@@ -46,7 +46,7 @@ test("not logged in", (): void => {
 });
 
 test("logged in", (): void => {
-  store.dispatch(actions.updateServerState(mockServerData([])));
+  store.dispatch(actions.updateServerState(mockServerState([])));
 
   render(<Index/>);
 

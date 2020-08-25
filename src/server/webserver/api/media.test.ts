@@ -10,7 +10,6 @@ import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
 import { OriginalInfo } from "../../database/unsafe";
 import { StorageService } from "../../storage";
-import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
 
 /* eslint-disable */
@@ -63,7 +62,7 @@ test("Media upload", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.NotLoggedIn,
+    code: Api.ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -117,14 +116,6 @@ test("Media upload", async (): Promise<void> => {
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.toEqualDate(createdMoment),
     catalog: "c1",
-    uploaded: null,
-    width: null,
-    height: null,
-    mimetype: null,
-    bitRate: null,
-    frameRate: null,
-    duration: null,
-    fileSize: null,
     albums: [{
       "catalog": "c1",
       "id": "a1",
@@ -353,15 +344,6 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment1),
 
-      height: null,
-      width: null,
-      bitRate: null,
-      frameRate: null,
-      duration: null,
-      fileSize: null,
-      mimetype: null,
-      uploaded: null,
-
       albums: [],
       tags: [],
       people: [],
@@ -381,15 +363,6 @@ test("Get media", async (): Promise<void> => {
       id: id2,
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
-
-      height: null,
-      width: null,
-      bitRate: null,
-      frameRate: null,
-      duration: null,
-      fileSize: null,
-      mimetype: null,
-      uploaded: null,
 
       albums: [],
       tags: [],
@@ -411,15 +384,6 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment1),
 
-      height: null,
-      width: null,
-      bitRate: null,
-      frameRate: null,
-      duration: null,
-      fileSize: null,
-      mimetype: null,
-      uploaded: null,
-
       albums: [],
       tags: [],
       people: [],
@@ -428,15 +392,6 @@ test("Get media", async (): Promise<void> => {
       id: id2,
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
-
-      height: null,
-      width: null,
-      bitRate: null,
-      frameRate: null,
-      duration: null,
-      fileSize: null,
-      mimetype: null,
-      uploaded: null,
 
       albums: [],
       tags: [],
@@ -458,15 +413,6 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
 
-      height: null,
-      width: null,
-      bitRate: null,
-      frameRate: null,
-      duration: null,
-      fileSize: null,
-      mimetype: null,
-      uploaded: null,
-
       albums: [],
       tags: [],
       people: [],
@@ -475,15 +421,6 @@ test("Get media", async (): Promise<void> => {
       id: id1,
       catalog: "c1",
       created: expect.toEqualDate(createdMoment1),
-
-      height: null,
-      width: null,
-      bitRate: null,
-      frameRate: null,
-      duration: null,
-      fileSize: null,
-      mimetype: null,
-      uploaded: null,
 
       albums: [],
       tags: [],
@@ -527,15 +464,6 @@ test("Media relations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdMoment1),
 
-    height: null,
-    width: null,
-    bitRate: null,
-    frameRate: null,
-    duration: null,
-    fileSize: null,
-    mimetype: null,
-    uploaded: null,
-
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],
     people: [] as Api.Person[],
@@ -545,15 +473,6 @@ test("Media relations", async (): Promise<void> => {
     id: id2,
     catalog: "c1",
     created: expect.toEqualDate(createdMoment2),
-
-    height: null,
-    width: null,
-    bitRate: null,
-    frameRate: null,
-    duration: null,
-    fileSize: null,
-    mimetype: null,
-    uploaded: null,
 
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],

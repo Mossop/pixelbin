@@ -1,4 +1,4 @@
-import { ApiErrorCode } from "../api/types";
+import { Api } from "../../../model";
 import { expect } from "../test-helpers";
 import { exception, ErrorCode, ApiError, InternalError } from "./exception";
 
@@ -8,14 +8,14 @@ test("exception", (): void => {
   }).toThrowAppError(ErrorCode.UnknownAlbum);
 
   let apperror = new ApiError(404, "Not Found", {
-    code: ApiErrorCode.CyclicStructure,
-    args: {
+    code: Api.ErrorCode.InvalidData,
+    data: {
       "foo": "bar",
     },
   });
 
   expect(apperror.l10nInfo()).toEqual({
-    id: "api-error-cyclic-structure",
+    id: "api-error-invalid-data",
     vars: {
       "foo": "bar",
     },

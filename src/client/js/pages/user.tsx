@@ -1,11 +1,10 @@
-import { Immutable } from "immer";
 import React, { ReactNode } from "react";
 
-import { UserData } from "../api/types";
+import { UserState } from "../api/types";
 import { AuthenticatedPage, baseConnect } from "./BasePage";
 
 interface PassedProps {
-  user: Immutable<UserData>;
+  user: UserState;
 }
 
 class UserPage extends AuthenticatedPage<PassedProps> {

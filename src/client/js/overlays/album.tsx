@@ -2,10 +2,9 @@ import { Localized } from "@fluent/react";
 import React, { ReactNode, Fragment, PureComponent } from "react";
 
 import { editAlbum, createAlbum } from "../api/album";
-import { Patch } from "../api/helpers";
 import { Album, Catalog, Reference, Derefer, dereferencer } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { AlbumCreateData } from "../api/types";
+import { AlbumState, Create, Patch } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
 import { MediaTargetSelector } from "../components/SiteTree";
@@ -112,7 +111,7 @@ class AlbumOverlay extends PureComponent<AlbumOverlayProps, AlbumOverlayState> {
       if (!this.props.album) {
         let catalog = parent instanceof Catalog ? parent : parent.catalog;
         let album = parent instanceof Catalog ? null : parent;
-        let data: AlbumCreateData = {
+        let data: Create<AlbumState> = {
           catalog: catalog.ref(),
           name,
           parent: album?.ref() ?? null,
@@ -121,10 +120,8 @@ class AlbumOverlay extends PureComponent<AlbumOverlayProps, AlbumOverlayState> {
         let albumData = await createAlbum(data);
         this.props.albumCreated(albumData);
       } else {
-        let catalog = parent instanceof Catalog ? parent : parent.catalog;
         let album = parent instanceof Catalog ? null : parent;
-        let updated: Patch<AlbumCreateData, Album> = {
-          catalog: catalog.ref(),
+        let updated: Patch<AlbumState> = {
           name,
           id: this.props.album.ref(),
           parent: album?.ref() ?? null,

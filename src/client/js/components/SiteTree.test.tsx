@@ -9,7 +9,7 @@ import {
   click,
   mockStore,
   mockStoreState,
-  mockServerData,
+  mockServerState,
   render,
   expectChild,
   expectElement,
@@ -21,7 +21,7 @@ jest.mock("./Button");
 
 test("media target selector", (): void => {
   let store = mockStore(mockStoreState({
-    serverState: mockServerData([{
+    serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
       albums: [{
@@ -130,7 +130,7 @@ test("media target selector", (): void => {
 
 test("inner media target selector", (): void => {
   let store = mockStore(mockStoreState({
-    serverState: mockServerData([{
+    serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
       albums: [{

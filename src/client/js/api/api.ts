@@ -1,229 +1,44 @@
-import { JsonDecoder } from "ts.data.json";
+import { Api } from "../../../model";
+import * as Decoders from "./decoders";
+import {
+  BlobDecoder,
+  Decoder,
+  JsonDecoderDecoder,
+  JsonRequestData,
+  makeRequest,
+  QueryRequestData,
+  RequestData,
+} from "./helpers";
 
-import { Api, ObjectModel } from "../../../model";
-import { DateDecoder } from "../../../utils";
-import { ReadonlyMapOf } from "../utils/maps";
-import { JsonRequestData, makeRequest, QueryRequestData, RequestData } from "./helpers";
-import { Album, Catalog, Person, Tag, Media } from "./highlevel";
-
-type StateForObject<Obj> =
-  Obj extends ObjectModel.Person
-    ? PersonState
-    : Obj extends ObjectModel.Tag
-      ? TagState
-      : Obj extends ObjectModel.Album
-        ? AlbumState
-        : Obj extends ObjectModel.Catalog
-          ? CatalogState
-          : Obj extends ObjectModel.User
-            ? UserState
-            : Obj extends ObjectModel.Media
-              ? MediaState
-              : never;
-
-type HighLevelForState<State> =
-  State extends PersonState
-    ? Person
-    : State extends TagState
-      ? Tag
-      : State extends AlbumState
-        ? Album
-        : State extends CatalogState
-          ? Catalog
-          : State extends MediaState
-            ? Media
-            : never;
-
-type StateForHighLevel<HighLevel> =
-  HighLevel extends Person
-    ? PersonState
-    : HighLevel extends Tag
-      ? TagState
-      : HighLevel extends Album
-        ? AlbumState
-        : HighLevel extends Catalog
-          ? CatalogState
-          : HighLevel extends Media
-            ? MediaState
-            : never;
-
-type HighLevelForObject<Obj> =
-  Obj extends ObjectModel.Person
-    ? Person
-    : Obj extends ObjectModel.Tag
-      ? Tag
-      : Obj extends ObjectModel.Album
-        ? Album
-        : Obj extends ObjectModel.Catalog
-          ? Catalog
-          : Obj extends ObjectModel.Media
-            ? Media
-            : never;
-
-export interface PersonState extends Readonly<ObjectModel.Person> {}
-export interface TagState extends Readonly<ObjectModel.Tag> {}
-export interface AlbumState extends Readonly<ObjectModel.Album> {}
-export interface CatalogState extends Readonly<ObjectModel.Catalog> {}
-export interface UserState extends Readonly<ObjectModel.User> {
-  readonly catalogs: ReadonlyMapOf<CatalogState>;
-}
-export interface UnprocessedMediaState extends Readonly<ObjectModel.Media> {
-  readonly upload?: null;
-}
-export interface ProcessedMediaState extends Readonly<ObjectModel.Media> {
-  original: OriginalState;
-}
-export type MediaState = UnprocessedMediaState | ProcessedMediaState;
-export interface OriginalState extends Readonly<ObjectModel.Original> {}
-
-const PersonDecoder = JsonDecoder.object<Api.Person>(
-  {
-    id: JsonDecoder.string,
-    catalog: JsonDecoder.string,
-    name: JsonDecoder.string,
-  },
-  "Person",
-);
-
-const TagDecoder = JsonDecoder.object<Api.Tag>(
-  {
-    id: JsonDecoder.string,
-    catalog: JsonDecoder.string,
-    parent: JsonDecoder.nullable(JsonDecoder.string),
-    name: JsonDecoder.string,
-  },
-  "Tag",
-);
-
-const AlbumDecoder = JsonDecoder.object<Api.Album>(
-  {
-    id: JsonDecoder.string,
-    catalog: JsonDecoder.string,
-    name: JsonDecoder.string,
-    parent: JsonDecoder.nullable(JsonDecoder.string),
-  },
-  "Album",
-);
-
-const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
-  {
-    id: JsonDecoder.string,
-    storage: JsonDecoder.string,
-    name: JsonDecoder.string,
-  },
-  "Catalog",
-);
-
-const UserDecoder = JsonDecoder.object<Api.User>(
-  {
-    email: JsonDecoder.string,
-    fullname: JsonDecoder.string,
-    hadCatalog: JsonDecoder.boolean,
-    verified: JsonDecoder.boolean,
-    catalogs: JsonDecoder.array(CatalogDecoder, "Catalog[]"),
-    people: JsonDecoder.array(PersonDecoder, "Person[]"),
-    tags: JsonDecoder.array(TagDecoder, "Tag[]"),
-    albums: JsonDecoder.array(AlbumDecoder, "Album[]"),
-  },
-  "User",
-);
-
-const StateDecoder = JsonDecoder.object<Api.State>(
-  {
-    user: JsonDecoder.nullable(UserDecoder),
-  },
-  "State",
-);
-
-const UnprocessedMediaProperties = {
-  id: JsonDecoder.string,
-  created: DateDecoder,
-  filename: JsonDecoder.nullable(JsonDecoder.string),
-  title: JsonDecoder.nullable(JsonDecoder.string),
-  taken: JsonDecoder.nullable(DateDecoder),
-  timeZone: JsonDecoder.nullable(JsonDecoder.string),
-  longitude: JsonDecoder.nullable(JsonDecoder.number),
-  latitude: JsonDecoder.nullable(JsonDecoder.number),
-  altitude: JsonDecoder.nullable(JsonDecoder.number),
-  location: JsonDecoder.nullable(JsonDecoder.string),
-  city: JsonDecoder.nullable(JsonDecoder.string),
-  state: JsonDecoder.nullable(JsonDecoder.string),
-  country: JsonDecoder.nullable(JsonDecoder.string),
-  orientation: JsonDecoder.nullable(JsonDecoder.number),
-  make: JsonDecoder.nullable(JsonDecoder.string),
-  model: JsonDecoder.nullable(JsonDecoder.string),
-  lens: JsonDecoder.nullable(JsonDecoder.string),
-  photographer: JsonDecoder.nullable(JsonDecoder.string),
-  aperture: JsonDecoder.nullable(JsonDecoder.number),
-  exposure: JsonDecoder.nullable(JsonDecoder.number),
-  iso: JsonDecoder.nullable(JsonDecoder.number),
-  focalLength: JsonDecoder.nullable(JsonDecoder.number),
-
-  albums: JsonDecoder.array(AlbumDecoder, "album[]"),
-  tags: JsonDecoder.array(TagDecoder, "tag[]"),
-  people: JsonDecoder.array(PersonDecoder, "person[]"),
-};
-
-const UnprocessedMediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>(
-  UnprocessedMediaProperties,
-  "UnprocessedMedia",
-);
-
-const ProcessedMediaDecoder = JsonDecoder.object<Api.ProcessedMedia>({
-  ...UnprocessedMediaProperties,
-  height: JsonDecoder.number,
-  width: JsonDecoder.number,
-  fileSize: JsonDecoder.number,
-  mimetype: JsonDecoder.string,
-  uploaded: DateDecoder,
-  duration: JsonDecoder.nullable(JsonDecoder.number),
-  bitRate: JsonDecoder.nullable(JsonDecoder.number),
-  frameRate: JsonDecoder.nullable(JsonDecoder.number),
-}, "ProcessedMedia");
-
-const MediaDecoder = JsonDecoder.oneOf<Api.Media>([
-  UnprocessedMediaDecoder,
-  ProcessedMediaDecoder,
-], "Media");
-
-const MediaArrayDecoder = JsonDecoder.array(MediaDecoder, "Media[]");
-
-type RequestType<T extends Api.Method> =
+export type RequestType<T extends Api.Method> =
   Api.Signatures[T] extends Api.Signature<infer Request>
     ? Request extends Api.None
       ? []
       : [Request]
     : never;
-type ResponseType<T extends Api.Method> =
+export type ResponseType<T extends Api.Method> =
   Api.Signatures[T] extends Api.Signature<unknown, infer Response> ? Response : never;
 
-type ResponseDecoder<T extends Api.Method> =
-  Api.Signatures[T] extends Api.Signature<unknown, infer Response>
-    ? Response extends Blob
-      ? null
-      : JsonDecoder.Decoder<Response>
-    : never;
-
-type ResponseDecoders = {
-  [Key in keyof Api.Signatures]: ResponseDecoder<Key>;
+export type ResponseDecoders = {
+  [Key in keyof Api.Signatures]: Decoder<ResponseType<Key>>;
 };
 
 const decoders: ResponseDecoders = {
-  [Api.Method.State]: StateDecoder,
-  [Api.Method.Login]: StateDecoder,
-  [Api.Method.Logout]: StateDecoder,
-  [Api.Method.CatalogCreate]: CatalogDecoder,
-  [Api.Method.AlbumCreate]: AlbumDecoder,
-  [Api.Method.AlbumEdit]: AlbumDecoder,
-  [Api.Method.AlbumList]: MediaArrayDecoder,
-  [Api.Method.TagCreate]: TagDecoder,
-  [Api.Method.TagEdit]: TagDecoder,
-  [Api.Method.PersonCreate]: PersonDecoder,
-  [Api.Method.PersonEdit]: PersonDecoder,
-  [Api.Method.MediaCreate]: UnprocessedMediaDecoder,
-  [Api.Method.MediaGet]: MediaArrayDecoder,
-  [Api.Method.MediaThumbnail]: null,
-  [Api.Method.MediaRelations]: MediaArrayDecoder,
+  [Api.Method.State]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Api.Method.Login]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Api.Method.Logout]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Api.Method.CatalogCreate]: JsonDecoderDecoder(Decoders.CatalogDecoder),
+  [Api.Method.AlbumCreate]: JsonDecoderDecoder(Decoders.AlbumDecoder),
+  [Api.Method.AlbumEdit]: JsonDecoderDecoder(Decoders.AlbumDecoder),
+  [Api.Method.AlbumList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Api.Method.TagCreate]: JsonDecoderDecoder(Decoders.TagDecoder),
+  [Api.Method.TagEdit]: JsonDecoderDecoder(Decoders.TagDecoder),
+  [Api.Method.PersonCreate]: JsonDecoderDecoder(Decoders.PersonDecoder),
+  [Api.Method.PersonEdit]: JsonDecoderDecoder(Decoders.PersonDecoder),
+  [Api.Method.MediaCreate]: JsonDecoderDecoder(Decoders.UnprocessedMediaDecoder),
+  [Api.Method.MediaGet]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Api.Method.MediaThumbnail]: BlobDecoder,
+  [Api.Method.MediaRelations]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
 };
 
 export function request<T extends Api.Method>(
@@ -233,10 +48,10 @@ export function request<T extends Api.Method>(
   let request: RequestData<ResponseType<T>>;
   if (Api.HttpMethods[method] == "GET") {
     // @ts-ignore: Trust me
-    request = new QueryRequestData<ResponseType<T>>(data, decoders[method]);
+    request = new QueryRequestData<ResponseType<T>>(data[0], decoders[method]);
   } else {
     // @ts-ignore: Trust me
-    request = new JsonRequestData<ResponseType<T>>(data, decoders[method]);
+    request = new JsonRequestData<ResponseType<T>>(data[0], decoders[method]);
   }
 
   return makeRequest(Api.HttpMethods[method], method, request);

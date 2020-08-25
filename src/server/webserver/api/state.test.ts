@@ -1,6 +1,6 @@
+import { Api } from "../../../model";
 import { insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
-import { ApiErrorCode } from "../error";
 import { buildTestApp } from "../test-helpers";
 
 const agent = buildTestApp();
@@ -113,7 +113,7 @@ test("login failure", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: ApiErrorCode.LoginFailed,
+    code: Api.ErrorCode.LoginFailed,
   });
 
   response = await request

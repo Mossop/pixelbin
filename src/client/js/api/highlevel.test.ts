@@ -1,4 +1,4 @@
-import { mockServerData, expect } from "../test-helpers";
+import { mockServerState, expect } from "../test-helpers";
 import { ErrorCode } from "../utils/exception";
 import { nameSorted } from "../utils/sort";
 import {
@@ -10,27 +10,24 @@ import {
   dereferencer,
   PendingAPIItem,
 } from "./highlevel";
-import { ServerData } from "./types";
+import { ServerState } from "./types";
 
-const LoggedOut: ServerData = {
+const LoggedOut: ServerState = {
   user: null,
 };
 
-const LoggedIn = mockServerData([{
+const LoggedIn = mockServerState([{
   id: "testcatalog1",
   name: "Test catalog 1",
   albums: [{
     id: "testalbum1",
     name: "Test album 1",
-    stub: "top",
     children: [{
       id: "childalbum1",
       name: "Child album 1",
-      stub: null,
     }, {
       id: "childalbum2",
       name: "Child album 2",
-      stub: null,
     }],
   }],
   tags: [{
@@ -50,22 +47,19 @@ const LoggedIn = mockServerData([{
   name: "Test catalog 2",
 }]);
 
-const Mutated = mockServerData([{
+const Mutated = mockServerState([{
   id: "testcatalog1",
   name: "Test catalog 1",
   albums: [{
     id: "testalbum1",
     name: "Test album 1",
-    stub: null,
     children: [{
       id: "childalbum2",
       name: "Child album 2",
-      stub: null,
     }],
   }, {
     id: "childalbum1",
     name: "Child album 1",
-    stub: null,
   }],
   tags: [{
     id: "testtag1",
@@ -146,7 +140,6 @@ test("Album structures.", (): void => {
   expect(roots[0].id).toBe("testalbum1");
   expect(roots[0].catalog).toBe(catalog);
   expect(roots[0].name).toBe("Test album 1");
-  expect(roots[0].stub).toBe("top");
   expect(roots[0].parent).toBeUndefined();
 
   expect(catalog.rootAlbums[0]).toBe(roots[0]);
@@ -162,13 +155,11 @@ test("Album structures.", (): void => {
   expect(children[0].id).toBe("childalbum1");
   expect(children[0].catalog).toBe(catalog);
   expect(children[0].name).toBe("Child album 1");
-  expect(children[0].stub).toBeNull();
   expect(children[0].parent).toBe(roots[0]);
   expect(children[0].children).toHaveLength(0);
   expect(children[1].id).toBe("childalbum2");
   expect(children[1].catalog).toBe(catalog);
   expect(children[1].name).toBe("Child album 2");
-  expect(children[1].stub).toBeNull();
   expect(children[1].parent).toBe(roots[0]);
   expect(children[1].children).toHaveLength(0);
 
@@ -276,7 +267,7 @@ test("Pending.", async (): Promise<void> => {
 });
 
 test("Bad tag state", (): void => {
-  let state = mockServerData([{
+  let state = mockServerState([{
     id: "catalog",
     name: "Catalog",
     tags: [{
@@ -302,13 +293,12 @@ test("Bad tag state", (): void => {
 });
 
 test("Bad album state", (): void => {
-  let state = mockServerData([{
+  let state = mockServerState([{
     id: "catalog",
     name: "Catalog",
     albums: [{
       id: "album",
       name: "Album",
-      stub: null,
     }],
   }]);
 

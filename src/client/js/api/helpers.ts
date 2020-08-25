@@ -1,11 +1,12 @@
 import { parse as parseCookie } from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
+import { Api } from "../../../model";
 import { MappingDecoder, Obj } from "../../../utils";
 import { appURL, Url } from "../context";
 import { fetch, document } from "../environment";
 import { exception, ErrorCode, ApiError } from "../utils/exception";
-import { isReference, APIItemReference } from "./highlevel";
+import { APIItemReference } from "./highlevel";
 import type { Reference, APIItemBuilder } from "./highlevel";
 
 export function pullParam<O, K extends keyof O>(data: O, param: K): O[K] {
@@ -17,11 +18,7 @@ export function pullParam<O, K extends keyof O>(data: O, param: K): O[K] {
 export type RequestPk<T> = Reference<T>;
 export type ResponsePk<T> = Reference<T>;
 
-type Decoder<T> = (response: Response) => Promise<T>;
-
-export type Patch<D, T> = Partial<D> & {
-  id: RequestPk<T>;
-};
+export type Decoder<T> = (response: Response) => Promise<T>;
 
 type EncodedObject<O> = {
   [K in keyof O]: Encoded<O[K]>;
@@ -81,10 +78,6 @@ const isArray = (data: any): data is any[] => Array.isArray(data);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function intoString(data: any): string {
-  if (isReference(data)) {
-    return data.id;
-  }
-
   return String(data);
 }
 
@@ -96,8 +89,6 @@ function *objectParams(
     let param = `${prefix}${key}`;
     if (value instanceof Blob) {
       yield [param, value];
-    } else if (isReference(value)) {
-      yield [param, value.id];
     } else if (isArray(value)) {
       yield* arrayParams(value, `${param}`);
     } else if (isObject(value)) {
@@ -115,8 +106,6 @@ function *arrayParams(data: any[], prefix: string = ""): Generator<[string, stri
 
     if (value instanceof Blob) {
       yield [param, value];
-    } else if (isReference(value)) {
-      yield [param, value.id];
     } else if (isArray(value)) {
       yield* arrayParams(value, param);
     } else if (isObject(value)) {
@@ -141,13 +130,7 @@ function *params(data: any): Generator<[string, string | Blob]> {
 }
 
 function json(data: unknown): string {
-  return JSON.stringify(data, (_key: string, value: unknown): unknown => {
-    if (isReference(value)) {
-      return value.id;
-    }
-
-    return value;
-  });
+  return JSON.stringify(data);
 }
 
 export class QueryRequestData<D> extends RequestData<D> {
@@ -220,13 +203,20 @@ export class JsonRequestData<D> extends RequestData<D> {
   }
 
   public applyToHeaders(headers: Record<string, string>): void {
-    headers["Content-Type"] = "application/json";
+    if (this.data) {
+      headers["Content-Type"] = "application/json";
+    }
   }
 
   public body(): string | Record<string, string | Blob> | null {
     return this.data;
   }
 }
+
+const ErrorDataDecoder = JsonDecoder.object<Api.ErrorData>({
+  code: JsonDecoder.string as JsonDecoder.Decoder<Api.ErrorCode>,
+  data: JsonDecoder.optional(JsonDecoder.dictionary(JsonDecoder.string, "ErrorData")),
+}, "ErrorData");
 
 export async function makeRequest<D>(
   method: string,
@@ -253,9 +243,7 @@ export async function makeRequest<D>(
   if (!response.ok) {
     let errorData;
     try {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const { ApiErrorDataDecoder } = await import(/* webpackChunkName: "api" */"./types");
-      errorData = await ApiErrorDataDecoder.decodePromise(await response.json());
+      errorData = await ErrorDataDecoder.decodePromise(await response.json());
     } catch (e) {
       exception(ErrorCode.DecodeError, undefined, e);
     }
@@ -265,6 +253,6 @@ export async function makeRequest<D>(
   try {
     return await request.decode(response);
   } catch (e) {
-    exception(ErrorCode.DecodeError, undefined, e);
+    exception(ErrorCode.DecodeError, { data: JSON.stringify(await response.json()) }, e);
   }
 }

@@ -9,7 +9,7 @@ import {
   mockStore,
   render,
   mockStoreState,
-  mockServerData,
+  mockServerState,
   expectChild,
   click,
 } from "../test-helpers";
@@ -36,7 +36,7 @@ const mockedSidebar = mockedClass(Sidebar);
 
 test("album", (): void => {
   let store = mockStore(mockStoreState({
-    serverState: mockServerData([{
+    serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
       albums: [{
@@ -53,7 +53,7 @@ test("album", (): void => {
   let album = albumRef.deref(store.state.serverState);
 
   let { container, rerender } = render(
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     <AlbumPage user={store.state.serverState.user!} album={albumRef}/>,
     store,
   );
@@ -108,17 +108,17 @@ test("album", (): void => {
 
   mockedMediaList.mockClear();
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   rerender(<AlbumPage user={store.state.serverState.user!} album={albumRef}/>);
 
   expect(mockedMediaList).not.toHaveBeenCalled();
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   rerender(<AlbumPage user={store.state.serverState.user!} album={Album.ref("album1")}/>);
 
   expect(mockedMediaList).not.toHaveBeenCalled();
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   rerender(<AlbumPage user={store.state.serverState.user!} album={Album.ref("album2")}/>);
 
   expect(mockedMediaList).toHaveBeenCalled();

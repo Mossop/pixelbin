@@ -9,7 +9,7 @@ import {
   mockStore,
   render,
   mockStoreState,
-  mockServerData,
+  mockServerState,
   expectChild,
   click,
 } from "../test-helpers";
@@ -35,7 +35,7 @@ const mockedSidebar = mockedClass(Sidebar);
 
 test("catalog", (): void => {
   let store = mockStore(mockStoreState({
-    serverState: mockServerData([{
+    serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
     }, {
@@ -48,7 +48,7 @@ test("catalog", (): void => {
   let catalog = catalogRef.deref(store.state.serverState);
 
   let { container, rerender } = render(
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     <CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>,
     store,
   );
@@ -97,17 +97,17 @@ test("catalog", (): void => {
 
   mockedMediaList.mockClear();
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   rerender(<CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>);
 
   expect(mockedMediaList).not.toHaveBeenCalled();
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   rerender(<CatalogPage user={store.state.serverState.user!} catalog={Catalog.ref("catalog")}/>);
 
   expect(mockedMediaList).not.toHaveBeenCalled();
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   rerender(<CatalogPage user={store.state.serverState.user!} catalog={Catalog.ref("catalog2")}/>);
 
   expect(mockedMediaList).toHaveBeenCalled();

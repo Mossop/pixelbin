@@ -1,25 +1,22 @@
-import { Immutable } from "immer";
 import React, { ReactNode, PureComponent } from "react";
 
 import { Obj } from "../../../utils";
 import { createCatalog } from "../api/catalog";
-import { UserData } from "../api/types";
+import { UserState } from "../api/types";
 import Form, { FormField } from "../components/Form";
 import Overlay from "../components/Overlay";
-import { renderStorageConfigUI, StorageData } from "../storage";
 import actions from "../store/actions";
 import { connect, ComponentProps } from "../utils/component";
 import { AppError } from "../utils/exception";
 import { focus } from "../utils/helpers";
-import { proxyReactState, makeProperty, proxy } from "../utils/StateProxy";
+import { proxyReactState, makeProperty } from "../utils/StateProxy";
 
 interface InputFields {
   name: string;
-  storage: StorageData;
 }
 
 interface PassedProps {
-  user: Immutable<UserData>;
+  user: UserState;
 }
 
 const mapDispatchToProps = {
@@ -44,9 +41,6 @@ class CatalogOverlay extends PureComponent<CatalogOverlayProps, CatalogOverlaySt
       // eslint-disable-next-line react/no-unused-state
       inputs: {
         name: "",
-        storage: proxy({
-          type: "server",
-        }),
       },
     };
 
@@ -66,7 +60,7 @@ class CatalogOverlay extends PureComponent<CatalogOverlayProps, CatalogOverlaySt
     this.setState({ disabled: true, error: undefined });
 
     try {
-      let catalog = await createCatalog(name, this.inputs.storage);
+      let catalog = await createCatalog(name);
       this.props.catalogCreated(catalog);
     } catch (e) {
       this.setState({ disabled: false, error: e });
@@ -92,7 +86,6 @@ class CatalogOverlay extends PureComponent<CatalogOverlayProps, CatalogOverlaySt
           required={true}
           property={makeProperty(this.inputs, "name")}
         />
-        {renderStorageConfigUI(this.inputs.storage, this.state.disabled)}
       </Form>
     </Overlay>;
   }

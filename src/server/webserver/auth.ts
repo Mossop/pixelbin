@@ -1,7 +1,7 @@
-import { ObjectModel } from "../../model";
+import { ObjectModel, Api } from "../../model";
 import { UserScopedConnection } from "../database";
 import { AppContext, DescriptorsFor } from "./context";
-import { ApiError, ApiErrorCode } from "./error";
+import { ApiError } from "./error";
 
 export interface AuthContext {
   readonly user: ObjectModel.User | null;
@@ -44,7 +44,7 @@ export default function(): DescriptorsFor<AuthContext> {
             this.session.save();
           } else {
             await this.logout();
-            throw new ApiError(ApiErrorCode.LoginFailed);
+            throw new ApiError(Api.ErrorCode.LoginFailed);
           }
         };
       },
@@ -71,7 +71,7 @@ export function ensureAuthenticated<A, R>(
   return async (ctx: AppContext, arg: A): Promise<R> => {
     let userDb = ctx.userDb;
     if (!userDb) {
-      throw new ApiError(ApiErrorCode.NotLoggedIn);
+      throw new ApiError(Api.ErrorCode.NotLoggedIn);
     }
 
     return cb(ctx, userDb, arg);
@@ -84,7 +84,7 @@ export function ensureAuthenticatedTransaction<A, R>(
   return async (ctx: AppContext, arg: A): Promise<R> => {
     let userDb = ctx.userDb;
     if (!userDb) {
-      throw new ApiError(ApiErrorCode.NotLoggedIn);
+      throw new ApiError(Api.ErrorCode.NotLoggedIn);
     }
 
     return userDb.inTransaction((userDb: UserScopedConnection): Promise<R> => cb(ctx, userDb, arg));

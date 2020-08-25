@@ -162,6 +162,7 @@ async function serverJest() {
     "--config",
     path.join(__dirname, "jest.config.js"),
     "--collectCoverage",
+    "--ci",
   ]);
 }
 

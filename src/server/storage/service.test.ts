@@ -63,7 +63,6 @@ test("Basic storage", async (): Promise<void> => {
     });
     expect(fileData).not.toBeNull();
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let data = await fs.readFile(fileData!.path, {
       encoding: "utf8",
     });

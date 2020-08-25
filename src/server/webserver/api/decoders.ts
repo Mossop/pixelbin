@@ -96,17 +96,9 @@ export const PersonEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Person
   name: JsonDecoder.optional(JsonDecoder.string),
 }, "PersonEditRequest"));
 
-export const MediaGetRequest = jsonDecoder(
-  MappingDecoder(
-    JsonDecoder.object({
-      id: JsonDecoder.string,
-    }, "MediaGetRequest"),
-    (data: { id: string }): string[] => {
-      return data.id.split(",");
-    },
-    "media[]",
-  ),
-);
+export const MediaGetRequest = jsonDecoder(JsonDecoder.object<Api.MediaGetRequest>({
+  id: JsonDecoder.string,
+}, "MediaGetRequest"));
 
 export async function MediaCreateRequest(
   data: unknown,

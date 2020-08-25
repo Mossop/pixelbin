@@ -1,8 +1,7 @@
-import { Immutable } from "immer";
 import React, { ReactNode, PureComponent, ErrorInfo } from "react";
 
 import { Obj } from "../../../utils";
-import { UserData } from "../api/types";
+import { UserState } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import Album from "./album";
@@ -15,7 +14,7 @@ import User from "./user";
 
 interface FromStateProps {
   page: PageState;
-  user: Immutable<UserData> | null;
+  user: UserState | null;
 }
 
 function mapStateToProps(state: StoreState): FromStateProps {

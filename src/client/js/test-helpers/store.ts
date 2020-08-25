@@ -1,31 +1,41 @@
 import { Deed } from "deeds/immer";
 import { Draft } from "immer";
+import moment from "moment-timezone";
 import { Unsubscribe } from "redux";
 
+import { emptyMetadata } from "../../../model";
+import { Overwrite } from "../../../utils";
 import { Catalog, Reference, Tag, Album } from "../api/highlevel";
-import { CatalogData, ServerData, PersonData, TagData, AlbumData } from "../api/types";
+import {
+  CatalogState,
+  ServerState,
+  PersonState,
+  TagState,
+  AlbumState,
+  UnprocessedMediaState,
+  ProcessedMediaState,
+} from "../api/types";
 import { PageType } from "../pages/types";
 import { StoreState } from "../store/types";
 import { intoMap } from "../utils/maps";
 
-type MockPerson = Omit<PersonData, "id" | "catalog"> & {
+type MockPerson = Overwrite<Omit<PersonState, "catalog">, {
   id?: string;
-};
-type MockAlbum = Omit<AlbumData, "id" | "stub" | "catalog" | "parent"> & {
+}>;
+type MockAlbum = Overwrite<Omit<AlbumState, "catalog" | "parent">, {
   id?: string;
-  stub?: string | null;
   children?: MockAlbum[];
-};
-type MockTag = Omit<TagData, "id" | "catalog" | "parent"> & {
+}>;
+type MockTag = Overwrite<Omit<TagState, "catalog" | "parent">, {
   id?: string;
   children?: MockTag[];
-};
-type MockCatalog = Omit<CatalogData, "id" | "people" | "tags" | "albums"> & {
+}>;
+type MockCatalog = Overwrite<CatalogState, {
   id?: string;
   albums?: MockAlbum[];
   tags?: MockTag[];
   people?: MockPerson[];
-};
+}>;
 
 export function randomId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -35,7 +45,7 @@ function *iterAlbums(
   catalog: Reference<Catalog>,
   parent: Reference<Album> | null,
   mocks: MockAlbum[] | undefined,
-): Iterable<Draft<AlbumData>> {
+): Iterable<Draft<AlbumState>> {
   if (!mocks) {
     return;
   }
@@ -46,7 +56,6 @@ function *iterAlbums(
 
     yield {
       ...mock,
-      stub: mock.stub ?? null,
       id,
       catalog,
       parent,
@@ -60,7 +69,7 @@ function *iterTags(
   catalog: Reference<Catalog>,
   parent: Reference<Tag> | null,
   mocks: MockTag[] | undefined,
-): Iterable<Draft<TagData>> {
+): Iterable<Draft<TagState>> {
   if (!mocks) {
     return;
   }
@@ -83,7 +92,7 @@ function *iterTags(
 function *iterPeople(
   catalog: Reference<Catalog>,
   mocks: MockPerson[] | undefined,
-): Iterable<Draft<PersonData>> {
+): Iterable<Draft<PersonState>> {
   if (!mocks) {
     return;
   }
@@ -99,20 +108,62 @@ function *iterPeople(
   }
 }
 
-export function mockCatalog(mock: MockCatalog): Draft<CatalogData> {
+export function mockUnprocessedMedia(data: Partial<UnprocessedMediaState>): UnprocessedMediaState {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return {
+    id: randomId(),
+    created: moment().utc(),
+
+    tags: [],
+    albums: [],
+    people: [],
+
+    ...emptyMetadata(),
+    ...data,
+  };
+}
+
+export function mockProcessedMedia(data: Partial<ProcessedMediaState>): ProcessedMediaState {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return {
+    id: randomId(),
+    created: moment().utc(),
+
+    uploaded: moment().utc(),
+    width: 1024,
+    height: 768,
+    mimetype: "image/jpeg",
+    fileSize: 1024,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+
+    tags: [],
+    albums: [],
+    people: [],
+
+    ...emptyMetadata(),
+    ...data,
+  };
+}
+
+export function mockCatalog(mock: MockCatalog): Draft<CatalogState> {
   let id = mock.id ?? randomId();
   let ref = Catalog.ref(id);
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {
+    id: randomId(),
+
     ...mock,
-    id,
+
     albums: intoMap(iterAlbums(ref, null, mock.albums)),
     people: intoMap(iterPeople(ref, mock.people)),
     tags: intoMap(iterTags(ref, null, mock.tags)),
   };
 }
 
-export function mockServerData(catalogs?: MockCatalog[]): Draft<ServerData> {
+export function mockServerState(catalogs?: MockCatalog[]): Draft<ServerState> {
   if (catalogs === undefined) {
     catalogs = [];
   }
@@ -134,7 +185,7 @@ export function mockStoreState(state?: Partial<Draft<StoreState>>): Draft<StoreS
   }
 
   return {
-    serverState: state.serverState ?? mockServerData(),
+    serverState: state.serverState ?? mockServerState(),
     settings: state.settings ?? {
       thumbnailSize: 150,
     },

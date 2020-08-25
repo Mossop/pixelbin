@@ -3,7 +3,7 @@ import React, { PureComponent, ReactNode } from "react";
 import { Obj } from "../../../utils";
 import { Catalog, Album, catalogs, Reference, Referencable } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
-import { ServerData } from "../api/types";
+import { ServerState } from "../api/types";
 import { Localized } from "../l10n/Localized";
 import { StoreState } from "../store/types";
 import { ComponentProps, MapStateToProps, MapDispatchToProps, connect } from "../utils/component";
@@ -57,7 +57,7 @@ abstract class VirtualCatalogItem<K extends keyof CatalogItems> extends VirtualT
     let catalogRef = this.catalog.ref();
     return {
       id,
-      deref: (serverState: ServerData): CatalogItemType<K> => {
+      deref: (serverState: ServerState): CatalogItemType<K> => {
         return VirtualCatalogItem.getForCatalog(catalogRef.deref(serverState), this.type);
       },
     };

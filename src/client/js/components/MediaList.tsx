@@ -6,10 +6,8 @@ import {
   thumbnail,
   searchMedia,
   getMedia,
-  isProcessed,
-  ProcessedMediaData,
 } from "../api/media";
-import { MediaData } from "../api/types";
+import { isProcessed, MediaState, ProcessedMediaState } from "../api/types";
 import { StoreState } from "../store/types";
 import { connect, ComponentProps } from "../utils/component";
 import { createDraft } from "../utils/helpers";
@@ -42,15 +40,15 @@ class ListThumbnail extends PureComponent<ComponentProps<ListThumbnailPassedProp
 
 interface ItemData {
   readonly thumbnail?: ImageBitmap;
-  readonly media: MediaData;
+  readonly media: MediaState;
 }
 
-interface MediaDataMap {
+interface MediaStateMap {
   readonly [id: string]: ItemData;
 }
 
 interface PassedProps {
-  onDragStart?: (event: React.DragEvent, media: MediaData) => void;
+  onDragStart?: (event: React.DragEvent, media: MediaState) => void;
   search: Search;
 }
 
@@ -67,30 +65,30 @@ function mapStateToProps(state: StoreState): FromStateProps {
 }
 
 interface MediaListState {
-  mediaMap: MediaDataMap | null;
+  mediaMap: MediaStateMap | null;
 }
 type MediaListProps = ComponentProps<PassedProps, typeof mapStateToProps>;
 class MediaList extends PureComponent<MediaListProps, MediaListState> {
   private pendingSearch: number;
-  private pendingProcessing: Map<string, MediaData>;
+  private pendingProcessing: Map<string, MediaState>;
   private pendingTimeout: NodeJS.Timeout | null;
 
   public constructor(props: MediaListProps) {
     super(props);
 
     this.pendingSearch = 0;
-    this.pendingProcessing = new Map<string, MediaData>();
+    this.pendingProcessing = new Map<string, MediaState>();
     this.pendingTimeout = null;
     this.state = {
       mediaMap: null,
     };
   }
 
-  private async loadThumbnail(media: ProcessedMediaData): Promise<void> {
+  private async loadThumbnail(media: ProcessedMediaState): Promise<void> {
     let image = await thumbnail(mediaRef(media), this.props.thumbnailSize);
 
     // eslint-disable-next-line react/no-access-state-in-setstate
-    let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
+    let mediaMap = produce(this.state.mediaMap, (mediaMap: Draft<MediaStateMap>): void => {
       mediaMap[media.id].thumbnail = image;
     });
 
@@ -101,11 +99,11 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
 
   private async process(id: string): Promise<void> {
     try {
-      let media = await getMedia(id);
+      let [media] = await getMedia([id]);
       if (!isProcessed(media)) {
         return;
       }
-      let processed: ProcessedMediaData = media;
+      let processed: ProcessedMediaState = media;
 
       if (!this.pendingProcessing.has(id)) {
         // No longer need this result.
@@ -114,7 +112,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
 
       // eslint-disable-next-line react/no-access-state-in-setstate
       let mediaMap = this.state.mediaMap ?? {};
-      mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
+      mediaMap = produce(mediaMap, (mediaMap: Draft<MediaStateMap>): void => {
         mediaMap[id].media = createDraft(processed);
       });
 
@@ -128,7 +126,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
 
       // eslint-disable-next-line react/no-access-state-in-setstate
       let mediaMap = this.state.mediaMap ?? {};
-      mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
+      mediaMap = produce(mediaMap, (mediaMap: Draft<MediaStateMap>): void => {
         delete mediaMap[id];
       });
 
@@ -172,7 +170,7 @@ class MediaList extends PureComponent<MediaListProps, MediaListState> {
       return;
     }
 
-    mediaMap = produce(mediaMap, (mediaMap: Draft<MediaDataMap>): void => {
+    mediaMap = produce(mediaMap, (mediaMap: Draft<MediaStateMap>): void => {
       let current = new Set(Object.keys(mediaMap));
 
       for (let item of results) {

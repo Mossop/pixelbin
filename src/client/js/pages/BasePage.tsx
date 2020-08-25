@@ -1,8 +1,7 @@
-import { Immutable } from "immer";
 import React, { PureComponent, ReactNode, Fragment } from "react";
 
 import { Obj } from "../../../utils";
-import { UserData } from "../api/types";
+import { UserState } from "../api/types";
 import Banner from "../components/Banner";
 import Sidebar from "../components/Sidebar";
 import { StoreState } from "../store/types";
@@ -16,7 +15,7 @@ import {
 } from "../utils/component";
 
 export interface FromStateProps {
-  user: Immutable<UserData> | null;
+  user: UserState | null;
 }
 
 function baseMapStateToProps(state: StoreState): FromStateProps {
@@ -68,7 +67,7 @@ export abstract class BasePage<
 export const baseConnect = mergedConnect(baseMapStateToProps);
 
 export interface AuthenticatedProps {
-  user: Immutable<UserData>;
+  user: UserState;
 }
 
 export abstract class AuthenticatedPage<
