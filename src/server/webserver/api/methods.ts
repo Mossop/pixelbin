@@ -9,6 +9,7 @@ import {
   listAlbum,
   createTag,
   editTag,
+  findTag,
   createPerson,
   editPerson,
 } from "./catalog";
@@ -46,6 +47,7 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.AlbumList]: Decoders.AlbumListRequest,
   [Api.Method.TagCreate]: Decoders.TagCreateRequest,
   [Api.Method.TagEdit]: Decoders.TagEditRequest,
+  [Api.Method.TagFind]: Decoders.TagFindRequest,
   [Api.Method.PersonCreate]: Decoders.PersonCreateRequest,
   [Api.Method.PersonEdit]: Decoders.PersonEditRequest,
   [Api.Method.MediaGet]: Decoders.MediaGetRequest,
@@ -72,6 +74,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.AlbumList]: listAlbum,
   [Api.Method.TagCreate]: createTag,
   [Api.Method.TagEdit]: editTag,
+  [Api.Method.TagFind]: findTag,
   [Api.Method.PersonCreate]: createPerson,
   [Api.Method.PersonEdit]: editPerson,
   [Api.Method.MediaGet]: getMedia,

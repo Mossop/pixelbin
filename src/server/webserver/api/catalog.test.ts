@@ -559,6 +559,66 @@ test("Edit tag", async (): Promise<void> => {
   });
 });
 
+test("Find Tag", async (): Promise<void> => {
+  const request = agent();
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .post("/api/tag/find")
+    .send({
+      catalog: "c1",
+      tags: ["tag2", "Tag6"],
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
+    id: "t2",
+    parent: null,
+    name: "tag2",
+    catalog: "c1",
+  }, {
+    id: "t6",
+    parent: "t2",
+    name: "Tag6",
+    catalog: "c1",
+  }]);
+
+  response = await request
+    .post("/api/tag/find")
+    .send({
+      catalog: "c1",
+      tags: ["tag2", "tag6", "newtag"],
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
+    id: "t2",
+    parent: null,
+    name: "tag2",
+    catalog: "c1",
+  }, {
+    id: "t6",
+    parent: "t2",
+    name: "tag6",
+    catalog: "c1",
+  }, {
+    id: expect.stringMatching(/T:[a-zA-Z0-9]+/),
+    parent: "t6",
+    name: "newtag",
+    catalog: "c1",
+  }]);
+});
+
 test("Create Person", async (): Promise<void> => {
   const request = agent();
 

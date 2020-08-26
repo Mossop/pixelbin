@@ -92,6 +92,11 @@ export const TagEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Tag>>({
   parent: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
 }, "TagEditRequest"));
 
+export const TagFindRequest = jsonDecoder(JsonDecoder.object<Api.TagFindRequest>({
+  catalog: JsonDecoder.string,
+  tags: JsonDecoder.array(JsonDecoder.string, "tag[]"),
+}, "TagFindRequest"));
+
 export const PersonCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Person>>({
   catalog: JsonDecoder.string,
   name: JsonDecoder.string,

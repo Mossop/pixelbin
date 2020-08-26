@@ -1,6 +1,6 @@
 import { Api, Create, ObjectModel, Patch, ResponseFor } from "../../../model";
 import { UserScopedConnection } from "../../database";
-import { ensureAuthenticated } from "../auth";
+import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
 import { buildResponseMedia } from "./media";
 
@@ -73,6 +73,29 @@ export const createTag = ensureAuthenticated(
 export const editTag = ensureAuthenticated(
   async (ctx: AppContext, userDb: UserScopedConnection, data: Patch<Api.Tag>): Promise<Api.Tag> => {
     return userDb.editTag(data.id, data);
+  },
+);
+
+export const findTag = ensureAuthenticatedTransaction(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Api.TagFindRequest,
+  ): Promise<Api.Tag[]> => {
+    let parent: string | null = null;
+    let foundTags: Api.Tag[] = [];
+
+    for (let tag of data.tags) {
+      let newTag = await userDb.createTag(data.catalog, {
+        parent,
+        name: tag,
+      });
+      foundTags.push(newTag);
+
+      parent = newTag.id;
+    }
+
+    return foundTags;
   },
 );
 

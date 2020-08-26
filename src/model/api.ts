@@ -135,6 +135,11 @@ export interface RelationsSetMedia {
 export type MediaRelationChange =
   MediaRelationAdd | MediaRelationDelete | MediaSetRelations | RelationsSetMedia;
 
+export interface TagFindRequest {
+  catalog: string;
+  tags: string[];
+}
+
 export enum Method {
   State = "state",
   Login = "login",
@@ -146,6 +151,7 @@ export enum Method {
   AlbumList = "album/list",
   TagCreate = "tag/create",
   TagEdit = "tag/edit",
+  TagFind = "tag/find",
   PersonCreate = "person/create",
   PersonEdit = "person/edit",
   MediaGet = "media/get",
@@ -170,6 +176,7 @@ export const HttpMethods: MethodList = {
   [Method.AlbumList]: "GET",
   [Method.TagCreate]: "PUT",
   [Method.TagEdit]: "PATCH",
+  [Method.TagFind]: "POST",
   [Method.PersonCreate]: "PUT",
   [Method.PersonEdit]: "PATCH",
   [Method.MediaGet]: "GET",
@@ -203,6 +210,7 @@ export interface Signatures {
   [Method.AlbumList]: Signature<AlbumListRequest, Media[]>;
   [Method.TagCreate]: Signature<Create<Tag>, Tag>;
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
+  [Method.TagFind]: Signature<TagFindRequest, Tag[]>;
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   [Method.MediaGet]: Signature<MediaGetRequest, Media[]>;

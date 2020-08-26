@@ -1,3 +1,5 @@
+import { JsonDecoder } from "ts.data.json";
+
 import { Api } from "../../../model";
 import * as Decoders from "./decoders";
 import {
@@ -34,6 +36,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.AlbumList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Api.Method.TagCreate]: JsonDecoderDecoder(Decoders.TagDecoder),
   [Api.Method.TagEdit]: JsonDecoderDecoder(Decoders.TagDecoder),
+  [Api.Method.TagFind]: JsonDecoderDecoder(JsonDecoder.array(Decoders.TagDecoder, "Tag[]")),
   [Api.Method.PersonCreate]: JsonDecoderDecoder(Decoders.PersonDecoder),
   [Api.Method.PersonEdit]: JsonDecoderDecoder(Decoders.PersonDecoder),
   [Api.Method.MediaCreate]: JsonDecoderDecoder(Decoders.UnprocessedMediaDecoder),
