@@ -1,7 +1,7 @@
 import React from "react";
 
 import { Api } from "../../../model";
-import { awaitCall } from "../../../test-helpers";
+import { awaitCall, mockedFunction } from "../../../test-helpers";
 import { request } from "../api/api";
 import {
   expect,
@@ -58,6 +58,11 @@ test("banner", async (): Promise<void> => {
 
   expect(request).not.toHaveBeenCalled();
 
+  let mockRequest = mockedFunction(request);
+  mockRequest.mockImplementationOnce((): Api.State => ({
+    user: null,
+  }));
+
   let promise = awaitCall(store.dispatch);
   click(logout);
   await promise;
@@ -67,6 +72,8 @@ test("banner", async (): Promise<void> => {
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
     type: "completeLogout",
-    payload: [undefined],
+    payload: [{
+      user: null,
+    }],
   });
 });

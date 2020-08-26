@@ -12,11 +12,17 @@ export function createAlbum(album: Create<AlbumState>): Promise<AlbumState> {
 }
 
 export function editAlbum(album: Patch<AlbumState>): Promise<AlbumState> {
-  return request(Api.Method.AlbumEdit, {
-    ...album,
-    id: album.id.id,
-    parent: album.parent ? album.parent.id : undefined,
-  }).then(albumIntoState);
+  let { id, parent, ...rest } = album;
+  let data: Api.Patch<Api.Album> = {
+    id: id.id,
+    ...rest,
+  };
+
+  if (parent !== undefined) {
+    data.parent = parent?.id ?? null;
+  }
+
+  return request(Api.Method.AlbumEdit, data).then(albumIntoState);
 }
 
 export async function addMediaToAlbum(

@@ -13,6 +13,7 @@ import {
   typeString,
   resetDOM,
   deferRequest,
+  mapOf,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
 import LoginOverlay from "./login";
@@ -43,7 +44,7 @@ test("login success", async (): Promise<void> => {
   form.submit();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let { resolve } = deferRequest();
+  let { resolve } = deferRequest<Api.State>();
   typeString(email, "foo@bar.com");
   form.submit();
 
@@ -60,13 +61,32 @@ test("login success", async (): Promise<void> => {
     password: "",
   }]);
 
-  void resolve();
+  void resolve({
+    user: {
+      email: "foo@bar.com",
+      fullname: "Someone",
+      hadCatalog: true,
+      verified: true,
+      catalogs: [],
+      albums: [],
+      tags: [],
+      people: [],
+    },
+  });
 
   let [deed] = await awaitCall(store.dispatch);
 
   expect(deed).toEqual({
     type: "completeLogin",
-    payload: [undefined],
+    payload: [{
+      user: {
+        email: "foo@bar.com",
+        fullname: "Someone",
+        hadCatalog: true,
+        verified: true,
+        catalogs: mapOf({}),
+      },
+    }],
   });
 
   mockedRequest.mockClear();

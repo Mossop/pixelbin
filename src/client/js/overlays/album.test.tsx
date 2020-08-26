@@ -5,7 +5,6 @@ import { Api } from "../../../model";
 import { lastCallArgs, mockedFunction } from "../../../test-helpers";
 import { request } from "../api/api";
 import { Catalog, Album } from "../api/highlevel";
-import { AlbumState } from "../api/types";
 import {
   expect,
   render,
@@ -58,7 +57,7 @@ test("create album", async (): Promise<void> => {
   let title = expectChild(container, "#overlay-header .title");
   expect(title.textContent).toBe("album-create-title");
 
-  let { resolve } = deferRequest<AlbumState>();
+  let { resolve } = deferRequest<Api.Album>();
 
   form.submit();
 
@@ -67,23 +66,26 @@ test("create album", async (): Promise<void> => {
   });
 
   expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.AlbumCreate, {
-    catalog: expect.toBeRef("catalog"),
+    catalog: "catalog",
     parent: null,
     name: "Foo",
   }]);
 
-  let albumState: AlbumState = {
+  await resolve({
     id: "album3",
-    catalog: Catalog.ref("catalog"),
+    catalog: "catalog",
     name: "Foo",
     parent: null,
-  };
-
-  await resolve(albumState);
+  });
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumCreated",
-    payload: [albumState],
+    payload: [{
+      id: "album3",
+      catalog: expect.toBeRef("catalog"),
+      name: "Foo",
+      parent: null,
+    }],
   });
 });
 
@@ -128,7 +130,7 @@ test("edit album", async (): Promise<void> => {
   let catalog = expectChild(container, ".site-tree .depth0 > button");
   click(catalog);
 
-  let { resolve } = deferRequest<AlbumState>();
+  let { resolve } = deferRequest<Api.Album>();
 
   form.submit();
 
@@ -137,23 +139,25 @@ test("edit album", async (): Promise<void> => {
   });
 
   expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.AlbumEdit, {
-    id: expect.toBeRef("album2"),
-    catalog: expect.toBeRef("catalog"),
+    id: "album2",
     parent: null,
     name: "Foo",
   }]);
 
-  let AlbumState: AlbumState = {
+  await resolve({
     id: "album2",
-    catalog: Catalog.ref("catalog"),
+    catalog: "catalog",
     name: "Foo",
     parent: null,
-  };
-
-  await resolve(AlbumState);
+  });
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumEdited",
-    payload: [AlbumState],
+    payload: [{
+      id: "album2",
+      catalog: expect.toBeRef("catalog"),
+      name: "Foo",
+      parent: null,
+    }],
   });
 });

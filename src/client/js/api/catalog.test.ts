@@ -42,9 +42,7 @@ test("Create catalog", async (): Promise<void> => {
     },
     body: {
       name: "Test catalog",
-      storage: {
-        type: "server",
-      },
+      storage: "",
     },
   });
 });
