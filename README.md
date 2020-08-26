@@ -1,15 +1,26 @@
 # Pixelbin Server
 
-This is the main server responsible for handing http traffic. It is comprised of a couple of parts. The organisation of these parts isn't great right now.
+This is the main server and web client for the PixelBin project. The interesting pieces are in the
+[`src`](/Mossop/pixelbin/tree/main/src) directory.
 
-## `api`
+The source is split into three main parts:
 
-This is a django application that serves the pixelbin API used by both the web application and the Lightroom plugin.
+## [`model`](/Mossop/pixelbin/tree/main/src/model)
 
-## `app/js`
+Holds the fundamental object model and API types used in the server and for communication with the
+web client.
 
-This is the web application that is accessed through a browser. It is a react/redux JavaScript app and communicates with the pixelbin API.
+## [`server`](/Mossop/pixelbin/tree/main/src/server)
 
-## `app`
+The server which is itself split into the [`main`](/Mossop/pixelbin/tree/main/src/server/main)
+server process, the [`webserver`](/Mossop/pixelbin/tree/main/src/server/webserver) child process and
+[`task-worker`](/Mossop/pixelbin/tree/main/src/server/task-worker) child process. The main server
+process may spawn multiple of these child processes to handle work as demands require.
 
-A dumb django application that serves only to deliver the web application's base webpage and the initial state.
+The server code also contains the shared code for accessing the database and the file storage
+system.
+
+## [`client`](/Mossop/pixelbin/tree/main/src/client)
+
+A React/Redux based application served by the webserver which forms the web view of the PixelBin
+project.
