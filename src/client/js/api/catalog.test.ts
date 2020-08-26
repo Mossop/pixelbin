@@ -22,7 +22,7 @@ test("Create catalog", async (): Promise<void> => {
     name: "Test catalog",
   }));
 
-  let result = await createCatalog("Test catalog");
+  let result = await createCatalog("Test catalog", "str");
 
   expect(result).toEqual({
     id: "testcatalog",
@@ -42,7 +42,7 @@ test("Create catalog", async (): Promise<void> => {
     },
     body: {
       name: "Test catalog",
-      storage: "",
+      storage: "str",
     },
   });
 });

@@ -40,7 +40,14 @@ catalog-albums = Albums
 catalog-create-title = Create a new catalog
 catalog-create-title-first = Create your first catalog:
 catalog-name = Catalog name:
-catalog-create-storage = Storage:
+storage-name = Storage:
+storage-access-key = Access key id:
+storage-secret-key = Secret access key:
+storage-region = Region:
+storage-bucket = Bucket:
+storage-path = Path:
+storage-endpoint = Endpoint:
+storage-public-url = Public access URL:
 catalog-create-submit = Create...
 
 storage-backblaze-name = Backblaze

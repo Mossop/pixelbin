@@ -43,15 +43,34 @@ test("create catalog first", async (): Promise<void> => {
   expect(mockedRequest).not.toHaveBeenCalled();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let nameInput = expectChild(container, "#catalog-overlay-name");
-  typeString(nameInput, "New Catalog");
+  let input = expectChild(container, "#catalog-overlay-catalog-name");
+  typeString(input, "New Catalog");
+  input = expectChild(container, "#catalog-overlay-storage-name");
+  typeString(input, "Test storage");
+  input = expectChild(container, "#catalog-overlay-storage-access-key");
+  typeString(input, "Access");
+  input = expectChild(container, "#catalog-overlay-storage-secret-key");
+  typeString(input, "Secret");
+  input = expectChild(container, "#catalog-overlay-storage-region");
+  typeString(input, "Region");
+  input = expectChild(container, "#catalog-overlay-storage-bucket");
+  typeString(input, "Bucket");
 
   let { call, resolve } = deferRequest<Api.Catalog, Api.CatalogCreateRequest>();
 
   form.submit();
 
   expect(await call).toEqual([Api.Method.CatalogCreate, {
-    storage: "",
+    storage: {
+      name: "Test storage",
+      accessKeyId: "Access",
+      secretAccessKey: "Secret",
+      region: "Region",
+      bucket: "Bucket",
+      path: null,
+      endpoint: null,
+      publicUrl: null,
+    },
     name: "New Catalog",
   }]);
 
@@ -84,8 +103,20 @@ test("create catalog", async (): Promise<void> => {
   let title = expectChild(container, "#overlay-header .title");
   expect(title.textContent).toBe("catalog-create-title");
 
-  let nameInput = expectChild(container, "#catalog-overlay-name");
-  typeString(nameInput, "New Catalog");
+  let input = expectChild(container, "#catalog-overlay-catalog-name");
+  typeString(input, "New Catalog");
+  input = expectChild(container, "#catalog-overlay-storage-name");
+  typeString(input, "Test storage");
+  input = expectChild(container, "#catalog-overlay-storage-access-key");
+  typeString(input, "Access key");
+  input = expectChild(container, "#catalog-overlay-storage-secret-key");
+  typeString(input, "Secret key");
+  input = expectChild(container, "#catalog-overlay-storage-region");
+  typeString(input, "My region");
+  input = expectChild(container, "#catalog-overlay-storage-bucket");
+  typeString(input, "My bucket");
+  input = expectChild(container, "#catalog-overlay-storage-endpoint");
+  typeString(input, "My endpoint");
 
   let { call, resolve } = deferRequest<Api.Catalog, Api.CatalogCreateRequest>();
 
@@ -93,7 +124,16 @@ test("create catalog", async (): Promise<void> => {
   form.submit();
 
   expect(await call).toEqual([Api.Method.CatalogCreate, {
-    storage: "",
+    storage: {
+      name: "Test storage",
+      accessKeyId: "Access key",
+      secretAccessKey: "Secret key",
+      region: "My region",
+      bucket: "My bucket",
+      path: null,
+      endpoint: "My endpoint",
+      publicUrl: null,
+    },
     name: "New Catalog",
   }]);
 
