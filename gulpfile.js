@@ -205,5 +205,12 @@ exports.migrate = gulp.series(exports.build, async function migrate() {
   });
 
   await connection.knex.migrate.latest();
+
+  await connection.createUser({
+    email: "dtownsend@oxymoronical.com",
+    fullname: "Dave Townsend",
+    password: "testpassword",
+  });
+
   await connection.destroy();
 });

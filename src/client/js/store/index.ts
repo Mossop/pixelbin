@@ -1,4 +1,5 @@
 import { Deed } from "deeds/immer";
+import { enableMapSet } from "immer";
 import { applyMiddleware, createStore, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
@@ -13,6 +14,8 @@ interface BuildResult {
 }
 
 function buildStore(): BuildResult {
+  enableMapSet();
+
   let initialState: StoreState = {
     serverState: { user: null },
     settings: {
