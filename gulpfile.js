@@ -96,6 +96,23 @@ async function buildClientJs() {
 }
 
 /**
+ * @return {void}
+ */
+function watchClientJs() {
+  let webpackConfig = require("./src/client/webpack.config");
+  let compiler = webpack(webpackConfig);
+
+  compiler.watch({}, (err, stats) => {
+    let results = stats.toString(webpackConfig.stats);
+    if (results) {
+      console.log(results);
+    } else {
+      console.log("Client code rebuilt.");
+    }
+  });
+}
+
+/**
  * @return {Promise<void>}
  */
 async function buildClientCss() {
@@ -194,7 +211,7 @@ exports.lint = gulp.series(exports.build, async function eslint() {
   ]);
 });
 
-exports.run = async function() {
+exports.run = gulp.parallel(watchClientJs, async function() {
   let server = new Process("node", [path.join(__dirname, "build", "server")]);
   let pretty = new Process(await findBin(__dirname, "pino-pretty"));
   server.pipe(pretty);
@@ -203,7 +220,7 @@ exports.run = async function() {
   if (code != 0) {
     throw new Error(`Server exited with exit code ${code}`);
   }
-};
+});
 
 exports.migrate = gulp.series(exports.build, async function migrate() {
   // eslint-disable-next-line @typescript-eslint/naming-convention
