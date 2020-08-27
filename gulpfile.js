@@ -58,11 +58,14 @@ function buildClientStatic() {
 /**
  * @return {Promise<void>}
  */
-function buildClientJs() {
+async function buildClientJs() {
   let webpackConfig = require("./src/client/webpack.config");
   let compiler = webpack(webpackConfig);
 
-  return new Promise((resolve, reject) => {
+  /**
+   * @type {import("webpack").Stats}
+   */
+  let stats = await new Promise((resolve, reject) => {
     compiler.run((err, stats) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (err) {
@@ -70,16 +73,26 @@ function buildClientJs() {
         return;
       }
 
-      console.log(stats.toString(webpackConfig.stats));
-
-      if (stats.hasErrors()) {
-        reject(new Error("Compilation failed."));
-        return;
-      }
-
-      resolve();
+      resolve(stats);
     });
   });
+
+  let json = stats.toJson({
+    moduleTrace: true,
+    modules: true,
+    entrypoints: true,
+    chunkModules: true,
+    chunks: true,
+    chunkGroups: true,
+    chunkOrigins: true,
+  }, false);
+  await fs.writeFile(path.join(__dirname, "build", "client", "stats.json"), JSON.stringify(json));
+
+  console.log(stats.toString(webpackConfig.stats));
+
+  if (stats.hasErrors()) {
+    throw new Error("Compilation failed.");
+  }
 }
 
 /**

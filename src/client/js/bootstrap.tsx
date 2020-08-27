@@ -1,8 +1,6 @@
 import React from "react";
 import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
-import "core-js/stable";
-import "regenerator-runtime/runtime";
 
 import App from "./components/app";
 import { appContainer, appURL, Url, initialServerState } from "./context";

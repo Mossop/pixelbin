@@ -100,7 +100,6 @@
     "@fluent/react": "^0.13.0",
     "@types/koa-session": "^5.10.2",
     "aws-sdk": "^2.712.0",
-    "core-js": "^3.6.5",
     "deeds": "^3.0.0",
     "execa": "^4.0.3",
     "exiftool-vendored": "^11.4.0",
