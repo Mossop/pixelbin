@@ -17,7 +17,7 @@ export async function buildUser(ctx: AppContext): Promise<Api.User | null> {
   };
 }
 
-async function buildState(ctx: AppContext): Promise<Api.State> {
+export async function buildState(ctx: AppContext): Promise<Api.State> {
   return {
     user: await buildUser(ctx),
   };

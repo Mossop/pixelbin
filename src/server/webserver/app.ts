@@ -9,16 +9,18 @@ import serve from "koa-static";
 
 import { Api } from "../../model";
 import { apiRequestHandler } from "./api/methods";
+import { buildState } from "./api/state";
 import { AppContext, ServicesContext, buildContext } from "./context";
 import { errorHandler } from "./error";
 import Services from "./services";
 
-function buildAppContent(): string {
+function buildAppContent(state: Api.State, paths: Record<string, string>): string {
   return `
 <!DOCTYPE html>
 
 <html>
 <head>
+<meta charset="utf-8">
 <title>PixelBin</title>
 <link href="https://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -26,14 +28,8 @@ function buildAppContent(): string {
 <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
 <link rel="stylesheet" type="text/css" href="/app/css/app.css">
-<script id="initial-state" type="application/json">{
-  "user": null
-}</script>
-<script id="paths" type="application/json">{
-  "root": "/",
-  "static": "/static/",
-  "api": "/api/"
-}</script>
+<script id="initial-state" type="application/json">${JSON.stringify(state)}</script>
+<script id="paths" type="application/json">${JSON.stringify(paths)}</script>
 </head>
 <body>
 <div id="app"></div>
@@ -45,6 +41,13 @@ function buildAppContent(): string {
 
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 type App = Koa<DefaultState, DefaultContext & ServicesContext>;
+
+const APP_PATHS = {
+  "root": "/",
+  "static": "/static/",
+  "api": "/api/",
+  "app": "/app/",
+};
 
 export default async function buildApp(): Promise<App> {
   let parent = await Services.parent;
@@ -58,7 +61,7 @@ export default async function buildApp(): Promise<App> {
   });
 
   for (let method of Object.values(Api.Method)) {
-    router.all(`/api/${method}`, koaBody({
+    router.all(`${APP_PATHS.api}${method}`, koaBody({
       multipart: true,
     }), apiRequestHandler(method));
   }
@@ -88,13 +91,14 @@ export default async function buildApp(): Promise<App> {
 
     .use(router.routes())
 
-    .use(mount("/static", serve(path.join(config.staticRoot))))
+    .use(mount(APP_PATHS.static, serve(path.join(config.staticRoot))))
 
-    .use(mount("/app", serve(path.join(config.appRoot))))
+    .use(mount(APP_PATHS.app, serve(path.join(config.appRoot))))
 
     .use(async (ctx: AppContext): Promise<void> => {
-      ctx.set("Content-Type", "text/html");
-      ctx.body = buildAppContent();
+      let state = await buildState(ctx);
+      ctx.set("Content-Type", "text/html; charset=utf-8");
+      ctx.body = buildAppContent(state, APP_PATHS);
     });
 
   let server = await parent.getServer();
