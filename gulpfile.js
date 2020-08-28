@@ -55,6 +55,10 @@ function buildClientStatic() {
     .pipe(gulp.dest(path.join(__dirname, "build", "client", "static")));
 }
 
+const watchClientStatic = gulp.series(buildClientStatic, () => {
+  gulp.watch(path.join(__dirname, "src", "client", "static", "**", "*"), buildClientStatic);
+});
+
 /**
  * @return {Promise<void>}
  */
@@ -211,7 +215,7 @@ exports.lint = gulp.series(exports.build, async function eslint() {
   ]);
 });
 
-exports.run = gulp.parallel(watchClientJs, async function() {
+exports.run = gulp.parallel(watchClientJs, watchClientStatic, async function() {
   let server = new Process("node", [path.join(__dirname, "build", "server")]);
   let pretty = new Process(await findBin(__dirname, "pino-pretty"));
   server.pipe(pretty);
