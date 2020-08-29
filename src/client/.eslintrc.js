@@ -1,4 +1,8 @@
 module.exports = {
+  "extends": [
+    "plugin:react-hooks/recommended",
+  ],
+
   "overrides": [{
     "files": ["js/**/*.jsx", "js/**/*.tsx"],
 

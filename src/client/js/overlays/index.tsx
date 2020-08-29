@@ -75,12 +75,10 @@ class OverlayDisplay extends PureComponent<
     if (!this.props.user) {
       switch (overlayState.type) {
         case OverlayType.Login: {
-          overlay = <LoginOverlay/>;
-          break;
+          return <LoginOverlay/>;
         }
         case OverlayType.Signup: {
-          overlay = <SignupOverlay/>;
-          break;
+          return <SignupOverlay/>;
         }
       }
     } else {

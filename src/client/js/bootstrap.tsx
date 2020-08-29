@@ -1,3 +1,4 @@
+import CssBaseline from "@material-ui/core/CssBaseline";
 import React from "react";
 import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
@@ -16,6 +17,7 @@ watchStore(store);
 reactRender(
   <Provider store={store}>
     <LocalizationContext baseurl={`${appURL(Url.L10n)}`} locales={["en-US"]}>
+      <CssBaseline/>
       <App/>
     </LocalizationContext>
   </Provider>,

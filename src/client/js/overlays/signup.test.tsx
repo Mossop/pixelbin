@@ -14,6 +14,7 @@ import {
   resetDOM,
   deferRequest,
   mapOf,
+  click,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
 import SignupOverlay from "./signup";
@@ -27,33 +28,34 @@ afterEach(resetDOM);
 test("signup success", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { container } = render(<SignupOverlay/>, store);
+  let { dialogContainer } = render(<SignupOverlay/>, store);
 
-  let form = expectChild<HTMLFormElement>(container, "form.form");
+  let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let email = expectChild<HTMLInputElement>(form, "#signup-overlay-email");
+  let email = expectChild<HTMLInputElement>(form, "#dialog-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let name = expectChild<HTMLInputElement>(form, "#signup-overlay-name");
+  let name = expectChild<HTMLInputElement>(form, "#dialog-fullname");
   expect(name.localName).toBe("input");
   expect(name.type).toBe("text");
   expect(name.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "#signup-overlay-password");
+  let password = expectChild<HTMLInputElement>(form, "#dialog-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
 
-  form.submit();
+  let button = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  click(button);
   expect(store.dispatch).not.toHaveBeenCalled();
 
   let { resolve } = deferRequest<Api.State>();
   typeString(email, "foo@bar.com");
   typeString(name, "Bob Parr");
   typeString(password, "foopass");
-  form.submit();
+  click(button);
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -105,31 +107,32 @@ test("signup success", async (): Promise<void> => {
 test("signup failed", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { container } = render(<SignupOverlay/>, store);
+  let { dialogContainer } = render(<SignupOverlay/>, store);
 
-  let form = expectChild<HTMLFormElement>(container, "form.form");
+  let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let email = expectChild<HTMLInputElement>(form, "#signup-overlay-email");
+  let email = expectChild<HTMLInputElement>(form, "input#dialog-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let name = expectChild<HTMLInputElement>(form, "#signup-overlay-name");
+  let name = expectChild<HTMLInputElement>(form, "input#dialog-fullname");
   expect(name.localName).toBe("input");
   expect(name.type).toBe("text");
   expect(name.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "#signup-overlay-password");
+  let password = expectChild<HTMLInputElement>(form, "input#dialog-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
 
-  form.submit();
+  let button = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  click(button);
   expect(store.dispatch).not.toHaveBeenCalled();
 
   let { reject } = deferRequest();
   typeString(email, "foo@bar.com");
-  form.submit();
+  click(button);
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -159,6 +162,6 @@ test("signup failed", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let error = expectChild(container, "#overlay-error");
+  let error = expectChild(dialogContainer, "#dialog-error");
   expect(error.textContent).toBe("api-error-invalid-data");
 });

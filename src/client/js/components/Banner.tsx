@@ -1,44 +1,72 @@
-import React, { PureComponent, ReactNode } from "react";
+import { useLocalization } from "@fluent/react";
+import AppBar from "@material-ui/core/AppBar";
+import Box from "@material-ui/core/Box";
+import Button from "@material-ui/core/Button";
+import { styled } from "@material-ui/core/styles";
+import Toolbar from "@material-ui/core/Toolbar";
+import Typography from "@material-ui/core/Typography";
+import React, { useCallback } from "react";
 
-import { Obj } from "../../../utils";
 import { logout } from "../api/auth";
 import { PageType } from "../pages/types";
-import actions from "../store/actions";
-import { connect, ComponentProps } from "../utils/component";
+import { useActions } from "../store/actions";
 import { If, Then, Else } from "../utils/Conditions";
 import { isLoggedIn } from "../utils/helpers";
-import Button from "./Button";
 import Link from "./Link";
 
-const mapDispatchToProps = {
-  openLoginOverlay: actions.showLoginOverlay,
-  openSignupOverlay: actions.showSignupOverlay,
-  completeLogout: actions.completeLogout,
-};
+const LogoText = styled(Typography)({
+  fontSize: "20px",
+  fontFamily: "\"Comfortaa\", cursive",
+  fontWeight: "bold",
+});
 
-class Banner extends PureComponent<ComponentProps<Obj, Obj, typeof mapDispatchToProps>> {
-  private logout = async (): Promise<void> => {
+export default function Banner(props: { children?: React.ReactNode }): React.ReactElement | null {
+  const { l10n } = useLocalization();
+  const actions = useActions();
+
+  const showLoginOverlay = useCallback((): void => actions.showLoginOverlay(), [actions]);
+  const showSignupOverlay = useCallback((): void => actions.showSignupOverlay(), [actions]);
+
+  const doLogout = useCallback(async (): Promise<void> => {
     let state = await logout();
-    this.props.completeLogout(state);
-  };
+    actions.completeLogout(state);
+  }, [actions]);
 
-  public render(): ReactNode {
-    return <div id="banner">
-      <h1 id="logo"><Link to={{ page: { type: PageType.Index } }}>PixelBin</Link></h1>
-      <div id="rightbanner">
-        {this.props.children}
-        <If condition={isLoggedIn}>
-          <Then>
-            <Button l10n="banner-logout" onClick={this.logout}/>
-          </Then>
-          <Else>
-            <Button l10n="banner-login" onClick={this.props.openLoginOverlay}/>
-            <Button l10n="banner-signup" onClick={this.props.openSignupOverlay}/>
-          </Else>
-        </If>
-      </div>
-    </div>;
-  }
+  return <AppBar id="appbar" position="sticky">
+    <Toolbar>
+      <Box style={{ flexGrow: 1 }}>
+        <LogoText variant="h6">
+          <Link to={{ page: { type: PageType.Index } }} color="inherit">PixelBin</Link>
+        </LogoText>
+      </Box>
+      {props.children}
+      <If condition={isLoggedIn}>
+        <Then>
+          <Button
+            id="button-logout"
+            color="inherit"
+            onClick={doLogout}
+          >
+            {l10n.getString("banner-logout")}
+          </Button>
+        </Then>
+        <Else>
+          <Button
+            id="button-login"
+            color="inherit"
+            onClick={showLoginOverlay}
+          >
+            {l10n.getString("banner-login")}
+          </Button>
+          <Button
+            id="button-signup"
+            color="inherit"
+            onClick={showSignupOverlay}
+          >
+            {l10n.getString("banner-signup")}
+          </Button>
+        </Else>
+      </If>
+    </Toolbar>
+  </AppBar>;
 }
-
-export default connect()(Banner, undefined, mapDispatchToProps);

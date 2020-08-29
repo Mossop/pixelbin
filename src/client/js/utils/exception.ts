@@ -1,3 +1,5 @@
+import { ReactLocalization } from "@fluent/react";
+
 import { Api } from "../../../model";
 import { l10nInfo, L10nInfo } from "../l10n";
 
@@ -42,6 +44,14 @@ export abstract class AppError extends Error {
   }
 
   public abstract l10nInfo(): L10nInfo;
+
+  public asString(l10n: ReactLocalization): string {
+    let info = this.l10nInfo();
+    if (typeof info == "string") {
+      return l10n.getString(info);
+    }
+    return l10n.getString(info.id, info.vars);
+  }
 }
 
 export class ApiError extends AppError {

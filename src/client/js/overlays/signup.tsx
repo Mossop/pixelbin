@@ -1,117 +1,77 @@
-import React, { ReactNode, PureComponent } from "react";
+import React, { useState, useCallback, useRef } from "react";
 
-import { Obj } from "../../../utils";
 import { signup } from "../api/auth";
-import Form, { FormField } from "../components/Form";
-import Overlay from "../components/Overlay";
-import actions from "../store/actions";
-import { connect, ComponentProps } from "../utils/component";
+import FormDialog from "../components/FormDialog";
+import { useActions } from "../store/actions";
 import { AppError } from "../utils/exception";
-import { focus } from "../utils/helpers";
-import { proxyReactState, makeProperty } from "../utils/StateProxy";
+import { useFormState } from "../utils/hooks";
 
-interface InputFields {
-  email: string;
-  name: string;
-  password: string;
-}
+export default function SignupOverlay(): React.ReactElement | null {
+  const actions = useActions();
 
-const mapDispatchToProps = {
-  completeSignup: actions.completeSignup,
-};
+  const [state, setState] = useFormState({
+    email: "",
+    fullname: "",
+    password: "",
+  });
 
-interface SignupOverlayState {
-  disabled: boolean;
-  inputs: InputFields;
-  error?: AppError;
-}
+  const [disabled, setDisabled] = useState(false);
+  const [error, setError] = useState<AppError | null>(null);
 
-type SignupOverlayProps = ComponentProps<Obj, Obj, typeof mapDispatchToProps>;
-class SignupOverlay extends PureComponent<SignupOverlayProps, SignupOverlayState> {
-  private inputs: InputFields;
+  let emailInput = useRef<HTMLInputElement>();
 
-  public constructor(props: SignupOverlayProps) {
-    super(props);
-    this.state = {
-      disabled: false,
-      // eslint-disable-next-line react/no-unused-state
-      inputs: {
-        email: "",
-        name: "",
-        password: "",
-      },
-    };
-
-    this.inputs = proxyReactState(this, "inputs");
-  }
-
-  public componentDidMount(): void {
-    focus("signup-overlay-email");
-  }
-
-  private onSubmit: (() => Promise<void>) = async (): Promise<void> => {
-    let { email } = this.inputs;
-    let { name } = this.inputs;
-    let { password } = this.inputs;
-
-    if (!email) {
+  const onSubmit = useCallback(async (): Promise<void> => {
+    if (!state.email) {
       return;
     }
 
-    this.setState({ disabled: true, error: undefined });
+    setDisabled(true);
+    setError(null);
 
     try {
-      let state = await signup({
-        email,
-        fullname: name,
-        password: password,
-      });
-      this.props.completeSignup(state);
+      let serverState = await signup(state);
+      actions.completeSignup(serverState);
     } catch (e) {
-      this.setState({
-        disabled: false,
-        error: e,
-      });
-      this.inputs.password = "";
+      setDisabled(false);
+      setError(e);
+      setState("password", "");
+
+      emailInput.current?.focus();
     }
-  };
+  }, [state, actions, setState]);
 
-  public render(): ReactNode {
-    return <Overlay title="signup-title" error={this.state.error}>
-      <Form
-        orientation="column"
-        disabled={this.state.disabled}
-        onSubmit={this.onSubmit}
-        submit="signup-submit"
-      >
-        <FormField
-          id="signup-overlay-email"
-          type="email"
-          labelL10n="signup-email"
-          iconName="at"
-          required={true}
-          disabled={this.state.disabled}
-          property={makeProperty(this.inputs, "email")}
-        />
-        <FormField
-          id="signup-overlay-name"
-          type="text"
-          labelL10n="signup-name"
-          iconName="user"
-          disabled={this.state.disabled}
-          property={makeProperty(this.inputs, "name")}
-        />
-        <FormField
-          id="signup-overlay-password"
-          type="password"
-          labelL10n="signup-password"
-          iconName="key"
-          disabled={this.state.disabled}
-          property={makeProperty(this.inputs, "password")}
-        />
-      </Form>
-    </Overlay>;
-  }
+  return <FormDialog
+    state={state}
+    setState={setState}
+    error={error}
+    disabled={disabled}
+    titleId="signup-title"
+    submitId="signup-submit"
+    onSubmit={onSubmit}
+    onClose={actions.closeOverlay}
+    fields={
+      [{
+        type: "text",
+        key: "email",
+        label: "signup-email",
+        inputType: "email",
+        autoComplete: "email",
+        props: {
+          inputRef: emailInput,
+          autoFocus: true,
+        },
+      }, {
+        type: "text",
+        key: "fullname",
+        label: "signup-name",
+        autoComplete: "name",
+      }, {
+        type: "text",
+        key: "password",
+        label: "login-password",
+        inputType: "password",
+        autoComplete: "current-password",
+      }]
+    }
+  />;
 }
-
-export default connect()(SignupOverlay, undefined, mapDispatchToProps);

@@ -14,6 +14,9 @@ api-error-unknown-type = Attempt to upload an unknown type: '{$type}'.
 api-error-signup-bad-email = There is already an account with this email. Try again:
 api-error-login-failed = Unknown email or password. Try again:
 
+form-submit = Submit
+form-cancel = Cancel
+
 banner-login = Log in
 banner-signup = Signup
 banner-logout = Log out
@@ -33,7 +36,7 @@ signup-submit = Sign up...
 
 login-title = Please enter your login details:
 login-email = Email address:
-login-password = Pasword:
+login-password = Password:
 login-submit = Log in...
 
 catalog-albums = Albums

@@ -26,10 +26,10 @@ test("banner", async (): Promise<void> => {
   }));
 
   let { container } = render(<Banner/>, store);
-  let banner = expectChild(container, "div#banner");
+  let banner = expectChild(container, "header#appbar");
 
-  let login = expectChild(banner, ".mock-button[data-l10nid='banner-login']");
-  let signup = expectChild(banner, ".mock-button[data-l10nid='banner-signup']");
+  let login = expectChild(banner, "button#button-login");
+  let signup = expectChild(banner, "button#button-signup");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -51,10 +51,10 @@ test("banner", async (): Promise<void> => {
 
   store.state.serverState = mockServerState([]);
   container = render(<Banner/>, store).container;
-  banner = expectChild(container, "div#banner");
+  banner = expectChild(container, "header#appbar");
   store.dispatch.mockClear();
 
-  let logout = expectChild(banner, ".mock-button[data-l10nid='banner-logout']");
+  let logout = expectChild(banner, "button#button-logout");
 
   expect(request).not.toHaveBeenCalled();
 

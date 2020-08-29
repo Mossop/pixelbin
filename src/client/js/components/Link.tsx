@@ -1,31 +1,34 @@
+import MuiLink, { LinkTypeMap } from "@material-ui/core/Link";
 import { Draft } from "immer";
-import React, { ReactNode, PureComponent } from "react";
+import React, { useCallback } from "react";
 
-import { Obj } from "../../../utils";
-import actions from "../store/actions";
+import { useActions } from "../store/actions";
 import type { UIState } from "../store/types";
-import { ComponentProps, connect } from "../utils/component";
 import { buildURL } from "../utils/history";
 import { fromUIState } from "../utils/navigation";
 
 interface PassedProps {
   to: Draft<UIState>;
+  color?: LinkTypeMap["props"]["color"];
+  underline?: LinkTypeMap["props"]["underline"];
+  children?: React.ReactNode;
 }
 
-const mapDispatchToProps = {
-  navigate: actions.navigate,
-};
+export default function Link(props: PassedProps): React.ReactElement | null {
+  const actions = useActions();
 
-class Link extends PureComponent<ComponentProps<PassedProps, Obj, typeof mapDispatchToProps>> {
-  private onClick = (event: React.MouseEvent): void => {
-    this.props.navigate(this.props.to);
+  const onClick = useCallback((event: React.MouseEvent): void => {
+    actions.navigate(props.to);
     event.preventDefault();
-  };
+  }, [actions, props.to]);
 
-  public render(): ReactNode {
-    let url = buildURL(fromUIState(this.props.to));
-    return <a href={url} onClick={this.onClick}>{this.props.children}</a>;
-  }
+  let url = buildURL(fromUIState(props.to));
+  return <MuiLink
+    underline={props.underline ?? "none"}
+    color={props.color}
+    href={url}
+    onClick={onClick}
+  >
+    {props.children}
+  </MuiLink>;
 }
-
-export default connect<PassedProps>()(Link, undefined, mapDispatchToProps);

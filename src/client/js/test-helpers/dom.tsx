@@ -1,7 +1,7 @@
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { Message } from "@fluent/bundle/esm/ast";
 import { ReactLocalization, LocalizationProvider } from "@fluent/react";
-import { RenderResult, render as testRender, fireEvent } from "@testing-library/react";
+import { RenderResult, render as testRender, fireEvent, cleanup } from "@testing-library/react";
 import { JSDOM } from "jsdom";
 import React, { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
@@ -15,8 +15,14 @@ const dom: JSDOM = jsdom;
 
 export { dom as jsdom };
 
-export function expectChild<T extends Element = Element>(container: Element, selector: string): T {
-  let elems = container.querySelectorAll(selector);
+export function expectChild<T extends Element = Element>(
+  container: Element | null,
+  selector: string,
+): T {
+  expect(container).not.toBeNull();
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  let elems = container!.querySelectorAll(selector);
   expect(elems).toHaveLength(1);
   return elems[0] as T;
 }
@@ -74,11 +80,21 @@ function componentWrapper(store: MockStore | undefined): Wrapper {
   };
 }
 
-export function render(ui: ReactElement, store?: MockStore): RenderResult {
-  return testRender(ui, { wrapper: componentWrapper(store) });
+export interface DialogRenderResult {
+  dialogContainer: Element | null;
 }
 
-export function resetDOM(): void {
+export function render(ui: ReactElement, store?: MockStore): RenderResult & DialogRenderResult {
+  let results = testRender(ui, { wrapper: componentWrapper(store) });
+  return {
+    ...results,
+    dialogContainer: results.container.ownerDocument.querySelector(".MuiDialog-root"),
+  };
+}
+
+export async function resetDOM(): Promise<void> {
+  await cleanup();
+
   while (document.head.firstChild) {
     document.head.firstChild.remove();
   }

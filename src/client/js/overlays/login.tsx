@@ -1,102 +1,71 @@
-import React, { ReactNode, PureComponent } from "react";
+import React, { useCallback, useRef, useState } from "react";
 
-import { Obj } from "../../../utils";
 import { login } from "../api/auth";
-import Form, { FormField } from "../components/Form";
-import Overlay from "../components/Overlay";
-import actions from "../store/actions";
-import { connect, ComponentProps } from "../utils/component";
+import FormDialog from "../components/FormDialog";
+import { useActions } from "../store/actions";
 import { AppError } from "../utils/exception";
-import { focus } from "../utils/helpers";
-import { proxyReactState, makeProperty } from "../utils/StateProxy";
+import { useFormState } from "../utils/hooks";
 
-interface InputFields {
-  email: string;
-  password: string;
-}
+export default function LoginOverlay(): React.ReactElement | null {
+  const actions = useActions();
 
-const mapDispatchToProps = {
-  completeLogin: actions.completeLogin,
-};
+  const [state, setState] = useFormState({
+    email: "",
+    password: "",
+  });
 
-interface LoginOverlayState {
-  disabled: boolean;
-  inputs: InputFields;
-  error?: AppError;
-}
+  const [disabled, setDisabled] = useState(false);
+  const [error, setError] = useState<AppError | null>(null);
 
-type LoginOverlayProps = ComponentProps<Obj, Obj, typeof mapDispatchToProps>;
-class LoginOverlay extends PureComponent<LoginOverlayProps, LoginOverlayState> {
-  private inputs: InputFields;
+  let emailInput = useRef<HTMLInputElement>();
 
-  public constructor(props: LoginOverlayProps) {
-    super(props);
-    this.state = {
-      disabled: false,
-      // eslint-disable-next-line react/no-unused-state
-      inputs: {
-        email: "",
-        password: "",
-      },
-    };
-
-    this.inputs = proxyReactState(this, "inputs");
-  }
-
-  public componentDidMount(): void {
-    focus("login-overlay-email");
-  }
-
-  private onSubmit: (() => Promise<void>) = async (): Promise<void> => {
-    let { email } = this.inputs;
-    let { password } = this.inputs;
-    if (!email) {
+  const onSubmit = useCallback(async () => {
+    if (!state.email) {
       return;
     }
 
-    this.setState({ disabled: true, error: undefined });
+    setDisabled(true);
+    setError(null);
 
     try {
-      let state = await login(email, password);
-      this.props.completeLogin(state);
+      let serverState = await login(state.email, state.password);
+      actions.completeLogin(serverState);
     } catch (e) {
-      this.setState({
-        disabled: false,
-        error: e,
-      });
-      this.inputs.password = "";
-      focus("login-overlay-password");
+      setDisabled(false);
+      setError(e);
+      setState("password", "");
+
+      emailInput.current?.focus();
     }
-  };
+  }, [actions, state, setState]);
 
-  public render(): ReactNode {
-    return <Overlay title="login-title" error={this.state.error}>
-      <Form
-        orientation="column"
-        disabled={this.state.disabled}
-        onSubmit={this.onSubmit}
-        submit="login-submit"
-      >
-        <FormField
-          id="login-overlay-email"
-          type="email"
-          labelL10n="login-email"
-          iconName="at"
-          required={true}
-          disabled={this.state.disabled}
-          property={makeProperty(this.inputs, "email")}
-        />
-        <FormField
-          id="login-overlay-password"
-          type="password"
-          labelL10n="login-password"
-          iconName="key"
-          disabled={this.state.disabled}
-          property={makeProperty(this.inputs, "password")}
-        />
-      </Form>
-    </Overlay>;
-  }
+  return <FormDialog
+    state={state}
+    setState={setState}
+    error={error}
+    disabled={disabled}
+    titleId="login-title"
+    submitId="login-submit"
+    onSubmit={onSubmit}
+    onClose={actions.closeOverlay}
+    fields={
+      [{
+        type: "text",
+        key: "email",
+        label: "login-email",
+        inputType: "email",
+        autoComplete: "email",
+        props: {
+          inputRef: emailInput,
+          autoFocus: true,
+        },
+      }, {
+        type: "text",
+        key: "password",
+        label: "login-password",
+        inputType: "password",
+        autoComplete: "current-password",
+      }]
+    }
+  />;
 }
-
-export default connect()(LoginOverlay, undefined, mapDispatchToProps);

@@ -21,13 +21,14 @@ function buildAppContent(state: Api.State, paths: Record<string, string>): strin
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width">
 <title>PixelBin</title>
 <link href="https://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link href="https://use.fontawesome.com/releases/v5.11.2/css/all.css" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
-<link rel="stylesheet" type="text/css" href="/app/css/app.css">
 <script id="initial-state" type="application/json">${JSON.stringify(state)}</script>
 <script id="paths" type="application/json">${JSON.stringify(paths)}</script>
 </head>
