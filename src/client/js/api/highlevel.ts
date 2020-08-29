@@ -1,7 +1,16 @@
+import { useSelector } from "../store";
 import actions from "../store/actions";
+import { StoreState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId } from "../utils/maps";
 import type { MapId } from "../utils/maps";
+import {
+  VirtualAlbum,
+  VirtualCatalog,
+  VirtualPerson,
+  VirtualTag,
+  VirtualTreeType,
+} from "../utils/virtual";
 import {
   ServerState,
   CatalogState,
@@ -38,6 +47,8 @@ function getStateCache(serverState: ServerState): StateCache {
 export interface APIItemBuilder<T> {
   fromState: (serverState: ServerState, id: string) => T;
 }
+
+export type Dereferenced<T> = T extends Reference<infer R> ? R : T;
 
 export interface Reference<T> {
   readonly id: string;
@@ -155,6 +166,10 @@ export class Tag implements Referencable<Tag> {
       );
   }
 
+  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualTag {
+    return new VirtualTag(this, treeType);
+  }
+
   public static ref(data: MapId<TagState>): Reference<Tag> {
     return new APIItemReference(intoId(data), Tag);
   }
@@ -229,6 +244,10 @@ export class Person implements Referencable<Person> {
 
   public static ref(data: MapId<PersonState>): Reference<Person> {
     return new APIItemReference(intoId(data), Person);
+  }
+
+  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualPerson {
+    return new VirtualPerson(this, treeType);
   }
 
   public ref(): Reference<Person> {
@@ -336,6 +355,10 @@ export class Album implements Referencable<Album> {
       parent = parent.parent;
     }
     return false;
+  }
+
+  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualAlbum {
+    return new VirtualAlbum(this, treeType);
   }
 
   public static ref(data: MapId<AlbumState>): Reference<Album> {
@@ -477,6 +500,10 @@ export class Catalog implements Referencable<Catalog> {
     );
   }
 
+  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualCatalog {
+    return new VirtualCatalog(this, treeType);
+  }
+
   public static ref(data: MapId<CatalogState>): Reference<Catalog> {
     return new APIItemReference(intoId(data), Catalog);
   }
@@ -532,3 +559,13 @@ export function catalogs(serverState: ServerState): Catalog[] {
   return [];
 }
 
+export function useCatalogs(): Catalog[] {
+  return useSelector((state: StoreState): Catalog[] => catalogs(state.serverState));
+}
+
+export function useReference<T>(reference: Reference<T>): T;
+export function useReference<T>(reference: Reference<T> | null): T | null {
+  return useSelector(
+    (state: StoreState): T | null => reference?.deref(state.serverState) ?? null,
+  );
+}

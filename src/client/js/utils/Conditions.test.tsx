@@ -6,7 +6,7 @@ import { expect, expectElement, render, resetDOM } from "../test-helpers";
 import { If, Then, Else } from "./Conditions";
 
 beforeEach(async (): Promise<void> => {
-  resetDOM();
+  await resetDOM();
 
   await asyncDispatch(actions.updateServerState({
     user: null,

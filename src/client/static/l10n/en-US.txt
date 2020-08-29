@@ -17,13 +17,13 @@ api-error-login-failed = Unknown email or password. Try again:
 form-submit = Submit
 form-cancel = Cancel
 
-banner-login = Log in
-banner-signup = Signup
+banner-login = Log in…
+banner-signup = Signup…
 banner-logout = Log out
-banner-catalog-edit = Edit catalog...
-banner-album-new = New album...
-banner-album-edit = Edit album...
-banner-upload = Upload...
+banner-catalog-edit = Edit catalog…
+banner-album-new = New album…
+banner-album-edit = Edit album…
+banner-upload = Upload…
 
 overlay-close =
   .title = Close
@@ -32,12 +32,12 @@ signup-title = Enter your details:
 signup-email = Email address:
 signup-name = Name:
 signup-password = Password:
-signup-submit = Sign up...
+signup-submit = Sign up
 
 login-title = Please enter your login details:
 login-email = Email address:
 login-password = Password:
-login-submit = Log in...
+login-submit = Log in
 
 catalog-albums = Albums
 catalog-create-title = Create a new catalog
@@ -51,7 +51,7 @@ storage-bucket = Bucket:
 storage-path = Path:
 storage-endpoint = Endpoint:
 storage-public-url = Public access URL:
-catalog-create-submit = Create...
+catalog-create-submit = Create
 
 storage-backblaze-name = Backblaze
 storage-backblaze-keyid = Application key ID:
@@ -61,7 +61,7 @@ storage-backblaze-path = Path:
 
 storage-server-name = Server
 
-sidebar-add-catalog = Add a new catalog...
+sidebar-add-catalog = Add a new catalog…
 
 upload-title = Upload photos and videos
 upload-tree-title = Upload into:
@@ -71,17 +71,17 @@ upload-media-tags = Tags:
 upload-media-people = People:
 upload-preview-close =
   .title = Close
-upload-submit = Upload...
-upload-drag-media = Drag files here...
-upload-add-files = Add files...
+upload-submit = Upload
+upload-drag-media = Drag files here
+upload-add-files = Add files…
 
 album-create-title = Create a new album
 album-edit-title = Edit this album
 album-name = Album name:
-album-create-submit = Create...
-album-edit-submit = Finish...
+album-create-submit = Create
+album-edit-submit = Finish
 album-edit-sidebar = Store in:
 album-create-sidebar = Create in:
 
-error-title = An unexpected error occured...
+error-title = An unexpected error occured.
 error-content = The following error occured: {$error}. You can try reloading this page or going back to the main site.

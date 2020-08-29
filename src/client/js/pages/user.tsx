@@ -1,16 +1,15 @@
-import React, { ReactNode } from "react";
+import Typography from "@material-ui/core/Typography";
+import React from "react";
 
 import { UserState } from "../api/types";
-import { AuthenticatedPage, baseConnect } from "./BasePage";
+import Page from "../components/Page";
 
-interface PassedProps {
+export interface UserPageProps {
   user: UserState;
 }
 
-class UserPage extends AuthenticatedPage<PassedProps> {
-  public renderContent(): ReactNode {
-    return <h1>User</h1>;
-  }
+export default function AlbumPage(_: UserPageProps): React.ReactElement | null {
+  return <Page>
+    <Typography variant="h1">User</Typography>
+  </Page>;
 }
-
-export default baseConnect<PassedProps>()(UserPage);

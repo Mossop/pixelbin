@@ -1,11 +1,10 @@
-import React, { ReactNode } from "react";
+import Typography from "@material-ui/core/Typography";
+import React from "react";
 
-import { BasePage, baseConnect } from "./BasePage";
+import Page from "../components/Page";
 
-class IndexPage extends BasePage {
-  public renderContent(): ReactNode {
-    return <h1>Index</h1>;
-  }
+export default function IndexPage(): React.ReactElement | null {
+  return <Page>
+    <Typography variant="h1">Index</Typography>
+  </Page>;
 }
-
-export default baseConnect()(IndexPage);

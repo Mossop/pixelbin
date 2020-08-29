@@ -1,74 +1,64 @@
-import React, { ReactNode, Fragment } from "react";
+import { useLocalization } from "@fluent/react";
+import Button from "@material-ui/core/Button";
+import Typography from "@material-ui/core/Typography";
+import React, { useCallback } from "react";
 
 import { Catalog, Reference } from "../api/highlevel";
 import { UserState } from "../api/types";
-import Button from "../components/Button";
-import MediaList from "../components/MediaList";
-import Sidebar from "../components/Sidebar";
-import actions from "../store/actions";
-import { StoreState } from "../store/types";
-import { PropsFor } from "../utils/component";
-import { Search } from "../utils/search";
-import { baseConnect, AuthenticatedPage } from "./BasePage";
+import Page from "../components/Page";
+import { useActions } from "../store/actions";
 
-interface PassedProps {
+export interface CatalogPageProps {
   catalog: Reference<Catalog>;
   user: UserState;
 }
 
-interface FromStateProps {
-  catalog: Catalog;
+export default function CatalogPage(props: CatalogPageProps): React.ReactElement | null {
+  const { l10n } = useLocalization();
+  const actions = useActions();
+
+  const onCatalogEdit = useCallback(
+    () => actions.showCatalogEditOverlay(props.catalog),
+    [actions, props],
+  );
+
+  const onAlbumCreate = useCallback(
+    () => actions.showAlbumCreateOverlay(props.catalog),
+    [props, actions],
+  );
+
+  const onUpload = useCallback(
+    () => actions.showUploadOverlay(),
+    [actions],
+  );
+
+  return <Page
+    bannerButtons={
+      <React.Fragment>
+        <Button
+          id="button-banner-catalog-edit"
+          color="inherit"
+          onClick={onCatalogEdit}
+        >
+          {l10n.getString("banner-catalog-edit")}
+        </Button>
+        <Button
+          id="button-banner-album-create"
+          color="inherit"
+          onClick={onAlbumCreate}
+        >
+          {l10n.getString("banner-album-new")}
+        </Button>
+        <Button
+          id="button-banner-upload"
+          color="inherit"
+          onClick={onUpload}
+        >
+          {l10n.getString("banner-upload")}
+        </Button>
+      </React.Fragment>
+    }
+  >
+    <Typography variant="h1">Catalog</Typography>
+  </Page>;
 }
-
-function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps {
-  return {
-    catalog: props.catalog.deref(state.serverState),
-  };
-}
-
-const mapDispatchToProps = {
-  showUploadOverlay: actions.showUploadOverlay,
-  showCatalogEditOverlay: actions.showCatalogEditOverlay,
-  showAlbumCreateOverlay: actions.showAlbumCreateOverlay,
-};
-
-class CatalogPage extends AuthenticatedPage<
-  PassedProps,
-  typeof mapStateToProps,
-  typeof mapDispatchToProps
-> {
-  private onEdit: (() => void) = (): void => {
-    this.props.showCatalogEditOverlay(this.props.catalog.ref());
-  };
-
-  private onNewAlbum: (() => void) = (): void => {
-    this.props.showAlbumCreateOverlay(this.props.catalog.ref());
-  };
-
-  private onUpload: (() => void) = (): void => {
-    this.props.showUploadOverlay();
-  };
-
-  protected renderBannerButtons(): ReactNode {
-    return <Fragment>
-      <Button l10n="banner-catalog-edit" onClick={this.onEdit}/>
-      <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>
-      <Button l10n="banner-upload" onClick={this.onUpload}/>
-    </Fragment>;
-  }
-
-  protected getSidebarProps(): Partial<PropsFor<typeof Sidebar>> {
-    return {
-      selectedItem: this.props.catalog,
-    };
-  }
-
-  protected renderContent(): ReactNode {
-    let search: Search = {
-      catalog: this.props.catalog.ref(),
-    };
-    return <MediaList search={search}/>;
-  }
-}
-
-export default baseConnect<PassedProps>()(CatalogPage, mapStateToProps, mapDispatchToProps);

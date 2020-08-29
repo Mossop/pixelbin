@@ -88,8 +88,7 @@ class OverlayDisplay extends PureComponent<
           break;
         }
         case OverlayType.CreateAlbum: {
-          overlay = <AlbumOverlay parent={overlayState.parent}/>;
-          break;
+          return <AlbumOverlay parent={overlayState.parent}/>;
         }
         case OverlayType.EditAlbum: {
           overlay = <AlbumOverlay album={overlayState.album}/>;

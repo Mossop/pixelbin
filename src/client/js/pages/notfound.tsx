@@ -1,7 +1,10 @@
+import Typography from "@material-ui/core/Typography";
 import React from "react";
 
-import Banner from "../components/Banner";
+import Page from "../components/Page";
 
 export default function NotFoundPage(): React.ReactElement | null {
-  return <Banner/>;
+  return <Page>
+    <Typography variant="h1">Index</Typography>
+  </Page>;
 }

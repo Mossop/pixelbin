@@ -1,5 +1,6 @@
 import { Deed } from "deeds/immer";
 import { enableMapSet } from "immer";
+import { useStore as useReduxStore, useSelector as useReduxSelector } from "react-redux";
 import { applyMiddleware, createStore, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
@@ -59,5 +60,11 @@ const { asyncDispatchListener, store } = buildStore();
 export const asyncDispatch = (action: Deed): Promise<StoreState> => {
   return asyncDispatchListener.dispatch(action);
 };
+
+export const useStore = useReduxStore as () => StoreType;
+export const useSelector = useReduxSelector as <R>(
+  selector: (state: StoreState) => R,
+  equalityFn?: (left: R, right: R) => boolean
+) => R;
 
 export default store;

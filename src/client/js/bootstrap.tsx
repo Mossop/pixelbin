@@ -3,7 +3,7 @@ import React from "react";
 import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
 
-import App from "./components/app";
+import App from "./components/App";
 import { appContainer, appURL, Url, initialServerState } from "./context";
 import { LocalizationContext } from "./l10n/LocalizationContext";
 import store from "./store";

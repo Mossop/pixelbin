@@ -1,9 +1,7 @@
 import React from "react";
 
-import { mockedClass, lastCallArgs } from "../../../test-helpers";
+import { lastCallArgs } from "../../../test-helpers";
 import { Catalog } from "../api/highlevel";
-import MediaList from "../components/MediaList";
-import Sidebar from "../components/Sidebar";
 import {
   expect,
   mockStore,
@@ -14,24 +12,6 @@ import {
   click,
 } from "../test-helpers";
 import CatalogPage from "./catalog";
-
-/* eslint-disable */
-jest.mock("../components/Button");
-jest.mock("../components/Banner");
-
-jest.mock("../components/MediaList", () => ({
-  __esModule: true,
-  default: jest.fn(() => null),
-}));
-
-jest.mock("../components/Sidebar", () => ({
-  __esModule: true,
-  default: jest.fn(() => null),
-}));
-/* eslint-enable */
-
-const mockedMediaList = mockedClass(MediaList);
-const mockedSidebar = mockedClass(Sidebar);
 
 test("catalog", (): void => {
   let store = mockStore(mockStoreState({
@@ -45,21 +25,17 @@ test("catalog", (): void => {
   }));
 
   let catalogRef = Catalog.ref("catalog");
-  let catalog = catalogRef.deref(store.state.serverState);
 
-  let { container, rerender } = render(
+  let { container } = render(
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     <CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>,
     store,
   );
 
-  expect(mockedSidebar).toHaveBeenCalled();
-  expect(lastCallArgs(mockedSidebar)[0].selectedItem).toBe(catalog);
-
-  let banner = expectChild(container, ".mock-banner");
+  let buttons = expectChild(container, "#banner-buttons");
 
   expect(store.dispatch).not.toHaveBeenCalled();
-  let button = expectChild(banner, ".mock-button[data-l10nid='banner-catalog-edit']");
+  let button = expectChild(buttons, "#button-banner-catalog-edit");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -70,7 +46,7 @@ test("catalog", (): void => {
   });
   store.dispatch.mockClear();
 
-  button = expectChild(banner, ".mock-button[data-l10nid='banner-album-new']");
+  button = expectChild(buttons, "#button-banner-album-create");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -81,7 +57,7 @@ test("catalog", (): void => {
   });
   store.dispatch.mockClear();
 
-  button = expectChild(banner, ".mock-button[data-l10nid='banner-upload']");
+  button = expectChild(buttons, "#button-banner-upload");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -89,29 +65,4 @@ test("catalog", (): void => {
     payload: [],
   });
   store.dispatch.mockClear();
-
-  expect(mockedMediaList).toHaveBeenCalled();
-  expect(lastCallArgs(mockedMediaList)[0].search).toEqual({
-    catalog: expect.toBeRef("catalog"),
-  });
-
-  mockedMediaList.mockClear();
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  rerender(<CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>);
-
-  expect(mockedMediaList).not.toHaveBeenCalled();
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  rerender(<CatalogPage user={store.state.serverState.user!} catalog={Catalog.ref("catalog")}/>);
-
-  expect(mockedMediaList).not.toHaveBeenCalled();
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  rerender(<CatalogPage user={store.state.serverState.user!} catalog={Catalog.ref("catalog2")}/>);
-
-  expect(mockedMediaList).toHaveBeenCalled();
-  expect(lastCallArgs(mockedMediaList)[0].search).toEqual({
-    catalog: expect.toBeRef("catalog2"),
-  });
 });

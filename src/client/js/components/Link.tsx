@@ -7,14 +7,14 @@ import type { UIState } from "../store/types";
 import { buildURL } from "../utils/history";
 import { fromUIState } from "../utils/navigation";
 
-interface PassedProps {
+interface LinkProps {
   to: Draft<UIState>;
   color?: LinkTypeMap["props"]["color"];
   underline?: LinkTypeMap["props"]["underline"];
   children?: React.ReactNode;
 }
 
-export default function Link(props: PassedProps): React.ReactElement | null {
+export default function Link(props: LinkProps): React.ReactElement | null {
   const actions = useActions();
 
   const onClick = useCallback((event: React.MouseEvent): void => {

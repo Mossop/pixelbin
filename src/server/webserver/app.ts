@@ -24,7 +24,8 @@ function buildAppContent(state: Api.State, paths: Record<string, string>): strin
 <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width">
 <title>PixelBin</title>
 <link href="https://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+      rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link href="https://use.fontawesome.com/releases/v5.11.2/css/all.css" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>

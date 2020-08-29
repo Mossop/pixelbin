@@ -1,22 +1,23 @@
 import { Localized } from "@fluent/react";
-import React, { ReactNode, Fragment, PureComponent } from "react";
+import Typography from "@material-ui/core/Typography";
+import React from "react";
 
-interface PassedProps {
+import Banner from "../components/Banner";
+
+interface ErrorPageProps {
   error: string;
 }
 
-class ErrorPage extends PureComponent<PassedProps> {
-  public render(): ReactNode {
-    return <Fragment>
-      <div id="banner">
-        <h1 id="logo"><a href="/">PixelBin</a></h1>
-      </div>
-      <div id="content">
-        <Localized id="error-title"><h1/></Localized>
-        <Localized id="error-content" vars={{ error: this.props.error }}><p/></Localized>
-      </div>
-    </Fragment>;
-  }
+export default function ErrorPage(props: ErrorPageProps): React.ReactElement | null {
+  return <React.Fragment>
+    <Banner/>
+    <div style={{ display: "flex" }}>
+      <main>
+        <Localized id="error-title"><Typography variant="h1"/></Localized>
+        <Localized id="error-content" vars={{ error: props.error }}>
+          <Typography variant="h1"/>
+        </Localized>
+      </main>
+    </div>
+  </React.Fragment>;
 }
-
-export default ErrorPage;

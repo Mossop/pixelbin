@@ -1,86 +1,64 @@
-import React, { ReactNode, Fragment } from "react";
+import { useLocalization } from "@fluent/react";
+import Button from "@material-ui/core/Button";
+import Typography from "@material-ui/core/Typography";
+import React, { useCallback } from "react";
 
 import { Album, Reference } from "../api/highlevel";
 import { UserState } from "../api/types";
-import Button from "../components/Button";
-import MediaList from "../components/MediaList";
-import Sidebar from "../components/Sidebar";
-import actions from "../store/actions";
-import { StoreState } from "../store/types";
-import { PropsFor } from "../utils/component";
-import { Search, Field, Operation } from "../utils/search";
-import { AuthenticatedPage, baseConnect, PageProps } from "./BasePage";
+import Page from "../components/Page";
+import { useActions } from "../store/actions";
 
-interface PassedProps {
+export interface AlbumPageProps {
   album: Reference<Album>;
   user: UserState;
 }
 
-interface FromStateProps {
-  album: Album;
+export default function AlbumPage(props: AlbumPageProps): React.ReactElement | null {
+  const { l10n } = useLocalization();
+  const actions = useActions();
+
+  const onAlbumEdit = useCallback(
+    () => actions.showAlbumEditOverlay(props.album),
+    [actions, props],
+  );
+
+  const onAlbumCreate = useCallback(
+    () => actions.showAlbumCreateOverlay(props.album),
+    [props, actions],
+  );
+
+  const onUpload = useCallback(
+    () => actions.showUploadOverlay(),
+    [actions],
+  );
+
+  return <Page
+    bannerButtons={
+      <React.Fragment>
+        <Button
+          id="button-banner-album-edit"
+          color="inherit"
+          onClick={onAlbumEdit}
+        >
+          {l10n.getString("banner-album-edit")}
+        </Button>
+        <Button
+          id="button-banner-album-create"
+          color="inherit"
+          onClick={onAlbumCreate}
+        >
+          {l10n.getString("banner-album-new")}
+        </Button>
+        <Button
+          id="button-banner-upload"
+          color="inherit"
+          onClick={onUpload}
+        >
+          {l10n.getString("banner-upload")}
+        </Button>
+      </React.Fragment>
+    }
+  >
+    <Typography variant="h1">Album</Typography>
+  </Page>;
 }
-
-function mapStateToProps(state: StoreState, props: PassedProps): FromStateProps {
-  return {
-    album: props.album.deref(state.serverState),
-  };
-}
-
-const mapDispatchToProps = {
-  showAlbumCreateOverlay: actions.showAlbumCreateOverlay,
-  showAlbumEditOverlay: actions.showAlbumEditOverlay,
-  showUploadOverlay: actions.showUploadOverlay,
-};
-
-type AlbumPageProps = PageProps<PassedProps, typeof mapStateToProps, typeof mapDispatchToProps>;
-class AlbumPage extends AuthenticatedPage<
-  PassedProps,
-  typeof mapStateToProps,
-  typeof mapDispatchToProps
-> {
-  public constructor(props: AlbumPageProps) {
-    super(props);
-  }
-
-  private onEdit: (() => void) = (): void => {
-    this.props.showAlbumEditOverlay(this.props.album.ref());
-  };
-
-  private onNewAlbum: (() => void) = (): void => {
-    this.props.showAlbumCreateOverlay(this.props.album.ref());
-  };
-
-  private onUpload: (() => void) = (): void => {
-    this.props.showUploadOverlay();
-  };
-
-  protected renderBannerButtons(): ReactNode {
-    return <Fragment>
-      <Button l10n="banner-album-edit" onClick={this.onEdit}/>
-      <Button l10n="banner-album-new" onClick={this.onNewAlbum}/>
-      <Button l10n="banner-upload" onClick={this.onUpload}/>
-    </Fragment>;
-  }
-
-  protected getSidebarProps(): Partial<PropsFor<typeof Sidebar>> {
-    return {
-      selectedItem: this.props.album,
-    };
-  }
-
-  protected renderContent(): ReactNode {
-    let search: Search = {
-      catalog: this.props.album.catalog.ref(),
-      query: {
-        invert: false,
-        field: Field.Album,
-        operation: Operation.Includes,
-        value: this.props.album.name,
-      },
-    };
-
-    return <MediaList search={search}/>;
-  }
-}
-
-export default baseConnect<PassedProps>()(AlbumPage, mapStateToProps, mapDispatchToProps);
