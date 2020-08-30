@@ -32,11 +32,12 @@ export default function SignupOverlay(): React.ReactElement | null {
       let serverState = await signup(state);
       actions.completeSignup(serverState);
     } catch (e) {
-      setDisabled(false);
       setError(e);
       setState("password", "");
 
       emailInput.current?.focus();
+    } finally {
+      setDisabled(false);
     }
   }, [state, actions, setState]);
 

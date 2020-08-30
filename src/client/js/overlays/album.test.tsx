@@ -1,4 +1,4 @@
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import React from "react";
 
 import { Api } from "../../../model";
@@ -40,26 +40,21 @@ test("create album", async (): Promise<void> => {
     }]),
   }));
 
-  let { container } = render(<AlbumOverlay parent={Catalog.ref("catalog")}/>, store);
+  let { dialogContainer } = render(<AlbumOverlay parent={Catalog.ref("catalog")}/>, store);
 
-  let form = expectChild<HTMLFormElement>(container, "form.form");
-  form.submit();
+  let form = expectChild<HTMLFormElement>(dialogContainer, "form");
+  let button = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  click(button);
 
   expect(mockedRequest).not.toHaveBeenCalled();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let nameInput = expectChild<HTMLInputElement>(container, "#album-overlay-name");
+  let nameInput = expectChild<HTMLInputElement>(form, "#dialog-name");
   typeString(nameInput, "Foo");
-
-  let selected = expectChild(container, ".site-tree .selected");
-  expect(selected.textContent).toBe("Catalog");
-
-  let title = expectChild(container, "#overlay-header .title");
-  expect(title.textContent).toBe("album-create-title");
 
   let { resolve } = deferRequest<Api.Album>();
 
-  form.submit();
+  click(button);
 
   await waitFor((): void => {
     expect(nameInput.disabled).toBeTruthy();
@@ -71,12 +66,13 @@ test("create album", async (): Promise<void> => {
     name: "Foo",
   }]);
 
-  await resolve({
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  await act(() => resolve({
     id: "album3",
     catalog: "catalog",
     name: "Foo",
     parent: null,
-  });
+  }));
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumCreated",
@@ -86,6 +82,10 @@ test("create album", async (): Promise<void> => {
       name: "Foo",
       parent: null,
     }],
+  });
+
+  await waitFor((): void => {
+    expect(nameInput.disabled).toBeFalsy();
   });
 });
 
@@ -105,34 +105,26 @@ test("edit album", async (): Promise<void> => {
     }]),
   }));
 
-  let { container } = render(<AlbumOverlay album={Album.ref("album2")}/>, store);
+  let { dialogContainer } = render(<AlbumOverlay album={Album.ref("album2")}/>, store);
 
-  let form = expectChild<HTMLFormElement>(container, "form.form");
+  let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let nameInput = expectChild<HTMLInputElement>(container, "#album-overlay-name");
+  let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#dialog-name");
   expect(nameInput.value).toBe("Album 2");
 
   typeString(nameInput, "");
 
-  form.submit();
+  let button = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  click(button);
 
   expect(mockedRequest).not.toHaveBeenCalled();
   expect(store.dispatch).not.toHaveBeenCalled();
 
   typeString(nameInput, "Foo");
 
-  let selected = expectChild(container, ".site-tree .selected");
-  expect(selected.textContent).toBe("Album 1");
-
-  let title = expectChild(container, "#overlay-header .title");
-  expect(title.textContent).toBe("album-edit-title");
-
-  let catalog = expectChild(container, ".site-tree .depth0 > button");
-  click(catalog);
-
   let { resolve } = deferRequest<Api.Album>();
 
-  form.submit();
+  click(button);
 
   await waitFor((): void => {
     expect(nameInput.disabled).toBeTruthy();
@@ -140,16 +132,17 @@ test("edit album", async (): Promise<void> => {
 
   expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.AlbumEdit, {
     id: "album2",
-    parent: null,
+    parent: "album1",
     name: "Foo",
   }]);
 
-  await resolve({
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  await act(() => resolve({
     id: "album2",
     catalog: "catalog",
     name: "Foo",
-    parent: null,
-  });
+    parent: "album1",
+  }));
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumEdited",
@@ -157,7 +150,11 @@ test("edit album", async (): Promise<void> => {
       id: "album2",
       catalog: expect.toBeRef("catalog"),
       name: "Foo",
-      parent: null,
+      parent: expect.toBeRef("album1"),
     }],
+  });
+
+  await waitFor((): void => {
+    expect(nameInput.disabled).toBeFalsy();
   });
 });

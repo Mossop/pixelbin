@@ -31,11 +31,12 @@ export default function LoginOverlay(): React.ReactElement | null {
       let serverState = await login(state.email, state.password);
       actions.completeLogin(serverState);
     } catch (e) {
-      setDisabled(false);
       setError(e);
       setState("password", "");
 
       emailInput.current?.focus();
+    } finally {
+      setDisabled(false);
     }
   }, [actions, state, setState]);
 

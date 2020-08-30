@@ -3,7 +3,7 @@ import mockConsole from "jest-mock-console";
 import React from "react";
 
 import Overlay from ".";
-import { mockedClass, lastCallArgs } from "../../../test-helpers";
+import { mockedClass, lastCallArgs, mockedFunction } from "../../../test-helpers";
 import { Catalog, Album } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import {
@@ -12,7 +12,6 @@ import {
   mockStoreState,
   render,
   expectChild,
-  click,
 } from "../test-helpers";
 import AlbumOverlay from "./album";
 import CatalogOverlay from "./catalog";
@@ -56,10 +55,10 @@ jest.mock("./upload", (): unknown => {
   };
 });
 
-const mockedAlbum = mockedClass(AlbumOverlay);
+const mockedAlbum = mockedFunction(AlbumOverlay);
 const mockedCatalog = mockedClass(CatalogOverlay);
-const mockedLogin = mockedClass(LoginOverlay);
-const mockedSignup = mockedClass(SignupOverlay);
+const mockedLogin = mockedFunction(LoginOverlay);
+const mockedSignup = mockedFunction(SignupOverlay);
 const mockedUpload = mockedClass(UploadOverlay);
 
 test("no overlay", (): void => {
@@ -96,13 +95,11 @@ test("login overlay", (): void => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-
-  let overlay = expectChild(container, "#overlay.login");
+  render(<Overlay/>, store);
 
   expect(mockedAlbum).not.toHaveBeenCalled();
   expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(lastCallArgs(mockedLogin)[0]).toEqual({});
+  expect(mockedLogin).toHaveBeenCalled();
   expect(mockedSignup).not.toHaveBeenCalled();
   expect(mockedUpload).not.toHaveBeenCalled();
 
@@ -123,20 +120,6 @@ test("login overlay", (): void => {
   fireEvent.keyDown(document, {
     key: "R",
   });
-
-  expect(store.dispatch).not.toHaveBeenCalled();
-
-  click(overlay);
-
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "closeOverlay",
-    payload: [],
-  });
-
-  store.dispatch.mockClear();
-
-  click(expectChild(overlay, "#overlay-pane"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
@@ -179,14 +162,12 @@ test("signup overlay", (): void => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-
-  expectChild(container, "#overlay.signup");
+  render(<Overlay/>, store);
 
   expect(mockedAlbum).not.toHaveBeenCalled();
   expect(mockedCatalog).not.toHaveBeenCalled();
   expect(mockedLogin).not.toHaveBeenCalled();
-  expect(lastCallArgs(mockedSignup)[0]).toEqual({});
+  expect(mockedSignup).toHaveBeenCalled();
   expect(mockedUpload).not.toHaveBeenCalled();
 });
 
@@ -228,9 +209,7 @@ test("create album overlay", (): void => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-
-  expectChild(container, "#overlay.createAlbum");
+  render(<Overlay/>, store);
 
   expect(lastCallArgs(mockedAlbum)[0]).toEqual({
     parent: expect.toBeRef("catalog"),
@@ -254,9 +233,7 @@ test("edit album overlay", (): void => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-
-  expectChild(container, "#overlay.editAlbum");
+  render(<Overlay/>, store);
 
   expect(lastCallArgs(mockedAlbum)[0]).toEqual({
     album: expect.toBeRef("album"),

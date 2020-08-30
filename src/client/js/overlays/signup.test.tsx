@@ -1,4 +1,4 @@
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import React from "react";
 
 import { Api } from "../../../model";
@@ -72,7 +72,10 @@ test("signup success", async (): Promise<void> => {
     fullname: "Bob Parr",
   }]);
 
-  void resolve({
+  let dispatchCall = awaitCall(store.dispatch);
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  await act(() => resolve({
     user: {
       email: "foo@bar.com",
       fullname: "Bob Parr",
@@ -83,9 +86,9 @@ test("signup success", async (): Promise<void> => {
       people: [],
       tags: [],
     },
-  });
+  }));
 
-  let [deed] = await awaitCall(store.dispatch);
+  let [deed] = await dispatchCall;
 
   expect(deed).toEqual({
     type: "completeSignup",
@@ -149,10 +152,11 @@ test("signup failed", async (): Promise<void> => {
     fullname: "",
   }]);
 
-  void reject(new ApiError(400, "Bad Request", {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  await act(() => reject(new ApiError(400, "Bad Request", {
     code: Api.ErrorCode.InvalidData,
     data: {},
-  }));
+  })));
 
   await waitFor((): void => {
     expect(email.disabled).toBeFalsy();

@@ -1,4 +1,4 @@
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import React from "react";
 
 import { Api } from "../../../model";
@@ -63,7 +63,10 @@ test("login success", async (): Promise<void> => {
     password: "",
   }]);
 
-  void resolve({
+  let dispatchCall = awaitCall(store.dispatch);
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  await act((): Promise<void> => resolve({
     user: {
       email: "foo@bar.com",
       fullname: "Someone",
@@ -74,9 +77,9 @@ test("login success", async (): Promise<void> => {
       tags: [],
       people: [],
     },
-  });
+  }));
 
-  let [deed] = await awaitCall(store.dispatch);
+  let [deed] = await dispatchCall;
 
   expect(deed).toEqual({
     type: "completeLogin",
@@ -93,6 +96,11 @@ test("login success", async (): Promise<void> => {
 
   mockedRequest.mockClear();
   store.dispatch.mockClear();
+
+  await waitFor((): void => {
+    expect(email.disabled).toBeFalsy();
+    expect(password.disabled).toBeFalsy();
+  });
 });
 
 test("login failed", async (): Promise<void> => {
@@ -132,10 +140,11 @@ test("login failed", async (): Promise<void> => {
     expect(password.disabled).toBeTruthy();
   });
 
-  void reject(new ApiError(403, "Not Authorized", {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  await act((): Promise<void> => reject(new ApiError(403, "Not Authorized", {
     code: Api.ErrorCode.LoginFailed,
     data: {},
-  }));
+  })));
 
   await waitFor((): void => {
     expect(email.disabled).toBeFalsy();

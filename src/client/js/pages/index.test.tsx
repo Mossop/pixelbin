@@ -2,7 +2,7 @@ import mockConsole from "jest-mock-console";
 import React from "react";
 
 import Page from ".";
-import { mockedClass, lastCallArgs } from "../../../test-helpers";
+import { lastCallArgs, mockedFunction } from "../../../test-helpers";
 import { Album, Catalog } from "../api/highlevel";
 import {
   expect,
@@ -61,12 +61,12 @@ jest.mock("./error", (): unknown => {
   };
 });
 
-const mockedIndex = mockedClass(IndexPage);
-const mockedUser = mockedClass(UserPage);
-const mockedAlbum = mockedClass(AlbumPage);
-const mockedCatalog = mockedClass(CatalogPage);
-const mockedNotFound = mockedClass(NotFoundPage);
-const mockedError = mockedClass(ErrorPage);
+const mockedIndex = mockedFunction(IndexPage);
+const mockedUser = mockedFunction(UserPage);
+const mockedAlbum = mockedFunction(AlbumPage);
+const mockedCatalog = mockedFunction(CatalogPage);
+const mockedNotFound = mockedFunction(NotFoundPage);
+const mockedError = mockedFunction(ErrorPage);
 
 beforeEach(resetDOM);
 
@@ -88,7 +88,7 @@ test("index page", (): void => {
   expect(mockedNotFound).not.toHaveBeenCalled();
   expect(mockedError).not.toHaveBeenCalled();
 
-  expect(lastCallArgs(mockedIndex)[0]).toEqual({});
+  expect(mockedIndex).toHaveBeenCalled();
 });
 
 test("user page not logged in", (): void => {
@@ -265,7 +265,7 @@ test("not found page", (): void => {
   expect(mockedNotFound).toHaveBeenCalled();
   expect(mockedError).not.toHaveBeenCalled();
 
-  expect(lastCallArgs(mockedNotFound)[0]).toEqual({});
+  expect(mockedNotFound).toHaveBeenCalled();
 });
 
 test("error page", (): void => {
