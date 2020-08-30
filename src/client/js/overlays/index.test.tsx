@@ -56,7 +56,7 @@ jest.mock("./upload", (): unknown => {
 });
 
 const mockedAlbum = mockedFunction(AlbumOverlay);
-const mockedCatalog = mockedClass(CatalogOverlay);
+const mockedCatalog = mockedFunction(CatalogOverlay);
 const mockedLogin = mockedFunction(LoginOverlay);
 const mockedSignup = mockedFunction(SignupOverlay);
 const mockedUpload = mockedClass(UploadOverlay);
@@ -260,9 +260,7 @@ test("bad album", (): void => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-
-  expect(container.querySelector("#overlay")).toBeNull();
+  render(<Overlay/>, store);
 
   expect(mockedAlbum).not.toHaveBeenCalled();
   expect(mockedCatalog).not.toHaveBeenCalled();
@@ -283,9 +281,7 @@ test("create catalog overlay", (): void => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-
-  expectChild(container, "#overlay.createCatalog");
+  render(<Overlay/>, store);
 
   expect(mockedAlbum).not.toHaveBeenCalled();
   expect(lastCallArgs(mockedCatalog)[0]).toEqual({

@@ -8,7 +8,10 @@ import TextField, { TextFieldProps } from "@material-ui/core/TextField";
 import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useCallback, useState } from "react";
 
+import { MediaTarget } from "../api/media";
 import { AppError } from "../utils/exception";
+import { VirtualItem } from "../utils/virtual";
+import MediaTargetField from "./MediaTargetField";
 
 type FormKeys<F, T> = {
   [K in keyof F]: F[K] extends T ? K : never;
@@ -26,7 +29,16 @@ export interface TextFormField<F> {
   props?: Partial<TextFieldProps>;
 }
 
-export type FormField<F> = TextFormField<F>;
+export interface MediaTargetFormField<F> {
+  type: "mediatarget";
+  key: FormKeys<F, MediaTarget>;
+  id?: string;
+  label: string;
+  roots: VirtualItem[];
+  onChange?: (target: MediaTarget) => void;
+}
+
+export type FormField<F> = TextFormField<F> | MediaTargetFormField<F>;
 
 export interface FormDialogProps<T> {
   id?: string;
@@ -71,7 +83,7 @@ export default function FormDialog<T = undefined>(
   }, [props]);
 
   const renderField = useCallback(
-    <K extends keyof T>(field: FormField<T>): React.ReactElement | null => {
+    (field: FormField<T>): React.ReactElement | null => {
       if (!props.state || !props.setState) {
         return null;
       }
@@ -80,7 +92,28 @@ export default function FormDialog<T = undefined>(
       let id = `${props.id ?? "dialog"}-${field.id ?? field.key}`;
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (field.type == "text") {
+      if (field.type == "mediatarget") {
+        let onChange = (target: MediaTarget): void => {
+          // @ts-ignore: TypeScript can't tell that this must be a string.
+          setState(field.key, target);
+          if (field.onChange) {
+            field.onChange(target);
+          }
+        };
+
+        return <MediaTargetField
+          id={id}
+          key={`field-${field.key}`}
+          roots={field.roots}
+          fullWidth={true}
+          margin="normal"
+          value={props.state[field.key] as unknown as MediaTarget}
+          onChange={onChange}
+          label={l10n.getString(field.label)}
+        />;
+      } else {
+        // field.type == "text"
+
         let onChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
           // @ts-ignore: TypeScript can't tell that this must be a string.
           setState(field.key, event.target.value);
@@ -103,8 +136,6 @@ export default function FormDialog<T = undefined>(
           onChange={onChange}
           {...field.props}
         />;
-      } else {
-        return null;
       }
     },
     [props, l10n],

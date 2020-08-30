@@ -13,6 +13,10 @@ import Link from "./Link";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
+    icon: {
+      paddingRight: theme.spacing(1),
+      minWidth: theme.spacing(1) + 24,
+    },
     nested: {
       paddingLeft: theme.spacing(2),
     },
@@ -28,7 +32,7 @@ function SidebarTreeItem({ item }: { item: VirtualItem }): React.ReactElement | 
   return <React.Fragment>
     <ListItem dense={true}>
       {
-        icon && <ListItemIcon>
+        icon && <ListItemIcon className={classes.icon}>
           {icon}
         </ListItemIcon>
       }

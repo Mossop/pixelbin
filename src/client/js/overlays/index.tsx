@@ -84,15 +84,13 @@ class OverlayDisplay extends PureComponent<
     } else {
       switch (overlayState.type) {
         case OverlayType.CreateCatalog: {
-          overlay = <CatalogOverlay user={this.props.user}/>;
-          break;
+          return <CatalogOverlay user={this.props.user}/>;
         }
         case OverlayType.CreateAlbum: {
           return <AlbumOverlay parent={overlayState.parent}/>;
         }
         case OverlayType.EditAlbum: {
-          overlay = <AlbumOverlay album={overlayState.album}/>;
-          break;
+          return <AlbumOverlay album={overlayState.album}/>;
         }
         case OverlayType.Upload: {
           let target: Reference<MediaTarget> | undefined = undefined;

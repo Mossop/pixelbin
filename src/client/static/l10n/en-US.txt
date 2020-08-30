@@ -80,8 +80,8 @@ album-edit-title = Edit this album
 album-name = Album name:
 album-create-submit = Create
 album-edit-submit = Finish
-album-edit-sidebar = Store in:
-album-create-sidebar = Create in:
+album-edit-parent = Store in:
+album-create-parent = Create in:
 
 error-title = An unexpected error occured.
 error-content = The following error occured: {$error}. You can try reloading this page or going back to the main site.

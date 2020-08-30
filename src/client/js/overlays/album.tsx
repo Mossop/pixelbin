@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
 
 import { createAlbum, editAlbum } from "../api/album";
-import { Album, Catalog, Reference } from "../api/highlevel";
+import { Album, Catalog, Reference, useCatalogs } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { AlbumState, Create, Patch } from "../api/types";
 import FormDialog from "../components/FormDialog";
@@ -10,6 +10,7 @@ import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
 import { AppError } from "../utils/exception";
 import { useFormState } from "../utils/hooks";
+import { VirtualItem, VirtualTreeType } from "../utils/virtual";
 
 interface EditProps {
   album: Reference<Album>;
@@ -52,6 +53,10 @@ export default function AlbumOverlay(props: AlbumOverlayProps): React.ReactEleme
 
   const actions = useActions();
   const nameInput = useRef<HTMLElement>(null);
+
+  const catalogs = useCatalogs().map(
+    (catalog: Catalog): VirtualItem => catalog.virtual(VirtualTreeType.Albums),
+  );
 
   const onSubmit = useCallback(async () => {
     if (!state.name) {
@@ -107,6 +112,11 @@ export default function AlbumOverlay(props: AlbumOverlayProps): React.ReactEleme
           inputRef: nameInput,
           autoFocus: true,
         },
+      }, {
+        type: "mediatarget",
+        key: "parent",
+        label: album ? "album-edit-parent" : "album-create-parent",
+        roots: catalogs,
       }]
     }
   />;
