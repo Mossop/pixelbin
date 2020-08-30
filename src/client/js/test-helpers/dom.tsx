@@ -1,7 +1,13 @@
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { Message } from "@fluent/bundle/esm/ast";
 import { ReactLocalization, LocalizationProvider } from "@fluent/react";
-import { RenderResult, render as testRender, fireEvent, cleanup } from "@testing-library/react";
+import {
+  RenderResult,
+  render as testRender,
+  fireEvent,
+  cleanup,
+  act,
+} from "@testing-library/react";
 import { JSDOM } from "jsdom";
 import React, { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
@@ -105,40 +111,48 @@ export async function resetDOM(): Promise<void> {
 }
 
 export function click(element: Element): void {
-  fireEvent.click(element);
+  act(() => {
+    fireEvent.click(element);
+  });
 }
 
 export function sendKey(element: Element, key: string): void {
-  fireEvent.keyDown(element, {
-    key,
-  });
+  act(() => {
+    fireEvent.keyDown(element, {
+      key,
+    });
 
-  fireEvent.keyPress(element, {
-    key,
-  });
+    fireEvent.keyPress(element, {
+      key,
+    });
 
-  fireEvent.keyUp(element, {
-    key,
+    fireEvent.keyUp(element, {
+      key,
+    });
   });
 }
 
 export function typeString(element: Element, str: string): void {
-  if (element instanceof HTMLInputElement) {
-    let proto = Object.getPrototypeOf(element);
-    let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+  act(() => {
+    if (element instanceof HTMLInputElement) {
+      let proto = Object.getPrototypeOf(element);
+      let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
     descriptor?.set?.call(element, str);
     fireEvent.input(element, {
       data: str,
     });
-  } else if (element instanceof HTMLTextAreaElement) {
-    element.textContent = str;
-    fireEvent.input(element, {
-      data: str,
-    });
-  }
+    } else if (element instanceof HTMLTextAreaElement) {
+      element.textContent = str;
+      fireEvent.input(element, {
+        data: str,
+      });
+    }
+  });
 }
 
 export function submit(element: Element): void {
-  expect(element.localName).toBe("form");
-  (element as HTMLFormElement).submit();
+  act(() => {
+    expect(element.localName).toBe("form");
+    (element as HTMLFormElement).submit();
+  });
 }
