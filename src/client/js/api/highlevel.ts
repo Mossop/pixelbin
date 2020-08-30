@@ -9,7 +9,8 @@ import {
   VirtualCatalog,
   VirtualPerson,
   VirtualTag,
-  VirtualTreeType,
+  VirtualTree,
+  VirtualTreeOptions,
 } from "../utils/virtual";
 import {
   ServerState,
@@ -166,7 +167,7 @@ export class Tag implements Referencable<Tag> {
       );
   }
 
-  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualTag {
+  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualTag {
     return new VirtualTag(this, treeType);
   }
 
@@ -246,7 +247,7 @@ export class Person implements Referencable<Person> {
     return new APIItemReference(intoId(data), Person);
   }
 
-  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualPerson {
+  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualPerson {
     return new VirtualPerson(this, treeType);
   }
 
@@ -357,7 +358,7 @@ export class Album implements Referencable<Album> {
     return false;
   }
 
-  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualAlbum {
+  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualAlbum {
     return new VirtualAlbum(this, treeType);
   }
 
@@ -500,7 +501,7 @@ export class Catalog implements Referencable<Catalog> {
     );
   }
 
-  public virtual(treeType: VirtualTreeType = VirtualTreeType.All): VirtualCatalog {
+  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualCatalog {
     return new VirtualCatalog(this, treeType);
   }
 
