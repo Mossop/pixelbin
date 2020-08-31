@@ -57,6 +57,7 @@
     "eslint-plugin-mossop": "github:Mossop/eslint-plugin-mossop#1.0.10",
     "eslint-plugin-react": "^7.20.3",
     "eslint-plugin-react-hooks": "^4.1.0",
+    "fork-ts-checker-webpack-plugin": "^5.1.0",
     "gulp": "^4.0.2",
     "gulp-babel": "^8.0.0",
     "gulp-sourcemaps": "^2.6.5",

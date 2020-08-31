@@ -1,5 +1,7 @@
 const path = require("path");
 
+const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+
 const ENV = process.env.NODE_ENV ?? "development";
 
 /**
@@ -47,4 +49,11 @@ module.exports = {
     "react": "React",
     "react-dom": "ReactDOM",
   },
+  plugins: [
+    new ForkTsCheckerWebpackPlugin({
+      typescript: {
+        configFile: path.join(__dirname, "tsconfig.build.json"),
+      },
+    }),
+  ],
 };
