@@ -2,13 +2,12 @@ const { promises: fs } = require("fs");
 const path = require("path");
 
 const gulp = require("gulp");
-const sass = require("node-sass");
 const webpack = require("webpack");
 
 const { mergeCoverage, reportCoverage } = require("./ci/coverage");
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const { checkSpawn, Process } = require("./ci/process");
-const { findBin, ensureDir } = require("./ci/utils");
+const { findBin } = require("./ci/utils");
 
 /**
  * @typedef { import("webpack").Stats } Stats
@@ -32,23 +31,6 @@ async function showCoverage() {
 }
 
 exports.showCoverage = showCoverage;
-
-/**
- * @param {SassOptions} options
- * @return {Promise<SassResult>}
- */
-function cssRender(options) {
-  return new Promise((resolve, reject) => {
-    sass.render(options, (err, result) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (err) {
-        reject(err.message);
-      } else {
-        resolve(result);
-      }
-    });
-  });
-}
 
 function buildClientStatic() {
   return gulp.src(path.join(__dirname, "src", "client", "static", "**", "*"))
@@ -116,28 +98,7 @@ function watchClientJs() {
   });
 }
 
-/**
- * @return {Promise<void>}
- */
-async function buildClientCss() {
-  let fileTarget = path.join(__dirname, "build", "client", "css", "app.css");
-  let mapTarget = path.join(__dirname, "build", "client", "css", "app.css.map");
-
-  await ensureDir(fileTarget);
-
-  let result = await cssRender({
-    file: path.join(__dirname, "src", "client", "css", "app.scss"),
-    outFile: fileTarget,
-    sourceMap: mapTarget,
-  });
-
-  await Promise.all([
-    fs.writeFile(fileTarget, result.css),
-    fs.writeFile(mapTarget, result.map),
-  ]);
-}
-
-exports.buildClient = gulp.parallel(buildClientStatic, buildClientCss, buildClientJs);
+exports.buildClient = gulp.parallel(buildClientStatic, buildClientJs);
 
 async function clientJest() {
   let jest = await findBin(__dirname, "jest");
@@ -202,10 +163,10 @@ async function serverJest() {
 
 exports.testServer = gulp.series(serverJest, buildCoverage);
 
-exports.build = gulp.parallel(exports.buildClient, exports.buildServer);
+exports.build = gulp.series(exports.buildServer, exports.buildClient);
 exports.test = gulp.series(serverJest, clientJest, clientKarma, buildCoverage);
 
-exports.lint = gulp.series(exports.buildServer, exports.buildClient, async function eslint() {
+exports.lint = gulp.series(exports.buildServer, buildClientJs, async function eslint() {
   let eslint = await findBin(__dirname, "eslint");
 
   await checkSpawn(eslint, [

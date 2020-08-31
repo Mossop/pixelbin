@@ -153,7 +153,7 @@ const authReducers = {
     state.serverState = createDraft(serverState);
 
     if (serverState.user) {
-      let catalogs = nameSorted(Array.from(serverState.user.catalogs.values()));
+      let catalogs = nameSorted(serverState.user.catalogs);
       if (catalogs.length) {
         state.ui = {
           page: {
