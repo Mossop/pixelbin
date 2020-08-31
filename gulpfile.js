@@ -18,7 +18,7 @@ const { findBin, ensureDir } = require("./ci/utils");
 
 async function buildCoverage() {
   return mergeCoverage([
-    path.join(__dirname, "coverage", "coverage-jest.json"),
+    path.join(__dirname, "coverage", "coverage-server.json"),
     path.join(__dirname, "src", "client", "coverage", "coverage-jest.json"),
     path.join(__dirname, "src", "client", "coverage", "coverage-karma.json"),
   ], path.join(__dirname, "coverage", "coverage-final.json"));
@@ -205,7 +205,7 @@ exports.testServer = gulp.series(serverJest, buildCoverage);
 exports.build = gulp.parallel(exports.buildClient, exports.buildServer);
 exports.test = gulp.series(serverJest, clientJest, clientKarma, buildCoverage);
 
-exports.lint = gulp.series(exports.build, async function eslint() {
+exports.lint = gulp.series(exports.buildServer, exports.buildClient, async function eslint() {
   let eslint = await findBin(__dirname, "eslint");
 
   await checkSpawn(eslint, [

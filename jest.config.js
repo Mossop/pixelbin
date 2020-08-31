@@ -20,7 +20,7 @@ module.exports = {
   ],
   coverageDirectory: "coverage",
   coverageReporters: [["json", {
-    file: "coverage-jest.json",
+    file: "coverage-server.json",
   }]],
   setupFilesAfterEnv: [
     "jest-mock-console/dist/setupTestFramework.js",
