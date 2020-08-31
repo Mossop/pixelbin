@@ -9,11 +9,12 @@ import {
   act,
 } from "@testing-library/react";
 import { JSDOM } from "jsdom";
-import React, { ReactElement, ReactNode } from "react";
+import React from "react";
 import { Provider } from "react-redux";
 
 import realStore from "../store";
 import { StoreType } from "../store/types";
+import { ReactChildren, ReactResult } from "../utils/types";
 import { MockStore } from "./store";
 
 // @ts-ignore: TypeScript doesn't know about this global.
@@ -72,10 +73,10 @@ class MockBundle extends FluentBundle {
 
 export const l10nBundle = new MockBundle();
 
-type Wrapper = (props: { children?: ReactNode }) => ReactElement | null;
+type Wrapper = (props: ReactChildren) => ReactResult;
 function componentWrapper(store: MockStore | undefined): Wrapper {
   let fakeStore: StoreType = store ? store as unknown as StoreType : realStore;
-  return function WrappedComponent({ children }: { children?: ReactNode }): ReactElement | null {
+  return function WrappedComponent({ children }: ReactChildren): ReactResult {
     let l10n = new ReactLocalization([l10nBundle]);
 
     return <Provider store={fakeStore}>
@@ -90,7 +91,10 @@ export interface DialogRenderResult {
   dialogContainer: Element | null;
 }
 
-export function render(ui: ReactElement, store?: MockStore): RenderResult & DialogRenderResult {
+export function render(
+  ui: React.ReactElement,
+  store?: MockStore,
+): RenderResult & DialogRenderResult {
   let results = testRender(ui, { wrapper: componentWrapper(store) });
   return {
     ...results,

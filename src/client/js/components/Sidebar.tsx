@@ -2,6 +2,8 @@ import Drawer from "@material-ui/core/Drawer";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import React from "react";
 
+import { ReactChildren, ReactResult } from "../utils/types";
+
 const useStyles = makeStyles(() =>
   createStyles({
     paper: {
@@ -9,12 +11,11 @@ const useStyles = makeStyles(() =>
     },
   }));
 
-export interface SidebarProps {
+export type SidebarProps = ReactChildren & {
   open: boolean;
-  children?: React.ReactNode;
-}
+};
 
-export default function Sidebar(props: SidebarProps): React.ReactElement | null {
+export default function Sidebar(props: SidebarProps): ReactResult {
   const classes = useStyles();
 
   return <Drawer

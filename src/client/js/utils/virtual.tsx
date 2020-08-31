@@ -11,6 +11,7 @@ import React from "react";
 import { Album, Catalog, Person, Tag } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import { UIState } from "../store/types";
+import { ReactResult } from "./types";
 
 export type VirtualItemFilter = (item: VirtualItem) => boolean;
 
@@ -51,7 +52,7 @@ export interface VirtualItem {
   readonly id: string;
   readonly link: Draft<UIState> | null;
   readonly label: (l10n: ReactLocalization) => string;
-  readonly icon: () => React.ReactElement | null;
+  readonly icon: () => ReactResult;
   readonly children: VirtualItem[];
 }
 
@@ -67,7 +68,7 @@ abstract class BaseVirtualItem implements VirtualItem {
 
   public abstract label(l10n: ReactLocalization): string;
 
-  public icon(): React.ReactElement | null {
+  public icon(): ReactResult {
     return null;
   }
 
@@ -91,7 +92,7 @@ class VirtualCatalogAlbums extends BaseVirtualCatalogItem {
     return l10n.getString("catalog-albums");
   }
 
-  public icon(): React.ReactElement {
+  public icon(): ReactResult {
     return <PermMediaIcon/>;
   }
 
@@ -115,7 +116,7 @@ class VirtualCatalogTags extends BaseVirtualCatalogItem {
     return l10n.getString("catalog-tags");
   }
 
-  public icon(): React.ReactElement {
+  public icon(): ReactResult {
     return <LocalOfferIcon/>;
   }
 
@@ -139,7 +140,7 @@ class VirtualCatalogPeople extends BaseVirtualCatalogItem {
     return l10n.getString("catalog-people");
   }
 
-  public icon(): React.ReactElement {
+  public icon(): ReactResult {
     return <PeopleIcon/>;
   }
 
@@ -172,7 +173,7 @@ export class VirtualCatalog extends BaseVirtualItem {
     return this.catalog.name;
   }
 
-  public icon(): React.ReactElement {
+  public icon(): ReactResult {
     return <StorageIcon/>;
   }
 
@@ -217,7 +218,7 @@ export class VirtualAlbum extends BaseVirtualItem {
     return this.album.name;
   }
 
-  public icon(): React.ReactElement {
+  public icon(): ReactResult {
     return <PhotoAlbumIcon/>;
   }
 
@@ -240,7 +241,7 @@ export class VirtualTag extends BaseVirtualItem {
     return this.tag.name;
   }
 
-  public icon(): React.ReactElement {
+  public icon(): ReactResult {
     return <LocalOfferIcon/>;
   }
 
@@ -263,7 +264,7 @@ export class VirtualPerson extends BaseVirtualItem {
     return this.person.name;
   }
 
-  public icon(): React.ReactElement {
+  public icon(): ReactResult {
     return <PersonIcon/>;
   }
 }

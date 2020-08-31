@@ -1,9 +1,9 @@
 import mockConsole from "jest-mock-console";
 import React from "react";
 
-import Page from ".";
 import { lastCallArgs, mockedFunction } from "../../../test-helpers";
 import { Album, Catalog } from "../api/highlevel";
+import App from "../components/App";
 import {
   expect,
   render,
@@ -79,7 +79,7 @@ test("index page", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ test("user page not logged in", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -130,7 +130,7 @@ test("album page not logged in", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -157,7 +157,7 @@ test("catalog page not logged in", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -180,7 +180,7 @@ test("user page logged in", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).toHaveBeenCalled();
@@ -204,7 +204,7 @@ test("album page logged in", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -229,7 +229,7 @@ test("catalog page logged in", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -256,7 +256,7 @@ test("not found page", (): void => {
     },
   }));
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).not.toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();
@@ -283,7 +283,7 @@ test("error page", (): void => {
     throw new Error("Test error message.");
   });
 
-  render(<Page/>, store);
+  render(<App/>, store);
 
   expect(mockedIndex).toHaveBeenCalled();
   expect(mockedUser).not.toHaveBeenCalled();

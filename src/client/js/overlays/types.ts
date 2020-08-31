@@ -8,15 +8,10 @@ export enum OverlayType {
   EditCatalog = "editCatalog",
   CreateAlbum = "createAlbum",
   EditAlbum = "editAlbum",
-  Upload = "upload",
 }
 
 interface BaseOverlayState {
   readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CreateCatalog;
-}
-
-interface UploadOverlayState {
-  readonly type: OverlayType.Upload;
 }
 
 interface CatalogEditOverlayState {
@@ -36,7 +31,6 @@ interface AlbumEditOverlayState {
 
 export type OverlayState =
    BaseOverlayState |
-   UploadOverlayState |
    CatalogEditOverlayState |
    AlbumCreateOverlayState |
    AlbumEditOverlayState;

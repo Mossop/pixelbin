@@ -3,7 +3,8 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React, { useCallback, useState } from "react";
 
 import { Catalog, useCatalogs } from "../api/highlevel";
-import { VirtualItem } from "../utils/virtual";
+import { ReactResult } from "../utils/types";
+import { IncludeVirtualCategories, VirtualItem, VirtualTree } from "../utils/virtual";
 import Banner from "./Banner";
 import Sidebar from "./Sidebar";
 import SidebarTree from "./SidebarTree";
@@ -27,8 +28,13 @@ export interface PageProps {
   children: React.ReactNode;
 }
 
-export default function Page(props: PageProps): React.ReactElement | null {
-  const catalogs = useCatalogs().map((catalog: Catalog): VirtualItem => catalog.virtual());
+export default function Page(props: PageProps): ReactResult {
+  const catalogs = useCatalogs().map(
+    (catalog: Catalog): VirtualItem => catalog.virtual({
+      ...VirtualTree.Albums,
+      categories: IncludeVirtualCategories.IfNotEmpty,
+    }),
+  );
 
   const [open, setOpen] = useState(true);
 
@@ -44,7 +50,7 @@ export default function Page(props: PageProps): React.ReactElement | null {
       <Sidebar open={open}>
         <SidebarTree roots={catalogs}/>
       </Sidebar>
-      <main>{props.children}</main>
+      {props.children}
     </div>
   </Box>;
 }

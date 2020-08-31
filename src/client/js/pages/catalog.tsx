@@ -5,15 +5,17 @@ import React, { useCallback } from "react";
 
 import { Catalog, Reference } from "../api/highlevel";
 import { UserState } from "../api/types";
+import Content from "../components/Content";
 import Page from "../components/Page";
 import { useActions } from "../store/actions";
+import { ReactResult } from "../utils/types";
 
 export interface CatalogPageProps {
   catalog: Reference<Catalog>;
   user: UserState;
 }
 
-export default function CatalogPage(props: CatalogPageProps): React.ReactElement | null {
+export default function CatalogPage(props: CatalogPageProps): ReactResult {
   const { l10n } = useLocalization();
   const actions = useActions();
 
@@ -25,11 +27,6 @@ export default function CatalogPage(props: CatalogPageProps): React.ReactElement
   const onAlbumCreate = useCallback(
     () => actions.showAlbumCreateOverlay(props.catalog),
     [props, actions],
-  );
-
-  const onUpload = useCallback(
-    () => actions.showUploadOverlay(),
-    [actions],
   );
 
   return <Page
@@ -49,16 +46,11 @@ export default function CatalogPage(props: CatalogPageProps): React.ReactElement
         >
           {l10n.getString("banner-album-new")}
         </Button>
-        <Button
-          id="button-banner-upload"
-          color="inherit"
-          onClick={onUpload}
-        >
-          {l10n.getString("banner-upload")}
-        </Button>
       </React.Fragment>
     }
   >
-    <Typography variant="h1">Catalog</Typography>
+    <Content>
+      <Typography variant="h1">Catalog</Typography>
+    </Content>
   </Page>;
 }

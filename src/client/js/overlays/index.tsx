@@ -1,123 +1,51 @@
-import React, { ReactNode, PureComponent } from "react";
+import React from "react";
 
-import { Obj } from "../../../utils";
-import { Reference } from "../api/highlevel";
-import { MediaTarget } from "../api/media";
-import { UserState } from "../api/types";
-import { document } from "../environment";
-import { PageState, PageType } from "../pages/types";
-import actions from "../store/actions";
+import { useSelector } from "../store";
+import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
-import { ComponentProps, connect } from "../utils/component";
+import { ReactResult } from "../utils/types";
 import AlbumOverlay from "./album";
 import CatalogOverlay from "./catalog";
 import LoginOverlay from "./login";
 import SignupOverlay from "./signup";
-import { OverlayState, OverlayType } from "./types";
-import UploadOverlay from "./upload";
+import { OverlayType } from "./types";
 
-interface FromStateProps {
-  page: PageState;
-  overlay?: OverlayState;
-  user: UserState | null;
-}
+export default function Overlay(): ReactResult {
+  const actions = useActions();
 
-function mapStateToProps(state: StoreState): FromStateProps {
-  return {
-    page: state.ui.page,
+  let { overlay, user } = useSelector((state: StoreState) => ({
     overlay: state.ui.overlay,
     user: state.serverState.user,
-  };
-}
+  }));
 
-const mapDispatchToProps = {
-  closeOverlay: actions.closeOverlay,
-};
-
-class OverlayDisplay extends PureComponent<
-  ComponentProps<Obj, typeof mapStateToProps, typeof mapDispatchToProps>
-> {
-  public componentDidMount(): void {
-    document.addEventListener("keydown", this.onKeyDown, true);
+  if (!overlay) {
+    return null;
   }
 
-  public componentWillUnmount(): void {
-    document.removeEventListener("keydown", this.onKeyDown, true);
-  }
-
-  private onClick: ((event: React.MouseEvent) => void) = (event: React.MouseEvent): void => {
-    if (event.target == event.currentTarget) {
-      event.preventDefault();
-      event.stopPropagation();
-
-      this.props.closeOverlay();
-    }
-  };
-
-  private onKeyDown: ((event: KeyboardEvent) => void) = (event: KeyboardEvent): void => {
-    if (event.key == "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-
-      this.props.closeOverlay();
-    }
-  };
-
-  public render(): ReactNode {
-    let overlayState = this.props.overlay;
-    if (!overlayState) {
-      return null;
-    }
-
-    let overlay: ReactNode = null;
-    let className = "";
-
-    if (!this.props.user) {
-      switch (overlayState.type) {
-        case OverlayType.Login: {
-          return <LoginOverlay/>;
-        }
-        case OverlayType.Signup: {
-          return <SignupOverlay/>;
-        }
+  if (!user) {
+    switch (overlay.type) {
+      case OverlayType.Login: {
+        return <LoginOverlay/>;
       }
-    } else {
-      switch (overlayState.type) {
-        case OverlayType.CreateCatalog: {
-          return <CatalogOverlay user={this.props.user}/>;
-        }
-        case OverlayType.CreateAlbum: {
-          return <AlbumOverlay parent={overlayState.parent}/>;
-        }
-        case OverlayType.EditAlbum: {
-          return <AlbumOverlay album={overlayState.album}/>;
-        }
-        case OverlayType.Upload: {
-          let target: Reference<MediaTarget> | undefined = undefined;
-          if (this.props.page.type == PageType.Catalog) {
-            target = this.props.page.catalog;
-          } else if (this.props.page.type == PageType.Album) {
-            target = this.props.page.album;
-          }
-
-          overlay = <UploadOverlay target={target}/>;
-          break;
-        }
+      case OverlayType.Signup: {
+        return <SignupOverlay/>;
       }
     }
-
-    if (!overlay) {
-      console.error(`State contained an illegal overlay: ${overlayState.type}`);
-      this.props.closeOverlay();
-      return null;
+  } else {
+    switch (overlay.type) {
+      case OverlayType.CreateCatalog: {
+        return <CatalogOverlay user={user}/>;
+      }
+      case OverlayType.CreateAlbum: {
+        return <AlbumOverlay parent={overlay.parent}/>;
+      }
+      case OverlayType.EditAlbum: {
+        return <AlbumOverlay album={overlay.album}/>;
+      }
     }
-
-    className = overlayState.type;
-
-    return <div id="overlay" className={className} onClick={this.onClick}>
-      <div id="overlay-pane">{overlay}</div>
-    </div>;
   }
-}
 
-export default connect()(OverlayDisplay, mapStateToProps, mapDispatchToProps);
+  console.error(`State contained an illegal overlay: ${overlay.type}`);
+  actions.closeOverlay();
+  return null;
+}

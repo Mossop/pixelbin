@@ -1,5 +1,4 @@
 import { Album } from "../api/highlevel";
-import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect } from "../test-helpers";
 import actions from "./actions";
@@ -20,9 +19,6 @@ test("Navigate", (): void => {
       type: PageType.Album,
       album: Album.ref("testalbum"),
     },
-    overlay: {
-      type: OverlayType.Upload,
-    },
   });
 
   let newState = reducer(state, action);
@@ -31,9 +27,6 @@ test("Navigate", (): void => {
     page: {
       type: PageType.Album,
       album: expect.toBeRef("testalbum"),
-    },
-    overlay: {
-      type: OverlayType.Upload,
     },
   });
 });

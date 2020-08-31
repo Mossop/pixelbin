@@ -123,65 +123,6 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
       };
     }
 
-    case "/upload": {
-      if (!serverState.user) {
-        return notfound(historyState);
-      }
-
-      if (!historyState.params || historyState.params.size == 0) {
-        return {
-          page: {
-            type: PageType.User,
-          },
-          overlay: {
-            type: OverlayType.Upload,
-          },
-        };
-      }
-
-      if (historyState.params.size != 1) {
-        break;
-      }
-
-      let id = historyState.params.get("catalog");
-      if (id) {
-        let catalog = Catalog.safeFromState(serverState, id);
-        if (!catalog) {
-          return notfound(historyState);
-        }
-
-        return {
-          page: {
-            type: PageType.Catalog,
-            catalog: catalog.ref(),
-          },
-          overlay: {
-            type: OverlayType.Upload,
-          },
-        };
-      }
-
-      id = historyState.params.get("album");
-      if (id) {
-        let album = Album.safeFromState(serverState, id);
-        if (!album) {
-          return notfound(historyState);
-        }
-
-        return {
-          page: {
-            type: PageType.Album,
-            album: album.ref(),
-          },
-          overlay: {
-            type: OverlayType.Upload,
-          },
-        };
-      }
-
-      break;
-    }
-
     case "/login": {
       return Object.assign({}, decodeTargetState(historyState.params, serverState), {
         overlay: {
@@ -226,23 +167,6 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
 
 export function fromUIState(uiState: UIState): HistoryState {
   switch (uiState.overlay?.type) {
-    case OverlayType.Upload: {
-      switch (uiState.page.type) {
-        case PageType.User:
-          return buildState("/upload");
-        case PageType.Catalog:
-          return buildState("/upload", {
-            catalog: uiState.page.catalog.id,
-          });
-        case PageType.Album:
-          return buildState("/upload", {
-            album: uiState.page.album.id,
-          });
-      }
-
-      exception(ErrorCode.InvalidState);
-      break;
-    }
     case OverlayType.Login: {
       return buildState("/login", encodeTargetState(uiState));
     }

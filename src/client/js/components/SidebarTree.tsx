@@ -8,6 +8,7 @@ import AddIcon from "@material-ui/icons/Add";
 import React, { useCallback } from "react";
 
 import { useActions } from "../store/actions";
+import { ReactResult } from "../utils/types";
 import { VirtualItem } from "../utils/virtual";
 import Link from "./Link";
 
@@ -22,7 +23,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-function SidebarTreeItem({ item }: { item: VirtualItem }): React.ReactElement | null {
+function SidebarTreeItem({ item }: { item: VirtualItem }): ReactResult {
   const { l10n } = useLocalization();
   const classes = useStyles();
 
@@ -60,7 +61,7 @@ function SidebarTreeItem({ item }: { item: VirtualItem }): React.ReactElement | 
 
 export default function SidebarTree(
   { roots }: { roots: VirtualItem[] },
-): React.ReactElement | null {
+): ReactResult {
   const actions = useActions();
   const { l10n } = useLocalization();
 
@@ -70,7 +71,7 @@ export default function SidebarTree(
 
   return <List component="nav">
     {
-      roots.map((root: VirtualItem): React.ReactElement | null => {
+      roots.map((root: VirtualItem): ReactResult => {
         return <SidebarTreeItem key={root.id} item={root}/>;
       })
     }

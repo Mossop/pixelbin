@@ -205,11 +205,6 @@ const authReducers = {
 };
 
 const mediaReducers = {
-  showUploadOverlay(state: Draft<StoreState>): void {
-    state.ui.overlay = {
-      type: OverlayType.Upload,
-    };
-  },
 };
 
 export const reducers = {

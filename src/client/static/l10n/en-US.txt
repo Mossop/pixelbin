@@ -23,7 +23,6 @@ banner-logout = Log out
 banner-catalog-edit = Edit catalog…
 banner-album-new = New album…
 banner-album-edit = Edit album…
-banner-upload = Upload…
 
 overlay-close =
   .title = Close
@@ -40,6 +39,9 @@ login-password = Password:
 login-submit = Log in
 
 catalog-albums = Albums
+catalog-tags = Tags
+catalog-people = People
+
 catalog-create-title = Create a new catalog
 catalog-create-title-first = Create your first catalog:
 catalog-name = Catalog name:
@@ -53,27 +55,7 @@ storage-endpoint = Endpoint:
 storage-public-url = Public access URL:
 catalog-create-submit = Create
 
-storage-backblaze-name = Backblaze
-storage-backblaze-keyid = Application key ID:
-storage-backblaze-key = Application key:
-storage-backblaze-bucket = Bucket:
-storage-backblaze-path = Path:
-
-storage-server-name = Server
-
 sidebar-add-catalog = Add a new catalog…
-
-upload-title = Upload photos and videos
-upload-tree-title = Upload into:
-upload-global-tags = Tags for all media:
-upload-global-people = People in all media:
-upload-media-tags = Tags:
-upload-media-people = People:
-upload-preview-close =
-  .title = Close
-upload-submit = Upload
-upload-drag-media = Drag files here
-upload-add-files = Add files…
 
 album-create-title = Create a new album
 album-edit-title = Edit this album
@@ -84,4 +66,5 @@ album-edit-parent = Store in:
 album-create-parent = Create in:
 
 error-title = An unexpected error occured.
-error-content = The following error occured: {$error}. You can try reloading this page or going back to the main site.
+error-content = The following error occured:
+error-suggestion = You can try <Reload>reloading</Reload> this page or going to the <Main>main page</Main>.

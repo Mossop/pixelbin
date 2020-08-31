@@ -6,15 +6,15 @@ import { useActions } from "../store/actions";
 import type { UIState } from "../store/types";
 import { buildURL } from "../utils/history";
 import { fromUIState } from "../utils/navigation";
+import { ReactChildren, ReactResult } from "../utils/types";
 
-interface LinkProps {
+export type LinkProps = ReactChildren & {
   to: Draft<UIState>;
   color?: LinkTypeMap["props"]["color"];
   underline?: LinkTypeMap["props"]["underline"];
-  children?: React.ReactNode;
-}
+};
 
-export default function Link(props: LinkProps): React.ReactElement | null {
+export default function Link(props: LinkProps): ReactResult {
   const actions = useActions();
 
   const onClick = useCallback((event: React.MouseEvent): void => {

@@ -17,7 +17,6 @@ import Banner from "./Banner";
 
 beforeEach(resetDOM);
 
-jest.mock("./Button");
 jest.mock("../api/api");
 
 test("banner", async (): Promise<void> => {

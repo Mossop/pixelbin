@@ -459,7 +459,8 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get tags(): Tag[] {
-    return Array.from(this.state.tags.keys()).map(
+    return Array.from(
+      this.state.tags.keys(),
       (id: string): Tag => Tag.fromState(this.serverState, id),
     );
   }
@@ -473,7 +474,8 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get albums(): Album[] {
-    return Array.from(this.state.albums.keys()).map(
+    return Array.from(
+      this.state.albums.keys(),
       (id: string): Album => Album.fromState(this.serverState, id),
     );
   }
@@ -496,7 +498,8 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public get people(): Person[] {
-    return Array.from(this.state.people.keys()).map(
+    return Array.from(
+      this.state.people.keys(),
       (id: string): Person => Person.fromState(this.serverState, id),
     );
   }

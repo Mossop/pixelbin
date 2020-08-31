@@ -8,6 +8,7 @@ import { createStyles, makeStyles, Theme, useTheme } from "@material-ui/core/sty
 import React, { useCallback, useMemo } from "react";
 
 import { Album, Catalog } from "../api/highlevel";
+import { ReactResult } from "../utils/types";
 import { VirtualAlbum, VirtualCatalog, VirtualItem } from "../utils/virtual";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -40,7 +41,7 @@ export interface MediaTargetFieldProps {
   onChange?: (selected: Album | Catalog) => void;
 }
 
-export default function MediaTargetField(props: MediaTargetFieldProps): React.ReactElement | null {
+export default function MediaTargetField(props: MediaTargetFieldProps): ReactResult {
   const { l10n } = useLocalization();
   const theme = useTheme();
   const classes = useStyles();
@@ -100,7 +101,7 @@ export default function MediaTargetField(props: MediaTargetFieldProps): React.Re
       {
         Array.from(
           itemMap.values(),
-          ({ item, depth }: ItemInfo): React.ReactElement | null => {
+          ({ item, depth }: ItemInfo): ReactResult => {
             return <MenuItem
               key={item.id}
               value={item.id}

@@ -6,12 +6,13 @@ import FormDialog from "../components/FormDialog";
 import { useActions } from "../store/actions";
 import { AppError } from "../utils/exception";
 import { useFormState } from "../utils/hooks";
+import { ReactResult } from "../utils/types";
 
 export interface CatalogOverlapProps {
   user: UserState;
 }
 
-export default function CatalogOverlay(props: CatalogOverlapProps): React.ReactElement | null {
+export default function CatalogOverlay(props: CatalogOverlapProps): ReactResult {
   let [state, setState] = useFormState({
     catalogName: "",
     storageName: "",

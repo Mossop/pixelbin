@@ -5,8 +5,9 @@ import FormDialog from "../components/FormDialog";
 import { useActions } from "../store/actions";
 import { AppError } from "../utils/exception";
 import { useFormState } from "../utils/hooks";
+import { ReactResult } from "../utils/types";
 
-export default function LoginOverlay(): React.ReactElement | null {
+export default function LoginOverlay(): ReactResult {
   const actions = useActions();
 
   const [state, setState] = useFormState({

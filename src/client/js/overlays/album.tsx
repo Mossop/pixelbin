@@ -10,6 +10,7 @@ import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
 import { AppError } from "../utils/exception";
 import { useFormState } from "../utils/hooks";
+import { ReactResult } from "../utils/types";
 import { VirtualItem, VirtualTree } from "../utils/virtual";
 
 interface EditProps {
@@ -22,7 +23,7 @@ interface CreateProps {
 
 type AlbumOverlayProps = EditProps | CreateProps;
 
-export default function AlbumOverlay(props: AlbumOverlayProps): React.ReactElement | null {
+export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   let { album, parent, catalog } = useSelector((state: StoreState) => {
     let album: Album | null = null;
     let catalog: Catalog;

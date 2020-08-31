@@ -15,7 +15,6 @@ import {
   mockStoreState,
   mockStore,
 } from "../test-helpers";
-import { ErrorCode } from "./exception";
 import { HistoryState, addListener, getState, pushState, replaceState } from "./history";
 import { intoUIState, fromUIState, stateURLMatches, watchStore } from "./navigation";
 
@@ -211,98 +210,6 @@ test("login overlay", (): void => {
       type: OverlayType.Login,
     },
   })).toEqual(state("/login", { path: "/user" }));
-});
-
-test("upload overlay", (): void => {
-  expect(intoUIState(state("/upload"), LoggedOut)).toEqual({
-    page: {
-      type: PageType.NotFound,
-      history: state("/upload"),
-    },
-  });
-
-  expect(intoUIState(state("/upload"), LoggedIn)).toEqual({
-    page: {
-      type: PageType.User,
-    },
-    overlay: {
-      type: OverlayType.Upload,
-    },
-  });
-
-  expect(fromUIState({
-    page: {
-      type: PageType.User,
-    },
-    overlay: {
-      type: OverlayType.Upload,
-    },
-  })).toEqual(state("/upload"));
-
-  expect(intoUIState(state("/upload", { catalog: "testcatalog" }), LoggedIn)).toEqual({
-    page: {
-      type: PageType.Catalog,
-      catalog: expect.toBeRef("testcatalog"),
-    },
-    overlay: {
-      type: OverlayType.Upload,
-    },
-  });
-
-  expect(intoUIState(state("/upload", { catalog: "badcatalog" }), LoggedIn)).toEqual({
-    page: {
-      type: PageType.NotFound,
-      history: state("/upload", { catalog: "badcatalog" }),
-    },
-  });
-
-  expect(fromUIState({
-    page: {
-      type: PageType.Catalog,
-      catalog: Catalog.ref("testcatalog"),
-    },
-    overlay: {
-      type: OverlayType.Upload,
-    },
-  })).toEqual(state("/upload", { catalog: "testcatalog" }));
-
-  expect(intoUIState(state("/upload", { album: "badalbum" }), LoggedIn)).toEqual({
-    page: {
-      type: PageType.NotFound,
-      history: state("/upload", { album: "badalbum" }),
-    },
-  });
-
-  expect(intoUIState(state("/upload", { album: "testalbum" }), LoggedIn)).toEqual({
-    page: {
-      type: PageType.Album,
-      album: expect.toBeRef("testalbum"),
-    },
-    overlay: {
-      type: OverlayType.Upload,
-    },
-  });
-
-  expect(fromUIState({
-    page: {
-      type: PageType.Album,
-      album: Album.ref("testalbum"),
-    },
-    overlay: {
-      type: OverlayType.Upload,
-    },
-  })).toEqual(state("/upload", { album: "testalbum" }));
-
-  expect((): void => {
-    fromUIState({
-      page: {
-        type: PageType.Index,
-      },
-      overlay: {
-        type: OverlayType.Upload,
-      },
-    });
-  }).toThrowAppError(ErrorCode.InvalidState);
 });
 
 test("stateURLMatches.", (): void => {

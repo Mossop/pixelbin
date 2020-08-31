@@ -60,13 +60,4 @@ test("album", (): void => {
     ],
   });
   store.dispatch.mockClear();
-
-  button = expectChild(buttons, "#button-banner-upload");
-  click(button);
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showUploadOverlay",
-    payload: [],
-  });
-  store.dispatch.mockClear();
 });
