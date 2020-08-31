@@ -11,8 +11,6 @@ const { findBin } = require("./ci/utils");
 
 /**
  * @typedef { import("webpack").Stats } Stats
- * @typedef { import("node-sass").Options } SassOptions
- * @typedef { import("node-sass").Result } SassResult
  */
 
 async function buildCoverage() {
@@ -45,7 +43,7 @@ const watchClientStatic = gulp.series(buildClientStatic, () => {
  * @return {Promise<void>}
  */
 async function buildClientJs() {
-  let webpackConfig = require("./src/client/webpack.config");
+  let webpackConfig = require("./src/client/webpack.config")("production");
   let compiler = webpack(webpackConfig);
 
   /**
@@ -85,7 +83,7 @@ async function buildClientJs() {
  * @return {void}
  */
 function watchClientJs() {
-  let webpackConfig = require("./src/client/webpack.config");
+  let webpackConfig = require("./src/client/webpack.config")("development");
   let compiler = webpack(webpackConfig);
 
   compiler.watch({}, (err, stats) => {

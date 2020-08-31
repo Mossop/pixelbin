@@ -75,7 +75,7 @@ export function isRef<T extends Table>(ref: Obj): ref is Ref<T> {
 }
 
 export function bindingParam(val: Knex.RawBinding | Ref): string {
-  return isRef(val) ? "??" : "?";
+  return val && isRef(val) ? "??" : "?";
 }
 
 export const COLUMNS = {

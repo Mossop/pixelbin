@@ -2,7 +2,7 @@ const path = require("path");
 
 const { constants } = require("karma");
 
-const sourceWebpackConfig = require("./webpack.config");
+const sourceWebpackConfig = require("./webpack.config")("test");
 
 /** @type {import("webpack").Configuration} */
 let webpackConfig = {
