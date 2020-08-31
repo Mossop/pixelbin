@@ -17,6 +17,7 @@
     "path": "../worker/tsconfig.json"
   }],
   "include": [
-    "**/*"
+    "**/*",
+    "webserver/packages.json"
   ]
 }

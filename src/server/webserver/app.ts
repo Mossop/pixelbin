@@ -12,7 +12,23 @@ import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import { AppContext, ServicesContext, buildContext } from "./context";
 import { errorHandler } from "./error";
+// eslint-disable-next-line import/extensions
+import packages from "./packages.json";
 import Services from "./services";
+
+interface Package {
+  id: string;
+  version: string;
+  path: string;
+}
+
+function listScripts(): string {
+  let scripts = packages.map((pkg: Package): string => {
+    return `<script crossorigin src="https://unpkg.com/${pkg.id}@${pkg.version}${pkg.path}"></script>`;
+  });
+
+  return scripts.join("\n");
+}
 
 function buildAppContent(state: Api.State, paths: Record<string, string>): string {
   return `
@@ -26,8 +42,7 @@ function buildAppContent(state: Api.State, paths: Record<string, string>): strin
 <link href="https://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
       rel="stylesheet">
-<script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+${listScripts()}
 <script id="initial-state" type="application/json">${JSON.stringify(state)}</script>
 <script id="paths" type="application/json">${JSON.stringify(paths)}</script>
 </head>
