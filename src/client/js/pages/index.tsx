@@ -1,15 +1,28 @@
 import React from "react";
+import { asyncComponent } from "react-async-component";
 
 import { useSelector } from "../store";
 import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
-import Album from "./album";
-import Catalog from "./catalog";
 import ErrorPage from "./error";
 import Index from "./indexpage";
 import NotFound from "./notfound";
 import { PageType } from "./types";
-import User from "./user";
+
+const Album = asyncComponent({
+  name: "AsyncAlbumPage",
+  resolve: () => import(/* webpackChunkName: "AlbumPage" */ "./album"),
+});
+
+const Catalog = asyncComponent({
+  name: "AsyncCatalogPage",
+  resolve: () => import(/* webpackChunkName: "CatalogPage" */ "./catalog"),
+});
+
+const User = asyncComponent({
+  name: "AsyncUserPage",
+  resolve: () => import(/* webpackChunkName: "UserPage" */ "./user"),
+});
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({
