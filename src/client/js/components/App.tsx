@@ -37,8 +37,8 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
 
 export default function App(): React.ReactElement | null {
   return <ErrorHandler>
+    <Page/>
     <Suspense fallback={null}>
-      <Page/>
       <Overlay/>
     </Suspense>
   </ErrorHandler>;

@@ -25,7 +25,7 @@ const useStyles = makeStyles(() =>
 
 export interface PageProps {
   bannerButtons?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export default function Page(props: PageProps): ReactResult {

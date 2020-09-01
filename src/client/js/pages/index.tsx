@@ -1,5 +1,6 @@
-import React, { lazy } from "react";
+import React, { lazy, Suspense } from "react";
 
+import Page from "../components/Page";
 import { useSelector } from "../store";
 import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
@@ -18,28 +19,32 @@ export default function PageDisplay(): ReactResult {
     page: state.ui.page,
   }));
 
-  if (user) {
+  const pageContent = (): React.ReactElement => {
+    if (user) {
+      switch (page.type) {
+        case PageType.User: {
+          return <User user={user}/>;
+        }
+        case PageType.Catalog: {
+          return <Catalog user={user} catalog={page.catalog}/>;
+        }
+        case PageType.Album: {
+          return <Album user={user} album={page.album}/>;
+        }
+      }
+    }
+
     switch (page.type) {
-      case PageType.User: {
-        return <User user={user}/>;
+      case PageType.Index: {
+        return <Index/>;
       }
-      case PageType.Catalog: {
-        return <Catalog user={user} catalog={page.catalog}/>;
-      }
-      case PageType.Album: {
-        return <Album user={user} album={page.album}/>;
+      case PageType.NotFound: {
+        return <NotFound/>;
       }
     }
-  }
 
-  switch (page.type) {
-    case PageType.Index: {
-      return <Index/>;
-    }
-    case PageType.NotFound: {
-      return <NotFound/>;
-    }
-  }
+    return <ErrorPage error="Internal error."/>;
+  };
 
-  return <ErrorPage error="Internal error."/>;
+  return <Suspense fallback={<Page/>}>{pageContent()}</Suspense>;
 }
