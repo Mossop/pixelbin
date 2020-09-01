@@ -2,11 +2,21 @@
   {
     "id": "react",
     "version": "16.13.1",
-    "path": "/umd/react.development.js"
+    "path": "umd/react.development.js"
   },
   {
     "id": "react-dom",
     "version": "16.13.1",
-    "path": "/umd/react.development.js"
+    "path": "umd/react-dom.development.js"
+  },
+  {
+    "id": "moment",
+    "version": "2.27.0",
+    "path": "min/moment-with-locales.min.js"
+  },
+  {
+    "id": "moment-timezone",
+    "version": "0.5.31",
+    "path": "builds/moment-timezone-with-data-1970-2030.js"
   }
 ]

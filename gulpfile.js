@@ -187,6 +187,20 @@ async function lintPackages() {
     if (pkg.version != lockInfo.version) {
       errors.push(`Webserver includes ${pkg.id} as version ${pkg.version} ` +
         `but ${lockInfo.version} was expected`);
+      continue;
+    }
+
+    let file = pkg.path.split("/");
+    let target = path.join(__dirname, "node_modules", pkg.id, ...file);
+    try {
+      let stat = await fs.stat(target);
+      if (!stat.isFile()) {
+        errors.push(`Target path for ${pkg.id} does not exist in package.`);
+        continue;
+      }
+    } catch (e) {
+      errors.push(`Target path for ${pkg.id} (${target}) does not exist in package.`);
+      continue;
     }
   }
 

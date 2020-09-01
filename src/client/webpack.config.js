@@ -47,6 +47,8 @@ module.exports = (mode = process.env.NODE_ENV ?? "development") => {
     externals: {
       "react": "React",
       "react-dom": "ReactDOM",
+      "moment": "moment",
+      "moment-timezone": "moment",
     },
     plugins: [
       new ForkTsCheckerWebpackPlugin({
