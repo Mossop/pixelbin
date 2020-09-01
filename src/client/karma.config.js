@@ -2,6 +2,7 @@ const path = require("path");
 
 const { constants } = require("karma");
 
+const externals = require("../server/webserver/packages.json");
 const sourceWebpackConfig = require("./webpack.config")("test");
 
 /** @type {import("webpack").Configuration} */
@@ -12,11 +13,16 @@ let webpackConfig = {
 delete webpackConfig.output;
 delete webpackConfig.entry;
 
+let scripts = externals.map(pkg => {
+  return path.join(__dirname, "..", "..", "node_modules", pkg.id, pkg.path);
+});
+
 /** @type {import("karma").ConfigOptions} */
 let karmaConfig = {
   basePath: __dirname,
   frameworks: ["jasmine"],
   files: [
+    ...scripts,
     path.join(__dirname, "js", "**", "*.karma.ts"),
   ],
   exclude: [
