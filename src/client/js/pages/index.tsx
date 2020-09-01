@@ -1,5 +1,4 @@
-import React from "react";
-import { asyncComponent } from "react-async-component";
+import React, { lazy } from "react";
 
 import { useSelector } from "../store";
 import { StoreState } from "../store/types";
@@ -9,20 +8,9 @@ import Index from "./indexpage";
 import NotFound from "./notfound";
 import { PageType } from "./types";
 
-const Album = asyncComponent({
-  name: "AsyncAlbumPage",
-  resolve: () => import(/* webpackChunkName: "AlbumPage" */ "./album"),
-});
-
-const Catalog = asyncComponent({
-  name: "AsyncCatalogPage",
-  resolve: () => import(/* webpackChunkName: "CatalogPage" */ "./catalog"),
-});
-
-const User = asyncComponent({
-  name: "AsyncUserPage",
-  resolve: () => import(/* webpackChunkName: "UserPage" */ "./user"),
-});
+const Album = lazy(() => import(/* webpackChunkName: "AlbumPage" */ "./album"));
+const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./catalog"));
+const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./user"));
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({

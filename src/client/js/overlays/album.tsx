@@ -21,7 +21,7 @@ interface CreateProps {
   parent: Reference<MediaTarget>;
 }
 
-type AlbumOverlayProps = EditProps | CreateProps;
+export type AlbumOverlayProps = EditProps | CreateProps;
 
 export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   let { album, parent, catalog } = useSelector((state: StoreState) => {

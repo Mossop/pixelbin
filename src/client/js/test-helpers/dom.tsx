@@ -9,7 +9,7 @@ import {
   act,
 } from "@testing-library/react";
 import { JSDOM } from "jsdom";
-import React from "react";
+import React, { Suspense } from "react";
 import { Provider } from "react-redux";
 
 import realStore from "../store";
@@ -81,7 +81,9 @@ function componentWrapper(store: MockStore | undefined): Wrapper {
 
     return <Provider store={fakeStore}>
       <LocalizationProvider l10n={l10n}>
-        {children}
+        <Suspense fallback={<div className="loading"/>}>
+          {children}
+        </Suspense>
       </LocalizationProvider>
     </Provider>;
   };

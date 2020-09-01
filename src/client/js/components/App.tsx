@@ -1,4 +1,4 @@
-import React, { ErrorInfo, PureComponent } from "react";
+import React, { ErrorInfo, PureComponent, Suspense } from "react";
 
 import Overlay from "../overlays";
 import Page from "../pages";
@@ -37,7 +37,9 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
 
 export default function App(): React.ReactElement | null {
   return <ErrorHandler>
-    <Page/>
-    <Overlay/>
+    <Suspense fallback={null}>
+      <Page/>
+      <Overlay/>
+    </Suspense>
   </ErrorHandler>;
 }

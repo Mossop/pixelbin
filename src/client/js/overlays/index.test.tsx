@@ -1,54 +1,42 @@
-import mockConsole from "jest-mock-console";
+/* eslint-disable react/display-name */
+import { waitFor } from "@testing-library/react";
 import React from "react";
 
 import Overlay from ".";
-import { lastCallArgs, mockedFunction } from "../../../test-helpers";
 import { Catalog, Album } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import {
   expect,
+  expectChild,
   mockStore,
   mockStoreState,
   render,
 } from "../test-helpers";
-import AlbumOverlay from "./album";
-import CatalogOverlay from "./catalog";
-import LoginOverlay from "./login";
-import SignupOverlay from "./signup";
+import type { AlbumOverlayProps } from "./album";
+import type { CatalogOverlapProps } from "./catalog";
 import { OverlayType } from "./types";
 
 jest.mock("./album", (): unknown => {
-  return {
-    __esModule: true,
-    default: jest.fn((): null => null),
+  return (props: AlbumOverlayProps) => {
+    if ("album" in props) {
+      return <div id="album-overlay" data-album={props.album.id}/>;
+    } else {
+      return <div id="album-overlay" data-parent={props.parent.id}/>;
+    }
   };
 });
 
 jest.mock("./catalog", (): unknown => {
-  return {
-    __esModule: true,
-    default: jest.fn((): null => null),
-  };
+  return (props: CatalogOverlapProps) => <div id="catalog-overlay" data-user={props.user.email}/>;
 });
 
 jest.mock("./login", (): unknown => {
-  return {
-    __esModule: true,
-    default: jest.fn((): null => null),
-  };
+  return () => <div id="login-overlay"/>;
 });
 
 jest.mock("./signup", (): unknown => {
-  return {
-    __esModule: true,
-    default: jest.fn((): null => null),
-  };
+  return () => <div id="signup-overlay"/>;
 });
-
-const mockedAlbum = mockedFunction(AlbumOverlay);
-const mockedCatalog = mockedFunction(CatalogOverlay);
-const mockedLogin = mockedFunction(LoginOverlay);
-const mockedSignup = mockedFunction(SignupOverlay);
 
 test("no overlay", (): void => {
   const store = mockStore(mockStoreState({
@@ -60,15 +48,13 @@ test("no overlay", (): void => {
     },
   }));
 
-  render(<Overlay/>, store);
+  let { container } = render(<Overlay/>, store);
 
-  expect(mockedAlbum).not.toHaveBeenCalled();
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
+  let loading = container.querySelector(".loading");
+  expect(loading).toBeNull();
 });
 
-test("login overlay", (): void => {
+test("login overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
@@ -81,41 +67,15 @@ test("login overlay", (): void => {
     },
   }));
 
-  render(<Overlay/>, store);
+  let { container } = render(<Overlay/>, store);
+  expectChild(container, ".loading");
 
-  expect(mockedAlbum).not.toHaveBeenCalled();
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
+  await waitFor(() => expectChild(container, "#login-overlay"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("bad login", (): void => {
-  mockConsole();
-
-  const store = mockStore(mockStoreState({
-    ui: {
-      page: {
-        type: PageType.Index,
-      },
-      overlay: {
-        type: OverlayType.Login,
-      },
-    },
-  }));
-
-  let { container } = render(<Overlay/>, store);
-
-  expect(container.querySelector("#overlay")).toBeNull();
-
-  expect(mockedAlbum).not.toHaveBeenCalled();
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
-});
-
-test("signup overlay", (): void => {
+test("signup overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
@@ -128,39 +88,15 @@ test("signup overlay", (): void => {
     },
   }));
 
-  render(<Overlay/>, store);
-
-  expect(mockedAlbum).not.toHaveBeenCalled();
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).toHaveBeenCalled();
-});
-
-test("bad signup", (): void => {
-  mockConsole();
-
-  const store = mockStore(mockStoreState({
-    ui: {
-      page: {
-        type: PageType.Index,
-      },
-      overlay: {
-        type: OverlayType.Signup,
-      },
-    },
-  }));
-
   let { container } = render(<Overlay/>, store);
+  expectChild(container, ".loading");
 
-  expect(container.querySelector("#overlay")).toBeNull();
+  await waitFor(() => expectChild(container, "#signup-overlay"));
 
-  expect(mockedAlbum).not.toHaveBeenCalled();
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
+  expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("create album overlay", (): void => {
+test("create album overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     ui: {
       page: {
@@ -173,17 +109,16 @@ test("create album overlay", (): void => {
     },
   }));
 
-  render(<Overlay/>, store);
+  let { container } = render(<Overlay/>, store);
+  expectChild(container, ".loading");
 
-  expect(lastCallArgs(mockedAlbum)[0]).toEqual({
-    parent: expect.toBeRef("catalog"),
-  });
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
+  let div = await waitFor(() => expectChild(container, "#album-overlay"));
+  expect(div.getAttribute("data-parent")).toBe("catalog");
+
+  expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("edit album overlay", (): void => {
+test("edit album overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     ui: {
       page: {
@@ -196,41 +131,17 @@ test("edit album overlay", (): void => {
     },
   }));
 
-  render(<Overlay/>, store);
+  let { container } = render(<Overlay/>, store);
+  // The AlbumOverlay may have already resolved in the previous test.
+  expectChild(container, "#album-overlay,.loading");
 
-  expect(lastCallArgs(mockedAlbum)[0]).toEqual({
-    album: expect.toBeRef("album"),
-  });
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
+  let div = await waitFor(() => expectChild(container, "#album-overlay"));
+  expect(div.getAttribute("data-album")).toBe("album");
+
+  expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("bad album", (): void => {
-  mockConsole();
-
-  const store = mockStore(mockStoreState({
-    serverState: { user: null },
-    ui: {
-      page: {
-        type: PageType.Index,
-      },
-      overlay: {
-        type: OverlayType.CreateAlbum,
-        parent: Catalog.ref("catalog"),
-      },
-    },
-  }));
-
-  render(<Overlay/>, store);
-
-  expect(mockedAlbum).not.toHaveBeenCalled();
-  expect(mockedCatalog).not.toHaveBeenCalled();
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
-});
-
-test("create catalog overlay", (): void => {
+test("create catalog overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     ui: {
       page: {
@@ -242,12 +153,11 @@ test("create catalog overlay", (): void => {
     },
   }));
 
-  render(<Overlay/>, store);
+  let { container } = render(<Overlay/>, store);
+  expectChild(container, ".loading");
 
-  expect(mockedAlbum).not.toHaveBeenCalled();
-  expect(lastCallArgs(mockedCatalog)[0]).toEqual({
-    user: store.state.serverState.user,
-  });
-  expect(mockedLogin).not.toHaveBeenCalled();
-  expect(mockedSignup).not.toHaveBeenCalled();
+  let div = await waitFor(() => expectChild(container, "#catalog-overlay"));
+  expect(div.getAttribute("data-user")).toBe(store.state.serverState.user?.email);
+
+  expect(store.dispatch).not.toHaveBeenCalled();
 });

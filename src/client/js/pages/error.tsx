@@ -8,7 +8,7 @@ import AppBar from "../components/AppBar";
 import Content from "../components/Content";
 import { ReactResult } from "../utils/types";
 
-interface ErrorPageProps {
+export interface ErrorPageProps {
   error: string;
 }
 

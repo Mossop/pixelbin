@@ -155,7 +155,7 @@ export function awaitCall<A extends unknown[]>(
 ): Promise<A>;
 export function awaitCall<A extends unknown[], R>(
   mock: jest.MockInstance<R, A>,
-  result: R,
+  result?: R,
 ): Promise<A>;
 
 export function awaitCall(
@@ -168,7 +168,7 @@ export function awaitCall(
       resolve(args);
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (result !== undefined && previous !== undefined) {
+      if (result === undefined && previous !== undefined) {
         return previous(...args);
       }
       return result;

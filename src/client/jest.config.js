@@ -1,3 +1,5 @@
+const path = require("path");
+
 const jestConfig = require("../../jest.config");
 
 module.exports = {
@@ -21,4 +23,9 @@ module.exports = {
   coverageReporters: [["json", {
     file: "coverage-jest.json",
   }]],
+  globals: {
+    "ts-jest": {
+      tsConfig: path.join(__dirname, "tsconfig.json"),
+    },
+  },
 };

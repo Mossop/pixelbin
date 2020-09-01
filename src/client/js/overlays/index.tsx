@@ -1,5 +1,4 @@
-import React from "react";
-import { asyncComponent } from "react-async-component";
+import React, { lazy } from "react";
 
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
@@ -7,25 +6,10 @@ import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
 import { OverlayType } from "./types";
 
-const LoginOverlay = asyncComponent({
-  name: "AsyncLoginOverlay",
-  resolve: () => import(/* webpackChunkName: "LoginOverlay" */ "./login"),
-});
-
-const AlbumOverlay = asyncComponent({
-  name: "AsyncAlbumOverlay",
-  resolve: () => import(/* webpackChunkName: "AlbumOverlay" */ "./album"),
-});
-
-const CatalogOverlay = asyncComponent({
-  name: "AsyncCatalogOverlay",
-  resolve: () => import(/* webpackChunkName: "CatalogOverlay" */ "./catalog"),
-});
-
-const SignupOverlay = asyncComponent({
-  name: "AsyncSignupOverlay",
-  resolve: () => import(/* webpackChunkName: "SignupOverlay" */ "./signup"),
-});
+const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./login"));
+const AlbumOverlay = lazy(() => import(/* webpackChunkName: "AlbumOverlay" */ "./album"));
+const CatalogOverlay = lazy(() => import(/* webpackChunkName: "CatalogOverlay" */ "./catalog"));
+const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./signup"));
 
 export default function Overlay(): ReactResult {
   const actions = useActions();
