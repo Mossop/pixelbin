@@ -6,8 +6,8 @@ const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
  * @typedef { import("webpack").Configuration } Configuration
  */
 
-/** @type {(mode?: string) => Configuration} */
-module.exports = (mode = process.env.NODE_ENV ?? "development") => {
+/** @type {(mode?: "test" | "development" | "production") => Configuration} */
+module.exports = (mode = "development") => {
 /** @type {import("webpack").RuleSetUse} */
   const loaders = [{
     loader: "ts-loader",
@@ -25,14 +25,16 @@ module.exports = (mode = process.env.NODE_ENV ?? "development") => {
 
   return {
     mode: mode == "test" ? "development" : mode,
-    entry: path.join(__dirname, "js", "bootstrap.tsx"),
+    entry: {
+      app: path.join(__dirname, "js", "bootstrap.tsx"),
+    },
     resolve: {
       extensions: [".js", ".jsx", ".ts", ".tsx"],
     },
     output: {
       path: path.join(__dirname, "..", "..", "build", "client", "js"),
       publicPath: "/app/js/",
-      filename: "app.js",
+      filename: "[name].js",
       chunkFilename: "[name].js",
     },
     stats: "errors-warnings",
