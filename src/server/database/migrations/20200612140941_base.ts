@@ -154,6 +154,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     for (let name of [
       "orientation",
       "iso",
+      "rating",
     ]) {
       table.integer(name).nullable();
     }

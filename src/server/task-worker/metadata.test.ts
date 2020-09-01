@@ -56,6 +56,7 @@ test("lamppost", async (): Promise<void> => {
     exposure: 1,
     iso: 400,
     focalLength: 95,
+    rating: 4,
   });
 
   let info = getOriginal(data);
@@ -116,6 +117,7 @@ test("iptc", async (): Promise<void> => {
     exposure: null,
     iso: null,
     focalLength: null,
+    rating: 1,
   });
 
   let info = getOriginal(data);
@@ -176,6 +178,7 @@ test("video", async (): Promise<void> => {
     exposure: null,
     iso: null,
     focalLength: null,
+    rating: null,
   });
 
   let info = getOriginal(data);

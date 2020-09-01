@@ -154,6 +154,7 @@ export async function MediaCreateRequest(
     exposure: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
     iso: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
     focalLength: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
+    rating: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
     albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
     tags: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "tag[]")),
     people: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "person[]")),

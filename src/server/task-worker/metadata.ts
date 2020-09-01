@@ -201,6 +201,18 @@ function takenParser(data: StoredData): Moment | null {
   return taken;
 }
 
+function ratingParser(data: StoredData): number | null {
+  if (data.exif.RatingPercent) {
+    return Math.round(5 * data.exif.RatingPercent / 100);
+  }
+
+  if (data.exif.Rating) {
+    return Math.max(0, Math.min(5, data.exif.Rating));
+  }
+
+  return null;
+}
+
 const parsers: MetadataParsers = {
   filename: [filenameParser],
   title: [straight("Title")],
@@ -255,6 +267,7 @@ const parsers: MetadataParsers = {
   ],
   iso: [straight("ISO")],
   focalLength: [float(straight("FocalLength"))],
+  rating: [ratingParser],
 };
 
 export function parseMetadata(data: StoredData): Nullable<ObjectModel.Metadata> {

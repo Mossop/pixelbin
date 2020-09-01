@@ -84,6 +84,7 @@ export const UnprocessedMediaProperties = {
   exposure: JsonDecoder.nullable(JsonDecoder.number),
   iso: JsonDecoder.nullable(JsonDecoder.number),
   focalLength: JsonDecoder.nullable(JsonDecoder.number),
+  rating: JsonDecoder.nullable(JsonDecoder.number),
 
   albums: JsonDecoder.array(AlbumDecoder, "album[]"),
   tags: JsonDecoder.array(TagDecoder, "tag[]"),

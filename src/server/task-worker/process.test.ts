@@ -138,6 +138,7 @@ test("Process image metadata", async (): Promise<void> => {
     exposure: 1,
     iso: 400,
     focalLength: 95,
+    rating: 4,
 
     albums: [],
     tags: [],
@@ -338,6 +339,7 @@ test("Process video metadata", async (): Promise<void> => {
     exposure: null,
     iso: null,
     focalLength: null,
+    rating: null,
 
     albums: [],
     tags: [],

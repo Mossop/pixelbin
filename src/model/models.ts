@@ -68,6 +68,7 @@ export interface Metadata {
   exposure: number;
   iso: number;
   focalLength: number;
+  rating: number;
 }
 
 export const metadataColumns: (keyof Metadata)[] = [
@@ -91,6 +92,7 @@ export const metadataColumns: (keyof Metadata)[] = [
   "exposure",
   "iso",
   "focalLength",
+  "rating",
 ];
 
 export interface Media extends IdType {
