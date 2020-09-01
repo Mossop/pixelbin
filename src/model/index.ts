@@ -1,8 +1,9 @@
 import { AllNull } from "../utils";
+import * as Api from "./api";
 import { Metadata, metadataColumns } from "./models";
+import * as ObjectModel from "./models";
 
-export * as Api from "./api";
-export * as ObjectModel from "./models";
+export { Api, ObjectModel };
 
 export type { Create, Patch, ResponseFor } from "./api";
 export { AlternateFileType } from "./models";
