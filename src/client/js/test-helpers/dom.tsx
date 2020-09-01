@@ -141,10 +141,10 @@ export function typeString(element: Element, str: string): void {
     if (element instanceof HTMLInputElement) {
       let proto = Object.getPrototypeOf(element);
       let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
-    descriptor?.set?.call(element, str);
-    fireEvent.input(element, {
-      data: str,
-    });
+      descriptor?.set?.call(element, str);
+      fireEvent.input(element, {
+        data: str,
+      });
     } else if (element instanceof HTMLTextAreaElement) {
       element.textContent = str;
       fireEvent.input(element, {

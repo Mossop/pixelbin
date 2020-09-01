@@ -3,21 +3,6 @@ import { Overwrite } from "../../../utils";
 import { ReadonlyMapOf } from "../utils/maps";
 import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
 
-type StateForObject<Obj> =
-  Obj extends ObjectModel.Tag
-    ? TagState
-    : Obj extends ObjectModel.Album
-      ? AlbumState
-      : Obj extends ObjectModel.Person
-        ? PersonState
-        : Obj extends ObjectModel.Catalog
-          ? CatalogState
-          : Obj extends ObjectModel.User
-            ? UserState
-            : Obj extends ObjectModel.Media
-              ? MediaState
-              : never;
-
 type HighLevelForState<State> =
   State extends TagState
     ? Tag
@@ -28,32 +13,6 @@ type HighLevelForState<State> =
         : State extends CatalogState
           ? Catalog
           : State extends MediaState
-            ? Media
-            : never;
-
-type StateForHighLevel<HighLevel> =
-  HighLevel extends Tag
-    ? TagState
-    : HighLevel extends Album
-      ? AlbumState
-      : HighLevel extends Person
-        ? PersonState
-        : HighLevel extends Catalog
-          ? CatalogState
-          : HighLevel extends Media
-            ? MediaState
-            : never;
-
-type HighLevelForObject<Obj> =
-  Obj extends ObjectModel.Tag
-    ? Tag
-    : Obj extends ObjectModel.Album
-      ? Album
-      : Obj extends ObjectModel.Person
-        ? Person
-        : Obj extends ObjectModel.Catalog
-          ? Catalog
-          : Obj extends ObjectModel.Media
             ? Media
             : never;
 

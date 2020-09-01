@@ -24,7 +24,8 @@ interface Package {
 
 function listScripts(): string {
   let scripts = packages.map((pkg: Package): string => {
-    return `<script crossorigin src="https://unpkg.com/${pkg.id}@${pkg.version}${pkg.path}"></script>`;
+    return "<script crossorigin " +
+      `src="https://unpkg.com/${pkg.id}@${pkg.version}${pkg.path}"></script>`;
   });
 
   return scripts.join("\n");

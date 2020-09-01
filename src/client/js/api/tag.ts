@@ -12,6 +12,5 @@ export async function findTag(
     tags: path,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return tags.map(tagIntoState);
 }

@@ -10,6 +10,8 @@ const logger = getLogger("worker.channel");
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MakePromise<T> = T extends Promise<any> ? T : Promise<T>;
 export type RemoteInterface<T> = {
+  // See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   [K in keyof T]: T[K] extends (...args: infer A) => infer R ?
     (...args: A) => MakePromise<R> :
     never;

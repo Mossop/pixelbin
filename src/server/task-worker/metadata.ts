@@ -229,11 +229,11 @@ const parsers: MetadataParsers = {
   ],
   make: [
     straight("Make"),
-    forced<string>("ComAndroidManufacturer"),
+    forced<string>("AndroidManufacturer"),
   ],
   model: [
     straight("Model"),
-    forced<string>("ComAndroidModel"),
+    forced<string>("AndroidModel"),
   ],
   lens: [
     straight("Lens"),
@@ -312,6 +312,9 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
         }),
     ),
   };
+
+  // To avoid tests failing just because the exiftool version changed.
+  delete exif.ExifToolVersion;
 
   let fileName = file.name ?? `original.${mimeExtension(mimetype)}`;
 

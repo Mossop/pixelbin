@@ -63,7 +63,6 @@ export function createDraft<T>(item: T): Draft<T> {
   if (typeof item == "object") {
     let draft: T = Object.create(Object.getPrototypeOf(item)) as T;
     for (let [key, value] of Object.entries(item)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       draft[key] = createDraft(value);
     }
     return draft as Draft<T>;

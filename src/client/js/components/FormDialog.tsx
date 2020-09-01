@@ -138,6 +138,8 @@ export default function FormDialog<T = undefined>(
         />;
       }
     },
+    // See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [props, l10n],
   );
 

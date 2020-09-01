@@ -55,7 +55,6 @@ export const listAlbum = ensureAuthenticated(
     data: Api.AlbumListRequest,
   ): Promise<ResponseFor<Api.Media>[]> => {
     let media = await userDb.listMediaInAlbum(data.id, data.recursive);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return media.map(buildResponseMedia);
   },
 );

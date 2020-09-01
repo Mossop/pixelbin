@@ -13,7 +13,6 @@ export async function getMedia(ids: string[]): Promise<MediaState[]> {
   let media = await request(Api.Method.MediaGet, {
     id: ids.join(","),
   });
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return media.map(mediaIntoState);
 }
 
@@ -32,7 +31,6 @@ export async function createMedia(media: MediaCreateData): Promise<MediaState> {
     tags: media.tags ? media.tags.map((tag: Reference<Tag>): string => tag.id) : [],
     people: media.people ? media.people.map((person: Reference<Person>): string => person.id) : [],
   });
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return mediaIntoState(result);
 }
 

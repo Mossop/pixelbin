@@ -18,7 +18,6 @@ import {
 import { filterColumns } from "./utils";
 
 export function fillMetadata<T>(data: T): T & Tables.Metadata {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {
     ...emptyMetadata(),
     ...data,
@@ -81,7 +80,6 @@ export async function editMedia(
         throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Media record.");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return (await userDb.getMedia([id]))[0];
     },
   );

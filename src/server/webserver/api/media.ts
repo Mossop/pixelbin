@@ -19,7 +19,6 @@ export function buildResponseMedia(
   media: Media,
 ): ResponseFor<Api.Media> {
   if (isProcessedMedia(media)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       ...media,
       created: media.created.toISOString(),
@@ -27,7 +26,6 @@ export function buildResponseMedia(
       taken: media.taken?.toISOString() ?? null,
     };
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       ...media,
       created: media.created.toISOString(),
@@ -44,7 +42,6 @@ export const getMedia = ensureAuthenticated(
   ): Promise<ResponseFor<Api.Media>[]> => {
     let ids = data.id.split(",");
     let media = await userDb.getMedia(ids);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return media.map(buildResponseMedia);
   },
 );
@@ -91,7 +88,6 @@ export const createMedia = ensureAuthenticatedTransaction(
 
     ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return buildResponseMedia(media);
   },
 );
@@ -160,7 +156,6 @@ export const relations = ensureAuthenticatedTransaction(
     }
 
     let results = await userDb.getMedia(Array.from(media.values()));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return results.map(buildResponseMedia);
   },
 );

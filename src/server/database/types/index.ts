@@ -66,7 +66,7 @@ export function ref<
   return `${table}.${column ?? "*"}`;
 }
 
-export function isRef<T extends Table>(ref: Obj): ref is Ref<T> {
+export function isRef<T extends Table>(ref: Obj | null): ref is Ref<T> {
   if (!ref) {
     return false;
   }

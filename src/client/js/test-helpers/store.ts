@@ -109,7 +109,6 @@ function *iterPeople(
 }
 
 export function mockUnprocessedMedia(data: Partial<UnprocessedMediaState>): UnprocessedMediaState {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {
     id: randomId(),
     created: moment().utc(),
@@ -124,7 +123,6 @@ export function mockUnprocessedMedia(data: Partial<UnprocessedMediaState>): Unpr
 }
 
 export function mockProcessedMedia(data: Partial<ProcessedMediaState>): ProcessedMediaState {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {
     id: randomId(),
     created: moment().utc(),
@@ -151,7 +149,6 @@ export function mockCatalog(mock: MockCatalog): Draft<CatalogState> {
   let id = mock.id ?? randomId();
   let ref = Catalog.ref(id);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {
     id: randomId(),
 

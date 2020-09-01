@@ -61,9 +61,7 @@ export type Media = MediaState;
 export function mediaRef(media: MediaState): Reference<Media> {
   return {
     id: media.id,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     deref: (): MediaState => media,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     toString: (): string => media.id,
   };
 }
@@ -121,29 +119,24 @@ export class Tag implements Referencable<Tag> {
   ) {}
 
   public toState(): TagState {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       ...this.state,
     };
   }
 
   public get catalog(): Catalog {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.catalog.deref(this.serverState);
   }
 
   public get id(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get name(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 
   public get parent(): Tag | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.parent?.deref(this.serverState);
   }
 
@@ -222,24 +215,20 @@ export class Person implements Referencable<Person> {
   ) {}
 
   public toState(): PersonState {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       ...this.state,
     };
   }
 
   public get catalog(): Catalog {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.catalog.deref(this.serverState);
   }
 
   public get id(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get name(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 
@@ -301,29 +290,24 @@ export class Album implements Referencable<Album> {
   ) {}
 
   public toState(): AlbumState {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       ...this.state,
     };
   }
 
   public get id(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get catalog(): Catalog {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.catalog.deref(this.serverState);
   }
 
   public get name(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 
   public get parent(): Album | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.parent?.deref(this.serverState);
   }
 
@@ -416,19 +400,16 @@ export class Catalog implements Referencable<Catalog> {
   ) {}
 
   public toState(): CatalogState {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       ...this.state,
     };
   }
 
   public get id(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.id;
   }
 
   public get name(): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.state.name;
   }
 

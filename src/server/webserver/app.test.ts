@@ -25,7 +25,6 @@ test("state checks", async (): Promise<void> => {
     expect(endPos).toBeGreaterThan(pos);
     let content = body.substring(pos + scriptTag.length, endPos);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return JSON.parse(content);
   };
 
