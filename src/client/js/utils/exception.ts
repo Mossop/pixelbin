@@ -77,3 +77,11 @@ export class InternalError extends AppError {
 export function exception(code: ErrorCode, args?: Record<string, string>, error?: Error): never {
   throw new InternalError(code, args, error);
 }
+
+export function errorString(l10n: ReactLocalization, error: unknown): string {
+  if (error instanceof AppError) {
+    return error.asString(l10n);
+  }
+
+  return String(error);
+}

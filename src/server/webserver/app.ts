@@ -7,7 +7,7 @@ import mount from "koa-mount";
 import session from "koa-session";
 import serve from "koa-static";
 
-import { Api } from "../../model";
+import { Api, ResponseFor } from "../../model";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import { AppContext, ServicesContext, buildContext } from "./context";
@@ -31,7 +31,7 @@ function listScripts(): string {
   return scripts.join("\n");
 }
 
-function buildAppContent(state: Api.State, paths: Record<string, string>): string {
+function buildAppContent(state: ResponseFor<Api.State>, paths: Record<string, string>): string {
   return `
 <!DOCTYPE html>
 

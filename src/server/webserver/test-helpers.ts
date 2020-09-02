@@ -3,7 +3,8 @@ import path from "path";
 
 import { agent, SuperTest, Test } from "supertest";
 
-import { Api } from "../../model";
+import { Api, ResponseFor } from "../../model";
+import { expect } from "../../test-helpers";
 import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
 import { RemoteInterface } from "../../worker";
 import { DatabaseConnection } from "../database";
@@ -95,7 +96,7 @@ export function fromCatalogs<T extends Api.Person | Api.Tag | Api.Album>(
   return items.filter((item: T): boolean => catalogs.includes(item.catalog));
 }
 
-export function expectUserState(received: Obj, state: Api.User | null): void {
+export function expectUserState(received: Obj, state: ResponseFor<Api.User> | null): void {
   if (!state) {
     expect(received).toEqual({ user: null });
     return;
@@ -111,6 +112,7 @@ export function expectUserState(received: Obj, state: Api.User | null): void {
 
   let mutatedExpected = {
     ...state,
+    created: expect.toEqualDate(state.created),
   };
 
   for (let arr of ["catalogs", "albums", "people", "tags"]) {

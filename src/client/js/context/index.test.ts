@@ -54,6 +54,13 @@ test("Initial server state", async (): Promise<void> => {
   element.id = "initial-state";
   document.body.append(element);
 
+  let user = serverData.user!;
   const { initialServerState } = await import(".");
-  expect(initialServerState()).toEqual(serverData);
+  expect(initialServerState()).toEqual({
+    ...serverData,
+    user: {
+      ...user,
+      created: expect.toEqualDate(user.created),
+    },
+  });
 });

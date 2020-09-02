@@ -44,6 +44,7 @@ export const UserDecoder = JsonDecoder.object<Api.User>(
   {
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
+    created: DateDecoder,
     hadCatalog: JsonDecoder.boolean,
     verified: JsonDecoder.boolean,
     catalogs: JsonDecoder.array(CatalogDecoder, "Catalog[]"),

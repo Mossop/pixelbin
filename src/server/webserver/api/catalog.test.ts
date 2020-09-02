@@ -77,6 +77,7 @@ test("Create catalog", async (): Promise<void> => {
   expectUserState(response.body, {
     "email": "someone1@nowhere.com",
     "fullname": "Someone 1",
+    "created": "2020-01-01T00:00:00.000Z",
     "hadCatalog": false,
     "verified": true,
     "catalogs": [
@@ -170,6 +171,7 @@ test("Create album", async (): Promise<void> => {
   expectUserState(response.body, {
     "email": "someone1@nowhere.com",
     "fullname": "Someone 1",
+    "created": "2020-01-01T00:00:00.000Z",
     "hadCatalog": false,
     "verified": true,
     "catalogs": testData[Table.Catalog],
@@ -293,6 +295,7 @@ test("Edit album", async (): Promise<void> => {
   expectUserState(response.body, {
     "email": "someone2@nowhere.com",
     "fullname": "Someone 2",
+    "created": "2010-01-01T00:00:00Z",
     "hadCatalog": false,
     "verified": true,
     "catalogs": catalogs("c1", testData[Table.Catalog]),
@@ -427,6 +430,7 @@ test("Create Tag", async (): Promise<void> => {
   expectUserState(response.body, {
     "email": "someone1@nowhere.com",
     "fullname": "Someone 1",
+    "created": "2020-01-01T00:00:00Z",
     "hadCatalog": false,
     "verified": true,
     "catalogs": testData[Table.Catalog],
@@ -550,6 +554,7 @@ test("Edit tag", async (): Promise<void> => {
   expectUserState(response.body, {
     "email": "someone2@nowhere.com",
     "fullname": "Someone 2",
+    "created": "2010-01-01T00:00:00Z",
     "hadCatalog": false,
     "verified": true,
     "catalogs": catalogs("c1", testData[Table.Catalog]),
@@ -668,6 +673,7 @@ test("Create Person", async (): Promise<void> => {
   expectUserState(response.body, {
     "email": "someone1@nowhere.com",
     "fullname": "Someone 1",
+    "created": "2020-01-01T00:00:00Z",
     "hadCatalog": false,
     "verified": true,
     "catalogs": testData[Table.Catalog],
@@ -789,6 +795,7 @@ test("Edit person", async (): Promise<void> => {
   expectUserState(response.body, {
     "email": "someone2@nowhere.com",
     "fullname": "Someone 2",
+    "created": "2010-01-01T00:00:00Z",
     "hadCatalog": false,
     "verified": true,
     "catalogs": catalogs("c1", testData[Table.Catalog]),

@@ -10,6 +10,8 @@ export interface IdType<K = string> {
 export interface User {
   email: string;
   fullname: string;
+  created: Moment;
+  lastLogin: Moment | null;
   hadCatalog: boolean;
   verified: boolean;
 }

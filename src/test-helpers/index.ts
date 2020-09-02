@@ -2,9 +2,12 @@ import assert from "assert";
 
 import { expect as jestExpect } from "@jest/globals";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
-import moment, { Moment, isMoment } from "moment-timezone";
+import type { Moment } from "moment-timezone";
 
 import { defer } from "../utils";
+
+const moment = jest.requireActual<typeof import("moment-timezone")>("moment-timezone");
+const { isMoment } = moment;
 
 function expectMessage(
   context: jest.MatcherContext,

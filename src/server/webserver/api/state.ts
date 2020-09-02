@@ -1,7 +1,7 @@
-import { Api } from "../../../model";
+import { Api, ResponseFor } from "../../../model";
 import { AppContext } from "../context";
 
-export async function buildUser(ctx: AppContext): Promise<Api.User | null> {
+export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> | null> {
   if (!ctx.user) {
     return null;
   }
@@ -17,29 +17,35 @@ export async function buildUser(ctx: AppContext): Promise<Api.User | null> {
   };
 }
 
-export async function buildState(ctx: AppContext): Promise<Api.State> {
+export async function buildState(ctx: AppContext): Promise<ResponseFor<Api.State>> {
   return {
     user: await buildUser(ctx),
   };
 }
 
-export async function getState(ctx: AppContext): Promise<Api.State> {
+export async function getState(ctx: AppContext): Promise<ResponseFor<Api.State>> {
   return buildState(ctx);
 }
 
-export async function login(ctx: AppContext, data: Api.LoginRequest): Promise<Api.State> {
+export async function login(
+  ctx: AppContext,
+  data: Api.LoginRequest,
+): Promise<ResponseFor<Api.State>> {
   await ctx.login(data.email, data.password);
 
   return buildState(ctx);
 }
 
-export async function logout(ctx: AppContext): Promise<Api.State> {
+export async function logout(ctx: AppContext): Promise<ResponseFor<Api.State>> {
   await ctx.logout();
 
   return buildState(ctx);
 }
 
-export async function signup(ctx: AppContext, data: Api.SignupRequest): Promise<Api.State> {
+export async function signup(
+  ctx: AppContext,
+  data: Api.SignupRequest,
+): Promise<ResponseFor<Api.State>> {
   await ctx.dbConnection.createUser(data);
   await ctx.login(data.email, data.password);
 

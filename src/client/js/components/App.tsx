@@ -11,7 +11,7 @@ interface ErrorHandlerProps {
 }
 
 interface ErrorHandlerState {
-  error?: string;
+  error?: Error;
 }
 
 class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
@@ -21,7 +21,7 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
   }
 
   public static getDerivedStateFromError(error: Error): Partial<ErrorHandlerState> {
-    return { error: String(error) };
+    return { error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {

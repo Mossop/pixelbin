@@ -37,7 +37,8 @@ export type CatalogState = Overwrite<Readonly<Omit<ObjectModel.Catalog, "storage
   readonly albums: ReadonlyMapOf<AlbumState>;
   readonly people: ReadonlyMapOf<PersonState>;
 }>;
-export type UserState = Overwrite<Readonly<ObjectModel.User>, {
+export type UserState = Overwrite<Readonly<Omit<ObjectModel.User, "created" | "lastLogin">>, {
+  readonly created: string;
   readonly catalogs: ReadonlyMapOf<CatalogState>;
 }>;
 export interface ServerState {
@@ -142,6 +143,7 @@ export function userIntoState(user: Api.User): UserState {
 
   return {
     ...rest,
+    created: rest.created.toISOString(),
     catalogs: new Map(
       catalogs.map((catalog: Api.Catalog): [string, CatalogState] => {
         return [

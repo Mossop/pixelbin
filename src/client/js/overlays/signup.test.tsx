@@ -1,4 +1,5 @@
 import { act, waitFor } from "@testing-library/react";
+import moment from "moment-timezone";
 import React from "react";
 
 import { Api } from "../../../model";
@@ -79,6 +80,7 @@ test("signup success", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Bob Parr",
+      created: moment.tz("2019-05-06T12:34:56Z", "UTC"),
       hadCatalog: false,
       verified: true,
       catalogs: [],
@@ -96,6 +98,7 @@ test("signup success", async (): Promise<void> => {
       user: {
         email: "foo@bar.com",
         fullname: "Bob Parr",
+        created: expect.toEqualDate("2019-05-06T12:34:56Z"),
         hadCatalog: false,
         verified: true,
         catalogs: mapOf({}),

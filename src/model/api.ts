@@ -48,7 +48,7 @@ export interface StorageCreateRequest {
 
 export type CatalogCreateRequest = Create<Catalog> & StorageCreateRequest;
 
-export type User = ObjectModel.User & {
+export type User = Omit<ObjectModel.User, "lastLogin"> & {
   catalogs: Catalog[],
   people: Person[],
   tags: Tag[],
@@ -94,7 +94,10 @@ export interface MediaThumbnailRequest {
   size: number;
 }
 
-export type SignupRequest = Omit<ObjectModel.User, "hadCatalog" | "verified"> & {
+export type SignupRequest = Omit<
+  ObjectModel.User,
+  "created" | "lastLogin" | "hadCatalog" | "verified"
+> & {
   password: string;
 };
 

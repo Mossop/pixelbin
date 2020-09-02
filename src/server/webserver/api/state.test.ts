@@ -1,7 +1,23 @@
+import moment from "moment-timezone";
+
 import { Api } from "../../../model";
+import { expect, mockedFunction } from "../../../test-helpers";
 import { insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { buildTestApp } from "../test-helpers";
+
+jest.mock("moment-timezone", (): unknown => {
+  const actualMoment = jest.requireActual("moment-timezone");
+  let moment = jest.fn(actualMoment);
+  // @ts-ignore: Mocking.
+  moment.tz = jest.fn(actualMoment.tz);
+  // @ts-ignore: Mocking.
+  moment.isMoment = actualMoment.isMoment;
+  return moment;
+});
+
+const mockedMoment = mockedFunction(moment);
+const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 const agent = buildTestApp();
 
@@ -45,6 +61,7 @@ test("login and logout", async (): Promise<void> => {
     user: {
       "email": "someone1@nowhere.com",
       "fullname": "Someone 1",
+      "created": expect.toEqualDate("2020-01-01T00:00:00Z"),
       "hadCatalog": false,
       "verified": true,
       "catalogs": testData[Table.Catalog],
@@ -63,6 +80,7 @@ test("login and logout", async (): Promise<void> => {
     user: {
       "email": "someone1@nowhere.com",
       "fullname": "Someone 1",
+      "created": expect.toEqualDate("2020-01-01T00:00:00Z"),
       "hadCatalog": false,
       "verified": true,
       "catalogs": testData[Table.Catalog],
@@ -138,6 +156,9 @@ test("signup", async (): Promise<void> => {
     user: null,
   });
 
+  let created = realMoment.tz("2020-04-05T11:56:01", "UTC");
+  mockedMoment.mockReturnValueOnce(created);
+
   response = await request
     .put("/api/signup")
     .send({
@@ -152,6 +173,7 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
+      created: expect.toEqualDate(created),
       hadCatalog: false,
       verified: true,
       catalogs: [],
@@ -170,6 +192,7 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
+      created: expect.toEqualDate(created),
       hadCatalog: false,
       verified: true,
       catalogs: [],
@@ -210,6 +233,7 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
+      created: expect.toEqualDate(created),
       hadCatalog: false,
       verified: true,
       catalogs: [],

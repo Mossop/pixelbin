@@ -1,4 +1,5 @@
 import { act, waitFor } from "@testing-library/react";
+import moment from "moment-timezone";
 import React from "react";
 
 import { Api } from "../../../model";
@@ -64,12 +65,14 @@ test("login success", async (): Promise<void> => {
   }]);
 
   let dispatchCall = awaitCall(store.dispatch);
+  let created = moment.tz("2016-05-23T14:56:32", "UTC");
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await act((): Promise<void> => resolve({
     user: {
       email: "foo@bar.com",
       fullname: "Someone",
+      created,
       hadCatalog: true,
       verified: true,
       catalogs: [],
@@ -87,6 +90,7 @@ test("login success", async (): Promise<void> => {
       user: {
         email: "foo@bar.com",
         fullname: "Someone",
+        created: expect.toEqualDate(created),
         hadCatalog: true,
         verified: true,
         catalogs: mapOf({}),

@@ -1,3 +1,4 @@
+import { expect } from "../../test-helpers";
 import { insertTestData, testData } from "../database/test-helpers";
 import { Table } from "../database/types";
 import { buildTestApp } from "./test-helpers";
@@ -55,6 +56,7 @@ test("state checks", async (): Promise<void> => {
     user: {
       "email": "someone1@nowhere.com",
       "fullname": "Someone 1",
+      "created": expect.toEqualDate("2020-01-01T00:00:00.000Z"),
       "hadCatalog": false,
       "verified": true,
       "catalogs": testData[Table.Catalog],

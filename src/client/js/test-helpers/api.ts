@@ -174,8 +174,8 @@ export function catalogIntoResponse(catalog: CatalogState): Api.Catalog {
   return result;
 }
 
-export function serverDataIntoResponse(serverState: ServerState): Api.State {
-  let user: Api.User | null = null;
+export function serverDataIntoResponse(serverState: ServerState): ResponseFor<Api.State> {
+  let user: ResponseFor<Api.User> | null = null;
   if (serverState.user) {
     let albums: Api.Album[] = [];
     let tags: Api.Tag[] = [];

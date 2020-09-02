@@ -9,7 +9,7 @@ import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useCallback, useState } from "react";
 
 import { MediaTarget } from "../api/media";
-import { AppError } from "../utils/exception";
+import { AppError, errorString } from "../utils/exception";
 import { VirtualItem } from "../utils/virtual";
 import MediaTargetField from "./MediaTargetField";
 
@@ -66,7 +66,7 @@ export default function FormDialog<T = undefined>(
       id={`${props.id ?? "dialog"}-error`}
       severity="error"
     >
-      {props.error.asString(l10n)}
+      {errorString(l10n, props.error)}
     </Alert> :
     null;
 

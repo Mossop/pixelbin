@@ -69,6 +69,7 @@ test("Logging in with no catalogs", (): void => {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
+      created: "2020-09-02T07:56:00Z",
       hadCatalog: true,
       verified: true,
       catalogs: new Map(),
@@ -97,6 +98,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
+      created: "2020-09-02T07:56:00Z",
       hadCatalog: false,
       verified: true,
       catalogs: new Map(),

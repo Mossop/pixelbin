@@ -1,10 +1,10 @@
-import { ObjectModel, Api } from "../../model";
+import { ObjectModel, Api, ResponseFor } from "../../model";
 import { UserScopedConnection } from "../database";
 import { AppContext, DescriptorsFor } from "./context";
 import { ApiError } from "./error";
 
 export interface AuthContext {
-  readonly user: ObjectModel.User | null;
+  readonly user: ResponseFor<Omit<ObjectModel.User, "lastLogin">> | null;
   readonly isLoggedIn: () => boolean;
   readonly login: (email: string, password: string) => Promise<void>;
   readonly logout: () => Promise<void>;
@@ -13,13 +13,13 @@ export interface AuthContext {
 export default function(): DescriptorsFor<AuthContext> {
   return {
     user: {
-      get(this: AppContext): ObjectModel.User | null {
+      get(this: AppContext): ResponseFor<ObjectModel.User> | null {
         if (!this.session) {
           throw new Error("Session not correctly implemented.");
         }
 
         if (this.session.user) {
-          return this.session.user as ObjectModel.User;
+          return this.session.user as ResponseFor<ObjectModel.User>;
         }
         return null;
       },
@@ -38,9 +38,12 @@ export default function(): DescriptorsFor<AuthContext> {
             throw new Error("Session not correctly implemented.");
           }
 
-          let user = await this.dbConnection.getUser(email, password);
+          let user = await this.dbConnection.loginUser(email, password);
           if (user) {
-            this.session.user = user;
+            this.session.user = {
+              ...user,
+              created: user.created.toISOString(),
+            };
             this.session.save();
           } else {
             await this.logout();
