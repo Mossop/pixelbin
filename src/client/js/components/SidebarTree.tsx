@@ -64,6 +64,7 @@ export default function SidebarTree(
 ): ReactResult {
   const actions = useActions();
   const { l10n } = useLocalization();
+  const classes = useStyles();
 
   const onCreateCatalog = useCallback(() => {
     actions.showCatalogCreateOverlay();
@@ -76,7 +77,7 @@ export default function SidebarTree(
       })
     }
     <ListItem dense={true} button={true} onClick={onCreateCatalog}>
-      <ListItemIcon>
+      <ListItemIcon className={classes.icon}>
         <AddIcon/>
       </ListItemIcon>
       <ListItemText>
