@@ -3,6 +3,7 @@ import React, { ErrorInfo, PureComponent, Suspense } from "react";
 import Overlay from "../overlays";
 import Page from "../pages";
 import ErrorPage from "../pages/error";
+import Loading from "./Loading";
 import PageComponent from "./Page";
 
 interface ErrorHandlerProps {
@@ -38,7 +39,13 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
 
 export default function App(): React.ReactElement | null {
   return <ErrorHandler>
-    <Suspense fallback={<PageComponent/>}>
+    <Suspense
+      fallback={
+        <PageComponent>
+          <Loading flexGrow={1}/>
+        </PageComponent>
+      }
+    >
       <Page/>
     </Suspense>
     <Suspense fallback={null}>
