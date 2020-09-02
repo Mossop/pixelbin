@@ -2,6 +2,7 @@ import React, { lazy } from "react";
 
 import { useSelector } from "../store";
 import { StoreState } from "../store/types";
+import { ErrorCode, InternalError } from "../utils/exception";
 import { ReactResult } from "../utils/types";
 import ErrorPage from "./error";
 import Index from "./indexpage";
@@ -41,5 +42,5 @@ export default function PageDisplay(): ReactResult {
     }
   }
 
-  return <ErrorPage error="Internal error."/>;
+  return <ErrorPage error={new InternalError(ErrorCode.InvalidState)}/>;
 }

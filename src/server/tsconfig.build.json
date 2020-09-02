@@ -9,6 +9,7 @@
   }],
   "exclude": [
     "**/*.test.ts",
-    "**/__mocks__/**"
+    "**/__mocks__/**",
+    "**/test-helpers*"
   ]
 }
