@@ -55,7 +55,6 @@ test("Login", async (): Promise<void> => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2019-02-03T06:08:12Z",
-      hadCatalog: true,
       verified: true,
       catalogs: [{
         id: "cat1",
@@ -92,7 +91,6 @@ test("Login", async (): Promise<void> => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: expect.toEqualDate("2019-02-03T06:08:12Z"),
-      hadCatalog: true,
       verified: true,
       catalogs: mapOf({
         cat1: {
@@ -173,7 +171,6 @@ test("Signup", async (): Promise<void> => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2015-12-25T06:00:00Z",
-      hadCatalog: false,
       verified: true,
       catalogs: [],
       people: [],
@@ -193,7 +190,6 @@ test("Signup", async (): Promise<void> => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: expect.toEqualDate("2015-12-25T06:00:00Z"),
-      hadCatalog: false,
       verified: true,
       catalogs: mapOf({}),
     },

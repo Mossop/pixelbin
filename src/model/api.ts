@@ -96,7 +96,7 @@ export interface MediaThumbnailRequest {
 
 export type SignupRequest = Omit<
   ObjectModel.User,
-  "created" | "lastLogin" | "hadCatalog" | "verified"
+  "created" | "lastLogin" | "verified"
 > & {
   password: string;
 };

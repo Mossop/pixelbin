@@ -60,35 +60,6 @@ test("Logging in with multiple catalogs", (): void => {
   expect(newState.ui).toEqual(expectedUI);
 });
 
-test("Logging in with no catalogs", (): void => {
-  let state = mockStoreState({
-    serverState: { user: null },
-  });
-
-  let newServerState: ServerState = {
-    user: {
-      email: "dtownsend@oxymoronical.com",
-      fullname: "Dave Townsend",
-      created: "2020-09-02T07:56:00Z",
-      hadCatalog: true,
-      verified: true,
-      catalogs: new Map(),
-    },
-  };
-
-  let action = actions.completeLogin(newServerState);
-  let newState = reducer(state, action);
-
-  let expectedUI = {
-    page: {
-      type: PageType.User,
-    },
-  };
-
-  expect(newState.serverState).toEqual(newServerState);
-  expect(newState.ui).toEqual(expectedUI);
-});
-
 test("Logging in with no catalogs shows catalog create", (): void => {
   let state = mockStoreState({
     serverState: { user: null },
@@ -99,7 +70,6 @@ test("Logging in with no catalogs shows catalog create", (): void => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2020-09-02T07:56:00Z",
-      hadCatalog: false,
       verified: true,
       catalogs: new Map(),
     },

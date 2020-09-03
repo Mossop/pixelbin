@@ -125,7 +125,6 @@ export const testData = {
     fullname: "Someone 1",
     created: moment("2020-01-01T00:00:00Z"),
     lastLogin: null,
-    hadCatalog: false,
     verified: true,
   }, {
     email: "someone2@nowhere.com",
@@ -133,7 +132,6 @@ export const testData = {
     fullname: "Someone 2",
     created: moment("2010-01-01T00:00:00Z"),
     lastLogin: moment("2020-02-02T00:00:00Z"),
-    hadCatalog: false,
     verified: true,
   }, {
     email: "someone3@nowhere.com",
@@ -141,7 +139,6 @@ export const testData = {
     fullname: "Someone 3",
     created: moment("2015-01-01T00:00:00Z"),
     lastLogin: moment("2020-03-03T00:00:00Z"),
-    hadCatalog: false,
     verified: true,
   }],
 

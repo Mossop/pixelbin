@@ -48,7 +48,6 @@ test("Test user retrieval", async (): Promise<void> => {
     fullname: "Someone 1",
     created: expect.toEqualDate("2020-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate(loginMoment),
-    hadCatalog: false,
     verified: true,
   });
 
@@ -71,7 +70,6 @@ test("Test user retrieval", async (): Promise<void> => {
     fullname: "Someone 2",
     created: expect.toEqualDate("2010-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate(loginMoment),
-    hadCatalog: false,
     verified: true,
   });
 
@@ -95,7 +93,6 @@ test("User creation", async (): Promise<void> => {
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
     created: expect.toEqualDate(createdMoment),
-    hadCatalog: false,
     verified: true,
   });
 
@@ -108,7 +105,6 @@ test("User creation", async (): Promise<void> => {
     fullname: "Dave Townsend",
     created: expect.toEqualDate(createdMoment),
     lastLogin: null,
-    hadCatalog: false,
     verified: true,
   });
 
@@ -121,7 +117,6 @@ test("User creation", async (): Promise<void> => {
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
     created: expect.toEqualDate(createdMoment),
-    hadCatalog: false,
     verified: true,
   });
 
@@ -134,7 +129,6 @@ test("User creation", async (): Promise<void> => {
     fullname: "Dave Townsend",
     created: expect.toEqualDate(createdMoment),
     lastLogin: expect.toEqualDate(loginMoment),
-    hadCatalog: false,
     verified: true,
   });
 });
@@ -148,21 +142,18 @@ test("List users", async (): Promise<void> => {
     fullname: "Someone 1",
     created: expect.toEqualDate("2020-01-01T00:00:00Z"),
     lastLogin: null,
-    hadCatalog: false,
     verified: true,
   }, {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
     created: expect.toEqualDate("2010-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate("2020-02-02T00:00:00Z"),
-    hadCatalog: false,
     verified: true,
   }, {
     email: "someone3@nowhere.com",
     fullname: "Someone 3",
     created: expect.toEqualDate("2015-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate("2020-03-03T00:00:00Z"),
-    hadCatalog: false,
     verified: true,
   }]);
 });

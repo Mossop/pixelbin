@@ -170,7 +170,6 @@ export function mockServerState(catalogs?: MockCatalog[]): Draft<ServerState> {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2020-04-05T12:34:45Z",
-      hadCatalog: true,
       verified: true,
       catalogs: intoMap(catalogs.map(mockCatalog)),
     },

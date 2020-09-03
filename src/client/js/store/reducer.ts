@@ -167,7 +167,7 @@ const authReducers = {
             type: PageType.User,
           },
         };
-        if (!serverState.user.hadCatalog) {
+        if (!serverState.user.catalogs.size) {
           state.ui.overlay = {
             type: OverlayType.CreateCatalog,
           };

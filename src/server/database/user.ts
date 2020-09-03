@@ -31,13 +31,12 @@ export async function loginUser(
 
 export async function createUser(
   this: DatabaseConnection,
-  user: Omit<Tables.User, "created" | "lastLogin" | "hadCatalog" | "verified">,
+  user: Omit<Tables.User, "created" | "lastLogin" | "verified">,
 ): Promise<UserWithoutPassword> {
   let results = await insert(this.knex, Table.User, {
     ...user,
     created: moment(),
     lastLogin: null,
-    hadCatalog: false,
     verified: true,
   }).returning("*");
 

@@ -12,7 +12,6 @@ export interface User {
   fullname: string;
   created: Moment;
   lastLogin: Moment | null;
-  hadCatalog: boolean;
   verified: boolean;
 }
 

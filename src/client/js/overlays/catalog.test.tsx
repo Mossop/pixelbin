@@ -32,8 +32,6 @@ test("create catalog", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
 
-  user.hadCatalog = false;
-
   let { dialogContainer } = render(<CatalogOverlay user={user}/>, store);
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");

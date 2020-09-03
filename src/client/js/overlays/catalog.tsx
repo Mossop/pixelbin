@@ -66,7 +66,7 @@ export default function CatalogOverlay(props: CatalogOverlapProps): ReactResult 
     setState={setState}
     error={error}
     disabled={disabled}
-    titleId={props.user.hadCatalog ? "catalog-create-title" : "catalog-create-title-first"}
+    titleId={props.user.catalogs.size ? "catalog-create-title" : "catalog-create-title-first"}
     submitId="catalog-create-submit"
     onSubmit={onSubmit}
     onClose={actions.closeOverlay}

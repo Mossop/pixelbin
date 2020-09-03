@@ -80,7 +80,7 @@ test("user page not logged in", (): void => {
 
   let { container } = render(<Page/>, store);
   let div = expectChild(container, "#error");
-  expect(div.getAttribute("data-error")).toBe("Internal error.");
+  expect(div.getAttribute("data-error")).toMatch("invalid-state");
 });
 
 test("album page not logged in", (): void => {
@@ -100,7 +100,7 @@ test("album page not logged in", (): void => {
 
   let { container } = render(<Page/>, store);
   let div = expectChild(container, "#error");
-  expect(div.getAttribute("data-error")).toBe("Internal error.");
+  expect(div.getAttribute("data-error")).toMatch("invalid-state");
 });
 
 test("catalog page not logged in", (): void => {
@@ -120,7 +120,7 @@ test("catalog page not logged in", (): void => {
 
   let { container } = render(<Page/>, store);
   let div = expectChild(container, "#error");
-  expect(div.getAttribute("data-error")).toBe("Internal error.");
+  expect(div.getAttribute("data-error")).toMatch("invalid-state");
 });
 
 test("user page logged in", async (): Promise<void> => {
