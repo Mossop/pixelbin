@@ -1,6 +1,6 @@
 import { Api, ResponseFor } from "../../../model";
 import { Obj } from "../../../utils";
-import { Tag, Reference, Album, Person } from "../api/highlevel";
+import { Tag, Reference, Album } from "../api/highlevel";
 import {
   CatalogState,
   AlbumState,
@@ -9,6 +9,7 @@ import {
   ServerState,
   MediaState,
   isProcessed,
+  MediaPersonState,
 } from "../api/types";
 
 type Body = Blob | Obj | unknown[];
@@ -131,15 +132,16 @@ export function mediaIntoResponse(
     tags: media.tags.map(
       (ref: Reference<Tag>): Api.Tag => tagIntoResponse(ref.deref(serverState).toState()),
     ),
-    people: media.people.map(
-      (ref: Reference<Person>): Api.Person => personIntoResponse(ref.deref(serverState).toState()),
-    ),
+    people: media.people.map((state: MediaPersonState): Api.MediaPerson => {
+      return personIntoResponse(state.person.deref(serverState).toState());
+    }),
   };
 }
 
-export function personIntoResponse(person: PersonState): Api.Person {
-  let result: Api.Person = {
+export function personIntoResponse(person: PersonState): Api.MediaPerson {
+  let result: Api.MediaPerson = {
     ...person,
+    location: null,
     catalog: person.catalog.id,
   };
 

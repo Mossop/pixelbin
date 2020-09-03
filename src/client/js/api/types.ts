@@ -21,7 +21,7 @@ export type Patch<T> = Overwrite<Partial<Omit<T, "catalog">>, {
   id: Reference<HighLevelForState<T>>;
 }>;
 
-interface MediaPersonState {
+export interface MediaPersonState {
   person: Reference<Person>;
   location: ObjectModel.Location | null;
 }
