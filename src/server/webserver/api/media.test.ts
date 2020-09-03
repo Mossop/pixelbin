@@ -5,17 +5,17 @@ import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
 import { AlternateFileType, Api } from "../../../model";
-import { expect, mockedFunction, deferCall } from "../../../test-helpers";
+import { expect, mockedFunction, deferCall, mockMoment, realMoment } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
 import { OriginalInfo } from "../../database/unsafe";
 import { StorageService } from "../../storage";
 import { buildTestApp } from "../test-helpers";
 
-/* eslint-disable */
 jest.mock("../../storage");
 jest.mock("moment-timezone", (): unknown => {
-  const actualMoment = jest.requireActual("moment-timezone");
+  let actualMoment = jest.requireActual("moment-timezone");
+  // @ts-ignore: Mocking.
   let moment = jest.fn(actualMoment);
   // @ts-ignore: Mocking.
   moment.tz = jest.fn(actualMoment.tz);
@@ -23,7 +23,6 @@ jest.mock("moment-timezone", (): unknown => {
   moment.isMoment = actualMoment.isMoment;
   return moment;
 });
-/* eslint-enable */
 
 let parent = {
   handleUploadedFile: jest.fn<Promise<void>, [string]>((): Promise<void> => Promise.resolve()),
@@ -31,9 +30,6 @@ let parent = {
 const agent = buildTestApp(parent);
 
 beforeEach(insertTestData);
-
-const mockedMoment = mockedFunction(moment);
-const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 test("Media upload", async (): Promise<void> => {
   const request = agent();
@@ -75,7 +71,7 @@ test("Media upload", async (): Promise<void> => {
     .expect(200);
 
   let createdMoment: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => createdMoment);
+  mockMoment(createdMoment);
 
   let copyCall = deferCall(copyUploadedFileMock);
 
@@ -314,11 +310,11 @@ test("Get media", async (): Promise<void> => {
   let user1Db = db.forUser("someone1@nowhere.com");
 
   let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => createdMoment1);
+  mockMoment(createdMoment1);
   let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
 
   let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => createdMoment2);
+  mockMoment(createdMoment2);
   let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
 
   await request
@@ -435,11 +431,11 @@ test("Media relations", async (): Promise<void> => {
   let user1Db = db.forUser("someone1@nowhere.com");
 
   let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => createdMoment1);
+  mockMoment(createdMoment1);
   let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
 
   let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => createdMoment2);
+  mockMoment(createdMoment2);
   let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
 
   await request

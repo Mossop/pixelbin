@@ -2,12 +2,13 @@ import assert from "assert";
 
 import { expect as jestExpect } from "@jest/globals";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
+import moment from "moment-timezone";
 import type { Moment } from "moment-timezone";
 
 import { defer } from "../utils";
 
-const moment = jest.requireActual<typeof import("moment-timezone")>("moment-timezone");
-const { isMoment } = moment;
+export const realMoment = jest.requireActual<typeof import("moment-timezone")>("moment-timezone");
+const { isMoment } = realMoment;
 
 function expectMessage(
   context: jest.MatcherContext,
@@ -51,8 +52,8 @@ const matchers = {
     received: any,
     expected: Moment | string,
   ): jest.CustomMatcherResult {
-    const receivedMoment = isMoment(received) ? received.utc() : moment.tz(received, "UTC");
-    const expectedMoment = isMoment(expected) ? expected.utc() : moment.tz(expected, "UTC");
+    const receivedMoment = isMoment(received) ? received.utc() : realMoment.tz(received, "UTC");
+    const expectedMoment = isMoment(expected) ? expected.utc() : realMoment.tz(expected, "UTC");
 
     const receivedAsString = receivedMoment.format("L");
     const expectedAsString = expectedMoment.format("L");
@@ -247,4 +248,20 @@ export function mock<
   Fn extends (...args: any[]) => any
 >(implementation?: Fn): Mocked<Fn> {
   return jest.fn<ReturnType<Fn>, Parameters<Fn>>(implementation);
+}
+
+export function mockMoment(result: Moment): void {
+  let mockedMoment = mockedFunction(moment);
+
+  let currentImplementation = mockedMoment.getMockImplementation();
+  mockedMoment.mockImplementation((...args: unknown[]): Moment => {
+    if (args.length == 0) {
+      // @ts-ignore: Seems like this must be correct.
+      mockedMoment.mockImplementation(currentImplementation);
+      return result;
+    }
+
+    // @ts-ignore: Can't be bothered to type this.
+    return realMoment(...args);
+  });
 }

@@ -1,11 +1,10 @@
-import moment from "moment-timezone";
-
-import { mockedFunction, expect } from "../../test-helpers";
+import { expect, realMoment, mockMoment } from "../../test-helpers";
 import { buildTestDB, insertTestData, connection, testData } from "./test-helpers";
 import { Table, Tables } from "./types";
 
 jest.mock("moment-timezone", (): unknown => {
-  const actualMoment = jest.requireActual("moment-timezone");
+  let actualMoment = jest.requireActual("moment-timezone");
+  // @ts-ignore: Mocking.
   let moment = jest.fn(actualMoment);
   // @ts-ignore: Mocking.
   moment.tz = jest.fn(actualMoment.tz);
@@ -13,9 +12,6 @@ jest.mock("moment-timezone", (): unknown => {
   moment.isMoment = actualMoment.isMoment;
   return moment;
 });
-
-const mockedMoment = mockedFunction(moment);
-const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 buildTestDB();
 
@@ -30,7 +26,7 @@ test("Test user retrieval", async (): Promise<void> => {
   expect(user).toBeUndefined();
 
   let loginMoment = realMoment.tz("2020-09-02T13:18:00", "UTC");
-  mockedMoment.mockReturnValueOnce(loginMoment);
+  mockMoment(loginMoment);
 
   user = await dbConnection.loginUser("someone1@nowhere.com", "password1");
   let { password, lastLogin, ...expected } = testData[Table.User][0];
@@ -52,7 +48,7 @@ test("Test user retrieval", async (): Promise<void> => {
   });
 
   loginMoment = realMoment.tz("2020-08-04T12:17:00", "UTC");
-  mockedMoment.mockReturnValueOnce(loginMoment);
+  mockMoment(loginMoment);
 
   user = await dbConnection.loginUser("someone2@nowhere.com", "password2");
   let { password: password2, lastLogin: lastLogin2, ...expected2 } = testData[Table.User][1];
@@ -81,7 +77,7 @@ test("User creation", async (): Promise<void> => {
   let dbConnection = await connection;
 
   let createdMoment = realMoment.tz("2015-02-03T05:56:45", "UTC");
-  mockedMoment.mockImplementationOnce(() => createdMoment);
+  mockMoment(createdMoment);
 
   let user = await dbConnection.createUser({
     email: "newuser@foo.bar.com",
@@ -109,7 +105,7 @@ test("User creation", async (): Promise<void> => {
   });
 
   let loginMoment = realMoment.tz("2020-03-01T13:18:00", "UTC");
-  mockedMoment.mockReturnValueOnce(loginMoment);
+  mockMoment(loginMoment);
 
   let found = await dbConnection.loginUser("newuser@foo.bar.com", "foobar57");
 

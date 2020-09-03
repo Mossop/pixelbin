@@ -1,9 +1,9 @@
-import moment from "moment-timezone";
-
 import { defer } from "../../utils";
 import { DatabaseConfig, DatabaseConnection } from "./connection";
 import { insert } from "./queries";
 import { Table, TableRecord } from "./types";
+
+const moment = jest.requireActual<typeof import("moment-timezone")>("moment-timezone");
 
 const deferredConnection = defer<DatabaseConnection>();
 export const connection = deferredConnection.promise;
@@ -121,21 +121,24 @@ export async function insertData(data: Seed): Promise<void> {
 export const testData = {
   [Table.User]: [{
     email: "someone1@nowhere.com",
-    password: "password1",
+    // "password1"
+    password: "$2b$12$uLcSaifMLbrwy7h9veCwhOs/dMgv3YYyRMG6YV3KCTtWq/WngwJJ6",
     fullname: "Someone 1",
     created: moment("2020-01-01T00:00:00Z"),
     lastLogin: null,
     verified: true,
   }, {
     email: "someone2@nowhere.com",
-    password: "password2",
+    // "password2"
+    password: "$2b$12$WGs2SEuVQK5KQh2vlfDfieXSQjTumqWf5.ujHvWPAB2jPeTdwc1a6",
     fullname: "Someone 2",
     created: moment("2010-01-01T00:00:00Z"),
     lastLogin: moment("2020-02-02T00:00:00Z"),
     verified: true,
   }, {
     email: "someone3@nowhere.com",
-    password: "password3",
+    // "password3"
+    password: "$2b$12$OYhQiawJX1nQCTFMF5Yfn.SESdzMbffx0TkkOJIkZTw5wCKU7gcSy",
     fullname: "Someone 3",
     created: moment("2015-01-01T00:00:00Z"),
     lastLogin: moment("2020-03-03T00:00:00Z"),

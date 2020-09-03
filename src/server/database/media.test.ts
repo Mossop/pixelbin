@@ -1,7 +1,7 @@
 import moment, { Moment } from "moment-timezone";
 
 import { AlternateFileType } from "../../model";
-import { expect, mockedFunction } from "../../test-helpers";
+import { expect, realMoment, mockMoment } from "../../test-helpers";
 import { DatabaseConnection } from "./connection";
 import { fillMetadata } from "./media";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
@@ -9,7 +9,8 @@ import { Tables } from "./types";
 import { OriginalInfo } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
-  const actualMoment = jest.requireActual("moment-timezone");
+  let actualMoment = jest.requireActual("moment-timezone");
+  // @ts-ignore: Mocking.
   let moment = jest.fn(actualMoment);
   // @ts-ignore: Mocking.
   moment.tz = jest.fn(actualMoment.tz);
@@ -23,9 +24,6 @@ buildTestDB();
 beforeEach((): Promise<void> => {
   return insertTestData();
 });
-
-const mockedMoment = mockedFunction(moment);
-const realMoment: typeof moment = jest.requireActual("moment-timezone");
 
 function createOriginal(
   connection: DatabaseConnection,
@@ -53,7 +51,7 @@ test("Media tests", async (): Promise<void> => {
     .rejects.toThrow("Failed to insert Media record");
 
   let createdMoment: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => createdMoment);
+  mockMoment(createdMoment);
 
   let newMedia = await user3Db.createMedia("c3", fillMetadata({
     title: "My title",
@@ -173,7 +171,7 @@ test("Media tests", async (): Promise<void> => {
   }));
 
   let uploaded2Moment: Moment = realMoment.tz("2020-01-04T15:31:01", "UTC");
-  mockedMoment.mockImplementationOnce((): Moment => uploaded2Moment);
+  mockMoment(uploaded2Moment);
 
   info = await createOriginal(dbConnection, id, fillMetadata({
     mimetype: "image/jpeg",

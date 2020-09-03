@@ -194,7 +194,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
   return knex.schema.createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
     table.string("email", 100).notNullable().unique().primary();
-    table.string("password", 200);
+    table.string("password", 70);
     table.string("fullname", 200);
     table.dateTime("created", { useTz: true }).notNullable();
     table.dateTime("lastLogin", { useTz: true }).nullable();

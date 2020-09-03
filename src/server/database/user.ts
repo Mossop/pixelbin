@@ -1,3 +1,4 @@
+import { hash as bcryptHash, compare as bcryptCompare } from "bcrypt";
 import moment from "moment-timezone";
 
 import { DatabaseConnection } from "./connection";
@@ -11,21 +12,29 @@ export async function loginUser(
   email: Tables.User["email"],
   password: Tables.User["password"],
 ): Promise<UserWithoutPassword | undefined> {
-  let users = await update(
-    Table.User,
-    this.knex.where({
-      email,
-      password,
-    }),
-    {
-      lastLogin: moment(),
-    },
-  ).returning("*");
+  let users = await from(this.knex, Table.User).where({
+    email,
+  }).select("*");
 
-  if (users.length == 1) {
+  if (users.length != 1) {
+    return undefined;
+  }
+
+  if (await bcryptCompare(password, users[0].password)) {
+    await update(
+      Table.User,
+      this.knex.where({
+        email,
+      }),
+      {
+        lastLogin: moment(),
+      },
+    );
+
     let { password, lastLogin, ...rest } = users[0];
     return intoAPITypes(rest);
   }
+
   return undefined;
 }
 
@@ -33,8 +42,11 @@ export async function createUser(
   this: DatabaseConnection,
   user: Omit<Tables.User, "created" | "lastLogin" | "verified">,
 ): Promise<UserWithoutPassword> {
+  let hashed = await bcryptHash(user.password, 12);
+
   let results = await insert(this.knex, Table.User, {
     ...user,
+    password: hashed,
     created: moment(),
     lastLogin: null,
     verified: true,
