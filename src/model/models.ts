@@ -36,6 +36,17 @@ export interface Person extends IdType {
   name: string;
 }
 
+export interface Location {
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+}
+
+export type MediaPerson = Person & {
+  location: Location | null,
+};
+
 export interface Tag extends IdType {
   catalog: Catalog["id"];
   parent: Tag["id"] | null;
@@ -104,7 +115,7 @@ export interface Media extends IdType {
 export interface MediaLists {
   tags: Tag[];
   albums: Album[];
-  people: Person[];
+  people: MediaPerson[];
 }
 
 export interface FileInfo {

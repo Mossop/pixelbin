@@ -192,125 +192,147 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.float("bitRate").nullable();
   }
 
-  return knex.schema.createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
-    table.string("email", 100).notNullable().unique().primary();
-    table.string("password", 70);
-    table.string("fullname", 200);
-    table.dateTime("created", { useTz: true }).notNullable();
-    table.dateTime("lastLogin", { useTz: true }).nullable();
-    table.boolean("verified");
-  }).createTable(Table.Storage, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    table.string("name", 100).notNullable();
-    table.string("accessKeyId", 200).notNullable();
-    table.string("secretAccessKey", 200).notNullable();
-    table.string("region", 100).notNullable();
-    table.string("bucket", 200).notNullable();
-    table.string("path", 200).nullable();
-    table.string("endpoint", 200).nullable();
-    table.string("publicUrl", 200).nullable();
-  }).createTable(Table.Catalog, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    foreignId(table, Table.Storage, "id");
-    table.string("name", 100).notNullable();
-  }).createTable(Table.Person, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    foreignId(table, Table.Catalog, "id");
-    table.string("name", 200).notNullable();
+  return knex.schema
+    .createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
+      table.string("email", 100).notNullable().unique().primary();
+      table.string("password", 70);
+      table.string("fullname", 200);
+      table.dateTime("created", { useTz: true }).notNullable();
+      table.dateTime("lastLogin", { useTz: true }).nullable();
+      table.boolean("verified");
+    })
+    .createTable(Table.Storage, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      table.string("name", 100).notNullable();
+      table.string("accessKeyId", 200).notNullable();
+      table.string("secretAccessKey", 200).notNullable();
+      table.string("region", 100).notNullable();
+      table.string("bucket", 200).notNullable();
+      table.string("path", 200).nullable();
+      table.string("endpoint", 200).nullable();
+      table.string("publicUrl", 200).nullable();
+    })
+    .createTable(Table.Catalog, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      foreignId(table, Table.Storage, "id");
+      table.string("name", 100).notNullable();
+    })
+    .createTable(Table.Person, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      foreignId(table, Table.Catalog, "id");
+      table.string("name", 200).notNullable();
 
-    table.unique([columnFor(Table.Catalog), "id"]);
-  }).raw(
-    nameIndex(Table.Person, Table.Catalog, null),
-  ).createTable(Table.Tag, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    foreignId(table, Table.Catalog, "id");
-    table.string("parent", 30).nullable();
-    table.string("name", 100).notNullable();
-    table.unique([columnFor(Table.Catalog), "id"]);
+      table.unique([columnFor(Table.Catalog), "id"]);
+    })
+    .raw(
+      nameIndex(Table.Person, Table.Catalog, null),
+    )
+    .createTable(Table.Tag, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      foreignId(table, Table.Catalog, "id");
+      table.string("parent", 30).nullable();
+      table.string("name", 100).notNullable();
+      table.unique([columnFor(Table.Catalog), "id"]);
 
-    table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Tag}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
-  }).raw(
-    nameIndex(Table.Tag, Table.Catalog),
-  ).createTable(Table.Album, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    foreignId(table, Table.Catalog, "id");
-    table.string("parent", 30).nullable();
-    table.string("name", 100).notNullable();
+      table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Tag}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
+    })
+    .raw(
+      nameIndex(Table.Tag, Table.Catalog),
+    )
+    .createTable(Table.Album, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      foreignId(table, Table.Catalog, "id");
+      table.string("parent", 30).nullable();
+      table.string("name", 100).notNullable();
 
-    table.unique([columnFor(Table.Catalog), "id"]);
+      table.unique([columnFor(Table.Catalog), "id"]);
 
-    table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Album}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
-  }).raw(
-    nameIndex(Table.Album, Table.Catalog),
-  ).createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    foreignId(table, Table.Catalog, "id");
-    table.dateTime("created", { useTz: true }).notNullable();
+      table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Album}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
+    })
+    .raw(
+      nameIndex(Table.Album, Table.Catalog),
+    )
+    .createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      foreignId(table, Table.Catalog, "id");
+      table.dateTime("created", { useTz: true }).notNullable();
 
-    addMetadata(table);
+      addMetadata(table);
 
-    table.unique([columnFor(Table.Catalog), "id"]);
-  }).createTable(Table.Original, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    foreignId(table, Table.Media, "id");
-    table.integer("processVersion").notNullable();
-    table.dateTime("uploaded", { useTz: true }).notNullable();
+      table.unique([columnFor(Table.Catalog), "id"]);
+    })
+    .createTable(Table.Original, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      foreignId(table, Table.Media, "id");
+      table.integer("processVersion").notNullable();
+      table.dateTime("uploaded", { useTz: true }).notNullable();
 
-    addFileInfo(table);
-    addMetadata(table);
-  }).createTable(Table.AlternateFile, (table: Knex.CreateTableBuilder): void => {
-    id(table);
-    foreignId(table, Table.Original, "id");
-    table.string("type", 20).notNullable();
+      addFileInfo(table);
+      addMetadata(table);
+    })
+    .createTable(Table.AlternateFile, (table: Knex.CreateTableBuilder): void => {
+      id(table);
+      foreignId(table, Table.Original, "id");
+      table.string("type", 20).notNullable();
 
-    addFileInfo(table);
-  }).createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {
-    foreignId(table, Table.User, "email");
-    foreignId(table, Table.Catalog, "id");
+      addFileInfo(table);
+    })
+    .createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {
+      foreignId(table, Table.User, "email");
+      foreignId(table, Table.Catalog, "id");
 
-    table.unique([columnFor(Table.User), columnFor(Table.Catalog)]);
-  }).createTable(Table.MediaAlbum, (table: Knex.CreateTableBuilder): void => {
-    table.string(columnFor(Table.Catalog), 30).notNullable();
-    table.string(columnFor(Table.Media), 30).notNullable();
-    table.string(columnFor(Table.Album), 30).notNullable();
+      table.unique([columnFor(Table.User), columnFor(Table.Catalog)]);
+    })
+    .createTable(Table.MediaAlbum, (table: Knex.CreateTableBuilder): void => {
+      table.string(columnFor(Table.Catalog), 30).notNullable();
+      table.string(columnFor(Table.Media), 30).notNullable();
+      table.string(columnFor(Table.Album), 30).notNullable();
 
-    table.unique([columnFor(Table.Media), columnFor(Table.Album)], "uniqueAlbumMedia");
+      table.unique([columnFor(Table.Media), columnFor(Table.Album)], "uniqueAlbumMedia");
 
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Album)], `foreign_${Table.Album}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
-  }).createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
-    table.string(columnFor(Table.Catalog), 30).notNullable();
-    table.string(columnFor(Table.Media), 30).notNullable();
-    table.string(columnFor(Table.Tag), 30).notNullable();
+      table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
+      table.foreign([columnFor(Table.Catalog), columnFor(Table.Album)], `foreign_${Table.Album}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
+    })
+    .createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
+      table.string(columnFor(Table.Catalog), 30).notNullable();
+      table.string(columnFor(Table.Media), 30).notNullable();
+      table.string(columnFor(Table.Tag), 30).notNullable();
 
-    table.unique([columnFor(Table.Media), columnFor(Table.Tag)], "uniqueTagMedia");
+      table.unique([columnFor(Table.Media), columnFor(Table.Tag)], "uniqueTagMedia");
 
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Tag)], `foreign_${Table.Tag}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
-  }).createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
-    table.string(columnFor(Table.Catalog), 30).notNullable();
-    table.string(columnFor(Table.Media), 30).notNullable();
-    table.string(columnFor(Table.Person), 30).notNullable();
+      table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
+      table.foreign([columnFor(Table.Catalog), columnFor(Table.Tag)], `foreign_${Table.Tag}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
+    })
+    .createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
+      table.string(columnFor(Table.Catalog), 30).notNullable();
+      table.string(columnFor(Table.Media), 30).notNullable();
+      table.string(columnFor(Table.Person), 30).notNullable();
+      table.float("left").nullable();
+      table.float("right").nullable();
+      table.float("top").nullable();
+      table.float("bottom").nullable();
 
-    table.unique([columnFor(Table.Media), columnFor(Table.Person)], "uniquePersonMedia");
+      table.unique([columnFor(Table.Media), columnFor(Table.Person)], "uniquePersonMedia");
 
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
-    table.foreign([columnFor(Table.Catalog), columnFor(Table.Person)], `foreign_${Table.Person}`)
-      .references([columnFor(Table.Catalog), "id"]).inTable(Table.Person);
-  }).raw(knex.raw("CREATE VIEW ?? AS ?", [
-    Table.StoredMedia,
-    buildMediaView(knex),
-  ]).toString()).raw(knex.raw("CREATE VIEW ?? AS ?", [
-    Table.StoredMediaDetail,
-    buildMediaDetailView(knex),
-  ]).toString());
+      table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
+      table.foreign([columnFor(Table.Catalog), columnFor(Table.Person)], `foreign_${Table.Person}`)
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Person);
+    })
+    .raw(knex.raw("CREATE VIEW ?? AS ?", [
+      Table.StoredMedia,
+      buildMediaView(knex),
+    ]).toString())
+    .raw(knex.raw("CREATE VIEW ?? AS ?", [
+      Table.StoredMediaDetail,
+      buildMediaDetailView(knex),
+    ]).toString());
 };
 
 /**
