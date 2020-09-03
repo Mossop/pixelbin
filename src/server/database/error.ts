@@ -1,5 +1,6 @@
 export enum DatabaseErrorCode {
   UnknownError,
+  MissingValue,
   MissingRelationship,
 }
 

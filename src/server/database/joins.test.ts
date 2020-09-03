@@ -10,7 +10,9 @@ beforeEach((): Promise<void> => {
   return insertTestData();
 });
 
-function extracted(media: StoredMedia): unknown {
+function extracted(
+  media: Pick<StoredMedia, "id" | "catalog" | "tags" | "albums" | "people">,
+): unknown {
   return {
     id: media.id,
     catalog: media.catalog,
@@ -482,5 +484,372 @@ test("Album media tests", async (): Promise<void> => {
       name: "Album 3",
       parent: "a1",
     }],
+  }]);
+});
+
+test("Person location tests", async (): Promise<void> => {
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  let user2Db = dbConnection.forUser("someone2@nowhere.com");
+
+  let media1 = await user2Db.createMedia("c1", fillMetadata({}));
+  let media2 = await user2Db.createMedia("c1", fillMetadata({}));
+  let media3 = await user2Db.createMedia("c1", fillMetadata({}));
+  let media4 = await user1Db.createMedia("c3", fillMetadata({}));
+
+  await user2Db.addMediaRelations(Api.RelationType.Person, [
+    media1.id,
+    media2.id,
+  ], [
+    "p1",
+  ]);
+
+  await user2Db.addMediaRelations(Api.RelationType.Person, [
+    media3.id,
+  ], [
+    "p2",
+  ]);
+
+  let media = await user1Db.getMedia([
+    media1.id,
+    media2.id,
+    media3.id,
+    media4.id,
+  ]);
+
+  expect(media.map(extracted)).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }],
+  }, {
+    id: media3.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media4.id,
+    catalog: "c3",
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
+
+  await user2Db.setPersonLocations([{
+    media: media1.id,
+    person: "p2",
+    location: {
+      left: 0,
+      right: 1,
+      top: 0,
+      bottom: 1,
+    },
+  }]);
+
+  media = await user1Db.getMedia([
+    media1.id,
+    media2.id,
+    media3.id,
+    media4.id,
+  ]);
+
+  expect(media.map(extracted)).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }],
+  }, {
+    id: media3.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media4.id,
+    catalog: "c3",
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
+
+  await user2Db.setPersonLocations([{
+    media: media1.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: media2.id,
+    person: "p2",
+    location: {
+      left: 0,
+      right: 1,
+      top: 0,
+      bottom: 1,
+    },
+  }]);
+
+  media = await user1Db.getMedia([
+    media1.id,
+    media2.id,
+    media3.id,
+    media4.id,
+  ]);
+
+  expect(media.map(extracted)).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+  }, {
+    id: media3.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media4.id,
+    catalog: "c3",
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
+
+  await expect(() => user2Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: "unknown",
+    person: "p2",
+    location: {
+      left: 1,
+      top: 1,
+      bottom: 1,
+      right: 5,
+    },
+  }])).rejects.toThrow();
+
+  await expect(() => user2Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: "unknown",
+    person: "p2",
+    location: null,
+  }])).rejects.toThrow();
+
+  await expect(() => user2Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: media1.id,
+    person: "unknown",
+    location: null,
+  }])).rejects.toThrow();
+
+  await expect(() => user2Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: media4.id,
+    person: "p1",
+    location: null,
+  }])).rejects.toThrow();
+
+  await expect(() => user2Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: media1.id,
+    person: "p4",
+    location: null,
+  }])).rejects.toThrow();
+
+  await expect(() => user2Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: media4.id,
+    person: "p4",
+    location: null,
+  }])).rejects.toThrow();
+
+  await expect(() => user1Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: media1.id,
+    person: "p4",
+    location: null,
+  }])).rejects.toThrow();
+
+  await expect(() => user1Db.setPersonLocations([{
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }, {
+    media: media4.id,
+    person: "p1",
+    location: null,
+  }])).rejects.toThrow();
+
+  media = await user1Db.getMedia([
+    media1.id,
+    media2.id,
+    media3.id,
+    media4.id,
+  ]);
+
+  expect(media.map(extracted)).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+  }, {
+    id: media3.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media4.id,
+    catalog: "c3",
+    albums: [],
+    tags: [],
+    people: [],
   }]);
 });

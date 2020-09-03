@@ -1,3 +1,6 @@
+import Knex from "knex";
+
+import { ObjectModel } from "../../model";
 import { Table, COLUMNS } from "./types";
 
 export function filterColumns<T extends Table.Media, D>(table: T, data: D): D {
@@ -5,4 +8,17 @@ export function filterColumns<T extends Table.Media, D>(table: T, data: D): D {
   return Object.fromEntries(Object.entries(data).filter(([key]: [string, unknown]): boolean => {
     return allowed.includes(key);
   })) as unknown as D;
+}
+
+export function rowFromLocation(knex: Knex, location: ObjectModel.Location | null): Knex.Raw {
+  if (!location) {
+    return knex.raw("NULL");
+  }
+
+  return knex.raw("ROW(?, ?, ?, ?)::location", [
+    location.left,
+    location.right,
+    location.top,
+    location.bottom,
+  ]);
 }

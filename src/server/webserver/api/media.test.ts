@@ -122,6 +122,7 @@ test("Media upload", async (): Promise<void> => {
       "catalog": "c1",
       "id": "p1",
       "name": "Person 1",
+      "location": null,
     }],
     tags: [{
       "catalog": "c1",

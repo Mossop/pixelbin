@@ -1,10 +1,11 @@
 import Knex from "knex";
 
-import { Api } from "../../model";
+import { Api, ObjectModel } from "../../model";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insertFromSelect } from "./queries";
 import { ref, Table } from "./types";
+import { rowFromLocation } from "./utils";
 
 type List = Table.MediaAlbum | Table.MediaTag | Table.MediaPerson;
 
@@ -183,5 +184,59 @@ export async function setRelationMedia<T extends Api.RelationType>(
       .delete();
 
     return userConnection.addMediaRelations(relation, media, relations);
+  });
+}
+
+export interface PersonLocation {
+  media: string;
+  person: string;
+  location: ObjectModel.Location | null;
+}
+
+export async function setPersonLocations(
+  this: UserScopedConnection,
+  locations: PersonLocation[],
+): Promise<void> {
+  let bindings: Knex.RawBinding[] = [];
+  for (let location of locations) {
+    bindings.push(location.media, location.person, rowFromLocation(this.knex, location.location));
+  }
+
+  let values: string[] = [];
+  values.length = locations.length;
+  values.fill("(?, ?, ?)");
+  bindings.push("Location", "media", "person", "location");
+
+  let catalogs = from(this.knex, Table.UserCatalog)
+    .where({
+      user: this.user,
+    })
+    .as("Catalogs");
+
+  let select = from(this.knex, Table.Media)
+    .rightJoin(
+      this.connection.raw(`(VALUES ${values.join(",")}) AS ?? (??, ??, ??)`, bindings),
+      ref(Table.Media, "id"),
+      "Location.media",
+    )
+    .leftJoin(catalogs, "Catalogs.catalog", ref(Table.Media, "catalog"));
+
+  let insert = insertFromSelect(this.knex, Table.MediaPerson, select, {
+    catalog: this.ref("Catalogs.catalog"),
+    media: this.ref(ref(Table.Media, "id")),
+    person: this.ref("Location.person"),
+    location: this.ref("Location.location"),
+  });
+
+  await this.connection.raw(`
+      :insert
+      ON CONFLICT (:mediaRef:, :personRef:) DO
+        UPDATE SET :location: = :excludedLocation:
+    `, {
+    insert,
+    mediaRef: "media",
+    personRef: "person",
+    location: "location",
+    excludedLocation: "excluded.location",
   });
 }

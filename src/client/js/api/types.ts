@@ -21,6 +21,11 @@ export type Patch<T> = Overwrite<Partial<Omit<T, "catalog">>, {
   id: Reference<HighLevelForState<T>>;
 }>;
 
+interface MediaPersonState {
+  person: Reference<Person>;
+  location: ObjectModel.Location | null;
+}
+
 export type PersonState = Overwrite<Readonly<ObjectModel.Person>, {
   readonly catalog: Reference<Catalog>;
 }>;
@@ -47,12 +52,12 @@ export interface ServerState {
 export type UnprocessedMediaState = Overwrite<Readonly<Api.UnprocessedMedia>, {
   readonly tags: Reference<Tag>[];
   readonly albums: Reference<Album>[];
-  readonly people: Reference<Person>[];
+  readonly people: MediaPersonState[];
 }>;
 export type ProcessedMediaState = Overwrite<Readonly<Api.ProcessedMedia>, {
   readonly tags: Reference<Tag>[];
   readonly albums: Reference<Album>[];
-  readonly people: Reference<Person>[];
+  readonly people: MediaPersonState[];
 }>;
 export type MediaState = UnprocessedMediaState | ProcessedMediaState;
 export interface OriginalState extends Readonly<ObjectModel.Original> {}
@@ -74,7 +79,10 @@ export function mediaIntoState(media: Api.Media): MediaState {
 
     albums: media.albums.map((album: Api.Album): Reference<Album> => Album.ref(album.id)),
     tags: media.tags.map((tag: Api.Tag): Reference<Tag> => Tag.ref(tag.id)),
-    people: media.people.map((person: Api.Person): Reference<Person> => Person.ref(person.id)),
+    people: media.people.map((person: Api.MediaPerson): MediaPersonState => ({
+      person: Person.ref(person.id),
+      location: person.location,
+    })),
   };
 }
 

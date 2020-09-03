@@ -40,6 +40,7 @@ export type PublicStorage = Omit<Storage, "accessKeyId" | "secretAccessKey">;
 export type Catalog = Omit<ObjectModel.Catalog, "storage">;
 export type Album = ObjectModel.Album;
 export type Person = ObjectModel.Person;
+export type MediaPerson = ObjectModel.MediaPerson;
 export type Tag = ObjectModel.Tag;
 
 export interface StorageCreateRequest {

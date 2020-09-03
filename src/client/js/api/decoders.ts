@@ -12,6 +12,23 @@ export const PersonDecoder = JsonDecoder.object<Api.Person>(
   "Person",
 );
 
+const LocationDecoder = JsonDecoder.object({
+  left: JsonDecoder.number,
+  right: JsonDecoder.number,
+  top: JsonDecoder.number,
+  bottom: JsonDecoder.number,
+}, "Location");
+
+export const MediaPersonDecoder = JsonDecoder.object<Api.MediaPerson>(
+  {
+    id: JsonDecoder.string,
+    catalog: JsonDecoder.string,
+    name: JsonDecoder.string,
+    location: JsonDecoder.nullable(LocationDecoder),
+  },
+  "Person",
+);
+
 export const TagDecoder = JsonDecoder.object<Api.Tag>(
   {
     id: JsonDecoder.string,
@@ -88,7 +105,7 @@ export const UnprocessedMediaProperties = {
 
   albums: JsonDecoder.array(AlbumDecoder, "album[]"),
   tags: JsonDecoder.array(TagDecoder, "tag[]"),
-  people: JsonDecoder.array(PersonDecoder, "person[]"),
+  people: JsonDecoder.array(MediaPersonDecoder, "person[]"),
 };
 
 export const UnprocessedMediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>(

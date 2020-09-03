@@ -1,3 +1,5 @@
+import { ObjectModel } from "../../../model";
+
 export interface UserCatalog {
   user: string;
   catalog: string;
@@ -19,4 +21,5 @@ export interface MediaPerson {
   catalog: string;
   media: string;
   person: string;
+  location: ObjectModel.Location | null;
 }

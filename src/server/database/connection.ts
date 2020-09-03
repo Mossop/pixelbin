@@ -193,6 +193,16 @@ export class UserScopedConnection {
   public constructor(protected connection: DatabaseConnection, public readonly user: UserRef) {
   }
 
+  public get ref(): Knex.RefBuilder {
+    /* @ts-ignore: We're just simulating a direct call here. */
+    return (...args: unknown[]) => this.knex.ref(...args);
+  }
+
+  public get raw(): Knex.RawBuilder {
+    /* @ts-ignore: We're just simulating a direct call here. */
+    return (...args: unknown[]) => this.knex.raw(...args);
+  }
+
   public inTransaction<T>(
     transactionFn: (connection: UserScopedConnection) => Promise<T>,
   ): Promise<T> {
@@ -220,6 +230,7 @@ export class UserScopedConnection {
   public readonly removeMediaRelations = wrapped(Joins.removeMediaRelations);
   public readonly setMediaRelations = wrapped(Joins.setMediaRelations);
   public readonly setRelationMedia = wrapped(Joins.setRelationMedia);
+  public readonly setPersonLocations = wrapped(Joins.setPersonLocations);
 
   public readonly createMedia = wrapped(MediaQueries.createMedia);
   public readonly editMedia = wrapped(MediaQueries.editMedia);

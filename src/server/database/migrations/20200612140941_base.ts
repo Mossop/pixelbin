@@ -98,19 +98,15 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     .as("AlbumList");
 
   let people = knex(Table.MediaPerson)
-    .join((builder: Knex.QueryBuilder): void => {
-      void builder.from(Table.Person)
-        .select({
-          id: ref(Table.Person, "id"),
-          person: knex.raw(`row_to_json("${Table.Person}")`),
-        })
-        .as("PersonJson");
-    }, ref(Table.MediaPerson, "person"), "PersonJson.id")
+    .join(Table.Person, ref(Table.Person, "id"), ref(Table.MediaPerson, "person"))
     .groupBy(ref(Table.MediaPerson, "media"))
     .select({
       media: ref(Table.MediaPerson, "media"),
-      people: knex.raw("json_agg(?)", [
-        knex.ref("PersonJson.person"),
+      people: knex.raw("json_agg((SELECT row_to_json(_) FROM (SELECT ??, ??, ??, ??) AS _))", [
+        "id",
+        "Person.catalog",
+        "name",
+        "location",
       ]),
     })
     .as("PersonList");
@@ -192,7 +188,15 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     table.float("bitRate").nullable();
   }
 
+  let locationType = knex.raw(`CREATE TYPE ?? AS (
+    ?? real,
+    ?? real,
+    ?? real,
+    ?? real
+  )`, ["location", "left", "right", "top", "bottom"]);
+
   return knex.schema
+    .raw(locationType.toString())
     .createTable(Table.User, (table: Knex.CreateTableBuilder): void => {
       table.string("email", 100).notNullable().unique().primary();
       table.string("password", 70);
@@ -313,10 +317,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.string(columnFor(Table.Catalog), 30).notNullable();
       table.string(columnFor(Table.Media), 30).notNullable();
       table.string(columnFor(Table.Person), 30).notNullable();
-      table.float("left").nullable();
-      table.float("right").nullable();
-      table.float("top").nullable();
-      table.float("bottom").nullable();
+      table.specificType("location", "location").nullable();
 
       table.unique([columnFor(Table.Media), columnFor(Table.Person)], "uniquePersonMedia");
 
