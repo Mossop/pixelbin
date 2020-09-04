@@ -1,6 +1,6 @@
 import Knex from "knex";
 
-import { Api, ObjectModel } from "../../model";
+import { Api } from "../../model";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insertFromSelect } from "./queries";
@@ -187,15 +187,9 @@ export async function setRelationMedia<T extends Api.RelationType>(
   });
 }
 
-export interface PersonLocation {
-  media: string;
-  person: string;
-  location: ObjectModel.Location | null;
-}
-
 export async function setPersonLocations(
   this: UserScopedConnection,
-  locations: PersonLocation[],
+  locations: Api.MediaPersonLocation[],
 ): Promise<void> {
   let bindings: Knex.RawBinding[] = [];
   for (let location of locations) {

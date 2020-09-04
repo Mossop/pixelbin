@@ -159,3 +159,27 @@ export const relations = ensureAuthenticatedTransaction(
     return results.map(buildResponseMedia);
   },
 );
+
+export const setMediaPeople = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Api.MediaPersonLocation[],
+  ): Promise<ResponseFor<Api.Media>[]> => {
+    return userDb.inTransaction(
+      async (userDb: UserScopedConnection): Promise<ResponseFor<Api.Media>[]> => {
+        let includedMedia = new Set<string>();
+        let changes = new Map<string, Api.MediaPersonLocation>();
+        for (let location of data) {
+          includedMedia.add(location.media);
+          changes.set(`${location.media},${location.person}`, location);
+        }
+
+        await userDb.setPersonLocations([...changes.values()]);
+
+        let results = await userDb.getMedia([...includedMedia]);
+        return results.map(buildResponseMedia);
+      },
+    );
+  },
+);

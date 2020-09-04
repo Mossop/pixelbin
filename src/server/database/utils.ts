@@ -10,9 +10,12 @@ export function filterColumns<T extends Table.Media, D>(table: T, data: D): D {
   })) as unknown as D;
 }
 
-export function rowFromLocation(knex: Knex, location: ObjectModel.Location | null): Knex.Raw {
+export function rowFromLocation(
+  knex: Knex,
+  location: ObjectModel.Location | null | undefined,
+): Knex.Raw {
   if (!location) {
-    return knex.raw("NULL");
+    return knex.raw("NULL::location");
   }
 
   return knex.raw("ROW(?, ?, ?, ?)::location", [

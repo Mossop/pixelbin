@@ -43,6 +43,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.MediaGet]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Api.Method.MediaThumbnail]: BlobDecoder,
   [Api.Method.MediaRelations]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Api.Method.MediaPeople]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
 };
 
 export function request<T extends Api.Method>(

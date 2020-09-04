@@ -215,3 +215,21 @@ export const MediaRelationsRequest = jsonDecoder(JsonDecoder.array(
   MediaRelationChangeDecoder,
   "MediaRelationChange[]",
 ));
+
+const LocationDecoder = JsonDecoder.object<Api.Location>({
+  left: JsonDecoder.number,
+  right: JsonDecoder.number,
+  top: JsonDecoder.number,
+  bottom: JsonDecoder.number,
+}, "Location");
+
+const MediaPersonLocationDecoder = JsonDecoder.object<Api.MediaPersonLocation>({
+  media: JsonDecoder.string,
+  person: JsonDecoder.string,
+  location: JsonDecoder.optional(LocationDecoder),
+}, "MediaPersonLocation");
+
+export const MediaPersonLocations = jsonDecoder(JsonDecoder.array(
+  MediaPersonLocationDecoder,
+  "MediaPersonLocation[]",
+));

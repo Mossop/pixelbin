@@ -42,6 +42,13 @@ export type Album = ObjectModel.Album;
 export type Person = ObjectModel.Person;
 export type MediaPerson = ObjectModel.MediaPerson;
 export type Tag = ObjectModel.Tag;
+export type Location = ObjectModel.Location;
+
+export interface MediaPersonLocation {
+  media: string;
+  person: string;
+  location?: Location | null;
+}
 
 export interface StorageCreateRequest {
   storage: string | Create<Storage>;
@@ -164,6 +171,7 @@ export enum Method {
   // MediaSearch = "media/search",
   MediaThumbnail = "media/thumbnail",
   MediaRelations = "media/relations",
+  MediaPeople = "media/people",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -189,6 +197,7 @@ export const HttpMethods: MethodList = {
   // [Method.MediaSearch]: "POST",
   [Method.MediaThumbnail]: "GET",
   [Method.MediaRelations]: "PATCH",
+  [Method.MediaPeople]: "PATCH",
 };
 
 // Fake interface
@@ -223,6 +232,7 @@ export interface Signatures {
   // [Method.MediaSearch]: Signature<Search, MediaData[]>;
   [Method.MediaThumbnail]: Signature<MediaThumbnailRequest, Blob>;
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;
+  [Method.MediaPeople]: Signature<MediaPersonLocation[], Media[]>;
 }
 
 export type SignatureRequest<M extends Method> =

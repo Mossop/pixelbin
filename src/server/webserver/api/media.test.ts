@@ -4,7 +4,7 @@ import path from "path";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
-import { AlternateFileType, Api } from "../../../model";
+import { AlternateFileType, Api, emptyMetadata } from "../../../model";
 import { expect, mockedFunction, deferCall, mockMoment, realMoment } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
@@ -762,4 +762,300 @@ test("Media relations", async (): Promise<void> => {
     media1,
     media2,
   ]);
+});
+
+test("Media person locations", async (): Promise<void> => {
+  const request = agent();
+  let db = await connection;
+  let user1Db = db.forUser("someone1@nowhere.com");
+
+  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
+  mockMoment(createdMoment1);
+  let media1 = await user1Db.createMedia("c1", fillMetadata({}));
+
+  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
+  mockMoment(createdMoment2);
+  let media2 = await user1Db.createMedia("c1", fillMetadata({}));
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${media1.id},${media2.id}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment1),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment2),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
+
+  response = await request
+    .patch("/api/media/people")
+    .send([{
+      media: media1.id,
+      person: "p1",
+      location: null,
+    }, {
+      media: media2.id,
+      person: "p1",
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toInclude([{
+    id: media1.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment1),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment2),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }],
+  }]);
+
+  response = await request
+    .patch("/api/media/people")
+    .send([{
+      media: media1.id,
+      person: "p1",
+      location: {
+        left: 0.5,
+        right: 1,
+        top: 0.5,
+        bottom: 1,
+      },
+    }, {
+      media: media2.id,
+      person: "p2",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toInclude([{
+    id: media1.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment1),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: {
+        left: 0.5,
+        right: 1,
+        top: 0.5,
+        bottom: 1,
+      },
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment2),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+  }]);
+
+  response = await request
+    .patch("/api/media/people")
+    .send([{
+      media: media2.id,
+      person: "p2",
+      location: {
+        left: 1,
+        right: 1,
+        top: 1,
+        bottom: 1,
+      },
+    }, {
+      media: media2.id,
+      person: "p1",
+      location: {
+        left: 0.5,
+        right: 1,
+        top: 0.5,
+        bottom: 1,
+      },
+    }, {
+      media: media2.id,
+      person: "p2",
+      location: null,
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toInclude([{
+    id: media2.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment2),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: {
+        left: 0.5,
+        right: 1,
+        top: 0.5,
+        bottom: 1,
+      },
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }]);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "add",
+      type: "person",
+      media: [media2.id],
+      items: ["p1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "setRelations",
+      type: "person",
+      media: [media2.id],
+      items: ["p1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${media1.id},${media2.id}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment1),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: {
+        left: 0.5,
+        right: 1,
+        top: 0.5,
+        bottom: 1,
+      },
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment2),
+
+    ...emptyMetadata(),
+
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: {
+        left: 0.5,
+        right: 1,
+        top: 0.5,
+        bottom: 1,
+      },
+    }],
+  }]);
 });

@@ -852,4 +852,155 @@ test("Person location tests", async (): Promise<void> => {
     tags: [],
     people: [],
   }]);
+
+  await user1Db.setPersonLocations([{
+    media: media1.id,
+    person: "p1",
+    location: {
+      left: 0,
+      right: 1,
+      top: 0,
+      bottom: 1,
+    },
+  }, {
+    media: media1.id,
+    person: "p2",
+    location: null,
+  }]);
+
+  media = await user1Db.getMedia([
+    media1.id,
+    media2.id,
+    media3.id,
+    media4.id,
+  ]);
+
+  expect(media.map(extracted)).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }, {
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+  }, {
+    id: media3.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media4.id,
+    catalog: "c3",
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
+
+  await user1Db.setPersonLocations([{
+    media: media1.id,
+    person: "p1",
+    location: null,
+  }, {
+    media: media2.id,
+    person: "p2",
+    location: null,
+  }]);
+
+  media = await user1Db.getMedia([
+    media1.id,
+    media2.id,
+    media3.id,
+    media4.id,
+  ]);
+
+  expect(media.map(extracted)).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }, {
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p1",
+      catalog: "c1",
+      name: "Person 1",
+      location: null,
+    }, {
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media3.id,
+    catalog: "c1",
+    albums: [],
+    tags: [],
+    people: [{
+      id: "p2",
+      catalog: "c1",
+      name: "Person 2",
+      location: null,
+    }],
+  }, {
+    id: media4.id,
+    catalog: "c3",
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
 });
