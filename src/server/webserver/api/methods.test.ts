@@ -11,7 +11,9 @@ test("body decode", (): void => {
     "e[1]": 5,
     "f[0].t.g[0].f": 34,
     "f[1].t.g[0].f": 67,
-    "g": [7, 8],
+    "g[0][0]": 7,
+    "g[0][1]": 8,
+    "g[1]": "hello",
   })).toEqual({
     a: "b",
     b: 5,
@@ -33,7 +35,10 @@ test("body decode", (): void => {
         }],
       },
     }],
-    g: [7, 8],
+    g: [
+      [7, 8],
+      "hello",
+    ],
   });
 
   expect(() => decodeBody({

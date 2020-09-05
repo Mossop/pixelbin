@@ -84,13 +84,22 @@ export interface MediaGetRequest {
   id: string;
 }
 
+export type SelectedTag = string | string[];
+export type SelectedPerson = string | {
+  id: string;
+  location?: Location | null;
+} | {
+  name: string;
+  location?: Location | null;
+};
+
 export type MediaCreateRequest =
   Omit<ObjectModel.Media, "created" | "id"> &
   Partial<Nullable<ObjectModel.Metadata>> & {
     file: Blob;
     albums?: string[];
-    tags?: string[];
-    people?: string[];
+    tags?: SelectedTag[];
+    people?: SelectedPerson[];
   };
 
 export type MediaUpdateRequest = Partial<Omit<MediaCreateRequest, "catalog">> & {

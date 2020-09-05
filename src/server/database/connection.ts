@@ -223,6 +223,7 @@ export class UserScopedConnection {
   public readonly listTags = wrapped(CatalogQueries.listTags);
   public readonly createTag = wrapped(CatalogQueries.createTag);
   public readonly editTag = wrapped(CatalogQueries.editTag);
+  public readonly buildTags = wrapped(CatalogQueries.buildTags);
   public readonly createPerson = wrapped(CatalogQueries.createPerson);
   public readonly editPerson = wrapped(CatalogQueries.editPerson);
 

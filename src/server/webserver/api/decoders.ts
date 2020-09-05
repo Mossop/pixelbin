@@ -27,6 +27,13 @@ function jsonDecoder<R>(decoder: JsonDecoder.Decoder<R>): Api.RequestDecoder<R> 
   };
 }
 
+const LocationDecoder = JsonDecoder.object<Api.Location>({
+  left: NumericDecoder,
+  right: NumericDecoder,
+  top: NumericDecoder,
+  bottom: NumericDecoder,
+}, "Location");
+
 export const LoginRequest = jsonDecoder(JsonDecoder.object<Api.LoginRequest>({
   email: JsonDecoder.string,
   password: JsonDecoder.string,
@@ -111,6 +118,23 @@ export const MediaGetRequest = jsonDecoder(JsonDecoder.object<Api.MediaGetReques
   id: JsonDecoder.string,
 }, "MediaGetRequest"));
 
+const SelectedTagDecoder = JsonDecoder.oneOf<Api.SelectedTag>([
+  JsonDecoder.string,
+  JsonDecoder.array(JsonDecoder.string, "string[]"),
+], "SelectedTag");
+
+const SelectedPersonDecoder = JsonDecoder.oneOf<Api.SelectedPerson>([
+  JsonDecoder.string,
+  JsonDecoder.object({
+    id: JsonDecoder.string,
+    location: JsonDecoder.optional(LocationDecoder),
+  }, "Person"),
+  JsonDecoder.object({
+    name: JsonDecoder.string,
+    location: JsonDecoder.optional(LocationDecoder),
+  }, "Person"),
+], "SelectedPerson");
+
 export async function MediaCreateRequest(
   data: unknown,
   files: Files | undefined,
@@ -138,26 +162,26 @@ export async function MediaCreateRequest(
     title: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     taken: JsonDecoder.optional(JsonDecoder.nullable(DateDecoder)),
     timeZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    longitude: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
-    latitude: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
-    altitude: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
+    longitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+    latitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+    altitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
     location: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     city: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     state: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     country: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    orientation: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
+    orientation: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
     make: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     model: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     lens: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
     photographer: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    aperture: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
-    exposure: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
-    iso: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
-    focalLength: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
-    rating: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.number)),
+    aperture: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+    exposure: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+    iso: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+    focalLength: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+    rating: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
     albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
-    tags: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "tag[]")),
-    people: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "person[]")),
+    tags: JsonDecoder.optional(JsonDecoder.array(SelectedTagDecoder, "SelectedTag[]")),
+    people: JsonDecoder.optional(JsonDecoder.array(SelectedPersonDecoder, "SelectedPerson[]")),
   }, "MediaCreateRequest");
 
   try {
@@ -215,13 +239,6 @@ export const MediaRelationsRequest = jsonDecoder(JsonDecoder.array(
   MediaRelationChangeDecoder,
   "MediaRelationChange[]",
 ));
-
-const LocationDecoder = JsonDecoder.object<Api.Location>({
-  left: JsonDecoder.number,
-  right: JsonDecoder.number,
-  top: JsonDecoder.number,
-  bottom: JsonDecoder.number,
-}, "Location");
 
 const MediaPersonLocationDecoder = JsonDecoder.object<Api.MediaPersonLocation>({
   media: JsonDecoder.string,

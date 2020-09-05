@@ -177,7 +177,7 @@ test("Tag table tests", async (): Promise<void> => {
     name: "New Tag",
   })).rejects.toThrow("Failed to insert Tag record");
 
-  let updated = await user1Db.editTag(tag.id, {
+  let updated = await user1Db.editTag("t7", {
     // @ts-ignore: Attempts to change id should be ignored.
     id: "newId",
     // @ts-ignore: Ditto for catalog.
@@ -187,7 +187,8 @@ test("Tag table tests", async (): Promise<void> => {
   });
 
   expect(updated).toEqual({
-    ...tag,
+    id: "t7",
+    catalog: "c1",
     parent: "t1",
     name: "New name",
   });
@@ -206,6 +207,50 @@ test("Tag table tests", async (): Promise<void> => {
   await expect(user2Db.editTag(tag.id, {
     parent: "t3",
   })).rejects.toThrow("Unknown Tag");
+
+  let created = await user1Db.buildTags("c1", ["tag1", "New name", "new tag"]);
+  expect(created).toEqual([{
+    catalog: "c1",
+    id: "t1",
+    parent: null,
+    name: "tag1",
+  }, {
+    catalog: "c1",
+    id: "t7",
+    parent: "t1",
+    name: "New name",
+  }, {
+    catalog: "c1",
+    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    parent: "t7",
+    name: "new tag",
+  }]);
+
+  created = await user1Db.buildTags("c1", ["New top", "inner", "new tag"]);
+  expect(created).toEqual([{
+    catalog: "c1",
+    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    parent: null,
+    name: "New top",
+  }, {
+    catalog: "c1",
+    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    parent: created[0].id,
+    name: "inner",
+  }, {
+    catalog: "c1",
+    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    parent: created[1].id,
+    name: "new tag",
+  }]);
+
+  created = await user1Db.buildTags("c1", ["top-level"]);
+  expect(created).toEqual([{
+    catalog: "c1",
+    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    parent: null,
+    name: "top-level",
+  }]);
 });
 
 test("Album table tests", async (): Promise<void> => {

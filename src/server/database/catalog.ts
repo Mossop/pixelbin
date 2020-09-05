@@ -204,6 +204,34 @@ export async function createTag(
   return intoAPITypes(rows[0]);
 }
 
+export async function buildTags(
+  this: UserScopedConnection,
+  catalog: string,
+  names: string[],
+): Promise<Tables.Tag[]> {
+  if (!names.length) {
+    return [];
+  }
+
+  return this.inTransaction(async (): Promise<Tables.Tag[]> => {
+    let parent: string | null = null;
+
+    let tags: Tables.Tag[] = [];
+
+    for (let name of names) {
+      let newTag = await this.createTag(catalog, {
+        parent,
+        name,
+      });
+
+      parent = newTag.id;
+      tags.push(newTag);
+    }
+
+    return tags;
+  });
+}
+
 export async function editTag(
   this: UserScopedConnection,
   id: Tables.Tag["id"],

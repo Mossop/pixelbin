@@ -1,5 +1,5 @@
 import { Api } from "../../../model";
-import { Obj } from "../../../utils";
+import { getLogger, Obj } from "../../../utils";
 import { AppContext } from "../context";
 import { ApiError } from "../error";
 import {
@@ -85,9 +85,19 @@ const apiMethods: ApiInterface = {
   [Api.Method.MediaPeople]: setMediaPeople,
 };
 
-const KEY_PARSE = /^(?<part>[^.[]+)(?:\[(?<index>\d+)\])?(?:\.(?<rest>.+))?$/;
+const KEY_PARSE = /^(?<part>[^.[]+)(?<indexes>(?:\[\d+\])*)(?:\.(?<rest>.+))?$/;
+const INNER_ARRAY_PARSE = /\[(?<index>\d+)\]/g;
 
 function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string = key): void {
+  const logger = getLogger("formdata");
+
+  logger.trace({ key, obj, value, fullkey }, "Adding value object");
+  if (typeof obj != "object") {
+    throw new ApiError(Api.ErrorCode.InvalidData, {
+      message: `Invalid field '${fullkey}'`,
+    });
+  }
+
   if (key.length == 0) {
     throw new ApiError(Api.ErrorCode.InvalidData, {
       message: `Invalid field '${fullkey}'`,
@@ -103,27 +113,58 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
   }
 
   let part = matches.groups?.part ?? "";
-  let index = matches.groups?.index ? parseInt(matches.groups.index) : undefined;
-  let rest = matches.groups?.rest;
+  let indexes = matches.groups?.indexes ?? "";
+  let rest = matches.groups?.rest ?? "";
 
-  if (index !== undefined) {
-    if (!(part in obj)) {
-      obj[part] = [];
-    } else if (!Array.isArray(obj[part])) {
+  logger.trace({
+    key,
+    part,
+    indexes,
+    rest,
+  }, "Matched regex");
+
+  if (indexes.length) {
+    let inner = obj;
+    let index = part;
+
+    let innerMatches = [...indexes.matchAll(INNER_ARRAY_PARSE)];
+    while (innerMatches.length) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      let match = innerMatches.shift()!;
+
+      if (!(index in inner)) {
+        logger.trace({ index }, "Created array");
+        inner[index] = [];
+      } else if (!Array.isArray(inner[index])) {
+        throw new ApiError(Api.ErrorCode.InvalidData, {
+          message: `Invalid repeated field '${fullkey}'.`,
+        });
+      }
+
+      logger.trace({ index }, "Descending");
+      inner = inner[index];
+      index = match.groups?.index ?? "";
+    }
+
+    if (rest.length) {
+      if (!(index in inner)) {
+        logger.trace({ index }, "Created object");
+        inner[index] = {};
+      }
+
+      logger.trace({ index }, "Descending");
+      addKeyToObject(inner[index], rest, value, fullkey);
+    } else if (index in inner) {
       throw new ApiError(Api.ErrorCode.InvalidData, {
         message: `Invalid repeated field '${fullkey}'.`,
       });
-    }
-
-    if (rest) {
-      let inner = {};
-      obj[part][index] = inner;
-      addKeyToObject(inner, rest, value, fullkey);
     } else {
-      obj[part][index] = value;
+      logger.trace({ index }, "Setting value");
+      inner[index] = value;
     }
   } else if (rest) {
     if (!(part in obj)) {
+      logger.trace({ part }, "Created object");
       obj[part] = {};
     } else if (Array.isArray(obj[part]) || typeof obj[part] != "object") {
       throw new ApiError(Api.ErrorCode.InvalidData, {
@@ -131,8 +172,14 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
       });
     }
 
+    logger.trace({ part }, "Descending");
     addKeyToObject(obj[part], rest, value, fullkey);
+  } else if (part in obj) {
+    throw new ApiError(Api.ErrorCode.InvalidData, {
+      message: `Invalid repeated field '${fullkey}'.`,
+    });
   } else {
+    logger.trace({ part }, "Setting value");
     obj[part] = value;
   }
 }

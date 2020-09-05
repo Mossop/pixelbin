@@ -149,6 +149,64 @@ test("Media upload", async (): Promise<void> => {
   expect(copyUploadedFileMock).toHaveBeenCalledTimes(1);
 
   await expect(fs.stat(path)).rejects.toThrowError("no such file or directory");
+
+  response = await request
+    .put("/api/media/create")
+    .field("catalog", "c1")
+    .field("tags[0][0]", "tag1")
+    .field("tags[0][1]", "newtag")
+    .field("tags[1][0]", "tag2")
+    .field("people[0].id", "p1")
+    .field("people[1].name", "Person 2")
+    .field("people[2].name", "New person")
+    .field("people[2].location.left", "0")
+    .field("people[2].location.right", "1")
+    .field("people[2].location.top", "0")
+    .field("people[2].location.bottom", "1")
+    .attach("file", Buffer.from("my file contents"), {
+      filename: "myfile.jpg",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual(fillMetadata({
+    id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
+    created: expect.anything(),
+    catalog: "c1",
+    albums: [],
+    people: [{
+      "catalog": "c1",
+      "id": "p1",
+      "name": "Person 1",
+      "location": null,
+    }, {
+      "catalog": "c1",
+      "id": "p2",
+      "name": "Person 2",
+      "location": null,
+    }, {
+      "catalog": "c1",
+      "id": expect.stringMatching(/P:[a-zA-Z0-9]+/),
+      "name": "New person",
+      "location": {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+    tags: [{
+      "catalog": "c1",
+      "id": expect.stringMatching(/T:[a-zA-Z0-9]+/),
+      "name": "newtag",
+      "parent": "t1",
+    }, {
+      "catalog": "c1",
+      "id": "t2",
+      "name": "tag2",
+      "parent": null,
+    }],
+  }));
 });
 
 test("Media thumbnail", async (): Promise<void> => {

@@ -61,18 +61,63 @@ export const createMedia = ensureAuthenticatedTransaction(
       ...mediaData
     } = data;
 
+    let selectedTags: string[] = [];
+
+    if (tags) {
+      for (let tag of tags) {
+        if (Array.isArray(tag)) {
+          if (tag.length) {
+            let newTags = await userDb.buildTags(catalog, tag);
+            selectedTags.push(newTags[newTags.length - 1].id);
+          }
+        } else {
+          selectedTags.push(tag);
+        }
+      }
+    }
+
     let createdMedia = await userDb.createMedia(catalog, fillMetadata(mediaData));
+
+    if (people) {
+      let peopleToAdd: string[] = [];
+      let locations: Api.MediaPersonLocation[] = [];
+
+      for (let person of people) {
+        if (typeof person == "string") {
+          peopleToAdd.push(person);
+        } else if ("id" in person) {
+          locations.push({
+            media: createdMedia.id,
+            person: person.id,
+            location: person.location,
+          });
+        } else {
+          let newPerson = await userDb.createPerson(catalog, {
+            name: person.name,
+          });
+          locations.push({
+            media: createdMedia.id,
+            person: newPerson.id,
+            location: person.location,
+          });
+        }
+      }
+
+      if (peopleToAdd.length) {
+        await userDb.addMediaRelations(Api.RelationType.Person, [createdMedia.id], peopleToAdd);
+      }
+
+      if (locations.length) {
+        await userDb.setPersonLocations(locations);
+      }
+    }
 
     if (albums) {
       await userDb.addMediaRelations(Api.RelationType.Album, [createdMedia.id], albums);
     }
 
-    if (tags) {
-      await userDb.addMediaRelations(Api.RelationType.Tag, [createdMedia.id], tags);
-    }
-
-    if (people) {
-      await userDb.addMediaRelations(Api.RelationType.Person, [createdMedia.id], people);
+    if (selectedTags.length) {
+      await userDb.addMediaRelations(Api.RelationType.Tag, [createdMedia.id], selectedTags);
     }
 
     let [media] = await userDb.getMedia([createdMedia.id]);
