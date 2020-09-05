@@ -157,21 +157,26 @@ export enum Method {
   Logout = "logout",
   Signup = "signup",
   CatalogCreate = "catalog/create",
+  // CatalogEdit = "catalog/edit",
+  // CatalogDelete = "catalog/delete",
   AlbumCreate = "album/create",
   AlbumEdit = "album/edit",
   AlbumList = "album/list",
+  // AlbumDelete = "album/delete",
   TagCreate = "tag/create",
   TagEdit = "tag/edit",
   TagFind = "tag/find",
+  // TagDelete = "tag/delete",
   PersonCreate = "person/create",
   PersonEdit = "person/edit",
+  // PersonDelete = "person/delete",
   MediaGet = "media/get",
   MediaCreate = "media/create",
   // MediaUpdate = "media/update",
-  // MediaSearch = "media/search",
   MediaThumbnail = "media/thumbnail",
   MediaRelations = "media/relations",
   MediaPeople = "media/people",
+  // MediaDelete = "media/delete",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -183,21 +188,26 @@ export const HttpMethods: MethodList = {
   [Method.Logout]: "POST",
   [Method.Signup]: "PUT",
   [Method.CatalogCreate]: "PUT",
+  // [Method.CatalogEdit]: "PATCH",
+  // [Method.CatalogDelete]: "DELETE",
   [Method.AlbumCreate]: "PUT",
   [Method.AlbumEdit]: "PATCH",
   [Method.AlbumList]: "GET",
+  // [Method.AlbumDelete]: "DELETE",
   [Method.TagCreate]: "PUT",
   [Method.TagEdit]: "PATCH",
   [Method.TagFind]: "POST",
+  // [Method.TagDelete]: "DELETE",
   [Method.PersonCreate]: "PUT",
   [Method.PersonEdit]: "PATCH",
+  // [Method.PersonDelete]: "DELETE",
   [Method.MediaGet]: "GET",
   [Method.MediaCreate]: "PUT",
   // [Method.MediaUpdate]: "PATCH",
-  // [Method.MediaSearch]: "POST",
   [Method.MediaThumbnail]: "GET",
   [Method.MediaRelations]: "PATCH",
   [Method.MediaPeople]: "PATCH",
+  // [Method.MediaDelete]: "DELETE",
 };
 
 // Fake interface
@@ -218,21 +228,26 @@ export interface Signatures {
   [Method.Logout]: Signature<None, State>;
   [Method.Signup]: Signature<SignupRequest, State>;
   [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
+  // [Method.CatalogEdit]: Signature<CatalogEditRequest, void>;
+  // [Method.CatalogDelete]: Signature<string[], void>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
   [Method.AlbumList]: Signature<AlbumListRequest, Media[]>;
+  // [Method.AlbumDelete]: Signature<string[], void>;
   [Method.TagCreate]: Signature<Create<Tag>, Tag>;
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
   [Method.TagFind]: Signature<TagFindRequest, Tag[]>;
+  // [Method.TagDelete]: Signature<string[], void>;
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
+  // [Method.PersonDelete]: Signature<string[], void>;
   [Method.MediaGet]: Signature<MediaGetRequest, Media[]>;
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
   // [Method.MediaUpdate]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
-  // [Method.MediaSearch]: Signature<Search, MediaData[]>;
   [Method.MediaThumbnail]: Signature<MediaThumbnailRequest, Blob>;
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;
   [Method.MediaPeople]: Signature<MediaPersonLocation[], Media[]>;
+  // [Method.MediaDelete]: Signature<string[], void>;
 }
 
 export type SignatureRequest<M extends Method> =
