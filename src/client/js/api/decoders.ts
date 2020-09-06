@@ -134,3 +134,11 @@ export const MediaDecoder = new JsonDecoder.Decoder<Api.Media>((json: any): Resu
 });
 
 export const MediaArrayDecoder = JsonDecoder.array(MediaDecoder, "Media[]");
+
+export const MaybeMediaArrayDecoder = JsonDecoder.array(
+  JsonDecoder.oneOf([
+    MediaDecoder,
+    JsonDecoder.constant(null),
+  ], "Media | null"),
+  "(Media | null)[]",
+);

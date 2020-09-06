@@ -2,7 +2,7 @@ import { expect as jestExpect } from "@jest/globals";
 import moment from "moment";
 import { isMoment, Moment } from "moment-timezone";
 
-import { Api, ResponseFor } from "../../../model";
+import { Api } from "../../../model";
 import { deferCall, DeferredCall } from "../../../test-helpers";
 import { request } from "../api/api";
 import { ErrorCode, AppError } from "../utils/exception";

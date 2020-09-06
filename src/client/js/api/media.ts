@@ -9,11 +9,16 @@ import { mediaIntoState, MediaState } from "./types";
 
 export type MediaTarget = Catalog | Album;
 
-export async function getMedia(ids: string[]): Promise<MediaState[]> {
+export async function getMedia(ids: string[]): Promise<(MediaState | null)[]> {
   let media = await request(Api.Method.MediaGet, {
     id: ids.join(","),
   });
-  return media.map(mediaIntoState);
+  return media.map((media: Api.Media | null): MediaState | null => {
+    if (media) {
+      return mediaIntoState(media);
+    }
+    return null;
+  });
 }
 
 export type MediaCreateData = Overwrite<MediaCreateRequest, {
