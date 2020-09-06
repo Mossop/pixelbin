@@ -34,15 +34,23 @@ export function buildResponseMedia(
   }
 }
 
+function buildMaybeResponseMedia(media: Media | null): ResponseFor<Api.Media> | null {
+  if (!media) {
+    return null;
+  }
+
+  return buildResponseMedia(media);
+}
+
 export const getMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: Api.MediaGetRequest,
-  ): Promise<ResponseFor<Api.Media>[]> => {
+  ): Promise<(ResponseFor<Api.Media> | null)[]> => {
     let ids = data.id.split(",");
     let media = await userDb.getMedia(ids);
-    return media.map(buildResponseMedia);
+    return media.map(buildMaybeResponseMedia);
   },
 );
 
@@ -61,9 +69,15 @@ export const createMedia = ensureAuthenticatedTransaction(
       ...mediaData
     } = data;
 
-    let selectedTags: string[] = [];
+    let createdMedia = await userDb.createMedia(catalog, fillMetadata(mediaData));
+
+    if (albums) {
+      await userDb.addMediaRelations(Api.RelationType.Album, [createdMedia.id], albums);
+    }
 
     if (tags) {
+      let selectedTags: string[] = [];
+
       for (let tag of tags) {
         if (Array.isArray(tag)) {
           if (tag.length) {
@@ -74,9 +88,9 @@ export const createMedia = ensureAuthenticatedTransaction(
           selectedTags.push(tag);
         }
       }
-    }
 
-    let createdMedia = await userDb.createMedia(catalog, fillMetadata(mediaData));
+      await userDb.addMediaRelations(Api.RelationType.Tag, [createdMedia.id], selectedTags);
+    }
 
     if (people) {
       let peopleToAdd: string[] = [];
@@ -112,15 +126,13 @@ export const createMedia = ensureAuthenticatedTransaction(
       }
     }
 
-    if (albums) {
-      await userDb.addMediaRelations(Api.RelationType.Album, [createdMedia.id], albums);
-    }
-
-    if (selectedTags.length) {
-      await userDb.addMediaRelations(Api.RelationType.Tag, [createdMedia.id], selectedTags);
-    }
-
     let [media] = await userDb.getMedia([createdMedia.id]);
+    if (!media) {
+      throw new ApiError(Api.ErrorCode.UnknownException, {
+        message: "Creating new media failed for an unknown reason.",
+      });
+    }
+
     let storage = await ctx.storage.getStorage(data.catalog);
     await storage.get().copyUploadedFile(media.id, file.path, file.name);
     storage.release();
@@ -137,6 +149,115 @@ export const createMedia = ensureAuthenticatedTransaction(
   },
 );
 
+export const updateMedia = ensureAuthenticatedTransaction(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: DeBlobbed<Api.MediaUpdateRequest>,
+  ): Promise<ResponseFor<Api.Media>> => {
+    let {
+      file,
+      id,
+      albums,
+      tags,
+      people,
+      ...mediaData
+    } = data;
+
+    let media: Media;
+    if (!Object.values(mediaData).every((val: unknown): boolean => val === undefined)) {
+      media = await userDb.editMedia(id, mediaData);
+    } else {
+      let [foundMedia] = await userDb.getMedia([id]);
+      if (!foundMedia) {
+        throw new ApiError(Api.ErrorCode.NotFound, {
+          message: "Media does not exist.",
+        });
+      }
+      media = foundMedia;
+    }
+
+    if (albums) {
+      await userDb.setMediaRelations(Api.RelationType.Album, [media.id], albums);
+    }
+
+    if (tags) {
+      let selectedTags: string[] = [];
+
+      for (let tag of tags) {
+        if (Array.isArray(tag)) {
+          if (tag.length) {
+            let newTags = await userDb.buildTags(media.catalog, tag);
+            selectedTags.push(newTags[newTags.length - 1].id);
+          }
+        } else {
+          selectedTags.push(tag);
+        }
+      }
+
+      await userDb.setMediaRelations(Api.RelationType.Tag, [media.id], selectedTags);
+    }
+
+    if (people) {
+      let peopleToAdd: string[] = [];
+      let locations: Api.MediaPersonLocation[] = [];
+
+      for (let person of people) {
+        if (typeof person == "string") {
+          peopleToAdd.push(person);
+        } else if ("id" in person) {
+          locations.push({
+            media: media.id,
+            person: person.id,
+            location: person.location,
+          });
+        } else {
+          let newPerson = await userDb.createPerson(media.catalog, {
+            name: person.name,
+          });
+          locations.push({
+            media: media.id,
+            person: newPerson.id,
+            location: person.location,
+          });
+        }
+      }
+
+      if (locations.length) {
+        await userDb.setMediaRelations(Api.RelationType.Person, [media.id], []);
+        await userDb.setPersonLocations(locations);
+        await userDb.addMediaRelations(Api.RelationType.Person, [media.id], peopleToAdd);
+      } else {
+        await userDb.setMediaRelations(Api.RelationType.Person, [media.id], peopleToAdd);
+      }
+    }
+
+    if (albums || people || tags) {
+      let [foundMedia] = await userDb.getMedia([id]);
+      if (!foundMedia) {
+        throw new ApiError(Api.ErrorCode.UnknownException);
+      }
+      media = foundMedia;
+    }
+
+    if (file) {
+      let storage = await ctx.storage.getStorage(media.catalog);
+      await storage.get().copyUploadedFile(media.id, file.path, file.name);
+      storage.release();
+
+      try {
+        await fs.unlink(file.path);
+      } catch (e) {
+        ctx.logger.warn(e, "Failed to delete temporary file.");
+      }
+
+      ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
+    }
+
+    return buildResponseMedia(media);
+  },
+);
+
 export const thumbnail = ensureAuthenticated(
   async (
     ctx: AppContext,
@@ -145,7 +266,6 @@ export const thumbnail = ensureAuthenticated(
   ): Promise<DirectResponse> => {
     let [media] = await userDb.getMedia([data.id]);
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!media) {
       throw new ApiError(Api.ErrorCode.NotFound, {
         message: "Media does not exist.",
@@ -178,6 +298,10 @@ export const thumbnail = ensureAuthenticated(
   },
 );
 
+function isMedia(item: Media | null): item is Media {
+  return !!item;
+}
+
 export const relations = ensureAuthenticatedTransaction(
   async (
     ctx: AppContext,
@@ -201,7 +325,8 @@ export const relations = ensureAuthenticatedTransaction(
     }
 
     let results = await userDb.getMedia(Array.from(media.values()));
-    return results.map(buildResponseMedia);
+    return results.filter(isMedia)
+      .map(buildResponseMedia);
   },
 );
 
@@ -221,6 +346,7 @@ export const setMediaPeople = ensureAuthenticated(
     await userDb.setPersonLocations([...changes.values()]);
 
     let results = await userDb.getMedia([...includedMedia]);
-    return results.map(buildResponseMedia);
+    return results.filter(isMedia)
+      .map(buildResponseMedia);
   },
 );

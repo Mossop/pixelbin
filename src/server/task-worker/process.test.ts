@@ -7,9 +7,10 @@ import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
-import { fillMetadata } from "../database";
+import { DatabaseConnection, fillMetadata } from "../database";
 import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
 import { AlternateFile } from "../database/types/tables";
+import { OriginalInfo } from "../database/unsafe";
 import { StorageService } from "../storage";
 import { encodeVideo, AudioCodec, VideoCodec, Container, VideoInfo } from "./ffmpeg";
 import { handleUploadedFile, MEDIA_THUMBNAIL_SIZES } from "./process";
@@ -486,6 +487,228 @@ test("Process video metadata", async (): Promise<void> => {
     [media.id, expect.anything(), "Testvideo.mp4", sourceFile],
     [media.id, storeFileMock.mock.calls[0][1], "Testvideo-h264.mp4", lastEncodeArgs[4]],
   ]);
+
+  await temp.cleanup();
+});
+
+test("reprocess", async (): Promise<void> => {
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+
+  let temp = await tmpdir({
+    unsafeCleanup: true,
+  });
+
+  const storage = (await (await services.storage).getStorage("")).get();
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
+
+  let media = await user1Db.createMedia("c1", fillMetadata({
+    photographer: "Dave",
+  }));
+
+  let originalUploaded = moment("2020-01-01T02:56:53");
+
+  await dbConnection.withNewOriginal(media.id, fillMetadata({
+    processVersion: 1,
+    city: "London",
+    uploaded: originalUploaded,
+    fileName: "old.jpg",
+    fileSize: 1000,
+    mimetype: "image/jpeg",
+    width: 100,
+    height: 200,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  }), (dbConnection: DatabaseConnection, original: OriginalInfo): Promise<OriginalInfo> => {
+    return Promise.resolve(original);
+  });
+
+  let [foundMedia] = await user1Db.getMedia([media.id]);
+  expect(foundMedia).toEqual(fillMetadata({
+    id: media.id,
+    created: expect.anything(),
+    catalog: "c1",
+    uploaded: expect.toEqualDate(originalUploaded),
+    fileSize: 1000,
+    mimetype: "image/jpeg",
+    width: 100,
+    height: 200,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+    city: "London",
+    photographer: "Dave",
+    albums: [],
+    people: [],
+    tags: [],
+  }));
+
+  let uploaded = moment("2020-01-02T02:56:53");
+  let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
+
+  getUploadedFileMock.mockResolvedValueOnce({
+    name: "Testname.jpg",
+    uploaded,
+    path: sourceFile,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
+  getLocalFilePathMock.mockImplementation(
+    (media: string, original: string, name: string): Promise<string> => {
+      return Promise.resolve(path.join(temp.path, name));
+    },
+  );
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let storeFileMock = mockedFunction(storage.storeFile);
+
+  await handleUploadedFile(media.id);
+
+  expect(deleteUploadedFileMock).toHaveBeenCalledTimes(1);
+  expect(deleteUploadedFileMock).toHaveBeenLastCalledWith(media.id);
+
+  let [fullMedia] = await user1Db.getMedia([media.id]);
+  expect(fullMedia).toEqual({
+    id: media.id,
+    catalog: "c1",
+    created: media.created,
+
+    uploaded: expect.toEqualDate(uploaded),
+    mimetype: "image/jpeg",
+    width: 500,
+    height: 331,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+    fileSize: 55084,
+
+    filename: "Testname.jpg",
+    title: null,
+    taken: expect.toEqualDate("2018-08-22T18:51:25.800-07:00"),
+    timeZone: "America/Los_Angeles",
+    longitude: -121.517784,
+    latitude: 45.715054,
+    altitude: 28.4597,
+    location: "Hood River Waterfront Park",
+    city: "Hood River",
+    state: "Oregon",
+    country: "USA",
+    orientation: null,
+    make: "NIKON CORPORATION",
+    model: "NIKON D7000",
+    lens: "18.0-200.0 mm f/3.5-5.6",
+    photographer: "Dave",
+    aperture: 11,
+    exposure: 1,
+    iso: 400,
+    focalLength: 95,
+    rating: 4,
+
+    albums: [],
+    tags: [],
+    people: [],
+  });
+
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(5);
+
+  for (let size of MEDIA_THUMBNAIL_SIZES) {
+    let expectedFile = path.join(temp.path, `Testname-${size}.jpg`);
+    let buffer = await sharp(expectedFile).png().toBuffer();
+    expect(buffer).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-${size}`,
+    });
+  }
+
+  let thumbnails = await user1Db.listAlternateFiles(
+    media.id,
+    AlternateFileType.Thumbnail,
+  );
+  expect(thumbnails).toHaveLength(MEDIA_THUMBNAIL_SIZES.length);
+  thumbnails.sort((a: AlternateFile, b: AlternateFile): number => {
+    return a.width - b.width;
+  });
+
+  expect(
+    thumbnails.map((t: AlternateFile): number => t.width),
+  ).toEqual(MEDIA_THUMBNAIL_SIZES);
+
+  expect(thumbnails).toEqual([{
+    "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    "original": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    "type": AlternateFileType.Thumbnail,
+    "fileName": "Testname-150.jpg",
+    "fileSize": 2883,
+    "mimetype": "image/jpeg",
+    "width": 150,
+    "height": 99,
+    "frameRate": null,
+    "bitRate": null,
+    "duration": null,
+  }, {
+    "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    "original": thumbnails[0].original,
+    "type": AlternateFileType.Thumbnail,
+    "fileName": "Testname-200.jpg",
+    "fileSize": 3997,
+    "mimetype": "image/jpeg",
+    "width": 200,
+    "height": 132,
+    "frameRate": null,
+    "bitRate": null,
+    "duration": null,
+  }, {
+    "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    "original": thumbnails[0].original,
+    "type": AlternateFileType.Thumbnail,
+    "fileName": "Testname-300.jpg",
+    "fileSize": 7328,
+    "mimetype": "image/jpeg",
+    "width": 300,
+    "height": 199,
+    "frameRate": null,
+    "bitRate": null,
+    "duration": null,
+  }, {
+    "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    "original": thumbnails[0].original,
+    "type": AlternateFileType.Thumbnail,
+    "fileName": "Testname-400.jpg",
+    "fileSize": 11198,
+    "mimetype": "image/jpeg",
+    "width": 400,
+    "height": 265,
+    "frameRate": null,
+    "bitRate": null,
+    "duration": null,
+  }, {
+    "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    "original": thumbnails[0].original,
+    "type": AlternateFileType.Thumbnail,
+    "fileName": "Testname-500.jpg",
+    "fileSize": 17336,
+    "mimetype": "image/jpeg",
+    "width": 500,
+    "height": 331,
+    "frameRate": null,
+    "bitRate": null,
+    "duration": null,
+  }]);
+
+  expect(storeFileMock).toHaveBeenCalledTimes(1);
+  expect(storeFileMock).toHaveBeenLastCalledWith(
+    media.id,
+    expect.anything(),
+    "Testname.jpg",
+    sourceFile,
+  );
+
+  expect(mockedEncodeVideo).not.toHaveBeenCalled();
 
   await temp.cleanup();
 });

@@ -336,8 +336,31 @@ test("Media tests", async (): Promise<void> => {
   }))).rejects.toThrow("Unknown Media");
 
   // Cannot get media in a catalog the user cannot access.
-  [foundMedia] = await user3Db.getMedia([newMedia.id]);
-  expect(foundMedia).toBeUndefined();
+  let found = await user3Db.getMedia([newMedia.id]);
+  expect(found).toEqual([
+    null,
+  ]);
+
+  found = await user3Db.getMedia([
+    id,
+    newMedia.id,
+    id,
+    newMedia.id,
+    id,
+  ]);
+  expect(found).toEqual([
+    expect.objectContaining({
+      id,
+    }),
+    null,
+    expect.objectContaining({
+      id,
+    }),
+    null,
+    expect.objectContaining({
+      id,
+    }),
+  ]);
 
   // Cannot list alternates for media the user cannot access.
   list = await user2Db.listAlternateFiles(id, AlternateFileType.Poster);

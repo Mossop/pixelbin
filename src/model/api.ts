@@ -102,9 +102,15 @@ export type MediaCreateRequest =
     people?: SelectedPerson[];
   };
 
-export type MediaUpdateRequest = Partial<Omit<MediaCreateRequest, "catalog">> & {
-  id: string;
-};
+export type MediaUpdateRequest =
+  Partial<Omit<ObjectModel.Media, "id" | "created" | "catalog">> &
+  Partial<Nullable<ObjectModel.Metadata>> & {
+    id: string;
+    file?: Blob;
+    albums?: string[];
+    tags?: SelectedTag[];
+    people?: SelectedPerson[];
+  };
 
 export interface MediaThumbnailRequest {
   id: string;
@@ -181,7 +187,7 @@ export enum Method {
   // PersonDelete = "person/delete",
   MediaGet = "media/get",
   MediaCreate = "media/create",
-  // MediaUpdate = "media/update",
+  MediaEdit = "media/edit",
   MediaThumbnail = "media/thumbnail",
   MediaRelations = "media/relations",
   MediaPeople = "media/people",
@@ -212,7 +218,7 @@ export const HttpMethods: MethodList = {
   // [Method.PersonDelete]: "DELETE",
   [Method.MediaGet]: "GET",
   [Method.MediaCreate]: "PUT",
-  // [Method.MediaUpdate]: "PATCH",
+  [Method.MediaEdit]: "PATCH",
   [Method.MediaThumbnail]: "GET",
   [Method.MediaRelations]: "PATCH",
   [Method.MediaPeople]: "PATCH",
@@ -250,9 +256,9 @@ export interface Signatures {
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   // [Method.PersonDelete]: Signature<string[], void>;
-  [Method.MediaGet]: Signature<MediaGetRequest, Media[]>;
+  [Method.MediaGet]: Signature<MediaGetRequest, (Media | null)[]>;
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
-  // [Method.MediaUpdate]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
+  [Method.MediaEdit]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
   [Method.MediaThumbnail]: Signature<MediaThumbnailRequest, Blob>;
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;
   [Method.MediaPeople]: Signature<MediaPersonLocation[], Media[]>;

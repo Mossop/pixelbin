@@ -209,6 +209,342 @@ test("Media upload", async (): Promise<void> => {
   }));
 });
 
+test("Media edit", async (): Promise<void> => {
+  const request = agent();
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+  const storageService = new StorageService({
+    tempDirectory: "",
+    localDirectory: "",
+  }, dbConnection);
+  const storage = (await storageService.getStorage("")).get();
+
+  /* eslint-disable @typescript-eslint/unbound-method */
+  let getStorageMock = mockedFunction(storageService.getStorage);
+  getStorageMock.mockClear();
+
+  let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
+  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
+  let copyUploadedFileMock = mockedFunction(storage.copyUploadedFile);
+  /* eslint-enable @typescript-eslint/unbound-method */
+
+  let newMedia: Api.Media | null = await user1Db.createMedia("c1", fillMetadata({
+    title: "My title",
+  }));
+
+  await user1Db.addMediaRelations(Api.RelationType.Album, [newMedia.id], ["a1"]);
+  await user1Db.addMediaRelations(Api.RelationType.Tag, [newMedia.id], ["t1"]);
+  await user1Db.setPersonLocations([{
+    media: newMedia.id,
+    person: "p1",
+    location: {
+      left: 0,
+      right: 1,
+      top: 0,
+      bottom: 1,
+    },
+  }, {
+    media: newMedia.id,
+    person: "p2",
+  }]);
+
+  [newMedia] = await user1Db.getMedia([newMedia.id]);
+
+  expect(newMedia).toEqual(fillMetadata({
+    id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
+    catalog: "c1",
+    created: expect.anything(),
+
+    title: "My title",
+
+    albums: [{
+      catalog: "c1",
+      id: "a1",
+      name: "Album 1",
+      parent: null,
+    }],
+    tags: [{
+      catalog: "c1",
+      id: "t1",
+      name: "tag1",
+      parent: null,
+    }],
+    people: [{
+      catalog: "c1",
+      id: "p1",
+      name: "Person 1",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }, {
+      catalog: "c1",
+      id: "p2",
+      name: "Person 2",
+      location: null,
+    }],
+  }));
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .patch("/api/media/edit")
+    .send({
+      id: newMedia?.id,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual(fillMetadata({
+    id: newMedia?.id,
+    catalog: "c1",
+    created: expect.toEqualDate(newMedia?.created ?? ""),
+
+    title: "My title",
+
+    albums: [{
+      catalog: "c1",
+      id: "a1",
+      name: "Album 1",
+      parent: null,
+    }],
+    tags: [{
+      catalog: "c1",
+      id: "t1",
+      name: "tag1",
+      parent: null,
+    }],
+    people: [{
+      catalog: "c1",
+      id: "p1",
+      name: "Person 1",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }, {
+      catalog: "c1",
+      id: "p2",
+      name: "Person 2",
+      location: null,
+    }],
+  }));
+
+  expect(getStorageMock).not.toHaveBeenCalled();
+  expect(copyUploadedFileMock).not.toHaveBeenCalled();
+  expect(getUploadedFileMock).not.toHaveBeenCalled();
+  expect(deleteUploadedFileMock).not.toHaveBeenCalled();
+  expect(parent.handleUploadedFile).not.toHaveBeenCalled();
+
+  response = await request
+    .patch("/api/media/edit")
+    .send({
+      id: newMedia?.id,
+      title: "New title",
+      albums: ["a2"],
+      tags: [
+        "t2",
+        ["tag1", "new tag"],
+      ],
+      people: ["p1"],
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual(fillMetadata({
+    id: newMedia?.id,
+    catalog: "c1",
+    created: expect.toEqualDate(newMedia?.created ?? ""),
+
+    title: "New title",
+
+    albums: [{
+      catalog: "c1",
+      id: "a2",
+      name: "Album 2",
+      parent: null,
+    }],
+    tags: [{
+      catalog: "c1",
+      id: "t2",
+      name: "tag2",
+      parent: null,
+    }, {
+      catalog: "c1",
+      id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
+      name: "new tag",
+      parent: "t1",
+    }],
+    people: [{
+      catalog: "c1",
+      id: "p1",
+      name: "Person 1",
+      location: {
+        left: 0,
+        right: 1,
+        top: 0,
+        bottom: 1,
+      },
+    }],
+  }));
+
+  expect(getStorageMock).not.toHaveBeenCalled();
+  expect(copyUploadedFileMock).not.toHaveBeenCalled();
+  expect(getUploadedFileMock).not.toHaveBeenCalled();
+  expect(deleteUploadedFileMock).not.toHaveBeenCalled();
+  expect(parent.handleUploadedFile).not.toHaveBeenCalled();
+
+  response = await request
+    .patch("/api/media/edit")
+    .send({
+      id: newMedia?.id,
+      city: "Portland",
+      albums: [],
+      people: [],
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual(fillMetadata({
+    id: newMedia?.id,
+    catalog: "c1",
+    created: expect.toEqualDate(newMedia?.created ?? ""),
+
+    title: "New title",
+    city: "Portland",
+
+    albums: [],
+    tags: [{
+      catalog: "c1",
+      id: "t2",
+      name: "tag2",
+      parent: null,
+    }, {
+      catalog: "c1",
+      id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
+      name: "new tag",
+      parent: "t1",
+    }],
+    people: [],
+  }));
+
+  expect(getStorageMock).not.toHaveBeenCalled();
+  expect(copyUploadedFileMock).not.toHaveBeenCalled();
+  expect(getUploadedFileMock).not.toHaveBeenCalled();
+  expect(deleteUploadedFileMock).not.toHaveBeenCalled();
+  expect(parent.handleUploadedFile).not.toHaveBeenCalled();
+
+  let copyCall = deferCall(copyUploadedFileMock);
+
+  let responsePromise = request
+    .patch("/api/media/edit")
+    .field("id", newMedia?.id ?? "")
+    .field("city", "London")
+    .field("albums[0]", "a1")
+    .attach("file", Buffer.from("my file contents"), {
+      filename: "myfile.jpg",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200)
+    .then();
+
+  let args = await copyCall.call;
+  expect(args).toHaveLength(3);
+  expect(args[0]).toBe(newMedia?.id);
+  expect(args[2]).toBe("myfile.jpg");
+
+  let path = args[1];
+  let stats = await fs.stat(path);
+  expect(stats.isFile()).toBeTruthy();
+
+  let contents = await fs.readFile(path, {
+    encoding: "utf8",
+  });
+
+  expect(contents).toBe("my file contents");
+
+  copyCall.resolve();
+
+  response = await responsePromise;
+
+  expect(response.body).toEqual(fillMetadata({
+    id: newMedia?.id,
+    catalog: "c1",
+    created: expect.toEqualDate(newMedia?.created ?? ""),
+
+    title: "New title",
+    city: "London",
+
+    albums: [{
+      catalog: "c1",
+      id: "a1",
+      parent: null,
+      name: "Album 1",
+    }],
+    tags: [{
+      catalog: "c1",
+      id: "t2",
+      name: "tag2",
+      parent: null,
+    }, {
+      catalog: "c1",
+      id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
+      name: "new tag",
+      parent: "t1",
+    }],
+    people: [],
+  }));
+
+  expect(parent.handleUploadedFile).toHaveBeenCalledTimes(1);
+  expect(parent.handleUploadedFile).toHaveBeenLastCalledWith(newMedia?.id);
+
+  expect(getStorageMock).toHaveBeenCalledTimes(1);
+  expect(getStorageMock).toHaveBeenLastCalledWith("c1");
+
+  expect(getUploadedFileMock).not.toHaveBeenCalled();
+  expect(deleteUploadedFileMock).not.toHaveBeenCalled();
+
+  expect(copyUploadedFileMock).toHaveBeenCalledTimes(1);
+
+  await expect(fs.stat(path)).rejects.toThrowError("no such file or directory");
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone3@nowhere.com",
+      password: "password3",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  await request
+    .patch("/api/media/edit")
+    .send({
+      id: newMedia?.id,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(404);
+
+  await request
+    .patch("/api/media/edit")
+    .send({
+      id: "foo",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(404);
+});
+
 test("Media thumbnail", async (): Promise<void> => {
   const request = agent();
   const storageService = new StorageService({

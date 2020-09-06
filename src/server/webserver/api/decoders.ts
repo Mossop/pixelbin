@@ -6,8 +6,10 @@ import { JsonDecoder } from "ts.data.json";
 import { Api, Create, Patch } from "../../../model";
 import { getLogger, DateDecoder, NumericDecoder, MappingDecoder } from "../../../utils";
 
+type DeBlob<T> = T extends Blob ? File : T;
+
 export type DeBlobbed<T> = {
-  [K in keyof T]: T[K] extends Blob ? File : T[K];
+  [K in keyof T]: DeBlob<T[K]>;
 };
 
 const logger = getLogger("jsonDecoder");
@@ -135,6 +137,33 @@ const SelectedPersonDecoder = JsonDecoder.oneOf<Api.SelectedPerson>([
   }, "Person"),
 ], "SelectedPerson");
 
+const mediaFields = {
+  filename: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  title: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  taken: JsonDecoder.optional(JsonDecoder.nullable(DateDecoder)),
+  timeZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  longitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  latitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  altitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  location: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  city: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  state: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  country: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  orientation: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  make: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  model: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  lens: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  photographer: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  aperture: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  exposure: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  iso: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  focalLength: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  rating: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
+  tags: JsonDecoder.optional(JsonDecoder.array(SelectedTagDecoder, "SelectedTag[]")),
+  people: JsonDecoder.optional(JsonDecoder.array(SelectedPersonDecoder, "SelectedPerson[]")),
+};
+
 export async function MediaCreateRequest(
   data: unknown,
   files: Files | undefined,
@@ -158,30 +187,7 @@ export async function MediaCreateRequest(
   let decoder = JsonDecoder.object<DeBlobbed<Api.MediaCreateRequest>>({
     file: JsonDecoder.constant(files.file),
     catalog: JsonDecoder.string,
-    filename: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    title: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    taken: JsonDecoder.optional(JsonDecoder.nullable(DateDecoder)),
-    timeZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    longitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    latitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    altitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    location: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    city: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    state: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    country: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    orientation: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    make: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    model: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    lens: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    photographer: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-    aperture: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    exposure: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    iso: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    focalLength: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    rating: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-    albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
-    tags: JsonDecoder.optional(JsonDecoder.array(SelectedTagDecoder, "SelectedTag[]")),
-    people: JsonDecoder.optional(JsonDecoder.array(SelectedPersonDecoder, "SelectedPerson[]")),
+    ...mediaFields,
   }, "MediaCreateRequest");
 
   try {
@@ -191,6 +197,45 @@ export async function MediaCreateRequest(
       await fs.unlink(files.file.path);
     } catch (e) {
       logger.warn(e, `Failed to delete temporary file ${files.file.path}`);
+    }
+
+    throw e;
+  }
+}
+
+export async function MediaUpdateRequest(
+  data: unknown,
+  files: Files | undefined,
+): Promise<DeBlobbed<Api.MediaUpdateRequest>> {
+  if (files) {
+    for (let [name, file] of Object.entries(files)) {
+      if (name == "file") {
+        continue;
+      }
+
+      try {
+        await fs.unlink(file.path);
+      } catch (e) {
+        logger.warn(e, `Failed to delete temporary file ${file.path}`);
+      }
+    }
+  }
+
+  let decoder = JsonDecoder.object<DeBlobbed<Api.MediaUpdateRequest>>({
+    id: JsonDecoder.string,
+    file: JsonDecoder.constant(files?.file),
+    ...mediaFields,
+  }, "MediaUpdateRequest");
+
+  try {
+    return decoder.decodePromise(data);
+  } catch (e) {
+    if (files?.file) {
+      try {
+        await fs.unlink(files.file.path);
+      } catch (e) {
+        logger.warn(e, `Failed to delete temporary file ${files.file.path}`);
+      }
     }
 
     throw e;

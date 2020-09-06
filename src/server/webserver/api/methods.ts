@@ -15,7 +15,7 @@ import {
 } from "./catalog";
 import * as Decoders from "./decoders";
 import { DeBlobbed } from "./decoders";
-import { getMedia, createMedia, thumbnail, relations, setMediaPeople } from "./media";
+import { getMedia, createMedia, updateMedia, thumbnail, relations, setMediaPeople } from "./media";
 import { getState, login, logout, signup } from "./state";
 
 export class DirectResponse {
@@ -52,6 +52,7 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.PersonEdit]: Decoders.PersonEditRequest,
   [Api.Method.MediaGet]: Decoders.MediaGetRequest,
   [Api.Method.MediaCreate]: Decoders.MediaCreateRequest,
+  [Api.Method.MediaEdit]: Decoders.MediaUpdateRequest,
   [Api.Method.MediaThumbnail]: Decoders.MediaThumbnailRequest,
   [Api.Method.MediaRelations]: Decoders.MediaRelationsRequest,
   [Api.Method.MediaPeople]: Decoders.MediaPersonLocations,
@@ -80,6 +81,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.PersonEdit]: editPerson,
   [Api.Method.MediaGet]: getMedia,
   [Api.Method.MediaCreate]: createMedia,
+  [Api.Method.MediaEdit]: updateMedia,
   [Api.Method.MediaThumbnail]: thumbnail,
   [Api.Method.MediaRelations]: relations,
   [Api.Method.MediaPeople]: setMediaPeople,

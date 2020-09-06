@@ -80,7 +80,15 @@ export async function editMedia(
         throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Media record.");
       }
 
-      return (await userDb.getMedia([id]))[0];
+      let edited = (await userDb.getMedia([id]))[0];
+      if (!edited) {
+        throw new DatabaseError(
+          DatabaseErrorCode.UnknownError,
+          "Failed to find edited Media record.",
+        );
+      }
+
+      return edited;
     },
   );
 }
@@ -88,8 +96,8 @@ export async function editMedia(
 export async function getMedia(
   this: UserScopedConnection,
   ids: Tables.StoredMedia["id"][],
-): Promise<Media[]> {
-  let results = await from(this.knex, Table.StoredMediaDetail)
+): Promise<(Media | null)[]> {
+  let foundMedia = await from(this.knex, Table.StoredMediaDetail)
     .join(
       Table.UserCatalog,
       ref(Table.UserCatalog, "catalog"),
@@ -99,7 +107,7 @@ export async function getMedia(
     .whereIn(ref(Table.StoredMediaDetail, "id"), ids)
     .select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
 
-  let sorted = results.map((item: Tables.StoredMedia): Media => {
+  let mapped = foundMedia.map((item: Tables.StoredMedia): Media => {
     let forApi = intoAPITypes(item);
 
     if (forApi.uploaded) {
@@ -120,10 +128,13 @@ export async function getMedia(
 
     return unprocessed;
   });
-  sorted.sort((a: Media, b: Media): number => {
-    return ids.indexOf(a.id) - ids.indexOf(b.id);
-  });
-  return sorted;
+
+  let results: (Media | null)[] = [];
+  for (let id of ids) {
+    results.push(mapped.find((media: Media): boolean => media.id == id) ?? null);
+  }
+
+  return results;
 }
 
 export async function listAlternateFiles(
