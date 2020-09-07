@@ -234,6 +234,19 @@ export function apiRequestHandler<T extends Api.Method>(
       if (ctx.request.method == "GET") {
         ctx.logger.trace({ data: ctx.request.query }, "Decoding query");
         body = decodeBody(ctx.request.query);
+      } else if (ctx.request.type == "multipart/form-data" &&
+        body.json && Object.keys(body).length == 1) {
+        try {
+          body = JSON.parse(body.json);
+        } catch (e) {
+          ctx.logger.warn({
+            data: body.json,
+            exception: e,
+          }, "Client provided invalid json data.");
+          throw new ApiError(Api.ErrorCode.InvalidData, {
+            message: String(e),
+          });
+        }
       } else if (!ctx.request.type.endsWith("/json")) {
         ctx.logger.trace({ data: body }, "Decoding body");
         body = decodeBody(body);

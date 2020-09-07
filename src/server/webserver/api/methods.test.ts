@@ -1,5 +1,11 @@
+import { insertTestData } from "../../database/test-helpers";
 import { ApiError } from "../error";
+import { buildTestApp } from "../test-helpers";
 import { decodeBody } from "./methods";
+
+const agent = buildTestApp();
+
+beforeEach(insertTestData);
 
 test("body decode", (): void => {
   expect(decodeBody({
@@ -54,4 +60,41 @@ test("body decode", (): void => {
     "a[0]": 5,
     "a.b": 6,
   })).toThrow(ApiError);
+});
+
+test("formdata decoding", async (): Promise<void> => {
+  const request = agent();
+
+  await request
+    .post("/api/login")
+    .field("json", JSON.stringify({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    }))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .put("/api/catalog/create")
+    .field("json", JSON.stringify({
+      storage: {
+        name: "My storage",
+        accessKeyId: "foo",
+        secretAccessKey: "bar",
+        region: "Anywhere",
+        endpoint: null,
+        bucket: "buckit",
+        path: null,
+        publicUrl: null,
+      },
+      name: "Good user",
+    }))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    id: expect.stringMatching(/^C:[a-zA-Z0-9]+/),
+    storage: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+    name: "Good user",
+  });
 });

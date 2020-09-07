@@ -142,3 +142,8 @@ export const MaybeMediaArrayDecoder = JsonDecoder.array(
   ], "Media | null"),
   "(Media | null)[]",
 );
+
+export const ErrorDataDecoder = JsonDecoder.object<Api.ErrorData>({
+  code: JsonDecoder.string as JsonDecoder.Decoder<Api.ErrorCode>,
+  data: JsonDecoder.optional(JsonDecoder.dictionary(JsonDecoder.string, "ErrorData")),
+}, "ErrorData");
