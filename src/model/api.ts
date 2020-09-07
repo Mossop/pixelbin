@@ -191,7 +191,7 @@ export enum Method {
   MediaThumbnail = "media/thumbnail",
   MediaRelations = "media/relations",
   MediaPeople = "media/people",
-  // MediaDelete = "media/delete",
+  MediaDelete = "media/delete",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -222,7 +222,7 @@ export const HttpMethods: MethodList = {
   [Method.MediaThumbnail]: "GET",
   [Method.MediaRelations]: "PATCH",
   [Method.MediaPeople]: "PATCH",
-  // [Method.MediaDelete]: "DELETE",
+  [Method.MediaDelete]: "DELETE",
 };
 
 // Fake interface
@@ -262,7 +262,7 @@ export interface Signatures {
   [Method.MediaThumbnail]: Signature<MediaThumbnailRequest, Blob>;
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;
   [Method.MediaPeople]: Signature<MediaPersonLocation[], Media[]>;
-  // [Method.MediaDelete]: Signature<string[], void>;
+  [Method.MediaDelete]: Signature<string[], void>;
 }
 
 export type SignatureRequest<M extends Method> =

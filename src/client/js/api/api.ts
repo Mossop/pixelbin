@@ -10,6 +10,7 @@ import {
   makeRequest,
   QueryRequestData,
   RequestData,
+  VoidDecoder,
 } from "./helpers";
 
 export type RequestType<T extends Api.Method> =
@@ -45,6 +46,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.MediaThumbnail]: BlobDecoder,
   [Api.Method.MediaRelations]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Api.Method.MediaPeople]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Api.Method.MediaDelete]: VoidDecoder,
 };
 
 export function request<T extends Api.Method>(
