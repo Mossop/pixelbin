@@ -47,8 +47,8 @@ test("Get media", async (): Promise<void> => {
 
   expect(result).toEqual(media);
 
-  expect(isProcessed(result)).toBeFalsy();
-  expect(isUnprocessed(result)).toBeTruthy();
+  expect(isProcessed(result!)).toBeFalsy();
+  expect(isUnprocessed(result!)).toBeTruthy();
 
   let info = callInfo(mockedFetch);
   expect(info).toEqual({
