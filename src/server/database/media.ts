@@ -123,6 +123,8 @@ export async function getMedia(
       duration,
       frameRate,
       bitRate,
+      original,
+      fileName,
       ...unprocessed
     } = forApi;
 
@@ -160,4 +162,15 @@ export async function listAlternateFiles(
     .where(ref(Table.AlternateFile, "type"), type)
     .where("Uploaded.media", id)
     .select(ref(Table.AlternateFile));
+}
+
+export async function deleteMedia(this: UserScopedConnection, ids: string[]): Promise<void> {
+  let catalogs = from(this.knex, Table.UserCatalog)
+    .where("user", this.user)
+    .select("catalog");
+
+  await from(this.knex, Table.Media)
+    .whereIn(ref(Table.Media, "catalog"), catalogs)
+    .whereIn(ref(Table.Media, "id"), ids)
+    .delete();
 }

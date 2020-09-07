@@ -1,11 +1,11 @@
 import moment, { Moment } from "moment-timezone";
 
-import { AlternateFileType } from "../../model";
+import { AlternateFileType, Api } from "../../model";
 import { expect, realMoment, mockMoment } from "../../test-helpers";
 import { DatabaseConnection } from "./connection";
 import { fillMetadata } from "./media";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
-import { Tables } from "./types";
+import { Table, Tables } from "./types";
 import { OriginalInfo } from "./unsafe";
 
 jest.mock("moment-timezone", (): unknown => {
@@ -24,6 +24,11 @@ buildTestDB();
 beforeEach((): Promise<void> => {
   return insertTestData();
 });
+
+async function countRecords(connection: DatabaseConnection, table: Table): Promise<number> {
+  let results = await connection.knex(table).select();
+  return results.length;
+}
 
 function createOriginal(
   connection: DatabaseConnection,
@@ -135,6 +140,8 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
+    fileName: "biz.jpg",
+    original: info.id,
 
     albums: [],
     tags: [],
@@ -164,6 +171,8 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 1000,
+    fileName: "biz.jpg",
+    original: info.id,
 
     albums: [],
     tags: [],
@@ -224,6 +233,8 @@ test("Media tests", async (): Promise<void> => {
     bitRate: null,
     frameRate: null,
     fileSize: 2000,
+    fileName: "bar.jpg",
+    original: info.id,
 
     albums: [],
     tags: [],
@@ -372,4 +383,66 @@ test("Media tests", async (): Promise<void> => {
   }));
 
   expect(newMedia["bob"]).toBeUndefined();
+
+  await user3Db.addMediaRelations(Api.RelationType.Album, [id], ["a8"]);
+  await user3Db.addMediaRelations(Api.RelationType.Tag, [id], ["t4"]);
+  await user3Db.addMediaRelations(Api.RelationType.Person, [id], ["p4"]);
+
+  let [updated] = await user3Db.getMedia([id]);
+  expect(updated).toEqual(fillMetadata({
+    id: id,
+    catalog: "c3",
+    created: expect.toEqualDate(createdMoment),
+
+    title: "Different title", // OriginalInfo set
+    model: "Some model", // OriginalInfo set
+    city: "Portland", // Media set
+
+    uploaded: expect.toEqualDate(uploaded2Moment),
+    mimetype: "image/jpeg",
+    width: 2048,
+    height: 1024,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+    fileSize: 2000,
+    fileName: "bar.jpg",
+    original: info.id,
+
+    albums: [{
+      id: "a8",
+      catalog: "c3",
+      parent: null,
+      name: "Album 8",
+    }],
+    tags: [{
+      id: "t4",
+      catalog: "c3",
+      name: "tag4",
+      parent: "t3",
+    }],
+    people: [{
+      id: "p4",
+      name: "Person 4",
+      location: null,
+      catalog: "c3",
+    }],
+  }));
+
+  expect(await countRecords(dbConnection, Table.Media)).toBe(3);
+
+  await user3Db.deleteMedia([id, newMedia.id]);
+
+  let remaining = await user1Db.getMedia([id, newMedia.id]);
+  expect(remaining).toEqual([
+    null,
+    newMedia,
+  ]);
+
+  expect(await countRecords(dbConnection, Table.Media)).toBe(2);
+  expect(await countRecords(dbConnection, Table.MediaAlbum)).toBe(0);
+  expect(await countRecords(dbConnection, Table.MediaPerson)).toBe(0);
+  expect(await countRecords(dbConnection, Table.MediaTag)).toBe(0);
+  expect(await countRecords(dbConnection, Table.Original)).toBe(0);
+  expect(await countRecords(dbConnection, Table.AlternateFile)).toBe(0);
 });

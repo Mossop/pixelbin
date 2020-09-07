@@ -88,5 +88,8 @@ export const COLUMNS = {
 };
 
 export type UnprocessedMedia = ObjectModel.UnprocessedMedia;
-export type ProcessedMedia = ObjectModel.ProcessedMedia;
+export type ProcessedMedia = ObjectModel.ProcessedMedia & {
+  original: string;
+  fileName: string;
+};
 export type Media = UnprocessedMedia | ProcessedMedia;

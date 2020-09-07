@@ -4,14 +4,14 @@ import sharp from "sharp";
 
 import { AlternateFileType, Api, ResponseFor } from "../../../model";
 import { chooseSize } from "../../../utils";
-import { fillMetadata, UserScopedConnection, Media } from "../../database";
+import { fillMetadata, UserScopedConnection, Media, ProcessedMedia } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
 import { ApiError } from "../error";
 import { DeBlobbed } from "./decoders";
 import { DirectResponse } from "./methods";
 
-function isProcessedMedia(media: Api.Media): media is Api.ProcessedMedia {
+function isProcessedMedia(media: Media): media is ProcessedMedia {
   return "uploaded" in media && !!media.uploaded;
 }
 
@@ -19,8 +19,13 @@ export function buildResponseMedia(
   media: Media,
 ): ResponseFor<Api.Media> {
   if (isProcessedMedia(media)) {
+    let {
+      original: removedOriginal,
+      fileName: removedFileName,
+      ...rest
+    } = media;
     return {
-      ...media,
+      ...rest,
       created: media.created.toISOString(),
       uploaded: media.uploaded.toISOString(),
       taken: media.taken?.toISOString() ?? null,
@@ -134,18 +139,21 @@ export const createMedia = ensureAuthenticatedTransaction(
     }
 
     let storage = await ctx.storage.getStorage(data.catalog);
-    await storage.get().copyUploadedFile(media.id, file.path, file.name);
-    storage.release();
-
     try {
-      await fs.unlink(file.path);
-    } catch (e) {
-      ctx.logger.warn(e, "Failed to delete temporary file.");
+      await storage.get().copyUploadedFile(media.id, file.path, file.name);
+
+      try {
+        await fs.unlink(file.path);
+      } catch (e) {
+        ctx.logger.warn(e, "Failed to delete temporary file.");
+      }
+
+      ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
+
+      return buildResponseMedia(media);
+    } finally {
+      storage.release();
     }
-
-    ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
-
-    return buildResponseMedia(media);
   },
 );
 
@@ -242,16 +250,19 @@ export const updateMedia = ensureAuthenticatedTransaction(
 
     if (file) {
       let storage = await ctx.storage.getStorage(media.catalog);
-      await storage.get().copyUploadedFile(media.id, file.path, file.name);
-      storage.release();
-
       try {
-        await fs.unlink(file.path);
-      } catch (e) {
-        ctx.logger.warn(e, "Failed to delete temporary file.");
-      }
+        await storage.get().copyUploadedFile(media.id, file.path, file.name);
 
-      ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
+        try {
+          await fs.unlink(file.path);
+        } catch (e) {
+          ctx.logger.warn(e, "Failed to delete temporary file.");
+        }
+
+        ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
+      } finally {
+        storage.release();
+      }
     }
 
     return buildResponseMedia(media);
@@ -284,17 +295,20 @@ export const thumbnail = ensureAuthenticated(
     }
 
     let storage = await ctx.storage.getStorage(media.catalog);
+    try {
+      let path = await storage.get().getLocalFilePath(media.id, source.original, source.fileName);
 
-    let path = await storage.get().getLocalFilePath(media.id, source.original, source.fileName);
+      if (source.width > source.height && source.width == data.size ||
+          source.height > source.width && source.height == data.size) {
+        return new DirectResponse(source.mimetype, fss.createReadStream(path));
+      }
 
-    if (source.width > source.height && source.width == data.size ||
-        source.height > source.width && source.height == data.size) {
-      return new DirectResponse(source.mimetype, fss.createReadStream(path));
+      return new DirectResponse("image/jpeg", await sharp(path).resize(data.size, data.size, {
+        fit: "inside",
+      }).jpeg({ quality: 85 }).toBuffer());
+    } finally {
+      storage.release();
     }
-
-    return new DirectResponse("image/jpeg", await sharp(path).resize(data.size, data.size, {
-      fit: "inside",
-    }).jpeg({ quality: 85 }).toBuffer());
   },
 );
 
@@ -348,5 +362,44 @@ export const setMediaPeople = ensureAuthenticated(
     let results = await userDb.getMedia([...includedMedia]);
     return results.filter(isMedia)
       .map(buildResponseMedia);
+  },
+);
+
+export const deleteMedia = ensureAuthenticatedTransaction(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: string[],
+  ): Promise<void> => {
+    let media = await userDb.getMedia(data);
+
+    for (let item of media) {
+      if (!item) {
+        return;
+      }
+
+      let storage = await ctx.storage.getStorage(item.catalog);
+      try {
+        if (isProcessedMedia(item)) {
+          await storage.get().deleteFile(item.id, item.original, item.fileName);
+
+          let alternates = await userDb.listAlternateFiles(item.id, AlternateFileType.Reencode);
+          for (let alternate of alternates) {
+            await storage.get().deleteFile(item.id, item.original, alternate.fileName);
+          }
+
+          alternates = await userDb.listAlternateFiles(item.id, AlternateFileType.Poster);
+          for (let alternate of alternates) {
+            await storage.get().deleteFile(item.id, item.original, alternate.fileName);
+          }
+        }
+        await storage.get().deleteLocalFiles(item.id);
+        await storage.get().deleteUploadedFile(item.id);
+      } finally {
+        storage.release();
+      }
+    }
+
+    await userDb.deleteMedia(data);
   },
 );

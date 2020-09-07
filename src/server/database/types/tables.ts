@@ -29,4 +29,7 @@ export type AlternateFile = ObjectModel.AlternateFile;
 
 export type StoredMedia = Media & AllOrNulls<
   Omit<ObjectModel.Original, "id" | "media" | "fileName">
-> & ObjectModel.MediaLists;
+> & {
+  original: string | null;
+  fileName: string | null;
+} & ObjectModel.MediaLists;

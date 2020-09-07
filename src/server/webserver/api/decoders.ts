@@ -120,6 +120,8 @@ export const MediaGetRequest = jsonDecoder(JsonDecoder.object<Api.MediaGetReques
   id: JsonDecoder.string,
 }, "MediaGetRequest"));
 
+export const StringArray = jsonDecoder(JsonDecoder.array(JsonDecoder.string, "string[]"));
+
 const SelectedTagDecoder = JsonDecoder.oneOf<Api.SelectedTag>([
   JsonDecoder.string,
   JsonDecoder.array(JsonDecoder.string, "string[]"),

@@ -41,10 +41,12 @@ export async function errorHandler(
   next: Next,
 ): Promise<void> {
   try {
+    ctx.logger.trace({ request: ctx.request }, "Request start");
     await next();
   } catch (e) {
     let error: ApiError;
     if (e instanceof ApiError) {
+      ctx.logger.trace(e, "Request threw an exception.");
       error = e;
     } else if (e instanceof DatabaseError) {
       ctx.logger.warn(e, "Database error occured.");
@@ -60,4 +62,6 @@ export async function errorHandler(
 
     error.send(ctx);
   }
+
+  ctx.logger.trace("Request done");
 }

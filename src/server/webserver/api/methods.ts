@@ -15,7 +15,15 @@ import {
 } from "./catalog";
 import * as Decoders from "./decoders";
 import { DeBlobbed } from "./decoders";
-import { getMedia, createMedia, updateMedia, thumbnail, relations, setMediaPeople } from "./media";
+import {
+  getMedia,
+  createMedia,
+  updateMedia,
+  thumbnail,
+  relations,
+  setMediaPeople,
+  deleteMedia,
+} from "./media";
 import { getState, login, logout, signup } from "./state";
 
 export class DirectResponse {
@@ -56,6 +64,7 @@ export const apiDecoders: RequestDecoders = {
   [Api.Method.MediaThumbnail]: Decoders.MediaThumbnailRequest,
   [Api.Method.MediaRelations]: Decoders.MediaRelationsRequest,
   [Api.Method.MediaPeople]: Decoders.MediaPersonLocations,
+  [Api.Method.MediaDelete]: Decoders.StringArray,
 };
 
 type ApiInterface = {
@@ -85,6 +94,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.MediaThumbnail]: thumbnail,
   [Api.Method.MediaRelations]: relations,
   [Api.Method.MediaPeople]: setMediaPeople,
+  [Api.Method.MediaDelete]: deleteMedia,
 };
 
 const KEY_PARSE = /^(?<part>[^.[]+)(?<indexes>(?:\[\d+\])*)(?:\.(?<rest>.+))?$/;
@@ -222,8 +232,10 @@ export function apiRequestHandler<T extends Api.Method>(
 
       let body = ctx.request["body"];
       if (ctx.request.method == "GET") {
+        ctx.logger.trace({ data: ctx.request.query }, "Decoding query");
         body = decodeBody(ctx.request.query);
       } else if (!ctx.request.type.endsWith("/json")) {
+        ctx.logger.trace({ data: body }, "Decoding body");
         body = decodeBody(body);
       }
 
@@ -231,7 +243,10 @@ export function apiRequestHandler<T extends Api.Method>(
       try {
         decoded = await decoder(body, ctx.request["files"]);
       } catch (e) {
-        ctx.logger.warn(e, "Client provided invalid data.");
+        ctx.logger.warn({
+          body,
+          exception: e,
+        }, "Client provided invalid data.");
         throw new ApiError(Api.ErrorCode.InvalidData, {
           message: String(e),
         });
@@ -248,6 +263,9 @@ export function apiRequestHandler<T extends Api.Method>(
         ctx.set("Content-Type", "application/json");
         ctx.body = JSON.stringify(response);
       }
+    } else {
+      ctx.set("Content-Type", "text/plain");
+      ctx.body = "Ok";
     }
   };
 }

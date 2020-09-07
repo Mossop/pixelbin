@@ -11,8 +11,12 @@ beforeEach((): Promise<void> => {
 });
 
 function extracted(
-  media: Pick<StoredMedia, "id" | "catalog" | "tags" | "albums" | "people">,
+  media: Pick<StoredMedia, "id" | "catalog" | "tags" | "albums" | "people"> | null,
 ): unknown {
+  if (!media) {
+    return null;
+  }
+
   return {
     id: media.id,
     catalog: media.catalog,

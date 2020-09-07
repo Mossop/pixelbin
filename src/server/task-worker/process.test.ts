@@ -7,7 +7,7 @@ import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
-import { DatabaseConnection, fillMetadata } from "../database";
+import { fillMetadata } from "../database";
 import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
 import { AlternateFile } from "../database/types/tables";
 import { OriginalInfo } from "../database/unsafe";
@@ -118,6 +118,8 @@ test("Process image metadata", async (): Promise<void> => {
     frameRate: null,
     bitRate: null,
     fileSize: 55084,
+    fileName: "Testname.jpg",
+    original: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
 
     filename: "Testname.jpg",
     title: null,
@@ -171,7 +173,7 @@ test("Process image metadata", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-150.jpg",
     "fileSize": 2883,
@@ -183,7 +185,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-200.jpg",
     "fileSize": 3997,
@@ -195,7 +197,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-300.jpg",
     "fileSize": 7328,
@@ -207,7 +209,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-400.jpg",
     "fileSize": 11198,
@@ -219,7 +221,7 @@ test("Process image metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-500.jpg",
     "fileSize": 17336,
@@ -319,6 +321,8 @@ test("Process video metadata", async (): Promise<void> => {
     duration: 1.74,
     bitRate: 18664868,
     frameRate: 59.202206,
+    fileName: "Testvideo.mp4",
+    original: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
 
     filename: "Testvideo.mp4",
     title: null,
@@ -372,7 +376,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-150.jpg",
     "fileSize": 4810,
@@ -384,7 +388,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-200.jpg",
     "fileSize": 7570,
@@ -396,7 +400,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-300.jpg",
     "fileSize": 14955,
@@ -408,7 +412,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-400.jpg",
     "fileSize": 23721,
@@ -420,7 +424,7 @@ test("Process video metadata", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testvideo-500.jpg",
     "fileSize": 34910,
@@ -440,7 +444,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(encodes).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Reencode,
     "fileName": "Testvideo-h264.mp4",
     "fileSize": 2000000,
@@ -460,7 +464,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(posters).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Poster,
     "fileName": "Testvideo-poster.jpg",
     "fileSize": expect.toBeBetween(140000, 160000),
@@ -512,7 +516,7 @@ test("reprocess", async (): Promise<void> => {
 
   let originalUploaded = moment("2020-01-01T02:56:53");
 
-  await dbConnection.withNewOriginal(media.id, fillMetadata({
+  let original = await dbConnection.withNewOriginal(media.id, fillMetadata({
     processVersion: 1,
     city: "London",
     uploaded: originalUploaded,
@@ -524,9 +528,7 @@ test("reprocess", async (): Promise<void> => {
     duration: null,
     frameRate: null,
     bitRate: null,
-  }), (dbConnection: DatabaseConnection, original: OriginalInfo): Promise<OriginalInfo> => {
-    return Promise.resolve(original);
-  });
+  }), async (_: unknown, original: OriginalInfo): Promise<OriginalInfo> => original);
 
   let [foundMedia] = await user1Db.getMedia([media.id]);
   expect(foundMedia).toEqual(fillMetadata({
@@ -535,6 +537,8 @@ test("reprocess", async (): Promise<void> => {
     catalog: "c1",
     uploaded: expect.toEqualDate(originalUploaded),
     fileSize: 1000,
+    fileName: "old.jpg",
+    original: original.id,
     mimetype: "image/jpeg",
     width: 100,
     height: 200,
@@ -587,6 +591,8 @@ test("reprocess", async (): Promise<void> => {
     frameRate: null,
     bitRate: null,
     fileSize: 55084,
+    fileName: "Testname.jpg",
+    original: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
 
     filename: "Testname.jpg",
     title: null,
@@ -615,6 +621,8 @@ test("reprocess", async (): Promise<void> => {
     people: [],
   });
 
+  expect(fullMedia!["original"]).not.toBe(original.id);
+
   expect(getLocalFilePathMock).toHaveBeenCalledTimes(5);
 
   for (let size of MEDIA_THUMBNAIL_SIZES) {
@@ -640,7 +648,7 @@ test("reprocess", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-150.jpg",
     "fileSize": 2883,
@@ -652,7 +660,7 @@ test("reprocess", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-200.jpg",
     "fileSize": 3997,
@@ -664,7 +672,7 @@ test("reprocess", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-300.jpg",
     "fileSize": 7328,
@@ -676,7 +684,7 @@ test("reprocess", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-400.jpg",
     "fileSize": 11198,
@@ -688,7 +696,7 @@ test("reprocess", async (): Promise<void> => {
     "duration": null,
   }, {
     "id": expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    "original": thumbnails[0].original,
+    "original": fullMedia!["original"],
     "type": AlternateFileType.Thumbnail,
     "fileName": "Testname-500.jpg",
     "fileSize": 17336,

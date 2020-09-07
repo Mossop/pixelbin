@@ -30,12 +30,14 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
     created: ref(Table.Media, "created"),
+    original: "CurrentOriginal.id",
     uploaded: "CurrentOriginal.uploaded",
     mimetype: "CurrentOriginal.mimetype",
     width: "CurrentOriginal.width",
     height: "CurrentOriginal.height",
     duration: "CurrentOriginal.duration",
     fileSize: "CurrentOriginal.fileSize",
+    fileName: "CurrentOriginal.fileName",
     frameRate: "CurrentOriginal.frameRate",
     bitRate: "CurrentOriginal.bitRate",
   };
@@ -297,9 +299,11 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.unique([columnFor(Table.Media), columnFor(Table.Album)], "uniqueAlbumMedia");
 
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media)
+        .onDelete("CASCADE");
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Album)], `foreign_${Table.Album}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album)
+        .onDelete("CASCADE");
     })
     .createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
       table.string(columnFor(Table.Catalog), 30).notNullable();
@@ -309,9 +313,11 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.unique([columnFor(Table.Media), columnFor(Table.Tag)], "uniqueTagMedia");
 
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media)
+        .onDelete("CASCADE");
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Tag)], `foreign_${Table.Tag}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag)
+        .onDelete("CASCADE");
     })
     .createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
       table.string(columnFor(Table.Catalog), 30).notNullable();
@@ -322,9 +328,11 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.unique([columnFor(Table.Media), columnFor(Table.Person)], "uniquePersonMedia");
 
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media)
+        .onDelete("CASCADE");
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Person)], `foreign_${Table.Person}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Person);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Person)
+        .onDelete("CASCADE");
     })
     .raw(knex.raw("CREATE VIEW ?? AS ?", [
       Table.StoredMedia,

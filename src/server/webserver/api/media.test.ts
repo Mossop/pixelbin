@@ -711,6 +711,78 @@ test("Get media", async (): Promise<void> => {
   let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
   mockMoment(createdMoment2);
   let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let originalId = await db.withNewOriginal(id2, fillMetadata({
+    processVersion: 1,
+    fileName: "stored.jpg",
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "video/mp4",
+    duration: 0,
+    frameRate: 0,
+    bitRate: 0,
+    uploaded: realMoment.tz("2020-02-02T08:00:00", "UTC"),
+  }), async (_: unknown, original: OriginalInfo): Promise<string> => original.id);
+
+  await db.addAlternateFile(originalId, {
+    type: AlternateFileType.Poster,
+    fileName: "poster.jpg",
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "image/jpg",
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
+
+  await db.addAlternateFile(originalId, {
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb1.jpg",
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "image/jpg",
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
+
+  await db.addAlternateFile(originalId, {
+    type: AlternateFileType.Thumbnail,
+    fileName: "thumb2.jpg",
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "image/jpg",
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
+
+  await db.addAlternateFile(originalId, {
+    type: AlternateFileType.Reencode,
+    fileName: "enc1.mp4",
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "video/mp4",
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
+
+  await db.addAlternateFile(originalId, {
+    type: AlternateFileType.Reencode,
+    fileName: "enc2.ogg",
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "video/ogg",
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  });
 
   await request
     .post("/api/login")
@@ -755,6 +827,15 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
 
+      fileSize: 1,
+      width: 1,
+      height: 1,
+      mimetype: "video/mp4",
+      duration: 0,
+      frameRate: 0,
+      bitRate: 0,
+      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+
       albums: [],
       tags: [],
       people: [],
@@ -784,6 +865,15 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
 
+      fileSize: 1,
+      width: 1,
+      height: 1,
+      mimetype: "video/mp4",
+      duration: 0,
+      frameRate: 0,
+      bitRate: 0,
+      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+
       albums: [],
       tags: [],
       people: [],
@@ -804,6 +894,15 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
 
+      fileSize: 1,
+      width: 1,
+      height: 1,
+      mimetype: "video/mp4",
+      duration: 0,
+      frameRate: 0,
+      bitRate: 0,
+      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+
       albums: [],
       tags: [],
       people: [],
@@ -817,6 +916,61 @@ test("Get media", async (): Promise<void> => {
       tags: [],
       people: [],
     }),
+  ]);
+
+  const storageService = new StorageService({
+    tempDirectory: "",
+    localDirectory: "",
+  }, db);
+  const storage = (await storageService.getStorage("")).get();
+
+  /* eslint-disable @typescript-eslint/unbound-method */
+  let getStorageMock = mockedFunction(storageService.getStorage);
+  getStorageMock.mockClear();
+
+  let deleteFileMock = mockedFunction(storage.deleteFile);
+  let deleteLocalFilesMock = mockedFunction(storage.deleteLocalFiles);
+  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
+  /* eslint-enable @typescript-eslint/unbound-method */
+
+  await request
+    .delete("/api/media/delete")
+    .send([id2, id1])
+    .expect(200);
+
+  expect(getStorageMock.mock.calls).toInclude([
+    ["c1"],
+    ["c1"],
+  ]);
+
+  expect(deleteFileMock.mock.calls).toInclude([
+    [id2, originalId, "stored.jpg"],
+    [id2, originalId, "poster.jpg"],
+    [id2, originalId, "enc1.mp4"],
+    [id2, originalId, "enc2.ogg"],
+  ]);
+
+  expect(deleteLocalFilesMock.mock.calls).toInclude([
+    [id2],
+    [id1],
+  ]);
+
+  expect(deleteUploadedFileMock.mock.calls).toInclude([
+    [id2],
+    [id1],
+  ]);
+
+  response = await request
+    .get("/api/media/get")
+    .query({
+      id: `${id2},${id1}`,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([
+    null,
+    null,
   ]);
 });
 

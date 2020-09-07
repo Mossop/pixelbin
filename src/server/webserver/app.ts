@@ -79,6 +79,7 @@ export default async function buildApp(): Promise<App> {
   for (let method of Object.values(Api.Method)) {
     router.all(`${APP_PATHS.api}${method}`, koaBody({
       multipart: true,
+      parsedMethods: ["POST", "PUT", "PATCH", "DELETE"],
     }), apiRequestHandler(method));
   }
 
@@ -97,6 +98,11 @@ export default async function buildApp(): Promise<App> {
 
       ctx.set("X-Response-Time", `${ms}ms`);
       ctx.set("X-Worker-Id", String(process.pid));
+
+      ctx.logger.info({
+        duration: ms,
+        status: ctx.response.status,
+      });
     })
 
     .use(session({
