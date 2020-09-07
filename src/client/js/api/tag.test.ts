@@ -3,11 +3,7 @@ import { Api } from "../../../model";
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";
-import {
-  mockResponse,
-  MockResponse,
-  callInfo,
-} from "../test-helpers/api";
+import { mockResponse, callInfo } from "../test-helpers/api";
 import { Catalog } from "./highlevel";
 import { findTag } from "./tag";
 
@@ -18,7 +14,7 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create tag", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.Tag[]>(200, [{
+  mockResponse(Api.Method.TagFind, 200, [{
     id: "tag1",
     catalog: "testcatalog",
     name: "foo",
@@ -28,7 +24,7 @@ test("Create tag", async (): Promise<void> => {
     catalog: "testcatalog",
     name: "bar",
     parent: "tag1",
-  }]));
+  }]);
 
   let result = await findTag(Catalog.ref("testcatalog"), ["foo", "bar"]);
 

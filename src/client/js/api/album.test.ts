@@ -3,12 +3,7 @@ import { Api } from "../../../model";
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
-import {
-  mockResponse,
-  MockResponse,
-  callInfo,
-  mediaIntoResponse,
-} from "../test-helpers/api";
+import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
 import { createAlbum, editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "./album";
 import { Catalog, Album, mediaRef } from "./highlevel";
 
@@ -19,12 +14,12 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create album", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.Album>(200, {
+  mockResponse(Api.Method.AlbumCreate, 200, {
     id: "newalbum",
     catalog: "testcatalog",
     name: "Test album",
     parent: null,
-  }));
+  });
 
   let result = await createAlbum({
     catalog: Catalog.ref("testcatalog"),
@@ -56,12 +51,12 @@ test("Create album", async (): Promise<void> => {
 });
 
 test("Edit album", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.Album>(200, {
+  mockResponse(Api.Method.AlbumEdit, 200, {
     id: "testalbum",
     catalog: "testcatalog",
     name: "New test album",
     parent: "parentalbum",
-  }));
+  });
 
   let result = await editAlbum({
     id: Album.ref("testalbum"),
@@ -106,9 +101,9 @@ test("Add media", async (): Promise<void> => {
     ],
   });
 
-  mockResponse(mockedFetch, new MockResponse<Api.UnprocessedMedia[]>(200, [
+  mockResponse(Api.Method.MediaRelations, 200, [
     mediaIntoResponse(state, media),
-  ]));
+  ]);
 
   await addMediaToAlbum(Album.ref("testalbum"), [mediaRef(media)]);
 
@@ -141,9 +136,9 @@ test("Remove media", async (): Promise<void> => {
     id: "testmedia",
   });
 
-  mockResponse(mockedFetch, new MockResponse<Api.UnprocessedMedia[]>(200, [
+  mockResponse(Api.Method.MediaRelations, 200, [
     mediaIntoResponse(state, media),
-  ]));
+  ]);
 
   await removeMediaFromAlbum(Album.ref("testalbum"), [mediaRef(media)]);
 

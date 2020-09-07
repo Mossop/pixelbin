@@ -1,4 +1,6 @@
 import { Api, ResponseFor } from "../../../model";
+import { ErrorData } from "../../../model/api";
+import { mockedFunction } from "../../../test-helpers";
 import { Obj } from "../../../utils";
 import { Tag, Reference, Album } from "../api/highlevel";
 import {
@@ -11,6 +13,7 @@ import {
   isProcessed,
   MediaPersonState,
 } from "../api/types";
+import fetch from "../environment/fetch";
 
 type Body = Blob | Obj | unknown[];
 
@@ -20,8 +23,11 @@ type Fetch = (
   body?: string | Record<string, string | Blob> | null,
 ) => Promise<Response>;
 
-export class MockResponse<B extends Body> {
-  public constructor(private statusCode: number, private body: ResponseFor<B>) {}
+export class MockResponse {
+  public constructor(
+    private statusCode: number,
+    private body: unknown,
+  ) {}
 
   public get ok(): boolean {
     return this.status < 400;
@@ -35,30 +41,27 @@ export class MockResponse<B extends Body> {
     return `Status ${this.status}`;
   }
 
-  public blob(): Promise<ResponseFor<B>> {
+  public blob(): Promise<unknown> {
     expect(this.body).toBeInstanceOf(Blob);
     return Promise.resolve(this.body);
   }
 
-  public json(): Promise<ResponseFor<B>> {
+  public json(): Promise<unknown> {
     expect(this.body).not.toBeInstanceOf(Blob);
     return Promise.resolve(this.body);
   }
 }
 
-type ResponseBuilder<B extends Body> =
-  (input: RequestInfo, init?: RequestInit | undefined) => MockResponse<B>;
-
-export function mockResponse<B extends Body>(
-  mockedFetch: jest.MockedFunction<Fetch>,
-  fn: ResponseBuilder<B> | MockResponse<B>,
+export function mockResponse<M extends Api.Method>(
+  method: M,
+  statusCode: number,
+  response: ResponseFor<Api.SignatureResponse<M>> | ErrorData,
 ): void {
-  mockedFetch.mockImplementationOnce((
-    input: RequestInfo,
-    init?: RequestInit | undefined,
-  ): Promise<Response> => {
-    let response = (fn instanceof MockResponse ? fn : fn(input, init)) as unknown as Response;
-    return Promise.resolve(response);
+  let mockedFetch = mockedFunction(fetch);
+
+  mockedFetch.mockImplementationOnce((): Promise<Response> => {
+    let mockResponse = new MockResponse(statusCode, response);
+    return Promise.resolve(mockResponse as unknown as Response);
   });
 }
 

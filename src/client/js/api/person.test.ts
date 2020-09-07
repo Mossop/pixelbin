@@ -3,11 +3,7 @@ import { Api } from "../../../model";
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";
-import {
-  mockResponse,
-  MockResponse,
-  callInfo,
-} from "../test-helpers/api";
+import { mockResponse, callInfo } from "../test-helpers/api";
 import { Catalog } from "./highlevel";
 import { createPerson } from "./person";
 
@@ -18,11 +14,11 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create person", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.Person>(200, {
+  mockResponse(Api.Method.PersonCreate, 200, {
     id: "testperson",
     catalog: "testcatalog",
     name: "Test Person",
-  }));
+  });
 
   let result = await createPerson(Catalog.ref("testcatalog"), "Test Person");
 

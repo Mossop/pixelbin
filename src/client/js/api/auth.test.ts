@@ -3,11 +3,7 @@ import { Api } from "../../../model";
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect, mapOf } from "../test-helpers";
-import {
-  mockResponse,
-  MockResponse,
-  callInfo,
-} from "../test-helpers/api";
+import { mockResponse, callInfo } from "../test-helpers/api";
 import { ErrorCode } from "../utils/exception";
 import { state, login, logout, signup } from "./auth";
 
@@ -18,20 +14,21 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Bad state", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.Album>(200, {
+  mockResponse(Api.Method.State, 200, {
+    // @ts-ignore: Intentionally bad data.
     id: "album",
     catalog: "catalog",
     name: "Album",
     parent: null,
-  }));
+  });
 
   await expect(state()).rejects.toBeAppError(ErrorCode.DecodeError);
 });
 
 test("Get state", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.State>(200, {
+  mockResponse(Api.Method.State, 200, {
     user: null,
-  }));
+  });
 
   let result = await state();
 
@@ -50,7 +47,7 @@ test("Get state", async (): Promise<void> => {
 });
 
 test("Login", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.State>(200, {
+  mockResponse(Api.Method.Login, 200, {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
@@ -82,7 +79,7 @@ test("Login", async (): Promise<void> => {
         parent: null,
       }],
     },
-  }));
+  });
 
   let result = await login("user", "pass");
 
@@ -145,9 +142,9 @@ test("Login", async (): Promise<void> => {
 });
 
 test("Logout", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.State>(200, {
+  mockResponse(Api.Method.Logout, 200, {
     user: null,
-  }));
+  });
 
   let result = await logout();
 
@@ -166,7 +163,7 @@ test("Logout", async (): Promise<void> => {
 });
 
 test("Signup", async (): Promise<void> => {
-  mockResponse(mockedFetch, new MockResponse<Api.State>(200, {
+  mockResponse(Api.Method.Signup, 200, {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
@@ -177,7 +174,7 @@ test("Signup", async (): Promise<void> => {
       tags: [],
       albums: [],
     },
-  }));
+  });
 
   let result = await signup({
     email: "dtownsend@oxymoronical.com",

@@ -5,12 +5,7 @@ import { Api } from "../../../model";
 import { mockedFunction } from "../../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
-import {
-  mockResponse,
-  MockResponse,
-  callInfo,
-  mediaIntoResponse,
-} from "../test-helpers/api";
+import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
 import { Catalog, mediaRef, Media } from "./highlevel";
 import { getMedia, createMedia } from "./media";
 import { isProcessed, isUnprocessed, ServerState } from "./types";
@@ -38,10 +33,7 @@ test("Get media", async (): Promise<void> => {
     created,
   });
 
-  mockResponse(
-    mockedFetch,
-    new MockResponse<Api.Media[]>(200, [mediaIntoResponse(serverState, media)]),
-  );
+  mockResponse(Api.Method.MediaGet, 200, [mediaIntoResponse(serverState, media)]);
 
   let [result] = await getMedia(["testmedia"]);
 
@@ -62,10 +54,10 @@ test("Get media", async (): Promise<void> => {
 
 test("Missing media", async (): Promise<void> => {
   // TODO: This is not correct.
-  mockResponse(mockedFetch, new MockResponse<Api.ErrorData>(404, {
+  mockResponse(Api.Method.MediaGet, 404, {
     code: Api.ErrorCode.NotFound,
     data: {},
-  }));
+  });
 
   await expect(getMedia(["testmedia"])).rejects.toBeAppError(Api.ErrorCode.NotFound);
 });
@@ -81,10 +73,7 @@ test("Create media", async (): Promise<void> => {
     make: "Nikon",
   });
 
-  mockResponse(
-    mockedFetch,
-    new MockResponse<Api.Media>(200, mediaIntoResponse(serverState, media)),
-  );
+  mockResponse(Api.Method.MediaCreate, 200, mediaIntoResponse(serverState, media));
 
   let file = "testfile" as unknown as Blob;
 
