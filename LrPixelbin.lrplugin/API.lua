@@ -209,13 +209,23 @@ function API:getCatalogs()
 end
 
 local instances = { }
+local identifiedInstances = { }
 
-function API:cache()
+function API:cache(identifier)
+  if identifiedInstances[identifier] and identifiedInstances[identifier] ~= self then
+    identifiedInstances[identifier]:destroy(identifier)
+  end
+
   instances[self.instanceKey] = self
   self.cacheCount = self.cacheCount + 1
+  identifiedInstances[identifier] = self
 end
 
-function API:destroy()
+function API:destroy(identifier)
+  if identifiedInstances[identifier] == self then
+    identifiedInstances[identifier] = nil
+  end
+
   self.cacheCount = self.cacheCount - 1
   if self.cacheCount <= 0 then
     instances[self.instanceKey] = nil

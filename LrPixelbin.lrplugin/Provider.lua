@@ -3,8 +3,6 @@ local LrDialogs = import "LrDialogs"
 local LrFunctionContext = import "LrFunctionContext"
 local LrColor = import "LrColor"
 
-local Connection = require "Connection"
-
 local bind = LrView.bind
 
 local API = require("API.lua")
@@ -54,18 +52,30 @@ end
 ------------------------ Actions
 
 function Provider.didUpdatePublishService(publishSettings, info)
-  local connection = Connection(info.publishService)
-  connection:init(publishSettings)
+  LrFunctionContext.postAsyncTaskWithContext("didUpdatePublishService", function(context)
+    LrDialogs.attachErrorDialogToFunctionContext(context)
+
+    local api = API(publishSettings.siteUrl, publishSettings.email, publishSettings.password)
+    api:cache(info.publishService.localIdentifier)
+  end)
 end
 
 function Provider.didCreateNewPublishService(publishSettings, info)
-  local connection = Connection(info.publishService)
-  connection:init(publishSettings)
+  LrFunctionContext.postAsyncTaskWithContext("didCreateNewPublishService", function(context)
+    LrDialogs.attachErrorDialogToFunctionContext(context)
+
+    local api = API(publishSettings.siteUrl, publishSettings.email, publishSettings.password)
+    api:cache(info.publishService.localIdentifier)
+  end)
 end
 
 function Provider.willDeletePublishService(publishSettings, info)
-  local connection = Connection(info.publishService)
-  connection:destroy(publishSettings)
+  LrFunctionContext.postAsyncTaskWithContext("willDeletePublishService", function(context)
+    LrDialogs.attachErrorDialogToFunctionContext(context)
+
+    local api = API(publishSettings.siteUrl, publishSettings.email, publishSettings.password)
+    api:destroy(info.publishService.localIdentifier)
+  end)
 end
 
 function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
@@ -81,6 +91,34 @@ function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPh
   if success then
     for _, photoId in arrayOfPhotoIds do
       deletedCallback(photoId)
+    end
+  end
+
+  api:logout()
+end
+
+function Provider.processRenderedPhotos(functionContext, exportContext)
+  local publishSettings = exportContext.propertyTable
+
+  local api = PixelBinAPI(publishSettings.siteUrl)
+  local success, result = api:login(publishSettings.email, publishSettings.password)
+
+  if not success then
+    LrDialogs.message(result, nil, "critical")
+    return
+  end
+
+  for i, rendition in exportContext:renditions() do
+    local success, pathOrMessage = rendition:waitForRender()
+    if success then
+      local success, result = api:upload(rendition.photo, pathOrMessage)
+      if success then
+        rendition:recordPublishedPhotoId(result["id"])
+      else
+        rendition:uploadFailed(result)
+      end
+    else
+      rendition:uploadFailed(pathOrMessage)
     end
   end
 
@@ -322,34 +360,6 @@ function Provider.sectionsForTopOfDialog(f, propertyTable)
       },
     },
   }
-end
-
-function Provider.processRenderedPhotos(functionContext, exportContext)
-  local publishSettings = exportContext.propertyTable
-
-  local api = PixelBinAPI(publishSettings.siteUrl)
-  local success, result = api:login(publishSettings.email, publishSettings.password)
-
-  if not success then
-    LrDialogs.message(result, nil, "critical")
-    return
-  end
-
-  for i, rendition in exportContext:renditions() do
-    local success, pathOrMessage = rendition:waitForRender()
-    if success then
-      local success, result = api:upload(rendition.photo, pathOrMessage)
-      if success then
-        rendition:recordPublishedPhotoId(result["id"])
-      else
-        rendition:uploadFailed(result)
-      end
-    else
-      rendition:uploadFailed(pathOrMessage)
-    end
-  end
-
-  api:logout()
 end
 
 return Provider

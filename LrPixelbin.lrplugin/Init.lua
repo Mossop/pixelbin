@@ -1,17 +1,18 @@
 local LrApplication = import "LrApplication"
-local LrTasks = import "LrTasks"
+local LrFunctionContext = import "LrFunctionContext"
+local LrDialogs = import "LrDialogs"
 
-local Connection = require "Connection"
+local API = require "API"
 
-function Init()
+LrFunctionContext.postAsyncTaskWithContext("init", function(context)
+  LrDialogs.attachErrorDialogToFunctionContext(context)
+
   local services = LrApplication.activeCatalog():getPublishServices("org.pixelbin.lrpixelbin")
 
   for _, service in ipairs(services) do
     local settings = service:getPublishSettings()
 
-    local connection = Connection(service)
-    connection:init(settings)
+    local api = API(settings.siteUrl, settings.email, settings.password)
+    api:cache(service.localIdentifier)
   end
-end
-
-LrTasks.startAsyncTask(Init, "PixelBin Init")
+end)
