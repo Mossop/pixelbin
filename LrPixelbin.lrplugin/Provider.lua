@@ -1,11 +1,11 @@
 local LrView = import "LrView"
 local LrDialogs = import "LrDialogs"
-local LrFunctionContext = import "LrFunctionContext"
 local LrColor = import "LrColor"
 
 local bind = LrView.bind
 
-local API = require("API.lua")
+local API = require("API")
+local Utils = require("Utils")
 
 local logger = require("Logging")("Provider")
 
@@ -52,77 +52,143 @@ end
 ------------------------ Actions
 
 function Provider.didUpdatePublishService(publishSettings, info)
-  LrFunctionContext.postAsyncTaskWithContext("didUpdatePublishService", function(context)
-    LrDialogs.attachErrorDialogToFunctionContext(context)
+  logger:info("Publish service updated.", info.publishService:getName(),
+    info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
+    publishSettings.catalog)
 
-    local api = API(publishSettings.siteUrl, publishSettings.email, publishSettings.password)
-    api:cache(info.publishService.localIdentifier)
-  end)
+  local api = API(publishSettings)
+  api:cache(info.publishService.localIdentifier)
+
+  if not api.available then
+    api:login()
+  end
 end
 
 function Provider.didCreateNewPublishService(publishSettings, info)
-  LrFunctionContext.postAsyncTaskWithContext("didCreateNewPublishService", function(context)
-    LrDialogs.attachErrorDialogToFunctionContext(context)
+  logger:info("New publish service created.", info.publishService:getName(),
+    info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
+    publishSettings.catalog)
 
-    local api = API(publishSettings.siteUrl, publishSettings.email, publishSettings.password)
+  Utils.runWithWriteAccess(logger, "Create Default Collection", function()
+    local api = API(publishSettings)
     api:cache(info.publishService.localIdentifier)
+
+    if not api.available then
+      api:login()
+    end
+
+    for _, collection in ipairs(info.publishService:getChildCollections()) do
+      local collectionInfo = collection:getCollectionInfoSummary()
+      if collectionInfo.isDefaultCollection then
+        local catalog = api:getCatalog(publishSettings.catalog)
+        collection:setCollectionSettings({
+          album = publishSettings.catalog,
+        })
+
+        if catalog then
+          collection:setName(catalog.name)
+        end
+      end
+    end
   end)
 end
 
 function Provider.willDeletePublishService(publishSettings, info)
-  LrFunctionContext.postAsyncTaskWithContext("willDeletePublishService", function(context)
-    LrDialogs.attachErrorDialogToFunctionContext(context)
+  logger:trace("Publish service deleted.", info.publishService:getName(),
+    info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
+    publishSettings.catalog)
 
-    local api = API(publishSettings.siteUrl, publishSettings.email, publishSettings.password)
-    api:destroy(info.publishService.localIdentifier)
-  end)
+  local api = API(publishSettings)
+  api:destroy(info.publishService.localIdentifier)
 end
 
-function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
-  local api = PixelBinAPI(publishSettings.siteUrl)
-  local success, result = api:login(publishSettings.email, publishSettings.password)
+function Provider.processRenderedPhotos(context, exportContext)
+  Utils.logFailures(context, logger, "processRenderedPhotos")
 
-  if not success then
-    LrDialogs.message(result, nil, "critical")
-    return
+  local exportSession = exportContext.exportSession
+  local publishSettings = exportContext.propertyTable
+  local collection = exportContext.publishedCollection
+  local collectionInfo = collection:getCollectionInfoSummary()
+
+  local catalog = publishSettings.catalog
+  local album = collectionInfo.collectionSettings.album
+  if album and (string.len(album) == 0 or album == catalog) then
+    album = nil
   end
 
-  local success, result = api:delete(arrayOfPhotoIds)
-  if success then
-    for _, photoId in arrayOfPhotoIds do
-      deletedCallback(photoId)
+  local photoCount = exportSession:countRenditions()
+
+  local progressScope = exportContext:configureProgress({
+    title = photoCount > 1
+      and LOC("$$$/LrPixelBin/Render/Progress=Publishing ^1 photos to PixelBin", photoCount)
+      or LOC "$$$/LrPixelBin/Render/Progress=Publishing one photo to PixelBin",
+  })
+
+  local api = API(publishSettings)
+
+  local knownMediaIds = {}
+  local renditions = {}
+
+  for _, rendition in exportContext:renditions() do
+    if not rendition.wasSkipped then
+      local mediaId = rendition.publishedPhotoId
+
+      if mediaId then
+        table.insert(knownMediaIds, mediaId)
+      end
+      table.insert(renditions, rendition)
     end
   end
 
-  api:logout()
-end
+  local knownMedia = api:getMedia(knownMediaIds)
+  local successfulMedia = {}
+  local hadSuccess = false
 
-function Provider.processRenderedPhotos(functionContext, exportContext)
-  local publishSettings = exportContext.propertyTable
+  for i, rendition in ipairs(renditions) do
+    progressScope:setPortionComplete((i - 1) / photoCount)
 
-  local api = PixelBinAPI(publishSettings.siteUrl)
-  local success, result = api:login(publishSettings.email, publishSettings.password)
+    local mediaId = nil
+    for _, media in ipairs(knownMedia) do
+      if media.id == rendition.publishedPhotoId then
+        mediaId = media.id
+        break
+      end
+    end
 
-  if not success then
-    LrDialogs.message(result, nil, "critical")
-    return
-  end
-
-  for i, rendition in exportContext:renditions() do
     local success, pathOrMessage = rendition:waitForRender()
+    progressScope:setPortionComplete((i - 1) / photoCount)
+
+    if progressScope:isCanceled() then
+      break
+    end
+
     if success then
-      local success, result = api:upload(rendition.photo, pathOrMessage)
+      local success, result = api:upload(rendition.photo, catalog, pathOrMessage, mediaId)
       if success then
-        rendition:recordPublishedPhotoId(result["id"])
+        rendition:recordPublishedPhotoId(result.id)
+        table.insert(successfulMedia, result.id)
+        hadSuccess = true
       else
-        rendition:uploadFailed(result)
+        rendition:uploadFailed(result.name)
       end
     else
       rendition:uploadFailed(pathOrMessage)
     end
   end
 
-  api:logout()
+  if hadSuccess and album then
+    local success, result = api:addMediaToAlbum(album, successfulMedia)
+    if not success then
+      LrDialogs.showError(
+        LOC("$$$/LrPixelBin/Render/AlbumFailure=Failed to add media to album: ^1", result.name)
+      )
+    end
+  end
+
+  progressScope:done()
+end
+
+function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
 end
 
 ------------------------ UI
@@ -163,10 +229,9 @@ local function verifyLogin(propertyTable)
 
   propertyTable.error = ""
 
-  LrFunctionContext.postAsyncTaskWithContext("verifyLogin", function(context)
-    LrDialogs.attachErrorDialogToFunctionContext(context)
-
-    local api = API(propertyTable.siteUrl, propertyTable.email, propertyTable.password)
+  Utils.runAsync(logger, "verifyLogin", function()
+    local api = API(propertyTable)
+    api:login()
     local error = api:error()
 
     if error then
@@ -360,6 +425,92 @@ function Provider.sectionsForTopOfDialog(f, propertyTable)
       },
     },
   }
+end
+
+function Provider.viewForCollectionSettings(f, publishSettings, info)
+  local api = API(publishSettings)
+
+  if not api.available then
+    info.collectionSettings.LR_canSaveCollection = false
+
+    return f:group_box {
+      fill_horizontal = 1,
+      title = LOC "$$$/LrPixelBin/Collection/NotConnected/Title=Not Connected",
+
+      f:row {
+        fill_horizontal = 1,
+        spacing = f:label_spacing(),
+
+        f:static_text {
+          title = LOC "$$$/LrPixelBin/Collection/NotConnected/Error=Please visit the publish service settings.",
+          alignment = "left",
+          color = LrColor(1, 0, 0)
+        },
+      },
+    }
+  end
+
+  local catalog = api:getCatalog(publishSettings.catalog)
+  if not catalog then
+    info.collectionSettings.LR_canSaveCollection = false
+
+    return f:group_box {
+      fill_horizontal = 1,
+      title = LOC "$$$/LrPixelBin/Collection/UnknownCatalog/Title=Unknown Catalog",
+
+      f:row {
+        fill_horizontal = 1,
+        spacing = f:label_spacing(),
+
+        f:static_text {
+          title = LOC "$$$/LrPixelBin/Collection/UnknownCatalog/Error=The publish service is connected to an unknown catalog.",
+          alignment = "left",
+          color = LrColor(1, 0, 0)
+        },
+      },
+    }
+  end
+
+  local tbl = {
+    fill_horizontal = 1,
+    title = LOC "$$$/LrPixelBin/Collection/Title=Album to store in:",
+    bind_to_object = info.collectionSettings,
+
+    f:row {
+      fill_horizontal = 1,
+      spacing = f:label_spacing(),
+
+      f:radio_button {
+        title = catalog.name,
+        value = bind "album",
+        checked_value = catalog.id,
+      },
+    },
+  }
+
+  local function addRowsForAlbums(parent, depth)
+    local albums = api:getAlbumsWithParent(catalog.id, parent)
+
+    for _, album in ipairs(albums) do
+      table.insert(tbl, f:row {
+        fill_horizontal = 1,
+        spacing = f:label_spacing(),
+        margin_left = (depth + 1) * 20,
+
+        f:radio_button {
+          title = album.name,
+          value = bind "album",
+          checked_value = album.id,
+        },
+      })
+
+      addRowsForAlbums(album.id, depth + 1)
+    end
+  end
+
+  addRowsForAlbums(nil, 0)
+
+  return f:group_box(tbl)
 end
 
 return Provider

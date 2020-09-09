@@ -1,18 +1,21 @@
 local LrApplication = import "LrApplication"
-local LrFunctionContext = import "LrFunctionContext"
-local LrDialogs = import "LrDialogs"
 
+local Utils = require "Utils"
 local API = require "API"
 
-LrFunctionContext.postAsyncTaskWithContext("init", function(context)
-  LrDialogs.attachErrorDialogToFunctionContext(context)
+local logger = require("Logging")("Init")
 
+Utils.runAsync(logger, "Init", function()
   local services = LrApplication.activeCatalog():getPublishServices("org.pixelbin.lrpixelbin")
 
   for _, service in ipairs(services) do
     local settings = service:getPublishSettings()
 
-    local api = API(settings.siteUrl, settings.email, settings.password)
+    local api = API(settings)
     api:cache(service.localIdentifier)
+
+    if not api.available then
+      api:login()
+    end
   end
 end)
