@@ -1249,7 +1249,7 @@ test("Media relations", async (): Promise<void> => {
       items: ["t5"],
     }])
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   response = await request
     .get("/api/media/get")
@@ -1310,6 +1310,28 @@ test("Media relations", async (): Promise<void> => {
     media1,
     media2,
   ]);
+
+  await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "add",
+      type: "album",
+      media: ["foobar"],
+      items: ["a1"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(404);
+
+  await request
+    .patch("/api/media/relations")
+    .send([{
+      operation: "add",
+      type: "album",
+      media: [id1],
+      items: ["foobar"],
+    }])
+    .expect("Content-Type", "application/json")
+    .expect(404);
 });
 
 test("Media person locations", async (): Promise<void> => {

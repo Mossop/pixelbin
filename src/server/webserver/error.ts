@@ -3,7 +3,7 @@ import { STATUS_CODES } from "http";
 import { Next, DefaultContext, DefaultState, ParameterizedContext, BaseContext } from "koa";
 
 import { Api } from "../../model";
-import { DatabaseError } from "../database";
+import { DatabaseError, DatabaseErrorCode } from "../database";
 import { LoggingContext } from "./logging";
 
 const ApiErrorStatus: Record<Api.ErrorCode, number> = {
@@ -50,7 +50,15 @@ export async function errorHandler(
       error = e;
     } else if (e instanceof DatabaseError) {
       ctx.logger.warn(e, "Database error occured.");
-      error = new ApiError(Api.ErrorCode.InvalidData, {
+
+      let code = Api.ErrorCode.InvalidData;
+      switch (e.code) {
+        case DatabaseErrorCode.MissingRelationship:
+          code = Api.ErrorCode.NotFound;
+          break;
+      }
+
+      error = new ApiError(code, {
         message: String(e),
       });
     } else {
