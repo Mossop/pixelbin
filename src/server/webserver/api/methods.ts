@@ -210,7 +210,8 @@ export function apiRequestHandler<T extends Api.Method>(
   method: T,
 ): (ctx: AppContext) => Promise<void> {
   return async (ctx: AppContext): Promise<void> => {
-    if (ctx.method.toLocaleUpperCase() != Api.HttpMethods[method]) {
+    if (ctx.method.toLocaleUpperCase() != Api.HttpMethods[method] &&
+        !(ctx.method.toLocaleUpperCase() == "POST" && Api.HttpMethods[method] != "GET")) {
       throw new ApiError(Api.ErrorCode.BadMethod, {
         received: ctx.method,
         expected: Api.HttpMethods[method],
