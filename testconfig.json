@@ -1,0 +1,10 @@
+{
+  "database": {
+    "username": "pixelbin",
+    "password": "pixelbin",
+    "host": "localhost",
+    "database": "pixelbin"
+  },
+  "logConfig": "debug",
+  "storageConfig": "data/server"
+}

@@ -222,7 +222,10 @@ async function eslint() {
 exports.lint = gulp.series(lintPackages, exports.buildServer, buildClientJs, eslint);
 
 exports.run = gulp.parallel(watchClientJs, watchClientStatic, async function() {
-  let server = new Process("node", [path.join(__dirname, "build", "server")]);
+  let server = new Process("node", [
+    path.join(__dirname, "build", "server"),
+    path.join(__dirname, "testconfig.json"),
+  ]);
   let pretty = new Process(await findBin(__dirname, "pino-pretty"));
   server.pipe(pretty);
 

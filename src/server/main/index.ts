@@ -6,7 +6,7 @@ import { install } from "source-map-support";
 
 import { getLogger, setLogConfig } from "../../utils";
 import { DatabaseConnection } from "../database";
-import config from "./config";
+import { loadConfig, ServerConfig } from "./config";
 import { quit } from "./events";
 import { TaskManager } from "./tasks";
 import { WebserverManager } from "./webserver";
@@ -14,21 +14,18 @@ import { WebserverManager } from "./webserver";
 install();
 const logger = getLogger("server");
 
-async function initDatabase(): Promise<void> {
+async function initDatabase(config: ServerConfig): Promise<void> {
   let dbConnection = await DatabaseConnection.connect(config.database);
   await dbConnection.knex.migrate.latest();
   await dbConnection.destroy();
 }
 
-async function startupServers(): Promise<void> {
+async function startupServers(config: ServerConfig): Promise<void> {
   let taskManager = new TaskManager({
     databaseConfig: config.database,
     logConfig: config.logConfig,
     taskWorkerPackage: config.taskWorkerPackage,
-    storageConfig: {
-      tempDirectory: "",
-      localDirectory: "",
-    },
+    storageConfig: config.storageConfig,
   });
 
   new WebserverManager({
@@ -38,21 +35,18 @@ async function startupServers(): Promise<void> {
     databaseConfig: config.database,
     secretKeys: ["Random secret"],
     logConfig: config.logConfig,
-    storageConfig: {
-      tempDirectory: "",
-      localDirectory: "",
-    },
+    storageConfig: config.storageConfig,
   }, taskManager);
 }
 
-async function startup(): Promise<void> {
+async function startup(config: ServerConfig): Promise<void> {
   setLogConfig(config.logConfig);
 
-  await initDatabase();
-  await startupServers();
+  await initDatabase(config);
+  await startupServers(config);
 }
 
-export function main(): void {
+export async function main(args: string[]): Promise<void> {
   process.on("SIGTERM", (): void => {
     logger.trace("Received SIGTERM.");
     quit();
@@ -63,7 +57,13 @@ export function main(): void {
     quit();
   });
 
-  startup().catch((error: Error): void => {
+  if (!args.length) {
+    throw new Error("Must pass a config file.");
+  }
+
+  let config = await loadConfig(args[0]);
+
+  startup(config).catch((error: Error): void => {
     logger.error(error, "Server startup threw error.");
   });
 }
