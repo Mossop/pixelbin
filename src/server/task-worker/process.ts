@@ -95,6 +95,8 @@ export const handleUploadedFile = bindTask(
             source = path.join(dir.path, `${baseName}-poster.jpg`);
             await extractFrame(fileInfo.path, source);
 
+            await storage.get().storeFile(mediaId, original.id, path.basename(source), source);
+
             let stat = await fs.stat(source);
             let metadata = await sharp(source).metadata();
             await dbConnection.addAlternateFile(original.id, {

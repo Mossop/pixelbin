@@ -486,9 +486,10 @@ test("Process video metadata", async (): Promise<void> => {
     expect.anything(),
   ]);
 
-  expect(storeFileMock).toHaveBeenCalledTimes(2);
+  expect(storeFileMock).toHaveBeenCalledTimes(3);
   expect(storeFileMock.mock.calls).toEqual([
-    [media.id, expect.anything(), "Testvideo.mp4", sourceFile],
+    [media.id, expect.anything(), "Testvideo-poster.jpg", expect.anything()],
+    [media.id, storeFileMock.mock.calls[0][1], "Testvideo.mp4", sourceFile],
     [media.id, storeFileMock.mock.calls[0][1], "Testvideo-h264.mp4", lastEncodeArgs[4]],
   ]);
 
