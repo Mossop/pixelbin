@@ -2,6 +2,8 @@ import Box from "@material-ui/core/Box";
 import React, { useCallback, useState } from "react";
 
 import { Catalog, useCatalogs } from "../api/highlevel";
+import { useSelector } from "../store";
+import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
 import { IncludeVirtualCategories, VirtualItem, VirtualTree } from "../utils/virtual";
 import Banner from "./Banner";
@@ -27,8 +29,30 @@ export default function Page(props: PageProps): ReactResult {
     setOpen(!open);
   }, [open]);
 
+  const { loggedIn } = useSelector((state: StoreState) => ({
+    loggedIn: state.serverState.user,
+  }));
+
+  if (loggedIn) {
+    return <Box display="flex" flexDirection="column" minHeight="100vh" alignItems="stretch">
+      <Banner onMenuButtonClick={onMenuButtonClick}>{props.bannerButtons}</Banner>
+      <Box
+        display="flex"
+        flexDirection="row"
+        flexGrow={1}
+        alignContent="stretch"
+        justifyContent="start"
+      >
+        <Sidebar open={open}>
+          <SidebarTree roots={catalogs}/>
+        </Sidebar>
+        {props.children}
+      </Box>
+    </Box>;
+  }
+
   return <Box display="flex" flexDirection="column" minHeight="100vh" alignItems="stretch">
-    <Banner onMenuButtonClick={onMenuButtonClick}>{props.bannerButtons}</Banner>
+    <Banner>{props.bannerButtons}</Banner>
     <Box
       display="flex"
       flexDirection="row"
@@ -36,9 +60,6 @@ export default function Page(props: PageProps): ReactResult {
       alignContent="stretch"
       justifyContent="start"
     >
-      <Sidebar open={open}>
-        <SidebarTree roots={catalogs}/>
-      </Sidebar>
       {props.children}
     </Box>
   </Box>;
