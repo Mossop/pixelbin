@@ -4,7 +4,7 @@ import { expect } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
-import { buildTestApp, expectUserState, fromCatalogs, catalogs } from "../test-helpers";
+import { buildTestApp, expectUserState, fromCatalogs, catalogs, storage } from "../test-helpers";
 
 const agent = buildTestApp();
 
@@ -79,6 +79,15 @@ test("Create catalog", async (): Promise<void> => {
     "fullname": "Someone 1",
     "created": "2020-01-01T00:00:00.000Z",
     "verified": true,
+    "storage": [{
+      id: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+      name: "My storage",
+      region: "Anywhere",
+      endpoint: null,
+      bucket: "buckit",
+      path: null,
+      publicUrl: null,
+    }],
     "catalogs": [
       ...testData[Table.Catalog],
       newCatalog,
@@ -88,11 +97,13 @@ test("Create catalog", async (): Promise<void> => {
     "tags": testData[Table.Tag],
   });
 
+  let ourStore = response.body.user.storage[0].id;
+
   // Can add to an existing storage.
   await request
     .put("/api/catalog/create")
     .send({
-      storage: "s1",
+      storage: ourStore,
       name: "Existing catalog",
     })
     .expect("Content-Type", "application/json")
@@ -172,6 +183,7 @@ test("Create album", async (): Promise<void> => {
     "fullname": "Someone 1",
     "created": "2020-01-01T00:00:00.000Z",
     "verified": true,
+    "storage": [],
     "catalogs": testData[Table.Catalog],
     "albums": [
       ...testData[Table.Album],
@@ -295,6 +307,7 @@ test("Edit album", async (): Promise<void> => {
     "fullname": "Someone 2",
     "created": "2010-01-01T00:00:00Z",
     "verified": true,
+    "storage": storage([testData[Table.Storage][0]]),
     "catalogs": catalogs("c1", testData[Table.Catalog]),
     "albums": albums,
     "people": fromCatalogs("c1", testData[Table.Person]),
@@ -429,6 +442,7 @@ test("Create Tag", async (): Promise<void> => {
     "fullname": "Someone 1",
     "created": "2020-01-01T00:00:00Z",
     "verified": true,
+    "storage": [],
     "catalogs": testData[Table.Catalog],
     "albums": testData[Table.Album],
     "people": testData[Table.Person],
@@ -552,6 +566,7 @@ test("Edit tag", async (): Promise<void> => {
     "fullname": "Someone 2",
     "created": "2010-01-01T00:00:00Z",
     "verified": true,
+    "storage": storage([testData[Table.Storage][0]]),
     "catalogs": catalogs("c1", testData[Table.Catalog]),
     "albums": fromCatalogs("c1", testData[Table.Album]),
     "people": fromCatalogs("c1", testData[Table.Person]),
@@ -670,6 +685,7 @@ test("Create Person", async (): Promise<void> => {
     "fullname": "Someone 1",
     "created": "2020-01-01T00:00:00Z",
     "verified": true,
+    "storage": [],
     "catalogs": testData[Table.Catalog],
     "albums": testData[Table.Album],
     "people": [
@@ -791,6 +807,7 @@ test("Edit person", async (): Promise<void> => {
     "fullname": "Someone 2",
     "created": "2010-01-01T00:00:00Z",
     "verified": true,
+    "storage": storage([testData[Table.Storage][0]]),
     "catalogs": catalogs("c1", testData[Table.Catalog]),
     "albums": fromCatalogs("c1", testData[Table.Album]),
     "people": people,

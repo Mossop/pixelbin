@@ -8,19 +8,18 @@ import { Table, Tables, ref, nameConstraint, intoAPITypes, intoDBTypes } from ".
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {
   return from(this.knex, Table.Storage)
-    .innerJoin(Table.Catalog, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
-    .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Catalog, "id"))
-    .where(ref(Table.UserCatalog, "user"), this.user)
-    .select(ref(Table.Storage)).distinct();
+    .where(ref(Table.Storage, "owner"), this.user)
+    .select(ref(Table.Storage));
 }
 
 export async function createStorage(
   this: UserScopedConnection,
-  data: Omit<Tables.Storage, "id">,
+  data: Omit<Tables.Storage, "id" | "owner">,
 ): Promise<Tables.Storage> {
   let results = await insert(this.knex, Table.Storage, {
     ...data,
     id: await uuid("S"),
+    owner: this.user,
   }).returning("*");
 
   if (results.length) {
@@ -42,25 +41,22 @@ export async function createCatalog(
   this: UserScopedConnection,
   data: Omit<Tables.Catalog, "id">,
 ): Promise<Tables.Catalog> {
-  return this.knex.transaction(async (trx: Knex): Promise<Tables.Catalog> => {
-    let catalog: Tables.Catalog = {
-      ...data,
-      id: await uuid("C"),
-    };
-
-    let results = await insert(trx, Table.Catalog, catalog)
-      .returning("*") as Tables.Catalog[];
-    await insert(trx, Table.UserCatalog, {
-      user: this.user,
-      catalog: catalog.id,
-    });
-
-    if (!results.length) {
-      throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Catalog record.");
-    }
-
-    return results[0];
+  let select = this.knex.from(Table.Storage).where({
+    owner: this.user,
+    id: data.storage,
   });
+
+  let results = await insertFromSelect(this.knex, Table.Catalog, select, {
+    ...intoDBTypes(data),
+    id: await uuid("C"),
+    storage: this.connection.ref(ref(Table.Storage, "id")),
+  }).returning("*");
+
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Catalog record.");
+  }
+
+  return results[0];
 }
 
 export async function listAlbums(this: UserScopedConnection): Promise<Tables.Album[]> {

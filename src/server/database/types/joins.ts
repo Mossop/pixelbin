@@ -1,9 +1,11 @@
 import { ObjectModel } from "../../../model";
 
-export interface UserCatalog {
+export interface SharedCatalog {
   user: string;
   catalog: string;
 }
+
+export type UserCatalog = SharedCatalog;
 
 export interface MediaAlbum {
   catalog: string;

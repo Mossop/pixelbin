@@ -14,11 +14,13 @@ import {
   AlbumState,
   UnprocessedMediaState,
   ProcessedMediaState,
+  StorageState,
 } from "../api/types";
 import { PageType } from "../pages/types";
 import { StoreState } from "../store/types";
-import { intoMap } from "../utils/maps";
+import { intoMap, MapOf } from "../utils/maps";
 
+type MockStorage = Partial<StorageState>;
 type MockPerson = Overwrite<Omit<PersonState, "catalog">, {
   id?: string;
 }>;
@@ -31,6 +33,7 @@ type MockTag = Overwrite<Omit<TagState, "catalog" | "parent">, {
   children?: MockTag[];
 }>;
 type MockCatalog = Overwrite<CatalogState, {
+  storage?: MockStorage | string;
   id?: string;
   albums?: MockAlbum[];
   tags?: MockTag[];
@@ -145,18 +148,57 @@ export function mockProcessedMedia(data: Partial<ProcessedMediaState>): Processe
   };
 }
 
-export function mockCatalog(mock: MockCatalog): Draft<CatalogState> {
+export function mockCatalog(mock: MockCatalog, storage: MapOf<StorageState>): Draft<CatalogState> {
   let id = mock.id ?? randomId();
   let ref = Catalog.ref(id);
+
+  const buildStorage = (def: string | MockStorage | undefined): string => {
+    if (typeof def == "object") {
+      let store = mockStorage(def);
+      storage.set(store.id, store);
+      return store.id;
+    }
+
+    if (def) {
+      let store = storage.get(def);
+      if (!store) {
+        store = mockStorage({
+          id: def,
+        });
+        storage.set(store.id, store);
+      }
+      return store.id;
+    }
+
+    let store = mockStorage({});
+    storage.set(store.id, store);
+    return store.id;
+  };
 
   return {
     id: randomId(),
 
     ...mock,
 
+    storage: buildStorage(mock.storage),
+
     albums: intoMap(iterAlbums(ref, null, mock.albums)),
     people: intoMap(iterPeople(ref, mock.people)),
     tags: intoMap(iterTags(ref, null, mock.tags)),
+  };
+}
+
+export function mockStorage(mock: MockStorage): Draft<StorageState> {
+  return {
+    id: randomId(),
+    name: "Test store",
+    region: "us-west",
+    bucket: "test-bucket",
+    path: null,
+    endpoint: null,
+    publicUrl: null,
+
+    ...mock,
   };
 }
 
@@ -165,13 +207,19 @@ export function mockServerState(catalogs?: MockCatalog[]): Draft<ServerState> {
     catalogs = [];
   }
 
+  let storage: MapOf<Draft<StorageState>> = new Map();
+  let catalogMap = intoMap(catalogs.map(
+    (mock: MockCatalog): Draft<CatalogState> => mockCatalog(mock, storage),
+  ));
+
   return {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2020-04-05T12:34:45Z",
       verified: true,
-      catalogs: intoMap(catalogs.map(mockCatalog)),
+      storage,
+      catalogs: catalogMap,
     },
   };
 }

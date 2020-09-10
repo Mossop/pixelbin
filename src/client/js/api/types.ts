@@ -1,6 +1,6 @@
 import { Api, ObjectModel } from "../../../model";
 import { Overwrite } from "../../../utils";
-import { ReadonlyMapOf } from "../utils/maps";
+import { intoMap, ReadonlyMapOf } from "../utils/maps";
 import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
 
 type HighLevelForState<State> =
@@ -26,6 +26,7 @@ export interface MediaPersonState {
   location: ObjectModel.Location | null;
 }
 
+export type StorageState = Api.Storage;
 export type PersonState = Overwrite<Readonly<ObjectModel.Person>, {
   readonly catalog: Reference<Catalog>;
 }>;
@@ -37,13 +38,14 @@ export type AlbumState = Overwrite<Readonly<ObjectModel.Album>, {
   readonly parent: Reference<Album> | null;
   readonly catalog: Reference<Catalog>;
 }>;
-export type CatalogState = Overwrite<Readonly<Omit<ObjectModel.Catalog, "storage">>, {
+export type CatalogState = Overwrite<Readonly<ObjectModel.Catalog>, {
   readonly tags: ReadonlyMapOf<TagState>;
   readonly albums: ReadonlyMapOf<AlbumState>;
   readonly people: ReadonlyMapOf<PersonState>;
 }>;
 export type UserState = Overwrite<Readonly<Omit<ObjectModel.User, "created" | "lastLogin">>, {
   readonly created: string;
+  readonly storage: ReadonlyMapOf<StorageState>;
   readonly catalogs: ReadonlyMapOf<CatalogState>;
 }>;
 export interface ServerState {
@@ -152,6 +154,7 @@ export function userIntoState(user: Api.User): UserState {
   return {
     ...rest,
     created: rest.created.toISOString(),
+    storage: intoMap(user.storage),
     catalogs: new Map(
       catalogs.map((catalog: Api.Catalog): [string, CatalogState] => {
         return [

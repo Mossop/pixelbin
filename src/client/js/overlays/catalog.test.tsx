@@ -83,6 +83,7 @@ test("create catalog", async (): Promise<void> => {
   await act(() => resolve({
     id: "catalog",
     name: "New Catalog",
+    storage: "st",
   }));
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -90,6 +91,7 @@ test("create catalog", async (): Promise<void> => {
     payload: [{
       id: "catalog",
       name: "New Catalog",
+      storage: "st",
       people: mapOf({}),
       tags: mapOf({}),
       albums: mapOf({}),

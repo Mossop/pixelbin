@@ -27,6 +27,7 @@ export type CurrentOriginal = Omit<Original, "id">;
 
 export type AlternateFile = ObjectModel.AlternateFile;
 
+// A generated view.
 export type StoredMedia = Media & AllOrNulls<
   Omit<ObjectModel.Original, "id" | "media" | "fileName">
 > & {

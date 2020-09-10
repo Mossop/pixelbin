@@ -206,6 +206,7 @@ export function serverDataIntoResponse(serverState: ServerState): ResponseFor<Ap
     user = {
       ...serverState.user,
 
+      storage: [...serverState.user.storage.values()],
       catalogs,
       people,
       tags,

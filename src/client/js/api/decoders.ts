@@ -53,8 +53,22 @@ export const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
+    storage: JsonDecoder.string,
   },
   "Catalog",
+);
+
+export const StorageDecoder = JsonDecoder.object<Api.Storage>(
+  {
+    id: JsonDecoder.string,
+    name: JsonDecoder.string,
+    region: JsonDecoder.string,
+    bucket: JsonDecoder.string,
+    path: JsonDecoder.nullable(JsonDecoder.string),
+    endpoint: JsonDecoder.nullable(JsonDecoder.string),
+    publicUrl: JsonDecoder.nullable(JsonDecoder.string),
+  },
+  "Storage",
 );
 
 export const UserDecoder = JsonDecoder.object<Api.User>(
@@ -63,6 +77,7 @@ export const UserDecoder = JsonDecoder.object<Api.User>(
     fullname: JsonDecoder.string,
     created: DateDecoder,
     verified: JsonDecoder.boolean,
+    storage: JsonDecoder.array(StorageDecoder, "Storage[]"),
     catalogs: JsonDecoder.array(CatalogDecoder, "Catalog[]"),
     people: JsonDecoder.array(PersonDecoder, "Person[]"),
     tags: JsonDecoder.array(TagDecoder, "Tag[]"),

@@ -3,7 +3,7 @@ import { Duplex, Readable } from "stream";
 
 import AWS, { Credentials, AWSError } from "aws-sdk";
 
-import { Api } from "../../model";
+import { ObjectModel } from "../../model";
 import { getLogger, Logger } from "../../utils";
 import { DatabaseConnection } from "../database";
 
@@ -13,7 +13,7 @@ class DBCredentials extends Credentials {
   public constructor(
     private dbConnection: DatabaseConnection,
     private catalog: string,
-    private storage: Api.Storage,
+    private storage: ObjectModel.Storage,
   ) {
     super(storage.accessKeyId, storage.secretAccessKey);
   }
@@ -59,7 +59,7 @@ class AWSRemote extends Remote {
   public constructor(
     dbConnection: DatabaseConnection,
     private catalog: string,
-    private storage: Api.Storage,
+    private storage: ObjectModel.Storage,
   ) {
     super();
 

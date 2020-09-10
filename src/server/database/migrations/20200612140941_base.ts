@@ -131,6 +131,23 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     });
 }
 
+function buildUserCatalogView(knex: Knex): Knex.QueryBuilder {
+  let shares = knex(Table.SharedCatalog)
+    .select({
+      user: ref(Table.SharedCatalog, "user"),
+      catalog: ref(Table.SharedCatalog, "catalog"),
+    });
+
+  let owns = knex(Table.Catalog)
+    .join(Table.Storage, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
+    .select({
+      user: ref(Table.Storage, "owner"),
+      catalog: ref(Table.Catalog, "id"),
+    });
+
+  return owns.union(shares);
+}
+
 exports.up = function(knex: Knex): Knex.SchemaBuilder {
   function addMetadata(table: Knex.CreateTableBuilder): void {
     for (let name of [
@@ -209,6 +226,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     })
     .createTable(Table.Storage, (table: Knex.CreateTableBuilder): void => {
       id(table);
+      foreignId(table, Table.User, "email", false, "owner");
       table.string("name", 100).notNullable();
       table.string("accessKeyId", 200).notNullable();
       table.string("secretAccessKey", 200).notNullable();
@@ -285,7 +303,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
       addFileInfo(table);
     })
-    .createTable(Table.UserCatalog, (table: Knex.CreateTableBuilder): void => {
+    .createTable(Table.SharedCatalog, (table: Knex.CreateTableBuilder): void => {
       foreignId(table, Table.User, "email");
       foreignId(table, Table.Catalog, "id");
 
@@ -341,6 +359,10 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     .raw(knex.raw("CREATE VIEW ?? AS ?", [
       Table.StoredMediaDetail,
       buildMediaDetailView(knex),
+    ]).toString())
+    .raw(knex.raw("CREATE VIEW ?? AS ?", [
+      Table.UserCatalog,
+      buildUserCatalogView(knex),
     ]).toString());
 };
 

@@ -58,6 +58,7 @@ test("state checks", async (): Promise<void> => {
       "fullname": "Someone 1",
       "created": expect.toEqualDate("2020-01-01T00:00:00.000Z"),
       "verified": true,
+      "storage": [],
       "catalogs": testData[Table.Catalog],
       "albums": testData[Table.Album],
       "people": testData[Table.Person],

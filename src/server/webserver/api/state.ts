@@ -1,4 +1,5 @@
 import { Api, ResponseFor } from "../../../model";
+import { Tables } from "../../database/types";
 import { AppContext } from "../context";
 
 export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> | null> {
@@ -8,8 +9,21 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
 
   let userDb = ctx.dbConnection.forUser(ctx.user.email);
 
+  let storage = await userDb.listStorage();
+  let apiStores = storage.map((storage: Tables.Storage): Api.Storage => {
+    let {
+      owner,
+      accessKeyId,
+      secretAccessKey,
+      ...rest
+    } = storage;
+
+    return rest;
+  });
+
   return {
     ...ctx.user,
+    storage: apiStores,
     catalogs: await userDb.listCatalogs(),
     people: await userDb.listPeople(),
     tags: await userDb.listTags(),

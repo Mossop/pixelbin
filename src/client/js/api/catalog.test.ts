@@ -16,6 +16,7 @@ test("Create catalog", async (): Promise<void> => {
   mockResponse(Api.Method.CatalogCreate, 200, {
     id: "testcatalog",
     name: "Test catalog",
+    storage: "str",
   });
 
   let result = await createCatalog("Test catalog", "str");
@@ -23,6 +24,7 @@ test("Create catalog", async (): Promise<void> => {
   expect(result).toEqual({
     id: "testcatalog",
     name: "Test catalog",
+    storage: "str",
     people: new Map(),
     tags: new Map(),
     albums: new Map(),

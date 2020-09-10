@@ -4,7 +4,7 @@ import { CatalogState } from "./types";
 
 export async function createCatalog(
   name: string,
-  storage: string | Api.Create<Api.Storage>,
+  storage: Api.CatalogCreateRequest["storage"],
 ): Promise<CatalogState> {
   let result = await request(Api.Method.CatalogCreate, {
     name,

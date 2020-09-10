@@ -8,7 +8,7 @@ const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 
 /** @type {(mode?: "test" | "development" | "production") => Configuration} */
 module.exports = (mode = "development") => {
-/** @type {import("webpack").RuleSetUse} */
+  /** @type {import("webpack").RuleSetUse} */
   const loaders = [{
     loader: "ts-loader",
     options: {

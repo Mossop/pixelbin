@@ -58,7 +58,7 @@ export async function resetDB(): Promise<void> {
     Table.MediaPerson,
     Table.MediaTag,
     Table.MediaAlbum,
-    Table.UserCatalog,
+    Table.SharedCatalog,
     Table.AlternateFile,
     Table.Original,
     Table.Media,
@@ -112,7 +112,7 @@ export async function insertData(data: Seed): Promise<void> {
   await doInsert(Table.Person);
   await doInsert(Table.Media);
   await doInsert(Table.Original);
-  await doInsert(Table.UserCatalog);
+  await doInsert(Table.SharedCatalog);
   await doInsert(Table.MediaAlbum);
   await doInsert(Table.MediaTag);
   await doInsert(Table.MediaPerson);
@@ -147,6 +147,7 @@ export const testData = {
 
   [Table.Storage]: [{
     id: "s1",
+    owner: "someone2@nowhere.com",
     name: "Test storage",
     accessKeyId: "AKIAIOSFODNN7EXAMPLE",
     secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -157,6 +158,7 @@ export const testData = {
     publicUrl: null,
   }, {
     id: "s2",
+    owner: "someone3@nowhere.com",
     name: "Storage 2",
     accessKeyId: "otheraccessKey",
     secretAccessKey: "othersecret",
@@ -173,7 +175,7 @@ export const testData = {
     name: "Catalog 1",
   }, {
     id: "c2",
-    storage: "s1",
+    storage: "s2",
     name: "Catalog 2",
   }, {
     id: "c3",
@@ -291,7 +293,7 @@ export const testData = {
     name: "Person 6",
   }],
 
-  [Table.UserCatalog]: [{
+  [Table.SharedCatalog]: [{
     catalog: "c1",
     user: "someone1@nowhere.com",
   }, {
@@ -300,15 +302,6 @@ export const testData = {
   }, {
     catalog: "c3",
     user: "someone1@nowhere.com",
-  }, {
-    catalog: "c1",
-    user: "someone2@nowhere.com",
-  }, {
-    catalog: "c2",
-    user: "someone3@nowhere.com",
-  }, {
-    catalog: "c3",
-    user: "someone3@nowhere.com",
   }],
 };
 

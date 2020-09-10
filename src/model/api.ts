@@ -35,9 +35,9 @@ export type UnprocessedMedia = Omit<ObjectModel.UnprocessedMedia, "catalog">;
 export type ProcessedMedia = Omit<ObjectModel.ProcessedMedia, "catalog">;
 export type Media = UnprocessedMedia | ProcessedMedia;
 
-export type Storage = ObjectModel.Storage;
+export type Storage = Omit<ObjectModel.Storage, "owner" | "accessKeyId" | "secretAccessKey">;
 export type PublicStorage = Omit<Storage, "accessKeyId" | "secretAccessKey">;
-export type Catalog = Omit<ObjectModel.Catalog, "storage">;
+export type Catalog = ObjectModel.Catalog;
 export type Album = ObjectModel.Album;
 export type Person = ObjectModel.Person;
 export type MediaPerson = ObjectModel.MediaPerson;
@@ -50,13 +50,12 @@ export interface MediaPersonLocation {
   location?: Location | null;
 }
 
-export interface StorageCreateRequest {
-  storage: string | Create<Storage>;
-}
-
-export type CatalogCreateRequest = Create<Catalog> & StorageCreateRequest;
+export type CatalogCreateRequest = Create<Omit<Catalog, "storage">> & {
+  storage: string | Create<Omit<ObjectModel.Storage, "owner">>;
+};
 
 export type User = Omit<ObjectModel.User, "lastLogin"> & {
+  storage: Storage[],
   catalogs: Catalog[],
   people: Person[],
   tags: Tag[],

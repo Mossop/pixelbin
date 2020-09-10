@@ -254,3 +254,10 @@ exports.migrate = gulp.series(exports.build, async function migrate() {
 
   await connection.destroy();
 });
+
+exports.clean = async function() {
+  let buildDir = path.join(__dirname, "build");
+  await fs.rmdir(buildDir, {
+    recursive: true,
+  });
+};

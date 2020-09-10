@@ -9,6 +9,7 @@ import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
 import { RemoteInterface } from "../../worker";
 import { DatabaseConnection } from "../database";
 import { buildTestDB, connection, getTestDatabaseConfig } from "../database/test-helpers";
+import { Tables } from "../database/types";
 import { StorageService } from "../storage";
 import buildApp from "./app";
 import events from "./events";
@@ -83,6 +84,18 @@ export function catalogs(catalogs: string | string[], items: Api.Catalog[]): Api
   }
 
   return items.filter((catalog: Api.Catalog): boolean => catalogs.includes(catalog.id));
+}
+
+export function storage(items: Tables.Storage[]): Api.Storage[] {
+  return items.map((storage: Tables.Storage): Api.Storage => {
+    let {
+      owner,
+      accessKeyId,
+      secretAccessKey,
+      ...rest
+    } = storage;
+    return rest;
+  });
 }
 
 export function fromCatalogs<T extends Api.Person | Api.Tag | Api.Album>(

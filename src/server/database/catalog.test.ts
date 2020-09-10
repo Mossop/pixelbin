@@ -13,14 +13,18 @@ test("Storage tests", async (): Promise<void> => {
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
+  let user3Db = dbConnection.forUser("someone3@nowhere.com");
 
   let allStorage = idSorted(await user1Db.listStorage());
-  expect(allStorage).toHaveLength(2);
-  expect(allStorage).toEqual(testData[Table.Storage]);
+  expect(allStorage).toHaveLength(0);
 
   allStorage = idSorted(await user2Db.listStorage());
   expect(allStorage).toHaveLength(1);
   expect(allStorage).toEqual([testData[Table.Storage][0]]);
+
+  allStorage = idSorted(await user3Db.listStorage());
+  expect(allStorage).toHaveLength(1);
+  expect(allStorage).toEqual([testData[Table.Storage][1]]);
 
   let storage = await user1Db.createStorage({
     name: "My new storage",
@@ -35,6 +39,7 @@ test("Storage tests", async (): Promise<void> => {
 
   expect(storage).toEqual({
     id: expect.stringMatching(/S:[a-zA-Z0-9]+/),
+    owner: "someone1@nowhere.com",
     name: "My new storage",
     accessKeyId: "foobar",
     secretAccessKey: "baz",
@@ -44,6 +49,10 @@ test("Storage tests", async (): Promise<void> => {
     path: null,
     bucket: "buckit",
   });
+
+  allStorage = idSorted(await user1Db.listStorage());
+  expect(allStorage).toHaveLength(1);
+  expect(allStorage).toEqual([storage]);
 });
 
 test("Catalog tests", async (): Promise<void> => {
@@ -69,42 +78,48 @@ test("Catalog tests", async (): Promise<void> => {
   ]);
 
   // Can duplicate name.
-  let catalog = await user1Db.createCatalog({
+  let catalog1 = await user2Db.createCatalog({
     storage: "s1",
     name: "Catalog 1",
   });
-  expect(catalog).toEqual({
+  expect(catalog1).toEqual({
     id: expect.stringMatching(/[a-zA-Z0-9]+/),
     storage: "s1",
     name: "Catalog 1",
   });
 
-  catalog = await user2Db.createCatalog({
+  let catalog2 = await user2Db.createCatalog({
     storage: "s1",
     name: "New catalog",
   });
-  expect(catalog).toEqual({
+  expect(catalog2).toEqual({
     id: expect.stringMatching(/[a-zA-Z0-9]+/),
     storage: "s1",
     name: "New catalog",
   });
 
   catalogs = idSorted(await user2Db.listCatalogs());
-  expect(catalogs).toHaveLength(2);
-  expect(catalogs).toEqual([
-    catalog,
+  expect(catalogs).toHaveLength(3);
+  expect(catalogs).toInclude([
+    catalog1,
+    catalog2,
     testData[Table.Catalog][0],
   ]);
 
   await expect(user5Db.createCatalog({
     storage: "s1",
     name: "New catalog",
-  })).rejects.toThrow("Unknown User");
+  })).rejects.toThrow("Failed to insert Catalog record");
 
   await expect(user1Db.createCatalog({
     storage: "s5",
     name: "New catalog",
-  })).rejects.toThrow("Unknown Storage");
+  })).rejects.toThrow("Failed to insert Catalog record.");
+
+  await expect(user1Db.createCatalog({
+    storage: "s1",
+    name: "New catalog",
+  })).rejects.toThrow("Failed to insert Catalog record.");
 });
 
 test("Tag table tests", async (): Promise<void> => {

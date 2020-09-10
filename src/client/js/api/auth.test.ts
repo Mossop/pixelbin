@@ -53,8 +53,18 @@ test("Login", async (): Promise<void> => {
       fullname: "Dave Townsend",
       created: "2019-02-03T06:08:12Z",
       verified: true,
+      storage: [{
+        id: "s1",
+        name: "Storage",
+        region: "foo",
+        bucket: "buck",
+        path: "/",
+        endpoint: null,
+        publicUrl: null,
+      }],
       catalogs: [{
         id: "cat1",
+        storage: "s1",
         name: "Catalog 1",
       }],
       people: [{
@@ -89,10 +99,22 @@ test("Login", async (): Promise<void> => {
       fullname: "Dave Townsend",
       created: expect.toEqualDate("2019-02-03T06:08:12Z"),
       verified: true,
+      storage: mapOf({
+        s1: {
+          id: "s1",
+          name: "Storage",
+          region: "foo",
+          bucket: "buck",
+          path: "/",
+          endpoint: null,
+          publicUrl: null,
+        },
+      }),
       catalogs: mapOf({
         cat1: {
           id: "cat1",
           name: "Catalog 1",
+          storage: "s1",
           people: mapOf({
             person1: {
               id: "person1",
@@ -169,6 +191,7 @@ test("Signup", async (): Promise<void> => {
       fullname: "Dave Townsend",
       created: "2015-12-25T06:00:00Z",
       verified: true,
+      storage: [],
       catalogs: [],
       people: [],
       tags: [],
@@ -188,6 +211,7 @@ test("Signup", async (): Promise<void> => {
       fullname: "Dave Townsend",
       created: expect.toEqualDate("2015-12-25T06:00:00Z"),
       verified: true,
+      storage: mapOf({}),
       catalogs: mapOf({}),
     },
   });
