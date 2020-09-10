@@ -1,3 +1,4 @@
+import { STATUS_CODES } from "http";
 import path from "path";
 
 import Router, { RouterParamContext } from "@koa/router";
@@ -65,6 +66,13 @@ const APP_PATHS = {
   "app": "/app/",
 };
 
+async function notFound(ctx: AppContext): Promise<void> {
+  ctx.status = 404;
+  ctx.message = STATUS_CODES[404] ?? "Unknown status";
+  ctx.set("Content-Type", "text/plain");
+  ctx.body = "Not found";
+}
+
 export default async function buildApp(): Promise<App> {
   let parent = await Services.parent;
   let config = await parent.getConfig();
@@ -112,10 +120,13 @@ export default async function buildApp(): Promise<App> {
     .use(errorHandler)
 
     .use(router.routes())
+    .use(mount(APP_PATHS.api, notFound))
 
     .use(mount(APP_PATHS.static, serve(path.join(config.staticRoot))))
+    .use(mount(APP_PATHS.static, notFound))
 
     .use(mount(APP_PATHS.app, serve(path.join(config.appRoot))))
+    .use(mount(APP_PATHS.app, notFound))
 
     .use(async (ctx: AppContext): Promise<void> => {
       let state = await buildState(ctx);

@@ -66,3 +66,19 @@ test("state checks", async (): Promise<void> => {
     },
   });
 });
+
+test("routes", async (): Promise<void> => {
+  const request = agent();
+
+  await request.get("/api/foo")
+    .expect(404);
+
+  await request.get("/static/foo")
+    .expect(404);
+
+  await request.get("/app/foo")
+    .expect(404);
+
+  await request.get("/bogus")
+    .expect(200);
+});
