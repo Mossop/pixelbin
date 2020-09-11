@@ -62,8 +62,8 @@ export const StorageDecoder = JsonDecoder.object<Api.Storage>(
   {
     id: JsonDecoder.string,
     name: JsonDecoder.string,
-    region: JsonDecoder.string,
     bucket: JsonDecoder.string,
+    region: JsonDecoder.nullable(JsonDecoder.string),
     path: JsonDecoder.nullable(JsonDecoder.string),
     endpoint: JsonDecoder.nullable(JsonDecoder.string),
     publicUrl: JsonDecoder.nullable(JsonDecoder.string),

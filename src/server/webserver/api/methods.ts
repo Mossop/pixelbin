@@ -3,6 +3,7 @@ import { getLogger, Obj } from "../../../utils";
 import { AppContext } from "../context";
 import { ApiError } from "../error";
 import {
+  createStorage,
   createCatalog,
   createAlbum,
   editAlbum,
@@ -49,6 +50,7 @@ type ResponseType<T> = T extends Blob ? DirectResponse : Api.ResponseFor<T>;
 export const apiDecoders: RequestDecoders = {
   [Api.Method.Login]: Decoders.LoginRequest,
   [Api.Method.Signup]: Decoders.SignupRequest,
+  [Api.Method.StorageCreate]: Decoders.StorageCreateRequest,
   [Api.Method.CatalogCreate]: Decoders.CatalogCreateRequest,
   [Api.Method.AlbumCreate]: Decoders.AlbumCreateRequest,
   [Api.Method.AlbumEdit]: Decoders.AlbumEditRequest,
@@ -79,6 +81,7 @@ const apiMethods: ApiInterface = {
   [Api.Method.Login]: login,
   [Api.Method.Logout]: logout,
   [Api.Method.Signup]: signup,
+  [Api.Method.StorageCreate]: createStorage,
   [Api.Method.CatalogCreate]: createCatalog,
   [Api.Method.AlbumCreate]: createAlbum,
   [Api.Method.AlbumEdit]: editAlbum,

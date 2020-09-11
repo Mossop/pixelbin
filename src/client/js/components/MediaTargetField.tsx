@@ -34,6 +34,7 @@ const useStyles = makeStyles((theme: Theme) =>
 export interface MediaTargetFieldProps {
   id: string;
   label: string;
+  disabled?: boolean;
   fullWidth?: boolean;
   margin?: FormControlProps["margin"]
   roots: VirtualItem[];
@@ -92,10 +93,11 @@ export default function MediaTargetField(props: MediaTargetFieldProps): ReactRes
     [props, itemMap],
   );
 
-  return <FormControl fullWidth={props.fullWidth} margin={props.margin}>
+  return <FormControl fullWidth={props.fullWidth} margin={props.margin} disabled={props.disabled}>
     <InputLabel id={`${props.id}-label`}>{props.label}</InputLabel>
     <Select
       id={props.id}
+      disabled={props.disabled}
       labelId={`${props.id}-label`}
       value={props.value.id}
       onChange={onChange}

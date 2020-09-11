@@ -13,7 +13,7 @@ import {
   render,
 } from "../test-helpers";
 import type { AlbumOverlayProps } from "./album";
-import type { CatalogOverlapProps } from "./catalog";
+import type { CreateCatalogOverlayProps } from "./CreateCatalog";
 import { OverlayType } from "./types";
 
 jest.mock("./album", (): unknown => {
@@ -26,8 +26,9 @@ jest.mock("./album", (): unknown => {
   };
 });
 
-jest.mock("./catalog", (): unknown => {
-  return (props: CatalogOverlapProps) => <div id="catalog-overlay" data-user={props.user.email}/>;
+jest.mock("./CreateCatalog", (): unknown => {
+  return (props: CreateCatalogOverlayProps) =>
+    <div id="catalog-overlay" data-user={props.user.email}/>;
 });
 
 jest.mock("./login", (): unknown => {

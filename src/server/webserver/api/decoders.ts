@@ -47,23 +47,22 @@ export const SignupRequest = jsonDecoder(JsonDecoder.object<Api.SignupRequest>({
   fullname: JsonDecoder.string,
 }, "SignupRequest"));
 
-const StorageCreateDecoder = JsonDecoder.object<Create<Omit<ObjectModel.Storage, "owner">>>({
-  name: JsonDecoder.string,
-  accessKeyId: JsonDecoder.string,
-  secretAccessKey: JsonDecoder.string,
-  region: JsonDecoder.string,
-  bucket: JsonDecoder.string,
-  path: JsonDecoder.nullable(JsonDecoder.string),
-  endpoint: JsonDecoder.nullable(JsonDecoder.string),
-  publicUrl: JsonDecoder.nullable(JsonDecoder.string),
-}, "StorageCreateDecoder");
+export const StorageCreateRequest = jsonDecoder(
+  JsonDecoder.object<Create<Omit<ObjectModel.Storage, "owner">>>({
+    name: JsonDecoder.string,
+    accessKeyId: JsonDecoder.string,
+    secretAccessKey: JsonDecoder.string,
+    bucket: JsonDecoder.string,
+    region: JsonDecoder.nullable(JsonDecoder.string),
+    path: JsonDecoder.nullable(JsonDecoder.string),
+    endpoint: JsonDecoder.nullable(JsonDecoder.string),
+    publicUrl: JsonDecoder.nullable(JsonDecoder.string),
+  }, "StorageCreateDecoder"),
+);
 
 export const CatalogCreateRequest = jsonDecoder(
-  JsonDecoder.object<Api.CatalogCreateRequest>({
-    storage: JsonDecoder.oneOf<string | Create<Omit<ObjectModel.Storage, "owner">>>([
-      JsonDecoder.string,
-      StorageCreateDecoder,
-    ], "StorageCreate"),
+  JsonDecoder.object<Create<Api.Catalog>>({
+    storage: JsonDecoder.string,
     name: JsonDecoder.string,
   }, "CatalogCreateReqeust"),
 );

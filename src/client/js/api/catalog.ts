@@ -1,10 +1,16 @@
-import { Api } from "../../../model";
+import { Api, Create, ObjectModel } from "../../../model";
 import { request } from "./api";
-import { CatalogState } from "./types";
+import { CatalogState, StorageState } from "./types";
+
+export async function createStorage(
+  storage: Create<Omit<ObjectModel.Storage, "owner">>,
+): Promise<StorageState> {
+  return request(Api.Method.StorageCreate, storage);
+}
 
 export async function createCatalog(
   name: string,
-  storage: Api.CatalogCreateRequest["storage"],
+  storage: string,
 ): Promise<CatalogState> {
   let result = await request(Api.Method.CatalogCreate, {
     name,

@@ -39,22 +39,22 @@ function SidebarTreeItem({ item }: { item: VirtualItem }): ReactResult {
       }
       <ListItemText>
         {
-          item.link ?
-            <Link color="inherit" to={item.link}>{item.label(l10n)}</Link> :
-            item.label(l10n)
+          item.link
+            ? <Link color="inherit" to={item.link}>{item.label(l10n)}</Link>
+            : item.label(l10n)
         }
       </ListItemText>
     </ListItem>
     {
-      children.length ?
-        <List component="div" disablePadding={true} className={classes.nested}>
+      children.length
+        ? <List component="div" disablePadding={true} className={classes.nested}>
           {
             children.map((item: VirtualItem) => {
               return <SidebarTreeItem key={item.id} item={item}/>;
             })
           }
-        </List> :
-        null
+        </List>
+        : null
     }
   </React.Fragment>;
 }

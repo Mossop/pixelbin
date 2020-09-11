@@ -16,6 +16,8 @@ api-error-login-failed = Unknown email or password. Try again:
 
 form-submit = Submit
 form-cancel = Cancel
+form-next = Next
+form-back = Back
 
 banner-login = Log in…
 banner-signup = Signup…
@@ -44,8 +46,12 @@ catalog-people = People
 
 catalog-create-title = Create a new catalog
 catalog-create-title-first = Create your first catalog:
+create-catalog-storage-title = Choose storage
+create-catalog-storage-custom-title = Configure storage
+create-catalog-catalog-title = Configure catalog
 catalog-name = Catalog name:
-storage-name = Storage:
+storage-existing = Select storage:
+storage-name = Storage name:
 storage-access-key = Access key id:
 storage-secret-key = Secret access key:
 storage-region = Region:

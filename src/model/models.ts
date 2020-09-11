@@ -20,8 +20,8 @@ export interface Storage extends IdType {
   name: string;
   accessKeyId: string;
   secretAccessKey: string;
-  region: string;
   bucket: string;
+  region: string | null;
   path: string | null;
   endpoint: string | null;
   publicUrl: string | null;

@@ -5,6 +5,7 @@ import { Album, Catalog, Reference, useCatalogs } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { AlbumState, Create, Patch } from "../api/types";
 import FormDialog from "../components/FormDialog";
+import FormFields from "../components/FormFields";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
@@ -98,29 +99,32 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   }, [album, actions, catalog, state]);
 
   return <FormDialog
-    state={state}
-    setState={setState}
     error={error}
     disabled={disabled}
     titleId={album ? "album-edit-title" : "album-create-title"}
     submitId={album ? "album-edit-submit" : "album-create-submit"}
     onSubmit={onSubmit}
     onClose={actions.closeOverlay}
-    fields={
-      [{
-        type: "text",
-        key: "name",
-        label: "album-name",
-        props: {
-          inputRef: nameInput,
-          autoFocus: true,
-        },
-      }, {
-        type: "mediatarget",
-        key: "parent",
-        label: album ? "album-edit-parent" : "album-create-parent",
-        roots,
-      }]
-    }
-  />;
+  >
+    <FormFields
+      disabled={disabled}
+      state={state}
+      setState={setState}
+      fields={
+        [{
+          type: "text",
+          key: "name",
+          label: "album-name",
+          props: {
+            inputRef: nameInput,
+            autoFocus: true,
+          },
+        }, {
+          type: "mediatarget",
+          key: "parent",
+          label: album ? "album-edit-parent" : "album-create-parent",
+          roots,
+        }]
+      }
+    /></FormDialog>;
 }

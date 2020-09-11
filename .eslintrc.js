@@ -34,7 +34,7 @@ module.exports = {
     "import/no-useless-path-segments": ["error", {
       noUselessIndex: true,
     }],
-    "operator-linebreak": ["warn"],
+    "operator-linebreak": ["warn", "after", { "overrides": { "?": "before", ":": "before" } }],
   },
 
   "ignorePatterns": ["build/**/*"],

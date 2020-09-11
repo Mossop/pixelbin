@@ -10,22 +10,69 @@ const agent = buildTestApp();
 
 beforeEach(insertTestData);
 
+test("Create storage", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body.user.storage).toEqual([]);
+
+  response = await request
+    .put("/api/storage/create")
+    .send({
+      name: "My storage",
+      accessKeyId: "foo",
+      secretAccessKey: "bar",
+      region: "Anywhere",
+      endpoint: null,
+      bucket: "buckit",
+      path: null,
+      publicUrl: null,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    id: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+    name: "My storage",
+    region: "Anywhere",
+    endpoint: null,
+    bucket: "buckit",
+    path: null,
+    publicUrl: null,
+  });
+  let storageId = response.body.id;
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body.user.storage).toEqual([{
+    id: storageId,
+    name: "My storage",
+    region: "Anywhere",
+    endpoint: null,
+    bucket: "buckit",
+    path: null,
+    publicUrl: null,
+  }]);
+});
+
 test("Create catalog", async (): Promise<void> => {
   const request = agent();
 
   let response = await request
     .put("/api/catalog/create")
     .send({
-      storage: {
-        name: "My storage",
-        accessKeyId: "foo",
-        secretAccessKey: "bar",
-        region: "Anywhere",
-        endpoint: null,
-        bucket: "buckit",
-        path: null,
-        publicUrl: null,
-      },
+      storage: "s1",
       name: "Bad user",
     })
     .expect("Content-Type", "application/json")
@@ -47,16 +94,32 @@ test("Create catalog", async (): Promise<void> => {
   response = await request
     .put("/api/catalog/create")
     .send({
-      storage: {
-        name: "My storage",
-        accessKeyId: "foo",
-        secretAccessKey: "bar",
-        region: "Anywhere",
-        endpoint: null,
-        bucket: "buckit",
-        path: null,
-        publicUrl: null,
-      },
+      storage: "s1",
+      name: "Good user",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(400);
+
+  response = await request
+    .put("/api/storage/create")
+    .send({
+      name: "My storage",
+      accessKeyId: "foo",
+      secretAccessKey: "bar",
+      region: "Anywhere",
+      endpoint: null,
+      bucket: "buckit",
+      path: null,
+      publicUrl: null,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+  let storageId = response.body.id;
+
+  response = await request
+    .put("/api/catalog/create")
+    .send({
+      storage: storageId,
       name: "Good user",
     })
     .expect("Content-Type", "application/json")
@@ -65,7 +128,7 @@ test("Create catalog", async (): Promise<void> => {
   let newCatalog = response.body;
   expect(newCatalog).toEqual({
     id: expect.stringMatching(/^C:[a-zA-Z0-9]+/),
-    storage: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+    storage: storageId,
     name: "Good user",
   });
 
@@ -80,7 +143,7 @@ test("Create catalog", async (): Promise<void> => {
     "created": "2020-01-01T00:00:00.000Z",
     "verified": true,
     "storage": [{
-      id: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+      id: storageId,
       name: "My storage",
       region: "Anywhere",
       endpoint: null,

@@ -10,6 +10,7 @@ import type {
   PersonState,
   ServerState,
   UserState,
+  StorageState,
 } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
@@ -45,6 +46,10 @@ const catalogReducers = {
     state.ui.overlay = {
       type: OverlayType.CreateCatalog,
     };
+  },
+
+  storageCreated(state: Draft<StoreState>, user: Draft<UserState>, storage: StorageState): void {
+    user.storage.set(storage.id, storage);
   },
 
   catalogCreated(state: Draft<StoreState>, user: Draft<UserState>, catalog: CatalogState): void {

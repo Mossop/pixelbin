@@ -269,9 +269,9 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
         case "connect":
           logger.catch(this.send({
             type: "connected",
-            methods: this.options.localInterface ?
-              Object.keys(this.options.localInterface) :
-              undefined,
+            methods: this.options.localInterface
+              ? Object.keys(this.options.localInterface)
+              : undefined,
           }));
 
           this.buildRemoteInterface(decoded.value.methods);

@@ -50,9 +50,7 @@ export interface MediaPersonLocation {
   location?: Location | null;
 }
 
-export type CatalogCreateRequest = Create<Omit<Catalog, "storage">> & {
-  storage: string | Create<Omit<ObjectModel.Storage, "owner">>;
-};
+export type StorageCreateRequest = Create<Omit<ObjectModel.Storage, "owner">>;
 
 export type User = Omit<ObjectModel.User, "lastLogin"> & {
   storage: Storage[],
@@ -170,6 +168,7 @@ export enum Method {
   Login = "login",
   Logout = "logout",
   Signup = "signup",
+  StorageCreate = "storage/create",
   CatalogCreate = "catalog/create",
   // CatalogEdit = "catalog/edit",
   // CatalogDelete = "catalog/delete",
@@ -201,6 +200,7 @@ export const HttpMethods: MethodList = {
   [Method.Login]: "POST",
   [Method.Logout]: "POST",
   [Method.Signup]: "PUT",
+  [Method.StorageCreate]: "PUT",
   [Method.CatalogCreate]: "PUT",
   // [Method.CatalogEdit]: "PATCH",
   // [Method.CatalogDelete]: "DELETE",
@@ -241,7 +241,8 @@ export interface Signatures {
   [Method.Login]: Signature<LoginRequest, State>;
   [Method.Logout]: Signature<None, State>;
   [Method.Signup]: Signature<SignupRequest, State>;
-  [Method.CatalogCreate]: Signature<CatalogCreateRequest, Catalog>;
+  [Method.StorageCreate]: Signature<StorageCreateRequest, Storage>;
+  [Method.CatalogCreate]: Signature<Create<Catalog>, Catalog>;
   // [Method.CatalogEdit]: Signature<CatalogEditRequest, void>;
   // [Method.CatalogDelete]: Signature<string[], void>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;

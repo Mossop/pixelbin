@@ -72,7 +72,7 @@ class AWSRemote extends Remote {
     this.s3 = new AWS.S3({
       endpoint: storage.endpoint ?? undefined,
       credentials: new DBCredentials(dbConnection, catalog, storage),
-      region: storage.region,
+      region: storage.region ?? undefined,
       apiVersion: "2006-03-01",
       s3ForcePathStyle: true,
       signatureVersion: "v4",

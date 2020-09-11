@@ -4,27 +4,30 @@ import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
 import { buildResponseMedia } from "./media";
 
+export const createStorage = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Create<Omit<ObjectModel.Storage, "owner">>,
+  ): Promise<Api.Storage> => {
+    let storage = await userDb.createStorage(data);
+    let {
+      accessKeyId,
+      secretAccessKey,
+      owner,
+      ...rest
+    } = storage;
+    return rest;
+  },
+);
+
 export const createCatalog = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.CatalogCreateRequest,
+    data: Create<ObjectModel.Catalog>,
   ): Promise<Api.Catalog> => {
-    let catalogData: Create<ObjectModel.Catalog>;
-    if (typeof data.storage != "string") {
-      let storage = await userDb.createStorage(data.storage);
-      catalogData = {
-        ...data,
-        storage: storage.id,
-      };
-    } else {
-      catalogData = {
-        ...data,
-        storage: data.storage,
-      };
-    }
-
-    return userDb.createCatalog(catalogData);
+    return userDb.createCatalog(data);
   },
 );
 

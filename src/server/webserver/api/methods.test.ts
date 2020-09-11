@@ -68,8 +68,8 @@ test("formdata decoding", async (): Promise<void> => {
   await request
     .post("/api/login")
     .field("json", JSON.stringify({
-      email: "someone1@nowhere.com",
-      password: "password1",
+      email: "someone2@nowhere.com",
+      password: "password2",
     }))
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -77,16 +77,7 @@ test("formdata decoding", async (): Promise<void> => {
   let response = await request
     .put("/api/catalog/create")
     .field("json", JSON.stringify({
-      storage: {
-        name: "My storage",
-        accessKeyId: "foo",
-        secretAccessKey: "bar",
-        region: "Anywhere",
-        endpoint: null,
-        bucket: "buckit",
-        path: null,
-        publicUrl: null,
-      },
+      storage: "s1",
       name: "Good user",
     }))
     .expect("Content-Type", "application/json")
@@ -94,7 +85,7 @@ test("formdata decoding", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     id: expect.stringMatching(/^C:[a-zA-Z0-9]+/),
-    storage: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+    storage: "s1",
     name: "Good user",
   });
 });

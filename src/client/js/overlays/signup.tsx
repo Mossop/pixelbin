@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from "react";
 
 import { signup } from "../api/auth";
 import FormDialog from "../components/FormDialog";
+import FormFields from "../components/FormFields";
 import { useActions } from "../store/actions";
 import { AppError } from "../utils/exception";
 import { useFormState } from "../utils/hooks";
@@ -43,37 +44,41 @@ export default function SignupOverlay(): ReactResult {
   }, [state, actions, setState]);
 
   return <FormDialog
-    state={state}
-    setState={setState}
     error={error}
     disabled={disabled}
     titleId="signup-title"
     submitId="signup-submit"
     onSubmit={onSubmit}
     onClose={actions.closeOverlay}
-    fields={
-      [{
-        type: "text",
-        key: "email",
-        label: "signup-email",
-        inputType: "email",
-        autoComplete: "email",
-        props: {
-          inputRef: emailInput,
-          autoFocus: true,
-        },
-      }, {
-        type: "text",
-        key: "fullname",
-        label: "signup-name",
-        autoComplete: "name",
-      }, {
-        type: "text",
-        key: "password",
-        label: "login-password",
-        inputType: "password",
-        autoComplete: "current-password",
-      }]
-    }
-  />;
+  >
+    <FormFields
+      disabled={disabled}
+      state={state}
+      setState={setState}
+      fields={
+        [{
+          type: "text",
+          key: "email",
+          label: "signup-email",
+          inputType: "email",
+          autoComplete: "email",
+          props: {
+            inputRef: emailInput,
+            autoFocus: true,
+          },
+        }, {
+          type: "text",
+          key: "fullname",
+          label: "signup-name",
+          autoComplete: "name",
+        }, {
+          type: "text",
+          key: "password",
+          label: "login-password",
+          inputType: "password",
+          autoComplete: "current-password",
+        }]
+      }
+    />
+  </FormDialog>;
 }
