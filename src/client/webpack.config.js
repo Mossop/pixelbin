@@ -13,7 +13,7 @@ module.exports = (mode = "development") => {
     loader: "ts-loader",
     options: {
       transpileOnly: true,
-      configFile: path.join(__dirname, "tsconfig.build.json"),
+      configFile: path.join(__dirname, "..", "tsconfig.client.json"),
     },
   }];
 
@@ -26,14 +26,14 @@ module.exports = (mode = "development") => {
   return {
     mode: mode == "test" ? "development" : mode,
     entry: {
-      app: path.join(__dirname, "js", "bootstrap.tsx"),
+      app: path.join(__dirname, "bootstrap.tsx"),
     },
     resolve: {
       extensions: [".js", ".jsx", ".ts", ".tsx"],
     },
     output: {
-      path: path.join(__dirname, "..", "..", "build", "client", "js"),
-      publicPath: "/app/js/",
+      path: path.join(__dirname, "..", "..", "build", "client"),
+      publicPath: "/app/",
       filename: "[name].js",
       chunkFilename: "[name].js",
     },
@@ -55,7 +55,7 @@ module.exports = (mode = "development") => {
     plugins: [
       new ForkTsCheckerWebpackPlugin({
         typescript: {
-          configFile: path.join(__dirname, "tsconfig.build.json"),
+          configFile: path.join(__dirname, "..", "tsconfig.client.json"),
         },
       }),
     ],

@@ -5,14 +5,17 @@
     "checkJs": true,
     "outDir": "build",
     "lib": [
-      "ESNext"
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
     ]
   },
   "include": [
     "ci/*",
     ".*",
     "*",
-    "src/client/*",
-    "src/client/.*"
-  ]
+    "src/**/*",
+    "src/client/*.js",
+    "src/client/.*.js",
+  ],
 }

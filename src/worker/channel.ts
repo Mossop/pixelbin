@@ -9,13 +9,15 @@ const logger = getLogger("worker.channel");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MakePromise<T> = T extends Promise<any> ? T : Promise<T>;
-export type RemoteInterface<T> = {
+export type RemoteInterface<T> = T extends undefined
+  ? undefined
+  : {
   // See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  [K in keyof T]: T[K] extends (...args: infer A) => infer R ?
-    (...args: A) => MakePromise<R> :
-    never;
-};
+    [K in keyof T]: T[K] extends (...args: infer A) => infer R ?
+      (...args: A) => MakePromise<R> :
+      never;
+  };
 
 interface RemoteConnect {
   type: "connect";
@@ -151,6 +153,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
   private buildRemoteInterface(methods: string[] | undefined): void {
     logger.trace({ methods }, "Remote reported methods.");
     if (methods == undefined) {
+      // @ts-ignore: This can only happen if the remote interface is undefined.
       this.remoteInterface.resolve(undefined);
       return;
     }

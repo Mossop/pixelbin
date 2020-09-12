@@ -23,12 +23,12 @@ let karmaConfig = {
   frameworks: ["jasmine"],
   files: [
     ...scripts,
-    path.join(__dirname, "js", "**", "*.karma.ts"),
+    path.join(__dirname, "**", "*.karma.ts"),
   ],
   exclude: [
   ],
   preprocessors: {
-    "js/**/*": ["webpack"],
+    "**/*": ["webpack"],
   },
   logLevel: constants.LOG_WARN,
   failOnEmptyTestSuite: false,
@@ -40,7 +40,7 @@ let karmaConfig = {
   coverageIstanbulReporter: {
     combineBrowserReports: true,
     fixWebpackSourcePaths: true,
-    dir: path.join(__dirname, "coverage"),
+    dir: path.join(__dirname, "..", "..", "coverage", "client"),
     reports: ["json"],
     "report-config": {
       json: {

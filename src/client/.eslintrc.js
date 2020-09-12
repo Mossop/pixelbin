@@ -4,7 +4,7 @@ module.exports = {
   ],
 
   "overrides": [{
-    "files": ["js/**/*.jsx", "js/**/*.tsx"],
+    "files": ["**/*.jsx", "**/*.tsx"],
 
     "extends": [
       "plugin:mossop/react",

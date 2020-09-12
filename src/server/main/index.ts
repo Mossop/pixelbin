@@ -30,7 +30,7 @@ async function startupServers(config: ServerConfig): Promise<void> {
 
   new WebserverManager({
     webserverPackage: config.webserverPackage,
-    staticRoot: path.join(config.clientRoot, "static"),
+    staticRoot: path.join(config.staticRoot),
     appRoot: path.join(config.clientRoot),
     databaseConfig: config.database,
     secretKeys: ["Random secret"],

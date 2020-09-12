@@ -112,8 +112,8 @@ export function after(promise: Promise<unknown>): Promise<void> {
 }
 
 type PromiseType<P> = P extends Promise<infer T> ? T : never;
-type ResolverArg<T> = T | PromiseLike<T> | undefined;
-type Resolver<T, R = void> = (value?: ResolverArg<T>) => R;
+type ResolverArg<T> = T | PromiseLike<T>;
+type Resolver<T, R = void> = (value: ResolverArg<T>) => R;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Rejecter<R = void> = (reason?: any) => R;
 
@@ -124,9 +124,10 @@ export interface DeferredCall<A, R> {
   call: Promise<A>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function deferCall<F extends (...args: any[]) => any>(
-  func: F | jest.MockedFunction<F>): DeferredCall<Parameters<F>, PromiseType<ReturnType<F>>> {
+export function deferCall<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  F extends (...args: any[]) => any
+>(func: F | jest.MockedFunction<F>): DeferredCall<Parameters<F>, PromiseType<ReturnType<F>>> {
   assert(jest.isMockFunction(func));
 
   let deferredCall = defer<Parameters<F>>();
@@ -140,7 +141,7 @@ export function deferCall<F extends (...args: any[]) => any>(
   return {
     promise: deferredResult.promise,
 
-    resolve: (value?: ResolverArg<PromiseType<ReturnType<F>>>): Promise<void> => {
+    resolve: (value: ResolverArg<PromiseType<ReturnType<F>>>): Promise<void> => {
       deferredResult.resolve(value);
       return after(deferredResult.promise);
     },

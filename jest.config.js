@@ -18,9 +18,9 @@ module.exports = {
     "<rootDir>/src/client/.*",
     "/test-helpers",
   ],
-  coverageDirectory: "coverage",
+  coverageDirectory: "coverage/server",
   coverageReporters: [["json", {
-    file: "coverage-server.json",
+    file: "coverage-final.json",
   }]],
   setupFilesAfterEnv: [
     "jest-mock-console/dist/setupTestFramework.js",

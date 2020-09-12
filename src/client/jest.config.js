@@ -1,31 +1,40 @@
 const path = require("path");
 
-const jestConfig = require("../../jest.config");
-
 module.exports = {
-  ...jestConfig,
+  preset: "ts-jest",
+  testRegex: [
+    "\\.test\\.[jt]sx?$",
+  ],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+  ],
+  setupFilesAfterEnv: [
+    "jest-mock-console/dist/setupTestFramework.js",
+  ],
+  resetModules: true,
+  clearMocks: true,
+  testTimeout: 10000,
+
   testEnvironment: "jest-environment-jsdom-global",
   testEnvironmentOptions: {
     url: "http://pixelbin/",
   },
-  testPathIgnorePatterns: [
-    "/static/",
-  ],
   collectCoverageFrom: [
-    "js/**/*.ts",
-    "js/**/*.tsx",
+    "**/*.ts",
+    "**/*.tsx",
   ],
   coveragePathIgnorePatterns: [
-    "<rootDir>/js/.*\\.test\\.ts$",
+    "<rootDir>/.*\\.test\\.ts$",
+    "<rootDir>/.*\\.karma\\.ts$",
     "/test-helpers",
   ],
-  coverageDirectory: "coverage",
+  coverageDirectory: path.join(__dirname, "..", "..", "coverage", "client"),
   coverageReporters: [["json", {
     file: "coverage-jest.json",
   }]],
   globals: {
     "ts-jest": {
-      tsConfig: path.join(__dirname, "tsconfig.json"),
+      tsConfig: path.join(__dirname, "..", "..", "tsconfig.json"),
     },
   },
 };

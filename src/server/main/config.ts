@@ -12,6 +12,7 @@ const basedir = path.resolve(path.join(__dirname, "..", ".."));
 
 export interface ServerConfig {
   clientRoot: string;
+  staticRoot: string;
   webserverPackage: string;
   taskWorkerPackage: string;
   database: DatabaseConfig;
@@ -21,6 +22,7 @@ export interface ServerConfig {
 
 interface ConfigFile {
   clientRoot: string;
+  staticRoot: string;
   database: DatabaseConfig;
   logConfig: LogConfig;
   storageConfig: StorageConfig;
@@ -94,6 +96,7 @@ const StorageConfigDecoder = JsonDecoder.oneOf<StorageConfig>([
 
 const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   clientRoot: JsonDecoder.string,
+  staticRoot: JsonDecoder.string,
   database: DatabaseConfigDecoder,
   logConfig: LogConfigDecoder,
   storageConfig: StorageConfigDecoder,
@@ -126,6 +129,10 @@ export async function loadConfig(configFile: string): Promise<ServerConfig> {
 
     if (!parsed.clientRoot) {
       parsed.clientRoot = path.join(basedir, "client");
+    }
+
+    if (!parsed.staticRoot) {
+      parsed.staticRoot = path.join(basedir, "static");
     }
 
     configFileData = await ConfigFileDecoder.decodePromise(parsed);

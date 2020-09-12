@@ -158,7 +158,7 @@ test("parent", async (): Promise<void> => {
   let result = remote.foo(5);
 
   await expect(deferred.call).resolves.toEqual([5]);
-  deferred.resolve("bizzy");
+  await deferred.resolve("bizzy");
 
   await expect(result).resolves.toBe("bizzy");
 

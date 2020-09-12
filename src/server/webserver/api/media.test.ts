@@ -104,7 +104,7 @@ test("Media upload", async (): Promise<void> => {
 
   expect(contents).toBe("my file contents");
 
-  copyCall.resolve();
+  await copyCall.resolve();
 
   response = await responsePromise;
 
@@ -474,7 +474,7 @@ test("Media edit", async (): Promise<void> => {
 
   expect(contents).toBe("my file contents");
 
-  copyCall.resolve();
+  await copyCall.resolve();
 
   response = await responsePromise;
 

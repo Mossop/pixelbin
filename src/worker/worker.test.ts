@@ -288,7 +288,7 @@ test("channel message timeout", async (): Promise<void> => {
 
   mockProcess.emit("message", { type: "ready" });
 
-  mockChannel.deferredRemote.resolve();
+  mockChannel.deferredRemote.resolve(undefined as unknown as Remote);
 
   await connected;
 
@@ -312,7 +312,7 @@ test("worker exit", async (): Promise<void> => {
 
   mockProcess.emit("message", { type: "ready" });
 
-  mockChannel.deferredRemote.resolve();
+  mockChannel.deferredRemote.resolve(undefined as unknown as Remote);
 
   await connected;
 
@@ -336,7 +336,7 @@ test("worker error", async (): Promise<void> => {
 
   mockProcess.emit("message", { type: "ready" });
 
-  mockChannel.deferredRemote.resolve();
+  mockChannel.deferredRemote.resolve(undefined as unknown as Remote);
 
   await connected;
 

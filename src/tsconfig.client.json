@@ -1,0 +1,25 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "es2015",
+    "module": "esnext",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "client/**/*",
+    "model/**/*",
+    "utils/**/*",
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.karma.ts",
+    "**/*.karma.tsx",
+    "**/__mocks__/**",
+    "**/test-helpers*",
+  ]
+}

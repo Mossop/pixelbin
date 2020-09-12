@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../build",
+    "composite": true,
+    "lib": [
+      "ESNext"
+    ],
+    "incremental": true,
+  },
+  "include": [
+    "server/**/*",
+    "model/**/*",
+    "utils/**/*",
+    "worker/**/*",
+    "server/webserver/packages.json"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/__mocks__/**",
+    "**/test-helpers*",
+  ]
+}

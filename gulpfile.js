@@ -15,9 +15,9 @@ const { findBin } = require("./ci/utils");
 
 async function buildCoverage() {
   return mergeCoverage([
-    path.join(__dirname, "coverage", "coverage-server.json"),
-    path.join(__dirname, "src", "client", "coverage", "coverage-jest.json"),
-    path.join(__dirname, "src", "client", "coverage", "coverage-karma.json"),
+    path.join(__dirname, "coverage", "server", "coverage-final.json"),
+    path.join(__dirname, "coverage", "client", "coverage-jest.json"),
+    path.join(__dirname, "coverage", "client", "coverage-karma.json"),
   ], path.join(__dirname, "coverage", "coverage-final.json"));
 }
 
@@ -31,12 +31,12 @@ async function showCoverage() {
 exports.showCoverage = showCoverage;
 
 function buildClientStatic() {
-  return gulp.src(path.join(__dirname, "src", "client", "static", "**", "*"))
-    .pipe(gulp.dest(path.join(__dirname, "build", "client", "static")));
+  return gulp.src(path.join(__dirname, "static", "client", "**", "*"))
+    .pipe(gulp.dest(path.join(__dirname, "build", "static")));
 }
 
 const watchClientStatic = gulp.series(buildClientStatic, () => {
-  gulp.watch(path.join(__dirname, "src", "client", "static", "**", "*"), buildClientStatic);
+  gulp.watch(path.join(__dirname, "static", "client", "**", "*"), buildClientStatic);
 });
 
 /**
@@ -134,7 +134,7 @@ exports.buildServer = async function buildServer() {
 
   await checkSpawn(tsc, [
     "--build",
-    path.join(__dirname, "src", "server", "tsconfig.build.json"),
+    path.join(__dirname, "src", "tsconfig.server.json"),
   ]);
 
   // Knex strenuously objects to declaration files in the migrations directory.
