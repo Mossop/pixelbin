@@ -1,7 +1,7 @@
 {
   "b2": {
     "name": "Backblaze B2",
-    "endpoint": "s3.us-west-002.backblazeb2.com",
+    "endpoint": "https://s3.us-west-002.backblazeb2.com",
     "publicUrl": "https://pixelbin-test.oxymoronical.com/file/pixelbin-test/",
     "bucket": "pixelbin-test"
   },

@@ -77,6 +77,11 @@ jobs:
         npm install
 
     - name: Run tests
+      env:
+        STORAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STORAGE_AWS_ACCESS_KEY_ID }}
+        STORAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_AWS_SECRET_ACCESS_KEY }}
+        STORAGE_B2_ACCESS_KEY_ID: ${{ secrets.STORAGE_B2_ACCESS_KEY_ID }}
+        STORAGE_B2_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_B2_SECRET_ACCESS_KEY }}
       run: |
         gulp testClientJest
         gulp testServer
