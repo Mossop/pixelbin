@@ -2,10 +2,12 @@ import { promises as fs } from "fs";
 import path from "path";
 
 import type { Moment } from "moment-timezone";
+import fetch from "node-fetch";
 import { dir as tmpdir } from "tmp-promise";
 
+import { ObjectModel } from "../../model";
 import { expect, realMoment, mockMoment } from "../../test-helpers";
-import { insertTestData, buildTestDB, connection } from "../database/test-helpers";
+import { buildTestDB, connection } from "../database/test-helpers";
 import { StorageService } from "./service";
 
 jest.mock("moment-timezone", (): unknown => {
@@ -20,6 +22,30 @@ jest.mock("moment-timezone", (): unknown => {
 });
 
 buildTestDB();
+
+async function getStorageConfig(id: string): Promise<Omit<ObjectModel.Storage, "id" | "owner"> | null> {
+  let storeFile = path.join(__dirname, "..", "..", "..", "testdata", "aws.json");
+  let secretsFile = path.join(__dirname, "..", "..", "..", "secrets.json");
+  try {
+    await fs.stat(secretsFile);
+  } catch (e) {
+    return null;
+  }
+
+  let stores = JSON.parse(await fs.readFile(storeFile, { encoding: "utf8" }));
+  let secrets = JSON.parse(await fs.readFile(secretsFile, { encoding: "utf8" }));
+
+  let config = stores[id];
+  if (id in secrets) {
+    // @ts-ignore: This is correct.
+    for (let [key, value] of Object.entries(secrets[id])) {
+      // @ts-ignore: This is correct.
+      config[key] = value;
+    }
+  }
+
+  return config as Omit<ObjectModel.Storage, "id" | "owner">;
+}
 
 test("Basic storage", async (): Promise<void> => {
   let testTemp = await tmpdir({
@@ -95,8 +121,21 @@ test("Basic storage", async (): Promise<void> => {
   }
 });
 
-test("AWS upload", async (): Promise<void> => {
-  await insertTestData();
+async function storageTest(id: string): Promise<void> {
+  let config = await getStorageConfig(id);
+  if (!config) {
+    console.warn("Skipping test due to missing secrets.");
+    return;
+  }
+
+  let db = await connection;
+  await db.createUser({
+    email: "test@nowhere.com",
+    fullname: "Test",
+    password: "Nope",
+  });
+
+  let userDb = db.forUser("test@nowhere.com");
 
   let testTemp = await tmpdir({
     unsafeCleanup: true,
@@ -118,12 +157,19 @@ test("AWS upload", async (): Promise<void> => {
     let testFile = path.join(testTemp.path, "file.txt");
     await fs.writeFile(testFile, "MYDATA");
 
-    let storage = await service.getStorage("c1");
+    let storageConfig = await userDb.createStorage(config);
+    let catalog = await userDb.createCatalog({
+      name: storageConfig.name,
+      storage: storageConfig.id,
+    });
+
+    let storage = await service.getStorage(catalog.id);
 
     await storage.get().storeFile("media", "info", "file.txt", testFile);
 
     let url = await storage.get().getFileUrl("media", "info", "file.txt");
-    expect(url).toMatch(/^http:\/\/localhost:9000\//);
+    let response = await fetch(url);
+    expect(await response.text()).toBe("MYDATA");
 
     let stream = await storage.get().streamFile("media", "info", "file.txt");
     let content = await new Promise((resolve: ((content: string) => void)): void => {
@@ -147,4 +193,16 @@ test("AWS upload", async (): Promise<void> => {
     await temp.cleanup();
     await local.cleanup();
   }
+}
+
+test("AWS test", async (): Promise<void> => {
+  return storageTest("aws");
+});
+
+test("B2 test", async (): Promise<void> => {
+  return storageTest("b2");
+});
+
+test("Minio test", async (): Promise<void> => {
+  return storageTest("minio");
 });

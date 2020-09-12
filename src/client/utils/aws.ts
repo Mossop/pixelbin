@@ -2,6 +2,7 @@
 import moment from "moment-timezone";
 
 import { Create, ObjectModel } from "../../model";
+import { s3Config, s3Params, s3PublicUrl } from "../../utils";
 import { fetch } from "../environment";
 
 export enum AWSFailure {
@@ -31,31 +32,23 @@ export async function testStorageConfig(
 
   let failure = AWSFailure.Upload;
   let target = "pixelbin-storage-test";
-  let objectKey = config.path ? `${config.path}/${target}` : target;
   try {
     let s3 = new AWS.S3({
-      endpoint: config.endpoint ?? undefined,
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
-      apiVersion: "2006-03-01",
-      s3ForcePathStyle: true,
-      signatureVersion: "v4",
+      ...s3Config(config),
     });
 
     let content = moment().utc().toISOString();
 
     await s3.upload({
-      Bucket: config.bucket,
-      Key: objectKey,
+      ...s3Params(config, target),
       Body: content,
       ContentLength: content.length,
     }).promise();
 
     failure = AWSFailure.Download;
-    let data = await s3.getObject({
-      Bucket: config.bucket,
-      Key: objectKey,
-    }).promise();
+    let data = await s3.getObject(s3Params(config, target)).promise();
 
     if (!data.Body) {
       throw new Error("GetObject returned no content.");
@@ -69,10 +62,7 @@ export async function testStorageConfig(
 
     failure = AWSFailure.PreSigned;
 
-    let url = await s3.getSignedUrlPromise("putObject", {
-      Bucket: config.bucket,
-      Key: objectKey,
-    });
+    let url = await s3.getSignedUrlPromise("putObject", s3Params(config, target));
 
     let response = await fetch(url);
     if (response.status != 200) {
@@ -83,15 +73,9 @@ export async function testStorageConfig(
       throw new Error("Pre-signed URL returned incorrect data.");
     }
 
-    if (config.publicUrl) {
-      let publicUrl = config.publicUrl;
-      if (!publicUrl.endsWith("/")) {
-        publicUrl += "/";
-      }
-
-      publicUrl += objectKey;
-
-      response = await fetch(url);
+    let publicUrl = s3PublicUrl(config, target);
+    if (publicUrl) {
+      response = await fetch(publicUrl);
       if (response.status != 200) {
         throw new Error(`Public URL returned a failure status code (${response.statusText}).`);
       }
@@ -101,10 +85,7 @@ export async function testStorageConfig(
       }
     }
 
-    await s3.deleteObject({
-      Bucket: config.bucket,
-      Key: objectKey,
-    }).promise();
+    await s3.deleteObject(s3Params(config, target)).promise();
 
     failure = AWSFailure.Delete;
   } catch (e) {

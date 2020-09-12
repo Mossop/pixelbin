@@ -10,3 +10,4 @@ packages/*/coverage
 /config.ini
 /test.ini
 .DS_Store
+secrets.json

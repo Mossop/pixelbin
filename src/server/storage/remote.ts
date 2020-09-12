@@ -1,10 +1,9 @@
-import path from "path";
 import { Duplex, Readable } from "stream";
 
 import AWS, { Credentials, AWSError } from "aws-sdk";
 
 import { ObjectModel } from "../../model";
-import { getLogger, Logger } from "../../utils";
+import { getLogger, Logger, s3Config, s3Params, s3PublicUrl } from "../../utils";
 import { DatabaseConnection } from "../database";
 
 const logger = getLogger("aws");
@@ -64,18 +63,9 @@ class AWSRemote extends Remote {
     super();
 
     this.logger = logger.child({ catalog });
-    this.logger.trace({
-      endpoint: storage.endpoint ?? undefined,
-      region: storage.region,
-      apiVersion: "2006-03-01",
-    }, "Creating S3 service");
     this.s3 = new AWS.S3({
-      endpoint: storage.endpoint ?? undefined,
+      ...s3Config(storage),
       credentials: new DBCredentials(dbConnection, catalog, storage),
-      region: storage.region ?? undefined,
-      apiVersion: "2006-03-01",
-      s3ForcePathStyle: true,
-      signatureVersion: "v4",
       logger: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         log: (...messages: any[]): void => {
@@ -86,10 +76,14 @@ class AWSRemote extends Remote {
   }
 
   public async getUrl(target: string): Promise<string> {
+    let publicUrl = s3PublicUrl(this.storage, target);
+    if (publicUrl) {
+      return publicUrl;
+    }
+
     /* eslint-disable @typescript-eslint/naming-convention */
     return this.s3.getSignedUrlPromise("getObject", {
-      Bucket: this.storage.bucket,
-      Key: this.storage.path ? path.join(this.storage.path, target) : target,
+      ...s3Params(this.storage, target),
       Expires: 60 * 5,
     });
     /* eslint-enable @typescript-eslint/naming-convention */
@@ -98,8 +92,7 @@ class AWSRemote extends Remote {
   public async upload(target: string, stream: NodeJS.ReadableStream, size?: number): Promise<void> {
     /* eslint-disable @typescript-eslint/naming-convention */
     let request = this.s3.upload({
-      Bucket: this.storage.bucket,
-      Key: this.storage.path ? path.join(this.storage.path, target) : target,
+      ...s3Params(this.storage, target),
       Body: stream,
       ContentLength: size,
     });
@@ -109,12 +102,7 @@ class AWSRemote extends Remote {
   }
 
   public async stream(target: string): Promise<NodeJS.ReadableStream> {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    let request = this.s3.getObject({
-      Bucket: this.storage.bucket,
-      Key: this.storage.path ? path.join(this.storage.path, target) : target,
-    });
-    /* eslint-enable @typescript-eslint/naming-convention */
+    let request = this.s3.getObject(s3Params(this.storage, target));
 
     let result = await request.promise();
     let body = result.Body;
@@ -133,13 +121,6 @@ class AWSRemote extends Remote {
   }
 
   public async delete(target: string): Promise<void> {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    let request = this.s3.deleteObject({
-      Bucket: this.storage.bucket,
-      Key: this.storage.path ? path.join(this.storage.path, target) : target,
-    });
-    /* eslint-enable @typescript-eslint/naming-convention */
-
-    await request.promise();
+    await this.s3.deleteObject(s3Params(this.storage, target)).promise();
   }
 }

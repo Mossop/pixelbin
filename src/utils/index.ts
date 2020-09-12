@@ -1,3 +1,4 @@
+export * from "./aws";
 export * from "./defer";
 export * from "./decoders";
 export * from "./events";
