@@ -49,6 +49,7 @@ catalog-create-title-first = Create your first catalog:
 create-catalog-storage-title = Choose storage
 create-catalog-storage-custom-title = Configure storage
 create-catalog-catalog-title = Configure catalog
+create-catalog-storage-test = Test storage
 catalog-name = Catalog name:
 storage-existing = Select storage:
 storage-name = Storage name:
@@ -59,6 +60,7 @@ storage-bucket = Bucket:
 storage-path = Path:
 storage-endpoint = Endpoint:
 storage-public-url = Public access URL:
+storage-test-success = Storage test succeeded!
 catalog-create-submit = Create
 
 sidebar-add-catalog = Add a new catalog…
@@ -74,3 +76,9 @@ album-create-parent = Create in:
 error-title = An unexpected error occured.
 error-content = The following error occured:
 error-suggestion = You can try <Reload>reloading</Reload> this page or going to the <Main>main page</Main>.
+
+aws-failure-upload = Failed to upload the test file
+aws-failure-download = Failed to download the test file
+aws-failure-delete = Failed to delete the test file
+aws-failure-presigned = Failed to generate a temporary access token
+aws-failure-public-url = Failed to retrieve test file from public URL

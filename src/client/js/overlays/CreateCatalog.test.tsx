@@ -1,9 +1,8 @@
-import { act } from "@testing-library/react";
 import mockConsole from "jest-mock-console";
 import React from "react";
 
 import { Api } from "../../../model";
-import { lastCallArgs } from "../../../test-helpers";
+import { deferCall, lastCallArgs } from "../../../test-helpers";
 import {
   expect,
   render,
@@ -17,9 +16,14 @@ import {
   click,
   mockServerState,
 } from "../test-helpers";
+import { testStorageConfig } from "../utils/aws";
 import CatalogOverlay from "./CreateCatalog";
 
 jest.mock("../api/api");
+jest.mock("../utils/aws", () => ({
+  __esModule: true,
+  testStorageConfig: jest.fn(),
+}));
 
 beforeEach(resetDOM);
 
@@ -83,6 +87,87 @@ test("create catalog", async (): Promise<void> => {
   input = expectChild(form, "#dialog-path");
   typeString(input, "foo/bar");
 
+  let { call: badCall, reject: testReject } = deferCall(testStorageConfig);
+
+  click(nextBtn);
+
+  expect(form.querySelector("#storage-test-testing")).not.toBeNull();
+  expect(form.querySelector("#storage-test-failure")).toBeNull();
+  expect(form.querySelector("#storage-test-success")).toBeNull();
+
+  expect(backBtn.disabled).toBeFalsy();
+  expect(nextBtn.disabled).toBeTruthy();
+
+  expect(await badCall).toEqual([{
+    name: "New storage",
+    accessKeyId: "Access key",
+    secretAccessKey: "Secret",
+    region: "us-west",
+    bucket: "Test bucket",
+    path: "foo/bar",
+    endpoint: "http://localhost:9000",
+    publicUrl: null,
+  }]);
+
+  expect(form.querySelector("#storage-test-testing")).not.toBeNull();
+  expect(form.querySelector("#storage-test-failure")).toBeNull();
+  expect(form.querySelector("#storage-test-success")).toBeNull();
+
+  expect(backBtn.disabled).toBeFalsy();
+  expect(nextBtn.disabled).toBeTruthy();
+
+  await testReject({
+    failure: "download",
+    message: "bad",
+  });
+
+  expect(form.querySelector("#storage-test-testing")).toBeNull();
+  expect(form.querySelector("#storage-test-failure")).not.toBeNull();
+  expect(form.querySelector("#storage-test-success")).toBeNull();
+
+  expect(backBtn.disabled).toBeFalsy();
+  expect(nextBtn.disabled).toBeTruthy();
+
+  click(backBtn);
+
+  let { call: goodCall, resolve: testResolve } = deferCall(testStorageConfig);
+
+  click(nextBtn);
+
+  expect(form.querySelector("#storage-test-testing")).not.toBeNull();
+  expect(form.querySelector("#storage-test-failure")).toBeNull();
+  expect(form.querySelector("#storage-test-success")).toBeNull();
+
+  expect(backBtn.disabled).toBeFalsy();
+  expect(nextBtn.disabled).toBeTruthy();
+
+  expect(await goodCall).toEqual([{
+    name: "New storage",
+    accessKeyId: "Access key",
+    secretAccessKey: "Secret",
+    region: "us-west",
+    bucket: "Test bucket",
+    path: "foo/bar",
+    endpoint: "http://localhost:9000",
+    publicUrl: null,
+  }]);
+
+  expect(form.querySelector("#storage-test-testing")).not.toBeNull();
+  expect(form.querySelector("#storage-test-failure")).toBeNull();
+  expect(form.querySelector("#storage-test-success")).toBeNull();
+
+  expect(backBtn.disabled).toBeFalsy();
+  expect(nextBtn.disabled).toBeTruthy();
+
+  await testResolve();
+
+  expect(form.querySelector("#storage-test-testing")).toBeNull();
+  expect(form.querySelector("#storage-test-failure")).toBeNull();
+  expect(form.querySelector("#storage-test-success")).not.toBeNull();
+
+  expect(backBtn.disabled).toBeFalsy();
+  expect(nextBtn.disabled).toBeFalsy();
+
   click(nextBtn);
 
   expect(backBtn.disabled).toBeFalsy();
@@ -118,7 +203,7 @@ test("create catalog", async (): Promise<void> => {
   expect(store.dispatch).not.toHaveBeenCalled();
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act(() => resolve({
+  await resolve({
     id: "st123",
     name: "New storage",
     region: "us-west",
@@ -126,7 +211,7 @@ test("create catalog", async (): Promise<void> => {
     path: "foo/bar",
     endpoint: "http://localhost:9000",
     publicUrl: null,
-  }));
+  });
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -152,11 +237,11 @@ test("create catalog", async (): Promise<void> => {
   expect(store.dispatch).toHaveBeenCalledTimes(0);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act(() => storageResolve({
+  await storageResolve({
     id: "Cat356",
     storage: "st123",
     name: "New catalog",
-  }));
+  });
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -229,11 +314,11 @@ test("create catalog with existing storage", async (): Promise<void> => {
   expect(store.dispatch).toHaveBeenCalledTimes(0);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act(() => resolve({
+  await resolve({
     id: "Cat356",
     storage: "st567",
     name: "New catalog",
-  }));
+  });
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({

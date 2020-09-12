@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../../build/client/js",
+    "noEmit": true,
     "composite": true,
     "lib": [
       "ESNext",

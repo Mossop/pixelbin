@@ -67,12 +67,12 @@ test("create album", async (): Promise<void> => {
   }]);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act(() => resolve({
+  await resolve({
     id: "album3",
     catalog: "catalog",
     name: "Foo",
     parent: null,
-  }));
+  });
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumCreated",
@@ -137,12 +137,12 @@ test("edit album", async (): Promise<void> => {
   }]);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act(() => resolve({
+  await resolve({
     id: "album2",
     catalog: "catalog",
     name: "Foo",
     parent: "album1",
-  }));
+  });
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
     type: "albumEdited",

@@ -16,6 +16,7 @@ if [ -z "$CONTAINER" ]; then
   rm -rf public/media/storage/*
   rm -rf data/minio/*
   mkdir -p data/minio/pixelbin
+  mkdir -p data/minio/pixelbin-test
   docker exec -e PYTHON="${PYTHON}" -it $container /containers/rebuild_db.sh
   gulp migrate
 else

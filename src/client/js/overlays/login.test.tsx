@@ -68,7 +68,7 @@ test("login success", async (): Promise<void> => {
   let created = moment.tz("2016-05-23T14:56:32", "UTC");
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act((): Promise<void> => resolve({
+  await resolve({
     user: {
       email: "foo@bar.com",
       fullname: "Someone",
@@ -80,7 +80,7 @@ test("login success", async (): Promise<void> => {
       tags: [],
       people: [],
     },
-  }));
+  });
 
   let [deed] = await dispatchCall;
 
@@ -145,10 +145,10 @@ test("login failed", async (): Promise<void> => {
   });
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act((): Promise<void> => reject(new ApiError(403, "Not Authorized", {
+  await reject(new ApiError(403, "Not Authorized", {
     code: Api.ErrorCode.LoginFailed,
     data: {},
-  })));
+  }));
 
   await waitFor((): void => {
     expect(email.disabled).toBeFalsy();

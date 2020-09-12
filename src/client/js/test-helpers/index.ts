@@ -1,4 +1,5 @@
 import { expect as jestExpect } from "@jest/globals";
+import { act } from "@testing-library/react";
 import moment from "moment";
 import { isMoment, Moment } from "moment-timezone";
 
@@ -106,7 +107,24 @@ export const mapOf = <V>(obj: Record<string, V>): Map<string, V> => new Map(Obje
 
 export function deferRequest<R = unknown, D = unknown>(): DeferredCall<[Api.Method, D], R> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return deferCall(request as unknown as (method: Api.Method, data: D) => Promise<R>);
+  let {
+    call,
+    reject,
+    resolve,
+    promise,
+  } = deferCall(request as unknown as (method: Api.Method, data: D) => Promise<R>);
+  return {
+    call,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    resolve: (...args: Parameters<typeof resolve>): Promise<void> => act(() => {
+      resolve(...args);
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    reject: (...args: Parameters<typeof reject>): Promise<void> => act(() => {
+      reject(...args);
+    }),
+    promise,
+  };
 }
 
 export * from "./dom";

@@ -76,7 +76,7 @@ test("signup success", async (): Promise<void> => {
   let dispatchCall = awaitCall(store.dispatch);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act(() => resolve({
+  await resolve({
     user: {
       email: "foo@bar.com",
       fullname: "Bob Parr",
@@ -88,7 +88,7 @@ test("signup success", async (): Promise<void> => {
       people: [],
       tags: [],
     },
-  }));
+  });
 
   let [deed] = await dispatchCall;
 
@@ -156,10 +156,10 @@ test("signup failed", async (): Promise<void> => {
   }]);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await act(() => reject(new ApiError(400, "Bad Request", {
+  await reject(new ApiError(400, "Bad Request", {
     code: Api.ErrorCode.InvalidData,
     data: {},
-  })));
+  }));
 
   await waitFor((): void => {
     expect(email.disabled).toBeFalsy();
