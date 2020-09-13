@@ -1,6 +1,6 @@
 import { Api } from "../../../model";
 import { RelationType } from "../../../model/api";
-import { expect } from "../../../test-helpers";
+import { expect, getStorageConfig } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
@@ -9,6 +9,78 @@ import { buildTestApp, expectUserState, fromCatalogs, catalogs, storage } from "
 const agent = buildTestApp();
 
 beforeEach(insertTestData);
+
+async function testStorage(id: string): Promise<void> {
+  const request = agent();
+
+  let config = await getStorageConfig(id);
+  if (!config) {
+    console.warn("Skipping test due to missing secrets.");
+    return;
+  }
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .post("/api/storage/test")
+    .send(config)
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual({
+    result: Api.AWSResult.Success,
+    message: null,
+  });
+}
+
+test("Test AWS storage", async (): Promise<void> => {
+  return testStorage("aws");
+});
+
+test("Test Minio storage", async (): Promise<void> => {
+  return testStorage("minio");
+});
+
+test("Test Backblaze storage", async (): Promise<void> => {
+  return testStorage("b2");
+});
+
+test("Test Bad storage", async (): Promise<void> => {
+  const request = agent();
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .post("/api/storage/test")
+    .send({
+      accessKeyId: "foo",
+      secretAccessKey: "bar",
+      region: "Anywhere",
+      endpoint: "http://nowhere.foo",
+      bucket: "buckit",
+      path: null,
+      publicUrl: null,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body.result).not.toBe(Api.AWSResult.Success);
+  expect(response.body).toMatchSnapshot();
+});
 
 test("Create storage", async (): Promise<void> => {
   const request = agent();

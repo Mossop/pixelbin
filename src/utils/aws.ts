@@ -3,7 +3,10 @@ import type AWS from "aws-sdk";
 
 import { ObjectModel } from "../model";
 
-type BaseConfig = Omit<ObjectModel.Storage, "id" | "owner" | "accessKeyId" | "secretAccessKey">;
+type BaseConfig = Pick<
+  ObjectModel.Storage,
+  "endpoint" | "publicUrl" | "bucket" | "path"
+>;
 
 export function s3Config(storageConfig: BaseConfig): AWS.S3.ClientConfiguration {
   return {

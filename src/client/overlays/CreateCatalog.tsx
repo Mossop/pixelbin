@@ -8,14 +8,14 @@ import CheckCircle from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
 import React, { useCallback, useMemo, useState } from "react";
 
-import { createCatalog, createStorage } from "../api/catalog";
+import { Api } from "../../model";
+import { testStorage, createCatalog, createStorage } from "../api/catalog";
 import { StorageState, UserState } from "../api/types";
 import FormFields, { Option } from "../components/FormFields";
 import Loading from "../components/Loading";
 import SteppedDialog, { Step } from "../components/SteppedDialog";
 import { useActions } from "../store/actions";
-import { AWSError, testStorageConfig } from "../utils/aws";
-import { AppError } from "../utils/exception";
+import { AppError, errorString } from "../utils/exception";
 import { useFormState } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
 
@@ -45,13 +45,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
   const [error, setError] = useState<AppError | null>(null);
   const actions = useActions();
   const [currentStep, setCurrentStep] = useState(0);
-  const [storageTestState, setStorageTestState] = useState<{
-    tested: boolean;
-    error: AWSError | null;
-  }>({
-    tested: false,
-    error: null,
-  });
+  const [storageTestResult, setStorageTestResult] = useState<Api.StorageTestResult | null>(null);
   const classes = useStyles();
 
   let [storageChoice, setStorageChoice] = useFormState({
@@ -303,9 +297,9 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
 
   const storageTestStep = useMemo((): Step => {
     let content: ReactResult;
-    if (!storageTestState.tested) {
+    if (!storageTestResult) {
       content = <Loading id="storage-test-testing" flexGrow={1}/>;
-    } else if (storageTestState.error) {
+    } else if (storageTestResult.result != Api.AWSResult.Success) {
       content = <Box
         id="storage-test-failure"
         flexGrow={1}
@@ -317,11 +311,13 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
       >
         <ErrorIcon className={classes.testIcon}/>
         <Typography variant="h3">
-          {l10n.getString(`aws-failure-${storageTestState.error.failure}`)}
+          {l10n.getString(`aws-${storageTestResult.result}`)}
         </Typography>
-        <Box component="p">
-          {storageTestState.error.message}
-        </Box>
+        {
+          storageTestResult.message && <Box component="p">
+            {storageTestResult.message}
+          </Box>
+        }
       </Box>;
     } else {
       content = <Box
@@ -345,7 +341,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
       disabled: storageChoice.storageType == "existing",
       content,
     };
-  }, [storageChoice, storageTestState, l10n, classes]);
+  }, [storageChoice, storageTestResult, l10n, classes]);
 
   const catalogNameStep = useMemo((): Step => {
     return {
@@ -379,17 +375,13 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
   ]);
 
   const startStorageTest = useCallback(async (): Promise<void> => {
-    setStorageTestState({
-      tested: false,
-      error: null,
-    });
+    setStorageTestResult(null);
 
     let endpoint = storageChoice.storageType == "compatible" ? storageChoice.endpoint : null;
     let path = storageConfig.path ? storageConfig.path : null;
 
     try {
-      await testStorageConfig({
-        name: storageConfig.storageName,
+      setStorageTestResult(await testStorage({
         region: storageConfig.region,
         endpoint,
         accessKeyId: storageConfig.accessKeyId,
@@ -397,19 +389,14 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         path,
         bucket: storageConfig.bucket,
         publicUrl: storageChoice.publicUrl ? storageChoice.publicUrl : null,
-      });
-
-      setStorageTestState({
-        tested: true,
-        error: null,
-      });
+      }));
     } catch (e) {
-      setStorageTestState({
-        tested: true,
-        error: e,
+      setStorageTestResult({
+        result: Api.AWSResult.UnknownFailure,
+        message: errorString(l10n, e),
       });
     }
-  }, [storageChoice, storageConfig, setStorageTestState]);
+  }, [storageChoice, storageConfig, setStorageTestResult, l10n]);
 
   const onBack = useCallback(() => {
     let nextStep = currentStep - 1;
@@ -441,7 +428,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         return isFilled(storageConfig.storageName) && isFilled(storageConfig.accessKeyId) &&
           isFilled(storageConfig.secretAccessKey) && isFilled(storageConfig.bucket);
       case storageTestStep:
-        return storageTestState.tested && !storageTestState.error;
+        return storageTestResult?.result == Api.AWSResult.Success;
       case catalogNameStep:
         return isFilled(catalogState.catalogName);
     }
@@ -456,7 +443,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     storageChooserStep,
     storageConfigStep,
     catalogNameStep,
-    storageTestState,
+    storageTestResult,
     storageTestStep,
   ]);
 

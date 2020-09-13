@@ -77,8 +77,9 @@ error-title = An unexpected error occured.
 error-content = The following error occured:
 error-suggestion = You can try <Reload>reloading</Reload> this page or going to the <Main>main page</Main>.
 
-aws-failure-upload = Failed to upload the test file
-aws-failure-download = Failed to download the test file
-aws-failure-delete = Failed to delete the test file
-aws-failure-presigned = Failed to generate a temporary access token
-aws-failure-public-url = Failed to retrieve test file from public URL
+aws-upload-failure = Failed to upload the test file
+aws-download-failure = Failed to download the test file
+aws-delete-failure = Failed to delete the test file
+aws-presigned-failure = Failed to generate a temporary access token
+aws-public-url-failure = Failed to retrieve test file from public URL
+aws-unknown-failure = An unknown error occurred.

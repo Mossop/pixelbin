@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Test Bad storage 1`] = `
+Object {
+  "message": "Inaccessible host: \`nowhere.foo'. This service may not be available in the \`us-east-1' region.",
+  "result": "upload-failure",
+}
+`;

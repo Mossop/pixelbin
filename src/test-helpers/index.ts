@@ -1,10 +1,13 @@
 import assert from "assert";
+import { promises as fs } from "fs";
+import path from "path";
 
 import { expect as jestExpect } from "@jest/globals";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
 import moment from "moment-timezone";
 import type { Moment } from "moment-timezone";
 
+import { ObjectModel } from "../model";
 import { defer } from "../utils";
 
 export const realMoment = jest.requireActual<typeof import("moment-timezone")>("moment-timezone");
@@ -266,3 +269,40 @@ export function mockMoment(result: Moment): void {
     return realMoment(...args);
   });
 }
+
+export async function getStorageConfig(
+  id: string,
+): Promise<Omit<ObjectModel.Storage, "id" | "owner"> | null> {
+  let storeFile = path.join(__dirname, "..", "..", "testdata", "aws.json");
+  let stores = JSON.parse(await fs.readFile(storeFile, { encoding: "utf8" }));
+
+  let secretsFile = path.join(__dirname, "..", "..", "secrets.json");
+  try {
+    await fs.stat(secretsFile);
+
+    let secrets = JSON.parse(await fs.readFile(secretsFile, { encoding: "utf8" }));
+    if (id in secrets) {
+      // @ts-ignore: This is correct.
+      for (let [key, value] of Object.entries(secrets[id])) {
+        // @ts-ignore: This is correct.
+        stores[id][key] = value;
+      }
+    }
+  } catch (e) {
+    if (`STORAGE_${id.toUpperCase()}_ACCESS_KEY_ID` in process.env) {
+      stores[id].accessKeyId = process.env[`STORAGE_${id.toUpperCase()}_ACCESS_KEY_ID`];
+      stores[id].secretAccessKey = process.env[`STORAGE_${id.toUpperCase()}_SECRET_ACCESS_KEY`];
+    }
+  }
+
+  if (!("accessKeyId" in stores[id])) {
+    return null;
+  }
+
+  return {
+    region: "unknown",
+    path: null,
+    ...stores[id],
+  } as Omit<ObjectModel.Storage, "id" | "owner">;
+}
+

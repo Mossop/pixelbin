@@ -51,6 +51,22 @@ export interface MediaPersonLocation {
 }
 
 export type StorageCreateRequest = Create<Omit<ObjectModel.Storage, "owner">>;
+export type StorageTestRequest = Omit<StorageCreateRequest, "name">;
+
+export enum AWSResult {
+  Success = "success",
+  UploadFailure = "upload-failure",
+  DownloadFailure = "download-failure",
+  PreSignedFailure = "presigned-failure",
+  DeleteFailure = "delete-failure",
+  PublicUrlFailure = "public-url-failure",
+  UnknownFailure = "unknown-failure",
+}
+
+export interface StorageTestResult {
+  result: AWSResult;
+  message: string | null;
+}
 
 export type User = Omit<ObjectModel.User, "lastLogin"> & {
   storage: Storage[],
@@ -168,6 +184,7 @@ export enum Method {
   Login = "login",
   Logout = "logout",
   Signup = "signup",
+  StorageTest = "storage/test",
   StorageCreate = "storage/create",
   CatalogCreate = "catalog/create",
   // CatalogEdit = "catalog/edit",
@@ -200,6 +217,7 @@ export const HttpMethods: MethodList = {
   [Method.Login]: "POST",
   [Method.Logout]: "POST",
   [Method.Signup]: "PUT",
+  [Method.StorageTest]: "POST",
   [Method.StorageCreate]: "PUT",
   [Method.CatalogCreate]: "PUT",
   // [Method.CatalogEdit]: "PATCH",
@@ -241,6 +259,7 @@ export interface Signatures {
   [Method.Login]: Signature<LoginRequest, State>;
   [Method.Logout]: Signature<None, State>;
   [Method.Signup]: Signature<SignupRequest, State>;
+  [Method.StorageTest]: Signature<StorageTestRequest, StorageTestResult>;
   [Method.StorageCreate]: Signature<StorageCreateRequest, Storage>;
   [Method.CatalogCreate]: Signature<Create<Catalog>, Catalog>;
   // [Method.CatalogEdit]: Signature<CatalogEditRequest, void>;

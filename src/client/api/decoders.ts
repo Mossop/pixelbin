@@ -58,6 +58,14 @@ export const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
   "Catalog",
 );
 
+export const StorageTestResultDecoder = JsonDecoder.object<Api.StorageTestResult>(
+  {
+    result: JsonDecoder.string as JsonDecoder.Decoder<Api.AWSResult>,
+    message: JsonDecoder.string,
+  },
+  "StorageTestResult",
+);
+
 export const StorageDecoder = JsonDecoder.object<Api.Storage>(
   {
     id: JsonDecoder.string,

@@ -2,7 +2,7 @@ import mockConsole from "jest-mock-console";
 import React from "react";
 
 import { Api } from "../../model";
-import { deferCall, lastCallArgs } from "../../test-helpers";
+import { lastCallArgs } from "../../test-helpers";
 import {
   expect,
   render,
@@ -16,14 +16,9 @@ import {
   click,
   mockServerState,
 } from "../test-helpers";
-import { testStorageConfig } from "../utils/aws";
 import CatalogOverlay from "./CreateCatalog";
 
 jest.mock("../api/api");
-jest.mock("../utils/aws", () => ({
-  __esModule: true,
-  testStorageConfig: jest.fn(),
-}));
 
 beforeEach(resetDOM);
 
@@ -87,7 +82,10 @@ test("create catalog", async (): Promise<void> => {
   input = expectChild(form, "#dialog-path");
   typeString(input, "foo/bar");
 
-  let { call: badCall, reject: testReject } = deferCall(testStorageConfig);
+  let {
+    call: badCall,
+    reject: testReject,
+  } = deferRequest<Api.StorageTestResult, Api.StorageTestRequest>();
 
   click(nextBtn);
 
@@ -98,8 +96,7 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  expect(await badCall).toEqual([{
-    name: "New storage",
+  expect(await badCall).toEqual([Api.Method.StorageTest, {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
     region: "us-west",
@@ -117,7 +114,7 @@ test("create catalog", async (): Promise<void> => {
   expect(nextBtn.disabled).toBeTruthy();
 
   await testReject({
-    failure: "download",
+    result: Api.AWSResult.DownloadFailure,
     message: "bad",
   });
 
@@ -130,7 +127,10 @@ test("create catalog", async (): Promise<void> => {
 
   click(backBtn);
 
-  let { call: goodCall, resolve: testResolve } = deferCall(testStorageConfig);
+  let {
+    call: goodCall,
+    resolve: testResolve,
+  } = deferRequest<Api.StorageTestResult, Api.StorageTestRequest>();
 
   click(nextBtn);
 
@@ -141,8 +141,7 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  expect(await goodCall).toEqual([{
-    name: "New storage",
+  expect(await goodCall).toEqual([Api.Method.StorageTest, {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
     region: "us-west",
@@ -159,7 +158,10 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  await testResolve();
+  await testResolve({
+    result: Api.AWSResult.Success,
+    message: null,
+  });
 
   expect(form.querySelector("#storage-test-testing")).toBeNull();
   expect(form.querySelector("#storage-test-failure")).toBeNull();

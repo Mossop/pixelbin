@@ -1,9 +1,15 @@
-import { Api, Create, ObjectModel } from "../../model";
+import { Api } from "../../model";
 import { request } from "./api";
 import { CatalogState, StorageState } from "./types";
 
+export async function testStorage(
+  storage: Api.StorageTestRequest,
+): Promise<Api.StorageTestResult> {
+  return request(Api.Method.StorageTest, storage);
+}
+
 export async function createStorage(
-  storage: Create<Omit<ObjectModel.Storage, "owner">>,
+  storage: Api.StorageCreateRequest,
 ): Promise<StorageState> {
   return request(Api.Method.StorageCreate, storage);
 }

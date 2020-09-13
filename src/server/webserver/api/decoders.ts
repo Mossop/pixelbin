@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
-import { Api, Create, ObjectModel, Patch } from "../../../model";
+import { Api, Create, Patch } from "../../../model";
 import { getLogger, DateDecoder, NumericDecoder, MappingDecoder } from "../../../utils";
 
 type DeBlob<T> = T extends Blob ? File : T;
@@ -47,8 +47,20 @@ export const SignupRequest = jsonDecoder(JsonDecoder.object<Api.SignupRequest>({
   fullname: JsonDecoder.string,
 }, "SignupRequest"));
 
+export const StorageTestRequest = jsonDecoder(
+  JsonDecoder.object<Api.StorageTestRequest>({
+    accessKeyId: JsonDecoder.string,
+    secretAccessKey: JsonDecoder.string,
+    bucket: JsonDecoder.string,
+    region: JsonDecoder.nullable(JsonDecoder.string),
+    path: JsonDecoder.nullable(JsonDecoder.string),
+    endpoint: JsonDecoder.nullable(JsonDecoder.string),
+    publicUrl: JsonDecoder.nullable(JsonDecoder.string),
+  }, "StorageCreateDecoder"),
+);
+
 export const StorageCreateRequest = jsonDecoder(
-  JsonDecoder.object<Create<Omit<ObjectModel.Storage, "owner">>>({
+  JsonDecoder.object<Api.StorageCreateRequest>({
     name: JsonDecoder.string,
     accessKeyId: JsonDecoder.string,
     secretAccessKey: JsonDecoder.string,
