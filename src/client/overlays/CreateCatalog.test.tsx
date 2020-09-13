@@ -77,8 +77,6 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeFalsy();
 
-  input = expectChild(form, "#dialog-region");
-  typeString(input, "us-west");
   input = expectChild(form, "#dialog-path");
   typeString(input, "foo/bar");
 
@@ -99,7 +97,6 @@ test("create catalog", async (): Promise<void> => {
   expect(await badCall).toEqual([Api.Method.StorageTest, {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
-    region: "us-west",
     bucket: "Test bucket",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
@@ -144,7 +141,6 @@ test("create catalog", async (): Promise<void> => {
   expect(await goodCall).toEqual([Api.Method.StorageTest, {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
-    region: "us-west",
     bucket: "Test bucket",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
@@ -190,7 +186,6 @@ test("create catalog", async (): Promise<void> => {
     name: "New storage",
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
-    region: "us-west",
     bucket: "Test bucket",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
@@ -208,7 +203,6 @@ test("create catalog", async (): Promise<void> => {
   await resolve({
     id: "st123",
     name: "New storage",
-    region: "us-west",
     bucket: "Test bucket",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
@@ -221,7 +215,6 @@ test("create catalog", async (): Promise<void> => {
     payload: [{
       id: "st123",
       name: "New storage",
-      region: "us-west",
       bucket: "Test bucket",
       path: "foo/bar",
       endpoint: "http://localhost:9000",

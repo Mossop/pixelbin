@@ -300,7 +300,6 @@ export async function getStorageConfig(
   }
 
   return {
-    region: "unknown",
     path: null,
     ...stores[id],
   } as Omit<ObjectModel.Storage, "id" | "owner">;

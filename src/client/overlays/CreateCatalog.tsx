@@ -59,7 +59,6 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     storageName: "",
     accessKeyId: "",
     secretAccessKey: "",
-    region: "",
     bucket: "",
     path: "",
   });
@@ -87,7 +86,6 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
           name: storageConfig.storageName,
           accessKeyId: storageConfig.accessKeyId,
           secretAccessKey: storageConfig.secretAccessKey,
-          region: storageConfig.region,
           bucket: storageConfig.bucket,
           path: storageConfig.path ? storageConfig.path : null,
           endpoint,
@@ -275,14 +273,6 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
             },
           }, {
             type: "text",
-            key: "region",
-            label: "storage-region",
-            props: {
-              margin: "dense",
-              size: "small",
-            },
-          }, {
-            type: "text",
             key: "path",
             label: "storage-path",
             props: {
@@ -382,7 +372,6 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
 
     try {
       setStorageTestResult(await testStorage({
-        region: storageConfig.region,
         endpoint,
         accessKeyId: storageConfig.accessKeyId,
         secretAccessKey: storageConfig.secretAccessKey,

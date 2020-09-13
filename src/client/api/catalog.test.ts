@@ -20,7 +20,6 @@ test("Create storage", async (): Promise<void> => {
     path: null,
     bucket: "bucket",
     publicUrl: null,
-    region: null,
   });
 
   let result = await createStorage({
@@ -31,7 +30,6 @@ test("Create storage", async (): Promise<void> => {
     path: null,
     bucket: "bucket",
     publicUrl: null,
-    region: null,
   });
 
   expect(result).toEqual({
@@ -41,7 +39,6 @@ test("Create storage", async (): Promise<void> => {
     path: null,
     bucket: "bucket",
     publicUrl: null,
-    region: null,
   });
 
   let info = callInfo(mockedFetch);
@@ -60,7 +57,6 @@ test("Create storage", async (): Promise<void> => {
       path: null,
       bucket: "bucket",
       publicUrl: null,
-      region: null,
     },
   });
 });

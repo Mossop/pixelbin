@@ -56,7 +56,6 @@ test("Login", async (): Promise<void> => {
       storage: [{
         id: "s1",
         name: "Storage",
-        region: "foo",
         bucket: "buck",
         path: "/",
         endpoint: null,
@@ -103,7 +102,6 @@ test("Login", async (): Promise<void> => {
         s1: {
           id: "s1",
           name: "Storage",
-          region: "foo",
           bucket: "buck",
           path: "/",
           endpoint: null,

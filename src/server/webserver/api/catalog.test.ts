@@ -69,7 +69,6 @@ test("Test Bad storage", async (): Promise<void> => {
     .send({
       accessKeyId: "foo",
       secretAccessKey: "bar",
-      region: "Anywhere",
       endpoint: "http://nowhere.foo",
       bucket: "buckit",
       path: null,
@@ -102,7 +101,6 @@ test("Create storage", async (): Promise<void> => {
       name: "My storage",
       accessKeyId: "foo",
       secretAccessKey: "bar",
-      region: "Anywhere",
       endpoint: null,
       bucket: "buckit",
       path: null,
@@ -114,7 +112,6 @@ test("Create storage", async (): Promise<void> => {
   expect(response.body).toEqual({
     id: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
     name: "My storage",
-    region: "Anywhere",
     endpoint: null,
     bucket: "buckit",
     path: null,
@@ -130,7 +127,6 @@ test("Create storage", async (): Promise<void> => {
   expect(response.body.user.storage).toEqual([{
     id: storageId,
     name: "My storage",
-    region: "Anywhere",
     endpoint: null,
     bucket: "buckit",
     path: null,
@@ -178,7 +174,6 @@ test("Create catalog", async (): Promise<void> => {
       name: "My storage",
       accessKeyId: "foo",
       secretAccessKey: "bar",
-      region: "Anywhere",
       endpoint: null,
       bucket: "buckit",
       path: null,
@@ -217,7 +212,6 @@ test("Create catalog", async (): Promise<void> => {
     "storage": [{
       id: storageId,
       name: "My storage",
-      region: "Anywhere",
       endpoint: null,
       bucket: "buckit",
       path: null,

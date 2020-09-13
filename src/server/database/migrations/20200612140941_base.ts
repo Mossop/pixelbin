@@ -231,7 +231,6 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.string("accessKeyId", 200).notNullable();
       table.string("secretAccessKey", 200).notNullable();
       table.string("bucket", 200).notNullable();
-      table.string("region", 100).nullable();
       table.string("path", 200).nullable();
       table.string("endpoint", 200).nullable();
       table.string("publicUrl", 200).nullable();
