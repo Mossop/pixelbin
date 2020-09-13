@@ -300,11 +300,15 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         className={classes.failure}
       >
         <ErrorIcon className={classes.testIcon}/>
-        <Typography variant="h3">
+        <Typography id="storage-test-result" variant="h4" align="center">
           {l10n.getString(`aws-${storageTestResult.result}`)}
         </Typography>
         {
-          storageTestResult.message && <Box component="p">
+          storageTestResult.message && <Box
+            id="storage-failure-message"
+            component="p"
+            textAlign="center"
+          >
             {storageTestResult.message}
           </Box>
         }
@@ -320,7 +324,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         className={classes.success}
       >
         <CheckCircle className={classes.testIcon}/>
-        <Typography variant="h3">
+        <Typography id="storage-test-result" variant="h4" align="center">
           {l10n.getString("storage-test-success")}
         </Typography>
       </Box>;
@@ -380,6 +384,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         publicUrl: storageChoice.publicUrl ? storageChoice.publicUrl : null,
       }));
     } catch (e) {
+      console.trace(e);
       setStorageTestResult({
         result: Api.AWSResult.UnknownFailure,
         message: errorString(l10n, e),

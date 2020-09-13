@@ -1,4 +1,3 @@
-import mockConsole from "jest-mock-console";
 import React from "react";
 
 import { Api } from "../../model";
@@ -23,8 +22,6 @@ jest.mock("../api/api");
 beforeEach(resetDOM);
 
 test("create catalog", async (): Promise<void> => {
-  mockConsole();
-
   const store = mockStore(mockStoreState({}));
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
@@ -82,7 +79,7 @@ test("create catalog", async (): Promise<void> => {
 
   let {
     call: badCall,
-    reject: testReject,
+    resolve: badResolve,
   } = deferRequest<Api.StorageTestResult, Api.StorageTestRequest>();
 
   click(nextBtn);
@@ -110,14 +107,19 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  await testReject({
+  await badResolve({
     result: Api.AWSResult.DownloadFailure,
-    message: "bad",
+    message: "bad result",
   });
 
   expect(form.querySelector("#storage-test-testing")).toBeNull();
   expect(form.querySelector("#storage-test-failure")).not.toBeNull();
   expect(form.querySelector("#storage-test-success")).toBeNull();
+
+  let result = expectChild(form, "#storage-test-result");
+  expect(result.textContent).toBe("aws-download-failure");
+  let message = expectChild(form, "#storage-failure-message");
+  expect(message.textContent).toBe("bad result");
 
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
@@ -126,7 +128,7 @@ test("create catalog", async (): Promise<void> => {
 
   let {
     call: goodCall,
-    resolve: testResolve,
+    resolve: goodResolve,
   } = deferRequest<Api.StorageTestResult, Api.StorageTestRequest>();
 
   click(nextBtn);
@@ -154,7 +156,7 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  await testResolve({
+  await goodResolve({
     result: Api.AWSResult.Success,
     message: null,
   });
@@ -162,6 +164,9 @@ test("create catalog", async (): Promise<void> => {
   expect(form.querySelector("#storage-test-testing")).toBeNull();
   expect(form.querySelector("#storage-test-failure")).toBeNull();
   expect(form.querySelector("#storage-test-success")).not.toBeNull();
+
+  result = expectChild(form, "#storage-test-result");
+  expect(result.textContent).toBe("storage-test-success");
 
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeFalsy();
@@ -253,8 +258,6 @@ test("create catalog", async (): Promise<void> => {
 });
 
 test("create catalog with existing storage", async (): Promise<void> => {
-  mockConsole();
-
   const store = mockStore(mockStoreState({
     serverState: mockServerState([{
       storage: "st567",

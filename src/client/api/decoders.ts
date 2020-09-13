@@ -61,7 +61,7 @@ export const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
 export const StorageTestResultDecoder = JsonDecoder.object<Api.StorageTestResult>(
   {
     result: JsonDecoder.string as JsonDecoder.Decoder<Api.AWSResult>,
-    message: JsonDecoder.string,
+    message: JsonDecoder.nullable(JsonDecoder.string),
   },
   "StorageTestResult",
 );

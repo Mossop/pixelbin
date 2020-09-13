@@ -127,6 +127,6 @@ export async function request<T extends Api.Method>(
     let decoder = decoders[method] as Decoder<ResponseType<T>>;
     return await decoder(response);
   } catch (e) {
-    exception(ErrorCode.DecodeError, { data: JSON.stringify(await response.json()) }, e);
+    exception(ErrorCode.DecodeError, undefined, e);
   }
 }
