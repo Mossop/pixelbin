@@ -1,6 +1,7 @@
 import { Duplex, Readable } from "stream";
 
 import AWS, { Credentials, AWSError } from "aws-sdk";
+import fetch from "node-fetch";
 
 import { ObjectModel } from "../../model";
 import { getLogger, Logger, s3Config, s3Params, s3PublicUrl } from "../../utils";
@@ -102,6 +103,12 @@ class AWSRemote extends Remote {
   }
 
   public async stream(target: string): Promise<NodeJS.ReadableStream> {
+    let publicUrl = s3PublicUrl(this.storage, target);
+    if (publicUrl) {
+      let response = await fetch(publicUrl);
+      return response.body;
+    }
+
     let request = this.s3.getObject(s3Params(this.storage, target));
 
     let result = await request.promise();

@@ -2,7 +2,6 @@ import { promises as fs, createReadStream } from "fs";
 import path from "path";
 
 import moment, { Moment } from "moment-timezone";
-import fetch from "node-fetch";
 
 import { getLogger, Logger } from "../../utils";
 import { DatabaseConnection } from "../database";
@@ -47,9 +46,8 @@ export class Storage {
     original: string,
     name: string,
   ): Promise<NodeJS.ReadableStream> {
-    let url = await this.getFileUrl(media, original, name);
-    let response = await fetch(url);
-    return response.body;
+    let remote = await this.remote;
+    return remote.stream(path.join(media, original, name));
   }
 
   public async storeFile(
