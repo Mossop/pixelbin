@@ -220,10 +220,6 @@ export const reducers = {
   ...authedReducers(mediaReducers),
   ...authReducers,
 
-  bumpState(state: Draft<StoreState>): void {
-    state.stateId++;
-  },
-
   updateServerState(state: Draft<StoreState>, serverState: ServerState): void {
     state.serverState = createDraft(serverState);
   },

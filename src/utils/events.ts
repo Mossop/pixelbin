@@ -44,13 +44,11 @@ export class TypedEmitter<M extends EventMap> {
   }
 
   public addListener<E extends Events<M>>(message: E, listener: Listener<M, E>): void {
-    // @ts-ignore: This is guaranteed to be correct.
-    emitterFor(this).addListener(message, listener);
+    this.on(message, listener);
   }
 
   public removeListener<E extends Events<M>>(message: E, listener: Listener<M, E>): void {
-    // @ts-ignore: This is guaranteed to be correct.
-    emitterFor(this).on(message, listener);
+    this.off(message, listener);
   }
 }
 

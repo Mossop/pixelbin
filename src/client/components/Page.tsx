@@ -20,7 +20,7 @@ export default function Page(props: PageProps): ReactResult {
   const catalogs = useCatalogs().map(
     (catalog: Catalog): VirtualItem => catalog.virtual({
       ...VirtualTree.Albums,
-      categories: IncludeVirtualCategories.IfNotEmpty,
+      categories: IncludeVirtualCategories.IfNeeded,
     }),
   );
 

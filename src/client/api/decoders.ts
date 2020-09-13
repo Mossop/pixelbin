@@ -1,7 +1,7 @@
 import { JsonDecoder, Result } from "ts.data.json";
 
 import { Api } from "../../model";
-import { DateDecoder } from "../../utils";
+import { DateDecoder, EnumDecoder } from "../../utils";
 
 export const PersonDecoder = JsonDecoder.object<Api.Person>(
   {
@@ -60,7 +60,7 @@ export const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
 
 export const StorageTestResultDecoder = JsonDecoder.object<Api.StorageTestResult>(
   {
-    result: JsonDecoder.string as JsonDecoder.Decoder<Api.AWSResult>,
+    result: EnumDecoder(JsonDecoder.string, "AWSResult"),
     message: JsonDecoder.nullable(JsonDecoder.string),
   },
   "StorageTestResult",
@@ -166,6 +166,6 @@ export const MaybeMediaArrayDecoder = JsonDecoder.array(
 );
 
 export const ErrorDataDecoder = JsonDecoder.object<Api.ErrorData>({
-  code: JsonDecoder.string as JsonDecoder.Decoder<Api.ErrorCode>,
+  code: EnumDecoder(JsonDecoder.string, "ErrorCode"),
   data: JsonDecoder.optional(JsonDecoder.dictionary(JsonDecoder.string, "ErrorData")),
 }, "ErrorData");
