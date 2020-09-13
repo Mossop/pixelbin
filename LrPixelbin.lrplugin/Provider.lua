@@ -58,10 +58,7 @@ function Provider.didUpdatePublishService(publishSettings, info)
 
   local api = API(publishSettings)
   api:cache(info.publishService.localIdentifier)
-
-  if not api.available then
-    api:login()
-  end
+  api:login()
 end
 
 function Provider.didCreateNewPublishService(publishSettings, info)
@@ -73,8 +70,11 @@ function Provider.didCreateNewPublishService(publishSettings, info)
     local api = API(publishSettings)
     api:cache(info.publishService.localIdentifier)
 
-    if not api.available then
-      api:login()
+    local success, _ = api:login()
+
+    if not success then
+      logger:error("Failed to log in to new service.")
+      return
     end
 
     for _, collection in ipairs(info.publishService:getChildCollections()) do
@@ -430,7 +430,7 @@ end
 function Provider.viewForCollectionSettings(f, publishSettings, info)
   local api = API(publishSettings)
 
-  if not api.available then
+  if not api.loggedIn then
     info.collectionSettings.LR_canSaveCollection = false
 
     return f:group_box {

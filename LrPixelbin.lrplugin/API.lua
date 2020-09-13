@@ -184,7 +184,7 @@ function API:login()
   end
 
   logger:error("Login failed", result.code, result.name)
-  self.loggedIn = true
+  self.loggedIn = false
   self.errorState = result
   self.catalogs = nil
   self.albums = nil
