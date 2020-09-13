@@ -30,6 +30,7 @@ export default function CatalogPage(props: CatalogPageProps): ReactResult {
   );
 
   return <Page
+    selectedItem={props.catalog.id}
     bannerButtons={
       <React.Fragment>
         <Button

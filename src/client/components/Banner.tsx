@@ -50,7 +50,7 @@ export default function Banner(props: BannerProps): ReactResult {
     actions.completeLogout(state);
   }, [actions]);
 
-  return <AppBar className={classes.banner}>
+  return <AppBar className={classes.banner} role="banner">
     {
       props.onMenuButtonClick && <IconButton
         onClick={props.onMenuButtonClick}

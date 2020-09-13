@@ -30,6 +30,7 @@ export default function AlbumPage(props: AlbumPageProps): ReactResult {
   );
 
   return <Page
+    selectedItem={props.album.id}
     bannerButtons={
       <React.Fragment>
         <Button

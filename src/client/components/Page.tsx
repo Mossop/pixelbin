@@ -13,6 +13,7 @@ import SidebarTree from "./SidebarTree";
 export interface PageProps {
   bannerButtons?: React.ReactNode;
   children?: React.ReactNode;
+  selectedItem?: string;
 }
 
 export default function Page(props: PageProps): ReactResult {
@@ -44,7 +45,7 @@ export default function Page(props: PageProps): ReactResult {
         justifyContent="start"
       >
         <Sidebar open={open}>
-          <SidebarTree roots={catalogs}/>
+          <SidebarTree roots={catalogs} selectedItem={props.selectedItem}/>
         </Sidebar>
         {props.children}
       </Box>

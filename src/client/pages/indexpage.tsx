@@ -8,7 +8,12 @@ import { ReactResult } from "../utils/types";
 export default function IndexPage(): ReactResult {
   return <Page>
     <Content>
-      <Typography variant="h1">Index</Typography>
+      <Typography variant="h1">h1 text</Typography>
+      <Typography variant="h2">h2 text</Typography>
+      <Typography variant="h3">h3 text</Typography>
+      <Typography variant="h4">h4 text</Typography>
+      <Typography variant="h5">h5 text</Typography>
+      <Typography variant="h6">h6 text</Typography>
     </Content>
   </Page>;
 }
