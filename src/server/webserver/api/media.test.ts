@@ -169,6 +169,7 @@ test("Media upload", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
+  // TODO the people array may come in any order.
   expect(response.body).toEqual(fillMetadata({
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.anything(),
