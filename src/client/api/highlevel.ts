@@ -1,5 +1,4 @@
 import { useSelector } from "../store";
-import actions from "../store/actions";
 import { StoreState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId } from "../utils/maps";
@@ -425,20 +424,6 @@ export class Catalog implements Referencable<Catalog> {
       .map((tag: TagState): Tag => Tag.fromState(this.serverState, tag.id));
   }
 
-  public findTag(path: string[]): Pending<Tag> {
-    const tagFinder = async (ref: Reference<Catalog>, path: string[]): Promise<Reference<Tag>> => {
-      const { findTag } = await import(/* webpackChunkName: "api/tag" */"./tag");
-      let tags = await findTag(ref, path);
-
-      const { asyncDispatch } = await import(/* webpackChunkName: "store" */"../store");
-      await asyncDispatch(actions.tagsCreated(tags));
-
-      return new APIItemReference(tags[tags.length - 1].id, Tag);
-    };
-
-    return new PendingAPIItem(tagFinder(this.ref(), path));
-  }
-
   public get tags(): Tag[] {
     return Array.from(
       this.state.tags.keys(),
@@ -459,23 +444,6 @@ export class Catalog implements Referencable<Catalog> {
       this.state.albums.keys(),
       (id: string): Album => Album.fromState(this.serverState, id),
     );
-  }
-
-  public createPerson(fullname: string): Pending<Person> {
-    const personCreator = async (
-      ref: Reference<Catalog>,
-      name: string,
-    ): Promise<Reference<Person>> => {
-      const { createPerson } = await import(/* webpackChunkName: "api/person" */"./person");
-      let person = await createPerson(ref, name);
-
-      const { asyncDispatch } = await import(/* webpackChunkName: "store" */"../store");
-      await asyncDispatch(actions.personCreated(person));
-
-      return new APIItemReference(person.id, Person);
-    };
-
-    return new PendingAPIItem(personCreator(this.ref(), fullname));
   }
 
   public get people(): Person[] {

@@ -6,8 +6,6 @@ import type { MediaTarget } from "../api/media";
 import type {
   CatalogState,
   AlbumState,
-  TagState,
-  PersonState,
   ServerState,
   UserState,
   StorageState,
@@ -128,23 +126,9 @@ const albumReducers = {
 };
 
 const tagReducers = {
-  tagsCreated(_state: Draft<StoreState>, user: Draft<UserState>, tags: readonly TagState[]): void {
-    for (let tag of tags) {
-      let catalog = user.catalogs.get(tag.catalog.id);
-      if (catalog) {
-        catalog.tags.set(tag.id, tag);
-      }
-    }
-  },
 };
 
 const personReducers = {
-  personCreated(_state: Draft<StoreState>, user: Draft<UserState>, person: PersonState): void {
-    let catalog = user.catalogs.get(person.catalog.id);
-    if (catalog) {
-      catalog.people.set(person.id, person);
-    }
-  },
 };
 
 const authReducers = {
