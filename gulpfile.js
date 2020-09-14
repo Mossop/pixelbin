@@ -129,7 +129,7 @@ exports.testClientJest = gulp.series(clientJest, buildCoverage);
 exports.testClientKarma = gulp.series(clientKarma, buildCoverage);
 exports.testClient = gulp.series(clientJest, clientKarma, buildCoverage);
 
-exports.buildServer = async function buildServer() {
+async function buildServer() {
   let tsc = await findBin(__dirname, "tsc");
 
   await checkSpawn(tsc, [
@@ -146,7 +146,8 @@ exports.buildServer = async function buildServer() {
       await fs.unlink(path.join(migrations, file));
     }
   }
-};
+}
+exports.buildServer = buildServer;
 
 async function serverJest() {
   let jest = await findBin(__dirname, "jest");
@@ -221,19 +222,23 @@ async function eslint() {
 
 exports.lint = gulp.series(lintPackages, exports.buildServer, buildClientJs, eslint);
 
-exports.run = gulp.parallel(watchClientJs, watchClientStatic, async function() {
-  let server = new Process("node", [
-    path.join(__dirname, "build", "server"),
-    path.join(__dirname, "testconfig.json"),
-  ]);
-  let pretty = new Process(await findBin(__dirname, "pino-pretty"));
-  server.pipe(pretty);
+exports.run = gulp.parallel(
+  watchClientJs,
+  watchClientStatic,
+  gulp.series(buildServer, async function() {
+    let server = new Process("node", [
+      path.join(__dirname, "build", "server"),
+      path.join(__dirname, "testconfig.json"),
+    ]);
+    let pretty = new Process(await findBin(__dirname, "pino-pretty"));
+    server.pipe(pretty);
 
-  let code = await server.exitCode;
-  if (code != 0) {
-    throw new Error(`Server exited with exit code ${code}`);
-  }
-});
+    let code = await server.exitCode;
+    if (code != 0) {
+      throw new Error(`Server exited with exit code ${code}`);
+    }
+  }),
+);
 
 exports.migrate = gulp.series(exports.build, async function migrate() {
   // eslint-disable-next-line @typescript-eslint/naming-convention

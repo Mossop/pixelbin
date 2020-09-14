@@ -1,13 +1,15 @@
 import { useLocalization } from "@fluent/react";
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 
+import { listAlbumMedia } from "../api/album";
 import { Album, Reference } from "../api/highlevel";
 import { UserState } from "../api/types";
 import Content from "../components/Content";
 import Page from "../components/Page";
 import { useActions } from "../store/actions";
+import MediaManager from "../utils/MediaManager";
 import { ReactResult } from "../utils/types";
 
 export interface AlbumPageProps {
@@ -27,6 +29,12 @@ export default function AlbumPage(props: AlbumPageProps): ReactResult {
   const onAlbumCreate = useCallback(
     () => actions.showAlbumCreateOverlay(props.album),
     [props, actions],
+  );
+
+  let listMedia = useCallback(() => listAlbumMedia(props.album, true), [props.album]);
+  useEffect(
+    () => MediaManager.requestMediaList(listMedia, actions.listedMedia),
+    [listMedia, actions],
   );
 
   return <Page

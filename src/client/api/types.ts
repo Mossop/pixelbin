@@ -1,3 +1,5 @@
+import { Draft } from "immer";
+
 import { Api, ObjectModel } from "../../model";
 import { Overwrite } from "../../utils";
 import { intoMap, ReadonlyMapOf } from "../utils/maps";
@@ -52,14 +54,14 @@ export interface ServerState {
   readonly user: UserState | null;
 }
 export type UnprocessedMediaState = Overwrite<Readonly<Api.UnprocessedMedia>, {
-  readonly tags: Reference<Tag>[];
-  readonly albums: Reference<Album>[];
-  readonly people: MediaPersonState[];
+  readonly tags: readonly Reference<Tag>[];
+  readonly albums: readonly Reference<Album>[];
+  readonly people: readonly MediaPersonState[];
 }>;
 export type ProcessedMediaState = Overwrite<Readonly<Api.ProcessedMedia>, {
-  readonly tags: Reference<Tag>[];
-  readonly albums: Reference<Album>[];
-  readonly people: MediaPersonState[];
+  readonly tags: readonly Reference<Tag>[];
+  readonly albums: readonly Reference<Album>[];
+  readonly people: readonly MediaPersonState[];
 }>;
 export type MediaState = UnprocessedMediaState | ProcessedMediaState;
 export interface OriginalState extends Readonly<ObjectModel.Original> {}
@@ -72,10 +74,10 @@ export function isUnprocessed(media: MediaState): media is UnprocessedMediaState
   return !isProcessed(media);
 }
 
-export function mediaIntoState(media: Api.UnprocessedMedia): UnprocessedMediaState;
-export function mediaIntoState(media: Api.ProcessedMedia): ProcessedMediaState;
-export function mediaIntoState(media: Api.Media): MediaState;
-export function mediaIntoState(media: Api.Media): MediaState {
+export function mediaIntoState(media: Api.UnprocessedMedia): Draft<UnprocessedMediaState>;
+export function mediaIntoState(media: Api.ProcessedMedia): Draft<ProcessedMediaState>;
+export function mediaIntoState(media: Api.Media): Draft<MediaState>;
+export function mediaIntoState(media: Api.Media): Draft<MediaState> {
   return {
     ...media,
 

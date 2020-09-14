@@ -111,7 +111,9 @@ function *iterPeople(
   }
 }
 
-export function mockUnprocessedMedia(data: Partial<UnprocessedMediaState>): UnprocessedMediaState {
+export function mockUnprocessedMedia(
+  data: Partial<Draft<UnprocessedMediaState>>,
+): Draft<UnprocessedMediaState> {
   return {
     id: randomId(),
     created: moment().utc(),
@@ -125,7 +127,9 @@ export function mockUnprocessedMedia(data: Partial<UnprocessedMediaState>): Unpr
   };
 }
 
-export function mockProcessedMedia(data: Partial<ProcessedMediaState>): ProcessedMediaState {
+export function mockProcessedMedia(
+  data: Partial<Draft<ProcessedMediaState>>,
+): Draft<ProcessedMediaState> {
   return {
     id: randomId(),
     created: moment().utc(),

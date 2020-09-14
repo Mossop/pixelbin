@@ -9,10 +9,12 @@ import type {
   ServerState,
   UserState,
   StorageState,
+  MediaState,
 } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
+import { intoMap } from "../utils/maps";
 import { nameSorted } from "../utils/sort";
 import { StoreState, UIState } from "./types";
 
@@ -194,6 +196,11 @@ const authReducers = {
 };
 
 const mediaReducers = {
+  listedMedia(state: Draft<StoreState>, _user: Draft<UserState>, media: Draft<MediaState>[]): void {
+    if (state.ui.page.type == PageType.Album) {
+      state.ui.page.media = intoMap(media);
+    }
+  },
 };
 
 export const reducers = {

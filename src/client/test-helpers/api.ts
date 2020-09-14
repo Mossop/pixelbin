@@ -12,6 +12,8 @@ import {
   MediaState,
   isProcessed,
   MediaPersonState,
+  ProcessedMediaState,
+  UnprocessedMediaState,
 } from "../api/types";
 import fetch from "../environment/fetch";
 
@@ -107,6 +109,14 @@ export function callInfo(mockedFetch: jest.MockedFunction<Fetch>): CallInfo {
   return info;
 }
 
+export function mediaIntoResponse(
+  serverState: ServerState,
+  media: ProcessedMediaState,
+): ResponseFor<Api.ProcessedMedia>;
+export function mediaIntoResponse(
+  serverState: ServerState,
+  media: UnprocessedMediaState,
+): ResponseFor<Api.UnprocessedMedia>;
 export function mediaIntoResponse(
   serverState: ServerState,
   media: MediaState,

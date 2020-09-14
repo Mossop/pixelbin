@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Api } from "../../model";
+import { fillMetadata } from "../../server/database";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
-import { createAlbum, editAlbum, addMediaToAlbum, removeMediaFromAlbum } from "./album";
+import {
+  createAlbum,
+  editAlbum,
+  addMediaToAlbum,
+  removeMediaFromAlbum,
+  listAlbumMedia,
+} from "./album";
 import { Catalog, Album, mediaRef } from "./highlevel";
 
 jest.mock("../environment/fetch");
@@ -157,4 +164,46 @@ test("Remove media", async (): Promise<void> => {
       media: ["testmedia"],
     }],
   });
+});
+
+test("List album", async (): Promise<void> => {
+  let state = mockServerState([{
+    id: "testcatalog",
+    name: "Test catalog",
+    albums: [{
+      id: "testalbum",
+      name: "Test album",
+    }],
+  }]);
+  let media = mockUnprocessedMedia({
+    id: "testmedia",
+    albums: [
+      Album.ref("testalbum"),
+    ],
+  });
+
+  mockResponse(Api.Method.AlbumList, 200, [
+    mediaIntoResponse(state, media),
+  ]);
+
+  let result = await listAlbumMedia(Album.ref("testalbum"), true);
+
+  let info = callInfo(mockedFetch);
+  expect(info).toEqual({
+    method: "GET",
+    path: "http://pixelbin/api/album/list?id=testalbum&recursive=true",
+    headers: {
+      "X-CSRFToken": "csrf-foobar",
+    },
+  });
+
+  expect(result).toEqual([fillMetadata({
+    id: "testmedia",
+    created: expect.anything(),
+    albums: [
+      expect.toBeRef("testalbum"),
+    ],
+    tags: [],
+    people: [],
+  })]);
 });

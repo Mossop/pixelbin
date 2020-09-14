@@ -1,7 +1,9 @@
+import { Draft } from "immer";
+
 import { Api } from "../../model";
 import { request } from "./api";
 import { Album, Reference, Media } from "./highlevel";
-import { AlbumState, Create, albumIntoState, Patch } from "./types";
+import { AlbumState, Create, albumIntoState, Patch, mediaIntoState, MediaState } from "./types";
 
 export function createAlbum(album: Create<AlbumState>): Promise<AlbumState> {
   return request(Api.Method.AlbumCreate, {
@@ -47,4 +49,16 @@ export async function removeMediaFromAlbum(
     media: media.map((m: Reference<Media>): string => m.id),
     items: [album.id],
   }]);
+}
+
+export async function listAlbumMedia(
+  album: Reference<Album>,
+  recursive: boolean,
+): Promise<Draft<MediaState>[]> {
+  let media = await request(Api.Method.AlbumList, {
+    id: album.id,
+    recursive,
+  });
+
+  return media.map(mediaIntoState);
 }

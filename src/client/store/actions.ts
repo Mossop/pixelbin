@@ -1,4 +1,5 @@
 import { actionCreators } from "deeds/immer";
+import { useMemo } from "react";
 import { useDispatch } from "react-redux";
 
 // See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
@@ -21,18 +22,29 @@ const creators = actionCreators<Reducers>();
 export function useActions(): ActionDispatchers<Reducers> {
   const dispatch = useDispatch();
 
-  let creators = new Proxy({}, {
-    get: function <K extends keyof Reducers>(_target: unknown, prop: K): Action<Reducers, K> {
-      return (...args: ActionReducerArgs<Reducers[K]>): void => {
-        dispatch({
-          type: prop,
-          payload: args,
-        });
-      };
-    },
-  });
+  return useMemo(() => {
+    let creators = new Proxy({}, {
+      get: function <K extends keyof Reducers>(
+        target: Partial<ActionDispatchers<Reducers>>,
+        prop: K,
+      ): Action<Reducers, K> {
+        // Must cache the property as they are used for equality checks.
+        if (!(prop in target)) {
+          // @ts-ignore: Not sure what is failing here.
+          target[prop] = (...args: ActionReducerArgs<Reducers[K]>): void => {
+            dispatch({
+              type: prop,
+              payload: args,
+            });
+          };
+        }
 
-  return creators as ActionDispatchers<Reducers>;
+        return target[prop] as Action<Reducers, K>;
+      },
+    });
+
+    return creators as ActionDispatchers<Reducers>;
+  }, [dispatch]);
 }
 
 export default creators;
