@@ -113,27 +113,27 @@ test("Media upload", async (): Promise<void> => {
     created: expect.toEqualDate(createdMoment),
     catalog: "c1",
     albums: [{
-      "catalog": "c1",
-      "id": "a1",
-      "name": "Album 1",
-      "parent": null,
+      catalog: "c1",
+      id: "a1",
+      name: "Album 1",
+      parent: null,
     }],
     people: [{
-      "catalog": "c1",
-      "id": "p1",
-      "name": "Person 1",
-      "location": null,
+      catalog: "c1",
+      id: "p1",
+      name: "Person 1",
+      location: null,
     }],
     tags: [{
-      "catalog": "c1",
-      "id": "t1",
-      "name": "tag1",
-      "parent": null,
+      catalog: "c1",
+      id: "t1",
+      name: "tag1",
+      parent: null,
     }, {
-      "catalog": "c1",
-      "id": "t2",
-      "name": "tag2",
-      "parent": null,
+      catalog: "c1",
+      id: "t2",
+      name: "tag2",
+      parent: null,
     }],
   }));
 
@@ -175,20 +175,20 @@ test("Media upload", async (): Promise<void> => {
     catalog: "c1",
     albums: [],
     people: [{
-      "catalog": "c1",
-      "id": "p1",
-      "name": "Person 1",
-      "location": null,
+      catalog: "c1",
+      id: "p1",
+      name: "Person 1",
+      location: null,
     }, {
-      "catalog": "c1",
-      "id": "p2",
-      "name": "Person 2",
-      "location": null,
+      catalog: "c1",
+      id: "p2",
+      name: "Person 2",
+      location: null,
     }, {
-      "catalog": "c1",
-      "id": expect.stringMatching(/P:[a-zA-Z0-9]+/),
-      "name": "New person",
-      "location": {
+      catalog: "c1",
+      id: expect.stringMatching(/P:[a-zA-Z0-9]+/),
+      name: "New person",
+      location: {
         left: 0,
         right: 1,
         top: 0,
@@ -196,15 +196,15 @@ test("Media upload", async (): Promise<void> => {
       },
     }],
     tags: [{
-      "catalog": "c1",
-      "id": expect.stringMatching(/T:[a-zA-Z0-9]+/),
-      "name": "newtag",
-      "parent": "t1",
+      catalog: "c1",
+      id: expect.stringMatching(/T:[a-zA-Z0-9]+/),
+      name: "newtag",
+      parent: "t1",
     }, {
-      "catalog": "c1",
-      "id": "t2",
-      "name": "tag2",
-      "parent": null,
+      catalog: "c1",
+      id: "t2",
+      name: "tag2",
+      parent: null,
     }],
   }));
 });
@@ -1062,10 +1062,10 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    "catalog": "c1",
-    "id": "t1",
-    "name": "tag1",
-    "parent": null,
+    catalog: "c1",
+    id: "t1",
+    name: "tag1",
+    parent: null,
   }];
 
   expect(response.body).toEqual([
@@ -1097,15 +1097,15 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    "catalog": "c1",
-    "id": "t1",
-    "name": "tag1",
-    "parent": null,
+    catalog: "c1",
+    id: "t1",
+    name: "tag1",
+    parent: null,
   }, {
-    "catalog": "c1",
-    "id": "t2",
-    "name": "tag2",
-    "parent": null,
+    catalog: "c1",
+    id: "t2",
+    name: "tag2",
+    parent: null,
   }];
 
   expect(response.body).toEqual([
@@ -1137,10 +1137,10 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    "catalog": "c1",
-    "id": "t2",
-    "name": "tag2",
-    "parent": null,
+    catalog: "c1",
+    id: "t2",
+    name: "tag2",
+    parent: null,
   }];
 
   expect(response.body).toEqual([
@@ -1172,10 +1172,10 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    "catalog": "c1",
-    "id": "t1",
-    "name": "tag1",
-    "parent": null,
+    catalog: "c1",
+    id: "t1",
+    name: "tag1",
+    parent: null,
   }];
 
   expect(response.body).toEqual([
@@ -1212,10 +1212,10 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    "catalog": "c1",
-    "id": "t2",
-    "name": "tag2",
-    "parent": null,
+    catalog: "c1",
+    id: "t2",
+    name: "tag2",
+    parent: null,
   }];
 
   expect(response.body).toEqual([
@@ -1281,16 +1281,16 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    "catalog": "c1",
-    "id": "t1",
-    "name": "tag1",
-    "parent": null,
+    catalog: "c1",
+    id: "t1",
+    name: "tag1",
+    parent: null,
   }];
   media2.tags = [{
-    "catalog": "c1",
-    "id": "t2",
-    "name": "tag2",
-    "parent": null,
+    catalog: "c1",
+    id: "t2",
+    name: "tag2",
+    parent: null,
   }];
 
   expect(response.body).toInclude([

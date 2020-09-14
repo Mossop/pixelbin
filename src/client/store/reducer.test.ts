@@ -71,7 +71,7 @@ test("updateServerState", (): void => {
   let newState = reducer(state, action);
 
   expect(newState.serverState).toEqual({
-    "user": {
+    user: {
       catalogs: mapOf({}),
       created: "2020-04-05T12:34:45Z",
       email: "dtownsend@oxymoronical.com",

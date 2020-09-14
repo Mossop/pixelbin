@@ -1,46 +1,47 @@
 module.exports = {
-  "parser": "@typescript-eslint/parser",
+  parser: "@typescript-eslint/parser",
 
-  "parserOptions": {
-    "ecmaVersion": 2018,
-    "sourceType": "module",
-    "ecmaFeatures": {
-      "jsx": true,
+  parserOptions: {
+    ecmaVersion: 2018,
+    sourceType: "module",
+    ecmaFeatures: {
+      jsx: true,
     },
-    "tsconfigRootDir": __dirname,
-    "project": ["./tsconfig.json"],
+    tsconfigRootDir: __dirname,
+    project: ["./tsconfig.json"],
   },
 
-  "settings": {
+  settings: {
     "import/ignore": [
       "typescript",
     ],
   },
 
-  "env": {
-    "node": true,
-    "es6": true,
+  env: {
+    node: true,
+    es6: true,
   },
 
-  "plugins": [
+  plugins: [
     "mossop",
   ],
 
-  "extends": [
+  extends: [
     "plugin:mossop/typescript",
   ],
 
-  "rules": {
+  rules: {
     "import/no-useless-path-segments": ["error", {
       noUselessIndex: true,
     }],
-    "operator-linebreak": ["warn", "after", { "overrides": { "?": "before", ":": "before" } }],
+    "operator-linebreak": ["warn", "after", { overrides: { "?": "before", ":": "before" } }],
+    "quote-props": ["warn", "consistent-as-needed"],
   },
 
-  "ignorePatterns": ["build/**/*"],
+  ignorePatterns: ["build/**/*"],
 
-  "overrides": [{
-    "files": [
+  overrides: [{
+    files: [
       "**/*.test.js",
       "**/*.test.jsx",
       "**/*.test.ts",
@@ -49,32 +50,32 @@ module.exports = {
       "**/__mocks__/*.ts",
     ],
 
-    "env": {
-      "jest": true,
+    env: {
+      jest: true,
     },
 
-    "rules": {
+    rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
     },
   }, {
-    "files": ["*.ts", "*.tsx"],
+    files: ["*.ts", "*.tsx"],
 
-    "rules": {
+    rules: {
       "@typescript-eslint/explicit-function-return-type": ["warn", {
-        "allowExpressions": true,
-        "allowTypedFunctionExpressions": true,
-        "allowHigherOrderFunctions": true,
-        "allowConciseArrowFunctionExpressionsStartingWithVoid": true,
+        allowExpressions: true,
+        allowTypedFunctionExpressions: true,
+        allowHigherOrderFunctions: true,
+        allowConciseArrowFunctionExpressionsStartingWithVoid: true,
       }],
       "@typescript-eslint/typedef": ["warn", {
-        "arrayDestructuring": false,
-        "arrowParameter": true,
-        "memberVariableDeclaration": false,
-        "objectDestructuring": false,
-        "parameter": true,
-        "propertyDeclaration": true,
-        "variableDeclaration": false,
-        "variableDeclarationIgnoreFunction": true,
+        arrayDestructuring: false,
+        arrowParameter: true,
+        memberVariableDeclaration: false,
+        objectDestructuring: false,
+        parameter: true,
+        propertyDeclaration: true,
+        variableDeclaration: false,
+        variableDeclarationIgnoreFunction: true,
       }],
     },
   }],

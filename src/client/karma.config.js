@@ -38,10 +38,10 @@ let karmaConfig = {
   },
   reporters: ["progress", "coverage-istanbul"],
   coverageIstanbulReporter: {
-    combineBrowserReports: true,
-    fixWebpackSourcePaths: true,
-    dir: path.join(__dirname, "..", "..", "coverage", "client"),
-    reports: ["json"],
+    "combineBrowserReports": true,
+    "fixWebpackSourcePaths": true,
+    "dir": path.join(__dirname, "..", "..", "coverage", "client"),
+    "reports": ["json"],
     "report-config": {
       json: {
         file: "coverage-karma.json",

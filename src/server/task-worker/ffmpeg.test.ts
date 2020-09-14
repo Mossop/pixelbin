@@ -11,20 +11,20 @@ const TEST_VIDEO = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4
 test("probe", async (): Promise<void> => {
   let results = await probe(TEST_VIDEO);
   expect(results).toEqual({
-    "format": {
-      "container": "mp4",
-      "bitRate": 18664868,
-      "duration": 1.74,
-      "size": 4059609,
+    format: {
+      container: "mp4",
+      bitRate: 18664868,
+      duration: 1.74,
+      size: 4059609,
     },
-    "videoStream": {
-      "codec": "h264",
-      "frameRate": 59.202207150247155,
-      "width": 1920,
-      "height": 1080,
+    videoStream: {
+      codec: "h264",
+      frameRate: 59.202207150247155,
+      width: 1920,
+      height: 1080,
     },
     audioStream: {
-      "codec": "aac",
+      codec: "aac",
     },
   });
 });
@@ -51,20 +51,20 @@ test("h264 encode", async (): Promise<void> => {
     expect(stat.isFile()).toBeTruthy();
 
     expect(results).toEqual({
-      "format": {
-        "container": "mp4",
-        "bitRate": expect.toBeBetween(5000000, 7000000),
-        "duration": expect.anything(),
-        "size": expect.toBeBetween(1400000, 1600000),
+      format: {
+        container: "mp4",
+        bitRate: expect.toBeBetween(5000000, 7000000),
+        duration: expect.anything(),
+        size: expect.toBeBetween(1400000, 1600000),
       },
-      "videoStream": {
-        "codec": "h264",
-        "frameRate": expect.toBeBetween(videoStream.frameRate - 5, videoStream.frameRate + 5),
-        "width": 1080,
-        "height": 1920,
+      videoStream: {
+        codec: "h264",
+        frameRate: expect.toBeBetween(videoStream.frameRate - 5, videoStream.frameRate + 5),
+        width: 1080,
+        height: 1920,
       },
       audioStream: {
-        "codec": "aac",
+        codec: "aac",
       },
     });
 

@@ -9,8 +9,8 @@ beforeEach(insertTestData);
 
 test("body decode", (): void => {
   expect(decodeBody({
-    a: "b",
-    b: 5,
+    "a": "b",
+    "b": 5,
     "c[0]": 57,
     "d.c": 45,
     "e[0]": 4,

@@ -54,15 +54,15 @@ test("state checks", async (): Promise<void> => {
 
   expect(stateFromResponse(response.text)).toEqual({
     user: {
-      "email": "someone1@nowhere.com",
-      "fullname": "Someone 1",
-      "created": expect.toEqualDate("2020-01-01T00:00:00.000Z"),
-      "verified": true,
-      "storage": [],
-      "catalogs": testData[Table.Catalog],
-      "albums": testData[Table.Album],
-      "people": testData[Table.Person],
-      "tags": testData[Table.Tag],
+      email: "someone1@nowhere.com",
+      fullname: "Someone 1",
+      created: expect.toEqualDate("2020-01-01T00:00:00.000Z"),
+      verified: true,
+      storage: [],
+      catalogs: testData[Table.Catalog],
+      albums: testData[Table.Album],
+      people: testData[Table.Person],
+      tags: testData[Table.Tag],
     },
   });
 });

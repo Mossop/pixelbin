@@ -1,22 +1,22 @@
 module.exports = {
-  "extends": [
+  extends: [
     "plugin:react-hooks/recommended",
   ],
 
-  "overrides": [{
-    "files": ["**/*.jsx", "**/*.tsx"],
+  overrides: [{
+    files: ["**/*.jsx", "**/*.tsx"],
 
-    "extends": [
+    extends: [
       "plugin:mossop/react",
     ],
 
-    "env": {
-      "es6": true,
+    env: {
+      es6: true,
     },
 
-    "settings": {
-      "react": {
-        "version": "16.13",
+    settings: {
+      react: {
+        version: "16.13",
       },
     },
   }],

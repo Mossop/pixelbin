@@ -205,11 +205,11 @@ test("Create catalog", async (): Promise<void> => {
     .expect(200);
 
   expectUserState(response.body, {
-    "email": "someone1@nowhere.com",
-    "fullname": "Someone 1",
-    "created": "2020-01-01T00:00:00.000Z",
-    "verified": true,
-    "storage": [{
+    email: "someone1@nowhere.com",
+    fullname: "Someone 1",
+    created: "2020-01-01T00:00:00.000Z",
+    verified: true,
+    storage: [{
       id: storageId,
       name: "My storage",
       endpoint: null,
@@ -217,13 +217,13 @@ test("Create catalog", async (): Promise<void> => {
       path: null,
       publicUrl: null,
     }],
-    "catalogs": [
+    catalogs: [
       ...testData[Table.Catalog],
       newCatalog,
     ],
-    "albums": testData[Table.Album],
-    "people": testData[Table.Person],
-    "tags": testData[Table.Tag],
+    albums: testData[Table.Album],
+    people: testData[Table.Person],
+    tags: testData[Table.Tag],
   });
 
   let ourStore = response.body.user.storage[0].id;
@@ -308,18 +308,18 @@ test("Create album", async (): Promise<void> => {
     .expect(200);
 
   expectUserState(response.body, {
-    "email": "someone1@nowhere.com",
-    "fullname": "Someone 1",
-    "created": "2020-01-01T00:00:00.000Z",
-    "verified": true,
-    "storage": [],
-    "catalogs": testData[Table.Catalog],
-    "albums": [
+    email: "someone1@nowhere.com",
+    fullname: "Someone 1",
+    created: "2020-01-01T00:00:00.000Z",
+    verified: true,
+    storage: [],
+    catalogs: testData[Table.Catalog],
+    albums: [
       ...testData[Table.Album],
       newAlbum,
     ],
-    "people": testData[Table.Person],
-    "tags": testData[Table.Tag],
+    people: testData[Table.Person],
+    tags: testData[Table.Tag],
   });
 
   await request
@@ -432,15 +432,15 @@ test("Edit album", async (): Promise<void> => {
   let albums = fromCatalogs("c1", testData[Table.Album]);
   albums[0] = updatedAlbum;
   expectUserState(response.body, {
-    "email": "someone2@nowhere.com",
-    "fullname": "Someone 2",
-    "created": "2010-01-01T00:00:00Z",
-    "verified": true,
-    "storage": storage([testData[Table.Storage][0]]),
-    "catalogs": catalogs("c1", testData[Table.Catalog]),
-    "albums": albums,
-    "people": fromCatalogs("c1", testData[Table.Person]),
-    "tags": fromCatalogs("c1", testData[Table.Tag]),
+    email: "someone2@nowhere.com",
+    fullname: "Someone 2",
+    created: "2010-01-01T00:00:00Z",
+    verified: true,
+    storage: storage([testData[Table.Storage][0]]),
+    catalogs: catalogs("c1", testData[Table.Catalog]),
+    albums: albums,
+    people: fromCatalogs("c1", testData[Table.Person]),
+    tags: fromCatalogs("c1", testData[Table.Tag]),
   });
 });
 
@@ -567,15 +567,15 @@ test("Create Tag", async (): Promise<void> => {
     .expect(200);
 
   expectUserState(response.body, {
-    "email": "someone1@nowhere.com",
-    "fullname": "Someone 1",
-    "created": "2020-01-01T00:00:00Z",
-    "verified": true,
-    "storage": [],
-    "catalogs": testData[Table.Catalog],
-    "albums": testData[Table.Album],
-    "people": testData[Table.Person],
-    "tags": [
+    email: "someone1@nowhere.com",
+    fullname: "Someone 1",
+    created: "2020-01-01T00:00:00Z",
+    verified: true,
+    storage: [],
+    catalogs: testData[Table.Catalog],
+    albums: testData[Table.Album],
+    people: testData[Table.Person],
+    tags: [
       ...testData[Table.Tag],
       newTag,
     ],
@@ -691,15 +691,15 @@ test("Edit tag", async (): Promise<void> => {
   let tags = fromCatalogs("c1", testData[Table.Tag]);
   tags[0] = updatedTag;
   expectUserState(response.body, {
-    "email": "someone2@nowhere.com",
-    "fullname": "Someone 2",
-    "created": "2010-01-01T00:00:00Z",
-    "verified": true,
-    "storage": storage([testData[Table.Storage][0]]),
-    "catalogs": catalogs("c1", testData[Table.Catalog]),
-    "albums": fromCatalogs("c1", testData[Table.Album]),
-    "people": fromCatalogs("c1", testData[Table.Person]),
-    "tags": tags,
+    email: "someone2@nowhere.com",
+    fullname: "Someone 2",
+    created: "2010-01-01T00:00:00Z",
+    verified: true,
+    storage: storage([testData[Table.Storage][0]]),
+    catalogs: catalogs("c1", testData[Table.Catalog]),
+    albums: fromCatalogs("c1", testData[Table.Album]),
+    people: fromCatalogs("c1", testData[Table.Person]),
+    tags: tags,
   });
 });
 
@@ -810,18 +810,18 @@ test("Create Person", async (): Promise<void> => {
     .expect(200);
 
   expectUserState(response.body, {
-    "email": "someone1@nowhere.com",
-    "fullname": "Someone 1",
-    "created": "2020-01-01T00:00:00Z",
-    "verified": true,
-    "storage": [],
-    "catalogs": testData[Table.Catalog],
-    "albums": testData[Table.Album],
-    "people": [
+    email: "someone1@nowhere.com",
+    fullname: "Someone 1",
+    created: "2020-01-01T00:00:00Z",
+    verified: true,
+    storage: [],
+    catalogs: testData[Table.Catalog],
+    albums: testData[Table.Album],
+    people: [
       ...testData[Table.Person],
       newPerson,
     ],
-    "tags": testData[Table.Tag],
+    tags: testData[Table.Tag],
   });
 
   await request
@@ -932,14 +932,14 @@ test("Edit person", async (): Promise<void> => {
   let people = fromCatalogs("c1", testData[Table.Person]);
   people[0] = updatedPerson;
   expectUserState(response.body, {
-    "email": "someone2@nowhere.com",
-    "fullname": "Someone 2",
-    "created": "2010-01-01T00:00:00Z",
-    "verified": true,
-    "storage": storage([testData[Table.Storage][0]]),
-    "catalogs": catalogs("c1", testData[Table.Catalog]),
-    "albums": fromCatalogs("c1", testData[Table.Album]),
-    "people": people,
-    "tags": fromCatalogs("c1", testData[Table.Tag]),
+    email: "someone2@nowhere.com",
+    fullname: "Someone 2",
+    created: "2010-01-01T00:00:00Z",
+    verified: true,
+    storage: storage([testData[Table.Storage][0]]),
+    catalogs: catalogs("c1", testData[Table.Catalog]),
+    albums: fromCatalogs("c1", testData[Table.Album]),
+    people: people,
+    tags: fromCatalogs("c1", testData[Table.Tag]),
   });
 });

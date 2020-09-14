@@ -59,7 +59,7 @@ test("getState", (): void => {
     state: undefined,
   });
 
-  globalState = { "bar": "pub" };
+  globalState = { bar: "pub" };
   jsdom.reconfigure({
     url: "https://foo.com/biz#test",
   });
@@ -68,7 +68,7 @@ test("getState", (): void => {
     path: "/biz",
     params: new Map(),
     hash: "test",
-    state: { "bar": "pub" },
+    state: { bar: "pub" },
   });
 
   globalState = "27";
@@ -151,7 +151,7 @@ test("listeners", (): void => {
 
   expect(mockListener).not.toHaveBeenCalled();
 
-  globalState = { "bar": "pub" };
+  globalState = { bar: "pub" };
   jsdom.reconfigure({
     url: "https://foo.com/biz#test",
   });

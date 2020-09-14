@@ -10,14 +10,14 @@ test("exception", (): void => {
   let apperror = new ApiError(404, "Not Found", {
     code: Api.ErrorCode.InvalidData,
     data: {
-      "foo": "bar",
+      foo: "bar",
     },
   });
 
   expect(apperror.l10nInfo()).toEqual({
     id: "api-error-invalid-data",
     vars: {
-      "foo": "bar",
+      foo: "bar",
     },
   });
 

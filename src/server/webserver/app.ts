@@ -60,10 +60,10 @@ export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 type App = Koa<DefaultState, DefaultContext & ServicesContext>;
 
 const APP_PATHS = {
-  "root": "/",
-  "static": "/static/",
-  "api": "/api/",
-  "app": "/app/",
+  root: "/",
+  static: "/static/",
+  api: "/api/",
+  app: "/app/",
 };
 
 async function notFound(ctx: AppContext): Promise<void> {
