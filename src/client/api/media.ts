@@ -38,6 +38,6 @@ export async function createMedia(media: MediaCreateData): Promise<MediaState> {
   return mediaIntoState(result);
 }
 
-export function getThumbniailUrl(media: ProcessedMediaState, size: number): string {
+export function getThumbnailUrl(media: ProcessedMediaState, size: number): string {
   return `${media.thumbnailUrl}/${size}`;
 }

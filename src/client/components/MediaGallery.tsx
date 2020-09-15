@@ -4,7 +4,8 @@ import CardContent from "@material-ui/core/CardContent";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
 import React from "react";
 
-import { MediaState } from "../api/types";
+import { getThumbnailUrl } from "../api/media";
+import { isProcessed, MediaState, ProcessedMediaState } from "../api/types";
 import { useSelector } from "../store";
 import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
@@ -33,14 +34,35 @@ const useStyles = makeStyles((theme: Theme) =>
       justifyContent: "flex-start",
       padding: theme.spacing(1),
     },
-    thumbnail: (props: StyleProps) => {
+    thumbnailBox: (props: StyleProps) => {
       return {
-        display: "block",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
         width: `${props.thumbnailSize}px`,
         height: `${props.thumbnailSize}px`,
       };
     },
+    thumbnail: {
+      display: "block",
+    },
   }));
+
+interface ThumbnailProps {
+  media: ProcessedMediaState;
+  size: number;
+}
+
+function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
+  let ratios = [1.5, 2];
+  let normal = getThumbnailUrl(media, size);
+  let sizes = [normal];
+  for (let ratio of ratios) {
+    sizes.push(`${getThumbnailUrl(media, Math.round(size * ratio))} ${ratio}x`);
+  }
+
+  return <img srcSet={sizes.join(", ")} src={normal}/>;
+}
 
 export interface MediaGalleryProps {
   media?: readonly MediaState[];
@@ -61,9 +83,13 @@ export default function MediaGallery(props: MediaGalleryProps): ReactResult {
           className={classes.media}
         >
           <CardContent>
-            <picture className={classes.thumbnail}>
-              <img/>
-            </picture>
+            <Box className={classes.thumbnailBox}>
+              {
+                isProcessed(media)
+                  ? <Thumbnail media={media} size={thumbnailSize}/>
+                  : <Loading/>
+              }
+            </Box>
           </CardContent>
         </Card>;
       })
