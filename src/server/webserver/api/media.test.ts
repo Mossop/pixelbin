@@ -635,11 +635,7 @@ test("Media thumbnail", async (): Promise<void> => {
     .expect(200);
 
   await request
-    .get("/api/media/thumbnail")
-    .query({
-      id: media.id,
-      size: 200,
-    })
+    .get(`/media/thumbnail/${media.id}/${original.id}/200`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
@@ -648,19 +644,11 @@ test("Media thumbnail", async (): Promise<void> => {
   getLocalFilePath.mockClear();
 
   await request
-    .get("/api/media/thumbnail")
-    .query({
-      id: "foo",
-      size: 200,
-    })
+    .get("/media/thumbnail/foo/bar/200")
     .expect(404);
 
   let response = await request
-    .get("/api/media/thumbnail")
-    .query({
-      id: media.id,
-      size: 150,
-    })
+    .get(`/media/thumbnail/${media.id}/${original.id}/150`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
@@ -678,11 +666,25 @@ test("Media thumbnail", async (): Promise<void> => {
   });
 
   response = await request
-    .get("/api/media/thumbnail")
-    .query({
-      id: media.id,
-      size: 200,
-    })
+    .get(`/media/thumbnail/${media.id}/${original.id}`)
+    .expect("Content-Type", "image/jpeg")
+    .expect(200);
+
+  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb2.jpg");
+  getLocalFilePath.mockClear();
+
+  image = sharp(response.body);
+  metadata = await image.metadata();
+  expect(metadata.width).toBe(150);
+  expect(metadata.format).toBe("jpeg");
+
+  expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
+    customSnapshotIdentifier: "media-thumb-150",
+  });
+
+  response = await request
+    .get(`/media/thumbnail/${media.id}/${original.id}/200`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
@@ -698,6 +700,16 @@ test("Media thumbnail", async (): Promise<void> => {
   expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
     customSnapshotIdentifier: "media-thumb-200",
   });
+
+  response = await request
+    .get(`/media/thumbnail/${media.id}/other/200`)
+    .expect("Location", `/media/thumbnail/${media.id}/${original.id}/200`)
+    .expect(301);
+
+  response = await request
+    .get(`/media/thumbnail/${media.id}/other`)
+    .expect("Location", `/media/thumbnail/${media.id}/${original.id}`)
+    .expect(301);
 });
 
 test("Get media", async (): Promise<void> => {
@@ -827,6 +839,7 @@ test("Get media", async (): Promise<void> => {
       id: id2,
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
+      thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
 
       fileSize: 1,
       width: 1,
@@ -865,6 +878,7 @@ test("Get media", async (): Promise<void> => {
       id: id2,
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
+      thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
 
       fileSize: 1,
       width: 1,
@@ -894,6 +908,7 @@ test("Get media", async (): Promise<void> => {
       id: id2,
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
+      thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
 
       fileSize: 1,
       width: 1,

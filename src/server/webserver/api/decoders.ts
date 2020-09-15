@@ -253,11 +253,6 @@ export async function MediaUpdateRequest(
   }
 }
 
-export const MediaThumbnailRequest = jsonDecoder(JsonDecoder.object<Api.MediaThumbnailRequest>({
-  id: JsonDecoder.string,
-  size: NumericDecoder,
-}, "MediaThumbnailRequest"));
-
 const RelationTypeDecoder = JsonDecoder.oneOf([
   JsonDecoder.isExactly(Api.RelationType.Album),
   JsonDecoder.isExactly(Api.RelationType.Tag),

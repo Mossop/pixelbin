@@ -3,8 +3,8 @@ import { MediaCreateRequest } from "../../model/api";
 import { Overwrite } from "../../utils";
 import { request } from "./api";
 import { Catalog, Album, Person, Tag } from "./highlevel";
-import type { Reference, Media } from "./highlevel";
-import { mediaIntoState, MediaState } from "./types";
+import type { Reference } from "./highlevel";
+import { mediaIntoState, MediaState, ProcessedMediaState } from "./types";
 
 export type MediaTarget = Catalog | Album;
 
@@ -38,9 +38,6 @@ export async function createMedia(media: MediaCreateData): Promise<MediaState> {
   return mediaIntoState(result);
 }
 
-export async function thumbnail(media: Reference<Media>, size: number): Promise<ImageBitmap> {
-  return createImageBitmap(await request(Api.Method.MediaThumbnail, {
-    id: media.id,
-    size,
-  }));
+export function getThumbniailUrl(media: ProcessedMediaState, size: number): string {
+  return `${media.thumbnailUrl}/${size}`;
 }

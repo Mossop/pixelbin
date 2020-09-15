@@ -137,6 +137,7 @@ export const UnprocessedMediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>(
 
 export const ProcessedMediaDecoder = JsonDecoder.object<Api.ProcessedMedia>({
   ...UnprocessedMediaProperties,
+  thumbnailUrl: JsonDecoder.string,
   height: JsonDecoder.number,
   width: JsonDecoder.number,
   fileSize: JsonDecoder.number,

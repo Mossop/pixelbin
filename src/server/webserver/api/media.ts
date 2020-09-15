@@ -8,8 +8,8 @@ import { fillMetadata, UserScopedConnection, Media, ProcessedMedia } from "../..
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
 import { ApiError } from "../error";
+import { APP_PATHS } from "../paths";
 import { DeBlobbed } from "./decoders";
-import { DirectResponse } from "./methods";
 
 function isProcessedMedia(media: Media): media is ProcessedMedia {
   return "uploaded" in media && !!media.uploaded;
@@ -26,6 +26,7 @@ export function buildResponseMedia(
     } = media;
     return {
       ...rest,
+      thumbnailUrl: `${APP_PATHS.root}media/thumbnail/${media.id}/${media.original}`,
       created: media.created.toISOString(),
       uploaded: media.uploaded.toISOString(),
       taken: media.taken?.toISOString() ?? null,
@@ -273,9 +274,11 @@ export const thumbnail = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.MediaThumbnailRequest,
-  ): Promise<DirectResponse> => {
-    let [media] = await userDb.getMedia([data.id]);
+    id: string,
+    original: string,
+    size?: string,
+  ): Promise<void> => {
+    let [media] = await userDb.getMedia([id]);
 
     if (!media) {
       throw new ApiError(Api.ErrorCode.NotFound, {
@@ -283,9 +286,27 @@ export const thumbnail = ensureAuthenticated(
       });
     }
 
+    if (!("original" in media)) {
+      throw new ApiError(Api.ErrorCode.NotFound, {
+        message: "Media not yet processed.",
+      });
+    }
+
+    if (original != media.original) {
+      ctx.status = 301;
+      if (size !== undefined) {
+        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.original}/${size}`);
+      } else {
+        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.original}`);
+      }
+      return;
+    }
+
+    let parsedSize = size ? parseInt(size) : 150;
+
     let source = chooseSize(
       await userDb.listAlternateFiles(media.id, AlternateFileType.Thumbnail),
-      data.size,
+      parsedSize,
     );
 
     if (!source) {
@@ -298,14 +319,16 @@ export const thumbnail = ensureAuthenticated(
     try {
       let path = await storage.get().getLocalFilePath(media.id, source.original, source.fileName);
 
-      if (source.width > source.height && source.width == data.size ||
-          source.height > source.width && source.height == data.size) {
-        return new DirectResponse(source.mimetype, fss.createReadStream(path));
+      if (source.width > source.height && source.width == parsedSize ||
+          source.height > source.width && source.height == parsedSize) {
+        ctx.set("Content-Type", source.mimetype);
+        ctx.body = fss.createReadStream(path);
+      } else {
+        ctx.set("Content-Type", "image/jpeg");
+        ctx.body = await sharp(path).resize(parsedSize, parsedSize, {
+          fit: "inside",
+        }).jpeg({ quality: 85 }).toBuffer();
       }
-
-      return new DirectResponse("image/jpeg", await sharp(path).resize(data.size, data.size, {
-        fit: "inside",
-      }).jpeg({ quality: 85 }).toBuffer());
     } finally {
       storage.release();
     }

@@ -32,7 +32,9 @@ export type ResponseFor<T> =
 export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Promise<R>;
 
 export type UnprocessedMedia = Omit<ObjectModel.UnprocessedMedia, "catalog">;
-export type ProcessedMedia = Omit<ObjectModel.ProcessedMedia, "catalog">;
+export type ProcessedMedia = Omit<ObjectModel.ProcessedMedia, "catalog"> & {
+  thumbnailUrl: string;
+};
 export type Media = UnprocessedMedia | ProcessedMedia;
 
 export type Storage = Omit<ObjectModel.Storage, "owner" | "accessKeyId" | "secretAccessKey">;
@@ -125,11 +127,6 @@ export type MediaUpdateRequest =
     people?: SelectedPerson[];
   };
 
-export interface MediaThumbnailRequest {
-  id: string;
-  size: number;
-}
-
 export type SignupRequest = Omit<
   ObjectModel.User,
   "created" | "lastLogin" | "verified"
@@ -203,7 +200,6 @@ export enum Method {
   MediaGet = "media/get",
   MediaCreate = "media/create",
   MediaEdit = "media/edit",
-  MediaThumbnail = "media/thumbnail",
   MediaRelations = "media/relations",
   MediaPeople = "media/people",
   MediaDelete = "media/delete",
@@ -236,7 +232,6 @@ export const HttpMethods: MethodList = {
   [Method.MediaGet]: "GET",
   [Method.MediaCreate]: "PUT",
   [Method.MediaEdit]: "PATCH",
-  [Method.MediaThumbnail]: "GET",
   [Method.MediaRelations]: "PATCH",
   [Method.MediaPeople]: "PATCH",
   [Method.MediaDelete]: "DELETE",
@@ -278,7 +273,6 @@ export interface Signatures {
   [Method.MediaGet]: Signature<MediaGetRequest, (Media | null)[]>;
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
   [Method.MediaEdit]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
-  [Method.MediaThumbnail]: Signature<MediaThumbnailRequest, Blob>;
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;
   [Method.MediaPeople]: Signature<MediaPersonLocation[], Media[]>;
   [Method.MediaDelete]: Signature<string[], void>;

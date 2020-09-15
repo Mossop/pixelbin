@@ -68,28 +68,30 @@ export default function(): DescriptorsFor<AuthContext> {
   };
 }
 
-export function ensureAuthenticated<A, R>(
-  cb: (ctx: AppContext, userDb: UserScopedConnection, arg: A) => Promise<R>,
-): (ctx: AppContext, arg: A) => Promise<R> {
-  return async (ctx: AppContext, arg: A): Promise<R> => {
+export function ensureAuthenticated<A extends unknown[], R>(
+  cb: (ctx: AppContext, userDb: UserScopedConnection, ...args: A) => Promise<R>,
+): (ctx: AppContext, ...args: A) => Promise<R> {
+  return async (ctx: AppContext, ...args: A): Promise<R> => {
     let userDb = ctx.userDb;
     if (!userDb) {
       throw new ApiError(Api.ErrorCode.NotLoggedIn);
     }
 
-    return cb(ctx, userDb, arg);
+    return cb(ctx, userDb, ...args);
   };
 }
 
-export function ensureAuthenticatedTransaction<A, R>(
-  cb: (ctx: AppContext, userDb: UserScopedConnection, arg: A) => Promise<R>,
-): (ctx: AppContext, arg: A) => Promise<R> {
-  return async (ctx: AppContext, arg: A): Promise<R> => {
+export function ensureAuthenticatedTransaction<A extends unknown[], R>(
+  cb: (ctx: AppContext, userDb: UserScopedConnection, ...args: A) => Promise<R>,
+): (ctx: AppContext, ...args: A) => Promise<R> {
+  return async (ctx: AppContext, ...args: A): Promise<R> => {
     let userDb = ctx.userDb;
     if (!userDb) {
       throw new ApiError(Api.ErrorCode.NotLoggedIn);
     }
 
-    return userDb.inTransaction((userDb: UserScopedConnection): Promise<R> => cb(ctx, userDb, arg));
+    return userDb.inTransaction(
+      (userDb: UserScopedConnection): Promise<R> => cb(ctx, userDb, ...args),
+    );
   };
 }

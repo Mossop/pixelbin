@@ -50,7 +50,6 @@ const decoders: ResponseDecoders = {
   [Api.Method.MediaCreate]: JsonDecoderDecoder(Decoders.UnprocessedMediaDecoder),
   [Api.Method.MediaGet]: JsonDecoderDecoder(Decoders.MaybeMediaArrayDecoder),
   [Api.Method.MediaEdit]: JsonDecoderDecoder(Decoders.MediaDecoder),
-  [Api.Method.MediaThumbnail]: BlobDecoder,
   [Api.Method.MediaRelations]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Api.Method.MediaPeople]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Api.Method.MediaDelete]: VoidDecoder,

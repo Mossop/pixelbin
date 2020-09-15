@@ -9,12 +9,14 @@ import session from "koa-session";
 import serve from "koa-static";
 
 import { Api, ResponseFor } from "../../model";
+import { thumbnail } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import { AppContext, ServicesContext, buildContext } from "./context";
 import { errorHandler } from "./error";
 // eslint-disable-next-line import/extensions
 import packages from "./packages.json";
+import { APP_PATHS } from "./paths";
 import Services from "./services";
 
 interface Package {
@@ -59,13 +61,6 @@ ${listScripts()}
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
 type App = Koa<DefaultState, DefaultContext & ServicesContext>;
 
-const APP_PATHS = {
-  root: "/",
-  static: "/static/",
-  api: "/api/",
-  app: "/app/",
-};
-
 async function notFound(ctx: AppContext): Promise<void> {
   ctx.status = 404;
   ctx.message = STATUS_CODES[404] ?? "Unknown status";
@@ -90,6 +85,14 @@ export default async function buildApp(): Promise<App> {
       parsedMethods: ["POST", "PUT", "PATCH", "DELETE"],
     }), apiRequestHandler(method));
   }
+
+  router.get(
+    `${APP_PATHS.root}media/thumbnail/:id/:original/:size(\\d+)?`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, original, size } = ctx.params;
+      return thumbnail(ctx, id, original, size);
+    },
+  );
 
   const app = new Koa() as App;
   app.keys = config.secretKeys;
@@ -121,6 +124,7 @@ export default async function buildApp(): Promise<App> {
 
     .use(router.routes())
     .use(mount(APP_PATHS.api, notFound))
+    .use(mount(`${APP_PATHS.root}media/`, notFound))
 
     .use(mount(APP_PATHS.static, serve(path.join(config.staticRoot))))
     .use(mount(APP_PATHS.static, notFound))
