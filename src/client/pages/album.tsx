@@ -1,21 +1,20 @@
 import { useLocalization } from "@fluent/react";
 import Button from "@material-ui/core/Button";
-import Typography from "@material-ui/core/Typography";
 import React, { useCallback, useEffect } from "react";
 
 import { listAlbumMedia } from "../api/album";
-import { Album, Reference } from "../api/highlevel";
 import { UserState } from "../api/types";
 import Content from "../components/Content";
+import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
 import { useActions } from "../store/actions";
 import MediaManager from "../utils/MediaManager";
 import { ReactResult } from "../utils/types";
+import { AlbumPageState } from "./types";
 
-export interface AlbumPageProps {
-  album: Reference<Album>;
+export type AlbumPageProps = AlbumPageState & {
   user: UserState;
-}
+};
 
 export default function AlbumPage(props: AlbumPageProps): ReactResult {
   const { l10n } = useLocalization();
@@ -23,12 +22,12 @@ export default function AlbumPage(props: AlbumPageProps): ReactResult {
 
   const onAlbumEdit = useCallback(
     () => actions.showAlbumEditOverlay(props.album),
-    [actions, props],
+    [actions, props.album],
   );
 
   const onAlbumCreate = useCallback(
     () => actions.showAlbumCreateOverlay(props.album),
-    [props, actions],
+    [props.album, actions],
   );
 
   let listMedia = useCallback(() => listAlbumMedia(props.album, true), [props.album]);
@@ -59,7 +58,7 @@ export default function AlbumPage(props: AlbumPageProps): ReactResult {
     }
   >
     <Content>
-      <Typography variant="h1">Album</Typography>
+      <MediaGallery media={props.media}/>
     </Content>
   </Page>;
 }

@@ -28,7 +28,7 @@ export default function PageDisplay(): ReactResult {
         return <Catalog user={user} catalog={page.catalog}/>;
       }
       case PageType.Album: {
-        return <Album user={user} album={page.album}/>;
+        return <Album user={user} {...page}/>;
       }
     }
   }
