@@ -6,8 +6,8 @@ flags:
   jest:
     paths:
       - src
-    carryforward: false
+    carryforward: true
   karma:
     paths:
       - src
-    carryforward: false
+    carryforward: true
