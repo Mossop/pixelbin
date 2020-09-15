@@ -34,17 +34,14 @@ const useStyles = makeStyles((theme: Theme) =>
       justifyContent: "flex-start",
       padding: theme.spacing(1),
     },
-    thumbnailBox: (props: StyleProps) => {
+    thumbnail: (props: StyleProps) => {
       return {
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        display: "block",
+        objectFit: "contain",
+        objectPosition: "center center",
         width: `${props.thumbnailSize}px`,
         height: `${props.thumbnailSize}px`,
       };
-    },
-    thumbnail: {
-      display: "block",
     },
   }));
 
@@ -54,6 +51,8 @@ interface ThumbnailProps {
 }
 
 function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
+  const classes = useStyles({ thumbnailSize: size });
+
   let ratios = [1.5, 2];
   let normal = getThumbnailUrl(media, size);
   let sizes = [normal];
@@ -61,7 +60,7 @@ function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
     sizes.push(`${getThumbnailUrl(media, Math.round(size * ratio))} ${ratio}x`);
   }
 
-  return <img srcSet={sizes.join(", ")} src={normal}/>;
+  return <img srcSet={sizes.join(", ")} className={classes.thumbnail} src={normal}/>;
 }
 
 export interface MediaGalleryProps {
@@ -83,13 +82,11 @@ export default function MediaGallery(props: MediaGalleryProps): ReactResult {
           className={classes.media}
         >
           <CardContent>
-            <Box className={classes.thumbnailBox}>
-              {
-                isProcessed(media)
-                  ? <Thumbnail media={media} size={thumbnailSize}/>
-                  : <Loading/>
-              }
-            </Box>
+            {
+              isProcessed(media)
+                ? <Thumbnail media={media} size={thumbnailSize}/>
+                : <Loading width={thumbnailSize} height={thumbnailSize}/>
+            }
           </CardContent>
         </Card>;
       })
