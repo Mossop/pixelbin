@@ -1,6 +1,7 @@
-import { Reference, Catalog, Album } from "../api/highlevel";
-import { MediaState } from "../api/types";
+import { Reference, Catalog } from "../api/highlevel";
+import { UserState } from "../api/types";
 import { HistoryState } from "../utils/history";
+import { AlbumPageProps } from "./album";
 
 export enum PageType {
   Index = "index",
@@ -8,6 +9,10 @@ export enum PageType {
   Album = "album",
   User = "user",
   NotFound = "notfound",
+}
+
+export interface AuthenticatedPageProps {
+  user: UserState;
 }
 
 interface BasePageState {
@@ -19,11 +24,9 @@ interface CatalogPageState {
   readonly catalog: Reference<Catalog>;
 }
 
-export interface AlbumPageState {
+export type AlbumPageState = Readonly<AlbumPageProps> & {
   readonly type: PageType.Album;
-  readonly album: Reference<Album>;
-  readonly media?: readonly MediaState[];
-}
+};
 
 interface NotFoundPageState {
   readonly type: PageType.NotFound;

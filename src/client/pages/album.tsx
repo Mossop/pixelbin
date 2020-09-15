@@ -3,20 +3,22 @@ import Button from "@material-ui/core/Button";
 import React, { useCallback, useEffect } from "react";
 
 import { listAlbumMedia } from "../api/album";
-import { UserState } from "../api/types";
+import { Album, Reference } from "../api/highlevel";
+import { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
 import { useActions } from "../store/actions";
 import MediaManager from "../utils/MediaManager";
 import { ReactResult } from "../utils/types";
-import { AlbumPageState } from "./types";
+import { AuthenticatedPageProps } from "./types";
 
-export type AlbumPageProps = AlbumPageState & {
-  user: UserState;
-};
+export interface AlbumPageProps {
+  readonly album: Reference<Album>;
+  readonly media?: readonly MediaState[];
+}
 
-export default function AlbumPage(props: AlbumPageProps): ReactResult {
+export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps): ReactResult {
   const { l10n } = useLocalization();
   const actions = useActions();
 
