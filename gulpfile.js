@@ -268,4 +268,18 @@ exports.clean = async function() {
   await fs.rmdir(buildDir, {
     recursive: true,
   });
+
+  let jest = await findBin(__dirname, "jest");
+
+  await checkSpawn(jest, [
+    "--config",
+    path.join(__dirname, "jest.config.js"),
+    "--clearCache",
+  ]);
+
+  await checkSpawn(jest, [
+    "--config",
+    path.join(__dirname, "src", "client", "jest.config.js"),
+    "--clearCache",
+  ]);
 };

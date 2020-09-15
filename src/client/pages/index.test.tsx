@@ -16,7 +16,7 @@ import {
 import type { AlbumPageProps } from "./album";
 import type { CatalogPageProps } from "./catalog";
 import { ErrorPageProps } from "./error";
-import { PageType } from "./types";
+import { AuthenticatedPageProps, PageType } from "./types";
 import type { UserPageProps } from "./user";
 
 jest.mock("./indexpage", (): unknown => {
@@ -36,7 +36,7 @@ jest.mock("./catalog", (): unknown => {
 });
 
 jest.mock("./album", (): unknown => {
-  return (props: AlbumPageProps) => <div
+  return (props: AlbumPageProps & AuthenticatedPageProps) => <div
     id="album"
     data-user={props.user.email}
     data-album={props.album.id}
