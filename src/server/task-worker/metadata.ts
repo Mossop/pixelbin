@@ -295,11 +295,11 @@ export function parseMetadata(data: StoredData): Nullable<ObjectModel.Metadata> 
 function detectMimetype(file: string): Promise<string> {
   return new Promise((resolve: (mime: string) => void, reject: (err: Error) => void): void => {
     let magic = new Magic(MAGIC_MIME_TYPE);
-    magic.detectFile(file, (err: Error | null, result: string): void => {
+    magic.detectFile(file, (err: Error | null, result: string | string[]): void => {
       if (err) {
         reject(err);
       } else {
-        resolve(result);
+        resolve(Array.isArray(result) ? result[0] : result);
       }
     });
   });
