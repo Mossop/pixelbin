@@ -130,8 +130,10 @@ export function mockUnprocessedMedia(
 export function mockProcessedMedia(
   data: Partial<Draft<ProcessedMediaState>>,
 ): Draft<ProcessedMediaState> {
+  let id = data.id ?? randomId();
+
   return {
-    id: randomId(),
+    id,
     created: moment().utc(),
 
     uploaded: moment().utc(),
@@ -142,6 +144,7 @@ export function mockProcessedMedia(
     duration: null,
     bitRate: null,
     frameRate: null,
+    thumbnailUrl: `http://localhost/media/thumbnail/${id}/${randomId()}`,
 
     tags: [],
     albums: [],
