@@ -17,6 +17,11 @@ let scripts = externals.map(pkg => {
   return path.join(__dirname, "..", "..", "node_modules", pkg.id, pkg.path);
 });
 
+let browsers = ["FirefoxHeadless", "ChromeHeadless"];
+if (process.platform == "darwin") {
+  browsers.push("SafariNative");
+}
+
 /** @type {import("karma").ConfigOptions} */
 let karmaConfig = {
   basePath: __dirname,
@@ -50,7 +55,7 @@ let karmaConfig = {
   },
   colors: true,
   autoWatch: false,
-  browsers: ["FirefoxHeadless", "ChromeHeadless", "SafariNative"],
+  browsers,
   singleRun: false,
   concurrency: 1,
 };

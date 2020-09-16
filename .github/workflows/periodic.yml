@@ -1,0 +1,54 @@
+name: Periodic checks
+
+on:
+  schedule:
+    - cron:  '17 15 * * *'
+
+env:
+  NODE_VERSION: '14'
+
+jobs:
+  osx-tests:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Cache node modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.cache-name }}-
+
+    - name: Setup Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v2-beta
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Show versions
+      run: |
+        node --version
+        npm --version
+
+    - name: Install node packages
+      run: |
+        npm install -g gulp
+        npm install
+
+    - name: Run tests
+      run: |
+        gulp testClientKarma
+
+    - name: Upload code coverage
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        bash <(curl -s https://codecov.io/bash) -f coverage/coverage-final.json -F osx

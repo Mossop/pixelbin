@@ -3,11 +3,11 @@ coverage:
   precision: 1
 
 flags:
-  jest:
+  base:
     paths:
       - src
     carryforward: true
-  karma:
+  osx:
     paths:
       - src
     carryforward: true
