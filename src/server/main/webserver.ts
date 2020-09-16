@@ -1,11 +1,13 @@
 import child_process from "child_process";
 import net from "net";
+import path from "path";
 
 import { getLogger, listen, bound } from "../../utils";
 import { WorkerPool, AbstractChildProcess } from "../../worker";
 import { WebserverConfig, ParentProcessInterface } from "../webserver/interfaces";
 import { quit } from "./events";
 import { Service } from "./service";
+import services, { provideService } from "./services";
 import { TaskManager } from "./tasks";
 
 export type WebConfig = WebserverConfig & {
@@ -18,7 +20,7 @@ export class WebserverManager extends Service {
   private readonly server: net.Server;
   private readonly pool: WorkerPool<undefined, ParentProcessInterface>;
 
-  public constructor(
+  private constructor(
     private readonly config: WebConfig,
     private readonly taskManager: TaskManager,
   ) {
@@ -47,6 +49,22 @@ export class WebserverManager extends Service {
     });
 
     this.pool.on("shutdown", quit);
+  }
+
+  public static async init(): Promise<void> {
+    let config = await services.config;
+
+    let webServers = new WebserverManager({
+      webserverPackage: config.webserverPackage,
+      staticRoot: path.join(config.staticRoot),
+      appRoot: path.join(config.clientRoot),
+      databaseConfig: config.database,
+      secretKeys: ["Random secret"],
+      logConfig: config.logConfig,
+      storageConfig: config.storageConfig,
+    }, await services.taskManager);
+
+    provideService("webServers", webServers);
   }
 
   protected async shutdown(): Promise<void> {

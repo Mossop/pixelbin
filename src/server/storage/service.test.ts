@@ -8,6 +8,7 @@ import { dir as tmpdir } from "tmp-promise";
 import { expect, realMoment, mockMoment, getStorageConfig } from "../../test-helpers";
 import { buildTestDB, connection } from "../database/test-helpers";
 import { StorageService } from "./service";
+import { StoredFile } from "./storage";
 
 jest.mock("moment-timezone", (): unknown => {
   let actualMoment = jest.requireActual("moment-timezone");
@@ -56,11 +57,37 @@ test("Basic storage", async (): Promise<void> => {
 
     fileData = await storage.get().getUploadedFile("storage_id");
     expect(fileData).toEqual({
+      catalog: "myid",
+      media: "storage_id",
       name: "spoecial.txt",
       uploaded: expect.toEqualDate(uploaded),
       path: expect.stringMatching(new RegExp(`^${temp.path}/`)),
     });
     expect(fileData).not.toBeNull();
+
+    let files: StoredFile[] = [];
+    for await (let file of storage.get().listUploadedFiles()) {
+      files.push(file);
+    }
+    expect(files).toEqual([{
+      catalog: "myid",
+      media: "storage_id",
+      name: "spoecial.txt",
+      uploaded: expect.toEqualDate(uploaded),
+      path: expect.stringMatching(new RegExp(`^${temp.path}/`)),
+    }]);
+
+    files = [];
+    for await (let file of service.listUploadedFiles()) {
+      files.push(file);
+    }
+    expect(files).toEqual([{
+      catalog: "myid",
+      media: "storage_id",
+      name: "spoecial.txt",
+      uploaded: expect.toEqualDate(uploaded),
+      path: expect.stringMatching(new RegExp(`^${temp.path}/`)),
+    }]);
 
     let data = await fs.readFile(fileData!.path, {
       encoding: "utf8",

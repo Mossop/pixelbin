@@ -8,6 +8,8 @@ import { DatabaseConnection } from "../database";
 import { Remote } from "./remote";
 
 export interface StoredFile {
+  catalog: string;
+  media: string;
   name: string | null;
   path: string;
   uploaded: Moment;
@@ -100,11 +102,27 @@ export class Storage {
 
     await fs.copyFile(filepath, path.join(targetDir, "uploaded"));
 
-    let info: Omit<StoredFile, "path"> = {
+    let info: Omit<StoredFile, "path" | "catalog" | "media"> = {
       name: name.length ? name : null,
       uploaded: moment(),
     };
     await fs.writeFile(path.join(targetDir, "uploaded.meta"), JSON.stringify(info));
+  }
+
+  public listUploadedFiles(): AsyncIterable<StoredFile> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let storage = this;
+    return {
+      async *[Symbol.asyncIterator](): AsyncIterator<StoredFile> {
+        let medias = await fs.readdir(path.join(storage.tempDirectory, storage.catalog));
+        for (let media of medias) {
+          let file = await storage.getUploadedFile(media);
+          if (file) {
+            yield file;
+          }
+        }
+      },
+    };
   }
 
   public async getUploadedFile(media: string): Promise<StoredFile | null> {
@@ -128,6 +146,8 @@ export class Storage {
 
       if (typeof meta == "object") {
         return {
+          catalog: this.catalog,
+          media,
           name: meta.name,
           uploaded: moment(meta.uploaded),
           path: path.join(targetDir, "uploaded"),

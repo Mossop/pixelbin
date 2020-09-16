@@ -1,49 +1,54 @@
 #!/usr/bin/env node
-
-import path from "path";
-
 import { install } from "source-map-support";
 
 import { getLogger, setLogConfig } from "../../utils";
 import { DatabaseConnection } from "../database";
+import { StorageService } from "../storage";
 import { loadConfig, ServerConfig } from "./config";
-import { quit } from "./events";
+import events, { quit } from "./events";
+import services, { provideService } from "./services";
 import { TaskManager } from "./tasks";
 import { WebserverManager } from "./webserver";
 
 install();
 const logger = getLogger("server");
 
-async function initDatabase(config: ServerConfig): Promise<void> {
+async function initDatabase(): Promise<void> {
+  let config = await services.config;
+
   let dbConnection = await DatabaseConnection.connect(config.database);
   await dbConnection.knex.migrate.latest();
-  await dbConnection.destroy();
+  provideService("database", dbConnection);
+
+  events.on("shutdown", () => {
+    logger.catch(dbConnection.destroy());
+  });
 }
 
-async function startupServers(config: ServerConfig): Promise<void> {
-  let taskManager = new TaskManager({
-    databaseConfig: config.database,
-    logConfig: config.logConfig,
-    taskWorkerPackage: config.taskWorkerPackage,
-    storageConfig: config.storageConfig,
-  });
+async function startupServers(): Promise<void> {
+  await TaskManager.init();
+  await WebserverManager.init();
 
-  new WebserverManager({
-    webserverPackage: config.webserverPackage,
-    staticRoot: path.join(config.staticRoot),
-    appRoot: path.join(config.clientRoot),
-    databaseConfig: config.database,
-    secretKeys: ["Random secret"],
-    logConfig: config.logConfig,
-    storageConfig: config.storageConfig,
-  }, taskManager);
+  let config = await services.config;
+  let storage = new StorageService(config.storageConfig, await services.database);
+  provideService("storage", storage);
+}
+
+async function reprocessUploads(): Promise<void> {
+  let service = await services.storage;
+  let taskManager = await services.taskManager;
+  for await (let file of service.listUploadedFiles()) {
+    await taskManager.handleUploadedFile(file.media);
+  }
 }
 
 async function startup(config: ServerConfig): Promise<void> {
   setLogConfig(config.logConfig);
+  provideService("config", config);
 
-  await initDatabase(config);
-  await startupServers(config);
+  await initDatabase();
+  await startupServers();
+  await reprocessUploads();
 }
 
 export async function main(args: string[]): Promise<void> {

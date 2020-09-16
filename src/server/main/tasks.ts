@@ -9,6 +9,7 @@ import {
 } from "../task-worker/interfaces";
 import { quit } from "./events";
 import { Service } from "./service";
+import services, { provideService } from "./services";
 
 export type TaskConfig = TaskWorkerConfig & {
   taskWorkerPackage: string;
@@ -19,7 +20,7 @@ const logger = getLogger("tasks");
 export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
 
-  public constructor(private readonly config: TaskConfig) {
+  private constructor(private readonly config: TaskConfig) {
     super(logger);
 
     this.pool = new WorkerPool<TaskWorkerInterface, ParentProcessInterface>({
@@ -35,6 +36,18 @@ export class TaskManager extends Service {
     });
 
     this.pool.on("shutdown", quit);
+  }
+
+  public static async init(): Promise<void> {
+    let config = await services.config;
+    let taskManager = new TaskManager({
+      databaseConfig: config.database,
+      logConfig: config.logConfig,
+      taskWorkerPackage: config.taskWorkerPackage,
+      storageConfig: config.storageConfig,
+    });
+
+    provideService("taskManager", taskManager);
   }
 
   protected async shutdown(): Promise<void> {
