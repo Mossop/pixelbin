@@ -2,7 +2,7 @@ import Box from "@material-ui/core/Box";
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
-import React from "react";
+import React, { useCallback } from "react";
 
 import { getThumbnailUrl } from "../api/media";
 import { isProcessed, MediaState, ProcessedMediaState } from "../api/types";
@@ -18,11 +18,11 @@ interface StyleProps {
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     grid: (props: StyleProps) => {
-      let itemWidth = theme.spacing(2) + props.thumbnailSize;
+      let itemWidth = theme.spacing(4) + props.thumbnailSize;
       return {
         display: "grid",
         gridAutoRows: "1fr",
-        gridTemplateColumns: `repeat(auto-fill, minmax(${itemWidth}px, 1fr))`,
+        gridTemplateColumns: `repeat(auto-fill, ${itemWidth}px)`,
         gridGap: theme.spacing(1),
         gap: theme.spacing(1),
       };
@@ -32,7 +32,8 @@ const useStyles = makeStyles((theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "flex-start",
-      padding: theme.spacing(1),
+      paddingTop: theme.spacing(1),
+      paddingBottom: theme.spacing(1),
     },
     thumbnail: (props: StyleProps) => {
       return {
@@ -63,8 +64,39 @@ function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
   return <img srcSet={sizes.join(", ")} className={classes.thumbnail} src={normal}/>;
 }
 
+interface MediaProps {
+  media: MediaState;
+  thumbnailSize: number;
+  onClick?: (media: ProcessedMediaState) => void;
+}
+
+function Media({ media, thumbnailSize, onClick }: MediaProps): ReactResult {
+  const classes = useStyles({ thumbnailSize });
+
+  const click = useCallback(() => {
+    if (onClick && isProcessed(media)) {
+      onClick(media);
+    }
+  }, [media, onClick]);
+
+  return <Card
+    key={media.id}
+    className={classes.media}
+    onClick={click}
+  >
+    <CardContent>
+      {
+        isProcessed(media)
+          ? <Thumbnail media={media} size={thumbnailSize}/>
+          : <Loading width={thumbnailSize} height={thumbnailSize}/>
+      }
+    </CardContent>
+  </Card>;
+}
+
 export interface MediaGalleryProps {
   media?: readonly MediaState[];
+  onClick?: (media: ProcessedMediaState) => void;
 }
 
 export default function MediaGallery(props: MediaGalleryProps): ReactResult {
@@ -77,18 +109,12 @@ export default function MediaGallery(props: MediaGalleryProps): ReactResult {
   return <Box className={classes.grid}>
     {
       props.media.map((media: MediaState) => {
-        return <Card
+        return <Media
           key={media.id}
-          className={classes.media}
-        >
-          <CardContent>
-            {
-              isProcessed(media)
-                ? <Thumbnail media={media} size={thumbnailSize}/>
-                : <Loading width={thumbnailSize} height={thumbnailSize}/>
-            }
-          </CardContent>
-        </Card>;
+          media={media}
+          thumbnailSize={thumbnailSize}
+          onClick={props.onClick}
+        />;
       })
     }
   </Box>;
