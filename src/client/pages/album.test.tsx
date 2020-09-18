@@ -15,6 +15,7 @@ import {
   click,
   deferRequest,
   mockUnprocessedMedia,
+  resetDOM,
 } from "../test-helpers";
 import { mediaIntoResponse } from "../test-helpers/api";
 import MediaManager from "../utils/MediaManager";
@@ -22,6 +23,8 @@ import AlbumPage from "./album";
 
 jest.mock("../utils/MediaManager");
 jest.mock("../api/api");
+
+beforeEach(resetDOM);
 
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const mockedRequestMediaList = mockedFunction(MediaManager.requestMediaList);
@@ -54,7 +57,7 @@ test("album", async (): Promise<void> => {
   let buttons = expectChild(container, "#banner-buttons");
 
   expect(store.dispatch).not.toHaveBeenCalled();
-  let button = expectChild(buttons, "#button-banner-album-edit");
+  let button = expectChild(buttons, "#pageoption-button-album-edit");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -65,7 +68,7 @@ test("album", async (): Promise<void> => {
   });
   store.dispatch.mockClear();
 
-  button = expectChild(buttons, "#button-banner-album-create");
+  button = expectChild(buttons, "#pageoption-button-album-create");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({

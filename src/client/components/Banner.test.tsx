@@ -12,6 +12,7 @@ import {
   mockStore,
   mockStoreState,
   mockServerState,
+  Media,
 } from "../test-helpers";
 import Banner from "./Banner";
 
@@ -20,14 +21,19 @@ beforeEach(resetDOM);
 jest.mock("../api/api");
 
 test("banner", async (): Promise<void> => {
+  Media.width = 300;
+
   let store = mockStore(mockStoreState({
     serverState: { user: null },
   }));
 
-  let { container } = render(<Banner/>, store);
+  let { container, unmount } = render(<Banner/>, store);
   let banner = expectChild(container, "header#appbar");
 
   let login = expectChild(banner, "button#button-login");
+  expect(banner.querySelector("button#button-signup")).toBeNull();
+
+  Media.width = 1024;
   let signup = expectChild(banner, "button#button-signup");
 
   expect(store.dispatch).not.toHaveBeenCalled();
@@ -48,12 +54,28 @@ test("banner", async (): Promise<void> => {
   });
   store.dispatch.mockClear();
 
+  unmount();
+
+  let option1Click = jest.fn();
+  let option2Click = jest.fn();
   store.state.serverState = mockServerState([]);
-  container = render(<Banner/>, store).container;
+  container = render(<Banner
+    pageOptions={
+      [{
+        id: "option1",
+        label: "Label 1",
+        onClick: option1Click,
+      }, {
+        id: "option2",
+        label: "Label 2",
+        onClick: option2Click,
+      }]
+    }
+  />, store).container;
   banner = expectChild(container, "header#appbar");
   store.dispatch.mockClear();
 
-  let logout = expectChild(banner, "button#button-logout");
+  let logout = expectChild(document, "#user-menu li#user-menu-logout");
 
   expect(request).not.toHaveBeenCalled();
 
@@ -75,4 +97,32 @@ test("banner", async (): Promise<void> => {
       user: null,
     }],
   });
+
+  expect(document.querySelector("#pageoption-menu-option1")).toBeNull();
+  let option1 = expectChild(container, "#pageoption-button-option1");
+  expect(option1Click).not.toHaveBeenCalled();
+  click(option1);
+  expect(option1Click).toHaveBeenCalledTimes(1);
+  option1Click.mockClear();
+
+  expect(document.querySelector("#pageoption-menu-option2")).toBeNull();
+  let option2 = expectChild(container, "#pageoption-button-option2");
+  expect(option2Click).not.toHaveBeenCalled();
+  click(option2);
+  expect(option2Click).toHaveBeenCalledTimes(1);
+  option2Click.mockClear();
+
+  Media.width = 300;
+
+  expect(document.querySelector("#pageoption-button-option1")).toBeNull();
+  option1 = expectChild(document, "#page-options #pageoption-menu-option1");
+  expect(option1Click).not.toHaveBeenCalled();
+  click(option1);
+  expect(option1Click).toHaveBeenCalledTimes(1);
+
+  expect(document.querySelector("#pageoption-button-option2")).toBeNull();
+  option2 = expectChild(document, "#page-options #pageoption-menu-option2");
+  expect(option2Click).not.toHaveBeenCalled();
+  click(option2);
+  expect(option2Click).toHaveBeenCalledTimes(1);
 });

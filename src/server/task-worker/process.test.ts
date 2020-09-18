@@ -78,15 +78,17 @@ test("Process image metadata", async (): Promise<void> => {
   let uploaded = moment("2015-06-21T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
+  let media = await user1Db.createMedia("c1", fillMetadata({
+    city: "Portland",
+  }));
+
   getUploadedFileMock.mockResolvedValueOnce({
+    catalog: "c1",
+    media: media.id,
     name: "Testname.jpg",
     uploaded,
     path: sourceFile,
   });
-
-  let media = await user1Db.createMedia("c1", fillMetadata({
-    city: "Portland",
-  }));
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
@@ -264,14 +266,16 @@ test("Process video metadata", async (): Promise<void> => {
   let uploaded = moment("2017-01-02T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
 
+  let media = await user1Db.createMedia("c1", fillMetadata({
+  }));
+
   getUploadedFileMock.mockResolvedValueOnce({
+    catalog: "c1",
+    media: media.id,
     name: "Testvideo.mp4",
     uploaded,
     path: sourceFile,
   });
-
-  let media = await user1Db.createMedia("c1", fillMetadata({
-  }));
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
@@ -557,6 +561,8 @@ test("reprocess", async (): Promise<void> => {
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
   getUploadedFileMock.mockResolvedValueOnce({
+    catalog: "c1",
+    media: media.id,
     name: "Testname.jpg",
     uploaded,
     path: sourceFile,

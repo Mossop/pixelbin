@@ -1,5 +1,4 @@
 import { useLocalization } from "@fluent/react";
-import Button from "@material-ui/core/Button";
 import React, { useCallback, useEffect } from "react";
 
 import { listAlbumMedia } from "../api/album";
@@ -40,23 +39,16 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
 
   return <Page
     selectedItem={props.album.id}
-    bannerButtons={
-      <React.Fragment>
-        <Button
-          id="button-banner-album-edit"
-          color="inherit"
-          onClick={onAlbumEdit}
-        >
-          {l10n.getString("banner-album-edit")}
-        </Button>
-        <Button
-          id="button-banner-album-create"
-          color="inherit"
-          onClick={onAlbumCreate}
-        >
-          {l10n.getString("banner-album-new")}
-        </Button>
-      </React.Fragment>
+    pageOptions={
+      [{
+        id: "album-edit",
+        onClick: onAlbumEdit,
+        label: l10n.getString("banner-album-edit"),
+      }, {
+        id: "album-create",
+        onClick: onAlbumCreate,
+        label: l10n.getString("banner-album-new"),
+      }]
     }
   >
     <Content>

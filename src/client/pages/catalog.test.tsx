@@ -10,8 +10,11 @@ import {
   mockServerState,
   expectChild,
   click,
+  resetDOM,
 } from "../test-helpers";
 import CatalogPage from "./catalog";
+
+beforeEach(resetDOM);
 
 test("catalog", (): void => {
   let store = mockStore(mockStoreState({
@@ -35,7 +38,7 @@ test("catalog", (): void => {
   let buttons = expectChild(container, "#banner-buttons");
 
   expect(store.dispatch).not.toHaveBeenCalled();
-  let button = expectChild(buttons, "#button-banner-catalog-edit");
+  let button = expectChild(buttons, "#pageoption-button-catalog-edit");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -46,7 +49,7 @@ test("catalog", (): void => {
   });
   store.dispatch.mockClear();
 
-  button = expectChild(buttons, "#button-banner-album-create");
+  button = expectChild(buttons, "#pageoption-button-album-create");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({

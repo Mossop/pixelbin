@@ -8,6 +8,7 @@ import {
   cleanup,
   act,
 } from "@testing-library/react";
+import { match as matchMediaQuery, MediaValues } from "css-mediaquery";
 import { JSDOM } from "jsdom";
 import React, { Suspense } from "react";
 import { Provider } from "react-redux";
@@ -23,7 +24,7 @@ const dom: JSDOM = jsdom;
 export { dom as jsdom };
 
 export function expectChild<T extends Element = Element>(
-  container: Element | null,
+  container: ParentNode | null,
   selector: string,
 ): T {
   expect(container).not.toBeNull();
@@ -104,8 +105,101 @@ export function render(
   };
 }
 
+type MediaListener = (this: MediaQueryList, ev: MediaQueryListEvent) => unknown;
+
+class MediaEvent extends window.Event implements MediaQueryListEvent {
+  public constructor(public readonly matches: boolean, public readonly media: string) {
+    super("change");
+  }
+}
+
+class MediaQuery implements MediaQueryList {
+  public matches: boolean;
+  private listeners: Set<MediaListener>;
+  private changeListener: MediaListener | null;
+
+  public constructor(public readonly media: string) {
+    this.matches = matchMediaQuery(media, Media);
+    this.listeners = new Set();
+    this.changeListener = null;
+  }
+
+  public addListener(listener: MediaListener): void {
+    this.listeners.add(listener);
+  }
+
+  public removeListener(listener: MediaListener): void {
+    this.listeners.delete(listener);
+  }
+
+  public get onchange(): MediaListener | null {
+    return this.changeListener;
+  }
+
+  public set onchange(listener: MediaListener | null) {
+    this.changeListener = listener;
+  }
+
+  public addEventListener(): void {
+    return;
+  }
+
+  public removeEventListener(): void {
+    return;
+  }
+
+  public dispatchEvent(): boolean {
+    return false;
+  }
+
+  public update(): void {
+    let newMatches = matchMediaQuery(this.media, Media);
+    if (newMatches != this.matches) {
+      this.matches = newMatches;
+      let listeners = [...this.listeners];
+      if (this.changeListener) {
+        listeners.push(this.changeListener);
+      }
+
+      let ev = new MediaEvent(this.matches, this.media);
+
+      for (let listener of listeners) {
+        try {
+          listener.call(this, ev);
+        } catch (e) {
+          // no-op
+        }
+      }
+    }
+  }
+}
+
+let MediaQueries: MediaQuery[] = [];
+function updateQueries(): void {
+  act(() => {
+    for (let query of MediaQueries) {
+      query.update();
+    }
+  });
+}
+
+const MediaValues = {
+  width: 1024,
+};
+
+export const Media = {
+  get width(): number {
+    return MediaValues.width;
+  },
+
+  set width(val: number) {
+    MediaValues.width = val;
+    updateQueries();
+  },
+};
+
 export async function resetDOM(): Promise<void> {
-  await cleanup();
+  cleanup();
 
   while (document.head.firstChild) {
     document.head.firstChild.remove();
@@ -114,6 +208,13 @@ export async function resetDOM(): Promise<void> {
   while (document.body.firstChild) {
     document.body.firstChild.remove();
   }
+
+  MediaQueries = [];
+  window.matchMedia = (query: string) => {
+    let mediaQuery = new MediaQuery(query);
+    MediaQueries.push(mediaQuery);
+    return mediaQuery;
+  };
 }
 
 export function click(element: Element): void {

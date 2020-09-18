@@ -15,6 +15,8 @@ provideService("exiftool", exiftool);
 test("lamppost", async (): Promise<void> => {
   let uploaded = moment.tz("2020-02-04T12:53:23", "UTC");
   let data = await parseFile({
+    catalog: "foo",
+    media: "bar",
     name: "Testname.jpg",
     uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg"),
@@ -76,6 +78,8 @@ test("lamppost", async (): Promise<void> => {
 test("iptc", async (): Promise<void> => {
   let uploaded = moment.tz("2019-12-03T12:30:23", "UTC");
   let data = await parseFile({
+    catalog: "foo",
+    media: "bar",
     name: "IPTC.JPG",
     uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "iptc.jpg"),
@@ -137,6 +141,8 @@ test("iptc", async (): Promise<void> => {
 test("video", async (): Promise<void> => {
   let uploaded = moment.tz("2010-01-03T09:30:23", "UTC");
   let data = await parseFile({
+    catalog: "foo",
+    media: "bar",
     name: "test_video.foo",
     uploaded,
     path: path.join(__dirname, "..", "..", "..", "testdata", "video.mp4"),

@@ -3,17 +3,17 @@ import React, { useCallback, useState } from "react";
 
 import { Catalog, useCatalogs } from "../api/highlevel";
 import { useSelector } from "../store";
-import { StoreState } from "../store/types";
+import { StoreState, UIState } from "../store/types";
 import { ReactResult } from "../utils/types";
 import { IncludeVirtualCategories, VirtualItem, VirtualTree } from "../utils/virtual";
-import Banner from "./Banner";
+import Banner, { PageOption } from "./Banner";
 import Sidebar from "./Sidebar";
 import SidebarTree from "./SidebarTree";
 
 export interface PageProps {
-  bannerButtons?: React.ReactNode;
   children?: React.ReactNode;
   selectedItem?: string;
+  pageOptions?: PageOption[];
 }
 
 export default function Page(props: PageProps): ReactResult {
@@ -24,11 +24,24 @@ export default function Page(props: PageProps): ReactResult {
     }),
   );
 
-  const [open, setOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const uiState = useSelector((state: StoreState): UIState => state.ui);
+
+  const [lastUIState, setLastUIState] = useState<UIState | null>(null);
+
+  if (uiState != lastUIState) {
+    setSidebarOpen(false);
+    setLastUIState(uiState);
+  }
 
   const onMenuButtonClick = useCallback((): void => {
-    setOpen(!open);
-  }, [open]);
+    setSidebarOpen(true);
+  }, []);
+
+  const onCloseSidebar = useCallback((): void => {
+    setSidebarOpen(false);
+  }, []);
 
   const { loggedIn } = useSelector((state: StoreState) => ({
     loggedIn: state.serverState.user,
@@ -36,7 +49,7 @@ export default function Page(props: PageProps): ReactResult {
 
   if (loggedIn) {
     return <Box display="flex" flexDirection="column" minHeight="100vh" alignItems="stretch">
-      <Banner onMenuButtonClick={onMenuButtonClick}>{props.bannerButtons}</Banner>
+      <Banner onMenuButtonClick={onMenuButtonClick} pageOptions={props.pageOptions}/>
       <Box
         display="flex"
         flexDirection="row"
@@ -44,7 +57,7 @@ export default function Page(props: PageProps): ReactResult {
         alignContent="stretch"
         justifyContent="start"
       >
-        <Sidebar open={open}>
+        <Sidebar open={sidebarOpen} onClose={onCloseSidebar}>
           <SidebarTree roots={catalogs} selectedItem={props.selectedItem}/>
         </Sidebar>
         {props.children}
@@ -53,7 +66,7 @@ export default function Page(props: PageProps): ReactResult {
   }
 
   return <Box display="flex" flexDirection="column" minHeight="100vh" alignItems="stretch">
-    <Banner>{props.bannerButtons}</Banner>
+    <Banner pageOptions={props.pageOptions}/>
     <Box
       display="flex"
       flexDirection="row"

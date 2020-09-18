@@ -33,7 +33,7 @@ interface IfProps {
   result: boolean;
 }
 
-class If extends PureComponent<IfProps & { children: ReactNode[] }> {
+class If extends PureComponent<IfProps & { children: ReactNode }> {
   public render(): ReactNode {
     return <IfContext.Provider value={this.props.result}>{this.props.children}</IfContext.Provider>;
   }
