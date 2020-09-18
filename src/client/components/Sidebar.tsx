@@ -33,7 +33,7 @@ export type SidebarProps = ReactChildren & {
 };
 
 const Transition = forwardRef(function Transition(
-  props: TransitionProps & { children?: React.ReactElement<any, any> },
+  props: TransitionProps & { children?: React.ReactElement<unknown, unknown> },
   ref: React.Ref<unknown>,
 ) {
   return <Slide direction="right" ref={ref} {...props}/>;
