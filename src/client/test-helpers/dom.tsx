@@ -1,6 +1,7 @@
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { Message } from "@fluent/bundle/esm/ast";
 import { ReactLocalization, LocalizationProvider } from "@fluent/react";
+import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import {
   RenderResult,
   render as testRender,
@@ -74,6 +75,12 @@ class MockBundle extends FluentBundle {
 
 export const l10nBundle = new MockBundle();
 
+const theme = createMuiTheme({
+  transitions: {
+    create: () => "none",
+  },
+});
+
 type Wrapper = (props: ReactChildren) => ReactResult;
 function componentWrapper(store: MockStore | undefined): Wrapper {
   let fakeStore: StoreType = store ? store as unknown as StoreType : realStore;
@@ -82,9 +89,11 @@ function componentWrapper(store: MockStore | undefined): Wrapper {
 
     return <Provider store={fakeStore}>
       <LocalizationProvider l10n={l10n}>
-        <Suspense fallback={<div className="loading"/>}>
-          {children}
-        </Suspense>
+        <ThemeProvider theme={theme}>
+          <Suspense fallback={<div className="loading"/>}>
+            {children}
+          </Suspense>
+        </ThemeProvider>
       </LocalizationProvider>
     </Provider>;
   };

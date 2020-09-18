@@ -104,17 +104,16 @@ export default function Banner(props: BannerProps): ReactResult {
 
   return <AppBar className={classes.banner} role="banner">
     {
-      props.onMenuButtonClick && <Hidden smUp={true}>
-        <IconButton
-          onClick={props.onMenuButtonClick}
-          edge="start"
-          className={classes.menuButton}
-          color="inherit"
-          aria-label="menu"
-        >
-          <MenuIcon/>
-        </IconButton>
-      </Hidden>
+      props.onMenuButtonClick && <IconButton
+        id="menu-button"
+        onClick={props.onMenuButtonClick}
+        edge="start"
+        className={classes.menuButton}
+        color="inherit"
+        aria-label="menu"
+      >
+        <MenuIcon/>
+      </IconButton>
     }
     <Box className={classes.title}>
       <Box className={classes.titleText} component="span">

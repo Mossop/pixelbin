@@ -1,7 +1,6 @@
 import Box from "@material-ui/core/Box";
 import Dialog from "@material-ui/core/Dialog";
 import Drawer from "@material-ui/core/Drawer";
-import Hidden from "@material-ui/core/Hidden";
 import IconButton from "@material-ui/core/IconButton";
 import Slide from "@material-ui/core/Slide";
 import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
@@ -33,40 +32,46 @@ export type SidebarProps = ReactChildren & {
 };
 
 const Transition = forwardRef(function Transition(
-  props: TransitionProps & { children?: React.ReactElement<unknown, unknown> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  props: TransitionProps & { children?: React.ReactElement<any, any> },
   ref: React.Ref<unknown>,
 ) {
   return <Slide direction="right" ref={ref} {...props}/>;
 });
 
-export default function Sidebar(props: SidebarProps): ReactResult {
+export function PersistentSidebar(props: SidebarProps): ReactResult {
   const classes = useStyles();
 
-  return <React.Fragment>
-    <Hidden xsDown={true}>
-      <Drawer
-        variant="persistent"
-        open={true}
-        PaperProps={
-          {
-            className: classes.paper,
-          }
-        }
-      >
-        {props.children}
-      </Drawer>
-    </Hidden>
-    <Hidden smUp={true}>
-      <Dialog open={props.open} fullScreen={true} TransitionComponent={Transition}>
-        <Box className={classes.closeButton}>
-          <IconButton aria-label="close" onClick={props.onClose}>
-            <CloseIcon/>
-          </IconButton>
-        </Box>
-        <Box className={classes.sidebarContent}>
-          {props.children}
-        </Box>
-      </Dialog>
-    </Hidden>
-  </React.Fragment>;
+  return <Drawer
+    id="sidebar-persistent"
+    variant="persistent"
+    open={true}
+    PaperProps={
+      {
+        className: classes.paper,
+      }
+    }
+  >
+    {props.children}
+  </Drawer>;
+}
+
+export function ModalSidebar(props: SidebarProps): ReactResult {
+  const classes = useStyles();
+
+  return <Dialog
+    id="sidebar-modal"
+    open={props.open}
+    fullScreen={true}
+    TransitionComponent={Transition}
+  >
+    <Box className={classes.closeButton}>
+      <IconButton aria-label="close" id="sidebar-close" onClick={props.onClose}>
+        <CloseIcon/>
+      </IconButton>
+    </Box>
+    <Box className={classes.sidebarContent}>
+      {props.children}
+    </Box>
+  </Dialog>;
 }
