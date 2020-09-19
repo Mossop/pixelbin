@@ -60,7 +60,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
     (catalog: Catalog): VirtualItem => catalog.virtual(VirtualTree.Albums),
   );
 
-  let roots = album ? [album.catalog.virtual()] : catalogs;
+  let roots = album ? [album.catalog.virtual(VirtualTree.Albums)] : catalogs;
 
   const onSubmit = useCallback(async () => {
     if (!state.name) {
