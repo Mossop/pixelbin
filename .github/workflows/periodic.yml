@@ -45,7 +45,7 @@ jobs:
 
     - name: Run tests
       run: |
-        gulp testClientKarma
+        gulp browserTests
 
     - name: Upload code coverage
       env:

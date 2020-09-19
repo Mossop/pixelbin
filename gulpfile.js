@@ -145,6 +145,8 @@ async function jest() {
 }
 
 exports.build = gulp.series(exports.buildServer, exports.buildClient);
+exports.nodeTests = gulp.series(jest, buildCoverage);
+exports.browserTests = gulp.series(karma, buildCoverage);
 exports.test = gulp.series(jest, karma, buildCoverage);
 
 async function lintPackages() {
