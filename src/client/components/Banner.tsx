@@ -1,5 +1,3 @@
-import crypto from "crypto";
-
 import { useLocalization } from "@fluent/react";
 import Avatar from "@material-ui/core/Avatar";
 import Box from "@material-ui/core/Box";
@@ -12,6 +10,7 @@ import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
 import MenuIcon from "@material-ui/icons/Menu";
 import MoreVertIcon from "@material-ui/icons/MoreVert";
 import { usePopupState, bindTrigger, bindPopover } from "material-ui-popup-state/hooks";
+import md5 from "md5";
 import React, { useCallback } from "react";
 
 import { logout } from "../api/auth";
@@ -23,12 +22,6 @@ import { StoreState } from "../store/types";
 import { ReactChildren, ReactResult } from "../utils/types";
 import AppBar from "./AppBar";
 import Link from "./Link";
-
-function md5(str: string): string {
-  let hasher = crypto.createHash("md5");
-  hasher.update(str.trim().toLocaleLowerCase());
-  return hasher.digest("hex");
-}
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
