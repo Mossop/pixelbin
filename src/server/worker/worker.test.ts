@@ -1,8 +1,8 @@
 import { Serializable, SendHandle } from "child_process";
 import { EventEmitter } from "events";
 
-import { mock, Mocked, awaitCall, awaitEvent, mockEvent } from "../test-helpers";
-import { defer, Deferred } from "../utils";
+import { mock, Mocked, awaitCall, awaitEvent, mockEvent } from "../../test-helpers";
+import { defer, Deferred } from "../../utils";
 import Channel from "./channel";
 import { AbstractChildProcess, WorkerProcess } from "./worker";
 

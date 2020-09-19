@@ -3,8 +3,8 @@ import net from "net";
 import path from "path";
 
 import { getLogger, listen, bound } from "../../utils";
-import { WorkerPool, AbstractChildProcess } from "../../worker";
 import { WebserverConfig, ParentProcessInterface } from "../webserver/interfaces";
+import { WorkerPool, AbstractChildProcess } from "../worker";
 import { quit } from "./events";
 import { Service } from "./service";
 import services, { provideService } from "./services";

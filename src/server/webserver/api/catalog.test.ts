@@ -42,15 +42,15 @@ async function testStorage(id: string): Promise<void> {
 
 test("Test AWS storage", async (): Promise<void> => {
   return testStorage("aws");
-});
+}, 30000);
 
 test("Test Minio storage", async (): Promise<void> => {
   return testStorage("minio");
-});
+}, 30000);
 
 test("Test Backblaze storage", async (): Promise<void> => {
   return testStorage("b2");
-});
+}, 30000);
 
 test("Test Bad storage", async (): Promise<void> => {
   const request = agent();

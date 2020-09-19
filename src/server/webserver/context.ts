@@ -1,9 +1,9 @@
 import { Context } from "koa";
 
-import { RemoteInterface } from "../../worker";
 import { DatabaseConnection, UserScopedConnection } from "../database";
 import { StorageService } from "../storage";
 import { TaskWorkerInterface } from "../task-worker/interfaces";
+import { RemoteInterface } from "../worker";
 import authContext, { AuthContext } from "./auth";
 import loggingContext, { LoggingContext } from "./logging";
 import Services from "./services";

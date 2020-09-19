@@ -1,7 +1,7 @@
 import { SendHandle, Serializable } from "child_process";
 import { EventEmitter } from "events";
 
-import { getLogger, TypedEmitter } from "../utils";
+import { getLogger, TypedEmitter } from "../../utils";
 import Channel, { RemoteInterface, ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
 

@@ -2,9 +2,9 @@ import { exiftool } from "exiftool-vendored";
 import { install } from "source-map-support";
 
 import { getLogger, setLogConfig } from "../../utils";
-import { ParentProcess } from "../../worker";
 import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
+import { ParentProcess } from "../worker";
 import events from "./events";
 import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
 import { handleUploadedFile } from "./process";

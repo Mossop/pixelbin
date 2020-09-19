@@ -15,9 +15,8 @@ const { findBin } = require("./ci/utils");
 
 async function buildCoverage() {
   return mergeCoverage([
-    path.join(__dirname, "coverage", "server", "coverage-final.json"),
-    path.join(__dirname, "coverage", "client", "coverage-jest.json"),
-    path.join(__dirname, "coverage", "client", "coverage-karma.json"),
+    path.join(__dirname, "coverage", "coverage-jest.json"),
+    path.join(__dirname, "coverage", "coverage-karma.json"),
   ], path.join(__dirname, "coverage", "coverage-final.json"));
 }
 
@@ -98,18 +97,7 @@ function watchClientJs() {
 
 exports.buildClient = gulp.parallel(buildClientStatic, buildClientJs);
 
-async function clientJest() {
-  let jest = await findBin(__dirname, "jest");
-
-  await checkSpawn(jest, [
-    "--config",
-    path.join(__dirname, "src", "client", "jest.config.js"),
-    "--collectCoverage",
-    "--ci",
-  ]);
-}
-
-async function clientKarma() {
+async function karma() {
   let karma = await findBin(__dirname, "karma");
 
   await checkSpawn(karma, [
@@ -124,10 +112,6 @@ async function clientKarma() {
     },
   });
 }
-
-exports.testClientJest = gulp.series(clientJest, buildCoverage);
-exports.testClientKarma = gulp.series(clientKarma, buildCoverage);
-exports.testClient = gulp.series(clientJest, clientKarma, buildCoverage);
 
 async function buildServer() {
   let tsc = await findBin(__dirname, "tsc");
@@ -149,7 +133,7 @@ async function buildServer() {
 }
 exports.buildServer = buildServer;
 
-async function serverJest() {
+async function jest() {
   let jest = await findBin(__dirname, "jest");
 
   await checkSpawn(jest, [
@@ -160,10 +144,8 @@ async function serverJest() {
   ]);
 }
 
-exports.testServer = gulp.series(serverJest, buildCoverage);
-
 exports.build = gulp.series(exports.buildServer, exports.buildClient);
-exports.test = gulp.series(serverJest, clientJest, clientKarma, buildCoverage);
+exports.test = gulp.series(jest, karma, buildCoverage);
 
 async function lintPackages() {
   let packageLock = JSON.parse(await fs.readFile(path.join(__dirname, "package-lock.json"), {
@@ -274,12 +256,6 @@ exports.clean = async function() {
   await checkSpawn(jest, [
     "--config",
     path.join(__dirname, "jest.config.js"),
-    "--clearCache",
-  ]);
-
-  await checkSpawn(jest, [
-    "--config",
-    path.join(__dirname, "src", "client", "jest.config.js"),
     "--clearCache",
   ]);
 };

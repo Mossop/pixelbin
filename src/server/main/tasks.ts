@@ -1,12 +1,12 @@
 import child_process from "child_process";
 
 import { getLogger, bound } from "../../utils";
-import { WorkerPool, AbstractChildProcess } from "../../worker";
 import {
   TaskWorkerConfig,
   ParentProcessInterface,
   TaskWorkerInterface,
 } from "../task-worker/interfaces";
+import { WorkerPool, AbstractChildProcess } from "../worker";
 import { quit } from "./events";
 import { Service } from "./service";
 import services, { provideService } from "./services";

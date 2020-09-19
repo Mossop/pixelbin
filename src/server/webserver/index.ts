@@ -1,9 +1,9 @@
 import { install } from "source-map-support";
 
 import { getLogger, setLogConfig } from "../../utils";
-import { ParentProcess } from "../../worker";
 import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
+import { ParentProcess } from "../worker";
 import buildApp from "./app";
 import events from "./events";
 import { ParentProcessInterface } from "./interfaces";

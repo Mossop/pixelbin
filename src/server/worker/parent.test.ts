@@ -3,8 +3,8 @@ import { EventEmitter } from "events";
 import { Socket, Server } from "net";
 import { setImmediate } from "timers";
 
-import { mock, Mocked, awaitCall, deferCall, awaitEvent, mockEvent } from "../test-helpers";
-import { defer, Deferred } from "../utils";
+import { mock, Mocked, awaitCall, deferCall, awaitEvent, mockEvent } from "../../test-helpers";
+import { defer, Deferred } from "../../utils";
 import Channel from "./channel";
 import { RPC } from "./ipc";
 import { AbstractProcess, ParentProcess } from "./parent";

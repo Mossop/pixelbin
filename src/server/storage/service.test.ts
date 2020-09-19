@@ -199,12 +199,12 @@ async function storageTest(id: string): Promise<void> {
 
 test("AWS test", async (): Promise<void> => {
   return storageTest("aws");
-});
+}, 30000);
 
 test("B2 test", async (): Promise<void> => {
   return storageTest("b2");
-});
+}, 30000);
 
 test("Minio test", async (): Promise<void> => {
   return storageTest("minio");
-});
+}, 30000);
