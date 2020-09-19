@@ -2,8 +2,6 @@ import { getLogger, Logger } from "../../utils";
 
 const logger = getLogger("task");
 
-// See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Task<A extends unknown[] = unknown[]> = (logger: Logger, ...args: A) => void | Promise<void>;
 
 let nextId = 0;

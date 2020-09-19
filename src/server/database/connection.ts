@@ -23,15 +23,6 @@ export interface DatabaseConfig {
   database: string;
 }
 
-// See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface ExtendedKnex extends Knex {
-  userParams: {
-    schema?: string;
-  }
-  withUserParams(params: Record<string, unknown>): ExtendedKnex;
-}
-
 function parseTimestamp(value: string): Moment {
   return moment(value).utc();
 }

@@ -77,9 +77,7 @@ export default function MediaTargetField(props: MediaTargetFieldProps): ReactRes
     }
 
     return itemMap;
-  // See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  }, [props.roots]);
 
   const onChange = useCallback(
     (event: React.ChangeEvent<{ name?: string; value: unknown }>): void => {

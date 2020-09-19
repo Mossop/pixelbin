@@ -14,8 +14,6 @@ export function useFormFieldState<T>(initial: T): FormElementHook<T> {
   let [currentState, stateSetter] = useState(initial);
   let eventHandler = useCallback(
     (event: FormElementEvent<T>): void => stateSetter(event.target.value),
-    // See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [stateSetter],
   );
   return [currentState, eventHandler, stateSetter];
@@ -33,8 +31,6 @@ export function useFormState<T>(initial: T): FormHook<T> {
         [key]: value,
       };
     });
-  // See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return [currentState, setter];

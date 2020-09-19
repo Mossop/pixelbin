@@ -4,8 +4,6 @@ import { EventEmitter as Base } from "events";
 export type EventMap = {};
 export type Events<M extends EventMap> = keyof M;
 export type Payload<M extends EventMap, E extends Events<M>> = M[E] extends unknown[] ? M[E] : [];
-// See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type Listener<M extends EventMap, E extends Events<M>> = (...args: Payload<M, E>) => void;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

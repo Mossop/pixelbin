@@ -66,7 +66,6 @@ test("create album", async (): Promise<void> => {
     name: "Foo",
   }]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await resolve({
     id: "album3",
     catalog: "catalog",
@@ -136,7 +135,6 @@ test("edit album", async (): Promise<void> => {
     name: "Foo",
   }]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await resolve({
     id: "album2",
     catalog: "catalog",

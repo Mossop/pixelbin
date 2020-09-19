@@ -184,14 +184,10 @@ export function awaitCall(
   });
 }
 
-// See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface BaseEmitterOnce<S, P extends unknown[]> {
   once: (event: S, cb: (...args: P) => void) => void;
 }
 
-// See https://github.com/typescript-eslint/typescript-eslint/milestone/7.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface BaseEmitter<S, P extends unknown[]> {
   on: (event: S, cb: (...args: P) => void) => void;
 }

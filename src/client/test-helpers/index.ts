@@ -106,7 +106,6 @@ export const expect = jestExpect as unknown as jest.ExtendedExpect<typeof matche
 export const mapOf = <V>(obj: Record<string, V>): Map<string, V> => new Map(Object.entries(obj));
 
 export function deferRequest<R = unknown, D = unknown>(): DeferredCall<[Api.Method, D], R> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   let {
     call,
     reject,
@@ -115,14 +114,16 @@ export function deferRequest<R = unknown, D = unknown>(): DeferredCall<[Api.Meth
   } = deferCall(request as unknown as (method: Api.Method, data: D) => Promise<R>);
   return {
     call,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    resolve: (...args: Parameters<typeof resolve>): Promise<void> => act(() => {
-      return resolve(...args);
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    reject: (...args: Parameters<typeof reject>): Promise<void> => act(() => {
-      return reject(...args);
-    }),
+    resolve: async (...args: Parameters<typeof resolve>): Promise<void> => {
+      await act(() => {
+        return resolve(...args);
+      });
+    },
+    reject: async (...args: Parameters<typeof reject>): Promise<void> => {
+      await act(() => {
+        return reject(...args);
+      });
+    },
     promise,
   };
 }

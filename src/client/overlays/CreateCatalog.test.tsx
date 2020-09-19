@@ -204,7 +204,6 @@ test("create catalog", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await resolve({
     id: "st123",
     name: "New storage",
@@ -236,7 +235,6 @@ test("create catalog", async (): Promise<void> => {
 
   expect(store.dispatch).toHaveBeenCalledTimes(0);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await storageResolve({
     id: "Cat356",
     storage: "st123",
@@ -311,7 +309,6 @@ test("create catalog with existing storage", async (): Promise<void> => {
 
   expect(store.dispatch).toHaveBeenCalledTimes(0);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await resolve({
     id: "Cat356",
     storage: "st567",

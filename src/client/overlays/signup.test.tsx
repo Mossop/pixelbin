@@ -75,7 +75,6 @@ test("signup success", async (): Promise<void> => {
 
   let dispatchCall = awaitCall(store.dispatch);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await resolve({
     user: {
       email: "foo@bar.com",
@@ -155,7 +154,6 @@ test("signup failed", async (): Promise<void> => {
     fullname: "",
   }]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await reject(new ApiError(400, "Bad Request", {
     code: Api.ErrorCode.InvalidData,
     data: {},
