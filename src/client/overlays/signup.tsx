@@ -22,6 +22,10 @@ export default function SignupOverlay(): ReactResult {
 
   let emailInput = useRef<HTMLInputElement>();
 
+  const onDisplay = useCallback(() => {
+    emailInput.current?.focus();
+  }, [emailInput]);
+
   const onSubmit = useCallback(async (): Promise<void> => {
     if (!state.email) {
       return;
@@ -35,11 +39,10 @@ export default function SignupOverlay(): ReactResult {
       actions.completeSignup(serverState);
     } catch (e) {
       setError(e);
+      setDisabled(false);
       setState("password", "");
 
       emailInput.current?.focus();
-    } finally {
-      setDisabled(false);
     }
   }, [state, actions, setState]);
 
@@ -50,6 +53,7 @@ export default function SignupOverlay(): ReactResult {
     submitId="signup-submit"
     onSubmit={onSubmit}
     onClose={actions.closeOverlay}
+    onEntered={onDisplay}
   >
     <FormFields
       disabled={disabled}
@@ -59,13 +63,10 @@ export default function SignupOverlay(): ReactResult {
         [{
           type: "text",
           key: "email",
+          ref: emailInput,
           label: "signup-email",
           inputType: "email",
           autoComplete: "email",
-          props: {
-            inputRef: emailInput,
-            autoFocus: true,
-          },
         }, {
           type: "text",
           key: "fullname",

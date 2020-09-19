@@ -1,11 +1,9 @@
 import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
-import FormControl, { FormControlProps } from "@material-ui/core/FormControl";
-import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import { createStyles, makeStyles, Theme, useTheme } from "@material-ui/core/styles";
-import React, { useCallback, useMemo } from "react";
+import React, { forwardRef, useCallback, useMemo } from "react";
 
 import { Album, Catalog } from "../api/highlevel";
 import { ReactResult } from "../utils/types";
@@ -33,16 +31,16 @@ const useStyles = makeStyles((theme: Theme) =>
 
 export interface MediaTargetFieldProps {
   id: string;
-  label: string;
   disabled?: boolean;
-  fullWidth?: boolean;
-  margin?: FormControlProps["margin"]
   roots: VirtualItem[];
   value: Album | Catalog;
   onChange?: (selected: Album | Catalog) => void;
 }
 
-export default function MediaTargetField(props: MediaTargetFieldProps): ReactResult {
+function MediaTargetField(
+  props: MediaTargetFieldProps,
+  ref: ((instance: HTMLElement | null) => void) | React.MutableRefObject<HTMLElement | null> | null,
+): ReactResult {
   const { l10n } = useLocalization();
   const theme = useTheme();
   const classes = useStyles();
@@ -91,36 +89,35 @@ export default function MediaTargetField(props: MediaTargetFieldProps): ReactRes
     [props, itemMap],
   );
 
-  return <FormControl fullWidth={props.fullWidth} margin={props.margin} disabled={props.disabled}>
-    <InputLabel id={`${props.id}-label`}>{props.label}</InputLabel>
-    <Select
-      id={props.id}
-      disabled={props.disabled}
-      labelId={`${props.id}-label`}
-      value={props.value.id}
-      onChange={onChange}
-    >
-      {
-        Array.from(
-          itemMap.values(),
-          ({ item, depth }: ItemInfo): ReactResult => {
-            return <MenuItem
-              key={item.id}
-              value={item.id}
-              style={
-                {
-                  paddingLeft: theme.spacing(2) * depth,
-                }
+  return <Select
+    id={props.id}
+    ref={ref}
+    disabled={props.disabled}
+    value={props.value.id}
+    onChange={onChange}
+  >
+    {
+      Array.from(
+        itemMap.values(),
+        ({ item, depth }: ItemInfo): ReactResult => {
+          return <MenuItem
+            key={item.id}
+            value={item.id}
+            style={
+              {
+                paddingLeft: theme.spacing(2) * depth,
               }
-            >
-              <Box className={classes.item}>
-                <Box className={classes.icon}>{item.icon()}</Box>
-                <span>{item.label(l10n)}</span>
-              </Box>
-            </MenuItem>;
-          },
-        )
-      }
-    </Select>
-  </FormControl>;
+            }
+          >
+            <Box className={classes.item}>
+              <Box className={classes.icon}>{item.icon()}</Box>
+              <span>{item.label(l10n)}</span>
+            </Box>
+          </MenuItem>;
+        },
+      )
+    }
+  </Select>;
 }
+
+export default forwardRef(MediaTargetField);

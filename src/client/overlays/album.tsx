@@ -56,6 +56,10 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   const actions = useActions();
   const nameInput = useRef<HTMLElement>(null);
 
+  const onDisplay = useCallback(() => {
+    nameInput.current?.focus();
+  }, [nameInput]);
+
   const catalogs = useCatalogs().map(
     (catalog: Catalog): VirtualItem => catalog.virtual(VirtualTree.Albums),
   );
@@ -92,9 +96,8 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
       }
     } catch (e) {
       setError(e);
-      nameInput.current?.focus();
-    } finally {
       setDisabled(false);
+      nameInput.current?.focus();
     }
   }, [album, actions, catalog, state]);
 
@@ -105,6 +108,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
     submitId={album ? "album-edit-submit" : "album-create-submit"}
     onSubmit={onSubmit}
     onClose={actions.closeOverlay}
+    onEntered={onDisplay}
   >
     <FormFields
       disabled={disabled}
@@ -115,10 +119,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
           type: "text",
           key: "name",
           label: "album-name",
-          props: {
-            inputRef: nameInput,
-            autoFocus: true,
-          },
+          ref: nameInput,
         }, {
           type: "mediatarget",
           key: "parent",

@@ -21,6 +21,10 @@ export default function LoginOverlay(): ReactResult {
 
   let emailInput = useRef<HTMLInputElement>();
 
+  const onDisplay = useCallback(() => {
+    emailInput.current?.focus();
+  }, [emailInput]);
+
   const onSubmit = useCallback(async () => {
     if (!state.email) {
       return;
@@ -34,11 +38,10 @@ export default function LoginOverlay(): ReactResult {
       actions.completeLogin(serverState);
     } catch (e) {
       setError(e);
+      setDisabled(false);
       setState("password", "");
 
       emailInput.current?.focus();
-    } finally {
-      setDisabled(false);
     }
   }, [actions, state, setState]);
 
@@ -49,6 +52,7 @@ export default function LoginOverlay(): ReactResult {
     submitId="login-submit"
     onSubmit={onSubmit}
     onClose={actions.closeOverlay}
+    onEntered={onDisplay}
   >
     <FormFields
       disabled={disabled}
@@ -57,14 +61,11 @@ export default function LoginOverlay(): ReactResult {
       fields={
         [{
           type: "text",
+          ref: emailInput,
           key: "email",
           label: "login-email",
           inputType: "email",
           autoComplete: "email",
-          props: {
-            inputRef: emailInput,
-            autoFocus: true,
-          },
         }, {
           type: "text",
           key: "password",

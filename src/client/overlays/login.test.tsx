@@ -99,11 +99,6 @@ test("login success", async (): Promise<void> => {
 
   mockedRequest.mockClear();
   store.dispatch.mockClear();
-
-  await waitFor((): void => {
-    expect(email.disabled).toBeFalsy();
-    expect(password.disabled).toBeFalsy();
-  });
 });
 
 test("login failed", async (): Promise<void> => {

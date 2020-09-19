@@ -6,7 +6,7 @@ import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import CheckCircle from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Api } from "../../model";
 import { testStorage, createCatalog, createStorage } from "../api/catalog";
@@ -105,7 +105,6 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
       actions.catalogCreated(catalog);
     } catch (e) {
       setError(e);
-    } finally {
       setDisabled(false);
     }
   }, [actions, storageConfig, catalogState, storageChoice, setStorageChoice]);
@@ -199,19 +198,11 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
                 label: "storage-endpoint",
                 inputType: "url",
                 required: storageChoice.storageType == "compatible",
-                props: {
-                  margin: "dense",
-                  size: "small",
-                },
               }, {
                 type: "text",
                 key: "publicUrl",
                 label: "storage-public-url",
                 inputType: "url",
-                props: {
-                  margin: "dense",
-                  size: "small",
-                },
               }]
             }
           />
@@ -226,6 +217,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     setStorageChoice,
   ]);
 
+  const storageNameRef = useRef<HTMLElement>();
   const storageConfigStep = useMemo((): Step => {
     return {
       titleId: "create-catalog-storage-custom-title",
@@ -237,48 +229,29 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         fields={
           [{
             type: "text",
+            ref: storageNameRef,
             key: "storageName",
             label: "storage-name",
             required: storageChoice.storageType != "existing",
-            props: {
-              margin: "dense",
-              size: "small",
-            },
           }, {
             type: "text",
             key: "accessKeyId",
             label: "storage-access-key",
             required: storageChoice.storageType != "existing",
-            props: {
-              margin: "dense",
-              size: "small",
-            },
           }, {
             type: "text",
             key: "secretAccessKey",
             label: "storage-secret-key",
             required: storageChoice.storageType != "existing",
-            props: {
-              margin: "dense",
-              size: "small",
-            },
           }, {
             type: "text",
             key: "bucket",
             required: storageChoice.storageType != "existing",
             label: "storage-bucket",
-            props: {
-              margin: "dense",
-              size: "small",
-            },
           }, {
             type: "text",
             key: "path",
             label: "storage-path",
-            props: {
-              margin: "dense",
-              size: "small",
-            },
           }]
         }
       />,
@@ -337,6 +310,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     };
   }, [storageChoice, storageTestResult, l10n, classes]);
 
+  const catalogNameRef = useRef<HTMLElement>();
   const catalogNameStep = useMemo((): Step => {
     return {
       titleId: "create-catalog-catalog-title",
@@ -347,6 +321,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         fields={
           [{
             type: "text",
+            ref: catalogNameRef,
             key: "catalogName",
             label: "catalog-name",
             required: true,
@@ -362,6 +337,24 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     storageTestStep,
     catalogNameStep,
   ], [
+    storageChooserStep,
+    storageConfigStep,
+    storageTestStep,
+    catalogNameStep,
+  ]);
+
+  useEffect(() => {
+    switch (steps[currentStep]) {
+      case storageConfigStep:
+        storageNameRef.current?.focus();
+        break;
+      case catalogNameStep:
+        catalogNameRef.current?.focus();
+        break;
+    }
+  }, [
+    steps,
+    currentStep,
     storageChooserStep,
     storageConfigStep,
     storageTestStep,

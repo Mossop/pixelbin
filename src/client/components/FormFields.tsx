@@ -1,9 +1,10 @@
 import { useLocalization } from "@fluent/react";
 import FormControl from "@material-ui/core/FormControl";
+import Input from "@material-ui/core/Input";
 import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
-import TextField, { TextFieldProps } from "@material-ui/core/TextField";
+import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
 import React from "react";
 
 import { MediaTarget } from "../api/media";
@@ -15,17 +16,27 @@ type FormKeys<F, T> = {
   [K in keyof F]: F[K] extends T ? K : never;
 }[keyof F];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Ref<T = any> = React.Ref<T>;
+
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    control: {
+      paddingBottom: theme.spacing(2),
+    },
+  }));
+
 export interface TextFormField<F> {
   type: "text";
   key: FormKeys<F, string>;
   id?: string;
+  ref?: Ref,
   label: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   inputType?: string;
   autoComplete?: string;
   multiline?: boolean;
   required?: boolean;
-  props?: Partial<TextFieldProps>;
 }
 
 export interface Option {
@@ -37,6 +48,7 @@ export interface SelectFormField<F> {
   type: "select";
   key: FormKeys<F, string>;
   id?: string;
+  ref?: Ref,
   label: string;
   onChange?: (event: React.ChangeEvent<{ name?: string; value: unknown }>) => void;
   options: Option[];
@@ -46,6 +58,7 @@ export interface MediaTargetFormField<F> {
   type: "mediatarget";
   key: FormKeys<F, MediaTarget>;
   id?: string;
+  ref?: Ref,
   label: string;
   roots: VirtualItem[];
   onChange?: (target: MediaTarget) => void;
@@ -63,6 +76,7 @@ export interface FormFieldProps<T> {
 
 export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
   const { l10n } = useLocalization();
+  const classes = useStyles();
 
   return <React.Fragment>
     {
@@ -80,17 +94,22 @@ export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
             }
           };
 
-          return <MediaTargetField
-            id={id}
+          return <FormControl
+            fullWidth={true}
             disabled={props.disabled}
             key={`field-${field.key}`}
-            roots={field.roots}
-            fullWidth={true}
-            margin="normal"
-            value={props.state[field.key] as unknown as MediaTarget}
-            onChange={onChange}
-            label={l10n.getString(field.label)}
-          />;
+            className={classes.control}
+          >
+            <InputLabel htmlFor={id}>{l10n.getString(field.label)}</InputLabel>
+            <MediaTargetField
+              id={id}
+              ref={field.ref}
+              disabled={props.disabled}
+              roots={field.roots}
+              value={props.state[field.key] as unknown as MediaTarget}
+              onChange={onChange}
+            />
+          </FormControl>;
         } else if (field.type == "select") {
           let onChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
           // @ts-ignore: TypeScript can't tell that this must be a string.
@@ -101,16 +120,17 @@ export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
           };
 
           return <FormControl
+            fullWidth={true}
             disabled={props.disabled}
             key={`field-${field.key}`}
+            className={classes.control}
           >
-            <InputLabel id={`${id}-label`}>{l10n.getString(field.label)}</InputLabel>
+            <InputLabel htmlFor={id}>{l10n.getString(field.label)}</InputLabel>
             <Select
-              labelId={`${id}-label`}
               id={id}
+              ref={field.ref}
               value={props.state[field.key]}
               disabled={props.disabled}
-              fullWidth={true}
               onChange={onChange}
             >
               {
@@ -134,20 +154,25 @@ export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
             }
           };
 
-          return <TextField
-            id={id}
-            key={`field-${field.key}`}
+          return <FormControl
             fullWidth={true}
             disabled={props.disabled}
-            required={field.required}
-            label={l10n.getString(field.label)}
-            value={props.state[field.key]}
-            multiline={field.multiline}
-            type={field.inputType}
-            autoComplete={field.autoComplete}
-            onChange={onChange}
-            {...field.props}
-          />;
+            key={`field-${field.key}`}
+            className={classes.control}
+          >
+            <InputLabel htmlFor={id}>{l10n.getString(field.label)}</InputLabel>
+            <Input
+              id={id}
+              inputRef={field.ref}
+              disabled={props.disabled}
+              required={field.required}
+              value={props.state[field.key]}
+              multiline={field.multiline}
+              type={field.inputType}
+              autoComplete={field.autoComplete}
+              onChange={onChange}
+            />
+          </FormControl>;
         }
       })
     }

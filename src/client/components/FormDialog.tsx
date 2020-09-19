@@ -5,11 +5,32 @@ import Dialog from "@material-ui/core/Dialog/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
+import { createStyles, Theme } from "@material-ui/core/styles";
+import makeStyles from "@material-ui/core/styles/makeStyles";
 import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useCallback, useState } from "react";
 
 import { errorString } from "../utils/exception";
 import { ReactResult } from "../utils/types";
+
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    title: {
+      paddingTop: theme.spacing(2),
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2),
+      paddingBottom: 0,
+    },
+    error: {
+      marginBottom: theme.spacing(2),
+    },
+    content: {
+      paddingBottom: 0,
+    },
+    actions: {
+      padding: theme.spacing(1),
+    },
+  }));
 
 export interface FormDialogProps {
   id?: string;
@@ -22,10 +43,12 @@ export interface FormDialogProps {
   error?: unknown | null;
   onClose?: () => void;
   onSubmit: () => void;
+  onEntered?: () => void;
 }
 
 export default function FormDialog(props: FormDialogProps): ReactResult {
   const { l10n } = useLocalization();
+  const classes = useStyles();
   const [open, setOpen] = useState(true);
 
   let baseId = props.id ?? "dialog";
@@ -34,6 +57,7 @@ export default function FormDialog(props: FormDialogProps): ReactResult {
     ? <Alert
       id={`${baseId}-error`}
       severity="error"
+      className={classes.error}
     >
       {errorString(l10n, props.error)}
     </Alert>
@@ -51,16 +75,22 @@ export default function FormDialog(props: FormDialogProps): ReactResult {
     }
   }, [props]);
 
-  return <Dialog open={open} onClose={close} scroll="body" aria-labelledby={`${baseId}-title`}>
+  return <Dialog
+    open={open}
+    onClose={close}
+    onEntered={props.onEntered}
+    scroll="body"
+    aria-labelledby={`${baseId}-title`}
+  >
     <form id={props.id} onSubmit={submit}>
-      <DialogTitle id={`${baseId}-title`}>
+      <DialogTitle id={`${baseId}-title`} className={classes.title}>
         {l10n.getString(props.titleId)}
       </DialogTitle>
-      <DialogContent>
+      <DialogContent className={classes.content}>
         {errorMessage}
         {props.children}
       </DialogContent>
-      <DialogActions>
+      <DialogActions disableSpacing={true} className={classes.actions}>
         <Button
           id={`${baseId}-cancel`}
           disabled={props.disabled}

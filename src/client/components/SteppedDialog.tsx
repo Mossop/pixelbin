@@ -8,11 +8,28 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import Step from "@material-ui/core/Step";
 import StepLabel from "@material-ui/core/StepLabel";
 import Stepper from "@material-ui/core/Stepper";
+import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
 import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useState, useCallback } from "react";
 
 import { errorString } from "../utils/exception";
 import { ReactResult } from "../utils/types";
+
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    title: {
+      paddingTop: theme.spacing(2),
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2),
+      paddingBottom: 0,
+    },
+    content: {
+      paddingBottom: 0,
+    },
+    actions: {
+      padding: theme.spacing(1),
+    },
+  }));
 
 export interface Step {
   titleId: string;
@@ -42,6 +59,7 @@ export interface SteppedDialogProps {
 
 export default function SteppedDialog(props: SteppedDialogProps): ReactResult {
   const { l10n } = useLocalization();
+  const classes = useStyles();
   const [open, setOpen] = useState(true);
 
   let baseId = props.id ?? "dialog";
@@ -69,10 +87,10 @@ export default function SteppedDialog(props: SteppedDialogProps): ReactResult {
 
   return <Dialog open={open} onClose={close} scroll="body" aria-labelledby={`${baseId}-title`}>
     <form onSubmit={submit}>
-      <DialogTitle id={`${baseId}-title`}>
+      <DialogTitle id={`${baseId}-title`} className={classes.title}>
         {l10n.getString(props.titleId)}
       </DialogTitle>
-      <DialogContent>
+      <DialogContent className={classes.content}>
         <Stepper activeStep={props.currentStep} alternativeLabel={true}>
           {
             props.steps.map((step: Step) =>
@@ -100,7 +118,7 @@ export default function SteppedDialog(props: SteppedDialogProps): ReactResult {
           }
         </Box>
       </DialogContent>
-      <DialogActions>
+      <DialogActions className={classes.actions}>
         <Button
           id={`${baseId}-cancel`}
           disabled={props.disabled}

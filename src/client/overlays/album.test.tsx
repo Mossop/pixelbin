@@ -82,10 +82,6 @@ test("create album", async (): Promise<void> => {
       parent: null,
     }],
   });
-
-  await waitFor((): void => {
-    expect(nameInput.disabled).toBeFalsy();
-  });
 });
 
 test("edit album", async (): Promise<void> => {
@@ -150,9 +146,5 @@ test("edit album", async (): Promise<void> => {
       name: "Foo",
       parent: expect.toBeRef("album1"),
     }],
-  });
-
-  await waitFor((): void => {
-    expect(nameInput.disabled).toBeFalsy();
   });
 });
