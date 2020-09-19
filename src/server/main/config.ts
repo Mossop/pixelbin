@@ -11,6 +11,7 @@ import { StorageConfig } from "../storage";
 const basedir = path.resolve(path.join(__dirname, "..", ".."));
 
 export interface ServerConfig {
+  htmlTemplate: string;
   clientRoot: string;
   staticRoot: string;
   webserverPackage: string;
@@ -21,6 +22,7 @@ export interface ServerConfig {
 }
 
 interface ConfigFile {
+  htmlTemplate: string;
   clientRoot: string;
   staticRoot: string;
   database: DatabaseConfig;
@@ -95,6 +97,7 @@ const StorageConfigDecoder = JsonDecoder.oneOf<StorageConfig>([
 ], "StorageConfig");
 
 const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
+  htmlTemplate: JsonDecoder.string,
   clientRoot: JsonDecoder.string,
   staticRoot: JsonDecoder.string,
   database: DatabaseConfigDecoder,
@@ -129,6 +132,10 @@ export async function loadConfig(configFile: string): Promise<ServerConfig> {
 
     if (!parsed.clientRoot) {
       parsed.clientRoot = path.join(basedir, "client");
+    }
+
+    if (!parsed.htmlTemplate) {
+      parsed.htmlTemplate = path.join(basedir, "index.html");
     }
 
     if (!parsed.staticRoot) {

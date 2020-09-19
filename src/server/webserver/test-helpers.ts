@@ -38,6 +38,7 @@ export function buildTestApp(
   let parent: RemoteInterface<ParentProcessInterface> = {
     async getConfig(): Promise<WebserverConfig> {
       return {
+        htmlTemplate: path.join(__dirname, "..", "..", "..", "testdata", "index.html"),
         staticRoot: __dirname,
         appRoot: __dirname,
         secretKeys: ["foo"],

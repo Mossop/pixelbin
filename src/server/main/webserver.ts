@@ -55,6 +55,7 @@ export class WebserverManager extends Service {
     let config = await services.config;
 
     let webServers = new WebserverManager({
+      htmlTemplate: path.join(config.htmlTemplate),
       webserverPackage: config.webserverPackage,
       staticRoot: path.join(config.staticRoot),
       appRoot: path.join(config.clientRoot),

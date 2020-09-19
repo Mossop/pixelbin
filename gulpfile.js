@@ -154,7 +154,7 @@ async function lintPackages() {
     encoding: "utf8",
   }));
 
-  let packagePath = path.join(__dirname, "src", "server", "webserver", "packages.json");
+  let packagePath = path.join(__dirname, "src", "client", "externals.json");
   let packages = JSON.parse(await fs.readFile(packagePath, {
     encoding: "utf8",
   }));
@@ -170,7 +170,7 @@ async function lintPackages() {
     let lockInfo = packageLock.dependencies[pkg.id];
 
     if (pkg.version != lockInfo.version) {
-      errors.push(`Webserver includes ${pkg.id} as version ${pkg.version} ` +
+      errors.push(`HTML includes ${pkg.id} as version ${pkg.version} ` +
         `but ${lockInfo.version} was expected`);
       continue;
     }

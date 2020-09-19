@@ -1,21 +1,25 @@
 [
   {
     "id": "react",
+    "variable": "React",
     "version": "16.13.1",
     "path": "umd/react.development.js"
   },
   {
     "id": "react-dom",
+    "variable": "ReactDOM",
     "version": "16.13.1",
     "path": "umd/react-dom.development.js"
   },
   {
     "id": "moment",
+    "variable": "moment",
     "version": "2.28.0",
     "path": "min/moment-with-locales.min.js"
   },
   {
     "id": "moment-timezone",
+    "variable": "moment",
     "version": "0.5.31",
     "path": "builds/moment-timezone-with-data-1970-2030.js"
   }

@@ -1,5 +1,5 @@
+import { promises as fs } from "fs";
 import { STATUS_CODES } from "http";
-import path from "path";
 
 import Router, { RouterParamContext } from "@koa/router";
 import Koa, { DefaultState, DefaultContext } from "koa";
@@ -14,48 +14,19 @@ import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import { AppContext, ServicesContext, buildContext } from "./context";
 import { errorHandler } from "./error";
-// eslint-disable-next-line import/extensions
-import packages from "./packages.json";
 import { APP_PATHS } from "./paths";
 import Services from "./services";
 
-interface Package {
-  id: string;
-  version: string;
-  path: string;
+async function loadAppContent(path: string): Promise<string> {
+  let content = await fs.readFile(path, { encoding: "utf8" });
+  return content.replace("{% paths %}", JSON.stringify(APP_PATHS));
 }
 
-function listScripts(): string {
-  let scripts = packages.map((pkg: Package): string => {
-    return "<script crossorigin " +
-      `src="https://unpkg.com/${pkg.id}@${pkg.version}/${pkg.path}"></script>`;
-  });
-
-  return scripts.join("\n");
-}
-
-function buildAppContent(state: ResponseFor<Api.State>, paths: Record<string, string>): string {
-  return `
-<!DOCTYPE html>
-
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width">
-<title>PixelBin</title>
-<link href="https://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
-      rel="stylesheet">
-${listScripts()}
-<script id="initial-state" type="application/json">${JSON.stringify(state)}</script>
-<script id="paths" type="application/json">${JSON.stringify(paths)}</script>
-</head>
-<body>
-<div id="app"></div>
-<script type="text/javascript" src="/app/app.js"></script>
-</body>
-</html>
-`;
+function buildAppContent(
+  content: string,
+  state: ResponseFor<Api.State>,
+): string {
+  return content.replace("{% state %}", JSON.stringify(state));
 }
 
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
@@ -73,6 +44,7 @@ export default async function buildApp(): Promise<App> {
   let config = await parent.getConfig();
   let context = await buildContext();
 
+  let appContent = await loadAppContent(config.htmlTemplate);
   const router = new Router<DefaultState, AppContext>();
 
   router.get("/healthcheck", async (ctx: AppContext): Promise<void> => {
@@ -126,16 +98,16 @@ export default async function buildApp(): Promise<App> {
     .use(mount(APP_PATHS.api, notFound))
     .use(mount(`${APP_PATHS.root}media/`, notFound))
 
-    .use(mount(APP_PATHS.static, serve(path.join(config.staticRoot))))
+    .use(mount(APP_PATHS.static, serve(config.staticRoot)))
     .use(mount(APP_PATHS.static, notFound))
 
-    .use(mount(APP_PATHS.app, serve(path.join(config.appRoot))))
+    .use(mount(APP_PATHS.app, serve(config.appRoot)))
     .use(mount(APP_PATHS.app, notFound))
 
     .use(async (ctx: AppContext): Promise<void> => {
       let state = await buildState(ctx);
       ctx.set("Content-Type", "text/html; charset=utf-8");
-      ctx.body = buildAppContent(state, APP_PATHS);
+      ctx.body = buildAppContent(appContent, state);
     });
 
   let server = await parent.getServer();

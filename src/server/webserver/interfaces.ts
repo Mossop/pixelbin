@@ -6,6 +6,7 @@ import { StorageConfig } from "../storage";
 import { TaskWorkerInterface } from "../task-worker/interfaces";
 
 export interface WebserverConfig {
+  htmlTemplate: string;
   staticRoot: string;
   appRoot: string;
   databaseConfig: DatabaseConfig;
