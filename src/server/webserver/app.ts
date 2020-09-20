@@ -17,16 +17,14 @@ import { errorHandler } from "./error";
 import { APP_PATHS } from "./paths";
 import Services from "./services";
 
-async function loadAppContent(path: string): Promise<string> {
-  let content = await fs.readFile(path, { encoding: "utf8" });
-  return content.replace("{% paths %}", JSON.stringify(APP_PATHS));
-}
-
-function buildAppContent(
-  content: string,
+async function buildAppContent(
+  path: string,
   state: ResponseFor<Api.State>,
-): string {
-  return content.replace("{% state %}", JSON.stringify(state));
+): Promise<string> {
+  let content = await fs.readFile(path, { encoding: "utf8" });
+  return content
+    .replace("{% paths %}", JSON.stringify(APP_PATHS))
+    .replace("{% state %}", JSON.stringify(state));
 }
 
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
@@ -44,7 +42,6 @@ export default async function buildApp(): Promise<App> {
   let config = await parent.getConfig();
   let context = await buildContext();
 
-  let appContent = await loadAppContent(config.htmlTemplate);
   const router = new Router<DefaultState, AppContext>();
 
   router.get("/healthcheck", async (ctx: AppContext): Promise<void> => {
@@ -107,7 +104,7 @@ export default async function buildApp(): Promise<App> {
     .use(async (ctx: AppContext): Promise<void> => {
       let state = await buildState(ctx);
       ctx.set("Content-Type", "text/html; charset=utf-8");
-      ctx.body = buildAppContent(appContent, state);
+      ctx.body = await buildAppContent(config.htmlTemplate, state);
     });
 
   let server = await parent.getServer();
