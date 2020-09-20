@@ -95,7 +95,7 @@ function Media({ media, thumbnailSize, onClick }: MediaProps): ReactResult {
 }
 
 export interface MediaGalleryProps {
-  media?: readonly MediaState[];
+  media?: readonly MediaState[] | null;
   onClick?: (media: ProcessedMediaState) => void;
 }
 

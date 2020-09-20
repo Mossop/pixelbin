@@ -1,16 +1,10 @@
 import React from "react";
 
-import { asyncDispatch } from "../store";
-import actions from "../store/actions";
 import { expect, expectElement, render, resetDOM } from "../test-helpers";
 import { If, Then, Else } from "./Conditions";
 
 beforeEach(async (): Promise<void> => {
   await resetDOM();
-
-  await asyncDispatch(actions.updateServerState({
-    user: null,
-  }));
 });
 
 describe("Simple boolean condition", (): void => {

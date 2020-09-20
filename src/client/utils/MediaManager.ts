@@ -1,36 +1,40 @@
 import { Draft } from "immer";
 
+import { listAlbumMedia } from "../api/album";
 import { MediaState } from "../api/types";
-
-export type MediaListRequestor = () => Promise<Draft<MediaState>[]> | Draft<MediaState>[];
-export type MediaListHandler = (media: Draft<MediaState>[]) => void;
-export type Cancel = () => void;
-
-interface RequestRecord {
-  handler: MediaListHandler;
-  cancelled: boolean;
-  currentList?: Draft<MediaState>[];
-}
+import services from "../services";
+import actions from "../store/actions";
+import { MediaLookup, MediaLookupType } from "../store/types";
 
 class MediaManager {
-  private async startRequest(requestor: MediaListRequestor, record: RequestRecord): Promise<void> {
-    let media = await requestor();
-    if (!record.cancelled) {
-      record.handler(media);
+  private lookup: MediaLookup | null = null;
+
+  private async updateMedia(lookup: MediaLookup, media: Draft<MediaState>[]): Promise<void> {
+    if (lookup !== this.lookup) {
+      return;
+    }
+
+    let store = await services.store;
+    store.dispatch(actions.listedMedia(media));
+  }
+
+  private async doLookup(): Promise<void> {
+    let lookup = this.lookup;
+    if (!lookup) {
+      return;
+    }
+
+    switch (lookup.type) {
+      case MediaLookupType.Album: {
+        return this.updateMedia(lookup, await listAlbumMedia(lookup.album, lookup.recursive));
+        break;
+      }
     }
   }
 
-  public requestMediaList(requestor: MediaListRequestor, handler: MediaListHandler): Cancel {
-    let record: RequestRecord = {
-      handler,
-      cancelled: false,
-    };
-
-    this.startRequest(requestor, record).catch((e: unknown) => console.error(e));
-
-    return (): void => {
-      record.cancelled = true;
-    };
+  public lookupMedia(lookup: MediaLookup): void {
+    this.lookup = lookup;
+    void this.doLookup();
   }
 }
 

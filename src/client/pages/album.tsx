@@ -1,25 +1,24 @@
 import { useLocalization } from "@fluent/react";
 import React, { useCallback, useEffect } from "react";
 
-import { listAlbumMedia } from "../api/album";
 import { Album, Reference } from "../api/highlevel";
-import { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import MediaManager from "../utils/MediaManager";
+import { MediaLookupType, StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
 import { AuthenticatedPageProps } from "./types";
 
 export interface AlbumPageProps {
   readonly album: Reference<Album>;
-  readonly media?: readonly MediaState[];
 }
 
 export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps): ReactResult {
   const { l10n } = useLocalization();
   const actions = useActions();
+  const media = useSelector((state: StoreState) => state.mediaList?.media);
 
   const onAlbumEdit = useCallback(
     () => actions.showAlbumEditOverlay(props.album),
@@ -31,10 +30,13 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     [props.album, actions],
   );
 
-  let listMedia = useCallback(() => listAlbumMedia(props.album, true), [props.album]);
   useEffect(
-    () => MediaManager.requestMediaList(listMedia, actions.listedMedia),
-    [listMedia, actions],
+    () => actions.listMedia({
+      type: MediaLookupType.Album,
+      album: props.album,
+      recursive: true,
+    }),
+    [props.album, actions],
   );
 
   return <Page
@@ -52,7 +54,7 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     }
   >
     <Content>
-      <MediaGallery media={props.media}/>
+      <MediaGallery media={media}/>
     </Content>
   </Page>;
 }

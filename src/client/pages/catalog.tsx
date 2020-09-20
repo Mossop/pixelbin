@@ -3,18 +3,17 @@ import Typography from "@material-ui/core/Typography";
 import React, { useCallback } from "react";
 
 import { Catalog, Reference } from "../api/highlevel";
-import { UserState } from "../api/types";
 import Content from "../components/Content";
 import Page from "../components/Page";
 import { useActions } from "../store/actions";
 import { ReactResult } from "../utils/types";
+import { AuthenticatedPageProps } from "./types";
 
 export interface CatalogPageProps {
-  catalog: Reference<Catalog>;
-  user: UserState;
+  readonly catalog: Reference<Catalog>;
 }
 
-export default function CatalogPage(props: CatalogPageProps): ReactResult {
+export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageProps): ReactResult {
   const { l10n } = useLocalization();
   const actions = useActions();
 

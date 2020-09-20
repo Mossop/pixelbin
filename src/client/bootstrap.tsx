@@ -6,22 +6,31 @@ import { Provider } from "react-redux";
 import App from "./components/App";
 import { appContainer, appURL, Url, initialServerState } from "./context";
 import { LocalizationContext } from "./l10n/LocalizationContext";
-import store from "./store";
+import services from "./services";
+import { buildStore } from "./store";
 import actions from "./store/actions";
 import { watchStore } from "./utils/navigation";
 
-let serverState = initialServerState();
-store.dispatch(actions.updateServerState(serverState));
-watchStore(store);
+async function init(): Promise<void> {
+  buildStore();
 
-reactRender(
-  <Provider store={store}>
-    <LocalizationContext baseurl={`${appURL(Url.L10n)}`} locales={["en-US"]}>
-      <React.Fragment>
-        <CssBaseline/>
-        <App/>
-      </React.Fragment>
-    </LocalizationContext>
-  </Provider>,
-  appContainer(),
-);
+  let store = await services.store;
+
+  let serverState = initialServerState();
+  store.dispatch(actions.updateServerState(serverState));
+  watchStore(store);
+
+  reactRender(
+    <Provider store={store}>
+      <LocalizationContext baseurl={`${appURL(Url.L10n)}`} locales={["en-US"]}>
+        <React.Fragment>
+          <CssBaseline/>
+          <App/>
+        </React.Fragment>
+      </LocalizationContext>
+    </Provider>,
+    appContainer(),
+  );
+}
+
+void init();

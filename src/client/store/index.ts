@@ -5,16 +5,12 @@ import { applyMiddleware, createStore, Middleware } from "redux";
 import { createLogger } from "redux-logger";
 
 import { PageType } from "../pages/types";
+import { provideService } from "../services";
 import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
 import { StoreState, StoreType } from "./types";
 
-interface BuildResult {
-  asyncDispatchListener: AsyncDispatchListener;
-  store: StoreType;
-}
-
-function buildStore(): BuildResult {
+export function buildStore(): void {
   enableMapSet();
 
   let initialState: StoreState = {
@@ -27,7 +23,7 @@ function buildStore(): BuildResult {
         type: PageType.Index,
       },
     },
-    stateId: 0,
+    mediaList: null,
   };
 
   const middlewares: Middleware[] = [];
@@ -50,21 +46,11 @@ function buildStore(): BuildResult {
     applyMiddleware(...middlewares),
   );
 
-  asyncDispatchListener = new AsyncDispatchListener(store);
-
-  return { asyncDispatchListener, store };
+  provideService("store", store);
 }
-
-const { asyncDispatchListener, store } = buildStore();
-
-export const asyncDispatch = (action: Deed): Promise<StoreState> => {
-  return asyncDispatchListener.dispatch(action);
-};
 
 export const useStore = useReduxStore as () => StoreType;
 export const useSelector = useReduxSelector as <R>(
   selector: (state: StoreState) => R,
   equalityFn?: (left: R, right: R) => boolean
 ) => R;
-
-export default store;

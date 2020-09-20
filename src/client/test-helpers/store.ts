@@ -245,7 +245,7 @@ export function mockStoreState(state?: Partial<Draft<StoreState>>): Draft<StoreS
         type: PageType.Index,
       },
     },
-    stateId: 0,
+    mediaList: null,
   };
 }
 

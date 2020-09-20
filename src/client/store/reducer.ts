@@ -14,8 +14,9 @@ import type {
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
+import MediaManager from "../utils/MediaManager";
 import { nameSorted } from "../utils/sort";
-import { StoreState, UIState } from "./types";
+import { MediaLookup, StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
   S extends (state: Draft<StoreState>, user: Draft<UserState>, ...args: infer A) => void
@@ -195,9 +196,18 @@ const authReducers = {
 };
 
 const mediaReducers = {
-  listedMedia(state: Draft<StoreState>, _user: Draft<UserState>, media: Draft<MediaState>[]): void {
-    if (state.ui.page.type == PageType.Album) {
-      state.ui.page.media = media;
+  listMedia(state: Draft<StoreState>, lookup: MediaLookup): void {
+    state.mediaList = {
+      lookup,
+      media: null,
+    };
+
+    MediaManager.lookupMedia(lookup);
+  },
+
+  listedMedia(state: Draft<StoreState>, media: Draft<MediaState>[]): void {
+    if (state.mediaList) {
+      state.mediaList.media = media;
     }
   },
 };
@@ -207,7 +217,7 @@ export const reducers = {
   ...authedReducers(albumReducers),
   ...authedReducers(personReducers),
   ...authedReducers(tagReducers),
-  ...authedReducers(mediaReducers),
+  ...mediaReducers,
   ...authReducers,
 
   updateServerState(state: Draft<StoreState>, serverState: ServerState): void {

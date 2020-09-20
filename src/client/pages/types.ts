@@ -1,7 +1,7 @@
-import { Reference, Catalog } from "../api/highlevel";
-import { UserState } from "../api/types";
-import { HistoryState } from "../utils/history";
-import { AlbumPageProps } from "./album";
+import type { UserState } from "../api/types";
+import type { HistoryState } from "../utils/history";
+import type { AlbumPageProps } from "./album";
+import type { CatalogPageProps } from "./catalog";
 
 export enum PageType {
   Index = "index",
@@ -19,12 +19,11 @@ interface BasePageState {
   readonly type: PageType.Index | PageType.User;
 }
 
-interface CatalogPageState {
+type CatalogPageState = CatalogPageProps & {
   readonly type: PageType.Catalog;
-  readonly catalog: Reference<Catalog>;
-}
+};
 
-export type AlbumPageState = Readonly<AlbumPageProps> & {
+type AlbumPageState = AlbumPageProps & {
   readonly type: PageType.Album;
 };
 

@@ -69,7 +69,7 @@ async function buildClientJs() {
     chunkGroups: true,
     chunkOrigins: true,
   }, false);
-  await fs.writeFile(path.join(__dirname, "build", "client", "stats.json"), JSON.stringify(json));
+  await fs.writeFile(path.join(__dirname, "build", "stats.json"), JSON.stringify(json));
 
   console.log(stats.toString(webpackConfig.stats));
 
