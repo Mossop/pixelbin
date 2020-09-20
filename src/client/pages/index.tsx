@@ -22,7 +22,7 @@ export default function PageDisplay(): ReactResult {
   if (user) {
     switch (page.type) {
       case PageType.User: {
-        return <User/>;
+        return <User user={user}/>;
       }
       case PageType.Catalog: {
         return <Catalog user={user} catalog={page.catalog}/>;

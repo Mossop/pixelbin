@@ -1,5 +1,5 @@
 import { Deed } from "deeds/immer";
-import { Draft } from "immer";
+import { Draft, enableMapSet } from "immer";
 
 import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
@@ -8,6 +8,10 @@ import { mockStoreState, mockServerState, expect } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
 import { UIState } from "./types";
+
+beforeAll(() => {
+  enableMapSet();
+});
 
 test("Logging in with a catalog", (): void => {
   let state = mockStoreState({

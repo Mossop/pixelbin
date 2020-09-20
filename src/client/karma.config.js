@@ -2,7 +2,7 @@ const path = require("path");
 
 const { constants } = require("karma");
 
-const externals = require("../server/webserver/packages.json");
+const externals = require("../client/externals.json");
 const sourceWebpackConfig = require("./webpack.config")("test");
 
 /** @type {import("webpack").Configuration} */

@@ -17,18 +17,17 @@ import type { AlbumPageProps } from "./album";
 import type { CatalogPageProps } from "./catalog";
 import { ErrorPageProps } from "./error";
 import { AuthenticatedPageProps, PageType } from "./types";
-import type { UserPageProps } from "./user";
 
 jest.mock("./indexpage", (): unknown => {
   return () => <div id="index"/>;
 });
 
 jest.mock("./user", (): unknown => {
-  return (props: UserPageProps) => <div id="user" data-user={props.user.email}/>;
+  return (props: AuthenticatedPageProps) => <div id="user" data-user={props.user.email}/>;
 });
 
 jest.mock("./catalog", (): unknown => {
-  return (props: CatalogPageProps) => <div
+  return (props: CatalogPageProps & AuthenticatedPageProps) => <div
     id="catalog"
     data-user={props.user.email}
     data-catalog={props.catalog.id}

@@ -1,5 +1,5 @@
 export default {
-  requestMediaList: jest.fn(() => () => {
+  lookupMedia: jest.fn(() => () => {
     // no-op
   }),
 };

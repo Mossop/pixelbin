@@ -17,7 +17,8 @@ import {
   StorageState,
 } from "../api/types";
 import { PageType } from "../pages/types";
-import { StoreState } from "../store/types";
+import { provideService } from "../services";
+import { StoreState, StoreType } from "../store/types";
 import { intoMap, MapOf } from "../utils/maps";
 
 type MockStorage = Partial<StorageState>;
@@ -245,7 +246,7 @@ export function mockStoreState(state?: Partial<Draft<StoreState>>): Draft<StoreS
         type: PageType.Index,
       },
     },
-    mediaList: null,
+    mediaList: state.mediaList ?? null,
   };
 }
 
@@ -256,13 +257,22 @@ export interface MockStore {
   getState: () => StoreState;
 }
 
+let mockedStore: MockStore | null = null;
 export function mockStore(initialState: Draft<StoreState>): MockStore {
-  return {
-    state: initialState,
-    dispatch: jest.fn<void, [Deed]>(),
-    subscribe: jest.fn<Unsubscribe, [() => void]>(),
-    getState(): StoreState {
-      return this.state;
-    },
-  };
+  if (!mockedStore) {
+    mockedStore = {
+      state: initialState,
+      dispatch: jest.fn<void, [Deed]>(),
+      subscribe: jest.fn<Unsubscribe, [() => void]>(),
+      getState(): StoreState {
+        return this.state;
+      },
+    };
+
+    provideService("store", mockedStore as unknown as StoreType);
+  } else {
+    mockedStore.state = initialState;
+  }
+
+  return mockedStore;
 }

@@ -1,9 +1,15 @@
+import { enableMapSet } from "immer";
+
 import { Album } from "../api/highlevel";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect, mockServerState, mapOf } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
+
+beforeAll(() => {
+  enableMapSet();
+});
 
 test("Navigate", (): void => {
   let state = mockStoreState({

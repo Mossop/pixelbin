@@ -1,9 +1,15 @@
+import { enableMapSet } from "immer";
+
 import { Catalog } from "../api/highlevel";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect, mapOf, mockServerState } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
+
+beforeAll(() => {
+  enableMapSet();
+});
 
 test("showCatalogCreateOverlay", (): void => {
   let state = mockStoreState();

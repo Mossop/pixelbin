@@ -1,9 +1,15 @@
+import { enableMapSet } from "immer";
+
 import { Catalog, Album } from "../api/highlevel";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect, mapOf, mockServerState } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
+
+beforeAll(() => {
+  enableMapSet();
+});
 
 test("showAlbumCreateOverlay", (): void => {
   let state = mockStoreState({

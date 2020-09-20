@@ -14,7 +14,6 @@ import { JSDOM } from "jsdom";
 import React, { Suspense } from "react";
 import { Provider } from "react-redux";
 
-import realStore from "../store";
 import { StoreType } from "../store/types";
 import { ReactChildren, ReactResult } from "../utils/types";
 import { MockStore } from "./store";
@@ -83,20 +82,33 @@ const theme = createMuiTheme({
 
 type Wrapper = (props: ReactChildren) => ReactResult;
 function componentWrapper(store: MockStore | undefined): Wrapper {
-  let fakeStore: StoreType = store ? store as unknown as StoreType : realStore;
-  return function WrappedComponent({ children }: ReactChildren): ReactResult {
-    let l10n = new ReactLocalization([l10nBundle]);
+  if (store) {
+    return function WrappedComponent({ children }: ReactChildren): ReactResult {
+      let l10n = new ReactLocalization([l10nBundle]);
 
-    return <Provider store={fakeStore}>
-      <LocalizationProvider l10n={l10n}>
+      return <Provider store={store as unknown as StoreType}>
+        <LocalizationProvider l10n={l10n}>
+          <ThemeProvider theme={theme}>
+            <Suspense fallback={<div className="loading"/>}>
+              {children}
+            </Suspense>
+          </ThemeProvider>
+        </LocalizationProvider>
+      </Provider>;
+    };
+  } else {
+    return function WrappedComponent({ children }: ReactChildren): ReactResult {
+      let l10n = new ReactLocalization([l10nBundle]);
+
+      return <LocalizationProvider l10n={l10n}>
         <ThemeProvider theme={theme}>
           <Suspense fallback={<div className="loading"/>}>
             {children}
           </Suspense>
         </ThemeProvider>
-      </LocalizationProvider>
-    </Provider>;
-  };
+      </LocalizationProvider>;
+    };
+  }
 }
 
 export interface DialogRenderResult {
