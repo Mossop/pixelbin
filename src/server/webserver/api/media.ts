@@ -27,6 +27,10 @@ export function buildResponseMedia(
     return {
       ...rest,
       thumbnailUrl: `${APP_PATHS.root}media/thumbnail/${media.id}/${media.original}`,
+      originalUrl: `${APP_PATHS.root}media/original/${media.id}/${media.original}`,
+      posterUrl: media.mimetype.startsWith("video/")
+        ? `${APP_PATHS.root}media/poster/${media.id}/${media.original}`
+        : null,
       created: media.created.toISOString(),
       uploaded: media.uploaded.toISOString(),
       taken: media.taken?.toISOString() ?? null,
@@ -295,7 +299,7 @@ export const thumbnail = ensureAuthenticated(
       });
     }
 
-    if (!("original" in media)) {
+    if (!isProcessedMedia(media)) {
       throw new ApiError(Api.ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
@@ -338,6 +342,91 @@ export const thumbnail = ensureAuthenticated(
           fit: "inside",
         }).jpeg({ quality: 85 }).toBuffer();
       }
+    } finally {
+      storage.release();
+    }
+  },
+);
+
+export const original = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    id: string,
+    original: string,
+  ): Promise<void> => {
+    let [media] = await userDb.getMedia([id]);
+
+    if (!media) {
+      throw new ApiError(Api.ErrorCode.NotFound, {
+        message: "Media does not exist.",
+      });
+    }
+
+    if (!isProcessedMedia(media)) {
+      throw new ApiError(Api.ErrorCode.NotFound, {
+        message: "Media not yet processed.",
+      });
+    }
+
+    if (original != media.original) {
+      ctx.status = 301;
+      ctx.redirect(`${APP_PATHS.root}media/original/${id}/${media.original}`);
+      return;
+    }
+
+    let storage = await ctx.storage.getStorage(media.catalog);
+    try {
+      let originalUrl = await storage.get().getFileUrl(media.id, media.original, media.fileName);
+
+      ctx.status = 302;
+      ctx.redirect(originalUrl);
+    } finally {
+      storage.release();
+    }
+  },
+);
+
+export const poster = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    id: string,
+    original: string,
+  ): Promise<void> => {
+    let [media] = await userDb.getMedia([id]);
+
+    if (!media) {
+      throw new ApiError(Api.ErrorCode.NotFound, {
+        message: "Media does not exist.",
+      });
+    }
+
+    if (!isProcessedMedia(media)) {
+      throw new ApiError(Api.ErrorCode.NotFound, {
+        message: "Media not yet processed.",
+      });
+    }
+
+    if (original != media.original) {
+      ctx.status = 301;
+      ctx.redirect(`${APP_PATHS.root}media/poster/${id}/${media.original}`);
+      return;
+    }
+
+    let posters = await userDb.listAlternateFiles(media.id, AlternateFileType.Poster);
+    if (!posters.length) {
+      throw new ApiError(Api.ErrorCode.NotFound, {
+        message: "No poster image for this media.",
+      });
+    }
+
+    let storage = await ctx.storage.getStorage(media.catalog);
+    try {
+      let posterUrl = await storage.get().getFileUrl(media.id, media.original, posters[0].fileName);
+
+      ctx.status = 302;
+      ctx.redirect(posterUrl);
     } finally {
       storage.release();
     }

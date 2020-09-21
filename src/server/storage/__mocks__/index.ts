@@ -1,6 +1,10 @@
 import { RefCounted } from "../../../utils";
 
 export const StorageMock = {
+  getFileUrl: jest.fn((): Promise<string> => Promise.resolve("")),
+
+  streamFile: jest.fn((): Promise<void> => Promise.reject()),
+
   deleteFile: jest.fn((): Promise<void> => Promise.resolve()),
 
   storeFile: jest.fn((): Promise<void> => Promise.resolve()),

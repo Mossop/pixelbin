@@ -146,6 +146,8 @@ export function mockProcessedMedia(
     bitRate: null,
     frameRate: null,
     thumbnailUrl: `http://localhost/media/thumbnail/${id}/${randomId()}`,
+    originalUrl: `http://localhost/media/original/${id}/${randomId()}`,
+    posterUrl: null,
 
     tags: [],
     albums: [],

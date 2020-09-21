@@ -3,7 +3,7 @@ import { Api } from "../../model";
 import { fillMetadata } from "../../server/database";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
-import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
+import { expect, mockProcessedMedia, mockServerState, mockUnprocessedMedia } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
 import {
   createAlbum,
@@ -181,9 +181,16 @@ test("List album", async (): Promise<void> => {
       Album.ref("testalbum"),
     ],
   });
+  let media2 = mockProcessedMedia({
+    id: "testmedia2",
+    albums: [
+      Album.ref("testalbum"),
+    ],
+  });
 
   mockResponse(Api.Method.AlbumList, 200, [
     mediaIntoResponse(state, media),
+    mediaIntoResponse(state, media2),
   ]);
 
   let result = await listAlbumMedia(Album.ref("testalbum"), true);
@@ -200,6 +207,25 @@ test("List album", async (): Promise<void> => {
   expect(result).toEqual([fillMetadata({
     id: "testmedia",
     created: expect.anything(),
+    albums: [
+      expect.toBeRef("testalbum"),
+    ],
+    tags: [],
+    people: [],
+  }), fillMetadata({
+    id: "testmedia2",
+    created: expect.anything(),
+    uploaded: expect.anything(),
+    bitRate: null,
+    duration: null,
+    fileSize: 1024,
+    frameRate: null,
+    width: 1024,
+    height: 768,
+    mimetype: "image/jpeg",
+    thumbnailUrl: expect.stringMatching(/^http:\/\/localhost\/media\/thumbnail\/testmedia2\//),
+    originalUrl: expect.stringMatching(/^http:\/\/localhost\/media\/original\/testmedia2\//),
+    posterUrl: null,
     albums: [
       expect.toBeRef("testalbum"),
     ],

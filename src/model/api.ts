@@ -34,6 +34,8 @@ export type RequestDecoder<R> = (data: unknown, files: Files | undefined) => Pro
 export type UnprocessedMedia = Omit<ObjectModel.UnprocessedMedia, "catalog">;
 export type ProcessedMedia = Omit<ObjectModel.ProcessedMedia, "catalog"> & {
   thumbnailUrl: string;
+  originalUrl: string;
+  posterUrl: string | null;
 };
 export type Media = UnprocessedMedia | ProcessedMedia;
 

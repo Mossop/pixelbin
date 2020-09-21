@@ -9,7 +9,7 @@ import session from "koa-session";
 import serve from "koa-static";
 
 import { Api, ResponseFor } from "../../model";
-import { thumbnail } from "./api/media";
+import { thumbnail, original, poster } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import { AppContext, ServicesContext, buildContext } from "./context";
@@ -60,6 +60,22 @@ export default async function buildApp(): Promise<App> {
     (ctx: RouterContext<AppContext>): Promise<void> => {
       let { id, original, size } = ctx.params;
       return thumbnail(ctx, id, original, size);
+    },
+  );
+
+  router.get(
+    `${APP_PATHS.root}media/original/:id/:original`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, original: upload } = ctx.params;
+      return original(ctx, id, upload);
+    },
+  );
+
+  router.get(
+    `${APP_PATHS.root}media/poster/:id/:original`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, original } = ctx.params;
+      return poster(ctx, id, original);
     },
   );
 

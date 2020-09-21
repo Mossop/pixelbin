@@ -546,7 +546,7 @@ test("Media edit", async (): Promise<void> => {
     .expect(404);
 });
 
-test("Media thumbnail", async (): Promise<void> => {
+test("Media resources", async (): Promise<void> => {
   const request = agent();
   const storageService = new StorageService({
     tempDirectory: "",
@@ -556,6 +556,7 @@ test("Media thumbnail", async (): Promise<void> => {
 
   /* eslint-disable @typescript-eslint/unbound-method */
   let getLocalFilePath = mockedFunction(storage.getLocalFilePath);
+  let getFileUrl = mockedFunction(storage.getFileUrl);
   /* eslint-enable @typescript-eslint/unbound-method */
 
   let testfile = path.join(
@@ -577,7 +578,7 @@ test("Media thumbnail", async (): Promise<void> => {
     fillMetadata({
       uploaded: moment(),
       processVersion: 2,
-      fileName: "",
+      fileName: "foo.jpg",
       fileSize: 0,
       mimetype: "image/jpeg",
       width: 800,
@@ -643,8 +644,58 @@ test("Media thumbnail", async (): Promise<void> => {
   expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb1.jpg");
   getLocalFilePath.mockClear();
 
+  getFileUrl.mockImplementationOnce(
+    () => Promise.resolve(`http://original.foo/${media.id}/${original.id}`),
+  );
+  await request
+    .get(`/media/original/${media.id}/${original.id}`)
+    .expect("Location", `http://original.foo/${media.id}/${original.id}`)
+    .expect(302);
+
+  expect(getLocalFilePath).not.toHaveBeenCalled();
+  expect(getFileUrl).toHaveBeenCalledTimes(1);
+  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, original.id, "foo.jpg");
+  getFileUrl.mockClear();
+
+  await request
+    .get(`/media/poster/${media.id}/${original.id}`)
+    .expect(404);
+
+  await db.addAlternateFile(original.id, {
+    type: AlternateFileType.Poster,
+    fileName: "poster.jpg",
+    fileSize: 0,
+    mimetype: "image/jpeg",
+    width: 400,
+    height: 400,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+  });
+
+  getFileUrl.mockImplementationOnce(
+    () => Promise.resolve(`http://poster.foo/${media.id}/${original.id}`),
+  );
+  await request
+    .get(`/media/poster/${media.id}/${original.id}`)
+    .expect("Location", `http://poster.foo/${media.id}/${original.id}`)
+    .expect(302);
+
+  expect(getLocalFilePath).not.toHaveBeenCalled();
+  expect(getFileUrl).toHaveBeenCalledTimes(1);
+  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, original.id, "poster.jpg");
+  getFileUrl.mockClear();
+
   await request
     .get("/media/thumbnail/foo/bar/200")
+    .expect(404);
+
+  await request
+    .get("/media/poster/foo/bar")
+    .expect(404);
+
+  await request
+    .get("/media/original/foo/bar")
     .expect(404);
 
   let response = await request
@@ -709,6 +760,16 @@ test("Media thumbnail", async (): Promise<void> => {
   response = await request
     .get(`/media/thumbnail/${media.id}/other`)
     .expect("Location", `/media/thumbnail/${media.id}/${original.id}`)
+    .expect(301);
+
+  response = await request
+    .get(`/media/original/${media.id}/other`)
+    .expect("Location", `/media/original/${media.id}/${original.id}`)
+    .expect(301);
+
+  response = await request
+    .get(`/media/poster/${media.id}/other`)
+    .expect("Location", `/media/poster/${media.id}/${original.id}`)
     .expect(301);
 });
 
@@ -840,6 +901,8 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
       thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
+      originalUrl: `/media/original/${id2}/${originalId}`,
+      posterUrl: `/media/poster/${id2}/${originalId}`,
 
       fileSize: 1,
       width: 1,
@@ -879,6 +942,8 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
       thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
+      originalUrl: `/media/original/${id2}/${originalId}`,
+      posterUrl: `/media/poster/${id2}/${originalId}`,
 
       fileSize: 1,
       width: 1,
@@ -909,6 +974,8 @@ test("Get media", async (): Promise<void> => {
       catalog: "c1",
       created: expect.toEqualDate(createdMoment2),
       thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
+      originalUrl: `/media/original/${id2}/${originalId}`,
+      posterUrl: `/media/poster/${id2}/${originalId}`,
 
       fileSize: 1,
       width: 1,
