@@ -7,7 +7,7 @@ import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import reducer from "../store/reducer";
-import { StoreType } from "../store/types";
+import { MediaLookupType, StoreType } from "../store/types";
 import {
   expect,
   mockServerState,
@@ -108,6 +108,39 @@ test("catalog page", (): void => {
       catalog: Catalog.ref("testcatalog"),
     },
   })).toEqual(state("/catalog/testcatalog"));
+});
+
+test("media page", (): void => {
+  expect(intoUIState(state("/album/testalbum/media/testmedia"), LoggedOut)).toEqual({
+    page: {
+      type: PageType.NotFound,
+      history: state("/album/testalbum/media/testmedia"),
+    },
+  });
+
+  expect(intoUIState(state("/album/testalbum/media/testmedia"), LoggedIn)).toEqual({
+    page: {
+      type: PageType.Media,
+      media: "testmedia",
+      lookup: {
+        type: MediaLookupType.Album,
+        album: expect.toBeRef("testalbum"),
+        recursive: true,
+      },
+    },
+  });
+
+  expect(fromUIState({
+    page: {
+      type: PageType.Media,
+      media: "testmedia",
+      lookup: {
+        type: MediaLookupType.Album,
+        album: Album.ref("testalbum"),
+        recursive: true,
+      },
+    },
+  })).toEqual(state("/album/testalbum/media/testmedia"));
 });
 
 test("album page", (): void => {

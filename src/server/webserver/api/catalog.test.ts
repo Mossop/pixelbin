@@ -71,6 +71,7 @@ test("Test Bad storage", async (): Promise<void> => {
       secretAccessKey: "bar",
       endpoint: "http://nowhere.foo",
       bucket: "buckit",
+      region: "us-east-1",
       path: null,
       publicUrl: null,
     })
@@ -103,6 +104,7 @@ test("Create storage", async (): Promise<void> => {
       secretAccessKey: "bar",
       endpoint: null,
       bucket: "buckit",
+      region: "somewhere-1",
       path: null,
       publicUrl: null,
     })
@@ -114,6 +116,7 @@ test("Create storage", async (): Promise<void> => {
     name: "My storage",
     endpoint: null,
     bucket: "buckit",
+    region: "somewhere-1",
     path: null,
     publicUrl: null,
   });
@@ -129,6 +132,7 @@ test("Create storage", async (): Promise<void> => {
     name: "My storage",
     endpoint: null,
     bucket: "buckit",
+    region: "somewhere-1",
     path: null,
     publicUrl: null,
   }]);
@@ -176,6 +180,7 @@ test("Create catalog", async (): Promise<void> => {
       secretAccessKey: "bar",
       endpoint: null,
       bucket: "buckit",
+      region: "my-region-001",
       path: null,
       publicUrl: null,
     })
@@ -214,6 +219,7 @@ test("Create catalog", async (): Promise<void> => {
       name: "My storage",
       endpoint: null,
       bucket: "buckit",
+      region: "my-region-001",
       path: null,
       publicUrl: null,
     }],

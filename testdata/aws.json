@@ -3,19 +3,22 @@
     "name": "Backblaze B2",
     "endpoint": "https://s3.us-west-002.backblazeb2.com",
     "publicUrl": "https://pixelbin-test.oxymoronical.com/file/pixelbin-test/",
-    "bucket": "pixelbin-test"
+    "bucket": "pixelbin-test",
+    "region": "us-west-002"
   },
   "aws": {
     "name": "AWS",
     "endpoint": null,
     "publicUrl": null,
-    "bucket": "pixelbin-test"
+    "bucket": "pixelbin-test",
+    "region": "us-west-2"
   },
   "minio": {
     "name": "Minio",
     "endpoint": "http://localhost:9000",
     "publicUrl": null,
     "bucket": "pixelbin-test",
+    "region": "us-west-001",
     "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
     "secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
   }

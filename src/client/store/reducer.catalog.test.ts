@@ -79,6 +79,7 @@ test("storageCreated", (): void => {
     endpoint: null,
     publicUrl: null,
     bucket: "my bucket",
+    region: "somewhere-001",
     path: null,
   });
 
@@ -96,6 +97,7 @@ test("storageCreated", (): void => {
         endpoint: null,
         publicUrl: null,
         bucket: "my bucket",
+        region: "somewhere-001",
         path: null,
       },
     }),

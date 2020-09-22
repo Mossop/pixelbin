@@ -70,6 +70,8 @@ test("create catalog", async (): Promise<void> => {
   typeString(input, "Secret");
   input = expectChild(form, "#dialog-bucket");
   typeString(input, "Test bucket");
+  input = expectChild(form, "#dialog-region");
+  typeString(input, "hell-circle5-001");
 
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeFalsy();
@@ -95,6 +97,7 @@ test("create catalog", async (): Promise<void> => {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
     bucket: "Test bucket",
+    region: "hell-circle5-001",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
     publicUrl: null,
@@ -144,6 +147,7 @@ test("create catalog", async (): Promise<void> => {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
     bucket: "Test bucket",
+    region: "hell-circle5-001",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
     publicUrl: null,
@@ -192,6 +196,7 @@ test("create catalog", async (): Promise<void> => {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
     bucket: "Test bucket",
+    region: "hell-circle5-001",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
     publicUrl: null,
@@ -208,6 +213,7 @@ test("create catalog", async (): Promise<void> => {
     id: "st123",
     name: "New storage",
     bucket: "Test bucket",
+    region: "hell-circle5-001",
     path: "foo/bar",
     endpoint: "http://localhost:9000",
     publicUrl: null,
@@ -220,6 +226,7 @@ test("create catalog", async (): Promise<void> => {
       id: "st123",
       name: "New storage",
       bucket: "Test bucket",
+      region: "hell-circle5-001",
       path: "foo/bar",
       endpoint: "http://localhost:9000",
       publicUrl: null,

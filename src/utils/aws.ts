@@ -5,15 +5,16 @@ import { ObjectModel } from "../model";
 
 type BaseConfig = Pick<
   ObjectModel.Storage,
-  "endpoint" | "publicUrl" | "bucket" | "path"
+  "endpoint" | "publicUrl" | "bucket" | "path" | "region"
 >;
 
 export function s3Config(storageConfig: BaseConfig): AWS.S3.ClientConfiguration {
   return {
     endpoint: storageConfig.endpoint ?? undefined,
     apiVersion: "2006-03-01",
-    s3ForcePathStyle: true,
+    s3ForcePathStyle: storageConfig.endpoint ? true : false,
     signatureVersion: "v4",
+    region: storageConfig.region,
   };
 }
 

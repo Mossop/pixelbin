@@ -16,6 +16,7 @@ export interface UIState {
 }
 
 export enum MediaLookupType {
+  Single,
   Album,
 }
 
@@ -25,7 +26,12 @@ export interface AlbumMediaLookup {
   recursive: boolean;
 }
 
-export type MediaLookup = AlbumMediaLookup;
+export interface SingleMediaLookup {
+  type: MediaLookupType.Single;
+  media: string;
+}
+
+export type MediaLookup = AlbumMediaLookup | SingleMediaLookup;
 
 export interface MediaSearch {
   readonly lookup: MediaLookup;

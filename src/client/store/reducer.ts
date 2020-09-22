@@ -197,6 +197,10 @@ const authReducers = {
 
 const mediaReducers = {
   listMedia(state: Draft<StoreState>, lookup: MediaLookup): void {
+    if (state.mediaList && MediaManager.lookupsMatch(state.mediaList.lookup, lookup)) {
+      return;
+    }
+
     state.mediaList = {
       lookup,
       media: null,

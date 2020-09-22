@@ -170,7 +170,7 @@ async function storageTest(id: string): Promise<void> {
     await storage.get().storeFile("media", "info", "file.txt", testFile);
 
     let url = await storage.get().getFileUrl("media", "info", "file.txt");
-    let response = await fetch(url);
+    let response = await fetch(url, { redirect: "follow" });
     expect(await response.text()).toBe("MYDATA");
 
     let stream = await storage.get().streamFile("media", "info", "file.txt");
@@ -197,14 +197,14 @@ async function storageTest(id: string): Promise<void> {
   }
 }
 
-test("AWS test", async (): Promise<void> => {
+test("AWS storage test", async (): Promise<void> => {
   return storageTest("aws");
 }, 30000);
 
-test("B2 test", async (): Promise<void> => {
+test("B2 storage test", async (): Promise<void> => {
   return storageTest("b2");
 }, 30000);
 
-test("Minio test", async (): Promise<void> => {
+test("Minio storage test", async (): Promise<void> => {
   return storageTest("minio");
 }, 30000);

@@ -34,6 +34,7 @@ test("Storage tests", async (): Promise<void> => {
     endpoint: null,
     path: null,
     bucket: "buckit",
+    region: "somewhere-001",
   });
 
   expect(storage).toEqual({
@@ -46,6 +47,7 @@ test("Storage tests", async (): Promise<void> => {
     endpoint: null,
     path: null,
     bucket: "buckit",
+    region: "somewhere-001",
   });
 
   allStorage = idSorted(await user1Db.listStorage());

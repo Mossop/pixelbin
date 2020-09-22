@@ -1,13 +1,22 @@
+import { pathToRegexp } from "path-to-regexp";
+
 import { Catalog, Album } from "../api/highlevel";
 import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import actions from "../store/actions";
-import { StoreType, UIState } from "../store/types";
+import { MediaLookupType, StoreType, UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import { createDraft } from "./helpers";
 import * as history from "./history";
 import { HistoryState, buildState } from "./history";
+
+function re(pattern: string): RegExp {
+  return pathToRegexp(pattern, undefined, {
+    sensitive: true,
+    strict: true,
+  });
+}
 
 function encodeTargetState(uiState: UIState): Map<string, string> | undefined {
   if (uiState.overlay === undefined) {
@@ -85,13 +94,6 @@ function decodeTargetState(
   return intoUIState(historyState, serverState);
 }
 
-function matchesType(path: string, type: string): string | null {
-  if (path.startsWith(`/${type}/`)) {
-    return path.substring(type.length + 2);
-  }
-  return null;
-}
-
 function notfound(historyState: HistoryState): UIState {
   return {
     page: {
@@ -101,17 +103,18 @@ function notfound(historyState: HistoryState): UIState {
   };
 }
 
-export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
-  switch (historyState.path) {
-    case "/": {
-      return {
-        page: {
-          type: PageType.Index,
-        },
-      };
-    }
+type PathMap = [
+  RegExp,
+  (serverState: ServerState, historyState: HistoryState, ...args: string[]) => UIState,
+] | [
+  string,
+  (serverState: ServerState, historyState: HistoryState) => UIState,
+];
 
-    case "/user": {
+const pathMap: PathMap[] = [
+  [
+    "/user",
+    (serverState: ServerState, historyState: HistoryState): UIState => {
       if (!serverState.user) {
         return notfound(historyState);
       }
@@ -121,45 +124,122 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
           type: PageType.User,
         },
       };
-    }
+    },
+  ],
 
-    case "/login": {
+  [
+    "/",
+    (): UIState => {
+      return {
+        page: {
+          type: PageType.Index,
+        },
+      };
+    },
+  ],
+
+  [
+    "/login",
+    (serverState: ServerState, historyState: HistoryState): UIState => {
       return Object.assign({}, decodeTargetState(historyState.params, serverState), {
         overlay: {
           type: OverlayType.Login,
         },
       });
+    },
+  ],
+
+  [
+    re("/catalog/:id"),
+    (serverState: ServerState, historyState: HistoryState, id: string): UIState => {
+      let catalog = Catalog.safeFromState(serverState, id);
+      if (!catalog) {
+        return notfound(historyState);
+      }
+
+      return {
+        page: {
+          type: PageType.Catalog,
+          catalog: catalog.ref(),
+        },
+      };
+    },
+  ],
+
+  [
+    re("/album/:id"),
+    (serverState: ServerState, historyState: HistoryState, id: string): UIState => {
+      let album = Album.safeFromState(serverState, id);
+      if (!album) {
+        return notfound(historyState);
+      }
+
+      return {
+        page: {
+          type: PageType.Album,
+          album: album.ref(),
+        },
+      };
+    },
+  ],
+
+  [
+    re("/media/:media"),
+    (
+      serverState: ServerState,
+      historyState: HistoryState,
+      media: string,
+    ): UIState => {
+      return {
+        page: {
+          type: PageType.Media,
+          media,
+          lookup: null,
+        },
+      };
+    },
+  ],
+
+  [
+    re("/album/:album/media/:media"),
+    (
+      serverState: ServerState,
+      historyState: HistoryState,
+      albumId: string,
+      mediaId: string,
+    ): UIState => {
+      let album = Album.safeFromState(serverState, albumId);
+      if (!album) {
+        return notfound(historyState);
+      }
+
+      return {
+        page: {
+          type: PageType.Media,
+          media: mediaId,
+          lookup: {
+            type: MediaLookupType.Album,
+            album: album.ref(),
+            recursive: true,
+          },
+        },
+      };
+    },
+  ],
+];
+
+export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
+  for (let [pattern, callback] of pathMap) {
+    if (typeof pattern == "string") {
+      if (pattern == historyState.path) {
+        return callback(serverState, historyState);
+      }
+    } else {
+      let matches = pattern.exec(historyState.path);
+      if (matches && matches[0].length == historyState.path.length) {
+        return callback(serverState, historyState, ...matches.slice(1));
+      }
     }
-  }
-
-  let id = matchesType(historyState.path, "catalog");
-  if (id) {
-    let catalog = Catalog.safeFromState(serverState, id);
-    if (!catalog) {
-      return notfound(historyState);
-    }
-
-    return {
-      page: {
-        type: PageType.Catalog,
-        catalog: catalog.ref(),
-      },
-    };
-  }
-
-  id = matchesType(historyState.path, "album");
-  if (id) {
-    let album = Album.safeFromState(serverState, id);
-    if (!album) {
-      return notfound(historyState);
-    }
-
-    return {
-      page: {
-        type: PageType.Album,
-        album: album.ref(),
-      },
-    };
   }
 
   return notfound(historyState);
@@ -184,6 +264,14 @@ export function fromUIState(uiState: UIState): HistoryState {
     }
     case PageType.Album: {
       return buildState(`/album/${uiState.page.album.id}`);
+    }
+    case PageType.Media: {
+      switch (uiState.page.lookup?.type) {
+        case MediaLookupType.Album:
+          return buildState(`/album/${uiState.page.lookup.album.id}/media/${uiState.page.media}`);
+        default:
+          return buildState(`/media/${uiState.page.media}`);
+      }
     }
 
     case PageType.NotFound: {

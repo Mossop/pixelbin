@@ -19,6 +19,7 @@ test("Create storage", async (): Promise<void> => {
     endpoint: null,
     path: null,
     bucket: "bucket",
+    region: "hello-1",
     publicUrl: null,
   });
 
@@ -29,6 +30,7 @@ test("Create storage", async (): Promise<void> => {
     endpoint: null,
     path: null,
     bucket: "bucket",
+    region: "hello-1",
     publicUrl: null,
   });
 
@@ -38,6 +40,7 @@ test("Create storage", async (): Promise<void> => {
     endpoint: null,
     path: null,
     bucket: "bucket",
+    region: "hello-1",
     publicUrl: null,
   });
 
@@ -56,6 +59,7 @@ test("Create storage", async (): Promise<void> => {
       endpoint: null,
       path: null,
       bucket: "bucket",
+      region: "hello-1",
       publicUrl: null,
     },
   });

@@ -60,6 +60,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     accessKeyId: "",
     secretAccessKey: "",
     bucket: "",
+    region: "",
     path: "",
   });
 
@@ -87,6 +88,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
           accessKeyId: storageConfig.accessKeyId,
           secretAccessKey: storageConfig.secretAccessKey,
           bucket: storageConfig.bucket,
+          region: storageConfig.region,
           path: storageConfig.path ? storageConfig.path : null,
           endpoint,
           publicUrl,
@@ -250,6 +252,11 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
             label: "storage-bucket",
           }, {
             type: "text",
+            key: "region",
+            required: storageChoice.storageType != "existing",
+            label: "storage-region",
+          }, {
+            type: "text",
             key: "path",
             label: "storage-path",
           }]
@@ -374,6 +381,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         secretAccessKey: storageConfig.secretAccessKey,
         path,
         bucket: storageConfig.bucket,
+        region: storageConfig.region,
         publicUrl: storageChoice.publicUrl ? storageChoice.publicUrl : null,
       }));
     } catch (e) {

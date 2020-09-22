@@ -1,3 +1,5 @@
+import { Draft } from "immer";
+
 import { Api } from "../../model";
 import { MediaCreateRequest } from "../../model/api";
 import { Overwrite } from "../../utils";
@@ -8,11 +10,11 @@ import { mediaIntoState, MediaState, ProcessedMediaState } from "./types";
 
 export type MediaTarget = Catalog | Album;
 
-export async function getMedia(ids: string[]): Promise<(MediaState | null)[]> {
+export async function getMedia(ids: string[]): Promise<(Draft<MediaState> | null)[]> {
   let media = await request(Api.Method.MediaGet, {
     id: ids.join(","),
   });
-  return media.map((media: Api.Media | null): MediaState | null => {
+  return media.map((media: Api.Media | null): Draft<MediaState> | null => {
     if (media) {
       return mediaIntoState(media);
     }

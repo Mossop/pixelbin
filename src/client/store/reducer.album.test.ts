@@ -134,6 +134,7 @@ test("albumCreated", (): void => {
     storage: mapOf({
       mystore: {
         bucket: "test-bucket",
+        region: "test-region-001",
         endpoint: null,
         id: "mystore",
         name: "Test store",
@@ -231,6 +232,7 @@ test("Album edited", (): void => {
     storage: mapOf({
       mystore: {
         bucket: "test-bucket",
+        region: "test-region-001",
         endpoint: null,
         id: "mystore",
         name: "Test store",

@@ -203,6 +203,7 @@ export function mockStorage(mock: MockStorage): Draft<StorageState> {
     id: randomId(),
     name: "Test store",
     bucket: "test-bucket",
+    region: "test-region-001",
     path: null,
     endpoint: null,
     publicUrl: null,

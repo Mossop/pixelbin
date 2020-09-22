@@ -12,6 +12,7 @@ import { PageType } from "./types";
 const Album = lazy(() => import(/* webpackChunkName: "AlbumPage" */ "./album"));
 const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./catalog"));
 const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./user"));
+const Media = lazy(() => import(/* webpackChunkName: "MediaPage" */ "./media"));
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({
@@ -22,13 +23,16 @@ export default function PageDisplay(): ReactResult {
   if (user) {
     switch (page.type) {
       case PageType.User: {
-        return <User user={user}/>;
+        return <User user={user} {...page}/>;
       }
       case PageType.Catalog: {
-        return <Catalog user={user} catalog={page.catalog}/>;
+        return <Catalog user={user} {...page}/>;
       }
       case PageType.Album: {
         return <Album user={user} {...page}/>;
+      }
+      case PageType.Media: {
+        return <Media user={user} {...page}/>;
       }
     }
   }
