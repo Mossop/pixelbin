@@ -1,7 +1,7 @@
 import Box from "@material-ui/core/Box";
 import Dialog from "@material-ui/core/Dialog";
-import Drawer from "@material-ui/core/Drawer";
 import IconButton from "@material-ui/core/IconButton";
+import Paper from "@material-ui/core/Paper";
 import Slide from "@material-ui/core/Slide";
 import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
 import { TransitionProps } from "@material-ui/core/transitions";
@@ -12,9 +12,6 @@ import { ReactChildren, ReactResult } from "../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    paper: {
-      position: "sticky",
-    },
     sidebarContent: {
       paddingTop: theme.spacing(2),
     },
@@ -40,20 +37,14 @@ const Transition = forwardRef(function Transition(
 });
 
 export function PersistentSidebar(props: SidebarProps): ReactResult {
-  const classes = useStyles();
-
-  return <Drawer
+  return <Paper
     id="sidebar-persistent"
-    variant="persistent"
-    open={true}
-    PaperProps={
-      {
-        className: classes.paper,
-      }
-    }
+    square={true}
+    component="nav"
+    variant="outlined"
   >
     {props.children}
-  </Drawer>;
+  </Paper>;
 }
 
 export function ModalSidebar(props: SidebarProps): ReactResult {

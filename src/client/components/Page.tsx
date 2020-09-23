@@ -1,5 +1,5 @@
 import Box from "@material-ui/core/Box";
-import { useTheme } from "@material-ui/core/styles";
+import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
 import React, { useCallback, useState } from "react";
 
@@ -11,6 +11,25 @@ import { IncludeVirtualCategories, VirtualItem, VirtualTree } from "../utils/vir
 import Banner, { PageOption } from "./Banner";
 import { ModalSidebar, PersistentSidebar } from "./Sidebar";
 import SidebarTree from "./SidebarTree";
+
+const useStyles = makeStyles(() =>
+  createStyles({
+    app: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      justifyContent: "flex-start",
+      height: "100vh",
+      width: "100vw",
+    },
+    content: {
+      display: "flex",
+      flexDirection: "row",
+      flexGrow: 1,
+      alignItems: "stretch",
+      justifyContent: "flex-start",
+    },
+  }));
 
 export interface PageProps {
   children?: React.ReactNode;
@@ -28,6 +47,7 @@ export default function Page(props: PageProps): ReactResult {
 
   const theme = useTheme();
   const sidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
+  const classes = useStyles();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -53,18 +73,12 @@ export default function Page(props: PageProps): ReactResult {
   }));
 
   if (loggedIn) {
-    return <Box display="flex" flexDirection="column" minHeight="100vh" alignItems="stretch">
+    return <Box className={classes.app}>
       <Banner
         onMenuButtonClick={sidebarModal ? onMenuButtonClick : undefined}
         pageOptions={props.pageOptions}
       />
-      <Box
-        display="flex"
-        flexDirection="row"
-        flexGrow={1}
-        alignContent="stretch"
-        justifyContent="start"
-      >
+      <Box className={classes.content}>
         {
           sidebarModal
             ? <ModalSidebar open={sidebarOpen} onClose={onCloseSidebar}>
@@ -79,15 +93,9 @@ export default function Page(props: PageProps): ReactResult {
     </Box>;
   }
 
-  return <Box display="flex" flexDirection="column" minHeight="100vh" alignItems="stretch">
+  return <Box className={classes.app}>
     <Banner pageOptions={props.pageOptions}/>
-    <Box
-      display="flex"
-      flexDirection="row"
-      flexGrow={1}
-      alignContent="stretch"
-      justifyContent="start"
-    >
+    <Box className={classes.content}>
       {props.children}
     </Box>
   </Box>;

@@ -112,7 +112,7 @@ export default function SidebarTree(
     actions.showCatalogCreateOverlay();
   }, [actions]);
 
-  return <List id="sidebar-tree" component="nav">
+  return <List id="sidebar-tree" component="div">
     {
       roots.map((root: VirtualItem): ReactResult => {
         return <SidebarTreeItem key={root.id} item={root} depth={0} selectedItem={selectedItem}/>;

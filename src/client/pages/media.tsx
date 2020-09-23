@@ -13,10 +13,24 @@ import { AuthenticatedPageProps } from "./types";
 
 const useStyles = makeStyles(() =>
   createStyles({
-    original: {
+    mediaContainer: {
       flexGrow: 1,
+      position: "relative",
+    },
+    display: {
+      position: "absolute",
+      height: "100%",
+      width: "100%",
+    },
+    viewport: {
+      height: "100%",
+      width: "100%",
+    },
+    photo: {
       objectPosition: "center center",
-      objectFit: "contain",
+      objectFit: "scale-down",
+      height: "100%",
+      width: "100%",
     },
   }));
 
@@ -66,7 +80,15 @@ export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps
 
   return <Page>
     <Content>
-      <img src={media.originalUrl} className={classes.original}/>
+      <div className={classes.mediaContainer}>
+        <svg id="svg" viewBox={`0 0 ${media.width} ${media.height}`} className={classes.display}>
+          <foreignObject x="0" y="0" width="100%" height="100%">
+            <div className={classes.viewport}>
+              <img src={media.originalUrl} className={classes.photo}/>
+            </div>
+          </foreignObject>
+        </svg>
+      </div>
     </Content>
   </Page>;
 }
