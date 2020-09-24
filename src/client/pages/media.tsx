@@ -3,6 +3,7 @@ import React, { useEffect, useMemo } from "react";
 
 import { isProcessed, MediaState } from "../api/types";
 import Content from "../components/Content";
+import FixedAspect from "../components/FixedAspect";
 import Loading from "../components/Loading";
 import Page from "../components/Page";
 import { useSelector } from "../store";
@@ -15,16 +16,6 @@ const useStyles = makeStyles(() =>
   createStyles({
     mediaContainer: {
       flexGrow: 1,
-      position: "relative",
-    },
-    display: {
-      position: "absolute",
-      height: "100%",
-      width: "100%",
-    },
-    viewport: {
-      height: "100%",
-      width: "100%",
     },
     photo: {
       objectPosition: "center center",
@@ -78,17 +69,11 @@ export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps
     </Page>;
   }
 
-  return <Page>
+  return <Page sidebar="openable">
     <Content>
-      <div className={classes.mediaContainer}>
-        <svg id="svg" viewBox={`0 0 ${media.width} ${media.height}`} className={classes.display}>
-          <foreignObject x="0" y="0" width="100%" height="100%">
-            <div className={classes.viewport}>
-              <img src={media.originalUrl} className={classes.photo}/>
-            </div>
-          </foreignObject>
-        </svg>
-      </div>
+      <FixedAspect width={media.width} height={media.height} className={classes.mediaContainer}>
+        <img src={media.originalUrl} className={classes.photo}/>
+      </FixedAspect>
     </Content>
   </Page>;
 }

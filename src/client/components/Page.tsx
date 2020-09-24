@@ -9,7 +9,7 @@ import { StoreState, UIState } from "../store/types";
 import { ReactResult } from "../utils/types";
 import { IncludeVirtualCategories, VirtualItem, VirtualTree } from "../utils/virtual";
 import Banner, { PageOption } from "./Banner";
-import { ModalSidebar, PersistentSidebar } from "./Sidebar";
+import Sidebar, { SidebarProps } from "./Sidebar";
 import SidebarTree from "./SidebarTree";
 
 const useStyles = makeStyles(() =>
@@ -35,6 +35,7 @@ export interface PageProps {
   children?: React.ReactNode;
   selectedItem?: string;
   pageOptions?: PageOption[];
+  sidebar?: SidebarProps["type"];
 }
 
 export default function Page(props: PageProps): ReactResult {
@@ -46,10 +47,11 @@ export default function Page(props: PageProps): ReactResult {
   );
 
   const theme = useTheme();
-  const sidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
   const classes = useStyles();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const forceSidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
+  let sidebarType = forceSidebarModal ? "modal" : props.sidebar ?? "persistent";
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const uiState = useSelector((state: StoreState): UIState => state.ui);
 
@@ -75,19 +77,13 @@ export default function Page(props: PageProps): ReactResult {
   if (loggedIn) {
     return <Box className={classes.app}>
       <Banner
-        onMenuButtonClick={sidebarModal ? onMenuButtonClick : undefined}
+        onMenuButtonClick={sidebarType != "persistent" ? onMenuButtonClick : undefined}
         pageOptions={props.pageOptions}
       />
       <Box className={classes.content}>
-        {
-          sidebarModal
-            ? <ModalSidebar open={sidebarOpen} onClose={onCloseSidebar}>
-              <SidebarTree roots={catalogs} selectedItem={props.selectedItem}/>
-            </ModalSidebar>
-            : <PersistentSidebar open={sidebarOpen} onClose={onCloseSidebar}>
-              <SidebarTree roots={catalogs} selectedItem={props.selectedItem}/>
-            </PersistentSidebar>
-        }
+        <Sidebar type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
+          <SidebarTree roots={catalogs} selectedItem={props.selectedItem}/>
+        </Sidebar>
         {props.children}
       </Box>
     </Box>;
