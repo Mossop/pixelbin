@@ -23,16 +23,19 @@ const useStyles = makeStyles(() =>
 export interface FixedAspectProps {
   width: number;
   height: number;
-  className?: string;
+  classes?: {
+    root?: string;
+    viewport?: string;
+  };
 }
 
 export default function FixedAspect(props: FixedAspectProps & ReactChildren): ReactResult {
   const classes = useStyles();
 
-  return <div className={clsx(props.className, classes.container)}>
+  return <div className={clsx(classes.container, props.classes?.root)}>
     <svg id="svg" viewBox={`0 0 ${props.width} ${props.height}`} className={classes.bounds}>
       <foreignObject x="0" y="0" width="100%" height="100%">
-        <div className={classes.viewport}>
+        <div className={clsx(classes.viewport, props.classes?.viewport)}>
           {props.children}
         </div>
       </foreignObject>
