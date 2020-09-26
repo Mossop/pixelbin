@@ -20,6 +20,9 @@ import { useFullscreen } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
 import { AuthenticatedPageProps, PageType } from "./types";
 
+const overlayBackground = "rgba(0, 0, 0, 0.6)";
+const overlayIcon = "rgb(150, 150, 150)";
+
 const useMainStyles = makeStyles(() =>
   createStyles({
     content: {
@@ -30,6 +33,7 @@ const useMainStyles = makeStyles(() =>
       position: "absolute",
       height: "100%",
       width: "100%",
+      background: "black",
     },
   }));
 
@@ -53,20 +57,21 @@ const useOverlayStyles = makeStyles((theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+      paddingRight: theme.spacing(1),
+      paddingLeft: theme.spacing(1),
     },
     overlayTop: {
-      background: "rgba(0, 0, 0, 0.5)",
-      padding: theme.spacing(2),
-    },
-    overlayBottom: {
-      background: "rgba(0, 0, 0, 0.5)",
+      background: overlayBackground,
       padding: theme.spacing(2),
     },
     navButton: {
       fontSize: "300%",
+      color: overlayIcon,
+      background: overlayBackground,
     },
     overlayButton: {
       fontSize: "150%",
+      color: overlayIcon,
     },
   }));
 
@@ -99,12 +104,14 @@ interface MediaOverlayProps {
 
 function Photo(props: ProcessedMediaProps): ReactResult {
   const classes = useMediaStyles(props.media);
+  console.log("Rendering photo", props.media.originalUrl);
 
   return <img src={props.media.originalUrl} className={classes.photo}/>;
 }
 
 function Video(props: ProcessedMediaProps): ReactResult {
   const classes = useMediaStyles(props.media);
+  console.log("Rendering video", props.media.originalUrl);
 
   return <video
     poster={props.media.posterUrl ?? undefined}
@@ -142,7 +149,7 @@ function MediaOverlay(props: MediaOverlayProps): ReactResult {
     setDisplayOverlays(false);
   }, []);
 
-  const delayed = useMemo(() => new Delayed(1000, hideOverlays), [hideOverlays]);
+  const delayed = useMemo(() => new Delayed(1500, hideOverlays), [hideOverlays]);
 
   const showOverlays = useCallback(() => {
     console.log("showOverlays");
@@ -156,7 +163,7 @@ function MediaOverlay(props: MediaOverlayProps): ReactResult {
     onMouseOver={showOverlays}
     onMouseMove={showOverlays}
   >
-    <Fade in={displayOverlays}>
+    <Fade in={displayOverlays} timeout={500}>
       <div className={classes.overlayContent}>
         <div className={classes.overlayTop}>
           {
@@ -185,7 +192,6 @@ function MediaOverlay(props: MediaOverlayProps): ReactResult {
             }
           </div>
         </div>
-        <div className={classes.overlayBottom}/>
       </div>
     </Fade>
   </div>;
