@@ -135,7 +135,6 @@
     "react-dom": "^16.13.1",
     "react-redux": "^7.2.1",
     "redux": "^4.0.5",
-    "redux-logger": "^3.0.6",
     "sharp": "^0.26.0",
     "tmp-promise": "^3.0.2",
     "ts.data.json": "^1.2.0"

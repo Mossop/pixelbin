@@ -1,8 +1,7 @@
 import { Deed } from "deeds/immer";
 import { enableMapSet } from "immer";
 import { useStore as useReduxStore, useSelector as useReduxSelector } from "react-redux";
-import { applyMiddleware, createStore, Middleware } from "redux";
-import { createLogger } from "redux-logger";
+import { createStore } from "redux";
 
 import { PageType } from "../pages/types";
 import { provideService } from "../services";
@@ -26,12 +25,6 @@ export function buildStore(): void {
     mediaList: null,
   };
 
-  const middlewares: Middleware[] = [];
-
-  if (process.env.NODE_ENV === "development") {
-    middlewares.push(createLogger());
-  }
-
   let asyncDispatchListener: AsyncDispatchListener | null = null;
 
   let store = createStore(
@@ -43,7 +36,8 @@ export function buildStore(): void {
       return reducer(state, action);
     },
     initialState,
-    applyMiddleware(...middlewares),
+    // @ts-ignore: Redux devtools.
+    window.__REDUX_DEVTOOLS_EXTENSION__?.(),
   );
 
   provideService("store", store);

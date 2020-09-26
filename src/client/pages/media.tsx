@@ -1,10 +1,12 @@
 import Box from "@material-ui/core/Box";
 import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
-import { createStyles, makeStyles } from "@material-ui/core/styles";
+import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import FullscreenIcon from "@material-ui/icons/Fullscreen";
+import FullscreenExitIcon from "@material-ui/icons/FullscreenExit";
 import NavigateBeforeIcon from "@material-ui/icons/NavigateBefore";
 import NavigateNextIcon from "@material-ui/icons/NavigateNext";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { isProcessed, MediaState, ProcessedMediaState } from "../api/types";
 import FixedAspect from "../components/FixedAspect";
@@ -13,8 +15,9 @@ import Page from "../components/Page";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { MediaLookup, MediaLookupType, StoreState } from "../store/types";
+import Delayed from "../utils/delayed";
+import { useFullscreen } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
-import useMouseMove from "../utils/useMouseMove";
 import { AuthenticatedPageProps, PageType } from "./types";
 
 const useMainStyles = makeStyles(() =>
@@ -30,7 +33,7 @@ const useMainStyles = makeStyles(() =>
     },
   }));
 
-const useOverlayStyles = makeStyles(() =>
+const useOverlayStyles = makeStyles((theme: Theme) =>
   createStyles({
     overlay: {
       position: "absolute",
@@ -53,12 +56,17 @@ const useOverlayStyles = makeStyles(() =>
     },
     overlayTop: {
       background: "rgba(0, 0, 0, 0.5)",
+      padding: theme.spacing(2),
     },
     overlayBottom: {
       background: "rgba(0, 0, 0, 0.5)",
+      padding: theme.spacing(2),
     },
     navButton: {
       fontSize: "300%",
+    },
+    overlayButton: {
+      fontSize: "150%",
     },
   }));
 
@@ -98,19 +106,69 @@ function Photo(props: ProcessedMediaProps): ReactResult {
 function Video(props: ProcessedMediaProps): ReactResult {
   const classes = useMediaStyles(props.media);
 
-  return <video src={props.media.originalUrl} controls={true} className={classes.photo}/>;
+  return <video
+    poster={props.media.posterUrl ?? undefined}
+    controls={true}
+    className={classes.photo}
+  >
+    <source src={props.media.originalUrl} type={props.media.mimetype}/>
+  </video>;
 }
 
 function MediaOverlay(props: MediaOverlayProps): ReactResult {
   const classes = useOverlayStyles();
   const areaRef = useRef<HTMLDivElement>(null);
+  const [displayOverlays, setDisplayOverlays] = useState(false);
+  const fullscreen = useFullscreen();
 
-  let displayOverlays = useMouseMove(areaRef);
+  const goFullscreen = useCallback(() => {
+    if (!areaRef.current) {
+      return;
+    }
 
-  return <div ref={areaRef} className={classes.overlay}>
+    void areaRef.current.parentElement?.requestFullscreen();
+  }, [areaRef]);
+
+  const exitFullscreen = useCallback(() => {
+    if (!areaRef.current) {
+      return;
+    }
+
+    void areaRef.current.ownerDocument.exitFullscreen();
+  }, [areaRef]);
+
+  const hideOverlays = useCallback(() => {
+    console.log("hideOverlays");
+    setDisplayOverlays(false);
+  }, []);
+
+  const delayed = useMemo(() => new Delayed(1000, hideOverlays), [hideOverlays]);
+
+  const showOverlays = useCallback(() => {
+    console.log("showOverlays");
+    setDisplayOverlays(true);
+    delayed.trigger();
+  }, [delayed]);
+
+  return <div
+    ref={areaRef}
+    className={classes.overlay}
+    onMouseOver={showOverlays}
+    onMouseMove={showOverlays}
+  >
     <Fade in={displayOverlays}>
       <div className={classes.overlayContent}>
-        <div className={classes.overlayTop}/>
+        <div className={classes.overlayTop}>
+          {
+            fullscreen
+              ? <IconButton onClick={exitFullscreen}>
+                <FullscreenExitIcon className={classes.overlayButton}/>
+              </IconButton>
+              : <IconButton onClick={goFullscreen}>
+                <FullscreenIcon className={classes.overlayButton}/>
+              </IconButton>
+          }
+        </div>
         <div className={classes.overlayMiddle}>
           <div>
             {
