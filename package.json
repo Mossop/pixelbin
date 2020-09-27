@@ -112,6 +112,7 @@
     "aws-sdk": "^2.752.0",
     "bcrypt": "^5.0.0",
     "clsx": "^1.1.1",
+    "color-alpha": "^1.1.1",
     "deeds": "^3.0.0",
     "execa": "^4.0.3",
     "exiftool-vendored": "^12.1.0",

@@ -1,12 +1,19 @@
 import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
-import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import {
+  createMuiTheme,
+  createStyles,
+  makeStyles,
+  Theme,
+  ThemeProvider,
+} from "@material-ui/core/styles";
 import CloseIcon from "@material-ui/icons/Close";
 import FullscreenIcon from "@material-ui/icons/Fullscreen";
 import FullscreenExitIcon from "@material-ui/icons/FullscreenExit";
 import InfoIcon from "@material-ui/icons/Info";
 import NavigateBeforeIcon from "@material-ui/icons/NavigateBefore";
 import NavigateNextIcon from "@material-ui/icons/NavigateNext";
+import alpha from "color-alpha";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { isProcessed, MediaState, ProcessedMediaState } from "../api/types";
@@ -22,21 +29,17 @@ import { useFullscreen } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
 import { AuthenticatedPageProps, PageType } from "./types";
 
-const overlayBackground = "rgba(0, 0, 0, 0.6)";
-const overlayIcon = "rgb(150, 150, 150)";
-const overlayIconHover = "white";
-
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     content: {
       flexGrow: 1,
       position: "relative",
+      background: theme.palette.background.default,
     },
     mediaArea: {
       position: "absolute",
       height: "100%",
       width: "100%",
-      background: "black",
     },
     viewport: {
       position: "relative",
@@ -64,7 +67,7 @@ const useStyles = makeStyles((theme: Theme) =>
       paddingLeft: theme.spacing(1),
     },
     overlayTop: {
-      background: overlayBackground,
+      background: alpha(theme.palette.background.paper, 0.6),
       padding: theme.spacing(2),
       pointerEvents: "auto",
       display: "flex",
@@ -73,22 +76,22 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     navButton: {
       "fontSize": "4rem",
-      "color": overlayIcon,
-      "background": overlayBackground,
+      // "color": overlayIcon,
+      "background": alpha(theme.palette.background.paper, 0.6),
       "pointerEvents": "auto",
-      "&:hover": {
-        color: overlayIconHover,
-      },
+      // "&:hover": {
+      //   color: overlayIconHover,
+      // },
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
     },
     overlayButton: {
       "fontSize": "2rem",
-      "color": overlayIcon,
-      "&:hover": {
-        color: overlayIconHover,
-      },
+      // "color": overlayIcon,
+      // "&:hover": {
+      //   color: overlayIconHover,
+      // },
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
@@ -106,7 +109,7 @@ const useStyles = makeStyles((theme: Theme) =>
       right: 0,
       left: 0,
       padding: theme.spacing(1),
-      background: overlayBackground,
+      background: alpha(theme.palette.background.paper, 0.6),
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-end",
@@ -211,12 +214,18 @@ function MainOverlay(props: MainOverlayProps): ReactResult {
   </div>;
 }
 
+const theme = createMuiTheme({
+  palette: {
+    type: "dark",
+  },
+});
+
 export interface MediaPageProps {
   readonly media: string;
   readonly lookup: MediaLookup | null;
 }
 
-export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult {
+function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult {
   const actions = useActions();
   const classes = useStyles();
   const areaRef = useRef<HTMLDivElement>(null);
@@ -380,4 +389,10 @@ export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps
       </Fade>
     </div>
   </Page>;
+}
+
+export default function DarkMediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult {
+  return <ThemeProvider theme={theme}>
+    <MediaPage {...props}/>
+  </ThemeProvider>;
 }
