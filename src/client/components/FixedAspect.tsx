@@ -6,13 +6,43 @@ import { ReactChildren, ReactResult } from "../utils/types";
 
 const useStyles = makeStyles(() =>
   createStyles({
-    container: {
+    root: {
       position: "relative",
     },
-    bounds: {
+    fixedArea: {
       position: "absolute",
       height: "100%",
       width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+    },
+    row: {
+      textAlign: "center",
+      maxHeight: "100%",
+    },
+    inlineArea: {
+      position: "relative",
+    },
+    intrinsicBox: {
+      maxHeight: "100%",
+      maxWidth: "100%",
+      verticalAlign: "bottom",
+    },
+    areaOverlay: (props: FixedAspectProps) => ({
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      paddingTop: `${100 * props.height / props.width}%`,
+      textAlign: "initial",
+    }),
+    viewportContainer: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
     },
     viewport: {
       height: "100%",
@@ -30,15 +60,20 @@ export interface FixedAspectProps {
 }
 
 export default function FixedAspect(props: FixedAspectProps & ReactChildren): ReactResult {
-  const classes = useStyles();
+  const classes = useStyles(props);
 
-  return <div className={clsx(classes.container, props.classes?.root)}>
-    <svg id="svg" viewBox={`0 0 ${props.width} ${props.height}`} className={classes.bounds}>
-      <foreignObject x="0" y="0" width="100%" height="100%">
-        <div className={clsx(classes.viewport, props.classes?.viewport)}>
-          {props.children}
-        </div>
-      </foreignObject>
-    </svg>
+  return <div className={clsx(classes.root, props.classes?.root)}>
+    <div className={classes.fixedArea}>
+      <div className={classes.row}>
+        <span className={classes.inlineArea}>
+          <svg className={classes.intrinsicBox} viewBox={`0 0 ${props.width} ${props.height}`}/>
+          <div className={classes.areaOverlay}>
+            <div className={classes.viewportContainer}>
+              <div className={classes.viewport}>{props.children}</div>
+            </div>
+          </div>
+        </span>
+      </div>
+    </div>
   </div>;
 }

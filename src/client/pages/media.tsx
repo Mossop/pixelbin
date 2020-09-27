@@ -1,8 +1,10 @@
 import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import CloseIcon from "@material-ui/icons/Close";
 import FullscreenIcon from "@material-ui/icons/Fullscreen";
 import FullscreenExitIcon from "@material-ui/icons/FullscreenExit";
+import InfoIcon from "@material-ui/icons/Info";
 import NavigateBeforeIcon from "@material-ui/icons/NavigateBefore";
 import NavigateNextIcon from "@material-ui/icons/NavigateNext";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +16,7 @@ import Page from "../components/Page";
 import { document } from "../environment";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { MediaLookup, MediaLookupType, StoreState } from "../store/types";
+import { MediaLookup, MediaLookupType, StoreState, UIState } from "../store/types";
 import Delayed from "../utils/delayed";
 import { useFullscreen } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
@@ -22,8 +24,9 @@ import { AuthenticatedPageProps, PageType } from "./types";
 
 const overlayBackground = "rgba(0, 0, 0, 0.6)";
 const overlayIcon = "rgb(150, 150, 150)";
+const overlayIconHover = "white";
 
-const useMainStyles = makeStyles(() =>
+const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     content: {
       flexGrow: 1,
@@ -35,15 +38,15 @@ const useMainStyles = makeStyles(() =>
       width: "100%",
       background: "black",
     },
+    viewport: {
+      position: "relative",
+    },
     overlay: {
       position: "absolute",
       height: "100%",
       width: "100%",
+      pointerEvents: "none",
     },
-  }));
-
-const useOverlayStyles = makeStyles((theme: Theme) =>
-  createStyles({
     overlayContent: {
       height: "100%",
       width: "100%",
@@ -63,11 +66,19 @@ const useOverlayStyles = makeStyles((theme: Theme) =>
     overlayTop: {
       background: overlayBackground,
       padding: theme.spacing(2),
+      pointerEvents: "auto",
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "flex-end",
     },
     navButton: {
       "fontSize": "4rem",
       "color": overlayIcon,
       "background": overlayBackground,
+      "pointerEvents": "auto",
+      "&:hover": {
+        color: overlayIconHover,
+      },
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
@@ -75,78 +86,103 @@ const useOverlayStyles = makeStyles((theme: Theme) =>
     overlayButton: {
       "fontSize": "2rem",
       "color": overlayIcon,
+      "&:hover": {
+        color: overlayIconHover,
+      },
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
     },
-  }));
-
-const useMediaStyles = makeStyles(() =>
-  createStyles({
-    media: (media: ProcessedMediaState) => ({
-      objectPosition: "center center",
-      objectFit: "scale-down",
+    media: {
+      position: "absolute",
       height: "100%",
       width: "100%",
-      maxHeight: media.height,
-      maxWidth: media.width,
-    }),
+      objectPosition: "center center",
+      objectFit: "contain",
+    },
+    mediaControls: {
+      position: "absolute",
+      bottom: 0,
+      right: 0,
+      left: 0,
+      padding: theme.spacing(1),
+      background: overlayBackground,
+      display: "flex",
+      flexDirection: "row",
+    },
   }));
 
-export interface MediaPageProps {
-  readonly media: string;
-  readonly lookup: MediaLookup | null;
-}
-
-interface ProcessedMediaProps {
+interface MediaDisplayProps {
   media: ProcessedMediaState;
+  displayOverlays: boolean;
+  children?: React.ReactNode;
 }
 
-interface MediaOverlayProps {
+function Photo(props: MediaDisplayProps): ReactResult {
+  const classes = useStyles();
+
+  return <React.Fragment>
+    <img
+      key={props.media.id}
+      src={props.media.originalUrl}
+      className={classes.media}
+    />
+    <Fade in={props.displayOverlays} timeout={500}>
+      <div className={classes.mediaControls}>
+        {props.children}
+      </div>
+    </Fade>
+  </React.Fragment>;
+}
+
+function Video(props: MediaDisplayProps): ReactResult {
+  const classes = useStyles();
+
+  return <React.Fragment>
+    <video
+      key={props.media.id}
+      poster={props.media.posterUrl ?? undefined}
+      controls={false}
+      className={classes.media}
+    >
+      <source src={props.media.originalUrl} type={props.media.mimetype}/>
+    </video>
+    <Fade in={props.displayOverlays} timeout={500}>
+      <div className={classes.mediaControls}>
+        {props.children}
+      </div>
+    </Fade>
+  </React.Fragment>;
+}
+
+interface MainOverlayProps {
   media: MediaState;
   onNext?: (() => void) | null;
   onPrevious?: (() => void) | null;
-  onGoFullscreen?: () => void;
-  onExitFullscreen?: () => void;
+  onGoBack?: (() => void) | null;
+  onShowInfo?: (() => void) | null;
 }
 
-function Photo(props: ProcessedMediaProps): ReactResult {
-  const classes = useMediaStyles(props.media);
-
-  return <img
-    key={props.media.id}
-    src={props.media.originalUrl}
-    className={classes.media}
-  />;
-}
-
-function Video(props: ProcessedMediaProps): ReactResult {
-  const classes = useMediaStyles(props.media);
-
-  return <video
-    key={props.media.id}
-    poster={props.media.posterUrl ?? undefined}
-    controls={true}
-    className={classes.media}
-  >
-    <source src={props.media.originalUrl} type={props.media.mimetype}/>
-  </video>;
-}
-
-function MediaOverlay(props: MediaOverlayProps): ReactResult {
-  const classes = useOverlayStyles();
-  const fullscreen = useFullscreen();
+function MainOverlay(props: MainOverlayProps): ReactResult {
+  const classes = useStyles();
 
   return <div className={classes.overlayContent}>
     <div className={classes.overlayTop}>
       {
-        fullscreen
-          ? <IconButton onClick={props.onExitFullscreen} className={classes.overlayButton}>
-            <FullscreenExitIcon/>
-          </IconButton>
-          : <IconButton onClick={props.onGoFullscreen} className={classes.overlayButton}>
-            <FullscreenIcon/>
-          </IconButton>
+        props.onShowInfo && <IconButton
+          onClick={props.onShowInfo}
+          className={classes.overlayButton}
+        >
+          <InfoIcon/>
+        </IconButton>
+      }
+      {
+        props.onGoBack && <IconButton
+          onClick={props.onGoBack}
+          className={classes.overlayButton}
+        >
+          <CloseIcon/>
+        </IconButton>
       }
     </div>
     <div className={classes.overlayMiddle}>
@@ -174,14 +210,42 @@ function MediaOverlay(props: MediaOverlayProps): ReactResult {
   </div>;
 }
 
+export interface MediaPageProps {
+  readonly media: string;
+  readonly lookup: MediaLookup | null;
+}
+
 export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult {
   const actions = useActions();
-  const classes = useMainStyles();
+  const classes = useStyles();
   const areaRef = useRef<HTMLDivElement>(null);
+  const fullscreen = useFullscreen();
 
   const mediaList = useSelector((state: StoreState) => state.mediaList?.media);
 
   const [displayOverlays, setDisplayOverlays] = useState(false);
+
+  const parent = useMemo<UIState | null>(() => {
+    switch (props.lookup?.type) {
+      case MediaLookupType.Album:
+        return {
+          page: {
+            type: PageType.Album,
+            album: props.lookup.album,
+          },
+        };
+    }
+
+    return null;
+  }, [props.lookup]);
+
+  const goBack = useMemo<(() => void) | null>(() => {
+    if (!parent) {
+      return null;
+    }
+
+    return () => actions.navigate(parent);
+  }, [actions, parent]);
 
   useEffect(
     () => {
@@ -263,6 +327,14 @@ export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps
 
   const media = mediaList[mediaIndex];
 
+  const mediaControls = fullscreen
+    ? <IconButton onClick={exitFullscreen} className={classes.overlayButton}>
+      <FullscreenExitIcon/>
+    </IconButton>
+    : <IconButton onClick={goFullscreen} className={classes.overlayButton}>
+      <FullscreenIcon/>
+    </IconButton>;
+
   return <Page sidebar="openable">
     <div
       className={classes.content}
@@ -278,25 +350,29 @@ export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps
             classes={
               {
                 root: classes.mediaArea,
+                viewport: classes.viewport,
               }
             }
           >
             {
               media.mimetype.startsWith("video/")
-                ? <Video media={media}/>
-                : <Photo media={media}/>
+                ? <Video media={media} displayOverlays={displayOverlays}>
+                  {mediaControls}
+                </Video>
+                : <Photo media={media} displayOverlays={displayOverlays}>
+                  {mediaControls}
+                </Photo>
             }
           </FixedAspect>
           : <Loading className={classes.mediaArea}/>
       }
       <Fade in={displayOverlays} timeout={500}>
         <div className={classes.overlay}>
-          <MediaOverlay
+          <MainOverlay
             media={media}
             onPrevious={onPrevious}
             onNext={onNext}
-            onGoFullscreen={goFullscreen}
-            onExitFullscreen={exitFullscreen}
+            onGoBack={goBack}
           />
         </div>
       </Fade>
