@@ -109,6 +109,7 @@ const useStyles = makeStyles((theme: Theme) =>
       background: overlayBackground,
       display: "flex",
       flexDirection: "row",
+      justifyContent: "flex-end",
     },
   }));
 
@@ -223,7 +224,7 @@ export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps
 
   const mediaList = useSelector((state: StoreState) => state.mediaList?.media);
 
-  const [displayOverlays, setDisplayOverlays] = useState(false);
+  const [displayOverlays, setDisplayOverlays] = useState(true);
 
   const parent = useMemo<UIState | null>(() => {
     switch (props.lookup?.type) {
@@ -299,6 +300,7 @@ export default function MediaPage(props: MediaPageProps & AuthenticatedPageProps
   }, []);
 
   const delayed = useMemo(() => new Delayed(1500, hideOverlays), [hideOverlays]);
+  delayed.trigger();
 
   const showOverlays = useCallback(() => {
     setDisplayOverlays(true);
