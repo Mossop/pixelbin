@@ -1,5 +1,6 @@
 import { Metadata, Orientation, parseBuffer } from "media-metadata";
 
+import { MediaState } from "../api/types";
 import { document } from "../environment";
 
 export interface MediaForUpload {
@@ -129,4 +130,8 @@ export function getTransformForOrientation(
     case Orientation.RightBottom:
       return "scale(1, -1) rotate(90)";
   }
+}
+
+export function mediaTitle(media: MediaState): string | null {
+  return media.title ?? media.filename;
 }

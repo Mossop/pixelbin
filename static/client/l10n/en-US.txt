@@ -83,3 +83,18 @@ aws-delete-failure = Failed to delete the test file
 aws-presigned-failure = Failed to generate a temporary access token
 aws-public-url-failure = Failed to retrieve test file from public URL
 aws-unknown-failure = An unknown error occurred.
+
+metadata-label-filename = Filename:
+metadata-label-title = Title:
+metadata-label-location = Location:
+
+metadata-label-taken = Taken at:
+metadata-label-make = Make:
+metadata-label-model = Model:
+metadata-label-lens = Lens:
+metadata-label-photographer = Taken by:
+metadata-label-aperture = Aperture:
+metadata-label-exposure = Shutter speed:
+metadata-label-iso = ISO:
+metadata-label-focalLength = Focal length:
+metadata-label-rating = Rating:
