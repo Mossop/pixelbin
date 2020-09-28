@@ -63,6 +63,9 @@ export interface Album extends IdType {
 export interface Metadata {
   filename: string;
   title: string;
+  description: string;
+  label: string;
+  category: string;
   taken: Moment;
   timeZone: string;
   longitude: number;
@@ -78,7 +81,7 @@ export interface Metadata {
   lens: string;
   photographer: string;
   aperture: number;
-  exposure: number;
+  shutterSpeed: string;
   iso: number;
   focalLength: number;
   rating: number;
@@ -87,6 +90,9 @@ export interface Metadata {
 export const metadataColumns: (keyof Metadata)[] = [
   "filename",
   "title",
+  "description",
+  "category",
+  "label",
   "taken",
   "timeZone",
   "longitude",
@@ -102,7 +108,7 @@ export const metadataColumns: (keyof Metadata)[] = [
   "lens",
   "photographer",
   "aperture",
-  "exposure",
+  "shutterSpeed",
   "iso",
   "focalLength",
   "rating",

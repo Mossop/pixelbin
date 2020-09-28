@@ -150,6 +150,9 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
   return <dl className={classes.metadataList}>
     {NormalMetadataItem(media, "filename")}
     {NormalMetadataItem(media, "title")}
+    {NormalMetadataItem(media, "description")}
+    {NormalMetadataItem(media, "category")}
+    {NormalMetadataItem(media, "label")}
     {taken}
     {
       media.rating !== null &&
@@ -159,7 +162,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     }
     {location}
     {NormalMetadataItem(media, "photographer")}
-    {format("exposure", (value: number): string => `${value} s`)}
+    {format("shutterSpeed", (value: string): string => `${value} s`)}
     {
       format("aperture", (value: number): React.ReactNode => {
         return <React.Fragment>

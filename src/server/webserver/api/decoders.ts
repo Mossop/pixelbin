@@ -153,6 +153,9 @@ const SelectedPersonDecoder = JsonDecoder.oneOf<Api.SelectedPerson>([
 const mediaFields = {
   filename: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   title: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  description: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  label: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  category: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   taken: JsonDecoder.optional(JsonDecoder.nullable(DateDecoder)),
   timeZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   longitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
@@ -168,7 +171,7 @@ const mediaFields = {
   lens: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   photographer: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   aperture: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-  exposure: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  shutterSpeed: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   iso: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
   focalLength: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
   rating: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),

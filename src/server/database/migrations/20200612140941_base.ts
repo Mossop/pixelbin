@@ -153,6 +153,9 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     for (let name of [
       "filename",
       "title",
+      "description",
+      "label",
+      "category",
       "location",
       "city",
       "state",
@@ -162,6 +165,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       "lens",
       "photographer",
       "timeZone",
+      "shutterSpeed",
     ]) {
       table.string(name, 200).nullable();
     }
@@ -179,7 +183,6 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       "latitude",
       "altitude",
       "aperture",
-      "exposure",
       "focalLength",
     ]) {
       table.float(name).nullable();

@@ -216,6 +216,13 @@ function ratingParser(data: StoredData): number | null {
 const parsers: MetadataParsers = {
   filename: [filenameParser],
   title: [straight("Title")],
+  description: [
+    straight("Description"),
+    straight("ImageDescription"),
+    straight("Caption-Abstract"),
+  ],
+  label: [straight("Label")],
+  category: [straight("Category")],
   taken: [takenParser],
   timeZone: [straight("tz")],
   longitude: [straight("GPSLongitude")],
@@ -260,10 +267,10 @@ const parsers: MetadataParsers = {
     straight("FNumber"),
     straight("ApertureValue"),
   ],
-  exposure: [
-    float(straight("ExposureTime")),
-    float(straight("ShutterSpeed")),
-    float(straight("ShutterSpeedValue")),
+  shutterSpeed: [
+    straight("ExposureTime"),
+    straight("ShutterSpeed"),
+    straight("ShutterSpeedValue"),
   ],
   iso: [straight("ISO")],
   focalLength: [float(straight("FocalLength"))],
