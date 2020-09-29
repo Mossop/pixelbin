@@ -7,6 +7,46 @@ import React, { useCallback, useMemo } from "react";
 import { MediaState } from "../api/types";
 import { ReactResult } from "../utils/types";
 
+const FRACTION = /^(\d+)\/(\d+)$/;
+
+function superscript(val: number): string {
+  val = Math.ceil(val);
+
+  let result: string[] = [];
+  while (val > 0) {
+    let digit = val % 10;
+
+    switch (digit) {
+      case 1:
+        result.unshift("\u00B9");
+        break;
+      case 2:
+      case 3:
+        result.unshift(String.fromCharCode(0x00B0 + digit));
+        break;
+      default:
+        result.unshift(String.fromCharCode(0x2070 + digit));
+    }
+
+    val = (val - digit) / 10;
+  }
+
+  return result.join("");
+}
+
+function subscript(val: number): string {
+  val = Math.ceil(val);
+
+  let result: string[] = [];
+  while (val > 0) {
+    let digit = val % 10;
+    result.unshift(String.fromCharCode(0x2080 + digit));
+    val = (val - digit) / 10;
+  }
+
+  return result.join("");
+}
+
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     metadataList: {
@@ -162,7 +202,15 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     }
     {location}
     {NormalMetadataItem(media, "photographer")}
-    {format("shutterSpeed", (value: string): string => `${value} s`)}
+    {
+      format("shutterSpeed", (value: string): string => {
+        let matches = FRACTION.exec(value);
+        if (matches) {
+          value = superscript(parseInt(matches[1])) + "\u2044" + subscript(parseInt(matches[2]));
+        }
+        return `${value} s`;
+      })
+    }
     {
       format("aperture", (value: number): React.ReactNode => {
         return <React.Fragment>

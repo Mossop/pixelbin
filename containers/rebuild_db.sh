@@ -12,8 +12,7 @@ if [ -z "$CONTAINER" ]; then
 
   rm -f pixelbin.sqlite
 
-  rm -rf data/storage/*
-  rm -rf public/media/storage/*
+  rm -rf data/server/*
   rm -rf data/minio/*
   mkdir -p data/minio/pixelbin
   mkdir -p data/minio/pixelbin-test
