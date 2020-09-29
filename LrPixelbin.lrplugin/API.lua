@@ -1,4 +1,5 @@
 local LrHttp = import "LrHttp"
+local LrTasks = import "LrTasks"
 
 local logger = require("Logging")("API")
 local Utils = require "Utils"
@@ -192,39 +193,6 @@ function API:login()
   return success, self.errorState
 end
 
-function getTagPaths(keyword)
-  local names = keyword:getSynonyms()
-  table.insert(names, keyword:getName())
-
-  local parent = keyword:getParent()
-  if parent then
-    local results = { }
-    for _, path in ipairs(getTagPaths(parent)) do
-      for _, name in ipairs(names) do
-        table.insert(results, path .. "/" .. name)
-      end
-    end
-
-    return results
-  else
-    return names
-  end
-end
-
-function includeInExport(keyword)
-  local attrs = keyword:getAttributes()
-  if not attrs["includeOnExport"] then
-    return false
-  end
-
-  local parent = keyword:getParent()
-  if parent then
-    return includeInExport(parent)
-  end
-
-  return true
-end
-
 function API:getMedia(ids)
   local idlist = ""
 
@@ -259,8 +227,104 @@ function API:addMediaToAlbum(album, media)
 end
 
 function API:upload(photo, catalog, filePath, existingId)
-  local mediaInfo = { }
+  local mediaInfo = {
+    tags = {},
+    people = {},
+  }
   local path
+
+  local exiftool = _PLUGIN.path .. "/Image-ExifTool/" .. "exiftool"
+  local target = os.tmpname()
+
+  local result = LrTasks.execute(exiftool .. " -json " .. filePath .. " > " .. target)
+  if result ~= 0 then
+    return false, {
+      code = "exiftool-error",
+      name = LOC "$$$/LrPixelBin/API/ExifToolError=Exiftool returned an error.",
+    }
+  end
+
+
+  local handle, error, code = io.open(target, "r")
+  if not handle then
+    return false, {
+      code = "badfile",
+      name = error,
+    }
+  end
+
+  local data = handle:read("*all")
+  handle:close()
+
+  local success, exifdata = Utils.jsonDecode(logger, data)
+  if not success then
+    return success, exifdata
+  end
+
+  exifdata = exifdata[1]
+
+  logger:trace("Photo", photo:getRawMetadata("uuid"))
+
+  local foundPeople = {}
+  if exifdata.PersonInImage then
+    for _, person in ipairs(exifdata.PersonInImage) do
+      local personInfo = {
+        name = person,
+      }
+      table.insert(mediaInfo.people, personInfo)
+      foundPeople[person] = personInfo
+    end
+  end
+
+  local dimensions = photo:getRawMetadata("dimensions")
+  if exifdata.RegionAppliedToDimensionsW == dimensions.width and
+     exifdata.RegionAppliedToDimensionsH == dimensions.height and
+     exifdata.RegionAppliedToDimensionsUnit == "pixel" then
+    for i, name in ipairs(exifdata.RegionName) do
+      if exifdata.RegionType[i] == "Face" and foundPeople[name] then
+        foundPeople[name].location = {
+          left = exifdata.RegionAreaX[i] - (exifdata.RegionAreaW[i] / 2),
+          right = exifdata.RegionAreaX[i] + (exifdata.RegionAreaW[i] / 2),
+          top = exifdata.RegionAreaY[i] - (exifdata.RegionAreaH[i] / 2),
+          bottom = exifdata.RegionAreaY[i] + (exifdata.RegionAreaH[i] / 2),
+        }
+      end
+    end
+  end
+
+  if exifdata.HierarchicalSubject then
+    for _, tagstr in ipairs(exifdata.HierarchicalSubject) do
+      local tag = {}
+      local depth = 1
+      local start = 0
+
+      local pos, _ = string.find(tagstr, "|")
+      while pos do
+        table.insert(tag, string.sub(tagstr, start, pos - 1))
+        depth = depth + 1
+        start = pos + 1
+        pos, _ = string.find(tagstr, "|", start)
+      end
+
+      table.insert(tag, string.sub(tagstr, start))
+
+      if not foundPeople[tag[depth]] then
+        table.insert(mediaInfo.tags, tag)
+      end
+    end
+  elseif exifdata.Subject then
+    for _, tag in exifdata.Subject do
+      if not foundPeople[tag] then
+        table.insert(mediaInfo.tags, tag)
+      end
+    end
+  elseif exifdata.Keywords then
+    for _, tag in exifdata.Keywords do
+      if not foundPeople[tag] then
+        table.insert(mediaInfo.tags, tag)
+      end
+    end
+  end
 
   if existingId then
     mediaInfo.id = existingId
@@ -280,7 +344,7 @@ function API:upload(photo, catalog, filePath, existingId)
     { name = "file", fileName = photo:getFormattedMetadata("fileName"), filePath = filePath }
   }
 
-  logger:trace("Uploading", params.json)
+  logger:trace("Uploading", data)
   return self:MULTIPART(path, params)
 end
 
