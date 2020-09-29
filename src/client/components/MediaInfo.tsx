@@ -1,10 +1,14 @@
 import { useLocalization } from "@fluent/react";
+import Chip from "@material-ui/core/Chip";
 import Link from "@material-ui/core/Link";
 import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import React, { useCallback, useMemo } from "react";
 
-import { MediaState } from "../api/types";
+import { Person, Reference, Tag } from "../api/highlevel";
+import { MediaPersonState, MediaState } from "../api/types";
+import { useSelector } from "../store";
+import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
 
 const FRACTION = /^(\d+)\/(\d+)$/;
@@ -66,13 +70,39 @@ const useStyles = makeStyles((theme: Theme) =>
     metadataContent: {
       margin: 0,
     },
+    multilineMetadataLabel: {
+      fontWeight: "bold",
+      textAlign: "right",
+    },
+    multilineMetadataContent: {
+      margin: 0,
+      gridColumn: "1 / 3",
+    },
+    tagList: {
+      "display": "flex",
+      "flexWrap": "wrap",
+      "listStyle": "none",
+      "padding": 0,
+      "& > li": {
+        paddingRight: theme.spacing(1),
+        paddingBottom: theme.spacing(1),
+      },
+    },
   }));
 
 function Row(
   label: React.ReactNode,
   value: React.ReactNode,
+  multiline: boolean = false,
 ): ReactResult {
   const classes = useStyles();
+
+  if (multiline) {
+    return <React.Fragment>
+      <dt className={classes.multilineMetadataLabel}>{label}</dt>
+      <dd className={classes.multilineMetadataContent}>{value}</dd>
+    </React.Fragment>;
+  }
 
   return <React.Fragment>
     <dt className={classes.metadataLabel}>{label}</dt>
@@ -82,13 +112,14 @@ function Row(
 
 interface LocalizedRowProps {
   label: string;
+  multiline?: boolean;
   children: React.ReactNode;
 }
 
 function LocalizedRow(props: LocalizedRowProps): ReactResult {
   const { l10n } = useLocalization();
 
-  return Row(l10n.getString(props.label), props.children);
+  return Row(l10n.getString(props.label), props.children, props.multiline);
 }
 
 function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactResult {
@@ -108,6 +139,16 @@ export interface MediaInfoProps {
 export default function MediaInfo(props: MediaInfoProps): ReactResult {
   const classes = useStyles();
   const media = props.media;
+
+  const tags = useSelector(({ serverState }: StoreState) => {
+    return props.media.tags.map((tag: Reference<Tag>): Tag => tag.deref(serverState));
+  });
+
+  const people = useSelector(({ serverState }: StoreState) => {
+    return props.media.people.map(
+      (state: MediaPersonState): Person => state.person.deref(serverState),
+    );
+  });
 
   const format = useCallback(<T extends keyof MediaState>(
     metadata: T,
@@ -201,6 +242,22 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
       </LocalizedRow>
     }
     {location}
+    {
+      tags.length &&
+      <LocalizedRow label="metadata-label-tags">
+        <ul className={classes.tagList}>
+          {tags.map((tag: Tag) => <li key={tag.id}><Chip label={tag.name}/></li>)}
+        </ul>
+      </LocalizedRow>
+    }
+    {
+      people.length &&
+      <LocalizedRow label="metadata-label-people">
+        <ul className={classes.tagList}>
+          {people.map((person: Person) => <li key={person.id}><Chip label={person.name}/></li>)}
+        </ul>
+      </LocalizedRow>
+    }
     {NormalMetadataItem(media, "photographer")}
     {
       format("shutterSpeed", (value: string): string => {

@@ -101,3 +101,5 @@ metadata-label-shutterSpeed = Shutter speed:
 metadata-label-iso = ISO:
 metadata-label-focalLength = Focal length:
 metadata-label-rating = Rating:
+metadata-label-tags = Tags:
+metadata-label-people = People:
