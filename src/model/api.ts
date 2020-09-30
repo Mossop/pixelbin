@@ -92,6 +92,10 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface CatalogListRequest {
+  id: string;
+}
+
 export interface AlbumListRequest {
   id: string;
   recursive: boolean;
@@ -188,6 +192,7 @@ export enum Method {
   CatalogCreate = "catalog/create",
   // CatalogEdit = "catalog/edit",
   // CatalogDelete = "catalog/delete",
+  CatalogList = "catalog/list",
   AlbumCreate = "album/create",
   AlbumEdit = "album/edit",
   AlbumList = "album/list",
@@ -220,6 +225,7 @@ export const HttpMethods: MethodList = {
   [Method.CatalogCreate]: "PUT",
   // [Method.CatalogEdit]: "PATCH",
   // [Method.CatalogDelete]: "DELETE",
+  [Method.CatalogList]: "GET",
   [Method.AlbumCreate]: "PUT",
   [Method.AlbumEdit]: "PATCH",
   [Method.AlbumList]: "GET",
@@ -261,6 +267,7 @@ export interface Signatures {
   [Method.CatalogCreate]: Signature<Create<Catalog>, Catalog>;
   // [Method.CatalogEdit]: Signature<CatalogEditRequest, void>;
   // [Method.CatalogDelete]: Signature<string[], void>;
+  [Method.CatalogList]: Signature<CatalogListRequest, Media[]>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
   [Method.AlbumList]: Signature<AlbumListRequest, Media[]>;

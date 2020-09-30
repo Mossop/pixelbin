@@ -201,6 +201,32 @@ const pathMap: PathMap[] = [
   ],
 
   [
+    re("/catalog/:catalog/media/:media"),
+    (
+      serverState: ServerState,
+      historyState: HistoryState,
+      catalogId: string,
+      mediaId: string,
+    ): UIState => {
+      let catalog = Catalog.safeFromState(serverState, catalogId);
+      if (!catalog) {
+        return notfound(historyState);
+      }
+
+      return {
+        page: {
+          type: PageType.Media,
+          media: mediaId,
+          lookup: {
+            type: MediaLookupType.Catalog,
+            catalog: catalog.ref(),
+          },
+        },
+      };
+    },
+  ],
+
+  [
     re("/album/:album/media/:media"),
     (
       serverState: ServerState,
@@ -269,6 +295,10 @@ export function fromUIState(uiState: UIState): HistoryState {
       switch (uiState.page.lookup?.type) {
         case MediaLookupType.Album:
           return buildState(`/album/${uiState.page.lookup.album.id}/media/${uiState.page.media}`);
+        case MediaLookupType.Catalog:
+          return buildState(
+            `/catalog/${uiState.page.lookup.catalog.id}/media/${uiState.page.media}`,
+          );
         default:
           return buildState(`/media/${uiState.page.media}`);
       }

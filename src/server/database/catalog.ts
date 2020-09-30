@@ -67,6 +67,21 @@ export async function listAlbums(this: UserScopedConnection): Promise<Tables.Alb
   return results.map(intoAPITypes);
 }
 
+export async function listMediaInCatalog(
+  this: UserScopedConnection,
+  id: Tables.Catalog["id"],
+): Promise<Tables.StoredMedia[]> {
+  return from(this.knex, Table.StoredMediaDetail)
+    .join(
+      Table.UserCatalog,
+      ref(Table.UserCatalog, "catalog"),
+      ref(Table.StoredMediaDetail, "catalog"),
+    )
+    .where(ref(Table.UserCatalog, "user"), this.user)
+    .andWhere(ref(Table.UserCatalog, "catalog"), id)
+    .select(ref(Table.StoredMediaDetail));
+}
+
 export async function createAlbum(
   this: UserScopedConnection,
   catalog: Tables.Album["catalog"],

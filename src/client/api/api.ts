@@ -39,6 +39,7 @@ const decoders: ResponseDecoders = {
   [Api.Method.StorageTest]: JsonDecoderDecoder(Decoders.StorageTestResultDecoder),
   [Api.Method.StorageCreate]: JsonDecoderDecoder(Decoders.StorageDecoder),
   [Api.Method.CatalogCreate]: JsonDecoderDecoder(Decoders.CatalogDecoder),
+  [Api.Method.CatalogList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Api.Method.AlbumCreate]: JsonDecoderDecoder(Decoders.AlbumDecoder),
   [Api.Method.AlbumEdit]: JsonDecoderDecoder(Decoders.AlbumDecoder),
   [Api.Method.AlbumList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),

@@ -117,6 +117,17 @@ export const createCatalog = ensureAuthenticated(
   },
 );
 
+export const listCatalog = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Api.CatalogListRequest,
+  ): Promise<ResponseFor<Api.Media>[]> => {
+    let media = await userDb.listMediaInCatalog(data.id);
+    return media.map(buildResponseMedia);
+  },
+);
+
 export const createAlbum = ensureAuthenticated(
   async (
     ctx: AppContext,

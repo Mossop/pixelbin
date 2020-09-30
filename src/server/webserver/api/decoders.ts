@@ -79,6 +79,10 @@ export const CatalogCreateRequest = jsonDecoder(
   }, "CatalogCreateReqeust"),
 );
 
+export const CatalogListRequest = jsonDecoder(JsonDecoder.object<Api.CatalogListRequest>({
+  id: JsonDecoder.string,
+}, "CatalogListRequest"));
+
 export const AlbumCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Album>>({
   catalog: JsonDecoder.string,
   name: JsonDecoder.string,

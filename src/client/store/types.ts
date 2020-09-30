@@ -1,7 +1,7 @@
 import { Deed } from "deeds/immer";
 import { Store } from "redux";
 
-import { Album, Reference } from "../api/highlevel";
+import { Album, Catalog, Reference } from "../api/highlevel";
 import { MediaState, ServerState } from "../api/types";
 import { OverlayState } from "../overlays/types";
 import { PageState } from "../pages/types";
@@ -18,6 +18,7 @@ export interface UIState {
 export enum MediaLookupType {
   Single,
   Album,
+  Catalog,
 }
 
 export interface AlbumMediaLookup {
@@ -26,12 +27,17 @@ export interface AlbumMediaLookup {
   recursive: boolean;
 }
 
+export interface CatalogMediaLookup {
+  type: MediaLookupType.Catalog;
+  catalog: Reference<Catalog>;
+}
+
 export interface SingleMediaLookup {
   type: MediaLookupType.Single;
   media: string;
 }
 
-export type MediaLookup = AlbumMediaLookup | SingleMediaLookup;
+export type MediaLookup = AlbumMediaLookup | CatalogMediaLookup | SingleMediaLookup;
 
 export interface MediaSearch {
   readonly lookup: MediaLookup;

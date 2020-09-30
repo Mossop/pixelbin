@@ -489,6 +489,47 @@ test("Album media tests", async (): Promise<void> => {
       parent: "a1",
     }],
   }]);
+
+  media = await user1Db.listMediaInCatalog("c1");
+  expect(media).toHaveLength(3);
+  media = [
+    media.find((media: StoredMedia): boolean => media.id == media1.id)!,
+    media.find((media: StoredMedia): boolean => media.id == media2.id)!,
+    media.find((media: StoredMedia): boolean => media.id == media3.id)!,
+  ];
+
+  expect(media.map(extracted)).toInclude([{
+    id: media1.id,
+    catalog: "c1",
+
+    tags: [],
+    people: [],
+    albums: [],
+  }, {
+    id: media2.id,
+    catalog: "c1",
+
+    tags: [],
+    people: [],
+    albums: [{
+      id: "a3",
+      catalog: "c1",
+      name: "Album 3",
+      parent: "a1",
+    }],
+  }, {
+    id: media3.id,
+    catalog: "c1",
+
+    tags: [],
+    people: [],
+    albums: [{
+      id: "a1",
+      catalog: "c1",
+      name: "Album 1",
+      parent: null,
+    }],
+  }]);
 });
 
 test("Person location tests", async (): Promise<void> => {

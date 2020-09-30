@@ -206,6 +206,7 @@ export class UserScopedConnection {
   public readonly createStorage = wrapped(CatalogQueries.createStorage);
   public readonly listCatalogs = wrapped(CatalogQueries.listCatalogs);
   public readonly createCatalog = wrapped(CatalogQueries.createCatalog);
+  public readonly listMediaInCatalog = wrapped(CatalogQueries.listMediaInCatalog);
   public readonly listAlbums = wrapped(CatalogQueries.listAlbums);
   public readonly createAlbum = wrapped(CatalogQueries.createAlbum);
   public readonly editAlbum = wrapped(CatalogQueries.editAlbum);

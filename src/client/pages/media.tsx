@@ -204,6 +204,13 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
             album: props.lookup.album,
           },
         };
+      case MediaLookupType.Catalog:
+        return {
+          page: {
+            type: PageType.Catalog,
+            catalog: props.lookup.catalog,
+          },
+        };
     }
 
     return null;

@@ -1,6 +1,7 @@
 import { Draft } from "immer";
 
 import { listAlbumMedia } from "../api/album";
+import { listCatalogMedia } from "../api/catalog";
 import { getMedia } from "../api/media";
 import { MediaState } from "../api/types";
 import services from "../services";
@@ -18,6 +19,9 @@ class MediaManager {
     switch (lookup.type) {
       case MediaLookupType.Album: {
         return listAlbumMedia(lookup.album, lookup.recursive);
+      }
+      case MediaLookupType.Catalog: {
+        return listCatalogMedia(lookup.catalog);
       }
       case MediaLookupType.Single: {
         let media = await getMedia([lookup.media]);
@@ -46,6 +50,9 @@ class MediaManager {
 
     if (a.type == MediaLookupType.Album && b.type == MediaLookupType.Album) {
       return a.album.id == b.album.id && a.recursive == b.recursive;
+    }
+    if (a.type == MediaLookupType.Catalog && b.type == MediaLookupType.Catalog) {
+      return a.catalog.id == b.catalog.id;
     }
     if (a.type == MediaLookupType.Single && b.type == MediaLookupType.Single) {
       return a.media == b.media;

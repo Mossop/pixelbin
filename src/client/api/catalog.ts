@@ -1,6 +1,9 @@
+import { Draft } from "immer";
+
 import { Api } from "../../model";
 import { request } from "./api";
-import { CatalogState, StorageState } from "./types";
+import { Catalog, Reference } from "./highlevel";
+import { CatalogState, mediaIntoState, MediaState, StorageState } from "./types";
 
 export async function testStorage(
   storage: Api.StorageTestRequest,
@@ -29,4 +32,14 @@ export async function createCatalog(
     tags: new Map(),
     people: new Map(),
   };
+}
+
+export async function listCatalogMedia(
+  catalog: Reference<Catalog>,
+): Promise<Draft<MediaState>[]> {
+  let media = await request(Api.Method.CatalogList, {
+    id: catalog.id,
+  });
+
+  return media.map(mediaIntoState);
 }

@@ -450,7 +450,7 @@ test("Edit album", async (): Promise<void> => {
   });
 });
 
-test("List album", async (): Promise<void> => {
+test("List album and catalog", async (): Promise<void> => {
   /* eslint-disable-next-line */
   const ids = items => items.map(item => item.id);
 
@@ -520,6 +520,21 @@ test("List album", async (): Promise<void> => {
     id1,
     id2,
     id3,
+  ]);
+
+  response = await request
+    .get("/api/catalog/list")
+    .query({
+      id: "c1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(ids(response.body)).toInclude([
+    id1,
+    id2,
+    id3,
+    id4,
   ]);
 });
 
