@@ -1,7 +1,7 @@
 import Box from "@material-ui/core/Box";
-import Drawer from "@material-ui/core/Drawer";
 import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
+import Paper from "@material-ui/core/Paper";
 import {
   createMuiTheme,
   createStyles,
@@ -19,6 +19,7 @@ import NavigateNextIcon from "@material-ui/icons/NavigateNext";
 import alpha from "color-alpha";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { ObjectModel } from "../../model";
 import { isProcessed, MediaState } from "../api/types";
 import FixedAspect from "../components/FixedAspect";
 import Loading from "../components/Loading";
@@ -93,6 +94,12 @@ const useStyles = makeStyles((theme: Theme) =>
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
+    },
+    face: {
+      position: "absolute",
+      borderWidth: 2,
+      borderStyle: "solid",
+      borderColor: theme.palette.primary.dark,
     },
     infoTitlebar: {
       display: "flex",
@@ -183,6 +190,7 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
 
   const [displayOverlays, setDisplayOverlays] = useState(true);
   const [showMediaInfo, setShowMediaInfo] = useState(false);
+  const [location, setLocation] = useState<ObjectModel.Location | null>(null);
 
   const onShowInfo = useCallback(() => setShowMediaInfo(true), []);
   const onCloseInfo = useCallback(() => setShowMediaInfo(false), []);
@@ -306,20 +314,6 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
       onMouseOver={showOverlays}
       onMouseMove={showOverlays}
     >
-      <Drawer
-        anchor="right"
-        open={showMediaInfo}
-        onClose={onCloseInfo}
-      >
-        <Box className={classes.infoTitlebar}>
-          {
-            title &&
-            <Typography variant="h4" className={classes.infoTitle}>{title}</Typography>
-          }
-          <IconButton onClick={onCloseInfo}><CloseIcon/></IconButton>
-        </Box>
-        <MediaInfo media={media}/>
-      </Drawer>
       {
         isProcessed(media)
           ? <FixedAspect
@@ -341,6 +335,20 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
                   {mediaControls}
                 </Photo>
             }
+            {
+              location &&
+              <div
+                className={classes.face}
+                style={
+                  {
+                    left: `${location.left * 100}%`,
+                    top: `${location.top * 100}%`,
+                    right: `${100 - location.right * 100}%`,
+                    bottom: `${100 - location.bottom * 100}%`,
+                  }
+                }
+              />
+            }
           </FixedAspect>
           : <Loading className={classes.mediaArea}/>
       }
@@ -356,6 +364,19 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
         </div>
       </Fade>
     </div>
+    {
+      showMediaInfo &&
+      <Paper square={true}>
+        <Box className={classes.infoTitlebar}>
+          {
+            title &&
+            <Typography variant="h4" className={classes.infoTitle}>{title}</Typography>
+          }
+          <IconButton onClick={onCloseInfo}><CloseIcon/></IconButton>
+        </Box>
+        <MediaInfo media={media} onHighlightRegion={setLocation}/>
+      </Paper>
+    }
   </Page>;
 }
 

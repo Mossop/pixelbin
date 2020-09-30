@@ -5,7 +5,8 @@ import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import React, { useCallback, useMemo } from "react";
 
-import { Person, Reference, Tag } from "../api/highlevel";
+import { ObjectModel } from "../../model";
+import { Reference, Tag } from "../api/highlevel";
 import { MediaPersonState, MediaState } from "../api/types";
 import { useSelector } from "../store";
 import { StoreState } from "../store/types";
@@ -90,6 +91,41 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
+function TagChip(props: { tag: Reference<Tag> }): ReactResult {
+  let tag = useSelector((state: StoreState): Tag => props.tag.deref(state.serverState));
+
+  return <li><Chip size="small" label={tag.name}/></li>;
+}
+
+interface PersonChipProps {
+  state: MediaPersonState;
+  onHighlighRegion?: (region: ObjectModel.Location | null) => void;
+}
+
+function PersonChip(props: PersonChipProps): ReactResult {
+  let person = useSelector(({ serverState }: StoreState) => props.state.person.deref(serverState));
+
+  let onEnter = useCallback(() => {
+    if (props.onHighlighRegion) {
+      props.onHighlighRegion(props.state.location);
+    }
+  }, [props]);
+
+  let onLeave = useCallback(() => {
+    if (props.onHighlighRegion) {
+      props.onHighlighRegion(null);
+    }
+  }, [props]);
+
+  return <li
+    key={person.id}
+    onMouseEnter={onEnter}
+    onMouseLeave={onLeave}
+  >
+    <Chip size="small" label={person.name}/>
+  </li>;
+}
+
 function Row(
   label: React.ReactNode,
   value: React.ReactNode,
@@ -134,21 +170,12 @@ function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactRes
 
 export interface MediaInfoProps {
   media: MediaState;
+  onHighlightRegion?: (region: ObjectModel.Location | null) => void;
 }
 
 export default function MediaInfo(props: MediaInfoProps): ReactResult {
   const classes = useStyles();
   const media = props.media;
-
-  const tags = useSelector(({ serverState }: StoreState) => {
-    return props.media.tags.map((tag: Reference<Tag>): Tag => tag.deref(serverState));
-  });
-
-  const people = useSelector(({ serverState }: StoreState) => {
-    return props.media.people.map(
-      (state: MediaPersonState): Person => state.person.deref(serverState),
-    );
-  });
 
   const format = useCallback(<T extends keyof MediaState>(
     metadata: T,
@@ -243,18 +270,24 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     }
     {location}
     {
-      tags.length &&
+      media.tags.length &&
       <LocalizedRow label="metadata-label-tags">
         <ul className={classes.tagList}>
-          {tags.map((tag: Tag) => <li key={tag.id}><Chip label={tag.name}/></li>)}
+          {media.tags.map((tag: Reference<Tag>) => <TagChip key={tag.id} tag={tag}/>)}
         </ul>
       </LocalizedRow>
     }
     {
-      people.length &&
+      media.people.length &&
       <LocalizedRow label="metadata-label-people">
         <ul className={classes.tagList}>
-          {people.map((person: Person) => <li key={person.id}><Chip label={person.name}/></li>)}
+          {
+            media.people.map((state: MediaPersonState) => <PersonChip
+              key={state.person.id}
+              state={state}
+              onHighlighRegion={props.onHighlightRegion}
+            />)
+          }
         </ul>
       </LocalizedRow>
     }
