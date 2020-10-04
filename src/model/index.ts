@@ -7,6 +7,7 @@ export { Api, ObjectModel, Search };
 export type { Create, Patch, ResponseFor } from "./api";
 export { RelationType, Method, ErrorCode, HttpMethods, AWSResult } from "./api";
 export { AlternateFileType, MetadataColumns, emptyMetadata } from "./models";
+export type { Query } from "./search";
 export {
   Join,
   Modifier,

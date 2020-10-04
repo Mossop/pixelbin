@@ -8,7 +8,6 @@ import {
   ResponseFor,
   ErrorCode,
   RelationType,
-  Search,
 } from "../../../model";
 import { chooseSize } from "../../../utils";
 import { fillMetadata, UserScopedConnection, Media, ProcessedMedia } from "../../database";
@@ -536,9 +535,9 @@ export const searchMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    search: Search.Search,
+    search: Api.MediaSearchRequest,
   ): Promise<ResponseFor<Api.Media>[]> => {
-    let media = await userDb.searchMedia(search);
+    let media = await userDb.searchMedia(search.catalog, search.query);
     return media.map(buildResponseMedia);
   },
 );

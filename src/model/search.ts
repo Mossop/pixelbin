@@ -109,11 +109,7 @@ export function isRelationQuery(query: Query): query is RelationQuery {
   return query.type == "compound" && "relation" in query;
 }
 
-export type Search = Query & {
-  catalog: string;
-};
-
-export function checkQuery(query: Query | Search, inRelated: boolean = false): void {
+export function checkQuery(query: Query, inRelated: boolean = false): void {
   if (isCompoundQuery(query)) {
     let isRelation = isRelationQuery(query);
 

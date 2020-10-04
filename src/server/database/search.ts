@@ -1,6 +1,6 @@
 import Knex from "knex";
 
-import { checkQuery, isCompoundQuery, Join, Modifier, Operator, Search } from "../../model";
+import { checkQuery, isCompoundQuery, Join, Modifier, Operator, Search, Query } from "../../model";
 import { isRelationQuery } from "../../model/search";
 import { UserScopedConnection } from "./connection";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
@@ -161,7 +161,8 @@ function applyQuery(
 
 export async function searchMedia(
   this: UserScopedConnection,
-  search: Search.Search,
+  catalog: string,
+  search: Query,
 ): Promise<Media[]> {
   checkQuery(search);
 
@@ -172,13 +173,13 @@ export async function searchMedia(
       ref(Table.StoredMediaDetail, "catalog"),
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .andWhere(ref(Table.UserCatalog, "catalog"), search.catalog)
+    .andWhere(ref(Table.UserCatalog, "catalog"), catalog)
     .select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
 
   builder = applyQuery(
     this,
     builder,
-    search.catalog,
+    catalog,
     Table.StoredMediaDetail,
     Join.And,
     search,

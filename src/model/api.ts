@@ -3,7 +3,7 @@ import { Moment } from "moment-timezone";
 
 import { Nullable, Primitive } from "../utils";
 import * as ObjectModel from "./models";
-import { Search } from "./search";
+import { Query } from "./search";
 
 export enum ErrorCode {
   UnknownException = "server-failure",
@@ -133,6 +133,11 @@ export type MediaUpdateRequest =
     tags?: SelectedTag[];
     people?: SelectedPerson[];
   };
+
+export interface MediaSearchRequest {
+  catalog: string;
+  query: Query;
+}
 
 export type SignupRequest = Omit<
   ObjectModel.User,
@@ -283,7 +288,7 @@ export interface Signatures {
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   // [Method.PersonDelete]: Signature<string[], void>;
   [Method.MediaGet]: Signature<MediaGetRequest, (Media | null)[]>;
-  [Method.MediaSearch]: Signature<Search, Media[]>;
+  [Method.MediaSearch]: Signature<MediaSearchRequest, Media[]>;
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
   [Method.MediaEdit]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;

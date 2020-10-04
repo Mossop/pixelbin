@@ -9,7 +9,7 @@ import {
   DateDecoder,
   NumericDecoder,
   MappingDecoder,
-  SearchDecoder,
+  QueryDecoder,
 } from "../../../utils";
 
 type DeBlob<T> = T extends Blob ? File : T;
@@ -141,7 +141,10 @@ export const MediaGetRequest = jsonDecoder(JsonDecoder.object<Api.MediaGetReques
   id: JsonDecoder.string,
 }, "MediaGetRequest"));
 
-export const SearchRequest = jsonDecoder(SearchDecoder);
+export const MediaSearchRequest = jsonDecoder(JsonDecoder.object<Api.MediaSearchRequest>({
+  catalog: JsonDecoder.string,
+  query: QueryDecoder,
+}, "MediaSearchRequest"));
 
 export const StringArray = jsonDecoder(JsonDecoder.array(JsonDecoder.string, "string[]"));
 

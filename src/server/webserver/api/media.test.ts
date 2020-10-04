@@ -1750,12 +1750,14 @@ test("Media search", async (): Promise<void> => {
     .post("/api/media/search")
     .send({
       catalog: "c1",
-      invert: false,
-      type: "field",
-      field: "title",
-      modifier: null,
-      operator: Operator.Equal,
-      value: "Media 1",
+      query: {
+        invert: false,
+        type: "field",
+        field: "title",
+        modifier: null,
+        operator: Operator.Equal,
+        value: "Media 1",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);

@@ -65,7 +65,7 @@ export const apiDecoders: RequestDecoders = {
   [Method.PersonCreate]: Decoders.PersonCreateRequest,
   [Method.PersonEdit]: Decoders.PersonEditRequest,
   [Method.MediaGet]: Decoders.MediaGetRequest,
-  [Method.MediaSearch]: Decoders.SearchRequest,
+  [Method.MediaSearch]: Decoders.MediaSearchRequest,
   [Method.MediaCreate]: Decoders.MediaCreateRequest,
   [Method.MediaEdit]: Decoders.MediaUpdateRequest,
   [Method.MediaRelations]: Decoders.MediaRelationsRequest,

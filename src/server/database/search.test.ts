@@ -1,6 +1,6 @@
 import moment from "moment-timezone";
 
-import { Search, Join, Operator, Modifier, checkQuery, RelationType } from "../../model";
+import { Query, Join, Operator, Modifier, checkQuery, RelationType } from "../../model";
 import { idSorted } from "../../utils";
 import { UserScopedConnection } from "./connection";
 import { fillMetadata } from "./media";
@@ -90,8 +90,8 @@ function ids(items: { id: string }[]): string[] {
   return idSorted(items).map((item: { id: string }) => item.id);
 }
 
-async function search(userDb: UserScopedConnection, search: Search.Search): Promise<string[]> {
-  return ids(await userDb.searchMedia(search));
+async function search(userDb: UserScopedConnection, search: Query): Promise<string[]> {
+  return ids(await userDb.searchMedia("c1", search));
 }
 
 test("Correctness", async (): Promise<void> => {
@@ -99,7 +99,6 @@ test("Correctness", async (): Promise<void> => {
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     type: "compound",
     join: Join.And,
     invert: false,
@@ -118,7 +117,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "rating",
@@ -130,7 +128,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "rating",
@@ -140,7 +137,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   })).rejects.toThrow("Expected a 'number' value for operator 'equal' but got 'string'.");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "rating",
@@ -152,7 +148,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "rating",
@@ -167,7 +162,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "rating",
@@ -179,7 +173,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "rating",
@@ -191,7 +184,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "rating",
@@ -203,7 +195,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "rating",
@@ -215,7 +206,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "rating",
@@ -227,7 +217,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "rating",
@@ -239,7 +228,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "rating",
@@ -253,7 +241,6 @@ test("Numeric metadata search", async (): Promise<void> => {
   ]);
 
   expect(() => checkQuery({
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "rating",
@@ -268,7 +255,6 @@ test("String metadata search", async (): Promise<void> => {
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "title",
@@ -280,7 +266,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -292,7 +277,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -302,7 +286,6 @@ test("String metadata search", async (): Promise<void> => {
   })).rejects.toThrow("Cannot apply operator 'lessthan' to a 'string' value.");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -316,7 +299,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -330,7 +312,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -342,7 +323,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -354,7 +334,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -368,7 +347,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -378,7 +356,6 @@ test("String metadata search", async (): Promise<void> => {
   })).resolves.toEqual([]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -388,7 +365,6 @@ test("String metadata search", async (): Promise<void> => {
   })).resolves.toEqual([]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "description",
@@ -404,7 +380,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "title",
@@ -417,7 +392,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "description",
@@ -430,7 +404,6 @@ test("String metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "title",
@@ -450,7 +423,6 @@ test("Date metadata search", async (): Promise<void> => {
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "taken",
@@ -462,7 +434,6 @@ test("Date metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "taken",
@@ -477,7 +448,6 @@ test("Date metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "taken",
@@ -490,7 +460,6 @@ test("Date metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "field",
     field: "taken",
@@ -502,7 +471,6 @@ test("Date metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "taken",
@@ -514,7 +482,6 @@ test("Date metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "field",
     field: "taken",
@@ -532,7 +499,6 @@ test("Compound search", async (): Promise<void> => {
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     join: Join.And,
@@ -556,7 +522,6 @@ test("Compound search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     join: Join.Or,
@@ -581,7 +546,6 @@ test("Compound search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     join: Join.And,
@@ -616,7 +580,6 @@ test("Compound search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     join: Join.Or,
@@ -653,7 +616,6 @@ test("Compound search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     join: Join.And,
@@ -678,7 +640,6 @@ test("Compound search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     join: Join.And,
@@ -706,7 +667,6 @@ test("Album search", async (): Promise<void> => {
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -733,7 +693,6 @@ test("Album search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "compound",
     relation: RelationType.Album,
@@ -759,7 +718,6 @@ test("Album search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -777,7 +735,6 @@ test("Album search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -798,7 +755,6 @@ test("Album search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -819,7 +775,6 @@ test("Album search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
-    catalog: "c1",
     invert: true,
     type: "compound",
     relation: RelationType.Album,

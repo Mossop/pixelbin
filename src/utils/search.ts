@@ -78,15 +78,8 @@ const RelationQueryDecoder = JsonDecoder.combine(
   }, "RelationQuery"),
 );
 
-const QueryDecoder: JsonDecoder.Decoder<Search.Query> = JsonDecoder.oneOf<Search.Query>([
+export const QueryDecoder: JsonDecoder.Decoder<Search.Query> = JsonDecoder.oneOf<Search.Query>([
   FieldQueryDecoder,
   CompoundQueryDecoder,
   RelationQueryDecoder,
 ], "Query");
-
-export const SearchDecoder: JsonDecoder.Decoder<Search.Search> = JsonDecoder.combine(
-  JsonDecoder.object({
-    catalog: JsonDecoder.string,
-  }, "catalog"),
-  QueryDecoder,
-);

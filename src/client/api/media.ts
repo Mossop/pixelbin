@@ -1,6 +1,6 @@
 import { Draft } from "immer";
 
-import { Api, Method, Search } from "../../model";
+import { Api, Method, Query } from "../../model";
 import { MediaCreateRequest } from "../../model/api";
 import { Overwrite } from "../../utils";
 import { request } from "./api";
@@ -40,10 +40,14 @@ export async function createMedia(media: MediaCreateData): Promise<MediaState> {
   return mediaIntoState(result);
 }
 
-export async function searchMedia(search: Search.Search): Promise<MediaState[]> {
-  // @ts-ignore: This is because Search is a compound type and the request type inference is
-  // broken in this case.
-  let results = await request(Method.MediaSearch, search);
+export async function searchMedia(
+  catalog: Reference<Catalog>,
+  query: Query,
+): Promise<MediaState[]> {
+  let results = await request(Method.MediaSearch, {
+    catalog: catalog.id,
+    query,
+  });
   return results.map(mediaIntoState);
 }
 
