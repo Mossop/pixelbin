@@ -1,4 +1,4 @@
-import { ObjectModel } from "../../model";
+import { MetadataColumns } from "../../model";
 import { DatabaseConnection } from "./connection";
 import { uuid } from "./id";
 import { from, into } from "./queries";
@@ -43,8 +43,8 @@ export async function withNewOriginal<T>(
       "bitRate",
       "fileSize",
       "fileName",
-      ...ObjectModel.metadataColumns,
-    ]);
+      ...Object.keys(MetadataColumns),
+    ]) as OriginalInfo[];
 
     if (results.length) {
       return operation(dbConnection, intoAPITypes(results[0]));

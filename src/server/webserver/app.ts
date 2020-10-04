@@ -8,7 +8,7 @@ import mount from "koa-mount";
 import session from "koa-session";
 import serve from "koa-static";
 
-import { Api, ResponseFor } from "../../model";
+import { Api, ResponseFor, Method } from "../../model";
 import { thumbnail, original, poster } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
@@ -48,7 +48,7 @@ export default async function buildApp(): Promise<App> {
     ctx.body = "Ok";
   });
 
-  for (let method of Object.values(Api.Method)) {
+  for (let method of Object.values(Method)) {
     router.all(`${APP_PATHS.api}${method}`, koaBody({
       multipart: true,
       parsedMethods: ["POST", "PUT", "PATCH", "DELETE"],

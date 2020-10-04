@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import moment from "moment-timezone";
 
-import { Api } from "../../model";
+import { ErrorCode, Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
@@ -33,7 +33,7 @@ test("Get media", async (): Promise<void> => {
     created,
   });
 
-  mockResponse(Api.Method.MediaGet, 200, [mediaIntoResponse(serverState, media)]);
+  mockResponse(Method.MediaGet, 200, [mediaIntoResponse(serverState, media)]);
 
   let [result] = await getMedia(["testmedia"]);
 
@@ -54,12 +54,12 @@ test("Get media", async (): Promise<void> => {
 
 test("Missing media", async (): Promise<void> => {
   // TODO: This is not correct.
-  mockResponse(Api.Method.MediaGet, 404, {
-    code: Api.ErrorCode.NotFound,
+  mockResponse(Method.MediaGet, 404, {
+    code: ErrorCode.NotFound,
     data: {},
   });
 
-  await expect(getMedia(["testmedia"])).rejects.toBeAppError(Api.ErrorCode.NotFound);
+  await expect(getMedia(["testmedia"])).rejects.toBeAppError(ErrorCode.NotFound);
 });
 
 test("Create media", async (): Promise<void> => {
@@ -73,7 +73,7 @@ test("Create media", async (): Promise<void> => {
     make: "Nikon",
   });
 
-  mockResponse(Api.Method.MediaCreate, 200, mediaIntoResponse(serverState, media));
+  mockResponse(Method.MediaCreate, 200, mediaIntoResponse(serverState, media));
 
   let file = "testfile" as unknown as Blob;
 

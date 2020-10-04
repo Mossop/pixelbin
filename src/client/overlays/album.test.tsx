@@ -1,7 +1,7 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
-import { Api } from "../../model";
+import { Api, Method } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
 import { Catalog, Album } from "../api/highlevel";
@@ -60,7 +60,7 @@ test("create album", async (): Promise<void> => {
     expect(nameInput.disabled).toBeTruthy();
   });
 
-  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.AlbumCreate, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Method.AlbumCreate, {
     catalog: "catalog",
     parent: null,
     name: "Foo",
@@ -125,7 +125,7 @@ test("edit album", async (): Promise<void> => {
     expect(nameInput.disabled).toBeTruthy();
   });
 
-  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.AlbumEdit, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Method.AlbumEdit, {
     id: "album2",
     parent: "album1",
     name: "Foo",

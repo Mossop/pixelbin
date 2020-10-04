@@ -24,6 +24,30 @@ export function fillMetadata<T>(data: T): T & Tables.Metadata {
   };
 }
 
+export function intoMedia(item: Tables.StoredMedia): Media {
+  let forApi = intoAPITypes(item);
+
+  if (forApi.uploaded) {
+    return forApi;
+  }
+
+  let {
+    uploaded,
+    fileSize,
+    mimetype,
+    width,
+    height,
+    duration,
+    frameRate,
+    bitRate,
+    original,
+    fileName,
+    ...unprocessed
+  } = forApi;
+
+  return unprocessed;
+}
+
 export async function createMedia(
   this: UserScopedConnection,
   catalog: Tables.Media["catalog"],
@@ -107,29 +131,7 @@ export async function getMedia(
     .whereIn(ref(Table.StoredMediaDetail, "id"), ids)
     .select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
 
-  let mapped = foundMedia.map((item: Tables.StoredMedia): Media => {
-    let forApi = intoAPITypes(item);
-
-    if (forApi.uploaded) {
-      return forApi;
-    }
-
-    let {
-      uploaded,
-      fileSize,
-      mimetype,
-      width,
-      height,
-      duration,
-      frameRate,
-      bitRate,
-      original,
-      fileName,
-      ...unprocessed
-    } = forApi;
-
-    return unprocessed;
-  });
+  let mapped = foundMedia.map(intoMedia);
 
   let results: (Media | null)[] = [];
   for (let id of ids) {

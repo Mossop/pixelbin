@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Api } from "../../model";
+import { Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect, mapOf } from "../test-helpers";
@@ -14,7 +14,7 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Bad state", async (): Promise<void> => {
-  mockResponse(Api.Method.State, 200, {
+  mockResponse(Method.State, 200, {
     // @ts-ignore: Intentionally bad data.
     id: "album",
     catalog: "catalog",
@@ -26,7 +26,7 @@ test("Bad state", async (): Promise<void> => {
 });
 
 test("Get state", async (): Promise<void> => {
-  mockResponse(Api.Method.State, 200, {
+  mockResponse(Method.State, 200, {
     user: null,
   });
 
@@ -47,7 +47,7 @@ test("Get state", async (): Promise<void> => {
 });
 
 test("Login", async (): Promise<void> => {
-  mockResponse(Api.Method.Login, 200, {
+  mockResponse(Method.Login, 200, {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
@@ -164,7 +164,7 @@ test("Login", async (): Promise<void> => {
 });
 
 test("Logout", async (): Promise<void> => {
-  mockResponse(Api.Method.Logout, 200, {
+  mockResponse(Method.Logout, 200, {
     user: null,
   });
 
@@ -185,7 +185,7 @@ test("Logout", async (): Promise<void> => {
 });
 
 test("Signup", async (): Promise<void> => {
-  mockResponse(Api.Method.Signup, 200, {
+  mockResponse(Method.Signup, 200, {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",

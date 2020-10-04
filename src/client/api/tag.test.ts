@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Api } from "../../model";
+import { Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";
@@ -14,7 +14,7 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create tag", async (): Promise<void> => {
-  mockResponse(Api.Method.TagFind, 200, [{
+  mockResponse(Method.TagFind, 200, [{
     id: "tag1",
     catalog: "testcatalog",
     name: "foo",

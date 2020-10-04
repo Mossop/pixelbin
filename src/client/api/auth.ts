@@ -1,14 +1,14 @@
-import { Api } from "../../model";
+import { Api, Method } from "../../model";
 import { request } from "./api";
 import { ServerState, serverStateIntoState } from "./types";
 
 export async function state(): Promise<ServerState> {
-  let state = await request(Api.Method.State);
+  let state = await request(Method.State);
   return serverStateIntoState(state);
 }
 
 export async function login(email: string, password: string): Promise<ServerState> {
-  let state = await request(Api.Method.Login, {
+  let state = await request(Method.Login, {
     email,
     password,
   });
@@ -16,11 +16,11 @@ export async function login(email: string, password: string): Promise<ServerStat
 }
 
 export async function logout(): Promise<ServerState> {
-  let state = await request(Api.Method.Logout);
+  let state = await request(Method.Logout);
   return serverStateIntoState(state);
 }
 
 export async function signup(data: Api.SignupRequest): Promise<ServerState> {
-  let state = await request(Api.Method.Signup, data);
+  let state = await request(Method.Signup, data);
   return serverStateIntoState(state);
 }

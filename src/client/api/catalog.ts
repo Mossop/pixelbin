@@ -1,6 +1,6 @@
 import { Draft } from "immer";
 
-import { Api } from "../../model";
+import { Api, Method } from "../../model";
 import { request } from "./api";
 import { Catalog, Reference } from "./highlevel";
 import { CatalogState, mediaIntoState, MediaState, StorageState } from "./types";
@@ -8,20 +8,20 @@ import { CatalogState, mediaIntoState, MediaState, StorageState } from "./types"
 export async function testStorage(
   storage: Api.StorageTestRequest,
 ): Promise<Api.StorageTestResult> {
-  return request(Api.Method.StorageTest, storage);
+  return request(Method.StorageTest, storage);
 }
 
 export async function createStorage(
   storage: Api.StorageCreateRequest,
 ): Promise<StorageState> {
-  return request(Api.Method.StorageCreate, storage);
+  return request(Method.StorageCreate, storage);
 }
 
 export async function createCatalog(
   name: string,
   storage: string,
 ): Promise<CatalogState> {
-  let result = await request(Api.Method.CatalogCreate, {
+  let result = await request(Method.CatalogCreate, {
     name,
     storage,
   });
@@ -37,7 +37,7 @@ export async function createCatalog(
 export async function listCatalogMedia(
   catalog: Reference<Catalog>,
 ): Promise<Draft<MediaState>[]> {
-  let media = await request(Api.Method.CatalogList, {
+  let media = await request(Method.CatalogList, {
     id: catalog.id,
   });
 

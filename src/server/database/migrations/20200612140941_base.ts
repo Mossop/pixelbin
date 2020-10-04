@@ -1,6 +1,6 @@
 import Knex from "knex";
 
-import { ObjectModel } from "../../../model";
+import { MetadataColumns } from "../../../model";
 import { Table, ref, TableRecord, nameConstraint, columnFor } from "../types";
 
 function id(table: Knex.CreateTableBuilder): void {
@@ -42,9 +42,9 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     bitRate: "CurrentOriginal.bitRate",
   };
 
-  for (let field of ObjectModel.metadataColumns) {
+  for (let field of Object.keys(MetadataColumns)) {
     mappings[field] = knex.raw("COALESCE(?, ?)", [
-      knex.ref(ref(Table.Media, field)),
+      knex.ref(`${Table.Media}.${field}`),
       knex.ref(`CurrentOriginal.${field}`),
     ]);
   }

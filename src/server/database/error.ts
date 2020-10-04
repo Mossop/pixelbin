@@ -2,6 +2,7 @@ export enum DatabaseErrorCode {
   UnknownError,
   MissingValue,
   MissingRelationship,
+  InvalidSearch,
 }
 
 export class DatabaseError extends Error {

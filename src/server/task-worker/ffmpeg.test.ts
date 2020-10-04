@@ -55,7 +55,7 @@ test("h264 encode", async (): Promise<void> => {
         container: "mp4",
         bitRate: expect.toBeBetween(5000000, 7000000),
         duration: expect.anything(),
-        size: expect.toBeBetween(1400000, 1600000),
+        size: expect.toBeBetween(1300000, 1600000),
       },
       videoStream: {
         codec: "h264",

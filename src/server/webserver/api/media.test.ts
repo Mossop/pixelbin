@@ -4,7 +4,7 @@ import path from "path";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
-import { AlternateFileType, Api, emptyMetadata } from "../../../model";
+import { AlternateFileType, Api, emptyMetadata, ErrorCode, RelationType } from "../../../model";
 import { expect, mockedFunction, deferCall, mockMoment, realMoment } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
@@ -58,7 +58,7 @@ test("Media upload", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: Api.ErrorCode.NotLoggedIn,
+    code: ErrorCode.NotLoggedIn,
   });
 
   await request
@@ -233,8 +233,8 @@ test("Media edit", async (): Promise<void> => {
     title: "My title",
   }));
 
-  await user1Db.addMediaRelations(Api.RelationType.Album, [newMedia.id], ["a1"]);
-  await user1Db.addMediaRelations(Api.RelationType.Tag, [newMedia.id], ["t1"]);
+  await user1Db.addMediaRelations(RelationType.Album, [newMedia.id], ["a1"]);
+  await user1Db.addMediaRelations(RelationType.Tag, [newMedia.id], ["t1"]);
   await user1Db.setPersonLocations([{
     media: newMedia.id,
     person: "p1",

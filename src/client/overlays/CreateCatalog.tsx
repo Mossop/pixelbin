@@ -8,7 +8,7 @@ import CheckCircle from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Api } from "../../model";
+import { Api, AWSResult } from "../../model";
 import { testStorage, createCatalog, createStorage } from "../api/catalog";
 import { StorageState, UserState } from "../api/types";
 import FormFields, { Option } from "../components/FormFields";
@@ -269,7 +269,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     let content: ReactResult;
     if (!storageTestResult) {
       content = <Loading id="storage-test-testing" flexGrow={1}/>;
-    } else if (storageTestResult.result != Api.AWSResult.Success) {
+    } else if (storageTestResult.result != AWSResult.Success) {
       content = <Box
         id="storage-test-failure"
         flexGrow={1}
@@ -387,7 +387,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
     } catch (e) {
       console.trace(e);
       setStorageTestResult({
-        result: Api.AWSResult.UnknownFailure,
+        result: AWSResult.UnknownFailure,
         message: errorString(l10n, e),
       });
     }
@@ -423,7 +423,7 @@ export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): 
         return isFilled(storageConfig.storageName) && isFilled(storageConfig.accessKeyId) &&
           isFilled(storageConfig.secretAccessKey) && isFilled(storageConfig.bucket);
       case storageTestStep:
-        return storageTestResult?.result == Api.AWSResult.Success;
+        return storageTestResult?.result == AWSResult.Success;
       case catalogNameStep:
         return isFilled(catalogState.catalogName);
     }

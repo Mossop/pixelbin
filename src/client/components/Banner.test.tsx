@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Api } from "../../model";
+import { Api, Method } from "../../model";
 import { awaitCall, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
 import {
@@ -89,7 +89,7 @@ test("banner", async (): Promise<void> => {
   await promise;
 
   expect(request).toHaveBeenCalledTimes(1);
-  expect(request).toHaveBeenLastCalledWith(Api.Method.Logout);
+  expect(request).toHaveBeenLastCalledWith(Method.Logout);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
     type: "completeLogout",

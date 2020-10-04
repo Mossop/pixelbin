@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Api } from "../../model";
+import { Method } from "../../model";
 import { fillMetadata } from "../../server/database";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
@@ -21,7 +21,7 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create album", async (): Promise<void> => {
-  mockResponse(Api.Method.AlbumCreate, 200, {
+  mockResponse(Method.AlbumCreate, 200, {
     id: "newalbum",
     catalog: "testcatalog",
     name: "Test album",
@@ -58,7 +58,7 @@ test("Create album", async (): Promise<void> => {
 });
 
 test("Edit album", async (): Promise<void> => {
-  mockResponse(Api.Method.AlbumEdit, 200, {
+  mockResponse(Method.AlbumEdit, 200, {
     id: "testalbum",
     catalog: "testcatalog",
     name: "New test album",
@@ -108,7 +108,7 @@ test("Add media", async (): Promise<void> => {
     ],
   });
 
-  mockResponse(Api.Method.MediaRelations, 200, [
+  mockResponse(Method.MediaRelations, 200, [
     mediaIntoResponse(state, media),
   ]);
 
@@ -143,7 +143,7 @@ test("Remove media", async (): Promise<void> => {
     id: "testmedia",
   });
 
-  mockResponse(Api.Method.MediaRelations, 200, [
+  mockResponse(Method.MediaRelations, 200, [
     mediaIntoResponse(state, media),
   ]);
 
@@ -188,7 +188,7 @@ test("List album", async (): Promise<void> => {
     ],
   });
 
-  mockResponse(Api.Method.AlbumList, 200, [
+  mockResponse(Method.AlbumList, 200, [
     mediaIntoResponse(state, media),
     mediaIntoResponse(state, media2),
   ]);

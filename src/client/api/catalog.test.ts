@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Api } from "../../model";
+import { Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";
@@ -13,7 +13,7 @@ const mockedFetch = mockedFunction(fetch);
 document.cookie = "csrftoken=csrf-foobar";
 
 test("Create storage", async (): Promise<void> => {
-  mockResponse(Api.Method.StorageCreate, 200, {
+  mockResponse(Method.StorageCreate, 200, {
     id: "teststorage",
     name: "Test catalog",
     endpoint: null,
@@ -66,7 +66,7 @@ test("Create storage", async (): Promise<void> => {
 });
 
 test("Create catalog", async (): Promise<void> => {
-  mockResponse(Api.Method.CatalogCreate, 200, {
+  mockResponse(Method.CatalogCreate, 200, {
     id: "testcatalog",
     name: "Test catalog",
     storage: "str",

@@ -2,7 +2,7 @@ import fss, { promises as fs } from "fs";
 
 import sharp from "sharp";
 
-import { AlternateFileType, Api, ResponseFor } from "../../../model";
+import { AlternateFileType, Api, ResponseFor, ErrorCode, RelationType } from "../../../model";
 import { chooseSize } from "../../../utils";
 import { fillMetadata, UserScopedConnection, Media, ProcessedMedia } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
@@ -83,7 +83,7 @@ export const createMedia = ensureAuthenticated(
       let createdMedia = await userDb.createMedia(catalog, fillMetadata(mediaData));
 
       if (albums) {
-        await userDb.addMediaRelations(Api.RelationType.Album, [createdMedia.id], albums);
+        await userDb.addMediaRelations(RelationType.Album, [createdMedia.id], albums);
       }
 
       if (tags) {
@@ -100,7 +100,7 @@ export const createMedia = ensureAuthenticated(
           }
         }
 
-        await userDb.addMediaRelations(Api.RelationType.Tag, [createdMedia.id], selectedTags);
+        await userDb.addMediaRelations(RelationType.Tag, [createdMedia.id], selectedTags);
       }
 
       if (people) {
@@ -129,7 +129,7 @@ export const createMedia = ensureAuthenticated(
         }
 
         if (peopleToAdd.length) {
-          await userDb.addMediaRelations(Api.RelationType.Person, [createdMedia.id], peopleToAdd);
+          await userDb.addMediaRelations(RelationType.Person, [createdMedia.id], peopleToAdd);
         }
 
         if (locations.length) {
@@ -139,7 +139,7 @@ export const createMedia = ensureAuthenticated(
 
       let [media] = await userDb.getMedia([createdMedia.id]);
       if (!media) {
-        throw new ApiError(Api.ErrorCode.UnknownException, {
+        throw new ApiError(ErrorCode.UnknownException, {
           message: "Creating new media failed for an unknown reason.",
         });
       }
@@ -187,7 +187,7 @@ export const updateMedia = ensureAuthenticatedTransaction(
       } else {
         let [foundMedia] = await userDb.getMedia([id]);
         if (!foundMedia) {
-          throw new ApiError(Api.ErrorCode.NotFound, {
+          throw new ApiError(ErrorCode.NotFound, {
             message: "Media does not exist.",
           });
         }
@@ -195,7 +195,7 @@ export const updateMedia = ensureAuthenticatedTransaction(
       }
 
       if (albums) {
-        await userDb.setMediaRelations(Api.RelationType.Album, [media.id], albums);
+        await userDb.setMediaRelations(RelationType.Album, [media.id], albums);
       }
 
       if (tags) {
@@ -212,7 +212,7 @@ export const updateMedia = ensureAuthenticatedTransaction(
           }
         }
 
-        await userDb.setMediaRelations(Api.RelationType.Tag, [media.id], selectedTags);
+        await userDb.setMediaRelations(RelationType.Tag, [media.id], selectedTags);
       }
 
       if (people) {
@@ -241,18 +241,18 @@ export const updateMedia = ensureAuthenticatedTransaction(
         }
 
         if (locations.length) {
-          await userDb.setMediaRelations(Api.RelationType.Person, [media.id], []);
+          await userDb.setMediaRelations(RelationType.Person, [media.id], []);
           await userDb.setPersonLocations(locations);
-          await userDb.addMediaRelations(Api.RelationType.Person, [media.id], peopleToAdd);
+          await userDb.addMediaRelations(RelationType.Person, [media.id], peopleToAdd);
         } else {
-          await userDb.setMediaRelations(Api.RelationType.Person, [media.id], peopleToAdd);
+          await userDb.setMediaRelations(RelationType.Person, [media.id], peopleToAdd);
         }
       }
 
       if (albums || people || tags) {
         let [foundMedia] = await userDb.getMedia([id]);
         if (!foundMedia) {
-          throw new ApiError(Api.ErrorCode.UnknownException);
+          throw new ApiError(ErrorCode.UnknownException);
         }
         media = foundMedia;
       }
@@ -294,13 +294,13 @@ export const thumbnail = ensureAuthenticated(
     let [media] = await userDb.getMedia([id]);
 
     if (!media) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "Media does not exist.",
       });
     }
 
     if (!isProcessedMedia(media)) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
@@ -323,7 +323,7 @@ export const thumbnail = ensureAuthenticated(
     );
 
     if (!source) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
@@ -358,13 +358,13 @@ export const original = ensureAuthenticated(
     let [media] = await userDb.getMedia([id]);
 
     if (!media) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "Media does not exist.",
       });
     }
 
     if (!isProcessedMedia(media)) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
@@ -397,13 +397,13 @@ export const poster = ensureAuthenticated(
     let [media] = await userDb.getMedia([id]);
 
     if (!media) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "Media does not exist.",
       });
     }
 
     if (!isProcessedMedia(media)) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
@@ -416,7 +416,7 @@ export const poster = ensureAuthenticated(
 
     let posters = await userDb.listAlternateFiles(media.id, AlternateFileType.Poster);
     if (!posters.length) {
-      throw new ApiError(Api.ErrorCode.NotFound, {
+      throw new ApiError(ErrorCode.NotFound, {
         message: "No poster image for this media.",
       });
     }

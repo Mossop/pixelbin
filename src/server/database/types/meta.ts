@@ -12,11 +12,11 @@ export type WithRefs<Record> = {
   [K in keyof Record]: Raw | Ref<string, Obj> | Record[K];
 };
 
-function intoDBType(_key: string, value: unknown): unknown {
+export function intoDBType(value: unknown): Knex.Value {
   if (isMoment(value)) {
     return value.utc().toISOString();
   }
-  return value;
+  return value as Knex.Value;
 }
 
 export function intoDBTypes<T>(data: T): T {
@@ -25,7 +25,7 @@ export function intoDBTypes<T>(data: T): T {
     Object.entries(data)
       .filter(([_key, value]: [string, unknown]): boolean => value !== undefined)
       .map(([key, value]: [string, unknown]): [string, unknown] => {
-        return [key, intoDBType(key, value)];
+        return [key, intoDBType(value)];
       }),
   );
 }

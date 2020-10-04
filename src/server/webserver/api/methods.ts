@@ -1,4 +1,4 @@
-import { Api } from "../../../model";
+import { Api, Method, ErrorCode, HttpMethods } from "../../../model";
 import { getLogger, Obj } from "../../../utils";
 import { AppContext } from "../context";
 import { ApiError } from "../error";
@@ -37,70 +37,70 @@ export class DirectResponse {
 }
 
 type WithArguments = {
-  [Method in Api.Method]: Api.SignatureRequest<Method> extends Api.None
+  [M in Method]: Api.SignatureRequest<M> extends Api.None
     ? never
-    : Method;
-}[Api.Method];
+    : M;
+}[Method];
 
 type RequestDecoders = {
-  [Method in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<Method>>>;
+  [M in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<M>>>;
 };
 
 type ResponseType<T> = T extends Blob ? DirectResponse : Api.ResponseFor<T>;
 
 export const apiDecoders: RequestDecoders = {
-  [Api.Method.Login]: Decoders.LoginRequest,
-  [Api.Method.Signup]: Decoders.SignupRequest,
-  [Api.Method.StorageTest]: Decoders.StorageTestRequest,
-  [Api.Method.StorageCreate]: Decoders.StorageCreateRequest,
-  [Api.Method.CatalogCreate]: Decoders.CatalogCreateRequest,
-  [Api.Method.CatalogList]: Decoders.CatalogListRequest,
-  [Api.Method.AlbumCreate]: Decoders.AlbumCreateRequest,
-  [Api.Method.AlbumEdit]: Decoders.AlbumEditRequest,
-  [Api.Method.AlbumList]: Decoders.AlbumListRequest,
-  [Api.Method.TagCreate]: Decoders.TagCreateRequest,
-  [Api.Method.TagEdit]: Decoders.TagEditRequest,
-  [Api.Method.TagFind]: Decoders.TagFindRequest,
-  [Api.Method.PersonCreate]: Decoders.PersonCreateRequest,
-  [Api.Method.PersonEdit]: Decoders.PersonEditRequest,
-  [Api.Method.MediaGet]: Decoders.MediaGetRequest,
-  [Api.Method.MediaCreate]: Decoders.MediaCreateRequest,
-  [Api.Method.MediaEdit]: Decoders.MediaUpdateRequest,
-  [Api.Method.MediaRelations]: Decoders.MediaRelationsRequest,
-  [Api.Method.MediaPeople]: Decoders.MediaPersonLocations,
-  [Api.Method.MediaDelete]: Decoders.StringArray,
+  [Method.Login]: Decoders.LoginRequest,
+  [Method.Signup]: Decoders.SignupRequest,
+  [Method.StorageTest]: Decoders.StorageTestRequest,
+  [Method.StorageCreate]: Decoders.StorageCreateRequest,
+  [Method.CatalogCreate]: Decoders.CatalogCreateRequest,
+  [Method.CatalogList]: Decoders.CatalogListRequest,
+  [Method.AlbumCreate]: Decoders.AlbumCreateRequest,
+  [Method.AlbumEdit]: Decoders.AlbumEditRequest,
+  [Method.AlbumList]: Decoders.AlbumListRequest,
+  [Method.TagCreate]: Decoders.TagCreateRequest,
+  [Method.TagEdit]: Decoders.TagEditRequest,
+  [Method.TagFind]: Decoders.TagFindRequest,
+  [Method.PersonCreate]: Decoders.PersonCreateRequest,
+  [Method.PersonEdit]: Decoders.PersonEditRequest,
+  [Method.MediaGet]: Decoders.MediaGetRequest,
+  [Method.MediaCreate]: Decoders.MediaCreateRequest,
+  [Method.MediaEdit]: Decoders.MediaUpdateRequest,
+  [Method.MediaRelations]: Decoders.MediaRelationsRequest,
+  [Method.MediaPeople]: Decoders.MediaPersonLocations,
+  [Method.MediaDelete]: Decoders.StringArray,
 };
 
 type ApiInterface = {
-  [Key in Api.Method]: Api.SignatureRequest<Key> extends Api.None
+  [Key in Method]: Api.SignatureRequest<Key> extends Api.None
     ? (ctx: AppContext) => Promise<ResponseType<Api.SignatureResponse<Key>>>
     : (ctx: AppContext, data: DeBlobbed<Api.SignatureRequest<Key>>) =>
     Promise<ResponseType<Api.SignatureResponse<Key>>>;
 };
 
 const apiMethods: ApiInterface = {
-  [Api.Method.State]: getState,
-  [Api.Method.Login]: login,
-  [Api.Method.Logout]: logout,
-  [Api.Method.Signup]: signup,
-  [Api.Method.StorageTest]: testStorage,
-  [Api.Method.StorageCreate]: createStorage,
-  [Api.Method.CatalogCreate]: createCatalog,
-  [Api.Method.CatalogList]: listCatalog,
-  [Api.Method.AlbumCreate]: createAlbum,
-  [Api.Method.AlbumEdit]: editAlbum,
-  [Api.Method.AlbumList]: listAlbum,
-  [Api.Method.TagCreate]: createTag,
-  [Api.Method.TagEdit]: editTag,
-  [Api.Method.TagFind]: findTag,
-  [Api.Method.PersonCreate]: createPerson,
-  [Api.Method.PersonEdit]: editPerson,
-  [Api.Method.MediaGet]: getMedia,
-  [Api.Method.MediaCreate]: createMedia,
-  [Api.Method.MediaEdit]: updateMedia,
-  [Api.Method.MediaRelations]: relations,
-  [Api.Method.MediaPeople]: setMediaPeople,
-  [Api.Method.MediaDelete]: deleteMedia,
+  [Method.State]: getState,
+  [Method.Login]: login,
+  [Method.Logout]: logout,
+  [Method.Signup]: signup,
+  [Method.StorageTest]: testStorage,
+  [Method.StorageCreate]: createStorage,
+  [Method.CatalogCreate]: createCatalog,
+  [Method.CatalogList]: listCatalog,
+  [Method.AlbumCreate]: createAlbum,
+  [Method.AlbumEdit]: editAlbum,
+  [Method.AlbumList]: listAlbum,
+  [Method.TagCreate]: createTag,
+  [Method.TagEdit]: editTag,
+  [Method.TagFind]: findTag,
+  [Method.PersonCreate]: createPerson,
+  [Method.PersonEdit]: editPerson,
+  [Method.MediaGet]: getMedia,
+  [Method.MediaCreate]: createMedia,
+  [Method.MediaEdit]: updateMedia,
+  [Method.MediaRelations]: relations,
+  [Method.MediaPeople]: setMediaPeople,
+  [Method.MediaDelete]: deleteMedia,
 };
 
 const KEY_PARSE = /^(?<part>[^.[]+)(?<indexes>(?:\[\d+\])*)(?:\.(?<rest>.+))?$/;
@@ -111,13 +111,13 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
 
   logger.trace({ key, obj, value, fullkey }, "Adding value object");
   if (typeof obj != "object") {
-    throw new ApiError(Api.ErrorCode.InvalidData, {
+    throw new ApiError(ErrorCode.InvalidData, {
       message: `Invalid field '${fullkey}'`,
     });
   }
 
   if (key.length == 0) {
-    throw new ApiError(Api.ErrorCode.InvalidData, {
+    throw new ApiError(ErrorCode.InvalidData, {
       message: `Invalid field '${fullkey}'`,
     });
   }
@@ -125,7 +125,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
   let matches = KEY_PARSE.exec(key);
 
   if (!matches) {
-    throw new ApiError(Api.ErrorCode.InvalidData, {
+    throw new ApiError(ErrorCode.InvalidData, {
       message: `Invalid field '${fullkey}'.`,
     });
   }
@@ -154,7 +154,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
         logger.trace({ index }, "Created array");
         inner[index] = [];
       } else if (!Array.isArray(inner[index])) {
-        throw new ApiError(Api.ErrorCode.InvalidData, {
+        throw new ApiError(ErrorCode.InvalidData, {
           message: `Invalid repeated field '${fullkey}'.`,
         });
       }
@@ -173,7 +173,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
       logger.trace({ index }, "Descending");
       addKeyToObject(inner[index], rest, value, fullkey);
     } else if (index in inner) {
-      throw new ApiError(Api.ErrorCode.InvalidData, {
+      throw new ApiError(ErrorCode.InvalidData, {
         message: `Invalid repeated field '${fullkey}'.`,
       });
     } else {
@@ -185,7 +185,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
       logger.trace({ part }, "Created object");
       obj[part] = {};
     } else if (Array.isArray(obj[part]) || typeof obj[part] != "object") {
-      throw new ApiError(Api.ErrorCode.InvalidData, {
+      throw new ApiError(ErrorCode.InvalidData, {
         message: `Invalid repeated field '${fullkey}'.`,
       });
     }
@@ -193,7 +193,7 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
     logger.trace({ part }, "Descending");
     addKeyToObject(obj[part], rest, value, fullkey);
   } else if (part in obj) {
-    throw new ApiError(Api.ErrorCode.InvalidData, {
+    throw new ApiError(ErrorCode.InvalidData, {
       message: `Invalid repeated field '${fullkey}'.`,
     });
   } else {
@@ -212,15 +212,15 @@ export function decodeBody(body: Obj): Obj {
   return result;
 }
 
-export function apiRequestHandler<T extends Api.Method>(
+export function apiRequestHandler<T extends Method>(
   method: T,
 ): (ctx: AppContext) => Promise<void> {
   return async (ctx: AppContext): Promise<void> => {
-    if (ctx.method.toLocaleUpperCase() != Api.HttpMethods[method] &&
-        !(ctx.method.toLocaleUpperCase() == "POST" && Api.HttpMethods[method] != "GET")) {
-      throw new ApiError(Api.ErrorCode.BadMethod, {
+    if (ctx.method.toLocaleUpperCase() != HttpMethods[method] &&
+        !(ctx.method.toLocaleUpperCase() == "POST" && HttpMethods[method] != "GET")) {
+      throw new ApiError(ErrorCode.BadMethod, {
         received: ctx.method,
-        expected: Api.HttpMethods[method],
+        expected: HttpMethods[method],
       });
     }
 
@@ -250,7 +250,7 @@ export function apiRequestHandler<T extends Api.Method>(
             data: body.json,
             exception: e,
           }, "Client provided invalid json data.");
-          throw new ApiError(Api.ErrorCode.InvalidData, {
+          throw new ApiError(ErrorCode.InvalidData, {
             message: String(e),
           });
         }
@@ -267,7 +267,7 @@ export function apiRequestHandler<T extends Api.Method>(
           body,
           exception: e,
         }, "Client provided invalid data.");
-        throw new ApiError(Api.ErrorCode.InvalidData, {
+        throw new ApiError(ErrorCode.InvalidData, {
           message: String(e),
         });
       }

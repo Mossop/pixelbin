@@ -1,6 +1,6 @@
 import Knex from "knex";
 
-import { Api } from "../../model";
+import { Api, RelationType } from "../../model";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insertFromSelect } from "./queries";
@@ -9,32 +9,32 @@ import { rowFromLocation } from "./utils";
 
 type List = Table.MediaAlbum | Table.MediaTag | Table.MediaPerson;
 
-const RELATION_TABLE: Record<Api.RelationType, List> = {
-  [Api.RelationType.Album]: Table.MediaAlbum,
-  [Api.RelationType.Tag]: Table.MediaTag,
-  [Api.RelationType.Person]: Table.MediaPerson,
+export const RELATION_TABLE: Record<RelationType, List> = {
+  [RelationType.Album]: Table.MediaAlbum,
+  [RelationType.Tag]: Table.MediaTag,
+  [RelationType.Person]: Table.MediaPerson,
 };
 
-const SOURCE_TABLE: Record<List, Table> = {
+export const SOURCE_TABLE: Record<List, Table> = {
   [Table.MediaAlbum]: Table.Album,
   [Table.MediaTag]: Table.Tag,
   [Table.MediaPerson]: Table.Person,
 };
 
-const ITEM_LINK: Record<List, string> = {
+export const ITEM_LINK: Record<List, string> = {
   [Table.MediaAlbum]: "album",
   [Table.MediaTag]: "tag",
   [Table.MediaPerson]: "person",
 };
 
-type Updated<T extends Api.RelationType> =
-  T extends Api.RelationType.Album
+type Updated<T extends RelationType> =
+  T extends RelationType.Album
     ? { media: string; album: string; }
-    : T extends Api.RelationType.Tag
+    : T extends RelationType.Tag
       ? { media: string; tag: string; }
       : { media: string; person: string; };
 
-export async function addMediaRelations<T extends Api.RelationType>(
+export async function addMediaRelations<T extends RelationType>(
   this: UserScopedConnection,
   relation: T,
   media: string[],
@@ -92,7 +92,7 @@ export async function addMediaRelations<T extends Api.RelationType>(
   });
 }
 
-export async function removeMediaRelations<T extends Api.RelationType>(
+export async function removeMediaRelations<T extends RelationType>(
   this: UserScopedConnection,
   relation: T,
   media: string[],
@@ -111,7 +111,7 @@ export async function removeMediaRelations<T extends Api.RelationType>(
     .delete();
 }
 
-export async function setMediaRelations<T extends Api.RelationType>(
+export async function setMediaRelations<T extends RelationType>(
   this: UserScopedConnection,
   relation: T,
   media: string[],
@@ -149,7 +149,7 @@ export async function setMediaRelations<T extends Api.RelationType>(
   });
 }
 
-export async function setRelationMedia<T extends Api.RelationType>(
+export async function setRelationMedia<T extends RelationType>(
   this: UserScopedConnection,
   relation: T,
   relations: string[],

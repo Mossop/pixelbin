@@ -2,22 +2,22 @@ import { STATUS_CODES } from "http";
 
 import { Next, DefaultContext, DefaultState, ParameterizedContext, BaseContext } from "koa";
 
-import { Api } from "../../model";
+import { Api, ErrorCode } from "../../model";
 import { DatabaseError, DatabaseErrorCode } from "../database";
 import { LoggingContext } from "./logging";
 
-const ApiErrorStatus: Record<Api.ErrorCode, number> = {
-  [Api.ErrorCode.UnknownException]: 500,
-  [Api.ErrorCode.BadMethod]: 405,
-  [Api.ErrorCode.NotLoggedIn]: 401,
-  [Api.ErrorCode.LoginFailed]: 401,
-  [Api.ErrorCode.InvalidData]: 400,
-  [Api.ErrorCode.NotFound]: 404,
+const ApiErrorStatus: Record<ErrorCode, number> = {
+  [ErrorCode.UnknownException]: 500,
+  [ErrorCode.BadMethod]: 405,
+  [ErrorCode.NotLoggedIn]: 401,
+  [ErrorCode.LoginFailed]: 401,
+  [ErrorCode.InvalidData]: 400,
+  [ErrorCode.NotFound]: 404,
 };
 
 export class ApiError extends Error {
   public constructor(
-    public readonly code: Api.ErrorCode,
+    public readonly code: ErrorCode,
     public readonly data?: Record<string, string>,
   ) {
     super(`Api error: ${code}`);
@@ -51,10 +51,10 @@ export async function errorHandler(
     } else if (e instanceof DatabaseError) {
       ctx.logger.warn(e, "Database error occured.");
 
-      let code = Api.ErrorCode.InvalidData;
+      let code = ErrorCode.InvalidData;
       switch (e.code) {
         case DatabaseErrorCode.MissingRelationship:
-          code = Api.ErrorCode.NotFound;
+          code = ErrorCode.NotFound;
           break;
       }
 
@@ -63,7 +63,7 @@ export async function errorHandler(
       });
     } else {
       ctx.logger.warn(e, "Application threw unknown exception.");
-      error = new ApiError(Api.ErrorCode.UnknownException, {
+      error = new ApiError(ErrorCode.UnknownException, {
         message: String(e),
       });
     }

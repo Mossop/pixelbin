@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
-import { Api, Create, Patch } from "../../../model";
+import { Api, Create, Patch, RelationType } from "../../../model";
 import { getLogger, DateDecoder, NumericDecoder, MappingDecoder } from "../../../utils";
 
 type DeBlob<T> = T extends Blob ? File : T;
@@ -263,9 +263,9 @@ export async function MediaUpdateRequest(
 }
 
 const RelationTypeDecoder = JsonDecoder.oneOf([
-  JsonDecoder.isExactly(Api.RelationType.Album),
-  JsonDecoder.isExactly(Api.RelationType.Tag),
-  JsonDecoder.isExactly(Api.RelationType.Person),
+  JsonDecoder.isExactly(RelationType.Album),
+  JsonDecoder.isExactly(RelationType.Tag),
+  JsonDecoder.isExactly(RelationType.Person),
 ], "RelationType");
 
 const MediaRelationChangeDecoder = JsonDecoder.oneOf<Api.MediaRelationChange>([

@@ -1,4 +1,4 @@
-import { Api } from "../../model";
+import { ErrorCode as ApiErrorCode } from "../../model";
 import { expect } from "../test-helpers";
 import { exception, ErrorCode, ApiError, InternalError } from "./exception";
 
@@ -8,7 +8,7 @@ test("exception", (): void => {
   }).toThrowAppError(ErrorCode.UnknownAlbum);
 
   let apperror = new ApiError(404, "Not Found", {
-    code: Api.ErrorCode.InvalidData,
+    code: ApiErrorCode.InvalidData,
     data: {
       foo: "bar",
     },

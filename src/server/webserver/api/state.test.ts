@@ -1,4 +1,4 @@
-import { Api } from "../../../model";
+import { ErrorCode } from "../../../model";
 import { expect, realMoment, mockMoment } from "../../../test-helpers";
 import { insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
@@ -127,7 +127,7 @@ test("login failure", async (): Promise<void> => {
     .expect(401);
 
   expect(response.body).toEqual({
-    code: Api.ErrorCode.LoginFailed,
+    code: ErrorCode.LoginFailed,
   });
 
   response = await request

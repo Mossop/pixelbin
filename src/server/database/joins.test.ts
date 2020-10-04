@@ -1,4 +1,4 @@
-import { Api } from "../../model";
+import { RelationType } from "../../model";
 import { expect } from "../../test-helpers";
 import { fillMetadata } from "./media";
 import { buildTestDB, connection, insertTestData } from "./test-helpers";
@@ -52,7 +52,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await expect(user1Db.addMediaRelations(Api.RelationType.Album, [
+  await expect(user1Db.addMediaRelations(RelationType.Album, [
     media1.id,
     media2.id,
     media3.id,
@@ -70,7 +70,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  let added = await user1Db.addMediaRelations(Api.RelationType.Album, [
+  let added = await user1Db.addMediaRelations(RelationType.Album, [
     media1.id,
     media2.id,
     media3.id,
@@ -97,7 +97,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.addMediaRelations(Api.RelationType.Album, [
+  added = await user1Db.addMediaRelations(RelationType.Album, [
     media1.id,
     media2.id,
     media3.id,
@@ -124,7 +124,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await user1Db.removeMediaRelations(Api.RelationType.Album, [
+  await user1Db.removeMediaRelations(RelationType.Album, [
     media1.id,
     "unknown",
     media4.id,
@@ -145,7 +145,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await user1Db.removeMediaRelations(Api.RelationType.Album, [
+  await user1Db.removeMediaRelations(RelationType.Album, [
     media2.id,
     media3.id,
   ], [
@@ -161,7 +161,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await expect(user2Db.addMediaRelations(Api.RelationType.Album, [
+  await expect(user2Db.addMediaRelations(RelationType.Album, [
     media1.id,
     media4.id,
     media5.id,
@@ -178,7 +178,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.addMediaRelations(Api.RelationType.Album, [
+  added = await user1Db.addMediaRelations(RelationType.Album, [
     media4.id,
     media5.id,
   ], [
@@ -202,7 +202,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await user2Db.removeMediaRelations(Api.RelationType.Album, [
+  await user2Db.removeMediaRelations(RelationType.Album, [
     media4.id,
     media5.id,
   ], [
@@ -221,7 +221,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.setRelationMedia(Api.RelationType.Album, ["a6"], []);
+  added = await user1Db.setRelationMedia(RelationType.Album, ["a6"], []);
   expect(added).toEqual([]);
 
   expect(await mediaInAlbum("a1")).toEqual([]);
@@ -233,7 +233,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await expect(user1Db.setMediaRelations(Api.RelationType.Album, [
+  await expect(user1Db.setMediaRelations(RelationType.Album, [
     media1.id,
     media3.id,
     media4.id,
@@ -254,7 +254,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.setMediaRelations(Api.RelationType.Album, [
+  added = await user1Db.setMediaRelations(RelationType.Album, [
     media1.id,
     media3.id,
   ], [
@@ -269,7 +269,7 @@ test("Album media tests", async (): Promise<void> => {
     { media: media3.id, album: "a2" },
   ]);
 
-  added = await user1Db.setMediaRelations(Api.RelationType.Album, [
+  added = await user1Db.setMediaRelations(RelationType.Album, [
     media4.id,
     media5.id,
   ], [
@@ -305,7 +305,7 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await user1Db.removeMediaRelations(Api.RelationType.Album, [
+  await user1Db.removeMediaRelations(RelationType.Album, [
     media1.id,
     media4.id,
   ], [
@@ -332,7 +332,7 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await expect(user1Db.addMediaRelations(Api.RelationType.Album, [
+  await expect(user1Db.addMediaRelations(RelationType.Album, [
     media2.id,
     media6.id,
   ], [
@@ -342,7 +342,7 @@ test("Album media tests", async (): Promise<void> => {
     "a8",
   ])).rejects.toThrow("Unknown items");
 
-  added = await user1Db.addMediaRelations(Api.RelationType.Album, [
+  added = await user1Db.addMediaRelations(RelationType.Album, [
     media2.id,
   ], [
     "a2",
@@ -354,7 +354,7 @@ test("Album media tests", async (): Promise<void> => {
     { media: media2.id, album: "a3" },
   ]);
 
-  added = await user1Db.addMediaRelations(Api.RelationType.Album, [
+  added = await user1Db.addMediaRelations(RelationType.Album, [
     media6.id,
   ], [
     "a7",
@@ -387,7 +387,7 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user2Db.setMediaRelations(Api.RelationType.Album, [
+  added = await user2Db.setMediaRelations(RelationType.Album, [
     media1.id,
     media5.id,
   ], []);
@@ -416,7 +416,7 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user1Db.setRelationMedia(Api.RelationType.Album, [
+  added = await user1Db.setRelationMedia(RelationType.Album, [
     "a2",
   ], []);
 
@@ -542,14 +542,14 @@ test("Person location tests", async (): Promise<void> => {
   let media3 = await user2Db.createMedia("c1", fillMetadata({}));
   let media4 = await user1Db.createMedia("c3", fillMetadata({}));
 
-  await user2Db.addMediaRelations(Api.RelationType.Person, [
+  await user2Db.addMediaRelations(RelationType.Person, [
     media1.id,
     media2.id,
   ], [
     "p1",
   ]);
 
-  await user2Db.addMediaRelations(Api.RelationType.Person, [
+  await user2Db.addMediaRelations(RelationType.Person, [
     media3.id,
   ], [
     "p2",

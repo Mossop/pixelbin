@@ -1,6 +1,6 @@
 import moment, { Moment } from "moment-timezone";
 
-import { AlternateFileType, Api } from "../../model";
+import { AlternateFileType, RelationType } from "../../model";
 import { expect, realMoment, mockMoment } from "../../test-helpers";
 import { DatabaseConnection } from "./connection";
 import { fillMetadata } from "./media";
@@ -384,9 +384,9 @@ test("Media tests", async (): Promise<void> => {
 
   expect(newMedia["bob"]).toBeUndefined();
 
-  await user3Db.addMediaRelations(Api.RelationType.Album, [id], ["a8"]);
-  await user3Db.addMediaRelations(Api.RelationType.Tag, [id], ["t4"]);
-  await user3Db.addMediaRelations(Api.RelationType.Person, [id], ["p4"]);
+  await user3Db.addMediaRelations(RelationType.Album, [id], ["a8"]);
+  await user3Db.addMediaRelations(RelationType.Tag, [id], ["t4"]);
+  await user3Db.addMediaRelations(RelationType.Person, [id], ["p4"]);
 
   let [updated] = await user3Db.getMedia([id]);
   expect(updated).toEqual(fillMetadata({

@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Api } from "../../model";
+import { Api, AWSResult, Method } from "../../model";
 import { lastCallArgs } from "../../test-helpers";
 import {
   expect,
@@ -93,7 +93,7 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  expect(await badCall).toEqual([Api.Method.StorageTest, {
+  expect(await badCall).toEqual([Method.StorageTest, {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
     bucket: "Test bucket",
@@ -111,7 +111,7 @@ test("create catalog", async (): Promise<void> => {
   expect(nextBtn.disabled).toBeTruthy();
 
   await badResolve({
-    result: Api.AWSResult.DownloadFailure,
+    result: AWSResult.DownloadFailure,
     message: "bad result",
   });
 
@@ -143,7 +143,7 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  expect(await goodCall).toEqual([Api.Method.StorageTest, {
+  expect(await goodCall).toEqual([Method.StorageTest, {
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
     bucket: "Test bucket",
@@ -161,7 +161,7 @@ test("create catalog", async (): Promise<void> => {
   expect(nextBtn.disabled).toBeTruthy();
 
   await goodResolve({
-    result: Api.AWSResult.Success,
+    result: AWSResult.Success,
     message: null,
   });
 
@@ -191,7 +191,7 @@ test("create catalog", async (): Promise<void> => {
 
   click(submitBtn);
 
-  expect(await call).toEqual([Api.Method.StorageCreate, {
+  expect(await call).toEqual([Method.StorageCreate, {
     name: "New storage",
     accessKeyId: "Access key",
     secretAccessKey: "Secret",
@@ -235,7 +235,7 @@ test("create catalog", async (): Promise<void> => {
 
   store.dispatch.mockClear();
 
-  expect(await storageCall).toEqual([Api.Method.CatalogCreate, {
+  expect(await storageCall).toEqual([Method.CatalogCreate, {
     storage: "st123",
     name: "New catalog",
   }]);
@@ -309,7 +309,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
 
   click(submitBtn);
 
-  expect(await call).toEqual([Api.Method.CatalogCreate, {
+  expect(await call).toEqual([Method.CatalogCreate, {
     storage: "st567",
     name: "New catalog",
   }]);

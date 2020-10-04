@@ -1,7 +1,9 @@
-import type { Orientation as ObjectModel } from "media-metadata";
+import type { Orientation } from "media-metadata";
 import type { Moment } from "moment-timezone";
 
-import { Nullable } from "../utils";
+import { AllNull, Nullable } from "../utils";
+
+export type Date = Moment;
 
 export interface IdType<K = string> {
   id: K;
@@ -10,8 +12,8 @@ export interface IdType<K = string> {
 export interface User {
   email: string;
   fullname: string;
-  created: Moment;
-  lastLogin: Moment | null;
+  created: Date;
+  lastLogin: Date | null;
   verified: boolean;
 }
 
@@ -66,7 +68,7 @@ export interface Metadata {
   description: string;
   label: string;
   category: string;
-  taken: Moment;
+  taken: Date;
   timeZone: string;
   longitude: number;
   latitude: number;
@@ -75,7 +77,7 @@ export interface Metadata {
   city: string;
   state: string;
   country: string;
-  orientation: ObjectModel;
+  orientation: Orientation;
   make: string;
   model: string;
   lens: string;
@@ -87,36 +89,52 @@ export interface Metadata {
   rating: number;
 }
 
-export const metadataColumns: (keyof Metadata)[] = [
-  "filename",
-  "title",
-  "description",
-  "category",
-  "label",
-  "taken",
-  "timeZone",
-  "longitude",
-  "latitude",
-  "altitude",
-  "location",
-  "city",
-  "state",
-  "country",
-  "orientation",
-  "make",
-  "model",
-  "lens",
-  "photographer",
-  "aperture",
-  "shutterSpeed",
-  "iso",
-  "focalLength",
-  "rating",
-];
+export type MetadataFields<T> = {
+  [K in keyof Metadata]: Metadata[K] extends T ? K : never;
+}[keyof Metadata];
+
+export type TypeName<K> = K extends string
+  ? "string"
+  : K extends Date
+    ? "date"
+    : K extends number
+      ? "number"
+      : never;
+
+type FieldTypes = {
+  [K in keyof Metadata]: TypeName<Metadata[K]>;
+};
+
+export const MetadataColumns: FieldTypes = {
+  filename: "string",
+  title: "string",
+  description: "string",
+  category: "string",
+  label: "string",
+  timeZone: "string",
+  location: "string",
+  city: "string",
+  state: "string",
+  country: "string",
+  make: "string",
+  model: "string",
+  lens: "string",
+  photographer: "string",
+  shutterSpeed: "string",
+  longitude: "number",
+  latitude: "number",
+  altitude: "number",
+  orientation: "number",
+  aperture: "number",
+  iso: "number",
+  focalLength: "number",
+  rating: "number",
+  taken: "date",
+};
 
 export interface Media extends IdType {
   catalog: Catalog["id"];
-  created: Moment;
+  created: Date;
 }
 
 export interface MediaLists {
@@ -138,7 +156,7 @@ export interface FileInfo {
 
 export type Original = IdType & FileInfo & {
   media: Media["id"];
-  uploaded: Moment;
+  uploaded: Date;
 };
 
 export type UnprocessedMedia = Media & Nullable<Metadata> & MediaLists;
@@ -155,3 +173,8 @@ export type AlternateFile = IdType & FileInfo & {
   type: AlternateFileType;
 };
 
+export function emptyMetadata(): AllNull<Metadata> {
+  return Object.fromEntries(
+    Object.keys(MetadataColumns).map((column: string): [string, null] => [column, null]),
+  ) as AllNull<Metadata>;
+}

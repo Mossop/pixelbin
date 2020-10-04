@@ -1,7 +1,7 @@
 import { parse as parseCookie } from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
-import { Api } from "../../model";
+import { Api, HttpMethods, Method } from "../../model";
 import { appURL, Url } from "../context";
 import { fetch, document } from "../environment";
 import { ApiError, ErrorCode, exception } from "../utils/exception";
@@ -18,13 +18,13 @@ export function JsonDecoderDecoder<D>(decoder: JsonDecoder.Decoder<D>): Decoder<
   return async (response: Response): Promise<D> => decoder.decodePromise(await response.json());
 }
 
-export type RequestType<T extends Api.Method> =
+export type RequestType<T extends Method> =
   Api.Signatures[T] extends Api.Signature<infer Request>
     ? Request extends Api.None
       ? []
       : [Request]
     : never;
-export type ResponseType<T extends Api.Method> =
+export type ResponseType<T extends Method> =
   Api.Signatures[T] extends Api.Signature<unknown, infer Response> ? Response : never;
 
 export type ResponseDecoders = {
@@ -32,31 +32,31 @@ export type ResponseDecoders = {
 };
 
 const decoders: ResponseDecoders = {
-  [Api.Method.State]: JsonDecoderDecoder(Decoders.StateDecoder),
-  [Api.Method.Login]: JsonDecoderDecoder(Decoders.StateDecoder),
-  [Api.Method.Logout]: JsonDecoderDecoder(Decoders.StateDecoder),
-  [Api.Method.Signup]: JsonDecoderDecoder(Decoders.StateDecoder),
-  [Api.Method.StorageTest]: JsonDecoderDecoder(Decoders.StorageTestResultDecoder),
-  [Api.Method.StorageCreate]: JsonDecoderDecoder(Decoders.StorageDecoder),
-  [Api.Method.CatalogCreate]: JsonDecoderDecoder(Decoders.CatalogDecoder),
-  [Api.Method.CatalogList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
-  [Api.Method.AlbumCreate]: JsonDecoderDecoder(Decoders.AlbumDecoder),
-  [Api.Method.AlbumEdit]: JsonDecoderDecoder(Decoders.AlbumDecoder),
-  [Api.Method.AlbumList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
-  [Api.Method.TagCreate]: JsonDecoderDecoder(Decoders.TagDecoder),
-  [Api.Method.TagEdit]: JsonDecoderDecoder(Decoders.TagDecoder),
-  [Api.Method.TagFind]: JsonDecoderDecoder(JsonDecoder.array(Decoders.TagDecoder, "Tag[]")),
-  [Api.Method.PersonCreate]: JsonDecoderDecoder(Decoders.PersonDecoder),
-  [Api.Method.PersonEdit]: JsonDecoderDecoder(Decoders.PersonDecoder),
-  [Api.Method.MediaCreate]: JsonDecoderDecoder(Decoders.UnprocessedMediaDecoder),
-  [Api.Method.MediaGet]: JsonDecoderDecoder(Decoders.MaybeMediaArrayDecoder),
-  [Api.Method.MediaEdit]: JsonDecoderDecoder(Decoders.MediaDecoder),
-  [Api.Method.MediaRelations]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
-  [Api.Method.MediaPeople]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
-  [Api.Method.MediaDelete]: VoidDecoder,
+  [Method.State]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Method.Login]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Method.Logout]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Method.Signup]: JsonDecoderDecoder(Decoders.StateDecoder),
+  [Method.StorageTest]: JsonDecoderDecoder(Decoders.StorageTestResultDecoder),
+  [Method.StorageCreate]: JsonDecoderDecoder(Decoders.StorageDecoder),
+  [Method.CatalogCreate]: JsonDecoderDecoder(Decoders.CatalogDecoder),
+  [Method.CatalogList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Method.AlbumCreate]: JsonDecoderDecoder(Decoders.AlbumDecoder),
+  [Method.AlbumEdit]: JsonDecoderDecoder(Decoders.AlbumDecoder),
+  [Method.AlbumList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Method.TagCreate]: JsonDecoderDecoder(Decoders.TagDecoder),
+  [Method.TagEdit]: JsonDecoderDecoder(Decoders.TagDecoder),
+  [Method.TagFind]: JsonDecoderDecoder(JsonDecoder.array(Decoders.TagDecoder, "Tag[]")),
+  [Method.PersonCreate]: JsonDecoderDecoder(Decoders.PersonDecoder),
+  [Method.PersonEdit]: JsonDecoderDecoder(Decoders.PersonDecoder),
+  [Method.MediaCreate]: JsonDecoderDecoder(Decoders.UnprocessedMediaDecoder),
+  [Method.MediaGet]: JsonDecoderDecoder(Decoders.MaybeMediaArrayDecoder),
+  [Method.MediaEdit]: JsonDecoderDecoder(Decoders.MediaDecoder),
+  [Method.MediaRelations]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Method.MediaPeople]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
+  [Method.MediaDelete]: VoidDecoder,
 };
 
-export async function request<T extends Api.Method>(
+export async function request<T extends Method>(
   method: T,
   ...[requestData]: RequestType<T>
 ): Promise<ResponseType<T>> {
@@ -68,7 +68,7 @@ export async function request<T extends Api.Method>(
   let body: string | Record<string, string | Blob> | null = null;
 
   if (typeof requestData == "object" && requestData) {
-    if (Api.HttpMethods[method] == "GET") {
+    if (HttpMethods[method] == "GET") {
       for (let [key, value] of formParams(requestData)) {
         if (value instanceof Blob) {
           exception(ErrorCode.InvalidData, {
@@ -106,7 +106,7 @@ export async function request<T extends Api.Method>(
   let response: Response;
   try {
     response = await fetch(url.href, {
-      method: Api.HttpMethods[method],
+      method: HttpMethods[method],
       headers,
     }, body);
   } catch (e) {

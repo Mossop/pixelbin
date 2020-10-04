@@ -1,6 +1,6 @@
 import Knex from "knex";
 
-import { ObjectModel } from "../../../model";
+import { MetadataColumns, ObjectModel } from "../../../model";
 import { Obj } from "../../../utils";
 import * as Joins from "./joins";
 import * as Tables from "./tables";
@@ -83,7 +83,7 @@ export const COLUMNS = {
     "id",
     "catalog",
     "created",
-    ...ObjectModel.metadataColumns,
+    ...Object.keys(MetadataColumns),
   ],
 };
 

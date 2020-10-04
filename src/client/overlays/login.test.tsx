@@ -2,7 +2,7 @@ import { waitFor } from "@testing-library/react";
 import moment from "moment-timezone";
 import React from "react";
 
-import { Api } from "../../model";
+import { Api, Method, ErrorCode } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
 import {
@@ -59,7 +59,7 @@ test("login success", async (): Promise<void> => {
   });
 
   expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.Login, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Method.Login, {
     email: "foo@bar.com",
     password: "",
   }]);
@@ -128,7 +128,7 @@ test("login failed", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
   expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.Login, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Method.Login, {
     email: "foo@bar.com",
     password: "foopass",
   }]);
@@ -139,7 +139,7 @@ test("login failed", async (): Promise<void> => {
   });
 
   await reject(new ApiError(403, "Not Authorized", {
-    code: Api.ErrorCode.LoginFailed,
+    code: ErrorCode.LoginFailed,
     data: {},
   }));
 

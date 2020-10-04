@@ -2,7 +2,7 @@ import { waitFor } from "@testing-library/react";
 import moment from "moment-timezone";
 import React from "react";
 
-import { Api } from "../../model";
+import { Api, Method, ErrorCode } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
 import {
@@ -67,7 +67,7 @@ test("signup success", async (): Promise<void> => {
   });
 
   expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.Signup, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Method.Signup, {
     email: "foo@bar.com",
     password: "foopass",
     fullname: "Bob Parr",
@@ -148,14 +148,14 @@ test("signup failed", async (): Promise<void> => {
   });
 
   expect(mockedRequest).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedRequest)).toEqual([Api.Method.Signup, {
+  expect(lastCallArgs(mockedRequest)).toEqual([Method.Signup, {
     email: "foo@bar.com",
     password: "",
     fullname: "",
   }]);
 
   await reject(new ApiError(400, "Bad Request", {
-    code: Api.ErrorCode.InvalidData,
+    code: ErrorCode.InvalidData,
     data: {},
   }));
 

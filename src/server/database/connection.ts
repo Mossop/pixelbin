@@ -9,6 +9,7 @@ import * as CatalogQueries from "./catalog";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import * as Joins from "./joins";
 import * as MediaQueries from "./media";
+import * as SearchQueries from "./search";
 import { UserRef } from "./types";
 import * as Unsafe from "./unsafe";
 import * as UserQueries from "./user";
@@ -177,7 +178,7 @@ export class DatabaseConnection {
 }
 
 export class UserScopedConnection {
-  protected get knex(): Knex {
+  public get knex(): Knex {
     return this.connection.knex;
   }
 
@@ -230,4 +231,5 @@ export class UserScopedConnection {
   public readonly getMedia = wrapped(MediaQueries.getMedia);
   public readonly listAlternateFiles = wrapped(MediaQueries.listAlternateFiles);
   public readonly deleteMedia = wrapped(MediaQueries.deleteMedia);
+  public readonly searchMedia = wrapped(SearchQueries.searchMedia);
 }

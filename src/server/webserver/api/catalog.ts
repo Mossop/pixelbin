@@ -2,8 +2,7 @@ import AWS from "aws-sdk";
 import moment from "moment-timezone";
 import fetch from "node-fetch";
 
-import { Api, Create, ObjectModel, Patch, ResponseFor } from "../../../model";
-import { AWSResult } from "../../../model/api";
+import { Api, Create, ObjectModel, Patch, ResponseFor, AWSResult } from "../../../model";
 import { s3Config, s3Params, s3PublicUrl } from "../../../utils";
 import { UserScopedConnection } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
@@ -16,7 +15,7 @@ export const testStorage = ensureAuthenticated(
     userDb: UserScopedConnection,
     config: Api.StorageTestRequest,
   ): Promise<Api.StorageTestResult> => {
-    let resultCode = Api.AWSResult.UploadFailure;
+    let resultCode = AWSResult.UploadFailure;
     let target = "pixelbin-storage-test";
     try {
       let s3 = new AWS.S3({
@@ -35,7 +34,7 @@ export const testStorage = ensureAuthenticated(
       }).promise();
       /* eslint-enable @typescript-eslint/naming-convention */
 
-      resultCode = Api.AWSResult.DownloadFailure;
+      resultCode = AWSResult.DownloadFailure;
       let data = await s3.getObject(s3Params(config, target)).promise();
 
       if (!data.Body) {
@@ -48,7 +47,7 @@ export const testStorage = ensureAuthenticated(
         throw new Error("GetObject returned incorrect data.");
       }
 
-      resultCode = Api.AWSResult.PreSignedFailure;
+      resultCode = AWSResult.PreSignedFailure;
 
       let url = await s3.getSignedUrlPromise("getObject", s3Params(config, target));
 
@@ -75,7 +74,7 @@ export const testStorage = ensureAuthenticated(
 
       await s3.deleteObject(s3Params(config, target)).promise();
 
-      resultCode = Api.AWSResult.DeleteFailure;
+      resultCode = AWSResult.DeleteFailure;
     } catch (e) {
       return {
         result: resultCode,
