@@ -66,18 +66,22 @@ const CompoundJoinDecoder = JsonDecoder.enumeration<Join>(Join, "CompoundJoin");
 const CompoundQueryDecoder = JsonDecoder.lazy(() => JsonDecoder.object<Search.CompoundQuery>({
   invert: JsonDecoder.boolean,
   type: JsonDecoder.isExactly("compound"),
-  relation: JsonDecoder.optional(
-    JsonDecoder.nullable(
-      JsonDecoder.enumeration<RelationType>(RelationType, "RelationType"),
-    ),
-  ),
   join: CompoundJoinDecoder,
   queries: JsonDecoder.array(QueryDecoder, "Query[]"),
 }, "CompoundQuery"));
 
+const RelationQueryDecoder = JsonDecoder.combine(
+  CompoundQueryDecoder,
+  JsonDecoder.object({
+    relation: JsonDecoder.enumeration<RelationType>(RelationType, "RelationType"),
+    recursive: JsonDecoder.boolean,
+  }, "RelationQuery"),
+);
+
 const QueryDecoder: JsonDecoder.Decoder<Search.Query> = JsonDecoder.oneOf<Search.Query>([
   FieldQueryDecoder,
   CompoundQueryDecoder,
+  RelationQueryDecoder,
 ], "Query");
 
 export const SearchDecoder: JsonDecoder.Decoder<Search.Search> = JsonDecoder.combine(

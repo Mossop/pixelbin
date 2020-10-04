@@ -90,16 +90,23 @@ export enum Join {
 
 export interface CompoundQuery extends BaseQuery {
   type: "compound",
-  relation?: RelationType | null,
-  recursive?: boolean,
   join: Join,
   queries: Query[];
 }
 
-export type Query = FieldQuery | CompoundQuery;
+export interface RelationQuery extends CompoundQuery {
+  relation: RelationType,
+  recursive: boolean,
+}
+
+export type Query = FieldQuery | CompoundQuery | RelationQuery;
 
 export function isCompoundQuery(query: Query): query is CompoundQuery {
   return query.type == "compound";
+}
+
+export function isRelationQuery(query: Query): query is RelationQuery {
+  return query.type == "compound" && "relation" in query;
 }
 
 export type Search = Query & {
@@ -108,14 +115,16 @@ export type Search = Query & {
 
 export function checkQuery(query: Query | Search, inRelated: boolean = false): void {
   if (isCompoundQuery(query)) {
-    if (query.relation && inRelated) {
+    let isRelation = isRelationQuery(query);
+
+    if (isRelationQuery(query) && inRelated) {
       throw new Error(
         `Cannot query the related table ${query.relation} when already querying a related table.`,
       );
     }
 
     for (let q of query.queries) {
-      checkQuery(q, inRelated || Boolean(query.relation));
+      checkQuery(q, inRelated || isRelation);
     }
   } else {
     let validFields = inRelated ? RelationFields : MediaFields;

@@ -5,6 +5,7 @@ export * from "./events";
 export * from "./gc";
 export * from "./logging";
 export * from "./utility";
+export * from "./search";
 export * from "./services";
 export * from "./sort";
 export * from "./thumbnail";

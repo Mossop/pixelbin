@@ -1,6 +1,6 @@
 import { Draft } from "immer";
 
-import { Api, Method } from "../../model";
+import { Api, Method, Search } from "../../model";
 import { MediaCreateRequest } from "../../model/api";
 import { Overwrite } from "../../utils";
 import { request } from "./api";
@@ -38,6 +38,13 @@ export async function createMedia(media: MediaCreateData): Promise<MediaState> {
     people: media.people ? media.people.map((person: Reference<Person>): string => person.id) : [],
   });
   return mediaIntoState(result);
+}
+
+export async function searchMedia(search: Search.Search): Promise<MediaState[]> {
+  // @ts-ignore: This is because Search is a compound type and the request type inference is
+  // broken in this case.
+  let results = await request(Method.MediaSearch, search);
+  return results.map(mediaIntoState);
 }
 
 export function getThumbnailUrl(media: ProcessedMediaState, size: number): string {

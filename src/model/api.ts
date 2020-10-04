@@ -3,6 +3,7 @@ import { Moment } from "moment-timezone";
 
 import { Nullable, Primitive } from "../utils";
 import * as ObjectModel from "./models";
+import { Search } from "./search";
 
 export enum ErrorCode {
   UnknownException = "server-failure",
@@ -205,6 +206,7 @@ export enum Method {
   PersonEdit = "person/edit",
   // PersonDelete = "person/delete",
   MediaGet = "media/get",
+  MediaSearch = "media/search",
   MediaCreate = "media/create",
   MediaEdit = "media/edit",
   MediaRelations = "media/relations",
@@ -238,6 +240,7 @@ export const HttpMethods: MethodList = {
   [Method.PersonEdit]: "PATCH",
   // [Method.PersonDelete]: "DELETE",
   [Method.MediaGet]: "GET",
+  [Method.MediaSearch]: "POST",
   [Method.MediaCreate]: "PUT",
   [Method.MediaEdit]: "PATCH",
   [Method.MediaRelations]: "PATCH",
@@ -280,6 +283,7 @@ export interface Signatures {
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
   // [Method.PersonDelete]: Signature<string[], void>;
   [Method.MediaGet]: Signature<MediaGetRequest, (Media | null)[]>;
+  [Method.MediaSearch]: Signature<Search, Media[]>;
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
   [Method.MediaEdit]: Signature<MediaUpdateRequest, Omit<Media, "catalog">>;
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;

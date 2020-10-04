@@ -4,7 +4,13 @@ import { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
 import { Api, Create, Patch, RelationType } from "../../../model";
-import { getLogger, DateDecoder, NumericDecoder, MappingDecoder } from "../../../utils";
+import {
+  getLogger,
+  DateDecoder,
+  NumericDecoder,
+  MappingDecoder,
+  SearchDecoder,
+} from "../../../utils";
 
 type DeBlob<T> = T extends Blob ? File : T;
 
@@ -134,6 +140,8 @@ export const PersonEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Person
 export const MediaGetRequest = jsonDecoder(JsonDecoder.object<Api.MediaGetRequest>({
   id: JsonDecoder.string,
 }, "MediaGetRequest"));
+
+export const SearchRequest = jsonDecoder(SearchDecoder);
 
 export const StringArray = jsonDecoder(JsonDecoder.array(JsonDecoder.string, "string[]"));
 

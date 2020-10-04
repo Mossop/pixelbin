@@ -1,6 +1,7 @@
 import Knex from "knex";
 
 import { checkQuery, isCompoundQuery, Join, Modifier, Operator, Search } from "../../model";
+import { isRelationQuery } from "../../model/search";
 import { UserScopedConnection } from "./connection";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
 import { intoMedia } from "./media";
@@ -113,7 +114,7 @@ function applyQuery(
   query: Search.Query,
 ): Knex.QueryBuilder {
   if (isCompoundQuery(query)) {
-    if (query.relation) {
+    if (isRelationQuery(query)) {
       let relationTable = RELATION_TABLE[query.relation];
       let newTable = SOURCE_TABLE[relationTable];
       let link = ITEM_LINK[relationTable];

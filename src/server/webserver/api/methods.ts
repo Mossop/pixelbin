@@ -25,6 +25,7 @@ import {
   relations,
   setMediaPeople,
   deleteMedia,
+  searchMedia,
 } from "./media";
 import { getState, login, logout, signup } from "./state";
 
@@ -64,6 +65,7 @@ export const apiDecoders: RequestDecoders = {
   [Method.PersonCreate]: Decoders.PersonCreateRequest,
   [Method.PersonEdit]: Decoders.PersonEditRequest,
   [Method.MediaGet]: Decoders.MediaGetRequest,
+  [Method.MediaSearch]: Decoders.SearchRequest,
   [Method.MediaCreate]: Decoders.MediaCreateRequest,
   [Method.MediaEdit]: Decoders.MediaUpdateRequest,
   [Method.MediaRelations]: Decoders.MediaRelationsRequest,
@@ -96,6 +98,7 @@ const apiMethods: ApiInterface = {
   [Method.PersonCreate]: createPerson,
   [Method.PersonEdit]: editPerson,
   [Method.MediaGet]: getMedia,
+  [Method.MediaSearch]: searchMedia,
   [Method.MediaCreate]: createMedia,
   [Method.MediaEdit]: updateMedia,
   [Method.MediaRelations]: relations,

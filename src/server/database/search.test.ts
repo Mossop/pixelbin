@@ -1,9 +1,9 @@
 import moment from "moment-timezone";
 
-import { fillMetadata } from "../../../build/server/database";
 import { Search, Join, Operator, Modifier, checkQuery, RelationType } from "../../model";
 import { idSorted } from "../../utils";
 import { UserScopedConnection } from "./connection";
+import { fillMetadata } from "./media";
 import { buildTestDB, connection, insertData, insertTestData } from "./test-helpers";
 import { Table } from "./types";
 

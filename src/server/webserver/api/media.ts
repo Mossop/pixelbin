@@ -2,7 +2,14 @@ import fss, { promises as fs } from "fs";
 
 import sharp from "sharp";
 
-import { AlternateFileType, Api, ResponseFor, ErrorCode, RelationType } from "../../../model";
+import {
+  AlternateFileType,
+  Api,
+  ResponseFor,
+  ErrorCode,
+  RelationType,
+  Search,
+} from "../../../model";
 import { chooseSize } from "../../../utils";
 import { fillMetadata, UserScopedConnection, Media, ProcessedMedia } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
@@ -522,5 +529,16 @@ export const deleteMedia = ensureAuthenticatedTransaction(
     }
 
     await userDb.deleteMedia(data);
+  },
+);
+
+export const searchMedia = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    search: Search.Search,
+  ): Promise<ResponseFor<Api.Media>[]> => {
+    let media = await userDb.searchMedia(search);
+    return media.map(buildResponseMedia);
   },
 );

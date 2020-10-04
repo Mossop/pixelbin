@@ -4,7 +4,14 @@ import path from "path";
 import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
-import { AlternateFileType, Api, emptyMetadata, ErrorCode, RelationType } from "../../../model";
+import {
+  AlternateFileType,
+  Api,
+  emptyMetadata,
+  ErrorCode,
+  RelationType,
+  Operator,
+} from "../../../model";
 import { expect, mockedFunction, deferCall, mockMoment, realMoment } from "../../../test-helpers";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
@@ -1710,5 +1717,59 @@ test("Media person locations", async (): Promise<void> => {
         bottom: 1,
       },
     }],
+  }]);
+});
+
+test("Media search", async (): Promise<void> => {
+  const request = agent();
+  let db = await connection;
+  let user1Db = db.forUser("someone1@nowhere.com");
+
+  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
+  mockMoment(createdMoment1);
+  let media1 = await user1Db.createMedia("c1", fillMetadata({
+    title: "Media 1",
+  }));
+
+  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
+  mockMoment(createdMoment2);
+  await user1Db.createMedia("c1", fillMetadata({
+    title: "Media 2",
+  }));
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let response = await request
+    .post("/api/media/search")
+    .send({
+      catalog: "c1",
+      invert: false,
+      type: "field",
+      field: "title",
+      modifier: null,
+      operator: Operator.Equal,
+      value: "Media 1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
+    id: media1.id,
+    catalog: "c1",
+    created: expect.toEqualDate(createdMoment1),
+
+    ...emptyMetadata(),
+    title: "Media 1",
+
+    albums: [],
+    tags: [],
+    people: [],
   }]);
 });
