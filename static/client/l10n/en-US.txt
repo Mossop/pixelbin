@@ -23,6 +23,7 @@ banner-login = Log in…
 banner-signup = Signup…
 banner-logout = Log out
 banner-catalog-edit = Edit catalog…
+banner-search = Search…
 banner-album-new = New album…
 banner-album-edit = Edit album…
 
@@ -103,3 +104,54 @@ metadata-label-focalLength = Focal length:
 metadata-label-rating = Rating:
 metadata-label-tags = Tags:
 metadata-label-people = People:
+
+search-dialog-title = Search…
+search-dialog-accept = Search
+search-dialog-results = Found {$count} {$count ->
+  [one] result
+ *[other] results
+}.
+
+search-dialog-compound-initial-and = Find media that matches <Join>all</Join> of:
+search-dialog-compound-initial-or = Find media that matches <Join>any</Join> of:
+search-dialog-compound-and = Matches <Join>all</Join> of:
+search-dialog-compound-or = Matches <Join>any</Join> of:
+search-dialog-tag-and = With a tag that matches <Join>all</Join> of:
+search-dialog-tag-or = With a tag that matches <Join>any</Join> of:
+search-dialog-album-and = In an album that matches <Join>all</Join> of:
+search-dialog-album-or = In an album that matches <Join>any</Join> of:
+search-dialog-person-and = Includes a person that matches <Join>all</Join> of:
+search-dialog-person-or = Includes a person that matches <Join>any</Join> of:
+
+search-field-id = {$relation ->
+  [album] Album ID
+  [tag] Tag ID
+ *[person] Person ID
+}
+search-field-name = {$relation ->
+  [album] Album name
+  [tag] Tag name
+ *[person] Person name
+}
+
+search-modifier-null = as-is
+search-modifier-length = length
+search-modifier-year = year
+search-modifier-month = month
+
+search-operator-empty = is empty
+search-operator-inverted-empty = is not empty
+search-operator-equal = is equal to
+search-operator-inverted-equal = is not equal to
+search-operator-lessthan = is less than
+search-operator-inverted-lessthan = is greater than or equal to
+search-operator-lessthanequal = is less than or equal to
+search-operator-inverted-lessthanequal = is greater than
+search-operator-contains = contains
+search-operator-inverted-contains = doesn't contain
+search-operator-startswith = starts with
+search-operator-inverted-startswith = doesn't start with
+search-operator-endswith = ends with
+search-operator-inverted-endswith = doesn't end with
+search-operator-matches = matches
+search-operator-inverted-matches = doesn't match

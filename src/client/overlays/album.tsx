@@ -14,15 +14,15 @@ import { useFormState } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
 import { VirtualItem, VirtualTree } from "../utils/virtual";
 
-interface EditProps {
-  album: Reference<Album>;
+export interface AlbumEditOverlayProps {
+  readonly album: Reference<Album>;
 }
 
-interface CreateProps {
-  parent: Reference<MediaTarget>;
+export interface AlbumCreateOverlayProps {
+  readonly parent: Reference<MediaTarget>;
 }
 
-export type AlbumOverlayProps = EditProps | CreateProps;
+export type AlbumOverlayProps = AlbumEditOverlayProps | AlbumCreateOverlayProps;
 
 export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   let { album, parent, catalog } = useSelector((state: StoreState) => {

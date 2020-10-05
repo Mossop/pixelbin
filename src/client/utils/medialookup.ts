@@ -1,16 +1,18 @@
 import { Draft } from "immer";
 import { useEffect, useState } from "react";
 
+import { Query } from "../../model";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
 import { Album, Catalog, Reference } from "../api/highlevel";
-import { getMedia } from "../api/media";
+import { getMedia, searchMedia } from "../api/media";
 import { MediaState } from "../api/types";
 
 export enum MediaLookupType {
   Single,
   Album,
   Catalog,
+  Search,
 }
 
 export interface AlbumMediaLookup {
@@ -29,7 +31,17 @@ export interface SingleMediaLookup {
   media: string;
 }
 
-export type MediaLookup = AlbumMediaLookup | CatalogMediaLookup | SingleMediaLookup;
+export interface SearchMediaLookup {
+  type: MediaLookupType.Search;
+  catalog: Reference<Catalog>;
+  query: Query;
+}
+
+export type MediaLookup =
+  AlbumMediaLookup |
+  CatalogMediaLookup |
+  SingleMediaLookup |
+  SearchMediaLookup;
 
 function isMedia(item: Draft<MediaState> | null): item is Draft<MediaState> {
   return !!item;
@@ -46,6 +58,9 @@ async function lookupMedia(lookup: MediaLookup): Promise<readonly MediaState[]> 
     case MediaLookupType.Single: {
       let media = await getMedia([lookup.media]);
       return media.filter(isMedia);
+    }
+    case MediaLookupType.Search: {
+      return searchMedia(lookup.catalog, lookup.query);
     }
   }
 }

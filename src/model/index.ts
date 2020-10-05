@@ -16,6 +16,7 @@ export {
   AllowedModifiers,
   AllowedOperators,
   isCompoundQuery,
+  isRelationQuery,
   isFieldQuery,
   checkQuery,
   MediaFields,

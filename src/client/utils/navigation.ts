@@ -1,5 +1,6 @@
 import { pathToRegexp } from "path-to-regexp";
 
+import { Join } from "../../model";
 import { Catalog, Album } from "../api/highlevel";
 import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
@@ -147,6 +148,29 @@ const pathMap: PathMap[] = [
           type: OverlayType.Login,
         },
       });
+    },
+  ],
+
+  [
+    re("/catalog/:id/search"),
+    (serverState: ServerState, historyState: HistoryState, id: string): UIState => {
+      let catalog = Catalog.safeFromState(serverState, id);
+      if (!catalog) {
+        return notfound(historyState);
+      }
+
+      return {
+        page: {
+          type: PageType.Search,
+          catalog: catalog.ref(),
+          query: {
+            invert: false,
+            type: "compound",
+            join: Join.And,
+            queries: [],
+          },
+        },
+      };
     },
   ],
 
@@ -303,6 +327,9 @@ export function fromUIState(uiState: UIState): HistoryState {
         default:
           return buildState(`/media/${uiState.page.media}`);
       }
+    }
+    case PageType.Search: {
+      return buildState(`/catalog/${uiState.page.catalog.id}/search`);
     }
 
     case PageType.NotFound: {

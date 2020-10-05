@@ -1,36 +1,33 @@
-import { Reference, Album, Catalog } from "../api/highlevel";
-import { MediaTarget } from "../api/media";
+import type { AlbumCreateOverlayProps, AlbumEditOverlayProps } from "./album";
+import type { SearchOverlayProps } from "./search";
 
 export enum OverlayType {
   Login = "login",
   Signup = "signup",
   CreateCatalog = "createCatalog",
-  EditCatalog = "editCatalog",
   CreateAlbum = "createAlbum",
   EditAlbum = "editAlbum",
+  Search = "search",
 }
 
 interface BaseOverlayState {
   readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CreateCatalog;
 }
 
-interface CatalogEditOverlayState {
-  readonly type: OverlayType.EditCatalog;
-  readonly catalog: Reference<Catalog>;
-}
-
-interface AlbumCreateOverlayState {
+type AlbumCreateOverlayState = AlbumCreateOverlayProps & {
   readonly type: OverlayType.CreateAlbum;
-  readonly parent: Reference<MediaTarget>;
-}
+};
 
-interface AlbumEditOverlayState {
+type AlbumEditOverlayState = AlbumEditOverlayProps & {
   readonly type: OverlayType.EditAlbum;
-  readonly album: Reference<Album>;
-}
+};
+
+type SearchOverlayState = SearchOverlayProps & {
+  readonly type: OverlayType.Search;
+};
 
 export type OverlayState =
    BaseOverlayState |
-   CatalogEditOverlayState |
    AlbumCreateOverlayState |
-   AlbumEditOverlayState;
+   AlbumEditOverlayState |
+   SearchOverlayState;

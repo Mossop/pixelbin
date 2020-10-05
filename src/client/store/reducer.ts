@@ -1,6 +1,7 @@
 import { reducer } from "deeds/immer";
 import { Draft } from "immer";
 
+import { Query } from "../../model";
 import { Catalog, Album, Reference } from "../api/highlevel";
 import type { MediaTarget } from "../api/media";
 import type {
@@ -57,6 +58,19 @@ const catalogReducers = {
         type: PageType.Catalog,
         catalog: Catalog.ref(catalog),
       },
+    };
+  },
+
+  showSearchOverlay(
+    state: Draft<StoreState>,
+    user: Draft<UserState>,
+    catalog: Reference<Catalog>,
+    query: Draft<Query>,
+  ): void {
+    state.ui.overlay = {
+      type: OverlayType.Search,
+      catalog,
+      query,
     };
   },
 };

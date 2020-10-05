@@ -13,6 +13,7 @@ const Album = lazy(() => import(/* webpackChunkName: "AlbumPage" */ "./album"));
 const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./catalog"));
 const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./user"));
 const Media = lazy(() => import(/* webpackChunkName: "MediaPage" */ "./media"));
+const Search = lazy(() => import(/* webpackChunkName: "SearchPage" */ "./search"));
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({
@@ -33,6 +34,9 @@ export default function PageDisplay(): ReactResult {
       }
       case PageType.Media: {
         return <Media user={user} {...page}/>;
+      }
+      case PageType.Search: {
+        return <Search user={user} {...page}/>;
       }
     }
   }

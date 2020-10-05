@@ -144,6 +144,31 @@ test("media page", (): void => {
   })).toEqual(state("/album/testalbum/media/testmedia"));
 });
 
+test("search page", (): void => {
+  expect(intoUIState(state("/catalog/testcatalog/search"), LoggedOut)).toEqual({
+    page: {
+      type: PageType.NotFound,
+      history: state("/catalog/testcatalog/search"),
+    },
+  });
+
+  expect(intoUIState(state("/catalog/testcatalog/search"), LoggedIn)).toEqual({
+    page: {
+      type: PageType.Search,
+      catalog: expect.toBeRef("testcatalog"),
+      query: null,
+    },
+  });
+
+  expect(fromUIState({
+    page: {
+      type: PageType.Search,
+      catalog: Catalog.ref("testcatalog"),
+      query: null,
+    },
+  })).toEqual(state("/catalog/testcatalog/search"));
+});
+
 test("album page", (): void => {
   expect(intoUIState(state("/album/testalbum"), LoggedOut)).toEqual({
     page: {

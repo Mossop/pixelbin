@@ -134,7 +134,7 @@ test("album", async (): Promise<void> => {
   albumRef = Album.ref("album2");
   rerender(<AlbumPage user={store.state.serverState.user!} album={albumRef}/>);
 
-  expect(store.dispatch).toHaveBeenCalledTimes(0);
+  expect(store.dispatch).not.toHaveBeenCalled();
 
   await expect(call2).resolves.toEqual([
     Method.AlbumList,
@@ -153,7 +153,7 @@ test("album", async (): Promise<void> => {
     onClick: expect.anything(),
   });
 
-  expect(store.dispatch).toHaveBeenCalledTimes(0);
+  expect(store.dispatch).not.toHaveBeenCalled();
   // @ts-ignore: Testing.
   lastCallArgs(mockedMediaGallery)[0].onClick({ id: "foo" });
 

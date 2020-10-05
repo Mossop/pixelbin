@@ -68,15 +68,15 @@ export const AllowedOperators = {
 };
 
 interface BaseQuery {
-  invert: boolean;
+  readonly invert: boolean;
 }
 
 export interface FieldQuery extends BaseQuery {
-  type: "field",
-  field: string,
-  modifier: Modifier | null;
-  operator: Operator;
-  value?: string | number | Date | null | undefined;
+  readonly type: "field",
+  readonly field: string,
+  readonly modifier: Modifier | null;
+  readonly operator: Operator;
+  readonly value?: string | number | Date | null | undefined;
 }
 
 export function isFieldQuery(query: Query): query is FieldQuery {
@@ -89,14 +89,14 @@ export enum Join {
 }
 
 export interface CompoundQuery extends BaseQuery {
-  type: "compound",
-  join: Join,
-  queries: Query[];
+  readonly type: "compound",
+  readonly join: Join,
+  readonly queries: readonly Query[];
 }
 
 export interface RelationQuery extends CompoundQuery {
-  relation: RelationType,
-  recursive: boolean,
+  readonly relation: RelationType,
+  readonly recursive: boolean,
 }
 
 export type Query = FieldQuery | CompoundQuery | RelationQuery;

@@ -11,6 +11,7 @@ const AlbumOverlay = lazy(() => import(/* webpackChunkName: "AlbumOverlay" */ ".
 const CreateCatalogOverlay = lazy(() =>
   import(/* webpackChunkName: "CreateCatalog" */ "./CreateCatalog"));
 const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./signup"));
+const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./search"));
 
 export default function Overlay(): ReactResult {
   const actions = useActions();
@@ -24,26 +25,29 @@ export default function Overlay(): ReactResult {
     return null;
   }
 
-  if (!user) {
-    switch (overlay.type) {
-      case OverlayType.Login: {
-        return <LoginOverlay/>;
-      }
-      case OverlayType.Signup: {
-        return <SignupOverlay/>;
-      }
-    }
-  } else {
+  if (user) {
     switch (overlay.type) {
       case OverlayType.CreateCatalog: {
         return <CreateCatalogOverlay user={user}/>;
       }
       case OverlayType.CreateAlbum: {
-        return <AlbumOverlay parent={overlay.parent}/>;
+        return <AlbumOverlay {...overlay}/>;
       }
       case OverlayType.EditAlbum: {
-        return <AlbumOverlay album={overlay.album}/>;
+        return <AlbumOverlay {...overlay}/>;
       }
+      case OverlayType.Search: {
+        return <SearchOverlay {...overlay}/>;
+      }
+    }
+  }
+
+  switch (overlay.type) {
+    case OverlayType.Login: {
+      return <LoginOverlay/>;
+    }
+    case OverlayType.Signup: {
+      return <SignupOverlay/>;
     }
   }
 
