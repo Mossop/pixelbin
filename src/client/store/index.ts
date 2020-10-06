@@ -22,7 +22,6 @@ export function buildStore(): void {
         type: PageType.Index,
       },
     },
-    mediaList: null,
   };
 
   let asyncDispatchListener: AsyncDispatchListener | null = null;

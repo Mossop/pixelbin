@@ -7,7 +7,7 @@ import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import reducer from "../store/reducer";
-import { MediaLookupType, StoreType } from "../store/types";
+import { StoreType } from "../store/types";
 import {
   expect,
   mockServerState,
@@ -16,6 +16,7 @@ import {
   mockStore,
 } from "../test-helpers";
 import { HistoryState, addListener, getState, pushState, replaceState } from "./history";
+import { MediaLookupType } from "./medialookup";
 import { intoUIState, fromUIState, stateURLMatches, watchStore } from "./navigation";
 
 /* eslint-disable */

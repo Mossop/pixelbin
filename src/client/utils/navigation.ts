@@ -5,11 +5,12 @@ import { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import actions from "../store/actions";
-import { MediaLookupType, StoreType, UIState } from "../store/types";
+import { StoreType, UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import { createDraft } from "./helpers";
 import * as history from "./history";
 import { HistoryState, buildState } from "./history";
+import { MediaLookupType } from "./medialookup";
 
 function re(pattern: string): RegExp {
   return pathToRegexp(pattern, undefined, {

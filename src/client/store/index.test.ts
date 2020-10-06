@@ -22,7 +22,6 @@ test("store initialization", async (): Promise<void> => {
         type: PageType.Index,
       },
     },
-    mediaList: null,
   });
 
   let serverState: ResponseFor<Api.State> = {
@@ -62,6 +61,5 @@ test("store initialization", async (): Promise<void> => {
         type: PageType.Index,
       },
     },
-    mediaList: null,
   });
 });

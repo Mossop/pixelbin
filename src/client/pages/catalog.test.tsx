@@ -1,8 +1,11 @@
+import moment from "moment-timezone";
 import React from "react";
 
-import { lastCallArgs } from "../../test-helpers";
+import { Api, Method } from "../../model";
+import { fillMetadata } from "../../server/database";
+import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { Catalog } from "../api/highlevel";
-import { MediaLookupType } from "../store/types";
+import MediaGallery from "../components/MediaGallery";
 import {
   expect,
   mockStore,
@@ -12,12 +15,20 @@ import {
   expectChild,
   click,
   resetDOM,
+  deferRequest,
 } from "../test-helpers";
+import { MediaLookupType } from "../utils/medialookup";
 import CatalogPage from "./catalog";
+import { PageType } from "./types";
+
+jest.mock("../api/api");
+jest.mock("../components/MediaGallery", () => jest.fn(() => null));
 
 beforeEach(resetDOM);
 
-test("catalog", (): void => {
+const mockedMediaGallery = mockedFunction(MediaGallery);
+
+test("catalog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog",
@@ -30,36 +41,25 @@ test("catalog", (): void => {
 
   let catalogRef = Catalog.ref("catalog");
 
+  let { call, resolve } = deferRequest<Api.Media[]>();
+
   let { container, rerender } = render(
     <CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>,
     store,
   );
 
+  await expect(call).resolves.toEqual([
+    Method.CatalogList,
+    {
+      id: "catalog",
+    },
+  ]);
+
   let buttons = expectChild(container, "#banner-buttons");
 
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "listMedia",
-    payload: [{
-      type: MediaLookupType.Catalog,
-      catalog: expect.toBeRef("catalog"),
-    }],
-  });
-  store.dispatch.mockClear();
-
   expect(store.dispatch).not.toHaveBeenCalled();
-  let button = expectChild(buttons, "#pageoption-button-catalog-edit");
-  click(button);
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showCatalogEditOverlay",
-    payload: [
-      expect.toBeRef("catalog"),
-    ],
-  });
-  store.dispatch.mockClear();
 
-  button = expectChild(buttons, "#pageoption-button-album-create");
+  let button = expectChild(buttons, "#pageoption-button-album-create");
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
@@ -70,19 +70,85 @@ test("catalog", (): void => {
   });
   store.dispatch.mockClear();
 
+  expect(mockedMediaGallery).toHaveBeenCalledTimes(1);
+  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
+    media: null,
+    onClick: expect.anything(),
+  });
+  mockedMediaGallery.mockClear();
+
+  let media = [fillMetadata({
+    id: "media1",
+    created: moment(),
+    albums: [],
+    tags: [],
+    people: [],
+  }), fillMetadata({
+    id: "media2",
+    created: moment(),
+    albums: [],
+    tags: [],
+    people: [],
+  }), fillMetadata({
+    id: "media3",
+    created: moment(),
+    albums: [],
+    tags: [],
+    people: [],
+  })];
+
+  await resolve(media);
+
+  expect(mockedMediaGallery).toHaveBeenCalled();
+  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
+    media,
+    onClick: expect.anything(),
+  });
+  mockedMediaGallery.mockClear();
+
+  let { call: call2, resolve: resolve2 } = deferRequest<Api.Media[]>();
+  let wasCalled = false;
+  void call2.then(() => wasCalled = true);
+
   rerender(<CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>);
   expect(store.dispatch).not.toHaveBeenCalled();
+  expect(wasCalled).toBeFalsy();
 
   catalogRef = Catalog.ref("catalog2");
   rerender(<CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>);
 
+  expect(store.dispatch).not.toHaveBeenCalled();
+
+  await expect(call2).resolves.toEqual([
+    Method.CatalogList,
+    {
+      id: "catalog2",
+    },
+  ]);
+
+  media = [media[0]];
+  await resolve2(media);
+
+  expect(mockedMediaGallery).toHaveBeenCalled();
+  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
+    media,
+    onClick: expect.anything(),
+  });
+  // @ts-ignore: Testing.
+  lastCallArgs(mockedMediaGallery)[0].onClick({ id: "foo" });
+
   expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "listMedia",
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "navigate",
     payload: [{
-      type: MediaLookupType.Catalog,
-      catalog: expect.toBeRef("catalog2"),
+      page: {
+        type: PageType.Media,
+        media: "foo",
+        lookup: {
+          type: MediaLookupType.Catalog,
+          catalog: expect.toBeRef("catalog2"),
+        },
+      },
     }],
   });
-  store.dispatch.mockClear();
 });

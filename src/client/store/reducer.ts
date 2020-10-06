@@ -9,14 +9,12 @@ import type {
   ServerState,
   UserState,
   StorageState,
-  MediaState,
 } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
-import MediaManager from "../utils/MediaManager";
 import { nameSorted } from "../utils/sort";
-import { MediaLookup, StoreState, UIState } from "./types";
+import { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
   S extends (state: Draft<StoreState>, user: Draft<UserState>, ...args: infer A) => void
@@ -59,17 +57,6 @@ const catalogReducers = {
         type: PageType.Catalog,
         catalog: Catalog.ref(catalog),
       },
-    };
-  },
-
-  showCatalogEditOverlay(
-    state: Draft<StoreState>,
-    _user: Draft<UserState>,
-    catalog: Reference<Catalog>,
-  ): void {
-    state.ui.overlay = {
-      type: OverlayType.EditCatalog,
-      catalog: catalog,
     };
   },
 };
@@ -196,24 +183,6 @@ const authReducers = {
 };
 
 const mediaReducers = {
-  listMedia(state: Draft<StoreState>, lookup: MediaLookup): void {
-    if (state.mediaList && MediaManager.lookupsMatch(state.mediaList.lookup, lookup)) {
-      return;
-    }
-
-    state.mediaList = {
-      lookup,
-      media: null,
-    };
-
-    MediaManager.lookupMedia(lookup);
-  },
-
-  listedMedia(state: Draft<StoreState>, media: Draft<MediaState>[]): void {
-    if (state.mediaList) {
-      state.mediaList.media = media;
-    }
-  },
 };
 
 export const reducers = {

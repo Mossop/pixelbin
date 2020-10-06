@@ -17,7 +17,7 @@ import InfoIcon from "@material-ui/icons/Info";
 import NavigateBeforeIcon from "@material-ui/icons/NavigateBefore";
 import NavigateNextIcon from "@material-ui/icons/NavigateNext";
 import alpha from "color-alpha";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import { ObjectModel } from "../../model";
 import { isProcessed, MediaState } from "../api/types";
@@ -27,11 +27,11 @@ import { Photo, Video } from "../components/Media";
 import MediaInfo from "../components/MediaInfo";
 import Page from "../components/Page";
 import { document } from "../environment";
-import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { MediaLookup, MediaLookupType, StoreState, UIState } from "../store/types";
+import { UIState } from "../store/types";
 import Delayed from "../utils/delayed";
 import { useFullscreen } from "../utils/hooks";
+import { MediaLookup, MediaLookupType, useMediaLookup } from "../utils/medialookup";
 import { mediaTitle } from "../utils/metadata";
 import { ReactResult } from "../utils/types";
 import { AuthenticatedPageProps, PageType } from "./types";
@@ -186,8 +186,6 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
   const areaRef = useRef<HTMLDivElement>(null);
   const fullscreen = useFullscreen();
 
-  const mediaList = useSelector((state: StoreState) => state.mediaList?.media);
-
   const [displayOverlays, setDisplayOverlays] = useState(true);
   const [showMediaInfo, setShowMediaInfo] = useState(false);
   const [location, setLocation] = useState<ObjectModel.Location | null>(null);
@@ -224,15 +222,14 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
     return () => actions.navigate(parent);
   }, [actions, parent]);
 
-  useEffect(
-    () => {
-      actions.listMedia(props.lookup ?? {
-        type: MediaLookupType.Single,
-        media: props.media,
-      });
-    },
-    [props.lookup, props.media, actions],
-  );
+  let lookup = useMemo<MediaLookup>(() => {
+    return props.lookup ?? {
+      type: MediaLookupType.Single,
+      media: props.media,
+    };
+  }, [props.lookup, props.media]);
+
+  let mediaList = useMediaLookup(lookup);
 
   const mediaIndex = useMemo(
     () => mediaList?.findIndex((item: MediaState): boolean => item.id == props.media) ?? -1,
@@ -244,11 +241,13 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
       return null;
     }
 
+    let previous = mediaList[mediaIndex - 1].id;
+
     return () => {
       actions.navigate({
         page: {
           type: PageType.Media,
-          media: mediaList[mediaIndex - 1].id,
+          media: previous,
           lookup: props.lookup,
         },
       });
@@ -260,11 +259,13 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
       return null;
     }
 
+    let next = mediaList[mediaIndex + 1].id;
+
     return () => {
       actions.navigate({
         page: {
           type: PageType.Media,
-          media: mediaList[mediaIndex + 1].id,
+          media: next,
           lookup: props.lookup,
         },
       });

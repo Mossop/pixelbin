@@ -1,14 +1,13 @@
 import { useLocalization } from "@fluent/react";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useMemo } from "react";
 
 import { Album, Reference } from "../api/highlevel";
 import { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
-import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { MediaLookupType, StoreState } from "../store/types";
+import { AlbumMediaLookup, MediaLookupType, useMediaLookup } from "../utils/medialookup";
 import { ReactResult } from "../utils/types";
 import { AuthenticatedPageProps, PageType } from "./types";
 
@@ -19,7 +18,6 @@ export interface AlbumPageProps {
 export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps): ReactResult {
   const { l10n } = useLocalization();
   const actions = useActions();
-  const media = useSelector((state: StoreState) => state.mediaList?.media);
 
   const onAlbumEdit = useCallback(
     () => actions.showAlbumEditOverlay(props.album),
@@ -45,14 +43,13 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     });
   }, [actions, props.album]);
 
-  useEffect(
-    () => actions.listMedia({
-      type: MediaLookupType.Album,
-      album: props.album,
-      recursive: true,
-    }),
-    [props.album, actions],
-  );
+  let lookup = useMemo<AlbumMediaLookup>(() => ({
+    type: MediaLookupType.Album,
+    album: props.album,
+    recursive: true,
+  }), [props.album]);
+
+  let media = useMediaLookup(lookup);
 
   return <Page
     selectedItem={props.album.id}
