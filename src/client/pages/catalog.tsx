@@ -1,6 +1,8 @@
 import { useLocalization } from "@fluent/react";
+import { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
+import { Join, Search } from "../../model";
 import { Catalog, Reference } from "../api/highlevel";
 import { MediaState } from "../api/types";
 import Content from "../components/Content";
@@ -44,10 +46,25 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
 
   let media = useMediaLookup(lookup);
 
+  const onCatalogSearch = useCallback(() => {
+    let query: Draft<Search.CompoundQuery> = {
+      invert: false,
+      type: "compound",
+      join: Join.And,
+      queries: [],
+    };
+
+    actions.showSearchOverlay(props.catalog, query);
+  }, [actions, props.catalog]);
+
   return <Page
     selectedItem={props.catalog.id}
     pageOptions={
       [{
+        id: "catalog-search",
+        onClick: onCatalogSearch,
+        label: l10n.getString("banner-search"),
+      }, {
         id: "album-create",
         onClick: onAlbumCreate,
         label: l10n.getString("banner-album-new"),

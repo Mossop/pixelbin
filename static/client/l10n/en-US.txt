@@ -107,21 +107,38 @@ metadata-label-people = People:
 
 search-dialog-title = Search…
 search-dialog-accept = Search
+search-dialog-reset = Reset
 search-dialog-results = Found {$count} {$count ->
   [one] result
  *[other] results
 }.
+search-dialog-add-button = Add search term
+search-dialog-add-field = Property
+search-dialog-add-compound = Group of properties
+search-dialog-add-person = Search people
+search-dialog-add-tag = Search tags
+search-dialog-add-album = Search albums
 
-search-dialog-compound-initial-and = Find media that matches <Join>all</Join> of:
-search-dialog-compound-initial-or = Find media that matches <Join>any</Join> of:
-search-dialog-compound-and = Matches <Join>all</Join> of:
-search-dialog-compound-or = Matches <Join>any</Join> of:
-search-dialog-tag-and = With a tag that matches <Join>all</Join> of:
-search-dialog-tag-or = With a tag that matches <Join>any</Join> of:
-search-dialog-album-and = In an album that matches <Join>all</Join> of:
-search-dialog-album-or = In an album that matches <Join>any</Join> of:
-search-dialog-person-and = Includes a person that matches <Join>all</Join> of:
-search-dialog-person-or = Includes a person that matches <Join>any</Join> of:
+search-dialog-compound-initial-and = Find media in "{$catalog}" that <Join>matches all</Join> of:
+search-dialog-compound-initial-or = Find media in "{$catalog}" that <Join>matches any</Join> of:
+search-dialog-compound-initial-not-and = Find media in "{$catalog}" that <Join>doesn't match all</Join> of:
+search-dialog-compound-initial-not-or = Find media in "{$catalog}" that <Join>doesn't match any</Join> of:
+search-dialog-compound-and = <Join>Matches all</Join> of:
+search-dialog-compound-or = <Join>Matches any</Join> of:
+search-dialog-compound-not-and = <Join>Doesn't match all</Join> of:
+search-dialog-compound-not-or = <Join>Doesn't match any</Join> of:
+search-dialog-tag-and = With a tag that <Join>matches all</Join> of:
+search-dialog-tag-or = With a tag that <Join>matches any</Join> of:
+search-dialog-tag-not-and = With a tag that <Join>doesn't match all</Join> of:
+search-dialog-tag-not-or = With a tag that <Join>doesn't match any</Join> of:
+search-dialog-album-and = In an album that <Join>matches all</Join> of:
+search-dialog-album-or = In an album that <Join>matches any</Join> of:
+search-dialog-album-not-and = In an album that <Join>doesn't match all</Join> of:
+search-dialog-album-not-or = In an album that <Join>doesn't match any</Join> of:
+search-dialog-person-and = Includes a person that <Join>matches all</Join> of:
+search-dialog-person-or = Includes a person that <Join>matches any</Join> of:
+search-dialog-person-not-and = Includes a person that <Join>doesn't match all</Join> of:
+search-dialog-person-not-or = Includes a person that <Join>doesn't match any</Join> of:
 
 search-field-id = {$relation ->
   [album] Album ID

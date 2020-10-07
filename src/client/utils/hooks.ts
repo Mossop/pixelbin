@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { document } from "../environment";
+import { window, document } from "../environment";
 
 type FormElementHook<T> = [T, (event: FormElementEvent<T>) => void, (value: T) => void];
 
@@ -38,9 +38,22 @@ export function useFormState<T>(initial: T): FormHook<T> {
   return [currentState, setter];
 }
 
-export interface Timeout {
-  trigger: () => void;
-  cancel: () => void;
+type Callback<P extends unknown[]> = (...args: P) => void;
+export function useTimeout<P extends unknown[]>(callback: Callback<P>, delay: number): Callback<P> {
+  const [timeoutId, setTimeoutId] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      console.log("Unmount");
+      window.clearTimeout(timeoutId);
+    };
+  }, [callback, timeoutId]);
+
+  return useMemo(() => (...args: P): void => {
+    setTimeoutId(window.setTimeout((): void => {
+      callback(...args);
+    }, delay));
+  }, [callback, delay]);
 }
 
 export function useFullscreen(): boolean {

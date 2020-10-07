@@ -14,9 +14,16 @@ import Select from "@material-ui/core/Select";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
 import Typography from "@material-ui/core/Typography";
-import AddCircleIcon from "@material-ui/icons/AddCircle";
 import DeleteIcon from "@material-ui/icons/Delete";
 import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
+import FileCopy from "@material-ui/icons/FileCopy";
+import InsertDriveFileIcon from "@material-ui/icons/InsertDriveFile";
+import LocalOfferIcon from "@material-ui/icons/LocalOffer";
+import PersonIcon from "@material-ui/icons/Person";
+import PhotoAlbumIcon from "@material-ui/icons/PhotoAlbum";
+import SpeedDial from "@material-ui/lab/SpeedDial";
+import SpeedDialAction from "@material-ui/lab/SpeedDialAction";
+import SpeedDialIcon from "@material-ui/lab/SpeedDialIcon";
 import clsx from "clsx";
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -38,6 +45,7 @@ import {
 import { Catalog, Reference } from "../api/highlevel";
 import { MediaState } from "../api/types";
 import { Preview } from "../components/Media";
+import { PageType } from "../pages/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
@@ -87,12 +95,15 @@ const useStyles = makeStyles((theme: Theme) =>
 
     grabHandle: {
       paddingRight: theme.spacing(0.5),
+      width: 30 + theme.spacing(0.5),
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
       alignItems: "center",
     },
     deleteButton: {
+      marginTop: theme.spacing(0.5),
+      marginBottom: theme.spacing(0.5),
     },
     buttonLink: {
       font: "inherit",
@@ -130,7 +141,21 @@ const useStyles = makeStyles((theme: Theme) =>
       alignItems: "stretch",
     },
     innerCompoundQueries: {
-      paddingLeft: 24,
+      paddingLeft: 30,
+    },
+    addRow: {
+      alignSelf: "start",
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "start",
+    },
+    addIcon: {
+      width: 32,
+      height: 32,
+      minHeight: 32,
+    },
+    addActions: {
+      paddingLeft: "40px !important",
     },
 
     fieldQuery: {
@@ -160,6 +185,7 @@ interface FieldQueryBoxProps {
   readonly inRelation: RelationType | null;
   readonly query: Search.FieldQuery;
   readonly onUpdateQuery: (oldQuery: Search.FieldQuery, newQuery: Search.FieldQuery) => void;
+  readonly onDeleteQuery: (query: Search.FieldQuery) => void;
 }
 
 type SelectEvent = React.ChangeEvent<{ name?: string; value: unknown }>;
@@ -182,7 +208,12 @@ const OperatorOrder: Operator[] = [
   Operator.Matches,
 ];
 
-function FieldQueryBox({ inRelation, query, onUpdateQuery }: FieldQueryBoxProps): ReactResult {
+function FieldQueryBox({
+  inRelation,
+  query,
+  onUpdateQuery,
+  onDeleteQuery,
+}: FieldQueryBoxProps): ReactResult {
   const classes = useStyles();
   const { l10n } = useLocalization();
   let validFields = (inRelation ? RelationFields : MediaFields) as Record<string, Search.FieldType>;
@@ -196,6 +227,10 @@ function FieldQueryBox({ inRelation, query, onUpdateQuery }: FieldQueryBoxProps)
   const leaveDelete = useCallback(() => {
     setDeleting(false);
   }, []);
+
+  const deleteQuery = useCallback(() => {
+    onDeleteQuery(query);
+  }, [onDeleteQuery, query]);
 
   let fieldType = query.modifier
     ? ModifierResult[query.modifier]
@@ -309,7 +344,9 @@ function FieldQueryBox({ inRelation, query, onUpdateQuery }: FieldQueryBoxProps)
     <IconButton
       onMouseEnter={enterDelete}
       onMouseLeave={leaveDelete}
+      onClick={deleteQuery}
       className={classes.deleteButton}
+      size="small"
     >
       <DeleteIcon/>
     </IconButton>
@@ -321,6 +358,8 @@ interface CompoundQueryBoxProps {
   readonly inRelation: RelationType | null;
   readonly query: Search.CompoundQuery;
   readonly onUpdateQuery: (oldQuery: Search.CompoundQuery, newQuery: Search.CompoundQuery) => void;
+  readonly onDeleteQuery?: (query: Search.CompoundQuery) => void;
+  catalog: Reference<Catalog>;
 }
 
 function CompoundQueryBox({
@@ -328,9 +367,19 @@ function CompoundQueryBox({
   inRelation,
   query,
   onUpdateQuery,
+  onDeleteQuery,
+  catalog: catalogRef,
 }: CompoundQueryBoxProps): ReactResult {
   const classes = useStyles();
+  const { l10n } = useLocalization();
   const [deleting, setDeleting] = useState(false);
+  const catalog = useSelector(
+    (state: StoreState): Catalog => catalogRef.deref(state.serverState),
+  );
+
+  const [dialOpen, setDialOpen] = useState(false);
+  const onDialOpen = useCallback(() => setDialOpen(true), []);
+  const onDialClose = useCallback(() => setDialOpen(false), []);
 
   const enterDelete = useCallback(() => {
     setDeleting(true);
@@ -339,6 +388,13 @@ function CompoundQueryBox({
   const leaveDelete = useCallback(() => {
     setDeleting(false);
   }, []);
+
+  const deleteQuery = useMemo(() => {
+    if (onDeleteQuery) {
+      return () => onDeleteQuery(query);
+    }
+    return null;
+  }, [query, onDeleteQuery]);
 
   const updateQuery = useCallback(
     (oldQuery: Search.Query, newQuery: Search.Query): void => {
@@ -357,9 +413,80 @@ function CompoundQueryBox({
     [onUpdateQuery, query],
   );
 
+  const queryDeleted = useCallback((toDelete: Query): void => {
+    let updatedQuery: Search.CompoundQuery = {
+      ...query,
+      queries: query.queries.filter((query: Search.Query): boolean => {
+        return query !== toDelete;
+      }),
+    };
+
+    onUpdateQuery(query, updatedQuery);
+  }, [onUpdateQuery, query]);
+
+  const addField = useCallback(() => {
+    let updatedQuery: Search.CompoundQuery = {
+      ...query,
+      queries: [
+        ...query.queries,
+        {
+          invert: false,
+          type: "field",
+          field: "title",
+          modifier: null,
+          operator: Operator.Equal,
+          value: "",
+        },
+      ],
+    };
+
+    onUpdateQuery(query, updatedQuery);
+  }, [query, onUpdateQuery]);
+
+  const addCompound = useCallback(() => {
+    let updatedQuery: Search.CompoundQuery = {
+      ...query,
+      queries: [
+        ...query.queries,
+        {
+          type: "compound",
+          invert: false,
+          join: Join.And,
+          queries: [],
+        },
+      ],
+    };
+
+    onUpdateQuery(query, updatedQuery);
+  }, [query, onUpdateQuery]);
+
+  const addRelation = useCallback((relation: RelationType) => {
+    let updatedQuery: Search.CompoundQuery = {
+      ...query,
+      queries: [
+        ...query.queries,
+        {
+          type: "compound",
+          relation,
+          recursive: true,
+          invert: false,
+          join: Join.And,
+          queries: [],
+        },
+      ],
+    };
+
+    onUpdateQuery(query, updatedQuery);
+  }, [query, onUpdateQuery]);
+
+  const addAlbum = useMemo(() => addRelation.bind(null, RelationType.Album), [addRelation]);
+  const addTag = useMemo(() => addRelation.bind(null, RelationType.Tag), [addRelation]);
+  const addPerson = useMemo(() => addRelation.bind(null, RelationType.Person), [addRelation]);
+
   const toggleJoin = useCallback(() => {
     let updatedQuery: Search.CompoundQuery = {
       ...query,
+      invert: query.join == Join.And ? query.invert : !query.invert,
       join: query.join == Join.And ? Join.Or : Join.And,
     };
 
@@ -373,11 +500,14 @@ function CompoundQueryBox({
 
   let subheaderId = useMemo(() => {
     let join = query.join == Join.And ? "and" : "or";
+    if (query.invert) {
+      join = `not-${join}`;
+    }
     let type = currentRelation ?? "compound";
     return isInner
       ? `search-dialog-${type}-${join}`
       : `search-dialog-${type}-initial-${join}`;
-  }, [isInner, currentRelation, query.join]);
+  }, [isInner, currentRelation, query.invert, query.join]);
 
   return <Box className={clsx(classes.queryRow, classes.compound, deleting && classes.deleting)}>
     <Box className={classes.compoundTitleRow}>
@@ -389,6 +519,11 @@ function CompoundQueryBox({
       }
       <Localized
         id={subheaderId}
+        vars={
+          {
+            catalog: catalog.name,
+          }
+        }
         elems={
           {
             // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -403,11 +538,13 @@ function CompoundQueryBox({
         <Typography className={classes.compoundTitle} variant="subtitle1"/>
       </Localized>
       {
-        isInner &&
+        deleteQuery &&
         <IconButton
           onMouseEnter={enterDelete}
           onMouseLeave={leaveDelete}
+          onClick={deleteQuery}
           className={classes.deleteButton}
+          size="small"
         >
           <DeleteIcon/>
         </IconButton>
@@ -424,16 +561,128 @@ function CompoundQueryBox({
                   onUpdateQuery={updateQuery}
                   query={innerQuery}
                   isInner={true}
+                  catalog={catalogRef}
+                  onDeleteQuery={queryDeleted}
                 />
                 : <FieldQueryBox
                   inRelation={currentRelation}
                   onUpdateQuery={updateQuery}
                   query={innerQuery}
+                  onDeleteQuery={queryDeleted}
                 />
             }
           </React.Fragment>;
         })
       }
+      <Box className={classes.addRow}>
+        <SpeedDial
+          ariaLabel={l10n.getString("search-dialog-add-button")}
+          open={dialOpen}
+          onOpen={onDialOpen}
+          onClose={onDialClose}
+          icon={<SpeedDialIcon/>}
+          direction="right"
+          transitionDuration={0}
+          classes={
+            {
+              fab: classes.addIcon,
+              actions: classes.addActions,
+            }
+          }
+          FabProps={
+            {
+              size: "small",
+            }
+          }
+        >
+          <SpeedDialAction
+            icon={<InsertDriveFileIcon/>}
+            tooltipTitle={l10n.getString("search-dialog-add-field")}
+            tooltipPlacement="bottom"
+            onClick={addField}
+            classes={
+              {
+                fab: classes.addIcon,
+              }
+            }
+            FabProps={
+              {
+                size: "small",
+              }
+            }
+          />
+          <SpeedDialAction
+            icon={<FileCopy/>}
+            tooltipTitle={l10n.getString("search-dialog-add-compound")}
+            tooltipPlacement="bottom"
+            onClick={addCompound}
+            classes={
+              {
+                fab: classes.addIcon,
+              }
+            }
+            FabProps={
+              {
+                size: "small",
+              }
+            }
+          />
+          {
+            !currentRelation && <SpeedDialAction
+              icon={<PhotoAlbumIcon/>}
+              tooltipTitle={l10n.getString("search-dialog-add-album")}
+              tooltipPlacement="bottom"
+              onClick={addAlbum}
+              classes={
+                {
+                  fab: classes.addIcon,
+                }
+              }
+              FabProps={
+                {
+                  size: "small",
+                }
+              }
+            />
+          }
+          {
+            !currentRelation && <SpeedDialAction
+              icon={<LocalOfferIcon/>}
+              tooltipTitle={l10n.getString("search-dialog-add-tag")}
+              tooltipPlacement="bottom"
+              onClick={addTag}
+              classes={
+                {
+                  fab: classes.addIcon,
+                }
+              }
+              FabProps={
+                {
+                  size: "small",
+                }
+              }
+            />
+          }
+          {
+            !currentRelation && <SpeedDialAction
+              icon={<PersonIcon/>}
+              tooltipTitle={l10n.getString("search-dialog-add-person")}
+              tooltipPlacement="bottom"
+              onClick={addPerson}
+              classes={
+                {
+                  fab: classes.addIcon,
+                }
+              }
+              FabProps={
+                {
+                  size: "small",
+                }
+              }
+            />
+          }
+        </SpeedDial>
+      </Box>
     </Box>
   </Box>;
 }
@@ -491,6 +740,20 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
     [],
   );
 
+  const reset = useCallback(() => {
+    setQuery(baseQuery);
+  }, [baseQuery]);
+
+  const search = useCallback(() => {
+    actions.navigate({
+      page: {
+        type: PageType.Search,
+        catalog: props.catalog,
+        query,
+      },
+    });
+  }, [actions, props.catalog, query]);
+
   const close = useCallback(() => {
     setOpen(false);
     actions.closeOverlay();
@@ -504,13 +767,16 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
     aria-labelledby="search-dialog-title"
   >
     <DialogTitle id="search-dialog-title" className={classes.title}>
-      {l10n.getString("search-dialog-title")}
+      {
+        l10n.getString("search-dialog-title")
+      }
     </DialogTitle>
     <DialogContent className={classes.content}>
       <CompoundQueryBox
         inRelation={null}
         onUpdateQuery={onUpdateQuery}
         query={query}
+        catalog={props.catalog}
       />
       {
         media &&
@@ -536,7 +802,10 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
       }
     </DialogContent>
     <DialogActions disableSpacing={true} className={classes.actions}>
-      <Button id="search-dialog-accept">
+      <Button id="search-dialog-reset" onClick={reset}>
+        {l10n.getString("search-dialog-reset")}
+      </Button>
+      <Button id="search-dialog-accept" onClick={search}>
         {l10n.getString("search-dialog-accept")}
       </Button>
     </DialogActions>
