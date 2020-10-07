@@ -83,6 +83,49 @@ export function isFieldQuery(query: Query): query is FieldQuery {
   return query.type == "field";
 }
 
+export function allowedFields(relation: RelationType | null): string[] {
+  return relation ? Object.keys(RelationFields) : Object.keys(MediaFields);
+}
+
+export function allowedModifiers(
+  query: FieldQuery,
+  relation: RelationType | null,
+): (Modifier | null)[] {
+  let fields = relation ? RelationFields : MediaFields;
+  let fieldType: FieldType = fields[query.field];
+  return AllowedModifiers[fieldType];
+}
+
+export function allowedOperators(
+  query: FieldQuery,
+  relation: RelationType | null,
+): Operator[] {
+  let fieldType: FieldType;
+  if (query.modifier) {
+    fieldType = ModifierResult[query.modifier];
+  } else {
+    let fields = relation ? RelationFields : MediaFields;
+    fieldType = fields[query.field];
+  }
+
+  return Object.keys(AllowedOperators[fieldType]) as Operator[];
+}
+
+export function valueType(
+  query: FieldQuery,
+  relation: RelationType | null,
+): FieldType | null {
+  let fieldType: FieldType;
+  if (query.modifier) {
+    fieldType = ModifierResult[query.modifier];
+  } else {
+    let fields = relation ? RelationFields : MediaFields;
+    fieldType = fields[query.field];
+  }
+
+  return AllowedOperators[fieldType][query.operator] as FieldType | null;
+}
+
 export enum Join {
   And = "&&",
   Or = "||",

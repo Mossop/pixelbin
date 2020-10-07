@@ -21,4 +21,8 @@ export {
   checkQuery,
   MediaFields,
   RelationFields,
+  allowedFields,
+  allowedModifiers,
+  allowedOperators,
+  valueType,
 } from "./search";

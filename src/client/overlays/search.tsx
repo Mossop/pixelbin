@@ -8,11 +8,11 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import Divider from "@material-ui/core/Divider";
 import FormControl from "@material-ui/core/FormControl";
 import IconButton from "@material-ui/core/IconButton";
+import Input from "@material-ui/core/Input";
 import Link from "@material-ui/core/Link";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
-import TextField from "@material-ui/core/TextField";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
 import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
@@ -24,12 +24,13 @@ import PhotoAlbumIcon from "@material-ui/icons/PhotoAlbum";
 import SpeedDial from "@material-ui/lab/SpeedDial";
 import SpeedDialAction from "@material-ui/lab/SpeedDialAction";
 import SpeedDialIcon from "@material-ui/lab/SpeedDialIcon";
+import { DateTimePicker } from "@material-ui/pickers";
 import clsx from "clsx";
+import { Draft } from "immer";
+import moment, { Moment } from "moment-timezone";
 import React, { useCallback, useMemo, useState } from "react";
 
 import {
-  MediaFields,
-  RelationFields,
   isCompoundQuery,
   Join,
   Query,
@@ -37,10 +38,11 @@ import {
   Operator,
   RelationType,
   Search,
-  AllowedModifiers,
   isRelationQuery,
-  ModifierResult,
-  AllowedOperators,
+  allowedFields,
+  allowedModifiers,
+  allowedOperators,
+  valueType,
 } from "../../model";
 import { Catalog, Reference } from "../api/highlevel";
 import { MediaState } from "../api/types";
@@ -61,6 +63,14 @@ function queryKey(query: Query): number {
     return nextKey;
   }
   return value;
+}
+
+function updateQueryKey(oldQuery: Query, newQuery: Query): void {
+  let value = QueryKeys.get(oldQuery);
+  if (value) {
+    QueryKeys.delete(oldQuery);
+    QueryKeys.set(newQuery, value);
+  }
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -208,6 +218,18 @@ const OperatorOrder: Operator[] = [
   Operator.Matches,
 ];
 
+function intersect<T>(order: T[], allowed: T[]): T[] {
+  let results: T[] = [];
+
+  for (let item of order) {
+    if (allowed.includes(item)) {
+      results.push(item);
+    }
+  }
+
+  return results;
+}
+
 function FieldQueryBox({
   inRelation,
   query,
@@ -216,8 +238,6 @@ function FieldQueryBox({
 }: FieldQueryBoxProps): ReactResult {
   const classes = useStyles();
   const { l10n } = useLocalization();
-  let validFields = (inRelation ? RelationFields : MediaFields) as Record<string, Search.FieldType>;
-  let modifiers = AllowedModifiers[validFields[query.field]];
   const [deleting, setDeleting] = useState(false);
 
   const enterDelete = useCallback(() => {
@@ -232,28 +252,43 @@ function FieldQueryBox({
     onDeleteQuery(query);
   }, [onDeleteQuery, query]);
 
-  let fieldType = query.modifier
-    ? ModifierResult[query.modifier]
-    : validFields[query.field];
-  let operators = AllowedOperators[fieldType];
-  let valueType = operators[query.operator];
-  let operatorList: string[] = [];
-  for (let op of OperatorOrder) {
-    if (op in operators) {
-      operatorList.push(op);
-      operatorList.push(`inverted-${op}`);
-    }
-  }
-
   let onFieldChange = useCallback((event: SelectEvent) => {
-    let newQuery: Search.FieldQuery = {
+    let newQuery: Draft<Search.FieldQuery> = {
       ...query,
       // @ts-ignore: We know this is a field name.
       field: event.target.value,
     };
 
+    let modifiers = allowedModifiers(newQuery, inRelation);
+    if (!modifiers.includes(query.modifier)) {
+      newQuery.modifier = intersect(ModifierOrder, modifiers)[0];
+    }
+
+    let operators = allowedOperators(newQuery, inRelation);
+    if (!operators.includes(query.operator)) {
+      newQuery.operator = intersect(OperatorOrder, operators)[0];
+    }
+
+    let newType = valueType(newQuery, inRelation);
+    if (valueType(query, inRelation) != newType) {
+      switch (newType) {
+        case null:
+          newQuery.value = null;
+          break;
+        case "string":
+          newQuery.value = "";
+          break;
+        case "number":
+          newQuery.value = 0;
+          break;
+        case "date":
+          newQuery.value = moment();
+          break;
+      }
+    }
+
     onUpdateQuery(query, newQuery);
-  }, [query, onUpdateQuery]);
+  }, [query, inRelation, onUpdateQuery]);
 
   let onModifierChange = useCallback((event: SelectEvent) => {
     let newQuery: Search.FieldQuery = {
@@ -282,6 +317,47 @@ function FieldQueryBox({
     onUpdateQuery(query, newQuery);
   }, [query, onUpdateQuery]);
 
+  let onValueChange = useCallback((value: string | number | Moment | null) => {
+    let newQuery: Search.FieldQuery = {
+      ...query,
+      value,
+    };
+
+    onUpdateQuery(query, newQuery);
+  }, [query, onUpdateQuery]);
+
+  const onStringChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+      onValueChange(event.target.value);
+    },
+    [onValueChange],
+  );
+
+  const onNumberChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+      onValueChange(parseFloat(event.target.value));
+    },
+    [onValueChange],
+  );
+
+  let valueComponent: ReactResult = useMemo(() => {
+    switch (valueType(query, inRelation)) {
+      case "string": {
+        return <Input type="text" value={query.value} onChange={onStringChange}/>;
+      }
+      case "number":
+        return <Input type="number" value={query.value} onChange={onNumberChange}/>;
+      case "date":
+        return <DateTimePicker
+          value={query.value}
+          // @ts-ignore: Unknown date type.
+          onChange={onValueChange}
+        />;
+      default:
+        return null;
+    }
+  }, [query, inRelation, onValueChange, onStringChange, onNumberChange]);
+
   let operator = query.invert ? `inverted-${query.operator}` : query.operator;
 
   return <Box
@@ -293,7 +369,7 @@ function FieldQueryBox({
     <FormControl className={classes.queryField}>
       <Select fullWidth={true} value={query.field} onChange={onFieldChange}>
         {
-          Object.keys(validFields).map((field: string) => <MenuItem
+          allowedFields(inRelation).map((field: string) => <MenuItem
             key={field}
             value={field}
           >
@@ -309,24 +385,25 @@ function FieldQueryBox({
     <FormControl className={classes.queryModifier}>
       <Select value={query.modifier ?? "null"} onChange={onModifierChange}>
         {
-          ModifierOrder.map((modifier: Modifier | null) => {
-            if (modifiers.includes(modifier)) {
-              return <MenuItem
-                key={modifier ?? "null"}
-                value={modifier ?? "null"}
-              >
-                {l10n.getString(`search-modifier-${modifier ?? "null"}`)}
-              </MenuItem>;
-            }
-            return null;
-          })
+          intersect(
+            ModifierOrder,
+            allowedModifiers(query, inRelation),
+          ).map((modifier: Modifier | null) => <MenuItem
+            key={modifier ?? "null"}
+            value={modifier ?? "null"}
+          >
+            {l10n.getString(`search-modifier-${modifier ?? "null"}`)}
+          </MenuItem>)
         }
       </Select>
     </FormControl>
     <FormControl className={classes.queryOperator}>
       <Select value={operator} onChange={onOperatorChange}>
         {
-          operatorList.map((operator: string) => <MenuItem
+          intersect(
+            OperatorOrder,
+            allowedOperators(query, inRelation),
+          ).map((operator: string) => <MenuItem
             key={operator}
             value={operator}
           >
@@ -335,12 +412,11 @@ function FieldQueryBox({
         }
       </Select>
     </FormControl>
-    <FormControl className={classes.queryValue}>
-      {
-        valueType &&
-          <TextField value={query.value}/>
-      }
-    </FormControl>
+    {
+      valueComponent && <FormControl className={classes.queryValue}>
+        {valueComponent}
+      </FormControl>
+    }
     <IconButton
       onMouseEnter={enterDelete}
       onMouseLeave={leaveDelete}
@@ -398,6 +474,8 @@ function CompoundQueryBox({
 
   const updateQuery = useCallback(
     (oldQuery: Search.Query, newQuery: Search.Query): void => {
+      updateQueryKey(oldQuery, newQuery);
+
       let updatedQuery: Search.CompoundQuery = {
         ...query,
         queries: query.queries.map((query: Search.Query): Search.Query => {
