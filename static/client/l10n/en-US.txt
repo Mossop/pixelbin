@@ -151,6 +151,28 @@ search-field-name = {$relation ->
   [tag] Tag name
  *[person] Person name
 }
+search-field-filename = Filename
+search-field-title = Title
+search-field-description = Description
+search-field-category = Category
+search-field-label = Label
+search-field-location = Location
+search-field-city = City
+search-field-state = State
+search-field-country = Country
+search-field-make = Make
+search-field-model = Model
+search-field-lens = Lens
+search-field-photographer = Photographer
+search-field-shutterSpeed = Shutter speed
+search-field-longitude = Longitude
+search-field-latitude = Latitude
+search-field-altitude = Altitude
+search-field-aperture = Aperture
+search-field-iso = ISO
+search-field-focalLength = Focal length
+search-field-rating = Rating
+search-field-taken = Taken
 
 search-modifier-null = as-is
 search-modifier-length = length

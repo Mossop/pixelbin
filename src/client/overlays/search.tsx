@@ -184,7 +184,7 @@ const useStyles = makeStyles((theme: Theme) =>
       alignItems: "center",
     },
     queryField: {
-      minWidth: "calc(24px + 13ch)",
+      minWidth: "calc(24px + 17ch)",
       paddingRight: theme.spacing(2),
     },
     queryModifier: {
