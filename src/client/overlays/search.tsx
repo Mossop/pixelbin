@@ -28,7 +28,7 @@ import { DateTimePicker } from "@material-ui/pickers";
 import clsx from "clsx";
 import { Draft } from "immer";
 import moment, { Moment } from "moment-timezone";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   isCompoundQuery,
@@ -46,12 +46,14 @@ import {
 } from "../../model";
 import { Catalog, Reference } from "../api/highlevel";
 import { MediaState } from "../api/types";
+import Loading from "../components/Loading";
 import { Preview } from "../components/Media";
+import { window } from "../environment";
 import { PageType } from "../pages/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
-import { MediaLookup, MediaLookupType, useMediaLookup } from "../utils/medialookup";
+import { lookupMedia, MediaLookup, MediaLookupType } from "../utils/medialookup";
 import { ReactResult } from "../utils/types";
 
 const QueryKeys = new WeakMap<Search.Query, number>();
@@ -93,6 +95,14 @@ const useStyles = makeStyles((theme: Theme) =>
     resultsDivider: {
       marginTop: theme.spacing(2),
       marginBottom: theme.spacing(2),
+    },
+    results: {
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 256,
+    },
+    resultsLoading: {
+      flex: 1,
     },
     previews: {
       overflowX: "auto",
@@ -775,6 +785,7 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
   const { l10n } = useLocalization();
   const actions = useActions();
   const [open, setOpen] = useState(true);
+  const [media, setMedia] = useState<readonly MediaState[] | null>(null);
 
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
 
@@ -809,7 +820,15 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
     };
   }, [props.catalog, query]);
 
-  const media = useMediaLookup(lookup);
+  useEffect(() => {
+    let timeout = window.setTimeout(() => {
+      void lookupMedia(lookup).then(setMedia);
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [lookup]);
 
   const onUpdateQuery = useCallback(
     (oldQuery: Search.CompoundQuery, newQuery: Search.CompoundQuery): void => {
@@ -856,28 +875,31 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
         query={query}
         catalog={props.catalog}
       />
-      {
-        media &&
-        <React.Fragment>
-          <Divider className={classes.resultsDivider}/>
-          <Typography component="h3" variant="h6">
-            {
-              l10n.getString("search-dialog-results", {
-                count: media.length,
-              })
-            }
-          </Typography>
-          <Box className={classes.previews}>
-            {
-              media.map((item: MediaState) => <Preview
-                key={item.id}
-                media={item}
-                thumbnailSize={thumbnailSize}
-              />)
-            }
-          </Box>
-        </React.Fragment>
-      }
+      <Divider className={classes.resultsDivider}/>
+      <Box className={classes.results}>
+        {
+          media === null
+            ? <Loading className={classes.resultsLoading}/>
+            : <React.Fragment>
+              <Typography component="h3" variant="h6">
+                {
+                  l10n.getString("search-dialog-results", {
+                    count: media.length,
+                  })
+                }
+              </Typography>
+              <Box className={classes.previews}>
+                {
+                  media.map((item: MediaState) => <Preview
+                    key={item.id}
+                    media={item}
+                    thumbnailSize={thumbnailSize}
+                  />)
+                }
+              </Box>
+            </React.Fragment>
+        }
+      </Box>
     </DialogContent>
     <DialogActions disableSpacing={true} className={classes.actions}>
       <Button id="search-dialog-reset" onClick={reset}>

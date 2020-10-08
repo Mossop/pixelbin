@@ -47,7 +47,7 @@ function isMedia(item: Draft<MediaState> | null): item is Draft<MediaState> {
   return !!item;
 }
 
-async function lookupMedia(lookup: MediaLookup): Promise<readonly MediaState[]> {
+export async function lookupMedia(lookup: MediaLookup): Promise<readonly MediaState[]> {
   switch (lookup.type) {
     case MediaLookupType.Album: {
       return listAlbumMedia(lookup.album, lookup.recursive);
