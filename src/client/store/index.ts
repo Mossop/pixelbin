@@ -1,11 +1,9 @@
-import { Deed } from "deeds/immer";
 import { enableMapSet } from "immer";
 import { useStore as useReduxStore, useSelector as useReduxSelector } from "react-redux";
 import { createStore } from "redux";
 
 import { PageType } from "../pages/types";
 import { provideService } from "../services";
-import { AsyncDispatchListener } from "./dispatch";
 import reducer from "./reducer";
 import { StoreState, StoreType } from "./types";
 
@@ -24,16 +22,8 @@ export function buildStore(): void {
     },
   };
 
-  let asyncDispatchListener: AsyncDispatchListener | null = null;
-
   let store = createStore(
-    (state: StoreState | undefined, action: Deed): StoreState => {
-      if (asyncDispatchListener) {
-        asyncDispatchListener.seenAction(action);
-      }
-
-      return reducer(state, action);
-    },
+    reducer,
     initialState,
     // @ts-ignore: Redux devtools.
     window.__REDUX_DEVTOOLS_EXTENSION__?.(),
