@@ -1,5 +1,6 @@
 import { castDraft } from "immer";
 
+import { Join } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import { Obj } from "../../utils";
 import { Catalog, Album } from "../api/highlevel";
@@ -156,7 +157,12 @@ test("search page", (): void => {
     page: {
       type: PageType.Search,
       catalog: expect.toBeRef("testcatalog"),
-      query: null,
+      query: {
+        invert: false,
+        type: "compound",
+        join: Join.And,
+        queries: [],
+      },
     },
   });
 
@@ -164,7 +170,12 @@ test("search page", (): void => {
     page: {
       type: PageType.Search,
       catalog: Catalog.ref("testcatalog"),
-      query: null,
+      query: {
+        invert: false,
+        type: "compound",
+        join: Join.And,
+        queries: [],
+      },
     },
   })).toEqual(state("/catalog/testcatalog/search"));
 });
