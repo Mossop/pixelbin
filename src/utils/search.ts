@@ -1,5 +1,4 @@
 import { Draft } from "immer";
-import moment from "moment-timezone";
 import { JsonDecoder } from "ts.data.json";
 
 import {
@@ -13,6 +12,7 @@ import {
   RelationFields,
   MediaFields,
 } from "../model";
+import { parseDateTime } from "./datetime";
 import { DateDecoder, decode, MappingDecoder } from "./decoders";
 
 function FieldQueryDecoder(relation: RelationType | null): JsonDecoder.Decoder<Search.FieldQuery> {
@@ -22,9 +22,9 @@ function FieldQueryDecoder(relation: RelationType | null): JsonDecoder.Decoder<S
       type: JsonDecoder.isExactly("field"),
       field: JsonDecoder.string,
       modifier: JsonDecoder.nullable(
-        JsonDecoder.enumeration<Search.Modifier>(Modifier, "Modifier"),
+        JsonDecoder.enumeration<Modifier>(Modifier, "Modifier"),
       ),
-      operator: JsonDecoder.enumeration<Search.Operator>(Operator, "Operator"),
+      operator: JsonDecoder.enumeration<Operator>(Operator, "Operator"),
       value: JsonDecoder.optional(JsonDecoder.oneOf<Search.FieldQuery["value"]>([
         JsonDecoder.string,
         JsonDecoder.number,
@@ -52,7 +52,7 @@ function FieldQueryDecoder(relation: RelationType | null): JsonDecoder.Decoder<S
 
       let expectedValueType: Search.ValueType = AllowedOperators[fieldType][query.operator];
       if (expectedValueType == "date" && typeof query.value == "string") {
-        query.value = moment(query.value);
+        query.value = parseDateTime(query.value);
       }
 
       return query;
@@ -61,7 +61,7 @@ function FieldQueryDecoder(relation: RelationType | null): JsonDecoder.Decoder<S
   );
 }
 
-const CompoundJoinDecoder = JsonDecoder.enumeration<Join>(Join, "CompoundJoin");
+const JoinDecoder = JsonDecoder.enumeration<Join>(Join, "Join");
 
 type BaseCompoundQuery = Omit<Search.CompoundQuery, "queries"> & {
   queries: unknown[];
@@ -70,7 +70,7 @@ type BaseCompoundQuery = Omit<Search.CompoundQuery, "queries"> & {
 const BaseCompoundQueryDecoder = JsonDecoder.object<BaseCompoundQuery>({
   invert: JsonDecoder.boolean,
   type: JsonDecoder.isExactly("compound"),
-  join: CompoundJoinDecoder,
+  join: JoinDecoder,
   queries: JsonDecoder.array(JsonDecoder.succeed, "any[]"),
 }, "BaseCompoundQuery");
 

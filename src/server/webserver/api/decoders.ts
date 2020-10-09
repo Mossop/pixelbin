@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
-import { Api, Create, Patch, RelationType } from "../../../model";
+import { Api, Create, Orientation, Patch, RelationType } from "../../../model";
 import {
   getLogger,
   DateDecoder,
@@ -180,7 +180,9 @@ const mediaFields = {
   city: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   state: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   country: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  orientation: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  orientation: JsonDecoder.optional(JsonDecoder.nullable(
+    JsonDecoder.enumeration<Orientation>(Orientation, "Orientation"),
+  )),
   make: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   model: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   lens: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),

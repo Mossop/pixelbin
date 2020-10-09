@@ -1,6 +1,6 @@
 import { JsonDecoder, Result } from "ts.data.json";
 
-import { Api } from "../../model";
+import { Api, Orientation } from "../../model";
 import { DateDecoder, EnumDecoder } from "../../utils";
 
 export const PersonDecoder = JsonDecoder.object<Api.Person>(
@@ -118,7 +118,9 @@ export const UnprocessedMediaProperties = {
   city: JsonDecoder.nullable(JsonDecoder.string),
   state: JsonDecoder.nullable(JsonDecoder.string),
   country: JsonDecoder.nullable(JsonDecoder.string),
-  orientation: JsonDecoder.nullable(JsonDecoder.number),
+  orientation: JsonDecoder.nullable(
+    JsonDecoder.enumeration<Orientation>(Orientation, "Orientation"),
+  ),
   make: JsonDecoder.nullable(JsonDecoder.string),
   model: JsonDecoder.nullable(JsonDecoder.string),
   lens: JsonDecoder.nullable(JsonDecoder.string),

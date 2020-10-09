@@ -1,6 +1,6 @@
 import { hash as bcryptHash, compare as bcryptCompare } from "bcrypt";
-import moment from "moment-timezone";
 
+import { now } from "../../utils";
 import { DatabaseConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insert, update } from "./queries";
@@ -27,7 +27,7 @@ export async function loginUser(
         email,
       }),
       {
-        lastLogin: moment(),
+        lastLogin: now(),
       },
     );
 
@@ -47,7 +47,7 @@ export async function createUser(
   let results = await insert(this.knex, Table.User, {
     ...user,
     password: hashed,
-    created: moment(),
+    created: now(),
     lastLogin: null,
     verified: true,
   }).returning("*");

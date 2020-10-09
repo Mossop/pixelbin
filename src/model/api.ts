@@ -1,7 +1,6 @@
 import { Files } from "formidable";
-import { Moment } from "moment-timezone";
 
-import { Nullable, Primitive } from "../utils";
+import type { DateTime, Nullable, Primitive } from "../utils";
 import * as ObjectModel from "./models";
 import { Query } from "./search";
 
@@ -20,7 +19,7 @@ export interface ErrorData {
 }
 
 export type ResponseFor<T> =
-  T extends Moment
+  T extends DateTime
     ? string
     : T extends Primitive
       ? T

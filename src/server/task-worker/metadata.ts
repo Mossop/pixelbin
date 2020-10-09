@@ -3,11 +3,10 @@ import { promises as fs } from "fs";
 import { ExifDate, ExifDateTime, ExifTime, Tags } from "exiftool-vendored";
 import { extension as mimeExtension } from "mime-types";
 import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
-import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
 import { ObjectModel } from "../../model";
-import { entries, Nullable } from "../../utils";
+import { DateTime, dateTimeFromMillis, entries, isoDateTime, Nullable, parseDateTime } from "../../utils";
 import { StoredFile } from "../storage";
 import { probe } from "./ffmpeg";
 import Services from "./services";
@@ -98,9 +97,9 @@ function fieldParser<K extends keyof ExifTags, R>(
   };
 }
 
-function dateParser(date: string): Moment | null {
+function dateParser(date: string): DateTime | null {
   try {
-    return moment(date);
+    return parseDateTime(date);
   } catch (e) {
     return null;
   }
@@ -138,7 +137,7 @@ function parse<T>(data: StoredData, parsers: MetadataParser<T>[]): T | null {
   return null;
 }
 
-function splitTakenParser(data: StoredData): Moment | null {
+function splitTakenParser(data: StoredData): DateTime | null {
   if (data.exif.DigitalCreationDate) {
     let datestr = data.exif.DigitalCreationDate;
     if (data.exif.DigitalCreationTime) {
@@ -146,7 +145,7 @@ function splitTakenParser(data: StoredData): Moment | null {
     }
 
     try {
-      return moment(datestr);
+      return parseDateTime(datestr);
     } catch (e) {
       return null;
     }
@@ -166,7 +165,7 @@ function filenameParser(data: StoredData): string {
   return data.fileName;
 }
 
-function takenParser(data: StoredData): Moment | null {
+function takenParser(data: StoredData): DateTime | null {
   let taken = parse(data, [
     fieldParser("SubSecDateTimeOriginal", dateParser),
     fieldParser("SubSecCreateDate", dateParser),
@@ -195,7 +194,7 @@ function takenParser(data: StoredData): Moment | null {
   ]);
 
   if (subsec) {
-    taken.millisecond(parseFloat(`0.${subsec}`) * 1000);
+    dateTimeFromMillis(parseFloat(`0.${subsec}`) * 1000);
   }
 
   return taken;
@@ -323,9 +322,8 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
       Object.entries(tags)
         .filter(([key, _value]: [string, unknown]): boolean => !(BadTags as string[]).includes(key))
         .map(([key, value]: [string, unknown]): [string, unknown] => {
-          if (value instanceof ExifDate || value instanceof ExifDateTime) {
-            return [key, value.toISOString()];
-          } else if (value instanceof ExifTime) {
+          if (value instanceof ExifTime || value instanceof ExifDate ||
+            value instanceof ExifDateTime) {
             return [key, value.toISOString()];
           }
           return [key, value];
@@ -347,7 +345,7 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
       fileSize: stat.size,
       width: metadata.width ?? exif.ImageWidth ?? 0,
       height: metadata.height ?? exif.ImageHeight ?? 0,
-      uploaded: file.uploaded.toISOString(),
+      uploaded: isoDateTime(file.uploaded),
       mimetype,
       duration: null,
       bitRate: null,
@@ -365,7 +363,7 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
     exif,
     fileName,
     fileSize: videoInfo.format.size,
-    uploaded: file.uploaded.toISOString(),
+    uploaded: isoDateTime(file.uploaded),
     mimetype,
     width: videoInfo.videoStream?.width ?? 0,
     height: videoInfo.videoStream?.height ?? 0,
@@ -383,6 +381,6 @@ export function getOriginal(
   return {
     ...info,
     fileName,
-    uploaded: moment(uploaded),
+    uploaded: parseDateTime(uploaded),
   };
 }

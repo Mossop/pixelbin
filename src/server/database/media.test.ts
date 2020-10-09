@@ -1,23 +1,13 @@
-import moment, { Moment } from "moment-timezone";
-
 import { AlternateFileType, RelationType } from "../../model";
-import { expect, realMoment, mockMoment } from "../../test-helpers";
+import { expect, mockDateTime } from "../../test-helpers";
+import { DateTime, now, parseDateTime } from "../../utils";
 import { DatabaseConnection } from "./connection";
 import { fillMetadata } from "./media";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
 import { Table, Tables } from "./types";
 import { OriginalInfo } from "./unsafe";
 
-jest.mock("moment-timezone", (): unknown => {
-  let actualMoment = jest.requireActual("moment-timezone");
-  // @ts-ignore: Mocking.
-  let moment = jest.fn(actualMoment);
-  // @ts-ignore: Mocking.
-  moment.tz = jest.fn(actualMoment.tz);
-  // @ts-ignore: Mocking.
-  moment.isMoment = actualMoment.isMoment;
-  return moment;
-});
+jest.mock("../../utils/datetime");
 
 buildTestDB();
 
@@ -55,8 +45,7 @@ test("Media tests", async (): Promise<void> => {
   await expect(user3Db.createMedia("c1", fillMetadata({})))
     .rejects.toThrow("Failed to insert Media record");
 
-  let createdMoment: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
-  mockMoment(createdMoment);
+  let createdDT = mockDateTime("2016-01-01T23:35:01Z");
 
   let newMedia = await user3Db.createMedia("c3", fillMetadata({
     title: "My title",
@@ -66,7 +55,7 @@ test("Media tests", async (): Promise<void> => {
   expect(newMedia).toEqual(fillMetadata({
     id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
     catalog: "c3",
-    created: expect.toEqualDate(createdMoment),
+    created: expect.toEqualDate(createdDT),
 
     title: "My title",
 
@@ -79,7 +68,7 @@ test("Media tests", async (): Promise<void> => {
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
-    created: expect.toEqualDate(createdMoment),
+    created: expect.toEqualDate(createdDT),
 
     title: "My title", // Media set
 
@@ -88,7 +77,7 @@ test("Media tests", async (): Promise<void> => {
     people: [],
   }));
 
-  let uploadedMoment: Moment = realMoment.tz("2020-01-03T15:31:01", "UTC");
+  let uploadedDT: DateTime = parseDateTime("2020-01-03T15:31:01Z");
 
   let info = await createOriginal(dbConnection, id, fillMetadata({
     mimetype: "image/jpeg",
@@ -99,7 +88,7 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     fileSize: 1000,
     processVersion: 5,
-    uploaded: uploadedMoment,
+    uploaded: uploadedDT,
     fileName: "biz.jpg",
 
     title: "Info title",
@@ -109,7 +98,7 @@ test("Media tests", async (): Promise<void> => {
   expect(info).toEqual(fillMetadata({
     id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     media: id,
-    uploaded: expect.toEqualDate(uploadedMoment),
+    uploaded: expect.toEqualDate(uploadedDT),
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -127,12 +116,12 @@ test("Media tests", async (): Promise<void> => {
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
-    created: expect.toEqualDate(createdMoment),
+    created: expect.toEqualDate(createdDT),
 
     title: "My title", // Media set
     photographer: "Me", // OriginalInfo set
 
-    uploaded: expect.toEqualDate(uploadedMoment),
+    uploaded: expect.toEqualDate(uploadedDT),
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -157,13 +146,13 @@ test("Media tests", async (): Promise<void> => {
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
-    created: expect.toEqualDate(createdMoment),
+    created: expect.toEqualDate(createdDT),
 
     title: "Info title", // OriginalInfo set
     photographer: "Me", // OriginalInfo set
     city: "Portland", // Media set
 
-    uploaded: expect.toEqualDate(uploadedMoment),
+    uploaded: expect.toEqualDate(uploadedDT),
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -179,8 +168,7 @@ test("Media tests", async (): Promise<void> => {
     people: [],
   }));
 
-  let uploaded2Moment: Moment = realMoment.tz("2020-01-04T15:31:01", "UTC");
-  mockMoment(uploaded2Moment);
+  let uploaded2DT = mockDateTime("2020-01-04T15:31:01Z");
 
   info = await createOriginal(dbConnection, id, fillMetadata({
     mimetype: "image/jpeg",
@@ -191,7 +179,7 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     fileSize: 2000,
     processVersion: 5,
-    uploaded: uploaded2Moment,
+    uploaded: uploaded2DT,
     fileName: "bar.jpg",
 
     title: "Different title",
@@ -201,7 +189,7 @@ test("Media tests", async (): Promise<void> => {
   expect(info).toEqual(fillMetadata({
     id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     media: id,
-    uploaded: expect.toEqualDate(uploaded2Moment),
+    uploaded: expect.toEqualDate(uploaded2DT),
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -219,13 +207,13 @@ test("Media tests", async (): Promise<void> => {
   expect(foundMedia).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
-    created: expect.toEqualDate(createdMoment),
+    created: expect.toEqualDate(createdDT),
 
     title: "Different title", // OriginalInfo set
     model: "Some model", // OriginalInfo set
     city: "Portland", // Media set
 
-    uploaded: expect.toEqualDate(uploaded2Moment),
+    uploaded: expect.toEqualDate(uploaded2DT),
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -342,7 +330,7 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     fileSize: 1000,
     processVersion: 5,
-    uploaded: moment(),
+    uploaded: now(),
     fileName: "foo.jpg",
   }))).rejects.toThrow("Unknown Media");
 
@@ -392,13 +380,13 @@ test("Media tests", async (): Promise<void> => {
   expect(updated).toEqual(fillMetadata({
     id: id,
     catalog: "c3",
-    created: expect.toEqualDate(createdMoment),
+    created: expect.toEqualDate(createdDT),
 
     title: "Different title", // OriginalInfo set
     model: "Some model", // OriginalInfo set
     city: "Portland", // Media set
 
-    uploaded: expect.toEqualDate(uploaded2Moment),
+    uploaded: expect.toEqualDate(uploaded2DT),
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,

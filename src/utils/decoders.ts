@@ -1,6 +1,6 @@
-import type { Orientation } from "media-metadata";
-import moment, { Moment } from "moment-timezone";
 import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
+
+import { parseDateTime } from "./datetime";
 
 export function decode<A>(decoder: JsonDecoder.Decoder<A>, data: unknown): A {
   let result = decoder.decode(data);
@@ -30,17 +30,7 @@ export function MappingDecoder<A, B>(
   });
 }
 
-export const DateDecoder = MappingDecoder(
-  JsonDecoder.string,
-  (str: string): Moment => moment.tz(str, "UTC"),
-  "Moment",
-);
-
-export const OrientationDecoder = MappingDecoder(
-  JsonDecoder.number,
-  (num: number): Orientation => num,
-  "Orientation",
-);
+export const DateDecoder = MappingDecoder(JsonDecoder.string, parseDateTime, "DateTime");
 
 export function EnumDecoder<F, T>(
   decoder: JsonDecoder.Decoder<F>,

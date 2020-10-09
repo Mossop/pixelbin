@@ -1,9 +1,7 @@
 import { promises as fs, createReadStream } from "fs";
 import path from "path";
 
-import moment, { Moment } from "moment-timezone";
-
-import { getLogger, Logger } from "../../utils";
+import { DateTime, getLogger, Logger, now, parseDateTime } from "../../utils";
 import { DatabaseConnection } from "../database";
 import { Remote } from "./remote";
 
@@ -12,7 +10,7 @@ export interface StoredFile {
   media: string;
   name: string | null;
   path: string;
-  uploaded: Moment;
+  uploaded: DateTime;
 }
 
 export const logger = getLogger("storage");
@@ -104,7 +102,7 @@ export class Storage {
 
     let info: Omit<StoredFile, "path" | "catalog" | "media"> = {
       name: name.length ? name : null,
-      uploaded: moment(),
+      uploaded: now(),
     };
     await fs.writeFile(path.join(targetDir, "uploaded.meta"), JSON.stringify(info));
   }
@@ -149,7 +147,7 @@ export class Storage {
           catalog: this.catalog,
           media,
           name: meta.name,
-          uploaded: moment(meta.uploaded),
+          uploaded: parseDateTime(meta.uploaded),
           path: path.join(targetDir, "uploaded"),
         };
       } else {

@@ -1,10 +1,9 @@
 import { Deed } from "deeds/immer";
 import { Draft } from "immer";
-import moment from "moment-timezone";
 import { Unsubscribe } from "redux";
 
 import { emptyMetadata } from "../../model";
-import { Overwrite } from "../../utils";
+import { now, Overwrite } from "../../utils";
 import { Catalog, Reference, Tag, Album } from "../api/highlevel";
 import {
   CatalogState,
@@ -117,7 +116,7 @@ export function mockUnprocessedMedia(
 ): Draft<UnprocessedMediaState> {
   return {
     id: randomId(),
-    created: moment().utc(),
+    created: now(),
 
     tags: [],
     albums: [],
@@ -135,9 +134,9 @@ export function mockProcessedMedia(
 
   return {
     id,
-    created: moment().utc(),
+    created: now(),
 
-    uploaded: moment().utc(),
+    uploaded: now(),
     width: 1024,
     height: 768,
     mimetype: "image/jpeg",

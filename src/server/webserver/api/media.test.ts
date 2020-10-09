@@ -1,7 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import moment, { Moment } from "moment-timezone";
 import sharp from "sharp";
 
 import {
@@ -12,7 +11,8 @@ import {
   RelationType,
   Operator,
 } from "../../../model";
-import { expect, mockedFunction, deferCall, mockMoment, realMoment } from "../../../test-helpers";
+import { expect, mockedFunction, deferCall, mockDateTime } from "../../../test-helpers";
+import { now, parseDateTime } from "../../../utils";
 import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
 import { OriginalInfo } from "../../database/unsafe";
@@ -20,16 +20,7 @@ import { StorageService } from "../../storage";
 import { buildTestApp } from "../test-helpers";
 
 jest.mock("../../storage");
-jest.mock("moment-timezone", (): unknown => {
-  let actualMoment = jest.requireActual("moment-timezone");
-  // @ts-ignore: Mocking.
-  let moment = jest.fn(actualMoment);
-  // @ts-ignore: Mocking.
-  moment.tz = jest.fn(actualMoment.tz);
-  // @ts-ignore: Mocking.
-  moment.isMoment = actualMoment.isMoment;
-  return moment;
-});
+jest.mock("../../../utils/datetime");
 
 let parent = {
   handleUploadedFile: jest.fn<Promise<void>, [string]>((): Promise<void> => Promise.resolve()),
@@ -77,8 +68,7 @@ test("Media upload", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  let createdMoment: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
-  mockMoment(createdMoment);
+  let createdDT = mockDateTime("2016-01-01T23:35:01");
 
   let copyCall = deferCall(copyUploadedFileMock);
 
@@ -117,7 +107,7 @@ test("Media upload", async (): Promise<void> => {
 
   expect(response.body).toEqual(fillMetadata({
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
-    created: expect.toEqualDate(createdMoment),
+    created: expect.toEqualDate(createdDT),
     catalog: "c1",
     albums: [{
       catalog: "c1",
@@ -583,7 +573,7 @@ test("Media resources", async (): Promise<void> => {
   let original = await db.withNewOriginal(
     media.id,
     fillMetadata({
-      uploaded: moment(),
+      uploaded: now(),
       processVersion: 2,
       fileName: "foo.jpg",
       fileSize: 0,
@@ -785,12 +775,10 @@ test("Get media", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
-  mockMoment(createdMoment1);
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
   let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
 
-  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
-  mockMoment(createdMoment2);
+  let createdDT2 = mockDateTime("2010-06-09T09:30:01");
   let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
   let originalId = await db.withNewOriginal(id2, fillMetadata({
     processVersion: 1,
@@ -802,7 +790,7 @@ test("Get media", async (): Promise<void> => {
     duration: 0,
     frameRate: 0,
     bitRate: 0,
-    uploaded: realMoment.tz("2020-02-02T08:00:00", "UTC"),
+    uploaded: parseDateTime("2020-02-02T08:00:00"),
   }), async (_: unknown, original: OriginalInfo): Promise<string> => original.id);
 
   await db.addAlternateFile(originalId, {
@@ -886,7 +874,7 @@ test("Get media", async (): Promise<void> => {
     fillMetadata({
       id: id1,
       catalog: "c1",
-      created: expect.toEqualDate(createdMoment1),
+      created: expect.toEqualDate(createdDT1),
 
       albums: [],
       tags: [],
@@ -906,7 +894,7 @@ test("Get media", async (): Promise<void> => {
     fillMetadata({
       id: id2,
       catalog: "c1",
-      created: expect.toEqualDate(createdMoment2),
+      created: expect.toEqualDate(createdDT2),
       thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
       originalUrl: `/media/original/${id2}/${originalId}`,
       posterUrl: `/media/poster/${id2}/${originalId}`,
@@ -938,7 +926,7 @@ test("Get media", async (): Promise<void> => {
     fillMetadata({
       id: id1,
       catalog: "c1",
-      created: expect.toEqualDate(createdMoment1),
+      created: expect.toEqualDate(createdDT1),
 
       albums: [],
       tags: [],
@@ -947,7 +935,7 @@ test("Get media", async (): Promise<void> => {
     fillMetadata({
       id: id2,
       catalog: "c1",
-      created: expect.toEqualDate(createdMoment2),
+      created: expect.toEqualDate(createdDT2),
       thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
       originalUrl: `/media/original/${id2}/${originalId}`,
       posterUrl: `/media/poster/${id2}/${originalId}`,
@@ -979,7 +967,7 @@ test("Get media", async (): Promise<void> => {
     fillMetadata({
       id: id2,
       catalog: "c1",
-      created: expect.toEqualDate(createdMoment2),
+      created: expect.toEqualDate(createdDT2),
       thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
       originalUrl: `/media/original/${id2}/${originalId}`,
       posterUrl: `/media/poster/${id2}/${originalId}`,
@@ -1000,7 +988,7 @@ test("Get media", async (): Promise<void> => {
     fillMetadata({
       id: id1,
       catalog: "c1",
-      created: expect.toEqualDate(createdMoment1),
+      created: expect.toEqualDate(createdDT1),
 
       albums: [],
       tags: [],
@@ -1069,12 +1057,10 @@ test("Media relations", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
-  mockMoment(createdMoment1);
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
   let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
 
-  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
-  mockMoment(createdMoment2);
+  let createdDT2 = mockDateTime("2010-06-09T09:30:01");
   let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
 
   await request
@@ -1097,7 +1083,7 @@ test("Media relations", async (): Promise<void> => {
   let media1 = fillMetadata({
     id: id1,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment1),
+    created: expect.toEqualDate(createdDT1),
 
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],
@@ -1107,7 +1093,7 @@ test("Media relations", async (): Promise<void> => {
   let media2 = fillMetadata({
     id: id2,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment2),
+    created: expect.toEqualDate(createdDT2),
 
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],
@@ -1429,12 +1415,10 @@ test("Media person locations", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
-  mockMoment(createdMoment1);
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
   let media1 = await user1Db.createMedia("c1", fillMetadata({}));
 
-  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
-  mockMoment(createdMoment2);
+  let createdDT2 = mockDateTime("2010-06-09T09:30:01");
   let media2 = await user1Db.createMedia("c1", fillMetadata({}));
 
   await request
@@ -1457,7 +1441,7 @@ test("Media person locations", async (): Promise<void> => {
   expect(response.body).toEqual([{
     id: media1.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment1),
+    created: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata(),
 
@@ -1467,7 +1451,7 @@ test("Media person locations", async (): Promise<void> => {
   }, {
     id: media2.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment2),
+    created: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata(),
 
@@ -1492,7 +1476,7 @@ test("Media person locations", async (): Promise<void> => {
   expect(response.body).toInclude([{
     id: media1.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment1),
+    created: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata(),
 
@@ -1507,7 +1491,7 @@ test("Media person locations", async (): Promise<void> => {
   }, {
     id: media2.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment2),
+    created: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata(),
 
@@ -1548,7 +1532,7 @@ test("Media person locations", async (): Promise<void> => {
   expect(response.body).toInclude([{
     id: media1.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment1),
+    created: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata(),
 
@@ -1568,7 +1552,7 @@ test("Media person locations", async (): Promise<void> => {
   }, {
     id: media2.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment2),
+    created: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata(),
 
@@ -1623,7 +1607,7 @@ test("Media person locations", async (): Promise<void> => {
   expect(response.body).toInclude([{
     id: media2.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment2),
+    created: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata(),
 
@@ -1680,7 +1664,7 @@ test("Media person locations", async (): Promise<void> => {
   expect(response.body).toEqual([{
     id: media1.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment1),
+    created: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata(),
 
@@ -1700,7 +1684,7 @@ test("Media person locations", async (): Promise<void> => {
   }, {
     id: media2.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment2),
+    created: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata(),
 
@@ -1725,14 +1709,12 @@ test("Media search", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdMoment1: Moment = realMoment.tz("2017-02-01T20:30:01", "UTC");
-  mockMoment(createdMoment1);
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
   let media1 = await user1Db.createMedia("c1", fillMetadata({
     title: "Media 1",
   }));
 
-  let createdMoment2: Moment = realMoment.tz("2010-06-09T09:30:01", "UTC");
-  mockMoment(createdMoment2);
+  mockDateTime("2010-06-09T09:30:01");
   await user1Db.createMedia("c1", fillMetadata({
     title: "Media 2",
   }));
@@ -1765,7 +1747,7 @@ test("Media search", async (): Promise<void> => {
   expect(response.body).toEqual([{
     id: media1.id,
     catalog: "c1",
-    created: expect.toEqualDate(createdMoment1),
+    created: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata(),
     title: "Media 1",

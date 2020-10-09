@@ -1,9 +1,9 @@
 import { waitFor } from "@testing-library/react";
-import moment from "moment-timezone";
 import React from "react";
 
 import { Api, Method, ErrorCode } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
+import { parseDateTime } from "../../utils";
 import { request } from "../api/api";
 import {
   expect,
@@ -79,7 +79,7 @@ test("signup success", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Bob Parr",
-      created: moment.tz("2019-05-06T12:34:56Z", "UTC"),
+      created: parseDateTime("2019-05-06T12:34:56Z"),
       verified: true,
       storage: [],
       catalogs: [],

@@ -17,6 +17,10 @@ import {
 } from "../api/types";
 import fetch from "../environment/fetch";
 
+const {
+  isoDateTime,
+} = jest.requireActual<typeof import("../../utils/datetime")>("../../utils/datetime");
+
 type Body = Blob | Obj | unknown[];
 
 type Fetch = (
@@ -125,15 +129,15 @@ export function mediaIntoResponse(
   if (isProcessed(media)) {
     response = {
       ...media,
-      created: media.created.toISOString(),
-      uploaded: media.uploaded.toISOString(),
-      taken: media.taken?.toISOString() ?? null,
+      created: isoDateTime(media.created),
+      uploaded: isoDateTime(media.uploaded),
+      taken: media.taken ? isoDateTime(media.taken) : null,
     };
   } else {
     response = {
       ...media,
-      created: media.created.toISOString(),
-      taken: media.taken?.toISOString() ?? null,
+      created: isoDateTime(media.created),
+      taken: media.taken ? isoDateTime(media.taken) : null,
     };
   }
 

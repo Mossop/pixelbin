@@ -1,9 +1,20 @@
-import type { Orientation } from "media-metadata";
-import type { Moment } from "moment-timezone";
+import type { AllNull, Nullable, DateTime } from "../utils";
 
-import { AllNull, Nullable } from "../utils";
-
-export type Date = Moment;
+/**
+ * Describes the orientation of the image with two sides. The first side is
+ * the side represented by the zeroth row. The second side is the side
+ * represented by the zeroth column.
+ */
+export enum Orientation {
+  TopLeft = 1,
+  TopRight = 2,
+  BottomRight = 3,
+  BottomLeft = 4,
+  LeftTop = 5,
+  RightTop = 6,
+  RightBottom = 7,
+  LeftBottom = 8,
+}
 
 export interface IdType<K = string> {
   id: K;
@@ -12,8 +23,8 @@ export interface IdType<K = string> {
 export interface User {
   email: string;
   fullname: string;
-  created: Date;
-  lastLogin: Date | null;
+  created: DateTime;
+  lastLogin: DateTime | null;
   verified: boolean;
 }
 
@@ -68,7 +79,7 @@ export interface Metadata {
   description: string;
   label: string;
   category: string;
-  taken: Date;
+  taken: DateTime;
   timeZone: string;
   longitude: number;
   latitude: number;
@@ -95,7 +106,7 @@ export type MetadataFields<T> = {
 
 export type TypeName<K> = K extends string
   ? "string"
-  : K extends Date
+  : K extends DateTime
     ? "date"
     : K extends number
       ? "number"
@@ -134,7 +145,7 @@ export const MetadataColumns: FieldTypes = {
 
 export interface Media extends IdType {
   catalog: Catalog["id"];
-  created: Date;
+  created: DateTime;
 }
 
 export interface MediaLists {
@@ -156,7 +167,7 @@ export interface FileInfo {
 
 export type Original = IdType & FileInfo & {
   media: Media["id"];
-  uploaded: Date;
+  uploaded: DateTime;
 };
 
 export type UnprocessedMedia = Media & Nullable<Metadata> & MediaLists;

@@ -1,25 +1,15 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import type { Moment } from "moment-timezone";
 import fetch from "node-fetch";
 import { dir as tmpdir } from "tmp-promise";
 
-import { expect, realMoment, mockMoment, getStorageConfig } from "../../test-helpers";
+import { expect, getStorageConfig, mockDateTime } from "../../test-helpers";
 import { buildTestDB, connection } from "../database/test-helpers";
 import { StorageService } from "./service";
 import { StoredFile } from "./storage";
 
-jest.mock("moment-timezone", (): unknown => {
-  let actualMoment = jest.requireActual("moment-timezone");
-  // @ts-ignore: Mocking.
-  let moment = jest.fn(actualMoment);
-  // @ts-ignore: Mocking.
-  moment.tz = jest.fn(actualMoment.tz);
-  // @ts-ignore: Mocking.
-  moment.isMoment = actualMoment.isMoment;
-  return moment;
-});
+jest.mock("../../utils/datetime");
 
 buildTestDB();
 
@@ -46,8 +36,7 @@ test("Basic storage", async (): Promise<void> => {
     let testFile = path.join(testTemp.path, "test1");
     await fs.writeFile(testFile, "MYDATA");
 
-    let uploaded: Moment = realMoment.tz("2016-01-01T23:35:01", "UTC");
-    mockMoment(uploaded);
+    let uploaded = mockDateTime("2016-01-01T23:35:01");
     await storage.get().copyUploadedFile("storage_id", testFile, "spoecial.txt");
 
     await fs.unlink(testFile);

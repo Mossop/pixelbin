@@ -1,9 +1,8 @@
 import AWS from "aws-sdk";
-import moment from "moment-timezone";
 import fetch from "node-fetch";
 
 import { Api, Create, ObjectModel, Patch, ResponseFor, AWSResult } from "../../../model";
-import { s3Config, s3Params, s3PublicUrl } from "../../../utils";
+import { isoDateTime, now, s3Config, s3Params, s3PublicUrl } from "../../../utils";
 import { UserScopedConnection } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
@@ -24,7 +23,7 @@ export const testStorage = ensureAuthenticated(
         ...s3Config(config),
       });
 
-      let content = moment().utc().toISOString();
+      let content = isoDateTime(now());
 
       /* eslint-disable @typescript-eslint/naming-convention */
       await s3.upload({

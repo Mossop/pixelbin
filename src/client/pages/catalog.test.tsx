@@ -1,9 +1,9 @@
-import moment from "moment-timezone";
 import React from "react";
 
 import { Api, Method } from "../../model";
 import { fillMetadata } from "../../server/database";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
+import { now } from "../../utils";
 import { Catalog } from "../api/highlevel";
 import MediaGallery from "../components/MediaGallery";
 import {
@@ -79,19 +79,19 @@ test("catalog", async (): Promise<void> => {
 
   let media = [fillMetadata({
     id: "media1",
-    created: moment(),
+    created: now(),
     albums: [],
     tags: [],
     people: [],
   }), fillMetadata({
     id: "media2",
-    created: moment(),
+    created: now(),
     albums: [],
     tags: [],
     people: [],
   }), fillMetadata({
     id: "media3",
-    created: moment(),
+    created: now(),
     albums: [],
     tags: [],
     people: [],

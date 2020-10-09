@@ -1,3 +1,4 @@
+import LuxonUtils from "@date-io/luxon";
 import { Localized, useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
@@ -24,10 +25,9 @@ import PhotoAlbumIcon from "@material-ui/icons/PhotoAlbum";
 import SpeedDial from "@material-ui/lab/SpeedDial";
 import SpeedDialAction from "@material-ui/lab/SpeedDialAction";
 import SpeedDialIcon from "@material-ui/lab/SpeedDialIcon";
-import { DateTimePicker } from "@material-ui/pickers";
+import { DateTimePicker, MuiPickersUtilsProvider } from "@material-ui/pickers";
 import clsx from "clsx";
 import { Draft } from "immer";
-import moment, { Moment } from "moment-timezone";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -44,6 +44,7 @@ import {
   allowedOperators,
   valueType,
 } from "../../model";
+import { DateTime, now } from "../../utils";
 import { Catalog, Reference } from "../api/highlevel";
 import { MediaState } from "../api/types";
 import Loading from "../components/Loading";
@@ -292,7 +293,7 @@ function FieldQueryBox({
           newQuery.value = 0;
           break;
         case "date":
-          newQuery.value = moment();
+          newQuery.value = now();
           break;
       }
     }
@@ -327,7 +328,7 @@ function FieldQueryBox({
     onUpdateQuery(query, newQuery);
   }, [query, onUpdateQuery]);
 
-  let onValueChange = useCallback((value: string | number | Moment | null) => {
+  let onValueChange = useCallback((value: string | number | DateTime | null) => {
     let newQuery: Search.FieldQuery = {
       ...query,
       value,
@@ -856,58 +857,60 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
     actions.closeOverlay();
   }, [actions]);
 
-  return <Dialog
-    open={open}
-    scroll="body"
-    onClose={close}
-    maxWidth={false}
-    aria-labelledby="search-dialog-title"
-  >
-    <DialogTitle id="search-dialog-title" className={classes.title}>
-      {
-        l10n.getString("search-dialog-title")
-      }
-    </DialogTitle>
-    <DialogContent className={classes.content}>
-      <CompoundQueryBox
-        inRelation={null}
-        onUpdateQuery={onUpdateQuery}
-        query={query}
-        catalog={props.catalog}
-      />
-      <Divider className={classes.resultsDivider}/>
-      <Box className={classes.results}>
+  return <MuiPickersUtilsProvider utils={LuxonUtils}>
+    <Dialog
+      open={open}
+      scroll="body"
+      onClose={close}
+      maxWidth={false}
+      aria-labelledby="search-dialog-title"
+    >
+      <DialogTitle id="search-dialog-title" className={classes.title}>
         {
-          media === null
-            ? <Loading className={classes.resultsLoading}/>
-            : <React.Fragment>
-              <Typography component="h3" variant="h6">
-                {
-                  l10n.getString("search-dialog-results", {
-                    count: media.length,
-                  })
-                }
-              </Typography>
-              <Box className={classes.previews}>
-                {
-                  media.map((item: MediaState) => <Preview
-                    key={item.id}
-                    media={item}
-                    thumbnailSize={thumbnailSize}
-                  />)
-                }
-              </Box>
-            </React.Fragment>
+          l10n.getString("search-dialog-title")
         }
-      </Box>
-    </DialogContent>
-    <DialogActions disableSpacing={true} className={classes.actions}>
-      <Button id="search-dialog-reset" onClick={reset}>
-        {l10n.getString("search-dialog-reset")}
-      </Button>
-      <Button id="search-dialog-accept" onClick={search}>
-        {l10n.getString("search-dialog-accept")}
-      </Button>
-    </DialogActions>
-  </Dialog>;
+      </DialogTitle>
+      <DialogContent className={classes.content}>
+        <CompoundQueryBox
+          inRelation={null}
+          onUpdateQuery={onUpdateQuery}
+          query={query}
+          catalog={props.catalog}
+        />
+        <Divider className={classes.resultsDivider}/>
+        <Box className={classes.results}>
+          {
+            media === null
+              ? <Loading className={classes.resultsLoading}/>
+              : <React.Fragment>
+                <Typography component="h3" variant="h6">
+                  {
+                    l10n.getString("search-dialog-results", {
+                      count: media.length,
+                    })
+                  }
+                </Typography>
+                <Box className={classes.previews}>
+                  {
+                    media.map((item: MediaState) => <Preview
+                      key={item.id}
+                      media={item}
+                      thumbnailSize={thumbnailSize}
+                    />)
+                  }
+                </Box>
+              </React.Fragment>
+          }
+        </Box>
+      </DialogContent>
+      <DialogActions disableSpacing={true} className={classes.actions}>
+        <Button id="search-dialog-reset" onClick={reset}>
+          {l10n.getString("search-dialog-reset")}
+        </Button>
+        <Button id="search-dialog-accept" onClick={search}>
+          {l10n.getString("search-dialog-accept")}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </MuiPickersUtilsProvider>;
 }

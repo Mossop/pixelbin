@@ -1,7 +1,5 @@
-import moment from "moment-timezone";
-
 import { Query, Join, Operator, Modifier, checkQuery, RelationType } from "../../model";
-import { idSorted } from "../../utils";
+import { idSorted, parseDateTime } from "../../utils";
 import { UserScopedConnection } from "./connection";
 import { fillMetadata } from "./media";
 import { buildTestDB, connection, insertData, insertTestData } from "./test-helpers";
@@ -15,52 +13,52 @@ beforeEach(async (): Promise<void> => {
     [Table.Media]: [fillMetadata({
       id: "m1",
       catalog: "c1",
-      created: moment.tz("2020-01-02T04:05:06", "UTC"),
+      created: parseDateTime("2020-01-02T04:05:06"),
 
       title: "A test title",
       description: "A test description",
       rating: 3,
       longitude: 56,
       latitude: -120,
-      taken: moment.tz("2019-05-03T06:05:06", "UTC"),
+      taken: parseDateTime("2019-05-03T06:05:06"),
     }), fillMetadata({
       id: "m2",
       catalog: "c1",
-      created: moment.tz("2020-01-04T04:05:06", "UTC"),
+      created: parseDateTime("2020-01-04T04:05:06"),
 
       title: "A different title",
       description: "Another description",
       rating: 5,
       longitude: 78,
       latitude: -100,
-      taken: moment.tz("2016-03-03T06:05:06", "UTC"),
+      taken: parseDateTime("2016-03-03T06:05:06"),
     }), fillMetadata({
       id: "m3",
       catalog: "c1",
-      created: moment.tz("2020-01-02T04:05:06", "UTC"),
+      created: parseDateTime("2020-01-02T04:05:06"),
 
       description: "A third description",
       longitude: -34,
       latitude: 28,
-      taken: moment.tz("2017-06-03T06:05:06", "UTC"),
+      taken: parseDateTime("2017-06-03T06:05:06"),
     }), fillMetadata({
       id: "m4",
       catalog: "c2",
-      created: moment.tz("2020-02-01T04:05:06", "UTC"),
+      created: parseDateTime("2020-02-01T04:05:06"),
 
       description: "A test description",
       rating: 3,
       longitude: -47,
       latitude: 76,
-      taken: moment.tz("2018-06-03T06:05:06", "UTC"),
+      taken: parseDateTime("2018-06-03T06:05:06"),
     }), fillMetadata({
       id: "m5",
       catalog: "c1",
-      created: moment.tz("2002-02-01T04:05:06", "UTC"),
+      created: parseDateTime("2002-02-01T04:05:06"),
     }), fillMetadata({
       id: "m6",
       catalog: "c1",
-      created: moment.tz("2004-02-01T04:05:06", "UTC"),
+      created: parseDateTime("2004-02-01T04:05:06"),
     })],
     [Table.MediaAlbum]: [{
       catalog: "c1",
@@ -428,7 +426,7 @@ test("Date metadata search", async (): Promise<void> => {
     field: "taken",
     modifier: null,
     operator: Operator.Equal,
-    value: moment("2019-05-03T06:05:06Z"),
+    value: parseDateTime("2019-05-03T06:05:06Z"),
   })).resolves.toEqual([
     "m1",
   ]);
@@ -439,7 +437,7 @@ test("Date metadata search", async (): Promise<void> => {
     field: "taken",
     modifier: null,
     operator: Operator.Equal,
-    value: moment("2019-05-03T06:05:06Z"),
+    value: parseDateTime("2019-05-03T06:05:06Z"),
   })).resolves.toEqual([
     "m2",
     "m3",
@@ -453,7 +451,7 @@ test("Date metadata search", async (): Promise<void> => {
     field: "taken",
     modifier: null,
     operator: Operator.LessThan,
-    value: moment("2018-01-01T00:00:00Z"),
+    value: parseDateTime("2018-01-01T00:00:00Z"),
   })).resolves.toEqual([
     "m2",
     "m3",
@@ -465,7 +463,7 @@ test("Date metadata search", async (): Promise<void> => {
     field: "taken",
     modifier: null,
     operator: Operator.LessThan,
-    value: moment("2018-01-01T00:00:00Z"),
+    value: parseDateTime("2018-01-01T00:00:00Z"),
   })).resolves.toEqual([
     "m1",
   ]);

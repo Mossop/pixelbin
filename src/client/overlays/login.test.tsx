@@ -1,9 +1,9 @@
 import { waitFor } from "@testing-library/react";
-import moment from "moment-timezone";
 import React from "react";
 
 import { Api, Method, ErrorCode } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
+import { parseDateTime } from "../../utils";
 import { request } from "../api/api";
 import {
   expect,
@@ -65,7 +65,7 @@ test("login success", async (): Promise<void> => {
   }]);
 
   let dispatchCall = awaitCall(store.dispatch);
-  let created = moment.tz("2016-05-23T14:56:32", "UTC");
+  let created = parseDateTime("2016-05-23T14:56:32");
 
   await resolve({
     user: {

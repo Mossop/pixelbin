@@ -1,10 +1,10 @@
 import path from "path";
 
 import Knex from "knex";
-import moment, { Moment } from "moment-timezone";
+import { DateTime as Luxon } from "luxon";
 import { types } from "pg";
 
-import { getLogger, Obj } from "../../utils";
+import { DateTime, getLogger, Obj } from "../../utils";
 import * as CatalogQueries from "./catalog";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import * as Joins from "./joins";
@@ -24,11 +24,14 @@ export interface DatabaseConfig {
   database: string;
 }
 
-function parseTimestamp(value: string): Moment {
-  return moment(value).utc();
+function dateParse(val: string): DateTime {
+  return Luxon.fromSQL(val, {
+    zone: "UTC",
+  });
 }
-types.setTypeParser(types.builtins.TIMESTAMPTZ, parseTimestamp);
-types.setTypeParser(types.builtins.TIMESTAMP, parseTimestamp);
+
+types.setTypeParser(types.builtins.TIMESTAMPTZ, dateParse);
+types.setTypeParser(types.builtins.TIMESTAMP, dateParse);
 
 function wrapped<T, A extends unknown[], R>(
   fn: (this: T, ...args: A) => Promise<R>,

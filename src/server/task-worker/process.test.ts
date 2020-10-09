@@ -1,12 +1,12 @@
 import path from "path";
 
 import { exiftool } from "exiftool-vendored";
-import moment from "moment-timezone";
 import sharp from "sharp";
 import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
+import { parseDateTime } from "../../utils/__mocks__/datetime";
 import { fillMetadata } from "../database";
 import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
 import { AlternateFile } from "../database/types/tables";
@@ -75,7 +75,7 @@ test("Process image metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
-  let uploaded = moment("2015-06-21T02:56:53");
+  let uploaded = parseDateTime("2015-06-21T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
   let media = await user1Db.createMedia("c1", fillMetadata({
@@ -266,7 +266,7 @@ test("Process video metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
-  let uploaded = moment("2017-01-02T02:56:53");
+  let uploaded = parseDateTime("2017-01-02T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
 
   let media = await user1Db.createMedia("c1", fillMetadata({
@@ -525,7 +525,7 @@ test("reprocess", async (): Promise<void> => {
     photographer: "Dave",
   }));
 
-  let originalUploaded = moment("2020-01-01T02:56:53");
+  let originalUploaded = parseDateTime("2020-01-01T02:56:53");
 
   let original = await dbConnection.withNewOriginal(media.id, fillMetadata({
     processVersion: 1,
@@ -563,7 +563,7 @@ test("reprocess", async (): Promise<void> => {
     tags: [],
   }));
 
-  let uploaded = moment("2020-01-02T02:56:53");
+  let uploaded = parseDateTime("2020-01-02T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
   getUploadedFileMock.mockResolvedValueOnce({

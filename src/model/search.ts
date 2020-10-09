@@ -1,7 +1,6 @@
-import { isMoment } from "moment-timezone";
-
+import type { DateTime } from "../utils";
 import { RelationType } from "./api";
-import { Date, MetadataColumns } from "./models";
+import { MetadataColumns } from "./models";
 
 export type FieldType = "number" | "string" | "date";
 
@@ -76,7 +75,7 @@ export interface FieldQuery extends BaseQuery {
   readonly field: string,
   readonly modifier: Modifier | null;
   readonly operator: Operator;
-  readonly value?: string | number | Date | null | undefined;
+  readonly value?: string | number | DateTime | null | undefined;
 }
 
 export function isFieldQuery(query: Query): query is FieldQuery {
@@ -192,7 +191,7 @@ export function checkQuery(query: Query, inRelated: boolean = false): void {
         throw new Error(`Expected no value for operator '${query.operator}'.`);
       }
     } else if (expectedValueType == "date") {
-      if (!isMoment(query.value)) {
+      if (!query.value || typeof query.value != "object") {
         throw new Error(
           `Expected a '${expectedValueType}' value for operator ` +
         `'${query.operator}' but got '${typeof query.value}'.`,

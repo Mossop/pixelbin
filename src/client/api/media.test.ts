@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import moment from "moment-timezone";
-
 import { ErrorCode, Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
+import { parseDateTime } from "../../utils";
 import fetch from "../environment/fetch";
 import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
@@ -27,7 +26,7 @@ test("Media reference", (): void => {
 test("Get media", async (): Promise<void> => {
   let serverState = mockServerState();
 
-  let created = moment.tz("2020-04-21T20:41:20.824Z", "UTC");
+  let created = parseDateTime("2020-04-21T20:41:20.824Z");
   let media = mockUnprocessedMedia({
     id: "testmedia",
     created,
@@ -65,7 +64,7 @@ test("Missing media", async (): Promise<void> => {
 test("Create media", async (): Promise<void> => {
   let serverState = mockServerState();
 
-  let created = moment.tz("2020-04-21T20:41:20.824Z", "UTC");
+  let created = parseDateTime("2020-04-21T20:41:20.824Z");
   let media = mockUnprocessedMedia({
     id: "testmedia",
     created,
@@ -110,8 +109,8 @@ test("Create media", async (): Promise<void> => {
 });
 
 // test("Edit media", async (): Promise<void> => {
-//   let created = moment.tz("2020-04-21T20:41:20.824Z", "UTC");
-//   let uploaded = moment.tz("2020-11-21T20:21:20.824Z", "UTC");
+//   let created = parseDateTime("2020-04-21T20:41:20.824Z");
+//   let uploaded = parseDateTime("2020-11-21T20:21:20.824Z");
 //   let media: Media = mockMedia({
 //     id: "testmedia",
 //     created,

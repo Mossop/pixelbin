@@ -1,4 +1,5 @@
 import { ObjectModel, ResponseFor, ErrorCode } from "../../model";
+import { isoDateTime } from "../../utils";
 import { UserScopedConnection } from "../database";
 import { AppContext, DescriptorsFor } from "./context";
 import { ApiError } from "./error";
@@ -42,7 +43,7 @@ export default function(): DescriptorsFor<AuthContext> {
           if (user) {
             this.session.user = {
               ...user,
-              created: user.created.toISOString(),
+              created: isoDateTime(user.created),
             };
             this.session.save();
           } else {

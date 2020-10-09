@@ -1,10 +1,10 @@
 import { expect as jestExpect } from "@jest/globals";
 import { act } from "@testing-library/react";
-import moment from "moment";
-import { isMoment, Moment } from "moment-timezone";
+import { DateTime as Luxon } from "luxon";
 
 import { Api } from "../../model";
 import { deferCall, DeferredCall } from "../../test-helpers";
+import { DateTime } from "../../utils";
 import { request } from "../api/api";
 import { ErrorCode, AppError } from "../utils/exception";
 
@@ -54,18 +54,24 @@ const matchers = {
     this: jest.MatcherContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     received: any,
-    expected: Moment | string,
+    expected: DateTime | string,
   ): jest.CustomMatcherResult {
-    const receivedMoment = isMoment(received) ? received.utc() : moment.tz(received, "UTC");
-    const expectedMoment = isMoment(expected) ? expected.utc() : moment.tz(expected, "UTC");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const asStr = (val: any): string => {
+      if (Luxon.isDateTime(val)) {
+        return val.toUTC().toISO();
+      }
 
-    const receivedAsString = receivedMoment.format("L");
-    const expectedAsString = expectedMoment.format("L");
+      return Luxon.fromISO(val, {
+        zone: "UTC",
+      }).toUTC().toISO();
+    };
 
-    const pass = receivedMoment.isSame(expectedMoment);
+    const receivedAsString = asStr(received);
+    const expectedAsString = asStr(expected);
 
     return {
-      pass,
+      pass: receivedAsString == expectedAsString,
       message: expectMessage(this, "toEqualDate", expectedAsString, receivedAsString),
     };
   },

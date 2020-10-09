@@ -1,8 +1,7 @@
 import Knex, { Raw, Ref } from "knex";
-import { isMoment } from "moment-timezone";
 
 import { Table } from ".";
-import { AllNull, Obj } from "../../../utils";
+import { AllNull, Obj, isDateTime, isoDateTime } from "../../../utils";
 
 export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
 
@@ -13,8 +12,8 @@ export type WithRefs<Record> = {
 };
 
 export function intoDBType(value: unknown): Knex.Value {
-  if (isMoment(value)) {
-    return value.utc().toISOString();
+  if (isDateTime(value)) {
+    return isoDateTime(value);
   }
   return value as Knex.Value;
 }

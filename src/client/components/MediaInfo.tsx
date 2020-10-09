@@ -6,6 +6,7 @@ import Rating from "@material-ui/lab/Rating/Rating";
 import React, { useCallback, useMemo } from "react";
 
 import { ObjectModel } from "../../model";
+import { formatDateTime } from "../../utils";
 import { Reference, Tag } from "../api/highlevel";
 import { MediaPersonState, MediaState } from "../api/types";
 import { useSelector } from "../store";
@@ -244,14 +245,8 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
       return null;
     }
 
-    let taken = media.taken;
-
-    if (media.timeZone) {
-      taken = taken.tz(media.timeZone);
-    }
-
     return <LocalizedRow label="metadata-label-taken">
-      {taken.local().format("HH:mm:ss MM/DD/YYYY")}
+      {formatDateTime(media.taken)}
     </LocalizedRow>;
   }, [media]);
 

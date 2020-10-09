@@ -9,7 +9,7 @@ import {
   ErrorCode,
   RelationType,
 } from "../../../model";
-import { chooseSize } from "../../../utils";
+import { chooseSize, isoDateTime } from "../../../utils";
 import { fillMetadata, UserScopedConnection, Media, ProcessedMedia } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
@@ -37,15 +37,15 @@ export function buildResponseMedia(
       posterUrl: media.mimetype.startsWith("video/")
         ? `${APP_PATHS.root}media/poster/${media.id}/${media.original}`
         : null,
-      created: media.created.toISOString(),
-      uploaded: media.uploaded.toISOString(),
-      taken: media.taken?.toISOString() ?? null,
+      created: isoDateTime(media.created),
+      uploaded: isoDateTime(media.uploaded),
+      taken: media.taken ? isoDateTime(media.taken) : null,
     };
   } else {
     return {
       ...media,
-      created: media.created.toISOString(),
-      taken: media.taken?.toISOString() ?? null,
+      created: isoDateTime(media.created),
+      taken: media.taken ? isoDateTime(media.taken) : null,
     };
   }
 }

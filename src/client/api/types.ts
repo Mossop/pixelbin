@@ -1,7 +1,7 @@
 import { Draft } from "immer";
 
 import { Api, ObjectModel } from "../../model";
-import { Overwrite } from "../../utils";
+import { isoDateTime, Overwrite } from "../../utils";
 import { intoMap, ReadonlyMapOf } from "../utils/maps";
 import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
 
@@ -155,7 +155,7 @@ export function userIntoState(user: Api.User): UserState {
 
   return {
     ...rest,
-    created: rest.created.toISOString(),
+    created: isoDateTime(rest.created),
     storage: intoMap(user.storage),
     catalogs: new Map(
       catalogs.map((catalog: Api.Catalog): [string, CatalogState] => {

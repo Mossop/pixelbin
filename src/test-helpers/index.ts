@@ -4,14 +4,10 @@ import path from "path";
 
 import { expect as jestExpect } from "@jest/globals";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
-import moment from "moment-timezone";
-import type { Moment } from "moment-timezone";
+import { DateTime as Luxon } from "luxon";
 
 import { ObjectModel } from "../model";
-import { defer } from "../utils";
-
-export const realMoment = jest.requireActual<typeof import("moment-timezone")>("moment-timezone");
-const { isMoment } = realMoment;
+import { DateTime, defer, now } from "../utils";
 
 function expectMessage(
   context: jest.MatcherContext,
@@ -53,18 +49,24 @@ const matchers = {
     this: jest.MatcherContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     received: any,
-    expected: Moment | string,
+    expected: DateTime | string,
   ): jest.CustomMatcherResult {
-    const receivedMoment = isMoment(received) ? received.utc() : realMoment.tz(received, "UTC");
-    const expectedMoment = isMoment(expected) ? expected.utc() : realMoment.tz(expected, "UTC");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const asStr = (val: any): string => {
+      if (Luxon.isDateTime(val)) {
+        return val.toUTC().toISO();
+      }
 
-    const receivedAsString = receivedMoment.format("L");
-    const expectedAsString = expectedMoment.format("L");
+      return Luxon.fromISO(val, {
+        zone: "UTC",
+      }).toUTC().toISO();
+    };
 
-    const pass = receivedMoment.isSame(expectedMoment);
+    const receivedAsString = asStr(received);
+    const expectedAsString = asStr(expected);
 
     return {
-      pass,
+      pass: receivedAsString == expectedAsString,
       message: expectMessage(this, "toEqualDate", expectedAsString, receivedAsString),
     };
   },
@@ -250,20 +252,21 @@ export function mock<
   return jest.fn<ReturnType<Fn>, Parameters<Fn>>(implementation);
 }
 
-export function mockMoment(result: Moment): void {
-  let mockedMoment = mockedFunction(moment);
+export function mockDateTime(result: DateTime | string): DateTime {
+  let dt = result instanceof Luxon
+    ? result
+    : Luxon.fromISO(result, {
+      zone: "UTC",
+      setZone: true,
+    });
 
-  let currentImplementation = mockedMoment.getMockImplementation();
-  mockedMoment.mockImplementation((...args: unknown[]): Moment => {
-    if (args.length == 0) {
-      // @ts-ignore: Seems like this must be correct.
-      mockedMoment.mockImplementation(currentImplementation);
-      return result;
-    }
+  let mockedNow = mockedFunction(now);
 
-    // @ts-ignore: Can't be bothered to type this.
-    return realMoment(...args);
+  mockedNow.mockImplementationOnce((): DateTime => {
+    return dt;
   });
+
+  return dt;
 }
 
 export async function getStorageConfig(

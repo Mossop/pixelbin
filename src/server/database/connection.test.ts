@@ -1,5 +1,4 @@
-import moment from "moment-timezone";
-
+import { now } from "../../utils";
 import { from, insert, drop, into } from "./queries";
 import { connection, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
@@ -15,7 +14,7 @@ test("Basic database connection", async (): Promise<void> => {
     fullname: "Dave",
     lastLogin: null,
     verified: true,
-    created: moment(),
+    created: now(),
   });
 
   await insert(dbConnection.knex, Table.Storage, {

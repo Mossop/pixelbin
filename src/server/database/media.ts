@@ -1,7 +1,7 @@
 import Knex from "knex";
-import moment from "moment-timezone";
 
 import { AlternateFileType, emptyMetadata } from "../../model";
+import { now } from "../../utils";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
@@ -62,7 +62,7 @@ export async function createMedia(
     ...filterColumns(Table.Media, data),
     id: await mediaId(),
     catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
-    created: moment(),
+    created: now(),
   })).returning("*");
 
   if (!results.length) {

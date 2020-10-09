@@ -1,19 +1,10 @@
 import { ErrorCode } from "../../../model";
-import { expect, realMoment, mockMoment } from "../../../test-helpers";
+import { expect, mockDateTime } from "../../../test-helpers";
 import { insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { buildTestApp } from "../test-helpers";
 
-jest.mock("moment-timezone", (): unknown => {
-  let actualMoment = jest.requireActual("moment-timezone");
-  // @ts-ignore: Mocking.
-  let moment = jest.fn(actualMoment);
-  // @ts-ignore: Mocking.
-  moment.tz = jest.fn(actualMoment.tz);
-  // @ts-ignore: Mocking.
-  moment.isMoment = actualMoment.isMoment;
-  return moment;
-});
+jest.mock("../../../utils/datetime");
 
 const agent = buildTestApp();
 
@@ -152,8 +143,7 @@ test("signup", async (): Promise<void> => {
     user: null,
   });
 
-  let created = realMoment.tz("2020-04-05T11:56:01", "UTC");
-  mockMoment(created);
+  let created = mockDateTime("2020-04-05T11:56:01");
 
   response = await request
     .put("/api/signup")
