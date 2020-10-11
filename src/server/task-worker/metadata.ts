@@ -230,6 +230,7 @@ const parsers: MetadataParsers = {
   label: [straight("Label")],
   category: [straight("Category")],
   taken: [takenParser],
+  takenZone: [],
   longitude: [straight("GPSLongitude")],
   latitude: [straight("GPSLatitude")],
   altitude: [straight("GPSAltitude")],
