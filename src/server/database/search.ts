@@ -2,6 +2,7 @@ import Knex from "knex";
 
 import { checkQuery, isCompoundQuery, Join, Modifier, Operator, Search, Query } from "../../model";
 import { isRelationQuery } from "../../model/search";
+import { isDateTime } from "../../utils";
 import { UserScopedConnection } from "./connection";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
 import { intoMedia } from "./media";
@@ -37,6 +38,13 @@ function applyFieldQuery(
     }
   }
 
+  let value = query.value;
+  if (query.field == "taken" && !query.modifier && isDateTime(value)) {
+    value = value.setZone("UTC", {
+      keepLocalTime: true,
+    });
+  }
+
   let sql: string;
   switch (query.operator) {
     case Operator.Empty:
@@ -44,40 +52,40 @@ function applyFieldQuery(
       break;
     case Operator.Equal:
       sql = query.invert ? `${left} IS DISTINCT FROM ?` : `${left} IS NOT DISTINCT FROM ?`;
-      bindings.push(intoDBType(query.value));
+      bindings.push(intoDBType(value));
       break;
     case Operator.LessThan:
       sql = query.invert ? `${left} >= ?` : `${left} < ?`;
-      bindings.push(intoDBType(query.value));
+      bindings.push(intoDBType(value));
       break;
     case Operator.LessThanOrEqual:
       sql = query.invert ? `${left} > ?` : `${left} <= ?`;
-      bindings.push(intoDBType(query.value));
+      bindings.push(intoDBType(value));
       break;
     case Operator.Contains:
       sql = query.invert ? `(${left} NOT LIKE ? OR ?? IS NULL)` : `${left} LIKE ?`;
-      bindings.push(`%${escape(query.value)}%`);
+      bindings.push(`%${escape(value)}%`);
       if (query.invert) {
         bindings.push(fieldReference);
       }
       break;
     case Operator.StartsWith:
       sql = query.invert ? `(${left} NOT LIKE ? OR ?? IS NULL)` : `${left} LIKE ?`;
-      bindings.push(`${escape(query.value)}%`);
+      bindings.push(`${escape(value)}%`);
       if (query.invert) {
         bindings.push(fieldReference);
       }
       break;
     case Operator.EndsWith:
       sql = query.invert ? `(${left} NOT LIKE ? OR ?? IS NULL)` : `${left} LIKE ?`;
-      bindings.push(`%${escape(query.value)}`);
+      bindings.push(`%${escape(value)}`);
       if (query.invert) {
         bindings.push(fieldReference);
       }
       break;
     case Operator.Matches:
       sql = query.invert ? `(${left} !~ ? OR ?? IS NULL)` : `${left} ~ ?`;
-      bindings.push(intoDBType(query.value));
+      bindings.push(intoDBType(value));
       if (query.invert) {
         bindings.push(fieldReference);
       }

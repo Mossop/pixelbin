@@ -432,6 +432,17 @@ test("Date metadata search", async (): Promise<void> => {
   ]);
 
   await expect(search(user2Db, {
+    invert: false,
+    type: "field",
+    field: "taken",
+    modifier: null,
+    operator: Operator.Equal,
+    value: parseDateTime("2019-05-03T06:05:06-07:00"),
+  })).resolves.toEqual([
+    "m1",
+  ]);
+
+  await expect(search(user2Db, {
     invert: true,
     type: "field",
     field: "taken",

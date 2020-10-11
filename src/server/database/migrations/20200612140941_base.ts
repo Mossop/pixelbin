@@ -164,8 +164,8 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       "model",
       "lens",
       "photographer",
-      "timeZone",
       "shutterSpeed",
+      "takenZone",
     ]) {
       table.string(name, 200).nullable();
     }
@@ -188,7 +188,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.float(name).nullable();
     }
 
-    table.dateTime("taken", { useTz: true }).nullable();
+    table.dateTime("taken", { useTz: false }).nullable();
   }
 
   function nameIndex(table: Table, target: Table, parent: string | null = "parent"): string {

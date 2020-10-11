@@ -2,7 +2,15 @@ import { MetadataColumns } from "../../model";
 import { DatabaseConnection } from "./connection";
 import { uuid } from "./id";
 import { from, into } from "./queries";
-import { Table, Tables, ref, intoDBTypes, intoAPITypes } from "./types";
+import {
+  Table,
+  Tables,
+  ref,
+  intoDBTypes,
+  intoAPITypes,
+  buildTimeZoneFields,
+  applyTimeZoneFields,
+} from "./types";
 
 export async function getMedia(
   this: DatabaseConnection,
@@ -28,7 +36,7 @@ export async function withNewOriginal<T>(
 ): Promise<T> {
   return this.inTransaction(async (dbConnection: DatabaseConnection): Promise<T> => {
     let results = await into(dbConnection.knex, Table.Original).insert({
-      ...intoDBTypes(data),
+      ...intoDBTypes(buildTimeZoneFields(data)),
       id: await uuid("I"),
       media,
     }).returning([
@@ -47,7 +55,7 @@ export async function withNewOriginal<T>(
     ]) as OriginalInfo[];
 
     if (results.length) {
-      return operation(dbConnection, intoAPITypes(results[0]));
+      return operation(dbConnection, applyTimeZoneFields(intoAPITypes(results[0])));
     }
 
     throw new Error("Invalid media ID passed to withNewOriginal");

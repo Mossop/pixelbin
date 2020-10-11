@@ -6,7 +6,14 @@ import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import sharp from "sharp";
 
 import { ObjectModel } from "../../model";
-import { DateTime, dateTimeFromMillis, entries, isoDateTime, Nullable, parseDateTime } from "../../utils";
+import {
+  DateTime,
+  dateTimeFromMillis,
+  entries,
+  isoDateTime,
+  Nullable,
+  parseDateTime,
+} from "../../utils";
 import { StoredFile } from "../storage";
 import { probe } from "./ffmpeg";
 import Services from "./services";
@@ -223,7 +230,6 @@ const parsers: MetadataParsers = {
   label: [straight("Label")],
   category: [straight("Category")],
   taken: [takenParser],
-  timeZone: [straight("tz")],
   longitude: [straight("GPSLongitude")],
   latitude: [straight("GPSLatitude")],
   altitude: [straight("GPSAltitude")],

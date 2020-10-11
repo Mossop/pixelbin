@@ -1,7 +1,9 @@
 import Knex, { Raw, Ref } from "knex";
+import { FixedOffsetZone } from "luxon";
 
 import { Table } from ".";
-import { AllNull, Obj, isDateTime, isoDateTime } from "../../../utils";
+import { ObjectModel } from "../../../model";
+import { AllNull, Obj, isDateTime, isoDateTime, Nullable } from "../../../utils";
 
 export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
 
@@ -10,6 +12,41 @@ export type AllOrNulls<T> = T | AllNull<T>;
 export type WithRefs<Record> = {
   [K in keyof Record]: Raw | Ref<string, Obj> | Record[K];
 };
+
+type TimeFields = Nullable<Pick<ObjectModel.Metadata, "taken" | "takenZone">>;
+export function buildTimeZoneFields<T extends Partial<TimeFields>>(data: T): T {
+  if (data.taken === null) {
+    return {
+      ...data,
+      taken: null,
+      takenZone: null,
+    };
+  } else if (isDateTime(data.taken)) {
+    return {
+      ...data,
+      taken: data.taken.setZone("UTC", { keepLocalTime: true }),
+      takenZone: data.takenZone ?? data.taken.toFormat("ZZ"),
+    };
+  } else {
+    return data;
+  }
+}
+
+export function applyTimeZoneFields<T extends TimeFields>(data: T): T {
+  if (data.taken && data.takenZone) {
+    let zone = FixedOffsetZone.parseSpecifier(`UTC${data.takenZone}`);
+    if (zone.isValid) {
+      return {
+        ...data,
+        taken: data.taken.setZone(zone, {
+          keepLocalTime: true,
+        }),
+      };
+    }
+  }
+
+  return data;
+}
 
 export function intoDBType(value: unknown): Knex.Value {
   if (isDateTime(value)) {

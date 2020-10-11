@@ -80,7 +80,7 @@ export interface Metadata {
   label: string;
   category: string;
   taken: DateTime;
-  timeZone: string;
+  takenZone: string;
   longitude: number;
   latitude: number;
   altitude: number;
@@ -122,7 +122,6 @@ export const MetadataColumns: FieldTypes = {
   description: "string",
   category: "string",
   label: "string",
-  timeZone: "string",
   location: "string",
   city: "string",
   state: "string",
@@ -141,6 +140,7 @@ export const MetadataColumns: FieldTypes = {
   focalLength: "number",
   rating: "number",
   taken: "date",
+  takenZone: "string",
 };
 
 export interface Media extends IdType {

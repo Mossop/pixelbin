@@ -110,7 +110,7 @@ export const UnprocessedMediaProperties = {
   category: JsonDecoder.nullable(JsonDecoder.string),
   label: JsonDecoder.nullable(JsonDecoder.string),
   taken: JsonDecoder.nullable(DateDecoder),
-  timeZone: JsonDecoder.nullable(JsonDecoder.string),
+  takenZone: JsonDecoder.nullable(JsonDecoder.string),
   longitude: JsonDecoder.nullable(JsonDecoder.number),
   latitude: JsonDecoder.nullable(JsonDecoder.number),
   altitude: JsonDecoder.nullable(JsonDecoder.number),

@@ -79,6 +79,7 @@ test("Media upload", async (): Promise<void> => {
     .field("tags[0]", "t1")
     .field("tags[1]", "t2")
     .field("people[0]", "p1")
+    .field("taken", "2020-04-05T17:01:04-07:00")
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
@@ -108,6 +109,8 @@ test("Media upload", async (): Promise<void> => {
   expect(response.body).toEqual(fillMetadata({
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.toEqualDate(createdDT),
+    taken: "2020-04-05T17:01:04.000-07:00",
+    takenZone: "-07:00",
     catalog: "c1",
     albums: [{
       catalog: "c1",
@@ -350,6 +353,7 @@ test("Media edit", async (): Promise<void> => {
     .send({
       id: newMedia?.id,
       title: "New title",
+      taken: "2020-04-05T17:01:04-09:00",
       albums: ["a2"],
       tags: [
         "t2",
@@ -366,6 +370,8 @@ test("Media edit", async (): Promise<void> => {
     created: expect.toEqualDate(newMedia?.created ?? ""),
 
     title: "New title",
+    taken: "2020-04-05T17:01:04.000-09:00",
+    takenZone: "-09:00",
 
     albums: [{
       catalog: "c1",
@@ -421,6 +427,8 @@ test("Media edit", async (): Promise<void> => {
 
     title: "New title",
     city: "Portland",
+    taken: "2020-04-05T17:01:04.000-09:00",
+    takenZone: "-09:00",
 
     albums: [],
     tags: [{
@@ -483,6 +491,8 @@ test("Media edit", async (): Promise<void> => {
 
     title: "New title",
     city: "London",
+    taken: "2020-04-05T17:01:04.000-09:00",
+    takenZone: "-09:00",
 
     albums: [{
       catalog: "c1",

@@ -44,7 +44,6 @@ test("lamppost", async (): Promise<void> => {
     category: null,
     label: null,
     taken: expect.toEqualDate("2018-08-22T18:51:25.800-07:00"),
-    timeZone: "America/Los_Angeles",
     longitude: -121.517781666667,
     latitude: 45.7150516666667,
     altitude: 28.4597,
@@ -63,6 +62,7 @@ test("lamppost", async (): Promise<void> => {
     focalLength: 95,
     rating: 4,
   });
+  expect(metadata.taken?.hour).toBe(18);
 
   let info = getOriginal(data);
   expect(info).toEqual({
@@ -109,8 +109,7 @@ test("iptc", async (): Promise<void> => {
     description: "The description aka caption (ref2017.1)",
     category: null,
     label: null,
-    taken: expect.toEqualDate("2017-07-13T10:01:00-07:00"),
-    timeZone: null,
+    taken: expect.toEqualDate("2017-07-13T17:01:00Z"),
     longitude: null,
     latitude: null,
     altitude: null,
@@ -129,6 +128,7 @@ test("iptc", async (): Promise<void> => {
     focalLength: null,
     rating: 1,
   });
+  expect(metadata.taken?.hour).toBe(17);
 
   let info = getOriginal(data);
   expect(info).toEqual({
@@ -176,7 +176,6 @@ test("video", async (): Promise<void> => {
     category: null,
     label: null,
     taken: expect.toEqualDate("2019-11-03T23:07:19-08:00"),
-    timeZone: "America/Los_Angeles",
     longitude: -122.6187,
     latitude: 45.5484,
     altitude: null,
@@ -195,6 +194,7 @@ test("video", async (): Promise<void> => {
     focalLength: null,
     rating: null,
   });
+  expect(metadata.taken?.hour).toBe(23);
 
   let info = getOriginal(data);
   expect(info).toEqual({

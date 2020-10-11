@@ -14,6 +14,8 @@ import {
   intoAPITypes,
   Media,
   UnprocessedMedia,
+  buildTimeZoneFields,
+  applyTimeZoneFields,
 } from "./types";
 import { filterColumns } from "./utils";
 
@@ -25,7 +27,7 @@ export function fillMetadata<T>(data: T): T & Tables.Metadata {
 }
 
 export function intoMedia(item: Tables.StoredMedia): Media {
-  let forApi = intoAPITypes(item);
+  let forApi = applyTimeZoneFields(intoAPITypes(item));
 
   if (forApi.uploaded) {
     return forApi;
@@ -53,28 +55,37 @@ export async function createMedia(
   catalog: Tables.Media["catalog"],
   data: Omit<Tables.Media, "id" | "catalog" | "created">,
 ): Promise<UnprocessedMedia> {
-  let select = from(this.knex, Table.UserCatalog).where({
-    user: this.user,
-    catalog,
-  });
+  return this.inTransaction(
+    async (userDb: UserScopedConnection): Promise<Media> => {
+      let select = from(userDb.knex, Table.UserCatalog).where({
+        user: this.user,
+        catalog,
+      });
 
-  let results = await insertFromSelect(this.knex, Table.Media, select, intoDBTypes({
-    ...filterColumns(Table.Media, data),
-    id: await mediaId(),
-    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
-    created: now(),
-  })).returning("*");
+      let ids = await insertFromSelect(
+        userDb.knex,
+        Table.Media,
+        select,
+        intoDBTypes(buildTimeZoneFields({
+          ...filterColumns(Table.Media, data),
+          id: await mediaId(),
+          catalog: userDb.connection.ref(ref(Table.UserCatalog, "catalog")),
+          created: now(),
+        })),
+      ).returning("id");
 
-  if (!results.length) {
-    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
-  }
+      if (!ids.length) {
+        throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
+      }
 
-  return {
-    ...intoAPITypes(results[0]),
-    albums: [],
-    tags: [],
-    people: [],
-  };
+      let results = await userDb.getMedia(ids);
+      if (!results[0]) {
+        throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
+      }
+
+      return results[0];
+    },
+  );
 }
 
 export async function editMedia(
@@ -97,7 +108,7 @@ export async function editMedia(
       let updateCount = await update(
         Table.Media,
         userDb.knex.where("id", id).where("catalog", "in", catalogs),
-        intoDBTypes(filterColumns(Table.Media, mediaUpdateData)),
+        intoDBTypes(buildTimeZoneFields(filterColumns(Table.Media, mediaUpdateData))),
       );
 
       if (updateCount != 1) {

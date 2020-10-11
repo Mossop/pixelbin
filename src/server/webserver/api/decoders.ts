@@ -172,7 +172,7 @@ const mediaFields = {
   label: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   category: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   taken: JsonDecoder.optional(JsonDecoder.nullable(DateDecoder)),
-  timeZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  takenZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
   longitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
   latitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
   altitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
