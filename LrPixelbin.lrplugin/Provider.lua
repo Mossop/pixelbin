@@ -66,7 +66,7 @@ function Provider.didCreateNewPublishService(publishSettings, info)
     info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
     publishSettings.catalog)
 
-  Utils.runWithWriteAccess(logger, "Create Default Collection", function()
+  Utils.runWithWriteAccess(logger, "Delete Default Collection", function()
     local api = API(publishSettings)
     api:cache(info.publishService.localIdentifier)
 
@@ -80,16 +80,7 @@ function Provider.didCreateNewPublishService(publishSettings, info)
     for _, collection in ipairs(info.publishService:getChildCollections()) do
       local collectionInfo = collection:getCollectionInfoSummary()
       if collectionInfo.isDefaultCollection then
-        local catalog = api:getCatalog(publishSettings.catalog)
-        collection:setCollectionSettings({
-          album = publishSettings.catalog,
-        })
-
-        if catalog then
-          collection:setName(catalog.name)
-          collection:setRemoteId(collectionInfo.collectionSettings.album)
-          collection:setRemoteUrl(publishSettings.siteUrl .. "catalog/" .. catalog)
-        end
+        collection:delete()
       end
     end
   end)
@@ -106,11 +97,39 @@ end
 
 function Provider.updateCollectionSettings(publishSettings, info)
   Utils.runWithWriteAccess(logger, "Update Collection", function()
-    info.publishedCollection:setRemoteId(info.collectionSettings.album)
-    if info.collectionSettings.album == publishSettings.catalog then
-      info.publishedCollection:setRemoteUrl(publishSettings.siteUrl .. "catalog/" .. info.collectionSettings.album)
+    local albumId = info.publishedCollection:getRemoteId()
+    local parent = info.collectionSettings.parent
+    if parent == publishSettings.catalog then
+      parent = nil
+    end
+
+    local api = API(publishSettings)
+
+    local success, result
+    if albumId then
+      success, result = api:editAlbum({
+        id = albumId,
+        name = info.name,
+        parent = parent,
+      })
+
+      if not success then
+        LrDialogs.showError(result.name)
+      end
     else
-      info.publishedCollection:setRemoteUrl(publishSettings.siteUrl .. "album/" .. info.collectionSettings.album)
+      success, result = api:createAlbum({
+        name = info.name,
+        parent = parent,
+        catalog = publishSettings.catalog,
+      })
+
+      if not success then
+        info.publishedCollection:delete()
+        LrDialogs.showError(result.name)
+      end
+
+      info.publishedCollection:setRemoteId(result.id)
+      info.publishedCollection:setRemoteUrl(publishSettings.siteUrl .. "album/" .. result.id)
     end
   end)
 end
@@ -121,20 +140,9 @@ function Provider.processRenderedPhotos(context, exportContext)
   local exportSession = exportContext.exportSession
   local publishSettings = exportContext.propertyTable
   local collection = exportContext.publishedCollection
-  local collectionInfo = collection:getCollectionInfoSummary()
 
   local catalog = publishSettings.catalog
-  local album = collectionInfo.collectionSettings.album
-  if album == catalog then
-    album = nil
-  end
-
-  exportSession:recordRemoteCollectionId(collectionInfo.collectionSettings.album)
-  if album then
-    exportSession:recordRemoteCollectionUrl(publishSettings.siteUrl .. "album/" .. album)
-  else
-    exportSession:recordRemoteCollectionUrl(publishSettings.siteUrl .. "catalog/" .. catalog)
-  end
+  local album = collection:getRemoteId()
 
   local photoCount = exportSession:countRenditions()
 
@@ -150,7 +158,9 @@ function Provider.processRenderedPhotos(context, exportContext)
   local renditions = {}
 
   for _, rendition in exportContext:renditions() do
-    if not rendition.wasSkipped then
+    if not album then
+      rendition:uploadFailed(LOC "$$$/LrPixelBin/Render/BadAlbum=Published collection is not correctly configured.")
+    elseif not rendition.wasSkipped then
       local mediaId = rendition.publishedPhotoId
 
       if mediaId then
@@ -158,6 +168,10 @@ function Provider.processRenderedPhotos(context, exportContext)
       end
       table.insert(renditions, rendition)
     end
+  end
+
+  if not album then
+    return
   end
 
   local knownMedia = api:getMedia(knownMediaIds)
@@ -196,7 +210,7 @@ function Provider.processRenderedPhotos(context, exportContext)
     end
   end
 
-  if hadSuccess and album then
+  if hadSuccess then
     local success, result = api:addMediaToAlbum(album, successfulMedia)
     if not success then
       LrDialogs.showError(
@@ -340,6 +354,10 @@ function Provider.sectionsForTopOfDialog(f, propertyTable)
     enabled = bind {
       key = "catalogs",
       transform = function(value)
+        if propertyTable.LR_editingExistingPublishConnection then
+          return false
+        end
+
         for _ in pairs(value) do
           return true
         end
@@ -492,12 +510,12 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
   end
 
   if not info.name then
-    info.collectionSettings.album = catalog.id
+    info.collectionSettings.parent = catalog.id
   end
 
   local tbl = {
     fill_horizontal = 1,
-    title = LOC "$$$/LrPixelBin/Collection/Title=Album to store in:",
+    title = LOC "$$$/LrPixelBin/Collection/Title=Store album in:",
     bind_to_object = info.collectionSettings,
 
     f:row {
@@ -506,29 +524,36 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
 
       f:radio_button {
         title = catalog.name,
-        value = bind "album",
+        value = bind "parent",
         checked_value = catalog.id,
       },
     },
   }
 
+  local remote = nil
+  if info.publishedCollection then
+    remote = info.publishedCollection:getRemoteId()
+  end
+
   local function addRowsForAlbums(parent, depth)
     local albums = api:getAlbumsWithParent(catalog.id, parent)
 
     for _, album in ipairs(albums) do
-      table.insert(tbl, f:row {
-        fill_horizontal = 1,
-        spacing = f:label_spacing(),
-        margin_left = (depth + 1) * 20,
+      if album.id ~= remote then
+        table.insert(tbl, f:row {
+          fill_horizontal = 1,
+          spacing = f:label_spacing(),
+          margin_left = (depth + 1) * 20,
 
-        f:radio_button {
-          title = album.name,
-          value = bind "album",
-          checked_value = album.id,
-        },
-      })
+          f:radio_button {
+            title = album.name,
+            value = bind "parent",
+            checked_value = album.id,
+          },
+        })
 
-      addRowsForAlbums(album.id, depth + 1)
+        addRowsForAlbums(album.id, depth + 1)
+      end
     end
   end
 

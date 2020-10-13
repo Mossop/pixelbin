@@ -1,6 +1,8 @@
 local LrHttp = import "LrHttp"
 local LrTasks = import "LrTasks"
 
+local json = require "json"
+
 local logger = require("Logging")("API")
 local Utils = require "Utils"
 
@@ -117,9 +119,12 @@ function API:POST(path, content)
     { field = "Content-Type", value = "application/json" },
   }
 
-  local success, body = Utils.jsonEncode(logger, content)
-  if not success then
-    return success, body
+  local body = content
+  if type(content) ~= "string" then
+    success, body = Utils.jsonEncode(logger, content)
+    if not success then
+      return success, body
+    end
   end
 
   return self:callServer(function ()
@@ -217,6 +222,34 @@ function API:getMedia(ids)
     return {}
   end
   return result
+end
+
+function API:createAlbum(album)
+  local body = "{ "
+  body = body .. "\"name\": " .. json.encode(album.name) .. ", "
+  if album.parent then
+    body = body .. "\"parent\": " .. json.encode(album.parent) .. ", "
+  else
+    body = body .. "\"parent\": null, "
+  end
+  body = body .. "\"catalog\": " .. json.encode(album.catalog)
+  body = body .. "}"
+
+  return self:POST("album/create", body)
+end
+
+function API:editAlbum(album)
+  local body = "{ "
+  body = body .. "\"name\": " .. json.encode(album.name) .. ", "
+  if album.parent then
+    body = body .. "\"parent\": " .. json.encode(album.parent) .. ", "
+  else
+    body = body .. "\"parent\": null, "
+  end
+  body = body .. "\"id\": " .. json.encode(album.id)
+  body = body .. "}"
+
+  return self:POST("album/edit", body)
 end
 
 function API:addMediaToAlbum(album, media)
