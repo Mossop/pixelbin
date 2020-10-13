@@ -2,9 +2,9 @@ import { Context } from "koa";
 
 import { DatabaseConnection, UserScopedConnection } from "../database";
 import { StorageService } from "../storage";
-import { TaskWorkerInterface } from "../task-worker/interfaces";
 import { RemoteInterface } from "../worker";
 import authContext, { AuthContext } from "./auth";
+import { ParentProcessInterface } from "./interfaces";
 import loggingContext, { LoggingContext } from "./logging";
 import Services from "./services";
 
@@ -14,7 +14,7 @@ export type DescriptorsFor<C> = {
 
 export type ServicesContext = AuthContext & LoggingContext & {
   readonly storage: StorageService;
-  readonly taskWorker: RemoteInterface<TaskWorkerInterface>;
+  readonly taskWorker: RemoteInterface<Pick<ParentProcessInterface, "handleUploadedFile">>;
   readonly dbConnection: DatabaseConnection;
   readonly userDb: UserScopedConnection | null;
 };
@@ -45,7 +45,7 @@ export async function buildContext(): Promise<DescriptorsFor<ServicesContext>> {
     },
 
     taskWorker: {
-      get(this: AppContext): RemoteInterface<TaskWorkerInterface> {
+      get(this: AppContext): RemoteInterface<Pick<ParentProcessInterface, "handleUploadedFile">> {
         return parent;
       },
     },

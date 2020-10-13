@@ -38,7 +38,7 @@ async function reprocessUploads(): Promise<void> {
   let service = await services.storage;
   let taskManager = await services.taskManager;
   for await (let file of service.listUploadedFiles()) {
-    await taskManager.handleUploadedFile(file.media);
+    taskManager.handleUploadedFile(file.media);
   }
 }
 
