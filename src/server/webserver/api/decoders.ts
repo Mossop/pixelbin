@@ -98,7 +98,7 @@ export const AlbumCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Albu
 export const AlbumEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Album>>({
   id: JsonDecoder.string,
   name: JsonDecoder.optional(JsonDecoder.string),
-  parent: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  parent: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
 }, "AlbumEditRequest"));
 
 export const AlbumListRequest = jsonDecoder(JsonDecoder.object<Api.AlbumListRequest>({
@@ -119,7 +119,7 @@ export const TagCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Tag>>(
 export const TagEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Tag>>({
   id: JsonDecoder.string,
   name: JsonDecoder.optional(JsonDecoder.string),
-  parent: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
+  parent: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
 }, "TagEditRequest"));
 
 export const TagFindRequest = jsonDecoder(JsonDecoder.object<Api.TagFindRequest>({
@@ -166,32 +166,32 @@ const SelectedPersonDecoder = JsonDecoder.oneOf<Api.SelectedPerson>([
 ], "SelectedPerson");
 
 const mediaFields = {
-  filename: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  title: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  description: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  label: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  category: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  taken: JsonDecoder.optional(JsonDecoder.nullable(DateDecoder)),
-  takenZone: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  longitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-  latitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-  altitude: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-  location: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  city: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  state: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  country: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  orientation: JsonDecoder.optional(JsonDecoder.nullable(
+  filename: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  title: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  description: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  label: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  category: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  taken: JsonDecoder.nullable(JsonDecoder.optional(DateDecoder)),
+  takenZone: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  longitude: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
+  latitude: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
+  altitude: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
+  location: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  city: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  state: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  country: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  orientation: JsonDecoder.nullable(JsonDecoder.optional(
     JsonDecoder.enumeration<Orientation>(Orientation, "Orientation"),
   )),
-  make: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  model: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  lens: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  photographer: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  aperture: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-  shutterSpeed: JsonDecoder.optional(JsonDecoder.nullable(JsonDecoder.string)),
-  iso: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-  focalLength: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
-  rating: JsonDecoder.optional(JsonDecoder.nullable(NumericDecoder)),
+  make: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  model: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  lens: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  photographer: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  aperture: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
+  shutterSpeed: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  iso: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
+  focalLength: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
+  rating: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
   albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
   tags: JsonDecoder.optional(JsonDecoder.array(SelectedTagDecoder, "SelectedTag[]")),
   people: JsonDecoder.optional(JsonDecoder.array(SelectedPersonDecoder, "SelectedPerson[]")),

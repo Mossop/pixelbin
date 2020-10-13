@@ -430,12 +430,30 @@ test("Edit album", async (): Promise<void> => {
   });
 
   response = await request
+    .patch("/api/album/edit")
+    .send({
+      id: "a3",
+      parent: null,
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let updatedAlbum3 = response.body;
+  expect(updatedAlbum3).toEqual({
+    id: "a3",
+    name: "Album 3",
+    parent: null,
+    catalog: "c1",
+  });
+
+  response = await request
     .get("/api/state")
     .expect("Content-Type", "application/json")
     .expect(200);
 
   let albums = fromCatalogs("c1", testData[Table.Album]);
   albums[0] = updatedAlbum;
+  albums[2] = updatedAlbum3;
   expectUserState(response.body, {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
