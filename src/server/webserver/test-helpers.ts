@@ -54,7 +54,7 @@ export function buildTestApp(
       return server;
     },
 
-    handleUploadedFile: (): Promise<void> => Promise.resolve(),
+    handleUploadedFile: (): Promise<true> => Promise.resolve(true),
 
     ...parentInterface,
   };

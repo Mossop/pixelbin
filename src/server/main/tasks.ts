@@ -55,12 +55,13 @@ export class TaskManager extends Service {
     this.pool.shutdown();
   }
 
-  public async handleUploadedFile(this: TaskManager, id: string): Promise<void> {
+  public handleUploadedFile(this: TaskManager, id: string): boolean {
     if (this.pool.queueLength >= 12) {
-      throw new Error("Task queue is full.");
+      return false;
     }
 
     this.logger.catch(this.pool.remote.handleUploadedFile(id));
+    return true;
   }
 
   // ParentProcessInterface

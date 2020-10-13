@@ -207,6 +207,7 @@ test("List album", async (): Promise<void> => {
     ...emptyMetadata,
     id: "testmedia",
     created: expect.anything(),
+    updated: expect.anything(),
     albums: [
       expect.toBeRef("testalbum"),
     ],
@@ -216,6 +217,7 @@ test("List album", async (): Promise<void> => {
     ...emptyMetadata,
     id: "testmedia2",
     created: expect.anything(),
+    updated: expect.anything(),
     uploaded: expect.anything(),
     bitRate: null,
     duration: null,

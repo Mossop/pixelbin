@@ -130,6 +130,7 @@ export function mediaIntoResponse(
     response = {
       ...media,
       created: isoDateTime(media.created),
+      updated: isoDateTime(media.updated),
       uploaded: isoDateTime(media.uploaded),
       taken: media.taken ? isoDateTime(media.taken) : null,
     };
@@ -137,6 +138,7 @@ export function mediaIntoResponse(
     response = {
       ...media,
       created: isoDateTime(media.created),
+      updated: isoDateTime(media.updated),
       taken: media.taken ? isoDateTime(media.taken) : null,
     };
   }

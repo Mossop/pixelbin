@@ -46,7 +46,7 @@ export function intoMedia(item: Tables.StoredMedia): Media {
 export async function createMedia(
   this: UserScopedConnection,
   catalog: Tables.Media["catalog"],
-  data: Omit<Tables.Media, "id" | "catalog" | "created">,
+  data: Omit<Tables.Media, "id" | "catalog" | "created" | "updated">,
 ): Promise<UnprocessedMedia> {
   return this.inTransaction(
     async (userDb: UserScopedConnection): Promise<Media> => {
@@ -54,6 +54,8 @@ export async function createMedia(
         user: this.user,
         catalog,
       });
+
+      let current = now();
 
       let ids = await insertFromSelect(
         userDb.knex,
@@ -63,7 +65,8 @@ export async function createMedia(
           ...filterColumns(Table.Media, data),
           id: await mediaId(),
           catalog: userDb.connection.ref(ref(Table.UserCatalog, "catalog")),
-          created: now(),
+          created: current,
+          updated: current,
         })),
       ).returning("id");
 
@@ -101,11 +104,14 @@ export async function editMedia(
       let updateCount = await update(
         Table.Media,
         userDb.knex.where("id", id).where("catalog", "in", catalogs),
-        intoDBTypes(buildTimeZoneFields(filterColumns(Table.Media, mediaUpdateData))),
+        intoDBTypes(buildTimeZoneFields(filterColumns(Table.Media, {
+          ...mediaUpdateData,
+          updated: now(),
+        }))),
       );
 
-      if (updateCount != 1) {
-        throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Media record.");
+      if (updateCount == 0) {
+        throw new DatabaseError(DatabaseErrorCode.MissingValue, "No matching media record.");
       }
 
       let edited = (await userDb.getMedia([id]))[0];

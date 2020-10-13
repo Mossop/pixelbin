@@ -58,6 +58,7 @@ test("Media tests", async (): Promise<void> => {
     id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(createdDT),
 
     title: "My title",
     taken: expect.toEqualDate("2020-04-05T17:01:04-07:00"),
@@ -75,6 +76,7 @@ test("Media tests", async (): Promise<void> => {
     id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(createdDT),
 
     title: "My title", // Media set
     taken: expect.toEqualDate("2020-04-05T17:01:04-07:00"), // Media set
@@ -133,6 +135,7 @@ test("Media tests", async (): Promise<void> => {
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(uploadedDT),
 
     title: "My title", // Media set
     photographer: "Me", // OriginalInfo set
@@ -156,6 +159,8 @@ test("Media tests", async (): Promise<void> => {
   });
   expect(foundMedia?.taken?.hour).toBe(17);
 
+  let editedDT = mockDateTime("2020-02-03T15:31:01Z");
+
   await user3Db.editMedia(id, {
     title: null,
     city: "Portland",
@@ -168,6 +173,7 @@ test("Media tests", async (): Promise<void> => {
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(editedDT),
 
     title: "Info title", // OriginalInfo set
     photographer: "Me", // OriginalInfo set
@@ -192,7 +198,7 @@ test("Media tests", async (): Promise<void> => {
   });
   expect(foundMedia?.taken?.hour).toBe(11);
 
-  let uploaded2DT = mockDateTime("2020-01-04T15:31:01Z");
+  let uploaded2DT = mockDateTime("2020-02-04T15:31:01Z");
 
   info = await createOriginal(dbConnection, id, {
     ...emptyMetadata,
@@ -235,6 +241,7 @@ test("Media tests", async (): Promise<void> => {
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(uploaded2DT),
 
     title: "Different title", // OriginalInfo set
     model: "Some model", // OriginalInfo set
@@ -413,6 +420,7 @@ test("Media tests", async (): Promise<void> => {
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(uploaded2DT),
 
     title: "Different title", // OriginalInfo set
     model: "Some model", // OriginalInfo set

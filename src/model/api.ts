@@ -116,7 +116,7 @@ export type SelectedPerson = string | {
 };
 
 export type MediaCreateRequest =
-  Omit<ObjectModel.Media, "created" | "id"> &
+  Omit<ObjectModel.Media, "id" | "updated" | "created"> &
   Partial<Nullable<ObjectModel.Metadata>> & {
     file: Blob;
     albums?: string[];
@@ -125,7 +125,7 @@ export type MediaCreateRequest =
   };
 
 export type MediaUpdateRequest =
-  Partial<Omit<ObjectModel.Media, "id" | "created" | "catalog">> &
+  Partial<Omit<ObjectModel.Media, "id" | "updated" | "created" | "catalog">> &
   Partial<Nullable<ObjectModel.Metadata>> & {
     id: string;
     file?: Blob;

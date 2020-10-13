@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType, emptyMetadata } from "../../model";
-import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
+import { mockedFunction, expect, lastCallArgs, mockDateTime } from "../../test-helpers";
 import { parseDateTime } from "../../utils/__mocks__/datetime";
 import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
 import { AlternateFile } from "../database/types/tables";
@@ -17,6 +17,7 @@ import services, { provideService } from "./services";
 
 /* eslint-disable */
 jest.mock("../storage");
+jest.mock("../../utils/datetime");
 jest.mock("./ffmpeg", () => {
   let actual = jest.requireActual("./ffmpeg");
   return {
@@ -74,6 +75,7 @@ test("Process image metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
+  let created = mockDateTime("2014-06-21T02:56:53");
   let uploaded = parseDateTime("2015-06-21T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
@@ -110,7 +112,8 @@ test("Process image metadata", async (): Promise<void> => {
   expect(fullMedia).toEqual({
     id: media.id,
     catalog: "c1",
-    created: media.created,
+    created: expect.toEqualDate(created),
+    updated: expect.toEqualDate(uploaded),
 
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",
@@ -269,6 +272,7 @@ test("Process video metadata", async (): Promise<void> => {
   let uploaded = parseDateTime("2017-01-02T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
 
+  let created = mockDateTime("2016-01-02T02:56:53");
   let media = await user1Db.createMedia("c1", emptyMetadata);
 
   getUploadedFileMock.mockResolvedValueOnce({
@@ -317,7 +321,8 @@ test("Process video metadata", async (): Promise<void> => {
   expect(fullMedia).toEqual({
     id: media.id,
     catalog: "c1",
-    created: media.created,
+    created: expect.toEqualDate(created),
+    updated: expect.toEqualDate(uploaded),
 
     uploaded: expect.toEqualDate(uploaded),
     fileSize: 4059609,
@@ -520,6 +525,8 @@ test("reprocess", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
+  let created = mockDateTime("2018-01-01T02:56:53");
+
   let media = await user1Db.createMedia("c1", {
     ...emptyMetadata,
     photographer: "Dave",
@@ -546,7 +553,8 @@ test("reprocess", async (): Promise<void> => {
   expect(foundMedia).toEqual({
     ...emptyMetadata,
     id: media.id,
-    created: expect.anything(),
+    created: expect.toEqualDate(created),
+    updated: expect.toEqualDate(originalUploaded),
     catalog: "c1",
     uploaded: expect.toEqualDate(originalUploaded),
     fileSize: 1000,
@@ -596,7 +604,8 @@ test("reprocess", async (): Promise<void> => {
   expect(fullMedia).toEqual({
     id: media.id,
     catalog: "c1",
-    created: media.created,
+    created: expect.toEqualDate(created),
+    updated: expect.toEqualDate(uploaded),
 
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",

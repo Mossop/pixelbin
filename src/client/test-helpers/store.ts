@@ -114,9 +114,12 @@ function *iterPeople(
 export function mockUnprocessedMedia(
   data: Partial<Draft<UnprocessedMediaState>>,
 ): Draft<UnprocessedMediaState> {
+  let current = now();
+
   return {
     id: randomId(),
-    created: now(),
+    created: current,
+    updated: current,
 
     tags: [],
     albums: [],
@@ -131,12 +134,14 @@ export function mockProcessedMedia(
   data: Partial<Draft<ProcessedMediaState>>,
 ): Draft<ProcessedMediaState> {
   let id = data.id ?? randomId();
+  let current = now();
 
   return {
     id,
-    created: now(),
+    created: current,
+    updated: current,
 
-    uploaded: now(),
+    uploaded: current,
     width: 1024,
     height: 768,
     mimetype: "image/jpeg",

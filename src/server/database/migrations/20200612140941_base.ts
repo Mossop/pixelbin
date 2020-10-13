@@ -30,6 +30,10 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
     created: ref(Table.Media, "created"),
+    updated: knex.raw("GREATEST(?, ?)", [
+      knex.ref(`${Table.Media}.updated`),
+      knex.ref("CurrentOriginal.uploaded"),
+    ]),
     original: "CurrentOriginal.id",
     uploaded: "CurrentOriginal.uploaded",
     mimetype: "CurrentOriginal.mimetype",
@@ -285,6 +289,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       id(table);
       foreignId(table, Table.Catalog, "id");
       table.dateTime("created", { useTz: true }).notNullable();
+      table.dateTime("updated", { useTz: true }).notNullable();
 
       addMetadata(table);
 

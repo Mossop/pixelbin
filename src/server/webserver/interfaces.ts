@@ -3,7 +3,6 @@ import net from "net";
 import { LogConfig } from "../../utils";
 import { DatabaseConfig } from "../database";
 import { StorageConfig } from "../storage";
-import { TaskWorkerInterface } from "../task-worker/interfaces";
 
 export interface WebserverConfig {
   htmlTemplate: string;
@@ -15,7 +14,8 @@ export interface WebserverConfig {
   secretKeys: string[];
 }
 
-export type ParentProcessInterface = TaskWorkerInterface & {
+export interface ParentProcessInterface {
   getServer: () => net.Server;
   getConfig: () => WebserverConfig;
-};
+  handleUploadedFile: (media: string) => boolean;
+}

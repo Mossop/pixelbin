@@ -146,6 +146,7 @@ export const MetadataColumns: FieldTypes = {
 export interface Media extends IdType {
   catalog: Catalog["id"];
   created: DateTime;
+  updated: DateTime;
 }
 
 export interface MediaLists {

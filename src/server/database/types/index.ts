@@ -83,6 +83,7 @@ export const COLUMNS = {
     "id",
     "catalog",
     "created",
+    "updated",
     ...Object.keys(MetadataColumns),
   ],
 };

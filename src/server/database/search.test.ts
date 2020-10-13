@@ -22,6 +22,7 @@ beforeEach(async (): Promise<void> => {
       id: "m1",
       catalog: "c1",
       created: parseDateTime("2020-01-02T04:05:06"),
+      updated: parseDateTime("2020-01-02T04:05:06"),
 
       title: "A test title",
       description: "A test description",
@@ -34,6 +35,7 @@ beforeEach(async (): Promise<void> => {
       id: "m2",
       catalog: "c1",
       created: parseDateTime("2020-01-04T04:05:06"),
+      updated: parseDateTime("2020-01-04T04:05:06"),
 
       title: "A different title",
       description: "Another description",
@@ -46,6 +48,7 @@ beforeEach(async (): Promise<void> => {
       id: "m3",
       catalog: "c1",
       created: parseDateTime("2020-01-02T04:05:06"),
+      updated: parseDateTime("2020-01-02T04:05:06"),
 
       description: "A third description",
       longitude: -34,
@@ -56,6 +59,7 @@ beforeEach(async (): Promise<void> => {
       id: "m4",
       catalog: "c2",
       created: parseDateTime("2020-02-01T04:05:06"),
+      updated: parseDateTime("2020-02-01T04:05:06"),
 
       description: "A test description",
       rating: 3,
@@ -67,11 +71,13 @@ beforeEach(async (): Promise<void> => {
       id: "m5",
       catalog: "c1",
       created: parseDateTime("2002-02-01T04:05:06"),
+      updated: parseDateTime("2002-02-01T04:05:06"),
     }, {
       ...emptyMetadata,
       id: "m6",
       catalog: "c1",
       created: parseDateTime("2004-02-01T04:05:06"),
+      updated: parseDateTime("2004-02-01T04:05:06"),
     }],
     [Table.MediaAlbum]: [{
       catalog: "c1",

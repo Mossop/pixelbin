@@ -93,24 +93,29 @@ test("album", async (): Promise<void> => {
   });
   mockedMediaGallery.mockClear();
 
+  let dt = now();
+
   let media = [{
     ...emptyMetadata,
     id: "media1",
-    created: now(),
+    created: dt,
+    updated: dt,
     albums: [],
     tags: [],
     people: [],
   }, {
     ...emptyMetadata,
     id: "media2",
-    created: now(),
+    created: dt,
+    updated: dt,
     albums: [],
     tags: [],
     people: [],
   }, {
     ...emptyMetadata,
     id: "media3",
-    created: now(),
+    created: dt,
+    updated: dt,
     albums: [],
     tags: [],
     people: [],

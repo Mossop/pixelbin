@@ -104,6 +104,7 @@ export const StateDecoder = JsonDecoder.object<Api.State>(
 export const UnprocessedMediaProperties = {
   id: JsonDecoder.string,
   created: DateDecoder,
+  updated: DateDecoder,
   filename: JsonDecoder.nullable(JsonDecoder.string),
   title: JsonDecoder.nullable(JsonDecoder.string),
   description: JsonDecoder.nullable(JsonDecoder.string),

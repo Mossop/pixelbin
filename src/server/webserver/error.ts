@@ -57,6 +57,9 @@ export async function errorHandler(
         case DatabaseErrorCode.MissingRelationship:
           code = ErrorCode.NotFound;
           break;
+        case DatabaseErrorCode.MissingValue:
+          code = ErrorCode.NotFound;
+          break;
       }
 
       error = new ApiError(code, {

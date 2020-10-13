@@ -22,7 +22,7 @@ jest.mock("../../storage");
 jest.mock("../../../utils/datetime");
 
 let parent = {
-  handleUploadedFile: jest.fn<Promise<void>, [string]>((): Promise<void> => Promise.resolve()),
+  handleUploadedFile: jest.fn<Promise<true>, [string]>((): Promise<true> => Promise.resolve(true)),
 };
 const agent = buildTestApp(parent);
 
@@ -109,6 +109,7 @@ test("Media upload", async (): Promise<void> => {
     ...emptyMetadata,
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(createdDT),
     taken: "2020-04-05T17:01:04.000-07:00",
     takenZone: "-07:00",
     catalog: "c1",
@@ -174,6 +175,7 @@ test("Media upload", async (): Promise<void> => {
     ...emptyMetadata,
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.anything(),
+    updated: expect.toEqualDate(response.body.created),
     catalog: "c1",
     albums: [],
     people: [{
@@ -258,6 +260,7 @@ test("Media edit", async (): Promise<void> => {
     id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
     catalog: "c1",
     created: expect.anything(),
+    updated: expect.toEqualDate(newMedia?.created ?? ""),
 
     title: "My title",
 
@@ -300,6 +303,8 @@ test("Media edit", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
+  let updatedDT = mockDateTime("2020-03-04T05:06:07Z");
+
   let response = await request
     .patch("/api/media/edit")
     .send({
@@ -313,6 +318,7 @@ test("Media edit", async (): Promise<void> => {
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
+    updated: expect.toEqualDate(updatedDT),
 
     title: "My title",
 
@@ -352,6 +358,8 @@ test("Media edit", async (): Promise<void> => {
   expect(deleteUploadedFileMock).not.toHaveBeenCalled();
   expect(parent.handleUploadedFile).not.toHaveBeenCalled();
 
+  updatedDT = mockDateTime("2020-03-05T05:06:07Z");
+
   response = await request
     .patch("/api/media/edit")
     .send({
@@ -373,6 +381,7 @@ test("Media edit", async (): Promise<void> => {
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
+    updated: expect.toEqualDate(updatedDT),
 
     title: "New title",
     taken: "2020-04-05T17:01:04.000-09:00",
@@ -414,6 +423,8 @@ test("Media edit", async (): Promise<void> => {
   expect(deleteUploadedFileMock).not.toHaveBeenCalled();
   expect(parent.handleUploadedFile).not.toHaveBeenCalled();
 
+  updatedDT = mockDateTime("2020-03-06T05:06:07Z");
+
   response = await request
     .patch("/api/media/edit")
     .send({
@@ -430,6 +441,7 @@ test("Media edit", async (): Promise<void> => {
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
+    updated: expect.toEqualDate(updatedDT),
 
     title: "New title",
     city: "Portland",
@@ -458,6 +470,8 @@ test("Media edit", async (): Promise<void> => {
   expect(parent.handleUploadedFile).not.toHaveBeenCalled();
 
   let copyCall = deferCall(copyUploadedFileMock);
+
+  updatedDT = mockDateTime("2020-03-08T05:06:07Z");
 
   let responsePromise = request
     .patch("/api/media/edit")
@@ -495,6 +509,7 @@ test("Media edit", async (): Promise<void> => {
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
+    updated: expect.toEqualDate(updatedDT),
 
     title: "New title",
     city: "London",
@@ -798,6 +813,7 @@ test("Get media", async (): Promise<void> => {
 
   let createdDT2 = mockDateTime("2010-06-09T09:30:01");
   let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
+  let updatedDT2 = parseDateTime("2020-02-02T08:00:00");
   let originalId = await db.withNewOriginal(id2, {
     ...emptyMetadata,
     processVersion: 1,
@@ -809,7 +825,7 @@ test("Get media", async (): Promise<void> => {
     duration: 0,
     frameRate: 0,
     bitRate: 0,
-    uploaded: parseDateTime("2020-02-02T08:00:00"),
+    uploaded: updatedDT2,
   }, async (_: unknown, original: OriginalInfo): Promise<string> => original.id);
 
   await db.addAlternateFile(originalId, {
@@ -894,6 +910,7 @@ test("Get media", async (): Promise<void> => {
     id: id1,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     albums: [],
     tags: [],
@@ -913,6 +930,7 @@ test("Get media", async (): Promise<void> => {
     id: id2,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(updatedDT2),
     thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
     originalUrl: `/media/original/${id2}/${originalId}`,
     posterUrl: `/media/poster/${id2}/${originalId}`,
@@ -944,6 +962,7 @@ test("Get media", async (): Promise<void> => {
     id: id1,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     albums: [],
     tags: [],
@@ -953,6 +972,7 @@ test("Get media", async (): Promise<void> => {
     id: id2,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(updatedDT2),
     thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
     originalUrl: `/media/original/${id2}/${originalId}`,
     posterUrl: `/media/poster/${id2}/${originalId}`,
@@ -984,6 +1004,7 @@ test("Get media", async (): Promise<void> => {
     id: id2,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(updatedDT2),
     thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
     originalUrl: `/media/original/${id2}/${originalId}`,
     posterUrl: `/media/poster/${id2}/${originalId}`,
@@ -1005,6 +1026,7 @@ test("Get media", async (): Promise<void> => {
     id: id1,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     albums: [],
     tags: [],
@@ -1100,6 +1122,7 @@ test("Media relations", async (): Promise<void> => {
     id: id1,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],
@@ -1111,6 +1134,7 @@ test("Media relations", async (): Promise<void> => {
     id: id2,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(createdDT2),
 
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],
@@ -1459,6 +1483,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media1.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata,
 
@@ -1469,6 +1494,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media2.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata,
 
@@ -1494,6 +1520,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media1.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata,
 
@@ -1509,6 +1536,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media2.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata,
 
@@ -1550,6 +1578,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media1.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata,
 
@@ -1570,6 +1599,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media2.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata,
 
@@ -1625,6 +1655,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media2.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata,
 
@@ -1682,6 +1713,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media1.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata,
 
@@ -1702,6 +1734,7 @@ test("Media person locations", async (): Promise<void> => {
     id: media2.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
+    updated: expect.toEqualDate(createdDT2),
 
     ...emptyMetadata,
 
@@ -1767,6 +1800,7 @@ test("Media search", async (): Promise<void> => {
     id: media1.id,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
+    updated: expect.toEqualDate(createdDT1),
 
     ...emptyMetadata,
     title: "Media 1",
