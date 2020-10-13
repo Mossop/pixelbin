@@ -471,6 +471,10 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
     }
   end
 
+  if not info.name then
+    info.collectionSettings.album = catalog.id
+  end
+
   local tbl = {
     fill_horizontal = 1,
     title = LOC "$$$/LrPixelBin/Collection/Title=Album to store in:",
