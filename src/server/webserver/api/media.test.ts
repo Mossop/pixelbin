@@ -22,7 +22,9 @@ jest.mock("../../storage");
 jest.mock("../../../utils/datetime");
 
 let parent = {
-  handleUploadedFile: jest.fn<Promise<true>, [string]>((): Promise<true> => Promise.resolve(true)),
+  handleUploadedFile: jest.fn<Promise<boolean>, [string]>(
+    (): Promise<boolean> => Promise.resolve(true),
+  ),
 };
 const agent = buildTestApp(parent);
 

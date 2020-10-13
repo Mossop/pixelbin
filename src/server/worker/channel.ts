@@ -7,8 +7,15 @@ import { defer, Deferred, getLogger, MakeRequired, TypedEmitter } from "../../ut
 
 const logger = getLogger("worker.channel");
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MakePromise<T> = T extends Promise<any> ? T : Promise<T>;
+type MakePromise<T> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends Promise<any>
+    ? T
+    // Unsure why this case is needed.
+    : T extends boolean
+      ? Promise<boolean>
+      : Promise<T>;
+
 export type RemoteInterface<T> = T extends undefined
   ? undefined
   : {
