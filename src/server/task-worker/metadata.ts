@@ -10,7 +10,6 @@ import {
   DateTime,
   dateTimeFromMillis,
   entries,
-  isoDateTime,
   Nullable,
   parseDateTime,
 } from "../../utils";
@@ -37,7 +36,7 @@ type ExifTags = { [K in keyof Omit<Tags, ExcludedTags>]?: StoredTag<Tags[K]>; };
 
 export type StoredData = ObjectModel.FileInfo & {
   exif: ExifTags;
-  uploaded: string;
+  uploaded: DateTime;
 };
 
 type MetadataParser<T> = (data: StoredData) => T | null;
@@ -352,7 +351,7 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
       fileSize: stat.size,
       width: metadata.width ?? exif.ImageWidth ?? 0,
       height: metadata.height ?? exif.ImageHeight ?? 0,
-      uploaded: isoDateTime(file.uploaded),
+      uploaded: file.uploaded,
       mimetype,
       duration: null,
       bitRate: null,
@@ -370,7 +369,7 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
     exif,
     fileName,
     fileSize: videoInfo.format.size,
-    uploaded: isoDateTime(file.uploaded),
+    uploaded: file.uploaded,
     mimetype,
     width: videoInfo.videoStream?.width ?? 0,
     height: videoInfo.videoStream?.height ?? 0,
@@ -388,6 +387,6 @@ export function getOriginal(
   return {
     ...info,
     fileName,
-    uploaded: parseDateTime(uploaded),
+    uploaded: uploaded,
   };
 }

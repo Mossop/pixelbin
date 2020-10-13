@@ -89,6 +89,13 @@ export const handleUploadedFile = bindTask(
         original: OriginalInfo,
       ): Promise<OriginalInfo> => {
         try {
+          let metadataFile = await storage.get().getLocalFilePath(
+            mediaId,
+            original.id,
+            "metadata.json",
+          );
+          await fs.writeFile(metadataFile, JSON.stringify(data));
+
           let source = fileInfo.path;
           if (info.mimetype.startsWith("video/")) {
             logger.trace("Generating video poster frame.");

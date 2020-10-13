@@ -1,3 +1,4 @@
+import { promises as fs } from "fs";
 import path from "path";
 
 import { exiftool } from "exiftool-vendored";
@@ -156,7 +157,13 @@ test("Process image metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(5);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(6);
+
+  let metadataFile = path.join(temp.path, "metadata.json");
+  let contents = JSON.parse(await fs.readFile(metadataFile, {
+    encoding: "utf8",
+  }));
+  expect(contents).toMatchSnapshot("lamppost-metadata");
 
   for (let size of MEDIA_THUMBNAIL_SIZES) {
     let expectedFile = path.join(temp.path, `Testname-${size}.jpg`);
@@ -365,7 +372,13 @@ test("Process video metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(5);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(6);
+
+  let metadataFile = path.join(temp.path, "metadata.json");
+  let contents = JSON.parse(await fs.readFile(metadataFile, {
+    encoding: "utf8",
+  }));
+  expect(contents).toMatchSnapshot("video-metadata");
 
   for (let size of MEDIA_THUMBNAIL_SIZES) {
     let expectedFile = path.join(temp.path, `Testvideo-${size}.jpg`);
@@ -650,7 +663,13 @@ test("reprocess", async (): Promise<void> => {
 
   expect(fullMedia!["original"]).not.toBe(original.id);
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(5);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(6);
+
+  let metadataFile = path.join(temp.path, "metadata.json");
+  let contents = JSON.parse(await fs.readFile(metadataFile, {
+    encoding: "utf8",
+  }));
+  expect(contents).toMatchSnapshot("reprocessed-metadata");
 
   for (let size of MEDIA_THUMBNAIL_SIZES) {
     let expectedFile = path.join(temp.path, `Testname-${size}.jpg`);
