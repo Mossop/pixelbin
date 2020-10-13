@@ -87,6 +87,8 @@ function Provider.didCreateNewPublishService(publishSettings, info)
 
         if catalog then
           collection:setName(catalog.name)
+          collection:setRemoteId(collectionInfo.collectionSettings.album)
+          collection:setRemoteUrl(publishSettings.siteUrl .. "catalog/" .. catalog)
         end
       end
     end
@@ -102,6 +104,17 @@ function Provider.willDeletePublishService(publishSettings, info)
   api:destroy(info.publishService.localIdentifier)
 end
 
+function Provider.updateCollectionSettings(publishSettings, info)
+  Utils.runWithWriteAccess(logger, "Update Collection", function()
+    info.publishedCollection:setRemoteId(info.collectionSettings.album)
+    if info.collectionSettings.album == publishSettings.catalog then
+      info.publishedCollection:setRemoteUrl(publishSettings.siteUrl .. "catalog/" .. info.collectionSettings.album)
+    else
+      info.publishedCollection:setRemoteUrl(publishSettings.siteUrl .. "album/" .. info.collectionSettings.album)
+    end
+  end)
+end
+
 function Provider.processRenderedPhotos(context, exportContext)
   Utils.logFailures(context, logger, "processRenderedPhotos")
 
@@ -112,8 +125,15 @@ function Provider.processRenderedPhotos(context, exportContext)
 
   local catalog = publishSettings.catalog
   local album = collectionInfo.collectionSettings.album
-  if album and (string.len(album) == 0 or album == catalog) then
+  if album == catalog then
     album = nil
+  end
+
+  exportSession:recordRemoteCollectionId(collectionInfo.collectionSettings.album)
+  if album then
+    exportSession:recordRemoteCollectionUrl(publishSettings.siteUrl .. "album/" .. album)
+  else
+    exportSession:recordRemoteCollectionUrl(publishSettings.siteUrl .. "catalog/" .. catalog)
   end
 
   local photoCount = exportSession:countRenditions()
@@ -188,7 +208,7 @@ function Provider.processRenderedPhotos(context, exportContext)
   progressScope:done()
 end
 
-function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback)
+function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback, collectionId)
 end
 
 ------------------------ UI

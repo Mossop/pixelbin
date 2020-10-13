@@ -102,7 +102,6 @@ function API:MULTIPART(path, content)
   local url = self.siteUrl .. "api/" .. path
 
   return self:callServer(function ()
-    logger:trace("Multipart request", path)
     return LrHttp.postMultipart(url, content)
   end)
 end
@@ -124,7 +123,6 @@ function API:POST(path, content)
   end
 
   return self:callServer(function ()
-    logger:trace("Post request", path)
     return LrHttp.post(url, body, requestHeaders)
   end)
 end
@@ -138,7 +136,6 @@ function API:GET(path)
   local url = self.siteUrl .. "api/" .. path
 
   return self:callServer(function ()
-    logger:trace("Get request", path)
     return LrHttp.get(url)
   end)
 end
@@ -172,7 +169,6 @@ function API:login()
     return success, data
   end
 
-  logger:trace("Attempting to login")
   local response, info = LrHttp.post(self.siteUrl .. "api/login", data, requestHeaders)
   local success, result = self:parseHTTPResult(response, info)
 
@@ -184,7 +180,6 @@ function API:login()
   end
 
   if success then
-    logger:trace("Login succeeded")
     self.loggedIn = true
     self.errorState = nil
     self.catalogs = result.user.catalogs
@@ -279,8 +274,6 @@ function API:upload(photo, catalog, filePath, existingId)
 
   exifdata = exifdata[1]
 
-  logger:trace("Photo", photo:getRawMetadata("uuid"))
-
   local foundPeople = {}
   if exifdata.PersonInImage then
     for _, person in ipairs(asList(exifdata.PersonInImage)) do
@@ -367,7 +360,6 @@ function API:upload(photo, catalog, filePath, existingId)
     { name = "file", fileName = photo:getFormattedMetadata("fileName"), filePath = filePath }
   }
 
-  logger:trace("Uploading", data)
   return self:MULTIPART(path, params)
 end
 
@@ -435,8 +427,6 @@ function API:cache(identifier)
   instances[self.instanceKey] = self
   self.cacheCount = self.cacheCount + 1
   identifiedInstances[identifier] = self
-
-  logger:trace("Cached", identifier, self.instanceKey, self.cacheCount)
 end
 
 function API:destroy(identifier)
@@ -445,8 +435,6 @@ function API:destroy(identifier)
   end
 
   self.cacheCount = self.cacheCount - 1
-
-  logger:trace("Destroyed", identifier, self.instanceKey, self.cacheCount)
 
   if self.cacheCount < 0 then
     logger:error("Cache count reduced below zero")
@@ -460,12 +448,10 @@ end
 local function get(settings)
   local key = settings.siteUrl .. "#" .. settings.email
   if instances[key] ~= nil then
-    logger:trace("Found cached instance", key)
     instances[key]:setPassword(settings.password)
     return instances[key]
   end
 
-  logger:trace("Creating new instance", key)
   local api = {
     instanceKey = key,
     cacheCount = 0,
