@@ -38,6 +38,13 @@ function API:parseHTTPResult(response, info)
     }
   end
 
+  if info.status == 503 then
+    return false, {
+      code = "backoff",
+      name = LOC "$$$/LrPixelBin/API/Backoff=Server is overloaded, try again later.",
+    }
+  end
+
   local success, str = Utils.jsonEncode(logger, info)
   if success then
     logger:error("Unexpected response from server", response, str)
@@ -50,6 +57,42 @@ function API:parseHTTPResult(response, info)
   }
 end
 
+function API:callServer(cb)
+  local attemptCount = 0
+  repeat
+    attemptCount = attemptCount + 1
+    local response, info = cb()
+    local success, result = self:parseHTTPResult(response, info)
+
+    if success then
+      return success, result
+    end
+
+    if result.code == "notLoggedIn" then
+      if attemptCount == 2 then
+        logger:error("Logged out and log in failed. Giving up.")
+        return success, result
+      end
+
+      logger:info("Logged out, attempting to log in.")
+      success, result = self:login()
+      if not success then
+        return success, result
+      end
+    elseif result.code == "backoff" then
+      if attemptCount == 10 then
+        logger:error("Instructed to back off 10 times. Giving up.")
+        return success, result
+      end
+
+      logger:info("Received backoff status from server. Sleeping for 20 seconds.")
+      LrTasks.sleep(10)
+    else
+      return success, result
+    end
+  until false
+end
+
 function API:MULTIPART(path, content)
   local success, result = self:login()
   if not success then
@@ -58,21 +101,10 @@ function API:MULTIPART(path, content)
 
   local url = self.siteUrl .. "api/" .. path
 
-  logger:trace("Multipart request", path)
-  local response, info = LrHttp.postMultipart(url, content)
-  success, result = self:parseHTTPResult(response, info)
-
-  if not success and info.code == "notLoggedIn" then
-    success, result = self:login()
-    if not success then
-      return success, result
-    end
-
-    response, info = LrHttp.postMultipart(url, content)
-    success, result = self:parseHTTPResult(response, info)
-  end
-
-  return success, result
+  return self:callServer(function ()
+    logger:trace("Multipart request", path)
+    return LrHttp.postMultipart(url, content)
+  end)
 end
 
 function API:POST(path, content)
@@ -82,8 +114,6 @@ function API:POST(path, content)
   end
 
   local url = self.siteUrl .. "api/" .. path
-
-  logger:trace("Post request", path)
   local requestHeaders = {
     { field = "Content-Type", value = "application/json" },
   }
@@ -93,20 +123,10 @@ function API:POST(path, content)
     return success, body
   end
 
-  local response, info = LrHttp.post(url, body, requestHeaders)
-  success, result = self:parseHTTPResult(response, info)
-
-  if not success and info.code == "notLoggedIn" then
-    success, result = self:login()
-    if not success then
-      return success, result
-    end
-
-    response, info = LrHttp.post(url, body, requestHeaders)
-    success, result = self:parseHTTPResult(response, info)
-  end
-
-  return success, result
+  return self:callServer(function ()
+    logger:trace("Post request", path)
+    return LrHttp.post(url, body, requestHeaders)
+  end)
 end
 
 function API:GET(path)
@@ -117,21 +137,10 @@ function API:GET(path)
 
   local url = self.siteUrl .. "api/" .. path
 
-  logger:trace("Get request", path)
-  local response, info = LrHttp.get(url)
-  success, result = self:parseHTTPResult(response, info)
-
-  if not success and info.code == "notLoggedIn" then
-    success, result = self:login()
-    if not success then
-      return success, result
-    end
-
-    response, info = LrHttp.get(url)
-    success, result = self:parseHTTPResult(response, info)
-  end
-
-  return success, result
+  return self:callServer(function ()
+    logger:trace("Get request", path)
+    return LrHttp.get(url)
+  end)
 end
 
 function API:setPassword(password)
@@ -226,6 +235,13 @@ function API:addMediaToAlbum(album, media)
   })
 end
 
+local function asList(val)
+  if type(val) ~= "table" then
+    return { val }
+  end
+  return val
+end
+
 function API:upload(photo, catalog, filePath, existingId)
   local mediaInfo = {
     tags = {},
@@ -267,7 +283,7 @@ function API:upload(photo, catalog, filePath, existingId)
 
   local foundPeople = {}
   if exifdata.PersonInImage then
-    for _, person in ipairs(exifdata.PersonInImage) do
+    for _, person in ipairs(asList(exifdata.PersonInImage)) do
       local personInfo = {
         name = person,
       }
@@ -279,21 +295,28 @@ function API:upload(photo, catalog, filePath, existingId)
   local dimensions = photo:getRawMetadata("dimensions")
   if exifdata.RegionAppliedToDimensionsW == dimensions.width and
      exifdata.RegionAppliedToDimensionsH == dimensions.height and
-     exifdata.RegionAppliedToDimensionsUnit == "pixel" then
-    for i, name in ipairs(exifdata.RegionName) do
-      if exifdata.RegionType[i] == "Face" and foundPeople[name] then
+     exifdata.RegionAppliedToDimensionsUnit == "pixel" and
+     exifdata.RegionName then
+
+    local regionType = asList(exifdata.RegionType)
+    local regionAreaX = asList(exifdata.RegionAreaX)
+    local regionAreaY = asList(exifdata.RegionAreaY)
+    local regionAreaW = asList(exifdata.RegionAreaW)
+    local regionAreaH = asList(exifdata.RegionAreaH)
+    for i, name in ipairs(asList(exifdata.RegionName)) do
+      if regionType[i] == "Face" and foundPeople[name] then
         foundPeople[name].location = {
-          left = exifdata.RegionAreaX[i] - (exifdata.RegionAreaW[i] / 2),
-          right = exifdata.RegionAreaX[i] + (exifdata.RegionAreaW[i] / 2),
-          top = exifdata.RegionAreaY[i] - (exifdata.RegionAreaH[i] / 2),
-          bottom = exifdata.RegionAreaY[i] + (exifdata.RegionAreaH[i] / 2),
+          left = regionAreaX[i] - (regionAreaW[i] / 2),
+          right = regionAreaX[i] + (regionAreaW[i] / 2),
+          top = regionAreaY[i] - (regionAreaH[i] / 2),
+          bottom = regionAreaY[i] + (regionAreaH[i] / 2),
         }
       end
     end
   end
 
   if exifdata.HierarchicalSubject then
-    for _, tagstr in ipairs(exifdata.HierarchicalSubject) do
+    for _, tagstr in ipairs(asList(exifdata.HierarchicalSubject)) do
       local tag = {}
       local depth = 1
       local start = 0
@@ -313,13 +336,13 @@ function API:upload(photo, catalog, filePath, existingId)
       end
     end
   elseif exifdata.Subject then
-    for _, tag in exifdata.Subject do
+    for _, tag in ipairs(asList(exifdata.Subject)) do
       if not foundPeople[tag] then
         table.insert(mediaInfo.tags, tag)
       end
     end
   elseif exifdata.Keywords then
-    for _, tag in exifdata.Keywords do
+    for _, tag in ipairs(asList(exifdata.Keywords)) do
       if not foundPeople[tag] then
         table.insert(mediaInfo.tags, tag)
       end
