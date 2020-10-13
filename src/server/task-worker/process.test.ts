@@ -4,10 +4,9 @@ import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
 import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
-import { AlternateFileType } from "../../model";
+import { AlternateFileType, emptyMetadata } from "../../model";
 import { mockedFunction, expect, lastCallArgs } from "../../test-helpers";
 import { parseDateTime } from "../../utils/__mocks__/datetime";
-import { fillMetadata } from "../database";
 import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
 import { AlternateFile } from "../database/types/tables";
 import { OriginalInfo } from "../database/unsafe";
@@ -78,9 +77,10 @@ test("Process image metadata", async (): Promise<void> => {
   let uploaded = parseDateTime("2015-06-21T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
-  let media = await user1Db.createMedia("c1", fillMetadata({
+  let media = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
     city: "Portland",
-  }));
+  });
 
   getUploadedFileMock.mockResolvedValueOnce({
     catalog: "c1",
@@ -269,8 +269,7 @@ test("Process video metadata", async (): Promise<void> => {
   let uploaded = parseDateTime("2017-01-02T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
 
-  let media = await user1Db.createMedia("c1", fillMetadata({
-  }));
+  let media = await user1Db.createMedia("c1", emptyMetadata);
 
   getUploadedFileMock.mockResolvedValueOnce({
     catalog: "c1",
@@ -521,13 +520,15 @@ test("reprocess", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
-  let media = await user1Db.createMedia("c1", fillMetadata({
+  let media = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
     photographer: "Dave",
-  }));
+  });
 
   let originalUploaded = parseDateTime("2020-01-01T02:56:53");
 
-  let original = await dbConnection.withNewOriginal(media.id, fillMetadata({
+  let original = await dbConnection.withNewOriginal(media.id, {
+    ...emptyMetadata,
     processVersion: 1,
     city: "London",
     uploaded: originalUploaded,
@@ -539,10 +540,11 @@ test("reprocess", async (): Promise<void> => {
     duration: null,
     frameRate: null,
     bitRate: null,
-  }), async (_: unknown, original: OriginalInfo): Promise<OriginalInfo> => original);
+  }, async (_: unknown, original: OriginalInfo): Promise<OriginalInfo> => original);
 
   let [foundMedia] = await user1Db.getMedia([media.id]);
-  expect(foundMedia).toEqual(fillMetadata({
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
     id: media.id,
     created: expect.anything(),
     catalog: "c1",
@@ -561,7 +563,7 @@ test("reprocess", async (): Promise<void> => {
     albums: [],
     people: [],
     tags: [],
-  }));
+  });
 
   let uploaded = parseDateTime("2020-01-02T02:56:53");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");

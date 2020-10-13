@@ -122,7 +122,7 @@ export function mockUnprocessedMedia(
     albums: [],
     people: [],
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
     ...data,
   };
 }
@@ -152,7 +152,7 @@ export function mockProcessedMedia(
     albums: [],
     people: [],
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
     ...data,
   };
 }

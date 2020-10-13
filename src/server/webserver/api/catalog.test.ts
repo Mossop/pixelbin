@@ -1,7 +1,6 @@
-import { ErrorCode, AWSResult } from "../../../model";
+import { ErrorCode, AWSResult, emptyMetadata } from "../../../model";
 import { RelationType } from "../../../model/api";
 import { expect, getStorageConfig } from "../../../test-helpers";
-import { fillMetadata } from "../../database";
 import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { buildTestApp, expectUserState, fromCatalogs, catalogs, storage } from "../test-helpers";
@@ -467,16 +466,16 @@ test("List album and catalog", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let { id: id1 } = await user1Db.createMedia("c1", emptyMetadata);
   await user1Db.setMediaRelations(RelationType.Album, [id1], ["a1"]);
 
-  let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
   await user1Db.setMediaRelations(RelationType.Album, [id2], ["a3"]);
 
-  let { id: id3 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let { id: id3 } = await user1Db.createMedia("c1", emptyMetadata);
   await user1Db.setMediaRelations(RelationType.Album, [id3], ["a1", "a3"]);
 
-  let { id: id4 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let { id: id4 } = await user1Db.createMedia("c1", emptyMetadata);
   await user1Db.setMediaRelations(RelationType.Album, [id4], ["a2"]);
 
   let response = await request

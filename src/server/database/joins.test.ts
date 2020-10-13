@@ -1,6 +1,5 @@
-import { RelationType } from "../../model";
+import { emptyMetadata, RelationType } from "../../model";
 import { expect } from "../../test-helpers";
-import { fillMetadata } from "./media";
 import { buildTestDB, connection, insertTestData } from "./test-helpers";
 import { StoredMedia } from "./types/tables";
 
@@ -36,12 +35,12 @@ test("Album media tests", async (): Promise<void> => {
     return media.map((item: StoredMedia): string => item.id);
   };
 
-  let media1 = await user1Db.createMedia("c1", fillMetadata({}));
-  let media2 = await user1Db.createMedia("c1", fillMetadata({}));
-  let media3 = await user1Db.createMedia("c1", fillMetadata({}));
-  let media4 = await user1Db.createMedia("c2", fillMetadata({}));
-  let media5 = await user1Db.createMedia("c2", fillMetadata({}));
-  let media6 = await user1Db.createMedia("c2", fillMetadata({}));
+  let media1 = await user1Db.createMedia("c1", emptyMetadata);
+  let media2 = await user1Db.createMedia("c1", emptyMetadata);
+  let media3 = await user1Db.createMedia("c1", emptyMetadata);
+  let media4 = await user1Db.createMedia("c2", emptyMetadata);
+  let media5 = await user1Db.createMedia("c2", emptyMetadata);
+  let media6 = await user1Db.createMedia("c2", emptyMetadata);
 
   expect(await mediaInAlbum("a1")).toEqual([]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -537,10 +536,10 @@ test("Person location tests", async (): Promise<void> => {
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
-  let media1 = await user2Db.createMedia("c1", fillMetadata({}));
-  let media2 = await user2Db.createMedia("c1", fillMetadata({}));
-  let media3 = await user2Db.createMedia("c1", fillMetadata({}));
-  let media4 = await user1Db.createMedia("c3", fillMetadata({}));
+  let media1 = await user2Db.createMedia("c1", emptyMetadata);
+  let media2 = await user2Db.createMedia("c1", emptyMetadata);
+  let media3 = await user2Db.createMedia("c1", emptyMetadata);
+  let media4 = await user1Db.createMedia("c3", emptyMetadata);
 
   await user2Db.addMediaRelations(RelationType.Person, [
     media1.id,

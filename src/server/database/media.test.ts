@@ -1,8 +1,7 @@
-import { AlternateFileType, RelationType } from "../../model";
+import { AlternateFileType, emptyMetadata, RelationType } from "../../model";
 import { expect, mockDateTime } from "../../test-helpers";
 import { DateTime, now, parseDateTime } from "../../utils";
 import { DatabaseConnection } from "./connection";
-import { fillMetadata } from "./media";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
 import { Table, Tables } from "./types";
 import { OriginalInfo } from "./unsafe";
@@ -42,18 +41,20 @@ test("Media tests", async (): Promise<void> => {
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
   let user3Db = dbConnection.forUser("someone3@nowhere.com");
 
-  await expect(user3Db.createMedia("c1", fillMetadata({})))
+  await expect(user3Db.createMedia("c1", emptyMetadata))
     .rejects.toThrow("Failed to insert Media record");
 
   let createdDT = mockDateTime("2016-01-01T23:35:01Z");
 
-  let newMedia = await user3Db.createMedia("c3", fillMetadata({
+  let newMedia = await user3Db.createMedia("c3", {
+    ...emptyMetadata,
     title: "My title",
     taken: parseDateTime("2020-04-05T17:01:04-07:00"),
-  }));
+  });
 
   let id = newMedia.id;
-  expect(newMedia).toEqual(fillMetadata({
+  expect(newMedia).toEqual({
+    ...emptyMetadata,
     id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
@@ -65,11 +66,12 @@ test("Media tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [],
-  }));
+  });
   expect(newMedia.taken?.hour).toBe(17);
 
   let [foundMedia] = await user3Db.getMedia([id]);
-  expect(foundMedia).toEqual(fillMetadata({
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
     id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
@@ -81,12 +83,13 @@ test("Media tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [],
-  }));
+  });
   expect(newMedia.taken?.hour).toBe(17);
 
   let uploadedDT: DateTime = parseDateTime("2020-01-03T15:31:01Z");
 
-  let info = await createOriginal(dbConnection, id, fillMetadata({
+  let info = await createOriginal(dbConnection, id, {
+    ...emptyMetadata,
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -101,9 +104,10 @@ test("Media tests", async (): Promise<void> => {
     title: "Info title",
     photographer: "Me",
     taken: parseDateTime("2020-04-05T11:01:04-04:00"),
-  }));
+  });
 
-  expect(info).toEqual(fillMetadata({
+  expect(info).toEqual({
+    ...emptyMetadata,
     id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     media: id,
     uploaded: expect.toEqualDate(uploadedDT),
@@ -120,11 +124,12 @@ test("Media tests", async (): Promise<void> => {
     photographer: "Me",
     taken: expect.toEqualDate("2020-04-05T11:01:04-04:00"),
     takenZone: "-04:00",
-  }));
+  });
   expect(info.taken?.hour).toBe(11);
 
   [foundMedia] = await user3Db.getMedia([id]);
-  expect(foundMedia).toEqual(fillMetadata({
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
@@ -148,7 +153,7 @@ test("Media tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [],
-  }));
+  });
   expect(foundMedia?.taken?.hour).toBe(17);
 
   await user3Db.editMedia(id, {
@@ -158,7 +163,8 @@ test("Media tests", async (): Promise<void> => {
   });
 
   [foundMedia] = await user3Db.getMedia([id]);
-  expect(foundMedia).toEqual(fillMetadata({
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
@@ -183,12 +189,13 @@ test("Media tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [],
-  }));
+  });
   expect(foundMedia?.taken?.hour).toBe(11);
 
   let uploaded2DT = mockDateTime("2020-01-04T15:31:01Z");
 
-  info = await createOriginal(dbConnection, id, fillMetadata({
+  info = await createOriginal(dbConnection, id, {
+    ...emptyMetadata,
     mimetype: "image/jpeg",
     width: 2048,
     height: 1024,
@@ -202,9 +209,10 @@ test("Media tests", async (): Promise<void> => {
 
     title: "Different title",
     model: "Some model",
-  }));
+  });
 
-  expect(info).toEqual(fillMetadata({
+  expect(info).toEqual({
+    ...emptyMetadata,
     id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
     media: id,
     uploaded: expect.toEqualDate(uploaded2DT),
@@ -219,10 +227,11 @@ test("Media tests", async (): Promise<void> => {
 
     title: "Different title",
     model: "Some model",
-  }));
+  });
 
   [foundMedia] = await user3Db.getMedia([id]);
-  expect(foundMedia).toEqual(fillMetadata({
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
@@ -245,7 +254,7 @@ test("Media tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [],
-  }));
+  });
 
   await dbConnection.addAlternateFile(info.id, {
     type: AlternateFileType.Thumbnail,
@@ -332,14 +341,16 @@ test("Media tests", async (): Promise<void> => {
   }]);
 
   // Cannot create media in a catalog the user cannot access.
-  await expect(user3Db.createMedia("c1", fillMetadata({
+  await expect(user3Db.createMedia("c1", {
+    ...emptyMetadata,
     title: "My title",
-  }))).rejects.toThrow("Failed to insert Media record");
+  })).rejects.toThrow("Failed to insert Media record");
 
-  newMedia = await user1Db.createMedia("c1", fillMetadata({}));
+  newMedia = await user1Db.createMedia("c1", { ...emptyMetadata });
 
   // Cannot add media info to a missing media.
-  await expect(createOriginal(dbConnection, "biz", fillMetadata({
+  await expect(createOriginal(dbConnection, "biz", {
+    ...emptyMetadata,
     mimetype: "image/jpeg",
     width: 1024,
     height: 768,
@@ -350,7 +361,7 @@ test("Media tests", async (): Promise<void> => {
     processVersion: 5,
     uploaded: now(),
     fileName: "foo.jpg",
-  }))).rejects.toThrow("Unknown Media");
+  })).rejects.toThrow("Unknown Media");
 
   // Cannot get media in a catalog the user cannot access.
   let found = await user3Db.getMedia([newMedia.id]);
@@ -384,9 +395,11 @@ test("Media tests", async (): Promise<void> => {
   expect(list).toHaveLength(0);
 
   // Unknown properties should be ignored.
-  newMedia = await user1Db.createMedia("c1", fillMetadata({
+  newMedia = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
+    // @ts-ignore: Intentionally incorrect.
     bob: "baz",
-  }));
+  });
 
   expect(newMedia["bob"]).toBeUndefined();
 
@@ -395,7 +408,8 @@ test("Media tests", async (): Promise<void> => {
   await user3Db.addMediaRelations(RelationType.Person, [id], ["p4"]);
 
   let [updated] = await user3Db.getMedia([id]);
-  expect(updated).toEqual(fillMetadata({
+  expect(updated).toEqual({
+    ...emptyMetadata,
     id: id,
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
@@ -433,7 +447,7 @@ test("Media tests", async (): Promise<void> => {
       location: null,
       catalog: "c3",
     }],
-  }));
+  });
 
   expect(await countRecords(dbConnection, Table.Media)).toBe(3);
 

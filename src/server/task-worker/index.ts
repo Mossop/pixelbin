@@ -16,12 +16,12 @@ const logger = getLogger("task-worker");
 async function main(): Promise<void> {
   logger.info("Task worker startup.");
 
-  let connection = new ParentProcess<ParentProcessInterface, TaskWorkerInterface>({
+  let connection = await ParentProcess.connect<ParentProcessInterface, TaskWorkerInterface>({
     localInterface: {
       handleUploadedFile,
     },
   });
-  let parent = await connection.remote;
+  let parent = connection.remote;
 
   connection.on("disconnect", () => void events.emit("shutdown"));
 

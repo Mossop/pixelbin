@@ -1,7 +1,7 @@
 import { SendHandle, Serializable } from "child_process";
 import { EventEmitter } from "events";
 
-import { getLogger, TypedEmitter } from "../../utils";
+import { defer, getLogger, TypedEmitter, Deferred } from "../../utils";
 import Channel, { RemoteInterface, ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
 
@@ -34,7 +34,6 @@ const logger = getLogger("worker.parent");
  */
 
 interface EventMap {
-  connect: [];
   disconnect: [];
 }
 
@@ -42,11 +41,15 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
   private channel: Channel<R, L>;
   private process: AbstractProcess;
   private disconnected: boolean;
+  private channelRemote: Deferred<RemoteInterface<R>>;
+  private parentRemote: RemoteInterface<R> | null;
 
-  public constructor(options: ParentProcessOptions<L> = {}) {
+  private constructor(options: ParentProcessOptions<L>) {
     super();
     this.disconnected = false;
+    this.parentRemote = null;
     this.process = options.process ?? getProcess();
+    this.channelRemote = defer();
 
     this.process.on("message", this.onMessage);
     this.process.on("disconnect", this.onDisconnect);
@@ -66,6 +69,12 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       options,
     );
 
+    this.channel.remote.then((remote: RemoteInterface<R>): void => {
+      this.channelRemote.resolve(remote);
+    }, (error: unknown): void => {
+      this.channelRemote.reject(error);
+    });
+
     this.channel.on("connection-timeout", (): void => {
       this.shutdown();
     });
@@ -74,18 +83,26 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       this.shutdown();
     });
 
-    logger.catch(this.channel.remote.then((): void => {
-      this.emit("connect");
-    }));
-
     logger.trace("Signalling worker ready.");
     logger.catch(this.send({
       type: "ready",
     }));
   }
 
-  public get remote(): Promise<RemoteInterface<R>> {
-    return this.channel.remote;
+  public static async connect<
+    R = undefined,
+    L = undefined,
+  >(options: ParentProcessOptions<L> = {}): Promise<ParentProcess<R, L>> {
+    let process = new ParentProcess<R, L>(options);
+    process.parentRemote = await process.channelRemote.promise;
+    return process;
+  }
+
+  public get remote(): RemoteInterface<R> {
+    if (!this.parentRemote) {
+      throw new Error("Illegal attempt to access remote before connected.");
+    }
+    return this.parentRemote;
   }
 
   private onMessage: NodeJS.MessageListener = (message: unknown, sendHandle: unknown): void => {

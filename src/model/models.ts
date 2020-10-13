@@ -184,8 +184,6 @@ export type AlternateFile = IdType & FileInfo & {
   type: AlternateFileType;
 };
 
-export function emptyMetadata(): AllNull<Metadata> {
-  return Object.fromEntries(
-    Object.keys(MetadataColumns).map((column: string): [string, null] => [column, null]),
-  ) as AllNull<Metadata>;
-}
+export const emptyMetadata: AllNull<Metadata> = Object.fromEntries(
+  Object.keys(MetadataColumns).map((column: string): [string, null] => [column, null]),
+) as AllNull<Metadata>;

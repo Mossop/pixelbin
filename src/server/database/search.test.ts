@@ -1,7 +1,14 @@
-import { Query, Join, Operator, Modifier, checkQuery, RelationType } from "../../model";
+import {
+  Query,
+  Join,
+  Operator,
+  Modifier,
+  checkQuery,
+  RelationType,
+  emptyMetadata,
+} from "../../model";
 import { idSorted, parseDateTime } from "../../utils";
 import { UserScopedConnection } from "./connection";
-import { fillMetadata } from "./media";
 import { buildTestDB, connection, insertData, insertTestData } from "./test-helpers";
 import { Table } from "./types";
 
@@ -10,7 +17,8 @@ buildTestDB();
 beforeEach(async (): Promise<void> => {
   await insertTestData();
   return insertData({
-    [Table.Media]: [fillMetadata({
+    [Table.Media]: [{
+      ...emptyMetadata,
       id: "m1",
       catalog: "c1",
       created: parseDateTime("2020-01-02T04:05:06"),
@@ -21,7 +29,8 @@ beforeEach(async (): Promise<void> => {
       longitude: 56,
       latitude: -120,
       taken: parseDateTime("2019-05-03T06:05:06"),
-    }), fillMetadata({
+    }, {
+      ...emptyMetadata,
       id: "m2",
       catalog: "c1",
       created: parseDateTime("2020-01-04T04:05:06"),
@@ -32,7 +41,8 @@ beforeEach(async (): Promise<void> => {
       longitude: 78,
       latitude: -100,
       taken: parseDateTime("2016-03-03T06:05:06"),
-    }), fillMetadata({
+    }, {
+      ...emptyMetadata,
       id: "m3",
       catalog: "c1",
       created: parseDateTime("2020-01-02T04:05:06"),
@@ -41,7 +51,8 @@ beforeEach(async (): Promise<void> => {
       longitude: -34,
       latitude: 28,
       taken: parseDateTime("2017-06-03T06:05:06"),
-    }), fillMetadata({
+    }, {
+      ...emptyMetadata,
       id: "m4",
       catalog: "c2",
       created: parseDateTime("2020-02-01T04:05:06"),
@@ -51,15 +62,17 @@ beforeEach(async (): Promise<void> => {
       longitude: -47,
       latitude: 76,
       taken: parseDateTime("2018-06-03T06:05:06"),
-    }), fillMetadata({
+    }, {
+      ...emptyMetadata,
       id: "m5",
       catalog: "c1",
       created: parseDateTime("2002-02-01T04:05:06"),
-    }), fillMetadata({
+    }, {
+      ...emptyMetadata,
       id: "m6",
       catalog: "c1",
       created: parseDateTime("2004-02-01T04:05:06"),
-    })],
+    }],
     [Table.MediaAlbum]: [{
       catalog: "c1",
       media: "m1",

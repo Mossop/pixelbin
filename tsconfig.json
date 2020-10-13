@@ -10,6 +10,9 @@
       "DOM.Iterable"
     ]
   },
+  "exclude": [
+    "build/**/*",
+  ],
   "include": [
     "ci/*",
     ".*",

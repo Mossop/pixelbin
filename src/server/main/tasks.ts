@@ -27,6 +27,7 @@ export class TaskManager extends Service {
       localInterface: bound(this.interface, this),
       minWorkers: 0,
       maxWorkers: 4,
+      maxTasksPerWorker: 3,
       fork: async (): Promise<AbstractChildProcess> => {
         logger.trace("Forking new task worker process.");
         return child_process.fork(config.taskWorkerPackage, [], {
@@ -55,8 +56,11 @@ export class TaskManager extends Service {
   }
 
   public async handleUploadedFile(this: TaskManager, id: string): Promise<void> {
-    let remote = await this.pool.remote;
-    return remote.handleUploadedFile(id);
+    if (this.pool.queueLength >= 12) {
+      throw new Error("Task queue is full.");
+    }
+
+    this.logger.catch(this.pool.remote.handleUploadedFile(id));
   }
 
   // ParentProcessInterface

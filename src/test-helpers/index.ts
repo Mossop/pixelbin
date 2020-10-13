@@ -9,6 +9,26 @@ import { DateTime as Luxon } from "luxon";
 import { ObjectModel } from "../model";
 import { DateTime, defer, now } from "../utils";
 
+export function waitFor(
+  cb: () => boolean,
+  timeout: number = 1000,
+  interval: number = 100,
+): Promise<boolean> {
+  let now = Date.now();
+
+  return new Promise((resolve: (val: boolean) => void, reject: (err: Error) => void) => {
+    let ival = setInterval(() => {
+      if (cb()) {
+        clearInterval(ival);
+        resolve(true);
+      } else if (Date.now() - now > timeout) {
+        clearInterval(ival);
+        reject(new Error(`Condition failed to return true in the alloted time (${timeout}ms).`));
+      }
+    }, interval);
+  });
+}
+
 function expectMessage(
   context: jest.MatcherContext,
   term: string,

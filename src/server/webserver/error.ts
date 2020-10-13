@@ -13,6 +13,7 @@ const ApiErrorStatus: Record<ErrorCode, number> = {
   [ErrorCode.LoginFailed]: 401,
   [ErrorCode.InvalidData]: 400,
   [ErrorCode.NotFound]: 404,
+  [ErrorCode.TemporaryFailure]: 503,
 };
 
 export class ApiError extends Error {

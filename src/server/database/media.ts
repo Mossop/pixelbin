@@ -1,6 +1,6 @@
 import Knex from "knex";
 
-import { AlternateFileType, emptyMetadata } from "../../model";
+import { AlternateFileType } from "../../model";
 import { now } from "../../utils";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
@@ -18,13 +18,6 @@ import {
   applyTimeZoneFields,
 } from "./types";
 import { filterColumns } from "./utils";
-
-export function fillMetadata<T>(data: T): T & Tables.Metadata {
-  return {
-    ...emptyMetadata(),
-    ...data,
-  };
-}
 
 export function intoMedia(item: Tables.StoredMedia): Media {
   let forApi = applyTimeZoneFields(intoAPITypes(item));

@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { Socket, Server } from "net";
 import { setImmediate } from "timers";
 
-import { mock, Mocked, awaitCall, deferCall, awaitEvent, mockEvent } from "../../test-helpers";
+import { mock, Mocked, awaitCall, deferCall, awaitEvent } from "../../test-helpers";
 import { defer, Deferred } from "../../utils";
 import Channel from "./channel";
 import { RPC } from "./ipc";
@@ -103,11 +103,9 @@ async function connect<R>(remoteInterface: R): Promise<Connected<R>> {
 
   let readyMsg = awaitCall(process.send);
 
-  let parent = new ParentProcess<R>({
+  let parentPromise = ParentProcess.connect<R>({
     process,
   });
-
-  let connected = awaitEvent(parent, "connect");
 
   let readyArgs = await readyMsg;
   expect(readyArgs[0]).toEqual({
@@ -128,7 +126,7 @@ async function connect<R>(remoteInterface: R): Promise<Connected<R>> {
     },
   );
 
-  await connected;
+  let parent = await parentPromise;
 
   return {
     process,
@@ -149,13 +147,12 @@ test("parent", async (): Promise<void> => {
     channel,
   } = await connect(remoteInterface);
 
-  let remote = await parent.remote;
-  expect("foo" in remote).toBeTruthy();
-  expect("bar" in remote).toBeTruthy();
-  expect("baz" in remote).toBeFalsy();
+  expect("foo" in parent.remote).toBeTruthy();
+  expect("bar" in parent.remote).toBeTruthy();
+  expect("baz" in parent.remote).toBeFalsy();
 
   let deferred = deferCall(remoteInterface.foo);
-  let result = remote.foo(5);
+  let result = parent.remote.foo(5);
 
   await expect(deferred.call).resolves.toEqual([5]);
   await deferred.resolve("bizzy");
@@ -182,17 +179,13 @@ test("channel connect timeout", async (): Promise<void> => {
 
   let mockChannel = mockCreate();
 
-  let parent = new ParentProcess({
+  let parentPromise = ParentProcess.connect({
     process: mockProcess,
   });
 
-  let connect = mockEvent(parent, "connect");
-  let disconnect = awaitEvent(parent, "disconnect");
+  mockChannel.deferredRemote.reject(new Error("Connection timed out"));
 
-  mockChannel.emit("connection-timeout");
-
-  await disconnect;
-  expect(connect).not.toHaveBeenCalled();
+  await expect(parentPromise).rejects.toThrow("Connection timed out");
 });
 
 test("channel message timeout", async (): Promise<void> => {
@@ -200,17 +193,14 @@ test("channel message timeout", async (): Promise<void> => {
 
   let mockChannel = mockCreate();
 
-  let parent = new ParentProcess({
+  let parentPromise = ParentProcess.connect({
     process: mockProcess,
   });
 
-  let connect = awaitEvent(parent, "connect");
-
-  let disconnect = awaitEvent(parent, "disconnect");
-
   mockChannel.deferredRemote.resolve({});
 
-  await connect;
+  let parent = await parentPromise;
+  let disconnect = awaitEvent(parent, "disconnect");
 
   mockChannel.emit("message-timeout");
 
@@ -222,17 +212,15 @@ test("process disconnect", async (): Promise<void> => {
 
   let mockChannel = mockCreate();
 
-  let parent = new ParentProcess({
+  let parentPromise = ParentProcess.connect({
     process: mockProcess,
   });
 
-  let connect = awaitEvent(parent, "connect");
-
-  let disconnect = awaitEvent(parent, "disconnect");
-
   mockChannel.deferredRemote.resolve({});
 
-  await connect;
+  let parent = await parentPromise;
+
+  let disconnect = awaitEvent(parent, "disconnect");
 
   mockProcess.emit("disconnect");
 
@@ -244,17 +232,15 @@ test("process error", async (): Promise<void> => {
 
   let mockChannel = mockCreate();
 
-  let parent = new ParentProcess({
+  let parentPromise = ParentProcess.connect({
     process: mockProcess,
   });
 
-  let connect = awaitEvent(parent, "connect");
-
-  let disconnect = awaitEvent(parent, "disconnect");
-
   mockChannel.deferredRemote.resolve({});
 
-  await connect;
+  let parent = await parentPromise;
+
+  let disconnect = awaitEvent(parent, "disconnect");
 
   mockProcess.emit("error");
 

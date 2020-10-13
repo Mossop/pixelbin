@@ -15,9 +15,9 @@ const logger = getLogger("webserver");
 async function main(): Promise<void> {
   logger.info("Server startup.");
 
-  let connection = new ParentProcess<ParentProcessInterface>();
+  let connection = await ParentProcess.connect<ParentProcessInterface>();
   try {
-    let parent = await connection.remote;
+    let parent = connection.remote;
     connection.on("disconnect", () => void events.emit("shutdown"));
     provideService("parent", parent);
 

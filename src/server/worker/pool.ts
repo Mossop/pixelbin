@@ -1,4 +1,4 @@
-import { getLogger, MakeRequired, TypedEmitter, defer } from "../../utils";
+import { getLogger, MakeRequired, TypedEmitter, defer, Logger, Deferred } from "../../utils";
 import { RemoteInterface } from "./channel";
 import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
 
@@ -6,8 +6,11 @@ export interface WorkerPoolOptions<L> extends Omit<WorkerProcessOptions<L>, "pro
   fork: () => Promise<AbstractChildProcess>;
   minWorkers?: number;
   maxWorkers?: number;
+  maxTasksPerWorker?: number;
   idleTimeout?: number;
 }
+
+type RequiredOptions = "minWorkers" | "maxWorkers" | "idleTimeout";
 
 interface WorkerRecord<R, L> {
   worker: WorkerProcess<R, L>;
@@ -21,26 +24,34 @@ const MAX_BAD_WORKERS = 5;
 
 interface EventMap {
   shutdown: [];
+  ["queue-length"]: [number];
+}
+
+interface Task {
+  method: string;
+  params: unknown[];
+  deferred: Deferred<unknown>;
 }
 
 export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<EventMap> {
-  private workers: WorkerRecord<R, L>[];
-  private options: MakeRequired<WorkerPoolOptions<L>, "minWorkers" | "maxWorkers" | "idleTimeout">;
-  private quitting: boolean;
-  private badWorkerCount: number;
+  private workers: WorkerRecord<R, L>[] = [];
+  private options: MakeRequired<WorkerPoolOptions<L>, RequiredOptions>;
+  private quitting = false;
+  private taskCount = 0;
+  private runningQueue = false;
+  private queue: Task[] = [];
+  private logger: Logger = logger;
+  public readonly remote: RemoteInterface<R>;
 
   public constructor(
     options: WorkerPoolOptions<L>,
   ) {
     super();
-    this.quitting = false;
-    this.workers = [];
     this.options = Object.assign({
       minWorkers: 0,
-      maxWorkers: options.minWorkers ? Math.max(1, options.minWorkers) * 2 : 5,
+      maxWorkers: options.minWorkers ? options.minWorkers * 2 : 5,
       idleTimeout: 60 * 1000,
     }, options);
-    this.badWorkerCount = 0;
 
     if (this.options.maxWorkers < 1) {
       throw new Error("Cannot create a worker pool that allows no workers.");
@@ -52,11 +63,35 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       );
     }
 
-    logger.debug({
+    this.remote = new Proxy<Partial<RemoteInterface<R>>>({}, {
+      get: (target: Partial<RemoteInterface<R>>, property: string): unknown => {
+        if (!(property in target)) {
+          target[property] = (...args: unknown[]): Promise<unknown> => {
+            return this.queueTask(property, args);
+          };
+        }
+
+        return target[property];
+      },
+    }) as RemoteInterface<R>;
+
+    this.logger.debug({
       minWorkers: this.options.minWorkers,
       maxWorkers: this.options.maxWorkers,
     }, "Created worker pool.");
     this.ensureTargetWorkers();
+  }
+
+  public get runningTasks(): number {
+    return this.taskCount;
+  }
+
+  public get queueLength(): number {
+    return this.queue.length;
+  }
+
+  public get workerCount(): number {
+    return this.workers.length;
   }
 
   public shutdown(): void {
@@ -64,24 +99,120 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       return;
     }
 
-    logger.debug("Shutting down worker pool.");
+    this.logger.debug("Shutting down worker pool.");
 
     this.quitting = true;
-    for (let record of this.workers.slice(0)) {
-      logger.debug({ worker: record.worker.pid }, "Shutting down worker.");
-      logger.catch(record.worker.kill());
+
+    for (let task of this.queue) {
+      task.deferred.reject(new Error("Worker pool has shutdown."));
     }
+    this.queue = [];
+
+    for (let record of this.workers.slice(0)) {
+      this.logger.debug({ worker: record.worker.pid }, "Shutting down worker.");
+      this.logger.catch(record.worker.kill());
+    }
+    this.workers = [];
 
     this.emit("shutdown");
   }
 
-  public get remote(): Promise<RemoteInterface<R>> {
-    return this.getWorker().then(
-      (worker: WorkerProcess<R, L>): Promise<RemoteInterface<R>> => worker.remote,
-    );
+  private get canRunTask(): boolean {
+    if (this.quitting) {
+      return false;
+    }
+
+    if (!this.options.maxTasksPerWorker) {
+      return true;
+    }
+
+    return this.taskCount < this.options.maxWorkers * this.options.maxTasksPerWorker;
   }
 
-  public async getWorker(): Promise<WorkerProcess<R, L>> {
+  private runQueue(): void {
+    if (this.runningQueue || !this.queue.length) {
+      return;
+    }
+
+    this.runningQueue = true;
+
+    const doQueue = async (): Promise<void> => {
+      this.logger.trace({
+        queueLength: this.queue.length,
+        runningTasks: this.taskCount,
+        workerCount: this.workers.length,
+        maxWorkers: this.options.maxWorkers,
+        maxTasksPerWorker: this.options.maxTasksPerWorker,
+      }, "Queue start.");
+
+      try {
+        while (this.canRunTask && this.queue.length) {
+          let worker = await this.getWorker();
+
+          let task = this.queue.shift();
+          if (!task) {
+            return;
+          }
+
+          while (!worker.remote || !(task.method in worker.remote)) {
+            task.deferred.reject(new Error(`Method '${task.method}' does not exist on remote.`));
+
+            task = this.queue.shift();
+            if (!task) {
+              return;
+            }
+          }
+
+          worker.remote[task.method](...task.params).then(
+            task.deferred.resolve,
+            task.deferred.reject,
+          );
+
+          this.logger.trace({
+            method: task.method,
+            queueLength: this.queue.length,
+            runningTasks: this.taskCount,
+            workerCount: this.workers.length,
+            maxWorkers: this.options.maxWorkers,
+            maxTasksPerWorker: this.options.maxTasksPerWorker,
+          }, "Queue dispatch.");
+        }
+      } finally {
+        this.runningQueue = false;
+
+        this.logger.trace({
+          queueLength: this.queue.length,
+          runningTasks: this.taskCount,
+          workerCount: this.workers.length,
+          maxWorkers: this.options.maxWorkers,
+          maxTasksPerWorker: this.options.maxTasksPerWorker,
+        }, "Queue suspend.");
+
+        this.emit("queue-length", this.queueLength);
+      }
+    };
+
+    this.logger.catch(doQueue());
+  }
+
+  private queueTask(method: string, params: unknown[]): Promise<unknown> {
+    if (this.quitting) {
+      return Promise.reject(new Error("Worker pool has shutdown."));
+    }
+
+    this.logger.trace({
+      method,
+    }, "Queueing task.");
+
+    let deferred = defer<unknown>();
+
+    this.queue.push({ method, params, deferred });
+    this.runQueue();
+
+    return deferred.promise;
+  }
+
+  private async getWorker(): Promise<WorkerProcess<R, L>> {
     if (this.quitting) {
       throw new Error("Cannot get a new worker while the pool is quitting.");
     }
@@ -108,26 +239,53 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
   }
 
   private async createWorker(): Promise<WorkerProcess<R, L>> {
-    let workerProcess = new WorkerProcess<R, L>({
-      ...this.options,
-      process: await this.options.fork(),
-    });
+    let workerProcess: WorkerProcess<R, L> | null = null;
+    let badWorkerCount = 0;
+    while (!workerProcess) {
+      try {
+        workerProcess = await WorkerProcess.attach<R, L>({
+          ...this.options,
+          process: await this.options.fork(),
+        });
+      } catch (e) {
+        badWorkerCount++;
+
+        this.logger.warn(e, "Failed to attach to worker process.");
+
+        if (badWorkerCount >= MAX_BAD_WORKERS) {
+          this.logger.error("Saw too many worker failures, shutting down pool.");
+          this.shutdown();
+          throw new Error("Saw too many worker failures, shutting down pool.");
+        }
+      }
+    }
 
     let record: WorkerRecord<R, L> = {
       worker: workerProcess,
-      taskCount: 1,
+      taskCount: 0,
     };
 
     this.workers.push(record);
 
-    logger.debug({
+    this.logger.debug({
       workerCount: this.workers.length,
       worker: workerProcess.pid,
     }, "Created new worker.");
 
+    const markIdle = (): void => {
+      record.idleTimeout = setTimeout((): void => {
+        delete record.idleTimeout;
+        if (this.workers.length > this.options.minWorkers) {
+          this.logger.debug({ worker: record.worker.pid }, "Shutting down worker due to timeout.");
+          this.logger.catch(record.worker.kill());
+        }
+      }, this.options.idleTimeout);
+    };
+    markIdle();
+
     const updateTaskCount = (delta: number): void => {
-      logger.trace({
-        worker: workerProcess.pid,
+      this.logger.trace({
+        worker: record.worker.pid,
         hasTimeout: !!record.idleTimeout,
         taskCount: record.taskCount,
         delta,
@@ -138,27 +296,13 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       }
 
       record.taskCount += delta;
+      this.taskCount += delta;
+      this.runQueue();
 
       if (record.taskCount == 0) {
-        record.idleTimeout = setTimeout((): void => {
-          delete record.idleTimeout;
-          if (this.workers.length > this.options.minWorkers) {
-            logger.debug({ worker: workerProcess.pid }, "Shutting down worker due to timeout.");
-            logger.catch(workerProcess.kill());
-          }
-        }, this.options.idleTimeout);
+        markIdle();
       }
     };
-
-    let deferred = defer<WorkerProcess<R, L>>();
-
-    let connected = false;
-    workerProcess.on("connect", (): void => {
-      logger.trace({ worker: workerProcess.pid }, "Saw connect");
-      this.badWorkerCount = 0;
-      updateTaskCount(-1);
-      deferred.resolve(workerProcess);
-    });
 
     workerProcess.on("task-start", (): void => {
       updateTaskCount(1);
@@ -175,14 +319,14 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
     workerProcess.on("disconnect", (): void => {
       let pos = this.workers.indexOf(record);
       if (pos < 0) {
-        logger.warn("Received disconnect from an already disconnected worker.");
+        this.logger.warn("Received disconnect from an already disconnected worker.");
         return;
       }
 
       this.workers.splice(pos, 1);
-      logger.debug({
+      this.logger.debug({
         workerCount: this.workers.length,
-        worker: workerProcess.pid,
+        worker: record.worker.pid,
       }, "Saw disconnect from worker.");
 
       if (record.idleTimeout) {
@@ -190,23 +334,10 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
         delete record.idleTimeout;
       }
 
-      if (!connected) {
-        logger.warn("Saw worker disconnect before it connected.");
-        deferred.reject(new Error("Worker disconnected before it connected."));
-
-        this.badWorkerCount++;
-
-        if (this.badWorkerCount == MAX_BAD_WORKERS) {
-          logger.error("Saw too many worker failures, shutting down pool.");
-          this.shutdown();
-          return;
-        }
-      }
-
       this.ensureTargetWorkers();
     });
 
-    return deferred.promise;
+    return workerProcess;
   }
 
   private ensureTargetWorkers(): void {
@@ -216,7 +347,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
 
     let count = this.options.minWorkers;
     for (let i = this.workers.length; i < count; i++) {
-      logger.catch(this.createWorker());
+      this.logger.catch(this.createWorker());
     }
   }
 }

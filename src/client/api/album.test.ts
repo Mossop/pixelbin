@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Method } from "../../model";
-import { fillMetadata } from "../../server/database";
+import { emptyMetadata, Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect, mockProcessedMedia, mockServerState, mockUnprocessedMedia } from "../test-helpers";
@@ -204,7 +203,8 @@ test("List album", async (): Promise<void> => {
     },
   });
 
-  expect(result).toEqual([fillMetadata({
+  expect(result).toEqual([{
+    ...emptyMetadata,
     id: "testmedia",
     created: expect.anything(),
     albums: [
@@ -212,7 +212,8 @@ test("List album", async (): Promise<void> => {
     ],
     tags: [],
     people: [],
-  }), fillMetadata({
+  }, {
+    ...emptyMetadata,
     id: "testmedia2",
     created: expect.anything(),
     uploaded: expect.anything(),
@@ -231,5 +232,5 @@ test("List album", async (): Promise<void> => {
     ],
     tags: [],
     people: [],
-  })]);
+  }]);
 });

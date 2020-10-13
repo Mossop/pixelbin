@@ -318,7 +318,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       }
 
       if (!(method in this.options.localInterface)) {
-        logger.error("Remote called an unknown method: %s.", method);
+        logger.error("Remote called an unknown method: '%s'.", method);
         throw new Error(`Method ${method} does not exist.`);
       }
 

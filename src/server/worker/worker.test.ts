@@ -1,7 +1,7 @@
 import { Serializable, SendHandle } from "child_process";
 import { EventEmitter } from "events";
 
-import { mock, Mocked, awaitCall, awaitEvent, mockEvent } from "../../test-helpers";
+import { mock, Mocked, awaitCall, awaitEvent } from "../../test-helpers";
 import { defer, Deferred } from "../../utils";
 import Channel from "./channel";
 import { AbstractChildProcess, WorkerProcess } from "./worker";
@@ -91,19 +91,9 @@ test("worker", async (): Promise<void> => {
   let mockProcess = new MockChildProcess();
   mockProcess.pid = 2425;
 
-  let worker = new WorkerProcess<Remote>({
+  let workerPromise = WorkerProcess.attach<Remote>({
     process: mockProcess,
   });
-  let connected = jest.fn();
-  worker.on("connect", connected);
-  let taskStart = jest.fn();
-  worker.on("task-start", taskStart);
-  let taskEnd = jest.fn();
-  worker.on("task-end", taskEnd);
-  let taskFail = jest.fn();
-  worker.on("task-fail", taskFail);
-
-  expect(worker.pid).toBe(2425);
 
   expect(mockProcess.send).not.toHaveBeenCalled();
 
@@ -120,8 +110,6 @@ test("worker", async (): Promise<void> => {
   },
   undefined]);
 
-  expect(connected).not.toHaveBeenCalled();
-
   mockProcess.emit("message", {
     type: "rpc",
     message: {
@@ -130,19 +118,27 @@ test("worker", async (): Promise<void> => {
     },
   });
 
-  let remote = await worker.remote;
-  expect(connected).toHaveBeenCalledTimes(1);
+  let worker = await workerPromise;
 
-  expect("foo" in remote).toBeTruthy();
-  expect("bar" in remote).toBeTruthy();
-  expect("baz" in remote).toBeFalsy();
+  let taskStart = jest.fn();
+  worker.on("task-start", taskStart);
+  let taskEnd = jest.fn();
+  worker.on("task-end", taskEnd);
+  let taskFail = jest.fn();
+  worker.on("task-fail", taskFail);
+
+  expect(worker.pid).toBe(2425);
+
+  expect("foo" in worker.remote).toBeTruthy();
+  expect("bar" in worker.remote).toBeTruthy();
+  expect("baz" in worker.remote).toBeFalsy();
 
   expect(taskStart).not.toHaveBeenCalled();
   expect(taskEnd).not.toHaveBeenCalled();
   expect(taskFail).not.toHaveBeenCalled();
 
   call = waitFor(mockProcess.send);
-  let fooResult = remote.foo(5);
+  let fooResult = worker.remote.foo(5);
 
   let fooArgs = await call;
   expect(fooArgs).toEqual([{
@@ -169,7 +165,7 @@ test("worker", async (): Promise<void> => {
   });
 
   call = waitFor(mockProcess.send);
-  let barResult = remote.bar("foo");
+  let barResult = worker.remote.bar("foo");
 
   let barArgs = await call;
   expect(barArgs).toEqual([{
@@ -238,17 +234,13 @@ test("connect timeout", async (): Promise<void> => {
   let mockProcess = new MockChildProcess();
   mockProcess.pid = 24225;
 
-  let worker = new WorkerProcess<Remote>({
+  let workerPromise = WorkerProcess.attach<Remote>({
     process: mockProcess,
   });
 
-  let disconnected = jest.fn();
-  worker.on("disconnect", disconnected);
-
   jest.runAllTimers();
 
-  expect(disconnected).toHaveBeenCalledTimes(1);
-  await expect(worker.remote).rejects.toThrow("Worker process connection timed out");
+  await expect(workerPromise).rejects.toThrow("Worker process connection timed out");
 });
 
 test("channel connect timeout", async (): Promise<void> => {
@@ -257,20 +249,16 @@ test("channel connect timeout", async (): Promise<void> => {
 
   let mockChannel = mockConnect();
 
-  let worker = new WorkerProcess<Remote>({
+  let workerPromise = WorkerProcess.attach<Remote>({
     process: mockProcess,
   });
-
-  let connected = mockEvent(worker, "connect");
-  let disconnected = awaitEvent(worker, "disconnect");
 
   mockProcess.emit("message", { type: "ready" });
 
   mockChannel.emit("connection-timeout");
+  mockChannel.deferredRemote.reject(new Error("Channel connection timed out."));
 
-  await disconnected;
-
-  expect(connected).not.toHaveBeenCalled();
+  await expect(workerPromise).rejects.toThrow("Channel connection timed out.");
 });
 
 test("channel message timeout", async (): Promise<void> => {
@@ -279,18 +267,16 @@ test("channel message timeout", async (): Promise<void> => {
 
   let mockChannel = mockConnect<Remote>();
 
-  let worker = new WorkerProcess<Remote>({
+  let workerPromise = WorkerProcess.attach<Remote>({
     process: mockProcess,
   });
-
-  let connected = awaitEvent(worker, "connect");
-  let disconnected = awaitEvent(worker, "disconnect");
 
   mockProcess.emit("message", { type: "ready" });
 
   mockChannel.deferredRemote.resolve(undefined as unknown as Remote);
 
-  await connected;
+  let worker = await workerPromise;
+  let disconnected = awaitEvent(worker, "disconnect");
 
   mockChannel.emit("message-timeout");
 
@@ -303,18 +289,16 @@ test("worker exit", async (): Promise<void> => {
 
   let mockChannel = mockConnect<Remote>();
 
-  let worker = new WorkerProcess<Remote>({
+  let workerPromise = WorkerProcess.attach<Remote>({
     process: mockProcess,
   });
-
-  let connected = awaitEvent(worker, "connect");
-  let disconnected = awaitEvent(worker, "disconnect");
 
   mockProcess.emit("message", { type: "ready" });
 
   mockChannel.deferredRemote.resolve(undefined as unknown as Remote);
 
-  await connected;
+  let worker = await workerPromise;
+  let disconnected = awaitEvent(worker, "disconnect");
 
   mockProcess.emit("exit");
 
@@ -327,18 +311,16 @@ test("worker error", async (): Promise<void> => {
 
   let mockChannel = mockConnect<Remote>();
 
-  let worker = new WorkerProcess<Remote>({
+  let workerPromise = WorkerProcess.attach<Remote>({
     process: mockProcess,
   });
-
-  let connected = awaitEvent(worker, "connect");
-  let disconnected = awaitEvent(worker, "disconnect");
 
   mockProcess.emit("message", { type: "ready" });
 
   mockChannel.deferredRemote.resolve(undefined as unknown as Remote);
 
-  await connected;
+  let worker = await workerPromise;
+  let disconnected = awaitEvent(worker, "disconnect");
 
   mockProcess.emit("error");
 

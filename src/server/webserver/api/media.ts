@@ -8,9 +8,10 @@ import {
   ResponseFor,
   ErrorCode,
   RelationType,
+  emptyMetadata,
 } from "../../../model";
 import { chooseSize, isoDateTime } from "../../../utils";
-import { fillMetadata, UserScopedConnection, Media, ProcessedMedia } from "../../database";
+import { UserScopedConnection, Media, ProcessedMedia } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import { AppContext } from "../context";
 import { ApiError } from "../error";
@@ -85,89 +86,107 @@ export const createMedia = ensureAuthenticated(
       ...mediaData
     } = data;
 
-    let media = await userDb.inTransaction(async (userDb: UserScopedConnection): Promise<Media> => {
-      let createdMedia = await userDb.createMedia(catalog, fillMetadata(mediaData));
+    try {
+      let media = await userDb.inTransaction(
+        async (userDb: UserScopedConnection): Promise<Media> => {
+          let createdMedia = await userDb.createMedia(catalog, {
+            ...emptyMetadata,
+            ...mediaData,
+          });
 
-      if (albums) {
-        await userDb.addMediaRelations(RelationType.Album, [createdMedia.id], albums);
-      }
+          if (albums) {
+            await userDb.addMediaRelations(RelationType.Album, [createdMedia.id], albums);
+          }
 
-      if (tags) {
-        let selectedTags: string[] = [];
+          if (tags) {
+            let selectedTags: string[] = [];
 
-        for (let tag of tags) {
-          if (Array.isArray(tag)) {
-            if (tag.length) {
-              let newTags = await userDb.buildTags(catalog, tag);
-              selectedTags.push(newTags[newTags.length - 1].id);
+            for (let tag of tags) {
+              if (Array.isArray(tag)) {
+                if (tag.length) {
+                  let newTags = await userDb.buildTags(catalog, tag);
+                  selectedTags.push(newTags[newTags.length - 1].id);
+                }
+              } else {
+                selectedTags.push(tag);
+              }
             }
-          } else {
-            selectedTags.push(tag);
+
+            await userDb.addMediaRelations(RelationType.Tag, [createdMedia.id], selectedTags);
           }
-        }
 
-        await userDb.addMediaRelations(RelationType.Tag, [createdMedia.id], selectedTags);
-      }
+          if (people) {
+            let peopleToAdd: string[] = [];
+            let locations: Api.MediaPersonLocation[] = [];
 
-      if (people) {
-        let peopleToAdd: string[] = [];
-        let locations: Api.MediaPersonLocation[] = [];
+            for (let person of people) {
+              if (typeof person == "string") {
+                peopleToAdd.push(person);
+              } else if ("id" in person) {
+                locations.push({
+                  media: createdMedia.id,
+                  person: person.id,
+                  location: person.location,
+                });
+              } else {
+                let newPerson = await userDb.createPerson(catalog, {
+                  name: person.name,
+                });
+                locations.push({
+                  media: createdMedia.id,
+                  person: newPerson.id,
+                  location: person.location,
+                });
+              }
+            }
 
-        for (let person of people) {
-          if (typeof person == "string") {
-            peopleToAdd.push(person);
-          } else if ("id" in person) {
-            locations.push({
-              media: createdMedia.id,
-              person: person.id,
-              location: person.location,
-            });
-          } else {
-            let newPerson = await userDb.createPerson(catalog, {
-              name: person.name,
-            });
-            locations.push({
-              media: createdMedia.id,
-              person: newPerson.id,
-              location: person.location,
+            if (peopleToAdd.length) {
+              await userDb.addMediaRelations(RelationType.Person, [createdMedia.id], peopleToAdd);
+            }
+
+            if (locations.length) {
+              await userDb.setPersonLocations(locations);
+            }
+          }
+
+          let [media] = await userDb.getMedia([createdMedia.id]);
+          if (!media) {
+            throw new ApiError(ErrorCode.UnknownException, {
+              message: "Creating new media failed for an unknown reason.",
             });
           }
-        }
 
-        if (peopleToAdd.length) {
-          await userDb.addMediaRelations(RelationType.Person, [createdMedia.id], peopleToAdd);
-        }
+          let storage = await ctx.storage.getStorage(data.catalog);
+          try {
+            await storage.get().copyUploadedFile(media.id, file.path, file.name);
 
-        if (locations.length) {
-          await userDb.setPersonLocations(locations);
-        }
+            try {
+              await fs.unlink(file.path);
+            } catch (e) {
+              ctx.logger.warn(e, "Failed to delete temporary file.");
+            }
+
+            await ctx.taskWorker.handleUploadedFile(media.id);
+          } catch (e) {
+            await storage.get().deleteUploadedFile(media.id);
+            throw e;
+          } finally {
+            storage.release();
+          }
+
+          return media;
+        },
+      );
+
+      return buildResponseMedia(media);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        throw e;
       }
 
-      let [media] = await userDb.getMedia([createdMedia.id]);
-      if (!media) {
-        throw new ApiError(ErrorCode.UnknownException, {
-          message: "Creating new media failed for an unknown reason.",
-        });
-      }
-
-      let storage = await ctx.storage.getStorage(data.catalog);
-      try {
-        await storage.get().copyUploadedFile(media.id, file.path, file.name);
-
-        try {
-          await fs.unlink(file.path);
-        } catch (e) {
-          ctx.logger.warn(e, "Failed to delete temporary file.");
-        }
-      } finally {
-        storage.release();
-      }
-
-      return media;
-    });
-
-    ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
-    return buildResponseMedia(media);
+      ctx.logger.error(e, "Error");
+      throw new ApiError(ErrorCode.TemporaryFailure);
+    }
   },
 );
 
@@ -186,106 +205,118 @@ export const updateMedia = ensureAuthenticatedTransaction(
       ...mediaData
     } = data;
 
-    let media = await userDb.inTransaction(async (userDb: UserScopedConnection): Promise<Media> => {
-      let media: Media;
-      if (!Object.values(mediaData).every((val: unknown): boolean => val === undefined)) {
-        media = await userDb.editMedia(id, mediaData);
-      } else {
-        let [foundMedia] = await userDb.getMedia([id]);
-        if (!foundMedia) {
-          throw new ApiError(ErrorCode.NotFound, {
-            message: "Media does not exist.",
-          });
-        }
-        media = foundMedia;
-      }
-
-      if (albums) {
-        await userDb.setMediaRelations(RelationType.Album, [media.id], albums);
-      }
-
-      if (tags) {
-        let selectedTags: string[] = [];
-
-        for (let tag of tags) {
-          if (Array.isArray(tag)) {
-            if (tag.length) {
-              let newTags = await userDb.buildTags(media.catalog, tag);
-              selectedTags.push(newTags[newTags.length - 1].id);
+    try {
+      let media = await userDb.inTransaction(
+        async (userDb: UserScopedConnection): Promise<Media> => {
+          let media: Media;
+          if (!Object.values(mediaData).every((val: unknown): boolean => val === undefined)) {
+            media = await userDb.editMedia(id, mediaData);
+          } else {
+            let [foundMedia] = await userDb.getMedia([id]);
+            if (!foundMedia) {
+              throw new ApiError(ErrorCode.NotFound, {
+                message: "Media does not exist.",
+              });
             }
-          } else {
-            selectedTags.push(tag);
+            media = foundMedia;
           }
-        }
 
-        await userDb.setMediaRelations(RelationType.Tag, [media.id], selectedTags);
-      }
-
-      if (people) {
-        let peopleToAdd: string[] = [];
-        let locations: Api.MediaPersonLocation[] = [];
-
-        for (let person of people) {
-          if (typeof person == "string") {
-            peopleToAdd.push(person);
-          } else if ("id" in person) {
-            locations.push({
-              media: media.id,
-              person: person.id,
-              location: person.location,
-            });
-          } else {
-            let newPerson = await userDb.createPerson(media.catalog, {
-              name: person.name,
-            });
-            locations.push({
-              media: media.id,
-              person: newPerson.id,
-              location: person.location,
-            });
+          if (albums) {
+            await userDb.setMediaRelations(RelationType.Album, [media.id], albums);
           }
-        }
 
-        if (locations.length) {
-          await userDb.setMediaRelations(RelationType.Person, [media.id], []);
-          await userDb.setPersonLocations(locations);
-          await userDb.addMediaRelations(RelationType.Person, [media.id], peopleToAdd);
-        } else {
-          await userDb.setMediaRelations(RelationType.Person, [media.id], peopleToAdd);
-        }
-      }
+          if (tags) {
+            let selectedTags: string[] = [];
 
-      if (albums || people || tags) {
-        let [foundMedia] = await userDb.getMedia([id]);
-        if (!foundMedia) {
-          throw new ApiError(ErrorCode.UnknownException);
-        }
-        media = foundMedia;
-      }
+            for (let tag of tags) {
+              if (Array.isArray(tag)) {
+                if (tag.length) {
+                  let newTags = await userDb.buildTags(media.catalog, tag);
+                  selectedTags.push(newTags[newTags.length - 1].id);
+                }
+              } else {
+                selectedTags.push(tag);
+              }
+            }
 
-      if (file) {
-        let storage = await ctx.storage.getStorage(media.catalog);
-        try {
-          await storage.get().copyUploadedFile(media.id, file.path, file.name);
-
-          try {
-            await fs.unlink(file.path);
-          } catch (e) {
-            ctx.logger.warn(e, "Failed to delete temporary file.");
+            await userDb.setMediaRelations(RelationType.Tag, [media.id], selectedTags);
           }
-        } finally {
-          storage.release();
-        }
+
+          if (people) {
+            let peopleToAdd: string[] = [];
+            let locations: Api.MediaPersonLocation[] = [];
+
+            for (let person of people) {
+              if (typeof person == "string") {
+                peopleToAdd.push(person);
+              } else if ("id" in person) {
+                locations.push({
+                  media: media.id,
+                  person: person.id,
+                  location: person.location,
+                });
+              } else {
+                let newPerson = await userDb.createPerson(media.catalog, {
+                  name: person.name,
+                });
+                locations.push({
+                  media: media.id,
+                  person: newPerson.id,
+                  location: person.location,
+                });
+              }
+            }
+
+            if (locations.length) {
+              await userDb.setMediaRelations(RelationType.Person, [media.id], []);
+              await userDb.setPersonLocations(locations);
+              await userDb.addMediaRelations(RelationType.Person, [media.id], peopleToAdd);
+            } else {
+              await userDb.setMediaRelations(RelationType.Person, [media.id], peopleToAdd);
+            }
+          }
+
+          if (albums || people || tags) {
+            let [foundMedia] = await userDb.getMedia([id]);
+            if (!foundMedia) {
+              throw new ApiError(ErrorCode.UnknownException);
+            }
+            media = foundMedia;
+          }
+
+          if (file) {
+            let storage = await ctx.storage.getStorage(media.catalog);
+            try {
+              await storage.get().copyUploadedFile(media.id, file.path, file.name);
+
+              try {
+                await fs.unlink(file.path);
+              } catch (e) {
+                ctx.logger.warn(e, "Failed to delete temporary file.");
+              }
+
+              await ctx.taskWorker.handleUploadedFile(media.id);
+            } catch (e) {
+              await storage.get().deleteUploadedFile(media.id);
+              throw e;
+            } finally {
+              storage.release();
+            }
+          }
+
+          return media;
+        },
+      );
+
+      return buildResponseMedia(media);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        throw e;
       }
 
-      return media;
-    });
-
-    if (file) {
-      ctx.logger.catch(ctx.taskWorker.handleUploadedFile(media.id));
+      ctx.logger.error(e, "Error");
+      throw new ApiError(ErrorCode.TemporaryFailure);
     }
-
-    return buildResponseMedia(media);
   },
 );
 

@@ -34,6 +34,34 @@ module.exports = {
     "import/no-useless-path-segments": ["error", {
       noUselessIndex: true,
     }],
+    "import/no-restricted-paths": ["error", {
+      zones: [{
+        target: "./src",
+        from: ".",
+        except: [
+          "./src",
+          "./node_modules",
+        ],
+      }, {
+        target: "./src/server",
+        from: "./src/client",
+      }, {
+        target: "./src/client",
+        from: "./src/server",
+      }, {
+        target: "./src/utils",
+        from: "./src/server",
+      }, {
+        target: "./src/utils",
+        from: "./src/client",
+      }, {
+        target: "./src/model",
+        from: "./src/client",
+      }, {
+        target: "./src/model",
+        from: "./src/client",
+      }],
+    }],
     "operator-linebreak": ["warn", "after", { overrides: { "?": "before", ":": "before" } }],
     "quote-props": ["warn", "consistent-as-needed"],
   },

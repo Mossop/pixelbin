@@ -1,7 +1,6 @@
 import React from "react";
 
-import { Api, Method } from "../../model";
-import { fillMetadata } from "../../server/database";
+import { Api, emptyMetadata, Method } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils";
 import { Album } from "../api/highlevel";
@@ -94,25 +93,28 @@ test("album", async (): Promise<void> => {
   });
   mockedMediaGallery.mockClear();
 
-  let media = [fillMetadata({
+  let media = [{
+    ...emptyMetadata,
     id: "media1",
     created: now(),
     albums: [],
     tags: [],
     people: [],
-  }), fillMetadata({
+  }, {
+    ...emptyMetadata,
     id: "media2",
     created: now(),
     albums: [],
     tags: [],
     people: [],
-  }), fillMetadata({
+  }, {
+    ...emptyMetadata,
     id: "media3",
     created: now(),
     albums: [],
     tags: [],
     people: [],
-  })];
+  }];
 
   await resolve(media);
 

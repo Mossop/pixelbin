@@ -11,6 +11,7 @@ export enum ErrorCode {
   LoginFailed = "login-failed",
   InvalidData = "invalid-data",
   NotFound = "not-found",
+  TemporaryFailure = "temporary-failure",
 }
 
 export interface ErrorData {

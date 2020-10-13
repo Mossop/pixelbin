@@ -13,7 +13,6 @@ import {
 } from "../../../model";
 import { expect, mockedFunction, deferCall, mockDateTime } from "../../../test-helpers";
 import { now, parseDateTime } from "../../../utils";
-import { fillMetadata } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
 import { OriginalInfo } from "../../database/unsafe";
 import { StorageService } from "../../storage";
@@ -106,7 +105,8 @@ test("Media upload", async (): Promise<void> => {
 
   response = await responsePromise;
 
-  expect(response.body).toEqual(fillMetadata({
+  expect(response.body).toEqual({
+    ...emptyMetadata,
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.toEqualDate(createdDT),
     taken: "2020-04-05T17:01:04.000-07:00",
@@ -135,7 +135,7 @@ test("Media upload", async (): Promise<void> => {
       name: "tag2",
       parent: null,
     }],
-  }));
+  });
 
   expect(parent.handleUploadedFile).toHaveBeenCalledTimes(1);
   expect(parent.handleUploadedFile).toHaveBeenLastCalledWith(response.body.id);
@@ -170,7 +170,8 @@ test("Media upload", async (): Promise<void> => {
     .expect(200);
 
   // TODO the people array may come in any order.
-  expect(response.body).toEqual(fillMetadata({
+  expect(response.body).toEqual({
+    ...emptyMetadata,
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.anything(),
     catalog: "c1",
@@ -207,7 +208,7 @@ test("Media upload", async (): Promise<void> => {
       name: "tag2",
       parent: null,
     }],
-  }));
+  });
 });
 
 test("Media edit", async (): Promise<void> => {
@@ -229,9 +230,10 @@ test("Media edit", async (): Promise<void> => {
   let copyUploadedFileMock = mockedFunction(storage.copyUploadedFile);
   /* eslint-enable @typescript-eslint/unbound-method */
 
-  let newMedia: Api.Media | null = await user1Db.createMedia("c1", fillMetadata({
+  let newMedia: Api.Media | null = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
     title: "My title",
-  }));
+  });
 
   await user1Db.addMediaRelations(RelationType.Album, [newMedia.id], ["a1"]);
   await user1Db.addMediaRelations(RelationType.Tag, [newMedia.id], ["t1"]);
@@ -251,7 +253,8 @@ test("Media edit", async (): Promise<void> => {
 
   [newMedia] = await user1Db.getMedia([newMedia.id]);
 
-  expect(newMedia).toEqual(fillMetadata({
+  expect(newMedia).toEqual({
+    ...emptyMetadata,
     id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
     catalog: "c1",
     created: expect.anything(),
@@ -286,7 +289,7 @@ test("Media edit", async (): Promise<void> => {
       name: "Person 2",
       location: null,
     }],
-  }));
+  });
 
   await request
     .post("/api/login")
@@ -305,7 +308,8 @@ test("Media edit", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toEqual(fillMetadata({
+  expect(response.body).toEqual({
+    ...emptyMetadata,
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
@@ -340,7 +344,7 @@ test("Media edit", async (): Promise<void> => {
       name: "Person 2",
       location: null,
     }],
-  }));
+  });
 
   expect(getStorageMock).not.toHaveBeenCalled();
   expect(copyUploadedFileMock).not.toHaveBeenCalled();
@@ -364,7 +368,8 @@ test("Media edit", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toEqual(fillMetadata({
+  expect(response.body).toEqual({
+    ...emptyMetadata,
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
@@ -401,7 +406,7 @@ test("Media edit", async (): Promise<void> => {
         bottom: 1,
       },
     }],
-  }));
+  });
 
   expect(getStorageMock).not.toHaveBeenCalled();
   expect(copyUploadedFileMock).not.toHaveBeenCalled();
@@ -420,7 +425,8 @@ test("Media edit", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toEqual(fillMetadata({
+  expect(response.body).toEqual({
+    ...emptyMetadata,
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
@@ -443,7 +449,7 @@ test("Media edit", async (): Promise<void> => {
       parent: "t1",
     }],
     people: [],
-  }));
+  });
 
   expect(getStorageMock).not.toHaveBeenCalled();
   expect(copyUploadedFileMock).not.toHaveBeenCalled();
@@ -484,7 +490,8 @@ test("Media edit", async (): Promise<void> => {
 
   response = await responsePromise;
 
-  expect(response.body).toEqual(fillMetadata({
+  expect(response.body).toEqual({
+    ...emptyMetadata,
     id: newMedia?.id,
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
@@ -512,7 +519,7 @@ test("Media edit", async (): Promise<void> => {
       parent: "t1",
     }],
     people: [],
-  }));
+  });
 
   expect(parent.handleUploadedFile).toHaveBeenCalledTimes(1);
   expect(parent.handleUploadedFile).toHaveBeenLastCalledWith(newMedia?.id);
@@ -578,11 +585,12 @@ test("Media resources", async (): Promise<void> => {
 
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let media = await user1Db.createMedia("c1", fillMetadata({}));
+  let media = await user1Db.createMedia("c1", emptyMetadata);
 
   let original = await db.withNewOriginal(
     media.id,
-    fillMetadata({
+    {
+      ...emptyMetadata,
       uploaded: now(),
       processVersion: 2,
       fileName: "foo.jpg",
@@ -593,7 +601,7 @@ test("Media resources", async (): Promise<void> => {
       duration: null,
       bitRate: null,
       frameRate: null,
-    }),
+    },
     async (db: unknown, original: OriginalInfo) => original,
   );
 
@@ -786,11 +794,12 @@ test("Get media", async (): Promise<void> => {
   let user1Db = db.forUser("someone1@nowhere.com");
 
   let createdDT1 = mockDateTime("2017-02-01T20:30:01");
-  let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let { id: id1 } = await user1Db.createMedia("c1", emptyMetadata);
 
   let createdDT2 = mockDateTime("2010-06-09T09:30:01");
-  let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
-  let originalId = await db.withNewOriginal(id2, fillMetadata({
+  let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
+  let originalId = await db.withNewOriginal(id2, {
+    ...emptyMetadata,
     processVersion: 1,
     fileName: "stored.jpg",
     fileSize: 1,
@@ -801,7 +810,7 @@ test("Get media", async (): Promise<void> => {
     frameRate: 0,
     bitRate: 0,
     uploaded: parseDateTime("2020-02-02T08:00:00"),
-  }), async (_: unknown, original: OriginalInfo): Promise<string> => original.id);
+  }, async (_: unknown, original: OriginalInfo): Promise<string> => original.id);
 
   await db.addAlternateFile(originalId, {
     type: AlternateFileType.Poster,
@@ -880,17 +889,16 @@ test("Get media", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toEqual([
-    fillMetadata({
-      id: id1,
-      catalog: "c1",
-      created: expect.toEqualDate(createdDT1),
+  expect(response.body).toEqual([{
+    ...emptyMetadata,
+    id: id1,
+    catalog: "c1",
+    created: expect.toEqualDate(createdDT1),
 
-      albums: [],
-      tags: [],
-      people: [],
-    }),
-  ]);
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
 
   response = await request
     .get("/api/media/get")
@@ -900,29 +908,28 @@ test("Get media", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toEqual([
-    fillMetadata({
-      id: id2,
-      catalog: "c1",
-      created: expect.toEqualDate(createdDT2),
-      thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
-      originalUrl: `/media/original/${id2}/${originalId}`,
-      posterUrl: `/media/poster/${id2}/${originalId}`,
+  expect(response.body).toEqual([{
+    ...emptyMetadata,
+    id: id2,
+    catalog: "c1",
+    created: expect.toEqualDate(createdDT2),
+    thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
+    originalUrl: `/media/original/${id2}/${originalId}`,
+    posterUrl: `/media/poster/${id2}/${originalId}`,
 
-      fileSize: 1,
-      width: 1,
-      height: 1,
-      mimetype: "video/mp4",
-      duration: 0,
-      frameRate: 0,
-      bitRate: 0,
-      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "video/mp4",
+    duration: 0,
+    frameRate: 0,
+    bitRate: 0,
+    uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
 
-      albums: [],
-      tags: [],
-      people: [],
-    }),
-  ]);
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
 
   response = await request
     .get("/api/media/get")
@@ -932,38 +939,37 @@ test("Get media", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toEqual([
-    fillMetadata({
-      id: id1,
-      catalog: "c1",
-      created: expect.toEqualDate(createdDT1),
+  expect(response.body).toEqual([{
+    ...emptyMetadata,
+    id: id1,
+    catalog: "c1",
+    created: expect.toEqualDate(createdDT1),
 
-      albums: [],
-      tags: [],
-      people: [],
-    }),
-    fillMetadata({
-      id: id2,
-      catalog: "c1",
-      created: expect.toEqualDate(createdDT2),
-      thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
-      originalUrl: `/media/original/${id2}/${originalId}`,
-      posterUrl: `/media/poster/${id2}/${originalId}`,
+    albums: [],
+    tags: [],
+    people: [],
+  }, {
+    ...emptyMetadata,
+    id: id2,
+    catalog: "c1",
+    created: expect.toEqualDate(createdDT2),
+    thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
+    originalUrl: `/media/original/${id2}/${originalId}`,
+    posterUrl: `/media/poster/${id2}/${originalId}`,
 
-      fileSize: 1,
-      width: 1,
-      height: 1,
-      mimetype: "video/mp4",
-      duration: 0,
-      frameRate: 0,
-      bitRate: 0,
-      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "video/mp4",
+    duration: 0,
+    frameRate: 0,
+    bitRate: 0,
+    uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
 
-      albums: [],
-      tags: [],
-      people: [],
-    }),
-  ]);
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
 
   response = await request
     .get("/api/media/get")
@@ -973,38 +979,37 @@ test("Get media", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toEqual([
-    fillMetadata({
-      id: id2,
-      catalog: "c1",
-      created: expect.toEqualDate(createdDT2),
-      thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
-      originalUrl: `/media/original/${id2}/${originalId}`,
-      posterUrl: `/media/poster/${id2}/${originalId}`,
+  expect(response.body).toEqual([{
+    ...emptyMetadata,
+    id: id2,
+    catalog: "c1",
+    created: expect.toEqualDate(createdDT2),
+    thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
+    originalUrl: `/media/original/${id2}/${originalId}`,
+    posterUrl: `/media/poster/${id2}/${originalId}`,
 
-      fileSize: 1,
-      width: 1,
-      height: 1,
-      mimetype: "video/mp4",
-      duration: 0,
-      frameRate: 0,
-      bitRate: 0,
-      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    fileSize: 1,
+    width: 1,
+    height: 1,
+    mimetype: "video/mp4",
+    duration: 0,
+    frameRate: 0,
+    bitRate: 0,
+    uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
 
-      albums: [],
-      tags: [],
-      people: [],
-    }),
-    fillMetadata({
-      id: id1,
-      catalog: "c1",
-      created: expect.toEqualDate(createdDT1),
+    albums: [],
+    tags: [],
+    people: [],
+  }, {
+    ...emptyMetadata,
+    id: id1,
+    catalog: "c1",
+    created: expect.toEqualDate(createdDT1),
 
-      albums: [],
-      tags: [],
-      people: [],
-    }),
-  ]);
+    albums: [],
+    tags: [],
+    people: [],
+  }]);
 
   const storageService = new StorageService({
     tempDirectory: "",
@@ -1068,10 +1073,10 @@ test("Media relations", async (): Promise<void> => {
   let user1Db = db.forUser("someone1@nowhere.com");
 
   let createdDT1 = mockDateTime("2017-02-01T20:30:01");
-  let { id: id1 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let { id: id1 } = await user1Db.createMedia("c1", emptyMetadata);
 
   let createdDT2 = mockDateTime("2010-06-09T09:30:01");
-  let { id: id2 } = await user1Db.createMedia("c1", fillMetadata({}));
+  let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
 
   await request
     .post("/api/login")
@@ -1090,7 +1095,8 @@ test("Media relations", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  let media1 = fillMetadata({
+  let media1 = {
+    ...emptyMetadata,
     id: id1,
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
@@ -1098,9 +1104,10 @@ test("Media relations", async (): Promise<void> => {
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],
     people: [] as Api.Person[],
-  });
+  };
 
-  let media2 = fillMetadata({
+  let media2 = {
+    ...emptyMetadata,
     id: id2,
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
@@ -1108,7 +1115,7 @@ test("Media relations", async (): Promise<void> => {
     albums: [] as Api.Album[],
     tags: [] as Api.Tag[],
     people: [] as Api.Person[],
-  });
+  };
 
   expect(response.body).toEqual([
     media1,
@@ -1426,10 +1433,10 @@ test("Media person locations", async (): Promise<void> => {
   let user1Db = db.forUser("someone1@nowhere.com");
 
   let createdDT1 = mockDateTime("2017-02-01T20:30:01");
-  let media1 = await user1Db.createMedia("c1", fillMetadata({}));
+  let media1 = await user1Db.createMedia("c1", emptyMetadata);
 
   let createdDT2 = mockDateTime("2010-06-09T09:30:01");
-  let media2 = await user1Db.createMedia("c1", fillMetadata({}));
+  let media2 = await user1Db.createMedia("c1", emptyMetadata);
 
   await request
     .post("/api/login")
@@ -1453,7 +1460,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1463,7 +1470,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1488,7 +1495,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1503,7 +1510,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1544,7 +1551,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1564,7 +1571,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1619,7 +1626,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1676,7 +1683,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1696,7 +1703,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
 
     albums: [],
     tags: [],
@@ -1720,14 +1727,16 @@ test("Media search", async (): Promise<void> => {
   let user1Db = db.forUser("someone1@nowhere.com");
 
   let createdDT1 = mockDateTime("2017-02-01T20:30:01");
-  let media1 = await user1Db.createMedia("c1", fillMetadata({
+  let media1 = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
     title: "Media 1",
-  }));
+  });
 
   mockDateTime("2010-06-09T09:30:01");
-  await user1Db.createMedia("c1", fillMetadata({
+  await user1Db.createMedia("c1", {
+    ...emptyMetadata,
     title: "Media 2",
-  }));
+  });
 
   await request
     .post("/api/login")
@@ -1759,11 +1768,86 @@ test("Media search", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
 
-    ...emptyMetadata(),
+    ...emptyMetadata,
     title: "Media 1",
 
     albums: [],
     tags: [],
     people: [],
   }]);
+});
+
+test("server overload", async (): Promise<void> => {
+  const request = agent();
+  const storageService = new StorageService({
+    tempDirectory: "",
+    localDirectory: "",
+  }, await connection);
+  const storage = (await storageService.getStorage("")).get();
+
+  /* eslint-disable @typescript-eslint/unbound-method */
+  let getStorageMock = mockedFunction(storageService.getStorage);
+  getStorageMock.mockClear();
+
+  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
+  let copyUploadedFileMock = mockedFunction(storage.copyUploadedFile);
+  /* eslint-enable @typescript-eslint/unbound-method */
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone2@nowhere.com",
+      password: "password2",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  parent.handleUploadedFile.mockRejectedValueOnce("any");
+
+  let copyCall = deferCall(copyUploadedFileMock);
+
+  let responsePromise = request
+    .put("/api/media/create")
+    .field("catalog", "c1")
+    .field("albums[0]", "a1")
+    .field("tags[0]", "t1")
+    .field("tags[1]", "t2")
+    .field("people[0]", "p1")
+    .field("taken", "2020-04-05T17:01:04-07:00")
+    .attach("file", Buffer.from("my file contents"), {
+      filename: "myfile.jpg",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(503)
+    .then();
+
+  let callArgs = await copyCall.call;
+  expect(callArgs).toHaveLength(3);
+  expect(callArgs[0]).toMatch(/M:[a-zA-Z0-9]+/);
+  expect(callArgs[2]).toBe("myfile.jpg");
+
+  let path = callArgs[1];
+  let stats = await fs.stat(path);
+  expect(stats.isFile()).toBeTruthy();
+
+  let contents = await fs.readFile(path, {
+    encoding: "utf8",
+  });
+
+  expect(contents).toBe("my file contents");
+
+  let deleteCall = deferCall(deleteUploadedFileMock);
+
+  await copyCall.resolve();
+
+  let deleteArgs = await deleteCall.call;
+  expect(deleteArgs).toHaveLength(1);
+  expect(deleteArgs[0]).toEqual(callArgs[0]);
+  await deleteCall.resolve();
+
+  await responsePromise;
+
+  let user2Db = (await connection).forUser("someone2@nowhere.com");
+  let found = await user2Db.listMediaInCatalog("c1");
+  expect(found).toHaveLength(0);
 });

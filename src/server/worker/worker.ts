@@ -25,7 +25,6 @@ export interface WorkerProcessOptions<L> extends ChannelOptions<L> {
 const logger = getLogger("worker.child");
 
 interface EventMap {
-  connect: [];
   disconnect: [];
   ["task-start"]: [];
   ["task-end"]: [];
@@ -37,12 +36,14 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
   private channel: Deferred<Channel<R, L>>;
   private disconnected: boolean;
   private logger: Logger;
+  private workerRemote: RemoteInterface<R> | null;
 
-  public constructor(
+  private constructor(
     private options: WorkerProcessOptions<L>,
   ) {
     super();
     this.logger = logger.child({ worker: options.process.pid });
+    this.workerRemote = null;
 
     this.ready = defer();
     this.channel = defer();
@@ -53,23 +54,33 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     this.options.process.on("exit", this.onExit);
     this.options.process.on("error", this.onError);
 
-    let connectTimeout = setTimeout((): void => {
-      this.logger.error("Worker process timed out.");
-      this.channel.reject(new Error("Worker process connection timed out."));
-      this.shutdown();
-    }, this.options.connectTimeout ?? 2000);
-
-    this.once("connect", (): void => {
-      clearTimeout(connectTimeout);
-    });
-
     this.logger.trace("Created WorkerProcess.");
   }
 
-  public get remote(): Promise<RemoteInterface<R>> {
-    return this.channel.promise.then((channel: Channel<R, L>): Promise<RemoteInterface<R>> => {
-      return channel.remote;
-    });
+  public static async attach<
+    R = undefined,
+    L = undefined,
+  >(options: WorkerProcessOptions<L>): Promise<WorkerProcess<R, L>> {
+    let process = new WorkerProcess<R, L>(options);
+
+    let connectTimeout = setTimeout((): void => {
+      process.logger.error("Worker process timed out.");
+      process.channel.reject(new Error("Worker process connection timed out."));
+    }, options.connectTimeout ?? 2000);
+
+    let channel = await process.channel.promise;
+    clearTimeout(connectTimeout);
+    process.workerRemote = await channel.remote;
+
+    return process;
+  }
+
+  public get remote(): RemoteInterface<R> {
+    if (!this.workerRemote) {
+      throw new Error("Illegal attempt to access remote before connected.");
+    }
+
+    return this.workerRemote;
   }
 
   public kill(...args: Parameters<ChildProcess["kill"]>): Promise<void> {
@@ -106,9 +117,6 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     channel.on("message-timeout", (): void => {
       this.shutdown();
     });
-    channel.on("connection-timeout", (): void => {
-      this.shutdown();
-    });
     channel.on("close", (): void => {
       this.shutdown();
     });
@@ -122,7 +130,6 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     // Wait for channel to connect.
     await channel.remote;
     this.logger.debug("Worker channel connected.");
-    this.emit("connect");
   }
 
   private onMessage: NodeJS.MessageListener = (message: unknown, handle: unknown): void => {
