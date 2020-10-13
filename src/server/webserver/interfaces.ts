@@ -14,8 +14,12 @@ export interface WebserverConfig {
   secretKeys: string[];
 }
 
-export interface ParentProcessInterface {
+export interface TaskWorkerInterface {
+  canStartTask: () => boolean;
+  handleUploadedFile: (media: string) => void;
+}
+
+export type ParentProcessInterface = TaskWorkerInterface & {
   getServer: () => net.Server;
   getConfig: () => WebserverConfig;
-  handleUploadedFile: (media: string) => boolean;
-}
+};

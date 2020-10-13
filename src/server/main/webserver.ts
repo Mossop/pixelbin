@@ -83,7 +83,11 @@ export class WebserverManager extends Service {
       return this.config;
     },
 
-    handleUploadedFile(this: WebserverManager, id: string): boolean {
+    canStartTask(this: WebserverManager): boolean {
+      return this.taskManager.canStartTask();
+    },
+
+    handleUploadedFile(this: WebserverManager, id: string): void {
       return this.taskManager.handleUploadedFile(id);
     },
   };

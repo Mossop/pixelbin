@@ -4,7 +4,7 @@ import { DatabaseConnection, UserScopedConnection } from "../database";
 import { StorageService } from "../storage";
 import { RemoteInterface } from "../worker";
 import authContext, { AuthContext } from "./auth";
-import { ParentProcessInterface } from "./interfaces";
+import { TaskWorkerInterface } from "./interfaces";
 import loggingContext, { LoggingContext } from "./logging";
 import Services from "./services";
 
@@ -14,7 +14,7 @@ export type DescriptorsFor<C> = {
 
 export type ServicesContext = AuthContext & LoggingContext & {
   readonly storage: StorageService;
-  readonly taskWorker: RemoteInterface<Pick<ParentProcessInterface, "handleUploadedFile">>;
+  readonly taskWorker: RemoteInterface<TaskWorkerInterface>;
   readonly dbConnection: DatabaseConnection;
   readonly userDb: UserScopedConnection | null;
 };
@@ -45,7 +45,7 @@ export async function buildContext(): Promise<DescriptorsFor<ServicesContext>> {
     },
 
     taskWorker: {
-      get(this: AppContext): RemoteInterface<Pick<ParentProcessInterface, "handleUploadedFile">> {
+      get(this: AppContext): RemoteInterface<TaskWorkerInterface> {
         return parent;
       },
     },

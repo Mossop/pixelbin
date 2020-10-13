@@ -88,6 +88,10 @@ export const createMedia = ensureAuthenticated(
       ...mediaData
     } = data;
 
+    if (!await ctx.taskWorker.canStartTask()) {
+      throw new ApiError(ErrorCode.TemporaryFailure);
+    }
+
     let media = await userDb.inTransaction(
       async (userDb: UserScopedConnection): Promise<Media> => {
         let createdMedia = await userDb.createMedia(catalog, {
@@ -166,12 +170,6 @@ export const createMedia = ensureAuthenticated(
           } catch (e) {
             ctx.logger.warn(e, "Failed to delete temporary file.");
           }
-
-          try {
-            await ctx.taskWorker.handleUploadedFile(media.id);
-          } catch (e) {
-            throw new ApiError(ErrorCode.TemporaryFailure);
-          }
         } catch (e) {
           await storage.get().deleteUploadedFile(media.id);
           throw e;
@@ -183,6 +181,7 @@ export const createMedia = ensureAuthenticated(
       },
     );
 
+    await ctx.taskWorker.handleUploadedFile(media.id);
     return buildResponseMedia(media);
   },
 );
@@ -201,6 +200,10 @@ export const updateMedia = ensureAuthenticatedTransaction(
       people,
       ...mediaData
     } = data;
+
+    if (file && !await ctx.taskWorker.canStartTask()) {
+      throw new ApiError(ErrorCode.TemporaryFailure);
+    }
 
     let media = await userDb.inTransaction(
       async (userDb: UserScopedConnection): Promise<Media> => {
@@ -279,12 +282,6 @@ export const updateMedia = ensureAuthenticatedTransaction(
             } catch (e) {
               ctx.logger.warn(e, "Failed to delete temporary file.");
             }
-
-            try {
-              await ctx.taskWorker.handleUploadedFile(media.id);
-            } catch (e) {
-              throw new ApiError(ErrorCode.TemporaryFailure);
-            }
           } catch (e) {
             await storage.get().deleteUploadedFile(media.id);
             throw e;
@@ -296,6 +293,10 @@ export const updateMedia = ensureAuthenticatedTransaction(
         return media;
       },
     );
+
+    if (file) {
+      await ctx.taskWorker.handleUploadedFile(media.id);
+    }
 
     return buildResponseMedia(media);
   },

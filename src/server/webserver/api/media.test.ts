@@ -22,8 +22,9 @@ jest.mock("../../storage");
 jest.mock("../../../utils/datetime");
 
 let parent = {
-  handleUploadedFile: jest.fn<Promise<boolean>, [string]>(
-    (): Promise<boolean> => Promise.resolve(true),
+  canStartTask: jest.fn<Promise<boolean>, []>(() => Promise.resolve(true)),
+  handleUploadedFile: jest.fn<Promise<void>, [string]>(
+    (): Promise<void> => Promise.resolve(),
   ),
 };
 const agent = buildTestApp(parent);
@@ -72,6 +73,7 @@ test("Media upload", async (): Promise<void> => {
   let createdDT = mockDateTime("2016-01-01T23:35:01");
 
   let copyCall = deferCall(copyUploadedFileMock);
+  let handleCall = deferCall(parent.handleUploadedFile);
 
   let responsePromise = request
     .put("/api/media/create")
@@ -104,6 +106,13 @@ test("Media upload", async (): Promise<void> => {
   expect(contents).toBe("my file contents");
 
   await copyCall.resolve();
+
+  let [newId] = await handleCall.call;
+  let user2Db = (await connection).forUser("someone2@nowhere.com");
+  let inDb = await user2Db.getMedia([newId]);
+  expect(inDb).toHaveLength(1);
+  expect(inDb[0]).toBeTruthy();
+  await handleCall.resolve();
 
   response = await responsePromise;
 
@@ -472,6 +481,7 @@ test("Media edit", async (): Promise<void> => {
   expect(parent.handleUploadedFile).not.toHaveBeenCalled();
 
   let copyCall = deferCall(copyUploadedFileMock);
+  let handleCall = deferCall(parent.handleUploadedFile);
 
   updatedDT = mockDateTime("2020-03-08T05:06:07Z");
 
@@ -503,6 +513,13 @@ test("Media edit", async (): Promise<void> => {
   expect(contents).toBe("my file contents");
 
   await copyCall.resolve();
+
+  let [newId] = await handleCall.call;
+  expect(newId).toBe(newMedia?.id);
+  let inDb = await user1Db.getMedia([newId]);
+  expect(inDb).toHaveLength(1);
+  expect(inDb[0]).toBeTruthy();
+  await handleCall.resolve();
 
   response = await responsePromise;
 
@@ -1825,7 +1842,6 @@ test("server overload", async (): Promise<void> => {
   let getStorageMock = mockedFunction(storageService.getStorage);
   getStorageMock.mockClear();
 
-  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
   let copyUploadedFileMock = mockedFunction(storage.copyUploadedFile);
   /* eslint-enable @typescript-eslint/unbound-method */
 
@@ -1838,11 +1854,9 @@ test("server overload", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  parent.handleUploadedFile.mockRejectedValueOnce("any");
+  parent.canStartTask.mockResolvedValueOnce(false);
 
-  let copyCall = deferCall(copyUploadedFileMock);
-
-  let responsePromise = request
+  await request
     .put("/api/media/create")
     .field("catalog", "c1")
     .field("albums[0]", "a1")
@@ -1857,31 +1871,7 @@ test("server overload", async (): Promise<void> => {
     .expect(503)
     .then();
 
-  let callArgs = await copyCall.call;
-  expect(callArgs).toHaveLength(3);
-  expect(callArgs[0]).toMatch(/M:[a-zA-Z0-9]+/);
-  expect(callArgs[2]).toBe("myfile.jpg");
-
-  let path = callArgs[1];
-  let stats = await fs.stat(path);
-  expect(stats.isFile()).toBeTruthy();
-
-  let contents = await fs.readFile(path, {
-    encoding: "utf8",
-  });
-
-  expect(contents).toBe("my file contents");
-
-  let deleteCall = deferCall(deleteUploadedFileMock);
-
-  await copyCall.resolve();
-
-  let deleteArgs = await deleteCall.call;
-  expect(deleteArgs).toHaveLength(1);
-  expect(deleteArgs[0]).toEqual(callArgs[0]);
-  await deleteCall.resolve();
-
-  await responsePromise;
+  expect(copyUploadedFileMock).not.toHaveBeenCalled();
 
   let user2Db = (await connection).forUser("someone2@nowhere.com");
   let found = await user2Db.listMediaInCatalog("c1");

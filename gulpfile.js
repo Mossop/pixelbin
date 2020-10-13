@@ -244,6 +244,18 @@ exports.migrate = gulp.series(exports.build, async function migrate() {
     password: "testpassword",
   });
 
+  let userDb = connection.forUser("dtownsend@oxymoronical.com");
+  await userDb.createStorage({
+    name: "Minio",
+    accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+    secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    bucket: "pixelbin",
+    region: "us-west-001",
+    path: null,
+    endpoint: "http://localhost:9000",
+    publicUrl: null,
+  });
+
   await connection.destroy();
 });
 

@@ -55,13 +55,12 @@ export class TaskManager extends Service {
     this.pool.shutdown();
   }
 
-  public handleUploadedFile(this: TaskManager, id: string): boolean {
-    if (this.pool.queueLength >= 12) {
-      return false;
-    }
+  public canStartTask(): boolean {
+    return this.pool.queueLength < 12;
+  }
 
+  public handleUploadedFile(id: string): void {
     this.logger.catch(this.pool.remote.handleUploadedFile(id));
-    return true;
   }
 
   // ParentProcessInterface
