@@ -1,5 +1,6 @@
 local LrView = import "LrView"
 local LrDialogs = import "LrDialogs"
+local LrErrors = import "LrErrors"
 local LrColor = import "LrColor"
 
 local bind = LrView.bind
@@ -144,6 +145,11 @@ function Provider.processRenderedPhotos(context, exportContext)
   local catalog = publishSettings.catalog
   local album = collection:getRemoteId()
 
+  if not album then
+    LrErrors.throwUserError(LOC "$$$/LrPixelBin/Render/BadAlbum=Published collection is not correctly configured.")
+    return
+  end
+
   local photoCount = exportSession:countRenditions()
 
   local progressScope = exportContext:configureProgress({
@@ -154,42 +160,46 @@ function Provider.processRenderedPhotos(context, exportContext)
 
   local api = API(publishSettings)
 
-  local knownMediaIds = {}
+  -- First we scan through and find any known ID for each rendition.
+
+  local knownIds = {}
+  local renditionsById = {}
   local renditions = {}
 
   for _, rendition in exportContext:renditions() do
-    if not album then
-      rendition:uploadFailed(LOC "$$$/LrPixelBin/Render/BadAlbum=Published collection is not correctly configured.")
-    elseif not rendition.wasSkipped then
-      local mediaId = rendition.publishedPhotoId
+    if not rendition.wasSkipped then
+      local remoteId, error = rendition.photo:getPropertyForPlugin(_PLUGIN, "id", nil, true)
 
-      if mediaId then
-        table.insert(knownMediaIds, mediaId)
+      local info = {
+        remoteId = remoteId,
+        rendition = rendition,
+        inAlbum = rendition.publishedPhotoId ~= nil,
+      }
+
+      if remoteId then
+        table.insert(knownIds, remoteId)
+        renditionsById[remoteId] = info
       end
-      table.insert(renditions, rendition)
+
+      table.insert(renditions, info)
     end
   end
 
-  if not album then
-    return
+  -- Now lookup the known media IDs and for any that are no longer present remotely update our info
+  -- accordingly.
+  local knownMedia = api:getMedia(knownIds)
+  for index, remoteId in ipairs(knownIds) do
+    if not knownMedia[index] then
+      renditionsById[remoteId].remoteId = nil
+      renditionsById[remoteId].inAlbum = false
+    end
   end
 
-  local knownMedia = api:getMedia(knownMediaIds)
-  local successfulMedia = {}
-  local hadSuccess = false
-
-  for i, rendition in ipairs(renditions) do
+  -- Now actually do the uploads.
+  for i, info in ipairs(renditions) do
     progressScope:setPortionComplete((i - 1) / photoCount)
 
-    local mediaId = nil
-    for _, media in ipairs(knownMedia) do
-      if media.id == rendition.publishedPhotoId then
-        mediaId = media.id
-        break
-      end
-    end
-
-    local success, pathOrMessage = rendition:waitForRender()
+    local success, pathOrMessage = info.rendition:waitForRender()
     progressScope:setPortionComplete((i - 1) / photoCount)
 
     if progressScope:isCanceled() then
@@ -197,25 +207,18 @@ function Provider.processRenderedPhotos(context, exportContext)
     end
 
     if success then
-      local success, result = api:upload(rendition.photo, catalog, pathOrMessage, mediaId)
+      local success, result = api:upload(info.rendition.photo, catalog, album, pathOrMessage, info.remoteId, info.inAlbum)
       if success then
-        rendition:recordPublishedPhotoId(result.id)
-        table.insert(successfulMedia, result.id)
-        hadSuccess = true
+        Utils.runWithWriteAccess(logger, "Update Photo ID", function()
+          info.rendition.photo:setPropertyForPlugin(_PLUGIN, "id", result.id)
+        end)
+        info.rendition:recordPublishedPhotoId(album .. "/" .. result.id)
+        info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. album .. "/media/" .. result.id)
       else
-        rendition:uploadFailed(result.name)
+        info.rendition:uploadFailed(result.name)
       end
     else
-      rendition:uploadFailed(pathOrMessage)
-    end
-  end
-
-  if hadSuccess then
-    local success, result = api:addMediaToAlbum(album, successfulMedia)
-    if not success then
-      LrDialogs.showError(
-        LOC("$$$/LrPixelBin/Render/AlbumFailure=Failed to add media to album: ^1", result.name)
-      )
+      info.rendition:uploadFailed(pathOrMessage)
     end
   end
 
@@ -223,6 +226,28 @@ function Provider.processRenderedPhotos(context, exportContext)
 end
 
 function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback, collectionId)
+  local albums = {}
+  local api = API(publishSettings)
+
+  for _, id in ipairs(arrayOfPhotoIds) do
+    local _, _, album, remoteId = string.find(id, "(.+)/(.+)")
+    if not albums[album] then
+      albums[album] = { remoteId }
+    end
+
+    table.insert(albums[album], remoteId)
+  end
+
+  for album, media in pairs(albums) do
+    local success, result = api:removeMediaFromAlbum(album, media)
+    if success then
+      for _, remoteId in ipairs(media) do
+        deletedCallback(album .. "/" .. remoteId)
+      end
+    else
+      error(result.name)
+    end
+  end
 end
 
 ------------------------ UI

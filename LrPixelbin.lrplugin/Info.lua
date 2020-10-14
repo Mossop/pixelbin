@@ -8,10 +8,13 @@ return {
   LrPluginInfoUrl = "https://pixelbin.org",
 
   LrInitPlugin = "Init.lua",
+
   LrExportMenuItems = {
     title = "Reload Categories and Albums",
     file = "Refresh.lua",
   },
+
+  LrMetadataProvider = "Metadata.lua",
 
   LrExportServiceProvider = {
     title = "PixelBin",

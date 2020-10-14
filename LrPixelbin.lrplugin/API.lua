@@ -263,6 +263,17 @@ function API:addMediaToAlbum(album, media)
   })
 end
 
+function API:removeMediaFromAlbum(album, media)
+  return self:POST("media/relations", {
+    {
+      operation = "delete",
+      type = "album",
+      media = media,
+      items = { album },
+    },
+  })
+end
+
 local function asList(val)
   if type(val) ~= "table" then
     return { val }
@@ -270,7 +281,7 @@ local function asList(val)
   return val
 end
 
-function API:upload(photo, catalog, filePath, existingId)
+function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
   local mediaInfo = {
     tags = {},
     people = {},
@@ -287,7 +298,6 @@ function API:upload(photo, catalog, filePath, existingId)
       name = LOC "$$$/LrPixelBin/API/ExifToolError=Exiftool returned an error.",
     }
   end
-
 
   local handle, error, code = io.open(target, "r")
   if not handle then
@@ -375,15 +385,23 @@ function API:upload(photo, catalog, filePath, existingId)
     end
   end
 
-  if existingId then
-    mediaInfo.id = existingId
+  if remoteId then
+    success, result = self:addMediaToAlbum(album, { remoteId })
+    if not success then
+      return success, result
+    end
+
+    mediaInfo.id = remoteId
     path = "media/edit"
   else
     mediaInfo.catalog = catalog
+    mediaInfo.albums = {
+      album,
+    }
     path = "media/create"
   end
 
-  local success, data = Utils.jsonEncode(logger, mediaInfo)
+  success, data = Utils.jsonEncode(logger, mediaInfo)
   if not success then
     return success, data
   end
@@ -393,7 +411,14 @@ function API:upload(photo, catalog, filePath, existingId)
     { name = "file", fileName = photo:getFormattedMetadata("fileName"), filePath = filePath }
   }
 
-  return self:MULTIPART(path, params)
+  success, result = self:MULTIPART(path, params)
+  if success or (not remoteId and not inAlbum) then
+    return success, result
+  end
+
+  self:removeMediaFromAlbum(album, { remoteId })
+
+  return success, result
 end
 
 function API:delete(ids)
