@@ -11,15 +11,10 @@ function foreignId<T extends Table, C extends keyof TableRecord<T>>(
   table: Knex.CreateTableBuilder,
   target: T,
   targetColumn: C,
-  nullable: boolean = false,
   column: string = columnFor(target),
 ): void {
-  let col = table.string(column, 30);
-  if (!nullable) {
-    col.notNullable();
-  } else {
-    col.nullable();
-  }
+  table.string(column, 30)
+    .notNullable();
   table.foreign(column, `foreign_${target}`)
     .references(ref(target, targetColumn))
     .onDelete("CASCADE");
@@ -63,6 +58,7 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
 
   return knex(Table.Media)
     .leftJoin(currentOriginals, "CurrentOriginal.media", ref(Table.Media, "id"))
+    .whereNot(ref(Table.Media, "deleted"), true)
     .select(mappings);
 }
 
@@ -233,7 +229,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     })
     .createTable(Table.Storage, (table: Knex.CreateTableBuilder): void => {
       id(table);
-      foreignId(table, Table.User, "email", false, "owner");
+      foreignId(table, Table.User, "email", "owner");
       table.string("name", 100).notNullable();
       table.string("accessKeyId", 200).notNullable();
       table.string("secretAccessKey", 200).notNullable();
@@ -266,7 +262,8 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.unique([columnFor(Table.Catalog), "id"]);
 
       table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Tag}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag)
+        .onDelete("CASCADE");
     })
     .raw(
       nameIndex(Table.Tag, Table.Catalog),
@@ -280,7 +277,8 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       table.unique([columnFor(Table.Catalog), "id"]);
 
       table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Album}`)
-        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album);
+        .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album)
+        .onDelete("CASCADE");
     })
     .raw(
       nameIndex(Table.Album, Table.Catalog),
@@ -288,6 +286,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     .createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
       id(table);
       foreignId(table, Table.Catalog, "id");
+      table.boolean("deleted").notNullable();
       table.dateTime("created", { useTz: true }).notNullable();
       table.dateTime("updated", { useTz: true }).notNullable();
 

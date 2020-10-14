@@ -3,7 +3,7 @@ import Knex from "knex";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { uuid } from "./id";
-import { from, insert, insertFromSelect, update, withChildren } from "./queries";
+import { drop, from, insert, insertFromSelect, update, withChildren } from "./queries";
 import { Table, Tables, ref, nameConstraint, intoAPITypes, intoDBTypes } from "./types";
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {
@@ -129,6 +129,17 @@ export async function editAlbum(
   }
 
   return intoAPITypes(results[0]);
+}
+
+export async function deleteAlbums(
+  this: UserScopedConnection,
+  ids: Tables.Album["id"][],
+): Promise<void> {
+  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+
+  await drop(this.knex, Table.Album)
+    .whereIn(ref(Table.Album, "catalog"), catalogs)
+    .whereIn(ref(Table.Album, "id"), ids);
 }
 
 export async function listMediaInAlbum(
@@ -269,6 +280,17 @@ export async function editTag(
   return intoAPITypes(results[0]);
 }
 
+export async function deleteTags(
+  this: UserScopedConnection,
+  ids: Tables.Tag["id"][],
+): Promise<void> {
+  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+
+  await drop(this.knex, Table.Tag)
+    .whereIn(ref(Table.Tag, "catalog"), catalogs)
+    .whereIn(ref(Table.Tag, "id"), ids);
+}
+
 export async function createPerson(
   this: UserScopedConnection,
   catalog: Tables.Person["catalog"],
@@ -330,4 +352,15 @@ export async function editPerson(
   }
 
   return intoAPITypes(results[0]);
+}
+
+export async function deletePeople(
+  this: UserScopedConnection,
+  ids: Tables.Person["id"][],
+): Promise<void> {
+  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+
+  await drop(this.knex, Table.Person)
+    .whereIn(ref(Table.Person, "catalog"), catalogs)
+    .whereIn(ref(Table.Person, "id"), ids);
 }

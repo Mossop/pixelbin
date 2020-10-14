@@ -457,8 +457,47 @@ test("Media tests", async (): Promise<void> => {
     }],
   });
 
-  expect(await countRecords(dbConnection, Table.Media)).toBe(3);
+  await user3Db.deleteTags(["t3"]);
+  await user3Db.deleteAlbums(["a8"]);
+  await user3Db.deletePeople(["p4"]);
 
+  [updated] = await user3Db.getMedia([id]);
+  expect(updated).toEqual({
+    ...emptyMetadata,
+    id: id,
+    catalog: "c3",
+    created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(uploaded2DT),
+
+    title: "Different title", // OriginalInfo set
+    model: "Some model", // OriginalInfo set
+    city: "Portland", // Media set
+
+    uploaded: expect.toEqualDate(uploaded2DT),
+    mimetype: "image/jpeg",
+    width: 2048,
+    height: 1024,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+    fileSize: 2000,
+    fileName: "bar.jpg",
+    original: info.id,
+
+    albums: [],
+    tags: [],
+    people: [],
+  });
+
+  expect(await countRecords(dbConnection, Table.Media)).toBe(3);
+  expect(await countRecords(dbConnection, Table.StoredMedia)).toBe(3);
+  expect(await countRecords(dbConnection, Table.MediaAlbum)).toBe(0);
+  expect(await countRecords(dbConnection, Table.MediaPerson)).toBe(0);
+  expect(await countRecords(dbConnection, Table.MediaTag)).toBe(0);
+  expect(await countRecords(dbConnection, Table.Original)).toBe(2);
+  expect(await countRecords(dbConnection, Table.AlternateFile)).toBe(3);
+
+  // Deleting doesn't actually remove from the database.
   await user3Db.deleteMedia([id, newMedia.id]);
 
   let remaining = await user1Db.getMedia([id, newMedia.id]);
@@ -467,10 +506,16 @@ test("Media tests", async (): Promise<void> => {
     newMedia,
   ]);
 
-  expect(await countRecords(dbConnection, Table.Media)).toBe(2);
+  expect(await countRecords(dbConnection, Table.StoredMedia)).toBe(2);
+  expect(await countRecords(dbConnection, Table.Media)).toBe(3);
   expect(await countRecords(dbConnection, Table.MediaAlbum)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaPerson)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaTag)).toBe(0);
-  expect(await countRecords(dbConnection, Table.Original)).toBe(0);
-  expect(await countRecords(dbConnection, Table.AlternateFile)).toBe(0);
+  expect(await countRecords(dbConnection, Table.Original)).toBe(2);
+  expect(await countRecords(dbConnection, Table.AlternateFile)).toBe(3);
+
+  await expect(user1Db.listMediaInAlbum("a8", true)).resolves.toHaveLength(0);
+  await expect(user1Db.listAlternateFiles(id, AlternateFileType.Poster)).resolves.toHaveLength(0);
+  await expect(user1Db.listAlternateFiles(id, AlternateFileType.Thumbnail)).resolves
+    .toHaveLength(0);
 });

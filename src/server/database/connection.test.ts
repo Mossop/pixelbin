@@ -54,7 +54,7 @@ test("Basic database connection", async (): Promise<void> => {
     name: "baz",
   });
 
-  await drop(dbConnection.knex, Table.Catalog, { id: "foo" });
+  await drop(dbConnection.knex, Table.Catalog).where({ id: "foo" });
 
   results = await from(dbConnection.knex, Table.Catalog).select("*");
   expect(results).toHaveLength(0);

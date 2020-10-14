@@ -21,6 +21,7 @@ beforeEach(async (): Promise<void> => {
       ...emptyMetadata,
       id: "m1",
       catalog: "c1",
+      deleted: false,
       created: parseDateTime("2020-01-02T04:05:06"),
       updated: parseDateTime("2020-01-02T04:05:06"),
 
@@ -34,6 +35,7 @@ beforeEach(async (): Promise<void> => {
       ...emptyMetadata,
       id: "m2",
       catalog: "c1",
+      deleted: false,
       created: parseDateTime("2020-01-04T04:05:06"),
       updated: parseDateTime("2020-01-04T04:05:06"),
 
@@ -47,6 +49,7 @@ beforeEach(async (): Promise<void> => {
       ...emptyMetadata,
       id: "m3",
       catalog: "c1",
+      deleted: false,
       created: parseDateTime("2020-01-02T04:05:06"),
       updated: parseDateTime("2020-01-02T04:05:06"),
 
@@ -58,6 +61,7 @@ beforeEach(async (): Promise<void> => {
       ...emptyMetadata,
       id: "m4",
       catalog: "c2",
+      deleted: false,
       created: parseDateTime("2020-02-01T04:05:06"),
       updated: parseDateTime("2020-02-01T04:05:06"),
 
@@ -70,12 +74,14 @@ beforeEach(async (): Promise<void> => {
       ...emptyMetadata,
       id: "m5",
       catalog: "c1",
+      deleted: false,
       created: parseDateTime("2002-02-01T04:05:06"),
       updated: parseDateTime("2002-02-01T04:05:06"),
     }, {
       ...emptyMetadata,
       id: "m6",
       catalog: "c1",
+      deleted: false,
       created: parseDateTime("2004-02-01T04:05:06"),
       updated: parseDateTime("2004-02-01T04:05:06"),
     }],

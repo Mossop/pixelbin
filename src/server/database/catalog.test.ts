@@ -266,6 +266,17 @@ test("Tag table tests", async (): Promise<void> => {
     parent: null,
     name: "top-level",
   }]);
+
+  tags = await user1Db.listTags();
+  expect(tags).toHaveLength(14);
+
+  await user1Db.deleteTags([
+    "t3",
+    "t5",
+  ]);
+
+  tags = await user1Db.listTags();
+  expect(tags).toHaveLength(11);
 });
 
 test("Album table tests", async (): Promise<void> => {
@@ -293,6 +304,32 @@ test("Album table tests", async (): Promise<void> => {
   albums = idSorted(await user3Db.listAlbums());
   expect(albums).toHaveLength(3);
   expect(albums).toEqual([
+    testData[Table.Album][5],
+    testData[Table.Album][6],
+    testData[Table.Album][7],
+  ]);
+
+  albums = idSorted(await user1Db.listAlbums());
+  expect(albums).toHaveLength(8);
+  expect(albums).toEqual([
+    testData[Table.Album][0],
+    testData[Table.Album][1],
+    testData[Table.Album][2],
+    testData[Table.Album][3],
+    testData[Table.Album][4],
+    testData[Table.Album][5],
+    testData[Table.Album][6],
+    testData[Table.Album][7],
+  ]);
+
+  await user1Db.deleteAlbums([
+    "a1",
+  ]);
+
+  albums = idSorted(await user1Db.listAlbums());
+  expect(albums).toHaveLength(4);
+  expect(albums).toEqual([
+    testData[Table.Album][1],
     testData[Table.Album][5],
     testData[Table.Album][6],
     testData[Table.Album][7],
@@ -339,17 +376,17 @@ test("Album table tests", async (): Promise<void> => {
     // @ts-ignore: Ditto for catalog.
     catalog: "c2",
     name: "New name",
-    parent: "a1",
+    parent: "a2",
   });
 
   expect(updated).toEqual({
     ...album,
-    parent: "a1",
+    parent: "a2",
     name: "New name",
   });
 
   // Attempting to alter an album in a catalog the user cannot access should fail.
-  await expect(user3Db.editAlbum("a1", {
+  await expect(user3Db.editAlbum("a2", {
     name: "Bad name",
   })).rejects.toThrow("Failed to edit Album record");
 
@@ -388,6 +425,31 @@ test("Person table tests", async (): Promise<void> => {
   expect(people).toEqual([
     testData[Table.Person][2],
     testData[Table.Person][3],
+    testData[Table.Person][4],
+    testData[Table.Person][5],
+  ]);
+
+  people = idSorted(await user1Db.listPeople());
+  expect(people).toHaveLength(6);
+  expect(people).toEqual([
+    testData[Table.Person][0],
+    testData[Table.Person][1],
+    testData[Table.Person][2],
+    testData[Table.Person][3],
+    testData[Table.Person][4],
+    testData[Table.Person][5],
+  ]);
+
+  await user1Db.deletePeople([
+    "p2",
+    "p4",
+  ]);
+
+  people = idSorted(await user1Db.listPeople());
+  expect(people).toHaveLength(4);
+  expect(people).toEqual([
+    testData[Table.Person][0],
+    testData[Table.Person][2],
     testData[Table.Person][4],
     testData[Table.Person][5],
   ]);
@@ -446,7 +508,7 @@ test("Person table tests", async (): Promise<void> => {
   });
 
   // Attempting to alter a person in a catalog the user cannot access should fail.
-  await expect(user3Db.editPerson("p2", {
+  await expect(user3Db.editPerson("p1", {
     name: "Bad name",
   })).rejects.toThrow("Failed to edit Person record");
 

@@ -46,7 +46,7 @@ export function intoMedia(item: Tables.StoredMedia): Media {
 export async function createMedia(
   this: UserScopedConnection,
   catalog: Tables.Media["catalog"],
-  data: Omit<Tables.Media, "id" | "catalog" | "created" | "updated">,
+  data: Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">,
 ): Promise<UnprocessedMedia> {
   return this.inTransaction(
     async (userDb: UserScopedConnection): Promise<Media> => {
@@ -61,13 +61,14 @@ export async function createMedia(
         userDb.knex,
         Table.Media,
         select,
-        intoDBTypes(buildTimeZoneFields({
-          ...filterColumns(Table.Media, data),
+        intoDBTypes({
+          ...buildTimeZoneFields(filterColumns(Table.Media, data)),
           id: await mediaId(),
           catalog: userDb.connection.ref(ref(Table.UserCatalog, "catalog")),
           created: current,
           updated: current,
-        })),
+          deleted: false,
+        }),
       ).returning("id");
 
       if (!ids.length) {
@@ -87,7 +88,7 @@ export async function createMedia(
 export async function editMedia(
   this: UserScopedConnection,
   id: Tables.Media["id"],
-  data: Partial<Tables.Media>,
+  data: Partial<Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">>,
 ): Promise<Media> {
   return this.inTransaction(
     async (userDb: UserScopedConnection): Promise<Media> => {
@@ -95,19 +96,14 @@ export async function editMedia(
         .where("user", userDb.user)
         .select("catalog");
 
-      let {
-        id: removedId,
-        catalog: removedCatalog,
-        created: removedCreated,
-        ...mediaUpdateData
-      } = data;
       let updateCount = await update(
         Table.Media,
         userDb.knex.where("id", id).where("catalog", "in", catalogs),
-        intoDBTypes(buildTimeZoneFields(filterColumns(Table.Media, {
-          ...mediaUpdateData,
+        intoDBTypes({
+          ...buildTimeZoneFields(filterColumns(Table.Media, data)),
           updated: now(),
-        }))),
+          deleted: false,
+        }),
       );
 
       if (updateCount == 0) {
@@ -166,6 +162,7 @@ export async function listAlternateFiles(
       ])
       .where({
         [ref(Table.UserCatalog, "user")]: this.user,
+        [ref(Table.Media, "deleted")]: false,
       })
       .distinctOn(ref(Table.Original, "media"))
       .select(ref(Table.Original))
@@ -181,8 +178,9 @@ export async function deleteMedia(this: UserScopedConnection, ids: string[]): Pr
     .where("user", this.user)
     .select("catalog");
 
-  await from(this.knex, Table.Media)
-    .whereIn(ref(Table.Media, "catalog"), catalogs)
-    .whereIn(ref(Table.Media, "id"), ids)
-    .delete();
+  await update(
+    Table.Media,
+    this.knex.whereIn("id", ids).whereIn("catalog", catalogs),
+    { deleted: true },
+  );
 }

@@ -79,13 +79,7 @@ export function bindingParam(val: Knex.RawBinding | Ref): string {
 }
 
 export const COLUMNS = {
-  [Table.Media]: [
-    "id",
-    "catalog",
-    "created",
-    "updated",
-    ...Object.keys(MetadataColumns),
-  ],
+  [Table.Media]: Object.keys(MetadataColumns),
 };
 
 export type UnprocessedMedia = ObjectModel.UnprocessedMedia;

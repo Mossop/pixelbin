@@ -10,12 +10,11 @@ import {
   QueryBuilder,
 } from "./types";
 
-export async function drop<T extends Table>(
+export function drop<T extends Table>(
   knex: Knex,
   table: T,
-  where: Partial<TableRecord<T>>,
-): Promise<void> {
-  return knex<TableRecord<T>>(table).where(where).delete();
+): Knex.QueryBuilder<TableRecord<T>, void> {
+  return knex<TableRecord<T>>(table).delete();
 }
 
 export function withChildren<T extends Table.Tag | Table.Album>(
