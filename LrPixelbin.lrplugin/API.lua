@@ -224,6 +224,9 @@ function API:getMedia(ids)
   return result
 end
 
+function API:deleteMedia(ids)
+end
+
 function API:createAlbum(album)
   local body = "{ "
   body = body .. "\"name\": " .. json.encode(album.name) .. ", "
@@ -250,6 +253,9 @@ function API:editAlbum(album)
   body = body .. "}"
 
   return self:POST("album/edit", body)
+end
+
+function API:deleteAlbum(album)
 end
 
 function API:addMediaToAlbum(album, media)
@@ -386,18 +392,22 @@ function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
   end
 
   if remoteId then
-    success, result = self:addMediaToAlbum(album, { remoteId })
-    if not success then
-      return success, result
+    if album then
+      success, result = self:addMediaToAlbum(album, { remoteId })
+      if not success then
+        return success, result
+      end
     end
 
     mediaInfo.id = remoteId
     path = "media/edit"
   else
     mediaInfo.catalog = catalog
-    mediaInfo.albums = {
-      album,
-    }
+    if album then
+      mediaInfo.albums = {
+        album,
+      }
+    end
     path = "media/create"
   end
 
@@ -412,24 +422,15 @@ function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
   }
 
   success, result = self:MULTIPART(path, params)
-  if success or (not remoteId and not inAlbum) then
+  if success or not album or (remoteId and not inAlbum) then
     return success, result
   end
 
-  self:removeMediaFromAlbum(album, { remoteId })
-
-  return success, result
-end
-
-function API:delete(ids)
-  local success, data = Utils.jsonEncode(logger, ids)
-  if not success then
-    return success, data
+  if album then
+    self:removeMediaFromAlbum(album, { remoteId })
   end
 
-  return self:POST("delete", {
-    { name = "ids", value = data }
-  })
+  return success, result
 end
 
 function API:refresh()
@@ -475,33 +476,6 @@ function API:getAlbumsWithParent(catalog, parent)
 end
 
 local instances = { }
-local identifiedInstances = { }
-
-function API:cache(identifier)
-  if identifiedInstances[identifier] and identifiedInstances[identifier] ~= self then
-    identifiedInstances[identifier]:destroy(identifier)
-  end
-
-  instances[self.instanceKey] = self
-  self.cacheCount = self.cacheCount + 1
-  identifiedInstances[identifier] = self
-end
-
-function API:destroy(identifier)
-  if identifiedInstances[identifier] == self then
-    identifiedInstances[identifier] = nil
-  end
-
-  self.cacheCount = self.cacheCount - 1
-
-  if self.cacheCount < 0 then
-    logger:error("Cache count reduced below zero")
-  end
-
-  if self.cacheCount <= 0 then
-    instances[self.instanceKey] = nil
-  end
-end
 
 local function get(settings)
   local key = settings.siteUrl .. "#" .. settings.email
@@ -522,6 +496,7 @@ local function get(settings)
     albums = {},
   }
   setmetatable(api, { __index = API })
+  instances[key] = api
 
   return api
 end

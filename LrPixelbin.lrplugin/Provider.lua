@@ -52,14 +52,28 @@ end
 
 ------------------------ Actions
 
+function Provider.getCollectionBehaviorInfo(publishSettings)
+  local api = API(publishSettings)
+
+  local catalog = api:getCatalog(publishSettings.catalog)
+  if catalog then
+    return {
+      defaultCollectionName = catalog.name,
+      defaultCollectionCanBeDeleted = false,
+      canAddCollection = true,
+    }
+  end
+
+  return {
+    defaultCollectionCanBeDeleted = false,
+    canAddCollection = true,
+  }
+end
+
 function Provider.didUpdatePublishService(publishSettings, info)
   logger:info("Publish service updated.", info.publishService:getName(),
     info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
     publishSettings.catalog)
-
-  local api = API(publishSettings)
-  api:cache(info.publishService.localIdentifier)
-  api:login()
 end
 
 function Provider.didCreateNewPublishService(publishSettings, info)
@@ -67,10 +81,9 @@ function Provider.didCreateNewPublishService(publishSettings, info)
     info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
     publishSettings.catalog)
 
-  Utils.runWithWriteAccess(logger, "Delete Default Collection", function()
-    local api = API(publishSettings)
-    api:cache(info.publishService.localIdentifier)
+  local api = API(publishSettings)
 
+  Utils.runWithWriteAccess(logger, "Delete Default Collection", function()
     local success, _ = api:login()
 
     if not success then
@@ -78,12 +91,9 @@ function Provider.didCreateNewPublishService(publishSettings, info)
       return
     end
 
-    for _, collection in ipairs(info.publishService:getChildCollections()) do
-      local collectionInfo = collection:getCollectionInfoSummary()
-      if collectionInfo.isDefaultCollection then
-        collection:delete()
-      end
-    end
+    local defaultCollection = Utils.getDefaultCollection(info.publishService)
+    defaultCollection:setRemoteId(publishSettings.catalog)
+    defaultCollection:setRemoteUrl(publishSettings.siteUrl .. "catalog/" .. publishSettings.catalog)
   end)
 end
 
@@ -91,46 +101,46 @@ function Provider.willDeletePublishService(publishSettings, info)
   logger:trace("Publish service deleted.", info.publishService:getName(),
     info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
     publishSettings.catalog)
-
-  local api = API(publishSettings)
-  api:destroy(info.publishService.localIdentifier)
 end
 
 function Provider.updateCollectionSettings(publishSettings, info)
   Utils.runWithWriteAccess(logger, "Update Collection", function()
-    local albumId = info.publishedCollection:getRemoteId()
-    local parent = info.collectionSettings.parent
-    if parent == publishSettings.catalog then
-      parent = nil
-    end
-
     local api = API(publishSettings)
 
-    local success, result
-    if albumId then
-      success, result = api:editAlbum({
-        id = albumId,
-        name = info.name,
-        parent = parent,
-      })
-
-      if not success then
-        LrDialogs.showError(result.name)
-      end
+    if info.isDefaultCollection then
     else
-      success, result = api:createAlbum({
-        name = info.name,
-        parent = parent,
-        catalog = publishSettings.catalog,
-      })
-
-      if not success then
-        info.publishedCollection:delete()
-        LrDialogs.showError(result.name)
+      local albumId = info.publishedCollection:getRemoteId()
+      local parent = info.collectionSettings.parent
+      if parent == publishSettings.catalog then
+        parent = nil
       end
 
-      info.publishedCollection:setRemoteId(result.id)
-      info.publishedCollection:setRemoteUrl(publishSettings.siteUrl .. "album/" .. result.id)
+      local success, result
+      if albumId then
+        success, result = api:editAlbum({
+          id = albumId,
+          name = info.name,
+          parent = parent,
+        })
+
+        if not success then
+          LrDialogs.showError(result.name)
+        end
+      else
+        success, result = api:createAlbum({
+          name = info.name,
+          parent = parent,
+          catalog = publishSettings.catalog,
+        })
+
+        if not success then
+          info.publishedCollection:delete()
+          LrDialogs.showError(result.name)
+        end
+
+        info.publishedCollection:setRemoteId(result.id)
+        info.publishedCollection:setRemoteUrl(publishSettings.siteUrl .. "album/" .. result.id)
+      end
     end
   end)
 end
@@ -144,10 +154,18 @@ function Provider.processRenderedPhotos(context, exportContext)
 
   local catalog = publishSettings.catalog
   local album = collection:getRemoteId()
+  local defaultCollection = nil
+  if album == catalog then
+    album = nil
+    defaultCollection = collection
+  else
+    defaultCollection = Utils.getDefaultCollection(exportContext.publishService)
+  end
 
-  if not album then
-    LrErrors.throwUserError(LOC "$$$/LrPixelBin/Render/BadAlbum=Published collection is not correctly configured.")
-    return
+  local publishedPhotos = {}
+  for _, published in ipairs(defaultCollection:getPublishedPhotos()) do
+    local photo = published:getPhoto()
+    publishedPhotos[photo.localIdentifier] = published
   end
 
   local photoCount = exportSession:countRenditions()
@@ -168,12 +186,20 @@ function Provider.processRenderedPhotos(context, exportContext)
 
   for _, rendition in exportContext:renditions() do
     if not rendition.wasSkipped then
-      local remoteId, error = rendition.photo:getPropertyForPlugin(_PLUGIN, "id", nil, true)
+      local remoteId = nil
+      if album then
+        local published = publishedPhotos[rendition.photo.localIdentifier]
+        if published then
+          remoteId = published:getRemoteId()
+        end
+      else
+        remoteId = rendition.publishedPhotoId
+      end
 
       local info = {
         remoteId = remoteId,
         rendition = rendition,
-        inAlbum = rendition.publishedPhotoId ~= nil,
+        inAlbum = album and rendition.publishedPhotoId ~= nil,
       }
 
       if remoteId then
@@ -209,11 +235,19 @@ function Provider.processRenderedPhotos(context, exportContext)
     if success then
       local success, result = api:upload(info.rendition.photo, catalog, album, pathOrMessage, info.remoteId, info.inAlbum)
       if success then
-        Utils.runWithWriteAccess(logger, "Update Photo ID", function()
-          info.rendition.photo:setPropertyForPlugin(_PLUGIN, "id", result.id)
-        end)
-        info.rendition:recordPublishedPhotoId(album .. "/" .. result.id)
-        info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. album .. "/media/" .. result.id)
+        local remoteId = result.id
+        local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/" .. remoteId
+
+        if album then
+          info.rendition:recordPublishedPhotoId(album .. "/" .. remoteId)
+          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. album .. "/media/" .. remoteId)
+          Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
+            defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
+          end)
+        else
+          info.rendition:recordPublishedPhotoId(remoteId)
+          info.rendition:recordPublishedPhotoUrl(catalogUrl)
+        end
       else
         info.rendition:uploadFailed(result.name)
       end
@@ -225,17 +259,33 @@ function Provider.processRenderedPhotos(context, exportContext)
   progressScope:done()
 end
 
+function Provider.deletePublishedCollection(publishSettings, info)
+  if info.isDefaultCollection then
+    error(LOC "$$$/LrPixelBin/Delete/Default=The default collection should not be deleted.")
+  end
+
+  local api = API(publishSettings)
+  api:deleteAlbum(info.remoteId)
+end
+
 function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback, collectionId)
+  local hasDelete = false
+  local mediaToDelete = {}
   local albums = {}
   local api = API(publishSettings)
 
   for _, id in ipairs(arrayOfPhotoIds) do
-    local _, _, album, remoteId = string.find(id, "(.+)/(.+)")
-    if not albums[album] then
-      albums[album] = { remoteId }
-    end
+    local found, _, album, remoteId = string.find(id, "(.+)/(.+)")
+    if found == nil then
+      hasDelete = true
+      table.insert(mediaToDelete, id)
+    else
+      if not albums[album] then
+        albums[album] = { remoteId }
+      end
 
-    table.insert(albums[album], remoteId)
+      table.insert(albums[album], remoteId)
+    end
   end
 
   for album, media in pairs(albums) do
@@ -246,6 +296,14 @@ function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPh
       end
     else
       error(result.name)
+    end
+  end
+
+  if hasDelete then
+    api:deleteMedia(mediaToDelete)
+
+    for _, remoteId in ipairs(mediaToDelete) do
+      deletedCallback(remoteId)
     end
   end
 end
@@ -491,6 +549,10 @@ function Provider.sectionsForTopOfDialog(f, propertyTable)
 end
 
 function Provider.viewForCollectionSettings(f, publishSettings, info)
+  if info.isDefaultCollection then
+    return
+  end
+
   local api = API(publishSettings)
 
   if not api.loggedIn then

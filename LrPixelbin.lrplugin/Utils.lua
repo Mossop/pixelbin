@@ -76,4 +76,15 @@ function Utils.jsonDecode(logger, str)
   return true, data
 end
 
+function Utils.getDefaultCollection(publishService)
+  for _, collection in ipairs(publishService:getChildCollections()) do
+    local collectionInfo = collection:getCollectionInfoSummary()
+    if collectionInfo.isDefaultCollection then
+      return collection
+    end
+  end
+
+  return nil
+end
+
 return Utils

@@ -14,8 +14,6 @@ return {
     file = "Refresh.lua",
   },
 
-  LrMetadataProvider = "Metadata.lua",
-
   LrExportServiceProvider = {
     title = "PixelBin",
     file = "Provider.lua",
