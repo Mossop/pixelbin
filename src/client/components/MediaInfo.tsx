@@ -221,6 +221,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
           target="_blank"
           rel="noreferrer"
           href={target}
+          color="secondary"
         >
           {location.join(", ")}
         </Link>
