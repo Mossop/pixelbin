@@ -1,5 +1,7 @@
 import { JsonDecoder } from "ts.data.json";
 
+import { oneOf } from "../../utils";
+
 export interface Ready {
   type: "ready";
 }
@@ -16,7 +18,7 @@ export const RPCDecoder = JsonDecoder.object<RPC>({
   message: JsonDecoder.succeed,
 }, "IPC.Ready");
 
-export const MessageDecoder = JsonDecoder.oneOf<Ready | RPC>([
+export const MessageDecoder = oneOf<Ready | RPC>([
   ReadyDecoder,
   RPCDecoder,
 ], "IPC");

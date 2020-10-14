@@ -1,7 +1,7 @@
 import { JsonDecoder, Result } from "ts.data.json";
 
 import { Api, Orientation } from "../../model";
-import { DateDecoder, EnumDecoder } from "../../utils";
+import { DateDecoder, EnumDecoder, oneOf } from "../../utils";
 
 export const PersonDecoder = JsonDecoder.object<Api.Person>(
   {
@@ -168,7 +168,7 @@ export const MediaDecoder = new JsonDecoder.Decoder<Api.Media>((json: any): Resu
 export const MediaArrayDecoder = JsonDecoder.array(MediaDecoder, "Media[]");
 
 export const MaybeMediaArrayDecoder = JsonDecoder.array(
-  JsonDecoder.oneOf([
+  oneOf([
     MediaDecoder,
     JsonDecoder.constant(null),
   ], "Media | null"),

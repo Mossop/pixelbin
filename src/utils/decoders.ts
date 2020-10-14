@@ -41,7 +41,7 @@ export function EnumDecoder<F, T>(
 
 const NUMERIC = /^-?\d+$/;
 
-export const NumericDecoder = JsonDecoder.oneOf([
+export const NumericDecoder = oneOf([
   JsonDecoder.number,
   MappingDecoder(JsonDecoder.string, (str: string): number => {
     if (NUMERIC.exec(str)) {
@@ -51,3 +51,24 @@ export const NumericDecoder = JsonDecoder.oneOf([
     throw new Error(`'${str}' is not a number.`);
   }, "number"),
 ], "number");
+
+export function oneOf<D>(
+  decoders: JsonDecoder.Decoder<D>[],
+  decoderName: string,
+): JsonDecoder.Decoder<D> {
+  return new JsonDecoder.Decoder<D>((json: unknown): Result<D> => {
+    let errors: string[] = [];
+    for (let decoder of decoders) {
+      let result = decoder.decode(json);
+      if (result.isOk()) {
+        return result;
+      }
+      errors.push(result.error);
+    }
+
+    let errorMessages = `  ${errors.join("\n  ")}`;
+    return err<D>(
+      `Error to decoding ${decoderName}. All of the provided decoders failed:\n${errorMessages}`,
+    );
+  });
+}

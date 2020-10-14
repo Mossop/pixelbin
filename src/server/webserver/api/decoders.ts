@@ -10,6 +10,7 @@ import {
   NumericDecoder,
   MappingDecoder,
   QueryDecoder,
+  oneOf,
 } from "../../../utils";
 
 type DeBlob<T> = T extends Blob ? File : T;
@@ -148,12 +149,12 @@ export const MediaSearchRequest = jsonDecoder(JsonDecoder.object<Api.MediaSearch
 
 export const StringArray = jsonDecoder(JsonDecoder.array(JsonDecoder.string, "string[]"));
 
-const SelectedTagDecoder = JsonDecoder.oneOf<Api.SelectedTag>([
+const SelectedTagDecoder = oneOf<Api.SelectedTag>([
   JsonDecoder.string,
   JsonDecoder.array(JsonDecoder.string, "string[]"),
 ], "SelectedTag");
 
-const SelectedPersonDecoder = JsonDecoder.oneOf<Api.SelectedPerson>([
+const SelectedPersonDecoder = oneOf<Api.SelectedPerson>([
   JsonDecoder.string,
   JsonDecoder.object({
     id: JsonDecoder.string,
@@ -275,13 +276,13 @@ export async function MediaUpdateRequest(
   }
 }
 
-const RelationTypeDecoder = JsonDecoder.oneOf([
+const RelationTypeDecoder = oneOf([
   JsonDecoder.isExactly(RelationType.Album),
   JsonDecoder.isExactly(RelationType.Tag),
   JsonDecoder.isExactly(RelationType.Person),
 ], "RelationType");
 
-const MediaRelationChangeDecoder = JsonDecoder.oneOf<Api.MediaRelationChange>([
+const MediaRelationChangeDecoder = oneOf<Api.MediaRelationChange>([
   JsonDecoder.object<Api.MediaRelationAdd>({
     operation: JsonDecoder.isExactly("add"),
     type: RelationTypeDecoder,

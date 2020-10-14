@@ -4,7 +4,7 @@ import path from "path";
 import { Level, LevelWithSilent } from "pino";
 import { JsonDecoder } from "ts.data.json";
 
-import { LogConfig, MappingDecoder } from "../../utils";
+import { LogConfig, MappingDecoder, oneOf } from "../../utils";
 import { DatabaseConfig } from "../database";
 import { StorageConfig } from "../storage";
 
@@ -63,7 +63,7 @@ const LevelWithSilentDecoder = MappingDecoder(
   "Level",
 );
 
-const LogConfigDecoder = JsonDecoder.oneOf<LogConfig>([
+const LogConfigDecoder = oneOf<LogConfig>([
   MappingDecoder(LevelWithSilentDecoder, (level: LevelWithSilent): LogConfig => {
     return {
       default: level,
@@ -83,7 +83,7 @@ const DatabaseConfigDecoder = JsonDecoder.object<DatabaseConfig>({
   database: JsonDecoder.string,
 }, "DatabaseConfig");
 
-const StorageConfigDecoder = JsonDecoder.oneOf<StorageConfig>([
+const StorageConfigDecoder = oneOf<StorageConfig>([
   MappingDecoder(JsonDecoder.string, (val: string): StorageConfig => {
     return {
       tempDirectory: path.join(val, "temp"),

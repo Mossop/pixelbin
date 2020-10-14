@@ -13,7 +13,7 @@ import {
   MediaFields,
 } from "../model";
 import { parseDateTime } from "./datetime";
-import { DateDecoder, decode, MappingDecoder } from "./decoders";
+import { DateDecoder, decode, MappingDecoder, oneOf } from "./decoders";
 
 function FieldQueryDecoder(relation: RelationType | null): JsonDecoder.Decoder<Search.FieldQuery> {
   return MappingDecoder(
@@ -25,7 +25,7 @@ function FieldQueryDecoder(relation: RelationType | null): JsonDecoder.Decoder<S
         JsonDecoder.enumeration<Modifier>(Modifier, "Modifier"),
       ),
       operator: JsonDecoder.enumeration<Operator>(Operator, "Operator"),
-      value: JsonDecoder.optional(JsonDecoder.oneOf<Search.FieldQuery["value"]>([
+      value: JsonDecoder.optional(oneOf<Search.FieldQuery["value"]>([
         JsonDecoder.string,
         JsonDecoder.number,
         DateDecoder,
@@ -92,7 +92,7 @@ function CompoundQueryDecoder(
       return {
         ...base,
         queries: decode(
-          JsonDecoder.array(JsonDecoder.oneOf(queryDecoders, "Query"), "Query[]"),
+          JsonDecoder.array(oneOf(queryDecoders, "Query"), "Query[]"),
           base.queries,
         ),
       };
@@ -117,7 +117,7 @@ const RelationQueryDecoder = MappingDecoder(
     return {
       ...base,
       queries: decode(
-        JsonDecoder.array(JsonDecoder.oneOf<Search.FieldQuery | Search.CompoundQuery>([
+        JsonDecoder.array(oneOf<Search.FieldQuery | Search.CompoundQuery>([
           FieldQueryDecoder(base.relation),
           CompoundQueryDecoder(base.relation),
         ], "Query"), "Query[]"),
@@ -128,7 +128,7 @@ const RelationQueryDecoder = MappingDecoder(
   "CompoundQuery",
 );
 
-export const QueryDecoder: JsonDecoder.Decoder<Search.Query> = JsonDecoder.oneOf<Search.Query>([
+export const QueryDecoder: JsonDecoder.Decoder<Search.Query> = oneOf<Search.Query>([
   FieldQueryDecoder(null),
   CompoundQueryDecoder(null),
   RelationQueryDecoder,

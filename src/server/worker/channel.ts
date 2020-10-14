@@ -3,7 +3,7 @@ import net from "net";
 
 import { JsonDecoder } from "ts.data.json";
 
-import { defer, Deferred, getLogger, MakeRequired, TypedEmitter } from "../../utils";
+import { defer, Deferred, getLogger, MakeRequired, oneOf, TypedEmitter } from "../../utils";
 
 const logger = getLogger("worker.channel");
 
@@ -30,7 +30,7 @@ interface RemoteConnect {
 }
 const RemoteConnectDecoder = JsonDecoder.object<RemoteConnect>({
   type: JsonDecoder.isExactly("connect"),
-  methods: JsonDecoder.oneOf<string[] | undefined>([
+  methods: oneOf<string[] | undefined>([
     JsonDecoder.isUndefined(undefined),
     JsonDecoder.array(JsonDecoder.string, "methods"),
   ], "string[] | undefined"),
@@ -42,7 +42,7 @@ interface RemoteConnected {
 }
 const RemoteConnectedDecoder = JsonDecoder.object<RemoteConnected>({
   type: JsonDecoder.isExactly("connected"),
-  methods: JsonDecoder.oneOf<string[] | undefined>([
+  methods: oneOf<string[] | undefined>([
     JsonDecoder.isUndefined(undefined),
     JsonDecoder.array(JsonDecoder.string, "methods"),
   ], "string[] | undefined"),
@@ -103,7 +103,7 @@ type RemoteCallMessage =
   RemoteClosed | RemoteConnect | RemoteCall | RemoteCallAck |
   RemoteCallException | RemoteCallResult | RemoteConnected;
 
-const RemoteCallMessageDecoder = JsonDecoder.oneOf<RemoteCallMessage>([
+const RemoteCallMessageDecoder = oneOf<RemoteCallMessage>([
   RemoteConnectDecoder,
   RemoteConnectedDecoder,
   RemoteClosedDecoder,

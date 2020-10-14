@@ -5,7 +5,7 @@ import ffprobe from "ffprobe-client";
 import { dir as tmpdir } from "tmp-promise";
 import { JsonDecoder } from "ts.data.json";
 
-import { MappingDecoder } from "../../utils";
+import { MappingDecoder, oneOf } from "../../utils";
 
 const StringNumberDecoder = MappingDecoder(JsonDecoder.string, (value: string): number => {
   return parseFloat(value);
@@ -113,7 +113,7 @@ const AudioStreamDecoder = JsonDecoder.object<AudioStream>({
 
 export type Stream = AudioStream | VideoStream;
 
-const StreamDecoder = JsonDecoder.oneOf<Stream>([
+const StreamDecoder = oneOf<Stream>([
   VideoStreamDecoder,
   AudioStreamDecoder,
 ], "Stream");
