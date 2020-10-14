@@ -265,7 +265,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     }
     {location}
     {
-      media.tags.length &&
+      media.tags.length > 0 &&
       <LocalizedRow label="metadata-label-tags">
         <ul className={classes.tagList}>
           {media.tags.map((tag: Reference<Tag>) => <TagChip key={tag.id} tag={tag}/>)}
@@ -273,7 +273,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
       </LocalizedRow>
     }
     {
-      media.people.length &&
+      media.people.length > 0 &&
       <LocalizedRow label="metadata-label-people">
         <ul className={classes.tagList}>
           {
