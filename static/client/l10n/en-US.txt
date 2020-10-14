@@ -88,6 +88,7 @@ aws-unknown-failure = An unknown error occurred.
 
 metadata-label-filename = Filename:
 metadata-label-title = Title:
+metadata-label-albums = In albums:
 metadata-label-description = Description:
 metadata-label-category = Category:
 metadata-label-label = Label:

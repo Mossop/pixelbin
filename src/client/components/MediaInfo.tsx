@@ -5,13 +5,15 @@ import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import React, { useCallback, useMemo } from "react";
 
-import { ObjectModel } from "../../model";
+import { ObjectModel, RelationType, Join, Operator } from "../../model";
 import { formatDateTime } from "../../utils";
-import { Reference, Tag } from "../api/highlevel";
+import { Album, Reference, Tag } from "../api/highlevel";
 import { MediaPersonState, MediaState } from "../api/types";
+import { PageType } from "../pages/types";
 import { useSelector } from "../store";
 import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
+import UILink from "./Link";
 
 const FRACTION = /^(\d+)\/(\d+)$/;
 
@@ -80,22 +82,74 @@ const useStyles = makeStyles((theme: Theme) =>
       margin: 0,
       gridColumn: "1 / 3",
     },
-    tagList: {
-      "display": "flex",
-      "flexWrap": "wrap",
-      "listStyle": "none",
-      "padding": 0,
-      "& > li": {
-        paddingRight: theme.spacing(1),
-        paddingBottom: theme.spacing(1),
-      },
+    fieldList: {
+      display: "flex",
+      flexWrap: "wrap",
+      listStyle: "none",
+      padding: 0,
+    },
+    fieldListItem: {
+      paddingRight: theme.spacing(1),
+      paddingBottom: theme.spacing(1),
+    },
+    chipLink: {
+      cursor: "pointer",
     },
   }));
 
 function TagChip(props: { tag: Reference<Tag> }): ReactResult {
+  let classes = useStyles();
   let tag = useSelector((state: StoreState): Tag => props.tag.deref(state.serverState));
 
-  return <li><Chip size="small" label={tag.name}/></li>;
+  return <li className={classes.fieldListItem}>
+    <UILink
+      to={
+        {
+          page: {
+            type: PageType.Search,
+            catalog: tag.catalog.ref(),
+            query: {
+              invert: false,
+              type: "compound",
+              join: Join.And,
+              relation: RelationType.Tag,
+              recursive: false,
+              queries: [{
+                invert: false,
+                type: "field",
+                field: "id",
+                modifier: null,
+                operator: Operator.Equal,
+                value: tag.id,
+              }],
+            },
+          },
+        }
+      }
+    >
+      <Chip className={classes.chipLink} size="small" label={tag.name}/>
+    </UILink>
+  </li>;
+}
+
+function AlbumChip(props: { album: Reference<Album> }): ReactResult {
+  let classes = useStyles();
+  let album = useSelector((state: StoreState): Album => props.album.deref(state.serverState));
+
+  return <li className={classes.fieldListItem}>
+    <UILink
+      to={
+        {
+          page: {
+            type: PageType.Album,
+            album: props.album,
+          },
+        }
+      }
+    >
+      <Chip className={classes.chipLink} size="small" label={album.name}/>
+    </UILink>
+  </li>;
 }
 
 interface PersonChipProps {
@@ -104,6 +158,7 @@ interface PersonChipProps {
 }
 
 function PersonChip(props: PersonChipProps): ReactResult {
+  let classes = useStyles();
   let person = useSelector(({ serverState }: StoreState) => props.state.person.deref(serverState));
 
   let onEnter = useCallback(() => {
@@ -122,8 +177,35 @@ function PersonChip(props: PersonChipProps): ReactResult {
     key={person.id}
     onMouseEnter={onEnter}
     onMouseLeave={onLeave}
+    className={classes.fieldListItem}
   >
-    <Chip size="small" label={person.name}/>
+    <UILink
+      to={
+        {
+          page: {
+            type: PageType.Search,
+            catalog: person.catalog.ref(),
+            query: {
+              invert: false,
+              type: "compound",
+              join: Join.And,
+              relation: RelationType.Person,
+              recursive: false,
+              queries: [{
+                invert: false,
+                type: "field",
+                field: "id",
+                modifier: null,
+                operator: Operator.Equal,
+                value: person.id,
+              }],
+            },
+          },
+        }
+      }
+    >
+      <Chip className={classes.chipLink} size="small" label={person.name}/>
+    </UILink>
   </li>;
 }
 
@@ -232,6 +314,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
           target="_blank"
           rel="noreferrer"
           href={`https://www.google.com/maps/@${media.latitude},${media.longitude}`}
+          color="secondary"
         >
           {media.latitude} {media.longitude}
         </Link>
@@ -256,6 +339,14 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     {NormalMetadataItem(media, "title")}
     {NormalMetadataItem(media, "description")}
     {NormalMetadataItem(media, "category")}
+    {
+      media.albums.length > 0 &&
+      <LocalizedRow label="metadata-label-albums">
+        <ul className={classes.fieldList}>
+          {media.albums.map((album: Reference<Album>) => <AlbumChip key={album.id} album={album}/>)}
+        </ul>
+      </LocalizedRow>
+    }
     {NormalMetadataItem(media, "label")}
     {taken}
     {
@@ -268,7 +359,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     {
       media.tags.length > 0 &&
       <LocalizedRow label="metadata-label-tags">
-        <ul className={classes.tagList}>
+        <ul className={classes.fieldList}>
           {media.tags.map((tag: Reference<Tag>) => <TagChip key={tag.id} tag={tag}/>)}
         </ul>
       </LocalizedRow>
@@ -276,7 +367,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     {
       media.people.length > 0 &&
       <LocalizedRow label="metadata-label-people">
-        <ul className={classes.tagList}>
+        <ul className={classes.fieldList}>
           {
             media.people.map((state: MediaPersonState) => <PersonChip
               key={state.person.id}
