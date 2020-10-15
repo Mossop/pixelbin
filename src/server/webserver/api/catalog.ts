@@ -157,6 +157,16 @@ export const listAlbum = ensureAuthenticated(
   },
 );
 
+export const deleteAlbums = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: string[],
+  ): Promise<void> => {
+    await userDb.deleteAlbums(data);
+  },
+);
+
 export const createTag = ensureAuthenticated(
   async (
     ctx: AppContext,
@@ -196,6 +206,16 @@ export const findTag = ensureAuthenticatedTransaction(
   },
 );
 
+export const deleteTags = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: string[],
+  ): Promise<void> => {
+    await userDb.deleteTags(data);
+  },
+);
+
 export const createPerson = ensureAuthenticated(
   async (
     ctx: AppContext,
@@ -213,5 +233,15 @@ export const editPerson = ensureAuthenticated(
     data: Patch<Api.Person>,
   ): Promise<Api.Person> => {
     return userDb.editPerson(data.id, data);
+  },
+);
+
+export const deletePeople = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: string[],
+  ): Promise<void> => {
+    await userDb.deletePeople(data);
   },
 );

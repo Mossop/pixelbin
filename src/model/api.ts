@@ -202,14 +202,14 @@ export enum Method {
   AlbumCreate = "album/create",
   AlbumEdit = "album/edit",
   AlbumList = "album/list",
-  // AlbumDelete = "album/delete",
+  AlbumDelete = "album/delete",
   TagCreate = "tag/create",
   TagEdit = "tag/edit",
   TagFind = "tag/find",
-  // TagDelete = "tag/delete",
+  TagDelete = "tag/delete",
   PersonCreate = "person/create",
   PersonEdit = "person/edit",
-  // PersonDelete = "person/delete",
+  PersonDelete = "person/delete",
   MediaGet = "media/get",
   MediaSearch = "media/search",
   MediaCreate = "media/create",
@@ -236,14 +236,14 @@ export const HttpMethods: MethodList = {
   [Method.AlbumCreate]: "PUT",
   [Method.AlbumEdit]: "PATCH",
   [Method.AlbumList]: "GET",
-  // [Method.AlbumDelete]: "DELETE",
+  [Method.AlbumDelete]: "DELETE",
   [Method.TagCreate]: "PUT",
   [Method.TagEdit]: "PATCH",
   [Method.TagFind]: "POST",
-  // [Method.TagDelete]: "DELETE",
+  [Method.TagDelete]: "DELETE",
   [Method.PersonCreate]: "PUT",
   [Method.PersonEdit]: "PATCH",
-  // [Method.PersonDelete]: "DELETE",
+  [Method.PersonDelete]: "DELETE",
   [Method.MediaGet]: "GET",
   [Method.MediaSearch]: "POST",
   [Method.MediaCreate]: "PUT",
@@ -279,14 +279,14 @@ export interface Signatures {
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;
   [Method.AlbumEdit]: Signature<Patch<Album>, Album>;
   [Method.AlbumList]: Signature<AlbumListRequest, Media[]>;
-  // [Method.AlbumDelete]: Signature<string[], void>;
+  [Method.AlbumDelete]: Signature<string[], void>;
   [Method.TagCreate]: Signature<Create<Tag>, Tag>;
   [Method.TagEdit]: Signature<Patch<Tag>, Tag>;
   [Method.TagFind]: Signature<TagFindRequest, Tag[]>;
-  // [Method.TagDelete]: Signature<string[], void>;
+  [Method.TagDelete]: Signature<string[], void>;
   [Method.PersonCreate]: Signature<Create<Person>, Person>;
   [Method.PersonEdit]: Signature<Patch<Person>, Person>;
-  // [Method.PersonDelete]: Signature<string[], void>;
+  [Method.PersonDelete]: Signature<string[], void>;
   [Method.MediaGet]: Signature<MediaGetRequest, (Media | null)[]>;
   [Method.MediaSearch]: Signature<MediaSearchRequest, Media[]>;
   [Method.MediaCreate]: Signature<MediaCreateRequest, Omit<UnprocessedMedia, "catalog">>;
