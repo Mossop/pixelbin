@@ -19,7 +19,7 @@ test("Basic database connection", async (): Promise<void> => {
 
   await insert(dbConnection.knex, Table.Storage, {
     id: "s1",
-    owner: "someone1@nowhere.com",
+    user: "someone1@nowhere.com",
     name: "Test storage",
     accessKeyId: "bar",
     secretAccessKey: "foo",

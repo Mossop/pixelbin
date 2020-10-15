@@ -40,7 +40,7 @@ export type ProcessedMedia = Omit<ObjectModel.ProcessedMedia, "catalog"> & {
 };
 export type Media = UnprocessedMedia | ProcessedMedia;
 
-export type Storage = Omit<ObjectModel.Storage, "owner" | "accessKeyId" | "secretAccessKey">;
+export type Storage = Omit<ObjectModel.Storage, "user" | "accessKeyId" | "secretAccessKey">;
 export type PublicStorage = Omit<Storage, "accessKeyId" | "secretAccessKey">;
 export type Catalog = ObjectModel.Catalog;
 export type Album = ObjectModel.Album;
@@ -55,7 +55,7 @@ export interface MediaPersonLocation {
   location?: Location | null;
 }
 
-export type StorageCreateRequest = Create<Omit<ObjectModel.Storage, "owner">>;
+export type StorageCreateRequest = Create<Omit<ObjectModel.Storage, "user">>;
 export type StorageTestRequest = Omit<StorageCreateRequest, "name">;
 
 export enum AWSResult {

@@ -291,7 +291,7 @@ export function mockDateTime(result: DateTime | string): DateTime {
 
 export async function getStorageConfig(
   id: string,
-): Promise<Omit<ObjectModel.Storage, "id" | "owner"> | null> {
+): Promise<Omit<ObjectModel.Storage, "id" | "user"> | null> {
   let storeFile = path.join(__dirname, "..", "..", "testdata", "aws.json");
   let stores = JSON.parse(await fs.readFile(storeFile, { encoding: "utf8" }));
 
@@ -321,6 +321,6 @@ export async function getStorageConfig(
   return {
     path: null,
     ...stores[id],
-  } as Omit<ObjectModel.Storage, "id" | "owner">;
+  } as Omit<ObjectModel.Storage, "id" | "user">;
 }
 

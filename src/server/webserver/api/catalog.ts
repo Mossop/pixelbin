@@ -98,7 +98,7 @@ export const createStorage = ensureAuthenticated(
     let {
       accessKeyId,
       secretAccessKey,
-      owner,
+      user,
       ...rest
     } = storage;
     return rest;

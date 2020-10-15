@@ -12,7 +12,7 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
   let storage = await userDb.listStorage();
   let apiStores = storage.map((storage: Tables.Storage): Api.Storage => {
     let {
-      owner,
+      user,
       accessKeyId,
       secretAccessKey,
       ...rest

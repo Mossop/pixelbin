@@ -39,7 +39,7 @@ test("Storage tests", async (): Promise<void> => {
 
   expect(storage).toEqual({
     id: expect.stringMatching(/S:[a-zA-Z0-9]+/),
-    owner: "someone1@nowhere.com",
+    user: "someone1@nowhere.com",
     name: "My new storage",
     accessKeyId: "foobar",
     secretAccessKey: "baz",

@@ -11,13 +11,14 @@ function foreignId<T extends Table, C extends keyof TableRecord<T>>(
   table: Knex.CreateTableBuilder,
   target: T,
   targetColumn: C,
-  column: string = columnFor(target),
+  command: "CASCADE" | "NO ACTION" | "RESTRICT" = "CASCADE",
 ): void {
-  table.string(column, 30)
+  table.string(columnFor(target), 30)
     .notNullable();
-  table.foreign(column, `foreign_${target}`)
+  table.foreign(columnFor(target), `foreign_${target}`)
     .references(ref(target, targetColumn))
-    .onDelete("CASCADE");
+    .onDelete(command)
+    .onUpdate("CASCADE");
 }
 
 function buildMediaView(knex: Knex): Knex.QueryBuilder {
@@ -141,7 +142,7 @@ function buildUserCatalogView(knex: Knex): Knex.QueryBuilder {
   let owns = knex(Table.Catalog)
     .join(Table.Storage, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
     .select({
-      user: ref(Table.Storage, "owner"),
+      user: ref(Table.Storage, "user"),
       catalog: ref(Table.Catalog, "id"),
     });
 
@@ -229,7 +230,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     })
     .createTable(Table.Storage, (table: Knex.CreateTableBuilder): void => {
       id(table);
-      foreignId(table, Table.User, "email", "owner");
+      foreignId(table, Table.User, "email");
       table.string("name", 100).notNullable();
       table.string("accessKeyId", 200).notNullable();
       table.string("secretAccessKey", 200).notNullable();
@@ -241,7 +242,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     })
     .createTable(Table.Catalog, (table: Knex.CreateTableBuilder): void => {
       id(table);
-      foreignId(table, Table.Storage, "id");
+      foreignId(table, Table.Storage, "id", "RESTRICT");
       table.string("name", 100).notNullable();
     })
     .createTable(Table.Person, (table: Knex.CreateTableBuilder): void => {
@@ -263,7 +264,8 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
       table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Tag}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
     })
     .raw(
       nameIndex(Table.Tag, Table.Catalog),
@@ -278,14 +280,15 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
       table.foreign([columnFor(Table.Catalog), "parent"], `foreign_${Table.Album}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
     })
     .raw(
       nameIndex(Table.Album, Table.Catalog),
     )
     .createTable(Table.Media, (table: Knex.CreateTableBuilder): void => {
       id(table);
-      foreignId(table, Table.Catalog, "id");
+      foreignId(table, Table.Catalog, "id", "RESTRICT");
       table.boolean("deleted").notNullable();
       table.dateTime("created", { useTz: true }).notNullable();
       table.dateTime("updated", { useTz: true }).notNullable();
@@ -296,7 +299,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     })
     .createTable(Table.Original, (table: Knex.CreateTableBuilder): void => {
       id(table);
-      foreignId(table, Table.Media, "id");
+      foreignId(table, Table.Media, "id", "RESTRICT");
       table.integer("processVersion").notNullable();
       table.dateTime("uploaded", { useTz: true }).notNullable();
 
@@ -305,7 +308,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     })
     .createTable(Table.AlternateFile, (table: Knex.CreateTableBuilder): void => {
       id(table);
-      foreignId(table, Table.Original, "id");
+      foreignId(table, Table.Original, "id", "RESTRICT");
       table.string("type", 20).notNullable();
 
       addFileInfo(table);
@@ -325,10 +328,12 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Album)], `foreign_${Table.Album}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Album)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
     })
     .createTable(Table.MediaTag, (table: Knex.CreateTableBuilder): void => {
       table.string(columnFor(Table.Catalog), 30).notNullable();
@@ -339,10 +344,12 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Tag)], `foreign_${Table.Tag}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Tag)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
     })
     .createTable(Table.MediaPerson, (table: Knex.CreateTableBuilder): void => {
       table.string(columnFor(Table.Catalog), 30).notNullable();
@@ -354,10 +361,12 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
 
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Media)], `foreign_${Table.Media}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Media)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
       table.foreign([columnFor(Table.Catalog), columnFor(Table.Person)], `foreign_${Table.Person}`)
         .references([columnFor(Table.Catalog), "id"]).inTable(Table.Person)
-        .onDelete("CASCADE");
+        .onDelete("CASCADE")
+        .onUpdate("CASCADE");
     })
     .raw(knex.raw("CREATE VIEW ?? AS ?", [
       Table.StoredMedia,

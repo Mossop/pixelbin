@@ -8,18 +8,18 @@ import { Table, Tables, ref, nameConstraint, intoAPITypes, intoDBTypes } from ".
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {
   return from(this.knex, Table.Storage)
-    .where(ref(Table.Storage, "owner"), this.user)
+    .where(ref(Table.Storage, "user"), this.user)
     .select(ref(Table.Storage));
 }
 
 export async function createStorage(
   this: UserScopedConnection,
-  data: Omit<Tables.Storage, "id" | "owner">,
+  data: Omit<Tables.Storage, "id" | "user">,
 ): Promise<Tables.Storage> {
   let results = await insert(this.knex, Table.Storage, {
     ...data,
     id: await uuid("S"),
-    owner: this.user,
+    user: this.user,
   }).returning("*");
 
   if (results.length) {
@@ -42,7 +42,7 @@ export async function createCatalog(
   data: Omit<Tables.Catalog, "id">,
 ): Promise<Tables.Catalog> {
   let select = this.knex.from(Table.Storage).where({
-    owner: this.user,
+    user: this.user,
     id: data.storage,
   });
 

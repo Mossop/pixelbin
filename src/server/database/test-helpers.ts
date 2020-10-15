@@ -149,7 +149,7 @@ export const testData = {
 
   [Table.Storage]: [{
     id: "s1",
-    owner: "someone2@nowhere.com",
+    user: "someone2@nowhere.com",
     name: "Test storage",
     accessKeyId: "AKIAIOSFODNN7EXAMPLE",
     secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -160,7 +160,7 @@ export const testData = {
     publicUrl: null,
   }, {
     id: "s2",
-    owner: "someone3@nowhere.com",
+    user: "someone3@nowhere.com",
     name: "Storage 2",
     accessKeyId: "otheraccessKey",
     secretAccessKey: "othersecret",

@@ -92,7 +92,7 @@ export function catalogs(catalogs: string | string[], items: Api.Catalog[]): Api
 export function storage(items: Tables.Storage[]): Api.Storage[] {
   return items.map((storage: Tables.Storage): Api.Storage => {
     let {
-      owner,
+      user,
       accessKeyId,
       secretAccessKey,
       ...rest

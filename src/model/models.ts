@@ -29,7 +29,7 @@ export interface User {
 }
 
 export interface Storage extends IdType {
-  owner: User["email"],
+  user: User["email"],
   name: string;
   accessKeyId: string;
   secretAccessKey: string;
