@@ -301,6 +301,7 @@ function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPh
 
   if hasDelete then
     api:deleteMedia(mediaToDelete)
+    -- TODO: Remove from other published collections.
 
     for _, remoteId in ipairs(mediaToDelete) do
       deletedCallback(remoteId)

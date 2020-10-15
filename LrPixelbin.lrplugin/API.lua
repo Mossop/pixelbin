@@ -225,6 +225,7 @@ function API:getMedia(ids)
 end
 
 function API:deleteMedia(ids)
+  return self:POST("media/delete", ids)
 end
 
 function API:createAlbum(album)
@@ -256,6 +257,7 @@ function API:editAlbum(album)
 end
 
 function API:deleteAlbum(album)
+  return self:POST("album/delete", { album })
 end
 
 function API:addMediaToAlbum(album, media)
