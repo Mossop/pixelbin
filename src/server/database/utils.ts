@@ -77,20 +77,40 @@ export function asTable(
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function named<F extends (...args: any[]) => any>(args: Named<F>): [string, F] {
+  if (args.length == 2) {
+    return args;
+  }
+
+  let fn = args[0];
+  let name = fn.name;
+  if (!name) {
+    throw new DatabaseError(DatabaseErrorCode.BadRequest, "Must provide a transaction name.");
+  }
+
+  return [name, fn];
+}
+
 export function inUserTransaction<A extends unknown[], R>(
   ...args: Named<Func<A, Promise<R>, UserScopedConnection>>
 ): Func<A, Promise<R>, UserScopedConnection> {
-  let name: string;
-  let fn: Func<A, Promise<R>, UserScopedConnection>;
-  if (args.length == 2) {
-    [name, fn] = args;
-  } else {
-    fn = args[0];
-    name = fn.name;
-  }
+  let [name, fn] = named(args);
 
   return function(this: UserScopedConnection, ...args: A): Promise<R> {
     return this.inTransaction(name, (userDb: UserScopedConnection): Promise<R> => {
+      return fn.apply(userDb, args);
+    });
+  };
+}
+
+export function ensureUserTransaction<A extends unknown[], R>(
+  ...args: Named<Func<A, Promise<R>, UserScopedConnection>>
+): Func<A, Promise<R>, UserScopedConnection> {
+  let [name, fn] = named(args);
+
+  return function(this: UserScopedConnection, ...args: A): Promise<R> {
+    return this.ensureTransaction(name, (userDb: UserScopedConnection): Promise<R> => {
       return fn.apply(userDb, args);
     });
   };

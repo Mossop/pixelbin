@@ -14,7 +14,7 @@ import * as SearchQueries from "./search";
 import { ref, Table, TableRecord, UserRef } from "./types";
 import * as Unsafe from "./unsafe";
 import * as UserQueries from "./user";
-import { asTable, Named, TxnFn } from "./utils";
+import { asTable, named, Named, TxnFn } from "./utils";
 
 const logger = getLogger("database");
 
@@ -127,19 +127,18 @@ export class DatabaseConnection {
     return new UserScopedConnection(this, user);
   }
 
-  public inTransaction<R>(...args: Named<TxnFn<DatabaseConnection, R>>): Promise<R> {
-    let name: string;
-    let transactionFn: TxnFn<DatabaseConnection, R>;
-    if (args.length == 2) {
-      [name, transactionFn] = args;
-    } else {
-      transactionFn = args[0];
-      name = transactionFn.name;
+  public ensureTransaction<R>(...args: Named<TxnFn<DatabaseConnection, R>>): Promise<R> {
+    let [name, transactionFn] = named(args);
+
+    if (this._transaction) {
+      return transactionFn(this);
     }
 
-    if (!name) {
-      throw new DatabaseError(DatabaseErrorCode.BadRequest, "Must provide a transaction name.");
-    }
+    return this.inTransaction(name, transactionFn);
+  }
+
+  public inTransaction<R>(...args: Named<TxnFn<DatabaseConnection, R>>): Promise<R> {
+    let [name, transactionFn] = named(args);
 
     this.logger.trace({
       inner: name,
@@ -279,107 +278,115 @@ export class UserScopedConnection {
     return (...args: unknown[]) => this.knex.raw(...args);
   }
 
+  public ensureTransaction<R>(...args: Named<TxnFn<UserScopedConnection, R>>): Promise<R> {
+    let [name, transactionFn] = named(args);
+
+    return this.connection.ensureTransaction(
+      name,
+      (dbConnection: DatabaseConnection): Promise<R> => {
+        return transactionFn(dbConnection.forUser(this.user));
+      },
+    );
+  }
+
   public inTransaction<R>(...args: Named<TxnFn<UserScopedConnection, R>>): Promise<R> {
-    let name: string;
-    let transactionFn: TxnFn<UserScopedConnection, R>;
-    if (args.length == 2) {
-      [name, transactionFn] = args;
-    } else {
-      transactionFn = args[0];
-      name = transactionFn.name;
-    }
+    let [name, transactionFn] = named(args);
 
     return this.connection.inTransaction(name, (dbConnection: DatabaseConnection): Promise<R> => {
       return transactionFn(dbConnection.forUser(this.user));
     });
   }
 
-  public async checkRead(table: Table, ids: string[]): Promise<void> {
-    if (ids.length == 0) {
-      return;
-    }
-
-    let counts: {
-      count: number
-    }[];
-
-    if (table == Table.Catalog) {
-      counts = await this.knex(asTable(this.knex, ids, "Ids", "id"))
-        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
-        .where(ref(Table.UserCatalog, "user"), this.user)
-        .select({
-          count: this.raw("CAST(COUNT(*) AS integer)"),
-        });
-    } else {
-      let visible = from(this.knex, table)
-        .whereIn(`${table}.catalog`, this.catalogs());
-
-      if (table == Table.Media) {
-        visible = visible.where(ref(Table.Media, "deleted"), false);
+  public checkRead(table: Table, ids: string[]): Promise<void> {
+    return this.ensureTransaction(async function checkRead(userDb: UserScopedConnection) {
+      if (ids.length == 0) {
+        return;
       }
 
-      counts = await this.knex(asTable(this.knex, ids, "Ids", "id"))
-        .join(visible.as("Visible"), "Ids.id", "Visible.id")
-        .select({
-          count: this.raw("CAST(COUNT(*) AS integer)"),
-        });
-    }
+      let counts: {
+        count: number
+      }[];
 
-    if (!counts.length || counts[0].count != ids.length) {
-      notfound(table);
-    }
+      if (table == Table.Catalog) {
+        counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+          .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
+          .where(ref(Table.UserCatalog, "user"), userDb.user)
+          .select({
+            count: userDb.raw("CAST(COUNT(*) AS integer)"),
+          });
+      } else {
+        let visible = from(userDb.knex, table)
+          .whereIn(`${table}.catalog`, userDb.catalogs());
+
+        if (table == Table.Media) {
+          visible = visible.where(ref(Table.Media, "deleted"), false);
+        }
+
+        counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+          .join(visible.as("Visible"), "Ids.id", "Visible.id")
+          .select({
+            count: userDb.raw("CAST(COUNT(*) AS integer)"),
+          });
+      }
+
+      if (!counts.length || counts[0].count != ids.length) {
+        notfound(table);
+      }
+    });
   }
 
   public async checkWrite(table: Table, ids: string[]): Promise<void> {
-    if (ids.length == 0) {
-      return;
-    }
-
-    let counts: {
-      writable: number;
-      visible: number;
-    }[];
-
-    if (table == Table.Catalog) {
-      let writable = this.raw("CAST(COUNT(*) FILTER (WHERE ??=true) AS integer)", [
-        ref(Table.UserCatalog, "writable"),
-      ]);
-
-      counts = await this.knex(asTable(this.knex, ids, "Ids", "id"))
-        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
-        .where(ref(Table.UserCatalog, "user"), this.user)
-        .select({
-          visible: this.raw("CAST(COUNT(*) AS integer)"),
-          writable,
-        });
-    } else {
-      let writable = this.raw("CAST(COUNT(*) FILTER (WHERE ??=?) AS integer)", [
-        ref(Table.UserCatalog, "writable"),
-        true,
-      ]);
-
-      let query = this.knex(asTable(this.knex, ids, "Ids", "id"))
-        .join(table, `${table}.id`, "Ids.id")
-        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), `${table}.catalog`)
-        .where(ref(Table.UserCatalog, "user"), this.user);
-
-      if (table == Table.Media) {
-        query = query.where(ref(Table.Media, "deleted"), false);
+    return this.ensureTransaction(async function checkRead(userDb: UserScopedConnection) {
+      if (ids.length == 0) {
+        return;
       }
 
-      counts = await query.select({
-        visible: this.raw("CAST(COUNT(*) AS integer)"),
-        writable,
-      });
-    }
+      let counts: {
+        writable: number;
+        visible: number;
+      }[];
 
-    if (!counts.length || counts[0].visible != ids.length) {
-      notfound(table);
-    }
+      if (table == Table.Catalog) {
+        let writable = userDb.raw("CAST(COUNT(*) FILTER (WHERE ??=true) AS integer)", [
+          ref(Table.UserCatalog, "writable"),
+        ]);
 
-    if (counts[0].writable != ids.length) {
-      notwritable(table);
-    }
+        counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+          .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
+          .where(ref(Table.UserCatalog, "user"), userDb.user)
+          .select({
+            visible: userDb.raw("CAST(COUNT(*) AS integer)"),
+            writable,
+          });
+      } else {
+        let writable = userDb.raw("CAST(COUNT(*) FILTER (WHERE ??=?) AS integer)", [
+          ref(Table.UserCatalog, "writable"),
+          true,
+        ]);
+
+        let query = userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+          .join(table, `${table}.id`, "Ids.id")
+          .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), `${table}.catalog`)
+          .where(ref(Table.UserCatalog, "user"), userDb.user);
+
+        if (table == Table.Media) {
+          query = query.where(ref(Table.Media, "deleted"), false);
+        }
+
+        counts = await query.select({
+          visible: userDb.raw("CAST(COUNT(*) AS integer)"),
+          writable,
+        });
+      }
+
+      if (!counts.length || counts[0].visible != ids.length) {
+        notfound(table);
+      }
+
+      if (counts[0].writable != ids.length) {
+        notwritable(table);
+      }
+    });
   }
 
   public catalogs(): Knex.QueryBuilder<TableRecord<Table.UserCatalog>, string> {

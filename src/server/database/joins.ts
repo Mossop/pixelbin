@@ -3,7 +3,7 @@ import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { drop, from, insert } from "./queries";
 import { Table, Media } from "./types";
-import { inUserTransaction, rowFromLocation } from "./utils";
+import { ensureUserTransaction, rowFromLocation } from "./utils";
 
 type List = Table.MediaAlbum | Table.MediaTag | Table.MediaPerson;
 
@@ -48,7 +48,7 @@ async function getCatalog(
   return catalogs[0].catalog;
 }
 
-export const addMediaRelations = inUserTransaction(
+export const addMediaRelations = ensureUserTransaction(
   async function addMediaRelations<T extends RelationType>(
     this: UserScopedConnection,
     relation: T,
@@ -105,7 +105,7 @@ export const addMediaRelations = inUserTransaction(
   },
 );
 
-export const removeMediaRelations = inUserTransaction(
+export const removeMediaRelations = ensureUserTransaction(
   async function removeMediaRelations<T extends RelationType>(
     this: UserScopedConnection,
     relation: T,
@@ -144,7 +144,7 @@ export const removeMediaRelations = inUserTransaction(
   },
 );
 
-export const setMediaRelations = inUserTransaction(
+export const setMediaRelations = ensureUserTransaction(
   async function setMediaRelations<T extends RelationType>(
     this: UserScopedConnection,
     relation: T,
@@ -209,7 +209,7 @@ export const setMediaRelations = inUserTransaction(
   },
 );
 
-export const setRelationMedia = inUserTransaction(
+export const setRelationMedia = ensureUserTransaction(
   async function setRelationMedia<T extends RelationType>(
     this: UserScopedConnection,
     relation: T,
@@ -275,7 +275,7 @@ export const setRelationMedia = inUserTransaction(
   },
 );
 
-export const setPersonLocations = inUserTransaction(async function setPersonLocations(
+export const setPersonLocations = ensureUserTransaction(async function setPersonLocations(
   this: UserScopedConnection,
   locations: Api.MediaPersonLocation[],
 ): Promise<Media[]> {

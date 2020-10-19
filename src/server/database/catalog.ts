@@ -5,7 +5,7 @@ import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
 import { drop, from, insert, update, withChildren } from "./queries";
 import { Table, Tables, ref, nameConstraint, intoAPITypes, intoDBTypes } from "./types";
-import { inUserTransaction } from "./utils";
+import { ensureUserTransaction } from "./utils";
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {
   return from(this.knex, Table.Storage)
@@ -37,7 +37,7 @@ export async function listCatalogs(this: UserScopedConnection): Promise<Tables.C
   return results.map(intoAPITypes);
 }
 
-export const createCatalog = inUserTransaction(async function createCatalog(
+export const createCatalog = ensureUserTransaction(async function createCatalog(
   this: UserScopedConnection,
   data: Omit<Tables.Catalog, "id">,
 ): Promise<Tables.Catalog> {
@@ -84,7 +84,7 @@ export async function listMediaInCatalog(
     .select(ref(Table.StoredMediaDetail));
 }
 
-export const createAlbum = inUserTransaction(async function createAlbum(
+export const createAlbum = ensureUserTransaction(async function createAlbum(
   this: UserScopedConnection,
   catalog: Tables.Album["catalog"],
   data: Omit<Tables.Album, "id" | "catalog">,
@@ -104,7 +104,7 @@ export const createAlbum = inUserTransaction(async function createAlbum(
   return results[0];
 });
 
-export const editAlbum = inUserTransaction(async function editAlbum(
+export const editAlbum = ensureUserTransaction(async function editAlbum(
   this: UserScopedConnection,
   id: Tables.Album["id"],
   data: Partial<Tables.Album>,
@@ -129,7 +129,7 @@ export const editAlbum = inUserTransaction(async function editAlbum(
   return intoAPITypes(results[0]);
 });
 
-export const deleteAlbums = inUserTransaction(async function deleteAlbums(
+export const deleteAlbums = ensureUserTransaction(async function deleteAlbums(
   this: UserScopedConnection,
   ids: Tables.Album["id"][],
 ): Promise<void> {
@@ -139,7 +139,7 @@ export const deleteAlbums = inUserTransaction(async function deleteAlbums(
     .whereIn(ref(Table.Album, "id"), ids);
 });
 
-export const listMediaInAlbum = inUserTransaction(async function listMediaInAlbum(
+export const listMediaInAlbum = ensureUserTransaction(async function listMediaInAlbum(
   this: UserScopedConnection,
   id: Tables.Album["id"],
   recursive: boolean = false,
@@ -184,7 +184,7 @@ export async function listTags(this: UserScopedConnection): Promise<Tables.Tag[]
   return results.map(intoAPITypes);
 }
 
-export const createTag = inUserTransaction(async function createTag(
+export const createTag = ensureUserTransaction(async function createTag(
   this: UserScopedConnection,
   catalog: Tables.Tag["catalog"],
   data: Omit<Tables.Tag, "id" | "catalog">,
@@ -227,7 +227,7 @@ export async function buildTags(
     return [];
   }
 
-  return this.inTransaction(
+  return this.ensureTransaction(
     async function buildTags(userDb: UserScopedConnection): Promise<Tables.Tag[]> {
       let parent: string | null = null;
 
@@ -248,7 +248,7 @@ export async function buildTags(
   );
 }
 
-export const editTag = inUserTransaction(async function editTag(
+export const editTag = ensureUserTransaction(async function editTag(
   this: UserScopedConnection,
   id: Tables.Tag["id"],
   data: Partial<Tables.Tag>,
@@ -273,7 +273,7 @@ export const editTag = inUserTransaction(async function editTag(
   return intoAPITypes(results[0]);
 });
 
-export const deleteTags = inUserTransaction(async function deleteTags(
+export const deleteTags = ensureUserTransaction(async function deleteTags(
   this: UserScopedConnection,
   ids: Tables.Tag["id"][],
 ): Promise<void> {
@@ -283,7 +283,7 @@ export const deleteTags = inUserTransaction(async function deleteTags(
     .whereIn(ref(Table.Tag, "id"), ids);
 });
 
-export const createPerson = inUserTransaction(async function createPerson(
+export const createPerson = ensureUserTransaction(async function createPerson(
   this: UserScopedConnection,
   catalog: Tables.Person["catalog"],
   data: Omit<Tables.Person, "id" | "catalog">,
@@ -317,7 +317,7 @@ export const createPerson = inUserTransaction(async function createPerson(
   return intoAPITypes(rows[0]);
 });
 
-export const editPerson = inUserTransaction(async function editPerson(
+export const editPerson = ensureUserTransaction(async function editPerson(
   this: UserScopedConnection,
   id: Tables.Person["id"],
   data: Partial<Tables.Person>,
@@ -342,7 +342,7 @@ export const editPerson = inUserTransaction(async function editPerson(
   return intoAPITypes(results[0]);
 });
 
-export const deletePeople = inUserTransaction(async function deletePeople(
+export const deletePeople = ensureUserTransaction(async function deletePeople(
   this: UserScopedConnection,
   ids: Tables.Person["id"][],
 ): Promise<void> {

@@ -15,7 +15,7 @@ import {
   buildTimeZoneFields,
   applyTimeZoneFields,
 } from "./types";
-import { filterColumns, inUserTransaction, asTable } from "./utils";
+import { filterColumns, ensureUserTransaction, asTable } from "./utils";
 
 export function intoMedia(item: Tables.StoredMedia): Media {
   let forApi = applyTimeZoneFields(intoAPITypes(item));
@@ -41,7 +41,7 @@ export function intoMedia(item: Tables.StoredMedia): Media {
   return unprocessed;
 }
 
-export const createMedia = inUserTransaction(async function createMedia(
+export const createMedia = ensureUserTransaction(async function createMedia(
   this: UserScopedConnection,
   catalog: Tables.Media["catalog"],
   data: Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">,
@@ -68,7 +68,7 @@ export const createMedia = inUserTransaction(async function createMedia(
   return results[0];
 });
 
-export const editMedia = inUserTransaction(async function editMedia(
+export const editMedia = ensureUserTransaction(async function editMedia(
   this: UserScopedConnection,
   id: Tables.Media["id"],
   data: Partial<Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">>,
@@ -122,7 +122,7 @@ export async function getMedia(
   });
 }
 
-export const listAlternateFiles = inUserTransaction(async function listAlternateFiles(
+export const listAlternateFiles = ensureUserTransaction(async function listAlternateFiles(
   this: UserScopedConnection,
   id: Tables.StoredMedia["id"],
   type: AlternateFileType,
@@ -137,7 +137,7 @@ export const listAlternateFiles = inUserTransaction(async function listAlternate
     .select(ref(Table.AlternateFile));
 });
 
-export const deleteMedia = inUserTransaction(async function deleteMedia(
+export const deleteMedia = ensureUserTransaction(async function deleteMedia(
   this: UserScopedConnection,
   ids: string[],
 ): Promise<void> {
