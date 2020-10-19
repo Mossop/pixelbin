@@ -3,6 +3,7 @@ import { ObjectModel } from "../../../model";
 export interface SharedCatalog {
   user: string;
   catalog: string;
+  writable: boolean;
 }
 
 export type UserCatalog = SharedCatalog;

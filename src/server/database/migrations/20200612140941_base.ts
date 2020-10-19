@@ -137,6 +137,7 @@ function buildUserCatalogView(knex: Knex): Knex.QueryBuilder {
     .select({
       user: ref(Table.SharedCatalog, "user"),
       catalog: ref(Table.SharedCatalog, "catalog"),
+      writable: ref(Table.SharedCatalog, "writable"),
     });
 
   let owns = knex(Table.Catalog)
@@ -144,6 +145,7 @@ function buildUserCatalogView(knex: Knex): Knex.QueryBuilder {
     .select({
       user: ref(Table.Storage, "user"),
       catalog: ref(Table.Catalog, "id"),
+      writable: knex.raw("true"),
     });
 
   return owns.union(shares);
@@ -316,6 +318,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
     .createTable(Table.SharedCatalog, (table: Knex.CreateTableBuilder): void => {
       foreignId(table, Table.User, "email");
       foreignId(table, Table.Catalog, "id");
+      table.boolean("writable").notNullable();
 
       table.unique([columnFor(Table.User), columnFor(Table.Catalog)]);
     })

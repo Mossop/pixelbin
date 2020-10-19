@@ -1,10 +1,11 @@
 import Knex from "knex";
 
 import { UserScopedConnection } from "./connection";
-import { DatabaseError, DatabaseErrorCode } from "./error";
+import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
-import { drop, from, insert, insertFromSelect, update, withChildren } from "./queries";
+import { drop, from, insert, update, withChildren } from "./queries";
 import { Table, Tables, ref, nameConstraint, intoAPITypes, intoDBTypes } from "./types";
+import { inUserTransaction } from "./utils";
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {
   return from(this.knex, Table.Storage)
@@ -31,25 +32,30 @@ export async function createStorage(
 
 export async function listCatalogs(this: UserScopedConnection): Promise<Tables.Catalog[]> {
   let results = await from(this.knex, Table.Catalog)
-    .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Catalog, "id"))
-    .where(ref(Table.UserCatalog, "user"), this.user)
+    .whereIn(ref(Table.Catalog, "id"), this.catalogs())
     .select<Tables.Catalog[]>(ref(Table.Catalog));
   return results.map(intoAPITypes);
 }
 
-export async function createCatalog(
+export const createCatalog = inUserTransaction(async function createCatalog(
   this: UserScopedConnection,
   data: Omit<Tables.Catalog, "id">,
 ): Promise<Tables.Catalog> {
-  let select = this.knex.from(Table.Storage).where({
-    user: this.user,
-    id: data.storage,
-  });
+  let ids = await this.knex.from(Table.Storage)
+    .where({
+      user: this.user,
+      id: data.storage,
+    })
+    .select("id");
 
-  let results = await insertFromSelect(this.knex, Table.Catalog, select, {
+  if (ids.length != 1) {
+    notfound(Table.Storage);
+  }
+
+  let results = await insert(this.knex, Table.Catalog, {
     ...intoDBTypes(data),
     id: await uuid("C"),
-    storage: this.connection.ref(ref(Table.Storage, "id")),
+    storage: data.storage,
   }).returning("*");
 
   if (!results.length) {
@@ -57,7 +63,7 @@ export async function createCatalog(
   }
 
   return results[0];
-}
+});
 
 export async function listAlbums(this: UserScopedConnection): Promise<Tables.Album[]> {
   let results = await from(this.knex, Table.Album)
@@ -71,31 +77,24 @@ export async function listMediaInCatalog(
   this: UserScopedConnection,
   id: Tables.Catalog["id"],
 ): Promise<Tables.StoredMedia[]> {
+  await this.checkRead(Table.Catalog, [id]);
+
   return from(this.knex, Table.StoredMediaDetail)
-    .join(
-      Table.UserCatalog,
-      ref(Table.UserCatalog, "catalog"),
-      ref(Table.StoredMediaDetail, "catalog"),
-    )
-    .where(ref(Table.UserCatalog, "user"), this.user)
-    .andWhere(ref(Table.UserCatalog, "catalog"), id)
+    .andWhere(ref(Table.StoredMediaDetail, "catalog"), id)
     .select(ref(Table.StoredMediaDetail));
 }
 
-export async function createAlbum(
+export const createAlbum = inUserTransaction(async function createAlbum(
   this: UserScopedConnection,
   catalog: Tables.Album["catalog"],
   data: Omit<Tables.Album, "id" | "catalog">,
 ): Promise<Tables.Album> {
-  let select = this.knex.from(Table.UserCatalog).where({
-    user: this.user,
-    catalog,
-  });
+  await this.checkWrite(Table.Catalog, [catalog]);
 
-  let results = await insertFromSelect(this.knex, Table.Album, select, {
+  let results = await insert(this.knex, Table.Album, {
     ...intoDBTypes(data),
     id: await uuid("A"),
-    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
+    catalog,
   }).returning("*");
 
   if (!results.length) {
@@ -103,14 +102,14 @@ export async function createAlbum(
   }
 
   return results[0];
-}
+});
 
-export async function editAlbum(
+export const editAlbum = inUserTransaction(async function editAlbum(
   this: UserScopedConnection,
   id: Tables.Album["id"],
   data: Partial<Tables.Album>,
 ): Promise<Tables.Album> {
-  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+  await this.checkWrite(Table.Album, [id]);
 
   let {
     id: removedId,
@@ -119,8 +118,7 @@ export async function editAlbum(
   } = data;
   let results = await update(
     Table.Album,
-    this.knex.where("id", id)
-      .where("catalog", "in", catalogs),
+    this.knex.where("id", id),
     intoDBTypes(albumUpdateData),
   ).returning("*");
 
@@ -129,49 +127,46 @@ export async function editAlbum(
   }
 
   return intoAPITypes(results[0]);
-}
+});
 
-export async function deleteAlbums(
+export const deleteAlbums = inUserTransaction(async function deleteAlbums(
   this: UserScopedConnection,
   ids: Tables.Album["id"][],
 ): Promise<void> {
-  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+  await this.checkWrite(Table.Album, ids);
 
   await drop(this.knex, Table.Album)
-    .whereIn(ref(Table.Album, "catalog"), catalogs)
     .whereIn(ref(Table.Album, "id"), ids);
-}
+});
 
-export async function listMediaInAlbum(
+export const listMediaInAlbum = inUserTransaction(async function listMediaInAlbum(
   this: UserScopedConnection,
   id: Tables.Album["id"],
   recursive: boolean = false,
 ): Promise<Tables.StoredMedia[]> {
-  let albums: Knex.QueryBuilder;
+  // This assumes that if you can read the album you can read its descendants.
+  await this.checkRead(Table.Album, [id]);
+
+  let albums: Knex.QueryBuilder | readonly string[];
   if (recursive) {
     albums = withChildren(
       this.knex,
       Table.Album,
       from(this.knex, Table.Album)
-        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
-        .where(ref(Table.UserCatalog, "user"), this.user)
         .where(ref(Table.Album, "id"), id),
     ).select("id");
   } else {
-    albums = from(this.knex, Table.Album)
-      .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
-      .where(ref(Table.UserCatalog, "user"), this.user)
-      .where(ref(Table.Album, "id"), id)
-      .select(ref(Table.Album, "id"));
+    albums = [id];
   }
 
   return from(this.knex, Table.StoredMediaDetail)
     .join(Table.MediaAlbum, ref(Table.MediaAlbum, "media"), ref(Table.StoredMediaDetail, "id"))
+    // @ts-ignore: The union type spans two different overloads of the method.
     .whereIn(ref(Table.MediaAlbum, "album"), albums)
     .orderBy(ref(Table.StoredMediaDetail, "id"))
     .distinctOn(ref(Table.StoredMediaDetail, "id"))
     .select(ref(Table.StoredMediaDetail));
-}
+});
 
 export async function listPeople(this: UserScopedConnection): Promise<Tables.Person[]> {
   let results = await from(this.knex, Table.Person)
@@ -189,20 +184,17 @@ export async function listTags(this: UserScopedConnection): Promise<Tables.Tag[]
   return results.map(intoAPITypes);
 }
 
-export async function createTag(
+export const createTag = inUserTransaction(async function createTag(
   this: UserScopedConnection,
   catalog: Tables.Tag["catalog"],
   data: Omit<Tables.Tag, "id" | "catalog">,
 ): Promise<Tables.Tag> {
-  let userLookup = this.knex.from(Table.UserCatalog).where({
-    user: this.user,
-    catalog,
-  });
+  await this.checkWrite(Table.Catalog, [catalog]);
 
-  let query = insertFromSelect(this.knex, Table.Tag, userLookup, {
+  let query = insert(this.knex, Table.Tag, {
     ...intoDBTypes(data),
     id: await uuid("T"),
-    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
+    catalog,
   });
 
   let results = await this.connection.raw(`
@@ -224,7 +216,7 @@ export async function createTag(
   }
 
   return intoAPITypes(rows[0]);
-}
+});
 
 export async function buildTags(
   this: UserScopedConnection,
@@ -235,31 +227,33 @@ export async function buildTags(
     return [];
   }
 
-  return this.inTransaction(async (): Promise<Tables.Tag[]> => {
-    let parent: string | null = null;
+  return this.inTransaction(
+    async function buildTags(userDb: UserScopedConnection): Promise<Tables.Tag[]> {
+      let parent: string | null = null;
 
-    let tags: Tables.Tag[] = [];
+      let tags: Tables.Tag[] = [];
 
-    for (let name of names) {
-      let newTag = await this.createTag(catalog, {
-        parent,
-        name,
-      });
+      for (let name of names) {
+        let newTag = await userDb.createTag(catalog, {
+          parent,
+          name,
+        });
 
-      parent = newTag.id;
-      tags.push(newTag);
-    }
+        parent = newTag.id;
+        tags.push(newTag);
+      }
 
-    return tags;
-  });
+      return tags;
+    },
+  );
 }
 
-export async function editTag(
+export const editTag = inUserTransaction(async function editTag(
   this: UserScopedConnection,
   id: Tables.Tag["id"],
   data: Partial<Tables.Tag>,
 ): Promise<Tables.Tag> {
-  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+  await this.checkWrite(Table.Tag, [id]);
 
   let {
     id: removedId,
@@ -268,8 +262,7 @@ export async function editTag(
   } = data;
   let results = await update(
     Table.Tag,
-    this.knex.where("id", id)
-      .where("catalog", "in", catalogs),
+    this.knex.where("id", id),
     intoDBTypes(tagUpdateData),
   ).returning("*");
 
@@ -278,33 +271,29 @@ export async function editTag(
   }
 
   return intoAPITypes(results[0]);
-}
+});
 
-export async function deleteTags(
+export const deleteTags = inUserTransaction(async function deleteTags(
   this: UserScopedConnection,
   ids: Tables.Tag["id"][],
 ): Promise<void> {
-  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+  await this.checkWrite(Table.Tag, ids);
 
   await drop(this.knex, Table.Tag)
-    .whereIn(ref(Table.Tag, "catalog"), catalogs)
     .whereIn(ref(Table.Tag, "id"), ids);
-}
+});
 
-export async function createPerson(
+export const createPerson = inUserTransaction(async function createPerson(
   this: UserScopedConnection,
   catalog: Tables.Person["catalog"],
   data: Omit<Tables.Person, "id" | "catalog">,
 ): Promise<Tables.Person> {
-  let userLookup = this.knex.from(Table.UserCatalog).where({
-    user: this.user,
-    catalog,
-  });
+  await this.checkWrite(Table.Catalog, [catalog]);
 
-  let query = insertFromSelect(this.knex, Table.Person, userLookup, {
+  let query = insert(this.knex, Table.Person, {
     ...intoDBTypes(data),
     id: await uuid("P"),
-    catalog: this.connection.ref(ref(Table.UserCatalog, "catalog")),
+    catalog,
   });
 
   let results = await this.connection.raw(`
@@ -326,14 +315,14 @@ export async function createPerson(
   }
 
   return intoAPITypes(rows[0]);
-}
+});
 
-export async function editPerson(
+export const editPerson = inUserTransaction(async function editPerson(
   this: UserScopedConnection,
   id: Tables.Person["id"],
   data: Partial<Tables.Person>,
 ): Promise<Tables.Person> {
-  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+  await this.checkWrite(Table.Person, [id]);
 
   let {
     id: removedId,
@@ -342,8 +331,7 @@ export async function editPerson(
   } = data;
   let results = await update(
     Table.Person,
-    this.knex.where("id", id)
-      .where("catalog", "in", catalogs),
+    this.knex.where("id", id),
     intoDBTypes(personUpdateData),
   ).returning("*");
 
@@ -352,15 +340,14 @@ export async function editPerson(
   }
 
   return intoAPITypes(results[0]);
-}
+});
 
-export async function deletePeople(
+export const deletePeople = inUserTransaction(async function deletePeople(
   this: UserScopedConnection,
   ids: Tables.Person["id"][],
 ): Promise<void> {
-  let catalogs = from(this.knex, Table.UserCatalog).where("user", this.user).select("catalog");
+  await this.checkWrite(Table.Person, ids);
 
   await drop(this.knex, Table.Person)
-    .whereIn(ref(Table.Person, "catalog"), catalogs)
     .whereIn(ref(Table.Person, "id"), ids);
-}
+});

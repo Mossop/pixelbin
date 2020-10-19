@@ -34,8 +34,14 @@ export function buildTestDB(): void {
 }
 
 export async function initDB(): Promise<void> {
-  let dbConnection = await DatabaseConnection.connect(getTestDatabaseConfig());
-  deferredConnection.resolve(dbConnection);
+  let dbConnection: DatabaseConnection;
+  try {
+    dbConnection = await DatabaseConnection.connect("test", getTestDatabaseConfig());
+    deferredConnection.resolve(dbConnection);
+  } catch (e) {
+    deferredConnection.reject(e);
+    throw e;
+  }
 
   let params = dbConnection.knex["userParams"];
 
@@ -298,12 +304,15 @@ export const testData = {
   [Table.SharedCatalog]: [{
     catalog: "c1",
     user: "someone1@nowhere.com",
+    writable: true,
   }, {
     catalog: "c2",
     user: "someone1@nowhere.com",
+    writable: true,
   }, {
     catalog: "c3",
     user: "someone1@nowhere.com",
+    writable: true,
   }],
 };
 

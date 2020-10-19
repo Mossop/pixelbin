@@ -1,5 +1,5 @@
 import { Api, Method, ErrorCode, HttpMethods } from "../../../model";
-import { getLogger, Obj } from "../../../utils";
+import { Obj } from "../../../utils";
 import { AppContext } from "../context";
 import { ApiError } from "../error";
 import {
@@ -119,9 +119,6 @@ const KEY_PARSE = /^(?<part>[^.[]+)(?<indexes>(?:\[\d+\])*)(?:\.(?<rest>.+))?$/;
 const INNER_ARRAY_PARSE = /\[(?<index>\d+)\]/g;
 
 function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string = key): void {
-  const logger = getLogger("formdata");
-
-  logger.trace({ key, obj, value, fullkey }, "Adding value object");
   if (typeof obj != "object") {
     throw new ApiError(ErrorCode.InvalidData, {
       message: `Invalid field '${fullkey}'`,
@@ -146,13 +143,6 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
   let indexes = matches.groups?.indexes ?? "";
   let rest = matches.groups?.rest ?? "";
 
-  logger.trace({
-    key,
-    part,
-    indexes,
-    rest,
-  }, "Matched regex");
-
   if (indexes.length) {
     let inner = obj;
     let index = part;
@@ -163,7 +153,6 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
       let match = innerMatches.shift()!;
 
       if (!(index in inner)) {
-        logger.trace({ index }, "Created array");
         inner[index] = [];
       } else if (!Array.isArray(inner[index])) {
         throw new ApiError(ErrorCode.InvalidData, {
@@ -171,30 +160,25 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
         });
       }
 
-      logger.trace({ index }, "Descending");
       inner = inner[index];
       index = match.groups?.index ?? "";
     }
 
     if (rest.length) {
       if (!(index in inner)) {
-        logger.trace({ index }, "Created object");
         inner[index] = {};
       }
 
-      logger.trace({ index }, "Descending");
       addKeyToObject(inner[index], rest, value, fullkey);
     } else if (index in inner) {
       throw new ApiError(ErrorCode.InvalidData, {
         message: `Invalid repeated field '${fullkey}'.`,
       });
     } else {
-      logger.trace({ index }, "Setting value");
       inner[index] = value;
     }
   } else if (rest) {
     if (!(part in obj)) {
-      logger.trace({ part }, "Created object");
       obj[part] = {};
     } else if (Array.isArray(obj[part]) || typeof obj[part] != "object") {
       throw new ApiError(ErrorCode.InvalidData, {
@@ -202,14 +186,12 @@ function addKeyToObject(obj: Obj, key: string, value: unknown, fullkey: string =
       });
     }
 
-    logger.trace({ part }, "Descending");
     addKeyToObject(obj[part], rest, value, fullkey);
   } else if (part in obj) {
     throw new ApiError(ErrorCode.InvalidData, {
       message: `Invalid repeated field '${fullkey}'.`,
     });
   } else {
-    logger.trace({ part }, "Setting value");
     obj[part] = value;
   }
 }
@@ -251,8 +233,11 @@ export function apiRequestHandler<T extends Method>(
 
       let body = ctx.request["body"];
       if (ctx.request.method == "GET") {
-        ctx.logger.trace({ data: ctx.request.query }, "Decoding query");
         body = decodeBody(ctx.request.query);
+        ctx.logger.trace({
+          data: ctx.request.query,
+          decoded: body,
+        }, "Decoded query");
       } else if (ctx.request.type == "multipart/form-data" &&
         body.json && Object.keys(body).length == 1) {
         try {
@@ -267,8 +252,12 @@ export function apiRequestHandler<T extends Method>(
           });
         }
       } else if (!ctx.request.type.endsWith("/json")) {
-        ctx.logger.trace({ data: body }, "Decoding body");
-        body = decodeBody(body);
+        let decoded = decodeBody(body);
+        ctx.logger.trace({
+          data: body,
+          decoded,
+        }, "Decoded body");
+        body = decoded;
       }
 
       let decoded;

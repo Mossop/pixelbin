@@ -16,7 +16,7 @@ const logger = getLogger("server");
 async function initDatabase(): Promise<void> {
   let config = await services.config;
 
-  let dbConnection = await DatabaseConnection.connect(config.database);
+  let dbConnection = await DatabaseConnection.connect("main", config.database);
   await dbConnection.knex.migrate.latest();
   provideService("database", dbConnection);
 

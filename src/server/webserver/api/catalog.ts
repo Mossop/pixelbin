@@ -184,11 +184,11 @@ export const editTag = ensureAuthenticated(
 );
 
 export const findTag = ensureAuthenticatedTransaction(
-  async (
+  async function findTag(
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: Api.TagFindRequest,
-  ): Promise<Api.Tag[]> => {
+  ): Promise<Api.Tag[]> {
     let parent: string | null = null;
     let foundTags: Api.Tag[] = [];
 

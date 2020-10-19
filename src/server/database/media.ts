@@ -1,11 +1,9 @@
-import Knex from "knex";
-
 import { AlternateFileType } from "../../model";
-import { now } from "../../utils";
+import { AllNull, now } from "../../utils";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
-import { insertFromSelect, from, update } from "./queries";
+import { from, update, insert } from "./queries";
 import {
   Tables,
   Table,
@@ -17,7 +15,7 @@ import {
   buildTimeZoneFields,
   applyTimeZoneFields,
 } from "./types";
-import { filterColumns } from "./utils";
+import { filterColumns, inUserTransaction, asTable } from "./utils";
 
 export function intoMedia(item: Tables.StoredMedia): Media {
   let forApi = applyTimeZoneFields(intoAPITypes(item));
@@ -43,144 +41,111 @@ export function intoMedia(item: Tables.StoredMedia): Media {
   return unprocessed;
 }
 
-export async function createMedia(
+export const createMedia = inUserTransaction(async function createMedia(
   this: UserScopedConnection,
   catalog: Tables.Media["catalog"],
   data: Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">,
 ): Promise<UnprocessedMedia> {
-  return this.inTransaction(
-    async (userDb: UserScopedConnection): Promise<Media> => {
-      let select = from(userDb.knex, Table.UserCatalog).where({
-        user: this.user,
-        catalog,
-      });
+  await this.checkWrite(Table.Catalog, [catalog]);
 
-      let current = now();
+  let current = now();
+  let id = await mediaId();
 
-      let ids = await insertFromSelect(
-        userDb.knex,
-        Table.Media,
-        select,
-        intoDBTypes({
-          ...buildTimeZoneFields(filterColumns(Table.Media, data)),
-          id: await mediaId(),
-          catalog: userDb.connection.ref(ref(Table.UserCatalog, "catalog")),
-          created: current,
-          updated: current,
-          deleted: false,
-        }),
-      ).returning("id");
+  await insert(this.knex, Table.Media, intoDBTypes({
+    ...buildTimeZoneFields(filterColumns(Table.Media, data)),
+    id,
+    catalog,
+    created: current,
+    updated: current,
+    deleted: false,
+  })).returning("id");
 
-      if (!ids.length) {
-        throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
-      }
+  let results = await this.getMedia([id]);
+  if (!results[0]) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
+  }
 
-      let results = await userDb.getMedia(ids);
-      if (!results[0]) {
-        throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Media record.");
-      }
+  return results[0];
+});
 
-      return results[0];
-    },
-  );
-}
-
-export async function editMedia(
+export const editMedia = inUserTransaction(async function editMedia(
   this: UserScopedConnection,
   id: Tables.Media["id"],
   data: Partial<Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">>,
 ): Promise<Media> {
-  return this.inTransaction(
-    async (userDb: UserScopedConnection): Promise<Media> => {
-      let catalogs = from(userDb.knex, Table.UserCatalog)
-        .where("user", userDb.user)
-        .select("catalog");
+  await this.checkWrite(Table.Media, [id]);
 
-      let updateCount = await update(
-        Table.Media,
-        userDb.knex.where("id", id).where("catalog", "in", catalogs),
-        intoDBTypes({
-          ...buildTimeZoneFields(filterColumns(Table.Media, data)),
-          updated: now(),
-          deleted: false,
-        }),
-      );
-
-      if (updateCount == 0) {
-        throw new DatabaseError(DatabaseErrorCode.MissingValue, "No matching media record.");
-      }
-
-      let edited = (await userDb.getMedia([id]))[0];
-      if (!edited) {
-        throw new DatabaseError(
-          DatabaseErrorCode.UnknownError,
-          "Failed to find edited Media record.",
-        );
-      }
-
-      return edited;
-    },
+  await update(
+    Table.Media,
+    this.knex.where("id", id),
+    intoDBTypes({
+      ...buildTimeZoneFields(filterColumns(Table.Media, data)),
+      updated: now(),
+      deleted: false,
+    }),
   );
-}
+
+  let edited = (await this.getMedia([id]))[0];
+  if (!edited) {
+    throw new DatabaseError(
+      DatabaseErrorCode.UnknownError,
+      "Failed to find edited Media record.",
+    );
+  }
+
+  return edited;
+});
 
 export async function getMedia(
   this: UserScopedConnection,
   ids: Tables.StoredMedia["id"][],
 ): Promise<(Media | null)[]> {
-  let foundMedia = await from(this.knex, Table.StoredMediaDetail)
-    .join(
-      Table.UserCatalog,
-      ref(Table.UserCatalog, "catalog"),
-      ref(Table.StoredMediaDetail, "catalog"),
-    )
-    .where(ref(Table.UserCatalog, "user"), this.user)
-    .whereIn(ref(Table.StoredMediaDetail, "id"), ids)
-    .select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
-
-  let mapped = foundMedia.map(intoMedia);
-
-  let results: (Media | null)[] = [];
-  for (let id of ids) {
-    results.push(mapped.find((media: Media): boolean => media.id == id) ?? null);
+  if (ids.length == 0) {
+    return [];
   }
 
-  return results;
+  let visible = from(this.knex, Table.StoredMediaDetail)
+    .whereIn(ref(Table.StoredMediaDetail, "catalog"), this.catalogs());
+
+  type Joined = Tables.StoredMedia | AllNull<Tables.StoredMedia>;
+
+  let foundMedia = await this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
+    .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
+    .orderBy("Ids.index")
+    .select<Joined[]>("Visible.*");
+
+  return foundMedia.map((record: Joined) => {
+    if (record.id == null) {
+      return null;
+    }
+    return intoMedia(record);
+  });
 }
 
-export async function listAlternateFiles(
+export const listAlternateFiles = inUserTransaction(async function listAlternateFiles(
   this: UserScopedConnection,
   id: Tables.StoredMedia["id"],
   type: AlternateFileType,
 ): Promise<Tables.AlternateFile[]> {
-  return from(this.knex, Table.AlternateFile).join((builder: Knex.QueryBuilder): void => {
-    void builder.from(Table.Media)
-      .leftJoin(Table.Original, ref(Table.Media, "id"), ref(Table.Original, "media"))
-      .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
-      .orderBy([
-        { column: ref(Table.Original, "media"), order: "asc" },
-        { column: ref(Table.Original, "uploaded"), order: "desc" },
-      ])
-      .where({
-        [ref(Table.UserCatalog, "user")]: this.user,
-        [ref(Table.Media, "deleted")]: false,
-      })
-      .distinctOn(ref(Table.Original, "media"))
-      .select(ref(Table.Original))
-      .as("Uploaded");
-  }, ref(Table.AlternateFile, "original"), "Uploaded.id")
-    .where(ref(Table.AlternateFile, "type"), type)
-    .where("Uploaded.media", id)
-    .select(ref(Table.AlternateFile));
-}
+  await this.checkRead(Table.Media, [id]);
 
-export async function deleteMedia(this: UserScopedConnection, ids: string[]): Promise<void> {
-  let catalogs = from(this.knex, Table.UserCatalog)
-    .where("user", this.user)
-    .select("catalog");
+  return from(this.knex, Table.AlternateFile)
+    .join(Table.Original, ref(Table.Original, "id"), ref(Table.AlternateFile, "original"))
+    .join(Table.Media, ref(Table.Original, "media"), ref(Table.Media, "id"))
+    .where(ref(Table.AlternateFile, "type"), type)
+    .where(ref(Table.Media, "id"), id)
+    .select(ref(Table.AlternateFile));
+});
+
+export const deleteMedia = inUserTransaction(async function deleteMedia(
+  this: UserScopedConnection,
+  ids: string[],
+): Promise<void> {
+  await this.checkWrite(Table.Media, ids);
 
   await update(
     Table.Media,
-    this.knex.whereIn("id", ids).whereIn("catalog", catalogs),
+    this.knex.whereIn("id", ids),
     { deleted: true },
   );
-}
+});

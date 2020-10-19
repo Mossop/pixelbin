@@ -105,7 +105,7 @@ export const table = from;
 export function insert<T extends Table>(
   knex: Knex,
   table: T,
-  data: TableRecord<T> | TableRecord<T>[],
+  data: WithRefs<TableRecord<T>> | WithRefs<TableRecord<T>>[],
 ): QueryBuilder<TableRecord<T>> {
   // @ts-ignore: This is correct.
   let dbData: TableRecord<T>[] = (Array.isArray(data) ? data : [data]).map(intoDBTypes);

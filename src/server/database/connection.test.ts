@@ -1,4 +1,5 @@
 import { now } from "../../utils";
+import { DatabaseConnection } from "./connection";
 import { from, insert, drop, into } from "./queries";
 import { connection, buildTestDB } from "./test-helpers";
 import { Table } from "./types";
@@ -54,8 +55,17 @@ test("Basic database connection", async (): Promise<void> => {
     name: "baz",
   });
 
-  await drop(dbConnection.knex, Table.Catalog).where({ id: "foo" });
+  await expect(
+    dbConnection.inTransaction("inner", async (dbConnection: DatabaseConnection): Promise<void> => {
+      await drop(dbConnection.knex, Table.Catalog).where({ id: "foo" });
+
+      let results = await from(dbConnection.knex, Table.Catalog).select("*");
+      expect(results).toHaveLength(0);
+
+      throw new Error("Made up error");
+    }),
+  ).rejects.toThrow("Made up error");
 
   results = await from(dbConnection.knex, Table.Catalog).select("*");
-  expect(results).toHaveLength(0);
+  expect(results).toHaveLength(1);
 });

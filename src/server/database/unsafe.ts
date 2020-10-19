@@ -1,5 +1,6 @@
 import { MetadataColumns } from "../../model";
 import { DatabaseConnection } from "./connection";
+import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
 import { from, into } from "./queries";
 import {
@@ -34,32 +35,42 @@ export async function withNewOriginal<T>(
   data: Omit<Tables.Original, "id" | "media">,
   operation: (dbConnection: DatabaseConnection, original: OriginalInfo) => Promise<T>,
 ): Promise<T> {
-  return this.inTransaction(async (dbConnection: DatabaseConnection): Promise<T> => {
-    let results = await into(dbConnection.knex, Table.Original).insert({
-      ...intoDBTypes(buildTimeZoneFields(data)),
-      id: await uuid("I"),
-      media,
-    }).returning([
-      "id",
-      "media",
-      "uploaded",
-      "mimetype",
-      "width",
-      "height",
-      "duration",
-      "frameRate",
-      "bitRate",
-      "fileSize",
-      "fileName",
-      ...Object.keys(MetadataColumns),
-    ]) as OriginalInfo[];
+  return this.inTransaction(
+    async function withNewOriginal(dbConnection: DatabaseConnection): Promise<T> {
+      let results: OriginalInfo[];
+      try {
+        results = await into(dbConnection.knex, Table.Original).insert({
+          ...intoDBTypes(buildTimeZoneFields(data)),
+          id: await uuid("I"),
+          media,
+        }).returning([
+          "id",
+          "media",
+          "uploaded",
+          "mimetype",
+          "width",
+          "height",
+          "duration",
+          "frameRate",
+          "bitRate",
+          "fileSize",
+          "fileName",
+          ...Object.keys(MetadataColumns),
+        ]) as OriginalInfo[];
+      } catch (e) {
+        notfound(Table.Media);
+      }
 
-    if (results.length) {
-      return operation(dbConnection, applyTimeZoneFields(intoAPITypes(results[0])));
-    }
+      if (results.length) {
+        return operation(dbConnection, applyTimeZoneFields(intoAPITypes(results[0])));
+      }
 
-    throw new Error("Invalid media ID passed to withNewOriginal");
-  });
+      throw new DatabaseError(
+        DatabaseErrorCode.UnknownError,
+        "Failed to insert OriginalInfo record.",
+      );
+    },
+  );
 }
 
 export async function addAlternateFile(

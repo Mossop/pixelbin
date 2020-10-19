@@ -42,7 +42,7 @@ test("Media tests", async (): Promise<void> => {
   let user3Db = dbConnection.forUser("someone3@nowhere.com");
 
   await expect(user3Db.createMedia("c1", emptyMetadata))
-    .rejects.toThrow("Failed to insert Media record");
+    .rejects.toThrow("Unknown Catalog.");
 
   let createdDT = mockDateTime("2016-01-01T23:35:01Z");
 
@@ -351,7 +351,7 @@ test("Media tests", async (): Promise<void> => {
   await expect(user3Db.createMedia("c1", {
     ...emptyMetadata,
     title: "My title",
-  })).rejects.toThrow("Failed to insert Media record");
+  })).rejects.toThrow("Unknown Catalog.");
 
   newMedia = await user1Db.createMedia("c1", { ...emptyMetadata });
 
@@ -368,7 +368,7 @@ test("Media tests", async (): Promise<void> => {
     processVersion: 5,
     uploaded: now(),
     fileName: "foo.jpg",
-  })).rejects.toThrow("Unknown Media");
+  })).rejects.toThrow("Unknown Media.");
 
   // Cannot get media in a catalog the user cannot access.
   let found = await user3Db.getMedia([newMedia.id]);
@@ -398,8 +398,9 @@ test("Media tests", async (): Promise<void> => {
   ]);
 
   // Cannot list alternates for media the user cannot access.
-  list = await user2Db.listAlternateFiles(id, AlternateFileType.Poster);
-  expect(list).toHaveLength(0);
+  await expect(
+    user2Db.listAlternateFiles(id, AlternateFileType.Poster),
+  ).rejects.toThrow("Unknown Media.");
 
   // Unknown properties should be ignored.
   newMedia = await user1Db.createMedia("c1", {
@@ -498,7 +499,8 @@ test("Media tests", async (): Promise<void> => {
   expect(await countRecords(dbConnection, Table.AlternateFile)).toBe(3);
 
   // Deleting doesn't actually remove from the database.
-  await user3Db.deleteMedia([id, newMedia.id]);
+  await expect(user3Db.deleteMedia([id, newMedia.id])).rejects.toThrow("Unknown Media.");
+  await user3Db.deleteMedia([id]);
 
   let remaining = await user1Db.getMedia([id, newMedia.id]);
   expect(remaining).toEqual([
@@ -514,8 +516,11 @@ test("Media tests", async (): Promise<void> => {
   expect(await countRecords(dbConnection, Table.Original)).toBe(2);
   expect(await countRecords(dbConnection, Table.AlternateFile)).toBe(3);
 
-  await expect(user1Db.listMediaInAlbum("a8", true)).resolves.toHaveLength(0);
-  await expect(user1Db.listAlternateFiles(id, AlternateFileType.Poster)).resolves.toHaveLength(0);
-  await expect(user1Db.listAlternateFiles(id, AlternateFileType.Thumbnail)).resolves
-    .toHaveLength(0);
+  await expect(user1Db.listMediaInAlbum("a8", true)).rejects.toThrow("Unknown Album.");
+  await expect(
+    user1Db.listAlternateFiles(id, AlternateFileType.Poster),
+  ).rejects.toThrow("Unknown Media.");
+  await expect(
+    user1Db.listAlternateFiles(id, AlternateFileType.Thumbnail),
+  ).rejects.toThrow("Unknown Media.");
 });

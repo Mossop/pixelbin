@@ -1,23 +1,47 @@
 import pino, { Bindings, Level, LevelWithSilent } from "pino";
 
-export type Logger = Pick<pino.Logger, Level | "isLevelEnabled"> & {
+type LogMethod = pino.LogFn;
+
+export interface Logger {
+  fatal: LogMethod;
+  error: LogMethod;
+  warn: LogMethod;
+  info: LogMethod;
+  debug: LogMethod;
+  trace: LogMethod;
+  isLevelEnabled: (level: string) => boolean;
   child: (bindings: Bindings) => Logger;
   catch: (promise: Promise<unknown>) => void;
-};
+  setLevel: (level: LevelWithSilent) => void;
+}
 
 function buildLogger(name: string, pinoLogger: pino.Logger): Logger {
-  let child = pinoLogger.child.bind(pinoLogger);
+  let logger = {
+    isLevelEnabled: pinoLogger.isLevelEnabled.bind(pinoLogger),
+    child: (bindings: Bindings): Logger => {
+      return buildLogger(name, pinoLogger.child(bindings));
+    },
+    catch: (promise: Promise<unknown>): void => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      promise.catch((err: any): void => {
+        logger.warn(err, "Unexpected promise rejection.");
+      });
+    },
+    setLevel: (level: LevelWithSilent): void => {
+      pinoLogger["level"] = level;
+    },
+  } as unknown as Logger;
 
-  let logger = pinoLogger as unknown as Logger;
-  logger.child = (bindings: Bindings): Logger => {
-    return buildLogger(name, child(bindings));
-  };
-  logger.catch = (promise: Promise<unknown>): void => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    promise.catch((err: any): void => {
-      logger.warn(err, "Unexpected promise rejection.");
-    });
-  };
+  for (let level of ["fatal", "error", "warn", "info", "debug", "trace"]) {
+    logger[level] = (...args: unknown[]): void => {
+      try {
+        // @ts-ignore: We're just passing along arguments here.
+        pinoLogger[level](...args);
+      } catch (e) {
+        pinoLogger.warn(e, "Failed to log message.");
+      }
+    };
+  }
 
   let loggers = Loggers.get(name);
   loggers?.push(logger);
@@ -62,7 +86,7 @@ export function setLogConfig(config: LevelWithSilent | LogConfig): void {
 
   for (let [name, loggers] of Loggers.entries()) {
     loggers.forEach((logger: Logger): void => {
-      logger["level"] = getLoggerLevel(name);
+      logger.setLevel(getLoggerLevel(name));
     });
   }
 }

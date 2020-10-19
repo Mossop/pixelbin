@@ -9,6 +9,10 @@ import { DateTime as Luxon } from "luxon";
 import { ObjectModel } from "../model";
 import { DateTime, defer, now } from "../utils";
 
+export function sortedIds<T extends { id: string }>(val: T[]): string[] {
+  return val.map((item: { id: string }): string => item.id);
+}
+
 export function waitFor(
   cb: () => boolean,
   timeout: number = 1000,
@@ -324,3 +328,53 @@ export async function getStorageConfig(
   } as Omit<ObjectModel.Storage, "id" | "user">;
 }
 
+type Orderable = null | {
+  id: string;
+};
+function isOrderable(value: unknown): value is Orderable {
+  return typeof value == "object" && (!value || typeof value["id"] == "string");
+}
+
+export function reordered<T>(list: T[]): T[] {
+  if (!list.length) {
+    return list;
+  }
+
+  if (!list.every(isOrderable)) {
+    return list;
+  }
+
+  let result: T[] = list.map((item: T): T => {
+    if (typeof item != "object" || !item) {
+      return item;
+    }
+
+    return Object.fromEntries(
+      Object.entries(item).map(([key, value]: [unknown, unknown]) => {
+        if (Array.isArray(value)) {
+          return [key, reordered(value)];
+        }
+        return [key, value];
+      }),
+    ) as T;
+  });
+
+  // @ts-ignore: We checked this above.
+  result.sort((a: Orderable, b: Orderable): number => {
+    if (!a && !b) {
+      return 0;
+    }
+
+    if (!a) {
+      return -1;
+    }
+
+    if (!b) {
+      return -1;
+    }
+
+    return a.id.localeCompare(b.id);
+  });
+
+  return result;
+}

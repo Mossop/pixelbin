@@ -92,6 +92,7 @@ export function ensureAuthenticatedTransaction<A extends unknown[], R>(
     }
 
     return userDb.inTransaction(
+      cb.name,
       (userDb: UserScopedConnection): Promise<R> => cb(ctx, userDb, ...args),
     );
   };

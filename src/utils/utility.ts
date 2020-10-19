@@ -7,7 +7,11 @@ export type MakeOptionalExcept<T, K extends keyof T> = Partial<Omit<T, K>> & Pic
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type Obj = {};
-export type Func<A extends unknown[] = unknown[], R = unknown> = (...args: A) => R;
+export type Func<
+  A extends unknown[] = unknown[],
+  R = unknown,
+  T = unknown,
+> = (this: T, ...args: A) => R;
 
 export type Primitive = string | number | symbol | undefined | null;
 

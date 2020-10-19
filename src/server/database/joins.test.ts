@@ -1,6 +1,7 @@
 import { emptyMetadata, RelationType } from "../../model";
-import { expect } from "../../test-helpers";
-import { buildTestDB, connection, insertTestData } from "./test-helpers";
+import { expect, reordered, sortedIds } from "../../test-helpers";
+import { buildTestDB, connection, insertTestData, testData } from "./test-helpers";
+import { Table } from "./types";
 import { StoredMedia } from "./types/tables";
 
 buildTestDB();
@@ -58,7 +59,7 @@ test("Album media tests", async (): Promise<void> => {
     media4.id,
   ], [
     "a1",
-  ])).rejects.toThrow("Unknown items passed");
+  ])).rejects.toThrow("Items from multiple catalogs were passed.");
 
   expect(await mediaInAlbum("a1")).toEqual([]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -77,10 +78,14 @@ test("Album media tests", async (): Promise<void> => {
     "a1",
   ]);
 
-  expect(added).toInclude([
-    { media: media1.id, album: "a1" },
-    { media: media2.id, album: "a1" },
-    { media: media3.id, album: "a1" },
+  media1.albums.push(testData[Table.Album][0]);
+  media2.albums.push(testData[Table.Album][0]);
+  media3.albums.push(testData[Table.Album][0]);
+
+  expect(added).toEqual([
+    media1,
+    media2,
+    media3,
   ]);
 
   expect(await mediaInAlbum("a1")).toInclude([
@@ -104,10 +109,10 @@ test("Album media tests", async (): Promise<void> => {
     "a1",
   ]);
 
-  expect(added).toInclude([
-    { media: media1.id, album: "a1" },
-    { media: media2.id, album: "a1" },
-    { media: media3.id, album: "a1" },
+  expect(added).toEqual([
+    media1,
+    media2,
+    media3,
   ]);
 
   expect(await mediaInAlbum("a1")).toInclude([
@@ -123,10 +128,25 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await user1Db.removeMediaRelations(RelationType.Album, [
+  await expect(user1Db.removeMediaRelations(RelationType.Album, [
     media1.id,
     "unknown",
     media4.id,
+  ], [
+    "a1",
+    "a2",
+  ])).rejects.toThrow("Unknown Media.");
+
+  await expect(user1Db.removeMediaRelations(RelationType.Album, [
+    media1.id,
+    media4.id,
+  ], [
+    "a1",
+    "a2",
+  ])).rejects.toThrow("Items from multiple catalogs were passed.");
+
+  await user1Db.removeMediaRelations(RelationType.Album, [
+    media1.id,
   ], [
     "a1",
     "a2",
@@ -166,7 +186,7 @@ test("Album media tests", async (): Promise<void> => {
     media5.id,
   ], [
     "a6",
-  ])).rejects.toThrow("Unknown items passed");
+  ])).rejects.toThrow("Unknown Media.");
 
   expect(await mediaInAlbum("a1")).toEqual([]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -184,10 +204,10 @@ test("Album media tests", async (): Promise<void> => {
     "a6",
   ]);
 
-  expect(added).toInclude([
-    { media: media4.id, album: "a6" },
-    { media: media5.id, album: "a6" },
-  ]);
+  expect(sortedIds(added)).toEqual(sortedIds([
+    media4,
+    media5,
+  ]));
 
   expect(await mediaInAlbum("a1")).toEqual([]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -201,12 +221,12 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a7")).toEqual([]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await user2Db.removeMediaRelations(RelationType.Album, [
+  await expect(user2Db.removeMediaRelations(RelationType.Album, [
     media4.id,
     media5.id,
   ], [
     "a6",
-  ]);
+  ])).rejects.toThrow("Unknown Media.");
 
   expect(await mediaInAlbum("a1")).toEqual([]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -242,7 +262,7 @@ test("Album media tests", async (): Promise<void> => {
     "a2",
     "a6",
     "a7",
-  ])).rejects.toThrow("Unknown items passed");
+  ])).rejects.toThrow("Items from multiple catalogs were passed.");
 
   expect(await mediaInAlbum("a1")).toEqual([]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -261,12 +281,10 @@ test("Album media tests", async (): Promise<void> => {
     "a2",
   ]);
 
-  expect(added).toInclude([
-    { media: media1.id, album: "a1" },
-    { media: media3.id, album: "a1" },
-    { media: media1.id, album: "a2" },
-    { media: media3.id, album: "a2" },
-  ]);
+  expect(sortedIds(added)).toInclude(sortedIds([
+    media1,
+    media3,
+  ]));
 
   added = await user1Db.setMediaRelations(RelationType.Album, [
     media4.id,
@@ -276,12 +294,10 @@ test("Album media tests", async (): Promise<void> => {
     "a7",
   ]);
 
-  expect(added).toInclude([
-    { media: media4.id, album: "a6" },
-    { media: media5.id, album: "a6" },
-    { media: media4.id, album: "a7" },
-    { media: media5.id, album: "a7" },
-  ]);
+  expect(sortedIds(added)).toInclude(sortedIds([
+    media4,
+    media5,
+  ]));
 
   expect(await mediaInAlbum("a1")).toInclude([
     media1.id,
@@ -304,11 +320,23 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  await user1Db.removeMediaRelations(RelationType.Album, [
+  await expect(user1Db.removeMediaRelations(RelationType.Album, [
     media1.id,
     media4.id,
   ], [
     "a1",
+    "a6",
+  ])).rejects.toThrow("Items from multiple catalogs were passed.");
+
+  await user1Db.removeMediaRelations(RelationType.Album, [
+    media1.id,
+  ], [
+    "a1",
+  ]);
+
+  await user1Db.removeMediaRelations(RelationType.Album, [
+    media4.id,
+  ], [
     "a6",
   ]);
 
@@ -339,7 +367,7 @@ test("Album media tests", async (): Promise<void> => {
     "a3",
     "a7",
     "a8",
-  ])).rejects.toThrow("Unknown items");
+  ])).rejects.toThrow("Items from multiple catalogs were passed.");
 
   added = await user1Db.addMediaRelations(RelationType.Album, [
     media2.id,
@@ -348,9 +376,8 @@ test("Album media tests", async (): Promise<void> => {
     "a3",
   ]);
 
-  expect(added).toInclude([
-    { media: media2.id, album: "a2" },
-    { media: media2.id, album: "a3" },
+  expect(sortedIds(added)).toEqual([
+    media2.id,
   ]);
 
   added = await user1Db.addMediaRelations(RelationType.Album, [
@@ -359,8 +386,8 @@ test("Album media tests", async (): Promise<void> => {
     "a7",
   ]);
 
-  expect(added).toInclude([
-    { media: media6.id, album: "a7" },
+  expect(sortedIds(added)).toEqual([
+    media6.id,
   ]);
 
   expect(await mediaInAlbum("a1")).toInclude([
@@ -386,12 +413,18 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  added = await user2Db.setMediaRelations(RelationType.Album, [
+  await expect(user2Db.setMediaRelations(RelationType.Album, [
     media1.id,
     media5.id,
+  ], [])).rejects.toThrow("Unknown Media.");
+
+  added = await user2Db.setMediaRelations(RelationType.Album, [
+    media1.id,
   ], []);
 
-  expect(added).toEqual([]);
+  expect(sortedIds(added)).toEqual([
+    media1.id,
+  ]);
 
   expect(await mediaInAlbum("a1")).toInclude([
     media3.id,
@@ -459,10 +492,9 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  let media = await user2Db.listMediaInAlbum("a7");
-  expect(media).toEqual([]);
+  await expect(user2Db.listMediaInAlbum("a7")).rejects.toThrow("Unknown Album.");
 
-  media = await user1Db.listMediaInAlbum("a1", true);
+  let media = await user1Db.listMediaInAlbum("a1", true);
   expect(media.map(extracted)).toInclude([{
     id: media3.id,
     catalog: "c1",
@@ -919,7 +951,7 @@ test("Person location tests", async (): Promise<void> => {
     media4.id,
   ]);
 
-  expect(media.map(extracted)).toEqual([{
+  expect(reordered(media.map(extracted))).toEqual(reordered([{
     id: media1.id,
     catalog: "c1",
     albums: [],
@@ -978,7 +1010,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [],
-  }]);
+  }]));
 
   await user1Db.setPersonLocations([{
     media: media1.id,

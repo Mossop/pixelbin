@@ -93,7 +93,7 @@ export const createMedia = ensureAuthenticated(
     }
 
     let media = await userDb.inTransaction(
-      async (userDb: UserScopedConnection): Promise<Media> => {
+      async function createMedia(userDb: UserScopedConnection): Promise<Media> {
         let createdMedia = await userDb.createMedia(catalog, {
           ...emptyMetadata,
           ...mediaData,
@@ -186,7 +186,7 @@ export const createMedia = ensureAuthenticated(
   },
 );
 
-export const updateMedia = ensureAuthenticatedTransaction(
+export const updateMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
@@ -206,7 +206,7 @@ export const updateMedia = ensureAuthenticatedTransaction(
     }
 
     let media = await userDb.inTransaction(
-      async (userDb: UserScopedConnection): Promise<Media> => {
+      async function updateMedia(userDb: UserScopedConnection): Promise<Media> {
         let media = await userDb.editMedia(id, mediaData);
 
         if (albums) {
@@ -457,11 +457,11 @@ function isMedia(item: Media | null): item is Media {
 }
 
 export const relations = ensureAuthenticatedTransaction(
-  async (
+  async function setMediaRelations(
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: DeBlobbed<Api.MediaRelationChange[]>,
-  ): Promise<ResponseFor<Api.Media>[]> => {
+  ): Promise<ResponseFor<Api.Media>[]> {
     let media = new Set<string>();
 
     for (let change of data) {
@@ -506,11 +506,11 @@ export const setMediaPeople = ensureAuthenticated(
 );
 
 export const deleteMedia = ensureAuthenticatedTransaction(
-  async (
+  async function deleteMedia(
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: string[],
-  ): Promise<void> => {
+  ): Promise<void> {
     let media = await userDb.getMedia(data);
 
     for (let item of media) {

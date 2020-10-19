@@ -34,7 +34,7 @@ async function main(): Promise<void> {
     let config = await parent.getConfig();
     setLogConfig(config.logConfig);
 
-    let dbConnection = await DatabaseConnection.connect(config.databaseConfig);
+    let dbConnection = await DatabaseConnection.connect("tasks", config.databaseConfig);
     provideService("database", dbConnection);
     events.on("shutdown", () => logger.catch(dbConnection.destroy()));
 

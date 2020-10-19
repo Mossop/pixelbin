@@ -4,15 +4,17 @@ import Knex from "knex";
 import { DateTime as Luxon } from "luxon";
 import { types } from "pg";
 
-import { DateTime, getLogger, Obj } from "../../utils";
+import { DateTime, getLogger, Logger, Obj } from "../../utils";
 import * as CatalogQueries from "./catalog";
-import { DatabaseError, DatabaseErrorCode } from "./error";
+import { DatabaseError, DatabaseErrorCode, notfound, notwritable } from "./error";
 import * as Joins from "./joins";
 import * as MediaQueries from "./media";
+import { from } from "./queries";
 import * as SearchQueries from "./search";
-import { UserRef } from "./types";
+import { ref, Table, TableRecord, UserRef } from "./types";
 import * as Unsafe from "./unsafe";
 import * as UserQueries from "./user";
+import { asTable, Named, TxnFn } from "./utils";
 
 const logger = getLogger("database");
 
@@ -32,6 +34,7 @@ function dateParse(val: string): DateTime {
 
 types.setTypeParser(types.builtins.TIMESTAMPTZ, dateParse);
 types.setTypeParser(types.builtins.TIMESTAMP, dateParse);
+types.setTypeParser(types.builtins.INT8, BigInt);
 
 function wrapped<T, A extends unknown[], R>(
   fn: (this: T, ...args: A) => Promise<R>,
@@ -57,32 +60,122 @@ function wrapped<T, A extends unknown[], R>(
 }
 
 export class DatabaseConnection {
+  public readonly knex: Knex;
+  private inInnerTransaction = false;
+
   private constructor(
-    private readonly _knex: Knex,
-    private readonly _transaction?: Knex.Transaction,
+    private readonly _baseKnex: Knex,
+    public readonly logger: Logger,
+    private _transaction?: Knex.Transaction,
   ) {
+    if (_transaction) {
+      this.knex = _transaction;
+    } else {
+      this.knex = _baseKnex["withUserParams"]({
+        ..._baseKnex["userParams"] ?? {},
+      });
+    }
+
+    this.knex.on("query", this.onQuery);
+    this.knex.on("query-error", this.onQueryError);
+    this.knex.on("query-response", this.onQueryResponse);
   }
+
+  private readonly onQuery = (data: Obj): void => {
+    if (this.inInnerTransaction) {
+      return;
+    }
+
+    this.logger.trace({
+      sql: data["sql"],
+      bindings: data["bindings"],
+    }, "Database query");
+  };
+
+  private readonly onQueryError = (error: Obj, data: Obj): void => {
+    if (this.inInnerTransaction) {
+      return;
+    }
+
+    this.logger.debug({
+      sql: data["sql"],
+      bindings: data["bindings"],
+      error,
+    }, error["detail"]);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly onQueryResponse = (response: any, data: Obj): void => {
+    if (this.inInnerTransaction) {
+      return;
+    }
+
+    let {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      _types,
+      ...result
+    } = response;
+
+    this.logger.trace({
+      sql: data["sql"],
+      bindings: data["bindings"],
+      response: result,
+    }, "Database query response");
+  };
 
   public forUser(user: UserRef): UserScopedConnection {
     return new UserScopedConnection(this, user);
   }
 
-  public inTransaction<T>(
-    transactionFn: (dbConnection: DatabaseConnection) => Promise<T>,
-  ): Promise<T> {
-    if (this._transaction) {
-      return this._transaction.savepoint((trx: Knex.Transaction) => {
-        return transactionFn(new DatabaseConnection(this._knex, trx));
-      });
+  public inTransaction<R>(...args: Named<TxnFn<DatabaseConnection, R>>): Promise<R> {
+    let name: string;
+    let transactionFn: TxnFn<DatabaseConnection, R>;
+    if (args.length == 2) {
+      [name, transactionFn] = args;
     } else {
-      return this._knex.transaction((trx: Knex.Transaction) => {
-        return transactionFn(new DatabaseConnection(this._knex, trx));
-      });
+      transactionFn = args[0];
+      name = transactionFn.name;
     }
-  }
 
-  public get knex(): Knex {
-    return this._transaction ?? this._knex;
+    if (!name) {
+      throw new DatabaseError(DatabaseErrorCode.BadRequest, "Must provide a transaction name.");
+    }
+
+    this.logger.trace({
+      inner: name,
+    }, "Entering transaction.");
+    try {
+      let base = this._transaction ?? this._baseKnex;
+      return base.transaction(async (trx: Knex.Transaction): Promise<R> => {
+        if (this._transaction) {
+          this.inInnerTransaction = true;
+        }
+        try {
+          let result = await transactionFn(new DatabaseConnection(
+            this._baseKnex,
+            this.logger.child({
+              transaction: name,
+            }),
+            trx,
+          ));
+
+          this.inInnerTransaction = false;
+          this.logger.trace({
+            inner: name,
+          }, "Committing transaction.");
+          return result;
+        } catch (e) {
+          this.inInnerTransaction = false;
+          this.logger.trace({
+            inner: name,
+          }, "Rolling back transaction.");
+
+          throw e;
+        }
+      });
+    } finally {
+      this.inInnerTransaction = false;
+    }
   }
 
   public get ref(): Knex.RefBuilder {
@@ -112,7 +205,13 @@ export class DatabaseConnection {
   public readonly createUser = wrapped(UserQueries.createUser);
   public readonly listUsers = wrapped(UserQueries.listUsers);
 
-  public static async connect(config: DatabaseConfig): Promise<DatabaseConnection> {
+  public static async connect(name: string, config: DatabaseConfig): Promise<DatabaseConnection> {
+    let dbLogger = logger.child({
+      connection: name,
+    });
+
+    dbLogger.trace(config, "Connecting to database.");
+
     let schema = process.env.NODE_ENV == "test" ? `test${process.pid}` : undefined;
     let auth = `${config.username}:${config.password}`;
     let host = `${config.host}:${config.port ?? 5432}`;
@@ -128,19 +227,19 @@ export class DatabaseConnection {
       },
       log: {
         warn(message: string): void {
-          logger.warn(message);
+          dbLogger.warn(message);
         },
 
         error(message: string): void {
-          logger.error(message);
+          dbLogger.error(message);
         },
 
         debug(message: string): void {
-          logger.debug(message);
+          dbLogger.debug(message);
         },
 
         deprecate(message: string): void {
-          logger.debug(message);
+          dbLogger.debug(message);
         },
       },
     };
@@ -153,39 +252,21 @@ export class DatabaseConnection {
 
     let knex = Knex(knexConfig);
 
-    knex.on("query", (data: Obj): void => {
-      logger.trace({
-        sql: data["sql"],
-        bindings: data["bindings"],
-      }, "Database query");
-    });
-
-    knex.on("query-error", (error: Obj, data: Obj): void => {
-      logger.debug({
-        sql: data["sql"],
-        bindings: data["bindings"],
-        error,
-      }, error["detail"]);
-    });
-
-    knex.on("query-response", (response: Obj, data: Obj): void => {
-      logger.trace({
-        sql: data["sql"],
-        bindings: data["bindings"],
-        response,
-      }, "Database query response");
-    });
-
-    return new DatabaseConnection(knex);
+    return new DatabaseConnection(knex, dbLogger);
   }
 }
 
 export class UserScopedConnection {
-  public get knex(): Knex {
-    return this.connection.knex;
-  }
+  public readonly logger: Logger;
 
   public constructor(protected connection: DatabaseConnection, public readonly user: UserRef) {
+    this.logger = connection.logger.child({
+      user: this.user,
+    });
+  }
+
+  public get knex(): Knex {
+    return this.connection.knex;
   }
 
   public get ref(): Knex.RefBuilder {
@@ -198,12 +279,120 @@ export class UserScopedConnection {
     return (...args: unknown[]) => this.knex.raw(...args);
   }
 
-  public inTransaction<T>(
-    transactionFn: (connection: UserScopedConnection) => Promise<T>,
-  ): Promise<T> {
-    return this.connection.inTransaction((dbConnection: DatabaseConnection): Promise<T> => {
+  public inTransaction<R>(...args: Named<TxnFn<UserScopedConnection, R>>): Promise<R> {
+    let name: string;
+    let transactionFn: TxnFn<UserScopedConnection, R>;
+    if (args.length == 2) {
+      [name, transactionFn] = args;
+    } else {
+      transactionFn = args[0];
+      name = transactionFn.name;
+    }
+
+    return this.connection.inTransaction(name, (dbConnection: DatabaseConnection): Promise<R> => {
       return transactionFn(dbConnection.forUser(this.user));
     });
+  }
+
+  public async checkRead(table: Table, ids: string[]): Promise<void> {
+    if (ids.length == 0) {
+      return;
+    }
+
+    let counts: {
+      count: number
+    }[];
+
+    if (table == Table.Catalog) {
+      counts = await this.knex(asTable(this.knex, ids, "Ids", "id"))
+        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
+        .where(ref(Table.UserCatalog, "user"), this.user)
+        .select({
+          count: this.raw("CAST(COUNT(*) AS integer)"),
+        });
+    } else {
+      let visible = from(this.knex, table)
+        .whereIn(`${table}.catalog`, this.catalogs());
+
+      if (table == Table.Media) {
+        visible = visible.where(ref(Table.Media, "deleted"), false);
+      }
+
+      counts = await this.knex(asTable(this.knex, ids, "Ids", "id"))
+        .join(visible.as("Visible"), "Ids.id", "Visible.id")
+        .select({
+          count: this.raw("CAST(COUNT(*) AS integer)"),
+        });
+    }
+
+    if (!counts.length || counts[0].count != ids.length) {
+      notfound(table);
+    }
+  }
+
+  public async checkWrite(table: Table, ids: string[]): Promise<void> {
+    if (ids.length == 0) {
+      return;
+    }
+
+    let counts: {
+      writable: number;
+      visible: number;
+    }[];
+
+    if (table == Table.Catalog) {
+      let writable = this.raw("CAST(COUNT(*) FILTER (WHERE ??=true) AS integer)", [
+        ref(Table.UserCatalog, "writable"),
+      ]);
+
+      counts = await this.knex(asTable(this.knex, ids, "Ids", "id"))
+        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
+        .where(ref(Table.UserCatalog, "user"), this.user)
+        .select({
+          visible: this.raw("CAST(COUNT(*) AS integer)"),
+          writable,
+        });
+    } else {
+      let writable = this.raw("CAST(COUNT(*) FILTER (WHERE ??=?) AS integer)", [
+        ref(Table.UserCatalog, "writable"),
+        true,
+      ]);
+
+      let query = this.knex(asTable(this.knex, ids, "Ids", "id"))
+        .join(table, `${table}.id`, "Ids.id")
+        .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), `${table}.catalog`)
+        .where(ref(Table.UserCatalog, "user"), this.user);
+
+      if (table == Table.Media) {
+        query = query.where(ref(Table.Media, "deleted"), false);
+      }
+
+      counts = await query.select({
+        visible: this.raw("CAST(COUNT(*) AS integer)"),
+        writable,
+      });
+    }
+
+    if (!counts.length || counts[0].visible != ids.length) {
+      notfound(table);
+    }
+
+    if (counts[0].writable != ids.length) {
+      notwritable(table);
+    }
+  }
+
+  public catalogs(): Knex.QueryBuilder<TableRecord<Table.UserCatalog>, string> {
+    return from(this.knex, Table.UserCatalog)
+      .where("user", this.user)
+      .select("catalog");
+  }
+
+  public writableCatalogs(): Knex.QueryBuilder<TableRecord<Table.UserCatalog>, string> {
+    return from(this.knex, Table.UserCatalog)
+      .where("user", this.user)
+      .where("writable", true)
+      .select("catalog");
   }
 
   public readonly listStorage = wrapped(CatalogQueries.listStorage);

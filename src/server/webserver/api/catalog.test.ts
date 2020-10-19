@@ -166,10 +166,10 @@ test("Create catalog", async (): Promise<void> => {
     .put("/api/catalog/create")
     .send({
       storage: "s1",
-      name: "Good user",
+      name: "Wrong user",
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   response = await request
     .put("/api/storage/create")
@@ -260,7 +260,7 @@ test("Create catalog", async (): Promise<void> => {
       name: "Inaccessible",
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 });
 
 test("Create album", async (): Promise<void> => {
@@ -344,12 +344,12 @@ test("Create album", async (): Promise<void> => {
       parent: null,
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   expect(response.body).toEqual({
-    code: ErrorCode.InvalidData,
+    code: ErrorCode.NotFound,
     data: {
-      message: expect.stringContaining("Failed to insert Album record."),
+      message: expect.stringContaining("Unknown Catalog."),
     },
   });
 });
@@ -403,12 +403,12 @@ test("Edit album", async (): Promise<void> => {
       name: "New name",
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   expect(response.body).toEqual({
-    code: ErrorCode.InvalidData,
+    code: ErrorCode.NotFound,
     data: {
-      message: expect.stringContaining("Failed to edit Album record."),
+      message: expect.stringContaining("Unknown Album."),
     },
   });
 
@@ -636,12 +636,12 @@ test("Create Tag", async (): Promise<void> => {
       parent: null,
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   expect(response.body).toEqual({
-    code: ErrorCode.InvalidData,
+    code: ErrorCode.NotFound,
     data: {
-      message: expect.stringContaining("Failed to insert Tag record."),
+      message: expect.stringContaining("Unknown Catalog."),
     },
   });
 });
@@ -695,12 +695,12 @@ test("Edit tag", async (): Promise<void> => {
       name: "New name",
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   expect(response.body).toEqual({
-    code: ErrorCode.InvalidData,
+    code: ErrorCode.NotFound,
     data: {
-      message: expect.stringContaining("Failed to edit Tag record."),
+      message: expect.stringContaining("Unknown Tag."),
     },
   });
 
@@ -878,12 +878,12 @@ test("Create Person", async (): Promise<void> => {
       name: "Bad catalog",
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   expect(response.body).toEqual({
-    code: ErrorCode.InvalidData,
+    code: ErrorCode.NotFound,
     data: {
-      message: expect.stringContaining("Failed to insert Person record."),
+      message: expect.stringContaining("Unknown Catalog."),
     },
   });
 });
@@ -937,12 +937,12 @@ test("Edit person", async (): Promise<void> => {
       name: "New name",
     })
     .expect("Content-Type", "application/json")
-    .expect(400);
+    .expect(404);
 
   expect(response.body).toEqual({
-    code: ErrorCode.InvalidData,
+    code: ErrorCode.NotFound,
     data: {
-      message: expect.stringContaining("Failed to edit Person record."),
+      message: expect.stringContaining("Unknown Person."),
     },
   });
 

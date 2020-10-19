@@ -1,11 +1,9 @@
-import Knex from "knex";
-
 import { Api, RelationType } from "../../model";
 import { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
-import { from, insertFromSelect } from "./queries";
-import { ref, Table } from "./types";
-import { rowFromLocation } from "./utils";
+import { drop, from, insert } from "./queries";
+import { Table, Media } from "./types";
+import { inUserTransaction, rowFromLocation } from "./utils";
 
 type List = Table.MediaAlbum | Table.MediaTag | Table.MediaPerson;
 
@@ -27,210 +25,299 @@ export const ITEM_LINK: Record<List, string> = {
   [Table.MediaPerson]: "person",
 };
 
-type Updated<T extends RelationType> =
-  T extends RelationType.Album
-    ? { media: string; album: string; }
-    : T extends RelationType.Tag
-      ? { media: string; tag: string; }
-      : { media: string; person: string; };
+async function getCatalog(
+  userDb: UserScopedConnection,
+  table: Table,
+  ids: string[],
+): Promise<string> {
+  await userDb.checkWrite(table, ids);
 
-export async function addMediaRelations<T extends RelationType>(
-  this: UserScopedConnection,
-  relation: T,
-  media: string[],
-  items: string[],
-): Promise<Updated<T>[]> {
-  let table = RELATION_TABLE[relation];
-
-  // Use a transaction so we can rollback the change if it didn't affect the expected number
-  // of rows.
-  return this.inTransaction(async (userDb: UserScopedConnection): Promise<Updated<T>[]> => {
-    let select = from(userDb.knex, Table.UserCatalog)
-      .join(
-        SOURCE_TABLE[table],
-        ref(Table.UserCatalog, "catalog"),
-        `${SOURCE_TABLE[table]}.catalog`,
-      )
-      .join(Table.Media, ref(Table.UserCatalog, "catalog"), ref(Table.Media, "catalog"))
-      .whereIn(ref(Table.Media, "id"), media)
-      .whereIn(`${SOURCE_TABLE[table]}.id`, items)
-      .where(ref(Table.UserCatalog, "user"), userDb.user);
-
-    // @ts-ignore: Can't figure out the computed property.
-    let insert = insertFromSelect(userDb.knex, table, select, {
-      catalog: userDb.connection.ref(ref(Table.UserCatalog, "catalog")),
-      media: userDb.connection.ref(ref(Table.Media, "id")),
-      [ITEM_LINK[table]]: userDb.connection.ref(`${SOURCE_TABLE[table]}.id`),
-    });
-
-    /**
-     * The update on conflict here is a no-op to allow returning the rows that
-     * were already present but unaltered.
-     */
-    let results = await userDb.connection.raw(`
-      :insert
-      ON CONFLICT (:mediaRef:, :itemRef:) DO
-        UPDATE SET :catalog: = :excludedCatalog:
-      RETURNING :media, :item
-    `, {
-      insert,
-      mediaRef: "media",
-      itemRef: ITEM_LINK[table],
+  let catalogs = await from(userDb.knex, table)
+    .whereIn("id", ids)
+    .distinct({
       catalog: "catalog",
-      excludedCatalog: "excluded.catalog",
-      media: userDb.connection.ref(`${table}.media`),
-      item: userDb.connection.ref(`${table}.${ITEM_LINK[table]}`),
-    });
+    }) as { catalog: string }[];
 
-    let rows = (results.rows ?? []) as Updated<T>[];
+  if (catalogs.length != 1) {
+    throw new DatabaseError(
+      DatabaseErrorCode.BadRequest,
+      "Items from multiple catalogs were passed.",
+    );
+  }
 
-    if (rows.length != media.length * items.length) {
-      throw new DatabaseError(DatabaseErrorCode.MissingRelationship, "Unknown items passed.");
+  return catalogs[0].catalog;
+}
+
+export const addMediaRelations = inUserTransaction(
+  async function addMediaRelations<T extends RelationType>(
+    this: UserScopedConnection,
+    relation: T,
+    media: string[],
+    relations: string[],
+  ): Promise<Media[]> {
+    if (media.length == 0) {
+      return [];
     }
 
-    return rows;
-  });
-}
+    let mediaCatalog = await getCatalog(this, Table.Media, media);
 
-export async function removeMediaRelations<T extends RelationType>(
-  this: UserScopedConnection,
-  relation: T,
-  media: string[],
-  items: string[],
-): Promise<void> {
-  let table = RELATION_TABLE[relation];
+    if (relations.length == 0) {
+      // We know that all of these exist so skip the type check.
+      return this.getMedia(media) as Promise<Media[]>;
+    }
 
-  let catalogs = from(this.knex, Table.UserCatalog)
-    .where(ref(Table.UserCatalog, "user"), this.user)
-    .select("catalog");
+    let table = RELATION_TABLE[relation];
 
-  await from(this.knex, table)
-    .whereIn(`${table}.catalog`, catalogs)
-    .whereIn(`${table}.media`, media)
-    .whereIn(`${table}.${ITEM_LINK[table]}`, items)
-    .delete();
-}
+    let relationCatalog = await getCatalog(this, SOURCE_TABLE[table], relations);
 
-export async function setMediaRelations<T extends RelationType>(
-  this: UserScopedConnection,
-  relation: T,
-  media: string[],
-  relations: string[],
-): Promise<Updated<T>[]> {
-  if (!media.length) {
-    return [];
-  }
+    if (mediaCatalog != relationCatalog) {
+      throw new DatabaseError(
+        DatabaseErrorCode.BadRequest,
+        "addMediaRelations items should all be in the same catalog.",
+      );
+    }
 
-  let table = RELATION_TABLE[relation];
+    let inserts: unknown[] = [];
+    for (let m of media) {
+      for (let i of relations) {
+        inserts.push({
+          catalog: mediaCatalog,
+          media: m,
+          [ITEM_LINK[table]]: i,
+        });
+      }
+    }
 
-  const catalogQuery = (userDb: UserScopedConnection): Knex.QueryBuilder => {
-    return from(userDb.knex, Table.UserCatalog)
-      .where(ref(Table.UserCatalog, "user"), userDb.user)
-      .select("catalog");
-  };
+    // @ts-ignore: Can't really type this.
+    let query = insert(this.knex, table, inserts);
 
-  if (relations.length == 0) {
+    await this.connection.raw(`
+      :query
+      ON CONFLICT (:mediaRef:, :itemRef:) DO NOTHING
+    `, {
+      query,
+      mediaRef: "media",
+      itemRef: ITEM_LINK[table],
+    });
+
+    // We know that all of these exist so skip the type check.
+    return this.getMedia(media) as Promise<Media[]>;
+  },
+);
+
+export const removeMediaRelations = inUserTransaction(
+  async function removeMediaRelations<T extends RelationType>(
+    this: UserScopedConnection,
+    relation: T,
+    media: string[],
+    relations: string[],
+  ): Promise<Media[]> {
+    if (media.length == 0) {
+      return [];
+    }
+
+    let mediaCatalog = await getCatalog(this, Table.Media, media);
+
+    if (relations.length == 0) {
+      // We know that all of these exist so skip the type check.
+      return this.getMedia(media) as Promise<Media[]>;
+    }
+
+    let table = RELATION_TABLE[relation];
+
+    let relationCatalog = await getCatalog(this, SOURCE_TABLE[table], relations);
+
+    if (mediaCatalog != relationCatalog) {
+      throw new DatabaseError(
+        DatabaseErrorCode.BadRequest,
+        "removeMediaRelations items should all be in the same catalog.",
+      );
+    }
+
     await from(this.knex, table)
-      .whereIn(`${table}.catalog`, catalogQuery(this))
       .whereIn(`${table}.media`, media)
-      .delete();
-
-    return [];
-  }
-
-  return this.inTransaction(async (userConnection: UserScopedConnection): Promise<Updated<T>[]> => {
-    await from(this.knex, table)
-      .whereIn(`${table}.catalog`, catalogQuery(this))
-      .whereIn(`${table}.media`, media)
-      .whereNotIn(`${table}.${ITEM_LINK[table]}`, relations)
-      .delete();
-
-    return userConnection.addMediaRelations(relation, media, relations);
-  });
-}
-
-export async function setRelationMedia<T extends RelationType>(
-  this: UserScopedConnection,
-  relation: T,
-  relations: string[],
-  media: string[],
-): Promise<Updated<T>[]> {
-  if (!relations.length) {
-    return [];
-  }
-
-  let table = RELATION_TABLE[relation];
-
-  const catalogQuery = (userDb: UserScopedConnection): Knex.QueryBuilder => {
-    return from(userDb.knex, Table.UserCatalog)
-      .where(ref(Table.UserCatalog, "user"), userDb.user)
-      .select("catalog");
-  };
-
-  if (media.length == 0) {
-    await from(this.knex, table)
-      .whereIn(`${table}.catalog`, catalogQuery(this))
       .whereIn(`${table}.${ITEM_LINK[table]}`, relations)
       .delete();
 
-    return [];
-  }
+    // We know that all of these exist so skip the type check.
+    return this.getMedia(media) as Promise<Media[]>;
+  },
+);
 
-  return this.inTransaction(async (userConnection: UserScopedConnection): Promise<Updated<T>[]> => {
-    await from(this.knex, table)
-      .whereIn(`${table}.catalog`, catalogQuery(this))
+export const setMediaRelations = inUserTransaction(
+  async function setMediaRelations<T extends RelationType>(
+    this: UserScopedConnection,
+    relation: T,
+    media: string[],
+    relations: string[],
+  ): Promise<Media[]> {
+    if (!media.length) {
+      return [];
+    }
+
+    let table = RELATION_TABLE[relation];
+
+    if (relations.length == 0) {
+      await this.checkWrite(Table.Media, media);
+
+      await drop(this.knex, table)
+        .whereIn("media", media);
+
+      // We know that all of these exist so skip the type check.
+      return this.getMedia(media) as Promise<Media[]>;
+    }
+
+    let mediaCatalog = await getCatalog(this, Table.Media, media);
+    let relationCatalog = await getCatalog(this, SOURCE_TABLE[table], relations);
+
+    if (mediaCatalog != relationCatalog) {
+      throw new DatabaseError(
+        DatabaseErrorCode.BadRequest,
+        "setMediaRelations items should all be in the same catalog.",
+      );
+    }
+
+    await drop(this.knex, table)
+      .whereIn(`${table}.media`, media)
+      .whereNotIn(`${table}.${ITEM_LINK[table]}`, relations);
+
+    let inserts: unknown[] = [];
+    for (let m of media) {
+      for (let i of relations) {
+        inserts.push({
+          catalog: mediaCatalog,
+          media: m,
+          [ITEM_LINK[table]]: i,
+        });
+      }
+    }
+
+    // @ts-ignore: Can't really type this.
+    let query = insert(this.knex, table, inserts);
+
+    await this.connection.raw(`
+      :query
+      ON CONFLICT (:mediaRef:, :itemRef:) DO NOTHING
+    `, {
+      query,
+      mediaRef: "media",
+      itemRef: ITEM_LINK[table],
+    });
+
+    // We know that all of these exist so skip the type check.
+    return this.getMedia(media) as Promise<Media[]>;
+  },
+);
+
+export const setRelationMedia = inUserTransaction(
+  async function setRelationMedia<T extends RelationType>(
+    this: UserScopedConnection,
+    relation: T,
+    relations: string[],
+    media: string[],
+  ): Promise<Media[]> {
+    let table = RELATION_TABLE[relation];
+
+    if (media.length == 0) {
+      await this.checkWrite(SOURCE_TABLE[table], relations);
+
+      await drop(this.knex, table)
+        .whereIn(ITEM_LINK[table], relations);
+
+      return [];
+    }
+
+    let mediaCatalog = await getCatalog(this, Table.Media, media);
+
+    if (!relations.length) {
+      // We know that all of these exist so skip the type check.
+      return this.getMedia(media) as Promise<Media[]>;
+    }
+
+    let relationCatalog = await getCatalog(this, SOURCE_TABLE[table], relations);
+
+    if (mediaCatalog != relationCatalog) {
+      throw new DatabaseError(
+        DatabaseErrorCode.BadRequest,
+        "setRelationMedia items should all be in the same catalog.",
+      );
+    }
+
+    await drop(this.knex, table)
       .whereIn(`${table}.${ITEM_LINK[table]}`, relations)
-      .whereNotIn(`${table}.media`, media)
-      .delete();
+      .whereNotIn(`${table}.media`, media);
 
-    return userConnection.addMediaRelations(relation, media, relations);
-  });
-}
+    let inserts: unknown[] = [];
+    for (let m of media) {
+      for (let i of relations) {
+        inserts.push({
+          catalog: mediaCatalog,
+          media: m,
+          [ITEM_LINK[table]]: i,
+        });
+      }
+    }
 
-export async function setPersonLocations(
+    // @ts-ignore: Can't really type this.
+    let query = insert(this.knex, table, inserts);
+
+    await this.connection.raw(`
+      :query
+      ON CONFLICT (:mediaRef:, :itemRef:) DO NOTHING
+    `, {
+      query,
+      mediaRef: "media",
+      itemRef: ITEM_LINK[table],
+    });
+
+    // We know that all of these exist so skip the type check.
+    return this.getMedia(media) as Promise<Media[]>;
+  },
+);
+
+export const setPersonLocations = inUserTransaction(async function setPersonLocations(
   this: UserScopedConnection,
   locations: Api.MediaPersonLocation[],
-): Promise<void> {
-  let bindings: Knex.RawBinding[] = [];
-  for (let location of locations) {
-    bindings.push(location.media, location.person, rowFromLocation(this.knex, location.location));
+): Promise<Media[]> {
+  if (locations.length == 0) {
+    return [];
   }
 
-  let values: string[] = [];
-  values.length = locations.length;
-  values.fill("(?, ?, ?)");
-  bindings.push("Location", "media", "person", "location");
+  let people = locations.map((location: Api.MediaPersonLocation): string => location.person);
+  let media = locations.map((location: Api.MediaPersonLocation): string => location.media);
 
-  let catalogs = from(this.knex, Table.UserCatalog)
-    .where({
-      user: this.user,
-    })
-    .as("Catalogs");
+  let mediaCatalog = await getCatalog(this, Table.Media, media);
+  let personCatalog = await getCatalog(this, Table.Person, people);
 
-  let select = from(this.knex, Table.Media)
-    .rightJoin(
-      this.connection.raw(`(VALUES ${values.join(",")}) AS ?? (??, ??, ??)`, bindings),
-      ref(Table.Media, "id"),
-      "Location.media",
-    )
-    .leftJoin(catalogs, "Catalogs.catalog", ref(Table.Media, "catalog"));
+  if (mediaCatalog != personCatalog) {
+    throw new DatabaseError(
+      DatabaseErrorCode.BadRequest,
+      "setPersonLocations items should all be in the same catalog.",
+    );
+  }
 
-  let insert = insertFromSelect(this.knex, Table.MediaPerson, select, {
-    catalog: this.ref("Catalogs.catalog"),
-    media: this.ref(ref(Table.Media, "id")),
-    person: this.ref("Location.person"),
-    location: this.ref("Location.location"),
-  });
+  let inserts = locations.map((location: Api.MediaPersonLocation): unknown => ({
+    catalog: mediaCatalog,
+    media: location.media,
+    person: location.person,
+    location: rowFromLocation(this.knex, location.location),
+  }));
+
+  // @ts-ignore: Unable to type this.
+  let query = insert(this.knex, Table.MediaPerson, inserts);
 
   await this.connection.raw(`
-      :insert
+      :query
       ON CONFLICT (:mediaRef:, :personRef:) DO
         UPDATE SET :location: = :excludedLocation:
     `, {
-    insert,
+    query,
     mediaRef: "media",
     personRef: "person",
     location: "location",
     excludedLocation: "excluded.location",
   });
-}
+
+  // We know that all of these exist so skip the type check.
+  return this.getMedia(media) as Promise<Media[]>;
+});

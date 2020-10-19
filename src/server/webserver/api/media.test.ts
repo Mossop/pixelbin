@@ -11,7 +11,7 @@ import {
   RelationType,
   Operator,
 } from "../../../model";
-import { expect, mockedFunction, deferCall, mockDateTime } from "../../../test-helpers";
+import { expect, mockedFunction, deferCall, mockDateTime, reordered } from "../../../test-helpers";
 import { now, parseDateTime } from "../../../utils";
 import { connection, insertTestData } from "../../database/test-helpers";
 import { OriginalInfo } from "../../database/unsafe";
@@ -181,8 +181,7 @@ test("Media upload", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  // TODO the people array may come in any order.
-  expect(response.body).toEqual({
+  expect(reordered(response.body)).toEqual({
     ...emptyMetadata,
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.anything(),
@@ -1385,7 +1384,14 @@ test("Media relations", async (): Promise<void> => {
       items: ["t5"],
     }])
     .expect("Content-Type", "application/json")
-    .expect(404);
+    .expect(400);
+
+  expect(response.body).toEqual({
+    code: "invalid-data",
+    data: {
+      message: "Error: addMediaRelations items should all be in the same catalog.",
+    },
+  });
 
   response = await request
     .get("/api/media/get")
