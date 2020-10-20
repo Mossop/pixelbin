@@ -66,7 +66,7 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     let connectTimeout = setTimeout((): void => {
       process.logger.error("Worker process timed out.");
       process.channel.reject(new Error("Worker process connection timed out."));
-    }, options.connectTimeout ?? 2000);
+    }, options.connectTimeout ?? 10000);
 
     let channel = await process.channel.promise;
     clearTimeout(connectTimeout);

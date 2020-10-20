@@ -154,7 +154,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
     this.logger = options.logger ?? logger;
 
     this.options = Object.assign({
-      timeout: 2000,
+      timeout: 5000,
     }, options);
   }
 
