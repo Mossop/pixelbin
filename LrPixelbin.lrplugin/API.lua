@@ -359,7 +359,7 @@ function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
     end
   end
 
-  local dimensions = photo:getRawMetadata("dimensions")
+  local dimensions = photo:getRawMetadata("croppedDimensions")
   if exifdata.RegionAppliedToDimensionsW == dimensions.width and
      exifdata.RegionAppliedToDimensionsH == dimensions.height and
      exifdata.RegionAppliedToDimensionsUnit == "pixel" and
