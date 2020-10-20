@@ -239,7 +239,12 @@ function API:createAlbum(album)
   body = body .. "\"catalog\": " .. json.encode(album.catalog)
   body = body .. "}"
 
-  return self:POST("album/create", body)
+  local success, result = self:POST("album/create", body)
+  if success then
+    table.insert(self.albums, result)
+  end
+
+  return success, result
 end
 
 function API:editAlbum(album)
@@ -253,7 +258,16 @@ function API:editAlbum(album)
   body = body .. "\"id\": " .. json.encode(album.id)
   body = body .. "}"
 
-  return self:POST("album/edit", body)
+  local success, result = self:POST("album/edit", body)
+  if success then
+    for i, album in ipairs(self.albums) do
+      if album.id == result.id then
+        self.albums[i] = result
+      end
+    end
+  end
+
+  return success, result
 end
 
 function API:deleteAlbum(album)
@@ -475,6 +489,20 @@ function API:getAlbumsWithParent(catalog, parent)
   end
 
   return albums
+end
+
+function API:getOrCreateChildAlbum(catalog, parent, name)
+  for _, album in ipairs(self:getAlbumsWithParent(catalog, parent)) do
+    if string.lower(album.name) == string.lower(name) then
+      return true, album
+    end
+  end
+
+  return self:createAlbum({
+    name = name,
+    parent = parent,
+    catalog = catalog,
+  })
 end
 
 local instances = { }

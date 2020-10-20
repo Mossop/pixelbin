@@ -1,7 +1,8 @@
 local LrView = import "LrView"
 local LrDialogs = import "LrDialogs"
-local LrErrors = import "LrErrors"
+local LrApplication = import "LrApplication"
 local LrColor = import "LrColor"
+local LrPathUtils = import "LrPathUtils"
 
 local bind = LrView.bind
 
@@ -51,6 +52,41 @@ function Provider.canAddCommentsToService(publishSettings)
 end
 
 ------------------------ Actions
+
+local function getCatalogFolderPath(path)
+  local catalog = LrApplication.activeCatalog()
+  local folders = catalog:getFolders()
+
+  local parts = { }
+  while path do
+    for _, folder in ipairs(folders) do
+      if folder:getPath() == path then
+        table.insert(parts, 1, LrPathUtils.leafName(path))
+        return parts
+      end
+    end
+
+    table.insert(parts, 1, LrPathUtils.leafName(path))
+    path = LrPathUtils.parent(path)
+  end
+
+  logger:warn("Found no root folder for photo", path)
+  return { }
+end
+
+local function getFilesystemPath(path)
+  local parts = { }
+
+  local leaf = LrPathUtils.leafName(path)
+  path = LrPathUtils.parent(path)
+  while path do
+    table.insert(parts, 1, leaf)
+    leaf = LrPathUtils.leafName(path)
+    path = LrPathUtils.parent(path)
+  end
+
+  return parts
+end
 
 function Provider.getCollectionBehaviorInfo(publishSettings)
   local api = API(publishSettings)
@@ -151,6 +187,9 @@ function Provider.processRenderedPhotos(context, exportContext)
   local exportSession = exportContext.exportSession
   local publishSettings = exportContext.propertyTable
   local collection = exportContext.publishedCollection
+  local collectionInfo = collection:getCollectionInfoSummary()
+  local subalbums = collectionInfo.collectionSettings.subalbums
+  local pathstrip = collectionInfo.collectionSettings.pathstrip
 
   local catalog = publishSettings.catalog
   local album = collection:getRemoteId()
@@ -177,6 +216,8 @@ function Provider.processRenderedPhotos(context, exportContext)
   })
 
   local api = API(publishSettings)
+
+  local targetAlbums = {}
 
   -- First we scan through and find any known ID for each rendition.
 
@@ -225,6 +266,48 @@ function Provider.processRenderedPhotos(context, exportContext)
   for i, info in ipairs(renditions) do
     progressScope:setPortionComplete((i - 1) / photoCount)
 
+    local targetAlbum = album
+
+    if subalbums ~= "none" then
+      local photoPath = LrPathUtils.parent(info.rendition.photo:getRawMetadata("path"))
+
+      targetAlbum = targetAlbums[photoPath]
+      if not targetAlbum then
+        local parts = {}
+        if subalbums == "catalog" then
+          parts = getCatalogFolderPath(photoPath)
+        else
+          parts = getFilesystemPath(photoPath)
+        end
+
+        local strip = pathstrip
+        while strip > 0 do
+          table.remove(parts, 1)
+          strip = strip - 1
+        end
+
+        local success
+        local failed = false
+        targetAlbum = album
+        for _, part in ipairs(parts) do
+          success, targetAlbum = api:getOrCreateChildAlbum(catalog, targetAlbum, part)
+          if not success then
+            info.rendition:uploadFailed(targetAlbum.name)
+            failed = true
+            break
+          else
+            targetAlbum = targetAlbum.id
+          end
+        end
+
+        if failed then
+          break
+        end
+
+        targetAlbums[photoPath] = targetAlbum
+      end
+    end
+
     local success, pathOrMessage = info.rendition:waitForRender()
     progressScope:setPortionComplete((i - 1) / photoCount)
 
@@ -233,14 +316,14 @@ function Provider.processRenderedPhotos(context, exportContext)
     end
 
     if success then
-      local success, result = api:upload(info.rendition.photo, catalog, album, pathOrMessage, info.remoteId, info.inAlbum)
+      local success, result = api:upload(info.rendition.photo, catalog, targetAlbum, pathOrMessage, info.remoteId, info.inAlbum)
       if success then
         local remoteId = result.id
         local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/" .. remoteId
 
-        if album then
-          info.rendition:recordPublishedPhotoId(album .. "/" .. remoteId)
-          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. album .. "/media/" .. remoteId)
+        if targetAlbum then
+          info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
+          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. targetAlbum .. "/media/" .. remoteId)
           Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
             defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
           end)
@@ -599,11 +682,13 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
 
   if not info.name then
     info.collectionSettings.parent = catalog.id
+    info.collectionSettings.subalbums = "none"
+    info.collectionSettings.pathstrip = 0
   end
 
-  local tbl = {
+  local albumTbl = {
     fill_horizontal = 1,
-    title = LOC "$$$/LrPixelBin/Collection/Title=Store album in:",
+    title = LOC "$$$/LrPixelBin/Collection/Album=Store album in:",
     bind_to_object = info.collectionSettings,
 
     f:row {
@@ -628,7 +713,7 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
 
     for _, album in ipairs(albums) do
       if album.id ~= remote then
-        table.insert(tbl, f:row {
+        table.insert(albumTbl, f:row {
           fill_horizontal = 1,
           spacing = f:label_spacing(),
           margin_left = (depth + 1) * 20,
@@ -647,7 +732,135 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
 
   addRowsForAlbums(nil, 0)
 
-  return f:group_box(tbl)
+  local subTbl = {
+    fill_horizontal = 1,
+    title = LOC "$$$/LrPixelBin/Collection/Path=Create inner albums?:",
+    bind_to_object = info.collectionSettings,
+  }
+
+  local currentCatalog = LrApplication.activeCatalog()
+  local photo = currentCatalog:getTargetPhoto()
+
+  if photo then
+    local photoPath = photo:getRawMetadata("path")
+    local basePath = LrPathUtils.parent(photoPath)
+    local filename = LrPathUtils.leafName(photoPath)
+    local catalogPath = getCatalogFolderPath(basePath)
+    local filesystemPath = getFilesystemPath(basePath)
+
+    local function buildExample()
+      local path
+      if info.collectionSettings.subalbums == "none" then
+        path = {}
+      else
+        if info.collectionSettings.subalbums == "catalog" then
+          path = Utils.shallowClone(catalogPath)
+        elseif info.collectionSettings.subalbums == "custom" then
+          path = Utils.shallowClone(filesystemPath)
+        end
+
+        local strip = info.collectionSettings.pathstrip
+        while strip > 0 do
+          table.remove(path, 1)
+          strip = strip - 1
+        end
+      end
+
+      table.insert(path, filename)
+      info.collectionSettings.example = table.concat(path, " / ")
+    end
+
+    info.collectionSettings:addObserver("subalbums", buildExample)
+    info.collectionSettings:addObserver("pathstrip", buildExample)
+
+    buildExample()
+
+    table.insert(subTbl, f:row {
+      fill_horizontal = 1,
+      spacing = f:label_spacing(),
+
+      f:static_text {
+        title = LOC "$$$/LrPixelBin/Collection/Example=Result:",
+      },
+
+      f:static_text {
+        fill_horizontal = 1,
+        title = bind "example",
+      },
+    })
+  end
+
+  table.insert(subTbl, f:row {
+    fill_horizontal = 1,
+    spacing = f:label_spacing(),
+
+    f:radio_button {
+      title = LOC "$$$/LrPixelBin/Collection/NoSub=Put all media in the chosen album.",
+      value = bind "subalbums",
+      checked_value = "none",
+    },
+  })
+
+  table.insert(subTbl, f:row {
+    fill_horizontal = 1,
+    spacing = f:label_spacing(),
+
+    f:radio_button {
+      title = LOC "$$$/LrPixelBin/Collection/DefaultSub=Create inner albums to match catalog folders.",
+      value = bind "subalbums",
+      checked_value = "catalog",
+    },
+  })
+
+  table.insert(subTbl, f:row {
+    fill_horizontal = 1,
+    spacing = f:label_spacing(),
+
+    f:radio_button {
+      title = LOC "$$$/LrPixelBin/Collection/CustomSub=Use the filesystem path:",
+      value = bind "subalbums",
+      checked_value = "custom",
+    },
+  })
+
+  table.insert(subTbl, f:row {
+    fill_horizontal = 1,
+    margin_left = 20,
+    spacing = f:label_spacing(),
+
+    f:static_text {
+      title = LOC "$$$/LrPixelBin/Collection/SubStrip=Strip leading path components:",
+      enabled = bind {
+        key = "subalbums",
+        transform = function(value)
+          return value ~= "none"
+        end,
+      }
+    },
+
+    f:edit_field {
+      width_in_digits = 3,
+      min = 0,
+      precision = 0,
+      immediate = true,
+      value = bind "pathstrip",
+      enabled = bind {
+        key = "subalbums",
+        transform = function(value)
+          return value ~= "none"
+        end,
+      }
+    },
+  })
+
+  return f:column {
+    fill_horizontal = 1,
+    spacing = f:control_spacing(),
+
+    f:group_box(albumTbl),
+
+    f:group_box(subTbl)
+  }
 end
 
 return Provider

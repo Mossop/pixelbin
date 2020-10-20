@@ -87,4 +87,12 @@ function Utils.getDefaultCollection(publishService)
   return nil
 end
 
+function Utils.shallowClone(tbl)
+  local result = {}
+  for k, v in pairs(tbl) do
+    result[k] = v
+  end
+  return result
+end
+
 return Utils

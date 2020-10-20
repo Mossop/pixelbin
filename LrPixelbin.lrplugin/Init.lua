@@ -17,9 +17,4 @@ Utils.runAsync(logger, "Init", function()
       api:login()
     end
   end
-
-  local folders = LrApplication.activeCatalog():getFolders()
-  for _, folder in ipairs(folders) do
-    logger:trace(folder:getPath(), folder:getParent() == nil)
-  end
 end)
