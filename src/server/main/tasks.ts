@@ -42,10 +42,10 @@ export class TaskManager extends Service {
   public static async init(): Promise<void> {
     let config = await services.config;
     let taskManager = new TaskManager({
-      databaseConfig: config.database,
-      logConfig: config.logConfig,
       taskWorkerPackage: config.taskWorkerPackage,
-      storageConfig: config.storageConfig,
+      database: config.database,
+      logging: config.logging,
+      storage: config.storage,
     });
 
     provideService("taskManager", taskManager);

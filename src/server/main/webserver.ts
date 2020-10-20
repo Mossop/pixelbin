@@ -59,10 +59,11 @@ export class WebserverManager extends Service {
       webserverPackage: config.webserverPackage,
       staticRoot: path.join(config.staticRoot),
       appRoot: path.join(config.clientRoot),
-      databaseConfig: config.database,
+      database: config.database,
+      logging: config.logging,
+      storage: config.storage,
+      cache: config.cache,
       secretKeys: ["Random secret"],
-      logConfig: config.logConfig,
-      storageConfig: config.storageConfig,
     }, await services.taskManager);
 
     provideService("webServers", webServers);

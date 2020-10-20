@@ -29,16 +29,16 @@ async function main(): Promise<void> {
 
     let config = await parent.getConfig();
 
-    setLogConfig(config.logConfig);
+    setLogConfig(config.logging);
 
-    let dbConnection = await DatabaseConnection.connect("webserver", config.databaseConfig);
+    let dbConnection = await DatabaseConnection.connect("webserver", config.database);
     events.on("shutdown", () => logger.catch(shutdown()));
 
     provideService("database", dbConnection);
 
-    provideService("storage", new StorageService(config.storageConfig, dbConnection));
+    provideService("storage", new StorageService(config.storage, dbConnection));
 
-    provideService("cache", Cache.connect({}));
+    provideService("cache", Cache.connect(config.cache));
 
     await buildApp();
   } catch (e) {

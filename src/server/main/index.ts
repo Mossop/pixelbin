@@ -30,7 +30,7 @@ async function startupServers(): Promise<void> {
   await WebserverManager.init();
 
   let config = await services.config;
-  let storage = new StorageService(config.storageConfig, await services.database);
+  let storage = new StorageService(config.storage, await services.database);
   provideService("storage", storage);
 }
 
@@ -43,7 +43,7 @@ async function reprocessUploads(): Promise<void> {
 }
 
 async function startup(config: ServerConfig): Promise<void> {
-  setLogConfig(config.logConfig);
+  setLogConfig(config.logging);
   provideService("config", config);
 
   await initDatabase();

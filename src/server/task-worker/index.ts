@@ -32,13 +32,13 @@ async function main(): Promise<void> {
     provideService("parent", parent);
 
     let config = await parent.getConfig();
-    setLogConfig(config.logConfig);
+    setLogConfig(config.logging);
 
-    let dbConnection = await DatabaseConnection.connect("tasks", config.databaseConfig);
+    let dbConnection = await DatabaseConnection.connect("tasks", config.database);
     provideService("database", dbConnection);
     events.on("shutdown", () => logger.catch(dbConnection.destroy()));
 
-    provideService("storage", new StorageService(config.storageConfig, dbConnection));
+    provideService("storage", new StorageService(config.storage, dbConnection));
   } catch (e) {
     connection.shutdown();
     throw e;

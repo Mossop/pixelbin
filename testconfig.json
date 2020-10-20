@@ -8,6 +8,6 @@
   "cache": {
     "host": "localhost"
   },
-  "logConfig": "debug",
-  "storageConfig": "data/server"
+  "logging": "debug",
+  "storage": "data/server"
 }

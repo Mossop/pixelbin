@@ -6,7 +6,7 @@ import { agent, SuperTest, Test } from "supertest";
 import { Api, ResponseFor } from "../../model";
 import { expect } from "../../test-helpers";
 import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
-import { Cache } from "../cache";
+import { Cache, CacheConfig } from "../cache";
 import { DatabaseConnection } from "../database";
 import { buildTestDB, connection, getTestDatabaseConfig } from "../database/test-helpers";
 import { Tables } from "../database/types";
@@ -36,10 +36,12 @@ export function buildTestApp(
   let server = net.createServer();
   server.listen();
 
-  provideService("cache", Cache.connect({
+  let cacheConfig: CacheConfig = {
     namespace: `test${process.pid}`,
     host: "localhost",
-  }).then(async (cache: Cache): Promise<Cache> => {
+  };
+
+  provideService("cache", Cache.connect(cacheConfig).then(async (cache: Cache): Promise<Cache> => {
     await cache.flush();
     return cache;
   }));
@@ -51,11 +53,12 @@ export function buildTestApp(
         staticRoot: __dirname,
         appRoot: __dirname,
         secretKeys: ["foo"],
-        databaseConfig: getTestDatabaseConfig(),
-        logConfig: {
+        database: getTestDatabaseConfig(),
+        logging: {
           default: "silent",
         },
-        storageConfig,
+        storage: storageConfig,
+        cache: cacheConfig,
       };
     },
 

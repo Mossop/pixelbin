@@ -4,7 +4,7 @@ import session from "koa-session";
 import type { Session } from "../webserver/interfaces";
 
 export interface CacheConfig {
-  host?: string;
+  host: string;
   port?: number;
   namespace?: string;
 }
@@ -44,7 +44,7 @@ export class Cache {
 
   public static async connect(config: CacheConfig): Promise<Cache> {
     let client = createNodeRedisClient({
-      host: config.host ?? "redis",
+      host: config.host,
       port: config.port,
     });
 

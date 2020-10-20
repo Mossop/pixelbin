@@ -3,9 +3,9 @@ import { DatabaseConfig } from "../database";
 import { StorageConfig } from "../storage";
 
 export interface TaskWorkerConfig {
-  databaseConfig: DatabaseConfig;
-  logConfig: LogConfig;
-  storageConfig: StorageConfig;
+  database: DatabaseConfig;
+  logging: LogConfig;
+  storage: StorageConfig;
 }
 
 export interface ParentProcessInterface {

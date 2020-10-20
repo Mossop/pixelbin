@@ -5,6 +5,7 @@ import { Level, LevelWithSilent } from "pino";
 import { JsonDecoder } from "ts.data.json";
 
 import { LogConfig, MappingDecoder, oneOf } from "../../utils";
+import { CacheConfig } from "../cache";
 import { DatabaseConfig } from "../database";
 import { StorageConfig } from "../storage";
 
@@ -17,8 +18,9 @@ export interface ServerConfig {
   webserverPackage: string;
   taskWorkerPackage: string;
   database: DatabaseConfig;
-  logConfig: LogConfig;
-  storageConfig: StorageConfig;
+  logging: LogConfig;
+  storage: StorageConfig;
+  cache: CacheConfig;
 }
 
 interface ConfigFile {
@@ -26,8 +28,9 @@ interface ConfigFile {
   clientRoot: string;
   staticRoot: string;
   database: DatabaseConfig;
-  logConfig: LogConfig;
-  storageConfig: StorageConfig;
+  logging: LogConfig;
+  storage: StorageConfig;
+  cache: CacheConfig;
 }
 
 const LOG_LEVELS = [
@@ -96,13 +99,20 @@ const StorageConfigDecoder = oneOf<StorageConfig>([
   }, "StorageConfig"),
 ], "StorageConfig");
 
+const CacheConfigDecoder = JsonDecoder.object<CacheConfig>({
+  host: JsonDecoder.string,
+  port: JsonDecoder.optional(JsonDecoder.number),
+  namespace: JsonDecoder.optional(JsonDecoder.string),
+}, "CacheConfig");
+
 const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   htmlTemplate: JsonDecoder.string,
   clientRoot: JsonDecoder.string,
   staticRoot: JsonDecoder.string,
   database: DatabaseConfigDecoder,
-  logConfig: LogConfigDecoder,
-  storageConfig: StorageConfigDecoder,
+  logging: LogConfigDecoder,
+  storage: StorageConfigDecoder,
+  cache: CacheConfigDecoder,
 }, "ConfigFile");
 
 export async function loadConfig(configFile: string): Promise<ServerConfig> {
@@ -147,20 +157,20 @@ export async function loadConfig(configFile: string): Promise<ServerConfig> {
     throw new Error(`Failed to parse config file: ${e}`);
   }
 
-  let config = {
+  let config: ServerConfig = {
     webserverPackage: path.join(basedir, "server", "webserver"),
     taskWorkerPackage: path.join(basedir, "server", "task-worker"),
     ...configFileData,
-    storageConfig: {
-      tempDirectory: path.resolve(configRoot, configFileData.storageConfig.tempDirectory),
-      localDirectory: path.resolve(configRoot, configFileData.storageConfig.localDirectory),
+    storage: {
+      tempDirectory: path.resolve(configRoot, configFileData.storage.tempDirectory),
+      localDirectory: path.resolve(configRoot, configFileData.storage.localDirectory),
     },
   };
 
-  await fs.mkdir(config.storageConfig.tempDirectory, {
+  await fs.mkdir(config.storage.tempDirectory, {
     recursive: true,
   });
-  await fs.mkdir(config.storageConfig.localDirectory, {
+  await fs.mkdir(config.storage.localDirectory, {
     recursive: true,
   });
 

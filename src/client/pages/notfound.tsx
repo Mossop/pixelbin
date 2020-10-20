@@ -8,7 +8,7 @@ import { ReactResult } from "../utils/types";
 export default function NotFoundPage(): ReactResult {
   return <Page>
     <Content>
-      <Typography variant="h1">Index</Typography>
+      <Typography variant="h1">Not found</Typography>
     </Content>
   </Page>;
 }
