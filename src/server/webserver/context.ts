@@ -1,10 +1,11 @@
 import { Context } from "koa";
+import session from "koa-session";
 
 import { DatabaseConnection, UserScopedConnection } from "../database";
 import { StorageService } from "../storage";
 import { RemoteInterface } from "../worker";
 import authContext, { AuthContext } from "./auth";
-import { TaskWorkerInterface } from "./interfaces";
+import { Session, TaskWorkerInterface } from "./interfaces";
 import loggingContext, { LoggingContext } from "./logging";
 import Services from "./services";
 
@@ -18,7 +19,9 @@ export type ServicesContext = AuthContext & LoggingContext & {
   readonly dbConnection: DatabaseConnection;
   readonly userDb: UserScopedConnection | null;
 };
-export type AppContext = Context & ServicesContext;
+export type AppContext = Omit<Context, "session"> & ServicesContext & {
+  readonly session: (Session & session.Session) | null;
+};
 
 export async function buildContext(): Promise<DescriptorsFor<ServicesContext>> {
   let storage = await Services.storage;
@@ -32,7 +35,7 @@ export async function buildContext(): Promise<DescriptorsFor<ServicesContext>> {
     userDb: {
       get(this: AppContext): UserScopedConnection | null {
         if (this.user) {
-          return this.dbConnection.forUser(this.user.email);
+          return this.dbConnection.forUser(this.user);
         }
         return null;
       },

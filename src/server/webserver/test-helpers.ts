@@ -6,6 +6,7 @@ import { agent, SuperTest, Test } from "supertest";
 import { Api, ResponseFor } from "../../model";
 import { expect } from "../../test-helpers";
 import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
+import { Cache } from "../cache";
 import { DatabaseConnection } from "../database";
 import { buildTestDB, connection, getTestDatabaseConfig } from "../database/test-helpers";
 import { Tables } from "../database/types";
@@ -14,7 +15,7 @@ import { RemoteInterface } from "../worker";
 import buildApp from "./app";
 import events from "./events";
 import { ParentProcessInterface, WebserverConfig } from "./interfaces";
-import { provideService } from "./services";
+import Services, { provideService } from "./services";
 
 export function buildTestApp(
   parentInterface: Partial<RemoteInterface<ParentProcessInterface>> = {},
@@ -34,6 +35,14 @@ export function buildTestApp(
 
   let server = net.createServer();
   server.listen();
+
+  provideService("cache", Cache.connect({
+    namespace: `test${process.pid}`,
+    host: "localhost",
+  }).then(async (cache: Cache): Promise<Cache> => {
+    await cache.flush();
+    return cache;
+  }));
 
   let parent: RemoteInterface<ParentProcessInterface> = {
     async getConfig(): Promise<WebserverConfig> {
@@ -63,8 +72,12 @@ export function buildTestApp(
 
   provideService("parent", parent);
 
-  afterAll((): Promise<void> => {
+  afterAll(async (): Promise<void> => {
     events.emit("shutdown");
+    await Services.cache.then(async (cache: Cache): Promise<void> => {
+      await cache.flush();
+      await cache.destroy();
+    });
     return new Promise((resolve: Resolver<void>, reject: Rejecter): void => {
       server.close((err: Error | undefined): void => {
         if (err) {

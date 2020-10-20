@@ -5,6 +5,9 @@
     "host": "localhost",
     "database": "pixelbin"
   },
+  "cache": {
+    "host": "localhost"
+  },
   "logConfig": "debug",
   "storageConfig": "data/server"
 }

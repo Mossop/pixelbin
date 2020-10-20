@@ -41,6 +41,7 @@ export default async function buildApp(): Promise<App> {
   let parent = await Services.parent;
   let config = await parent.getConfig();
   let context = await buildContext();
+  let cache = await Services.cache;
 
   const router = new Router<DefaultState, AppContext>();
 
@@ -101,21 +102,22 @@ export default async function buildApp(): Promise<App> {
       });
     })
 
-    .use(session({
-      renew: true,
-    }, app as unknown as Koa))
-
     .use(errorHandler)
-
-    .use(router.routes())
-    .use(mount(APP_PATHS.api, notFound))
-    .use(mount(`${APP_PATHS.root}media/`, notFound))
 
     .use(mount(APP_PATHS.static, serve(config.staticRoot)))
     .use(mount(APP_PATHS.static, notFound))
 
     .use(mount(APP_PATHS.app, serve(config.appRoot)))
     .use(mount(APP_PATHS.app, notFound))
+
+    .use(session({
+      renew: true,
+      store: cache.sessionStore,
+    }, app as unknown as Koa))
+
+    .use(router.routes())
+    .use(mount(APP_PATHS.api, notFound))
+    .use(mount(`${APP_PATHS.root}media/`, notFound))
 
     .use(async (ctx: AppContext): Promise<void> => {
       let state = await buildState(ctx);

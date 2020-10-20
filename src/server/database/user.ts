@@ -1,7 +1,7 @@
 import { hash as bcryptHash, compare as bcryptCompare } from "bcrypt";
 
 import { now } from "../../utils";
-import { DatabaseConnection } from "./connection";
+import { DatabaseConnection, UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insert, update } from "./queries";
 import { Tables, Table, intoAPITypes } from "./types";
@@ -71,4 +71,15 @@ export async function listUsers(
     } = user;
     return rest;
   });
+}
+
+export async function getUser(
+  this: UserScopedConnection,
+): Promise<UserWithoutPassword> {
+  let users = await from(this.knex, Table.User).where({
+    email: this.user,
+  }).select("*");
+
+  let { password, lastLogin, ...rest } = users[0];
+  return intoAPITypes(rest);
 }

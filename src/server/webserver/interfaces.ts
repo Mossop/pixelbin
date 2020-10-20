@@ -23,3 +23,7 @@ export type ParentProcessInterface = TaskWorkerInterface & {
   getServer: () => net.Server;
   getConfig: () => WebserverConfig;
 };
+
+export interface Session {
+  user?: string | null;
+}

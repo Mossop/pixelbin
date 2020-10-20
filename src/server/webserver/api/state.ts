@@ -1,4 +1,5 @@
 import { Api, ResponseFor } from "../../../model";
+import { isoDateTime } from "../../../utils";
 import { Tables } from "../../database/types";
 import { AppContext } from "../context";
 
@@ -7,7 +8,7 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
     return null;
   }
 
-  let userDb = ctx.dbConnection.forUser(ctx.user.email);
+  let userDb = ctx.dbConnection.forUser(ctx.user);
 
   let storage = await userDb.listStorage();
   let apiStores = storage.map((storage: Tables.Storage): Api.Storage => {
@@ -21,8 +22,11 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
     return rest;
   });
 
+  let user = await userDb.getUser();
+
   return {
-    ...ctx.user,
+    ...user,
+    created: isoDateTime(user.created),
     storage: apiStores,
     catalogs: await userDb.listCatalogs(),
     people: await userDb.listPeople(),

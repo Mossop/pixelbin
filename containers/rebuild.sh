@@ -1,5 +1,8 @@
 #! /bin/bash
 
+WORKSPACE=$(cd $(dirname "${BASH_SOURCE[0]:-$0}") && cd .. && pwd | sed -e s/\\/$//g)
+cd $WORKSPACE
+
 if [ -z "$CONTAINER" ]; then
   container=$(docker container ls -q --filter "ancestor=postgres")
   if [ -z "$container" ]; then
@@ -7,16 +10,22 @@ if [ -z "$CONTAINER" ]; then
     exit 1
   fi
 
-  WORKSPACE=$(cd $(dirname "${BASH_SOURCE[0]:-$0}") && cd .. && pwd | sed -e s/\\/$//g)
-  cd $WORKSPACE
-
   rm -f pixelbin.sqlite
+
+  docker-compose -p pixelbin -f ${WORKSPACE}/containers/docker-compose.yml stop minio
+  docker-compose -p pixelbin -f ${WORKSPACE}/containers/docker-compose.yml stop redis
 
   rm -rf data/server/*
   rm -rf data/minio/*
+  rm -rf data/redis/*
+
   mkdir -p data/minio/pixelbin
   mkdir -p data/minio/pixelbin-test
-  docker exec -e PYTHON="${PYTHON}" -it $container /containers/rebuild_db.sh
+
+  ${WORKSPACE}/containers/start.sh
+
+  container=$(docker container ls -q --filter "ancestor=postgres")
+  docker exec -e PYTHON="${PYTHON}" -it $container /containers/rebuild.sh
   gulp migrate
 else
   export PGPASSWORD=pixelbin

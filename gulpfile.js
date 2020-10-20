@@ -228,7 +228,7 @@ exports.migrate = gulp.series(exports.build, async function migrate() {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { DatabaseConnection } = require("./build/server/database");
 
-  let connection = await DatabaseConnection.connect({
+  let connection = await DatabaseConnection.connect("gulp", {
     username: "pixelbin",
     password: "pixelbin",
     host: "localhost",

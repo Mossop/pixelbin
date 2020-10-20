@@ -402,6 +402,7 @@ export class UserScopedConnection {
       .select("catalog");
   }
 
+  public readonly getUser = wrapped(UserQueries.getUser);
   public readonly listStorage = wrapped(CatalogQueries.listStorage);
   public readonly createStorage = wrapped(CatalogQueries.createStorage);
   public readonly listCatalogs = wrapped(CatalogQueries.listCatalogs);

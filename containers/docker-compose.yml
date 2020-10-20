@@ -17,6 +17,18 @@ services:
     ports:
       - 5432:5432
 
+  redis:
+    image: redis
+    restart: unless-stopped
+
+    volumes:
+      - ../data/redis:/data:delegated
+
+    ports:
+      - 6379:6379
+
+    command: redis-server --appendonly yes
+
   pgadmin:
     image: dpage/pgadmin4
     restart: unless-stopped
