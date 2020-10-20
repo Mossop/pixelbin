@@ -19,7 +19,7 @@ export type DeBlobbed<T> = {
   [K in keyof T]: DeBlob<T[K]>;
 };
 
-const logger = getLogger("jsonDecoder");
+const logger = getLogger("webserver/jsonDecoder");
 
 function jsonDecoder<R>(decoder: JsonDecoder.Decoder<R>): Api.RequestDecoder<R> {
   return async (data: unknown, files: Files | undefined): Promise<R> => {

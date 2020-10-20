@@ -18,7 +18,7 @@ interface WorkerRecord<R, L> {
   idleTimeout?: NodeJS.Timeout;
 }
 
-const logger = getLogger("worker.pool");
+const logger = getLogger("worker-pool");
 
 const MAX_BAD_WORKERS = 5;
 
@@ -40,7 +40,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
   private taskCount = 0;
   private runningQueue = false;
   private queue: Task[] = [];
-  private logger: Logger = logger;
+  private logger: Logger;
   public readonly remote: RemoteInterface<R>;
 
   public constructor(
@@ -52,6 +52,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       maxWorkers: options.minWorkers ? options.minWorkers * 2 : 5,
       idleTimeout: 60 * 1000,
     }, options);
+    this.logger = options.logger ?? logger;
 
     if (this.options.maxWorkers < 1) {
       throw new Error("Cannot create a worker pool that allows no workers.");
@@ -75,7 +76,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       },
     }) as RemoteInterface<R>;
 
-    this.logger.debug({
+    this.logger.info({
       minWorkers: this.options.minWorkers,
       maxWorkers: this.options.maxWorkers,
     }, "Created worker pool.");
@@ -99,7 +100,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       return;
     }
 
-    this.logger.debug("Shutting down worker pool.");
+    this.logger.info("Shutting down worker pool.");
 
     this.quitting = true;
 
@@ -109,7 +110,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
     this.queue = [];
 
     for (let record of this.workers.slice(0)) {
-      this.logger.debug({ worker: record.worker.pid }, "Shutting down worker.");
+      this.logger.info({ worker: record.worker.pid }, "Shutting down worker.");
       this.logger.catch(record.worker.kill());
     }
     this.workers = [];
@@ -245,6 +246,9 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       try {
         workerProcess = await WorkerProcess.attach<R, L>({
           ...this.options,
+          logger: this.logger.child({
+            name: this.logger.name + "/worker",
+          }),
           process: await this.options.fork(),
         });
       } catch (e) {
@@ -267,7 +271,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
 
     this.workers.push(record);
 
-    this.logger.debug({
+    this.logger.info({
       workerCount: this.workers.length,
       worker: workerProcess.pid,
     }, "Created new worker.");
@@ -276,7 +280,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       record.idleTimeout = setTimeout((): void => {
         delete record.idleTimeout;
         if (this.workers.length > this.options.minWorkers) {
-          this.logger.debug({ worker: record.worker.pid }, "Shutting down worker due to timeout.");
+          this.logger.info({ worker: record.worker.pid }, "Shutting down worker due to timeout.");
           this.logger.catch(record.worker.kill());
         }
       }, this.options.idleTimeout);

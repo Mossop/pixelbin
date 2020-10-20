@@ -1,6 +1,6 @@
 import { getLogger, Logger } from "../../utils";
 
-const logger = getLogger("task");
+const logger = getLogger("task-worker/task");
 
 type Task<A extends unknown[] = unknown[]> = (logger: Logger, ...args: A) => void | Promise<void>;
 

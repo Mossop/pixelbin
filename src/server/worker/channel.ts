@@ -3,9 +3,9 @@ import net from "net";
 
 import { JsonDecoder } from "ts.data.json";
 
-import { defer, Deferred, getLogger, MakeRequired, oneOf, TypedEmitter } from "../../utils";
+import { defer, Deferred, getLogger, Logger, MakeRequired, oneOf, TypedEmitter } from "../../utils";
 
-const logger = getLogger("worker.channel");
+const logger = getLogger("channel");
 
 type MakePromise<T> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,6 +122,7 @@ interface Call {
 export interface ChannelOptions<L> {
   localInterface?: L,
   timeout?: number;
+  logger?: Logger;
 }
 
 interface EventMap {
@@ -139,6 +140,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
   private closed: boolean;
   private remoteInterface: Deferred<RemoteInterface<R>>;
   private options: MakeRequired<ChannelOptions<L>, "timeout">;
+  private logger: Logger;
 
   private constructor(
     private sendFn: (message: unknown, handle: undefined | SendHandle) => Promise<void>,
@@ -149,6 +151,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
     this.calls = {};
     this.closed = false;
     this.remoteInterface = defer();
+    this.logger = options.logger ?? logger;
 
     this.options = Object.assign({
       timeout: 2000,
@@ -156,7 +159,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
   }
 
   private buildRemoteInterface(methods: string[] | undefined): void {
-    logger.trace({ methods }, "Remote reported methods.");
+    this.logger.trace({ methods }, "Remote reported methods.");
     if (methods == undefined) {
       // @ts-ignore: This can only happen if the remote interface is undefined.
       this.remoteInterface.resolve(undefined);
@@ -175,17 +178,18 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
     send: (message: unknown, handle?: net.Socket | net.Server) => Promise<void>,
     options: ChannelOptions<L> = {},
   ): Channel<R, L> {
-    logger.trace("Creating new channel.");
+    let channelLogger = options.logger ?? logger;
+    channelLogger.trace("Creating new channel.");
 
     let channel = new Channel<R, L>(send, options);
 
     let connectTimeout = setTimeout((): void => {
-      logger.error("Channel connection timed out.");
+      channelLogger.error("Channel connection timed out.");
       channel.remoteInterface.reject(new Error("Channel connection timed out."));
       channel.emit("connection-timeout");
     }, channel.options.timeout);
 
-    logger.catch(channel.remoteInterface.promise.then((): void => {
+    channelLogger.catch(channel.remoteInterface.promise.then((): void => {
       clearTimeout(connectTimeout);
     }, (): void => {
       channel.closed = true;
@@ -199,7 +203,8 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
     send: (message: unknown, handle?: net.Socket | net.Server) => Promise<void>,
     options: ChannelOptions<L> = {},
   ): Channel<R, L> {
-    logger.trace("Connecting to channel.");
+    let channelLogger = options.logger ?? logger;
+    channelLogger.trace("Connecting to channel.");
 
     let channel = new Channel<R, L>(send, options);
     channel.handshake();
@@ -207,18 +212,18 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
   }
 
   private handshake(): void {
-    logger.catch(this.send({
+    this.logger.catch(this.send({
       type: "connect",
       methods: this.options.localInterface ? Object.keys(this.options.localInterface) : undefined,
     }));
 
     let connectTimeout = setTimeout((): void => {
-      logger.error("Channel connection timed out.");
+      this.logger.error("Channel connection timed out.");
       this.remoteInterface.reject(new Error("Channel connection timed out."));
       this.emit("connection-timeout");
     }, this.options.timeout);
 
-    logger.catch(this.remoteInterface.promise.then((): void => {
+    this.logger.catch(this.remoteInterface.promise.then((): void => {
       clearTimeout(connectTimeout);
     }, (): void => {
       this.closed = true;
@@ -235,7 +240,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       return;
     }
 
-    logger.trace("Closing channel.");
+    this.logger.trace("Closing channel.");
     this.closed = true;
     this.emit("close");
 
@@ -250,7 +255,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       return;
     }
 
-    logger.catch(this.send({
+    this.logger.catch(this.send({
       type: "closed",
     }));
 
@@ -265,17 +270,17 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
     let decoded = RemoteCallMessageDecoder.decode(message);
 
     if (decoded.isOk()) {
-      logger.trace({ type: decoded.value.type }, "Message received.");
+      this.logger.trace({ type: decoded.value.type }, "Message received.");
 
       switch (decoded.value.type) {
         case "call":
-          logger.catch(this.localCall(decoded.value));
+          this.logger.catch(this.localCall(decoded.value));
           return;
         case "closed":
           this.innerClose();
           return;
         case "connect":
-          logger.catch(this.send({
+          this.logger.catch(this.send({
             type: "connected",
             methods: this.options.localInterface
               ? Object.keys(this.options.localInterface)
@@ -308,13 +313,13 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
           break;
         case "return":
           if (handle) {
-            logger.trace("Got handle in response.");
+            this.logger.trace("Got handle in response.");
           }
           call.resolve(handle ?? response.return);
           break;
       }
     } else {
-      logger.error("Received invalid message: '%s'.", decoded.error);
+      this.logger.error("Received invalid message: '%s'.", decoded.error);
     }
   }
 
@@ -325,7 +330,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       }
 
       if (!(method in this.options.localInterface)) {
-        logger.error("Remote called an unknown method: '%s'.", method);
+        this.logger.error("Remote called an unknown method: '%s'.", method);
         throw new Error(`Method ${method} does not exist.`);
       }
 
@@ -333,7 +338,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       return this.options.localInterface[method](...args);
     };
 
-    logger.catch(this.send({
+    this.logger.catch(this.send({
       type: "ack",
       id: call.id,
     }));
@@ -342,7 +347,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       let result = await performCall(call.method, call.arguments);
 
       if (result instanceof net.Socket || result instanceof net.Server) {
-        logger.trace("Returning handle.");
+        this.logger.trace("Returning handle.");
         await this.send({
           type: "return",
           id: call.id,
@@ -363,14 +368,14 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
           error,
         });
       } catch (e) {
-        logger.error({ method: call.method }, "Failed to send response from method call.");
+        this.logger.error({ method: call.method }, "Failed to send response from method call.");
         this.close();
       }
     }
   }
 
   private send(message: RemoteCallMessage, handle?: net.Socket | net.Server): Promise<void> {
-    logger.trace({ type: message.type }, "Sending message.");
+    this.logger.trace({ type: message.type }, "Sending message.");
     return this.sendFn(message, handle);
   }
 
@@ -388,7 +393,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       reject,
       timeout: setTimeout((): void => {
         delete call.timeout;
-        logger.error("Call to remote process timed out.");
+        this.logger.error("Call to remote process timed out.");
         reject(new Error("Call to remote process timed out."));
         this.emit("message-timeout", method);
       }, this.options.timeout),

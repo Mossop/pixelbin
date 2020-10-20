@@ -3,6 +3,7 @@ import pino, { Bindings, Level, LevelWithSilent } from "pino";
 type LogMethod = pino.LogFn;
 
 export interface Logger {
+  name: string;
   fatal: LogMethod;
   error: LogMethod;
   warn: LogMethod;
@@ -17,9 +18,11 @@ export interface Logger {
 
 function buildLogger(name: string, pinoLogger: pino.Logger): Logger {
   let logger = {
+    name,
     isLevelEnabled: pinoLogger.isLevelEnabled.bind(pinoLogger),
     child: (bindings: Bindings): Logger => {
-      return buildLogger(name, pinoLogger.child(bindings));
+      let newName = bindings.name ?? name;
+      return buildLogger(newName, pinoLogger.child(bindings));
     },
     catch: (promise: Promise<unknown>): void => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,7 +66,7 @@ const Loggers = new Map<string, Logger[]>();
 
 function getLoggerLevel(loggerName: string): LevelWithSilent {
   for (let [name, level] of Object.entries(Config.levels)) {
-    if (loggerName == name || name.startsWith(loggerName + ".")) {
+    if (loggerName == name || name.startsWith(loggerName + "/")) {
       return level;
     }
   }

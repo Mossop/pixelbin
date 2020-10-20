@@ -20,6 +20,7 @@ async function main(): Promise<void> {
     localInterface: {
       handleUploadedFile,
     },
+    logger,
   });
   let parent = connection.remote;
 

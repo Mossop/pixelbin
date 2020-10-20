@@ -14,7 +14,7 @@ export type WebConfig = WebserverConfig & {
   webserverPackage: string;
 };
 
-const logger = getLogger("webserver-parent");
+const logger = getLogger("webserver-manager");
 
 export class WebserverManager extends Service {
   private readonly server: net.Server;
@@ -40,6 +40,7 @@ export class WebserverManager extends Service {
       localInterface: bound(this.interface, this),
       minWorkers: 4,
       maxWorkers: 8,
+      logger,
       fork: async (): Promise<AbstractChildProcess> => {
         logger.trace("Forking new process.");
         return child_process.fork(config.webserverPackage, [], {

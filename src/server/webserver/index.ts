@@ -21,7 +21,9 @@ async function shutdown(): Promise<void> {
 async function main(): Promise<void> {
   logger.info("Server startup.");
 
-  let connection = await ParentProcess.connect<ParentProcessInterface>();
+  let connection = await ParentProcess.connect<ParentProcessInterface>({
+    logger,
+  });
   try {
     let parent = connection.remote;
     connection.on("disconnect", () => void events.emit("shutdown"));

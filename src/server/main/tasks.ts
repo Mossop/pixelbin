@@ -15,7 +15,7 @@ export type TaskConfig = TaskWorkerConfig & {
   taskWorkerPackage: string;
 };
 
-const logger = getLogger("tasks");
+const logger = getLogger("tasks-manager");
 
 export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
@@ -28,6 +28,7 @@ export class TaskManager extends Service {
       minWorkers: 0,
       maxWorkers: 4,
       maxTasksPerWorker: 3,
+      logger,
       fork: async (): Promise<AbstractChildProcess> => {
         logger.trace("Forking new task worker process.");
         return child_process.fork(config.taskWorkerPackage, [], {

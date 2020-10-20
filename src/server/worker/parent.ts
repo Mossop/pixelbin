@@ -1,7 +1,7 @@
 import { SendHandle, Serializable } from "child_process";
 import { EventEmitter } from "events";
 
-import { defer, getLogger, TypedEmitter, Deferred } from "../../utils";
+import { defer, getLogger, TypedEmitter, Deferred, Logger } from "../../utils";
 import Channel, { RemoteInterface, ChannelOptions } from "./channel";
 import * as IPC from "./ipc";
 
@@ -17,6 +17,7 @@ export type AbstractProcess = EventEmitter & {
 
 export interface ParentProcessOptions<L> extends ChannelOptions<L> {
   process?: AbstractProcess;
+  logger?: Logger;
 }
 
 function getProcess(): AbstractProcess {
@@ -27,7 +28,7 @@ function getProcess(): AbstractProcess {
   throw new Error("Process has no IPC channel.");
 }
 
-const logger = getLogger("worker.parent");
+const logger = getLogger("worker");
 
 /**
  * Provides a communication mechanism back to the main process.
@@ -43,6 +44,7 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
   private disconnected: boolean;
   private channelRemote: Deferred<RemoteInterface<R>>;
   private parentRemote: RemoteInterface<R> | null;
+  private logger: Logger;
 
   private constructor(options: ParentProcessOptions<L>) {
     super();
@@ -50,6 +52,7 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     this.parentRemote = null;
     this.process = options.process ?? getProcess();
     this.channelRemote = defer();
+    this.logger = options.logger ?? logger;
 
     this.process.on("message", this.onMessage);
     this.process.on("disconnect", this.onDisconnect);
@@ -66,7 +69,12 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
           message,
         }, handle);
       },
-      options,
+      {
+        ...options,
+        logger: this.logger.child({
+          name: this.logger.name + "/channel",
+        }),
+      },
     );
 
     this.channel.remote.then((remote: RemoteInterface<R>): void => {
@@ -83,8 +91,8 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       this.shutdown();
     });
 
-    logger.trace("Signalling worker ready.");
-    logger.catch(this.send({
+    this.logger.trace("Signalling worker ready.");
+    this.logger.catch(this.send({
       type: "ready",
     }));
   }
@@ -115,7 +123,7 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
         }
       }
     } else {
-      logger.error("Received invalid message: '%s'.", decoded.error);
+      this.logger.error("Received invalid message: '%s'.", decoded.error);
     }
   };
 
@@ -124,7 +132,7 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       return;
     }
 
-    logger.trace("Worker shutdown");
+    this.logger.info("Worker shutdown");
 
     this.channel.close();
     this.disconnected = true;
@@ -138,12 +146,12 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
   }
 
   private onDisconnect: () => void = (): void => {
-    logger.debug("Parent process disconnected.");
+    this.logger.debug("Parent process disconnected.");
     this.shutdown();
   };
 
   private onError: (err: Error) => void = (err: Error): void => {
-    logger.debug({ error: err }, "Saw error.");
+    this.logger.debug({ error: err }, "Saw error.");
     this.shutdown();
   };
 

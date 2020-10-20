@@ -22,7 +22,7 @@ export interface WorkerProcessOptions<L> extends ChannelOptions<L> {
   process: AbstractChildProcess;
 }
 
-const logger = getLogger("worker.child");
+const logger = getLogger("worker-process");
 
 interface EventMap {
   disconnect: [];
@@ -42,7 +42,7 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     private options: WorkerProcessOptions<L>,
   ) {
     super();
-    this.logger = logger.child({ worker: options.process.pid });
+    this.logger = (options.logger ?? logger).child({ worker: options.process.pid });
     this.workerRemote = null;
 
     this.ready = defer();
@@ -103,7 +103,12 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
         type: "rpc",
         message,
       }, handle);
-    }, this.options);
+    }, {
+      ...this.options,
+      logger: this.logger.child({
+        name: this.logger.name + "/channel",
+      }),
+    });
 
     channel.on("message-call", (): void => {
       this.emit("task-start");

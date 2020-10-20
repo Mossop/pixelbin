@@ -8,6 +8,12 @@
   "cache": {
     "host": "localhost"
   },
-  "logging": "debug",
+  "logging": {
+    "default": "debug",
+    "levels": {
+      "tasks-manager/worker": "info",
+      "webserver-manager/worker": "info"
+    }
+  },
   "storage": "data/server"
 }
