@@ -53,6 +53,9 @@ export default async function buildApp(): Promise<App> {
     router.all(`${APP_PATHS.api}${method}`, koaBody({
       multipart: true,
       parsedMethods: ["POST", "PUT", "PATCH", "DELETE"],
+      formidable: {
+        maxFileSize: 250 * 1024 * 1024,
+      },
     }), apiRequestHandler(method));
   }
 
