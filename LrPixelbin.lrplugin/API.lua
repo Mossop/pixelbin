@@ -47,9 +47,18 @@ function API:parseHTTPResult(response, info)
     }
   end
 
-  local success, str = Utils.jsonEncode(logger, info)
-  if success then
-    logger:error("Unexpected response from server", response, str)
+  local success, result = Utils.jsonDecode(logger, response)
+  if success and result.code then
+    if result.data and result.data.message then
+      return false, {
+        code = result.code,
+        name = result.data.message
+      }
+    end
+    return false, {
+      code = result.code,
+      name = LOC "$$$/LrPixelBin/API/Unknown=An unknown error occured."
+    }
   else
     logger:error("Unexpected response from server", response)
   end
