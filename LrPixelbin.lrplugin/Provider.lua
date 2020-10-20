@@ -268,7 +268,7 @@ function Provider.processRenderedPhotos(context, exportContext)
 
     local targetAlbum = album
 
-    if subalbums ~= "none" then
+    if album and subalbums ~= "none" then
       local photoPath = LrPathUtils.parent(info.rendition.photo:getRawMetadata("path"))
 
       targetAlbum = targetAlbums[photoPath]
