@@ -106,6 +106,26 @@ test("Catalog tests", async (): Promise<void> => {
     testData[Table.Catalog][0],
   ]);
 
+  let edited = await user1Db.editCatalog("c1", {
+    name: "foobar",
+  });
+
+  expect(edited).toEqual({
+    ...testData[Table.Catalog][0],
+    name: "foobar",
+  });
+
+  catalogs = idSorted(await user2Db.listCatalogs());
+  expect(catalogs).toHaveLength(3);
+  expect(catalogs).toInclude([
+    catalog1,
+    catalog2,
+    {
+      ...testData[Table.Catalog][0],
+      name: "foobar",
+    },
+  ]);
+
   await expect(user5Db.createCatalog({
     storage: "s1",
     name: "New catalog",

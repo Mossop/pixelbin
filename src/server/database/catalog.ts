@@ -65,6 +65,31 @@ export const createCatalog = ensureUserTransaction(async function createCatalog(
   return results[0];
 });
 
+export const editCatalog = ensureUserTransaction(async function editCatalog(
+  this: UserScopedConnection,
+  id: Tables.Catalog["id"],
+  data: Partial<Tables.Catalog>,
+): Promise<Tables.Catalog> {
+  await this.checkWrite(Table.Catalog, [id]);
+
+  let {
+    id: removedId,
+    storage: removedStorage,
+    ...catalogUpdateData
+  } = data;
+  let results = await update(
+    Table.Catalog,
+    this.knex.where("id", id),
+    intoDBTypes(catalogUpdateData),
+  ).returning("*");
+
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Catalog record.");
+  }
+
+  return intoAPITypes(results[0]);
+});
+
 export async function listAlbums(this: UserScopedConnection): Promise<Tables.Album[]> {
   let results = await from(this.knex, Table.Album)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))

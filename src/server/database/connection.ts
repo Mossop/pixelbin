@@ -410,22 +410,28 @@ export class UserScopedConnection {
   }
 
   public readonly getUser = wrapped(UserQueries.getUser);
+
   public readonly listStorage = wrapped(CatalogQueries.listStorage);
   public readonly createStorage = wrapped(CatalogQueries.createStorage);
+
   public readonly listCatalogs = wrapped(CatalogQueries.listCatalogs);
   public readonly createCatalog = wrapped(CatalogQueries.createCatalog);
+  public readonly editCatalog = wrapped(CatalogQueries.editCatalog);
   public readonly listMediaInCatalog = wrapped(CatalogQueries.listMediaInCatalog);
+
   public readonly listAlbums = wrapped(CatalogQueries.listAlbums);
   public readonly createAlbum = wrapped(CatalogQueries.createAlbum);
   public readonly editAlbum = wrapped(CatalogQueries.editAlbum);
   public readonly deleteAlbums = wrapped(CatalogQueries.deleteAlbums);
   public readonly listMediaInAlbum = wrapped(CatalogQueries.listMediaInAlbum);
-  public readonly listPeople = wrapped(CatalogQueries.listPeople);
+
   public readonly listTags = wrapped(CatalogQueries.listTags);
   public readonly createTag = wrapped(CatalogQueries.createTag);
   public readonly editTag = wrapped(CatalogQueries.editTag);
   public readonly deleteTags = wrapped(CatalogQueries.deleteTags);
   public readonly buildTags = wrapped(CatalogQueries.buildTags);
+
+  public readonly listPeople = wrapped(CatalogQueries.listPeople);
   public readonly createPerson = wrapped(CatalogQueries.createPerson);
   public readonly editPerson = wrapped(CatalogQueries.editPerson);
   public readonly deletePeople = wrapped(CatalogQueries.deletePeople);
