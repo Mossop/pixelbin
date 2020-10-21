@@ -1,3 +1,4 @@
+import { Operator } from "../../model";
 import { defer } from "../../utils";
 import { DatabaseConfig, DatabaseConnection } from "./connection";
 import { insert } from "./queries";
@@ -115,6 +116,7 @@ export async function insertData(data: Seed): Promise<void> {
   await doInsert(Table.User);
   await doInsert(Table.Storage);
   await doInsert(Table.Catalog);
+  await doInsert(Table.SavedSearch);
   await doInsert(Table.Album);
   await doInsert(Table.Tag);
   await doInsert(Table.Person);
@@ -302,6 +304,56 @@ export const testData = {
     name: "Person 6",
   }],
 
+  [Table.SavedSearch]: [{
+    id: "s1",
+    catalog: "c2",
+    name: "Search 1",
+    query: {
+      type: "field",
+      invert: false,
+      field: "title",
+      modifier: null,
+      operator: Operator.Equal,
+      value: "foo",
+    },
+  }, {
+    id: "s2",
+    catalog: "c1",
+    name: "Search 2",
+    query: {
+      type: "field",
+      invert: false,
+      field: "filename",
+      modifier: null,
+      operator: Operator.Equal,
+      value: "foo",
+    },
+  }, {
+    id: "s3",
+    catalog: "c1",
+    name: "Search 3",
+    query: {
+      type: "field",
+      invert: false,
+      field: "location",
+      modifier: null,
+      operator: Operator.Equal,
+      value: "foo",
+    },
+  }, {
+    id: "s4",
+    catalog: "c3",
+    name: "Search 4",
+    query: {
+      type: "field",
+      invert: false,
+      field: "city",
+      modifier: null,
+      operator: Operator.Equal,
+      value: "foo",
+    },
+  }] as TableRecord<Table.SavedSearch>[],
+
   [Table.SharedCatalog]: [{
     catalog: "c1",
     user: "someone1@nowhere.com",
@@ -318,5 +370,5 @@ export const testData = {
 };
 
 export function insertTestData(): Promise<void> {
-  return insertData(testData);
+  return insertData(testData as Seed);
 }

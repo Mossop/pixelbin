@@ -117,7 +117,7 @@ export function storage(items: Tables.Storage[]): Api.Storage[] {
   });
 }
 
-export function fromCatalogs<T extends Api.Person | Api.Tag | Api.Album>(
+export function fromCatalogs<T extends Api.Person | Api.Tag | Api.Album | Api.SavedSearch>(
   catalogs: string | string[],
   items: T[],
 ): T[] {

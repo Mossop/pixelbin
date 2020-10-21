@@ -4,6 +4,7 @@ import { expect, getStorageConfig } from "../../../test-helpers";
 import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { buildTestApp, expectUserState, fromCatalogs, catalogs, storage } from "../test-helpers";
+import { savedSearchIntoResponse } from "./state";
 
 const agent = buildTestApp();
 
@@ -229,6 +230,7 @@ test("Create catalog", async (): Promise<void> => {
     albums: testData[Table.Album],
     people: testData[Table.Person],
     tags: testData[Table.Tag],
+    searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
   let ourStore = response.body.user.storage[0].id;
@@ -325,6 +327,7 @@ test("Create album", async (): Promise<void> => {
     ],
     people: testData[Table.Person],
     tags: testData[Table.Tag],
+    searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
   await request
@@ -464,6 +467,7 @@ test("Edit album", async (): Promise<void> => {
     albums: albums,
     people: fromCatalogs("c1", testData[Table.Person]),
     tags: fromCatalogs("c1", testData[Table.Tag]),
+    searches: fromCatalogs("c1", testData[Table.SavedSearch]).map(savedSearchIntoResponse),
   });
 });
 
@@ -617,6 +621,7 @@ test("Create Tag", async (): Promise<void> => {
       ...testData[Table.Tag],
       newTag,
     ],
+    searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
   await request
@@ -738,6 +743,7 @@ test("Edit tag", async (): Promise<void> => {
     albums: fromCatalogs("c1", testData[Table.Album]),
     people: fromCatalogs("c1", testData[Table.Person]),
     tags: tags,
+    searches: fromCatalogs("c1", testData[Table.SavedSearch]).map(savedSearchIntoResponse),
   });
 });
 
@@ -860,6 +866,7 @@ test("Create Person", async (): Promise<void> => {
       newPerson,
     ],
     tags: testData[Table.Tag],
+    searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
   await request
@@ -979,5 +986,6 @@ test("Edit person", async (): Promise<void> => {
     albums: fromCatalogs("c1", testData[Table.Album]),
     people: people,
     tags: fromCatalogs("c1", testData[Table.Tag]),
+    searches: fromCatalogs("c1", testData[Table.SavedSearch]).map(savedSearchIntoResponse),
   });
 });

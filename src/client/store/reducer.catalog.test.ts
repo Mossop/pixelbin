@@ -101,6 +101,7 @@ test("catalogCreated", (): void => {
     tags: mapOf({}),
     albums: mapOf({}),
     people: mapOf({}),
+    searches: mapOf({}),
   });
 
   let newState = reducer(state, action);
@@ -114,6 +115,7 @@ test("catalogCreated", (): void => {
         tags: mapOf({}),
         albums: mapOf({}),
         people: mapOf({}),
+        searches: mapOf({}),
       },
     }),
     created: "2020-04-05T12:34:45Z",

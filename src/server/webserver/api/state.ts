@@ -1,7 +1,33 @@
-import { Api, ResponseFor } from "../../../model";
-import { isoDateTime } from "../../../utils";
+import { Api, Query, ResponseFor } from "../../../model";
+import { isoDateTime, isDateTime } from "../../../utils";
 import { Tables } from "../../database/types";
 import { AppContext } from "../context";
+
+function queryIntoResponse(query: Query): ResponseFor<Query> {
+  if (query.type == "field") {
+    if (isDateTime(query.value)) {
+      return {
+        ...query,
+        value: isoDateTime(query.value),
+      };
+    } else {
+      // @ts-ignore: This should be correct.
+      return query;
+    }
+  } else {
+    return {
+      ...query,
+      queries: query.queries.map(queryIntoResponse),
+    };
+  }
+}
+
+export function savedSearchIntoResponse(search: Api.SavedSearch): ResponseFor<Api.SavedSearch> {
+  return {
+    ...search,
+    query: queryIntoResponse(search.query),
+  };
+}
 
 export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> | null> {
   if (!ctx.user) {
@@ -32,6 +58,7 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
     people: await userDb.listPeople(),
     tags: await userDb.listTags(),
     albums: await userDb.listAlbums(),
+    searches: (await userDb.listSavedSearches()).map(savedSearchIntoResponse),
   };
 }
 

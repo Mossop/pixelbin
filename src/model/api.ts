@@ -48,6 +48,7 @@ export type Person = ObjectModel.Person;
 export type MediaPerson = ObjectModel.MediaPerson;
 export type Tag = ObjectModel.Tag;
 export type Location = ObjectModel.Location;
+export type SavedSearch = ObjectModel.SavedSearch;
 
 export interface MediaPersonLocation {
   media: string;
@@ -79,6 +80,7 @@ export type User = Omit<ObjectModel.User, "lastLogin"> & {
   people: Person[],
   tags: Tag[],
   albums: Album[],
+  searches: SavedSearch[],
 };
 
 export interface State {

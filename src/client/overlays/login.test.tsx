@@ -78,6 +78,7 @@ test("login success", async (): Promise<void> => {
       albums: [],
       tags: [],
       people: [],
+      searches: [],
     },
   });
 

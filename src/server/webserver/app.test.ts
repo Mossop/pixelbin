@@ -63,6 +63,7 @@ test("state checks", async (): Promise<void> => {
       albums: testData[Table.Album],
       people: testData[Table.Person],
       tags: testData[Table.Tag],
+      searches: testData[Table.SavedSearch],
     },
   });
 });

@@ -31,6 +31,7 @@ export async function createCatalog(
     albums: new Map(),
     tags: new Map(),
     people: new Map(),
+    searches: new Map(),
   };
 }
 

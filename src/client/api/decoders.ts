@@ -1,7 +1,7 @@
 import { JsonDecoder, Result } from "ts.data.json";
 
 import { Api, Orientation } from "../../model";
-import { DateDecoder, EnumDecoder, oneOf } from "../../utils";
+import { DateDecoder, EnumDecoder, oneOf, QueryDecoder } from "../../utils";
 
 export const PersonDecoder = JsonDecoder.object<Api.Person>(
   {
@@ -58,6 +58,16 @@ export const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
   "Catalog",
 );
 
+export const SavedSearchDecoder = JsonDecoder.object<Api.SavedSearch>(
+  {
+    id: JsonDecoder.string,
+    catalog: JsonDecoder.string,
+    name: JsonDecoder.string,
+    query: QueryDecoder,
+  },
+  "SavedSearch",
+);
+
 export const StorageTestResultDecoder = JsonDecoder.object<Api.StorageTestResult>(
   {
     result: EnumDecoder(JsonDecoder.string, "AWSResult"),
@@ -90,6 +100,7 @@ export const UserDecoder = JsonDecoder.object<Api.User>(
     people: JsonDecoder.array(PersonDecoder, "Person[]"),
     tags: JsonDecoder.array(TagDecoder, "Tag[]"),
     albums: JsonDecoder.array(AlbumDecoder, "Album[]"),
+    searches: JsonDecoder.array(SavedSearchDecoder, "SavedSearch[]"),
   },
   "User",
 );

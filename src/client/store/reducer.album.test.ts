@@ -126,6 +126,7 @@ test("albumCreated", (): void => {
             parent: null,
           },
         }),
+        searches: mapOf({}),
       },
     }),
     created: "2020-04-05T12:34:45Z",
@@ -175,6 +176,7 @@ test("albumCreated", (): void => {
           parent: null,
         },
       }),
+      searches: mapOf({}),
     },
   }));
 
@@ -224,6 +226,7 @@ test("Album edited", (): void => {
             parent: null,
           },
         }),
+        searches: mapOf({}),
       },
     }),
     created: "2020-04-05T12:34:45Z",
@@ -268,6 +271,7 @@ test("Album edited", (): void => {
           parent: null,
         },
       }),
+      searches: mapOf({}),
     },
   }));
 

@@ -55,6 +55,7 @@ test("login and logout", async (): Promise<void> => {
       albums: testData[Table.Album],
       people: testData[Table.Person],
       tags: testData[Table.Tag],
+      searches: testData[Table.SavedSearch],
     },
   });
 
@@ -74,6 +75,7 @@ test("login and logout", async (): Promise<void> => {
       albums: testData[Table.Album],
       people: testData[Table.Person],
       tags: testData[Table.Tag],
+      searches: testData[Table.SavedSearch],
     },
   });
 
@@ -166,6 +168,7 @@ test("signup", async (): Promise<void> => {
       albums: [],
       tags: [],
       people: [],
+      searches: [],
     },
   });
 
@@ -185,6 +188,7 @@ test("signup", async (): Promise<void> => {
       albums: [],
       tags: [],
       people: [],
+      searches: [],
     },
   });
 
@@ -226,6 +230,7 @@ test("signup", async (): Promise<void> => {
       albums: [],
       tags: [],
       people: [],
+      searches: [],
     },
   });
 });

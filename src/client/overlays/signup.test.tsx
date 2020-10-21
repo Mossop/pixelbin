@@ -86,6 +86,7 @@ test("signup success", async (): Promise<void> => {
       albums: [],
       people: [],
       tags: [],
+      searches: [],
     },
   });
 

@@ -10,7 +10,7 @@ import {
 import { expect } from "../../test-helpers";
 import { idSorted, parseDateTime } from "../../utils";
 import { UserScopedConnection } from "./connection";
-import { buildTestDB, connection, insertData, insertTestData } from "./test-helpers";
+import { buildTestDB, connection, insertData, insertTestData, testData } from "./test-helpers";
 import { Table } from "./types";
 
 buildTestDB();
@@ -836,7 +836,12 @@ test("saved searches", async (): Promise<void> => {
   let user3Db = dbConnection.forUser("someone3@nowhere.com");
 
   let searches = await user1Db.listSavedSearches();
-  expect(searches).toEqual([]);
+  expect(searches).toInclude([
+    testData[Table.SavedSearch][0],
+    testData[Table.SavedSearch][1],
+    testData[Table.SavedSearch][2],
+    testData[Table.SavedSearch][3],
+  ]);
 
   let query1: Query = {
     type: "field",
@@ -897,43 +902,64 @@ test("saved searches", async (): Promise<void> => {
   let search2 = search.id;
 
   searches = await user1Db.listSavedSearches();
-  expect(searches).toInclude([{
-    id: search1,
-    catalog: "c1",
-    name: "My search",
-    query: query1,
-  }, {
-    id: search2,
-    catalog: "c2",
-    name: "My other search",
-    query: query2,
-  }]);
+  expect(searches).toInclude([
+    testData[Table.SavedSearch][0],
+    testData[Table.SavedSearch][1],
+    testData[Table.SavedSearch][2],
+    testData[Table.SavedSearch][3],
+    {
+      id: search1,
+      catalog: "c1",
+      name: "My search",
+      query: query1,
+    },
+    {
+      id: search2,
+      catalog: "c2",
+      name: "My other search",
+      query: query2,
+    },
+  ]);
 
   searches = await user3Db.listSavedSearches();
-  expect(searches).toInclude([{
-    id: search2,
-    catalog: "c2",
-    name: "My other search",
-    query: query2,
-  }]);
+  expect(searches).toInclude([
+    testData[Table.SavedSearch][0],
+    testData[Table.SavedSearch][3],
+    {
+      id: search2,
+      catalog: "c2",
+      name: "My other search",
+      query: query2,
+    },
+  ]);
 
   searches = await user2Db.listSavedSearches();
-  expect(searches).toEqual([{
-    id: search1,
-    catalog: "c1",
-    name: "My search",
-    query: query1,
-  }]);
+  expect(searches).toEqual([
+    testData[Table.SavedSearch][1],
+    testData[Table.SavedSearch][2],
+    {
+      id: search1,
+      catalog: "c1",
+      name: "My search",
+      query: query1,
+    },
+  ]);
 
   await expect(user2Db.deleteSavedSearch(search2)).rejects.toThrow("Unknown SavedSearch.");
   await expect(user3Db.deleteSavedSearch(search1)).rejects.toThrow("Unknown SavedSearch.");
 
   await user3Db.deleteSavedSearch(search2);
   searches = await user1Db.listSavedSearches();
-  expect(searches).toEqual([{
-    id: search1,
-    catalog: "c1",
-    name: "My search",
-    query: query1,
-  }]);
+  expect(searches).toEqual([
+    testData[Table.SavedSearch][0],
+    testData[Table.SavedSearch][1],
+    testData[Table.SavedSearch][2],
+    testData[Table.SavedSearch][3],
+    {
+      id: search1,
+      catalog: "c1",
+      name: "My search",
+      query: query1,
+    },
+  ]);
 });

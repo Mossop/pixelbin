@@ -88,6 +88,7 @@ test("Login", async (): Promise<void> => {
         catalog: "cat1",
         parent: null,
       }],
+      searches: [],
     },
   });
 
@@ -143,6 +144,7 @@ test("Login", async (): Promise<void> => {
               parent: null,
             },
           }),
+          searches: mapOf({}),
         },
       }),
     },
@@ -196,6 +198,7 @@ test("Signup", async (): Promise<void> => {
       people: [],
       tags: [],
       albums: [],
+      searches: [],
     },
   });
 

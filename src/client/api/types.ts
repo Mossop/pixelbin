@@ -40,10 +40,14 @@ export type AlbumState = Overwrite<Readonly<ObjectModel.Album>, {
   readonly parent: Reference<Album> | null;
   readonly catalog: Reference<Catalog>;
 }>;
+export type SavedSearchState = Overwrite<Readonly<ObjectModel.SavedSearch>, {
+  readonly catalog: Reference<Catalog>;
+}>;
 export type CatalogState = Overwrite<Readonly<ObjectModel.Catalog>, {
   readonly tags: ReadonlyMapOf<TagState>;
   readonly albums: ReadonlyMapOf<AlbumState>;
   readonly people: ReadonlyMapOf<PersonState>;
+  readonly searches: ReadonlyMapOf<SavedSearchState>;
 }>;
 export type UserState = Overwrite<Readonly<Omit<ObjectModel.User, "created" | "lastLogin">>, {
   readonly created: string;
@@ -113,11 +117,19 @@ export function personIntoState(person: Api.Person): PersonState {
   };
 }
 
+export function searchIntoState(search: Api.SavedSearch): SavedSearchState {
+  return {
+    ...search,
+    catalog: Catalog.ref(search.catalog),
+  };
+}
+
 export function userIntoState(user: Api.User): UserState {
   interface Maps {
     albums: Map<string, AlbumState>;
     tags: Map<string, TagState>;
     people: Map<string, PersonState>;
+    searches: Map<string, SavedSearchState>;
   }
 
   let catalogMaps = new Map<string, Maps>();
@@ -131,12 +143,13 @@ export function userIntoState(user: Api.User): UserState {
       albums: new Map(),
       tags: new Map(),
       people: new Map(),
+      searches: new Map(),
     };
     catalogMaps.set(id, maps);
     return maps;
   };
 
-  let { albums, tags, people, catalogs, ...rest } = user;
+  let { albums, tags, people, searches, catalogs, ...rest } = user;
 
   for (let album of albums) {
     let maps = catalogMap(album.catalog);
@@ -151,6 +164,11 @@ export function userIntoState(user: Api.User): UserState {
   for (let person of people) {
     let maps = catalogMap(person.catalog);
     maps.people.set(person.id, personIntoState(person));
+  }
+
+  for (let search of searches) {
+    let maps = catalogMap(search.catalog);
+    maps.searches.set(search.id, searchIntoState(search));
   }
 
   return {

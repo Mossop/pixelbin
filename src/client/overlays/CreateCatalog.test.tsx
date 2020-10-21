@@ -258,6 +258,7 @@ test("create catalog", async (): Promise<void> => {
       people: mapOf({}),
       tags: mapOf({}),
       albums: mapOf({}),
+      searches: mapOf({}),
     }],
   });
 });
@@ -332,6 +333,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
       people: mapOf({}),
       tags: mapOf({}),
       albums: mapOf({}),
+      searches: mapOf({}),
     }],
   });
 });

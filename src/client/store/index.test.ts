@@ -35,6 +35,7 @@ test("store initialization", async (): Promise<void> => {
       albums: [],
       people: [],
       tags: [],
+      searches: [],
     },
   };
 

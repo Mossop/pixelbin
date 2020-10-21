@@ -81,6 +81,7 @@ test("Create catalog", async (): Promise<void> => {
     people: new Map(),
     tags: new Map(),
     albums: new Map(),
+    searches: new Map(),
   });
 
   let info = callInfo(mockedFetch);

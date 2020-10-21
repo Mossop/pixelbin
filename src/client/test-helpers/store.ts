@@ -14,6 +14,7 @@ import {
   UnprocessedMediaState,
   ProcessedMediaState,
   StorageState,
+  SavedSearchState,
 } from "../api/types";
 import { PageType } from "../pages/types";
 import { provideService } from "../services";
@@ -32,12 +33,16 @@ type MockTag = Overwrite<Omit<TagState, "catalog" | "parent">, {
   id?: string;
   children?: MockTag[];
 }>;
+type MockSavedSearch = Overwrite<Omit<SavedSearchState, "catalog">, {
+  id?: string;
+}>;
 type MockCatalog = Overwrite<CatalogState, {
   storage?: MockStorage | string;
   id?: string;
   albums?: MockAlbum[];
   tags?: MockTag[];
   people?: MockPerson[];
+  searches?: MockSavedSearch[];
 }>;
 
 export function randomId(): string {
@@ -108,6 +113,25 @@ function *iterPeople(
       id,
       catalog,
     };
+  }
+}
+
+function *iterSearches(
+  catalog: Reference<Catalog>,
+  mocks: MockSavedSearch[] | undefined,
+): Iterable<Draft<SavedSearchState>> {
+  if (!mocks) {
+    return;
+  }
+
+  for (let mock of mocks) {
+    let id = mock.id ?? randomId();
+
+    yield {
+      ...mock,
+      id,
+      catalog,
+    } as Draft<SavedSearchState>;
   }
 }
 
@@ -199,6 +223,7 @@ export function mockCatalog(mock: MockCatalog, storage: MapOf<StorageState>): Dr
     albums: intoMap(iterAlbums(ref, null, mock.albums)),
     people: intoMap(iterPeople(ref, mock.people)),
     tags: intoMap(iterTags(ref, null, mock.tags)),
+    searches: intoMap(iterSearches(ref, mock.searches)),
   };
 }
 

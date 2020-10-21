@@ -1,7 +1,7 @@
 import { Api, ResponseFor } from "../../model";
 import { ErrorData } from "../../model/api";
 import { mockedFunction } from "../../test-helpers";
-import { Obj } from "../../utils";
+import { isDateTime, Obj } from "../../utils";
 import { Tag, Reference, Album } from "../api/highlevel";
 import {
   CatalogState,
@@ -14,6 +14,7 @@ import {
   MediaPersonState,
   ProcessedMediaState,
   UnprocessedMediaState,
+  SavedSearchState,
 } from "../api/types";
 import fetch from "../environment/fetch";
 
@@ -187,6 +188,26 @@ export function tagIntoResponse(tag: TagState): Api.Tag {
   return result;
 }
 
+export function searchIntoResponse(search: SavedSearchState): ResponseFor<Api.SavedSearch> {
+  let result: Api.SavedSearch = {
+    ...search,
+    catalog: search.catalog.id,
+  };
+
+  if (result.query.type == "field" && isDateTime(result.query.value)) {
+    return {
+      ...result,
+      query: {
+        ...result.query,
+        value: isoDateTime(result.query.value),
+      },
+    };
+  }
+
+  // @ts-ignore: This is correct.
+  return result;
+}
+
 export function catalogIntoResponse(catalog: CatalogState): Api.Catalog {
   let result: Api.Catalog = {
     ...catalog,
@@ -202,6 +223,7 @@ export function serverDataIntoResponse(serverState: ServerState): ResponseFor<Ap
     let tags: Api.Tag[] = [];
     let people: Api.Person[] = [];
     let catalogs: Api.Catalog[] = [];
+    let searches: ResponseFor<Api.SavedSearch>[] = [];
 
     for (let catalog of serverState.user.catalogs.values()) {
       catalogs.push(catalogIntoResponse(catalog));
@@ -217,6 +239,10 @@ export function serverDataIntoResponse(serverState: ServerState): ResponseFor<Ap
       for (let album of catalog.albums.values()) {
         albums.push(albumIntoResponse(album));
       }
+
+      for (let search of catalog.searches.values()) {
+        searches.push(searchIntoResponse(search));
+      }
     }
 
     user = {
@@ -227,6 +253,7 @@ export function serverDataIntoResponse(serverState: ServerState): ResponseFor<Ap
       people,
       tags,
       albums,
+      searches,
     };
   }
 
