@@ -1066,5 +1066,7 @@ test("purge", async (): Promise<void> => {
     ["media1", "original2"],
     ["media3", "original5"],
     ["media3", "original6"],
+    ["media3"],
+    ["media4"],
   ]);
 });
