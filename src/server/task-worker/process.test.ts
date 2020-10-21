@@ -7,7 +7,7 @@ import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType, emptyMetadata } from "../../model";
 import { mockedFunction, expect, lastCallArgs, mockDateTime } from "../../test-helpers";
-import { setLogConfig, now } from "../../utils";
+import { now } from "../../utils";
 import { parseDateTime } from "../../utils/__mocks__/datetime";
 import { connection, insertTestData, buildTestDB, insertData } from "../database/test-helpers";
 import { Table } from "../database/types";
