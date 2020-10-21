@@ -491,7 +491,7 @@ test("Media tests", async (): Promise<void> => {
   });
 
   expect(await countRecords(dbConnection, Table.Media)).toBe(3);
-  expect(await countRecords(dbConnection, Table.StoredMedia)).toBe(3);
+  expect(await countRecords(dbConnection, Table.StoredMediaDetail)).toBe(3);
   expect(await countRecords(dbConnection, Table.MediaAlbum)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaPerson)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaTag)).toBe(0);
@@ -508,7 +508,7 @@ test("Media tests", async (): Promise<void> => {
     newMedia,
   ]);
 
-  expect(await countRecords(dbConnection, Table.StoredMedia)).toBe(2);
+  expect(await countRecords(dbConnection, Table.StoredMediaDetail)).toBe(2);
   expect(await countRecords(dbConnection, Table.Media)).toBe(3);
   expect(await countRecords(dbConnection, Table.MediaAlbum)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaPerson)).toBe(0);

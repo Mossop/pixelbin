@@ -30,9 +30,11 @@ export type CurrentOriginal = Omit<Original, "id">;
 export type AlternateFile = ObjectModel.AlternateFile;
 
 // A generated view.
-export type StoredMedia = ObjectModel.Media & Metadata & AllOrNulls<
+export type StoredMedia = Media & AllOrNulls<
   Omit<ObjectModel.Original, "id" | "media" | "fileName">
 > & {
   original: string | null;
   fileName: string | null;
-} & ObjectModel.MediaLists;
+};
+
+export type StoredMediaDetail = Omit<StoredMedia, "deleted"> & ObjectModel.MediaLists;

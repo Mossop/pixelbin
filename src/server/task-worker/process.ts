@@ -6,9 +6,10 @@ import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
-import { Logger } from "../../utils";
+import { Logger, RefCounted } from "../../utils";
 import { DatabaseConnection } from "../database";
 import { OriginalInfo } from "../database/unsafe";
+import { Storage } from "../storage";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
 import { parseFile, parseMetadata, getOriginal } from "./metadata";
 import Services from "./services";
@@ -34,6 +35,82 @@ export const MEDIA_THUMBNAIL_SIZES = [
   400,
   500,
 ];
+
+export const purgeDeletedMedia = bindTask(
+  async function purgeDeletedMedia(logger: Logger): Promise<void> {
+    let dbConnection = await Services.database;
+    let storageService = await Services.storage;
+    let cachedStorage: Map<string, RefCounted<Storage>> = new Map();
+
+    try {
+      for (let original of await dbConnection.getUnusedOriginals()) {
+        logger.trace({
+          media: original.media,
+          original: original.id,
+        }, "Purging unused original.");
+
+        let storage = cachedStorage.get(original.catalog);
+        if (!storage) {
+          storage = await storageService.getStorage(original.catalog);
+          cachedStorage.set(original.catalog, storage);
+        }
+
+        for (let alternate of await dbConnection.listAlternateFiles(original.id)) {
+          if (alternate.type == AlternateFileType.Poster ||
+            alternate.type == AlternateFileType.Reencode) {
+            await storage.get().deleteFile(original.media, original.id, alternate.fileName);
+          }
+
+          await dbConnection.deleteAlternateFile(alternate.id);
+        }
+
+        await storage.get().deleteFile(original.media, original.id, original.fileName);
+        await storage.get().deleteLocalFiles(original.media, original.id);
+        await dbConnection.deleteOriginal(original.id);
+      }
+
+      for (let media of await dbConnection.listDeletedMedia()) {
+        let storage = cachedStorage.get(media.catalog);
+        if (!storage) {
+          storage = await storageService.getStorage(media.catalog);
+          cachedStorage.set(media.catalog, storage);
+        }
+
+        if (media.original) {
+          logger.trace({
+            media: media.id,
+            original: media.original,
+          }, "Purging original from deleted media.");
+
+          for (let alternate of await dbConnection.listAlternateFiles(media.original)) {
+            if (alternate.type == AlternateFileType.Poster ||
+            alternate.type == AlternateFileType.Reencode) {
+              await storage.get().deleteFile(media.id, media.original, alternate.fileName);
+            }
+
+            await dbConnection.deleteAlternateFile(alternate.id);
+          }
+
+          if (media.fileName) {
+            await storage.get().deleteFile(media.id, media.original, media.fileName);
+          }
+          await storage.get().deleteLocalFiles(media.id, media.original);
+          await dbConnection.deleteOriginal(media.original);
+        }
+
+        logger.trace({
+          media: media.id,
+        }, "Purging deleted media.");
+        await storage.get().deleteLocalFiles(media.id);
+        await dbConnection.deleteMedia(media.id);
+      }
+    } finally {
+      for (let storage of cachedStorage.values()) {
+        storage.release();
+      }
+    }
+  },
+);
 
 export const handleUploadedFile = bindTask(
   async function handleUploadedFile(logger: Logger, mediaId: string): Promise<void> {

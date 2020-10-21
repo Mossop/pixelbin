@@ -17,8 +17,9 @@ import {
 } from "./types";
 import { filterColumns, ensureUserTransaction, asTable } from "./utils";
 
-export function intoMedia(item: Tables.StoredMedia): Media {
+export function intoMedia(item: Tables.StoredMediaDetail & { deleted?: boolean }): Media {
   let forApi = applyTimeZoneFields(intoAPITypes(item));
+  delete forApi.deleted;
 
   if (forApi.uploaded) {
     return forApi;
@@ -98,7 +99,7 @@ export const editMedia = ensureUserTransaction(async function editMedia(
 
 export async function getMedia(
   this: UserScopedConnection,
-  ids: Tables.StoredMedia["id"][],
+  ids: string[],
 ): Promise<(Media | null)[]> {
   if (ids.length == 0) {
     return [];
@@ -107,7 +108,7 @@ export async function getMedia(
   let visible = from(this.knex, Table.StoredMediaDetail)
     .whereIn(ref(Table.StoredMediaDetail, "catalog"), this.catalogs());
 
-  type Joined = Tables.StoredMedia | AllNull<Tables.StoredMedia>;
+  type Joined = Tables.StoredMediaDetail | AllNull<Tables.StoredMediaDetail>;
 
   let foundMedia = await this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
     .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
@@ -124,7 +125,7 @@ export async function getMedia(
 
 export const listAlternateFiles = ensureUserTransaction(async function listAlternateFiles(
   this: UserScopedConnection,
-  id: Tables.StoredMedia["id"],
+  id: string,
   type: AlternateFileType,
 ): Promise<Tables.AlternateFile[]> {
   await this.checkRead(Table.Media, [id]);

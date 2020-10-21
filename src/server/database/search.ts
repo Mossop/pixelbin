@@ -182,7 +182,7 @@ export async function searchMedia(
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
     .andWhere(ref(Table.UserCatalog, "catalog"), catalog)
-    .select<Tables.StoredMedia[]>(ref(Table.StoredMediaDetail));
+    .select<Tables.StoredMediaDetail[]>(ref(Table.StoredMediaDetail));
 
   builder = applyQuery(
     this,

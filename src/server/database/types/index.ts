@@ -49,7 +49,7 @@ export interface TableMapping {
   [Table.MediaPerson]: Joins.MediaPerson;
 
   [Table.StoredMedia]: Tables.StoredMedia;
-  [Table.StoredMediaDetail]: Tables.StoredMedia;
+  [Table.StoredMediaDetail]: Tables.StoredMediaDetail;
   [Table.UserCatalog]: Joins.UserCatalog;
 }
 

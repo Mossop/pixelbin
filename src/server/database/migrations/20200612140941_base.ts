@@ -26,6 +26,7 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     id: ref(Table.Media, "id"),
     catalog: ref(Table.Media, "catalog"),
     created: ref(Table.Media, "created"),
+    deleted: ref(Table.Media, "deleted"),
     updated: knex.raw("GREATEST(?, ?)", [
       knex.ref(`${Table.Media}.updated`),
       knex.ref("CurrentOriginal.uploaded"),
@@ -59,7 +60,6 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
 
   return knex(Table.Media)
     .leftJoin(currentOriginals, "CurrentOriginal.media", ref(Table.Media, "id"))
-    .whereNot(ref(Table.Media, "deleted"), true)
     .select(mappings);
 }
 
@@ -118,6 +118,7 @@ function buildMediaDetailView(knex: Knex): Knex.QueryBuilder {
     .leftJoin(tags, "TagList.media", ref(Table.StoredMedia, "id"))
     .leftJoin(albums, "AlbumList.media", ref(Table.StoredMedia, "id"))
     .leftJoin(people, "PersonList.media", ref(Table.StoredMedia, "id"))
+    .where(ref(Table.StoredMedia, "deleted"), false)
     .select(ref(Table.StoredMedia))
     .select({
       tags: knex.raw("COALESCE(?, '[]'::json)", [

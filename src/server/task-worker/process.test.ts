@@ -7,13 +7,15 @@ import { dir as tmpdir, DirectoryResult } from "tmp-promise";
 
 import { AlternateFileType, emptyMetadata } from "../../model";
 import { mockedFunction, expect, lastCallArgs, mockDateTime } from "../../test-helpers";
+import { setLogConfig, now } from "../../utils";
 import { parseDateTime } from "../../utils/__mocks__/datetime";
-import { connection, insertTestData, buildTestDB } from "../database/test-helpers";
+import { connection, insertTestData, buildTestDB, insertData } from "../database/test-helpers";
+import { Table } from "../database/types";
 import { AlternateFile } from "../database/types/tables";
 import { OriginalInfo } from "../database/unsafe";
 import { StorageService } from "../storage";
 import { encodeVideo, AudioCodec, VideoCodec, Container, VideoInfo } from "./ffmpeg";
-import { handleUploadedFile, MEDIA_THUMBNAIL_SIZES } from "./process";
+import { handleUploadedFile, MEDIA_THUMBNAIL_SIZES, purgeDeletedMedia } from "./process";
 import services, { provideService } from "./services";
 
 /* eslint-disable */
@@ -765,4 +767,304 @@ test("reprocess", async (): Promise<void> => {
   expect(mockedEncodeVideo).not.toHaveBeenCalled();
 
   await temp.cleanup();
+});
+
+test("purge", async (): Promise<void> => {
+  await insertData({
+    [Table.Media]: [{
+      id: "media1",
+      created: now(),
+      deleted: false,
+      catalog: "c1",
+      updated: now(),
+      ...emptyMetadata,
+    }, {
+      id: "media2",
+      created: now(),
+      deleted: false,
+      catalog: "c1",
+      updated: now(),
+      ...emptyMetadata,
+    }, {
+      id: "media3",
+      created: now(),
+      deleted: true,
+      catalog: "c1",
+      updated: now(),
+      ...emptyMetadata,
+    }, {
+      id: "media4",
+      created: now(),
+      deleted: true,
+      catalog: "c1",
+      updated: now(),
+      ...emptyMetadata,
+    }, {
+      id: "media5",
+      created: now(),
+      deleted: false,
+      catalog: "c1",
+      updated: now(),
+      ...emptyMetadata,
+    }],
+    [Table.Original]: [{
+      id: "original1",
+      media: "media1",
+      uploaded: parseDateTime("2020-01-01T01:01:01"),
+      processVersion: 1,
+      fileName: "orig1.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      ...emptyMetadata,
+    }, {
+      id: "original2",
+      media: "media1",
+      uploaded: parseDateTime("2020-02-01T01:01:01"),
+      processVersion: 1,
+      fileName: "orig2.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      ...emptyMetadata,
+    }, {
+      id: "original3",
+      media: "media1",
+      uploaded: parseDateTime("2020-03-01T01:01:01"),
+      processVersion: 1,
+      fileName: "orig3.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      ...emptyMetadata,
+    }, {
+      id: "original4",
+      media: "media2",
+      uploaded: parseDateTime("2020-01-01T01:01:01"),
+      processVersion: 1,
+      fileName: "orig4.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      ...emptyMetadata,
+    }, {
+      id: "original5",
+      media: "media3",
+      uploaded: parseDateTime("2020-01-01T01:01:01"),
+      processVersion: 1,
+      fileName: "orig5.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      ...emptyMetadata,
+    }, {
+      id: "original6",
+      media: "media3",
+      uploaded: parseDateTime("2020-02-01T01:01:01"),
+      processVersion: 1,
+      fileName: "orig6.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      ...emptyMetadata,
+    }],
+    [Table.AlternateFile]: [{
+      id: "alternate1",
+      original: "original1",
+      type: AlternateFileType.Poster,
+      fileName: "alt1.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate2",
+      original: "original1",
+      type: AlternateFileType.Reencode,
+      fileName: "alt2.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate3",
+      original: "original1",
+      type: AlternateFileType.Thumbnail,
+      fileName: "alt3.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate4",
+      original: "original3",
+      type: AlternateFileType.Poster,
+      fileName: "alt4.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate5",
+      original: "original3",
+      type: AlternateFileType.Reencode,
+      fileName: "alt5.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate6",
+      original: "original3",
+      type: AlternateFileType.Thumbnail,
+      fileName: "alt6.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate7",
+      original: "original5",
+      type: AlternateFileType.Poster,
+      fileName: "alt7.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate8",
+      original: "original5",
+      type: AlternateFileType.Reencode,
+      fileName: "alt8.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate9",
+      original: "original5",
+      type: AlternateFileType.Thumbnail,
+      fileName: "alt9.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate10",
+      original: "original6",
+      type: AlternateFileType.Poster,
+      fileName: "alt10.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate11",
+      original: "original6",
+      type: AlternateFileType.Reencode,
+      fileName: "alt11.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate12",
+      original: "original6",
+      type: AlternateFileType.Thumbnail,
+      fileName: "alt12.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }],
+  });
+
+  const storage = (await (await services.storage).getStorage("")).get();
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let deleteFile = mockedFunction(storage.deleteFile);
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let deleteLocalFiles = mockedFunction(storage.deleteLocalFiles);
+
+  await purgeDeletedMedia();
+
+  expect(deleteFile.mock.calls).toInclude([
+    ["media1", "original1", "alt1.jpg"],
+    ["media1", "original1", "alt2.jpg"],
+    ["media1", "original1", "orig1.jpg"],
+    ["media1", "original2", "orig2.jpg"],
+    ["media3", "original5", "alt7.jpg"],
+    ["media3", "original5", "alt8.jpg"],
+    ["media3", "original5", "orig5.jpg"],
+    ["media3", "original6", "alt10.jpg"],
+    ["media3", "original6", "alt11.jpg"],
+    ["media3", "original6", "orig6.jpg"],
+  ]);
+
+  expect(deleteLocalFiles.mock.calls).toInclude([
+    ["media1", "original1"],
+    ["media1", "original2"],
+    ["media3", "original5"],
+    ["media3", "original6"],
+  ]);
 });

@@ -2,7 +2,7 @@ import { emptyMetadata, RelationType } from "../../model";
 import { expect, reordered, sortedIds } from "../../test-helpers";
 import { buildTestDB, connection, insertTestData, testData } from "./test-helpers";
 import { Table } from "./types";
-import { StoredMedia } from "./types/tables";
+import { StoredMediaDetail } from "./types/tables";
 
 buildTestDB();
 
@@ -11,7 +11,7 @@ beforeEach((): Promise<void> => {
 });
 
 function extracted(
-  media: Pick<StoredMedia, "id" | "catalog" | "tags" | "albums" | "people"> | null,
+  media: Pick<StoredMediaDetail, "id" | "catalog" | "tags" | "albums" | "people"> | null,
 ): unknown {
   if (!media) {
     return null;
@@ -33,7 +33,7 @@ test("Album media tests", async (): Promise<void> => {
 
   let mediaInAlbum = async (album: string): Promise<string[]> => {
     let media = await user1Db.listMediaInAlbum(album);
-    return media.map((item: StoredMedia): string => item.id);
+    return media.map((item: StoredMediaDetail): string => item.id);
   };
 
   let media1 = await user1Db.createMedia("c1", emptyMetadata);
@@ -524,9 +524,9 @@ test("Album media tests", async (): Promise<void> => {
   media = await user1Db.listMediaInCatalog("c1");
   expect(media).toHaveLength(3);
   media = [
-    media.find((media: StoredMedia): boolean => media.id == media1.id)!,
-    media.find((media: StoredMedia): boolean => media.id == media2.id)!,
-    media.find((media: StoredMedia): boolean => media.id == media3.id)!,
+    media.find((media: StoredMediaDetail): boolean => media.id == media1.id)!,
+    media.find((media: StoredMediaDetail): boolean => media.id == media2.id)!,
+    media.find((media: StoredMediaDetail): boolean => media.id == media3.id)!,
   ];
 
   expect(media.map(extracted)).toInclude([{

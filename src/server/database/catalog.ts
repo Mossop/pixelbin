@@ -76,7 +76,7 @@ export async function listAlbums(this: UserScopedConnection): Promise<Tables.Alb
 export async function listMediaInCatalog(
   this: UserScopedConnection,
   id: Tables.Catalog["id"],
-): Promise<Tables.StoredMedia[]> {
+): Promise<Tables.StoredMediaDetail[]> {
   await this.checkRead(Table.Catalog, [id]);
 
   return from(this.knex, Table.StoredMediaDetail)
@@ -143,7 +143,7 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
   this: UserScopedConnection,
   id: Tables.Album["id"],
   recursive: boolean = false,
-): Promise<Tables.StoredMedia[]> {
+): Promise<Tables.StoredMediaDetail[]> {
   // This assumes that if you can read the album you can read its descendants.
   await this.checkRead(Table.Album, [id]);
 

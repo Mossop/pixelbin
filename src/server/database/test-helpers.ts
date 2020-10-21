@@ -120,6 +120,7 @@ export async function insertData(data: Seed): Promise<void> {
   await doInsert(Table.Person);
   await doInsert(Table.Media);
   await doInsert(Table.Original);
+  await doInsert(Table.AlternateFile);
   await doInsert(Table.SharedCatalog);
   await doInsert(Table.MediaAlbum);
   await doInsert(Table.MediaTag);

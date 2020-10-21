@@ -64,6 +64,10 @@ export class TaskManager extends Service {
     this.logger.catch(this.pool.remote.handleUploadedFile(id));
   }
 
+  public purgeDeletedMedia(): void {
+    this.logger.catch(this.pool.remote.purgeDeletedMedia());
+  }
+
   // ParentProcessInterface
   private interface: ParentProcessInterface = {
     getConfig(this: TaskManager): TaskWorkerConfig {

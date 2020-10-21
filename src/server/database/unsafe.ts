@@ -100,3 +100,57 @@ export async function getStorageConfig(
 
   throw new Error("Invalid catalog ID passed to getStorageConfig.");
 }
+
+export async function listDeletedMedia(
+  this: DatabaseConnection,
+): Promise<Tables.StoredMedia[]> {
+  return from(this.knex, Table.StoredMedia)
+    .where(ref(Table.StoredMedia, "deleted"), true)
+    .select(ref(Table.StoredMedia));
+}
+
+export async function deleteMedia(
+  this: DatabaseConnection,
+  media: string,
+): Promise<void> {
+  await from(this.knex, Table.Media)
+    .where(ref(Table.Media, "id"), media)
+    .where(ref(Table.Media, "deleted"), true)
+    .del();
+}
+
+export async function deleteOriginal(
+  this: DatabaseConnection,
+  original: string,
+): Promise<void> {
+  await from(this.knex, Table.Original)
+    .where(ref(Table.Original, "id"), original)
+    .del();
+}
+
+export async function getUnusedOriginals(
+  this: DatabaseConnection,
+): Promise<(Tables.Original & { catalog: string })[]> {
+  return from(this.knex, Table.Original)
+    .join(Table.StoredMedia, ref(Table.StoredMedia, "id"), ref(Table.Original, "media"))
+    .whereNot(ref(Table.Original, "id"), this.ref(ref(Table.StoredMedia, "original")))
+    .select(ref(Table.Original), ref(Table.StoredMedia, "catalog"));
+}
+
+export async function deleteAlternateFile(
+  this: DatabaseConnection,
+  alternate: string,
+): Promise<void> {
+  await from(this.knex, Table.AlternateFile)
+    .where(ref(Table.AlternateFile, "id"), alternate)
+    .del();
+}
+
+export async function listAlternateFiles(
+  this: DatabaseConnection,
+  original: string,
+): Promise<Tables.AlternateFile[]> {
+  return from(this.knex, Table.AlternateFile)
+    .where(ref(Table.AlternateFile, "original"), original)
+    .select(ref(Table.AlternateFile));
+}

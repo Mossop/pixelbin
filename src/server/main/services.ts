@@ -1,4 +1,5 @@
 import { defer, buildServices, serviceProvider } from "../../utils";
+import Scheduler from "../../utils/scheduler";
 import type { DatabaseConnection } from "../database";
 import type { StorageService } from "../storage";
 import type { ServerConfig } from "./config";
@@ -11,6 +12,7 @@ const services = {
   database: defer<DatabaseConnection>(),
   taskManager: defer<TaskManager>(),
   webServers: defer<WebserverManager>(),
+  scheduler: defer<Scheduler>(),
 };
 
 export const provideService = serviceProvider(services);

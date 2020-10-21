@@ -1051,47 +1051,10 @@ test("Get media", async (): Promise<void> => {
     people: [],
   }]);
 
-  const storageService = new StorageService({
-    tempDirectory: "",
-    localDirectory: "",
-  }, db);
-  const storage = (await storageService.getStorage("")).get();
-
-  /* eslint-disable @typescript-eslint/unbound-method */
-  let getStorageMock = mockedFunction(storageService.getStorage);
-  getStorageMock.mockClear();
-
-  let deleteFileMock = mockedFunction(storage.deleteFile);
-  let deleteLocalFilesMock = mockedFunction(storage.deleteLocalFiles);
-  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
-  /* eslint-enable @typescript-eslint/unbound-method */
-
   await request
     .delete("/api/media/delete")
     .send([id2, id1])
     .expect(200);
-
-  expect(getStorageMock.mock.calls).toInclude([
-    ["c1"],
-    ["c1"],
-  ]);
-
-  expect(deleteFileMock.mock.calls).toInclude([
-    [id2, originalId, "stored.jpg"],
-    [id2, originalId, "poster.jpg"],
-    [id2, originalId, "enc1.mp4"],
-    [id2, originalId, "enc2.ogg"],
-  ]);
-
-  expect(deleteLocalFilesMock.mock.calls).toInclude([
-    [id2],
-    [id1],
-  ]);
-
-  expect(deleteUploadedFileMock.mock.calls).toInclude([
-    [id2],
-    [id1],
-  ]);
 
   response = await request
     .get("/api/media/get")

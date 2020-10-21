@@ -511,35 +511,6 @@ export const deleteMedia = ensureAuthenticatedTransaction(
     userDb: UserScopedConnection,
     data: string[],
   ): Promise<void> {
-    let media = await userDb.getMedia(data);
-
-    for (let item of media) {
-      if (!item) {
-        return;
-      }
-
-      let storage = await ctx.storage.getStorage(item.catalog);
-      try {
-        if (isProcessedMedia(item)) {
-          await storage.get().deleteFile(item.id, item.original, item.fileName);
-
-          let alternates = await userDb.listAlternateFiles(item.id, AlternateFileType.Reencode);
-          for (let alternate of alternates) {
-            await storage.get().deleteFile(item.id, item.original, alternate.fileName);
-          }
-
-          alternates = await userDb.listAlternateFiles(item.id, AlternateFileType.Poster);
-          for (let alternate of alternates) {
-            await storage.get().deleteFile(item.id, item.original, alternate.fileName);
-          }
-        }
-        await storage.get().deleteLocalFiles(item.id);
-        await storage.get().deleteUploadedFile(item.id);
-      } finally {
-        storage.release();
-      }
-    }
-
     await userDb.deleteMedia(data);
   },
 );

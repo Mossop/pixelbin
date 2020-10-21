@@ -204,6 +204,13 @@ export class DatabaseConnection {
   public readonly createUser = wrapped(UserQueries.createUser);
   public readonly listUsers = wrapped(UserQueries.listUsers);
 
+  public readonly listDeletedMedia = wrapped(Unsafe.listDeletedMedia);
+  public readonly deleteMedia = wrapped(Unsafe.deleteMedia);
+  public readonly getUnusedOriginals = wrapped(Unsafe.getUnusedOriginals);
+  public readonly deleteOriginal = wrapped(Unsafe.deleteOriginal);
+  public readonly listAlternateFiles = wrapped(Unsafe.listAlternateFiles);
+  public readonly deleteAlternateFile = wrapped(Unsafe.deleteAlternateFile);
+
   public static async connect(name: string, config: DatabaseConfig): Promise<DatabaseConnection> {
     let dbLogger = logger.child({
       connection: name,

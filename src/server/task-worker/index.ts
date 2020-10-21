@@ -7,7 +7,7 @@ import { StorageService } from "../storage";
 import { ParentProcess } from "../worker";
 import events from "./events";
 import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
-import { handleUploadedFile } from "./process";
+import { handleUploadedFile, purgeDeletedMedia } from "./process";
 import { provideService } from "./services";
 
 install();
@@ -19,6 +19,7 @@ async function main(): Promise<void> {
   let connection = await ParentProcess.connect<ParentProcessInterface, TaskWorkerInterface>({
     localInterface: {
       handleUploadedFile,
+      purgeDeletedMedia,
     },
     logger,
   });
