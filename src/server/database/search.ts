@@ -4,10 +4,13 @@ import { checkQuery, isCompoundQuery, Join, Modifier, Operator, Search, Query } 
 import { isRelationQuery } from "../../model/search";
 import { isDateTime } from "../../utils";
 import { UserScopedConnection } from "./connection";
+import { DatabaseError, DatabaseErrorCode } from "./error";
+import { uuid } from "./id";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
 import { intoMedia } from "./media";
-import { from, withChildren } from "./queries";
-import { intoDBType, Media, ref, Table, Tables } from "./types";
+import { from, insert, withChildren } from "./queries";
+import { intoAPITypes, intoDBType, intoDBTypes, Media, ref, Table, Tables } from "./types";
+import { ensureUserTransaction } from "./utils";
 
 function escape(value: unknown): string {
   return String(value);
@@ -194,4 +197,47 @@ export async function searchMedia(
   );
 
   return (await builder).map(intoMedia);
+}
+
+export const createSavedSearch = ensureUserTransaction(async function saveSavedSearch(
+  this: UserScopedConnection,
+  data: Omit<Tables.SavedSearch, "id">,
+): Promise<Tables.SavedSearch> {
+  await this.checkWrite(Table.Catalog, [data.catalog]);
+
+  let results = await insert(this.knex, Table.SavedSearch, {
+    ...intoDBTypes(data),
+    id: await uuid("S"),
+  }).returning("*");
+
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert SavedSearch record.");
+  }
+
+  return intoAPITypes(results[0]);
+});
+
+export const deleteSavedSearch = ensureUserTransaction(async function deleteSavedSearch(
+  this: UserScopedConnection,
+  id: string,
+): Promise<void> {
+  await this.checkWrite(Table.SavedSearch, [id]);
+
+  await from(this.knex, Table.SavedSearch)
+    .where(ref(Table.SavedSearch, "id"), id)
+    .del();
+});
+
+export async function listSavedSearches(
+  this: UserScopedConnection,
+): Promise<Tables.SavedSearch[]> {
+  let results = await from(this.knex, Table.SavedSearch)
+    .innerJoin(
+      Table.UserCatalog,
+      ref(Table.UserCatalog, "catalog"),
+      ref(Table.SavedSearch, "catalog"),
+    )
+    .where(ref(Table.UserCatalog, "user"), this.user)
+    .select<Tables.SavedSearch[]>(ref(Table.SavedSearch));
+  return results.map(intoAPITypes);
 }

@@ -448,4 +448,8 @@ export class UserScopedConnection {
   public readonly listAlternateFiles = wrapped(MediaQueries.listAlternateFiles);
   public readonly deleteMedia = wrapped(MediaQueries.deleteMedia);
   public readonly searchMedia = wrapped(SearchQueries.searchMedia);
+
+  public readonly listSavedSearches = wrapped(SearchQueries.listSavedSearches);
+  public readonly createSavedSearch = wrapped(SearchQueries.createSavedSearch);
+  public readonly deleteSavedSearch = wrapped(SearchQueries.deleteSavedSearch);
 }

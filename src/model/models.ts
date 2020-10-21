@@ -1,4 +1,5 @@
 import type { AllNull, Nullable, DateTime } from "../utils";
+import { Query } from "./search";
 
 /**
  * Describes the orientation of the image with two sides. The first side is
@@ -71,6 +72,12 @@ export interface Album extends IdType {
   catalog: Catalog["id"];
   parent: Album["id"] | null;
   name: string;
+}
+
+export interface SavedSearch extends IdType {
+  catalog: Catalog["id"];
+  name: string;
+  query: Query;
 }
 
 export interface Metadata {

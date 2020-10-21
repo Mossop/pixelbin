@@ -20,6 +20,7 @@ export enum Table {
   Media = "Media",
   Original = "Original",
   AlternateFile = "AlternateFile",
+  SavedSearch = "SavedSearch",
 
   SharedCatalog = "Shared_Catalog",
   MediaAlbum = "Media_Album",
@@ -42,6 +43,7 @@ export interface TableMapping {
   [Table.Media]: Tables.Media;
   [Table.Original]: Tables.Original;
   [Table.AlternateFile]: Tables.AlternateFile;
+  [Table.SavedSearch]: Tables.SavedSearch;
 
   [Table.SharedCatalog]: Joins.SharedCatalog;
   [Table.MediaAlbum]: Joins.MediaAlbum;
