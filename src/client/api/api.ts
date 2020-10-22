@@ -38,6 +38,7 @@ const decoders: ResponseDecoders = {
   [Method.Signup]: JsonDecoderDecoder(Decoders.StateDecoder),
   [Method.StorageTest]: JsonDecoderDecoder(Decoders.StorageTestResultDecoder),
   [Method.StorageCreate]: JsonDecoderDecoder(Decoders.StorageDecoder),
+  [Method.CatalogEdit]: JsonDecoderDecoder(Decoders.CatalogDecoder),
   [Method.CatalogCreate]: JsonDecoderDecoder(Decoders.CatalogDecoder),
   [Method.CatalogList]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Method.AlbumCreate]: JsonDecoderDecoder(Decoders.AlbumDecoder),

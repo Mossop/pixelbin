@@ -86,6 +86,13 @@ export const CatalogCreateRequest = jsonDecoder(
   }, "CatalogCreateReqeust"),
 );
 
+export const CatalogEditRequest = jsonDecoder(
+  JsonDecoder.object<Api.CatalogEditRequest>({
+    id: JsonDecoder.string,
+    name: JsonDecoder.optional(JsonDecoder.string),
+  }, "CatalogEditRequest"),
+);
+
 export const CatalogListRequest = jsonDecoder(JsonDecoder.object<Api.CatalogListRequest>({
   id: JsonDecoder.string,
 }, "CatalogListRequest"));

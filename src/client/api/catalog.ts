@@ -35,6 +35,16 @@ export async function createCatalog(
   };
 }
 
+export async function editCatalog(
+  catalog: Reference<Catalog>,
+  name: string,
+): Promise<Omit<CatalogState, "albums" | "tags" | "people" | "searches">> {
+  return request(Method.CatalogEdit, {
+    id: catalog.id,
+    name,
+  });
+}
+
 export async function listCatalogMedia(
   catalog: Reference<Catalog>,
 ): Promise<Draft<MediaState>[]> {

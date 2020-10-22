@@ -4,7 +4,8 @@ import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";
 import { mockResponse, callInfo } from "../test-helpers/api";
-import { createCatalog, createStorage } from "./catalog";
+import { createCatalog, createStorage, editCatalog } from "./catalog";
+import { Catalog } from "./highlevel";
 
 jest.mock("../environment/fetch");
 
@@ -95,6 +96,36 @@ test("Create catalog", async (): Promise<void> => {
     body: {
       name: "Test catalog",
       storage: "str",
+    },
+  });
+});
+
+test("Edit catalog", async (): Promise<void> => {
+  mockResponse(Method.CatalogEdit, 200, {
+    id: "testcatalog",
+    name: "Renamed catalog",
+    storage: "str",
+  });
+
+  let result = await editCatalog(Catalog.ref("testcatalog"), "Renamed catalog");
+
+  expect(result).toEqual({
+    storage: "str",
+    id: "testcatalog",
+    name: "Renamed catalog",
+  });
+
+  let info = callInfo(mockedFetch);
+  expect(info).toEqual({
+    method: "PATCH",
+    path: "http://pixelbin/api/catalog/edit",
+    headers: {
+      "X-CSRFToken": "csrf-foobar",
+      "Content-Type": "application/json",
+    },
+    body: {
+      id: "testcatalog",
+      name: "Renamed catalog",
     },
   });
 });

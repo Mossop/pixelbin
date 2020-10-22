@@ -10,6 +10,7 @@ import {
   addMediaToAlbum,
   removeMediaFromAlbum,
   listAlbumMedia,
+  deleteAlbum,
 } from "./album";
 import { Catalog, Album, mediaRef } from "./highlevel";
 
@@ -88,6 +89,22 @@ test("Edit album", async (): Promise<void> => {
       id: "testalbum",
       name: "New test album",
     },
+  });
+});
+
+test("Delete album", async (): Promise<void> => {
+  mockResponse(Method.AlbumDelete, 200, undefined);
+
+  await deleteAlbum(Album.ref("testalbum"));
+  let info = callInfo(mockedFetch);
+  expect(info).toEqual({
+    method: "DELETE",
+    path: "http://pixelbin/api/album/delete",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": "csrf-foobar",
+    },
+    body: ["testalbum"],
   });
 });
 

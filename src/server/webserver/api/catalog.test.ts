@@ -265,6 +265,114 @@ test("Create catalog", async (): Promise<void> => {
     .expect(404);
 });
 
+test("Edit catalog", async (): Promise<void> => {
+  const request = agent();
+
+  let response = await request
+    .patch("/api/catalog/edit")
+    .send({
+      id: "c1",
+      name: "Bad user",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(401);
+
+  expect(response.body).toEqual({
+    code: ErrorCode.NotLoggedIn,
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .patch("/api/catalog/edit")
+    .send({
+      id: "c1",
+      name: "Updated",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let updated = response.body;
+  expect(updated).toEqual({
+    id: "c1",
+    storage: "s1",
+    name: "Updated",
+  });
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  let expected = [...testData[Table.Catalog]];
+  expected[0].name = "Updated";
+
+  expectUserState(response.body, {
+    email: "someone1@nowhere.com",
+    fullname: "Someone 1",
+    created: "2020-01-01T00:00:00.000Z",
+    verified: true,
+    storage: [],
+    catalogs: expected,
+    albums: testData[Table.Album],
+    people: testData[Table.Person],
+    tags: testData[Table.Tag],
+    searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
+  });
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone3@nowhere.com",
+      password: "password3",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .patch("/api/catalog/edit")
+    .send({
+      id: "c1",
+      name: "Bad edit",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(404);
+
+  await request
+    .post("/api/login")
+    .send({
+      email: "someone1@nowhere.com",
+      password: "password1",
+    })
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  response = await request
+    .get("/api/state")
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expectUserState(response.body, {
+    email: "someone1@nowhere.com",
+    fullname: "Someone 1",
+    created: "2020-01-01T00:00:00.000Z",
+    verified: true,
+    storage: [],
+    catalogs: expected,
+    albums: testData[Table.Album],
+    people: testData[Table.Person],
+    tags: testData[Table.Tag],
+    searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
+  });
+});
+
 test("Create album", async (): Promise<void> => {
   const request = agent();
 

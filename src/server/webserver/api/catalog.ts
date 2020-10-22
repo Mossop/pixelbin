@@ -115,6 +115,16 @@ export const createCatalog = ensureAuthenticated(
   },
 );
 
+export const editCatalog = ensureAuthenticated(
+  async function editCatalog(
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Api.CatalogEditRequest,
+  ): Promise<Api.Catalog> {
+    return userDb.editCatalog(data.id, data);
+  },
+);
+
 export const listCatalog = ensureAuthenticated(
   async (
     ctx: AppContext,

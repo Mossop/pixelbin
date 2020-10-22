@@ -95,6 +95,8 @@ export interface LoginRequest {
   password: string;
 }
 
+export type CatalogEditRequest = Partial<Omit<Catalog, "id" | "storage">> & { id: string };
+
 export interface CatalogListRequest {
   id: string;
 }
@@ -198,7 +200,7 @@ export enum Method {
   StorageTest = "storage/test",
   StorageCreate = "storage/create",
   CatalogCreate = "catalog/create",
-  // CatalogEdit = "catalog/edit",
+  CatalogEdit = "catalog/edit",
   // CatalogDelete = "catalog/delete",
   CatalogList = "catalog/list",
   AlbumCreate = "album/create",
@@ -232,7 +234,7 @@ export const HttpMethods: MethodList = {
   [Method.StorageTest]: "POST",
   [Method.StorageCreate]: "PUT",
   [Method.CatalogCreate]: "PUT",
-  // [Method.CatalogEdit]: "PATCH",
+  [Method.CatalogEdit]: "PATCH",
   // [Method.CatalogDelete]: "DELETE",
   [Method.CatalogList]: "GET",
   [Method.AlbumCreate]: "PUT",
@@ -275,7 +277,7 @@ export interface Signatures {
   [Method.StorageTest]: Signature<StorageTestRequest, StorageTestResult>;
   [Method.StorageCreate]: Signature<StorageCreateRequest, Storage>;
   [Method.CatalogCreate]: Signature<Create<Catalog>, Catalog>;
-  // [Method.CatalogEdit]: Signature<CatalogEditRequest, void>;
+  [Method.CatalogEdit]: Signature<CatalogEditRequest, Catalog>;
   // [Method.CatalogDelete]: Signature<string[], void>;
   [Method.CatalogList]: Signature<CatalogListRequest, Media[]>;
   [Method.AlbumCreate]: Signature<Create<Album>, Album>;

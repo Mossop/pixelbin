@@ -27,6 +27,10 @@ export function editAlbum(album: Patch<AlbumState>): Promise<AlbumState> {
   return request(Method.AlbumEdit, data).then(albumIntoState);
 }
 
+export function deleteAlbum(album: Reference<Album>): Promise<void> {
+  return request(Method.AlbumDelete, [album.id]);
+}
+
 export async function addMediaToAlbum(
   album: Reference<Album>,
   media: Reference<Media>[],
