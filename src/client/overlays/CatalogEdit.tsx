@@ -15,7 +15,7 @@ export interface CatalogEditOverlayProps {
   readonly catalog: Reference<Catalog>;
 }
 
-export default function EditCatalogOverlay(props: CatalogEditOverlayProps): ReactResult {
+export default function CatalogEditOverlay(props: CatalogEditOverlayProps): ReactResult {
   let catalog = useSelector((state: StoreState) => {
     return props.catalog.deref(state.serverState);
   });

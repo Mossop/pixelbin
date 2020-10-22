@@ -37,7 +37,7 @@ test("showAlbumCreateOverlay", (): void => {
       type: PageType.Root,
     },
     overlay: {
-      type: OverlayType.CreateAlbum,
+      type: OverlayType.AlbumCreate,
       parent: expect.toBeRef("cat1"),
     },
   });
@@ -50,7 +50,7 @@ test("showAlbumCreateOverlay", (): void => {
       type: PageType.Root,
     },
     overlay: {
-      type: OverlayType.CreateAlbum,
+      type: OverlayType.AlbumCreate,
       parent: expect.toBeRef("album1"),
     },
   });
@@ -82,7 +82,7 @@ test("showAlbumEditOverlay", (): void => {
       type: PageType.Root,
     },
     overlay: {
-      type: OverlayType.EditAlbum,
+      type: OverlayType.AlbumEdit,
       album: expect.toBeRef("album1"),
     },
   });
@@ -104,7 +104,7 @@ test("albumCreated", (): void => {
         type: PageType.Root,
       },
       overlay: {
-        type: OverlayType.CreateAlbum,
+        type: OverlayType.AlbumCreate,
         parent: Catalog.ref("cat1"),
       },
     },
@@ -204,7 +204,7 @@ test("Album edited", (): void => {
         type: PageType.Root,
       },
       overlay: {
-        type: OverlayType.EditAlbum,
+        type: OverlayType.AlbumEdit,
         album: Album.ref("album1"),
       },
     },

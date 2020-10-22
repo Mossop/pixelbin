@@ -13,7 +13,8 @@ import {
   render,
 } from "../test-helpers";
 import type { AlbumOverlayProps } from "./Album";
-import type { CreateCatalogOverlayProps } from "./CreateCatalog";
+import type { CatalogCreateOverlayProps } from "./CatalogCreate";
+import { CatalogEditOverlayProps } from "./CatalogEdit";
 import { OverlayType } from "./types";
 
 jest.mock("./Album", (): unknown => {
@@ -26,9 +27,14 @@ jest.mock("./Album", (): unknown => {
   };
 });
 
-jest.mock("./CreateCatalog", (): unknown => {
-  return (props: CreateCatalogOverlayProps) =>
-    <div id="catalog-overlay" data-user={props.user.email}/>;
+jest.mock("./CatalogEdit", (): unknown => {
+  return (props: CatalogEditOverlayProps) =>
+    <div id="catalog-edit-overlay" data-catalog={props.catalog.id}/>;
+});
+
+jest.mock("./CatalogCreate", (): unknown => {
+  return (props: CatalogCreateOverlayProps) =>
+    <div id="catalog-create-overlay" data-user={props.user.email}/>;
 });
 
 jest.mock("./Login", (): unknown => {
@@ -104,7 +110,7 @@ test("create album overlay", async (): Promise<void> => {
         type: PageType.Root,
       },
       overlay: {
-        type: OverlayType.CreateAlbum,
+        type: OverlayType.AlbumCreate,
         parent: Catalog.ref("catalog"),
       },
     },
@@ -126,7 +132,7 @@ test("edit album overlay", async (): Promise<void> => {
         type: PageType.Root,
       },
       overlay: {
-        type: OverlayType.EditAlbum,
+        type: OverlayType.AlbumEdit,
         album: Album.ref("album"),
       },
     },
@@ -149,7 +155,7 @@ test("create catalog overlay", async (): Promise<void> => {
         type: PageType.Root,
       },
       overlay: {
-        type: OverlayType.CreateCatalog,
+        type: OverlayType.CatalogCreate,
       },
     },
   }));
@@ -157,8 +163,30 @@ test("create catalog overlay", async (): Promise<void> => {
   let { container } = render(<Overlay/>, store);
   expectChild(container, ".loading");
 
-  let div = await waitFor(() => expectChild(container, "#catalog-overlay"));
+  let div = await waitFor(() => expectChild(container, "#catalog-create-overlay"));
   expect(div.getAttribute("data-user")).toBe(store.state.serverState.user?.email);
+
+  expect(store.dispatch).not.toHaveBeenCalled();
+});
+
+test("edit catalog overlay", async (): Promise<void> => {
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Root,
+      },
+      overlay: {
+        type: OverlayType.CatalogEdit,
+        catalog: Catalog.ref("catref"),
+      },
+    },
+  }));
+
+  let { container } = render(<Overlay/>, store);
+  expectChild(container, ".loading");
+
+  let div = await waitFor(() => expectChild(container, "#catalog-edit-overlay"));
+  expect(div.getAttribute("data-catalog")).toBe("catref");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });

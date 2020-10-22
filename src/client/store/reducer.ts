@@ -43,7 +43,7 @@ function authedReducers<M>(reducers: M): MappedReducers<M> {
 const catalogReducers = {
   showCatalogCreateOverlay(state: Draft<StoreState>, _user: Draft<UserState>): void {
     state.ui.overlay = {
-      type: OverlayType.CreateCatalog,
+      type: OverlayType.CatalogCreate,
     };
   },
 
@@ -53,7 +53,7 @@ const catalogReducers = {
     catalog: Reference<Catalog>,
   ): void {
     state.ui.overlay = {
-      type: OverlayType.EditCatalog,
+      type: OverlayType.CatalogEdit,
       catalog,
     };
   },
@@ -109,7 +109,7 @@ const albumReducers = {
     parent: Reference<MediaTarget>,
   ): void {
     state.ui.overlay = {
-      type: OverlayType.CreateAlbum,
+      type: OverlayType.AlbumCreate,
       parent,
     };
   },
@@ -134,7 +134,7 @@ const albumReducers = {
     album: Reference<Album>,
   ): void {
     state.ui.overlay = {
-      type: OverlayType.EditAlbum,
+      type: OverlayType.AlbumEdit,
       album,
     };
   },
@@ -188,7 +188,7 @@ const authReducers = {
         };
         if (!serverState.user.catalogs.size) {
           state.ui.overlay = {
-            type: OverlayType.CreateCatalog,
+            type: OverlayType.CatalogCreate,
           };
         }
       }
@@ -208,7 +208,7 @@ const authReducers = {
         type: PageType.User,
       },
       overlay: {
-        type: OverlayType.CreateCatalog,
+        type: OverlayType.CatalogCreate,
       },
     };
   },

@@ -16,7 +16,7 @@ import {
   render,
   resetDOM,
 } from "../test-helpers";
-import EditCatalogOverlay from "./EditCatalog";
+import CatalogEditOverlay from "./CatalogEdit";
 
 jest.mock("../api/api");
 
@@ -40,7 +40,7 @@ test("edit catalog", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<EditCatalogOverlay catalog={Catalog.ref("catalog")}/>, store);
+  let { dialogContainer } = render(<CatalogEditOverlay catalog={Catalog.ref("catalog")}/>, store);
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 

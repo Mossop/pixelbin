@@ -88,7 +88,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
       type: PageType.User,
     },
     overlay: {
-      type: OverlayType.CreateCatalog,
+      type: OverlayType.CatalogCreate,
     },
   };
 
@@ -153,7 +153,7 @@ test("Creating a user.", (): void => {
       type: PageType.User,
     },
     overlay: {
-      type: OverlayType.CreateCatalog,
+      type: OverlayType.CatalogCreate,
     },
   };
 

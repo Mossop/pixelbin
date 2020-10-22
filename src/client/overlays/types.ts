@@ -1,31 +1,31 @@
 import type { AlbumCreateOverlayProps, AlbumEditOverlayProps } from "./Album";
-import type { CatalogEditOverlayProps } from "./EditCatalog";
+import type { CatalogEditOverlayProps } from "./CatalogEdit";
 import type { SearchOverlayProps } from "./Search";
 
 export enum OverlayType {
   Login = "login",
   Signup = "signup",
-  CreateCatalog = "createCatalog",
-  EditCatalog = "editCatalog",
-  CreateAlbum = "createAlbum",
-  EditAlbum = "editAlbum",
+  CatalogCreate = "createCatalog",
+  CatalogEdit = "editCatalog",
+  AlbumCreate = "createAlbum",
+  AlbumEdit = "editAlbum",
   Search = "search",
 }
 
 interface BaseOverlayState {
-  readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CreateCatalog;
+  readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CatalogCreate;
 }
 
 type CaalogEditOverlayState = CatalogEditOverlayProps & {
-  readonly type: OverlayType.EditCatalog;
+  readonly type: OverlayType.CatalogEdit;
 };
 
 type AlbumCreateOverlayState = AlbumCreateOverlayProps & {
-  readonly type: OverlayType.CreateAlbum;
+  readonly type: OverlayType.AlbumCreate;
 };
 
 type AlbumEditOverlayState = AlbumEditOverlayProps & {
-  readonly type: OverlayType.EditAlbum;
+  readonly type: OverlayType.AlbumEdit;
 };
 
 type SearchOverlayState = SearchOverlayProps & {

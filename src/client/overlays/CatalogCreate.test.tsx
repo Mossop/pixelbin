@@ -15,7 +15,7 @@ import {
   click,
   mockServerState,
 } from "../test-helpers";
-import CatalogOverlay from "./CreateCatalog";
+import CatalogOverlay from "./CatalogCreate";
 
 jest.mock("../api/api");
 

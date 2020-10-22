@@ -35,11 +35,11 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export interface CreateCatalogOverlayProps {
+export interface CatalogCreateOverlayProps {
   user: UserState;
 }
 
-export default function CreateCatalogOverlay(props: CreateCatalogOverlayProps): ReactResult {
+export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): ReactResult {
   const { l10n } = useLocalization();
   const [disabled, setDisabled] = useState(false);
   const [error, setError] = useState<AppError | null>(null);

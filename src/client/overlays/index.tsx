@@ -8,10 +8,10 @@ import { OverlayType } from "./types";
 
 const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./Login"));
 const AlbumOverlay = lazy(() => import(/* webpackChunkName: "AlbumOverlay" */ "./Album"));
-const CreateCatalogOverlay = lazy(() =>
-  import(/* webpackChunkName: "CreateCatalog" */ "./CreateCatalog"));
-const EditCatalogOverlay = lazy(() =>
-  import(/* webpackChunkName: "EditCatalog" */ "./EditCatalog"));
+const CatalogCreateOverlay = lazy(() =>
+  import(/* webpackChunkName: "CatalogCreate" */ "./CatalogCreate"));
+const CatalogEditOverlay = lazy(() =>
+  import(/* webpackChunkName: "CatalogEdit" */ "./CatalogEdit"));
 const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./Signup"));
 const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./Search"));
 
@@ -29,16 +29,16 @@ export default function Overlay(): ReactResult {
 
   if (user) {
     switch (overlay.type) {
-      case OverlayType.CreateCatalog: {
-        return <CreateCatalogOverlay user={user}/>;
+      case OverlayType.CatalogCreate: {
+        return <CatalogCreateOverlay user={user}/>;
       }
-      case OverlayType.EditCatalog: {
-        return <EditCatalogOverlay {...overlay}/>;
+      case OverlayType.CatalogEdit: {
+        return <CatalogEditOverlay {...overlay}/>;
       }
-      case OverlayType.CreateAlbum: {
+      case OverlayType.AlbumCreate: {
         return <AlbumOverlay {...overlay}/>;
       }
-      case OverlayType.EditAlbum: {
+      case OverlayType.AlbumEdit: {
         return <AlbumOverlay {...overlay}/>;
       }
       case OverlayType.Search: {

@@ -27,7 +27,7 @@ test("showCatalogCreateOverlay", (): void => {
       type: PageType.Root,
     },
     overlay: {
-      type: OverlayType.CreateCatalog,
+      type: OverlayType.CatalogCreate,
     },
   });
 });
