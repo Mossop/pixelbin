@@ -101,7 +101,7 @@ test("Show login overlay.", (): void => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   });
@@ -111,7 +111,7 @@ test("Show login overlay.", (): void => {
 
   let expectedUI = {
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.Login,
@@ -126,7 +126,7 @@ test("Creating a user.", (): void => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   });
@@ -136,7 +136,7 @@ test("Creating a user.", (): void => {
 
   let expectedUI: Draft<UIState> = {
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.Signup,
@@ -164,7 +164,7 @@ test("Creating a user.", (): void => {
 
   expectedUI = {
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   };
 

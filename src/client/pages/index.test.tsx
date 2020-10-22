@@ -13,21 +13,21 @@ import {
   mockStoreState,
   expectChild,
 } from "../test-helpers";
-import type { AlbumPageProps } from "./album";
-import type { CatalogPageProps } from "./catalog";
-import { ErrorPageProps } from "./error";
-import { MediaPageProps } from "./media";
+import type { AlbumPageProps } from "./Album";
+import type { CatalogPageProps } from "./Catalog";
+import { ErrorPageProps } from "./Error";
+import { MediaPageProps } from "./Media";
 import { AuthenticatedPageProps, PageType } from "./types";
 
-jest.mock("./indexpage", (): unknown => {
+jest.mock("./Root", (): unknown => {
   return () => <div id="index"/>;
 });
 
-jest.mock("./user", (): unknown => {
+jest.mock("./User", (): unknown => {
   return (props: AuthenticatedPageProps) => <div id="user" data-user={props.user.email}/>;
 });
 
-jest.mock("./catalog", (): unknown => {
+jest.mock("./Catalog", (): unknown => {
   return (props: CatalogPageProps & AuthenticatedPageProps) => <div
     id="catalog"
     data-user={props.user.email}
@@ -35,7 +35,7 @@ jest.mock("./catalog", (): unknown => {
   />;
 });
 
-jest.mock("./album", (): unknown => {
+jest.mock("./Album", (): unknown => {
   return (props: AlbumPageProps & AuthenticatedPageProps) => <div
     id="album"
     data-user={props.user.email}
@@ -43,7 +43,7 @@ jest.mock("./album", (): unknown => {
   />;
 });
 
-jest.mock("./media", (): unknown => {
+jest.mock("./Media", (): unknown => {
   return (props: MediaPageProps & AuthenticatedPageProps) => <div
     id="media"
     data-user={props.user.email}
@@ -51,11 +51,11 @@ jest.mock("./media", (): unknown => {
   />;
 });
 
-jest.mock("./notfound", (): unknown => {
+jest.mock("./NotFound", (): unknown => {
   return () => <div id="notfound"/>;
 });
 
-jest.mock("./error", (): unknown => {
+jest.mock("./Error", (): unknown => {
   return (props: ErrorPageProps) => <div id="error" data-error={props.error}/>;
 });
 
@@ -65,7 +65,7 @@ test("index page", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   }));

@@ -110,7 +110,7 @@ export default function Banner(props: BannerProps): ReactResult {
     }
     <Box className={classes.title}>
       <Box className={classes.titleText} component="span">
-        <Link to={{ page: { type: PageType.Index } }} color="inherit">PixelBin</Link>
+        <Link to={{ page: { type: PageType.Root } }} color="inherit">PixelBin</Link>
       </Box>
     </Box>
     <Box id="banner-buttons" className={classes.bannerButtons}>

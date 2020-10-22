@@ -190,7 +190,7 @@ const authReducers = {
     state.serverState = createDraft(serverData);
     state.ui = {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     };
   },

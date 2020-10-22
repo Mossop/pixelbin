@@ -1,12 +1,12 @@
 import type { UserState } from "../api/types";
 import type { HistoryState } from "../utils/history";
-import type { AlbumPageProps } from "./album";
-import type { CatalogPageProps } from "./catalog";
-import type { MediaPageProps } from "./media";
-import { SearchPageProps } from "./search";
+import type { AlbumPageProps } from "./Album";
+import type { CatalogPageProps } from "./Catalog";
+import type { MediaPageProps } from "./Media";
+import { SearchPageProps } from "./Search";
 
 export enum PageType {
-  Index = "index",
+  Root = "root",
   Catalog = "catalog",
   Album = "album",
   User = "user",
@@ -20,7 +20,7 @@ export interface AuthenticatedPageProps {
 }
 
 interface BasePageState {
-  readonly type: PageType.Index | PageType.User;
+  readonly type: PageType.Root | PageType.User;
 }
 
 type CatalogPageState = CatalogPageProps & {

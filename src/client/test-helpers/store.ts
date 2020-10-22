@@ -275,7 +275,7 @@ export function mockStoreState(state?: Partial<Draft<StoreState>>): Draft<StoreS
     },
     ui: state.ui ?? {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   };

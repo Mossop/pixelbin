@@ -25,7 +25,7 @@ test("showAlbumCreateOverlay", (): void => {
 
   expect(state.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   });
 
@@ -34,7 +34,7 @@ test("showAlbumCreateOverlay", (): void => {
 
   expect(newState.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.CreateAlbum,
@@ -47,7 +47,7 @@ test("showAlbumCreateOverlay", (): void => {
 
   expect(newState.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.CreateAlbum,
@@ -70,7 +70,7 @@ test("showAlbumEditOverlay", (): void => {
 
   expect(state.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   });
 
@@ -79,7 +79,7 @@ test("showAlbumEditOverlay", (): void => {
 
   expect(newState.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.EditAlbum,
@@ -101,7 +101,7 @@ test("albumCreated", (): void => {
     }]),
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.CreateAlbum,
@@ -201,7 +201,7 @@ test("Album edited", (): void => {
     }]),
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.EditAlbum,
@@ -277,7 +277,7 @@ test("Album edited", (): void => {
 
   expect(newState.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   });
 });

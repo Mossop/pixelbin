@@ -15,7 +15,7 @@ test("showCatalogCreateOverlay", (): void => {
 
   expect(state.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   });
 
@@ -24,7 +24,7 @@ test("showCatalogCreateOverlay", (): void => {
 
   expect(newState.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.CreateCatalog,
@@ -90,7 +90,7 @@ test("catalogCreated", (): void => {
 
   expect(state.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   });
 

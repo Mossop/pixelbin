@@ -6,12 +6,12 @@ import { StoreState } from "../store/types";
 import { ReactResult } from "../utils/types";
 import { OverlayType } from "./types";
 
-const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./login"));
-const AlbumOverlay = lazy(() => import(/* webpackChunkName: "AlbumOverlay" */ "./album"));
+const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./Login"));
+const AlbumOverlay = lazy(() => import(/* webpackChunkName: "AlbumOverlay" */ "./Album"));
 const CreateCatalogOverlay = lazy(() =>
   import(/* webpackChunkName: "CreateCatalog" */ "./CreateCatalog"));
-const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./signup"));
-const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./search"));
+const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./Signup"));
+const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./Search"));
 
 export default function Overlay(): ReactResult {
   const actions = useActions();

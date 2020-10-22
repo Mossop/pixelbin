@@ -2,7 +2,7 @@ import React, { ErrorInfo, PureComponent, Suspense } from "react";
 
 import Overlay from "../overlays";
 import Page from "../pages";
-import ErrorPage from "../pages/error";
+import ErrorPage from "../pages/Error";
 import Loading from "./Loading";
 import PageComponent from "./Page";
 

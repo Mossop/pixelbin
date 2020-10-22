@@ -17,7 +17,7 @@ export function buildStore(): void {
     },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   };

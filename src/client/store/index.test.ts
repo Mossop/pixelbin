@@ -19,7 +19,7 @@ test("store initialization", async (): Promise<void> => {
     },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   });
@@ -59,7 +59,7 @@ test("store initialization", async (): Promise<void> => {
     },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   });

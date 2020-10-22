@@ -16,7 +16,7 @@ test("Navigate", (): void => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   });
@@ -43,7 +43,7 @@ test("closeOverlay", (): void => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.Login,
@@ -57,7 +57,7 @@ test("closeOverlay", (): void => {
 
   expect(newState.ui).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   });
 });
@@ -67,7 +67,7 @@ test("updateServerState", (): void => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   });

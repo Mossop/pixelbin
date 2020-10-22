@@ -12,11 +12,11 @@ import {
   mockStoreState,
   render,
 } from "../test-helpers";
-import type { AlbumOverlayProps } from "./album";
+import type { AlbumOverlayProps } from "./Album";
 import type { CreateCatalogOverlayProps } from "./CreateCatalog";
 import { OverlayType } from "./types";
 
-jest.mock("./album", (): unknown => {
+jest.mock("./Album", (): unknown => {
   return (props: AlbumOverlayProps) => {
     if ("album" in props) {
       return <div id="album-overlay" data-album={props.album.id}/>;
@@ -31,11 +31,11 @@ jest.mock("./CreateCatalog", (): unknown => {
     <div id="catalog-overlay" data-user={props.user.email}/>;
 });
 
-jest.mock("./login", (): unknown => {
+jest.mock("./Login", (): unknown => {
   return () => <div id="login-overlay"/>;
 });
 
-jest.mock("./signup", (): unknown => {
+jest.mock("./Signup", (): unknown => {
   return () => <div id="signup-overlay"/>;
 });
 
@@ -44,7 +44,7 @@ test("no overlay", (): void => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   }));
@@ -60,7 +60,7 @@ test("login overlay", async (): Promise<void> => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.Login,
@@ -81,7 +81,7 @@ test("signup overlay", async (): Promise<void> => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.Signup,
@@ -101,7 +101,7 @@ test("create album overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.CreateAlbum,
@@ -123,7 +123,7 @@ test("edit album overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.EditAlbum,
@@ -146,7 +146,7 @@ test("create catalog overlay", async (): Promise<void> => {
   const store = mockStore(mockStoreState({
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
       overlay: {
         type: OverlayType.CreateCatalog,

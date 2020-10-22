@@ -4,16 +4,16 @@ import { useSelector } from "../store";
 import { StoreState } from "../store/types";
 import { ErrorCode, InternalError } from "../utils/exception";
 import { ReactResult } from "../utils/types";
-import ErrorPage from "./error";
-import Index from "./indexpage";
-import NotFound from "./notfound";
+import ErrorPage from "./Error";
+import NotFound from "./NotFound";
+import Root from "./Root";
 import { PageType } from "./types";
 
-const Album = lazy(() => import(/* webpackChunkName: "AlbumPage" */ "./album"));
-const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./catalog"));
-const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./user"));
-const Media = lazy(() => import(/* webpackChunkName: "MediaPage" */ "./media"));
-const Search = lazy(() => import(/* webpackChunkName: "SearchPage" */ "./search"));
+const Album = lazy(() => import(/* webpackChunkName: "AlbumPage" */ "./Album"));
+const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./Catalog"));
+const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./User"));
+const Media = lazy(() => import(/* webpackChunkName: "MediaPage" */ "./Media"));
+const Search = lazy(() => import(/* webpackChunkName: "SearchPage" */ "./Search"));
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({
@@ -42,8 +42,8 @@ export default function PageDisplay(): ReactResult {
   }
 
   switch (page.type) {
-    case PageType.Index: {
-      return <Index/>;
+    case PageType.Root: {
+      return <Root/>;
     }
     case PageType.NotFound: {
       return <NotFound/>;

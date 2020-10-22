@@ -62,13 +62,13 @@ const LoggedIn = mockServerState([{
 test("index page", (): void => {
   expect(intoUIState(state("/"), LoggedOut)).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   });
 
   expect(fromUIState({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
   })).toEqual(state("/"));
 });
@@ -227,7 +227,7 @@ test("user page", (): void => {
 test("login overlay", (): void => {
   expect(intoUIState(state("/login"), LoggedOut)).toEqual({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.Login,
@@ -236,7 +236,7 @@ test("login overlay", (): void => {
 
   expect(fromUIState({
     page: {
-      type: PageType.Index,
+      type: PageType.Root,
     },
     overlay: {
       type: OverlayType.Login,
@@ -433,7 +433,7 @@ test("History navigations", (): void => {
     serverState: { user: null },
     ui: {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     },
   }));
@@ -445,7 +445,7 @@ test("History navigations", (): void => {
     type: "updateUIState",
     payload: [{
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     }],
   });

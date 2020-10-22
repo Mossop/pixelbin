@@ -1,5 +1,5 @@
-import type { AlbumCreateOverlayProps, AlbumEditOverlayProps } from "./album";
-import type { SearchOverlayProps } from "./search";
+import type { AlbumCreateOverlayProps, AlbumEditOverlayProps } from "./Album";
+import type { SearchOverlayProps } from "./Search";
 
 export enum OverlayType {
   Login = "login",

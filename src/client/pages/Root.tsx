@@ -5,7 +5,7 @@ import Content from "../components/Content";
 import Page from "../components/Page";
 import { ReactResult } from "../utils/types";
 
-export default function IndexPage(): ReactResult {
+export default function RootPage(): ReactResult {
   return <Page>
     <Content>
       <Typography variant="h1">h1 text</Typography>

@@ -63,7 +63,7 @@ function decodeTargetState(
   if (!params) {
     return {
       page: {
-        type: PageType.Index,
+        type: PageType.Root,
       },
     };
   }
@@ -134,7 +134,7 @@ const pathMap: PathMap[] = [
     (): UIState => {
       return {
         page: {
-          type: PageType.Index,
+          type: PageType.Root,
         },
       };
     },
@@ -304,7 +304,7 @@ export function fromUIState(uiState: UIState): HistoryState {
   }
 
   switch (uiState.page.type) {
-    case PageType.Index: {
+    case PageType.Root: {
       return buildState("/");
     }
     case PageType.User: {
