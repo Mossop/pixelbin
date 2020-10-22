@@ -10,6 +10,8 @@ const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ ".
 const AlbumOverlay = lazy(() => import(/* webpackChunkName: "AlbumOverlay" */ "./Album"));
 const CreateCatalogOverlay = lazy(() =>
   import(/* webpackChunkName: "CreateCatalog" */ "./CreateCatalog"));
+const EditCatalogOverlay = lazy(() =>
+  import(/* webpackChunkName: "EditCatalog" */ "./EditCatalog"));
 const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./Signup"));
 const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./Search"));
 
@@ -29,6 +31,9 @@ export default function Overlay(): ReactResult {
     switch (overlay.type) {
       case OverlayType.CreateCatalog: {
         return <CreateCatalogOverlay user={user}/>;
+      }
+      case OverlayType.EditCatalog: {
+        return <EditCatalogOverlay {...overlay}/>;
       }
       case OverlayType.CreateAlbum: {
         return <AlbumOverlay {...overlay}/>;

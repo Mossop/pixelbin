@@ -47,6 +47,33 @@ const catalogReducers = {
     };
   },
 
+  showCatalogEditOverlay(
+    state: Draft<StoreState>,
+    _user: Draft<UserState>,
+    catalog: Reference<Catalog>,
+  ): void {
+    state.ui.overlay = {
+      type: OverlayType.EditCatalog,
+      catalog,
+    };
+  },
+
+  catalogEdited(
+    state: Draft<StoreState>,
+    user: Draft<UserState>,
+    catalog: Omit<CatalogState, "albums" | "tags" | "people" | "searches">,
+  ): void {
+    let existing = user.catalogs.get(catalog.id);
+    if (existing) {
+      user.catalogs.set(catalog.id, {
+        ...existing,
+        ...catalog,
+      });
+    }
+
+    state.ui.overlay = undefined;
+  },
+
   storageCreated(state: Draft<StoreState>, user: Draft<UserState>, storage: StorageState): void {
     user.storage.set(storage.id, storage);
   },

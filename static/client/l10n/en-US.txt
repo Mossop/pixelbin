@@ -65,6 +65,9 @@ storage-public-url = Public access URL:
 storage-test-success = Storage test succeeded!
 catalog-create-submit = Create
 
+catalog-edit-title = Edit catalog
+catalog-edit-submit = Finish
+
 sidebar-add-catalog = Add a new catalog…
 
 album-create-title = Create a new album

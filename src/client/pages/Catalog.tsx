@@ -46,6 +46,11 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
 
   let media = useMediaLookup(lookup);
 
+  const onCatalogEdit = useCallback(
+    () => actions.showCatalogEditOverlay(props.catalog),
+    [props, actions],
+  );
+
   const onCatalogSearch = useCallback(() => {
     let query: Draft<Search.CompoundQuery> = {
       invert: false,
@@ -68,6 +73,10 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
         id: "album-create",
         onClick: onAlbumCreate,
         label: l10n.getString("banner-album-new"),
+      }, {
+        id: "catalog-edit",
+        onClick: onCatalogEdit,
+        label: l10n.getString("banner-catalog-edit"),
       }]
     }
   >

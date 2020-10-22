@@ -2,7 +2,7 @@ import { enableMapSet } from "immer";
 
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
-import { mockStoreState, expect, mapOf } from "../test-helpers";
+import { mockStoreState, expect, mapOf, mockServerState } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
 
@@ -130,5 +130,138 @@ test("catalogCreated", (): void => {
       type: PageType.Catalog,
       catalog: expect.toBeRef("cat456"),
     },
+  });
+});
+
+test("catalogEdited", (): void => {
+  let state = mockStoreState({
+    serverState: mockServerState([{
+      id: "c1",
+      name: "initial",
+      storage: "s1",
+      albums: [{
+        id: "a1",
+        name: "album 1",
+      }, {
+        id: "a2",
+        name: "album 2",
+      }],
+    }, {
+      id: "c2",
+      name: "other",
+      storage: "s1",
+    }]),
+  });
+
+  expect(state.serverState.user).toEqual({
+    catalogs: mapOf({
+      c1: {
+        id: "c1",
+        name: "initial",
+        storage: "s1",
+        albums: mapOf({
+          a1: {
+            id: "a1",
+            name: "album 1",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+          a2: {
+            id: "a2",
+            name: "album 2",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+        }),
+        tags: mapOf({}),
+        people: mapOf({}),
+        searches: mapOf({}),
+      },
+      c2: {
+        albums: mapOf({}),
+
+        id: "c2",
+        name: "other",
+        people: mapOf({}),
+        searches: mapOf({}),
+        storage: "s1",
+        tags: mapOf({}),
+      },
+    }),
+    created: "2020-04-05T12:34:45Z",
+    email: "dtownsend@oxymoronical.com",
+    fullname: "Dave Townsend",
+    storage: mapOf({
+      s1: {
+        bucket: "test-bucket",
+        endpoint: null,
+        id: "s1",
+        name: "Test store",
+        path: null,
+        publicUrl: null,
+        region: "test-region-001",
+      },
+    }),
+    verified: true,
+  });
+
+  let action = actions.catalogEdited({
+    id: "c1",
+    storage: "s1",
+    name: "My new name",
+  });
+
+  let newState = reducer(state, action);
+
+  expect(newState.serverState.user).toEqual({
+    catalogs: mapOf({
+      c1: {
+        id: "c1",
+        name: "My new name",
+        storage: "s1",
+        albums: mapOf({
+          a1: {
+            id: "a1",
+            name: "album 1",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+          a2: {
+            id: "a2",
+            name: "album 2",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+        }),
+        tags: mapOf({}),
+        people: mapOf({}),
+        searches: mapOf({}),
+      },
+      c2: {
+        albums: mapOf({}),
+
+        id: "c2",
+        name: "other",
+        people: mapOf({}),
+        searches: mapOf({}),
+        storage: "s1",
+        tags: mapOf({}),
+      },
+    }),
+    created: "2020-04-05T12:34:45Z",
+    email: "dtownsend@oxymoronical.com",
+    fullname: "Dave Townsend",
+    storage: mapOf({
+      s1: {
+        bucket: "test-bucket",
+        endpoint: null,
+        id: "s1",
+        name: "Test store",
+        path: null,
+        publicUrl: null,
+        region: "test-region-001",
+      },
+    }),
+    verified: true,
   });
 });
