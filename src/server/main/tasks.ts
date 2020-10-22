@@ -9,7 +9,7 @@ import {
 import { WorkerPool, AbstractChildProcess } from "../worker";
 import { quit } from "./events";
 import { Service } from "./service";
-import services, { provideService } from "./services";
+import Services from "./services";
 
 export type TaskConfig = TaskWorkerConfig & {
   taskWorkerPackage: string;
@@ -20,7 +20,7 @@ const logger = getLogger("tasks-manager");
 export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
 
-  private constructor(private readonly config: TaskConfig) {
+  public constructor(private readonly config: TaskConfig) {
     super(logger);
 
     this.pool = new WorkerPool<TaskWorkerInterface, ParentProcessInterface>({
@@ -38,18 +38,6 @@ export class TaskManager extends Service {
     });
 
     this.pool.on("shutdown", quit);
-  }
-
-  public static async init(): Promise<void> {
-    let config = await services.config;
-    let taskManager = new TaskManager({
-      taskWorkerPackage: config.taskWorkerPackage,
-      database: config.database,
-      logging: config.logging,
-      storage: config.storage,
-    });
-
-    provideService("taskManager", taskManager);
   }
 
   protected async shutdown(): Promise<void> {
@@ -74,4 +62,14 @@ export class TaskManager extends Service {
       return this.config;
     },
   };
+}
+
+export async function initTaskManager(): Promise<TaskManager> {
+  let config = await Services.config;
+  return new TaskManager({
+    taskWorkerPackage: config.taskWorkerPackage,
+    database: config.database,
+    logging: config.logging,
+    storage: config.storage,
+  });
 }

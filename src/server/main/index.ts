@@ -8,31 +8,35 @@ import { StorageService } from "../storage";
 import { loadConfig, ServerConfig } from "./config";
 import events, { quit } from "./events";
 import Services, { provideService } from "./services";
-import { TaskManager } from "./tasks";
-import { WebserverManager } from "./webserver";
+import { initTaskManager } from "./tasks";
+import { initWebserver } from "./webserver";
 
 install();
 const logger = getLogger("server");
 
-async function initDatabase(): Promise<void> {
+async function initDatabase(): Promise<DatabaseConnection> {
   let config = await Services.config;
 
   let dbConnection = await DatabaseConnection.connect("main", config.database);
   await dbConnection.knex.migrate.latest();
-  provideService("database", dbConnection);
 
   events.on("shutdown", () => {
     logger.catch(dbConnection.destroy());
   });
+
+  return dbConnection;
 }
 
-async function startupServers(): Promise<void> {
-  await TaskManager.init();
-  await WebserverManager.init();
-
+async function initStorage(): Promise<StorageService> {
   let config = await Services.config;
-  let storage = new StorageService(config.storage, await Services.database);
-  provideService("storage", storage);
+  return new StorageService(config.storage, await Services.database);
+}
+
+function startupServices(): void {
+  provideService("taskManager", initTaskManager());
+  provideService("database", initDatabase());
+  provideService("storage", initStorage());
+  provideService("webServers", initWebserver());
 }
 
 async function reprocessUploads(): Promise<void> {
@@ -60,8 +64,8 @@ async function startup(config: ServerConfig): Promise<void> {
   provideService("config", config);
   provideService("scheduler", new Scheduler());
 
-  await initDatabase();
-  await startupServers();
+  startupServices();
+
   await reprocessUploads();
   await startSchedule();
 }

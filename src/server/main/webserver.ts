@@ -7,7 +7,7 @@ import { WebserverConfig, ParentProcessInterface } from "../webserver/interfaces
 import { WorkerPool, AbstractChildProcess } from "../worker";
 import { quit } from "./events";
 import { Service } from "./service";
-import services, { provideService } from "./services";
+import Services from "./services";
 import { TaskManager } from "./tasks";
 
 export type WebConfig = WebserverConfig & {
@@ -20,7 +20,7 @@ export class WebserverManager extends Service {
   private readonly server: net.Server;
   private readonly pool: WorkerPool<undefined, ParentProcessInterface>;
 
-  private constructor(
+  public constructor(
     private readonly config: WebConfig,
     private readonly taskManager: TaskManager,
   ) {
@@ -52,24 +52,6 @@ export class WebserverManager extends Service {
     this.pool.on("shutdown", quit);
   }
 
-  public static async init(): Promise<void> {
-    let config = await services.config;
-
-    let webServers = new WebserverManager({
-      htmlTemplate: path.join(config.htmlTemplate),
-      webserverPackage: config.webserverPackage,
-      staticRoot: path.join(config.staticRoot),
-      appRoot: path.join(config.clientRoot),
-      database: config.database,
-      logging: config.logging,
-      storage: config.storage,
-      cache: config.cache,
-      secretKeys: ["Random secret"],
-    }, await services.taskManager);
-
-    provideService("webServers", webServers);
-  }
-
   protected async shutdown(): Promise<void> {
     this.server.close();
     this.pool.shutdown();
@@ -93,4 +75,20 @@ export class WebserverManager extends Service {
       return this.taskManager.handleUploadedFile(id);
     },
   };
+}
+
+export async function initWebserver(): Promise<WebserverManager> {
+  let config = await Services.config;
+
+  return new WebserverManager({
+    htmlTemplate: path.join(config.htmlTemplate),
+    webserverPackage: config.webserverPackage,
+    staticRoot: path.join(config.staticRoot),
+    appRoot: path.join(config.clientRoot),
+    database: config.database,
+    logging: config.logging,
+    storage: config.storage,
+    cache: config.cache,
+    secretKeys: ["Random secret"],
+  }, await Services.taskManager);
 }
