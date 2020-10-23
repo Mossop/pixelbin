@@ -62,14 +62,19 @@ function *iterAlbums(
     let id = mock.id ?? randomId();
     let ref = Album.ref(id);
 
+    let {
+      children,
+      ...fields
+    } = mock;
+
     yield {
-      ...mock,
+      ...fields,
       id,
       catalog,
       parent,
     };
 
-    yield* iterAlbums(catalog, ref, mock.children);
+    yield* iterAlbums(catalog, ref, children);
   }
 }
 
@@ -86,14 +91,19 @@ function *iterTags(
     let id = mock.id ?? randomId();
     let ref = Tag.ref(id);
 
+    let {
+      children,
+      ...fields
+    } = mock;
+
     yield {
-      ...mock,
+      ...fields,
       id,
       catalog,
       parent,
     };
 
-    yield* iterTags(catalog, ref, mock.children);
+    yield* iterTags(catalog, ref, children);
   }
 }
 

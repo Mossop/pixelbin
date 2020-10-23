@@ -33,17 +33,17 @@ test("login success", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let email = expectChild<HTMLInputElement>(form, "input#dialog-email");
+  let email = expectChild<HTMLInputElement>(form, "input#form-dialog-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "input#dialog-password");
+  let password = expectChild<HTMLInputElement>(form, "input#form-dialog-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
 
-  let button = expectChild<HTMLButtonElement>(form, "button#dialog-submit");
+  let button = expectChild<HTMLButtonElement>(form, "button#form-dialog-submit");
   click(button);
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -109,12 +109,12 @@ test("login failed", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let email = expectChild<HTMLInputElement>(form, "input#dialog-email");
+  let email = expectChild<HTMLInputElement>(form, "input#form-dialog-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "input#dialog-password");
+  let password = expectChild<HTMLInputElement>(form, "input#form-dialog-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
@@ -124,7 +124,7 @@ test("login failed", async (): Promise<void> => {
 
   let { reject } = deferRequest();
 
-  let button = expectChild<HTMLButtonElement>(form, "button#dialog-submit");
+  let button = expectChild<HTMLButtonElement>(form, "button#form-dialog-submit");
   click(button);
 
   expect(store.dispatch).not.toHaveBeenCalled();
@@ -151,6 +151,6 @@ test("login failed", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let error = expectChild(dialogContainer, "#dialog-error");
+  let error = expectChild(dialogContainer, "#form-dialog-error");
   expect(error.textContent).toBe("api-error-login-failed");
 });

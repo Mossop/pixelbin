@@ -1,6 +1,5 @@
 import { enableMapSet } from "immer";
 
-import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect, mapOf, mockServerState } from "../test-helpers";
 import actions from "./actions";
@@ -8,28 +7,6 @@ import reducer from "./reducer";
 
 beforeAll(() => {
   enableMapSet();
-});
-
-test("showCatalogCreateOverlay", (): void => {
-  let state = mockStoreState();
-
-  expect(state.ui).toEqual({
-    page: {
-      type: PageType.Root,
-    },
-  });
-
-  let action = actions.showCatalogCreateOverlay();
-  let newState = reducer(state, action);
-
-  expect(newState.ui).toEqual({
-    page: {
-      type: PageType.Root,
-    },
-    overlay: {
-      type: OverlayType.CatalogCreate,
-    },
-  });
 });
 
 test("storageCreated", (): void => {

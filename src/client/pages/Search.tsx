@@ -8,6 +8,7 @@ import { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import { MediaLookupType, SearchMediaLookup, useMediaLookup } from "../utils/medialookup";
 import { ReactResult } from "../utils/types";
@@ -53,7 +54,11 @@ export default function SearchPage({
       ...query,
     };
 
-    actions.showSearchOverlay(catalog, newQuery);
+    actions.showOverlay({
+      type: OverlayType.Search,
+      catalog,
+      query: newQuery,
+    });
   }, [actions, catalog, query]);
 
   return <Page

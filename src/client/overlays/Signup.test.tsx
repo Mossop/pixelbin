@@ -33,22 +33,22 @@ test("signup success", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let email = expectChild<HTMLInputElement>(form, "#dialog-email");
+  let email = expectChild<HTMLInputElement>(form, "#form-dialog-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let name = expectChild<HTMLInputElement>(form, "#dialog-fullname");
+  let name = expectChild<HTMLInputElement>(form, "#form-dialog-fullname");
   expect(name.localName).toBe("input");
   expect(name.type).toBe("text");
   expect(name.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "#dialog-password");
+  let password = expectChild<HTMLInputElement>(form, "#form-dialog-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
 
-  let button = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  let button = expectChild<HTMLButtonElement>(form, "#form-dialog-submit");
   click(button);
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -117,22 +117,22 @@ test("signup failed", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let email = expectChild<HTMLInputElement>(form, "input#dialog-email");
+  let email = expectChild<HTMLInputElement>(form, "input#form-dialog-email");
   expect(email.localName).toBe("input");
   expect(email.type).toBe("email");
   expect(email.disabled).toBeFalsy();
 
-  let name = expectChild<HTMLInputElement>(form, "input#dialog-fullname");
+  let name = expectChild<HTMLInputElement>(form, "input#form-dialog-fullname");
   expect(name.localName).toBe("input");
   expect(name.type).toBe("text");
   expect(name.disabled).toBeFalsy();
 
-  let password = expectChild<HTMLInputElement>(form, "input#dialog-password");
+  let password = expectChild<HTMLInputElement>(form, "input#form-dialog-password");
   expect(password.localName).toBe("input");
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
 
-  let button = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  let button = expectChild<HTMLButtonElement>(form, "#form-dialog-submit");
   click(button);
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -168,6 +168,6 @@ test("signup failed", async (): Promise<void> => {
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let error = expectChild(dialogContainer, "#dialog-error");
+  let error = expectChild(dialogContainer, "#form-dialog-error");
   expect(error.textContent).toBe("api-error-invalid-data");
 });

@@ -32,9 +32,9 @@ test("basic stepped dialog", async (): Promise<void> => {
     />,
   );
   let form = expectChild(dialogContainer, "form");
-  expect(form.querySelector("#dialog-error")).toBeNull();
+  expect(form.querySelector("#stepped-dialog-error")).toBeNull();
 
-  let title = expectChild(form, "#dialog-title");
+  let title = expectChild(form, "#stepped-dialog-title");
   expect(title.textContent).toBe("foo");
 
   let stepLabels = form.querySelectorAll(".MuiStepLabel-label");
@@ -43,16 +43,16 @@ test("basic stepped dialog", async (): Promise<void> => {
   expect(stepLabels[1].textContent).toBe("step2-title");
   expect(stepLabels[2].textContent).toBe("step3-title");
 
-  let cancelButton = expectChild<HTMLButtonElement>(form, "#dialog-cancel");
+  let cancelButton = expectChild<HTMLButtonElement>(form, "#stepped-dialog-cancel");
   expect(cancelButton.textContent).toBe("form-cancel");
   expect(cancelButton.disabled).toBeFalsy();
-  let backButton = expectChild<HTMLButtonElement>(form, "#dialog-back");
+  let backButton = expectChild<HTMLButtonElement>(form, "#stepped-dialog-back");
   expect(backButton.textContent).toBe("form-back");
   expect(backButton.disabled).toBeTruthy();
-  let nextButton = expectChild<HTMLButtonElement>(form, "#dialog-next");
+  let nextButton = expectChild<HTMLButtonElement>(form, "#stepped-dialog-next");
   expect(nextButton.textContent).toBe("form-next");
   expect(nextButton.disabled).toBeFalsy();
-  expect(form.querySelector("#dialog-submit")).toBeNull();
+  expect(form.querySelector("#stepped-dialog-submit")).toBeNull();
 
   let step1Content = expectChild(form, "#step1");
   let styles = form.ownerDocument.defaultView?.getComputedStyle(step1Content.parentElement!);
@@ -92,7 +92,7 @@ test("basic stepped dialog", async (): Promise<void> => {
 
   expect(backButton.disabled).toBeFalsy();
   expect(nextButton.disabled).toBeFalsy();
-  expect(form.querySelector("#dialog-submit")).toBeNull();
+  expect(form.querySelector("#stepped-dialog-submit")).toBeNull();
 
   expect(back).not.toHaveBeenCalled();
   click(backButton);
@@ -121,7 +121,7 @@ test("basic stepped dialog", async (): Promise<void> => {
 
   expect(backButton.disabled).toBeTruthy();
   expect(nextButton.disabled).toBeTruthy();
-  expect(form.querySelector("#dialog-submit")).toBeNull();
+  expect(form.querySelector("#stepped-dialog-submit")).toBeNull();
 
   rerender(
     <SteppedDialog
@@ -144,8 +144,8 @@ test("basic stepped dialog", async (): Promise<void> => {
   expect(styles?.visibility).toBe("visible");
 
   expect(backButton.disabled).toBeFalsy();
-  expect(form.querySelector("#dialog-next")).toBeNull();
-  let submitButton = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  expect(form.querySelector("#stepped-dialog-next")).toBeNull();
+  let submitButton = expectChild<HTMLButtonElement>(form, "#stepped-dialog-submit");
   expect(submitButton.disabled).toBeTruthy();
 
   rerender(

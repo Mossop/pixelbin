@@ -5,6 +5,7 @@ import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils";
 import { Album } from "../api/highlevel";
 import MediaGallery from "../components/MediaGallery";
+import { OverlayType } from "../overlays/types";
 import {
   expect,
   mockStore,
@@ -68,10 +69,11 @@ test("album", async (): Promise<void> => {
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showAlbumEditOverlay",
-    payload: [
-      expect.toBeRef("album1"),
-    ],
+    type: "showOverlay",
+    payload: [{
+      type: OverlayType.AlbumEdit,
+      album: expect.toBeRef("album1"),
+    }],
   });
   store.dispatch.mockClear();
 
@@ -79,10 +81,11 @@ test("album", async (): Promise<void> => {
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showAlbumCreateOverlay",
-    payload: [
-      expect.toBeRef("album1"),
-    ],
+    type: "showOverlay",
+    payload: [{
+      type: OverlayType.AlbumCreate,
+      parent: expect.toBeRef("album1"),
+    }],
   });
   store.dispatch.mockClear();
 

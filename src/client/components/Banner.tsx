@@ -15,6 +15,7 @@ import React, { useCallback } from "react";
 
 import { logout } from "../api/auth";
 import { UserState } from "../api/types";
+import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
@@ -78,11 +79,15 @@ export default function Banner(props: BannerProps): ReactResult {
 
   const showLoginOverlay = useCallback((): void => {
     userMenuState.close();
-    actions.showLoginOverlay();
+    actions.showOverlay({
+      type: OverlayType.Login,
+    });
   }, [actions, userMenuState]);
   const showSignupOverlay = useCallback((): void => {
     userMenuState.close();
-    actions.showSignupOverlay();
+    actions.showOverlay({
+      type: OverlayType.Signup,
+    });
   }, [actions, userMenuState]);
   const doLogout = useCallback(async (): Promise<void> => {
     userMenuState.close();

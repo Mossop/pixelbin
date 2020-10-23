@@ -61,6 +61,7 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
     onEntered={onDisplay}
   >
     <FormFields
+      id="form-dialog"
       disabled={disabled}
       state={state}
       setState={setState}

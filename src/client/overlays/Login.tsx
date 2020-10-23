@@ -55,6 +55,7 @@ export default function LoginOverlay(): ReactResult {
     onEntered={onDisplay}
   >
     <FormFields
+      id="form-dialog"
       disabled={disabled}
       state={state}
       setState={setState}

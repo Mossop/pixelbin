@@ -8,6 +8,7 @@ import { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import { CatalogMediaLookup, MediaLookupType, useMediaLookup } from "../utils/medialookup";
 import { ReactResult } from "../utils/types";
@@ -22,7 +23,10 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
   const actions = useActions();
 
   const onAlbumCreate = useCallback(
-    () => actions.showAlbumCreateOverlay(props.catalog),
+    () => actions.showOverlay({
+      type: OverlayType.AlbumCreate,
+      parent: props.catalog,
+    }),
     [props, actions],
   );
 
@@ -47,7 +51,10 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
   let media = useMediaLookup(lookup);
 
   const onCatalogEdit = useCallback(
-    () => actions.showCatalogEditOverlay(props.catalog),
+    () => actions.showOverlay({
+      type: OverlayType.CatalogEdit,
+      catalog: props.catalog,
+    }),
     [props, actions],
   );
 
@@ -59,7 +66,11 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
       queries: [],
     };
 
-    actions.showSearchOverlay(props.catalog, query);
+    actions.showOverlay({
+      type: OverlayType.Search,
+      catalog: props.catalog,
+      query,
+    });
   }, [actions, props.catalog]);
 
   return <Page

@@ -13,6 +13,7 @@ import {
   render,
 } from "../test-helpers";
 import type { AlbumOverlayProps } from "./Album";
+import { AlbumDeleteOverlayProps } from "./AlbumDelete";
 import type { CatalogCreateOverlayProps } from "./CatalogCreate";
 import { CatalogEditOverlayProps } from "./CatalogEdit";
 import { OverlayType } from "./types";
@@ -25,6 +26,11 @@ jest.mock("./Album", (): unknown => {
       return <div id="album-overlay" data-parent={props.parent.id}/>;
     }
   };
+});
+
+jest.mock("./AlbumDelete", (): unknown => {
+  return (props: AlbumDeleteOverlayProps) =>
+    <div id="album-delete-overlay" data-album={props.album.id}/>;
 });
 
 jest.mock("./CatalogEdit", (): unknown => {
@@ -143,6 +149,29 @@ test("edit album overlay", async (): Promise<void> => {
   expectChild(container, "#album-overlay,.loading");
 
   let div = await waitFor(() => expectChild(container, "#album-overlay"));
+  expect(div.getAttribute("data-album")).toBe("album");
+
+  expect(store.dispatch).not.toHaveBeenCalled();
+});
+
+test("delete album overlay", async (): Promise<void> => {
+  const store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Root,
+      },
+      overlay: {
+        type: OverlayType.AlbumDelete,
+        album: Album.ref("album"),
+      },
+    },
+  }));
+
+  let { container } = render(<Overlay/>, store);
+  // The AlbumOverlay may have already resolved in the previous test.
+  expectChild(container, ".loading");
+
+  let div = await waitFor(() => expectChild(container, "#album-delete-overlay"));
   expect(div.getAttribute("data-album")).toBe("album");
 
   expect(store.dispatch).not.toHaveBeenCalled();

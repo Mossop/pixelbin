@@ -56,6 +56,7 @@ export default function SignupOverlay(): ReactResult {
     onEntered={onDisplay}
   >
     <FormFields
+      id="form-dialog"
       disabled={disabled}
       state={state}
       setState={setState}

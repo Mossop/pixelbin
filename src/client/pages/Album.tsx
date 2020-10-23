@@ -8,6 +8,7 @@ import { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import { OverlayType } from "../overlays/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
@@ -25,12 +26,26 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
   let album = useSelector((state: StoreState) => props.album.deref(state.serverState));
 
   const onAlbumEdit = useCallback(
-    () => actions.showAlbumEditOverlay(props.album),
+    () => actions.showOverlay({
+      type: OverlayType.AlbumEdit,
+      album: props.album,
+    }),
     [actions, props.album],
   );
 
   const onAlbumCreate = useCallback(
-    () => actions.showAlbumCreateOverlay(props.album),
+    () => actions.showOverlay({
+      type: OverlayType.AlbumCreate,
+      parent: props.album,
+    }),
+    [props.album, actions],
+  );
+
+  const onAlbumDelete = useCallback(
+    () => actions.showOverlay({
+      type: OverlayType.AlbumDelete,
+      album: props.album,
+    }),
     [props.album, actions],
   );
 
@@ -73,7 +88,11 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
       }],
     };
 
-    actions.showSearchOverlay(album.catalog.ref(), query);
+    actions.showOverlay({
+      type: OverlayType.Search,
+      catalog: album.catalog.ref(),
+      query,
+    });
   }, [actions, album]);
 
   return <Page
@@ -84,13 +103,17 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
         onClick: onAlbumSearch,
         label: l10n.getString("banner-search"),
       }, {
+        id: "album-create",
+        onClick: onAlbumCreate,
+        label: l10n.getString("banner-album-new"),
+      }, {
         id: "album-edit",
         onClick: onAlbumEdit,
         label: l10n.getString("banner-album-edit"),
       }, {
-        id: "album-create",
-        onClick: onAlbumCreate,
-        label: l10n.getString("banner-album-new"),
+        id: "album-delete",
+        onClick: onAlbumDelete,
+        label: l10n.getString("banner-album-delete"),
       }]
     }
   >

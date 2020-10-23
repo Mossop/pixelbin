@@ -11,15 +11,15 @@ test("basic form dialog", async (): Promise<void> => {
     <FormDialog titleId="foo" onSubmit={submit} onClose={close}/>,
   );
   let form = expectChild(dialogContainer, "form");
-  expect(form.querySelector("#dialog-error")).toBeNull();
+  expect(form.querySelector("#form-dialog-error")).toBeNull();
 
-  let title = expectChild(form, "#dialog-title");
+  let title = expectChild(form, "#form-dialog-title");
   expect(title.textContent).toBe("foo");
 
-  let cancelButton = expectChild<HTMLButtonElement>(form, "#dialog-cancel");
+  let cancelButton = expectChild<HTMLButtonElement>(form, "#form-dialog-cancel");
   expect(cancelButton.textContent).toBe("form-cancel");
   expect(cancelButton.disabled).toBeFalsy();
-  let submitButton = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  let submitButton = expectChild<HTMLButtonElement>(form, "#form-dialog-submit");
   expect(submitButton.textContent).toBe("form-submit");
   expect(submitButton.disabled).toBeFalsy();
 

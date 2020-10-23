@@ -37,8 +37,8 @@ test("create catalog", async (): Promise<void> => {
   expect(awsRadio.checked).toBeTruthy();
   expect(compatibleRadio.checked).toBeFalsy();
 
-  let backBtn = expectChild<HTMLButtonElement>(form, "#dialog-back");
-  let nextBtn = expectChild<HTMLButtonElement>(form, "#dialog-next");
+  let backBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-back");
+  let nextBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-next");
 
   expect(backBtn.disabled).toBeTruthy();
   expect(nextBtn.disabled).toBeFalsy();
@@ -51,7 +51,7 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeTruthy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  let input = expectChild(form, "#dialog-endpoint");
+  let input = expectChild(form, "#stepped-dialog-endpoint");
   typeString(input, "http://localhost:9000");
 
   expect(backBtn.disabled).toBeTruthy();
@@ -62,21 +62,21 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  input = expectChild(form, "#dialog-storageName");
+  input = expectChild(form, "#stepped-dialog-storageName");
   typeString(input, "New storage");
-  input = expectChild(form, "#dialog-accessKeyId");
+  input = expectChild(form, "#stepped-dialog-accessKeyId");
   typeString(input, "Access key");
-  input = expectChild(form, "#dialog-secretAccessKey");
+  input = expectChild(form, "#stepped-dialog-secretAccessKey");
   typeString(input, "Secret");
-  input = expectChild(form, "#dialog-bucket");
+  input = expectChild(form, "#stepped-dialog-bucket");
   typeString(input, "Test bucket");
-  input = expectChild(form, "#dialog-region");
+  input = expectChild(form, "#stepped-dialog-region");
   typeString(input, "hell-circle5-001");
 
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeFalsy();
 
-  input = expectChild(form, "#dialog-path");
+  input = expectChild(form, "#stepped-dialog-path");
   typeString(input, "foo/bar");
 
   let {
@@ -178,11 +178,11 @@ test("create catalog", async (): Promise<void> => {
   click(nextBtn);
 
   expect(backBtn.disabled).toBeFalsy();
-  expect(form.querySelector("#dialog-next")).toBeNull();
-  let submitBtn = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  expect(form.querySelector("#stepped-dialog-next")).toBeNull();
+  let submitBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-submit");
   expect(submitBtn.disabled).toBeTruthy();
 
-  input = expectChild(form, "#dialog-catalogName");
+  input = expectChild(form, "#stepped-dialog-catalogName");
   typeString(input, "New catalog");
 
   expect(submitBtn.disabled).toBeFalsy();
@@ -284,12 +284,12 @@ test("create catalog with existing storage", async (): Promise<void> => {
   expect(awsRadio.checked).toBeFalsy();
   expect(compatibleRadio.checked).toBeFalsy();
 
-  let field = expectChild(form, "#dialog-existingStorage");
+  let field = expectChild(form, "#stepped-dialog-existingStorage");
   let select = expectChild<HTMLInputElement>(field.parentElement, ".MuiSelect-nativeInput");
   expect(select.value).toBe("st567");
 
-  let backBtn = expectChild<HTMLButtonElement>(form, "#dialog-back");
-  let nextBtn = expectChild<HTMLButtonElement>(form, "#dialog-next");
+  let backBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-back");
+  let nextBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-next");
 
   expect(backBtn.disabled).toBeTruthy();
   expect(nextBtn.disabled).toBeFalsy();
@@ -297,11 +297,11 @@ test("create catalog with existing storage", async (): Promise<void> => {
   click(nextBtn);
 
   expect(backBtn.disabled).toBeFalsy();
-  expect(form.querySelector("#dialog-next")).toBeNull();
-  let submitBtn = expectChild<HTMLButtonElement>(form, "#dialog-submit");
+  expect(form.querySelector("#stepped-dialog-next")).toBeNull();
+  let submitBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-submit");
   expect(submitBtn.disabled).toBeTruthy();
 
-  let input = expectChild(form, "#dialog-catalogName");
+  let input = expectChild(form, "#stepped-dialog-catalogName");
   typeString(input, "New catalog");
 
   expect(submitBtn.disabled).toBeFalsy();

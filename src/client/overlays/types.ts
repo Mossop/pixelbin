@@ -1,4 +1,5 @@
 import type { AlbumCreateOverlayProps, AlbumEditOverlayProps } from "./Album";
+import { AlbumDeleteOverlayProps } from "./AlbumDelete";
 import type { CatalogEditOverlayProps } from "./CatalogEdit";
 import type { SearchOverlayProps } from "./Search";
 
@@ -9,6 +10,7 @@ export enum OverlayType {
   CatalogEdit = "editCatalog",
   AlbumCreate = "createAlbum",
   AlbumEdit = "editAlbum",
+  AlbumDelete = "deleteAlbum",
   Search = "search",
 }
 
@@ -16,7 +18,7 @@ interface BaseOverlayState {
   readonly type: OverlayType.Login | OverlayType.Signup | OverlayType.CatalogCreate;
 }
 
-type CaalogEditOverlayState = CatalogEditOverlayProps & {
+type CatalogEditOverlayState = CatalogEditOverlayProps & {
   readonly type: OverlayType.CatalogEdit;
 };
 
@@ -28,13 +30,18 @@ type AlbumEditOverlayState = AlbumEditOverlayProps & {
   readonly type: OverlayType.AlbumEdit;
 };
 
+type AlbumDeleteOverlayState = AlbumDeleteOverlayProps & {
+  readonly type: OverlayType.AlbumDelete;
+};
+
 type SearchOverlayState = SearchOverlayProps & {
   readonly type: OverlayType.Search;
 };
 
 export type OverlayState =
    BaseOverlayState |
-   CaalogEditOverlayState |
+   CatalogEditOverlayState |
    AlbumCreateOverlayState |
    AlbumEditOverlayState |
+   AlbumDeleteOverlayState |
    SearchOverlayState;

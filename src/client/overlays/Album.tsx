@@ -102,6 +102,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   }, [album, actions, catalog, state]);
 
   return <FormDialog
+    id="form-dialog"
     error={error}
     disabled={disabled}
     titleId={album ? "album-edit-title" : "album-create-title"}
@@ -111,6 +112,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
     onEntered={onDisplay}
   >
     <FormFields
+      id="form-dialog"
       disabled={disabled}
       state={state}
       setState={setState}

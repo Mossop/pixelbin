@@ -32,26 +32,24 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export interface FormDialogProps {
+export interface ConfirmationDialogProps {
   id?: string;
   titleId: string;
   children?: React.ReactNode;
   submitId?: string;
   cancelId?: string;
-  canSubmit?: boolean;
   disabled?: boolean;
   error?: unknown | null;
   onClose?: () => void;
-  onSubmit: () => void;
-  onEntered?: () => void;
+  onAccept: () => void;
 }
 
-export default function FormDialog(props: FormDialogProps): ReactResult {
+export default function ConfirmationDialog(props: ConfirmationDialogProps): ReactResult {
   const { l10n } = useLocalization();
   const classes = useStyles();
   const [open, setOpen] = useState(true);
 
-  let baseId = props.id ?? "form-dialog";
+  let baseId = props.id ?? "confirm-dialog";
 
   let errorMessage = props.error
     ? <Alert
@@ -63,9 +61,9 @@ export default function FormDialog(props: FormDialogProps): ReactResult {
     </Alert>
     : null;
 
-  const submit = useCallback((event: React.FormEvent): void => {
+  const accept = useCallback((event: React.FormEvent): void => {
     event.preventDefault();
-    props.onSubmit();
+    props.onAccept();
   }, [props]);
 
   const close = useCallback(() => {
@@ -78,36 +76,33 @@ export default function FormDialog(props: FormDialogProps): ReactResult {
   return <Dialog
     open={open}
     onClose={close}
-    onEntered={props.onEntered}
     scroll="body"
     aria-labelledby={`${baseId}-title`}
   >
-    <form id={props.id} onSubmit={submit}>
-      <DialogTitle id={`${baseId}-title`} className={classes.title}>
-        {l10n.getString(props.titleId)}
-      </DialogTitle>
-      <DialogContent className={classes.content}>
-        {errorMessage}
-        {props.children}
-      </DialogContent>
-      <DialogActions disableSpacing={true} className={classes.actions}>
+    <DialogTitle id={`${baseId}-title`} className={classes.title}>
+      {l10n.getString(props.titleId)}
+    </DialogTitle>
+    <DialogContent className={classes.content}>
+      {errorMessage}
+      {props.children}
+    </DialogContent>
+    <DialogActions disableSpacing={true} className={classes.actions}>
+      <Button
+        id={`${baseId}-cancel`}
+        disabled={props.disabled}
+        onClick={close}
+      >
+        {l10n.getString(props.cancelId ?? "confirm-cancel")}
+      </Button>
+      <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
         <Button
-          id={`${baseId}-cancel`}
+          id={`${baseId}-accept`}
           disabled={props.disabled}
-          onClick={close}
+          onClick={accept}
         >
-          {l10n.getString(props.cancelId ?? "form-cancel")}
+          {l10n.getString(props.submitId ?? "confirm-accept")}
         </Button>
-        <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
-          <Button
-            id={`${baseId}-submit`}
-            disabled={props.canSubmit === false || props.disabled}
-            type="submit"
-          >
-            {l10n.getString(props.submitId ?? "form-submit")}
-          </Button>
-        </Box>
-      </DialogActions>
-    </form>
+      </Box>
+    </DialogActions>
   </Dialog>;
 }

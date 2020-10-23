@@ -96,31 +96,6 @@ test("Logging in with no catalogs shows catalog create", (): void => {
   expect(newState.ui).toEqual(expectedUI);
 });
 
-test("Show login overlay.", (): void => {
-  let state = mockStoreState({
-    serverState: { user: null },
-    ui: {
-      page: {
-        type: PageType.Root,
-      },
-    },
-  });
-
-  let action = actions.showLoginOverlay();
-  let newState = reducer(state, action);
-
-  let expectedUI = {
-    page: {
-      type: PageType.Root,
-    },
-    overlay: {
-      type: OverlayType.Login,
-    },
-  };
-
-  expect(newState.ui).toEqual(expectedUI);
-});
-
 test("Creating a user.", (): void => {
   let state = mockStoreState({
     serverState: { user: null },
@@ -131,24 +106,10 @@ test("Creating a user.", (): void => {
     },
   });
 
-  let action: Deed = actions.showSignupOverlay();
+  let action: Deed = actions.completeSignup(mockServerState([]));
   let newState = reducer(state, action);
 
   let expectedUI: Draft<UIState> = {
-    page: {
-      type: PageType.Root,
-    },
-    overlay: {
-      type: OverlayType.Signup,
-    },
-  };
-
-  expect(newState.ui).toEqual(expectedUI);
-
-  action = actions.completeSignup(mockServerState([]));
-  newState = reducer(newState, action);
-
-  expectedUI = {
     page: {
       type: PageType.User,
     },

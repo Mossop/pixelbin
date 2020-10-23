@@ -139,6 +139,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
             />
             <Box pl={3}>
               <FormFields
+                id="stepped-dialog"
                 disabled={disabled || storageChoice.storageType != "existing"}
                 state={storageChoice}
                 setState={setStorageChoice}
@@ -190,6 +191,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
         />
         <Box pl={3}>
           <FormFields
+            id="stepped-dialog"
             disabled={disabled || storageChoice.storageType != "compatible"}
             state={storageChoice}
             setState={setStorageChoice}
@@ -225,6 +227,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
       titleId: "create-catalog-storage-custom-title",
       disabled: storageChoice.storageType == "existing",
       content: <FormFields
+        id="stepped-dialog"
         state={storageConfig}
         setState={setStorageConfig}
         disabled={disabled}
@@ -322,6 +325,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     return {
       titleId: "create-catalog-catalog-title",
       content: <FormFields
+        id="stepped-dialog"
         state={catalogState}
         setState={setCatalogState}
         disabled={disabled}

@@ -27,6 +27,7 @@ banner-edit-search = Edit search…
 banner-search = Search…
 banner-album-new = New album…
 banner-album-edit = Edit album…
+banner-album-delete = Delete album…
 
 overlay-close =
   .title = Close
@@ -199,3 +200,9 @@ search-operator-endswith = ends with
 search-operator-inverted-endswith = doesn't end with
 search-operator-matches = matches
 search-operator-inverted-matches = doesn't match
+
+confirm-cancel = Cancel
+confirm-accept = Ok
+
+album-delete-title = Delete album
+album-delete-description = Are you sure you want to delete the "{$name}" album?

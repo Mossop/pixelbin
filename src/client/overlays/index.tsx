@@ -8,6 +8,8 @@ import { OverlayType } from "./types";
 
 const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./Login"));
 const AlbumOverlay = lazy(() => import(/* webpackChunkName: "AlbumOverlay" */ "./Album"));
+const AlbumDeleteOverlay = lazy(() =>
+  import(/* webpackChunkName: "AlbumDeleteOverlay" */ "./AlbumDelete"));
 const CatalogCreateOverlay = lazy(() =>
   import(/* webpackChunkName: "CatalogCreate" */ "./CatalogCreate"));
 const CatalogEditOverlay = lazy(() =>
@@ -40,6 +42,9 @@ export default function Overlay(): ReactResult {
       }
       case OverlayType.AlbumEdit: {
         return <AlbumOverlay {...overlay}/>;
+      }
+      case OverlayType.AlbumDelete: {
+        return <AlbumDeleteOverlay {...overlay}/>;
       }
       case OverlayType.Search: {
         return <SearchOverlay {...overlay}/>;

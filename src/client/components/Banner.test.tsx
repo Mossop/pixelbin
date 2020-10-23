@@ -3,6 +3,7 @@ import React from "react";
 import { Api, Method } from "../../model";
 import { awaitCall, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
+import { OverlayType } from "../overlays/types";
 import {
   expect,
   render,
@@ -41,16 +42,20 @@ test("banner", async (): Promise<void> => {
   click(login);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch.mock.calls[0]).toEqual([{
-    type: "showLoginOverlay",
-    payload: [],
+    type: "showOverlay",
+    payload: [{
+      type: OverlayType.Login,
+    }],
   }]);
   store.dispatch.mockClear();
 
   click(signup);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "showSignupOverlay",
-    payload: [],
+    type: "showOverlay",
+    payload: [{
+      type: OverlayType.Signup,
+    }],
   });
   store.dispatch.mockClear();
 

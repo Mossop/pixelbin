@@ -62,7 +62,7 @@ export default function SteppedDialog(props: SteppedDialogProps): ReactResult {
   const classes = useStyles();
   const [open, setOpen] = useState(true);
 
-  let baseId = props.id ?? "dialog";
+  let baseId = props.id ?? "stepped-dialog";
 
   let errorMessage = props.error
     ? <Alert
