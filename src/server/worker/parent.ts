@@ -22,7 +22,7 @@ export interface ParentProcessOptions<L> extends ChannelOptions<L> {
 
 function getProcess(): AbstractProcess {
   if (process.send) {
-    // @ts-ignore: send cannot become undefined at runtime.
+    // @ts-ignore
     return process;
   }
   throw new Error("Process has no IPC channel.");

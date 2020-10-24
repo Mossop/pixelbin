@@ -81,7 +81,7 @@ test("remote calls", async (): Promise<void> => {
   expect(leftInterface.increment).toHaveBeenCalledTimes(1);
 
   expect(leftInterface.noop).not.toHaveBeenCalled();
-  // @ts-ignore: Want to verify exactly what is returned here.
+  // @ts-ignore
   result = await left.noop();
   expect(result).toBeUndefined();
   expect(leftInterface.noop).toHaveBeenCalledTimes(1);
@@ -175,7 +175,7 @@ test("remote calling", async (): Promise<void> => {
     "message-timeout",
   ]) {
     callbacks[event] = jest.fn();
-    // @ts-ignore: Trust me, this is fine.
+    // @ts-ignore
     channel.on(event, (): void => callbacks[event](event));
   }
 

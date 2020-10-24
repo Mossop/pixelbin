@@ -22,7 +22,7 @@ export function withChildren<T extends Table.Tag | Table.Album>(
   table: T,
   queryBuilder: QueryBuilder<TableRecord<T>>,
 ): QueryBuilder<TableRecord<T>> {
-  // @ts-ignore: Trust me!
+  // @ts-ignore
   return knex.withRecursive(
     "parents",
     queryBuilder.select(ref(table)).union((qb: Knex.QueryBuilder): void => {
@@ -39,7 +39,7 @@ export function withParents<T extends Table.Tag | Table.Album>(
   table: T,
   queryBuilder: QueryBuilder<TableRecord<T>>,
 ): QueryBuilder<TableRecord<T>> {
-  // @ts-ignore: Trust me!
+  // @ts-ignore
   return knex.withRecursive(
     "children",
     queryBuilder.select(ref(table)).union((qb: Knex.QueryBuilder): void => {
@@ -88,7 +88,7 @@ export function update<T extends Table>(
   query: Knex.QueryInterface,
   columns: WithRefs<Partial<TableRecord<T>>>,
 ): Knex.QueryBuilder<TableRecord<T>, number> {
-  // @ts-ignore: Going to have to trust that this is correct.
+  // @ts-ignore
   return query.into<TableRecord<T>>(table).update(intoDBTypes(columns));
 }
 
@@ -107,8 +107,8 @@ export function insert<T extends Table>(
   table: T,
   data: WithRefs<TableRecord<T>> | WithRefs<TableRecord<T>>[],
 ): QueryBuilder<TableRecord<T>> {
-  // @ts-ignore: This is correct.
+  // @ts-ignore
   let dbData: TableRecord<T>[] = (Array.isArray(data) ? data : [data]).map(intoDBTypes);
-  // @ts-ignore: This is also correct.
+  // @ts-ignore
   return knex<TableRecord<T>>(table).insert(dbData) as QueryBuilder<TableRecord<T>>;
 }

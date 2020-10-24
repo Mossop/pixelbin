@@ -142,7 +142,7 @@ test("catalog", async (): Promise<void> => {
     media,
     onClick: expect.anything(),
   });
-  // @ts-ignore: Testing.
+  // @ts-ignore
   lastCallArgs(mockedMediaGallery)[0].onClick({ id: "foo" });
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);

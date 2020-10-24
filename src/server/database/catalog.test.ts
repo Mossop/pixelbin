@@ -165,9 +165,9 @@ test("Tag table tests", async (): Promise<void> => {
   ]);
 
   let tag = await user1Db.createTag("c1", {
-    // @ts-ignore: Supplying an ID should not affect anything.
+    // @ts-ignore
     id: "Bad",
-    // @ts-ignore: Supplying a catalog should not affect anything.
+    // @ts-ignore
     catalog: "c2",
     parent: null,
     name: "New Tag",
@@ -213,9 +213,9 @@ test("Tag table tests", async (): Promise<void> => {
   })).rejects.toThrow("Unknown Catalog.");
 
   let updated = await user1Db.editTag("t7", {
-    // @ts-ignore: Attempts to change id should be ignored.
+    // @ts-ignore
     id: "newId",
-    // @ts-ignore: Ditto for catalog.
+    // @ts-ignore
     catalog: "c2",
     name: "New name",
     parent: "t1",
@@ -356,9 +356,9 @@ test("Album table tests", async (): Promise<void> => {
   ]);
 
   let album = await user1Db.createAlbum("c1", {
-    // @ts-ignore: Supplying an ID should not affect anything.
+    // @ts-ignore
     id: "Bad",
-    // @ts-ignore: Supplying a catalog should not affect anything.
+    // @ts-ignore
     catalog: "c2",
     parent: null,
     name: "New Album",
@@ -391,9 +391,9 @@ test("Album table tests", async (): Promise<void> => {
   })).rejects.toThrow("Unknown Catalog.");
 
   let updated = await user1Db.editAlbum(album.id, {
-    // @ts-ignore: Attempts to change id should be ignored.
+    // @ts-ignore
     id: "newId",
-    // @ts-ignore: Ditto for catalog.
+    // @ts-ignore
     catalog: "c2",
     name: "New name",
     parent: "a2",
@@ -475,9 +475,9 @@ test("Person table tests", async (): Promise<void> => {
   ]);
 
   let person = await user1Db.createPerson("c1", {
-    // @ts-ignore: Supplying an ID should not affect anything.
+    // @ts-ignore
     id: "Bad",
-    // @ts-ignore: Supplying a catalog should not affect anything.
+    // @ts-ignore
     catalog: "c2",
     name: "New Person",
   });
@@ -515,9 +515,9 @@ test("Person table tests", async (): Promise<void> => {
   })).rejects.toThrow("Unknown Catalog.");
 
   let updated = await user1Db.editPerson(person.id, {
-    // @ts-ignore: Attempts to change id should be ignored.
+    // @ts-ignore
     id: "newId",
-    // @ts-ignore: Ditto for catalog.
+    // @ts-ignore
     catalog: "c2",
     name: "New name",
   });

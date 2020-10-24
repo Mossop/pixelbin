@@ -112,7 +112,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
   }, [actions, storageConfig, catalogState, storageChoice, setStorageChoice]);
 
   const onStorageTypeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    // @ts-ignore: We know this is correct.
+    // @ts-ignore
     setStorageChoice("storageType", event.target.value);
   }, [setStorageChoice]);
 

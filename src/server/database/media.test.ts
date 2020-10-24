@@ -405,7 +405,7 @@ test("Media tests", async (): Promise<void> => {
   // Unknown properties should be ignored.
   newMedia = await user1Db.createMedia("c1", {
     ...emptyMetadata,
-    // @ts-ignore: Intentionally incorrect.
+    // @ts-ignore
     bob: "baz",
   });
 

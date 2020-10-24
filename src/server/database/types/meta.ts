@@ -56,7 +56,7 @@ export function intoDBType(value: unknown): Knex.Value {
 }
 
 export function intoDBTypes<T>(data: T): T {
-  // @ts-ignore: Bad TypeScript.
+  // @ts-ignore
   return Object.fromEntries(
     Object.entries(data)
       .filter(([_key, value]: [string, unknown]): boolean => value !== undefined)

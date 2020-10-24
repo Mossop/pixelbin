@@ -204,7 +204,7 @@ export function searchIntoResponse(search: SavedSearchState): ResponseFor<Api.Sa
     };
   }
 
-  // @ts-ignore: This is correct.
+  // @ts-ignore
   return result;
 }
 

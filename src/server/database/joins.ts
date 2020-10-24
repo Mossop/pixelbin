@@ -88,7 +88,7 @@ export const addMediaRelations = ensureUserTransaction(
       }
     }
 
-    // @ts-ignore: Can't really type this.
+    // @ts-ignore
     let query = insert(this.knex, table, inserts);
 
     await this.connection.raw(`
@@ -192,7 +192,7 @@ export const setMediaRelations = ensureUserTransaction(
       }
     }
 
-    // @ts-ignore: Can't really type this.
+    // @ts-ignore
     let query = insert(this.knex, table, inserts);
 
     await this.connection.raw(`
@@ -258,7 +258,7 @@ export const setRelationMedia = ensureUserTransaction(
       }
     }
 
-    // @ts-ignore: Can't really type this.
+    // @ts-ignore
     let query = insert(this.knex, table, inserts);
 
     await this.connection.raw(`
@@ -303,7 +303,7 @@ export const setPersonLocations = ensureUserTransaction(async function setPerson
     location: rowFromLocation(this.knex, location.location),
   }));
 
-  // @ts-ignore: Unable to type this.
+  // @ts-ignore
   let query = insert(this.knex, Table.MediaPerson, inserts);
 
   await this.connection.raw(`

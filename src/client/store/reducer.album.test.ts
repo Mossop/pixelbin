@@ -439,7 +439,7 @@ test("Album deleted", (): void => {
     },
   });
 
-  // @ts-ignore: Draft crap.
+  // @ts-ignore
   state = {
     ...newState,
     ui: {
@@ -525,7 +525,7 @@ test("Album deleted", (): void => {
     },
   });
 
-  // @ts-ignore: Draft crap.
+  // @ts-ignore
   state = {
     ...newState,
     ui: {

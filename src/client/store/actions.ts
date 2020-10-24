@@ -26,7 +26,7 @@ export function useActions(): ActionDispatchers<Reducers> {
       ): Action<Reducers, K> {
         // Must cache the property as they are used for equality checks.
         if (!(prop in target)) {
-          // @ts-ignore: Not sure what is failing here.
+          // @ts-ignore
           target[prop] = (...args: ActionReducerArgs<Reducers[K]>): void => {
             dispatch({
               type: prop,

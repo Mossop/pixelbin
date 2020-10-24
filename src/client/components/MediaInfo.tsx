@@ -269,7 +269,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     if (item) {
       return <LocalizedRow label={`metadata-label-${metadata}`}>
         {
-          // @ts-ignore: This is correct.
+          // @ts-ignore
           cb(item)
         }
       </LocalizedRow>;

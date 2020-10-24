@@ -101,17 +101,17 @@ function applyFieldQuery(
 function where(builder: Knex.QueryBuilder, join: Join, invert: boolean): Knex.Where {
   if (join == Join.And) {
     if (invert) {
-      // @ts-ignore: Nope
+      // @ts-ignore
       return (...args: unknown[]) => builder.andWhereNot(...args);
     } else {
-      // @ts-ignore: Nope
+      // @ts-ignore
       return (...args: unknown[]) => builder.andWhere(...args);
     }
   } else if (invert) {
-    // @ts-ignore: Nope
+    // @ts-ignore
     return (...args: unknown[]) => builder.orWhereNot(...args);
   } else {
-    // @ts-ignore: Nope
+    // @ts-ignore
     return (...args: unknown[]) => builder.orWhere(...args);
   }
 }
@@ -139,7 +139,7 @@ function applyQuery(
         });
 
       if (query.recursive && (newTable == Table.Album || newTable == Table.Tag)) {
-        // @ts-ignore: Too dynamic.
+        // @ts-ignore
         selected = withChildren(connection.knex, newTable, selected);
       }
 

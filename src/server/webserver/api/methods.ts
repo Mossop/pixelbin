@@ -223,13 +223,13 @@ export function apiRequestHandler<T extends Method>(
 
     let response: unknown = undefined;
     if (!(method in apiDecoders)) {
-      // @ts-ignore: TypeScript is falling over here.
+      // @ts-ignore
       let apiMethod: (ctx: Context) => Promise<unknown> = apiMethods[method];
       response = await apiMethod(ctx);
     } else {
-      // @ts-ignore: TypeScript is falling over here.
+      // @ts-ignore
       let decoder: RequestDecoder<DeBlobbed<Api.SignatureRequest<T>>> = apiDecoders[method];
-      // @ts-ignore: TypeScript is falling over here.
+      // @ts-ignore
       let apiMethod: (
         ctx: AppContext, data: Api.SignatureRequest<T>,
       ) => Promise<unknown> = apiMethods[method];

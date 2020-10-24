@@ -22,16 +22,16 @@ export function stringSorted<
   A extends Obj,
   K extends StringProps<A>,
 >(items: A[], key: K): A[] {
-  // @ts-ignore: We know this to be correct.
+  // @ts-ignore
   return sorted(items, key, (a: string, b: string): number => a.localeCompare(b));
 }
 
 export function idSorted<A extends { id: string }>(items: A[]): A[] {
-  // @ts-ignore: We know this to be correct.
+  // @ts-ignore
   return stringSorted(items, "id");
 }
 
 export function nameSorted<A extends { name: string }>(items: A[]): A[] {
-  // @ts-ignore: We know this to be correct.
+  // @ts-ignore
   return stringSorted(items, "name");
 }

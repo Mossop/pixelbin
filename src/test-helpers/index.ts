@@ -305,9 +305,9 @@ export async function getStorageConfig(
 
     let secrets = JSON.parse(await fs.readFile(secretsFile, { encoding: "utf8" }));
     if (id in secrets) {
-      // @ts-ignore: This is correct.
+      // @ts-ignore
       for (let [key, value] of Object.entries(secrets[id])) {
-        // @ts-ignore: This is correct.
+        // @ts-ignore
         stores[id][key] = value;
       }
     }
@@ -359,7 +359,7 @@ export function reordered<T>(list: T[]): T[] {
     ) as T;
   });
 
-  // @ts-ignore: We checked this above.
+  // @ts-ignore
   result.sort((a: Orderable, b: Orderable): number => {
     if (!a && !b) {
       return 0;

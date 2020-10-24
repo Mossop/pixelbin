@@ -22,22 +22,22 @@ function emitterFor(emitter: TypedEmitter<any>): Base {
 
 export class TypedEmitter<M extends EventMap> {
   protected emit<E extends Events<M>>(message: E, ...payload: Payload<M, E>): void {
-    // @ts-ignore: This is guaranteed to be correct.
+    // @ts-ignore
     emitterFor(this).emit(message, ...payload);
   }
 
   public on<E extends Events<M>>(message: E, listener: Listener<M, E>): void {
-    // @ts-ignore: This is guaranteed to be correct.
+    // @ts-ignore
     emitterFor(this).on(message, listener);
   }
 
   public once<E extends Events<M>>(message: E, listener: Listener<M, E>): void {
-    // @ts-ignore: This is guaranteed to be correct.
+    // @ts-ignore
     emitterFor(this).once(message, listener);
   }
 
   public off<E extends Events<M>>(message: E, listener: Listener<M, E>): void {
-    // @ts-ignore: This is guaranteed to be correct.
+    // @ts-ignore
     emitterFor(this).off(message, listener);
   }
 

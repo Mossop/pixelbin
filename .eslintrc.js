@@ -62,8 +62,14 @@ module.exports = {
         from: "./src/client",
       }],
     }],
-    "operator-linebreak": ["warn", "after", { overrides: { "?": "before", ":": "before" } }],
+    "operator-linebreak": ["warn", "after", {
+      overrides: {
+        "?": "before",
+        ":": "before",
+      },
+    }],
     "quote-props": ["warn", "consistent-as-needed"],
+    "@typescript-eslint/ban-ts-comment": "off",
   },
 
   ignorePatterns: ["build/**/*"],
@@ -84,6 +90,7 @@ module.exports = {
 
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-explicit-any": "off",
     },
   }, {
     files: ["*.ts", "*.tsx"],

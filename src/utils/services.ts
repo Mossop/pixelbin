@@ -23,7 +23,7 @@ export function serviceProvider<SM>(
   map: SM,
 ): <S extends keyof SM>(service: S, value: ServiceResolution<SM, S>) => void {
   return <S extends keyof SM>(service: S, value: ServiceResolution<SM, S>): void => {
-    // @ts-ignore: The properties of SM cannot be defined.
+    // @ts-ignore
     map[service].resolve(value);
   };
 }

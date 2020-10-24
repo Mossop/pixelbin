@@ -35,7 +35,7 @@ type Bound<I> = {
 
 export function bound<I>(methods: I, base: unknown): Bound<I> {
   let entries = Object.entries(methods).map(
-    // @ts-ignore: Object.entries is not well typed.
+    // @ts-ignore
     <K extends keyof I>([key, member]: [K, I[K]]): [K, I[K]] => {
       if (typeof member == "function") {
         return [key, member.bind(base)];
@@ -45,7 +45,7 @@ export function bound<I>(methods: I, base: unknown): Bound<I> {
     },
   );
 
-  // @ts-ignore: Object.entries is not well typed.
+  // @ts-ignore
   return Object.fromEntries(entries);
 }
 

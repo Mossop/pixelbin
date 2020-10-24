@@ -186,7 +186,7 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
 
   return from(this.knex, Table.StoredMediaDetail)
     .join(Table.MediaAlbum, ref(Table.MediaAlbum, "media"), ref(Table.StoredMediaDetail, "id"))
-    // @ts-ignore: The union type spans two different overloads of the method.
+    // @ts-ignore
     .whereIn(ref(Table.MediaAlbum, "album"), albums)
     .orderBy(ref(Table.StoredMediaDetail, "id"))
     .distinctOn(ref(Table.StoredMediaDetail, "id"))

@@ -15,7 +15,7 @@ document.cookie = "csrftoken=csrf-foobar";
 
 test("Bad state", async (): Promise<void> => {
   mockResponse(Method.State, 200, {
-    // @ts-ignore: Intentionally bad data.
+    // @ts-ignore
     id: "album",
     catalog: "catalog",
     name: "Album",

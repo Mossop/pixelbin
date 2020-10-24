@@ -40,7 +40,7 @@ export const testStorage = ensureAuthenticated(
         throw new Error("GetObject returned no content.");
       }
       let decoder = new TextDecoder();
-      // @ts-ignore: TypeScript sees the Node types here.
+      // @ts-ignore
       let result = decoder.decode(data.Body);
       if (result != content) {
         throw new Error("GetObject returned incorrect data.");

@@ -178,12 +178,12 @@ export class DatabaseConnection {
   }
 
   public get ref(): Knex.RefBuilder {
-    /* @ts-ignore: We're just simulating a direct call here. */
+    /* @ts-ignore
     return (...args: unknown[]) => this.knex.ref(...args);
   }
 
   public get raw(): Knex.RawBuilder {
-    /* @ts-ignore: We're just simulating a direct call here. */
+    /* @ts-ignore
     return (...args: unknown[]) => this.knex.raw(...args);
   }
 
@@ -276,12 +276,12 @@ export class UserScopedConnection {
   }
 
   public get ref(): Knex.RefBuilder {
-    /* @ts-ignore: We're just simulating a direct call here. */
+    /* @ts-ignore
     return (...args: unknown[]) => this.knex.ref(...args);
   }
 
   public get raw(): Knex.RawBuilder {
-    /* @ts-ignore: We're just simulating a direct call here. */
+    /* @ts-ignore
     return (...args: unknown[]) => this.knex.raw(...args);
   }
 

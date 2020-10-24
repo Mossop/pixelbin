@@ -87,7 +87,7 @@ export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (field.type == "mediatarget") {
           let onChange = (target: MediaTarget): void => {
-          // @ts-ignore: TypeScript can't tell that this must be a string.
+          // @ts-ignore
             setState(field.key, target);
             if (field.onChange) {
               field.onChange(target);
@@ -112,7 +112,7 @@ export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
           </FormControl>;
         } else if (field.type == "select") {
           let onChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
-          // @ts-ignore: TypeScript can't tell that this must be a string.
+          // @ts-ignore
             setState(field.key, event.target.value);
             if (field.onChange) {
               field.onChange(event);
@@ -147,7 +147,7 @@ export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
           // field.type == "text"
 
           let onChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-          // @ts-ignore: TypeScript can't tell that this must be a string.
+          // @ts-ignore
             setState(field.key, event.target.value);
             if (field.onChange) {
               field.onChange(event);

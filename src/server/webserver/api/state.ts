@@ -11,7 +11,7 @@ function queryIntoResponse(query: Query): ResponseFor<Query> {
         value: isoDateTime(query.value),
       };
     } else {
-      // @ts-ignore: This should be correct.
+      // @ts-ignore
       return query;
     }
   } else {

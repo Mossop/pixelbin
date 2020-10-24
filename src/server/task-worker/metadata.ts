@@ -51,7 +51,7 @@ function straight<K extends keyof ExifTags>(key: K): MetadataParser<NonNullable<
       return null;
     }
 
-    // @ts-ignore: This is definitely correct.
+    // @ts-ignore
     return data.exif[key];
   };
 }
@@ -98,7 +98,7 @@ function fieldParser<K extends keyof ExifTags, R>(
       return null;
     }
 
-    // @ts-ignore: This is definitely correct.
+    // @ts-ignore
     return parser(value);
   };
 }
@@ -283,7 +283,7 @@ const parsers: MetadataParsers = {
 };
 
 export function parseMetadata(data: StoredData): Nullable<ObjectModel.Metadata> {
-  // @ts-ignore: I hate fromEntries!
+  // @ts-ignore
   let metadata: Nullable<ObjectModel.Metadata> = Object.fromEntries(
     entries(parsers).map(
       <K extends keyof MetadataParsers>(

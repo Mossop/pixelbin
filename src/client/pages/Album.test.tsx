@@ -164,7 +164,7 @@ test("album", async (): Promise<void> => {
   });
 
   expect(store.dispatch).not.toHaveBeenCalled();
-  // @ts-ignore: Testing.
+  // @ts-ignore
   lastCallArgs(mockedMediaGallery)[0].onClick({ id: "foo" });
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);

@@ -49,7 +49,7 @@ export default function SearchPage({
   let media = useMediaLookup(lookup);
 
   const onEditSearch = useCallback(() => {
-    // @ts-ignore: Unions don't draft well :(
+    // @ts-ignore
     let newQuery: Draft<Query> = {
       ...query,
     };

@@ -25,7 +25,7 @@ export function buildStore(): void {
   let store = createStore(
     reducer,
     initialState,
-    // @ts-ignore: Redux devtools.
+    // @ts-ignore
     window.__REDUX_DEVTOOLS_EXTENSION__?.(),
   );
 

@@ -161,7 +161,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
   private buildRemoteInterface(methods: string[] | undefined): void {
     this.logger.trace({ methods }, "Remote reported methods.");
     if (methods == undefined) {
-      // @ts-ignore: This can only happen if the remote interface is undefined.
+      // @ts-ignore
       this.remoteInterface.resolve(undefined);
       return;
     }

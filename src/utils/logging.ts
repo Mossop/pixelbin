@@ -38,7 +38,7 @@ function buildLogger(name: string, pinoLogger: pino.Logger): Logger {
   for (let level of ["fatal", "error", "warn", "info", "debug", "trace"]) {
     logger[level] = (...args: unknown[]): void => {
       try {
-        // @ts-ignore: We're just passing along arguments here.
+        // @ts-ignore
         pinoLogger[level](...args);
       } catch (e) {
         pinoLogger.warn(e, "Failed to log message.");

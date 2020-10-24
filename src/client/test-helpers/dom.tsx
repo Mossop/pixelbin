@@ -18,7 +18,7 @@ import { StoreType } from "../store/types";
 import { ReactChildren, ReactResult } from "../utils/types";
 import { MockStore } from "./store";
 
-// @ts-ignore: TypeScript doesn't know about this global.
+// @ts-ignore
 const dom: JSDOM = jsdom;
 
 export { dom as jsdom };

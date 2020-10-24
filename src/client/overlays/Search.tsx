@@ -266,7 +266,7 @@ function FieldQueryBox({
   let onFieldChange = useCallback((event: SelectEvent) => {
     let newQuery: Draft<Search.FieldQuery> = {
       ...query,
-      // @ts-ignore: We know this is a field name.
+      // @ts-ignore
       field: event.target.value,
     };
 
@@ -304,7 +304,7 @@ function FieldQueryBox({
   let onModifierChange = useCallback((event: SelectEvent) => {
     let newQuery: Search.FieldQuery = {
       ...query,
-      // @ts-ignore: We know this is a modifier.
+      // @ts-ignore
       modifier: event.target.value == "null" ? null : event.target.value,
     };
 
@@ -361,7 +361,7 @@ function FieldQueryBox({
       case "date":
         return <DateTimePicker
           value={query.value}
-          // @ts-ignore: Unknown date type.
+          // @ts-ignore
           onChange={onValueChange}
         />;
       default:
