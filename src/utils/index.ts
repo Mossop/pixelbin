@@ -5,6 +5,7 @@ export * from "./decoders";
 export * from "./events";
 export * from "./gc";
 export * from "./logging";
+export * from "./memo";
 export * from "./utility";
 export * from "./search";
 export * from "./services";
