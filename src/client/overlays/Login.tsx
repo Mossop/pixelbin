@@ -65,7 +65,7 @@ export default function LoginOverlay(): ReactResult {
     <TextField
       id="login-password"
       type="password"
-      autoComplete="current=password"
+      autoComplete="current-password"
       labelId="login-password"
       state={formState.password}
     />
