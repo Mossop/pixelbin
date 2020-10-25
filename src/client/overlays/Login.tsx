@@ -1,17 +1,15 @@
 import React, { useCallback, useRef, useState } from "react";
 
 import { login } from "../api/auth";
-import FormDialog from "../components/FormDialog";
-import FormFields from "../components/FormFields";
+import { FormDialog, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
 import { AppError } from "../utils/exception";
-import { useFormState } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
 
 export default function LoginOverlay(): ReactResult {
   const actions = useActions();
 
-  const [state, setState] = useFormState({
+  let formState = useFormState({
     email: "",
     password: "",
   });
@@ -26,7 +24,8 @@ export default function LoginOverlay(): ReactResult {
   }, [emailInput]);
 
   const onSubmit = useCallback(async () => {
-    if (!state.email) {
+    let { email, password } = formState.value;
+    if (!email) {
       return;
     }
 
@@ -34,18 +33,19 @@ export default function LoginOverlay(): ReactResult {
     setError(null);
 
     try {
-      let serverState = await login(state.email, state.password);
+      let serverState = await login(email, password);
       actions.completeLogin(serverState);
     } catch (e) {
       setError(e);
       setDisabled(false);
-      setState("password", "");
+      formState.password.set("");
 
       emailInput.current?.focus();
     }
-  }, [actions, state, setState]);
+  }, [actions, emailInput, formState]);
 
   return <FormDialog
+    id="login"
     error={error}
     disabled={disabled}
     titleId="login-title"
@@ -54,27 +54,20 @@ export default function LoginOverlay(): ReactResult {
     onClose={actions.closeOverlay}
     onEntered={onDisplay}
   >
-    <FormFields
-      id="form-dialog"
-      disabled={disabled}
-      state={state}
-      setState={setState}
-      fields={
-        [{
-          type: "text",
-          ref: emailInput,
-          key: "email",
-          label: "login-email",
-          inputType: "email",
-          autoComplete: "email",
-        }, {
-          type: "text",
-          key: "password",
-          label: "login-password",
-          inputType: "password",
-          autoComplete: "current-password",
-        }]
-      }
+    <TextField
+      id="login-email"
+      type="email"
+      autoComplete="email"
+      labelId="login-email"
+      state={formState.email}
+      ref={emailInput}
+    />
+    <TextField
+      id="login-password"
+      type="password"
+      autoComplete="current=password"
+      labelId="login-password"
+      state={formState.password}
     />
   </FormDialog>;
 }

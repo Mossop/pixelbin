@@ -3,8 +3,8 @@ import { useSelector } from "react-redux";
 
 import { editCatalog } from "../api/catalog";
 import { Catalog, Reference } from "../api/highlevel";
-import FormDialog from "../components/FormDialog";
 import FormFields from "../components/FormFields";
+import { FormDialog } from "../components/Forms";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
 import { AppError } from "../utils/exception";
@@ -73,5 +73,6 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
           ref: nameInput,
         }]
       }
-    /></FormDialog>;
+    />
+  </FormDialog>;
 }

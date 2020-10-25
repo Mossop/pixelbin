@@ -10,8 +10,9 @@ import makeStyles from "@material-ui/core/styles/makeStyles";
 import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useCallback, useState } from "react";
 
-import { errorString } from "../utils/exception";
-import { ReactResult } from "../utils/types";
+import { errorString } from "../../utils/exception";
+import { ReactResult } from "../../utils/types";
+import { FormContext, FormState } from "./shared";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -32,19 +33,18 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export interface FormDialogProps {
+export type FormDialogProps = FormState & {
   id?: string;
   titleId: string;
   children?: React.ReactNode;
   submitId?: string;
   cancelId?: string;
   canSubmit?: boolean;
-  disabled?: boolean;
   error?: unknown | null;
   onClose?: () => void;
   onSubmit: () => void;
   onEntered?: () => void;
-}
+};
 
 export default function FormDialog(props: FormDialogProps): ReactResult {
   const { l10n } = useLocalization();
@@ -82,32 +82,34 @@ export default function FormDialog(props: FormDialogProps): ReactResult {
     scroll="body"
     aria-labelledby={`${baseId}-title`}
   >
-    <form id={props.id} onSubmit={submit}>
-      <DialogTitle id={`${baseId}-title`} className={classes.title}>
-        {l10n.getString(props.titleId)}
-      </DialogTitle>
-      <DialogContent className={classes.content}>
-        {errorMessage}
-        {props.children}
-      </DialogContent>
-      <DialogActions disableSpacing={true} className={classes.actions}>
-        <Button
-          id={`${baseId}-cancel`}
-          disabled={props.disabled}
-          onClick={close}
-        >
-          {l10n.getString(props.cancelId ?? "form-cancel")}
-        </Button>
-        <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
+    <FormContext disabled={props.disabled}>
+      <form id={props.id} onSubmit={submit}>
+        <DialogTitle id={`${baseId}-title`} className={classes.title}>
+          {l10n.getString(props.titleId)}
+        </DialogTitle>
+        <DialogContent className={classes.content}>
+          {errorMessage}
+          {props.children}
+        </DialogContent>
+        <DialogActions disableSpacing={true} className={classes.actions}>
           <Button
-            id={`${baseId}-submit`}
-            disabled={props.canSubmit === false || props.disabled}
-            type="submit"
+            id={`${baseId}-cancel`}
+            disabled={props.disabled}
+            onClick={close}
           >
-            {l10n.getString(props.submitId ?? "form-submit")}
+            {l10n.getString(props.cancelId ?? "form-cancel")}
           </Button>
-        </Box>
-      </DialogActions>
-    </form>
+          <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
+            <Button
+              id={`${baseId}-submit`}
+              disabled={props.canSubmit === false || props.disabled}
+              type="submit"
+            >
+              {l10n.getString(props.submitId ?? "form-submit")}
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
+    </FormContext>
   </Dialog>;
 }

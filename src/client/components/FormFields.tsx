@@ -10,7 +10,7 @@ import React from "react";
 import { MediaTarget } from "../api/media";
 import { ReactResult } from "../utils/types";
 import { VirtualItem } from "../utils/virtual";
-import MediaTargetField from "./MediaTargetField";
+import MediaTargetField from "./MediaTargetSelect";
 
 type FormKeys<F, T> = {
   [K in keyof F]: F[K] extends T ? K : never;

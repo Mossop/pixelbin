@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef } from "react";
 
 import { signup } from "../api/auth";
-import FormDialog from "../components/FormDialog";
 import FormFields from "../components/FormFields";
+import { FormDialog } from "../components/Forms";
 import { useActions } from "../store/actions";
 import { AppError } from "../utils/exception";
 import { useFormState } from "../utils/hooks";

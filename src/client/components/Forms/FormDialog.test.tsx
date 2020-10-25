@@ -1,6 +1,6 @@
 import React from "react";
 
-import { click, expectChild, render } from "../test-helpers";
+import { click, expectChild, render } from "../../test-helpers";
 import FormDialog from "./FormDialog";
 
 test("basic form dialog", async (): Promise<void> => {

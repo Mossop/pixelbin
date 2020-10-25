@@ -4,8 +4,8 @@ import { createAlbum, editAlbum } from "../api/album";
 import { Album, Catalog, Reference, useCatalogs } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { AlbumState, Create, Patch } from "../api/types";
-import FormDialog from "../components/FormDialog";
 import FormFields from "../components/FormFields";
+import { FormDialog } from "../components/Forms";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
@@ -129,5 +129,6 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
           roots,
         }]
       }
-    /></FormDialog>;
+    />
+  </FormDialog>;
 }

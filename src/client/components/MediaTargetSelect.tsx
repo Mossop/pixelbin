@@ -6,7 +6,7 @@ import { createStyles, makeStyles, Theme, useTheme } from "@material-ui/core/sty
 import React, { forwardRef, useCallback, useMemo } from "react";
 
 import { Album, Catalog } from "../api/highlevel";
-import { ReactResult } from "../utils/types";
+import { ReactRef, ReactResult } from "../utils/types";
 import { VirtualAlbum, VirtualCatalog, VirtualItem } from "../utils/virtual";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -29,17 +29,18 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export interface MediaTargetFieldProps {
+export interface MediaTargetSelectProps {
   id: string;
   disabled?: boolean;
+  required?: boolean;
   roots: VirtualItem[];
   value: Album | Catalog;
   onChange?: (selected: Album | Catalog) => void;
 }
 
-function MediaTargetField(
-  props: MediaTargetFieldProps,
-  ref: ((instance: HTMLElement | null) => void) | React.MutableRefObject<HTMLElement | null> | null,
+export default forwardRef(function MediaTargetSelect(
+  props: MediaTargetSelectProps,
+  ref: ReactRef<HTMLElement> | null,
 ): ReactResult {
   const { l10n } = useLocalization();
   const theme = useTheme();
@@ -93,6 +94,7 @@ function MediaTargetField(
     id={props.id}
     ref={ref}
     disabled={props.disabled}
+    required={props.required}
     value={props.value.id}
     onChange={onChange}
   >
@@ -118,6 +120,4 @@ function MediaTargetField(
       )
     }
   </Select>;
-}
-
-export default forwardRef(MediaTargetField);
+});
