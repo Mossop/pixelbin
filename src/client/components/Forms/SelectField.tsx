@@ -58,6 +58,7 @@ export default forwardRef(
     return <FormControl
       fullWidth={true}
       disabled={disabled}
+      required={required}
       className={classes.control}
     >
       <InputLabel htmlFor={id}>{l10n.getString(labelId)}</InputLabel>

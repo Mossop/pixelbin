@@ -41,14 +41,13 @@ export default forwardRef(
     return <FormControl
       fullWidth={true}
       disabled={disabled}
+      required={required}
       className={classes.control}
     >
       <InputLabel htmlFor={id}>{l10n.getString(labelId)}</InputLabel>
       <Input
         id={id}
         inputRef={ref}
-        disabled={disabled}
-        required={required}
         value={state.value}
         type={type ?? "text"}
         autoComplete={autoComplete}
