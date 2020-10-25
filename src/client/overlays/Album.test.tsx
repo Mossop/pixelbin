@@ -43,13 +43,13 @@ test("create album", async (): Promise<void> => {
   let { dialogContainer } = render(<AlbumOverlay parent={Catalog.ref("catalog")}/>, store);
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
-  let button = expectChild<HTMLButtonElement>(form, "#form-dialog-submit");
+  let button = expectChild<HTMLButtonElement>(form, "#album-create-submit");
   click(button);
 
   expect(mockedRequest).not.toHaveBeenCalled();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let nameInput = expectChild<HTMLInputElement>(form, "#form-dialog-name");
+  let nameInput = expectChild<HTMLInputElement>(form, "#album-name");
   typeString(nameInput, "Foo");
 
   let { resolve } = deferRequest<Api.Album>();
@@ -104,12 +104,12 @@ test("edit album", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#form-dialog-name");
+  let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#album-name");
   expect(nameInput.value).toBe("Album 2");
 
   typeString(nameInput, "");
 
-  let button = expectChild<HTMLButtonElement>(form, "#form-dialog-submit");
+  let button = expectChild<HTMLButtonElement>(form, "#album-edit-submit");
   click(button);
 
   expect(mockedRequest).not.toHaveBeenCalled();

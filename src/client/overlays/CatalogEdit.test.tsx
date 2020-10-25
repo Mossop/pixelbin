@@ -44,12 +44,12 @@ test("edit catalog", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#form-dialog-name");
+  let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#catalog-name");
   expect(nameInput.value).toBe("Catalog");
 
   typeString(nameInput, "");
 
-  let button = expectChild<HTMLButtonElement>(form, "#form-dialog-submit");
+  let button = expectChild<HTMLButtonElement>(form, "#catalog-edit-submit");
   click(button);
 
   expect(mockedRequest).not.toHaveBeenCalled();

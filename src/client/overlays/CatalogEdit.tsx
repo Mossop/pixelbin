@@ -3,12 +3,10 @@ import { useSelector } from "react-redux";
 
 import { editCatalog } from "../api/catalog";
 import { Catalog, Reference } from "../api/highlevel";
-import FormFields from "../components/FormFields";
-import { FormDialog } from "../components/Forms";
+import { FormDialog, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
 import { AppError } from "../utils/exception";
-import { useFormState } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
 
 export interface CatalogEditOverlayProps {
@@ -20,7 +18,7 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
     return props.catalog.deref(state.serverState);
   });
 
-  let [state, setState] = useFormState({
+  let state = useFormState({
     name: catalog.name,
   });
   const [disabled, setDisabled] = useState(false);
@@ -34,7 +32,8 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
   }, [nameInput]);
 
   const onSubmit = useCallback(async () => {
-    if (!state.name) {
+    let { name } = state.value;
+    if (!name) {
       return;
     }
 
@@ -42,7 +41,7 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
     setError(null);
 
     try {
-      let catalogData = await editCatalog(props.catalog, state.name);
+      let catalogData = await editCatalog(props.catalog, name);
       actions.catalogEdited(catalogData);
     } catch (e) {
       setError(e);
@@ -52,6 +51,7 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
   }, [actions, state, props.catalog]);
 
   return <FormDialog
+    id="catalog-edit"
     error={error}
     disabled={disabled}
     titleId="catalog-edit-title"
@@ -60,19 +60,11 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
     onClose={actions.closeOverlay}
     onEntered={onDisplay}
   >
-    <FormFields
-      id="form-dialog"
-      disabled={disabled}
-      state={state}
-      setState={setState}
-      fields={
-        [{
-          type: "text",
-          key: "name",
-          label: "catalog-name",
-          ref: nameInput,
-        }]
-      }
+    <TextField
+      id="catalog-name"
+      labelId="catalog-name"
+      state={state.name}
+      ref={nameInput}
     />
   </FormDialog>;
 }

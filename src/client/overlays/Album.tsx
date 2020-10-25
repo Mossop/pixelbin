@@ -4,13 +4,11 @@ import { createAlbum, editAlbum } from "../api/album";
 import { Album, Catalog, Reference, useCatalogs } from "../api/highlevel";
 import { MediaTarget } from "../api/media";
 import { AlbumState, Create, Patch } from "../api/types";
-import FormFields from "../components/FormFields";
-import { FormDialog } from "../components/Forms";
+import { FormDialog, MediaTargetField, TextField, useFormState } from "../components/Forms";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";
 import { AppError } from "../utils/exception";
-import { useFormState } from "../utils/hooks";
 import { ReactResult } from "../utils/types";
 import { VirtualItem, VirtualTree } from "../utils/virtual";
 
@@ -46,7 +44,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
     };
   });
 
-  let [state, setState] = useFormState({
+  let state = useFormState({
     name: album?.name ?? "",
     parent,
   });
@@ -67,7 +65,8 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   let roots = album ? [album.catalog.virtual(VirtualTree.Albums)] : catalogs;
 
   const onSubmit = useCallback(async () => {
-    if (!state.name) {
+    let { name, parent } = state.value;
+    if (!name) {
       return;
     }
 
@@ -78,8 +77,8 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
       if (!album) {
         let data: Create<AlbumState> = {
           catalog: catalog.ref(),
-          name: state.name,
-          parent: state.parent instanceof Catalog ? null : state.parent.ref(),
+          name: name,
+          parent: parent instanceof Catalog ? null : parent.ref(),
         };
 
         let albumData = await createAlbum(data);
@@ -87,8 +86,8 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
       } else {
         let updated: Patch<AlbumState> = {
           id: album.ref(),
-          name: state.name,
-          parent: state.parent instanceof Catalog ? null : state.parent.ref(),
+          name: name,
+          parent: parent instanceof Catalog ? null : parent.ref(),
         };
 
         let albumData = await editAlbum(updated);
@@ -102,7 +101,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
   }, [album, actions, catalog, state]);
 
   return <FormDialog
-    id="form-dialog"
+    id={album ? "album-edit" : "album-create"}
     error={error}
     disabled={disabled}
     titleId={album ? "album-edit-title" : "album-create-title"}
@@ -111,24 +110,17 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
     onClose={actions.closeOverlay}
     onEntered={onDisplay}
   >
-    <FormFields
-      id="form-dialog"
-      disabled={disabled}
-      state={state}
-      setState={setState}
-      fields={
-        [{
-          type: "text",
-          key: "name",
-          label: "album-name",
-          ref: nameInput,
-        }, {
-          type: "mediatarget",
-          key: "parent",
-          label: album ? "album-edit-parent" : "album-create-parent",
-          roots,
-        }]
-      }
+    <TextField
+      id="album-name"
+      labelId="album-name"
+      state={state.name}
+      ref={nameInput}
+    />
+    <MediaTargetField
+      id="album-parent"
+      labelId={album ? "album-edit-parent" : "album-create-parent"}
+      state={state.parent}
+      roots={roots}
     />
   </FormDialog>;
 }
