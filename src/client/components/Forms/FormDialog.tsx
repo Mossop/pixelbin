@@ -1,6 +1,5 @@
 import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
-import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
@@ -12,6 +11,7 @@ import React, { useCallback, useState } from "react";
 
 import { errorString } from "../../utils/exception";
 import { ReactResult } from "../../utils/types";
+import { Button, SubmitButton } from "./Button";
 import { FormContext, FormState } from "./shared";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -39,7 +39,6 @@ export type FormDialogProps = FormState & {
   children?: React.ReactNode;
   submitId?: string;
   cancelId?: string;
-  canSubmit?: boolean;
   error?: unknown | null;
   onClose?: () => void;
   onSubmit: () => void;
@@ -82,7 +81,7 @@ export default function FormDialog(props: FormDialogProps): ReactResult {
     scroll="body"
     aria-labelledby={`${baseId}-title`}
   >
-    <FormContext disabled={props.disabled}>
+    <FormContext disabled={props.disabled} canSubmit={props.canSubmit}>
       <form id={props.id} onSubmit={submit}>
         <DialogTitle id={`${baseId}-title`} className={classes.title}>
           {l10n.getString(props.titleId)}
@@ -94,19 +93,14 @@ export default function FormDialog(props: FormDialogProps): ReactResult {
         <DialogActions disableSpacing={true} className={classes.actions}>
           <Button
             id={`${baseId}-cancel`}
-            disabled={props.disabled}
             onClick={close}
-          >
-            {l10n.getString(props.cancelId ?? "form-cancel")}
-          </Button>
+            labelId={props.cancelId ?? "form-cancel"}
+          />
           <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
-            <Button
+            <SubmitButton
               id={`${baseId}-submit`}
-              disabled={props.canSubmit === false || props.disabled}
-              type="submit"
-            >
-              {l10n.getString(props.submitId ?? "form-submit")}
-            </Button>
+              labelId={props.submitId ?? "form-submit"}
+            />
           </Box>
         </DialogActions>
       </form>

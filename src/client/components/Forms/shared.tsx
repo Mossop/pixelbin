@@ -11,6 +11,7 @@ export const useFormStyles = makeStyles((theme: Theme) => createStyles({
 }));
 
 export interface FormState {
+  canSubmit?: boolean;
   disabled?: boolean;
 }
 
