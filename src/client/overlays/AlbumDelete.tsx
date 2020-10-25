@@ -4,7 +4,7 @@ import React, { useCallback, useState } from "react";
 
 import { deleteAlbum } from "../api/album";
 import { Album, Reference } from "../api/highlevel";
-import ConfirmationDialog from "../components/ConfirmationDialog";
+import ConfirmationDialog from "../components/Forms/ConfirmationDialog";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import { StoreState } from "../store/types";

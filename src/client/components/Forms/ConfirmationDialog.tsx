@@ -1,6 +1,5 @@
 import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
-import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
@@ -10,8 +9,10 @@ import makeStyles from "@material-ui/core/styles/makeStyles";
 import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useCallback, useState } from "react";
 
-import { errorString } from "../utils/exception";
-import { ReactResult } from "../utils/types";
+import { errorString } from "../../utils/exception";
+import { ReactResult } from "../../utils/types";
+import { Button } from "./Button";
+import { FormContext } from "./shared";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -44,34 +45,43 @@ export interface ConfirmationDialogProps {
   onAccept: () => void;
 }
 
-export default function ConfirmationDialog(props: ConfirmationDialogProps): ReactResult {
+export default function ConfirmationDialog({
+  id,
+  titleId,
+  children,
+  submitId,
+  cancelId,
+  disabled,
+  error,
+  onClose,
+  onAccept,
+}: ConfirmationDialogProps): ReactResult {
   const { l10n } = useLocalization();
   const classes = useStyles();
   const [open, setOpen] = useState(true);
 
-  let baseId = props.id ?? "confirm-dialog";
+  let baseId = id ?? "confirm-dialog";
 
-  let errorMessage = props.error
+  let errorMessage = error
     ? <Alert
       id={`${baseId}-error`}
       severity="error"
       className={classes.error}
     >
-      {errorString(l10n, props.error)}
+      {errorString(l10n, error)}
     </Alert>
     : null;
 
-  const accept = useCallback((event: React.FormEvent): void => {
-    event.preventDefault();
-    props.onAccept();
-  }, [props]);
+  const accept = useCallback((): void => {
+    onAccept();
+  }, [onAccept]);
 
   const close = useCallback(() => {
     setOpen(false);
-    if (props.onClose) {
-      props.onClose();
+    if (onClose) {
+      onClose();
     }
-  }, [props]);
+  }, [onClose]);
 
   return <Dialog
     open={open}
@@ -79,30 +89,29 @@ export default function ConfirmationDialog(props: ConfirmationDialogProps): Reac
     scroll="body"
     aria-labelledby={`${baseId}-title`}
   >
-    <DialogTitle id={`${baseId}-title`} className={classes.title}>
-      {l10n.getString(props.titleId)}
-    </DialogTitle>
-    <DialogContent className={classes.content}>
-      {errorMessage}
-      {props.children}
-    </DialogContent>
-    <DialogActions disableSpacing={true} className={classes.actions}>
-      <Button
-        id={`${baseId}-cancel`}
-        disabled={props.disabled}
-        onClick={close}
-      >
-        {l10n.getString(props.cancelId ?? "confirm-cancel")}
-      </Button>
-      <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
+    <FormContext disabled={disabled}>
+      <DialogTitle id={`${baseId}-title`} className={classes.title}>
+        {l10n.getString(titleId)}
+      </DialogTitle>
+      <DialogContent className={classes.content}>
+        {errorMessage}
+        {children}
+      </DialogContent>
+      <DialogActions disableSpacing={true} className={classes.actions}>
         <Button
-          id={`${baseId}-accept`}
-          disabled={props.disabled}
-          onClick={accept}
-        >
-          {l10n.getString(props.submitId ?? "confirm-accept")}
-        </Button>
-      </Box>
-    </DialogActions>
+          id={`${baseId}-cancel`}
+          onClick={close}
+          labelId={cancelId ?? "confirm-cancel"}
+        />
+        <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
+          <Button
+            id={`${baseId}-accept`}
+            disabled={disabled}
+            onClick={accept}
+            labelId={submitId ?? "confirm-accept"}
+          />
+        </Box>
+      </DialogActions>
+    </FormContext>
   </Dialog>;
 }
