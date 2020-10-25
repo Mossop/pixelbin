@@ -8,7 +8,7 @@ const agent = buildTestApp();
 beforeEach(insertTestData);
 
 test("basic connection", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   await request.get("/healthcheck")
     .expect("X-Worker-Id", String(process.pid))
@@ -18,7 +18,7 @@ test("basic connection", async (): Promise<void> => {
 });
 
 test("state checks", async (): Promise<void> => {
-  const stateFromResponse = (body: string): unknown => {
+  let stateFromResponse = (body: string): unknown => {
     let scriptTag = "<script id=\"initial-state\" type=\"application/json\">";
     let pos = body.indexOf(scriptTag);
     expect(pos).toBeGreaterThan(0);
@@ -29,7 +29,7 @@ test("state checks", async (): Promise<void> => {
     return JSON.parse(content);
   };
 
-  const request = agent();
+  let request = agent();
 
   let response = await request.get("/")
     .expect("Content-Type", "text/html; charset=utf-8")
@@ -69,7 +69,7 @@ test("state checks", async (): Promise<void> => {
 });
 
 test("routes", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   await request.get("/api/foo")
     .expect(404);

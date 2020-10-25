@@ -43,7 +43,7 @@ export default async function buildApp(): Promise<App> {
   let context = await buildContext();
   let cache = await Services.cache;
 
-  const router = new Router<DefaultState, AppContext>();
+  let router = new Router<DefaultState, AppContext>();
 
   router.get("/healthcheck", async (ctx: AppContext): Promise<void> => {
     ctx.body = "Ok";
@@ -83,7 +83,7 @@ export default async function buildApp(): Promise<App> {
     },
   );
 
-  const app = new Koa() as App;
+  let app = new Koa() as App;
   app.keys = config.secretKeys;
 
   Object.defineProperties(app.context, {

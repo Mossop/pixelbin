@@ -324,7 +324,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
   }
 
   private async localCall(call: RemoteCall): Promise<void> {
-    const performCall = async (method: string, args: unknown[]): Promise<unknown> => {
+    let performCall = async (method: string, args: unknown[]): Promise<unknown> => {
       if (!this.options.localInterface) {
         throw new Error("This remote provides no interface.");
       }

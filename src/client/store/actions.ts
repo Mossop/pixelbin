@@ -16,7 +16,7 @@ type Reducers = typeof reducers;
 const creators = actionCreators<Reducers>();
 
 export function useActions(): ActionDispatchers<Reducers> {
-  const dispatch = useDispatch();
+  let dispatch = useDispatch();
 
   return useMemo(() => {
     let creators = new Proxy({}, {

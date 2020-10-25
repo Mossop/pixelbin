@@ -75,13 +75,13 @@ export interface FormFieldProps<T> {
 }
 
 export default function FormFields<T>(props: FormFieldProps<T>): ReactResult {
-  const { l10n } = useLocalization();
-  const classes = useStyles();
+  let { l10n } = useLocalization();
+  let classes = useStyles();
 
   return <React.Fragment>
     {
       props.fields.map((field: FormField<T>): ReactResult => {
-        const setState = props.setState;
+        let setState = props.setState;
         let id = `${props.id ?? "dialog"}-${field.id ?? field.key}`;
 
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

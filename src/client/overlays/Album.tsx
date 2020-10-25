@@ -48,23 +48,23 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
     name: album?.name ?? "",
     parent,
   });
-  const [disabled, setDisabled] = useState(false);
-  const [error, setError] = useState<AppError | null>(null);
+  let [disabled, setDisabled] = useState(false);
+  let [error, setError] = useState<AppError | null>(null);
 
-  const actions = useActions();
-  const nameInput = useRef<HTMLElement>(null);
+  let actions = useActions();
+  let nameInput = useRef<HTMLElement>(null);
 
-  const onDisplay = useCallback(() => {
+  let onDisplay = useCallback(() => {
     nameInput.current?.focus();
   }, [nameInput]);
 
-  const catalogs = useCatalogs().map(
+  let catalogs = useCatalogs().map(
     (catalog: Catalog): VirtualItem => catalog.virtual(VirtualTree.Albums),
   );
 
   let roots = album ? [album.catalog.virtual(VirtualTree.Albums)] : catalogs;
 
-  const onSubmit = useCallback(async () => {
+  let onSubmit = useCallback(async () => {
     let { name, parent } = state.value;
     if (!name) {
       return;

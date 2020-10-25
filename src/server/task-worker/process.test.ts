@@ -46,7 +46,7 @@ beforeAll(async (): Promise<void> => {
     unsafeCleanup: true,
   });
 
-  const storageService = new StorageService({
+  let storageService = new StorageService({
     tempDirectory: path.join(temp.path, "temp"),
     localDirectory: path.join(temp.path, "local"),
   }, dbConnection);
@@ -71,7 +71,7 @@ test("Process image metadata", async (): Promise<void> => {
     unsafeCleanup: true,
   });
 
-  const storage = (await (await services.storage).getStorage("")).get();
+  let storage = (await (await services.storage).getStorage("")).get();
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
@@ -271,7 +271,7 @@ test("Process video metadata", async (): Promise<void> => {
     unsafeCleanup: true,
   });
 
-  const storage = (await (await services.storage).getStorage("")).get();
+  let storage = (await (await services.storage).getStorage("")).get();
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
@@ -533,7 +533,7 @@ test("reprocess", async (): Promise<void> => {
     unsafeCleanup: true,
   });
 
-  const storage = (await (await services.storage).getStorage("")).get();
+  let storage = (await (await services.storage).getStorage("")).get();
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
@@ -1039,7 +1039,7 @@ test("purge", async (): Promise<void> => {
     }],
   });
 
-  const storage = (await (await services.storage).getStorage("")).get();
+  let storage = (await (await services.storage).getStorage("")).get();
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteFile = mockedFunction(storage.deleteFile);

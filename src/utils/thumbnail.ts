@@ -4,7 +4,7 @@ export interface Image {
 }
 
 export function chooseSize<T extends Image>(images: T[], size: number): T | null {
-  const imageSize = (image: T): number => Math.max(image.width, image.height);
+  let imageSize = (image: T): number => Math.max(image.width, image.height);
 
   if (!images.length) {
     return null;

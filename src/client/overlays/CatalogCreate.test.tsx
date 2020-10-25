@@ -22,7 +22,7 @@ jest.mock("../api/api");
 beforeEach(resetDOM);
 
 test("create catalog", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({}));
+  let store = mockStore(mockStoreState({}));
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
 
@@ -264,7 +264,7 @@ test("create catalog", async (): Promise<void> => {
 });
 
 test("create catalog with existing storage", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       storage: "st567",
       name: "Existing catalog",

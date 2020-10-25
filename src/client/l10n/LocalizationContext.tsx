@@ -41,7 +41,7 @@ export class LocalizationContext extends PureComponent<
       generatedBundles: [],
     };
 
-    const supportedLocales = negotiateLanguages(
+    let supportedLocales = negotiateLanguages(
       window.navigator.languages.slice(), // requested locales
       props.locales, // available locales
       { defaultLocale: props.locales[0] },

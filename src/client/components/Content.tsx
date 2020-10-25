@@ -17,7 +17,7 @@ const useStyles = makeStyles((theme: Theme) =>
   }));
 
 export default function Content(props: BoxProps): ReactResult {
-  const classes = useStyles();
+  let classes = useStyles();
 
   return <Box
     className={classes.content}

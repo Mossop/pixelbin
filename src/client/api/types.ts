@@ -133,7 +133,7 @@ export function userIntoState(user: Api.User): UserState {
   }
 
   let catalogMaps = new Map<string, Maps>();
-  const catalogMap = (id: string): Maps => {
+  let catalogMap = (id: string): Maps => {
     let maps = catalogMaps.get(id);
     if (maps) {
       return maps;

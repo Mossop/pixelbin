@@ -58,9 +58,9 @@ export interface SteppedDialogProps {
 }
 
 export default function SteppedDialog(props: SteppedDialogProps): ReactResult {
-  const { l10n } = useLocalization();
-  const classes = useStyles();
-  const [open, setOpen] = useState(true);
+  let { l10n } = useLocalization();
+  let classes = useStyles();
+  let [open, setOpen] = useState(true);
 
   let baseId = props.id ?? "stepped-dialog";
 
@@ -73,12 +73,12 @@ export default function SteppedDialog(props: SteppedDialogProps): ReactResult {
     </Alert>
     : null;
 
-  const submit = useCallback((event: React.FormEvent): void => {
+  let submit = useCallback((event: React.FormEvent): void => {
     event.preventDefault();
     props.onSubmit();
   }, [props]);
 
-  const close = useCallback(() => {
+  let close = useCallback(() => {
     setOpen(false);
     if (props.onClose) {
       props.onClose();

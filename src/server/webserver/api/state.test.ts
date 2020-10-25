@@ -11,7 +11,7 @@ const agent = buildTestApp();
 beforeEach(insertTestData);
 
 test("state", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .get("/api/state")
@@ -24,7 +24,7 @@ test("state", async (): Promise<void> => {
 });
 
 test("login and logout", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .get("/api/state")
@@ -99,7 +99,7 @@ test("login and logout", async (): Promise<void> => {
 });
 
 test("login failure", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .get("/api/state")
@@ -134,7 +134,7 @@ test("login failure", async (): Promise<void> => {
 });
 
 test("signup", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .get("/api/state")

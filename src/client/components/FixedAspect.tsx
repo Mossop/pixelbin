@@ -29,12 +29,12 @@ const useStyles = makeStyles(() =>
       maxWidth: "100%",
       verticalAlign: "bottom",
     },
-    areaOverlay: (props: FixedAspectProps) => ({
+    areaOverlay: ({ height, width }: FixedAspectProps) => ({
       position: "absolute",
       bottom: 0,
       left: 0,
       right: 0,
-      paddingTop: `${100 * props.height / props.width}%`,
+      paddingTop: `${100 * height / width}%`,
       textAlign: "initial",
     }),
     viewportContainer: {
@@ -60,7 +60,7 @@ export interface FixedAspectProps {
 }
 
 export default function FixedAspect(props: FixedAspectProps & ReactChildren): ReactResult {
-  const classes = useStyles(props);
+  let classes = useStyles(props);
 
   return <div className={clsx(classes.root, props.classes?.root)}>
     <div className={classes.fixedArea}>

@@ -39,18 +39,18 @@ export interface CatalogCreateOverlayProps {
   user: UserState;
 }
 
-export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): ReactResult {
-  const { l10n } = useLocalization();
-  const [disabled, setDisabled] = useState(false);
-  const [error, setError] = useState<AppError | null>(null);
-  const actions = useActions();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [storageTestResult, setStorageTestResult] = useState<Api.StorageTestResult | null>(null);
-  const classes = useStyles();
+export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps): ReactResult {
+  let { l10n } = useLocalization();
+  let [disabled, setDisabled] = useState(false);
+  let [error, setError] = useState<AppError | null>(null);
+  let actions = useActions();
+  let [currentStep, setCurrentStep] = useState(0);
+  let [storageTestResult, setStorageTestResult] = useState<Api.StorageTestResult | null>(null);
+  let classes = useStyles();
 
   let [storageChoice, setStorageChoice] = useFormState({
-    storageType: props.user.storage.size ? "existing" : "aws",
-    existingStorage: props.user.storage.size ? [...props.user.storage.values()][0].id : "",
+    storageType: user.storage.size ? "existing" : "aws",
+    existingStorage: user.storage.size ? [...user.storage.values()][0].id : "",
     endpoint: "",
     publicUrl: "",
   });
@@ -68,7 +68,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     catalogName: "",
   });
 
-  const onSubmit = useCallback(async (): Promise<void> => {
+  let onSubmit = useCallback(async (): Promise<void> => {
     setDisabled(true);
     setError(null);
 
@@ -111,19 +111,19 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     }
   }, [actions, storageConfig, catalogState, storageChoice, setStorageChoice]);
 
-  const onStorageTypeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  let onStorageTypeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     // @ts-ignore
     setStorageChoice("storageType", event.target.value);
   }, [setStorageChoice]);
 
-  const isFilled = (val: string): boolean => val.length > 0;
+  let isFilled = (val: string): boolean => val.length > 0;
 
-  const storageChooserStep = useMemo((): Step => {
+  let storageChooserStep = useMemo((): Step => {
     return {
       titleId: "create-catalog-storage-title",
       content: <React.Fragment>
         {
-          props.user.storage.size > 0 && <React.Fragment>
+          user.storage.size > 0 && <React.Fragment>
             <FormControlLabel
               disabled={disabled}
               label="Existing storage"
@@ -149,7 +149,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
                     key: "existingStorage",
                     label: "storage-existing",
                     options: Array.from(
-                      props.user.storage.values(),
+                      user.storage.values(),
                       (storage: StorageState): Option => {
                         return {
                           value: storage.id,
@@ -215,14 +215,14 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     };
   }, [
     disabled,
-    props.user.storage,
+    user.storage,
     onStorageTypeChange,
     storageChoice,
     setStorageChoice,
   ]);
 
-  const storageNameRef = useRef<HTMLElement>();
-  const storageConfigStep = useMemo((): Step => {
+  let storageNameRef = useRef<HTMLElement>();
+  let storageConfigStep = useMemo((): Step => {
     return {
       titleId: "create-catalog-storage-custom-title",
       disabled: storageChoice.storageType == "existing",
@@ -268,7 +268,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     };
   }, [disabled, storageChoice, storageConfig, setStorageConfig]);
 
-  const storageTestStep = useMemo((): Step => {
+  let storageTestStep = useMemo((): Step => {
     let content: ReactResult;
     if (!storageTestResult) {
       content = <Loading id="storage-test-testing" flexGrow={1}/>;
@@ -320,8 +320,8 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     };
   }, [storageChoice, storageTestResult, l10n, classes]);
 
-  const catalogNameRef = useRef<HTMLElement>();
-  const catalogNameStep = useMemo((): Step => {
+  let catalogNameRef = useRef<HTMLElement>();
+  let catalogNameStep = useMemo((): Step => {
     return {
       titleId: "create-catalog-catalog-title",
       content: <FormFields
@@ -342,7 +342,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     };
   }, [disabled, catalogState, setCatalogState]);
 
-  const steps = useMemo(() => [
+  let steps = useMemo(() => [
     storageChooserStep,
     storageConfigStep,
     storageTestStep,
@@ -372,7 +372,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     catalogNameStep,
   ]);
 
-  const startStorageTest = useCallback(async (): Promise<void> => {
+  let startStorageTest = useCallback(async (): Promise<void> => {
     setStorageTestResult(null);
 
     let endpoint = storageChoice.storageType == "compatible" ? storageChoice.endpoint : null;
@@ -397,7 +397,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     }
   }, [storageChoice, storageConfig, setStorageTestResult, l10n]);
 
-  const onBack = useCallback(() => {
+  let onBack = useCallback(() => {
     let nextStep = currentStep - 1;
     while (steps[nextStep].disabled) {
       nextStep--;
@@ -406,7 +406,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     setCurrentStep(nextStep);
   }, [currentStep, steps]);
 
-  const onNext = useCallback(() => {
+  let onNext = useCallback(() => {
     let nextStep = currentStep + 1;
     while (steps[nextStep].disabled) {
       nextStep++;
@@ -455,7 +455,7 @@ export default function CatalogCreateOverlay(props: CatalogCreateOverlayProps): 
     onNextClick={onNext}
     currentStep={currentStep}
     canAdvance={canAdvance}
-    titleId={props.user.catalogs.size == 0 ? "catalog-create-title-first" : "catalog-create-title"}
+    titleId={user.catalogs.size == 0 ? "catalog-create-title-first" : "catalog-create-title"}
     submitId="catalog-create-submit"
     steps={steps}
   />;

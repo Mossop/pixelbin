@@ -21,11 +21,11 @@ export interface AlbumPageProps {
 }
 
 export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps): ReactResult {
-  const { l10n } = useLocalization();
-  const actions = useActions();
+  let { l10n } = useLocalization();
+  let actions = useActions();
   let album = useSelector((state: StoreState) => props.album.deref(state.serverState));
 
-  const onAlbumEdit = useCallback(
+  let onAlbumEdit = useCallback(
     () => actions.showOverlay({
       type: OverlayType.AlbumEdit,
       album: props.album,
@@ -33,7 +33,7 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     [actions, props.album],
   );
 
-  const onAlbumCreate = useCallback(
+  let onAlbumCreate = useCallback(
     () => actions.showOverlay({
       type: OverlayType.AlbumCreate,
       parent: props.album,
@@ -41,7 +41,7 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     [props.album, actions],
   );
 
-  const onAlbumDelete = useCallback(
+  let onAlbumDelete = useCallback(
     () => actions.showOverlay({
       type: OverlayType.AlbumDelete,
       album: props.album,
@@ -49,7 +49,7 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     [props.album, actions],
   );
 
-  const onMediaClick = useCallback((media: MediaState): void => {
+  let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
         type: PageType.Media,
@@ -71,7 +71,7 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
 
   let media = useMediaLookup(lookup);
 
-  const onAlbumSearch = useCallback(() => {
+  let onAlbumSearch = useCallback(() => {
     let query: Draft<Search.RelationQuery> = {
       invert: false,
       type: "compound",

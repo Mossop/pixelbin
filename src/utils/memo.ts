@@ -29,8 +29,8 @@ class WrappedMap {
 }
 
 export function memoized<R, A extends unknown[]>(builder: (...args: A) => R): (...args: A) => R {
-  const values = new WeakMap<WrappedMap, R>();
-  const memos = new WrappedMap();
+  let values = new WeakMap<WrappedMap, R>();
+  let memos = new WrappedMap();
 
   return (...args: A): R => {
     let inner = memos;

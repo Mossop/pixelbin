@@ -26,7 +26,7 @@ const mockedRequest = mockedFunction(request);
 afterEach(resetDOM);
 
 test("create album", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
@@ -85,7 +85,7 @@ test("create album", async (): Promise<void> => {
 });
 
 test("edit album", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",

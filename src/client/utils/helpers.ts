@@ -40,7 +40,7 @@ export function focus(id: string): void {
 }
 
 export function createDraft<T>(item: T): Draft<T> {
-  const mapEntries = <K, V>([key, value]: [K, V]): [Draft<K>, Draft<V>] =>
+  let mapEntries = <K, V>([key, value]: [K, V]): [Draft<K>, Draft<V>] =>
     [createDraft(key), createDraft(value)];
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

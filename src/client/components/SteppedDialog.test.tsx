@@ -9,7 +9,7 @@ test("basic stepped dialog", async (): Promise<void> => {
   let back = jest.fn();
   let next = jest.fn();
 
-  const steps = [{
+  let steps = [{
     titleId: "step1-title",
     content: <div id="step1"/>,
   }, {

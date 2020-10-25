@@ -56,9 +56,9 @@ export default function ConfirmationDialog({
   onClose,
   onAccept,
 }: ConfirmationDialogProps): ReactResult {
-  const { l10n } = useLocalization();
-  const classes = useStyles();
-  const [open, setOpen] = useState(true);
+  let { l10n } = useLocalization();
+  let classes = useStyles();
+  let [open, setOpen] = useState(true);
 
   let baseId = id ?? "confirm-dialog";
 
@@ -72,11 +72,11 @@ export default function ConfirmationDialog({
     </Alert>
     : null;
 
-  const accept = useCallback((): void => {
+  let accept = useCallback((): void => {
     onAccept();
   }, [onAccept]);
 
-  const close = useCallback(() => {
+  let close = useCallback(() => {
     setOpen(false);
     if (onClose) {
       onClose();

@@ -18,7 +18,7 @@ const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ 
 const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./Search"));
 
 export default function Overlay(): ReactResult {
-  const actions = useActions();
+  let actions = useActions();
 
   let { overlay, user } = useSelector((state: StoreState) => ({
     overlay: state.ui.overlay,

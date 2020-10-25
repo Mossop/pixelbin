@@ -115,29 +115,33 @@ const useStyles = makeStyles((theme: Theme) =>
   }));
 
 interface MainOverlayProps {
-  media: MediaState;
   onNext?: (() => void) | null;
   onPrevious?: (() => void) | null;
   onGoBack?: (() => void) | null;
   onShowInfo?: (() => void) | null;
 }
 
-function MainOverlay(props: MainOverlayProps): ReactResult {
-  const classes = useStyles();
+function MainOverlay({
+  onNext,
+  onPrevious,
+  onGoBack,
+  onShowInfo,
+}: MainOverlayProps): ReactResult {
+  let classes = useStyles();
 
   return <div className={classes.overlayContent}>
     <div className={classes.overlayTop}>
       {
-        props.onShowInfo && <IconButton
-          onClick={props.onShowInfo}
+        onShowInfo && <IconButton
+          onClick={onShowInfo}
           className={classes.overlayButton}
         >
           <InfoIcon/>
         </IconButton>
       }
       {
-        props.onGoBack && <IconButton
-          onClick={props.onGoBack}
+        onGoBack && <IconButton
+          onClick={onGoBack}
           className={classes.overlayButton}
         >
           <CloseIcon/>
@@ -147,8 +151,8 @@ function MainOverlay(props: MainOverlayProps): ReactResult {
     <div className={classes.overlayMiddle}>
       <div>
         {
-          props.onPrevious && <IconButton
-            onClick={props.onPrevious}
+          onPrevious && <IconButton
+            onClick={onPrevious}
             className={classes.navButton}
           >
             <NavigateBeforeIcon/>
@@ -157,8 +161,8 @@ function MainOverlay(props: MainOverlayProps): ReactResult {
       </div>
       <div>
         {
-          props.onNext && <IconButton
-            onClick={props.onNext}
+          onNext && <IconButton
+            onClick={onNext}
             className={classes.navButton}
           >
             <NavigateNextIcon/>
@@ -180,63 +184,62 @@ export interface MediaPageProps {
   readonly lookup: MediaLookup | null;
 }
 
-function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult {
-  const actions = useActions();
-  const classes = useStyles();
-  const areaRef = useRef<HTMLDivElement>(null);
-  const fullscreen = useFullscreen();
+function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): ReactResult {
+  let actions = useActions();
+  let classes = useStyles();
+  let areaRef = useRef<HTMLDivElement>(null);
+  let fullscreen = useFullscreen();
 
-  const [displayOverlays, setDisplayOverlays] = useState(true);
-  const [showMediaInfo, setShowMediaInfo] = useState(false);
-  const [location, setLocation] = useState<ObjectModel.Location | null>(null);
+  let [displayOverlays, setDisplayOverlays] = useState(true);
+  let [showMediaInfo, setShowMediaInfo] = useState(false);
+  let [location, setLocation] = useState<ObjectModel.Location | null>(null);
 
-  const onShowInfo = useCallback(() => setShowMediaInfo(true), []);
-  const onCloseInfo = useCallback(() => setShowMediaInfo(false), []);
+  let onShowInfo = useCallback(() => setShowMediaInfo(true), []);
+  let onCloseInfo = useCallback(() => setShowMediaInfo(false), []);
 
-  const parent = useMemo<UIState | null>(() => {
-    switch (props.lookup?.type) {
+  let parent = useMemo<UIState | null>(() => {
+    switch (lookup?.type) {
       case MediaLookupType.Album:
         return {
           page: {
             type: PageType.Album,
-            album: props.lookup.album,
+            album: lookup.album,
           },
         };
       case MediaLookupType.Catalog:
         return {
           page: {
             type: PageType.Catalog,
-            catalog: props.lookup.catalog,
+            catalog: lookup.catalog,
           },
         };
     }
 
     return null;
-  }, [props.lookup]);
+  }, [lookup]);
 
-  const goBack = useMemo<(() => void) | null>(() => {
+  let goBack = useMemo<(() => void) | null>(() => {
     if (!parent) {
       return null;
     }
 
-    return () => actions.navigate(parent);
+    let to = parent;
+    return () => actions.navigate(to);
   }, [actions, parent]);
 
-  let lookup = useMemo<MediaLookup>(() => {
-    return props.lookup ?? {
+  let mediaList = useMediaLookup(useMemo<MediaLookup>(() => {
+    return lookup ?? {
       type: MediaLookupType.Single,
-      media: props.media,
+      media: media,
     };
-  }, [props.lookup, props.media]);
+  }, [lookup, media]));
 
-  let mediaList = useMediaLookup(lookup);
-
-  const mediaIndex = useMemo(
-    () => mediaList?.findIndex((item: MediaState): boolean => item.id == props.media) ?? -1,
-    [props.media, mediaList],
+  let mediaIndex = useMemo(
+    () => mediaList?.findIndex((item: MediaState): boolean => item.id == media) ?? -1,
+    [media, mediaList],
   );
 
-  const onPrevious = useMemo(() => {
+  let onPrevious = useMemo(() => {
     if (mediaIndex == 0 || !mediaList) {
       return null;
     }
@@ -248,13 +251,13 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
         page: {
           type: PageType.Media,
           media: previous,
-          lookup: props.lookup,
+          lookup: lookup,
         },
       });
     };
-  }, [mediaIndex, mediaList, actions, props.lookup]);
+  }, [mediaIndex, mediaList, actions, lookup]);
 
-  const onNext = useMemo(() => {
+  let onNext = useMemo(() => {
     if (!mediaList || mediaIndex == mediaList.length - 1) {
       return null;
     }
@@ -266,29 +269,29 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
         page: {
           type: PageType.Media,
           media: next,
-          lookup: props.lookup,
+          lookup: lookup,
         },
       });
     };
-  }, [mediaIndex, mediaList, actions, props.lookup]);
+  }, [mediaIndex, mediaList, actions, lookup]);
 
-  const hideOverlays = useCallback(() => {
+  let hideOverlays = useCallback(() => {
     setDisplayOverlays(false);
   }, []);
 
-  const delayed = useMemo(() => new Delayed(1500, hideOverlays), [hideOverlays]);
+  let delayed = useMemo(() => new Delayed(1500, hideOverlays), [hideOverlays]);
   delayed.trigger();
 
-  const showOverlays = useCallback(() => {
+  let showOverlays = useCallback(() => {
     setDisplayOverlays(true);
     delayed.trigger();
   }, [delayed]);
 
-  const goFullscreen = useCallback(() => {
+  let goFullscreen = useCallback(() => {
     void areaRef.current?.requestFullscreen();
   }, [areaRef]);
 
-  const exitFullscreen = useCallback(() => {
+  let exitFullscreen = useCallback(() => {
     void document.exitFullscreen();
   }, []);
 
@@ -304,10 +307,10 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
     </Page>;
   }
 
-  const media = mediaList[mediaIndex];
-  const title = mediaTitle(media);
+  let mediaState = mediaList[mediaIndex];
+  let title = mediaTitle(mediaState);
 
-  const mediaControls = fullscreen
+  let mediaControls = fullscreen
     ? <IconButton onClick={exitFullscreen} className={classes.overlayButton}>
       <FullscreenExitIcon/>
     </IconButton>
@@ -323,10 +326,10 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
       onMouseMove={showOverlays}
     >
       {
-        isProcessed(media)
+        isProcessed(mediaState)
           ? <FixedAspect
-            width={media.width}
-            height={media.height}
+            width={mediaState.width}
+            height={mediaState.height}
             classes={
               {
                 root: classes.mediaArea,
@@ -335,11 +338,11 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
             }
           >
             {
-              media.mimetype.startsWith("video/")
-                ? <Video media={media} displayOverlays={displayOverlays}>
+              mediaState.mimetype.startsWith("video/")
+                ? <Video media={mediaState} displayOverlays={displayOverlays}>
                   {mediaControls}
                 </Video>
-                : <Photo media={media} displayOverlays={displayOverlays}>
+                : <Photo media={mediaState} displayOverlays={displayOverlays}>
                   {mediaControls}
                 </Photo>
             }
@@ -363,7 +366,6 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
       <Fade in={displayOverlays} timeout={500}>
         <div className={classes.overlay}>
           <MainOverlay
-            media={media}
             onPrevious={onPrevious}
             onNext={onNext}
             onGoBack={goBack}
@@ -382,7 +384,7 @@ function MediaPage(props: MediaPageProps & AuthenticatedPageProps): ReactResult 
           }
           <IconButton onClick={onCloseInfo}><CloseIcon/></IconButton>
         </Box>
-        <MediaInfo media={media} onHighlightRegion={setLocation}/>
+        <MediaInfo media={mediaState} onHighlightRegion={setLocation}/>
       </Paper>
     }
   </Page>;

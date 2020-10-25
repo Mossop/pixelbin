@@ -23,10 +23,10 @@ export default function SearchPage({
   query,
   catalog,
 }: SearchPageProps & AuthenticatedPageProps): ReactResult {
-  const { l10n } = useLocalization();
-  const actions = useActions();
+  let { l10n } = useLocalization();
+  let actions = useActions();
 
-  const onMediaClick = useCallback((media: MediaState): void => {
+  let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
         type: PageType.Media,
@@ -48,7 +48,7 @@ export default function SearchPage({
 
   let media = useMediaLookup(lookup);
 
-  const onEditSearch = useCallback(() => {
+  let onEditSearch = useCallback(() => {
     // @ts-ignore
     let newQuery: Draft<Query> = {
       ...query,

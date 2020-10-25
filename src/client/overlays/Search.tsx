@@ -247,19 +247,19 @@ function FieldQueryBox({
   onUpdateQuery,
   onDeleteQuery,
 }: FieldQueryBoxProps): ReactResult {
-  const classes = useStyles();
-  const { l10n } = useLocalization();
-  const [deleting, setDeleting] = useState(false);
+  let classes = useStyles();
+  let { l10n } = useLocalization();
+  let [deleting, setDeleting] = useState(false);
 
-  const enterDelete = useCallback(() => {
+  let enterDelete = useCallback(() => {
     setDeleting(true);
   }, []);
 
-  const leaveDelete = useCallback(() => {
+  let leaveDelete = useCallback(() => {
     setDeleting(false);
   }, []);
 
-  const deleteQuery = useCallback(() => {
+  let deleteQuery = useCallback(() => {
     onDeleteQuery(query);
   }, [onDeleteQuery, query]);
 
@@ -337,14 +337,14 @@ function FieldQueryBox({
     onUpdateQuery(query, newQuery);
   }, [query, onUpdateQuery]);
 
-  const onStringChange = useCallback(
+  let onStringChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
       onValueChange(event.target.value);
     },
     [onValueChange],
   );
 
-  const onNumberChange = useCallback(
+  let onNumberChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
       onValueChange(parseFloat(event.target.value));
     },
@@ -457,33 +457,33 @@ function CompoundQueryBox({
   onDeleteQuery,
   catalog: catalogRef,
 }: CompoundQueryBoxProps): ReactResult {
-  const classes = useStyles();
-  const { l10n } = useLocalization();
-  const [deleting, setDeleting] = useState(false);
-  const catalog = useSelector(
+  let classes = useStyles();
+  let { l10n } = useLocalization();
+  let [deleting, setDeleting] = useState(false);
+  let catalog = useSelector(
     (state: StoreState): Catalog => catalogRef.deref(state.serverState),
   );
 
-  const [dialOpen, setDialOpen] = useState(false);
-  const onDialOpen = useCallback(() => setDialOpen(true), []);
-  const onDialClose = useCallback(() => setDialOpen(false), []);
+  let [dialOpen, setDialOpen] = useState(false);
+  let onDialOpen = useCallback(() => setDialOpen(true), []);
+  let onDialClose = useCallback(() => setDialOpen(false), []);
 
-  const enterDelete = useCallback(() => {
+  let enterDelete = useCallback(() => {
     setDeleting(true);
   }, []);
 
-  const leaveDelete = useCallback(() => {
+  let leaveDelete = useCallback(() => {
     setDeleting(false);
   }, []);
 
-  const deleteQuery = useMemo(() => {
+  let deleteQuery = useMemo(() => {
     if (onDeleteQuery) {
       return () => onDeleteQuery(query);
     }
     return null;
   }, [query, onDeleteQuery]);
 
-  const updateQuery = useCallback(
+  let updateQuery = useCallback(
     (oldQuery: Search.Query, newQuery: Search.Query): void => {
       updateQueryKey(oldQuery, newQuery);
 
@@ -502,7 +502,7 @@ function CompoundQueryBox({
     [onUpdateQuery, query],
   );
 
-  const queryDeleted = useCallback((toDelete: Query): void => {
+  let queryDeleted = useCallback((toDelete: Query): void => {
     let updatedQuery: Search.CompoundQuery = {
       ...query,
       queries: query.queries.filter((query: Search.Query): boolean => {
@@ -513,7 +513,7 @@ function CompoundQueryBox({
     onUpdateQuery(query, updatedQuery);
   }, [onUpdateQuery, query]);
 
-  const addField = useCallback(() => {
+  let addField = useCallback(() => {
     let updatedQuery: Search.CompoundQuery = {
       ...query,
       queries: [
@@ -532,7 +532,7 @@ function CompoundQueryBox({
     onUpdateQuery(query, updatedQuery);
   }, [query, onUpdateQuery]);
 
-  const addCompound = useCallback(() => {
+  let addCompound = useCallback(() => {
     let updatedQuery: Search.CompoundQuery = {
       ...query,
       queries: [
@@ -549,7 +549,7 @@ function CompoundQueryBox({
     onUpdateQuery(query, updatedQuery);
   }, [query, onUpdateQuery]);
 
-  const addRelation = useCallback((relation: RelationType) => {
+  let addRelation = useCallback((relation: RelationType) => {
     let updatedQuery: Search.CompoundQuery = {
       ...query,
       queries: [
@@ -568,11 +568,11 @@ function CompoundQueryBox({
     onUpdateQuery(query, updatedQuery);
   }, [query, onUpdateQuery]);
 
-  const addAlbum = useMemo(() => addRelation.bind(null, RelationType.Album), [addRelation]);
-  const addTag = useMemo(() => addRelation.bind(null, RelationType.Tag), [addRelation]);
-  const addPerson = useMemo(() => addRelation.bind(null, RelationType.Person), [addRelation]);
+  let addAlbum = useMemo(() => addRelation.bind(null, RelationType.Album), [addRelation]);
+  let addTag = useMemo(() => addRelation.bind(null, RelationType.Tag), [addRelation]);
+  let addPerson = useMemo(() => addRelation.bind(null, RelationType.Person), [addRelation]);
 
-  const toggleJoin = useCallback(() => {
+  let toggleJoin = useCallback(() => {
     let updatedQuery: Search.CompoundQuery = {
       ...query,
       invert: query.join == Join.And ? query.invert : !query.invert,
@@ -781,26 +781,26 @@ export interface SearchOverlayProps {
   readonly query: Query | null;
 }
 
-export default function SearchOverlayProps(props: SearchOverlayProps): ReactResult {
-  const classes = useStyles();
-  const { l10n } = useLocalization();
-  const actions = useActions();
-  const [open, setOpen] = useState(true);
-  const [media, setMedia] = useState<readonly MediaState[] | null>(null);
+export default function SearchOverlayProps({ catalog, query }: SearchOverlayProps): ReactResult {
+  let classes = useStyles();
+  let { l10n } = useLocalization();
+  let actions = useActions();
+  let [open, setOpen] = useState(true);
+  let [media, setMedia] = useState<readonly MediaState[] | null>(null);
 
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
 
   let baseQuery = useMemo<Search.CompoundQuery>(() => {
-    if (props.query) {
-      if (isCompoundQuery(props.query) && !isRelationQuery(props.query)) {
-        return props.query;
+    if (query) {
+      if (isCompoundQuery(query) && !isRelationQuery(query)) {
+        return query;
       }
 
       return {
         invert: false,
         type: "compound",
         join: Join.And,
-        queries: [props.query],
+        queries: [query],
       };
     }
 
@@ -810,16 +810,16 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
       join: Join.And,
       queries: [],
     };
-  }, [props.query]);
+  }, [query]);
 
-  const [query, setQuery] = useState<Search.CompoundQuery>(baseQuery);
-  const lookup = useMemo<MediaLookup>(() => {
+  let [search, setSearch] = useState<Search.CompoundQuery>(baseQuery);
+  let lookup = useMemo<MediaLookup>(() => {
     return {
       type: MediaLookupType.Search,
-      catalog: props.catalog,
-      query,
+      catalog: catalog,
+      query: search,
     };
-  }, [props.catalog, query]);
+  }, [catalog, search]);
 
   useEffect(() => {
     let timeout = window.setTimeout(() => {
@@ -831,28 +831,28 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
     };
   }, [lookup]);
 
-  const onUpdateQuery = useCallback(
+  let onUpdateQuery = useCallback(
     (oldQuery: Search.CompoundQuery, newQuery: Search.CompoundQuery): void => {
-      setQuery(newQuery);
+      setSearch(newQuery);
     },
     [],
   );
 
-  const reset = useCallback(() => {
-    setQuery(baseQuery);
+  let onReset = useCallback(() => {
+    setSearch(baseQuery);
   }, [baseQuery]);
 
-  const search = useCallback(() => {
+  let onSearch = useCallback(() => {
     actions.navigate({
       page: {
         type: PageType.Search,
-        catalog: props.catalog,
-        query,
+        catalog: catalog,
+        query: search,
       },
     });
-  }, [actions, props.catalog, query]);
+  }, [actions, catalog, search]);
 
-  const close = useCallback(() => {
+  let close = useCallback(() => {
     setOpen(false);
     actions.closeOverlay();
   }, [actions]);
@@ -874,8 +874,8 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
         <CompoundQueryBox
           inRelation={null}
           onUpdateQuery={onUpdateQuery}
-          query={query}
-          catalog={props.catalog}
+          query={search}
+          catalog={catalog}
         />
         <Divider className={classes.resultsDivider}/>
         <Box className={classes.results}>
@@ -904,10 +904,10 @@ export default function SearchOverlayProps(props: SearchOverlayProps): ReactResu
         </Box>
       </DialogContent>
       <DialogActions disableSpacing={true} className={classes.actions}>
-        <Button id="search-dialog-reset" onClick={reset}>
+        <Button id="search-dialog-reset" onClick={onReset}>
           {l10n.getString("search-dialog-reset")}
         </Button>
-        <Button id="search-dialog-accept" onClick={search}>
+        <Button id="search-dialog-accept" onClick={onSearch}>
           {l10n.getString("search-dialog-accept")}
         </Button>
       </DialogActions>

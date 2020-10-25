@@ -7,7 +7,7 @@ import { AppError } from "../utils/exception";
 import { ReactResult } from "../utils/types";
 
 export default function SignupOverlay(): ReactResult {
-  const actions = useActions();
+  let actions = useActions();
 
   let formState = useFormState({
     email: "",
@@ -15,16 +15,16 @@ export default function SignupOverlay(): ReactResult {
     password: "",
   });
 
-  const [disabled, setDisabled] = useState(false);
-  const [error, setError] = useState<AppError | null>(null);
+  let [disabled, setDisabled] = useState(false);
+  let [error, setError] = useState<AppError | null>(null);
 
   let emailInput = useRef<HTMLInputElement>();
 
-  const onDisplay = useCallback(() => {
+  let onDisplay = useCallback(() => {
     emailInput.current?.focus();
   }, [emailInput]);
 
-  const onSubmit = useCallback(async (): Promise<void> => {
+  let onSubmit = useCallback(async (): Promise<void> => {
     let { email, fullname, password } = formState.value;
 
     if (!email) {

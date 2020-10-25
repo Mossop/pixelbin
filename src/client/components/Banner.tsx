@@ -68,43 +68,46 @@ function avatarSources(user: UserState): string[] {
   ];
 }
 
-export default function Banner(props: BannerProps): ReactResult {
-  const { l10n } = useLocalization();
-  const actions = useActions();
-  const classes = useStyles();
-  const user = useSelector((state: StoreState): UserState | null => state.serverState.user);
+export default function Banner({
+  pageOptions,
+  onMenuButtonClick, children,
+}: BannerProps): ReactResult {
+  let { l10n } = useLocalization();
+  let actions = useActions();
+  let classes = useStyles();
+  let user = useSelector((state: StoreState): UserState | null => state.serverState.user);
 
-  const userMenuState = usePopupState({ variant: "popover", popupId: "user-menu" });
-  const pageOptionsState = usePopupState({ variant: "popover", popupId: "page-options" });
+  let userMenuState = usePopupState({ variant: "popover", popupId: "user-menu" });
+  let pageOptionsState = usePopupState({ variant: "popover", popupId: "page-options" });
 
-  const showLoginOverlay = useCallback((): void => {
+  let showLoginOverlay = useCallback((): void => {
     userMenuState.close();
     actions.showOverlay({
       type: OverlayType.Login,
     });
   }, [actions, userMenuState]);
-  const showSignupOverlay = useCallback((): void => {
+  let showSignupOverlay = useCallback((): void => {
     userMenuState.close();
     actions.showOverlay({
       type: OverlayType.Signup,
     });
   }, [actions, userMenuState]);
-  const doLogout = useCallback(async (): Promise<void> => {
+  let doLogout = useCallback(async (): Promise<void> => {
     userMenuState.close();
     let state = await logout();
     actions.completeLogout(state);
   }, [actions, userMenuState]);
 
-  const pageOptionClick = useCallback((pageOption: PageOption): void => {
+  let pageOptionClick = useCallback((pageOption: PageOption): void => {
     pageOptionsState.close();
     pageOption.onClick();
   }, [pageOptionsState]);
 
   return <AppBar className={classes.banner} role="banner">
     {
-      props.onMenuButtonClick && <IconButton
+      onMenuButtonClick && <IconButton
         id="menu-button"
-        onClick={props.onMenuButtonClick}
+        onClick={onMenuButtonClick}
         edge="start"
         className={classes.menuButton}
         color="inherit"
@@ -119,9 +122,9 @@ export default function Banner(props: BannerProps): ReactResult {
       </Box>
     </Box>
     <Box id="banner-buttons" className={classes.bannerButtons}>
-      {props.children}
+      {children}
       {
-        props.pageOptions && <React.Fragment>
+        pageOptions && <React.Fragment>
           <Hidden smUp={true}>
             <IconButton {...bindTrigger(pageOptionsState)} color="inherit">
               <MoreVertIcon/>
@@ -143,7 +146,7 @@ export default function Banner(props: BannerProps): ReactResult {
               {...bindPopover(pageOptionsState)}
             >
               {
-                props.pageOptions.map((option: PageOption) => <MenuItem
+                pageOptions.map((option: PageOption) => <MenuItem
                   key={option.id}
                   id={`pageoption-menu-${option.id}`}
                   color="inherit"
@@ -157,7 +160,7 @@ export default function Banner(props: BannerProps): ReactResult {
           </Hidden>
           <Hidden xsDown={true}>
             {
-              props.pageOptions.map((option: PageOption) => <Button
+              pageOptions.map((option: PageOption) => <Button
                 key={option.id}
                 id={`pageoption-button-${option.id}`}
                 color="inherit"

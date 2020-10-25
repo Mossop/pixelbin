@@ -123,7 +123,7 @@ test("refcounted", (): void => {
 });
 
 test("cache", async (): Promise<void> => {
-  const assume = <T>(item: T | null): T => {
+  let assume = <T>(item: T | null): T => {
     if (item) {
       return item;
     }

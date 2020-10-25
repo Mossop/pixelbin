@@ -32,12 +32,12 @@ const agent = buildTestApp(parent);
 beforeEach(insertTestData);
 
 test("Media upload", async (): Promise<void> => {
-  const request = agent();
-  const storageService = new StorageService({
+  let request = agent();
+  let storageService = new StorageService({
     tempDirectory: "",
     localDirectory: "",
   }, await connection);
-  const storage = (await storageService.getStorage("")).get();
+  let storage = (await storageService.getStorage("")).get();
 
   /* eslint-disable @typescript-eslint/unbound-method */
   let getStorageMock = mockedFunction(storageService.getStorage);
@@ -224,14 +224,14 @@ test("Media upload", async (): Promise<void> => {
 });
 
 test("Media edit", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
-  const storageService = new StorageService({
+  let storageService = new StorageService({
     tempDirectory: "",
     localDirectory: "",
   }, dbConnection);
-  const storage = (await storageService.getStorage("")).get();
+  let storage = (await storageService.getStorage("")).get();
 
   /* eslint-disable @typescript-eslint/unbound-method */
   let getStorageMock = mockedFunction(storageService.getStorage);
@@ -594,12 +594,12 @@ test("Media edit", async (): Promise<void> => {
 });
 
 test("Media resources", async (): Promise<void> => {
-  const request = agent();
-  const storageService = new StorageService({
+  let request = agent();
+  let storageService = new StorageService({
     tempDirectory: "",
     localDirectory: "",
   }, await connection);
-  const storage = (await storageService.getStorage("")).get();
+  let storage = (await storageService.getStorage("")).get();
 
   /* eslint-disable @typescript-eslint/unbound-method */
   let getLocalFilePath = mockedFunction(storage.getLocalFilePath);
@@ -822,7 +822,7 @@ test("Media resources", async (): Promise<void> => {
 });
 
 test("Get media", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
@@ -1071,7 +1071,7 @@ test("Get media", async (): Promise<void> => {
 });
 
 test("Media relations", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
@@ -1440,7 +1440,7 @@ test("Media relations", async (): Promise<void> => {
 });
 
 test("Media person locations", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
@@ -1743,7 +1743,7 @@ test("Media person locations", async (): Promise<void> => {
 });
 
 test("Media search", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
@@ -1800,12 +1800,12 @@ test("Media search", async (): Promise<void> => {
 });
 
 test("server overload", async (): Promise<void> => {
-  const request = agent();
-  const storageService = new StorageService({
+  let request = agent();
+  let storageService = new StorageService({
     tempDirectory: "",
     localDirectory: "",
   }, await connection);
-  const storage = (await storageService.getStorage("")).get();
+  let storage = (await storageService.getStorage("")).get();
 
   /* eslint-disable @typescript-eslint/unbound-method */
   let getStorageMock = mockedFunction(storageService.getStorage);

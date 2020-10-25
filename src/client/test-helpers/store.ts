@@ -200,7 +200,7 @@ export function mockCatalog(mock: MockCatalog, storage: MapOf<StorageState>): Dr
   let id = mock.id ?? randomId();
   let ref = Catalog.ref(id);
 
-  const buildStorage = (def: string | MockStorage | undefined): string => {
+  let buildStorage = (def: string | MockStorage | undefined): string => {
     if (typeof def == "object") {
       let store = mockStorage(def);
       storage.set(store.id, store);

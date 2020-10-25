@@ -11,7 +11,7 @@ const agent = buildTestApp();
 beforeEach(insertTestData);
 
 async function testStorage(id: string): Promise<void> {
-  const request = agent();
+  let request = agent();
 
   let config = await getStorageConfig(id);
   if (!config) {
@@ -53,7 +53,7 @@ test("Test Backblaze storage", async (): Promise<void> => {
 }, 30000);
 
 test("Test Bad storage", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   await request
     .post("/api/login")
@@ -83,7 +83,7 @@ test("Test Bad storage", async (): Promise<void> => {
 });
 
 test("Create storage", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .post("/api/login")
@@ -139,7 +139,7 @@ test("Create storage", async (): Promise<void> => {
 });
 
 test("Create catalog", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .put("/api/catalog/create")
@@ -266,7 +266,7 @@ test("Create catalog", async (): Promise<void> => {
 });
 
 test("Edit catalog", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .patch("/api/catalog/edit")
@@ -374,7 +374,7 @@ test("Edit catalog", async (): Promise<void> => {
 });
 
 test("Create album", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .put("/api/album/create")
@@ -466,7 +466,7 @@ test("Create album", async (): Promise<void> => {
 });
 
 test("Edit album", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .patch("/api/album/edit")
@@ -581,9 +581,9 @@ test("Edit album", async (): Promise<void> => {
 
 test("List album and catalog", async (): Promise<void> => {
   /* eslint-disable-next-line */
-  const ids = items => items.map(item => item.id);
+  let ids = items => items.map(item => item.id);
 
-  const request = agent();
+  let request = agent();
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
@@ -668,7 +668,7 @@ test("List album and catalog", async (): Promise<void> => {
 });
 
 test("Create Tag", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .put("/api/tag/create")
@@ -760,7 +760,7 @@ test("Create Tag", async (): Promise<void> => {
 });
 
 test("Edit tag", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .patch("/api/tag/edit")
@@ -856,7 +856,7 @@ test("Edit tag", async (): Promise<void> => {
 });
 
 test("Find Tag", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   await request
     .post("/api/login")
@@ -916,7 +916,7 @@ test("Find Tag", async (): Promise<void> => {
 });
 
 test("Create Person", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .put("/api/person/create")
@@ -1004,7 +1004,7 @@ test("Create Person", async (): Promise<void> => {
 });
 
 test("Edit person", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   let response = await request
     .patch("/api/person/edit")

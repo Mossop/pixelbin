@@ -39,12 +39,19 @@ export interface MediaTargetSelectProps {
 }
 
 export default forwardRef(function MediaTargetSelect(
-  props: MediaTargetSelectProps,
+  {
+    id,
+    disabled,
+    required,
+    roots,
+    value,
+    onChange,
+  }: MediaTargetSelectProps,
   ref: ReactRef<HTMLElement> | null,
 ): ReactResult {
-  const { l10n } = useLocalization();
-  const theme = useTheme();
-  const classes = useStyles();
+  let { l10n } = useLocalization();
+  let theme = useTheme();
+  let classes = useStyles();
 
   interface ItemInfo {
     item: VirtualItem;
@@ -53,7 +60,7 @@ export default forwardRef(function MediaTargetSelect(
   }
 
   let itemMap = useMemo(() => {
-    const addItem = (item: VirtualItem, depth: number): void => {
+    let addItem = (item: VirtualItem, depth: number): void => {
       let value: Album | Catalog;
       if (item instanceof VirtualAlbum) {
         value = item.album;
@@ -71,32 +78,32 @@ export default forwardRef(function MediaTargetSelect(
 
     let itemMap = new Map<string, ItemInfo>();
 
-    for (let root of props.roots) {
+    for (let root of roots) {
       addItem(root, 0);
     }
 
     return itemMap;
-  }, [props.roots]);
+  }, [roots]);
 
-  const onChange = useCallback(
+  let onSelectChange = useCallback(
     (event: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
-      if (props.onChange && typeof event.target.value == "string") {
+      if (onChange && typeof event.target.value == "string") {
         let info = itemMap.get(event.target.value);
         if (info) {
-          props.onChange(info.value);
+          onChange(info.value);
         }
       }
     },
-    [props, itemMap],
+    [onChange, itemMap],
   );
 
   return <Select
-    id={props.id}
+    id={id}
     ref={ref}
-    disabled={props.disabled}
-    required={props.required}
-    value={props.value.id}
-    onChange={onChange}
+    disabled={disabled}
+    required={required}
+    value={value.id}
+    onChange={onSelectChange}
   >
     {
       Array.from(

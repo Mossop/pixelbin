@@ -52,7 +52,7 @@ jest.mock("./Signup", (): unknown => {
 });
 
 test("no overlay", (): void => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -68,7 +68,7 @@ test("no overlay", (): void => {
 });
 
 test("login overlay", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -89,7 +89,7 @@ test("login overlay", async (): Promise<void> => {
 });
 
 test("signup overlay", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -110,7 +110,7 @@ test("signup overlay", async (): Promise<void> => {
 });
 
 test("create album overlay", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
@@ -132,7 +132,7 @@ test("create album overlay", async (): Promise<void> => {
 });
 
 test("edit album overlay", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
@@ -155,7 +155,7 @@ test("edit album overlay", async (): Promise<void> => {
 });
 
 test("delete album overlay", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
@@ -178,7 +178,7 @@ test("delete album overlay", async (): Promise<void> => {
 });
 
 test("create catalog overlay", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
@@ -199,7 +199,7 @@ test("create catalog overlay", async (): Promise<void> => {
 });
 
 test("edit catalog overlay", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,

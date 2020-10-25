@@ -44,8 +44,8 @@ const Transition = forwardRef(function Transition(
   return <Slide direction="right" ref={ref} {...props}/>;
 });
 
-function PersistentSidebar(props: ReactChildren): ReactResult {
-  const classes = useStyles();
+function PersistentSidebar({ children }: ReactChildren): ReactResult {
+  let classes = useStyles();
 
   return <Paper
     id="sidebar-persistent"
@@ -54,33 +54,41 @@ function PersistentSidebar(props: ReactChildren): ReactResult {
     variant="outlined"
     className={classes.paper}
   >
-    {props.children}
+    {children}
   </Paper>;
 }
 
-function ModalSidebar(props: OpenableSidebarProps): ReactResult {
-  const classes = useStyles();
+function ModalSidebar({
+  open,
+  onClose,
+  children,
+}: OpenableSidebarProps): ReactResult {
+  let classes = useStyles();
 
   return <Dialog
     id="sidebar-modal"
-    open={props.open}
+    open={open}
     fullScreen={true}
     TransitionComponent={Transition}
   >
     <Box className={classes.closeButton}>
-      <IconButton aria-label="close" id="sidebar-close" onClick={props.onClose}>
+      <IconButton aria-label="close" id="sidebar-close" onClick={onClose}>
         <CloseIcon/>
       </IconButton>
     </Box>
     <Box className={classes.sidebarContent}>
-      {props.children}
+      {children}
     </Box>
   </Dialog>;
 }
 
-function PopoutSidebar(props: OpenableSidebarProps): ReactResult {
-  return <Drawer open={props.open} onClose={props.onClose} anchor="left">
-    {props.children}
+function PopoutSidebar({
+  open,
+  onClose,
+  children,
+}: OpenableSidebarProps): ReactResult {
+  return <Drawer open={open} onClose={onClose} anchor="left">
+    {children}
   </Drawer>;
 }
 

@@ -20,12 +20,12 @@ export default function AlbumDeleteOverlay(props: AlbumDeleteOverlayProps): Reac
     return props.album.deref(state.serverState);
   });
 
-  const [disabled, setDisabled] = useState(false);
-  const [error, setError] = useState<AppError | null>(null);
+  let [disabled, setDisabled] = useState(false);
+  let [error, setError] = useState<AppError | null>(null);
 
-  const actions = useActions();
+  let actions = useActions();
 
-  const onAccept = useCallback(async () => {
+  let onAccept = useCallback(async () => {
     setDisabled(true);
     setError(null);
 

@@ -14,21 +14,26 @@ export type LinkProps = ReactChildren & {
   underline?: LinkTypeMap["props"]["underline"];
 };
 
-export default function Link(props: LinkProps): ReactResult {
-  const actions = useActions();
+export default function Link({
+  to,
+  color,
+  underline,
+  children,
+}: LinkProps): ReactResult {
+  let actions = useActions();
 
-  const onClick = useCallback((event: React.MouseEvent): void => {
-    actions.navigate(props.to);
+  let onClick = useCallback((event: React.MouseEvent): void => {
+    actions.navigate(to);
     event.preventDefault();
-  }, [actions, props.to]);
+  }, [actions, to]);
 
-  let url = buildURL(fromUIState(props.to));
+  let url = buildURL(fromUIState(to));
   return <MuiLink
-    underline={props.underline ?? "none"}
-    color={props.color}
+    underline={underline ?? "none"}
+    color={color}
     href={url}
     onClick={onClick}
   >
-    {props.children}
+    {children}
   </MuiLink>;
 }

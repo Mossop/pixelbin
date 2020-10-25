@@ -7,23 +7,23 @@ import { AppError } from "../utils/exception";
 import { ReactResult } from "../utils/types";
 
 export default function LoginOverlay(): ReactResult {
-  const actions = useActions();
+  let actions = useActions();
 
   let formState = useFormState({
     email: "",
     password: "",
   });
 
-  const [disabled, setDisabled] = useState(false);
-  const [error, setError] = useState<AppError | null>(null);
+  let [disabled, setDisabled] = useState(false);
+  let [error, setError] = useState<AppError | null>(null);
 
   let emailInput = useRef<HTMLInputElement>();
 
-  const onDisplay = useCallback(() => {
+  let onDisplay = useCallback(() => {
     emailInput.current?.focus();
   }, [emailInput]);
 
-  const onSubmit = useCallback(async () => {
+  let onSubmit = useCallback(async () => {
     let { email, password } = formState.value;
     if (!email) {
       return;

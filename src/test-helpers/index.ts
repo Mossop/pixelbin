@@ -61,7 +61,7 @@ const matchers = {
     floor: number,
     ceiling: number,
   ): jest.CustomMatcherResult {
-    const pass = received >= floor && received <= ceiling;
+    let pass = received >= floor && received <= ceiling;
 
     return {
       pass,
@@ -76,7 +76,7 @@ const matchers = {
     expected: DateTime | string,
   ): jest.CustomMatcherResult {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const asStr = (val: any): string => {
+    let asStr = (val: any): string => {
       if (Luxon.isDateTime(val)) {
         return val.toUTC().toISO();
       }
@@ -86,8 +86,8 @@ const matchers = {
       }).toUTC().toISO();
     };
 
-    const receivedAsString = asStr(received);
-    const expectedAsString = asStr(expected);
+    let receivedAsString = asStr(received);
+    let expectedAsString = asStr(expected);
 
     return {
       pass: receivedAsString == expectedAsString,

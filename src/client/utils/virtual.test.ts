@@ -27,7 +27,7 @@ function buildList(items: Catalog[], options?: VirtualTreeOptions): ItemInfo[] {
 }
 
 test("virtual iteration", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog1",
       name: "Catalog 1",

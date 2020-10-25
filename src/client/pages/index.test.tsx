@@ -62,7 +62,7 @@ jest.mock("./Error", (): unknown => {
 beforeEach(resetDOM);
 
 test("index page", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
@@ -77,7 +77,7 @@ test("index page", async (): Promise<void> => {
 test("user page not logged in", (): void => {
   mockConsole();
 
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -94,7 +94,7 @@ test("user page not logged in", (): void => {
 test("album page not logged in", (): void => {
   mockConsole();
 
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -114,7 +114,7 @@ test("album page not logged in", (): void => {
 test("media page not logged in", (): void => {
   mockConsole();
 
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -135,7 +135,7 @@ test("media page not logged in", (): void => {
 test("catalog page not logged in", (): void => {
   mockConsole();
 
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
@@ -153,7 +153,7 @@ test("catalog page not logged in", (): void => {
 });
 
 test("user page logged in", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.User,
@@ -169,7 +169,7 @@ test("user page logged in", async (): Promise<void> => {
 });
 
 test("album page logged in", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Album,
@@ -187,7 +187,7 @@ test("album page logged in", async (): Promise<void> => {
 });
 
 test("media page logged in", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Media,
@@ -206,7 +206,7 @@ test("media page logged in", async (): Promise<void> => {
 });
 
 test("catalog page logged in", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Catalog,
@@ -224,7 +224,7 @@ test("catalog page logged in", async (): Promise<void> => {
 });
 
 test("not found page", (): void => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.NotFound,

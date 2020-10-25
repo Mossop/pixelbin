@@ -164,7 +164,7 @@ async function storageTest(id: string): Promise<void> {
 
     let stream = await storage.get().streamFile("media", "info", "file.txt");
     let content = await new Promise((resolve: ((content: string) => void)): void => {
-      const chunks: Buffer[] = [];
+      let chunks: Buffer[] = [];
 
       stream.on("data", (chunk: Buffer): void => {
         chunks.push(chunk);

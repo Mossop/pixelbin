@@ -63,7 +63,7 @@ test("body decode", (): void => {
 });
 
 test("formdata decoding", async (): Promise<void> => {
-  const request = agent();
+  let request = agent();
 
   await request
     .post("/api/login")

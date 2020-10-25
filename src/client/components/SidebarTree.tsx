@@ -27,16 +27,16 @@ interface SidebarTreeItemProps {
 }
 
 function SidebarTreeItem({ item, depth, selectedItem }: SidebarTreeItemProps): ReactResult {
-  const { l10n } = useLocalization();
-  const classes = useStyles();
-  const theme = useTheme();
-  const actions = useActions();
+  let { l10n } = useLocalization();
+  let classes = useStyles();
+  let theme = useTheme();
+  let actions = useActions();
 
   let children = item.children;
   let icon = item.icon();
   let link = item.link;
 
-  const navigate = useCallback(() => {
+  let navigate = useCallback(() => {
     if (link) {
       actions.navigate(link);
     }
@@ -105,11 +105,11 @@ export interface SidebarTreeProps {
 export default function SidebarTree(
   { roots, selectedItem }: SidebarTreeProps,
 ): ReactResult {
-  const actions = useActions();
-  const { l10n } = useLocalization();
-  const classes = useStyles();
+  let actions = useActions();
+  let { l10n } = useLocalization();
+  let classes = useStyles();
 
-  const onCreateCatalog = useCallback(() => {
+  let onCreateCatalog = useCallback(() => {
     actions.showOverlay({
       type: OverlayType.CatalogCreate,
     });

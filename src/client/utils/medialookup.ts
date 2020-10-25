@@ -66,7 +66,7 @@ export async function lookupMedia(lookup: MediaLookup): Promise<readonly MediaSt
 }
 
 export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | null {
-  const [list, setList] = useState<readonly MediaState[] | null>(null);
+  let [list, setList] = useState<readonly MediaState[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;

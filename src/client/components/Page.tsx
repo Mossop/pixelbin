@@ -38,39 +38,44 @@ export interface PageProps {
   sidebar?: SidebarProps["type"];
 }
 
-export default function Page(props: PageProps): ReactResult {
-  const catalogs = useCatalogs().map(
+export default function Page({
+  selectedItem,
+  pageOptions,
+  sidebar,
+  children,
+}: PageProps): ReactResult {
+  let catalogs = useCatalogs().map(
     (catalog: Catalog): VirtualItem => catalog.virtual({
       ...VirtualTree.Albums,
       categories: IncludeVirtualCategories.IfNeeded,
     }),
   );
 
-  const theme = useTheme();
-  const classes = useStyles();
+  let theme = useTheme();
+  let classes = useStyles();
 
-  const forceSidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
-  let sidebarType = forceSidebarModal ? "modal" : props.sidebar ?? "persistent";
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  let forceSidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
+  let sidebarType = forceSidebarModal ? "modal" : sidebar ?? "persistent";
+  let [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const uiState = useSelector((state: StoreState): UIState => state.ui);
+  let uiState = useSelector((state: StoreState): UIState => state.ui);
 
-  const [lastUIState, setLastUIState] = useState<UIState | null>(null);
+  let [lastUIState, setLastUIState] = useState<UIState | null>(null);
 
   if (uiState != lastUIState) {
     setSidebarOpen(false);
     setLastUIState(uiState);
   }
 
-  const onMenuButtonClick = useCallback((): void => {
+  let onMenuButtonClick = useCallback((): void => {
     setSidebarOpen(true);
   }, []);
 
-  const onCloseSidebar = useCallback((): void => {
+  let onCloseSidebar = useCallback((): void => {
     setSidebarOpen(false);
   }, []);
 
-  const { loggedIn } = useSelector((state: StoreState) => ({
+  let { loggedIn } = useSelector((state: StoreState) => ({
     loggedIn: state.serverState.user,
   }));
 
@@ -78,21 +83,21 @@ export default function Page(props: PageProps): ReactResult {
     return <Box className={classes.app}>
       <Banner
         onMenuButtonClick={sidebarType != "persistent" ? onMenuButtonClick : undefined}
-        pageOptions={props.pageOptions}
+        pageOptions={pageOptions}
       />
       <Box className={classes.content}>
         <Sidebar type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
-          <SidebarTree roots={catalogs} selectedItem={props.selectedItem}/>
+          <SidebarTree roots={catalogs} selectedItem={selectedItem}/>
         </Sidebar>
-        {props.children}
+        {children}
       </Box>
     </Box>;
   }
 
   return <Box className={classes.app}>
-    <Banner pageOptions={props.pageOptions}/>
+    <Banner pageOptions={pageOptions}/>
     <Box className={classes.content}>
-      {props.children}
+      {children}
     </Box>
   </Box>;
 }

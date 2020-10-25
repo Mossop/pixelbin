@@ -13,8 +13,8 @@ export interface ErrorPageProps {
   error: Error;
 }
 
-export default function ErrorPage(props: ErrorPageProps): ReactResult {
-  const { l10n } = useLocalization();
+export default function ErrorPage({ error }: ErrorPageProps): ReactResult {
+  let { l10n } = useLocalization();
 
   let onRefresh = (event: React.MouseEvent): void => {
     event.preventDefault();
@@ -46,7 +46,7 @@ export default function ErrorPage(props: ErrorPageProps): ReactResult {
     <Content>
       <Localized id="error-title"><Typography variant="h2"/></Localized>
       <Localized id="error-content"><Typography variant="body1"/></Localized>
-      <Box m={2} component="pre">{errorString(l10n, props.error)}</Box>
+      <Box m={2} component="pre">{errorString(l10n, error)}</Box>
       <Localized
         id="error-suggestion"
         elems={

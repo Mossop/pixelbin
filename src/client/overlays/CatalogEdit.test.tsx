@@ -25,7 +25,7 @@ const mockedRequest = mockedFunction(request);
 afterEach(resetDOM);
 
 test("edit catalog", async (): Promise<void> => {
-  const store = mockStore(mockStoreState({
+  let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",

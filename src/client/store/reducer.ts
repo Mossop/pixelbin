@@ -101,7 +101,7 @@ const albumReducers = {
   },
 
   albumDeleted(state: Draft<StoreState>, user: Draft<UserState>, albumRef: Reference<Album>): void {
-    const deleteAlbum = (catalog: Draft<CatalogState>, album: AlbumState): void => {
+    let deleteAlbum = (catalog: Draft<CatalogState>, album: AlbumState): void => {
       for (let child of [...catalog.albums.values()]) {
         if (child.parent?.id == album.id) {
           deleteAlbum(catalog, child);

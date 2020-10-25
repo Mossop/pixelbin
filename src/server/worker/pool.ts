@@ -137,7 +137,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
 
     this.runningQueue = true;
 
-    const doQueue = async (): Promise<void> => {
+    let doQueue = async (): Promise<void> => {
       this.logger.trace({
         queueLength: this.queue.length,
         runningTasks: this.taskCount,
@@ -276,7 +276,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       worker: workerProcess.pid,
     }, "Created new worker.");
 
-    const markIdle = (): void => {
+    let markIdle = (): void => {
       record.idleTimeout = setTimeout((): void => {
         delete record.idleTimeout;
         if (this.workers.length > this.options.minWorkers) {
@@ -287,7 +287,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
     };
     markIdle();
 
-    const updateTaskCount = (delta: number): void => {
+    let updateTaskCount = (delta: number): void => {
       this.logger.trace({
         worker: record.worker.pid,
         hasTimeout: !!record.idleTimeout,

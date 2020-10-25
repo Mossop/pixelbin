@@ -45,61 +45,73 @@ export type FormDialogProps = FormState & {
   onEntered?: () => void;
 };
 
-export default function FormDialog(props: FormDialogProps): ReactResult {
-  const { l10n } = useLocalization();
-  const classes = useStyles();
-  const [open, setOpen] = useState(true);
+export default function FormDialog({
+  id,
+  titleId,
+  submitId,
+  cancelId,
+  error,
+  onClose,
+  onSubmit,
+  onEntered,
+  disabled,
+  canSubmit,
+  children,
+}: FormDialogProps): ReactResult {
+  let { l10n } = useLocalization();
+  let classes = useStyles();
+  let [open, setOpen] = useState(true);
 
-  let baseId = props.id ?? "form-dialog";
+  let baseId = id ?? "form-dialog";
 
-  let errorMessage = props.error
+  let errorMessage = error
     ? <Alert
       id={`${baseId}-error`}
       severity="error"
       className={classes.error}
     >
-      {errorString(l10n, props.error)}
+      {errorString(l10n, error)}
     </Alert>
     : null;
 
-  const submit = useCallback((event: React.FormEvent): void => {
+  let submit = useCallback((event: React.FormEvent): void => {
     event.preventDefault();
-    props.onSubmit();
-  }, [props]);
+    onSubmit();
+  }, [onSubmit]);
 
-  const close = useCallback(() => {
+  let close = useCallback(() => {
     setOpen(false);
-    if (props.onClose) {
-      props.onClose();
+    if (onClose) {
+      onClose();
     }
-  }, [props]);
+  }, [onClose]);
 
   return <Dialog
     open={open}
     onClose={close}
-    onEntered={props.onEntered}
+    onEntered={onEntered}
     scroll="body"
     aria-labelledby={`${baseId}-title`}
   >
-    <FormContext disabled={props.disabled} canSubmit={props.canSubmit}>
-      <form id={props.id} onSubmit={submit}>
+    <FormContext disabled={disabled} canSubmit={canSubmit}>
+      <form id={id} onSubmit={submit}>
         <DialogTitle id={`${baseId}-title`} className={classes.title}>
-          {l10n.getString(props.titleId)}
+          {l10n.getString(titleId)}
         </DialogTitle>
         <DialogContent className={classes.content}>
           {errorMessage}
-          {props.children}
+          {children}
         </DialogContent>
         <DialogActions disableSpacing={true} className={classes.actions}>
           <Button
             id={`${baseId}-cancel`}
             onClick={close}
-            labelId={props.cancelId ?? "form-cancel"}
+            labelId={cancelId ?? "form-cancel"}
           />
           <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="flex-end">
             <SubmitButton
               id={`${baseId}-submit`}
-              labelId={props.submitId ?? "form-submit"}
+              labelId={submitId ?? "form-submit"}
             />
           </Box>
         </DialogActions>

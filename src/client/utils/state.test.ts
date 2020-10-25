@@ -27,10 +27,10 @@ test("state", () => {
     },
   };
 
-  const setter = (val: State): void => {
+  let setter = (val: State): void => {
     state = val;
   };
-  const wrap = (): ObjectState<State> => wrapState(state, setter);
+  let wrap = (): ObjectState<State> => wrapState(state, setter);
 
   let wrapped = wrap();
   expect(wrap()).toBe(wrapped);

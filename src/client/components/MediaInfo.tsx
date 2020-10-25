@@ -154,24 +154,27 @@ function AlbumChip(props: { album: Reference<Album> }): ReactResult {
 
 interface PersonChipProps {
   state: MediaPersonState;
-  onHighlighRegion?: (region: ObjectModel.Location | null) => void;
+  onHighlightRegion?: (region: ObjectModel.Location | null) => void;
 }
 
-function PersonChip(props: PersonChipProps): ReactResult {
+function PersonChip({
+  state,
+  onHighlightRegion,
+}: PersonChipProps): ReactResult {
   let classes = useStyles();
-  let person = useSelector(({ serverState }: StoreState) => props.state.person.deref(serverState));
+  let person = useSelector(({ serverState }: StoreState) => state.person.deref(serverState));
 
   let onEnter = useCallback(() => {
-    if (props.onHighlighRegion) {
-      props.onHighlighRegion(props.state.location);
+    if (onHighlightRegion) {
+      onHighlightRegion(state.location);
     }
-  }, [props]);
+  }, [onHighlightRegion, state]);
 
   let onLeave = useCallback(() => {
-    if (props.onHighlighRegion) {
-      props.onHighlighRegion(null);
+    if (onHighlightRegion) {
+      onHighlightRegion(null);
     }
-  }, [props]);
+  }, [onHighlightRegion]);
 
   return <li
     key={person.id}
@@ -214,7 +217,7 @@ function Row(
   value: React.ReactNode,
   multiline: boolean = false,
 ): ReactResult {
-  const classes = useStyles();
+  let classes = useStyles();
 
   if (multiline) {
     return <React.Fragment>
@@ -235,10 +238,14 @@ interface LocalizedRowProps {
   children: React.ReactNode;
 }
 
-function LocalizedRow(props: LocalizedRowProps): ReactResult {
-  const { l10n } = useLocalization();
+function LocalizedRow({
+  label,
+  multiline,
+  children,
+}: LocalizedRowProps): ReactResult {
+  let { l10n } = useLocalization();
 
-  return Row(l10n.getString(props.label), props.children, props.multiline);
+  return Row(l10n.getString(label), children, multiline);
 }
 
 function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactResult {
@@ -256,11 +263,10 @@ export interface MediaInfoProps {
   onHighlightRegion?: (region: ObjectModel.Location | null) => void;
 }
 
-export default function MediaInfo(props: MediaInfoProps): ReactResult {
-  const classes = useStyles();
-  const media = props.media;
+export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps): ReactResult {
+  let classes = useStyles();
 
-  const format = useCallback(<T extends keyof MediaState>(
+  let format = useCallback(<T extends keyof MediaState>(
     metadata: T,
     cb: (item: NonNullable<MediaState[T]>) => React.ReactNode,
   ): ReactResult => {
@@ -277,7 +283,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     return null;
   }, [media]);
 
-  const location = useMemo(() => {
+  let location = useMemo(() => {
     let location: string[] = [];
 
     if (media.location) {
@@ -324,7 +330,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
     }
   }, [media]);
 
-  const taken = useMemo(() => {
+  let taken = useMemo(() => {
     if (media.taken === null) {
       return null;
     }
@@ -372,7 +378,7 @@ export default function MediaInfo(props: MediaInfoProps): ReactResult {
             media.people.map((state: MediaPersonState) => <PersonChip
               key={state.person.id}
               state={state}
-              onHighlighRegion={props.onHighlightRegion}
+              onHighlightRegion={onHighlightRegion}
             />)
           }
         </ul>

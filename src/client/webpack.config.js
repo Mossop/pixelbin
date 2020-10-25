@@ -42,7 +42,7 @@ function buildExternals() {
 /** @type {(mode?: "test" | "development" | "production") => Configuration} */
 module.exports = (mode = "development") => {
   /** @type {import("webpack").RuleSetUse} */
-  const loaders = [{
+  let loaders = [{
     loader: "ts-loader",
     options: {
       transpileOnly: true,

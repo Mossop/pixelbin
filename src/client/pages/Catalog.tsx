@@ -19,10 +19,10 @@ export interface CatalogPageProps {
 }
 
 export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageProps): ReactResult {
-  const { l10n } = useLocalization();
-  const actions = useActions();
+  let { l10n } = useLocalization();
+  let actions = useActions();
 
-  const onAlbumCreate = useCallback(
+  let onAlbumCreate = useCallback(
     () => actions.showOverlay({
       type: OverlayType.AlbumCreate,
       parent: props.catalog,
@@ -30,7 +30,7 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
     [props, actions],
   );
 
-  const onMediaClick = useCallback((media: MediaState): void => {
+  let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
         type: PageType.Media,
@@ -50,7 +50,7 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
 
   let media = useMediaLookup(lookup);
 
-  const onCatalogEdit = useCallback(
+  let onCatalogEdit = useCallback(
     () => actions.showOverlay({
       type: OverlayType.CatalogEdit,
       catalog: props.catalog,
@@ -58,7 +58,7 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
     [props, actions],
   );
 
-  const onCatalogSearch = useCallback(() => {
+  let onCatalogSearch = useCallback(() => {
     let query: Draft<Search.CompoundQuery> = {
       invert: false,
       type: "compound",

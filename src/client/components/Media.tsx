@@ -46,13 +46,13 @@ const usePreviewStyles = makeStyles((theme: Theme) =>
       paddingTop: theme.spacing(1),
       paddingBottom: theme.spacing(1),
     },
-    thumbnail: (props: PreviewStyleProps) => {
+    thumbnail: ({ thumbnailSize }: PreviewStyleProps) => {
       return {
         display: "block",
         objectFit: "contain",
         objectPosition: "center center",
-        width: `${props.thumbnailSize}px`,
-        height: `${props.thumbnailSize}px`,
+        width: `${thumbnailSize}px`,
+        height: `${thumbnailSize}px`,
       };
     },
   }));
@@ -63,38 +63,46 @@ export interface MediaDisplayProps {
   children?: React.ReactNode;
 }
 
-export function Photo(props: MediaDisplayProps): ReactResult {
-  const classes = useStyles();
+export function Photo({
+  media,
+  displayOverlays,
+  children,
+}: MediaDisplayProps): ReactResult {
+  let classes = useStyles();
 
   return <React.Fragment>
     <img
-      key={props.media.id}
-      src={props.media.originalUrl}
+      key={media.id}
+      src={media.originalUrl}
       className={classes.media}
     />
-    <Fade in={props.displayOverlays} timeout={500}>
+    <Fade in={displayOverlays} timeout={500}>
       <div className={classes.mediaControls}>
-        {props.children}
+        {children}
       </div>
     </Fade>
   </React.Fragment>;
 }
 
-export function Video(props: MediaDisplayProps): ReactResult {
-  const classes = useStyles();
+export function Video({
+  media,
+  displayOverlays,
+  children,
+}: MediaDisplayProps): ReactResult {
+  let classes = useStyles();
 
   return <React.Fragment>
     <video
-      key={props.media.id}
-      poster={props.media.posterUrl ?? undefined}
+      key={media.id}
+      poster={media.posterUrl ?? undefined}
       controls={false}
       className={classes.media}
     >
-      <source src={props.media.originalUrl} type={props.media.mimetype}/>
+      <source src={media.originalUrl} type={media.mimetype}/>
     </video>
-    <Fade in={props.displayOverlays} timeout={500}>
+    <Fade in={displayOverlays} timeout={500}>
       <div className={classes.mediaControls}>
-        {props.children}
+        {children}
       </div>
     </Fade>
   </React.Fragment>;
@@ -106,7 +114,7 @@ interface ThumbnailProps {
 }
 
 function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
-  const classes = usePreviewStyles({ thumbnailSize: size });
+  let classes = usePreviewStyles({ thumbnailSize: size });
 
   let ratios = [1.5, 2];
   let normal = getThumbnailUrl(media, size);
@@ -125,9 +133,9 @@ export interface PreviewProps {
 }
 
 export function Preview({ media, thumbnailSize, onClick }: PreviewProps): ReactResult {
-  const classes = usePreviewStyles({ thumbnailSize });
+  let classes = usePreviewStyles({ thumbnailSize });
 
-  const click = useCallback(() => {
+  let click = useCallback(() => {
     if (onClick && isProcessed(media)) {
       onClick(media);
     }
