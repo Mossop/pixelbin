@@ -18,6 +18,7 @@ import clsx from "clsx";
 import React, { useState, useCallback, useMemo } from "react";
 
 import {
+  allowedFields,
   isCompoundQuery,
   isRelationQuery,
   Join,
@@ -190,6 +191,11 @@ export default function CompoundQueryBox({
     onUpdateQuery(query, updatedQuery);
   }, [onUpdateQuery, query]);
 
+  let currentRelation = inRelation;
+  if (!currentRelation && isRelationQuery(query)) {
+    currentRelation = query.relation;
+  }
+
   let addField = useCallback(() => {
     let updatedQuery: Search.CompoundQuery = {
       ...query,
@@ -198,7 +204,7 @@ export default function CompoundQueryBox({
         {
           invert: false,
           type: "field",
-          field: "title",
+          field: allowedFields(currentRelation)[0],
           modifier: null,
           operator: Operator.Equal,
           value: "",
@@ -207,7 +213,7 @@ export default function CompoundQueryBox({
     };
 
     onUpdateQuery(query, updatedQuery);
-  }, [query, onUpdateQuery]);
+  }, [query, onUpdateQuery, currentRelation]);
 
   let addCompound = useCallback(() => {
     let updatedQuery: Search.CompoundQuery = {
@@ -258,11 +264,6 @@ export default function CompoundQueryBox({
 
     onUpdateQuery(query, updatedQuery);
   }, [onUpdateQuery, query]);
-
-  let currentRelation = inRelation;
-  if (!currentRelation && isRelationQuery(query)) {
-    currentRelation = query.relation;
-  }
 
   let subheaderId = useMemo(() => {
     let join = query.join == Join.And ? "and" : "or";

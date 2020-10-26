@@ -9,8 +9,8 @@ export const MediaFields = {
 };
 
 export const RelationFields = {
-  id: "string",
   name: "string",
+  id: "string",
 };
 
 export enum Modifier {

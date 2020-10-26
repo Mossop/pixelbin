@@ -124,8 +124,8 @@ type FieldTypes = {
 };
 
 export const MetadataColumns: FieldTypes = {
-  filename: "string",
   title: "string",
+  filename: "string",
   description: "string",
   category: "string",
   label: "string",
