@@ -1,7 +1,8 @@
 import React from "react";
 
-import { Api, AWSResult, Method } from "../../model";
-import { lastCallArgs } from "../../test-helpers";
+import CatalogOverlay from ".";
+import { Api, AWSResult, Method } from "../../../model";
+import { lastCallArgs } from "../../../test-helpers";
 import {
   expect,
   render,
@@ -14,10 +15,9 @@ import {
   mapOf,
   click,
   mockServerState,
-} from "../test-helpers";
-import CatalogOverlay from "./CatalogCreate";
+} from "../../test-helpers";
 
-jest.mock("../api/api");
+jest.mock("../../api/api");
 
 beforeEach(resetDOM);
 

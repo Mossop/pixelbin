@@ -13,9 +13,9 @@ import {
   render,
 } from "../test-helpers";
 import type { AlbumOverlayProps } from "./Album";
-import { AlbumDeleteOverlayProps } from "./AlbumDelete";
+import type { AlbumDeleteOverlayProps } from "./AlbumDelete";
 import type { CatalogCreateOverlayProps } from "./CatalogCreate";
-import { CatalogEditOverlayProps } from "./CatalogEdit";
+import type { CatalogEditOverlayProps } from "./CatalogEdit";
 import { OverlayType } from "./types";
 
 jest.mock("./Album", (): unknown => {

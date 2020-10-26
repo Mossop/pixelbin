@@ -1,7 +1,7 @@
 import React from "react";
 
 import { click, expectChild, render } from "../test-helpers";
-import SteppedDialog from "./SteppedDialog";
+import SteppedDialog, { Step } from "./SteppedDialog";
 
 test("basic stepped dialog", async (): Promise<void> => {
   let submit = jest.fn();
@@ -9,27 +9,25 @@ test("basic stepped dialog", async (): Promise<void> => {
   let back = jest.fn();
   let next = jest.fn();
 
-  let steps = [{
-    titleId: "step1-title",
-    content: <div id="step1"/>,
-  }, {
-    titleId: "step2-title",
-    content: <div id="step2"/>,
-  }, {
-    titleId: "step3-title",
-    content: <div id="step3"/>,
-  }];
-
   let { dialogContainer, rerender } = render(
     <SteppedDialog
-      steps={steps}
       titleId="foo"
       currentStep={0}
       onBackClick={back}
       onNextClick={next}
       onSubmit={submit}
       onClose={close}
-    />,
+    >
+      <Step titleId="step1-title">
+        <div id="step1"/>
+      </Step>
+      <Step titleId="step2-title">
+        <div id="step2"/>
+      </Step>
+      <Step titleId="step3-title">
+        <div id="step3"/>
+      </Step>
+    </SteppedDialog>,
   );
   let form = expectChild(dialogContainer, "form");
   expect(form.querySelector("#stepped-dialog-error")).toBeNull();
@@ -73,14 +71,23 @@ test("basic stepped dialog", async (): Promise<void> => {
 
   rerender(
     <SteppedDialog
-      steps={steps}
       titleId="foo"
       currentStep={1}
       onBackClick={back}
       onNextClick={next}
       onSubmit={submit}
       onClose={close}
-    />,
+    >
+      <Step titleId="step1-title">
+        <div id="step1"/>
+      </Step>
+      <Step titleId="step2-title">
+        <div id="step2"/>
+      </Step>
+      <Step titleId="step3-title">
+        <div id="step3"/>
+      </Step>
+    </SteppedDialog>,
   );
 
   styles = form.ownerDocument.defaultView?.getComputedStyle(step1Content.parentElement!);
@@ -101,7 +108,6 @@ test("basic stepped dialog", async (): Promise<void> => {
 
   rerender(
     <SteppedDialog
-      steps={steps}
       titleId="foo"
       canAdvance={false}
       currentStep={0}
@@ -109,7 +115,17 @@ test("basic stepped dialog", async (): Promise<void> => {
       onNextClick={next}
       onSubmit={submit}
       onClose={close}
-    />,
+    >
+      <Step titleId="step1-title">
+        <div id="step1"/>
+      </Step>
+      <Step titleId="step2-title">
+        <div id="step2"/>
+      </Step>
+      <Step titleId="step3-title">
+        <div id="step3"/>
+      </Step>
+    </SteppedDialog>,
   );
 
   styles = form.ownerDocument.defaultView?.getComputedStyle(step1Content.parentElement!);
@@ -125,7 +141,6 @@ test("basic stepped dialog", async (): Promise<void> => {
 
   rerender(
     <SteppedDialog
-      steps={steps}
       titleId="foo"
       canAdvance={false}
       currentStep={2}
@@ -133,7 +148,17 @@ test("basic stepped dialog", async (): Promise<void> => {
       onNextClick={next}
       onSubmit={submit}
       onClose={close}
-    />,
+    >
+      <Step titleId="step1-title">
+        <div id="step1"/>
+      </Step>
+      <Step titleId="step2-title">
+        <div id="step2"/>
+      </Step>
+      <Step titleId="step3-title">
+        <div id="step3"/>
+      </Step>
+    </SteppedDialog>,
   );
 
   styles = form.ownerDocument.defaultView?.getComputedStyle(step1Content.parentElement!);
@@ -150,7 +175,6 @@ test("basic stepped dialog", async (): Promise<void> => {
 
   rerender(
     <SteppedDialog
-      steps={steps}
       titleId="foo"
       canAdvance={true}
       currentStep={2}
@@ -158,7 +182,17 @@ test("basic stepped dialog", async (): Promise<void> => {
       onNextClick={next}
       onSubmit={submit}
       onClose={close}
-    />,
+    >
+      <Step titleId="step1-title">
+        <div id="step1"/>
+      </Step>
+      <Step titleId="step2-title">
+        <div id="step2"/>
+      </Step>
+      <Step titleId="step3-title">
+        <div id="step3"/>
+      </Step>
+    </SteppedDialog>,
   );
 
   expect(submitButton.disabled).toBeFalsy();

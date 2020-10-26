@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { document } from "../environment";
 
-type FormHook<T> = [T, <K extends keyof T>(key: K, value: T[K]) => void];
+export type FormStateSetter<T> = <K extends keyof T>(key: K, value: T[K]) => void;
+type FormHook<T> = [T, FormStateSetter<T>];
 
 export function useFormState<T>(initial: T): FormHook<T> {
   let [currentState, stateSetter] = useState(initial);
