@@ -1,7 +1,8 @@
 import { Method } from "../../model";
 import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
-import { personIntoState, PersonState } from "./types";
+import type { PersonState } from "./types";
+import { personIntoState } from "./types";
 
 export async function createPerson(
   catalog: Reference<Catalog>,

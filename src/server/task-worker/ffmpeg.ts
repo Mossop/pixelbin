@@ -1,6 +1,7 @@
 import path from "path";
 
-import execa, { ExecaError } from "execa";
+import type { ExecaError } from "execa";
+import execa from "execa";
 import ffprobe from "ffprobe-client";
 import { dir as tmpdir } from "tmp-promise";
 import { JsonDecoder } from "ts.data.json";

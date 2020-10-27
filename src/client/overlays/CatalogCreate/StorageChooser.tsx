@@ -2,11 +2,12 @@ import Box from "@material-ui/core/Box";
 import React from "react";
 
 import type { CatalogCreateState } from ".";
-import { StorageState } from "../../api/types";
+import type { StorageState } from "../../api/types";
 import { SelectField, Option, TextField, RadioGroup, Radio } from "../../components/Forms";
-import { ReadonlyMapOf } from "../../utils/maps";
-import { nulledString, ObjectState } from "../../utils/state";
-import { ReactResult } from "../../utils/types";
+import type { ReadonlyMapOf } from "../../utils/maps";
+import type { ObjectState } from "../../utils/state";
+import { nulledString } from "../../utils/state";
+import type { ReactResult } from "../../utils/types";
 
 export interface StorageChooserProps {
   visible: boolean;

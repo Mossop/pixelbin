@@ -3,12 +3,13 @@ import net from "net";
 import path from "path";
 
 import { getLogger, listen, bound } from "../../utils";
-import { WebserverConfig, ParentProcessInterface } from "../webserver/interfaces";
-import { WorkerPool, AbstractChildProcess } from "../worker";
+import type { WebserverConfig, ParentProcessInterface } from "../webserver/interfaces";
+import type { AbstractChildProcess } from "../worker";
+import { WorkerPool } from "../worker";
 import { quit } from "./events";
 import { Service } from "./service";
 import Services from "./services";
-import { TaskManager } from "./tasks";
+import type { TaskManager } from "./tasks";
 
 export type WebConfig = WebserverConfig & {
   webserverPackage: string;

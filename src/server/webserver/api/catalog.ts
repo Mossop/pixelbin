@@ -1,11 +1,12 @@
 import AWS from "aws-sdk";
 import fetch from "node-fetch";
 
-import { Api, Create, ObjectModel, Patch, ResponseFor, AWSResult } from "../../../model";
+import type { Api, Create, ObjectModel, Patch, ResponseFor } from "../../../model";
+import { AWSResult } from "../../../model";
 import { isoDateTime, now, s3Config, s3Params, s3PublicUrl } from "../../../utils";
-import { UserScopedConnection } from "../../database";
+import type { UserScopedConnection } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
-import { AppContext } from "../context";
+import type { AppContext } from "../context";
 import { buildResponseMedia } from "./media";
 
 export const testStorage = ensureAuthenticated(

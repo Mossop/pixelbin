@@ -1,9 +1,9 @@
-import net from "net";
+import type net from "net";
 
-import { LogConfig } from "../../utils";
-import { CacheConfig } from "../cache";
-import { DatabaseConfig } from "../database";
-import { StorageConfig } from "../storage";
+import type { LogConfig } from "../../utils";
+import type { CacheConfig } from "../cache";
+import type { DatabaseConfig } from "../database";
+import type { StorageConfig } from "../storage";
 
 export interface WebserverConfig {
   htmlTemplate: string;

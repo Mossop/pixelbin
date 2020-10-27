@@ -1,20 +1,24 @@
-import { Api, ResponseFor } from "../../model";
-import { ErrorData } from "../../model/api";
+/* eslint-disable @typescript-eslint/consistent-type-imports */
+import type { Api, ResponseFor } from "../../model";
+import type { ErrorData } from "../../model/api";
 import { mockedFunction } from "../../test-helpers";
-import { isDateTime, Obj } from "../../utils";
-import { Tag, Reference, Album } from "../api/highlevel";
-import {
+import type { Obj } from "../../utils";
+import { isDateTime } from "../../utils";
+import type { Tag, Reference, Album } from "../api/highlevel";
+import type {
   CatalogState,
   AlbumState,
   TagState,
   PersonState,
   ServerState,
   MediaState,
-  isProcessed,
   MediaPersonState,
   ProcessedMediaState,
   UnprocessedMediaState,
   SavedSearchState,
+} from "../api/types";
+import {
+  isProcessed,
 } from "../api/types";
 import fetch from "../environment/fetch";
 

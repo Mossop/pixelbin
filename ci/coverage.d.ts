@@ -1,4 +1,4 @@
-import { ReportOptions } from "istanbul-reports";
+import type { ReportOptions } from "istanbul-reports";
 
 export function mergeCoverage(files: string[], target: string): Promise<void>;
 export function reportCoverage<T extends keyof ReportOptions>(

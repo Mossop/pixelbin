@@ -1,7 +1,8 @@
 import { Method } from "../../model";
 import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
-import { tagIntoState, TagState } from "./types";
+import type { TagState } from "./types";
+import { tagIntoState } from "./types";
 
 export async function findTag(
   catalog: Reference<Catalog>,

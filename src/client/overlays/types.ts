@@ -1,5 +1,5 @@
 import type { AlbumCreateOverlayProps, AlbumEditOverlayProps } from "./Album";
-import { AlbumDeleteOverlayProps } from "./AlbumDelete";
+import type { AlbumDeleteOverlayProps } from "./AlbumDelete";
 import type { CatalogEditOverlayProps } from "./CatalogEdit";
 import type { SearchOverlayProps } from "./Search";
 

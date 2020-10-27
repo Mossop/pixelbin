@@ -1,6 +1,6 @@
-import { LogConfig } from "../../utils";
-import { DatabaseConfig } from "../database";
-import { StorageConfig } from "../storage";
+import type { LogConfig } from "../../utils";
+import type { DatabaseConfig } from "../database";
+import type { StorageConfig } from "../storage";
 
 export interface TaskWorkerConfig {
   database: DatabaseConfig;

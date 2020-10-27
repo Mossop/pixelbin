@@ -1,8 +1,8 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 import { JsonDecoder } from "ts.data.json";
 
+import type { Search } from "../model";
 import {
-  Search,
   Modifier,
   Operator,
   ModifierResult,

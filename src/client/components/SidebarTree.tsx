@@ -3,14 +3,15 @@ import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
-import { createStyles, makeStyles, Theme, useTheme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles, useTheme } from "@material-ui/core/styles";
 import AddIcon from "@material-ui/icons/Add";
 import React, { useCallback } from "react";
 
 import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
-import { ReactResult } from "../utils/types";
-import { VirtualItem } from "../utils/virtual";
+import type { ReactResult } from "../utils/types";
+import type { VirtualItem } from "../utils/virtual";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

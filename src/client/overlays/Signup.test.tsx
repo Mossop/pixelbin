@@ -1,7 +1,8 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
-import { Api, Method, ErrorCode } from "../../model";
+import type { Api } from "../../model";
+import { Method, ErrorCode } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
 import { parseDateTime } from "../../utils";
 import { request } from "../api/api";

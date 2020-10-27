@@ -1,4 +1,5 @@
-import { getLogger, Logger } from "../../utils";
+import type { Logger } from "../../utils";
+import { getLogger } from "../../utils";
 
 const logger = getLogger("task-worker/task");
 

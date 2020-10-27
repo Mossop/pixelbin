@@ -1,9 +1,12 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 
-import { Api, ObjectModel } from "../../model";
-import { isoDateTime, Overwrite } from "../../utils";
-import { intoMap, ReadonlyMapOf } from "../utils/maps";
-import { Album, Catalog, Person, Tag, Media, Reference } from "./highlevel";
+import type { Api, ObjectModel } from "../../model";
+import type { Overwrite } from "../../utils";
+import { isoDateTime } from "../../utils";
+import type { ReadonlyMapOf } from "../utils/maps";
+import { intoMap } from "../utils/maps";
+import type { Media, Reference } from "./highlevel";
+import { Album, Catalog, Person, Tag } from "./highlevel";
 
 type HighLevelForState<State> =
   State extends TagState

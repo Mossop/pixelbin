@@ -1,4 +1,4 @@
-import { ObjectModel } from "../../../model";
+import type { ObjectModel } from "../../../model";
 
 export interface SharedCatalog {
   user: string;

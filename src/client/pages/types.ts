@@ -3,7 +3,7 @@ import type { HistoryState } from "../utils/history";
 import type { AlbumPageProps } from "./Album";
 import type { CatalogPageProps } from "./Catalog";
 import type { MediaPageProps } from "./Media";
-import { SearchPageProps } from "./Search";
+import type { SearchPageProps } from "./Search";
 
 export enum PageType {
   Root = "root",

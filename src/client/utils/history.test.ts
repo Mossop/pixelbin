@@ -2,13 +2,13 @@ import { mockedFunction } from "../../test-helpers";
 import window from "../environment/window";
 import { jsdom, expect } from "../test-helpers";
 import { ErrorCode } from "./exception";
+import type { HistoryState } from "./history";
 import {
   getState,
   pushState,
   replaceState,
   addListener,
   removeListener,
-  HistoryState,
   buildState,
 } from "./history";
 

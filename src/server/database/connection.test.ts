@@ -1,5 +1,5 @@
 import { now } from "../../utils";
-import { DatabaseConnection } from "./connection";
+import type { DatabaseConnection } from "./connection";
 import { from, insert, drop, into } from "./queries";
 import { connection, buildTestDB } from "./test-helpers";
 import { Table } from "./types";

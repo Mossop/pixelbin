@@ -1,22 +1,22 @@
 import { FluentBundle, FluentResource } from "@fluent/bundle";
-import { Message } from "@fluent/bundle/esm/ast";
+import type { Message } from "@fluent/bundle/esm/ast";
 import { ReactLocalization, LocalizationProvider } from "@fluent/react";
 import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
+import type { RenderResult } from "@testing-library/react";
 import {
-  RenderResult,
   render as testRender,
   fireEvent,
   cleanup,
   act,
 } from "@testing-library/react";
 import { match as matchMediaQuery, MediaValues } from "css-mediaquery";
-import { JSDOM } from "jsdom";
+import type { JSDOM } from "jsdom";
 import React, { Suspense } from "react";
 import { Provider } from "react-redux";
 
-import { StoreType } from "../store/types";
-import { ReactChildren, ReactResult } from "../utils/types";
-import { MockStore } from "./store";
+import type { StoreType } from "../store/types";
+import type { ReactChildren, ReactResult } from "../utils/types";
+import type { MockStore } from "./store";
 
 // @ts-ignore
 const dom: JSDOM = jsdom;

@@ -1,7 +1,9 @@
-import { Theme, makeStyles, createStyles } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { makeStyles, createStyles } from "@material-ui/core/styles";
 import React, { createContext, useContext, useState } from "react";
 
-import { ObjectState, wrapState } from "../../utils/state";
+import type { ObjectState } from "../../utils/state";
+import { wrapState } from "../../utils/state";
 import type { ReactChildren, ReactResult } from "../../utils/types";
 
 export const useFormStyles = makeStyles((theme: Theme) => createStyles({

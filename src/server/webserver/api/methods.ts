@@ -1,6 +1,7 @@
-import { Api, Method, ErrorCode, HttpMethods } from "../../../model";
-import { Obj } from "../../../utils";
-import { AppContext } from "../context";
+import type { Api } from "../../../model";
+import { Method, ErrorCode, HttpMethods } from "../../../model";
+import type { Obj } from "../../../utils";
+import type { AppContext } from "../context";
 import { ApiError } from "../error";
 import {
   testStorage,
@@ -21,7 +22,7 @@ import {
   deletePeople,
 } from "./catalog";
 import * as Decoders from "./decoders";
-import { DeBlobbed } from "./decoders";
+import type { DeBlobbed } from "./decoders";
 import {
   getMedia,
   createMedia,

@@ -1,9 +1,10 @@
-import { SendHandle } from "child_process";
+import type { SendHandle } from "child_process";
 import net from "net";
 
 import { JsonDecoder } from "ts.data.json";
 
-import { defer, Deferred, getLogger, Logger, MakeRequired, oneOf, TypedEmitter } from "../../utils";
+import type { Deferred, Logger, MakeRequired } from "../../utils";
+import { defer, getLogger, oneOf, TypedEmitter } from "../../utils";
 
 const logger = getLogger("channel");
 

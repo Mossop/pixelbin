@@ -1,8 +1,10 @@
 import { promises as fs } from "fs";
 
-import { Cache, RefCounted } from "../../utils";
-import { DatabaseConnection } from "../database";
-import { Storage, StoredFile } from "./storage";
+import type { RefCounted } from "../../utils";
+import { Cache } from "../../utils";
+import type { DatabaseConnection } from "../database";
+import type { StoredFile } from "./storage";
+import { Storage } from "./storage";
 
 export interface StorageConfig {
   tempDirectory: string;

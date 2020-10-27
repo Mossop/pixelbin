@@ -1,8 +1,8 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 import React from "react";
 
 import { PageType } from "../pages/types";
-import { UIState } from "../store/types";
+import type { UIState } from "../store/types";
 import {
   expect,
   render,

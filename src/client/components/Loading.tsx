@@ -1,4 +1,5 @@
-import Box, { BoxProps } from "@material-ui/core/Box";
+import type { BoxProps } from "@material-ui/core/Box";
+import Box from "@material-ui/core/Box";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import clsx from "clsx";
 import React from "react";

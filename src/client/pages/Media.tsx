@@ -2,11 +2,11 @@ import Box from "@material-ui/core/Box";
 import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
 import Paper from "@material-ui/core/Paper";
+import type { Theme } from "@material-ui/core/styles";
 import {
   createMuiTheme,
   createStyles,
   makeStyles,
-  Theme,
   ThemeProvider,
 } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
@@ -19,8 +19,9 @@ import NavigateNextIcon from "@material-ui/icons/NavigateNext";
 import alpha from "color-alpha";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
-import { ObjectModel } from "../../model";
-import { isProcessed, MediaState } from "../api/types";
+import type { ObjectModel } from "../../model";
+import type { MediaState } from "../api/types";
+import { isProcessed } from "../api/types";
 import FixedAspect from "../components/FixedAspect";
 import Loading from "../components/Loading";
 import { Photo, Video } from "../components/Media";
@@ -28,13 +29,15 @@ import MediaInfo from "../components/MediaInfo";
 import Page from "../components/Page";
 import { document } from "../environment";
 import { useActions } from "../store/actions";
-import { UIState } from "../store/types";
+import type { UIState } from "../store/types";
 import Delayed from "../utils/delayed";
 import { useFullscreen } from "../utils/hooks";
-import { MediaLookup, MediaLookupType, useMediaLookup } from "../utils/medialookup";
+import type { MediaLookup } from "../utils/medialookup";
+import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
 import { mediaTitle } from "../utils/metadata";
-import { ReactResult } from "../utils/types";
-import { AuthenticatedPageProps, PageType } from "./types";
+import type { ReactResult } from "../utils/types";
+import type { AuthenticatedPageProps } from "./types";
+import { PageType } from "./types";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

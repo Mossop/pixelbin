@@ -1,10 +1,11 @@
-import Knex from "knex";
+import type Knex from "knex";
 
-import { UserScopedConnection } from "./connection";
+import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
 import { drop, from, insert, update, withChildren } from "./queries";
-import { Table, Tables, ref, nameConstraint, intoAPITypes, intoDBTypes } from "./types";
+import type { Tables } from "./types";
+import { Table, ref, nameConstraint, intoAPITypes, intoDBTypes } from "./types";
 import { ensureUserTransaction } from "./utils";
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {

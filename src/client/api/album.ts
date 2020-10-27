@@ -1,9 +1,11 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 
-import { Api, Method, RelationType } from "../../model";
+import type { Api } from "../../model";
+import { Method, RelationType } from "../../model";
 import { request } from "./api";
-import { Album, Reference, Media } from "./highlevel";
-import { AlbumState, Create, albumIntoState, Patch, mediaIntoState, MediaState } from "./types";
+import type { Album, Reference, Media } from "./highlevel";
+import type { AlbumState, Create, Patch, MediaState } from "./types";
+import { albumIntoState, mediaIntoState } from "./types";
 
 export function createAlbum(album: Create<AlbumState>): Promise<AlbumState> {
   return request(Method.AlbumCreate, {

@@ -4,12 +4,13 @@ import Drawer from "@material-ui/core/Drawer";
 import IconButton from "@material-ui/core/IconButton";
 import Paper from "@material-ui/core/Paper";
 import Slide from "@material-ui/core/Slide";
-import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
-import { TransitionProps } from "@material-ui/core/transitions";
+import type { Theme } from "@material-ui/core/styles";
+import { makeStyles, createStyles } from "@material-ui/core/styles";
+import type { TransitionProps } from "@material-ui/core/transitions";
 import CloseIcon from "@material-ui/icons/Close";
 import React, { forwardRef } from "react";
 
-import { ReactChildren, ReactResult } from "../utils/types";
+import type { ReactChildren, ReactResult } from "../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

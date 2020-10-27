@@ -1,4 +1,4 @@
-import { Obj } from "../../utils";
+import type { Obj } from "../../utils";
 
 type Comparator<A> = (a: A, b: A) => number;
 

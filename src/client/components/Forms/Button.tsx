@@ -2,7 +2,7 @@ import { useLocalization } from "@fluent/react";
 import MuiButton from "@material-ui/core/Button";
 import React, { forwardRef } from "react";
 
-import { ReactRef, ReactResult } from "../../utils/types";
+import type { ReactRef, ReactResult } from "../../utils/types";
 import { useFormContext } from "./shared";
 
 export interface SubmitButtonProps {

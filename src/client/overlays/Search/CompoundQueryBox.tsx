@@ -2,7 +2,8 @@ import { Localized, useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import IconButton from "@material-ui/core/IconButton";
 import Link from "@material-ui/core/Link";
-import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
 import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
@@ -17,20 +18,22 @@ import SpeedDialIcon from "@material-ui/lab/SpeedDialIcon";
 import clsx from "clsx";
 import React, { useState, useCallback, useMemo } from "react";
 
+import type {
+  Query,
+  Search,
+} from "../../../model";
 import {
   allowedFields,
   isCompoundQuery,
   isRelationQuery,
   Join,
   Operator,
-  Query,
   RelationType,
-  Search,
 } from "../../../model";
-import { Catalog, Reference } from "../../api/highlevel";
+import type { Catalog, Reference } from "../../api/highlevel";
 import { useSelector } from "../../store";
-import { StoreState } from "../../store/types";
-import { ReactResult } from "../../utils/types";
+import type { StoreState } from "../../store/types";
+import type { ReactResult } from "../../utils/types";
 import FieldQueryBox from "./FieldQueryBox";
 
 const QueryKeys = new WeakMap<Search.Query, number>();

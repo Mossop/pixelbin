@@ -1,8 +1,9 @@
-import MuiAppBar, { AppBarProps } from "@material-ui/core/AppBar";
+import type { AppBarProps } from "@material-ui/core/AppBar";
+import MuiAppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import React from "react";
 
-import { ReactResult } from "../utils/types";
+import type { ReactResult } from "../utils/types";
 
 export default function AppBar(props: AppBarProps): ReactResult {
   let { children, ...forwarded } = props;

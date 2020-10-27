@@ -1,13 +1,14 @@
-import { Deed } from "deeds/immer";
-import { Draft, enableMapSet } from "immer";
+import type { Deed } from "deeds/immer";
+import type { Draft } from "immer";
+import { enableMapSet } from "immer";
 
-import { ServerState } from "../api/types";
+import type { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, mockServerState, expect } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
-import { UIState } from "./types";
+import type { UIState } from "./types";
 
 beforeAll(() => {
   enableMapSet();

@@ -1,9 +1,9 @@
 import React, { lazy } from "react";
 
 import { useSelector } from "../store";
-import { StoreState } from "../store/types";
+import type { StoreState } from "../store/types";
 import { ErrorCode, InternalError } from "../utils/exception";
-import { ReactResult } from "../utils/types";
+import type { ReactResult } from "../utils/types";
 import ErrorPage from "./Error";
 import NotFound from "./NotFound";
 import Root from "./Root";

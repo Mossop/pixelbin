@@ -2,21 +2,23 @@ import fss, { promises as fs } from "fs";
 
 import sharp from "sharp";
 
-import {
-  AlternateFileType,
+import type {
   Api,
   ResponseFor,
+} from "../../../model";
+import {
+  AlternateFileType,
   ErrorCode,
   RelationType,
   emptyMetadata,
 } from "../../../model";
 import { chooseSize, isoDateTime } from "../../../utils";
-import { UserScopedConnection, Media, ProcessedMedia } from "../../database";
+import type { UserScopedConnection, Media, ProcessedMedia } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
-import { AppContext } from "../context";
+import type { AppContext } from "../context";
 import { ApiError } from "../error";
 import { APP_PATHS } from "../paths";
-import { DeBlobbed } from "./decoders";
+import type { DeBlobbed } from "./decoders";
 
 function isProcessedMedia(media: Media): media is ProcessedMedia {
   return "uploaded" in media && !!media.uploaded;
@@ -61,12 +63,13 @@ function buildMaybeResponseMedia(media: Media | null): ResponseFor<Api.Media> | 
   return buildResponseMedia(media);
 }
 
+type MediaResponse = ResponseFor<Api.Media> | null;
 export const getMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: Api.MediaGetRequest,
-  ): Promise<(ResponseFor<Api.Media> | null)[]> => {
+  ): Promise<MediaResponse[]> => {
     let ids = data.id.split(",");
     let media = await userDb.getMedia(ids);
     return media.map(buildMaybeResponseMedia);

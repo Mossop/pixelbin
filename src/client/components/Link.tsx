@@ -1,12 +1,13 @@
-import MuiLink, { LinkTypeMap } from "@material-ui/core/Link";
-import { Draft } from "immer";
+import type { LinkTypeMap } from "@material-ui/core/Link";
+import MuiLink from "@material-ui/core/Link";
+import type { Draft } from "immer";
 import React, { useCallback } from "react";
 
 import { useActions } from "../store/actions";
 import type { UIState } from "../store/types";
 import { buildURL } from "../utils/history";
 import { fromUIState } from "../utils/navigation";
-import { ReactChildren, ReactResult } from "../utils/types";
+import type { ReactChildren, ReactResult } from "../utils/types";
 
 export type LinkProps = ReactChildren & {
   to: Draft<UIState>;

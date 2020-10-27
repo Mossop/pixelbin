@@ -1,6 +1,6 @@
 import { ErrorCode } from "../../model";
-import { UserScopedConnection } from "../database";
-import { AppContext, DescriptorsFor } from "./context";
+import type { UserScopedConnection } from "../database";
+import type { AppContext, DescriptorsFor } from "./context";
 import { ApiError } from "./error";
 
 export interface AuthContext {

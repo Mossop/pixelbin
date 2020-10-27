@@ -3,13 +3,17 @@ import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
 import React, { useCallback, useState } from "react";
 
-import { Catalog, useCatalogs } from "../api/highlevel";
+import type { Catalog } from "../api/highlevel";
+import { useCatalogs } from "../api/highlevel";
 import { useSelector } from "../store";
-import { StoreState, UIState } from "../store/types";
-import { ReactResult } from "../utils/types";
-import { IncludeVirtualCategories, VirtualItem, VirtualTree } from "../utils/virtual";
-import Banner, { PageOption } from "./Banner";
-import Sidebar, { SidebarProps } from "./Sidebar";
+import type { StoreState, UIState } from "../store/types";
+import type { ReactResult } from "../utils/types";
+import type { VirtualItem } from "../utils/virtual";
+import { IncludeVirtualCategories, VirtualTree } from "../utils/virtual";
+import type { PageOption } from "./Banner";
+import Banner from "./Banner";
+import type { SidebarProps } from "./Sidebar";
+import Sidebar from "./Sidebar";
 import SidebarTree from "./SidebarTree";
 
 const useStyles = makeStyles(() =>

@@ -1,10 +1,12 @@
 import { AlternateFileType, emptyMetadata, RelationType } from "../../model";
 import { expect, mockDateTime } from "../../test-helpers";
-import { DateTime, now, parseDateTime } from "../../utils";
-import { DatabaseConnection } from "./connection";
+import type { DateTime } from "../../utils";
+import { now, parseDateTime } from "../../utils";
+import type { DatabaseConnection } from "./connection";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
-import { Table, Tables } from "./types";
-import { OriginalInfo } from "./unsafe";
+import type { Tables } from "./types";
+import { Table } from "./types";
+import type { OriginalInfo } from "./unsafe";
 
 jest.mock("../../utils/datetime");
 

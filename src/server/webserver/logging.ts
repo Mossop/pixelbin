@@ -1,5 +1,6 @@
-import { getLogger, Logger } from "../../utils";
-import { AppContext, DescriptorsFor } from "./context";
+import type { Logger } from "../../utils";
+import { getLogger } from "../../utils";
+import type { AppContext, DescriptorsFor } from "./context";
 
 export interface LoggingContext {
   readonly logger: Logger;

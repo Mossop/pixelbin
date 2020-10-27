@@ -1,9 +1,10 @@
-import Knex, { Raw, Ref } from "knex";
+import type { default as Knex, Raw, Ref } from "knex";
 import { FixedOffsetZone } from "luxon";
 
-import { Table } from ".";
-import { ObjectModel } from "../../../model";
-import { AllNull, Obj, isDateTime, isoDateTime, Nullable } from "../../../utils";
+import type { Table } from ".";
+import type { ObjectModel } from "../../../model";
+import type { AllNull, Obj, Nullable } from "../../../utils";
+import { isDateTime, isoDateTime } from "../../../utils";
 
 export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
 

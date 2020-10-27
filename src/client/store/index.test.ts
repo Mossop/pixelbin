@@ -1,5 +1,5 @@
 import { buildStore } from ".";
-import { Api, ResponseFor } from "../../model";
+import type { Api, ResponseFor } from "../../model";
 import { decode } from "../../utils";
 import { StateDecoder } from "../api/decoders";
 import { serverStateIntoState } from "../api/types";

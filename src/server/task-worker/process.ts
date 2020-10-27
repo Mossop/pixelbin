@@ -6,10 +6,10 @@ import sharp from "sharp";
 import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
-import { Logger, RefCounted } from "../../utils";
-import { DatabaseConnection } from "../database";
-import { OriginalInfo } from "../database/unsafe";
-import { Storage } from "../storage";
+import type { Logger, RefCounted } from "../../utils";
+import type { DatabaseConnection } from "../database";
+import type { OriginalInfo } from "../database/unsafe";
+import type { Storage } from "../storage";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
 import { parseFile, parseMetadata, getOriginal } from "./metadata";
 import Services from "./services";

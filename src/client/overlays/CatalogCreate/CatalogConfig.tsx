@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 
 import { TextField } from "../../components/Forms";
-import { FieldState } from "../../utils/state";
-import { ReactResult } from "../../utils/types";
+import type { FieldState } from "../../utils/state";
+import type { ReactResult } from "../../utils/types";
 
 export interface CatalogConfigProps {
   visible: boolean;

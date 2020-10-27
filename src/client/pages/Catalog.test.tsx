@@ -1,6 +1,7 @@
 import React from "react";
 
-import { Api, emptyMetadata, Method } from "../../model";
+import type { Api } from "../../model";
+import { emptyMetadata, Method } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils";
 import { Catalog } from "../api/highlevel";

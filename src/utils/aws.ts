@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type AWS from "aws-sdk";
 
-import { ObjectModel } from "../model";
+import type { ObjectModel } from "../model";
 
 type BaseConfig = Pick<
   ObjectModel.Storage,

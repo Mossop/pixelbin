@@ -1,6 +1,6 @@
-import { ObjectModel } from "../../../model";
-import { Nullable } from "../../../utils";
-import { AllOrNulls } from "./meta";
+import type { ObjectModel } from "../../../model";
+import type { Nullable } from "../../../utils";
+import type { AllOrNulls } from "./meta";
 
 export type User = ObjectModel.User & { password: string };
 

@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports */
 import { Operator } from "../../model";
 import { defer } from "../../utils";
-import { DatabaseConfig, DatabaseConnection } from "./connection";
+import type { DatabaseConfig } from "./connection";
+import { DatabaseConnection } from "./connection";
 import { insert } from "./queries";
-import { Table, TableRecord } from "./types";
+import type { TableRecord } from "./types";
+import { Table } from "./types";
 
 const {
   parseDateTime,

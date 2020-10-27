@@ -1,7 +1,8 @@
-import Knex from "knex";
+import type Knex from "knex";
 
-import { MetadataColumns, ObjectModel } from "../../../model";
-import { Obj } from "../../../utils";
+import type { ObjectModel } from "../../../model";
+import { MetadataColumns } from "../../../model";
+import type { Obj } from "../../../utils";
 import * as Joins from "./joins";
 import * as Tables from "./tables";
 

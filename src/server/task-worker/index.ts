@@ -6,7 +6,7 @@ import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
 import { ParentProcess } from "../worker";
 import events from "./events";
-import { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
+import type { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
 import { handleUploadedFile, purgeDeletedMedia } from "./process";
 import { provideService } from "./services";
 

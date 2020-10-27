@@ -1,4 +1,5 @@
-import React, { ErrorInfo, PureComponent, Suspense } from "react";
+import type { ErrorInfo } from "react";
+import React, { PureComponent, Suspense } from "react";
 
 import Overlay from "../overlays";
 import Page from "../pages";

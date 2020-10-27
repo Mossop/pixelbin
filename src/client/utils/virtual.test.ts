@@ -1,9 +1,12 @@
-import { Catalog, catalogs } from "../api/highlevel";
+import type { Catalog } from "../api/highlevel";
+import { catalogs } from "../api/highlevel";
 import { mockServerState, mockStore, mockStoreState } from "../test-helpers/store";
-import {
+import type {
   VirtualItem,
-  VirtualTree,
   VirtualTreeOptions,
+} from "./virtual";
+import {
+  VirtualTree,
   IncludeVirtualCategories,
   filtered,
 } from "./virtual";

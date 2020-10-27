@@ -1,6 +1,7 @@
 import { expect, mockDateTime } from "../../test-helpers";
 import { buildTestDB, insertTestData, connection, testData } from "./test-helpers";
-import { Table, Tables } from "./types";
+import type { Tables } from "./types";
+import { Table } from "./types";
 
 jest.mock("../../utils/datetime");
 

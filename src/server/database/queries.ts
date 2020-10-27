@@ -1,13 +1,15 @@
-import Knex from "knex";
+import type Knex from "knex";
 
-import {
+import type {
   Table,
   TableRecord,
-  ref,
   WithRefs,
+  QueryBuilder,
+} from "./types";
+import {
+  ref,
   intoDBTypes,
   bindingParam,
-  QueryBuilder,
 } from "./types";
 
 export function drop<T extends Table>(

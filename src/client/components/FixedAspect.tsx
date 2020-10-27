@@ -2,7 +2,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
 import React from "react";
 
-import { ReactChildren, ReactResult } from "../utils/types";
+import type { ReactChildren, ReactResult } from "../utils/types";
 
 const useStyles = makeStyles(() =>
   createStyles({

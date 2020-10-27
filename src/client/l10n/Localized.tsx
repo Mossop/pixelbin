@@ -1,7 +1,8 @@
 import { Localized as FluentLocalized } from "@fluent/react";
-import React, { PureComponent, ReactNode } from "react";
+import type { ReactNode } from "react";
+import React, { PureComponent } from "react";
 
-import { L10nProps } from ".";
+import type { L10nProps } from ".";
 
 export class Localized extends PureComponent<L10nProps> {
   public render(): ReactNode {

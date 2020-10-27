@@ -5,7 +5,7 @@ import { createStore } from "redux";
 import { PageType } from "../pages/types";
 import { provideService } from "../services";
 import reducer from "./reducer";
-import { StoreState, StoreType } from "./types";
+import type { StoreState, StoreType } from "./types";
 
 export function buildStore(): void {
   enableMapSet();

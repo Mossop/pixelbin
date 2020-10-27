@@ -1,10 +1,11 @@
 import { STATUS_CODES } from "http";
 
-import { Next, DefaultContext, DefaultState, ParameterizedContext, BaseContext } from "koa";
+import type { Next, DefaultContext, DefaultState, ParameterizedContext, BaseContext } from "koa";
 
-import { Api, ErrorCode } from "../../model";
+import type { Api } from "../../model";
+import { ErrorCode } from "../../model";
 import { DatabaseError, DatabaseErrorCode } from "../database";
-import { LoggingContext } from "./logging";
+import type { LoggingContext } from "./logging";
 
 const ApiErrorStatus: Record<ErrorCode, number> = {
   [ErrorCode.UnknownException]: 500,

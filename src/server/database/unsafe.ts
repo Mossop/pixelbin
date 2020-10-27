@@ -1,11 +1,11 @@
 import { MetadataColumns } from "../../model";
-import { DatabaseConnection } from "./connection";
+import type { DatabaseConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
 import { from, into } from "./queries";
+import type { Tables } from "./types";
 import {
   Table,
-  Tables,
   ref,
   intoDBTypes,
   intoAPITypes,

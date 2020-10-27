@@ -1,9 +1,11 @@
-import { ChildProcess, SendHandle, Serializable } from "child_process";
-import { EventEmitter } from "events";
+import type { ChildProcess, SendHandle, Serializable } from "child_process";
+import type { EventEmitter } from "events";
 import { clearTimeout } from "timers";
 
-import { defer, Deferred, getLogger, Logger, TypedEmitter } from "../../utils";
-import Channel, { ChannelOptions, RemoteInterface } from "./channel";
+import type { Deferred, Logger } from "../../utils";
+import { defer, getLogger, TypedEmitter } from "../../utils";
+import type { ChannelOptions, RemoteInterface } from "./channel";
+import Channel from "./channel";
 import * as IPC from "./ipc";
 
 export type AbstractChildProcess = EventEmitter & {

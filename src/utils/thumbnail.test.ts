@@ -1,4 +1,5 @@
-import { chooseSize, Image } from "./thumbnail";
+import type { Image } from "./thumbnail";
+import { chooseSize } from "./thumbnail";
 
 test("size choice", (): void => {
   expect(chooseSize([], 200)).toBeNull();

@@ -1,9 +1,10 @@
 import { promises as fs } from "fs";
 
-import { Files, File } from "formidable";
+import type { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
-import { Api, Create, Orientation, Patch, RelationType } from "../../../model";
+import type { Api, Create, Patch } from "../../../model";
+import { Orientation, RelationType } from "../../../model";
 import {
   getLogger,
   DateDecoder,

@@ -1,12 +1,13 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 
-import { Api, Method, Query } from "../../model";
-import { MediaCreateRequest } from "../../model/api";
-import { Overwrite } from "../../utils";
+import type { Api, Query } from "../../model";
+import { Method } from "../../model";
+import type { MediaCreateRequest } from "../../model/api";
+import type { Overwrite } from "../../utils";
 import { request } from "./api";
-import { Catalog, Album, Person, Tag } from "./highlevel";
-import type { Reference } from "./highlevel";
-import { mediaIntoState, MediaState, ProcessedMediaState } from "./types";
+import type { Catalog, Album, Person, Tag, Reference } from "./highlevel";
+import type { MediaState, ProcessedMediaState } from "./types";
+import { mediaIntoState } from "./types";
 
 export type MediaTarget = Catalog | Album;
 

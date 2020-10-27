@@ -1,18 +1,20 @@
 import { useLocalization } from "@fluent/react";
 import Chip from "@material-ui/core/Chip";
 import Link from "@material-ui/core/Link";
-import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import React, { useCallback, useMemo } from "react";
 
-import { ObjectModel, RelationType, Join, Operator } from "../../model";
+import type { ObjectModel } from "../../model";
+import { RelationType, Join, Operator } from "../../model";
 import { formatDateTime } from "../../utils";
-import { Album, Reference, Tag } from "../api/highlevel";
-import { MediaPersonState, MediaState } from "../api/types";
+import type { Album, Reference, Tag } from "../api/highlevel";
+import type { MediaPersonState, MediaState } from "../api/types";
 import { PageType } from "../pages/types";
 import { useSelector } from "../store";
-import { StoreState } from "../store/types";
-import { ReactResult } from "../utils/types";
+import type { StoreState } from "../store/types";
+import type { ReactResult } from "../utils/types";
 import UILink from "./Link";
 
 const FRACTION = /^(\d+)\/(\d+)$/;

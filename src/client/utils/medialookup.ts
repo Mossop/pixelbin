@@ -1,12 +1,12 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 import { useEffect, useState } from "react";
 
-import { Query } from "../../model";
+import type { Query } from "../../model";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
-import { Album, Catalog, Reference } from "../api/highlevel";
+import type { Album, Catalog, Reference } from "../api/highlevel";
 import { getMedia, searchMedia } from "../api/media";
-import { MediaState } from "../api/types";
+import type { MediaState } from "../api/types";
 
 export enum MediaLookupType {
   Single,

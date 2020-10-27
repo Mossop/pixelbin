@@ -1,13 +1,16 @@
-import { Serializable, SendHandle } from "child_process";
+import type { Serializable, SendHandle } from "child_process";
 import { EventEmitter } from "events";
-import { Socket, Server } from "net";
+import type { Socket, Server } from "net";
 import { setImmediate } from "timers";
 
-import { mock, Mocked, awaitCall, deferCall, awaitEvent } from "../../test-helpers";
-import { defer, Deferred } from "../../utils";
+import type { Mocked } from "../../test-helpers";
+import { mock, awaitCall, deferCall, awaitEvent } from "../../test-helpers";
+import type { Deferred } from "../../utils";
+import { defer } from "../../utils";
 import Channel from "./channel";
-import { RPC } from "./ipc";
-import { AbstractProcess, ParentProcess } from "./parent";
+import type { RPC } from "./ipc";
+import type { AbstractProcess } from "./parent";
+import { ParentProcess } from "./parent";
 
 /* eslint-disable */
 jest.mock("./channel", () => {

@@ -1,5 +1,5 @@
+import type { Query } from "../../model";
 import {
-  Query,
   Join,
   Operator,
   Modifier,
@@ -9,7 +9,7 @@ import {
 } from "../../model";
 import { expect } from "../../test-helpers";
 import { idSorted, parseDateTime } from "../../utils";
-import { UserScopedConnection } from "./connection";
+import type { UserScopedConnection } from "./connection";
 import { buildTestDB, connection, insertData, insertTestData, testData } from "./test-helpers";
 import { Table } from "./types";
 

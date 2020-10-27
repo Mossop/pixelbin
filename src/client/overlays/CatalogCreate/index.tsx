@@ -1,13 +1,13 @@
 import React, { useCallback, useMemo, useState } from "react";
 
-import { Api } from "../../../model";
+import type { Api } from "../../../model";
 import { createCatalog, createStorage } from "../../api/catalog";
-import { UserState } from "../../api/types";
+import type { UserState } from "../../api/types";
 import { useFormState } from "../../components/Forms";
 import SteppedDialog, { Step } from "../../components/Forms/SteppedDialog";
 import { useActions } from "../../store/actions";
-import { AppError } from "../../utils/exception";
-import { ReactResult } from "../../utils/types";
+import type { AppError } from "../../utils/exception";
+import type { ReactResult } from "../../utils/types";
 import CatalogConfig from "./CatalogConfig";
 import StorageChooser from "./StorageChooser";
 import StorageConfig from "./StorageConfig";

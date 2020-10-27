@@ -1,4 +1,4 @@
-import { Logger } from "../../utils";
+import type { Logger } from "../../utils";
 import events from "./events";
 
 export abstract class Service {

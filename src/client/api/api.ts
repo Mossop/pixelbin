@@ -1,7 +1,8 @@
 import { parse as parseCookie } from "cookie";
 import { JsonDecoder } from "ts.data.json";
 
-import { Api, HttpMethods, Method } from "../../model";
+import type { Api } from "../../model";
+import { HttpMethods, Method } from "../../model";
 import { appURL, Url } from "../context";
 import { fetch, document } from "../environment";
 import { ApiError, ErrorCode, exception } from "../utils/exception";

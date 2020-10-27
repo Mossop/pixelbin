@@ -1,7 +1,7 @@
 import { EventEmitter as Base } from "events";
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type EventMap = {};
+export interface EventMap {}
 export type Events<M extends EventMap> = keyof M;
 export type Payload<M extends EventMap, E extends Events<M>> = M[E] extends unknown[] ? M[E] : [];
 export type Listener<M extends EventMap, E extends Events<M>> = (...args: Payload<M, E>) => void;

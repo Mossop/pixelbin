@@ -1,6 +1,6 @@
-import Knex from "knex";
+import type Knex from "knex";
 
-import { Table } from ".";
+import type { Table } from ".";
 import { columnFor } from "./meta";
 
 export function nameConstraint(

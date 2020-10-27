@@ -1,7 +1,8 @@
-import Knex from "knex";
+import type Knex from "knex";
 
 import { MetadataColumns } from "../../../model";
-import { Table, ref, TableRecord, nameConstraint, columnFor } from "../types";
+import type { TableRecord } from "../types";
+import { Table, ref, nameConstraint, columnFor } from "../types";
 
 function id(table: Knex.CreateTableBuilder): void {
   table.string("id", 30).notNullable().unique().primary();

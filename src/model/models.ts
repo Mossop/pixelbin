@@ -1,5 +1,5 @@
 import type { AllNull, Nullable, DateTime } from "../utils";
-import { Query } from "./search";
+import type { Query } from "./search";
 
 /**
  * Describes the orientation of the image with two sides. The first side is

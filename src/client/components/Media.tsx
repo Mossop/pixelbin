@@ -1,13 +1,15 @@
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
 import Fade from "@material-ui/core/Fade";
-import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { makeStyles, createStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
 import React, { useCallback } from "react";
 
 import { getThumbnailUrl } from "../api/media";
-import { isProcessed, MediaState, ProcessedMediaState } from "../api/types";
-import { ReactResult } from "../utils/types";
+import type { MediaState, ProcessedMediaState } from "../api/types";
+import { isProcessed } from "../api/types";
+import type { ReactResult } from "../utils/types";
 import Loading from "./Loading";
 
 interface PreviewStyleProps {

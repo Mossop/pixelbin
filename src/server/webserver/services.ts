@@ -1,9 +1,9 @@
 import { defer, buildServices, serviceProvider } from "../../utils";
-import { Cache } from "../cache";
-import { DatabaseConnection } from "../database";
-import { StorageService } from "../storage";
-import { RemoteInterface } from "../worker";
-import { ParentProcessInterface } from "./interfaces";
+import type { Cache } from "../cache";
+import type { DatabaseConnection } from "../database";
+import type { StorageService } from "../storage";
+import type { RemoteInterface } from "../worker";
+import type { ParentProcessInterface } from "./interfaces";
 
 const services = {
   parent: defer<RemoteInterface<ParentProcessInterface>>(),

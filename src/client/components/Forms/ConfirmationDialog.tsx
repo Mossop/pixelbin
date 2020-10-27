@@ -4,13 +4,14 @@ import Dialog from "@material-ui/core/Dialog/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
-import { createStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles } from "@material-ui/core/styles";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useCallback, useState } from "react";
 
 import { errorString } from "../../utils/exception";
-import { ReactResult } from "../../utils/types";
+import type { ReactResult } from "../../utils/types";
 import { Button } from "./Button";
 import { FormContextProvider } from "./shared";
 

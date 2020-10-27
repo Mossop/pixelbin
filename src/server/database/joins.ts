@@ -1,8 +1,10 @@
-import { Api, RelationType } from "../../model";
-import { UserScopedConnection } from "./connection";
+import type { Api } from "../../model";
+import { RelationType } from "../../model";
+import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { drop, from, insert } from "./queries";
-import { Table, Media } from "./types";
+import type { Media } from "./types";
+import { Table } from "./types";
 import { ensureUserTransaction, rowFromLocation } from "./utils";
 
 type List = Table.MediaAlbum | Table.MediaTag | Table.MediaPerson;

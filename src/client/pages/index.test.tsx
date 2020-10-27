@@ -15,9 +15,10 @@ import {
 } from "../test-helpers";
 import type { AlbumPageProps } from "./Album";
 import type { CatalogPageProps } from "./Catalog";
-import { ErrorPageProps } from "./Error";
-import { MediaPageProps } from "./Media";
-import { AuthenticatedPageProps, PageType } from "./types";
+import type { ErrorPageProps } from "./Error";
+import type { MediaPageProps } from "./Media";
+import type { AuthenticatedPageProps } from "./types";
+import { PageType } from "./types";
 
 jest.mock("./Root", (): unknown => {
   return () => <div id="index"/>;

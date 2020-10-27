@@ -1,7 +1,8 @@
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { negotiateLanguages } from "@fluent/langneg";
 import { LocalizationProvider, ReactLocalization } from "@fluent/react";
-import React, { PureComponent, ReactNode } from "react";
+import type { ReactNode } from "react";
+import React, { PureComponent } from "react";
 
 import { window, fetch } from "../environment";
 

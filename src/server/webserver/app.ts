@@ -1,18 +1,22 @@
 import { promises as fs } from "fs";
 import { STATUS_CODES } from "http";
 
-import Router, { RouterParamContext } from "@koa/router";
-import Koa, { DefaultState, DefaultContext } from "koa";
+import type { RouterParamContext } from "@koa/router";
+import Router from "@koa/router";
+import type { DefaultState, DefaultContext } from "koa";
+import Koa from "koa";
 import koaBody from "koa-body";
 import mount from "koa-mount";
 import session from "koa-session";
 import serve from "koa-static";
 
-import { Api, ResponseFor, Method } from "../../model";
+import type { Api, ResponseFor } from "../../model";
+import { Method } from "../../model";
 import { thumbnail, original, poster } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
-import { AppContext, ServicesContext, buildContext } from "./context";
+import type { AppContext, ServicesContext } from "./context";
+import { buildContext } from "./context";
 import { errorHandler } from "./error";
 import { APP_PATHS } from "./paths";
 import Services from "./services";

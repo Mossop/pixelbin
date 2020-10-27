@@ -6,8 +6,9 @@ import { expect as jestExpect } from "@jest/globals";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
 import { DateTime as Luxon } from "luxon";
 
-import { ObjectModel } from "../model";
-import { DateTime, defer, now } from "../utils";
+import type { ObjectModel } from "../model";
+import type { DateTime } from "../utils";
+import { defer, now } from "../utils";
 
 export function sortedIds<T extends { id: string }>(val: T[]): string[] {
   return val.map((item: { id: string }): string => item.id);
@@ -155,7 +156,7 @@ export interface DeferredCall<A, R> {
 
 export function deferCall<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  F extends (...args: any[]) => any
+  F extends (...args: any[]) => any,
 >(func: F | jest.MockedFunction<F>): DeferredCall<Parameters<F>, PromiseType<ReturnType<F>>> {
   assert(jest.isMockFunction(func));
 
@@ -220,7 +221,7 @@ interface BaseEmitter<S, P extends unknown[]> {
 
 export function awaitEvent<
   S,
-  P extends unknown[]
+  P extends unknown[],
 >(emitter: BaseEmitterOnce<S, P>, event: S): Promise<P> {
   let deferred = defer<P>();
 
@@ -233,7 +234,7 @@ export function awaitEvent<
 
 export function mockEvent<
   S,
-  P extends unknown[]
+  P extends unknown[],
 >(emitter: BaseEmitter<S, P>, event: S): jest.Mock<void, P> {
   let mock = jest.fn<void, P>();
   emitter.on(event, mock);
@@ -242,7 +243,7 @@ export function mockEvent<
 
 export function mockEventOnce<
   S,
-  P extends unknown[]
+  P extends unknown[],
 >(emitter: BaseEmitterOnce<S, P>, event: S): jest.Mock<void, P> {
   let mock = jest.fn<void, P>();
   emitter.once(event, mock);
@@ -271,7 +272,7 @@ export function lastCallArgs<P extends unknown[]>(mock: jest.MockInstance<unknow
 export type Mocked<Fn extends (...args: any[]) => any> = jest.Mock<ReturnType<Fn>, Parameters<Fn>>;
 export function mock<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Fn extends (...args: any[]) => any
+  Fn extends (...args: any[]) => any,
 >(implementation?: Fn): Mocked<Fn> {
   return jest.fn<ReturnType<Fn>, Parameters<Fn>>(implementation);
 }

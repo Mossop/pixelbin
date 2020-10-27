@@ -1,5 +1,5 @@
-import { SpawnOptionsWithoutStdio, SpawnOptions } from "child_process";
-import { Writable, Readable } from "stream";
+import type { SpawnOptionsWithoutStdio, SpawnOptions } from "child_process";
+import type { Writable, Readable } from "stream";
 
 declare class Process {
   public constructor(command: string, args?: string[], options?: SpawnOptions);

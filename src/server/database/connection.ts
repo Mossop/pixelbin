@@ -4,17 +4,20 @@ import Knex from "knex";
 import { DateTime as Luxon } from "luxon";
 import { types } from "pg";
 
-import { DateTime, getLogger, Logger, Obj } from "../../utils";
+import type { DateTime, Logger, Obj } from "../../utils";
+import { getLogger } from "../../utils";
 import * as CatalogQueries from "./catalog";
 import { DatabaseError, DatabaseErrorCode, notfound, notwritable } from "./error";
 import * as Joins from "./joins";
 import * as MediaQueries from "./media";
 import { from } from "./queries";
 import * as SearchQueries from "./search";
-import { ref, Table, TableRecord, UserRef } from "./types";
+import type { TableRecord, UserRef } from "./types";
+import { ref, Table } from "./types";
 import * as Unsafe from "./unsafe";
 import * as UserQueries from "./user";
-import { asTable, named, Named, TxnFn } from "./utils";
+import type { Named, TxnFn } from "./utils";
+import { asTable, named } from "./utils";
 
 const logger = getLogger("database");
 

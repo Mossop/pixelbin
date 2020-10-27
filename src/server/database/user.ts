@@ -1,10 +1,11 @@
 import { hash as bcryptHash, compare as bcryptCompare } from "bcrypt";
 
 import { now } from "../../utils";
-import { DatabaseConnection, UserScopedConnection } from "./connection";
+import type { DatabaseConnection, UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insert, update } from "./queries";
-import { Tables, Table, intoAPITypes } from "./types";
+import type { Tables } from "./types";
+import { Table, intoAPITypes } from "./types";
 
 type UserWithoutPassword = Omit<Tables.User, "password" | "lastLogin">;
 export async function loginUser(

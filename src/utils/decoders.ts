@@ -1,4 +1,5 @@
-import { JsonDecoder, Ok, Result, ok, err } from "ts.data.json";
+import type { Result } from "ts.data.json";
+import { JsonDecoder, Ok, ok, err } from "ts.data.json";
 
 import { parseDateTime } from "./datetime";
 

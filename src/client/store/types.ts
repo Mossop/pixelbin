@@ -1,9 +1,9 @@
-import { Deed } from "deeds/immer";
-import { Store } from "redux";
+import type { Deed } from "deeds/immer";
+import type { Store } from "redux";
 
-import { ServerState } from "../api/types";
-import { OverlayState } from "../overlays/types";
-import { PageState } from "../pages/types";
+import type { ServerState } from "../api/types";
+import type { OverlayState } from "../overlays/types";
+import type { PageState } from "../pages/types";
 
 interface Settings {
   readonly thumbnailSize: number;

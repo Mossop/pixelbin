@@ -1,17 +1,17 @@
 import { useSelector } from "../store";
-import { StoreState } from "../store/types";
+import type { StoreState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId } from "../utils/maps";
 import type { MapId } from "../utils/maps";
+import type { VirtualTreeOptions } from "../utils/virtual";
 import {
   VirtualAlbum,
   VirtualCatalog,
   VirtualPerson,
   VirtualTag,
   VirtualTree,
-  VirtualTreeOptions,
 } from "../utils/virtual";
-import {
+import type {
   ServerState,
   CatalogState,
   AlbumState,

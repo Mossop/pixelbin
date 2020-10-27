@@ -1,7 +1,8 @@
 import { reducer } from "deeds/immer";
-import { Draft } from "immer";
+import type { Draft } from "immer";
 
-import { Catalog, Album, Reference } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { Catalog, Album } from "../api/highlevel";
 import type {
   CatalogState,
   AlbumState,
@@ -9,11 +10,12 @@ import type {
   UserState,
   StorageState,
 } from "../api/types";
-import { OverlayState, OverlayType } from "../overlays/types";
+import type { OverlayState } from "../overlays/types";
+import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
 import { nameSorted } from "../utils/sort";
-import { StoreState, UIState } from "./types";
+import type { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
   S extends (state: Draft<StoreState>, user: Draft<UserState>, ...args: infer A) => void

@@ -3,8 +3,8 @@ import FormControlLabel from "@material-ui/core/FormControlLabel";
 import MuiRadio from "@material-ui/core/Radio";
 import React, { createContext, useCallback, useContext } from "react";
 
-import { FieldState } from "../../utils/state";
-import { ReactChildren, ReactResult } from "../../utils/types";
+import type { FieldState } from "../../utils/state";
+import type { ReactChildren, ReactResult } from "../../utils/types";
 import { useFormContext } from "./shared";
 
 interface RadioContext<T> {

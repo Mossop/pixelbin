@@ -1,8 +1,9 @@
 import { promises as fs, createReadStream } from "fs";
 import path from "path";
 
-import { DateTime, getLogger, Logger, now, parseDateTime } from "../../utils";
-import { DatabaseConnection } from "../database";
+import type { DateTime, Logger } from "../../utils";
+import { getLogger, now, parseDateTime } from "../../utils";
+import type { DatabaseConnection } from "../database";
 import { Remote } from "./remote";
 
 export interface StoredFile {

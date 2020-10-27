@@ -3,10 +3,10 @@ import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
 import React, { forwardRef, useCallback } from "react";
 
-import { MediaTarget } from "../../api/media";
-import { FieldState } from "../../utils/state";
-import { ReactRef, ReactResult } from "../../utils/types";
-import { VirtualItem } from "../../utils/virtual";
+import type { MediaTarget } from "../../api/media";
+import type { FieldState } from "../../utils/state";
+import type { ReactRef, ReactResult } from "../../utils/types";
+import type { VirtualItem } from "../../utils/virtual";
 import MediaTargetSelect from "../MediaTargetSelect";
 import { useFormContext, useUniqueId, useFormStyles } from "./shared";
 

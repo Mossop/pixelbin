@@ -1,20 +1,23 @@
 import { useLocalization } from "@fluent/react";
-import { Draft } from "immer";
+import type { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
-import { Join, Operator, RelationType, Search } from "../../model";
-import { Album, Reference } from "../api/highlevel";
-import { MediaState } from "../api/types";
+import type { Search } from "../../model";
+import { Join, Operator, RelationType } from "../../model";
+import type { Album, Reference } from "../api/highlevel";
+import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
 import { OverlayType } from "../overlays/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { StoreState } from "../store/types";
-import { AlbumMediaLookup, MediaLookupType, useMediaLookup } from "../utils/medialookup";
-import { ReactResult } from "../utils/types";
-import { AuthenticatedPageProps, PageType } from "./types";
+import type { StoreState } from "../store/types";
+import type { AlbumMediaLookup } from "../utils/medialookup";
+import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
+import type { ReactResult } from "../utils/types";
+import type { AuthenticatedPageProps } from "./types";
+import { PageType } from "./types";
 
 export interface AlbumPageProps {
   readonly album: Reference<Album>;

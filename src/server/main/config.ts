@@ -1,13 +1,14 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import { Level, LevelWithSilent } from "pino";
+import type { Level, LevelWithSilent } from "pino";
 import { JsonDecoder } from "ts.data.json";
 
-import { LogConfig, MappingDecoder, oneOf } from "../../utils";
-import { CacheConfig } from "../cache";
-import { DatabaseConfig } from "../database";
-import { StorageConfig } from "../storage";
+import type { LogConfig } from "../../utils";
+import { MappingDecoder, oneOf } from "../../utils";
+import type { CacheConfig } from "../cache";
+import type { DatabaseConfig } from "../database";
+import type { StorageConfig } from "../storage";
 
 const basedir = path.resolve(path.join(__dirname, "..", ".."));
 

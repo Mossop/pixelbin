@@ -7,7 +7,7 @@ import { StorageService } from "../storage";
 import { ParentProcess } from "../worker";
 import buildApp from "./app";
 import events from "./events";
-import { ParentProcessInterface } from "./interfaces";
+import type { ParentProcessInterface } from "./interfaces";
 import Services, { provideService } from "./services";
 
 install();

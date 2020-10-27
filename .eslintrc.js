@@ -31,9 +31,6 @@ module.exports = {
   ],
 
   rules: {
-    "import/no-useless-path-segments": ["error", {
-      noUselessIndex: true,
-    }],
     "import/no-restricted-paths": ["error", {
       zones: [{
         target: "./src",
@@ -62,14 +59,6 @@ module.exports = {
         from: "./src/client",
       }],
     }],
-    "operator-linebreak": ["warn", "after", {
-      overrides: {
-        "?": "before",
-        ":": "before",
-      },
-    }],
-    "quote-props": ["warn", "consistent-as-needed"],
-    "@typescript-eslint/ban-ts-comment": "off",
   },
 
   ignorePatterns: ["build/**/*"],
@@ -87,31 +76,7 @@ module.exports = {
     env: {
       jest: true,
     },
-
-    rules: {
-      "@typescript-eslint/no-non-null-assertion": "off",
-      "@typescript-eslint/no-explicit-any": "off",
-    },
   }, {
     files: ["*.ts", "*.tsx"],
-
-    rules: {
-      "@typescript-eslint/explicit-function-return-type": ["warn", {
-        allowExpressions: true,
-        allowTypedFunctionExpressions: true,
-        allowHigherOrderFunctions: true,
-        allowConciseArrowFunctionExpressionsStartingWithVoid: true,
-      }],
-      "@typescript-eslint/typedef": ["warn", {
-        arrayDestructuring: false,
-        arrowParameter: true,
-        memberVariableDeclaration: false,
-        objectDestructuring: false,
-        parameter: true,
-        propertyDeclaration: true,
-        variableDeclaration: false,
-        variableDeclarationIgnoreFunction: true,
-      }],
-    },
   }],
 };

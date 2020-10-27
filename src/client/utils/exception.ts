@@ -1,7 +1,8 @@
-import { ReactLocalization } from "@fluent/react";
+import type { ReactLocalization } from "@fluent/react";
 
-import { Api } from "../../model";
-import { l10nInfo, L10nInfo } from "../l10n";
+import type { Api } from "../../model";
+import type { L10nInfo } from "../l10n";
+import { l10nInfo } from "../l10n";
 
 export enum ErrorCode {
   InvalidResponse = "invalid-response",

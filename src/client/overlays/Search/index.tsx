@@ -7,22 +7,25 @@ import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import Divider from "@material-ui/core/Divider";
-import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 
-import { isCompoundQuery, isRelationQuery, Join, Query, Search } from "../../../model";
-import { Catalog, Reference } from "../../api/highlevel";
-import { MediaState } from "../../api/types";
+import type { Query, Search } from "../../../model";
+import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
+import type { Catalog, Reference } from "../../api/highlevel";
+import type { MediaState } from "../../api/types";
 import Loading from "../../components/Loading";
 import { Preview } from "../../components/Media";
 import { PageType } from "../../pages/types";
 import { useSelector } from "../../store";
 import { useActions } from "../../store/actions";
-import { StoreState } from "../../store/types";
-import { MediaLookup, MediaLookupType, lookupMedia } from "../../utils/medialookup";
-import { ReactResult } from "../../utils/types";
+import type { StoreState } from "../../store/types";
+import type { MediaLookup } from "../../utils/medialookup";
+import { MediaLookupType, lookupMedia } from "../../utils/medialookup";
+import type { ReactResult } from "../../utils/types";
 import CompoundQueryBox from "./CompoundQueryBox";
 
 const useStyles = makeStyles((theme: Theme) =>

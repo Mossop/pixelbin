@@ -1,6 +1,8 @@
-import { Api, Method } from "../../model";
+import type { Api } from "../../model";
+import { Method } from "../../model";
 import { request } from "./api";
-import { ServerState, serverStateIntoState } from "./types";
+import type { ServerState } from "./types";
+import { serverStateIntoState } from "./types";
 
 export async function state(): Promise<ServerState> {
   let state = await request(Method.State);

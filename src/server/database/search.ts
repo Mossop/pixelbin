@@ -1,15 +1,17 @@
-import Knex from "knex";
+import type Knex from "knex";
 
-import { checkQuery, isCompoundQuery, Join, Modifier, Operator, Search, Query } from "../../model";
+import type { Search, Query } from "../../model";
+import { checkQuery, isCompoundQuery, Join, Modifier, Operator } from "../../model";
 import { isRelationQuery } from "../../model/search";
 import { isDateTime } from "../../utils";
-import { UserScopedConnection } from "./connection";
+import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { uuid } from "./id";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
 import { intoMedia } from "./media";
 import { from, insert, withChildren } from "./queries";
-import { intoAPITypes, intoDBType, intoDBTypes, Media, ref, Table, Tables } from "./types";
+import type { Media, Tables } from "./types";
+import { intoAPITypes, intoDBType, intoDBTypes, ref, Table } from "./types";
 import { ensureUserTransaction } from "./utils";
 
 function escape(value: unknown): string {

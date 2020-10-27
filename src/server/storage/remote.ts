@@ -1,11 +1,13 @@
 import { Duplex, Readable } from "stream";
 
-import AWS, { Credentials, AWSError } from "aws-sdk";
+import type { AWSError } from "aws-sdk";
+import AWS, { Credentials } from "aws-sdk";
 import fetch from "node-fetch";
 
-import { ObjectModel } from "../../model";
-import { getLogger, Logger, s3Config, s3Params, s3PublicUrl } from "../../utils";
-import { DatabaseConnection } from "../database";
+import type { ObjectModel } from "../../model";
+import type { Logger } from "../../utils";
+import { getLogger, s3Config, s3Params, s3PublicUrl } from "../../utils";
+import type { DatabaseConnection } from "../database";
 
 const logger = getLogger("aws");
 

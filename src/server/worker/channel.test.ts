@@ -1,8 +1,9 @@
-import { SendHandle } from "child_process";
+import type { SendHandle } from "child_process";
 import { setImmediate } from "timers";
 
 import { lastCallArgs, mockEvent } from "../../test-helpers";
-import Channel, { RemoteInterface } from "./channel";
+import type { RemoteInterface } from "./channel";
+import Channel from "./channel";
 
 jest.useFakeTimers();
 

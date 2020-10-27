@@ -1,4 +1,4 @@
-import { Deferred } from "./defer";
+import type { Deferred } from "./defer";
 import { entries } from "./utility";
 
 type ServiceType<SM, S extends keyof SM> = SM[S] extends Deferred<infer T> ? T : never;

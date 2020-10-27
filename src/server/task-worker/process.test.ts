@@ -3,7 +3,8 @@ import path from "path";
 
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
-import { dir as tmpdir, DirectoryResult } from "tmp-promise";
+import type { DirectoryResult } from "tmp-promise";
+import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType, emptyMetadata } from "../../model";
 import { mockedFunction, expect, lastCallArgs, mockDateTime } from "../../test-helpers";
@@ -11,10 +12,11 @@ import { now } from "../../utils";
 import { parseDateTime } from "../../utils/__mocks__/datetime";
 import { connection, insertTestData, buildTestDB, insertData } from "../database/test-helpers";
 import { Table } from "../database/types";
-import { AlternateFile } from "../database/types/tables";
-import { OriginalInfo } from "../database/unsafe";
+import type { AlternateFile } from "../database/types/tables";
+import type { OriginalInfo } from "../database/unsafe";
 import { StorageService } from "../storage";
-import { encodeVideo, AudioCodec, VideoCodec, Container, VideoInfo } from "./ffmpeg";
+import type { VideoInfo } from "./ffmpeg";
+import { encodeVideo, AudioCodec, VideoCodec, Container } from "./ffmpeg";
 import { handleUploadedFile, MEDIA_THUMBNAIL_SIZES, purgeDeletedMedia } from "./process";
 import services, { provideService } from "./services";
 

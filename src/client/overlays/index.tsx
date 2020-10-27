@@ -2,8 +2,8 @@ import React, { lazy } from "react";
 
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { StoreState } from "../store/types";
-import { ReactResult } from "../utils/types";
+import type { StoreState } from "../store/types";
+import type { ReactResult } from "../utils/types";
 import { OverlayType } from "./types";
 
 const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./Login"));

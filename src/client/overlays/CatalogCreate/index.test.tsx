@@ -1,7 +1,8 @@
 import React from "react";
 
 import CatalogOverlay from ".";
-import { Api, AWSResult, Method } from "../../../model";
+import type { Api } from "../../../model";
+import { AWSResult, Method } from "../../../model";
 import { lastCallArgs } from "../../../test-helpers";
 import {
   expect,

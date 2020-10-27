@@ -1,7 +1,7 @@
-import { Api, Query, ResponseFor } from "../../../model";
+import type { Api, Query, ResponseFor } from "../../../model";
 import { isoDateTime, isDateTime } from "../../../utils";
-import { Tables } from "../../database/types";
-import { AppContext } from "../context";
+import type { Tables } from "../../database/types";
+import type { AppContext } from "../context";
 
 function queryIntoResponse(query: Query): ResponseFor<Query> {
   if (query.type == "field") {

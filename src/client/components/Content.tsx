@@ -1,8 +1,10 @@
-import Box, { BoxProps } from "@material-ui/core/Box";
-import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
+import type { BoxProps } from "@material-ui/core/Box";
+import Box from "@material-ui/core/Box";
+import type { Theme } from "@material-ui/core/styles";
+import { makeStyles, createStyles } from "@material-ui/core/styles";
 import React from "react";
 
-import { ReactResult } from "../utils/types";
+import type { ReactResult } from "../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

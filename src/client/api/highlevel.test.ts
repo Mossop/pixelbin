@@ -10,7 +10,7 @@ import {
   dereferencer,
   PendingAPIItem,
 } from "./highlevel";
-import { ServerState } from "./types";
+import type { ServerState } from "./types";
 
 const LoggedOut: ServerState = {
   user: null,

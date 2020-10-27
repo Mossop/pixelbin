@@ -3,8 +3,8 @@ import React, { useCallback, useRef, useState } from "react";
 import { login } from "../api/auth";
 import { FormDialog, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
-import { AppError } from "../utils/exception";
-import { ReactResult } from "../utils/types";
+import type { AppError } from "../utils/exception";
+import type { ReactResult } from "../utils/types";
 
 export default function LoginOverlay(): ReactResult {
   let actions = useActions();

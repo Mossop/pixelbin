@@ -7,14 +7,16 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import MuiStep from "@material-ui/core/Step";
 import StepLabel from "@material-ui/core/StepLabel";
 import Stepper from "@material-ui/core/Stepper";
-import { makeStyles, createStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Alert from "@material-ui/lab/Alert/Alert";
 import React, { useState, useCallback, Children } from "react";
 
 import { errorString } from "../../utils/exception";
-import { ReactResult } from "../../utils/types";
+import type { ReactResult } from "../../utils/types";
 import { Button, SubmitButton } from "./Button";
-import { FormContextProvider, FormContext } from "./shared";
+import type { FormContext } from "./shared";
+import { FormContextProvider } from "./shared";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

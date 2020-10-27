@@ -1,7 +1,7 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 
 import { document } from "../environment";
-import { StoreState } from "../store/types";
+import type { StoreState } from "../store/types";
 
 export function promiseEvent(
   object: EventTarget,

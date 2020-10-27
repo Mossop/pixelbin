@@ -2,7 +2,8 @@ import { JsonDecoder } from "ts.data.json";
 
 import { decode, MappingDecoder } from "../../utils";
 import { StateDecoder } from "../api/decoders";
-import { ServerState, serverStateIntoState } from "../api/types";
+import type { ServerState } from "../api/types";
+import { serverStateIntoState } from "../api/types";
 import { document, URL } from "../environment";
 
 export enum Url {

@@ -1,6 +1,6 @@
-import { SpawnOptionsWithoutStdio } from "child_process";
+import type { SpawnOptionsWithoutStdio } from "child_process";
 
-import { Config } from "@jest/types";
+import type { Config } from "@jest/types";
 
 export interface LintedFile {
   path: string;

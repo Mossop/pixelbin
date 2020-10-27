@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from "react";
 
-import { Api } from "../../../model";
+import type { Api } from "../../../model";
 import { TextField } from "../../components/Forms";
-import { nulledString, ObjectState } from "../../utils/state";
-import { ReactResult } from "../../utils/types";
+import type { ObjectState } from "../../utils/state";
+import { nulledString } from "../../utils/state";
+import type { ReactResult } from "../../utils/types";
 
 export interface StorageConfigProps {
   visible: boolean;

@@ -3,13 +3,13 @@ import Typography from "@material-ui/core/Typography";
 import React, { useCallback, useState } from "react";
 
 import { deleteAlbum } from "../api/album";
-import { Album, Reference } from "../api/highlevel";
+import type { Album, Reference } from "../api/highlevel";
 import ConfirmationDialog from "../components/Forms/ConfirmationDialog";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { StoreState } from "../store/types";
-import { AppError } from "../utils/exception";
-import { ReactResult } from "../utils/types";
+import type { StoreState } from "../store/types";
+import type { AppError } from "../utils/exception";
+import type { ReactResult } from "../utils/types";
 
 export interface AlbumDeleteOverlayProps {
   readonly album: Reference<Album>;

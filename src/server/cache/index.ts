@@ -1,5 +1,6 @@
-import { createNodeRedisClient, WrappedNodeRedisClient } from "handy-redis";
-import session from "koa-session";
+import type { WrappedNodeRedisClient } from "handy-redis";
+import { createNodeRedisClient } from "handy-redis";
+import type session from "koa-session";
 
 import type { Session } from "../webserver/interfaces";
 

@@ -1,4 +1,4 @@
-import React, { MutableRefObject } from "react";
+import type { default as React, MutableRefObject } from "react";
 
 export interface ReactChildren {
   children?: React.ReactNode;

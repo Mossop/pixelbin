@@ -1,4 +1,5 @@
-import { ObjectState, wrapState } from "./state";
+import type { ObjectState } from "./state";
+import { wrapState } from "./state";
 
 test("state", () => {
   interface State {

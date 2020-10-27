@@ -1,9 +1,11 @@
-import { Draft } from "immer";
+import type { Draft } from "immer";
 
-import { Api, Method } from "../../model";
+import type { Api } from "../../model";
+import { Method } from "../../model";
 import { request } from "./api";
-import { Catalog, Reference } from "./highlevel";
-import { CatalogState, mediaIntoState, MediaState, StorageState } from "./types";
+import type { Catalog, Reference } from "./highlevel";
+import type { CatalogState, MediaState, StorageState } from "./types";
+import { mediaIntoState } from "./types";
 
 export async function testStorage(
   storage: Api.StorageTestRequest,

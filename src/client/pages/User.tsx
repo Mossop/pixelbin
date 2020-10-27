@@ -3,8 +3,8 @@ import React from "react";
 
 import Content from "../components/Content";
 import Page from "../components/Page";
-import { ReactResult } from "../utils/types";
-import { AuthenticatedPageProps } from "./types";
+import type { ReactResult } from "../utils/types";
+import type { AuthenticatedPageProps } from "./types";
 
 export default function UserPage(_props: AuthenticatedPageProps): ReactResult {
   return <Page>

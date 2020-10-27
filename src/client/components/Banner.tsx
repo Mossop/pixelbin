@@ -6,7 +6,8 @@ import Hidden from "@material-ui/core/Hidden";
 import IconButton from "@material-ui/core/IconButton";
 import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
-import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
 import MenuIcon from "@material-ui/icons/Menu";
 import MoreVertIcon from "@material-ui/icons/MoreVert";
 import { usePopupState, bindTrigger, bindMenu } from "material-ui-popup-state/hooks";
@@ -14,13 +15,13 @@ import md5 from "md5";
 import React, { useCallback } from "react";
 
 import { logout } from "../api/auth";
-import { UserState } from "../api/types";
+import type { UserState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { StoreState } from "../store/types";
-import { ReactChildren, ReactResult } from "../utils/types";
+import type { StoreState } from "../store/types";
+import type { ReactChildren, ReactResult } from "../utils/types";
 import AppBar from "./AppBar";
 import Link from "./Link";
 

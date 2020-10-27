@@ -1,19 +1,22 @@
 import { promises as fs } from "fs";
 
-import { ExifDate, ExifDateTime, ExifTime, Tags } from "exiftool-vendored";
+import type { Tags } from "exiftool-vendored";
+import { ExifDate, ExifDateTime, ExifTime } from "exiftool-vendored";
 import { extension as mimeExtension } from "mime-types";
 import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import sharp from "sharp";
 
-import { ObjectModel } from "../../model";
-import {
+import type { ObjectModel } from "../../model";
+import type {
   DateTime,
+  Nullable,
+} from "../../utils";
+import {
   dateTimeFromMillis,
   entries,
-  Nullable,
   parseDateTime,
 } from "../../utils";
-import { StoredFile } from "../storage";
+import type { StoredFile } from "../storage";
 import { probe } from "./ffmpeg";
 import Services from "./services";
 

@@ -2,13 +2,13 @@ import { castDraft } from "immer";
 
 import { Join } from "../../model";
 import { mockedFunction } from "../../test-helpers";
-import { Obj } from "../../utils";
+import type { Obj } from "../../utils";
 import { Catalog, Album } from "../api/highlevel";
-import { ServerState } from "../api/types";
+import type { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import reducer from "../store/reducer";
-import { StoreType } from "../store/types";
+import type { StoreType } from "../store/types";
 import {
   expect,
   mockServerState,
@@ -16,7 +16,8 @@ import {
   mockStoreState,
   mockStore,
 } from "../test-helpers";
-import { HistoryState, addListener, getState, pushState, replaceState } from "./history";
+import type { HistoryState } from "./history";
+import { addListener, getState, pushState, replaceState } from "./history";
 import { MediaLookupType } from "./medialookup";
 import { intoUIState, fromUIState, stateURLMatches, watchStore } from "./navigation";
 

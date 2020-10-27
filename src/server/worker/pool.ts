@@ -1,6 +1,8 @@
-import { getLogger, MakeRequired, TypedEmitter, defer, Logger, Deferred } from "../../utils";
-import { RemoteInterface } from "./channel";
-import { WorkerProcess, WorkerProcessOptions, AbstractChildProcess } from "./worker";
+import type { MakeRequired, Logger, Deferred } from "../../utils";
+import { getLogger, TypedEmitter, defer } from "../../utils";
+import type { RemoteInterface } from "./channel";
+import type { WorkerProcessOptions, AbstractChildProcess } from "./worker";
+import { WorkerProcess } from "./worker";
 
 export interface WorkerPoolOptions<L> extends Omit<WorkerProcessOptions<L>, "process"> {
   fork: () => Promise<AbstractChildProcess>;

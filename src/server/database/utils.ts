@@ -1,10 +1,11 @@
-import Knex from "knex";
+import type Knex from "knex";
 
-import { ObjectModel } from "../../model";
-import { Func } from "../../utils";
+import type { ObjectModel } from "../../model";
+import type { Func } from "../../utils";
 import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
-import { Table, COLUMNS } from "./types";
+import type { Table } from "./types";
+import { COLUMNS } from "./types";
 
 export type TxnFn<C, R> = Func<[dbConnection: C], Promise<R>>;
 export type Named<F> = [name: string, transactionFn: F] | [transactionFn: F];

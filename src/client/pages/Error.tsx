@@ -7,7 +7,7 @@ import React from "react";
 import AppBar from "../components/AppBar";
 import Content from "../components/Content";
 import { errorString } from "../utils/exception";
-import { ReactResult } from "../utils/types";
+import type { ReactResult } from "../utils/types";
 
 export interface ErrorPageProps {
   error: Error;

@@ -1,4 +1,4 @@
-import { Table } from "./types";
+import type { Table } from "./types";
 
 export enum DatabaseErrorCode {
   UnknownError,

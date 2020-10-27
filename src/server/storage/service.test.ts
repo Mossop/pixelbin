@@ -7,7 +7,7 @@ import { dir as tmpdir } from "tmp-promise";
 import { expect, getStorageConfig, mockDateTime } from "../../test-helpers";
 import { buildTestDB, connection } from "../database/test-helpers";
 import { StorageService } from "./service";
-import { StoredFile } from "./storage";
+import type { StoredFile } from "./storage";
 
 jest.mock("../../utils/datetime");
 

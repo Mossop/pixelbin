@@ -1,6 +1,7 @@
 import React from "react";
 
-import { Api, Method } from "../../model";
+import type { Api } from "../../model";
+import { Method } from "../../model";
 import { awaitCall, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
 import { OverlayType } from "../overlays/types";

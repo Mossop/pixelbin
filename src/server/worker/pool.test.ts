@@ -1,10 +1,13 @@
-import { Serializable, SendHandle } from "child_process";
+import type { Serializable, SendHandle } from "child_process";
 import { EventEmitter } from "events";
 
-import { Mocked, mock, awaitCall, awaitEvent, mockedFunction } from "../../test-helpers";
-import { defer, Deferred } from "../../utils";
+import type { Mocked } from "../../test-helpers";
+import { mock, awaitCall, awaitEvent, mockedFunction } from "../../test-helpers";
+import type { Deferred } from "../../utils";
+import { defer } from "../../utils";
 import { WorkerPool } from "./pool";
-import { AbstractChildProcess, WorkerProcess, WorkerProcessOptions } from "./worker";
+import type { AbstractChildProcess, WorkerProcessOptions } from "./worker";
+import { WorkerProcess } from "./worker";
 
 /* eslint-disable */
 jest.mock("./worker", () => {

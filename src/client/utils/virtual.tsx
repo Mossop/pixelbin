@@ -1,17 +1,17 @@
-import { ReactLocalization } from "@fluent/react";
+import type { ReactLocalization } from "@fluent/react";
 import LocalOfferIcon from "@material-ui/icons/LocalOffer";
 import PeopleIcon from "@material-ui/icons/People";
 import PermMediaIcon from "@material-ui/icons/PermMedia";
 import PersonIcon from "@material-ui/icons/Person";
 import PhotoAlbumIcon from "@material-ui/icons/PhotoAlbum";
 import StorageIcon from "@material-ui/icons/Storage";
-import { Draft } from "immer";
+import type { Draft } from "immer";
 import React from "react";
 
-import { Album, Catalog, Person, Tag } from "../api/highlevel";
+import type { Album, Catalog, Person, Tag } from "../api/highlevel";
 import { PageType } from "../pages/types";
-import { UIState } from "../store/types";
-import { ReactResult } from "./types";
+import type { UIState } from "../store/types";
+import type { ReactResult } from "./types";
 
 export type VirtualItemFilter = (item: VirtualItem) => boolean;
 

@@ -1,16 +1,18 @@
 import React, { useCallback, useRef, useState } from "react";
 
 import { createAlbum, editAlbum } from "../api/album";
-import { Album, Catalog, Reference, useCatalogs } from "../api/highlevel";
-import { MediaTarget } from "../api/media";
-import { AlbumState, Create, Patch } from "../api/types";
+import type { Album, Reference } from "../api/highlevel";
+import { Catalog, useCatalogs } from "../api/highlevel";
+import type { MediaTarget } from "../api/media";
+import type { AlbumState, Create, Patch } from "../api/types";
 import { FormDialog, MediaTargetField, TextField, useFormState } from "../components/Forms";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import { StoreState } from "../store/types";
-import { AppError } from "../utils/exception";
-import { ReactResult } from "../utils/types";
-import { VirtualItem, VirtualTree } from "../utils/virtual";
+import type { StoreState } from "../store/types";
+import type { AppError } from "../utils/exception";
+import type { ReactResult } from "../utils/types";
+import type { VirtualItem } from "../utils/virtual";
+import { VirtualTree } from "../utils/virtual";
 
 export interface AlbumEditOverlayProps {
   readonly album: Reference<Album>;

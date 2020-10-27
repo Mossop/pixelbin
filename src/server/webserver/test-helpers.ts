@@ -1,20 +1,23 @@
 import net from "net";
 import path from "path";
 
-import { agent, SuperTest, Test } from "supertest";
+import type { SuperTest, Test } from "supertest";
+import { agent } from "supertest";
 
-import { Api, ResponseFor } from "../../model";
+import type { Api, ResponseFor } from "../../model";
 import { expect } from "../../test-helpers";
-import { idSorted, Obj, Resolver, Rejecter } from "../../utils";
-import { Cache, CacheConfig } from "../cache";
-import { DatabaseConnection } from "../database";
+import type { Obj, Resolver, Rejecter } from "../../utils";
+import { idSorted } from "../../utils";
+import type { CacheConfig } from "../cache";
+import { Cache } from "../cache";
+import type { DatabaseConnection } from "../database";
 import { buildTestDB, connection, getTestDatabaseConfig } from "../database/test-helpers";
-import { Tables } from "../database/types";
+import type { Tables } from "../database/types";
 import { StorageService } from "../storage";
-import { RemoteInterface } from "../worker";
+import type { RemoteInterface } from "../worker";
 import buildApp from "./app";
 import events from "./events";
-import { ParentProcessInterface, WebserverConfig } from "./interfaces";
+import type { ParentProcessInterface, WebserverConfig } from "./interfaces";
 import Services, { provideService } from "./services";
 
 export function buildTestApp(

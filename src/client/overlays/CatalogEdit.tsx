@@ -2,12 +2,12 @@ import React, { useState, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
 
 import { editCatalog } from "../api/catalog";
-import { Catalog, Reference } from "../api/highlevel";
+import type { Catalog, Reference } from "../api/highlevel";
 import { FormDialog, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
-import { StoreState } from "../store/types";
-import { AppError } from "../utils/exception";
-import { ReactResult } from "../utils/types";
+import type { StoreState } from "../store/types";
+import type { AppError } from "../utils/exception";
+import type { ReactResult } from "../utils/types";
 
 export interface CatalogEditOverlayProps {
   readonly catalog: Reference<Catalog>;

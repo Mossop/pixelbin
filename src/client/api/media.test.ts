@@ -5,9 +5,11 @@ import { parseDateTime } from "../../utils";
 import fetch from "../environment/fetch";
 import { expect, mockServerState, mockUnprocessedMedia } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
-import { Catalog, mediaRef, Media } from "./highlevel";
+import type { Media } from "./highlevel";
+import { Catalog, mediaRef } from "./highlevel";
 import { getMedia, createMedia } from "./media";
-import { isProcessed, isUnprocessed, ServerState } from "./types";
+import type { ServerState } from "./types";
+import { isProcessed, isUnprocessed } from "./types";
 
 jest.mock("../environment/fetch");
 

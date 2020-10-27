@@ -2,13 +2,13 @@
   {
     "id": "react",
     "variable": "React",
-    "version": "16.13.1",
+    "version": "16.14.0",
     "path": "umd/react.development.js"
   },
   {
     "id": "react-dom",
     "variable": "ReactDOM",
-    "version": "16.13.1",
+    "version": "16.14.0",
     "path": "umd/react-dom.development.js"
   },
   {

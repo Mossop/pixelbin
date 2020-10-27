@@ -5,26 +5,30 @@ import IconButton from "@material-ui/core/IconButton";
 import Input from "@material-ui/core/Input";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
-import { createStyles, Theme, makeStyles } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
 import DeleteIcon from "@material-ui/icons/Delete";
 import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
 import { DateTimePicker } from "@material-ui/pickers";
 import clsx from "clsx";
-import { Draft } from "immer";
+import type { Draft } from "immer";
 import React, { useState, useCallback, useMemo } from "react";
 
+import type {
+  RelationType,
+  Search,
+} from "../../../model";
 import {
   allowedFields,
   allowedModifiers,
   allowedOperators,
   Modifier,
   Operator,
-  RelationType,
-  Search,
   valueType,
 } from "../../../model";
-import { DateTime, now } from "../../../utils";
-import { ReactResult } from "../../utils/types";
+import type { DateTime } from "../../../utils";
+import { now } from "../../../utils";
+import type { ReactResult } from "../../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

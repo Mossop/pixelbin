@@ -4,8 +4,8 @@ import Input from "@material-ui/core/Input";
 import InputLabel from "@material-ui/core/InputLabel";
 import React, { forwardRef, useCallback } from "react";
 
-import { FieldState } from "../../utils/state";
-import { ReactRef, ReactResult } from "../../utils/types";
+import type { FieldState } from "../../utils/state";
+import type { ReactRef, ReactResult } from "../../utils/types";
 import { useFormContext, useUniqueId, useFormStyles } from "./shared";
 
 export interface TextFieldProps {

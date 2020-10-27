@@ -1,11 +1,13 @@
-import { Deed } from "deeds/immer";
-import { Draft } from "immer";
-import { Unsubscribe } from "redux";
+import type { Deed } from "deeds/immer";
+import type { Draft } from "immer";
+import type { Unsubscribe } from "redux";
 
 import { emptyMetadata } from "../../model";
-import { now, Overwrite } from "../../utils";
-import { Catalog, Reference, Tag, Album } from "../api/highlevel";
-import {
+import type { Overwrite } from "../../utils";
+import { now } from "../../utils";
+import type { Reference } from "../api/highlevel";
+import { Catalog, Tag, Album } from "../api/highlevel";
+import type {
   CatalogState,
   ServerState,
   PersonState,
@@ -18,8 +20,9 @@ import {
 } from "../api/types";
 import { PageType } from "../pages/types";
 import { provideService } from "../services";
-import { StoreState, StoreType } from "../store/types";
-import { intoMap, MapOf } from "../utils/maps";
+import type { StoreState, StoreType } from "../store/types";
+import type { MapOf } from "../utils/maps";
+import { intoMap } from "../utils/maps";
 
 type MockStorage = Partial<StorageState>;
 type MockPerson = Overwrite<Omit<PersonState, "catalog">, {

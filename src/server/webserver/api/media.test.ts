@@ -3,9 +3,9 @@ import path from "path";
 
 import sharp from "sharp";
 
+import type { Api } from "../../../model";
 import {
   AlternateFileType,
-  Api,
   emptyMetadata,
   ErrorCode,
   RelationType,
@@ -14,7 +14,7 @@ import {
 import { expect, mockedFunction, deferCall, mockDateTime, reordered } from "../../../test-helpers";
 import { now, parseDateTime } from "../../../utils";
 import { connection, insertTestData } from "../../database/test-helpers";
-import { OriginalInfo } from "../../database/unsafe";
+import type { OriginalInfo } from "../../database/unsafe";
 import { StorageService } from "../../storage";
 import { buildTestApp } from "../test-helpers";
 

@@ -2,12 +2,14 @@ import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
-import { createStyles, makeStyles, Theme, useTheme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles, useTheme } from "@material-ui/core/styles";
 import React, { forwardRef, useCallback, useMemo } from "react";
 
-import { Album, Catalog } from "../api/highlevel";
-import { ReactRef, ReactResult } from "../utils/types";
-import { VirtualAlbum, VirtualCatalog, VirtualItem } from "../utils/virtual";
+import type { Album, Catalog } from "../api/highlevel";
+import type { ReactRef, ReactResult } from "../utils/types";
+import type { VirtualItem } from "../utils/virtual";
+import { VirtualAlbum, VirtualCatalog } from "../utils/virtual";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

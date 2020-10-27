@@ -2,7 +2,7 @@ import { emptyMetadata, RelationType } from "../../model";
 import { expect, reordered, sortedIds } from "../../test-helpers";
 import { buildTestDB, connection, insertTestData, testData } from "./test-helpers";
 import { Table } from "./types";
-import { StoredMediaDetail } from "./types/tables";
+import type { StoredMediaDetail } from "./types/tables";
 
 buildTestDB();
 

@@ -1,17 +1,20 @@
-import { AlternateFileType } from "../../model";
-import { AllNull, now } from "../../utils";
-import { UserScopedConnection } from "./connection";
+import type { AlternateFileType } from "../../model";
+import type { AllNull } from "../../utils";
+import { now } from "../../utils";
+import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
 import { from, update, insert } from "./queries";
-import {
+import type {
   Tables,
+  Media,
+  UnprocessedMedia,
+} from "./types";
+import {
   Table,
   ref,
   intoDBTypes,
   intoAPITypes,
-  Media,
-  UnprocessedMedia,
   buildTimeZoneFields,
   applyTimeZoneFields,
 } from "./types";

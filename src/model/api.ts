@@ -1,8 +1,8 @@
-import { Files } from "formidable";
+import type { Files } from "formidable";
 
 import type { DateTime, Nullable, Primitive } from "../utils";
-import * as ObjectModel from "./models";
-import { Query } from "./search";
+import type * as ObjectModel from "./models";
+import type { Query } from "./search";
 
 export enum ErrorCode {
   UnknownException = "server-failure",

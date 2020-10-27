@@ -1,11 +1,12 @@
 import Box from "@material-ui/core/Box";
-import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React from "react";
 
-import { MediaState, ProcessedMediaState } from "../api/types";
+import type { MediaState, ProcessedMediaState } from "../api/types";
 import { useSelector } from "../store";
-import { StoreState } from "../store/types";
-import { ReactResult } from "../utils/types";
+import type { StoreState } from "../store/types";
+import type { ReactResult } from "../utils/types";
 import Loading from "./Loading";
 import { Preview } from "./Media";
 

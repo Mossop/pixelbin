@@ -1,4 +1,5 @@
-import pino, { Bindings, Level, LevelWithSilent } from "pino";
+import type { Bindings, Level, LevelWithSilent } from "pino";
+import pino from "pino";
 
 type LogMethod = pino.LogFn;
 

@@ -2,15 +2,15 @@ import { pathToRegexp } from "path-to-regexp";
 
 import { Join } from "../../model";
 import { Catalog, Album } from "../api/highlevel";
-import { ServerState } from "../api/types";
+import type { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import actions from "../store/actions";
-import { StoreType, UIState } from "../store/types";
+import type { StoreType, UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import { createDraft } from "./helpers";
 import * as history from "./history";
-import { HistoryState, buildState } from "./history";
+import type { HistoryState } from "./history";
 import { MediaLookupType } from "./medialookup";
 
 function re(pattern: string): RegExp {
@@ -299,37 +299,39 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
 export function fromUIState(uiState: UIState): HistoryState {
   switch (uiState.overlay?.type) {
     case OverlayType.Login: {
-      return buildState("/login", encodeTargetState(uiState));
+      return history.buildState("/login", encodeTargetState(uiState));
     }
   }
 
   switch (uiState.page.type) {
     case PageType.Root: {
-      return buildState("/");
+      return history.buildState("/");
     }
     case PageType.User: {
-      return buildState("/user");
+      return history.buildState("/user");
     }
     case PageType.Catalog: {
-      return buildState(`/catalog/${uiState.page.catalog.id}`);
+      return history.buildState(`/catalog/${uiState.page.catalog.id}`);
     }
     case PageType.Album: {
-      return buildState(`/album/${uiState.page.album.id}`);
+      return history.buildState(`/album/${uiState.page.album.id}`);
     }
     case PageType.Media: {
       switch (uiState.page.lookup?.type) {
         case MediaLookupType.Album:
-          return buildState(`/album/${uiState.page.lookup.album.id}/media/${uiState.page.media}`);
+          return history.buildState(
+            `/album/${uiState.page.lookup.album.id}/media/${uiState.page.media}`,
+          );
         case MediaLookupType.Catalog:
-          return buildState(
+          return history.buildState(
             `/catalog/${uiState.page.lookup.catalog.id}/media/${uiState.page.media}`,
           );
         default:
-          return buildState(`/media/${uiState.page.media}`);
+          return history.buildState(`/media/${uiState.page.media}`);
       }
     }
     case PageType.Search: {
-      return buildState(`/catalog/${uiState.page.catalog.id}/search`);
+      return history.buildState(`/catalog/${uiState.page.catalog.id}/search`);
     }
 
     case PageType.NotFound: {

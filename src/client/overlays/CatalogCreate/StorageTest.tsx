@@ -1,16 +1,18 @@
 import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
-import { Theme, makeStyles, createStyles } from "@material-ui/core/styles";
+import type { Theme } from "@material-ui/core/styles";
+import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import CheckCircle from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
 import React, { useCallback, useEffect, useState } from "react";
 
-import { Api, AWSResult } from "../../../model";
+import type { Api } from "../../../model";
+import { AWSResult } from "../../../model";
 import { testStorage } from "../../api/catalog";
 import Loading from "../../components/Loading";
 import { errorString } from "../../utils/exception";
-import { ReactResult } from "../../utils/types";
+import type { ReactResult } from "../../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

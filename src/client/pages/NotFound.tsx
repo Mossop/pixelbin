@@ -3,7 +3,7 @@ import React from "react";
 
 import Content from "../components/Content";
 import Page from "../components/Page";
-import { ReactResult } from "../utils/types";
+import type { ReactResult } from "../utils/types";
 
 export default function NotFoundPage(): ReactResult {
   return <Page>
