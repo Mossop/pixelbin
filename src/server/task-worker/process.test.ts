@@ -265,6 +265,73 @@ test("Process image metadata", async (): Promise<void> => {
   await temp.cleanup();
 });
 
+test("Process image fails", async (): Promise<void> => {
+  let dbConnection = await connection;
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+
+  let temp = await tmpdir({
+    unsafeCleanup: true,
+  });
+
+  let storage = (await (await services.storage).getStorage("")).get();
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
+
+  let created = mockDateTime("2014-06-21T02:56:53");
+  let uploaded = parseDateTime("2015-06-21T02:56:53");
+  let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
+
+  let media = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
+    city: "Portland",
+  });
+
+  getUploadedFileMock.mockResolvedValueOnce({
+    catalog: "c1",
+    media: media.id,
+    name: "Testname.jpg",
+    uploaded,
+    path: sourceFile,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
+  getLocalFilePathMock.mockImplementation(
+    (media: string, original: string, name: string): Promise<string> => {
+      return Promise.resolve(path.join(temp.path, name));
+    },
+  );
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let storeFileMock = mockedFunction(storage.storeFile);
+  storeFileMock.mockRejectedValueOnce(new Error("Failed to upload file."));
+
+  await handleUploadedFile(media.id);
+
+  expect(storeFileMock).toHaveBeenCalledTimes(1);
+  expect(deleteUploadedFileMock).not.toHaveBeenCalled();
+
+  let [fullMedia] = await user1Db.getMedia([media.id]);
+  expect(fullMedia).toEqual({
+    id: media.id,
+    catalog: "c1",
+    created: expect.toEqualDate(created),
+    updated: expect.toEqualDate(created),
+
+    ...emptyMetadata,
+    city: "Portland",
+
+    albums: [],
+    tags: [],
+    people: [],
+  });
+
+  await temp.cleanup();
+});
+
 test("Process video metadata", async (): Promise<void> => {
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
