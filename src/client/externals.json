@@ -2,19 +2,16 @@
   {
     "id": "react",
     "variable": "React",
-    "version": "16.14.0",
     "path": "umd/react.development.js"
   },
   {
     "id": "react-dom",
     "variable": "ReactDOM",
-    "version": "16.14.0",
     "path": "umd/react-dom.development.js"
   },
   {
     "id": "luxon",
     "variable": "luxon",
-    "version": "1.25.0",
     "path": "build/global/luxon.min.js"
   }
 ]

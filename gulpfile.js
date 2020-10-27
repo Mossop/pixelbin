@@ -167,14 +167,6 @@ async function lintPackages() {
       continue;
     }
 
-    let lockInfo = packageLock.dependencies[pkg.id];
-
-    if (pkg.version != lockInfo.version) {
-      errors.push(`HTML includes ${pkg.id} as version ${pkg.version} ` +
-        `but ${lockInfo.version} was expected`);
-      continue;
-    }
-
     let file = pkg.path.split("/");
     let target = path.join(__dirname, "node_modules", pkg.id, ...file);
     try {

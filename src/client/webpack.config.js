@@ -8,10 +8,11 @@ const HtmlWebpackTagsPlugin = require("html-webpack-tags-plugin");
  * @typedef {Object} External
  * @property {string} id
  * @property {string} variable
- * @property {string} version
  * @property {string} path
  */
 
+// eslint-disable-next-line import/no-restricted-paths
+const lock = require("../../package-lock.json");
 /**
  * @type {External[]}
  */
@@ -27,7 +28,7 @@ const externals = require("./externals.json");
 function buildExternals() {
   return externals.map(pkg => ({
     type: "js",
-    path: `https://unpkg.com/${pkg.id}@${pkg.version}/${pkg.path}`,
+    path: `https://unpkg.com/${pkg.id}@${lock.dependencies[pkg.id].version}/${pkg.path}`,
     publicPath: false,
     attributes: {
       crossorigin: true,
