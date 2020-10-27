@@ -83,7 +83,7 @@ beforeEach(async (): Promise<void> => {
       id: "m6",
       catalog: "c1",
       deleted: false,
-      created: parseDateTime("2004-02-01T04:05:06"),
+      created: parseDateTime("2019-06-01T04:05:06"),
       updated: parseDateTime("2004-02-01T04:05:06"),
     }],
     [Table.MediaAlbum]: [{
@@ -111,7 +111,11 @@ beforeEach(async (): Promise<void> => {
 });
 
 function ids(items: { id: string }[]): string[] {
-  return idSorted(items).map((item: { id: string }) => item.id);
+  return items.map((item: { id: string }) => item.id);
+}
+
+async function searchSorted(userDb: UserScopedConnection, search: Query): Promise<string[]> {
+  return ids(idSorted(await userDb.searchMedia("c1", search)));
 }
 
 async function search(userDb: UserScopedConnection, search: Query): Promise<string[]> {
@@ -122,7 +126,7 @@ test("Correctness", async (): Promise<void> => {
   let dbConnection = await connection;
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     type: "compound",
     join: Join.And,
     invert: false,
@@ -140,7 +144,7 @@ test("Numeric metadata search", async (): Promise<void> => {
   let dbConnection = await connection;
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "rating",
@@ -151,7 +155,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "rating",
@@ -160,7 +164,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     value: "3",
   })).rejects.toThrow("Expected a 'number' value for operator 'equal' but got 'string'.");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "rating",
@@ -179,13 +183,13 @@ test("Numeric metadata search", async (): Promise<void> => {
     operator: Operator.Equal,
     value: 3,
   })).resolves.toEqual([
-    "m2",
-    "m3",
-    "m5",
     "m6",
+    "m3",
+    "m2",
+    "m5",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "rating",
@@ -196,7 +200,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     "m1",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "rating",
@@ -207,7 +211,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "rating",
@@ -218,7 +222,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     "m1",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "rating",
@@ -229,7 +233,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "rating",
@@ -240,7 +244,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     "m1",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "rating",
@@ -259,9 +263,9 @@ test("Numeric metadata search", async (): Promise<void> => {
     operator: Operator.Empty,
     value: null,
   })).resolves.toEqual([
+    "m6",
     "m3",
     "m5",
-    "m6",
   ]);
 
   expect(() => checkQuery({
@@ -278,7 +282,7 @@ test("String metadata search", async (): Promise<void> => {
   let dbConnection = await connection;
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "title",
@@ -289,7 +293,7 @@ test("String metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -300,7 +304,7 @@ test("String metadata search", async (): Promise<void> => {
     "m1",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -309,7 +313,7 @@ test("String metadata search", async (): Promise<void> => {
     value: "An",
   })).rejects.toThrow("Cannot apply operator 'lessthan' to a 'string' value.");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -322,7 +326,7 @@ test("String metadata search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -335,7 +339,7 @@ test("String metadata search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -346,7 +350,7 @@ test("String metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -357,7 +361,7 @@ test("String metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -370,7 +374,7 @@ test("String metadata search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -379,7 +383,7 @@ test("String metadata search", async (): Promise<void> => {
     value: "descrip",
   })).resolves.toEqual([]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -388,7 +392,7 @@ test("String metadata search", async (): Promise<void> => {
     value: "descrip",
   })).resolves.toEqual([]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "description",
@@ -403,7 +407,7 @@ test("String metadata search", async (): Promise<void> => {
     "m6",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "title",
@@ -415,7 +419,7 @@ test("String metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "description",
@@ -427,7 +431,7 @@ test("String metadata search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "title",
@@ -446,7 +450,7 @@ test("Date metadata search", async (): Promise<void> => {
   let dbConnection = await connection;
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "taken",
@@ -457,7 +461,7 @@ test("Date metadata search", async (): Promise<void> => {
     "m1",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "taken",
@@ -468,7 +472,7 @@ test("Date metadata search", async (): Promise<void> => {
     "m1",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "taken",
@@ -482,7 +486,7 @@ test("Date metadata search", async (): Promise<void> => {
     "m6",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "taken",
@@ -494,7 +498,7 @@ test("Date metadata search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "field",
     field: "taken",
@@ -505,7 +509,7 @@ test("Date metadata search", async (): Promise<void> => {
     "m1",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "taken",
@@ -516,7 +520,7 @@ test("Date metadata search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "field",
     field: "taken",
@@ -533,7 +537,7 @@ test("Compound search", async (): Promise<void> => {
   let dbConnection = await connection;
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     join: Join.And,
@@ -556,7 +560,7 @@ test("Compound search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     join: Join.Or,
@@ -580,7 +584,7 @@ test("Compound search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     join: Join.And,
@@ -614,7 +618,7 @@ test("Compound search", async (): Promise<void> => {
     "m2",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     join: Join.Or,
@@ -650,7 +654,7 @@ test("Compound search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     join: Join.And,
@@ -674,7 +678,7 @@ test("Compound search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     join: Join.And,
@@ -701,7 +705,7 @@ test("Album search", async (): Promise<void> => {
   let dbConnection = await connection;
   let user2Db = dbConnection.forUser("someone2@nowhere.com");
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -727,7 +731,7 @@ test("Album search", async (): Promise<void> => {
     "m6",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "compound",
     relation: RelationType.Album,
@@ -752,7 +756,7 @@ test("Album search", async (): Promise<void> => {
     "m5",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -769,7 +773,7 @@ test("Album search", async (): Promise<void> => {
     "m3",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -789,7 +793,7 @@ test("Album search", async (): Promise<void> => {
     "m6",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: false,
     type: "compound",
     relation: RelationType.Album,
@@ -809,7 +813,7 @@ test("Album search", async (): Promise<void> => {
     "m6",
   ]);
 
-  await expect(search(user2Db, {
+  await expect(searchSorted(user2Db, {
     invert: true,
     type: "compound",
     relation: RelationType.Album,

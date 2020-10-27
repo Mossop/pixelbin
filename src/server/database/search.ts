@@ -187,6 +187,10 @@ export async function searchMedia(
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
     .andWhere(ref(Table.UserCatalog, "catalog"), catalog)
+    .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
+      ref(Table.StoredMediaDetail, "taken"),
+      ref(Table.StoredMediaDetail, "created"),
+    ]))
     .select<Tables.StoredMediaDetail[]>(ref(Table.StoredMediaDetail));
 
   builder = applyQuery(

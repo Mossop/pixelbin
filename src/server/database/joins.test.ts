@@ -1,5 +1,6 @@
 import { emptyMetadata, RelationType } from "../../model";
 import { expect, reordered, sortedIds } from "../../test-helpers";
+import { parseDateTime } from "../../utils";
 import { buildTestDB, connection, insertTestData, testData } from "./test-helpers";
 import { Table } from "./types";
 import type { StoredMediaDetail } from "./types/tables";
@@ -36,9 +37,18 @@ test("Album media tests", async (): Promise<void> => {
     return media.map((item: StoredMediaDetail): string => item.id);
   };
 
-  let media1 = await user1Db.createMedia("c1", emptyMetadata);
-  let media2 = await user1Db.createMedia("c1", emptyMetadata);
-  let media3 = await user1Db.createMedia("c1", emptyMetadata);
+  let media1 = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
+    taken: parseDateTime("2019-01-01T04:05:06"),
+  });
+  let media2 = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
+    taken: parseDateTime("2020-01-01T04:05:06"),
+  });
+  let media3 = await user1Db.createMedia("c1", {
+    ...emptyMetadata,
+    taken: parseDateTime("2018-01-01T04:05:06"),
+  });
   let media4 = await user1Db.createMedia("c2", emptyMetadata);
   let media5 = await user1Db.createMedia("c2", emptyMetadata);
   let media6 = await user1Db.createMedia("c2", emptyMetadata);
@@ -88,9 +98,9 @@ test("Album media tests", async (): Promise<void> => {
     media3,
   ]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
-    media1.id,
+  expect(await mediaInAlbum("a1")).toEqual([
     media2.id,
+    media1.id,
     media3.id,
   ]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -115,9 +125,9 @@ test("Album media tests", async (): Promise<void> => {
     media3,
   ]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
-    media1.id,
+  expect(await mediaInAlbum("a1")).toEqual([
     media2.id,
+    media1.id,
     media3.id,
   ]);
   expect(await mediaInAlbum("a2")).toEqual([]);
@@ -152,7 +162,7 @@ test("Album media tests", async (): Promise<void> => {
     "a2",
   ]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
+  expect(await mediaInAlbum("a1")).toEqual([
     media2.id,
     media3.id,
   ]);
@@ -299,11 +309,11 @@ test("Album media tests", async (): Promise<void> => {
     media5,
   ]));
 
-  expect(await mediaInAlbum("a1")).toInclude([
+  expect(await mediaInAlbum("a1")).toEqual([
     media1.id,
     media3.id,
   ]);
-  expect(await mediaInAlbum("a2")).toInclude([
+  expect(await mediaInAlbum("a2")).toEqual([
     media1.id,
     media3.id,
   ]);
@@ -340,10 +350,10 @@ test("Album media tests", async (): Promise<void> => {
     "a6",
   ]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
+  expect(await mediaInAlbum("a1")).toEqual([
     media3.id,
   ]);
-  expect(await mediaInAlbum("a2")).toInclude([
+  expect(await mediaInAlbum("a2")).toEqual([
     media1.id,
     media3.id,
   ]);
@@ -390,15 +400,15 @@ test("Album media tests", async (): Promise<void> => {
     media6.id,
   ]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
+  expect(await mediaInAlbum("a1")).toEqual([
     media3.id,
   ]);
-  expect(await mediaInAlbum("a2")).toInclude([
-    media1.id,
+  expect(await mediaInAlbum("a2")).toEqual([
     media2.id,
+    media1.id,
     media3.id,
   ]);
-  expect(await mediaInAlbum("a3")).toInclude([
+  expect(await mediaInAlbum("a3")).toEqual([
     media2.id,
   ]);
   expect(await mediaInAlbum("a4")).toEqual([]);
@@ -426,14 +436,14 @@ test("Album media tests", async (): Promise<void> => {
     media1.id,
   ]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
+  expect(await mediaInAlbum("a1")).toEqual([
     media3.id,
   ]);
-  expect(await mediaInAlbum("a2")).toInclude([
+  expect(await mediaInAlbum("a2")).toEqual([
     media2.id,
     media3.id,
   ]);
-  expect(await mediaInAlbum("a3")).toInclude([
+  expect(await mediaInAlbum("a3")).toEqual([
     media2.id,
   ]);
   expect(await mediaInAlbum("a4")).toEqual([]);
@@ -454,11 +464,11 @@ test("Album media tests", async (): Promise<void> => {
 
   expect(added).toEqual([]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
+  expect(await mediaInAlbum("a1")).toEqual([
     media3.id,
   ]);
   expect(await mediaInAlbum("a2")).toEqual([]);
-  expect(await mediaInAlbum("a3")).toInclude([
+  expect(await mediaInAlbum("a3")).toEqual([
     media2.id,
   ]);
   expect(await mediaInAlbum("a4")).toEqual([]);
@@ -473,11 +483,11 @@ test("Album media tests", async (): Promise<void> => {
   ]);
   expect(await mediaInAlbum("a8")).toEqual([]);
 
-  expect(await mediaInAlbum("a1")).toInclude([
+  expect(await mediaInAlbum("a1")).toEqual([
     media3.id,
   ]);
   expect(await mediaInAlbum("a2")).toEqual([]);
-  expect(await mediaInAlbum("a3")).toInclude([
+  expect(await mediaInAlbum("a3")).toEqual([
     media2.id,
   ]);
   expect(await mediaInAlbum("a4")).toEqual([]);
@@ -495,7 +505,19 @@ test("Album media tests", async (): Promise<void> => {
   await expect(user2Db.listMediaInAlbum("a7")).rejects.toThrow("Unknown Album.");
 
   let media = await user1Db.listMediaInAlbum("a1", true);
-  expect(media.map(extracted)).toInclude([{
+  expect(media.map(extracted)).toEqual([{
+    id: media2.id,
+    catalog: "c1",
+
+    tags: [],
+    people: [],
+    albums: [{
+      id: "a3",
+      catalog: "c1",
+      name: "Album 3",
+      parent: "a1",
+    }],
+  }, {
     id: media3.id,
     catalog: "c1",
 
@@ -507,7 +529,12 @@ test("Album media tests", async (): Promise<void> => {
       name: "Album 1",
       parent: null,
     }],
-  }, {
+  }]);
+
+  media = await user1Db.listMediaInCatalog("c1");
+  expect(media).toHaveLength(3);
+
+  expect(media.map(extracted)).toEqual([{
     id: media2.id,
     catalog: "c1",
 
@@ -519,35 +546,13 @@ test("Album media tests", async (): Promise<void> => {
       name: "Album 3",
       parent: "a1",
     }],
-  }]);
-
-  media = await user1Db.listMediaInCatalog("c1");
-  expect(media).toHaveLength(3);
-  media = [
-    media.find((media: StoredMediaDetail): boolean => media.id == media1.id)!,
-    media.find((media: StoredMediaDetail): boolean => media.id == media2.id)!,
-    media.find((media: StoredMediaDetail): boolean => media.id == media3.id)!,
-  ];
-
-  expect(media.map(extracted)).toInclude([{
+  }, {
     id: media1.id,
     catalog: "c1",
 
     tags: [],
     people: [],
     albums: [],
-  }, {
-    id: media2.id,
-    catalog: "c1",
-
-    tags: [],
-    people: [],
-    albums: [{
-      id: "a3",
-      catalog: "c1",
-      name: "Album 3",
-      parent: "a1",
-    }],
   }, {
     id: media3.id,
     catalog: "c1",

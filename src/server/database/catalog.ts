@@ -107,6 +107,10 @@ export async function listMediaInCatalog(
 
   return from(this.knex, Table.StoredMediaDetail)
     .andWhere(ref(Table.StoredMediaDetail, "catalog"), id)
+    .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
+      ref(Table.StoredMediaDetail, "taken"),
+      ref(Table.StoredMediaDetail, "created"),
+    ]))
     .select(ref(Table.StoredMediaDetail));
 }
 
@@ -173,24 +177,30 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
   // This assumes that if you can read the album you can read its descendants.
   await this.checkRead(Table.Album, [id]);
 
-  let albums: Knex.QueryBuilder | readonly string[];
+  let mediaIds: Knex.QueryBuilder;
   if (recursive) {
-    albums = withChildren(
+    let albums = withChildren(
       this.knex,
       Table.Album,
       from(this.knex, Table.Album)
         .where(ref(Table.Album, "id"), id),
     ).select("id");
+
+    mediaIds = from(this.knex, Table.MediaAlbum)
+      .whereIn(ref(Table.MediaAlbum, "album"), albums)
+      .distinct(ref(Table.MediaAlbum, "media"));
   } else {
-    albums = [id];
+    mediaIds = from(this.knex, Table.MediaAlbum)
+      .where(ref(Table.MediaAlbum, "album"), id)
+      .distinct(ref(Table.MediaAlbum, "media"));
   }
 
   return from(this.knex, Table.StoredMediaDetail)
-    .join(Table.MediaAlbum, ref(Table.MediaAlbum, "media"), ref(Table.StoredMediaDetail, "id"))
-    // @ts-ignore
-    .whereIn(ref(Table.MediaAlbum, "album"), albums)
-    .orderBy(ref(Table.StoredMediaDetail, "id"))
-    .distinctOn(ref(Table.StoredMediaDetail, "id"))
+    .whereIn(ref(Table.StoredMediaDetail, "id"), mediaIds)
+    .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
+      ref(Table.StoredMediaDetail, "taken"),
+      ref(Table.StoredMediaDetail, "created"),
+    ]))
     .select(ref(Table.StoredMediaDetail));
 });
 
