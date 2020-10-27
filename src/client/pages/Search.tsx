@@ -28,25 +28,21 @@ export default function SearchPage({
   let { l10n } = useLocalization();
   let actions = useActions();
 
-  let onMediaClick = useCallback((media: MediaState): void => {
-    actions.navigate({
-      page: {
-        type: PageType.Media,
-        media: media.id,
-        lookup: {
-          type: MediaLookupType.Search,
-          catalog,
-          query,
-        },
-      },
-    });
-  }, [actions, catalog, query]);
-
   let lookup = useMemo<SearchMediaLookup>(() => ({
     type: MediaLookupType.Search,
     catalog,
     query,
   }), [catalog, query]);
+
+  let onMediaClick = useCallback((media: MediaState): void => {
+    actions.navigate({
+      page: {
+        type: PageType.Media,
+        media: media.id,
+        lookup,
+      },
+    });
+  }, [actions, lookup]);
 
   let media = useMediaLookup(lookup);
 

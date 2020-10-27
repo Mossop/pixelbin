@@ -52,25 +52,21 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     [props.album, actions],
   );
 
-  let onMediaClick = useCallback((media: MediaState): void => {
-    actions.navigate({
-      page: {
-        type: PageType.Media,
-        media: media.id,
-        lookup: {
-          type: MediaLookupType.Album,
-          album: props.album,
-          recursive: true,
-        },
-      },
-    });
-  }, [actions, props.album]);
-
   let lookup = useMemo<AlbumMediaLookup>(() => ({
     type: MediaLookupType.Album,
     album: props.album,
     recursive: true,
   }), [props.album]);
+
+  let onMediaClick = useCallback((media: MediaState): void => {
+    actions.navigate({
+      page: {
+        type: PageType.Media,
+        media: media.id,
+        lookup,
+      },
+    });
+  }, [actions, lookup]);
 
   let media = useMediaLookup(lookup);
 

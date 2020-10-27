@@ -336,46 +336,46 @@ function isOrderable(value: unknown): value is Orderable {
   return typeof value == "object" && (!value || typeof value["id"] == "string");
 }
 
-export function reordered<T>(list: T[]): T[] {
-  if (!list.length) {
-    return list;
-  }
-
-  if (!list.every(isOrderable)) {
-    return list;
-  }
-
-  let result: T[] = list.map((item: T): T => {
-    if (typeof item != "object" || !item) {
+export function reordered<T>(item: T): T {
+  if (Array.isArray(item)) {
+    if (!item.length) {
       return item;
     }
 
-    return Object.fromEntries(
-      Object.entries(item).map(([key, value]: [unknown, unknown]) => {
-        if (Array.isArray(value)) {
-          return [key, reordered(value)];
-        }
-        return [key, value];
-      }),
-    ) as T;
-  });
-
-  // @ts-ignore
-  result.sort((a: Orderable, b: Orderable): number => {
-    if (!a && !b) {
-      return 0;
+    if (!item.every(isOrderable)) {
+      return item;
     }
 
-    if (!a) {
-      return -1;
-    }
+    let result = Array.from(item, reordered) as unknown as T;
 
-    if (!b) {
-      return -1;
-    }
+    // @ts-ignore
+    result.sort((a: Orderable, b: Orderable): number => {
+      if (!a && !b) {
+        return 0;
+      }
 
-    return a.id.localeCompare(b.id);
-  });
+      if (!a) {
+        return -1;
+      }
 
-  return result;
+      if (!b) {
+        return -1;
+      }
+
+      return a.id.localeCompare(b.id);
+    });
+
+    return result;
+  } else if (typeof item != "object" || !item) {
+    return item;
+  }
+
+  return Object.fromEntries(
+    Object.entries(item).map(([key, value]: [unknown, unknown]) => {
+      if (Array.isArray(value)) {
+        return [key, reordered(value)];
+      }
+      return [key, value];
+    }),
+  ) as T;
 }

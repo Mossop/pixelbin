@@ -443,7 +443,7 @@ test("History navigations", (): void => {
   watchStore(mockedStore as unknown as StoreType);
 
   expect(mockedStore.dispatch).toHaveBeenCalledWith({
-    type: "updateUIState",
+    type: "navigate",
     payload: [{
       page: {
         type: PageType.Root,
@@ -497,7 +497,7 @@ test("History navigations", (): void => {
   expect(mockedReplaceState).toHaveBeenCalledTimes(0);
 
   expect(mockedStore.dispatch).toHaveBeenCalledWith({
-    type: "updateUIState",
+    type: "navigate",
     payload: [{
       page: {
         type: PageType.NotFound,

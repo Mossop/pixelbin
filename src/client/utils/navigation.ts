@@ -8,7 +8,6 @@ import { PageType } from "../pages/types";
 import actions from "../store/actions";
 import type { StoreType, UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
-import { createDraft } from "./helpers";
 import * as history from "./history";
 import type { HistoryState } from "./history";
 import { MediaLookupType } from "./medialookup";
@@ -380,15 +379,15 @@ export function stateURLMatches(a: HistoryState, b: HistoryState): boolean {
 
 export function watchStore(store: StoreType): void {
   let historyState = history.getState();
-  let uiState = createDraft(intoUIState(historyState, store.getState().serverState));
+  let uiState = intoUIState(historyState, store.getState().serverState);
 
   history.addListener((newHistoryState: HistoryState): void => {
     historyState = newHistoryState;
-    uiState = createDraft(intoUIState(historyState, store.getState().serverState));
-    store.dispatch(actions.updateUIState(uiState));
+    uiState = intoUIState(historyState, store.getState().serverState);
+    store.dispatch(actions.navigate(uiState));
   });
 
-  store.dispatch(actions.updateUIState(uiState));
+  store.dispatch(actions.navigate(uiState));
 
   store.subscribe((): void => {
     let storeUIState = store.getState().ui;
@@ -396,7 +395,7 @@ export function watchStore(store: StoreType): void {
       return;
     }
 
-    uiState = createDraft(storeUIState);
+    uiState = storeUIState;
     let newHistoryState = fromUIState(uiState);
     if (stateURLMatches(historyState, newHistoryState)) {
       history.replaceState(newHistoryState);

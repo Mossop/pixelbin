@@ -190,16 +190,6 @@ test("Media upload", async (): Promise<void> => {
     albums: [],
     people: [{
       catalog: "c1",
-      id: "p1",
-      name: "Person 1",
-      location: null,
-    }, {
-      catalog: "c1",
-      id: "p2",
-      name: "Person 2",
-      location: null,
-    }, {
-      catalog: "c1",
       id: expect.stringMatching(/P:[a-zA-Z0-9]+/),
       name: "New person",
       location: {
@@ -208,6 +198,16 @@ test("Media upload", async (): Promise<void> => {
         top: 0,
         bottom: 1,
       },
+    }, {
+      catalog: "c1",
+      id: "p1",
+      name: "Person 1",
+      location: null,
+    }, {
+      catalog: "c1",
+      id: "p2",
+      name: "Person 2",
+      location: null,
     }],
     tags: [{
       catalog: "c1",

@@ -33,23 +33,20 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
     [props, actions],
   );
 
+  let lookup = useMemo<CatalogMediaLookup>(() => ({
+    type: MediaLookupType.Catalog,
+    catalog: props.catalog,
+  }), [props.catalog]);
+
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
         type: PageType.Media,
         media: media.id,
-        lookup: {
-          type: MediaLookupType.Catalog,
-          catalog: props.catalog,
-        },
+        lookup,
       },
     });
-  }, [actions, props.catalog]);
-
-  let lookup = useMemo<CatalogMediaLookup>(() => ({
-    type: MediaLookupType.Catalog,
-    catalog: props.catalog,
-  }), [props.catalog]);
+  }, [actions, lookup]);
 
   let media = useMediaLookup(lookup);
 

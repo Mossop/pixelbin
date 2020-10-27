@@ -300,13 +300,13 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
 
   if (!mediaList) {
     return <Page>
-      <Loading flexGrow={1}/>
+      <Loading className={classes.content}/>
     </Page>;
   }
 
   if (mediaIndex < 0) {
     return <Page>
-      <Loading flexGrow={1}/>
+      <Loading className={classes.content}/>
     </Page>;
   }
 
