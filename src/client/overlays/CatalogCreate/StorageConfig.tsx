@@ -1,25 +1,33 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 
 import { Api } from "../../../model";
 import { TextField } from "../../components/Forms";
 import { nulledString, ObjectState } from "../../utils/state";
-import { ReactRef, ReactResult } from "../../utils/types";
+import { ReactResult } from "../../utils/types";
 
 export interface StorageConfigProps {
+  visible: boolean;
   storageType: string;
   state: ObjectState<Api.StorageCreateRequest>;
-  storageNameRef: ReactRef;
 }
 
 export default function StorageConfig({
+  visible,
   storageType,
   state,
-  storageNameRef,
 }: StorageConfigProps): ReactResult {
+  let nameRef = useRef<HTMLElement>();
+
+  useEffect(() => {
+    if (visible) {
+      nameRef.current?.focus();
+    }
+  }, [nameRef, visible]);
+
   return <React.Fragment>
     <TextField
       id="storage-name"
-      ref={storageNameRef}
+      ref={nameRef}
       labelId="storage-name"
       required={storageType != "existing"}
       state={state.name}
@@ -51,7 +59,6 @@ export default function StorageConfig({
     <TextField
       id="storage-path"
       labelId="storage-path"
-      required={storageType != "existing"}
       state={nulledString(state.path)}
     />
   </React.Fragment>;

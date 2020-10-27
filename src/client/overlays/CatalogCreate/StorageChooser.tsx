@@ -8,14 +8,8 @@ import { ReadonlyMapOf } from "../../utils/maps";
 import { nulledString, ObjectState } from "../../utils/state";
 import { ReactResult } from "../../utils/types";
 
-export interface StorageChoice {
-  storageType: string;
-  existingStorage: string;
-  endpoint: string;
-  publicUrl: string;
-}
-
 export interface StorageChooserProps {
+  visible: boolean;
   storage: ReadonlyMapOf<StorageState>;
   state: ObjectState<CatalogCreateState>;
 }

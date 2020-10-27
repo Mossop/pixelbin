@@ -4,10 +4,12 @@ import { Theme, makeStyles, createStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import CheckCircle from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { Api, AWSResult } from "../../../model";
+import { testStorage } from "../../api/catalog";
 import Loading from "../../components/Loading";
+import { errorString } from "../../utils/exception";
 import { ReactResult } from "../../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -27,18 +29,49 @@ const useStyles = makeStyles((theme: Theme) =>
   }));
 
 export interface StorageTestProps {
-  storageTestResult: Api.StorageTestResult | null;
+  visible: boolean;
+  storageConfig: Api.StorageCreateRequest;
+  setCanProceed: (val: boolean) => void;
 }
 
 export default function StorageTest({
-  storageTestResult,
+  visible,
+  storageConfig,
+  setCanProceed,
 }: StorageTestProps): ReactResult {
   let { l10n } = useLocalization();
   let classes = useStyles();
+  let [testResult, setTestResult] = useState<Api.StorageTestResult | null>(null);
 
-  if (!storageTestResult) {
+  const startStorageTest = useCallback(async (): Promise<void> => {
+    setCanProceed(false);
+    setTestResult(null);
+
+    try {
+      let {
+        name,
+        ...config
+      } = storageConfig;
+      let result = await testStorage(config);
+      setCanProceed(result.result == AWSResult.Success);
+      setTestResult(result);
+    } catch (e) {
+      setTestResult({
+        result: AWSResult.UnknownFailure,
+        message: errorString(l10n, e),
+      });
+    }
+  }, [l10n, storageConfig, setCanProceed]);
+
+  useEffect(() => {
+    if (visible) {
+      void startStorageTest();
+    }
+  }, [startStorageTest, visible]);
+
+  if (!testResult) {
     return <Loading id="storage-test-testing" flexGrow={1}/>;
-  } else if (storageTestResult.result != AWSResult.Success) {
+  } else if (testResult.result != AWSResult.Success) {
     return <Box
       id="storage-test-failure"
       flexGrow={1}
@@ -50,15 +83,15 @@ export default function StorageTest({
     >
       <ErrorIcon className={classes.testIcon}/>
       <Typography id="storage-test-result" variant="h4" align="center">
-        {l10n.getString(`aws-${storageTestResult.result}`)}
+        {l10n.getString(`aws-${testResult.result}`)}
       </Typography>
       {
-        storageTestResult.message && <Box
+        testResult.message && <Box
           id="storage-failure-message"
           component="p"
           textAlign="center"
         >
-          {storageTestResult.message}
+          {testResult.message}
         </Box>
       }
     </Box>;
@@ -67,7 +100,7 @@ export default function StorageTest({
       id="storage-test-success"
       flexGrow={1}
       display="flex"
-      flexDirection="row"
+      flexDirection="column"
       justifyContent="flex-start"
       alignItems="center"
       className={classes.success}

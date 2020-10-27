@@ -1,13 +1,12 @@
-import { useLocalization } from "@fluent/react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
-import { Api, AWSResult } from "../../../model";
-import { testStorage, createCatalog, createStorage } from "../../api/catalog";
+import { Api } from "../../../model";
+import { createCatalog, createStorage } from "../../api/catalog";
 import { UserState } from "../../api/types";
 import { useFormState } from "../../components/Forms";
 import SteppedDialog, { Step } from "../../components/Forms/SteppedDialog";
 import { useActions } from "../../store/actions";
-import { AppError, errorString } from "../../utils/exception";
+import { AppError } from "../../utils/exception";
 import { ReactResult } from "../../utils/types";
 import CatalogConfig from "./CatalogConfig";
 import StorageChooser from "./StorageChooser";
@@ -18,7 +17,6 @@ export interface CatalogCreateState {
   storageType: string;
   existingStorage: string;
   storageConfig: Api.StorageCreateRequest,
-  storageTestResult: Api.StorageTestResult | null,
   catalogName: string;
 }
 
@@ -27,7 +25,6 @@ export interface CatalogCreateOverlayProps {
 }
 
 export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps): ReactResult {
-  let { l10n } = useLocalization();
   let [disabled, setDisabled] = useState(false);
   let [error, setError] = useState<AppError | null>(null);
   let actions = useActions();
@@ -45,9 +42,9 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
       endpoint: null,
       publicUrl: null,
     },
-    storageTestResult: null,
     catalogName: "",
   });
+  let [storageValid, setStorageValid] = useState(true);
 
   let onSubmit = useCallback(async (): Promise<void> => {
     setDisabled(true);
@@ -78,39 +75,6 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
 
   let isFilled = (val: { value: string | null }): boolean => !!val.value;
 
-  let storageNameRef = useRef<HTMLElement>();
-  let catalogNameRef = useRef<HTMLElement>();
-
-  useEffect(() => {
-    switch (currentStep) {
-      case 1:
-        storageNameRef.current?.focus();
-        break;
-      case 3:
-        catalogNameRef.current?.focus();
-        break;
-    }
-  }, [
-    currentStep,
-  ]);
-
-  let startStorageTest = useCallback(async (): Promise<void> => {
-    state.storageTestResult.set(null);
-
-    try {
-      let {
-        name,
-        ...storageConfig
-      } = state.storageConfig.value;
-      state.storageTestResult.set(await testStorage(storageConfig));
-    } catch (e) {
-      state.storageTestResult.set({
-        result: AWSResult.UnknownFailure,
-        message: errorString(l10n, e),
-      });
-    }
-  }, [state, l10n]);
-
   let onBack = useCallback(() => {
     let nextStep = currentStep - 1;
     if (nextStep == 2) {
@@ -130,12 +94,8 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
       nextStep = 3;
     }
 
-    if (nextStep == 2) {
-      void startStorageTest();
-    }
-
     setCurrentStep(nextStep);
-  }, [currentStep, startStorageTest, state]);
+  }, [currentStep, state]);
 
   let canAdvance = useMemo((): boolean => {
     switch (currentStep) {
@@ -145,7 +105,7 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
         return isFilled(state.storageConfig.name) && isFilled(state.storageConfig.accessKeyId) &&
           isFilled(state.storageConfig.secretAccessKey) && isFilled(state.storageConfig.bucket);
       case 2:
-        return state.storageTestResult.value?.result == AWSResult.Success;
+        return storageValid;
       case 3:
         return isFilled(state.catalogName);
     }
@@ -154,6 +114,7 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
   }, [
     currentStep,
     state,
+    storageValid,
   ]);
 
   return <SteppedDialog
@@ -170,6 +131,7 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
   >
     <Step titleId="create-catalog-storage-title">
       <StorageChooser
+        visible={currentStep == 0}
         storage={user.storage}
         state={state}
       />
@@ -179,21 +141,25 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
       disabled={state.storageType.value == "existing"}
     >
       <StorageConfig
+        visible={currentStep == 1}
         storageType={state.storageType.value}
         state={state.storageConfig}
-        storageNameRef={storageNameRef}
       />
     </Step>
     <Step
       titleId="create-catalog-storage-test"
       disabled={state.storageType.value == "existing"}
     >
-      <StorageTest storageTestResult={state.storageTestResult.value}/>
+      <StorageTest
+        visible={currentStep == 2}
+        storageConfig={state.storageConfig.value}
+        setCanProceed={setStorageValid}
+      />
     </Step>
     <Step titleId="create-catalog-catalog-title">
       <CatalogConfig
+        visible={currentStep == 3}
         state={state.catalogName}
-        catalogNameRef={catalogNameRef}
       />
     </Step>
   </SteppedDialog>;

@@ -1,22 +1,31 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 import { TextField } from "../../components/Forms";
 import { FieldState } from "../../utils/state";
-import { ReactRef, ReactResult } from "../../utils/types";
+import { ReactResult } from "../../utils/types";
 
 export interface CatalogConfigProps {
+  visible: boolean;
   state: FieldState<string>;
-  catalogNameRef: ReactRef;
 }
 
 export default function CatalogConfig({
+  visible,
   state,
-  catalogNameRef,
 }: CatalogConfigProps): ReactResult {
+  let nameRef = useRef<HTMLElement>();
+
+  useEffect(() => {
+    if (visible) {
+      nameRef.current?.focus();
+    }
+  }, [nameRef, visible]);
+
   return <TextField
     id="catalog-name"
     state={state}
     labelId="catalog-name"
-    ref={catalogNameRef}
+    required={true}
+    ref={nameRef}
   />;
 }
