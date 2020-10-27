@@ -12,7 +12,7 @@ import React, { useCallback, useState } from "react";
 import { errorString } from "../../utils/exception";
 import { ReactResult } from "../../utils/types";
 import { Button, SubmitButton } from "./Button";
-import { FormContext, FormState } from "./shared";
+import { FormContextProvider, FormContext } from "./shared";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -33,7 +33,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export type FormDialogProps = FormState & {
+export type FormDialogProps = FormContext & {
   id?: string;
   titleId: string;
   children?: React.ReactNode;
@@ -93,7 +93,7 @@ export default function FormDialog({
     scroll="body"
     aria-labelledby={`${baseId}-title`}
   >
-    <FormContext disabled={disabled} canSubmit={canSubmit}>
+    <FormContextProvider disabled={disabled} canSubmit={canSubmit}>
       <form id={id} onSubmit={submit}>
         <DialogTitle id={`${baseId}-title`} className={classes.title}>
           {l10n.getString(titleId)}
@@ -116,6 +116,6 @@ export default function FormDialog({
           </Box>
         </DialogActions>
       </form>
-    </FormContext>
+    </FormContextProvider>
   </Dialog>;
 }

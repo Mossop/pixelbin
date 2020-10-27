@@ -1,12 +1,11 @@
 import Box from "@material-ui/core/Box";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Radio from "@material-ui/core/Radio";
 import React from "react";
 
+import type { CatalogCreateState } from ".";
 import { StorageState } from "../../api/types";
-import FormFields, { Option } from "../../components/FormFields";
-import { FormStateSetter } from "../../utils/hooks";
+import { SelectField, Option, TextField, RadioGroup, Radio } from "../../components/Forms";
 import { ReadonlyMapOf } from "../../utils/maps";
+import { nulledString, ObjectState } from "../../utils/state";
 import { ReactResult } from "../../utils/types";
 
 export interface StorageChoice {
@@ -17,109 +16,57 @@ export interface StorageChoice {
 }
 
 export interface StorageChooserProps {
-  disabled: boolean;
   storage: ReadonlyMapOf<StorageState>;
-  storageChoice: StorageChoice;
-  setStorageChoice: FormStateSetter<StorageChoice>;
-  onStorageTypeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  state: ObjectState<CatalogCreateState>;
 }
 
 export default function StorageChooser({
-  disabled,
   storage,
-  storageChoice,
-  setStorageChoice,
-  onStorageTypeChange,
+  state,
 }: StorageChooserProps): ReactResult {
-  return <React.Fragment>
+  return <RadioGroup name="storageType" state={state.storageType}>
     {
       storage.size > 0 && <React.Fragment>
-        <FormControlLabel
-          disabled={disabled}
-          label="Existing storage"
-          control={
-            <Radio
-              id="storage-existing"
-              checked={storageChoice.storageType == "existing"}
-              name="storageType"
-              value="existing"
-              onChange={onStorageTypeChange}
-            />
-          }
-        />
+        <Radio id="storage-type-existing" labelId="storage-type-existing" value="existing"/>
         <Box pl={3}>
-          <FormFields
-            id="stepped-dialog"
-            disabled={disabled || storageChoice.storageType != "existing"}
-            state={storageChoice}
-            setState={setStorageChoice}
-            fields={
-              [{
-                type: "select",
-                key: "existingStorage",
-                label: "storage-existing",
-                options: Array.from(
-                  storage.values(),
-                  (storage: StorageState): Option => {
-                    return {
-                      value: storage.id,
-                      label: storage.name,
-                    };
-                  },
-                ),
-              }]
+          <SelectField
+            id="catalog-existingStorage"
+            disabled={state.storageType.value != "existing"}
+            state={state.existingStorage}
+            labelId="storage-existing"
+          >
+            {
+              Array.from(storage.values(), (storage: StorageState) => <Option
+                key={storage.id}
+                value={storage.id}
+              >
+                {storage.name}
+              </Option>)
             }
-          />
+          </SelectField>
         </Box>
       </React.Fragment>
     }
-    <FormControlLabel
-      disabled={disabled}
-      label="AWS S3 bucket"
-      control={
-        <Radio
-          id="storage-aws"
-          checked={storageChoice.storageType == "aws"}
-          name="storageType"
-          value="aws"
-          onChange={onStorageTypeChange}
-        />
-      }
-    />
-    <FormControlLabel
-      disabled={disabled}
-      label="S3 compatible bucket"
-      control={
-        <Radio
-          id="storage-compatible"
-          checked={storageChoice.storageType == "compatible"}
-          name="storageType"
-          value="compatible"
-          onChange={onStorageTypeChange}
-        />
-      }
-    />
+    <Radio id="storage-type-aws" labelId="storage-type-aws" value="aws"/>
+    <Radio id="storage-type-compatible" labelId="storage-type-compatible" value="compatible"/>
     <Box pl={3}>
-      <FormFields
-        id="stepped-dialog"
-        disabled={disabled || storageChoice.storageType != "compatible"}
-        state={storageChoice}
-        setState={setStorageChoice}
-        fields={
-          [{
-            type: "text",
-            key: "endpoint",
-            label: "storage-endpoint",
-            inputType: "url",
-            required: storageChoice.storageType == "compatible",
-          }, {
-            type: "text",
-            key: "publicUrl",
-            label: "storage-public-url",
-            inputType: "url",
-          }]
-        }
+      <TextField
+        id="storage-endpoint"
+        disabled={state.storageType.value != "compatible"}
+        state={nulledString(state.storageConfig.endpoint)}
+        type="url"
+        autoComplete="url"
+        labelId="storage-endpoint"
+        required={state.storageType.value == "compatible"}
+      />
+      <TextField
+        id="storage-public-url"
+        disabled={state.storageType.value != "compatible"}
+        state={nulledString(state.storageConfig.publicUrl)}
+        type="url"
+        autoComplete="url"
+        labelId="storage-public-url"
       />
     </Box>
-  </React.Fragment>;
+  </RadioGroup>;
 }

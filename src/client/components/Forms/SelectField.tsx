@@ -16,7 +16,7 @@ export interface SelectFieldProps {
   disabled?: boolean;
   required?: boolean;
   onChange?: (value: string) => void;
-  children: (typeof Option)[];
+  children: React.ReactNode;
 }
 
 export interface OptionProps<T> {

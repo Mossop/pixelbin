@@ -1,6 +1,6 @@
 import React from "react";
 
-import { click, expectChild, render } from "../test-helpers";
+import { click, expectChild, render } from "../../test-helpers";
 import SteppedDialog, { Step } from "./SteppedDialog";
 
 test("basic stepped dialog", async (): Promise<void> => {

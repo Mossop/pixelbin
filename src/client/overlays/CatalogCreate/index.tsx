@@ -4,15 +4,23 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Api, AWSResult } from "../../../model";
 import { testStorage, createCatalog, createStorage } from "../../api/catalog";
 import { UserState } from "../../api/types";
-import SteppedDialog, { Step } from "../../components/SteppedDialog";
+import { useFormState } from "../../components/Forms";
+import SteppedDialog, { Step } from "../../components/Forms/SteppedDialog";
 import { useActions } from "../../store/actions";
 import { AppError, errorString } from "../../utils/exception";
-import { useFormState } from "../../utils/hooks";
 import { ReactResult } from "../../utils/types";
 import CatalogConfig from "./CatalogConfig";
 import StorageChooser from "./StorageChooser";
 import StorageConfig from "./StorageConfig";
 import StorageTest from "./StorageTest";
+
+export interface CatalogCreateState {
+  storageType: string;
+  existingStorage: string;
+  storageConfig: Api.StorageCreateRequest,
+  storageTestResult: Api.StorageTestResult | null,
+  catalogName: string;
+}
 
 export interface CatalogCreateOverlayProps {
   user: UserState;
@@ -24,25 +32,20 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
   let [error, setError] = useState<AppError | null>(null);
   let actions = useActions();
   let [currentStep, setCurrentStep] = useState(0);
-  let [storageTestResult, setStorageTestResult] = useState<Api.StorageTestResult | null>(null);
-
-  let [storageChoice, setStorageChoice] = useFormState({
+  let state = useFormState<CatalogCreateState>({
     storageType: user.storage.size ? "existing" : "aws",
     existingStorage: user.storage.size ? [...user.storage.values()][0].id : "",
-    endpoint: "",
-    publicUrl: "",
-  });
-
-  let [storageConfig, setStorageConfig] = useFormState({
-    storageName: "",
-    accessKeyId: "",
-    secretAccessKey: "",
-    bucket: "",
-    region: "",
-    path: "",
-  });
-
-  let [catalogState, setCatalogState] = useFormState({
+    storageConfig: {
+      name: "",
+      accessKeyId: "",
+      secretAccessKey: "",
+      bucket: "",
+      region: "",
+      path: null,
+      endpoint: null,
+      publicUrl: null,
+    },
+    storageTestResult: null,
     catalogName: "",
   });
 
@@ -51,50 +54,29 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
     setError(null);
 
     try {
-      let storageId = storageChoice.existingStorage;
-      let endpoint: string | null = null;
-      let publicUrl: string | null = null;
+      let storageId = state.existingStorage.value;
 
-      if (storageChoice.storageType == "compatible") {
-        endpoint = storageChoice.endpoint;
-        publicUrl = storageChoice.publicUrl.length > 0 ? storageChoice.publicUrl : null;
-      }
-
-      if (storageChoice.storageType != "existing") {
-        let storage = await createStorage({
-          name: storageConfig.storageName,
-          accessKeyId: storageConfig.accessKeyId,
-          secretAccessKey: storageConfig.secretAccessKey,
-          bucket: storageConfig.bucket,
-          region: storageConfig.region,
-          path: storageConfig.path ? storageConfig.path : null,
-          endpoint,
-          publicUrl,
-        });
+      if (state.storageType.value != "existing") {
+        let storage = await createStorage(state.storageConfig.value);
 
         actions.storageCreated(storage);
         // In case the catalog creation fails for some odd reason configure to use
         // the new storage.
-        setStorageChoice("existingStorage", storage.id);
-        setStorageChoice("storageType", "existing");
+        state.existingStorage.set(storage.id);
+        state.storageType.set("existing");
 
         storageId = storage.id;
       }
 
-      let catalog = await createCatalog(catalogState.catalogName, storageId);
+      let catalog = await createCatalog(state.catalogName.value, storageId);
       actions.catalogCreated(catalog);
     } catch (e) {
       setError(e);
       setDisabled(false);
     }
-  }, [actions, storageConfig, catalogState, storageChoice, setStorageChoice]);
+  }, [actions, state]);
 
-  let onStorageTypeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    // @ts-ignore
-    setStorageChoice("storageType", event.target.value);
-  }, [setStorageChoice]);
-
-  let isFilled = (val: string): boolean => val.length > 0;
+  let isFilled = (val: { value: string | null }): boolean => !!val.value;
 
   let storageNameRef = useRef<HTMLElement>();
   let catalogNameRef = useRef<HTMLElement>();
@@ -113,28 +95,21 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
   ]);
 
   let startStorageTest = useCallback(async (): Promise<void> => {
-    setStorageTestResult(null);
-
-    let endpoint = storageChoice.storageType == "compatible" ? storageChoice.endpoint : null;
-    let path = storageConfig.path ? storageConfig.path : null;
+    state.storageTestResult.set(null);
 
     try {
-      setStorageTestResult(await testStorage({
-        endpoint,
-        accessKeyId: storageConfig.accessKeyId,
-        secretAccessKey: storageConfig.secretAccessKey,
-        path,
-        bucket: storageConfig.bucket,
-        region: storageConfig.region,
-        publicUrl: storageChoice.publicUrl ? storageChoice.publicUrl : null,
-      }));
+      let {
+        name,
+        ...storageConfig
+      } = state.storageConfig.value;
+      state.storageTestResult.set(await testStorage(storageConfig));
     } catch (e) {
-      setStorageTestResult({
+      state.storageTestResult.set({
         result: AWSResult.UnknownFailure,
         message: errorString(l10n, e),
       });
     }
-  }, [storageChoice, storageConfig, setStorageTestResult, l10n]);
+  }, [state, l10n]);
 
   let onBack = useCallback(() => {
     let nextStep = currentStep - 1;
@@ -142,16 +117,16 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
       nextStep = 1;
     }
 
-    if (storageChoice.storageType == "existing" && nextStep == 1) {
+    if (state.storageType.value == "existing" && nextStep == 1) {
       nextStep = 0;
     }
 
     setCurrentStep(nextStep);
-  }, [currentStep, storageChoice]);
+  }, [currentStep, state]);
 
   let onNext = useCallback(() => {
     let nextStep = currentStep + 1;
-    if (storageChoice.storageType == "existing" && nextStep > 0 && nextStep < 3) {
+    if (state.storageType.value == "existing" && nextStep > 0 && nextStep < 3) {
       nextStep = 3;
     }
 
@@ -160,28 +135,25 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
     }
 
     setCurrentStep(nextStep);
-  }, [currentStep, startStorageTest, storageChoice]);
+  }, [currentStep, startStorageTest, state]);
 
   let canAdvance = useMemo((): boolean => {
     switch (currentStep) {
       case 0:
-        return storageChoice.storageType != "compatible" || isFilled(storageChoice.endpoint);
+        return state.storageType.value != "compatible" || isFilled(state.storageConfig.endpoint);
       case 1:
-        return isFilled(storageConfig.storageName) && isFilled(storageConfig.accessKeyId) &&
-          isFilled(storageConfig.secretAccessKey) && isFilled(storageConfig.bucket);
+        return isFilled(state.storageConfig.name) && isFilled(state.storageConfig.accessKeyId) &&
+          isFilled(state.storageConfig.secretAccessKey) && isFilled(state.storageConfig.bucket);
       case 2:
-        return storageTestResult?.result == AWSResult.Success;
+        return state.storageTestResult.value?.result == AWSResult.Success;
       case 3:
-        return isFilled(catalogState.catalogName);
+        return isFilled(state.catalogName);
     }
 
     return true;
   }, [
     currentStep,
-    storageChoice,
-    storageConfig,
-    catalogState,
-    storageTestResult,
+    state,
   ]);
 
   return <SteppedDialog
@@ -198,36 +170,29 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
   >
     <Step titleId="create-catalog-storage-title">
       <StorageChooser
-        disabled={disabled}
         storage={user.storage}
-        storageChoice={storageChoice}
-        setStorageChoice={setStorageChoice}
-        onStorageTypeChange={onStorageTypeChange}
+        state={state}
       />
     </Step>
     <Step
       titleId="create-catalog-storage-custom-title"
-      disabled={storageChoice.storageType == "existing"}
+      disabled={state.storageType.value == "existing"}
     >
       <StorageConfig
-        disabled={disabled}
-        storageChoice={storageChoice}
-        storageConfig={storageConfig}
-        setStorageConfig={setStorageConfig}
+        storageType={state.storageType.value}
+        state={state.storageConfig}
         storageNameRef={storageNameRef}
       />
     </Step>
     <Step
       titleId="create-catalog-storage-test"
-      disabled={storageChoice.storageType == "existing"}
+      disabled={state.storageType.value == "existing"}
     >
-      <StorageTest storageTestResult={storageTestResult}/>
+      <StorageTest storageTestResult={state.storageTestResult.value}/>
     </Step>
     <Step titleId="create-catalog-catalog-title">
       <CatalogConfig
-        disabled={disabled}
-        catalogState={catalogState}
-        setCatalogState={setCatalogState}
+        state={state.catalogName}
         catalogNameRef={catalogNameRef}
       />
     </Step>

@@ -53,6 +53,10 @@ export function entries<T, K extends keyof T = keyof T>(obj: T): [K, T[K]][] {
   return Object.entries(obj) as unknown as [K, T[K]][];
 }
 
+export function nullIfEmpty(val: string | null): string | null {
+  return val ? val : null;
+}
+
 // function fromEntries<O, K extends keyof O = keyof O>(entries: [K, O[K]][]): O {
 //   return Object.fromEntries(entries) as unknown as O;
 // }

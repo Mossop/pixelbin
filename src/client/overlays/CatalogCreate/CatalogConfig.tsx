@@ -1,39 +1,22 @@
 import React from "react";
 
-import FormFields from "../../components/FormFields";
-import { FormStateSetter } from "../../utils/hooks";
+import { TextField } from "../../components/Forms";
+import { FieldState } from "../../utils/state";
 import { ReactRef, ReactResult } from "../../utils/types";
 
-export interface CatalogState {
-  catalogName: string;
-}
-
 export interface CatalogConfigProps {
-  disabled: boolean;
-  catalogState: CatalogState;
-  setCatalogState: FormStateSetter<CatalogState>;
+  state: FieldState<string>;
   catalogNameRef: ReactRef;
 }
 
 export default function CatalogConfig({
-  disabled,
-  setCatalogState,
-  catalogState,
+  state,
   catalogNameRef,
 }: CatalogConfigProps): ReactResult {
-  return <FormFields
-    id="stepped-dialog"
-    state={catalogState}
-    setState={setCatalogState}
-    disabled={disabled}
-    fields={
-      [{
-        type: "text",
-        ref: catalogNameRef,
-        key: "catalogName",
-        label: "catalog-name",
-        required: true,
-      }]
-    }
+  return <TextField
+    id="catalog-name"
+    state={state}
+    labelId="catalog-name"
+    ref={catalogNameRef}
   />;
 }

@@ -25,8 +25,33 @@ function actionCallback<T>(cb: Dispatch<(prev: T) => T>): Dispatch<SetStateActio
   };
 }
 
+export function transformed<S, T>(
+  state: FieldState<S>,
+  into: (val: S) => T,
+  from: (val: T) => S,
+): FieldState<T> {
+  let current = into(state.value);
+
+  return {
+    value: current,
+    set: actionCallback((action: (prev: T) => T): void => {
+      state.set(from(action(current)));
+    }),
+  };
+}
+
+export const nulledString = memoized(
+  function nulledString(state: FieldState<string | null>): FieldState<string> {
+    return transformed<string | null, string>(
+      state,
+      (val: string | null): string => val ?? "",
+      (val: string): string | null => val ? val : null,
+    );
+  },
+);
+
 export const wrapState = memoized(
-  <T>(...args: [T, Dispatch<T>] | [FieldState<T>]): ObjectState<T> => {
+  <T>(...args: [T, Dispatch<T>] | [Pick<FieldState<T>, "value" | "set">]): ObjectState<T> => {
     let value: T, setter: Dispatch<T>;
     if (args.length == 1) {
       value = args[0].value;

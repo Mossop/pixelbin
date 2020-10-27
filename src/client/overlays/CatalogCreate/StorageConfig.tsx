@@ -1,71 +1,58 @@
 import React from "react";
 
-import FormFields from "../../components/FormFields";
-import { FormStateSetter } from "../../utils/hooks";
+import { Api } from "../../../model";
+import { TextField } from "../../components/Forms";
+import { nulledString, ObjectState } from "../../utils/state";
 import { ReactRef, ReactResult } from "../../utils/types";
-import { StorageChoice } from "./StorageChooser";
-
-export interface StorageState {
-  storageName: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  bucket: string;
-  region: string;
-  path: string;
-}
 
 export interface StorageConfigProps {
-  disabled: boolean;
-  storageChoice: StorageChoice;
-  storageConfig: StorageState;
-  setStorageConfig: FormStateSetter<StorageState>;
+  storageType: string;
+  state: ObjectState<Api.StorageCreateRequest>;
   storageNameRef: ReactRef;
 }
 
 export default function StorageConfig({
-  disabled,
-  storageChoice,
-  storageConfig,
-  setStorageConfig,
+  storageType,
+  state,
   storageNameRef,
 }: StorageConfigProps): ReactResult {
-  return <FormFields
-    id="stepped-dialog"
-    state={storageConfig}
-    setState={setStorageConfig}
-    disabled={disabled}
-    fields={
-      [{
-        type: "text",
-        ref: storageNameRef,
-        key: "storageName",
-        label: "storage-name",
-        required: storageChoice.storageType != "existing",
-      }, {
-        type: "text",
-        key: "accessKeyId",
-        label: "storage-access-key",
-        required: storageChoice.storageType != "existing",
-      }, {
-        type: "text",
-        key: "secretAccessKey",
-        label: "storage-secret-key",
-        required: storageChoice.storageType != "existing",
-      }, {
-        type: "text",
-        key: "bucket",
-        required: storageChoice.storageType != "existing",
-        label: "storage-bucket",
-      }, {
-        type: "text",
-        key: "region",
-        required: storageChoice.storageType != "existing",
-        label: "storage-region",
-      }, {
-        type: "text",
-        key: "path",
-        label: "storage-path",
-      }]
-    }
-  />;
+  return <React.Fragment>
+    <TextField
+      id="storage-name"
+      ref={storageNameRef}
+      labelId="storage-name"
+      required={storageType != "existing"}
+      state={state.name}
+    />
+    <TextField
+      id="storage-access-key"
+      labelId="storage-access-key"
+      required={storageType != "existing"}
+      state={state.accessKeyId}
+    />
+    <TextField
+      id="storage-secret-key"
+      labelId="storage-secret-key"
+      required={storageType != "existing"}
+      state={state.secretAccessKey}
+    />
+    <TextField
+      id="storage-bucket"
+      labelId="storage-bucket"
+      required={storageType != "existing"}
+      state={state.bucket}
+    />
+    <TextField
+      id="storage-region"
+      labelId="storage-region"
+      required={storageType != "existing"}
+      state={state.region}
+    />
+    <TextField
+      id="storage-path"
+      labelId="storage-path"
+      required={storageType != "existing"}
+      state={nulledString(state.path)}
+    />
+  </React.Fragment>;
 }

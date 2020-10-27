@@ -10,16 +10,16 @@ export const useFormStyles = makeStyles((theme: Theme) => createStyles({
   },
 }));
 
-export interface FormState {
+export interface FormContext {
   canSubmit?: boolean;
   disabled?: boolean;
 }
 
-const Context = createContext<FormState>({
+const Context = createContext<FormContext>({
   disabled: false,
 });
 
-export function FormContext(props: FormState & ReactChildren): ReactResult {
+export function FormContextProvider(props: FormContext & ReactChildren): ReactResult {
   let {
     children,
     ...context
@@ -30,7 +30,7 @@ export function FormContext(props: FormState & ReactChildren): ReactResult {
   </Context.Provider>;
 }
 
-export function useFormContext(): FormState {
+export function useFormContext(): FormContext {
   return useContext(Context);
 }
 

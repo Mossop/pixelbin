@@ -32,8 +32,8 @@ test("create catalog", async (): Promise<void> => {
 
   expect(form.querySelector("#storage-existing")).toBeNull();
 
-  let awsRadio = expectChild<HTMLInputElement>(form, "#storage-aws");
-  let compatibleRadio = expectChild<HTMLInputElement>(form, "#storage-compatible");
+  let awsRadio = expectChild<HTMLInputElement>(form, "#storage-type-aws");
+  let compatibleRadio = expectChild<HTMLInputElement>(form, "#storage-type-compatible");
   expect(awsRadio.checked).toBeTruthy();
   expect(compatibleRadio.checked).toBeFalsy();
 
@@ -51,7 +51,7 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeTruthy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  let input = expectChild(form, "#stepped-dialog-endpoint");
+  let input = expectChild(form, "#storage-endpoint");
   typeString(input, "http://localhost:9000");
 
   expect(backBtn.disabled).toBeTruthy();
@@ -62,21 +62,21 @@ test("create catalog", async (): Promise<void> => {
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeTruthy();
 
-  input = expectChild(form, "#stepped-dialog-storageName");
+  input = expectChild(form, "#storage-name");
   typeString(input, "New storage");
-  input = expectChild(form, "#stepped-dialog-accessKeyId");
+  input = expectChild(form, "#storage-access-key");
   typeString(input, "Access key");
-  input = expectChild(form, "#stepped-dialog-secretAccessKey");
+  input = expectChild(form, "#storage-secret-key");
   typeString(input, "Secret");
-  input = expectChild(form, "#stepped-dialog-bucket");
+  input = expectChild(form, "#storage-bucket");
   typeString(input, "Test bucket");
-  input = expectChild(form, "#stepped-dialog-region");
+  input = expectChild(form, "#storage-region");
   typeString(input, "hell-circle5-001");
 
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeFalsy();
 
-  input = expectChild(form, "#stepped-dialog-path");
+  input = expectChild(form, "#storage-path");
   typeString(input, "foo/bar");
 
   let {
@@ -182,7 +182,7 @@ test("create catalog", async (): Promise<void> => {
   let submitBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-submit");
   expect(submitBtn.disabled).toBeTruthy();
 
-  input = expectChild(form, "#stepped-dialog-catalogName");
+  input = expectChild(form, "#catalog-name");
   typeString(input, "New catalog");
 
   expect(submitBtn.disabled).toBeFalsy();
@@ -277,14 +277,14 @@ test("create catalog with existing storage", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let existingRadio = expectChild<HTMLInputElement>(form, "#storage-existing");
-  let awsRadio = expectChild<HTMLInputElement>(form, "#storage-aws");
-  let compatibleRadio = expectChild<HTMLInputElement>(form, "#storage-compatible");
+  let existingRadio = expectChild<HTMLInputElement>(form, "#storage-type-existing");
+  let awsRadio = expectChild<HTMLInputElement>(form, "#storage-type-aws");
+  let compatibleRadio = expectChild<HTMLInputElement>(form, "#storage-type-compatible");
   expect(existingRadio.checked).toBeTruthy();
   expect(awsRadio.checked).toBeFalsy();
   expect(compatibleRadio.checked).toBeFalsy();
 
-  let field = expectChild(form, "#stepped-dialog-existingStorage");
+  let field = expectChild(form, "#catalog-existingStorage");
   let select = expectChild<HTMLInputElement>(field.parentElement, ".MuiSelect-nativeInput");
   expect(select.value).toBe("st567");
 
@@ -301,7 +301,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
   let submitBtn = expectChild<HTMLButtonElement>(form, "#stepped-dialog-submit");
   expect(submitBtn.disabled).toBeTruthy();
 
-  let input = expectChild(form, "#stepped-dialog-catalogName");
+  let input = expectChild(form, "#catalog-name");
   typeString(input, "New catalog");
 
   expect(submitBtn.disabled).toBeFalsy();

@@ -12,7 +12,7 @@ import React, { useCallback, useState } from "react";
 import { errorString } from "../../utils/exception";
 import { ReactResult } from "../../utils/types";
 import { Button } from "./Button";
-import { FormContext } from "./shared";
+import { FormContextProvider } from "./shared";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -89,7 +89,7 @@ export default function ConfirmationDialog({
     scroll="body"
     aria-labelledby={`${baseId}-title`}
   >
-    <FormContext disabled={disabled}>
+    <FormContextProvider disabled={disabled}>
       <DialogTitle id={`${baseId}-title`} className={classes.title}>
         {l10n.getString(titleId)}
       </DialogTitle>
@@ -112,6 +112,6 @@ export default function ConfirmationDialog({
           />
         </Box>
       </DialogActions>
-    </FormContext>
+    </FormContextProvider>
   </Dialog>;
 }
