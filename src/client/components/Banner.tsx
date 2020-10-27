@@ -9,7 +9,7 @@ import MenuItem from "@material-ui/core/MenuItem";
 import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
 import MenuIcon from "@material-ui/icons/Menu";
 import MoreVertIcon from "@material-ui/icons/MoreVert";
-import { usePopupState, bindTrigger, bindPopover } from "material-ui-popup-state/hooks";
+import { usePopupState, bindTrigger, bindMenu } from "material-ui-popup-state/hooks";
 import md5 from "md5";
 import React, { useCallback } from "react";
 
@@ -130,6 +130,7 @@ export default function Banner({
               <MoreVertIcon/>
             </IconButton>
             <Menu
+              {...bindMenu(pageOptionsState)}
               anchorOrigin={
                 {
                   vertical: "bottom",
@@ -143,7 +144,7 @@ export default function Banner({
                 }
               }
               keepMounted={true}
-              {...bindPopover(pageOptionsState)}
+              getContentAnchorEl={null}
             >
               {
                 pageOptions.map((option: PageOption) => <MenuItem
@@ -183,7 +184,7 @@ export default function Banner({
               />
             </IconButton>
             <Menu
-              {...bindPopover(userMenuState)}
+              {...bindMenu(userMenuState)}
               anchorOrigin={
                 {
                   vertical: "bottom",
@@ -197,6 +198,7 @@ export default function Banner({
                 }
               }
               keepMounted={true}
+              getContentAnchorEl={null}
             >
               <MenuItem id="user-menu-logout" onClick={doLogout}>
                 {l10n.getString("banner-logout")}
