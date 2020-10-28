@@ -9,6 +9,7 @@ import type {
   ServerState,
   UserState,
   StorageState,
+  SavedSearchState,
 } from "../api/types";
 import type { OverlayState } from "../overlays/types";
 import { OverlayType } from "../overlays/types";
@@ -69,6 +70,15 @@ const catalogReducers = {
         catalog: Catalog.ref(catalog),
       },
     };
+  },
+
+  searchSaved(state: Draft<StoreState>, user: Draft<UserState>, search: SavedSearchState): void {
+    let catalog = user.catalogs.get(search.catalog.id);
+    if (catalog) {
+      catalog.searches.set(search.id, createDraft(search));
+    }
+
+    delete state.ui.overlay;
   },
 };
 

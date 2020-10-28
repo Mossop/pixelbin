@@ -60,6 +60,9 @@ const decoders: ResponseDecoders = {
   [Method.MediaRelations]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Method.MediaPeople]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Method.MediaDelete]: VoidDecoder,
+  [Method.SavedSearchCreate]: JsonDecoderDecoder(Decoders.SavedSearchDecoder),
+  [Method.SavedSearchEdit]: JsonDecoderDecoder(Decoders.SavedSearchDecoder),
+  [Method.SavedSearchDelete]: VoidDecoder,
 };
 
 export async function request<T extends Method>(

@@ -6,7 +6,8 @@ import { memoized } from "../../utils";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
 import type { Album, Catalog, Reference } from "../api/highlevel";
-import { getMedia, searchMedia } from "../api/media";
+import { getMedia } from "../api/media";
+import { searchMedia } from "../api/search";
 import type { MediaState } from "../api/types";
 
 export enum MediaLookupType {

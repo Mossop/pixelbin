@@ -16,6 +16,8 @@ const CatalogEditOverlay = lazy(() =>
   import(/* webpackChunkName: "CatalogEdit" */ "./CatalogEdit"));
 const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./Signup"));
 const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./Search"));
+const SaveSearchOverlay = lazy(() =>
+  import(/* webpackChunkName: "SaveSearchOverlay" */ "./SaveSearch"));
 
 export default function Overlay(): ReactResult {
   let actions = useActions();
@@ -48,6 +50,9 @@ export default function Overlay(): ReactResult {
       }
       case OverlayType.Search: {
         return <SearchOverlay {...overlay}/>;
+      }
+      case OverlayType.SaveSearch: {
+        return <SaveSearchOverlay {...overlay}/>;
       }
     }
   }

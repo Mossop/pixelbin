@@ -63,10 +63,13 @@ export class MockResponse {
   }
 }
 
+type MockResponseType<M extends Api.Method> = Api.SignatureResponse<M> extends void
+  ? undefined
+  : ResponseFor<Api.SignatureResponse<M>>;
 export function mockResponse<M extends Api.Method>(
   method: M,
   statusCode: number,
-  response: ResponseFor<Api.SignatureResponse<M>> | ErrorData,
+  response: MockResponseType<M> | ErrorData,
 ): void {
   let mockedFetch = mockedFunction(fetch);
 

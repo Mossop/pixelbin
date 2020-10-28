@@ -1,11 +1,11 @@
 import type { Draft } from "immer";
 
-import type { Api, Query } from "../../model";
+import type { Api } from "../../model";
 import { Method } from "../../model";
 import type { MediaCreateRequest } from "../../model/api";
 import type { Overwrite } from "../../utils";
 import { request } from "./api";
-import type { Catalog, Album, Person, Tag, Reference } from "./highlevel";
+import type { Album, Person, Tag, Reference, Catalog } from "./highlevel";
 import type { MediaState, ProcessedMediaState } from "./types";
 import { mediaIntoState } from "./types";
 
@@ -39,17 +39,6 @@ export async function createMedia(media: MediaCreateData): Promise<MediaState> {
     people: media.people ? media.people.map((person: Reference<Person>): string => person.id) : [],
   });
   return mediaIntoState(result);
-}
-
-export async function searchMedia(
-  catalog: Reference<Catalog>,
-  query: Query,
-): Promise<MediaState[]> {
-  let results = await request(Method.MediaSearch, {
-    catalog: catalog.id,
-    query,
-  });
-  return results.map(mediaIntoState);
 }
 
 export function getThumbnailUrl(media: ProcessedMediaState, size: number): string {

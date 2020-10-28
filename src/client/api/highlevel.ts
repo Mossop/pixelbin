@@ -10,6 +10,7 @@ import {
   VirtualPerson,
   VirtualTag,
   VirtualTree,
+  VirtualSearch,
 } from "../utils/virtual";
 import type {
   ServerState,
@@ -18,6 +19,7 @@ import type {
   TagState,
   PersonState,
   MediaState,
+  SavedSearchState,
 } from "./types";
 
 interface StateCache {
@@ -25,6 +27,7 @@ interface StateCache {
   readonly tags: Map<string, Tag>;
   readonly people: Map<string, Person>;
   readonly catalogs: Map<string, Catalog>;
+  readonly searches: Map<string, SavedSearch>;
 }
 
 const STATE_CACHE: WeakMap<ServerState, StateCache> = new WeakMap();
@@ -35,6 +38,7 @@ function buildStateCache(serverState: ServerState): StateCache {
     tags: new Map<string, Tag>(),
     people: new Map<string, Person>(),
     catalogs: new Map<string, Catalog>(),
+    searches: new Map<string, SavedSearch>(),
   };
   STATE_CACHE.set(serverState, cache);
   return cache;
@@ -496,6 +500,81 @@ export class Catalog implements Referencable<Catalog> {
   ): Catalog | undefined {
     try {
       return Catalog.fromState(serverState, id);
+    } catch (e) {
+      return undefined;
+    }
+  }
+}
+
+export class SavedSearch implements Referencable<SavedSearch> {
+  private constructor(
+    private readonly serverState: ServerState,
+    private readonly state: SavedSearchState,
+  ) {}
+
+  public toState(): SavedSearchState {
+    return {
+      ...this.state,
+    };
+  }
+
+  public get catalog(): Catalog {
+    return this.state.catalog.deref(this.serverState);
+  }
+
+  public get id(): string {
+    return this.state.id;
+  }
+
+  public get name(): string {
+    return this.state.name;
+  }
+
+  public static ref(data: MapId<SavedSearchState>): Reference<SavedSearch> {
+    return new APIItemReference(intoId(data), SavedSearch);
+  }
+
+  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualSearch {
+    return new VirtualSearch(this, treeType);
+  }
+
+  public ref(): Reference<SavedSearch> {
+    return new APIItemReference(this.id, SavedSearch);
+  }
+
+  public static fromState(
+    serverState: ServerState,
+    id: string,
+  ): SavedSearch {
+    let cache = getStateCache(serverState);
+    let search = cache.searches.get(id);
+    if (search) {
+      return search;
+    }
+
+    let { user } = serverState;
+    if (!user) {
+      exception(ErrorCode.NotLoggedIn);
+    }
+
+    for (let catalog of user.catalogs.values()) {
+      let searchState = catalog.searches.get(id);
+      if (searchState) {
+        search = new SavedSearch(serverState, searchState);
+        cache.searches.set(id, search);
+        return search;
+      }
+    }
+
+    exception(ErrorCode.UnknownPerson);
+  }
+
+  public static safeFromState(
+    serverState: ServerState,
+    id: string,
+  ): SavedSearch | undefined {
+    try {
+      return SavedSearch.fromState(serverState, id);
     } catch (e) {
       return undefined;
     }

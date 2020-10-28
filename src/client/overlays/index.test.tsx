@@ -3,6 +3,7 @@ import { waitFor } from "@testing-library/react";
 import React from "react";
 
 import Overlay from ".";
+import { Operator } from "../../model";
 import { Catalog, Album } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import {
@@ -49,6 +50,14 @@ jest.mock("./Login", (): unknown => {
 
 jest.mock("./Signup", (): unknown => {
   return () => <div id="signup-overlay"/>;
+});
+
+jest.mock("./Search", (): unknown => {
+  return () => <div id="search-overlay"/>;
+});
+
+jest.mock("./SaveSearch", (): unknown => {
+  return () => <div id="save-search-overlay"/>;
 });
 
 test("no overlay", (): void => {
@@ -216,6 +225,64 @@ test("edit catalog overlay", async (): Promise<void> => {
 
   let div = await waitFor(() => expectChild(container, "#catalog-edit-overlay"));
   expect(div.getAttribute("data-catalog")).toBe("catref");
+
+  expect(store.dispatch).not.toHaveBeenCalled();
+});
+
+test("search overlay", async (): Promise<void> => {
+  let store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Root,
+      },
+      overlay: {
+        type: OverlayType.Search,
+        catalog: Catalog.ref("catref"),
+        query: {
+          type: "field",
+          invert: false,
+          field: "title",
+          modifier: null,
+          operator: Operator.Equal,
+          value: "fii",
+        },
+      },
+    },
+  }));
+
+  let { container } = render(<Overlay/>, store);
+  expectChild(container, ".loading");
+
+  await waitFor(() => expectChild(container, "#search-overlay"));
+
+  expect(store.dispatch).not.toHaveBeenCalled();
+});
+
+test("save search overlay", async (): Promise<void> => {
+  let store = mockStore(mockStoreState({
+    ui: {
+      page: {
+        type: PageType.Root,
+      },
+      overlay: {
+        type: OverlayType.SaveSearch,
+        catalog: Catalog.ref("catref"),
+        query: {
+          type: "field",
+          invert: false,
+          field: "title",
+          modifier: null,
+          operator: Operator.Equal,
+          value: "fii",
+        },
+      },
+    },
+  }));
+
+  let { container } = render(<Overlay/>, store);
+  expectChild(container, ".loading");
+
+  await waitFor(() => expectChild(container, "#save-search-overlay"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });

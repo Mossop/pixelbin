@@ -1,4 +1,5 @@
 import type { ReactLocalization } from "@fluent/react";
+import ImageSearchIcon from "@material-ui/icons/ImageSearch";
 import LocalOfferIcon from "@material-ui/icons/LocalOffer";
 import PeopleIcon from "@material-ui/icons/People";
 import PermMediaIcon from "@material-ui/icons/PermMedia";
@@ -8,7 +9,7 @@ import StorageIcon from "@material-ui/icons/Storage";
 import type { Draft } from "immer";
 import React from "react";
 
-import type { Album, Catalog, Person, Tag } from "../api/highlevel";
+import type { Album, Catalog, Person, SavedSearch, Tag } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import type { UIState } from "../store/types";
 import type { ReactResult } from "./types";
@@ -266,6 +267,23 @@ export class VirtualPerson extends BaseVirtualItem {
 
   public icon(): ReactResult {
     return <PersonIcon/>;
+  }
+}
+
+export class VirtualSearch extends BaseVirtualItem {
+  public constructor(
+    public readonly search: SavedSearch,
+    treeOptions: VirtualTreeOptions = VirtualTree.All,
+  ) {
+    super(search.id, treeOptions);
+  }
+
+  public label(): string {
+    return this.search.name;
+  }
+
+  public icon(): ReactResult {
+    return <ImageSearchIcon/>;
   }
 }
 

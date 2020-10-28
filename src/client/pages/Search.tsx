@@ -59,12 +59,29 @@ export default function SearchPage({
     });
   }, [actions, catalog, query]);
 
+  let onSaveSearch = useCallback(() => {
+    // @ts-ignore
+    let newQuery: Draft<Query> = {
+      ...query,
+    };
+
+    actions.showOverlay({
+      type: OverlayType.SaveSearch,
+      catalog,
+      query: newQuery,
+    });
+  }, [actions, catalog, query]);
+
   return <Page
     pageOptions={
       [{
         id: "edit-search",
         onClick: onEditSearch,
         label: l10n.getString("banner-edit-search"),
+      }, {
+        id: "save-search",
+        onClick: onSaveSearch,
+        label: l10n.getString("banner-save-search"),
       }]
     }
   >
