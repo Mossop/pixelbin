@@ -949,6 +949,35 @@ test("saved searches", async (): Promise<void> => {
     },
   ]);
 
+  let query3: Query = {
+    type: "field",
+    invert: false,
+    field: "id",
+    modifier: null,
+    operator: Operator.Equal,
+    value: "",
+  };
+
+  await user3Db.editSavedSearch(search2, {
+    query: query3,
+    name: "foo",
+  });
+
+  searches = await user3Db.listSavedSearches();
+  expect(searches).toInclude([
+    testData[Table.SavedSearch][0],
+    testData[Table.SavedSearch][3],
+    {
+      id: search2,
+      catalog: "c2",
+      name: "foo",
+      query: query3,
+    },
+  ]);
+
+  await expect(user2Db.editSavedSearch(search2, {
+    name: "bar",
+  })).rejects.toThrow("Unknown SavedSearch.");
   await expect(user2Db.deleteSavedSearch(search2)).rejects.toThrow("Unknown SavedSearch.");
   await expect(user3Db.deleteSavedSearch(search1)).rejects.toThrow("Unknown SavedSearch.");
 

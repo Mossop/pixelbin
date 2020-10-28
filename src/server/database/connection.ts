@@ -454,5 +454,6 @@ export class UserScopedConnection {
 
   public readonly listSavedSearches = wrapped(SearchQueries.listSavedSearches);
   public readonly createSavedSearch = wrapped(SearchQueries.createSavedSearch);
+  public readonly editSavedSearch = wrapped(SearchQueries.editSavedSearch);
   public readonly deleteSavedSearch = wrapped(SearchQueries.deleteSavedSearch);
 }

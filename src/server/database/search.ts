@@ -9,7 +9,7 @@ import { DatabaseError, DatabaseErrorCode } from "./error";
 import { uuid } from "./id";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
 import { intoMedia } from "./media";
-import { from, insert, withChildren } from "./queries";
+import { from, insert, update, withChildren } from "./queries";
 import type { Media, Tables } from "./types";
 import { intoAPITypes, intoDBType, intoDBTypes, ref, Table } from "./types";
 import { ensureUserTransaction } from "./utils";
@@ -218,6 +218,32 @@ export const createSavedSearch = ensureUserTransaction(async function saveSavedS
 
   if (!results.length) {
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert SavedSearch record.");
+  }
+
+  return intoAPITypes(results[0]);
+});
+
+export const editSavedSearch = ensureUserTransaction(async function editSavedSearch(
+  this: UserScopedConnection,
+  id: string,
+  data: Partial<Tables.SavedSearch>,
+): Promise<Tables.SavedSearch> {
+  await this.checkWrite(Table.SavedSearch, [id]);
+
+  let {
+    id: removedId,
+    catalog: removedCatalog,
+    ...updates
+  } = data;
+
+  let results = await update(
+    Table.SavedSearch,
+    this.knex.where("id", id),
+    updates,
+  ).returning("*");
+
+  if (!results.length) {
+    throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit SavedSearch record.");
   }
 
   return intoAPITypes(results[0]);
