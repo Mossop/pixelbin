@@ -117,9 +117,10 @@ metadata-label-people = People:
 search-dialog-title = Search…
 search-dialog-accept = Search
 search-dialog-reset = Reset
-search-dialog-results = Found {$count} {$count ->
-  [one] result
- *[other] results
+search-dialog-results = Found {$count ->
+  [0] no results
+  [1] 1 result
+ *[other] {$count} results
 }.
 search-dialog-add-button = Add search term
 search-dialog-add-field = Property

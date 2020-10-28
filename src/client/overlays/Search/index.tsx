@@ -7,6 +7,7 @@ import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import Divider from "@material-ui/core/Divider";
+import Fade from "@material-ui/core/Fade";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
@@ -47,15 +48,26 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     resultsDivider: {
       marginTop: theme.spacing(2),
-      marginBottom: theme.spacing(2),
+      marginBottom: theme.spacing(1),
+    },
+    resultCount: {
+      paddingLeft: theme.spacing(1),
     },
     results: {
       display: "flex",
       flexDirection: "column",
       minHeight: 256,
+      position: "relative",
+      paddingTop: theme.spacing(1),
     },
     resultsLoading: {
-      flex: 1,
+      position: "absolute",
+      top: 0,
+      right: 0,
+      left: 0,
+      bottom: 0,
+      background: "rgba(0, 0, 0, 0.5)",
+      borderRadius: 8,
     },
     previews: {
       overflowX: "auto",
@@ -77,7 +89,8 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
   let { l10n } = useLocalization();
   let actions = useActions();
   let [open, setOpen] = useState(true);
-  let [media, setMedia] = useState<readonly MediaState[] | null>(null);
+  let [searching, setSearching] = useState(true);
+  let [media, setMedia] = useState<readonly MediaState[]>([]);
 
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
 
@@ -113,9 +126,13 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
   }, [catalog, search]);
 
   useEffect(() => {
+    setSearching(true);
     let timeout = window.setTimeout(() => {
-      void lookupMedia(lookup).then(setMedia);
-    }, 1000);
+      void lookupMedia(lookup).then((media: readonly MediaState[]) => {
+        setSearching(false);
+        setMedia(media);
+      });
+    }, 500);
 
     return () => {
       window.clearTimeout(timeout);
@@ -170,28 +187,25 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
         />
         <Divider className={classes.resultsDivider}/>
         <Box className={classes.results}>
-          {
-            media === null
-              ? <Loading className={classes.resultsLoading}/>
-              : <React.Fragment>
-                <Typography component="h3" variant="h6">
-                  {
-                    l10n.getString("search-dialog-results", {
-                      count: media.length,
-                    })
-                  }
-                </Typography>
-                <Box className={classes.previews}>
-                  {
-                    media.map((item: MediaState) => <Preview
-                      key={item.id}
-                      media={item}
-                      thumbnailSize={thumbnailSize}
-                    />)
-                  }
-                </Box>
-              </React.Fragment>
-          }
+          <Typography className={classes.resultCount} component="h3" variant="h6">
+            {
+              l10n.getString("search-dialog-results", {
+                count: media.length,
+              })
+            }
+          </Typography>
+          <Box className={classes.previews}>
+            {
+              media.map((item: MediaState) => <Preview
+                key={item.id}
+                media={item}
+                thumbnailSize={thumbnailSize}
+              />)
+            }
+          </Box>
+          <Fade in={searching}>
+            <Loading className={classes.resultsLoading}/>
+          </Fade>
         </Box>
       </DialogContent>
       <DialogActions disableSpacing={true} className={classes.actions}>
