@@ -321,6 +321,7 @@ exports.up = function(knex: Knex): Knex.SchemaBuilder {
       id(table);
       foreignId(table, Table.Catalog, "id");
       table.string("name", 100).notNullable();
+      table.boolean("shared").notNullable();
       table.json("query").notNullable();
     })
     .createTable(Table.SharedCatalog, (table: Knex.CreateTableBuilder): void => {

@@ -21,11 +21,13 @@ export async function createSavedSearch(
   catalog: Reference<Catalog>,
   query: Query,
   name: string,
+  shared: boolean,
 ): Promise<SavedSearchState> {
   let search = await request(Method.SavedSearchCreate, {
     catalog: catalog.id,
     query,
     name,
+    shared,
   });
 
   return {

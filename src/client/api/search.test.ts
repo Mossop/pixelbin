@@ -28,16 +28,18 @@ test("Create saved search", async (): Promise<void> => {
     id: "testsearch",
     catalog: "testcatalog",
     name: "Test Search",
+    shared: true,
     // @ts-ignore
     query,
   });
 
-  let result = await createSavedSearch(Catalog.ref("testcatalog"), query, "Test Search");
+  let result = await createSavedSearch(Catalog.ref("testcatalog"), query, "Test Search", true);
 
   expect(result).toEqual({
     id: "testsearch",
     name: "Test Search",
     catalog: expect.toBeRef("testcatalog"),
+    shared: true,
     query,
   });
 
@@ -52,6 +54,7 @@ test("Create saved search", async (): Promise<void> => {
     body: {
       catalog: "testcatalog",
       name: "Test Search",
+      shared: true,
       query,
     },
   });
@@ -71,6 +74,7 @@ test("Edit saved search", async (): Promise<void> => {
     id: "testsearch",
     catalog: "testcatalog",
     name: "Edited Search",
+    shared: true,
     // @ts-ignore
     query,
   });
@@ -83,6 +87,7 @@ test("Edit saved search", async (): Promise<void> => {
     id: "testsearch",
     name: "Edited Search",
     catalog: expect.toBeRef("testcatalog"),
+    shared: true,
     query,
   });
 

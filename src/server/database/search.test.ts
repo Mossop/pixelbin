@@ -880,6 +880,7 @@ test("saved searches", async (): Promise<void> => {
   let search = await user1Db.createSavedSearch({
     catalog: "c1",
     name: "My search",
+    shared: true,
     query: query1,
   });
 
@@ -887,6 +888,7 @@ test("saved searches", async (): Promise<void> => {
     id: expect.stringMatching(/S:[a-zA-Z0-9]+/),
     catalog: "c1",
     name: "My search",
+    shared: true,
     query: query1,
   });
   let search1 = search.id;
@@ -894,6 +896,7 @@ test("saved searches", async (): Promise<void> => {
   search = await user1Db.createSavedSearch({
     catalog: "c2",
     name: "My other search",
+    shared: false,
     query: query2,
   });
 
@@ -901,6 +904,7 @@ test("saved searches", async (): Promise<void> => {
     id: expect.stringMatching(/S:[a-zA-Z0-9]+/),
     catalog: "c2",
     name: "My other search",
+    shared: false,
     query: query2,
   });
   let search2 = search.id;
@@ -915,12 +919,14 @@ test("saved searches", async (): Promise<void> => {
       id: search1,
       catalog: "c1",
       name: "My search",
+      shared: true,
       query: query1,
     },
     {
       id: search2,
       catalog: "c2",
       name: "My other search",
+      shared: false,
       query: query2,
     },
   ]);
@@ -933,6 +939,7 @@ test("saved searches", async (): Promise<void> => {
       id: search2,
       catalog: "c2",
       name: "My other search",
+      shared: false,
       query: query2,
     },
   ]);
@@ -945,6 +952,7 @@ test("saved searches", async (): Promise<void> => {
       id: search1,
       catalog: "c1",
       name: "My search",
+      shared: true,
       query: query1,
     },
   ]);
@@ -961,6 +969,7 @@ test("saved searches", async (): Promise<void> => {
   await user3Db.editSavedSearch(search2, {
     query: query3,
     name: "foo",
+    shared: true,
   });
 
   searches = await user3Db.listSavedSearches();
@@ -971,6 +980,7 @@ test("saved searches", async (): Promise<void> => {
       id: search2,
       catalog: "c2",
       name: "foo",
+      shared: true,
       query: query3,
     },
   ]);
@@ -992,6 +1002,7 @@ test("saved searches", async (): Promise<void> => {
       id: search1,
       catalog: "c1",
       name: "My search",
+      shared: true,
       query: query1,
     },
   ]);

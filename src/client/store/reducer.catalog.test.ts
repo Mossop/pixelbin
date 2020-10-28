@@ -320,6 +320,7 @@ test("searchSaved", () => {
     id: "s1",
     catalog: Catalog.ref("c2"),
     name: "My new search",
+    shared: true,
     query: {
       type: "field",
       invert: false,
@@ -368,6 +369,7 @@ test("searchSaved", () => {
             id: "s1",
             catalog: Catalog.ref("c2"),
             name: "My new search",
+            shared: true,
             query: {
               type: "field",
               invert: false,

@@ -311,6 +311,7 @@ export const testData = {
     id: "s1",
     catalog: "c2",
     name: "Search 1",
+    shared: true,
     query: {
       type: "field",
       invert: false,
@@ -323,6 +324,7 @@ export const testData = {
     id: "s2",
     catalog: "c1",
     name: "Search 2",
+    shared: true,
     query: {
       type: "field",
       invert: false,
@@ -335,6 +337,7 @@ export const testData = {
     id: "s3",
     catalog: "c1",
     name: "Search 3",
+    shared: false,
     query: {
       type: "field",
       invert: false,
@@ -347,6 +350,7 @@ export const testData = {
     id: "s4",
     catalog: "c3",
     name: "Search 4",
+    shared: false,
     query: {
       type: "field",
       invert: false,

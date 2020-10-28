@@ -121,6 +121,7 @@ test("Saved searches", async (): Promise<void> => {
     .send({
       catalog: "c2",
       name: "My search",
+      shared: true,
       query: newQuery,
     })
     .expect("Content-Type", "application/json")
@@ -130,6 +131,7 @@ test("Saved searches", async (): Promise<void> => {
     id: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
     catalog: "c2",
     name: "My search",
+    shared: true,
     query: newQuery,
   });
 
@@ -166,6 +168,7 @@ test("Saved searches", async (): Promise<void> => {
     id: newId,
     catalog: "c2",
     name: "My search",
+    shared: true,
     query: newQuery2,
   });
 

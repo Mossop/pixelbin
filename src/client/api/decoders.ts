@@ -65,6 +65,7 @@ export const SavedSearchDecoder = JsonDecoder.object<Api.SavedSearch>(
     id: JsonDecoder.string,
     catalog: JsonDecoder.string,
     name: JsonDecoder.string,
+    shared: JsonDecoder.boolean,
     query: QueryDecoder,
   },
   "SavedSearch",

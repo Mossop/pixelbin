@@ -50,6 +50,15 @@ test("save search", async (): Promise<void> => {
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
+  let prv = expectChild<HTMLInputElement>(form, "#save-search-private");
+  expect(prv.checked).toBeTruthy();
+  let pbl = expectChild<HTMLInputElement>(form, "#save-search-public");
+  expect(pbl.checked).toBeFalsy();
+
+  click(pbl);
+  expect(prv.checked).toBeFalsy();
+  expect(pbl.checked).toBeTruthy();
+
   let name = expectChild<HTMLInputElement>(form, "input#save-search-name");
   typeString(name, "Hello");
 
@@ -69,6 +78,7 @@ test("save search", async (): Promise<void> => {
   expect(lastCallArgs(mockedRequest)).toEqual([Method.SavedSearchCreate, {
     catalog: "catalog",
     name: "Hello",
+    shared: true,
     query,
   }]);
 
@@ -78,6 +88,7 @@ test("save search", async (): Promise<void> => {
     id: "newsearch",
     catalog: "catalog",
     name: "Hello2",
+    shared: true,
     query,
   });
 
@@ -89,6 +100,7 @@ test("save search", async (): Promise<void> => {
       id: "newsearch",
       catalog: expect.toBeRef("catalog"),
       name: "Hello2",
+      shared: true,
       query,
     }],
   });

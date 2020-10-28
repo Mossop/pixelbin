@@ -216,3 +216,5 @@ album-delete-description = Are you sure you want to delete the "{$name}" album?
 save-search-title = Save this search
 save-search-submit = Save
 save-search-name = Name:
+save-search-private = Search is private.
+save-search-public = Search is shared publicly.

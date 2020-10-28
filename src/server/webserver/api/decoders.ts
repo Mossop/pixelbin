@@ -157,12 +157,14 @@ export const MediaSearchRequest = jsonDecoder(JsonDecoder.object<Api.MediaSearch
 
 export const SearchSaveRequest = jsonDecoder(JsonDecoder.object<Create<Api.SavedSearch>>({
   catalog: JsonDecoder.string,
+  shared: JsonDecoder.boolean,
   query: QueryDecoder,
   name: JsonDecoder.string,
 }, "SavedSearch"));
 
 export const SearchEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.SavedSearch>>({
   id: JsonDecoder.string,
+  shared: JsonDecoder.optional(JsonDecoder.boolean),
   query: JsonDecoder.optional(QueryDecoder),
   name: JsonDecoder.optional(JsonDecoder.string),
 }, "SavedSearch"));

@@ -29,6 +29,10 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     content: {
       paddingBottom: 0,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "start",
+      alignItems: "stretch",
     },
     actions: {
       padding: theme.spacing(1),

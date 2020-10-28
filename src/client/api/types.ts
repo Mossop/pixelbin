@@ -5,7 +5,7 @@ import type { Overwrite } from "../../utils";
 import { isoDateTime } from "../../utils";
 import type { ReadonlyMapOf } from "../utils/maps";
 import { intoMap } from "../utils/maps";
-import type { Media, Reference } from "./highlevel";
+import type { Media, Reference, SavedSearch } from "./highlevel";
 import { Album, Catalog, Person, Tag } from "./highlevel";
 
 type HighLevelForState<State> =
@@ -15,11 +15,13 @@ type HighLevelForState<State> =
       ? Album
       : State extends PersonState
         ? Person
-        : State extends CatalogState
-          ? Catalog
-          : State extends MediaState
-            ? Media
-            : never;
+        : State extends SavedSearchState
+          ? SavedSearch
+          : State extends CatalogState
+            ? Catalog
+            : State extends MediaState
+              ? Media
+              : never;
 
 export type Create<T> = Omit<T, "id">;
 export type Patch<T> = Overwrite<Partial<Omit<T, "catalog">>, {

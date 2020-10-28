@@ -40,6 +40,7 @@ type MockTag = Overwrite<Omit<TagState, "catalog" | "parent">, {
 type MockSavedSearch = Overwrite<Omit<SavedSearchState, "catalog">, {
   id?: string;
   query?: Query;
+  shared?: boolean;
 }>;
 type MockCatalog = Overwrite<CatalogState, {
   storage?: MockStorage | string;
@@ -140,21 +141,19 @@ function *iterSearches(
   }
 
   for (let mock of mocks) {
-    let id = mock.id ?? randomId();
-    let query = mock.query ?? {
-      type: "field",
-      invert: false,
-      field: "title",
-      modifier: null,
-      operator: Operator.Equal,
-      value: "foo",
-    };
-
     yield {
-      name: mock.name,
-      id,
+      id: randomId(),
+      query: {
+        type: "field",
+        invert: false,
+        field: "title",
+        modifier: null,
+        operator: Operator.Equal,
+        value: "foo",
+      },
+      shared: true,
+      ...mock,
       catalog,
-      query,
     } as Draft<SavedSearchState>;
   }
 }

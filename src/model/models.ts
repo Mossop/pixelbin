@@ -77,6 +77,7 @@ export interface Album extends IdType {
 export interface SavedSearch extends IdType {
   catalog: Catalog["id"];
   name: string;
+  shared: boolean;
   query: Query;
 }
 

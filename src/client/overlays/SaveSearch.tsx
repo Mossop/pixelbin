@@ -3,7 +3,7 @@ import React, { useCallback, useRef, useState } from "react";
 import type { Query } from "../../model";
 import type { Catalog, Reference } from "../api/highlevel";
 import { createSavedSearch } from "../api/search";
-import { FormDialog, TextField, useFormState } from "../components/Forms";
+import { FormDialog, Radio, RadioGroup, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
@@ -19,6 +19,7 @@ export default function SaveSearchOverlay({
 }: SaveSearchOverlayProps): ReactResult {
   let state = useFormState({
     name: "",
+    shared: false,
   });
   let [disabled, setDisabled] = useState(false);
   let [error, setError] = useState<AppError | null>(null);
@@ -31,7 +32,7 @@ export default function SaveSearchOverlay({
   }, [nameInput]);
 
   let onSubmit = useCallback(async () => {
-    let { name } = state.value;
+    let { name, shared } = state.value;
     if (!name) {
       return;
     }
@@ -40,7 +41,7 @@ export default function SaveSearchOverlay({
     setError(null);
 
     try {
-      let newSearch = await createSavedSearch(catalog, query, name);
+      let newSearch = await createSavedSearch(catalog, query, name, shared);
       actions.searchSaved(newSearch);
     } catch (e) {
       setError(e);
@@ -65,5 +66,9 @@ export default function SaveSearchOverlay({
       state={state.name}
       ref={nameInput}
     />
+    <RadioGroup name="shared" state={state.shared}>
+      <Radio id="save-search-private" labelId="save-search-private" value={false}/>
+      <Radio id="save-search-public" labelId="save-search-public" value={true}/>
+    </RadioGroup>
   </FormDialog>;
 }
