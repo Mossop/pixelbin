@@ -221,6 +221,9 @@ export enum Method {
   MediaRelations = "media/relations",
   MediaPeople = "media/people",
   MediaDelete = "media/delete",
+  SavedSearchCreate = "search/create",
+  SavedSearchEdit = "search/edit",
+  SavedSearchDelete = "search/delete",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -255,6 +258,9 @@ export const HttpMethods: MethodList = {
   [Method.MediaRelations]: "PATCH",
   [Method.MediaPeople]: "PATCH",
   [Method.MediaDelete]: "DELETE",
+  [Method.SavedSearchCreate]: "PUT",
+  [Method.SavedSearchEdit]: "PATCH",
+  [Method.SavedSearchDelete]: "DELETE",
 };
 
 // Fake interface
@@ -298,6 +304,9 @@ export interface Signatures {
   [Method.MediaRelations]: Signature<MediaRelationChange[], Media[]>;
   [Method.MediaPeople]: Signature<MediaPersonLocation[], Media[]>;
   [Method.MediaDelete]: Signature<string[], void>;
+  [Method.SavedSearchCreate]: Signature<Create<SavedSearch>, SavedSearch>;
+  [Method.SavedSearchEdit]: Signature<Patch<SavedSearch>, SavedSearch>;
+  [Method.SavedSearchDelete]: Signature<string[], void>;
 }
 
 export type SignatureRequest<M extends Method> =

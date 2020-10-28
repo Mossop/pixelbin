@@ -508,23 +508,12 @@ export const setMediaPeople = ensureAuthenticated(
   },
 );
 
-export const deleteMedia = ensureAuthenticatedTransaction(
+export const deleteMedia = ensureAuthenticated(
   async function deleteMedia(
     ctx: AppContext,
     userDb: UserScopedConnection,
     data: string[],
   ): Promise<void> {
     await userDb.deleteMedia(data);
-  },
-);
-
-export const searchMedia = ensureAuthenticated(
-  async (
-    ctx: AppContext,
-    userDb: UserScopedConnection,
-    search: Api.MediaSearchRequest,
-  ): Promise<ResponseFor<Api.Media>[]> => {
-    let media = await userDb.searchMedia(search.catalog, search.query);
-    return media.map(buildResponseMedia);
   },
 );

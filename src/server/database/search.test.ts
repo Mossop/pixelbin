@@ -978,10 +978,10 @@ test("saved searches", async (): Promise<void> => {
   await expect(user2Db.editSavedSearch(search2, {
     name: "bar",
   })).rejects.toThrow("Unknown SavedSearch.");
-  await expect(user2Db.deleteSavedSearch(search2)).rejects.toThrow("Unknown SavedSearch.");
-  await expect(user3Db.deleteSavedSearch(search1)).rejects.toThrow("Unknown SavedSearch.");
+  await expect(user2Db.deleteSavedSearch([search2])).rejects.toThrow("Unknown SavedSearch.");
+  await expect(user3Db.deleteSavedSearch([search1])).rejects.toThrow("Unknown SavedSearch.");
 
-  await user3Db.deleteSavedSearch(search2);
+  await user3Db.deleteSavedSearch([search2]);
   searches = await user1Db.listSavedSearches();
   expect(searches).toEqual([
     testData[Table.SavedSearch][0],

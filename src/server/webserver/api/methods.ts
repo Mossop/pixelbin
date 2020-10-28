@@ -30,8 +30,13 @@ import {
   relations,
   setMediaPeople,
   deleteMedia,
-  searchMedia,
 } from "./media";
+import {
+  searchMedia,
+  createSavedSearch,
+  deleteSavedSearch,
+  editSavedSearch,
+} from "./search";
 import { getState, login, logout, signup } from "./state";
 
 export class DirectResponse {
@@ -80,6 +85,9 @@ export const apiDecoders: RequestDecoders = {
   [Method.MediaRelations]: Decoders.MediaRelationsRequest,
   [Method.MediaPeople]: Decoders.MediaPersonLocations,
   [Method.MediaDelete]: Decoders.StringArray,
+  [Method.SavedSearchCreate]: Decoders.SearchSaveRequest,
+  [Method.SavedSearchEdit]: Decoders.SearchEditRequest,
+  [Method.SavedSearchDelete]: Decoders.StringArray,
 };
 
 type ApiInterface = {
@@ -117,6 +125,9 @@ const apiMethods: ApiInterface = {
   [Method.MediaRelations]: relations,
   [Method.MediaPeople]: setMediaPeople,
   [Method.MediaDelete]: deleteMedia,
+  [Method.SavedSearchCreate]: createSavedSearch,
+  [Method.SavedSearchEdit]: editSavedSearch,
+  [Method.SavedSearchDelete]: deleteSavedSearch,
 };
 
 const KEY_PARSE = /^(?<part>[^.[]+)(?<indexes>(?:\[\d+\])*)(?:\.(?<rest>.+))?$/;

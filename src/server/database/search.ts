@@ -251,12 +251,12 @@ export const editSavedSearch = ensureUserTransaction(async function editSavedSea
 
 export const deleteSavedSearch = ensureUserTransaction(async function deleteSavedSearch(
   this: UserScopedConnection,
-  id: string,
+  ids: string[],
 ): Promise<void> {
-  await this.checkWrite(Table.SavedSearch, [id]);
+  await this.checkWrite(Table.SavedSearch, ids);
 
   await from(this.knex, Table.SavedSearch)
-    .where(ref(Table.SavedSearch, "id"), id)
+    .whereIn(ref(Table.SavedSearch, "id"), ids)
     .del();
 });
 

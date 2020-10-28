@@ -155,6 +155,18 @@ export const MediaSearchRequest = jsonDecoder(JsonDecoder.object<Api.MediaSearch
   query: QueryDecoder,
 }, "MediaSearchRequest"));
 
+export const SearchSaveRequest = jsonDecoder(JsonDecoder.object<Create<Api.SavedSearch>>({
+  catalog: JsonDecoder.string,
+  query: QueryDecoder,
+  name: JsonDecoder.string,
+}, "SavedSearch"));
+
+export const SearchEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.SavedSearch>>({
+  id: JsonDecoder.string,
+  query: JsonDecoder.optional(QueryDecoder),
+  name: JsonDecoder.optional(JsonDecoder.string),
+}, "SavedSearch"));
+
 export const StringArray = jsonDecoder(JsonDecoder.array(JsonDecoder.string, "string[]"));
 
 const SelectedTagDecoder = oneOf<Api.SelectedTag>([
