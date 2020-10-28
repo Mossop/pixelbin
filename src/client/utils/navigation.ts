@@ -276,6 +276,22 @@ const pathMap: PathMap[] = [
       };
     },
   ],
+
+  [
+    re("/search/:search"),
+    (
+      serverState: ServerState,
+      historyState: HistoryState,
+      searchId: string,
+    ): UIState => {
+      return {
+        page: {
+          type: PageType.SavedSearch,
+          searchId,
+        },
+      };
+    },
+  ],
 ];
 
 export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
@@ -305,6 +321,9 @@ export function fromUIState(uiState: UIState): HistoryState {
   switch (uiState.page.type) {
     case PageType.Root: {
       return history.buildState("/");
+    }
+    case PageType.SavedSearch: {
+      return history.buildState(`/search/${uiState.page.searchId}`);
     }
     case PageType.User: {
       return history.buildState("/user");

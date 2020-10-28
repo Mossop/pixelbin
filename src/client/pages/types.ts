@@ -3,6 +3,7 @@ import type { HistoryState } from "../utils/history";
 import type { AlbumPageProps } from "./Album";
 import type { CatalogPageProps } from "./Catalog";
 import type { MediaPageProps } from "./Media";
+import type { SavedSearchPageProps } from "./SavedSearch";
 import type { SearchPageProps } from "./Search";
 
 export enum PageType {
@@ -12,6 +13,7 @@ export enum PageType {
   User = "user",
   Media = "media",
   Search = "search",
+  SavedSearch = "savedSearch",
   NotFound = "notfound",
 }
 
@@ -39,6 +41,10 @@ type SearchPageState = SearchPageProps & {
   readonly type: PageType.Search;
 };
 
+type SavedSearchPageState = SavedSearchPageProps & {
+  readonly type: PageType.SavedSearch;
+};
+
 interface NotFoundPageState {
   readonly type: PageType.NotFound;
   readonly history: HistoryState;
@@ -50,4 +56,5 @@ export type PageState =
   AlbumPageState |
   NotFoundPageState |
   MediaPageState |
-  SearchPageState;
+  SearchPageState |
+  SavedSearchPageState;

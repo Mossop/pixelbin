@@ -47,6 +47,7 @@ login-submit = Log in
 catalog-albums = Albums
 catalog-tags = Tags
 catalog-people = People
+catalog-searches = Saved Searches
 
 catalog-create-title = Create a new catalog
 catalog-create-title-first = Create your first catalog:

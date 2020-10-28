@@ -181,6 +181,22 @@ test("search page", (): void => {
   })).toEqual(state("/catalog/testcatalog/search"));
 });
 
+test("saved search page", (): void => {
+  expect(intoUIState(state("/search/foo"), LoggedOut)).toEqual({
+    page: {
+      type: PageType.SavedSearch,
+      searchId: "foo",
+    },
+  });
+
+  expect(fromUIState({
+    page: {
+      type: PageType.SavedSearch,
+      searchId: "bar",
+    },
+  })).toEqual(state("/search/bar"));
+});
+
 test("album page", (): void => {
   expect(intoUIState(state("/album/testalbum"), LoggedOut)).toEqual({
     page: {

@@ -9,6 +9,7 @@ import {
   Person,
   dereferencer,
   PendingAPIItem,
+  SavedSearch,
 } from "./highlevel";
 import type { ServerState } from "./types";
 
@@ -42,6 +43,13 @@ const LoggedIn = mockServerState([{
     id: "testperson1",
     name: "Test person 1",
   }],
+  searches: [{
+    id: "search1",
+    name: "my search",
+  }, {
+    id: "search2",
+    name: "my other search",
+  }],
 }, {
   id: "testcatalog2",
   name: "Test catalog 2",
@@ -72,6 +80,10 @@ const Mutated = mockServerState([{
   people: [{
     id: "testperson1",
     name: "Test person 1",
+  }],
+  searches: [{
+    id: "search1",
+    name: "my search",
   }],
 }, {
   id: "testcatalog2",
@@ -111,9 +123,11 @@ test("Catalog structures.", (): void => {
   expect(cats[0].albums).toHaveLength(3);
   expect(cats[0].people).toHaveLength(1);
   expect(cats[0].tags).toHaveLength(2);
+  expect(cats[0].searches).toHaveLength(2);
   expect(cats[1].albums).toHaveLength(0);
   expect(cats[1].people).toHaveLength(0);
   expect(cats[1].tags).toHaveLength(0);
+  expect(cats[1].searches).toHaveLength(0);
 
   let mutated = cats[0].ref().deref(Mutated);
   expect(mutated).not.toBe(cats[0]);
@@ -243,6 +257,33 @@ test("Person structures.", (): void => {
 
   let mutated = people[0].ref().deref(Mutated);
   expect(mutated).not.toBe(people[0]);
+});
+
+test("Search structures.", (): void => {
+  expect((): void => {
+    SavedSearch.fromState(LoggedOut, "search1");
+  }).toThrowAppError(ErrorCode.NotLoggedIn);
+  expect(SavedSearch.safeFromState(LoggedOut, "search1")).toBeUndefined();
+
+  expect((): void => {
+    SavedSearch.fromState(LoggedIn, "searchs2");
+  }).toThrowAppError(ErrorCode.UnknownSearch);
+  expect(SavedSearch.safeFromState(LoggedIn, "searchs2")).toBeUndefined();
+
+  let catalog = Catalog.fromState(LoggedIn, "testcatalog1");
+
+  let searches = catalog.searches;
+  expect(searches).toHaveLength(2);
+  expect(searches[0].id).toBe("search1");
+  expect(searches[0].name).toBe("my search");
+  expect(searches[0].catalog).toBe(catalog);
+
+  expect(SavedSearch.ref("search1").deref(LoggedIn)).toBe(searches[0]);
+
+  expect(searches[0].ref().deref(LoggedIn)).toBe(searches[0]);
+
+  let mutated = searches[0].ref().deref(Mutated);
+  expect(mutated).not.toBe(searches[0]);
 });
 
 test("Dereferer.", (): void => {

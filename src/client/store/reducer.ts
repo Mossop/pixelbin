@@ -78,7 +78,12 @@ const catalogReducers = {
       catalog.searches.set(search.id, createDraft(search));
     }
 
-    delete state.ui.overlay;
+    state.ui = {
+      page: {
+        type: PageType.SavedSearch,
+        searchId: search.id,
+      },
+    };
   },
 };
 

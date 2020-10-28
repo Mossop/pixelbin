@@ -57,6 +57,10 @@ test("virtual iteration", async (): Promise<void> => {
         id: "bob",
         name: "Bob",
       }],
+      searches: [{
+        id: "search1",
+        name: "The search",
+      }],
     }, {
       id: "catalog2",
       name: "Catalog 2",
@@ -109,6 +113,12 @@ test("virtual iteration", async (): Promise<void> => {
         id: "bob",
         children: [],
       }],
+    }, {
+      id: "searchlist",
+      children: [{
+        id: "search1",
+        children: [],
+      }],
     }],
   }, {
     id: "catalog2",
@@ -132,6 +142,9 @@ test("virtual iteration", async (): Promise<void> => {
       }],
     }, {
       id: "personlist",
+      children: [],
+    }, {
+      id: "searchlist",
       children: [],
     }],
   }]);
@@ -167,6 +180,12 @@ test("virtual iteration", async (): Promise<void> => {
         id: "bob",
         children: [],
       }],
+    }, {
+      id: "searchlist",
+      children: [{
+        id: "search1",
+        children: [],
+      }],
     }],
   }, {
     id: "catalog2",
@@ -181,6 +200,9 @@ test("virtual iteration", async (): Promise<void> => {
       children: [],
     }, {
       id: "personlist",
+      children: [],
+    }, {
+      id: "searchlist",
       children: [],
     }],
   }]);

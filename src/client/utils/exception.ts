@@ -9,6 +9,7 @@ export enum ErrorCode {
   InvalidState = "invalid-state",
   NotLoggedIn = "not-logged-in",
   UnknownCatalog = "unknown-catalog",
+  UnknownSearch = "unknown-search",
   UnknownAlbum = "unknown-album",
   UnknownTag = "unknown-tag",
   UnknownPerson = "unknown-person",

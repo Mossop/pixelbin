@@ -15,6 +15,7 @@ export enum MediaLookupType {
   Album,
   Catalog,
   Search,
+  SavedSearch,
 }
 
 export interface AlbumMediaLookup {
@@ -39,11 +40,17 @@ export interface SearchMediaLookup {
   readonly query: Query;
 }
 
+export interface SavedSearchMediaLookup {
+  readonly type: MediaLookupType.SavedSearch;
+  readonly search: string;
+}
+
 export type MediaLookup =
   AlbumMediaLookup |
   CatalogMediaLookup |
   SingleMediaLookup |
-  SearchMediaLookup;
+  SearchMediaLookup |
+  SavedSearchMediaLookup;
 
 function isMedia(item: Draft<MediaState> | null): item is Draft<MediaState> {
   return !!item;
@@ -64,6 +71,9 @@ export const lookupMedia = memoized(
       }
       case MediaLookupType.Search: {
         return searchMedia(lookup.catalog, lookup.query);
+      }
+      case MediaLookupType.SavedSearch: {
+        return [];
       }
     }
   },

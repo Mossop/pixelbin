@@ -78,7 +78,7 @@ abstract class BaseVirtualItem implements VirtualItem {
   }
 }
 
-abstract class BaseVirtualCatalogItem extends BaseVirtualItem {
+export abstract class BaseVirtualCatalogItem extends BaseVirtualItem {
 }
 
 class VirtualCatalogAlbums extends BaseVirtualCatalogItem {
@@ -153,6 +153,30 @@ class VirtualCatalogPeople extends BaseVirtualCatalogItem {
   }
 }
 
+class VirtualCatalogSearches extends BaseVirtualCatalogItem {
+  public constructor(
+    private readonly catalog: Catalog,
+    treeOptions: VirtualTreeOptions,
+  ) {
+    super("searchlist", treeOptions);
+  }
+
+  public label(l10n: ReactLocalization): string {
+    return l10n.getString("catalog-searches");
+  }
+
+  public icon(): ReactResult {
+    return <ImageSearchIcon/>;
+  }
+
+  public get children(): VirtualItem[] {
+    return descend(
+      this.catalog.searches.map((search: SavedSearch) => search.virtual(this.treeOptions)),
+      this.treeOptions,
+    );
+  }
+}
+
 export class VirtualCatalog extends BaseVirtualItem {
   public constructor(
     public readonly catalog: Catalog,
@@ -183,6 +207,7 @@ export class VirtualCatalog extends BaseVirtualItem {
       new VirtualCatalogAlbums(this.catalog, this.treeOptions),
       new VirtualCatalogTags(this.catalog, this.treeOptions),
       new VirtualCatalogPeople(this.catalog, this.treeOptions),
+      new VirtualCatalogSearches(this.catalog, this.treeOptions),
     ], this.treeOptions);
 
     if (this.treeOptions.categories == IncludeVirtualCategories.IfNeeded ||
@@ -278,6 +303,15 @@ export class VirtualSearch extends BaseVirtualItem {
     super(search.id, treeOptions);
   }
 
+  public get link(): Draft<UIState> {
+    return {
+      page: {
+        type: PageType.SavedSearch,
+        searchId: this.search.id,
+      },
+    };
+  }
+
   public label(): string {
     return this.search.name;
   }
@@ -305,6 +339,12 @@ export const VirtualTree: Record<string, VirtualTreeOptions> = {
   People: {
     filter: (item: VirtualItem): boolean => {
       return item instanceof VirtualPerson || item instanceof BaseVirtualCatalogItem;
+    },
+    categories: IncludeVirtualCategories.IfNeeded,
+  },
+  Searches: {
+    filter: (item: VirtualItem): boolean => {
+      return item instanceof VirtualSearch || item instanceof BaseVirtualCatalogItem;
     },
     categories: IncludeVirtualCategories.IfNeeded,
   },

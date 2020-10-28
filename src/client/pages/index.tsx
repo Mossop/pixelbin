@@ -14,6 +14,7 @@ const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./Catal
 const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./User"));
 const Media = lazy(() => import(/* webpackChunkName: "MediaPage" */ "./Media"));
 const Search = lazy(() => import(/* webpackChunkName: "SearchPage" */ "./Search"));
+const SavedSearch = lazy(() => import(/* webpackChunkName: "SavedSearch" */ "./SavedSearch"));
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({
@@ -44,6 +45,9 @@ export default function PageDisplay(): ReactResult {
   switch (page.type) {
     case PageType.Root: {
       return <Root/>;
+    }
+    case PageType.SavedSearch: {
+      return <SavedSearch {...page}/>;
     }
     case PageType.NotFound: {
       return <NotFound/>;

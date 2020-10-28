@@ -1,5 +1,7 @@
 import { enableMapSet } from "immer";
 
+import { Operator } from "../../model";
+import { Catalog } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect, mapOf, mockServerState } from "../test-helpers";
 import actions from "./actions";
@@ -240,5 +242,165 @@ test("catalogEdited", (): void => {
       },
     }),
     verified: true,
+  });
+});
+
+test("searchSaved", () => {
+  let state = mockStoreState({
+    serverState: mockServerState([{
+      id: "c1",
+      name: "initial",
+      storage: "s1",
+      albums: [{
+        id: "a1",
+        name: "album 1",
+      }, {
+        id: "a2",
+        name: "album 2",
+      }],
+    }, {
+      id: "c2",
+      name: "other",
+      storage: "s1",
+    }]),
+  });
+
+  expect(state.serverState.user).toEqual({
+    catalogs: mapOf({
+      c1: {
+        id: "c1",
+        name: "initial",
+        storage: "s1",
+        albums: mapOf({
+          a1: {
+            id: "a1",
+            name: "album 1",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+          a2: {
+            id: "a2",
+            name: "album 2",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+        }),
+        tags: mapOf({}),
+        people: mapOf({}),
+        searches: mapOf({}),
+      },
+      c2: {
+        id: "c2",
+        name: "other",
+        albums: mapOf({}),
+        people: mapOf({}),
+        searches: mapOf({}),
+        storage: "s1",
+        tags: mapOf({}),
+      },
+    }),
+    created: "2020-04-05T12:34:45Z",
+    email: "dtownsend@oxymoronical.com",
+    fullname: "Dave Townsend",
+    storage: mapOf({
+      s1: {
+        bucket: "test-bucket",
+        endpoint: null,
+        id: "s1",
+        name: "Test store",
+        path: null,
+        publicUrl: null,
+        region: "test-region-001",
+      },
+    }),
+    verified: true,
+  });
+
+  let action = actions.searchSaved({
+    id: "s1",
+    catalog: Catalog.ref("c2"),
+    name: "My new search",
+    query: {
+      type: "field",
+      invert: false,
+      field: "title",
+      modifier: null,
+      operator: Operator.Equal,
+      value: "foo",
+    },
+  });
+
+  let newState = reducer(state, action);
+
+  expect(newState.serverState.user).toEqual({
+    catalogs: mapOf({
+      c1: {
+        id: "c1",
+        name: "initial",
+        storage: "s1",
+        albums: mapOf({
+          a1: {
+            id: "a1",
+            name: "album 1",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+          a2: {
+            id: "a2",
+            name: "album 2",
+            catalog: expect.toBeRef("c1"),
+            parent: null,
+          },
+        }),
+        tags: mapOf({}),
+        people: mapOf({}),
+        searches: mapOf({}),
+      },
+      c2: {
+        id: "c2",
+        name: "other",
+        storage: "s1",
+        albums: mapOf({}),
+        people: mapOf({}),
+        tags: mapOf({}),
+        searches: mapOf({
+          s1: {
+            id: "s1",
+            catalog: Catalog.ref("c2"),
+            name: "My new search",
+            query: {
+              type: "field",
+              invert: false,
+              field: "title",
+              modifier: null,
+              operator: Operator.Equal,
+              value: "foo",
+            },
+          },
+        }),
+      },
+    }),
+    created: "2020-04-05T12:34:45Z",
+    email: "dtownsend@oxymoronical.com",
+    fullname: "Dave Townsend",
+    storage: mapOf({
+      s1: {
+        bucket: "test-bucket",
+        endpoint: null,
+        id: "s1",
+        name: "Test store",
+        path: null,
+        publicUrl: null,
+        region: "test-region-001",
+      },
+    }),
+    verified: true,
+  });
+
+  expect(newState.ui).toEqual({
+    page: {
+      type: PageType.SavedSearch,
+      searchId: "s1",
+    },
   });
 });

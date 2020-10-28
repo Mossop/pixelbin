@@ -2,7 +2,8 @@ import type { Deed } from "deeds/immer";
 import type { Draft } from "immer";
 import type { Unsubscribe } from "redux";
 
-import { emptyMetadata } from "../../model";
+import type { Query } from "../../model";
+import { Operator, emptyMetadata } from "../../model";
 import type { Overwrite } from "../../utils";
 import { now } from "../../utils";
 import type { Reference } from "../api/highlevel";
@@ -38,6 +39,7 @@ type MockTag = Overwrite<Omit<TagState, "catalog" | "parent">, {
 }>;
 type MockSavedSearch = Overwrite<Omit<SavedSearchState, "catalog">, {
   id?: string;
+  query?: Query;
 }>;
 type MockCatalog = Overwrite<CatalogState, {
   storage?: MockStorage | string;
@@ -139,11 +141,20 @@ function *iterSearches(
 
   for (let mock of mocks) {
     let id = mock.id ?? randomId();
+    let query = mock.query ?? {
+      type: "field",
+      invert: false,
+      field: "title",
+      modifier: null,
+      operator: Operator.Equal,
+      value: "foo",
+    };
 
     yield {
-      ...mock,
+      name: mock.name,
       id,
       catalog,
+      query,
     } as Draft<SavedSearchState>;
   }
 }

@@ -9,7 +9,12 @@ import { useSelector } from "../store";
 import type { StoreState, UIState } from "../store/types";
 import type { ReactResult } from "../utils/types";
 import type { VirtualItem } from "../utils/virtual";
-import { IncludeVirtualCategories, VirtualTree } from "../utils/virtual";
+import {
+  BaseVirtualCatalogItem,
+  VirtualAlbum,
+  VirtualSearch,
+  IncludeVirtualCategories,
+} from "../utils/virtual";
 import type { PageOption } from "./Banner";
 import Banner from "./Banner";
 import type { SidebarProps } from "./Sidebar";
@@ -50,7 +55,10 @@ export default function Page({
 }: PageProps): ReactResult {
   let catalogs = useCatalogs().map(
     (catalog: Catalog): VirtualItem => catalog.virtual({
-      ...VirtualTree.Albums,
+      filter: (item: VirtualItem): boolean => {
+        return item instanceof VirtualAlbum || item instanceof VirtualSearch ||
+          item instanceof BaseVirtualCatalogItem;
+      },
       categories: IncludeVirtualCategories.IfNeeded,
     }),
   );

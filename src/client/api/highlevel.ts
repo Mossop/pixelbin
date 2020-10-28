@@ -457,6 +457,13 @@ export class Catalog implements Referencable<Catalog> {
     );
   }
 
+  public get searches(): SavedSearch[] {
+    return Array.from(
+      this.state.searches.keys(),
+      (id: string): SavedSearch => SavedSearch.fromState(this.serverState, id),
+    );
+  }
+
   public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualCatalog {
     return new VirtualCatalog(this, treeType);
   }
@@ -566,7 +573,7 @@ export class SavedSearch implements Referencable<SavedSearch> {
       }
     }
 
-    exception(ErrorCode.UnknownPerson);
+    exception(ErrorCode.UnknownSearch);
   }
 
   public static safeFromState(
