@@ -237,16 +237,23 @@ function API:deleteMedia(ids)
   return self:POST("media/delete", ids)
 end
 
-function API:createAlbum(album)
-  local body = "{ "
-  body = body .. "\"name\": " .. json.encode(album.name) .. ", "
+function API:createAlbum(catalog, album)
+  local parent
   if album.parent then
-    body = body .. "\"parent\": " .. json.encode(album.parent) .. ", "
+    parent = json.encode(album.parent)
   else
-    body = body .. "\"parent\": null, "
+    parent = "null"
   end
-  body = body .. "\"catalog\": " .. json.encode(album.catalog)
-  body = body .. "}"
+
+  local body = string.format([[
+    {
+      "catalog": %s,
+      "album": {
+        "name": %s,
+        "parent": %s
+      }
+    }
+  ]], json.encode(catalog), json.encode(album.name), parent)
 
   local success, result = self:POST("album/create", body)
   if success then
@@ -256,16 +263,23 @@ function API:createAlbum(album)
   return success, result
 end
 
-function API:editAlbum(album)
-  local body = "{ "
-  body = body .. "\"name\": " .. json.encode(album.name) .. ", "
+function API:editAlbum(id, album)
+  local parent
   if album.parent then
-    body = body .. "\"parent\": " .. json.encode(album.parent) .. ", "
+    parent = json.encode(album.parent)
   else
-    body = body .. "\"parent\": null, "
+    parent = "null"
   end
-  body = body .. "\"id\": " .. json.encode(album.id)
-  body = body .. "}"
+
+  local body = string.format([[
+    {
+      "id": %s,
+      "album": {
+        "name": %s,
+        "parent": %s
+      }
+    }
+  ]], json.encode(id), json.encode(album.name), parent)
 
   local success, result = self:POST("album/edit", body)
   if success then
@@ -405,13 +419,13 @@ function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
   elseif exifdata.Subject then
     for _, tag in ipairs(asList(exifdata.Subject)) do
       if not foundPeople[tag] then
-        table.insert(mediaInfo.tags, tag)
+        table.insert(mediaInfo.tags, { tag })
       end
     end
   elseif exifdata.Keywords then
     for _, tag in ipairs(asList(exifdata.Keywords)) do
       if not foundPeople[tag] then
-        table.insert(mediaInfo.tags, tag)
+        table.insert(mediaInfo.tags, { tag })
       end
     end
   end
@@ -507,10 +521,9 @@ function API:getOrCreateChildAlbum(catalog, parent, name)
     end
   end
 
-  return self:createAlbum({
+  return self:createAlbum(catalog, {
     name = name,
     parent = parent,
-    catalog = catalog,
   })
 end
 

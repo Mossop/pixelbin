@@ -153,8 +153,7 @@ function Provider.updateCollectionSettings(publishSettings, info)
 
       local success, result
       if albumId then
-        success, result = api:editAlbum({
-          id = albumId,
+        success, result = api:editAlbum(albumId, {
           name = info.name,
           parent = parent,
         })
@@ -163,10 +162,9 @@ function Provider.updateCollectionSettings(publishSettings, info)
           LrDialogs.showError(result.name)
         end
       else
-        success, result = api:createAlbum({
+        success, result = api:createAlbum(publishSettings.catalog, {
           name = info.name,
           parent = parent,
-          catalog = publishSettings.catalog,
         })
 
         if not success then
