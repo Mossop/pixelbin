@@ -412,7 +412,12 @@ function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
 
       table.insert(tag, string.sub(tagstr, start))
 
-      if not foundPeople[tag[depth]] then
+      if foundPeople[tag[depth]] then
+        table.remove(tag)
+        depth = depth - 1
+      end
+
+      if depth > 0 then
         table.insert(mediaInfo.tags, tag)
       end
     end
