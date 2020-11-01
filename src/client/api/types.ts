@@ -5,101 +5,97 @@ import type { Overwrite } from "../../utils";
 import { isoDateTime } from "../../utils";
 import type { ReadonlyMapOf } from "../utils/maps";
 import { intoMap } from "../utils/maps";
-import type { Media, Reference, SavedSearch } from "./highlevel";
+import type { Reference } from "./highlevel";
 import { Album, Catalog, Person, Tag } from "./highlevel";
 
-type HighLevelForState<State> =
-  State extends TagState
-    ? Tag
-    : State extends AlbumState
-      ? Album
-      : State extends PersonState
-        ? Person
-        : State extends SavedSearchState
-          ? SavedSearch
-          : State extends CatalogState
-            ? Catalog
-            : State extends MediaState
-              ? Media
-              : never;
-
-export type Create<T> = Omit<T, "id">;
-export type Patch<T> = Overwrite<Partial<Omit<T, "catalog">>, {
-  id: Reference<HighLevelForState<T>>;
+export type UserState = Overwrite<Readonly<ObjectModel.User>, {
+  readonly created: string;
+  readonly lastLogin: string | null;
+  readonly storage: ReadonlyMapOf<StorageState>;
+  readonly catalogs: ReadonlyMapOf<CatalogState>;
 }>;
-
-export interface MediaPersonState {
-  person: Reference<Person>;
-  location: ObjectModel.Location | null;
-}
 
 export type StorageState = Api.Storage;
-export type PersonState = Overwrite<Readonly<ObjectModel.Person>, {
-  readonly catalog: Reference<Catalog>;
-}>;
-export type TagState = Overwrite<Readonly<ObjectModel.Tag>, {
-  readonly parent: Reference<Tag> | null;
-  readonly catalog: Reference<Catalog>;
-}>;
-export type AlbumState = Overwrite<Readonly<ObjectModel.Album>, {
-  readonly parent: Reference<Album> | null;
-  readonly catalog: Reference<Catalog>;
-}>;
-export type SavedSearchState = Overwrite<Readonly<ObjectModel.SavedSearch>, {
-  readonly catalog: Reference<Catalog>;
-}>;
-export type CatalogState = Overwrite<Readonly<ObjectModel.Catalog>, {
+
+export type CatalogState = Readonly<ObjectModel.Catalog> & {
+  readonly storage: string;
   readonly tags: ReadonlyMapOf<TagState>;
   readonly albums: ReadonlyMapOf<AlbumState>;
   readonly people: ReadonlyMapOf<PersonState>;
   readonly searches: ReadonlyMapOf<SavedSearchState>;
+};
+
+export type PersonState = Readonly<ObjectModel.Person> & {
+  readonly catalog: Reference<Catalog>;
+};
+
+export type TagState = Overwrite<Readonly<ObjectModel.Tag>, {
+  readonly parent: Reference<Tag> | null;
+  readonly catalog: Reference<Catalog>;
 }>;
-export type UserState = Overwrite<Readonly<Omit<ObjectModel.User, "created" | "lastLogin">>, {
-  readonly created: string;
-  readonly storage: ReadonlyMapOf<StorageState>;
-  readonly catalogs: ReadonlyMapOf<CatalogState>;
+
+export type AlbumState = Overwrite<Readonly<ObjectModel.Album>, {
+  readonly parent: Reference<Album> | null;
+  readonly catalog: Reference<Catalog>;
 }>;
+
+export type SavedSearchState = Readonly<ObjectModel.SavedSearch> & {
+  readonly catalog: Reference<Catalog>;
+};
+
+export type MediaAlbumState = ObjectModel.MediaAlbum & {
+  readonly album: Reference<Album>;
+};
+
+export type MediaTagState = ObjectModel.MediaTag & {
+  readonly tag: Reference<Tag>;
+};
+
+export type MediaPersonState = ObjectModel.MediaPerson & {
+  readonly person: Reference<Person>;
+};
+
+export type MediaState = Overwrite<Api.Media, {
+  catalog: Reference<Catalog>;
+  albums: MediaAlbumState[];
+  tags: MediaTagState[];
+  people: MediaPersonState[];
+}>;
+
+export type ProcessedMediaState = Overwrite<MediaState, {
+  file: NonNullable<MediaState["file"]>;
+}>;
+
+export function isProcessedMedia(media: MediaState): media is ProcessedMediaState {
+  return !!media.file;
+}
+
+export type PublicMediaState = Api.PublicMedia;
+export type PublicMediaWithMetadataState = Api.PublicMediaWithMetadata;
+
 export interface ServerState {
   readonly user: UserState | null;
 }
-export type UnprocessedMediaState = Overwrite<Readonly<Api.UnprocessedMedia>, {
-  readonly tags: readonly Reference<Tag>[];
-  readonly albums: readonly Reference<Album>[];
-  readonly people: readonly MediaPersonState[];
-}>;
-export type ProcessedMediaState = Overwrite<Readonly<Api.ProcessedMedia>, {
-  readonly tags: readonly Reference<Tag>[];
-  readonly albums: readonly Reference<Album>[];
-  readonly people: readonly MediaPersonState[];
-}>;
-export type MediaState = UnprocessedMediaState | ProcessedMediaState;
-export interface OriginalState extends Readonly<ObjectModel.Original> {}
 
-export function isProcessed(media: MediaState): media is ProcessedMediaState {
-  return "uploaded" in media && !!media.uploaded;
-}
-
-export function isUnprocessed(media: MediaState): media is UnprocessedMediaState {
-  return !isProcessed(media);
-}
-
-export function mediaIntoState(media: Api.UnprocessedMedia): Draft<UnprocessedMediaState>;
-export function mediaIntoState(media: Api.ProcessedMedia): Draft<ProcessedMediaState>;
-export function mediaIntoState(media: Api.Media): Draft<MediaState>;
 export function mediaIntoState(media: Api.Media): Draft<MediaState> {
   return {
     ...media,
 
-    albums: media.albums.map((album: Api.Album): Reference<Album> => Album.ref(album.id)),
-    tags: media.tags.map((tag: Api.Tag): Reference<Tag> => Tag.ref(tag.id)),
-    people: media.people.map((person: Api.MediaPerson): MediaPersonState => ({
-      person: Person.ref(person.id),
+    catalog: Catalog.ref(media.catalog),
+    albums: media.albums.map((album: Api.MediaAlbum): Draft<MediaAlbumState> => ({
+      album: Album.ref(album.album),
+    })),
+    tags: media.tags.map((tag: Api.MediaTag): Draft<MediaTagState> => ({
+      tag: Tag.ref(tag.tag),
+    })),
+    people: media.people.map((person: Api.MediaPerson): Draft<MediaPersonState> => ({
+      person: Person.ref(person.person),
       location: person.location,
     })),
   };
 }
 
-export function albumIntoState(album: Api.Album): AlbumState {
+export function albumIntoState(album: Api.Album): Draft<AlbumState> {
   return {
     ...album,
     catalog: Catalog.ref(album.catalog),
@@ -107,7 +103,7 @@ export function albumIntoState(album: Api.Album): AlbumState {
   };
 }
 
-export function tagIntoState(tag: Api.Tag): TagState {
+export function tagIntoState(tag: Api.Tag): Draft<TagState> {
   return {
     ...tag,
     catalog: Catalog.ref(tag.catalog),
@@ -115,26 +111,26 @@ export function tagIntoState(tag: Api.Tag): TagState {
   };
 }
 
-export function personIntoState(person: Api.Person): PersonState {
+export function personIntoState(person: Api.Person): Draft<PersonState> {
   return {
     ...person,
     catalog: Catalog.ref(person.catalog),
   };
 }
 
-export function searchIntoState(search: Api.SavedSearch): SavedSearchState {
+export function searchIntoState(search: Api.SavedSearch): Draft<SavedSearchState> {
   return {
     ...search,
     catalog: Catalog.ref(search.catalog),
-  };
+  } as Draft<SavedSearchState>;
 }
 
-export function userIntoState(user: Api.User): UserState {
+export function userIntoState(user: Api.User): Draft<UserState> {
   interface Maps {
-    albums: Map<string, AlbumState>;
-    tags: Map<string, TagState>;
-    people: Map<string, PersonState>;
-    searches: Map<string, SavedSearchState>;
+    albums: Map<string, Draft<AlbumState>>;
+    tags: Map<string, Draft<TagState>>;
+    people: Map<string, Draft<PersonState>>;
+    searches: Map<string, Draft<SavedSearchState>>;
   }
 
   let catalogMaps = new Map<string, Maps>();
@@ -179,9 +175,10 @@ export function userIntoState(user: Api.User): UserState {
   return {
     ...rest,
     created: isoDateTime(rest.created),
+    lastLogin: rest.lastLogin ? isoDateTime(rest.lastLogin) : null,
     storage: intoMap(user.storage),
     catalogs: new Map(
-      catalogs.map((catalog: Api.Catalog): [string, CatalogState] => {
+      catalogs.map((catalog: Api.Catalog): [string, Draft<CatalogState>] => {
         return [
           catalog.id,
           {
@@ -194,7 +191,7 @@ export function userIntoState(user: Api.User): UserState {
   };
 }
 
-export function serverStateIntoState(state: Api.State): ServerState {
+export function serverStateIntoState(state: Api.State): Draft<ServerState> {
   return {
     user: state.user ? userIntoState(state.user) : null,
   };

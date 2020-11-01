@@ -20,9 +20,10 @@ test("Test user retrieval", async (): Promise<void> => {
   let loginDT = mockDateTime("2020-09-02T13:18:00");
 
   user = await dbConnection.loginUser("someone1@nowhere.com", "password1");
-  let { password, lastLogin, ...expected } = testData[Table.User][0];
+  let { password, ...expected } = testData[Table.User][0];
   expect(user).toEqual({
     ...expected,
+    lastLogin: expect.toEqualDate(loginDT),
     created: expect.toEqualDate(expected.created),
   });
 
@@ -44,6 +45,7 @@ test("Test user retrieval", async (): Promise<void> => {
   let { password: password2, lastLogin: lastLogin2, ...expected2 } = testData[Table.User][1];
   expect(user).toEqual({
     ...expected2,
+    lastLogin: expect.toEqualDate(loginDT),
     created: expect.toEqualDate(expected2.created),
   });
 
@@ -78,6 +80,7 @@ test("User creation", async (): Promise<void> => {
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
     created: expect.toEqualDate(createdDT),
+    lastLogin: null,
     verified: true,
   });
 
@@ -101,6 +104,7 @@ test("User creation", async (): Promise<void> => {
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
     created: expect.toEqualDate(createdDT),
+    lastLogin: expect.toEqualDate(loginDT),
     verified: true,
   });
 

@@ -12,8 +12,8 @@ import {
 } from "../../../model";
 import { expect, mockedFunction, deferCall, mockDateTime, reordered } from "../../../test-helpers";
 import { now, parseDateTime } from "../../../utils";
+import type { MediaFile, MediaView } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
-import type { OriginalInfo } from "../../database/unsafe";
 import { StorageService } from "../../storage";
 import { buildTestApp } from "../test-helpers";
 
@@ -81,7 +81,7 @@ test("Media upload", async (): Promise<void> => {
     .field("tags[0]", "t1")
     .field("tags[1]", "t2")
     .field("people[0]", "p1")
-    .field("taken", "2020-04-05T17:01:04-07:00")
+    .field("media.taken", "2020-04-05T17:01:04-07:00")
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
@@ -118,33 +118,23 @@ test("Media upload", async (): Promise<void> => {
   expect(response.body).toEqual({
     ...emptyMetadata,
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
+    file: null,
     created: expect.toEqualDate(createdDT),
     updated: expect.toEqualDate(createdDT),
     taken: "2020-04-05T17:01:04.000-07:00",
     takenZone: "-07:00",
     catalog: "c1",
     albums: [{
-      catalog: "c1",
-      id: "a1",
-      name: "Album 1",
-      parent: null,
+      album: "a1",
     }],
     people: [{
-      catalog: "c1",
-      id: "p1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }],
     tags: [{
-      catalog: "c1",
-      id: "t1",
-      name: "tag1",
-      parent: null,
+      tag: "t1",
     }, {
-      catalog: "c1",
-      id: "t2",
-      name: "tag2",
-      parent: null,
+      tag: "t2",
     }],
   });
 
@@ -167,7 +157,7 @@ test("Media upload", async (): Promise<void> => {
     .field("tags[0][0]", "tag1")
     .field("tags[0][1]", "newtag")
     .field("tags[1][0]", "tag2")
-    .field("people[0].id", "p1")
+    .field("people[0].person", "p1")
     .field("people[1].name", "Person 2")
     .field("people[2].name", "New person")
     .field("people[2].location.left", "0")
@@ -185,12 +175,11 @@ test("Media upload", async (): Promise<void> => {
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.anything(),
     updated: expect.toEqualDate(response.body.created),
+    file: null,
     catalog: "c1",
     albums: [],
     people: [{
-      catalog: "c1",
-      id: expect.stringMatching(/P:[a-zA-Z0-9]+/),
-      name: "New person",
+      person: expect.stringMatching(/P:[a-zA-Z0-9]+/),
       location: {
         left: 0,
         right: 1,
@@ -198,26 +187,16 @@ test("Media upload", async (): Promise<void> => {
         bottom: 1,
       },
     }, {
-      catalog: "c1",
-      id: "p1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      catalog: "c1",
-      id: "p2",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
     tags: [{
-      catalog: "c1",
-      id: expect.stringMatching(/T:[a-zA-Z0-9]+/),
-      name: "newtag",
-      parent: "t1",
+      tag: expect.stringMatching(/T:[a-zA-Z0-9]+/),
     }, {
-      catalog: "c1",
-      id: "t2",
-      name: "tag2",
-      parent: null,
+      tag: "t2",
     }],
   });
 });
@@ -241,7 +220,7 @@ test("Media edit", async (): Promise<void> => {
   let copyUploadedFileMock = mockedFunction(storage.copyUploadedFile);
   /* eslint-enable @typescript-eslint/unbound-method */
 
-  let newMedia: Api.Media | null = await user1Db.createMedia("c1", {
+  let newMedia: MediaView | null = await user1Db.createMedia("c1", {
     ...emptyMetadata,
     title: "My title",
   });
@@ -260,6 +239,7 @@ test("Media edit", async (): Promise<void> => {
   }, {
     media: newMedia.id,
     person: "p2",
+    location: null,
   }]);
 
   [newMedia] = await user1Db.getMedia([newMedia.id]);
@@ -270,25 +250,18 @@ test("Media edit", async (): Promise<void> => {
     catalog: "c1",
     created: expect.anything(),
     updated: expect.toEqualDate(newMedia?.created ?? ""),
+    file: null,
 
     title: "My title",
 
     albums: [{
-      catalog: "c1",
-      id: "a1",
-      name: "Album 1",
-      parent: null,
+      album: "a1",
     }],
     tags: [{
-      catalog: "c1",
-      id: "t1",
-      name: "tag1",
-      parent: null,
+      tag: "t1",
     }],
     people: [{
-      catalog: "c1",
-      id: "p1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0,
         right: 1,
@@ -296,9 +269,7 @@ test("Media edit", async (): Promise<void> => {
         bottom: 1,
       },
     }, {
-      catalog: "c1",
-      id: "p2",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   });
@@ -328,25 +299,18 @@ test("Media edit", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
     updated: expect.toEqualDate(updatedDT),
+    file: null,
 
     title: "My title",
 
     albums: [{
-      catalog: "c1",
-      id: "a1",
-      name: "Album 1",
-      parent: null,
+      album: "a1",
     }],
     tags: [{
-      catalog: "c1",
-      id: "t1",
-      name: "tag1",
-      parent: null,
+      tag: "t1",
     }],
     people: [{
-      catalog: "c1",
-      id: "p1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0,
         right: 1,
@@ -354,9 +318,7 @@ test("Media edit", async (): Promise<void> => {
         bottom: 1,
       },
     }, {
-      catalog: "c1",
-      id: "p2",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   });
@@ -373,8 +335,10 @@ test("Media edit", async (): Promise<void> => {
     .patch("/api/media/edit")
     .send({
       id: newMedia?.id,
-      title: "New title",
-      taken: "2020-04-05T17:01:04-09:00",
+      media: {
+        title: "New title",
+        taken: "2020-04-05T17:01:04-09:00",
+      },
       albums: ["a2"],
       tags: [
         "t2",
@@ -391,32 +355,22 @@ test("Media edit", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
     updated: expect.toEqualDate(updatedDT),
+    file: null,
 
     title: "New title",
     taken: "2020-04-05T17:01:04.000-09:00",
     takenZone: "-09:00",
 
     albums: [{
-      catalog: "c1",
-      id: "a2",
-      name: "Album 2",
-      parent: null,
+      album: "a2",
     }],
     tags: [{
-      catalog: "c1",
-      id: "t2",
-      name: "tag2",
-      parent: null,
+      tag: "t2",
     }, {
-      catalog: "c1",
-      id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
-      name: "new tag",
-      parent: "t1",
+      tag: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
     }],
     people: [{
-      catalog: "c1",
-      id: "p1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0,
         right: 1,
@@ -438,7 +392,9 @@ test("Media edit", async (): Promise<void> => {
     .patch("/api/media/edit")
     .send({
       id: newMedia?.id,
-      city: "Portland",
+      media: {
+        city: "Portland",
+      },
       albums: [],
       people: [],
     })
@@ -451,6 +407,7 @@ test("Media edit", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
     updated: expect.toEqualDate(updatedDT),
+    file: null,
 
     title: "New title",
     city: "Portland",
@@ -459,15 +416,9 @@ test("Media edit", async (): Promise<void> => {
 
     albums: [],
     tags: [{
-      catalog: "c1",
-      id: "t2",
-      name: "tag2",
-      parent: null,
+      tag: "t2",
     }, {
-      catalog: "c1",
-      id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
-      name: "new tag",
-      parent: "t1",
+      tag: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
     }],
     people: [],
   });
@@ -486,7 +437,7 @@ test("Media edit", async (): Promise<void> => {
   let responsePromise = request
     .patch("/api/media/edit")
     .field("id", newMedia?.id ?? "")
-    .field("city", "London")
+    .field("media.city", "London")
     .field("albums[0]", "a1")
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
@@ -527,6 +478,7 @@ test("Media edit", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(newMedia?.created ?? ""),
     updated: expect.toEqualDate(updatedDT),
+    file: null,
 
     title: "New title",
     city: "London",
@@ -534,21 +486,12 @@ test("Media edit", async (): Promise<void> => {
     takenZone: "-09:00",
 
     albums: [{
-      catalog: "c1",
-      id: "a1",
-      parent: null,
-      name: "Album 1",
+      album: "a1",
     }],
     tags: [{
-      catalog: "c1",
-      id: "t2",
-      name: "tag2",
-      parent: null,
+      tag: "t2",
     }, {
-      catalog: "c1",
-      id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
-      name: "new tag",
-      parent: "t1",
+      tag: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
     }],
     people: [],
   });
@@ -619,7 +562,7 @@ test("Media resources", async (): Promise<void> => {
 
   let media = await user1Db.createMedia("c1", emptyMetadata);
 
-  let original = await db.withNewOriginal(
+  let mediaFile = await db.withNewMediaFile(
     media.id,
     {
       ...emptyMetadata,
@@ -634,10 +577,10 @@ test("Media resources", async (): Promise<void> => {
       bitRate: null,
       frameRate: null,
     },
-    async (db: unknown, original: OriginalInfo) => original,
+    async (db: unknown, mediaFile: MediaFile) => mediaFile,
   );
 
-  await db.addAlternateFile(original.id, {
+  await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb1.jpg",
     fileSize: 0,
@@ -649,7 +592,7 @@ test("Media resources", async (): Promise<void> => {
     frameRate: null,
   });
 
-  await db.addAlternateFile(original.id, {
+  await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb2.jpg",
     fileSize: 0,
@@ -661,7 +604,7 @@ test("Media resources", async (): Promise<void> => {
     frameRate: null,
   });
 
-  await db.addAlternateFile(original.id, {
+  await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb3.jpg",
     fileSize: 0,
@@ -683,32 +626,32 @@ test("Media resources", async (): Promise<void> => {
     .expect(200);
 
   await request
-    .get(`/media/thumbnail/${media.id}/${original.id}/200`)
+    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/200`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
   expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb1.jpg");
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb1.jpg");
   getLocalFilePath.mockClear();
 
   getFileUrl.mockImplementationOnce(
-    () => Promise.resolve(`http://original.foo/${media.id}/${original.id}`),
+    () => Promise.resolve(`http://original.foo/${media.id}/${mediaFile.id}`),
   );
   await request
-    .get(`/media/original/${media.id}/${original.id}`)
-    .expect("Location", `http://original.foo/${media.id}/${original.id}`)
+    .get(`/media/original/${media.id}/${mediaFile.id}`)
+    .expect("Location", `http://original.foo/${media.id}/${mediaFile.id}`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
   expect(getFileUrl).toHaveBeenCalledTimes(1);
-  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, original.id, "foo.jpg");
+  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "foo.jpg");
   getFileUrl.mockClear();
 
   await request
-    .get(`/media/poster/${media.id}/${original.id}`)
+    .get(`/media/poster/${media.id}/${mediaFile.id}`)
     .expect(404);
 
-  await db.addAlternateFile(original.id, {
+  await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Poster,
     fileName: "poster.jpg",
     fileSize: 0,
@@ -721,16 +664,16 @@ test("Media resources", async (): Promise<void> => {
   });
 
   getFileUrl.mockImplementationOnce(
-    () => Promise.resolve(`http://poster.foo/${media.id}/${original.id}`),
+    () => Promise.resolve(`http://poster.foo/${media.id}/${mediaFile.id}`),
   );
   await request
-    .get(`/media/poster/${media.id}/${original.id}`)
-    .expect("Location", `http://poster.foo/${media.id}/${original.id}`)
+    .get(`/media/poster/${media.id}/${mediaFile.id}`)
+    .expect("Location", `http://poster.foo/${media.id}/${mediaFile.id}`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
   expect(getFileUrl).toHaveBeenCalledTimes(1);
-  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, original.id, "poster.jpg");
+  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "poster.jpg");
   getFileUrl.mockClear();
 
   await request
@@ -746,12 +689,12 @@ test("Media resources", async (): Promise<void> => {
     .expect(404);
 
   let response = await request
-    .get(`/media/thumbnail/${media.id}/${original.id}/150`)
+    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/150`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
   expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb2.jpg");
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb2.jpg");
   getLocalFilePath.mockClear();
 
   let image = sharp(response.body);
@@ -764,12 +707,12 @@ test("Media resources", async (): Promise<void> => {
   });
 
   response = await request
-    .get(`/media/thumbnail/${media.id}/${original.id}`)
+    .get(`/media/thumbnail/${media.id}/${mediaFile.id}`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
   expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb2.jpg");
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb2.jpg");
   getLocalFilePath.mockClear();
 
   image = sharp(response.body);
@@ -782,12 +725,12 @@ test("Media resources", async (): Promise<void> => {
   });
 
   response = await request
-    .get(`/media/thumbnail/${media.id}/${original.id}/200`)
+    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/200`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
   expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, original.id, "thumb1.jpg");
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb1.jpg");
   getLocalFilePath.mockClear();
 
   image = sharp(response.body);
@@ -801,22 +744,22 @@ test("Media resources", async (): Promise<void> => {
 
   response = await request
     .get(`/media/thumbnail/${media.id}/other/200`)
-    .expect("Location", `/media/thumbnail/${media.id}/${original.id}/200`)
+    .expect("Location", `/media/thumbnail/${media.id}/${mediaFile.id}/200`)
     .expect(301);
 
   response = await request
     .get(`/media/thumbnail/${media.id}/other`)
-    .expect("Location", `/media/thumbnail/${media.id}/${original.id}`)
+    .expect("Location", `/media/thumbnail/${media.id}/${mediaFile.id}`)
     .expect(301);
 
   response = await request
     .get(`/media/original/${media.id}/other`)
-    .expect("Location", `/media/original/${media.id}/${original.id}`)
+    .expect("Location", `/media/original/${media.id}/${mediaFile.id}`)
     .expect(301);
 
   response = await request
     .get(`/media/poster/${media.id}/other`)
-    .expect("Location", `/media/poster/${media.id}/${original.id}`)
+    .expect("Location", `/media/poster/${media.id}/${mediaFile.id}`)
     .expect(301);
 });
 
@@ -831,7 +774,7 @@ test("Get media", async (): Promise<void> => {
   let createdDT2 = mockDateTime("2010-06-09T09:30:01");
   let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
   let updatedDT2 = parseDateTime("2020-02-02T08:00:00");
-  let originalId = await db.withNewOriginal(id2, {
+  let mediaFileId = await db.withNewMediaFile(id2, {
     ...emptyMetadata,
     processVersion: 1,
     fileName: "stored.jpg",
@@ -843,9 +786,9 @@ test("Get media", async (): Promise<void> => {
     frameRate: 0,
     bitRate: 0,
     uploaded: updatedDT2,
-  }, async (_: unknown, original: OriginalInfo): Promise<string> => original.id);
+  }, async (_: unknown, mediaFile: MediaFile): Promise<string> => mediaFile.id);
 
-  await db.addAlternateFile(originalId, {
+  await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Poster,
     fileName: "poster.jpg",
     fileSize: 1,
@@ -857,7 +800,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(originalId, {
+  await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb1.jpg",
     fileSize: 1,
@@ -869,7 +812,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(originalId, {
+  await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb2.jpg",
     fileSize: 1,
@@ -881,7 +824,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(originalId, {
+  await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Reencode,
     fileName: "enc1.mp4",
     fileSize: 1,
@@ -893,7 +836,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(originalId, {
+  await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Reencode,
     fileName: "enc2.ogg",
     fileSize: 1,
@@ -928,6 +871,7 @@ test("Get media", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     albums: [],
     tags: [],
@@ -948,18 +892,21 @@ test("Get media", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(updatedDT2),
-    thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
-    originalUrl: `/media/original/${id2}/${originalId}`,
-    posterUrl: `/media/poster/${id2}/${originalId}`,
+    file: {
+      id: mediaFileId,
+      thumbnailUrl: `/media/thumbnail/${id2}/${mediaFileId}`,
+      originalUrl: `/media/original/${id2}/${mediaFileId}`,
+      posterUrl: `/media/poster/${id2}/${mediaFileId}`,
 
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "video/mp4",
-    duration: 0,
-    frameRate: 0,
-    bitRate: 0,
-    uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+      fileSize: 1,
+      width: 1,
+      height: 1,
+      mimetype: "video/mp4",
+      duration: 0,
+      frameRate: 0,
+      bitRate: 0,
+      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    },
 
     albums: [],
     tags: [],
@@ -980,6 +927,7 @@ test("Get media", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     albums: [],
     tags: [],
@@ -990,18 +938,22 @@ test("Get media", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(updatedDT2),
-    thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
-    originalUrl: `/media/original/${id2}/${originalId}`,
-    posterUrl: `/media/poster/${id2}/${originalId}`,
 
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "video/mp4",
-    duration: 0,
-    frameRate: 0,
-    bitRate: 0,
-    uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    file: {
+      id: mediaFileId,
+      thumbnailUrl: `/media/thumbnail/${id2}/${mediaFileId}`,
+      originalUrl: `/media/original/${id2}/${mediaFileId}`,
+      posterUrl: `/media/poster/${id2}/${mediaFileId}`,
+
+      fileSize: 1,
+      width: 1,
+      height: 1,
+      mimetype: "video/mp4",
+      duration: 0,
+      frameRate: 0,
+      bitRate: 0,
+      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    },
 
     albums: [],
     tags: [],
@@ -1022,18 +974,22 @@ test("Get media", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(updatedDT2),
-    thumbnailUrl: `/media/thumbnail/${id2}/${originalId}`,
-    originalUrl: `/media/original/${id2}/${originalId}`,
-    posterUrl: `/media/poster/${id2}/${originalId}`,
 
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "video/mp4",
-    duration: 0,
-    frameRate: 0,
-    bitRate: 0,
-    uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    file: {
+      id: mediaFileId,
+      thumbnailUrl: `/media/thumbnail/${id2}/${mediaFileId}`,
+      originalUrl: `/media/original/${id2}/${mediaFileId}`,
+      posterUrl: `/media/poster/${id2}/${mediaFileId}`,
+
+      fileSize: 1,
+      width: 1,
+      height: 1,
+      mimetype: "video/mp4",
+      duration: 0,
+      frameRate: 0,
+      bitRate: 0,
+      uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+    },
 
     albums: [],
     tags: [],
@@ -1044,6 +1000,7 @@ test("Get media", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     albums: [],
     tags: [],
@@ -1103,10 +1060,11 @@ test("Media relations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
-    albums: [] as Api.Album[],
-    tags: [] as Api.Tag[],
-    people: [] as Api.Person[],
+    albums: [] as Api.MediaAlbum[],
+    tags: [] as Api.MediaTag[],
+    people: [] as Api.MediaPerson[],
   };
 
   let media2 = {
@@ -1115,10 +1073,11 @@ test("Media relations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(createdDT2),
+    file: null,
 
-    albums: [] as Api.Album[],
-    tags: [] as Api.Tag[],
-    people: [] as Api.Person[],
+    albums: [] as Api.MediaAlbum[],
+    tags: [] as Api.MediaTag[],
+    people: [] as Api.MediaPerson[],
   };
 
   expect(response.body).toEqual([
@@ -1159,10 +1118,7 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    catalog: "c1",
-    id: "t1",
-    name: "tag1",
-    parent: null,
+    tag: "t1",
   }];
 
   expect(response.body).toEqual([
@@ -1194,15 +1150,9 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    catalog: "c1",
-    id: "t1",
-    name: "tag1",
-    parent: null,
+    tag: "t1",
   }, {
-    catalog: "c1",
-    id: "t2",
-    name: "tag2",
-    parent: null,
+    tag: "t2",
   }];
 
   expect(response.body).toEqual([
@@ -1234,10 +1184,7 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    catalog: "c1",
-    id: "t2",
-    name: "tag2",
-    parent: null,
+    tag: "t2",
   }];
 
   expect(response.body).toEqual([
@@ -1269,10 +1216,7 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    catalog: "c1",
-    id: "t1",
-    name: "tag1",
-    parent: null,
+    tag: "t1",
   }];
 
   expect(response.body).toEqual([
@@ -1309,10 +1253,7 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    catalog: "c1",
-    id: "t2",
-    name: "tag2",
-    parent: null,
+    tag: "t2",
   }];
 
   expect(response.body).toEqual([
@@ -1385,16 +1326,10 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   media1.tags = [{
-    catalog: "c1",
-    id: "t1",
-    name: "tag1",
-    parent: null,
+    tag: "t1",
   }];
   media2.tags = [{
-    catalog: "c1",
-    id: "t2",
-    name: "tag2",
-    parent: null,
+    tag: "t2",
   }];
 
   expect(response.body).toInclude([
@@ -1471,6 +1406,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     ...emptyMetadata,
 
@@ -1482,6 +1418,7 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(createdDT2),
+    file: null,
 
     ...emptyMetadata,
 
@@ -1508,15 +1445,14 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     ...emptyMetadata,
 
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }],
   }, {
@@ -1524,15 +1460,14 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(createdDT2),
+    file: null,
 
     ...emptyMetadata,
 
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }],
   }]);
@@ -1566,15 +1501,14 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     ...emptyMetadata,
 
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0.5,
         right: 1,
@@ -1587,20 +1521,17 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(createdDT2),
+    file: null,
 
     ...emptyMetadata,
 
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: {
         left: 0,
         right: 1,
@@ -1643,15 +1574,14 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(createdDT2),
+    file: null,
 
     ...emptyMetadata,
 
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0.5,
         right: 1,
@@ -1659,9 +1589,7 @@ test("Media person locations", async (): Promise<void> => {
         bottom: 1,
       },
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }]);
@@ -1701,15 +1629,14 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     ...emptyMetadata,
 
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0.5,
         right: 1,
@@ -1722,15 +1649,14 @@ test("Media person locations", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT2),
     updated: expect.toEqualDate(createdDT2),
+    file: null,
 
     ...emptyMetadata,
 
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0.5,
         right: 1,
@@ -1774,7 +1700,7 @@ test("server overload", async (): Promise<void> => {
     .field("tags[0]", "t1")
     .field("tags[1]", "t2")
     .field("people[0]", "p1")
-    .field("taken", "2020-04-05T17:01:04-07:00")
+    .field("media.taken", "2020-04-05T17:01:04-07:00")
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })

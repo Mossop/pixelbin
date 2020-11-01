@@ -4,7 +4,8 @@ import sharp from "sharp";
 
 import type {
   Api,
-  ResponseFor,
+  ApiSerialization,
+  Requests,
 } from "../../../model";
 import {
   AlternateFileType,
@@ -13,49 +14,52 @@ import {
   emptyMetadata,
 } from "../../../model";
 import { chooseSize, isoDateTime } from "../../../utils";
-import type { UserScopedConnection, Media, ProcessedMedia } from "../../database";
+import type { MediaPerson, MediaView, UserScopedConnection } from "../../database";
+import { deleteFields } from "../../database/utils";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import type { AppContext } from "../context";
 import { ApiError } from "../error";
 import { APP_PATHS } from "../paths";
 import type { DeBlobbed } from "./decoders";
 
-function isProcessedMedia(media: Media): media is ProcessedMedia {
-  return "uploaded" in media && !!media.uploaded;
-}
-
 export function buildResponseMedia(
-  media: Media,
-): ResponseFor<Api.Media> {
-  if (isProcessedMedia(media)) {
-    let {
-      original: removedOriginal,
-      fileName: removedFileName,
-      ...rest
-    } = media;
-    return {
-      ...rest,
-      thumbnailUrl: `${APP_PATHS.root}media/thumbnail/${media.id}/${media.original}`,
-      originalUrl: `${APP_PATHS.root}media/original/${media.id}/${media.original}`,
-      posterUrl: media.mimetype.startsWith("video/")
-        ? `${APP_PATHS.root}media/poster/${media.id}/${media.original}`
-        : null,
-      created: isoDateTime(media.created),
-      updated: isoDateTime(media.updated),
-      uploaded: isoDateTime(media.uploaded),
-      taken: media.taken ? isoDateTime(media.taken) : null,
-    };
-  } else {
+  media: MediaView,
+): ApiSerialization<Api.Media> {
+  if (media.file) {
     return {
       ...media,
+
       created: isoDateTime(media.created),
       updated: isoDateTime(media.updated),
       taken: media.taken ? isoDateTime(media.taken) : null,
+
+      file: {
+        ...deleteFields(media.file, [
+          "processVersion",
+          "fileName",
+        ]),
+
+        thumbnailUrl: `${APP_PATHS.root}media/thumbnail/${media.id}/${media.file.id}`,
+        originalUrl: `${APP_PATHS.root}media/original/${media.id}/${media.file.id}`,
+        posterUrl: media.file.mimetype.startsWith("video/")
+          ? `${APP_PATHS.root}media/poster/${media.id}/${media.file.id}`
+          : null,
+      },
     };
   }
+
+  return {
+    ...media,
+
+    created: isoDateTime(media.created),
+    updated: isoDateTime(media.updated),
+    taken: media.taken ? isoDateTime(media.taken) : null,
+
+    file: null,
+  };
 }
 
-function buildMaybeResponseMedia(media: Media | null): ResponseFor<Api.Media> | null {
+function buildMaybeResponseMedia(media: MediaView | null): ApiSerialization<Api.Media> | null {
   if (!media) {
     return null;
   }
@@ -63,13 +67,13 @@ function buildMaybeResponseMedia(media: Media | null): ResponseFor<Api.Media> | 
   return buildResponseMedia(media);
 }
 
-type MediaResponse = ResponseFor<Api.Media> | null;
 export const getMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.MediaGetRequest,
-  ): Promise<MediaResponse[]> => {
+    data: Requests.MediaGet,
+  ): Promise<(ApiSerialization<Api.Media> | null
+  )[]> => {
     let ids = data.id.split(",");
     let media = await userDb.getMedia(ids);
     return media.map(buildMaybeResponseMedia);
@@ -80,15 +84,15 @@ export const createMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: DeBlobbed<Api.MediaCreateRequest>,
-  ): Promise<ResponseFor<Api.UnprocessedMedia>> => {
+    data: DeBlobbed<Requests.MediaCreate>,
+  ): Promise<ApiSerialization<Api.Media>> => {
     let {
       file,
       catalog,
       albums,
       tags,
       people,
-      ...mediaData
+      media: mediaData,
     } = data;
 
     if (!await ctx.taskWorker.canStartTask()) {
@@ -96,10 +100,10 @@ export const createMedia = ensureAuthenticated(
     }
 
     let media = await userDb.inTransaction(
-      async function createMedia(userDb: UserScopedConnection): Promise<Media> {
+      async function createMedia(userDb: UserScopedConnection): Promise<MediaView> {
         let createdMedia = await userDb.createMedia(catalog, {
           ...emptyMetadata,
-          ...mediaData,
+          ...mediaData ?? {},
         });
 
         if (albums) {
@@ -125,16 +129,16 @@ export const createMedia = ensureAuthenticated(
 
         if (people) {
           let peopleToAdd: string[] = [];
-          let locations: Api.MediaPersonLocation[] = [];
+          let locations: MediaPerson[] = [];
 
           for (let person of people) {
             if (typeof person == "string") {
               peopleToAdd.push(person);
-            } else if ("id" in person) {
+            } else if ("person" in person) {
               locations.push({
                 media: createdMedia.id,
-                person: person.id,
-                location: person.location,
+                person: person.person,
+                location: person.location ?? null,
               });
             } else {
               let newPerson = await userDb.createPerson(catalog, {
@@ -143,7 +147,7 @@ export const createMedia = ensureAuthenticated(
               locations.push({
                 media: createdMedia.id,
                 person: newPerson.id,
-                location: person.location,
+                location: person.location ?? null,
               });
             }
           }
@@ -193,15 +197,15 @@ export const updateMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: DeBlobbed<Api.MediaUpdateRequest>,
-  ): Promise<ResponseFor<Api.Media>> => {
+    data: DeBlobbed<Requests.MediaEdit>,
+  ): Promise<ApiSerialization<Api.Media>> => {
     let {
       file,
       id,
       albums,
       tags,
       people,
-      ...mediaData
+      media: mediaData,
     } = data;
 
     if (file && !await ctx.taskWorker.canStartTask()) {
@@ -209,8 +213,10 @@ export const updateMedia = ensureAuthenticated(
     }
 
     let media = await userDb.inTransaction(
-      async function updateMedia(userDb: UserScopedConnection): Promise<Media> {
-        let media = await userDb.editMedia(id, mediaData);
+      async function updateMedia(userDb: UserScopedConnection): Promise<MediaView> {
+        let media = await userDb.editMedia(id, {
+          ...mediaData ?? {},
+        });
 
         if (albums) {
           await userDb.setMediaRelations(RelationType.Album, [media.id], albums);
@@ -235,16 +241,16 @@ export const updateMedia = ensureAuthenticated(
 
         if (people) {
           let peopleToAdd: string[] = [];
-          let locations: Api.MediaPersonLocation[] = [];
+          let locations: MediaPerson[] = [];
 
           for (let person of people) {
             if (typeof person == "string") {
               peopleToAdd.push(person);
-            } else if ("id" in person) {
+            } else if ("person" in person) {
               locations.push({
                 media: media.id,
-                person: person.id,
-                location: person.location,
+                person: person.person,
+                location: person.location ?? null,
               });
             } else {
               let newPerson = await userDb.createPerson(media.catalog, {
@@ -253,7 +259,7 @@ export const updateMedia = ensureAuthenticated(
               locations.push({
                 media: media.id,
                 person: newPerson.id,
-                location: person.location,
+                location: person.location ?? null,
               });
             }
           }
@@ -310,7 +316,7 @@ export const thumbnail = ensureAuthenticated(
     ctx: AppContext,
     userDb: UserScopedConnection,
     id: string,
-    original: string,
+    mediaFile: string,
     size?: string,
   ): Promise<void> => {
     let [media] = await userDb.getMedia([id]);
@@ -321,18 +327,18 @@ export const thumbnail = ensureAuthenticated(
       });
     }
 
-    if (!isProcessedMedia(media)) {
+    if (!media.file) {
       throw new ApiError(ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
 
-    if (original != media.original) {
+    if (mediaFile != media.file.id) {
       ctx.status = 301;
       if (size !== undefined) {
-        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.original}/${size}`);
+        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.file.id}/${size}`);
       } else {
-        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.original}`);
+        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.file.id}`);
       }
       return;
     }
@@ -352,7 +358,7 @@ export const thumbnail = ensureAuthenticated(
 
     let storage = await ctx.storage.getStorage(media.catalog);
     try {
-      let path = await storage.get().getLocalFilePath(media.id, source.original, source.fileName);
+      let path = await storage.get().getLocalFilePath(media.id, source.mediaFile, source.fileName);
 
       if (source.width > source.height && source.width == parsedSize ||
           source.height > source.width && source.height == parsedSize) {
@@ -375,7 +381,7 @@ export const original = ensureAuthenticated(
     ctx: AppContext,
     userDb: UserScopedConnection,
     id: string,
-    original: string,
+    mediaFile: string,
   ): Promise<void> => {
     let [media] = await userDb.getMedia([id]);
 
@@ -385,21 +391,25 @@ export const original = ensureAuthenticated(
       });
     }
 
-    if (!isProcessedMedia(media)) {
+    if (!media.file) {
       throw new ApiError(ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
 
-    if (original != media.original) {
+    if (mediaFile != media.file.id) {
       ctx.status = 301;
-      ctx.redirect(`${APP_PATHS.root}media/original/${id}/${media.original}`);
+      ctx.redirect(`${APP_PATHS.root}media/original/${id}/${media.file.id}`);
       return;
     }
 
     let storage = await ctx.storage.getStorage(media.catalog);
     try {
-      let originalUrl = await storage.get().getFileUrl(media.id, media.original, media.fileName);
+      let originalUrl = await storage.get().getFileUrl(
+        media.id,
+        media.file.id,
+        media.file.fileName,
+      );
 
       ctx.status = 302;
       ctx.redirect(originalUrl);
@@ -414,7 +424,7 @@ export const poster = ensureAuthenticated(
     ctx: AppContext,
     userDb: UserScopedConnection,
     id: string,
-    original: string,
+    mediaFile: string,
   ): Promise<void> => {
     let [media] = await userDb.getMedia([id]);
 
@@ -424,15 +434,15 @@ export const poster = ensureAuthenticated(
       });
     }
 
-    if (!isProcessedMedia(media)) {
+    if (!media.file) {
       throw new ApiError(ErrorCode.NotFound, {
         message: "Media not yet processed.",
       });
     }
 
-    if (original != media.original) {
+    if (mediaFile != media.file.id) {
       ctx.status = 301;
-      ctx.redirect(`${APP_PATHS.root}media/poster/${id}/${media.original}`);
+      ctx.redirect(`${APP_PATHS.root}media/poster/${id}/${media.file.id}`);
       return;
     }
 
@@ -445,7 +455,7 @@ export const poster = ensureAuthenticated(
 
     let storage = await ctx.storage.getStorage(media.catalog);
     try {
-      let posterUrl = await storage.get().getFileUrl(media.id, media.original, posters[0].fileName);
+      let posterUrl = await storage.get().getFileUrl(media.id, media.file.id, posters[0].fileName);
 
       ctx.status = 302;
       ctx.redirect(posterUrl);
@@ -455,7 +465,7 @@ export const poster = ensureAuthenticated(
   },
 );
 
-function isMedia(item: Media | null): item is Media {
+function isMedia(item: MediaView | null): item is MediaView {
   return !!item;
 }
 
@@ -463,8 +473,8 @@ export const relations = ensureAuthenticatedTransaction(
   async function setMediaRelations(
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: DeBlobbed<Api.MediaRelationChange[]>,
-  ): Promise<ResponseFor<Api.Media>[]> {
+    data: Requests.MediaRelations[],
+  ): Promise<ApiSerialization<Api.Media>[]> {
     let media = new Set<string>();
 
     for (let change of data) {
@@ -491,13 +501,17 @@ export const setMediaPeople = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.MediaPersonLocation[],
-  ): Promise<ResponseFor<Api.Media>[]> => {
+    data: Requests.MediaPeople,
+  ): Promise<ApiSerialization<Api.Media>[]> => {
     let includedMedia = new Set<string>();
-    let changes = new Map<string, Api.MediaPersonLocation>();
+    let changes = new Map<string, MediaPerson>();
     for (let location of data) {
       includedMedia.add(location.media);
-      changes.set(`${location.media},${location.person}`, location);
+      changes.set(`${location.media},${location.person}`, {
+        media: location.media,
+        person: location.person,
+        location: location.location ?? null,
+      });
     }
 
     await userDb.setPersonLocations([...changes.values()]);

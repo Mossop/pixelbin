@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 
-import type { Api } from "../../../model";
+import type { Requests } from "../../../model";
 import { createCatalog, createStorage } from "../../api/catalog";
 import type { UserState } from "../../api/types";
 import { useFormState } from "../../components/Forms";
@@ -16,7 +16,7 @@ import StorageTest from "./StorageTest";
 export interface CatalogCreateState {
   storageType: string;
   existingStorage: string;
-  storageConfig: Api.StorageCreateRequest,
+  storageConfig: Requests.StorageCreate,
   catalogName: string;
 }
 
@@ -65,7 +65,9 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
         storageId = storage.id;
       }
 
-      let catalog = await createCatalog(state.catalogName.value, storageId);
+      let catalog = await createCatalog(storageId, {
+        name: state.catalogName.value,
+      });
       actions.catalogCreated(catalog);
     } catch (e) {
       setError(e);

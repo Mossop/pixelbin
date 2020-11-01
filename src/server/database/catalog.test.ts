@@ -39,7 +39,7 @@ test("Storage tests", async (): Promise<void> => {
 
   expect(storage).toEqual({
     id: expect.stringMatching(/S:[a-zA-Z0-9]+/),
-    user: "someone1@nowhere.com",
+    owner: "someone1@nowhere.com",
     name: "My new storage",
     accessKeyId: "foobar",
     secretAccessKey: "baz",
@@ -78,8 +78,7 @@ test("Catalog tests", async (): Promise<void> => {
   ]);
 
   // Can duplicate name.
-  let catalog1 = await user2Db.createCatalog({
-    storage: "s1",
+  let catalog1 = await user2Db.createCatalog("s1", {
     name: "Catalog 1",
   });
   expect(catalog1).toEqual({
@@ -88,8 +87,7 @@ test("Catalog tests", async (): Promise<void> => {
     name: "Catalog 1",
   });
 
-  let catalog2 = await user2Db.createCatalog({
-    storage: "s1",
+  let catalog2 = await user2Db.createCatalog("s1", {
     name: "New catalog",
   });
   expect(catalog2).toEqual({
@@ -126,18 +124,15 @@ test("Catalog tests", async (): Promise<void> => {
     },
   ]);
 
-  await expect(user5Db.createCatalog({
-    storage: "s1",
+  await expect(user5Db.createCatalog("s1", {
     name: "New catalog",
   })).rejects.toThrow("Unknown Storage.");
 
-  await expect(user1Db.createCatalog({
-    storage: "s5",
+  await expect(user1Db.createCatalog("s5", {
     name: "New catalog",
   })).rejects.toThrow("Unknown Storage.");
 
-  await expect(user1Db.createCatalog({
-    storage: "s1",
+  await expect(user1Db.createCatalog("s1", {
     name: "New catalog",
   })).rejects.toThrow("Unknown Storage.");
 });

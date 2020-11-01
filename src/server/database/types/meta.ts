@@ -1,7 +1,7 @@
 import type { default as Knex, Raw, Ref } from "knex";
 import { FixedOffsetZone } from "luxon";
 
-import type { Table } from ".";
+import { Table } from ".";
 import type { ObjectModel } from "../../../model";
 import type { AllNull, Obj, Nullable } from "../../../utils";
 import { isDateTime, isoDateTime } from "../../../utils";
@@ -67,10 +67,9 @@ export function intoDBTypes<T>(data: T): T {
   );
 }
 
-export function intoAPITypes<T>(data: T): T {
-  return data;
-}
-
 export function columnFor(table: Table): string {
+  if (table == Table.MediaInfo || table == Table.MediaView) {
+    return "media";
+  }
   return table.charAt(0).toLocaleLowerCase() + table.substr(1);
 }

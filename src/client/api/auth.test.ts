@@ -52,6 +52,7 @@ test("Login", async (): Promise<void> => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2019-02-03T06:08:12Z",
+      lastLogin: "2018-01-03T06:08:12Z",
       verified: true,
       storage: [{
         id: "s1",
@@ -99,6 +100,7 @@ test("Login", async (): Promise<void> => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: expect.toEqualDate("2019-02-03T06:08:12Z"),
+      lastLogin: expect.toEqualDate("2018-01-03T06:08:12Z"),
       verified: true,
       storage: mapOf({
         s1: {
@@ -192,6 +194,7 @@ test("Signup", async (): Promise<void> => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2015-12-25T06:00:00Z",
+      lastLogin: "2020-10-15T02:10:20Z",
       verified: true,
       storage: [],
       catalogs: [],
@@ -202,17 +205,18 @@ test("Signup", async (): Promise<void> => {
     },
   });
 
-  let result = await signup({
-    email: "dtownsend@oxymoronical.com",
-    fullname: "Dave Townsend",
-    password: "foobar67",
-  });
+  let result = await signup(
+    "dtownsend@oxymoronical.com",
+    "foobar67",
+    "Dave Townsend",
+  );
 
   expect(result).toEqual({
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: expect.toEqualDate("2015-12-25T06:00:00Z"),
+      lastLogin: expect.toEqualDate("2020-10-15T02:10:20Z"),
       verified: true,
       storage: mapOf({}),
       catalogs: mapOf({}),

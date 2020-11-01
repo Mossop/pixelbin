@@ -61,6 +61,7 @@ test("Initial server state", async (): Promise<void> => {
     user: {
       ...user,
       created: expect.toEqualDate(user.created),
+      lastLogin: expect.toEqualDate(user.lastLogin!),
     },
   });
 });

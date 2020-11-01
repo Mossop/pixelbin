@@ -1,9 +1,8 @@
 import { emptyMetadata, RelationType } from "../../model";
 import { expect, reordered, sortedIds } from "../../test-helpers";
-import { parseDateTime } from "../../utils";
-import { buildTestDB, connection, insertTestData, testData } from "./test-helpers";
-import { Table } from "./types";
-import type { StoredMediaDetail } from "./types/tables";
+import { parseDateTime, stringSorted } from "../../utils";
+import { buildTestDB, connection, insertTestData } from "./test-helpers";
+import type { Tables } from "./types";
 
 buildTestDB();
 
@@ -12,7 +11,7 @@ beforeEach((): Promise<void> => {
 });
 
 function extracted(
-  media: Pick<StoredMediaDetail, "id" | "catalog" | "tags" | "albums" | "people"> | null,
+  media: Pick<Tables.MediaView, "id" | "catalog" | "tags" | "albums" | "people"> | null,
 ): unknown {
   if (!media) {
     return null;
@@ -21,9 +20,9 @@ function extracted(
   return {
     id: media.id,
     catalog: media.catalog,
-    tags: media.tags,
-    albums: media.albums,
-    people: media.people,
+    tags: stringSorted(media.tags, "tag"),
+    albums: stringSorted(media.albums, "album"),
+    people: stringSorted(media.people, "person"),
   };
 }
 
@@ -34,7 +33,7 @@ test("Album media tests", async (): Promise<void> => {
 
   let mediaInAlbum = async (album: string): Promise<string[]> => {
     let media = await user1Db.listMediaInAlbum(album);
-    return media.map((item: StoredMediaDetail): string => item.id);
+    return media.map((item: Tables.MediaView): string => item.id);
   };
 
   let media1 = await user1Db.createMedia("c1", {
@@ -88,9 +87,9 @@ test("Album media tests", async (): Promise<void> => {
     "a1",
   ]);
 
-  media1.albums.push(testData[Table.Album][0]);
-  media2.albums.push(testData[Table.Album][0]);
-  media3.albums.push(testData[Table.Album][0]);
+  media1.albums.push({ album: "a1" });
+  media2.albums.push({ album: "a1" });
+  media3.albums.push({ album: "a1" });
 
   expect(added).toEqual([
     media1,
@@ -512,10 +511,7 @@ test("Album media tests", async (): Promise<void> => {
     tags: [],
     people: [],
     albums: [{
-      id: "a3",
-      catalog: "c1",
-      name: "Album 3",
-      parent: "a1",
+      album: "a3",
     }],
   }, {
     id: media3.id,
@@ -524,10 +520,7 @@ test("Album media tests", async (): Promise<void> => {
     tags: [],
     people: [],
     albums: [{
-      id: "a1",
-      catalog: "c1",
-      name: "Album 1",
-      parent: null,
+      album: "a1",
     }],
   }]);
 
@@ -541,10 +534,7 @@ test("Album media tests", async (): Promise<void> => {
     tags: [],
     people: [],
     albums: [{
-      id: "a3",
-      catalog: "c1",
-      name: "Album 3",
-      parent: "a1",
+      album: "a3",
     }],
   }, {
     id: media1.id,
@@ -560,10 +550,7 @@ test("Album media tests", async (): Promise<void> => {
     tags: [],
     people: [],
     albums: [{
-      id: "a1",
-      catalog: "c1",
-      name: "Album 1",
-      parent: null,
+      album: "a1",
     }],
   }]);
 });
@@ -604,9 +591,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }],
   }, {
@@ -615,9 +600,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }],
   }, {
@@ -626,9 +609,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -663,14 +644,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: {
         left: 0,
         right: 1,
@@ -684,9 +661,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }],
   }, {
@@ -695,9 +670,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -736,14 +709,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -752,14 +721,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: {
         left: 0,
         right: 1,
@@ -773,9 +738,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -884,14 +847,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -900,14 +859,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: {
         left: 0,
         right: 1,
@@ -921,9 +876,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -962,20 +915,16 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
-      location: null,
-    }, {
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: {
         left: 0,
         right: 1,
         top: 0,
         bottom: 1,
       },
+    }, {
+      person: "p2",
+      location: null,
     }],
   }, {
     id: media2.id,
@@ -983,14 +932,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: {
         left: 0,
         right: 1,
@@ -1004,9 +949,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -1040,14 +983,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p1",
       location: null,
     }, {
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -1056,14 +995,10 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p1",
-      catalog: "c1",
-      name: "Person 1",
+      person: "p1",
       location: null,
     }, {
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {
@@ -1072,9 +1007,7 @@ test("Person location tests", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [{
-      id: "p2",
-      catalog: "c1",
-      name: "Person 2",
+      person: "p2",
       location: null,
     }],
   }, {

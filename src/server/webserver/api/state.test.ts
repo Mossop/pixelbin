@@ -35,6 +35,8 @@ test("login and logout", async (): Promise<void> => {
     user: null,
   });
 
+  let loginDT = mockDateTime("2019-03-04T22:22:22");
+
   response = await request
     .post("/api/login")
     .send({
@@ -49,6 +51,7 @@ test("login and logout", async (): Promise<void> => {
       email: "someone1@nowhere.com",
       fullname: "Someone 1",
       created: expect.toEqualDate("2020-01-01T00:00:00Z"),
+      lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
       catalogs: testData[Table.Catalog],
@@ -69,6 +72,7 @@ test("login and logout", async (): Promise<void> => {
       email: "someone1@nowhere.com",
       fullname: "Someone 1",
       created: expect.toEqualDate("2020-01-01T00:00:00Z"),
+      lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
       catalogs: testData[Table.Catalog],
@@ -145,7 +149,8 @@ test("signup", async (): Promise<void> => {
     user: null,
   });
 
-  let created = mockDateTime("2020-04-05T11:56:01");
+  let createdDT = mockDateTime("2020-04-05T11:56:01");
+  let loginDT = mockDateTime("2020-04-06T11:56:01");
 
   response = await request
     .put("/api/signup")
@@ -161,7 +166,8 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
-      created: expect.toEqualDate(created),
+      created: expect.toEqualDate(createdDT),
+      lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
       catalogs: [],
@@ -181,7 +187,8 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
-      created: expect.toEqualDate(created),
+      created: expect.toEqualDate(createdDT),
+      lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
       catalogs: [],
@@ -210,6 +217,8 @@ test("signup", async (): Promise<void> => {
     user: null,
   });
 
+  loginDT = mockDateTime("2020-10-01T02:03:04");
+
   response = await request
     .post("/api/login")
     .send({
@@ -223,7 +232,8 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
-      created: expect.toEqualDate(created),
+      created: expect.toEqualDate(createdDT),
+      lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
       catalogs: [],

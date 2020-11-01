@@ -7,11 +7,10 @@ import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType } from "../../model";
 import type { Logger, RefCounted } from "../../utils";
-import type { DatabaseConnection } from "../database";
-import type { OriginalInfo } from "../database/unsafe";
+import type { DatabaseConnection, MediaFile } from "../database";
 import type { Storage } from "../storage";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
-import { parseFile, parseMetadata, getOriginal } from "./metadata";
+import { parseFile, parseMetadata, getMediaFile } from "./metadata";
 import Services from "./services";
 import { bindTask } from "./task";
 
@@ -43,30 +42,30 @@ export const purgeDeletedMedia = bindTask(
     let cachedStorage: Map<string, RefCounted<Storage>> = new Map();
 
     try {
-      for (let original of await dbConnection.getUnusedOriginals()) {
+      for (let mediaFile of await dbConnection.getUnusedMediaFiles()) {
         logger.trace({
-          media: original.media,
-          original: original.id,
+          media: mediaFile.media,
+          original: mediaFile.id,
         }, "Purging unused original.");
 
-        let storage = cachedStorage.get(original.catalog);
+        let storage = cachedStorage.get(mediaFile.catalog);
         if (!storage) {
-          storage = await storageService.getStorage(original.catalog);
-          cachedStorage.set(original.catalog, storage);
+          storage = await storageService.getStorage(mediaFile.catalog);
+          cachedStorage.set(mediaFile.catalog, storage);
         }
 
-        for (let alternate of await dbConnection.listAlternateFiles(original.id)) {
+        for (let alternate of await dbConnection.listAlternateFiles(mediaFile.id)) {
           if (alternate.type == AlternateFileType.Poster ||
             alternate.type == AlternateFileType.Reencode) {
-            await storage.get().deleteFile(original.media, original.id, alternate.fileName);
+            await storage.get().deleteFile(mediaFile.media, mediaFile.id, alternate.fileName);
           }
 
-          await dbConnection.deleteAlternateFile(alternate.id);
+          await dbConnection.deleteAlternateFiles([alternate.id]);
         }
 
-        await storage.get().deleteFile(original.media, original.id, original.fileName);
-        await storage.get().deleteLocalFiles(original.media, original.id);
-        await dbConnection.deleteOriginal(original.id);
+        await storage.get().deleteFile(mediaFile.media, mediaFile.id, mediaFile.fileName);
+        await storage.get().deleteLocalFiles(mediaFile.media, mediaFile.id);
+        await dbConnection.deleteMediaFiles([mediaFile.id]);
       }
 
       for (let media of await dbConnection.listDeletedMedia()) {
@@ -76,33 +75,11 @@ export const purgeDeletedMedia = bindTask(
           cachedStorage.set(media.catalog, storage);
         }
 
-        if (media.original) {
-          logger.trace({
-            media: media.id,
-            original: media.original,
-          }, "Purging original from deleted media.");
-
-          for (let alternate of await dbConnection.listAlternateFiles(media.original)) {
-            if (alternate.type == AlternateFileType.Poster ||
-            alternate.type == AlternateFileType.Reencode) {
-              await storage.get().deleteFile(media.id, media.original, alternate.fileName);
-            }
-
-            await dbConnection.deleteAlternateFile(alternate.id);
-          }
-
-          if (media.fileName) {
-            await storage.get().deleteFile(media.id, media.original, media.fileName);
-          }
-          await storage.get().deleteLocalFiles(media.id, media.original);
-          await dbConnection.deleteOriginal(media.original);
-        }
-
         logger.trace({
           media: media.id,
         }, "Purging deleted media.");
         await storage.get().deleteLocalFiles(media.id);
-        await dbConnection.deleteMedia(media.id);
+        await dbConnection.deleteMedia([media.id]);
       }
     } finally {
       for (let storage of cachedStorage.values()) {
@@ -153,24 +130,24 @@ export const handleUploadedFile = bindTask(
         }
 
         let metadata = parseMetadata(data);
-        let info = getOriginal(data);
+        let info = getMediaFile(data);
 
         let fileName = metadata.filename ?? `original.${mimeExtension(data.mimetype)}`;
         let baseName = fileName.substr(0, fileName.length - path.extname(fileName).length);
 
-        let original = await dbConnection.withNewOriginal(mediaId, {
+        let original = await dbConnection.withNewMediaFile(mediaId, {
           ...metadata,
           ...info,
           processVersion: PROCESS_VERSION,
           fileName,
         }, async (
           dbConnection: DatabaseConnection,
-          original: OriginalInfo,
-        ): Promise<OriginalInfo> => {
+          mediaFile: MediaFile,
+        ): Promise<MediaFile> => {
           try {
             let metadataFile = await storage.get().getLocalFilePath(
               mediaId,
-              original.id,
+              mediaFile.id,
               "metadata.json",
             );
             await fs.writeFile(metadataFile, JSON.stringify(data));
@@ -181,11 +158,11 @@ export const handleUploadedFile = bindTask(
               source = path.join(dir.path, `${baseName}-poster.jpg`);
               await extractFrame(fileInfo.path, source);
 
-              await storage.get().storeFile(mediaId, original.id, path.basename(source), source);
+              await storage.get().storeFile(mediaId, mediaFile.id, path.basename(source), source);
 
               let stat = await fs.stat(source);
               let metadata = await sharp(source).metadata();
-              await dbConnection.addAlternateFile(original.id, {
+              await dbConnection.addAlternateFile(mediaFile.id, {
                 type: AlternateFileType.Poster,
                 fileName: path.basename(source),
                 fileSize: stat.size,
@@ -203,7 +180,7 @@ export const handleUploadedFile = bindTask(
               let fileName = `${baseName}-${size}.jpg`;
               let target = await storage.get().getLocalFilePath(
                 mediaId,
-                original.id,
+                mediaFile.id,
                 fileName,
               );
               let info = await sharp(source)
@@ -215,7 +192,7 @@ export const handleUploadedFile = bindTask(
                 })
                 .toFile(target);
 
-              await dbConnection.addAlternateFile(original.id, {
+              await dbConnection.addAlternateFile(mediaFile.id, {
                 type: AlternateFileType.Thumbnail,
                 fileName,
                 fileSize: info.size,
@@ -228,11 +205,11 @@ export const handleUploadedFile = bindTask(
               });
             }
 
-            await storage.get().storeFile(mediaId, original.id, fileName, fileInfo.path);
+            await storage.get().storeFile(mediaId, mediaFile.id, fileName, fileInfo.path);
 
-            return original;
+            return mediaFile;
           } catch (e) {
-            await storage.get().deleteLocalFiles(mediaId, original.id);
+            await storage.get().deleteLocalFiles(mediaId, mediaFile.id);
             throw e;
           }
         });

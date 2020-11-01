@@ -72,8 +72,8 @@ export async function resetDB(): Promise<void> {
     Table.MediaAlbum,
     Table.SharedCatalog,
     Table.AlternateFile,
-    Table.Original,
-    Table.Media,
+    Table.MediaFile,
+    Table.MediaInfo,
     Table.Person,
     Table.Tag,
     Table.Album,
@@ -123,8 +123,8 @@ export async function insertData(data: Seed): Promise<void> {
   await doInsert(Table.Album);
   await doInsert(Table.Tag);
   await doInsert(Table.Person);
-  await doInsert(Table.Media);
-  await doInsert(Table.Original);
+  await doInsert(Table.MediaInfo);
+  await doInsert(Table.MediaFile);
   await doInsert(Table.AlternateFile);
   await doInsert(Table.SharedCatalog);
   await doInsert(Table.MediaAlbum);
@@ -161,7 +161,7 @@ export const testData = {
 
   [Table.Storage]: [{
     id: "s1",
-    user: "someone2@nowhere.com",
+    owner: "someone2@nowhere.com",
     name: "Test storage",
     accessKeyId: "AKIAIOSFODNN7EXAMPLE",
     secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -172,7 +172,7 @@ export const testData = {
     publicUrl: null,
   }, {
     id: "s2",
-    user: "someone3@nowhere.com",
+    owner: "someone3@nowhere.com",
     name: "Storage 2",
     accessKeyId: "otheraccessKey",
     secretAccessKey: "othersecret",

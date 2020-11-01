@@ -1,6 +1,5 @@
 import React from "react";
 
-import type { Api } from "../../model";
 import { emptyMetadata, Method } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils";
@@ -42,7 +41,7 @@ test("catalog", async (): Promise<void> => {
 
   let catalogRef = Catalog.ref("catalog");
 
-  let { call, resolve } = deferRequest<Api.Media[]>();
+  let { call, resolve } = deferRequest<Method.CatalogList>();
 
   let { container, rerender } = render(
     <CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>,
@@ -82,6 +81,8 @@ test("catalog", async (): Promise<void> => {
   let dt = now();
   let media = [{
     ...emptyMetadata,
+    catalog: "catalog",
+    file: null,
     id: "media1",
     created: dt,
     updated: dt,
@@ -90,6 +91,8 @@ test("catalog", async (): Promise<void> => {
     people: [],
   }, {
     ...emptyMetadata,
+    catalog: "catalog",
+    file: null,
     id: "media2",
     created: dt,
     updated: dt,
@@ -98,6 +101,8 @@ test("catalog", async (): Promise<void> => {
     people: [],
   }, {
     ...emptyMetadata,
+    catalog: "catalog",
+    file: null,
     id: "media3",
     created: dt,
     updated: dt,
@@ -110,12 +115,42 @@ test("catalog", async (): Promise<void> => {
 
   expect(mockedMediaGallery).toHaveBeenCalled();
   expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media,
+    media: [{
+      ...emptyMetadata,
+      catalog: expect.toBeRef("catalog"),
+      file: null,
+      id: "media1",
+      created: dt,
+      updated: dt,
+      albums: [],
+      tags: [],
+      people: [],
+    }, {
+      ...emptyMetadata,
+      catalog: expect.toBeRef("catalog"),
+      file: null,
+      id: "media2",
+      created: dt,
+      updated: dt,
+      albums: [],
+      tags: [],
+      people: [],
+    }, {
+      ...emptyMetadata,
+      catalog: expect.toBeRef("catalog"),
+      file: null,
+      id: "media3",
+      created: dt,
+      updated: dt,
+      albums: [],
+      tags: [],
+      people: [],
+    }],
     onClick: expect.anything(),
   });
   mockedMediaGallery.mockClear();
 
-  let { call: call2, resolve: resolve2 } = deferRequest<Api.Media[]>();
+  let { call: call2, resolve: resolve2 } = deferRequest<Method.CatalogList>();
   let wasCalled = false;
   void call2.then(() => wasCalled = true);
 
@@ -140,7 +175,17 @@ test("catalog", async (): Promise<void> => {
 
   expect(mockedMediaGallery).toHaveBeenCalled();
   expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media,
+    media: [{
+      ...emptyMetadata,
+      catalog: expect.toBeRef("catalog"),
+      file: null,
+      id: "media1",
+      created: dt,
+      updated: dt,
+      albums: [],
+      tags: [],
+      people: [],
+    }],
     onClick: expect.anything(),
   });
   // @ts-ignore

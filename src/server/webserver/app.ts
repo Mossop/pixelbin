@@ -10,7 +10,7 @@ import mount from "koa-mount";
 import session from "koa-session";
 import serve from "koa-static";
 
-import type { Api, ResponseFor } from "../../model";
+import type { Api, ApiSerialization } from "../../model";
 import { Method } from "../../model";
 import { thumbnail, original, poster } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
@@ -23,7 +23,7 @@ import Services from "./services";
 
 async function buildAppContent(
   path: string,
-  state: ResponseFor<Api.State>,
+  state: ApiSerialization<Api.State>,
 ): Promise<string> {
   let content = await fs.readFile(path, { encoding: "utf8" });
   return content

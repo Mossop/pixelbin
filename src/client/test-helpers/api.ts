@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
-import type { Api, ResponseFor } from "../../model";
-import type { ErrorData } from "../../model/api";
-import { mockedFunction } from "../../test-helpers";
+import { act } from "@testing-library/react";
+
+import type { Api, Query } from "../../model";
+import type { ApiSerialization, ErrorData } from "../../model/api";
+import { deferCall, DeferredCall, mockedFunction } from "../../test-helpers";
 import type { Obj } from "../../utils";
 import { isDateTime } from "../../utils";
-import type { Tag, Reference, Album } from "../api/highlevel";
+import { request } from "../api/api";
 import type {
   CatalogState,
   AlbumState,
@@ -13,13 +15,11 @@ import type {
   ServerState,
   MediaState,
   MediaPersonState,
-  ProcessedMediaState,
-  UnprocessedMediaState,
   SavedSearchState,
+  MediaAlbumState,
+  MediaTagState,
 } from "../api/types";
-import {
-  isProcessed,
-} from "../api/types";
+import { isProcessedMedia } from "../api/types";
 import fetch from "../environment/fetch";
 
 const {
@@ -65,7 +65,7 @@ export class MockResponse {
 
 type MockResponseType<M extends Api.Method> = Api.SignatureResponse<M> extends void
   ? undefined
-  : ResponseFor<Api.SignatureResponse<M>>;
+  : ApiSerialization<Api.SignatureResponse<M>>;
 export function mockResponse<M extends Api.Method>(
   method: M,
   statusCode: number,
@@ -122,25 +122,20 @@ export function callInfo(mockedFetch: jest.MockedFunction<Fetch>): CallInfo {
 }
 
 export function mediaIntoResponse(
-  serverState: ServerState,
-  media: ProcessedMediaState,
-): ResponseFor<Api.ProcessedMedia>;
-export function mediaIntoResponse(
-  serverState: ServerState,
-  media: UnprocessedMediaState,
-): ResponseFor<Api.UnprocessedMedia>;
-export function mediaIntoResponse(
-  serverState: ServerState,
   media: MediaState,
-): ResponseFor<Api.Media> {
-  let response: ResponseFor<MediaState>;
-  if (isProcessed(media)) {
+): ApiSerialization<Api.Media> {
+  let response: ApiSerialization<MediaState>;
+  if (isProcessedMedia(media)) {
     response = {
       ...media,
       created: isoDateTime(media.created),
       updated: isoDateTime(media.updated),
-      uploaded: isoDateTime(media.uploaded),
       taken: media.taken ? isoDateTime(media.taken) : null,
+
+      file: {
+        ...media.file,
+        uploaded: isoDateTime(media.file.uploaded),
+      },
     };
   } else {
     response = {
@@ -148,27 +143,30 @@ export function mediaIntoResponse(
       created: isoDateTime(media.created),
       updated: isoDateTime(media.updated),
       taken: media.taken ? isoDateTime(media.taken) : null,
+
+      file: null,
     };
   }
 
   return {
     ...response,
+    catalog: media.catalog.id,
     albums: media.albums.map(
-      (ref: Reference<Album>): Api.Album => albumIntoResponse(ref.deref(serverState).toState()),
+      (st: MediaAlbumState): Api.MediaAlbum => ({ album: st.album.id }),
     ),
     tags: media.tags.map(
-      (ref: Reference<Tag>): Api.Tag => tagIntoResponse(ref.deref(serverState).toState()),
+      (st: MediaTagState): Api.MediaTag => ({ tag: st.tag.id }),
     ),
-    people: media.people.map((state: MediaPersonState): Api.MediaPerson => {
-      return personIntoResponse(state.person.deref(serverState).toState());
-    }),
+    people: media.people.map((st: MediaPersonState): Api.MediaPerson => ({
+      person: st.person.id,
+      location: st.location,
+    })),
   };
 }
 
-export function personIntoResponse(person: PersonState): Api.MediaPerson {
-  let result: Api.MediaPerson = {
+export function personIntoResponse(person: PersonState): Api.Person {
+  let result: Api.Person = {
     ...person,
-    location: null,
     catalog: person.catalog.id,
   };
 
@@ -195,42 +193,48 @@ export function tagIntoResponse(tag: TagState): Api.Tag {
   return result;
 }
 
-export function searchIntoResponse(search: SavedSearchState): ResponseFor<Api.SavedSearch> {
-  let result: Api.SavedSearch = {
-    ...search,
-    catalog: search.catalog.id,
-  };
-
-  if (result.query.type == "field" && isDateTime(result.query.value)) {
+function queryIntoResponse(query: Query): ApiSerialization<Query> {
+  if (query.type == "compound") {
     return {
-      ...result,
-      query: {
-        ...result.query,
-        value: isoDateTime(result.query.value),
-      },
+      ...query,
+      queries: query.queries.map(queryIntoResponse),
     };
   }
 
-  // @ts-ignore
-  return result;
+  return {
+    ...query,
+    value: isDateTime(query.value) ? isoDateTime(query.value) : query.value,
+  };
+}
+
+export function searchIntoResponse(search: SavedSearchState): ApiSerialization<Api.SavedSearch> {
+  return {
+    ...search,
+    catalog: search.catalog.id,
+    query: queryIntoResponse(search.query),
+  };
 }
 
 export function catalogIntoResponse(catalog: CatalogState): Api.Catalog {
-  let result: Api.Catalog = {
-    ...catalog,
-  };
+  let {
+    tags,
+    albums,
+    people,
+    searches,
+    ...rest
+  } = catalog;
 
-  return result;
+  return rest;
 }
 
-export function serverDataIntoResponse(serverState: ServerState): ResponseFor<Api.State> {
-  let user: ResponseFor<Api.User> | null = null;
+export function serverDataIntoResponse(serverState: ServerState): ApiSerialization<Api.State> {
+  let user: ApiSerialization<Api.User> | null = null;
   if (serverState.user) {
     let albums: Api.Album[] = [];
     let tags: Api.Tag[] = [];
     let people: Api.Person[] = [];
     let catalogs: Api.Catalog[] = [];
-    let searches: ResponseFor<Api.SavedSearch>[] = [];
+    let searches: ApiSerialization<Api.SavedSearch>[] = [];
 
     for (let catalog of serverState.user.catalogs.values()) {
       catalogs.push(catalogIntoResponse(catalog));
@@ -266,5 +270,30 @@ export function serverDataIntoResponse(serverState: ServerState): ResponseFor<Ap
 
   return {
     user,
+  };
+}
+
+type Req<M extends Api.Method> = Api.SignatureRequest<M>;
+type Rsp<M extends Api.Method> = Api.SignatureResponse<M>;
+export function deferRequest<M extends Api.Method>(): DeferredCall<[Api.Method, Req<M>], Rsp<M>> {
+  let {
+    call,
+    reject,
+    resolve,
+    promise,
+  } = deferCall(request as unknown as (method: Api.Method, data: Req<M>) => Promise<Rsp<M>>);
+  return {
+    call,
+    resolve: async (...args: Parameters<typeof resolve>): Promise<void> => {
+      await act(() => {
+        return resolve(...args);
+      });
+    },
+    reject: async (...args: Parameters<typeof reject>): Promise<void> => {
+      await act(() => {
+        return reject(...args);
+      });
+    },
+    promise,
   };
 }

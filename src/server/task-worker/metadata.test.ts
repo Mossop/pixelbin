@@ -4,7 +4,7 @@ import { exiftool } from "exiftool-vendored";
 
 import { expect } from "../../test-helpers";
 import { parseDateTime } from "../../utils";
-import { parseFile, parseMetadata, getOriginal } from "./metadata";
+import { parseFile, parseMetadata, getMediaFile } from "./metadata";
 import { provideService } from "./services";
 
 jest.mock("../storage");
@@ -65,7 +65,7 @@ test("lamppost", async (): Promise<void> => {
   });
   expect(metadata.taken?.hour).toBe(18);
 
-  let info = getOriginal(data);
+  let info = getMediaFile(data);
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",
@@ -132,7 +132,7 @@ test("iptc", async (): Promise<void> => {
   });
   expect(metadata.taken?.hour).toBe(17);
 
-  let info = getOriginal(data);
+  let info = getMediaFile(data);
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "image/jpeg",
@@ -199,7 +199,7 @@ test("video", async (): Promise<void> => {
   });
   expect(metadata.taken?.hour).toBe(23);
 
-  let info = getOriginal(data);
+  let info = getMediaFile(data);
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
     mimetype: "video/mp4",

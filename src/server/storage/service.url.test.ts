@@ -28,9 +28,8 @@ async function urlTest(id: string): Promise<void> {
   }, await connection);
 
   let storageConfig = await userDb.createStorage(config);
-  let catalog = await userDb.createCatalog({
+  let catalog = await userDb.createCatalog(storageConfig.id, {
     name: storageConfig.name,
-    storage: storageConfig.id,
   });
 
   let storage = await service.getStorage(catalog.id);

@@ -18,7 +18,7 @@ buildTestDB();
 beforeEach(async (): Promise<void> => {
   await insertTestData();
   return insertData({
-    [Table.Media]: [{
+    [Table.MediaInfo]: [{
       ...emptyMetadata,
       id: "m1",
       catalog: "c1",
@@ -877,8 +877,7 @@ test("saved searches", async (): Promise<void> => {
     }],
   };
 
-  let search = await user1Db.createSavedSearch({
-    catalog: "c1",
+  let search = await user1Db.createSavedSearch("c1", {
     name: "My search",
     shared: true,
     query: query1,
@@ -893,8 +892,7 @@ test("saved searches", async (): Promise<void> => {
   });
   let search1 = search.id;
 
-  search = await user1Db.createSavedSearch({
-    catalog: "c2",
+  search = await user1Db.createSavedSearch("c2", {
     name: "My other search",
     shared: false,
     query: query2,
@@ -988,10 +986,10 @@ test("saved searches", async (): Promise<void> => {
   await expect(user2Db.editSavedSearch(search2, {
     name: "bar",
   })).rejects.toThrow("Unknown SavedSearch.");
-  await expect(user2Db.deleteSavedSearch([search2])).rejects.toThrow("Unknown SavedSearch.");
-  await expect(user3Db.deleteSavedSearch([search1])).rejects.toThrow("Unknown SavedSearch.");
+  await expect(user2Db.deleteSavedSearches([search2])).rejects.toThrow("Unknown SavedSearch.");
+  await expect(user3Db.deleteSavedSearches([search1])).rejects.toThrow("Unknown SavedSearch.");
 
-  await user3Db.deleteSavedSearch([search2]);
+  await user3Db.deleteSavedSearches([search2]);
   searches = await user1Db.listSavedSearches();
   expect(searches).toEqual([
     testData[Table.SavedSearch][0],

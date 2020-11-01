@@ -1,7 +1,7 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
-import type { Api, Search } from "../../model";
+import type { Search } from "../../model";
 import { Operator, Method } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
@@ -64,7 +64,7 @@ test("save search", async (): Promise<void> => {
 
   let button = expectChild<HTMLButtonElement>(form, "button#save-search-submit");
 
-  let { resolve } = deferRequest<Api.SavedSearch>();
+  let { resolve } = deferRequest<Method.SavedSearchCreate>();
 
   click(button);
 
@@ -77,9 +77,11 @@ test("save search", async (): Promise<void> => {
   expect(mockedRequest).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(mockedRequest)).toEqual([Method.SavedSearchCreate, {
     catalog: "catalog",
-    name: "Hello",
-    shared: true,
-    query,
+    search: {
+      name: "Hello",
+      shared: true,
+      query,
+    },
   }]);
 
   let dispatchCall = awaitCall(store.dispatch);

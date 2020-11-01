@@ -4,7 +4,7 @@ import path from "path";
 import type { SuperTest, Test } from "supertest";
 import { agent } from "supertest";
 
-import type { Api, ResponseFor } from "../../model";
+import type { Api, ApiSerialization } from "../../model";
 import { expect } from "../../test-helpers";
 import type { Obj, Resolver, Rejecter } from "../../utils";
 import { idSorted } from "../../utils";
@@ -111,7 +111,7 @@ export function catalogs(catalogs: string | string[], items: Api.Catalog[]): Api
 export function storage(items: Tables.Storage[]): Api.Storage[] {
   return items.map((storage: Tables.Storage): Api.Storage => {
     let {
-      user,
+      owner,
       accessKeyId,
       secretAccessKey,
       ...rest
@@ -131,36 +131,37 @@ export function fromCatalogs<T extends Api.Person | Api.Tag | Api.Album | Api.Sa
   return items.filter((item: T): boolean => catalogs.includes(item.catalog));
 }
 
-export function expectUserState(received: Obj, state: ResponseFor<Api.User> | null): void {
+export function expectUserState(json: Obj, state: ApiSerialization<Api.User> | null): void {
   if (!state) {
-    expect(received).toEqual({ user: null });
+    expect(json).toEqual({ user: null });
     return;
   }
 
-  expect(received).toEqual({
+  expect(json).toEqual({
     user: expect.anything(),
   });
 
-  let mutatedReceived = {
-    ...received["user"],
+  let received = {
+    ...json["user"],
   };
 
-  let mutatedExpected = {
+  let expected = {
     ...state,
     created: expect.toEqualDate(state.created),
+    lastLogin: state.lastLogin ? expect.toEqualDate(state.lastLogin) : null,
   };
 
   for (let arr of ["catalogs", "albums", "people", "tags"]) {
-    if (arr in mutatedReceived) {
-      mutatedReceived[arr] = idSorted(mutatedReceived[arr]);
+    if (arr in received) {
+      received[arr] = idSorted(received[arr]);
     }
 
-    if (arr in mutatedExpected) {
-      mutatedExpected[arr] = idSorted(mutatedExpected[arr]);
+    if (arr in expected) {
+      expected[arr] = idSorted(expected[arr]);
     } else {
-      mutatedExpected[arr] = [];
+      expected[arr] = [];
     }
   }
 
-  expect(mutatedReceived).toEqual(mutatedExpected);
+  expect(received).toEqual(expected);
 }

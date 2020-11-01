@@ -1,6 +1,6 @@
 import type { Draft } from "immer";
 
-import type { Api } from "../../model";
+import type { Api, ObjectModel, Requests } from "../../model";
 import { Method } from "../../model";
 import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
@@ -8,24 +8,24 @@ import type { CatalogState, MediaState, StorageState } from "./types";
 import { mediaIntoState } from "./types";
 
 export async function testStorage(
-  storage: Api.StorageTestRequest,
+  storage: Requests.StorageTest,
 ): Promise<Api.StorageTestResult> {
   return request(Method.StorageTest, storage);
 }
 
 export async function createStorage(
-  storage: Api.StorageCreateRequest,
-): Promise<StorageState> {
+  storage: Requests.StorageCreate,
+): Promise<Draft<StorageState>> {
   return request(Method.StorageCreate, storage);
 }
 
 export async function createCatalog(
-  name: string,
   storage: string,
-): Promise<CatalogState> {
+  catalog: Omit<ObjectModel.Catalog, "id">,
+): Promise<Draft<CatalogState>> {
   let result = await request(Method.CatalogCreate, {
-    name,
     storage,
+    catalog,
   });
 
   return {
@@ -39,11 +39,11 @@ export async function createCatalog(
 
 export async function editCatalog(
   catalog: Reference<Catalog>,
-  name: string,
-): Promise<Omit<CatalogState, "albums" | "tags" | "people" | "searches">> {
+  updates: Omit<ObjectModel.Catalog, "id">,
+): Promise<Draft<Omit<CatalogState, "albums" | "tags" | "people" | "searches">>> {
   return request(Method.CatalogEdit, {
     id: catalog.id,
-    name,
+    catalog: updates,
   });
 }
 

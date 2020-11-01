@@ -1,12 +1,19 @@
 import type * as Api from "./api";
+import type * as Requests from "./api/requests";
 import type * as ObjectModel from "./models";
 import type * as Search from "./search";
 
-export { Api, ObjectModel, Search };
+export { Api, ObjectModel, Search, Requests };
 
-export type { Create, Patch, ResponseFor } from "./api";
-export { RelationType, Method, ErrorCode, HttpMethods, AWSResult } from "./api";
-export { AlternateFileType, MetadataColumns, emptyMetadata, Orientation } from "./models";
+export type { ApiSerialization } from "./api";
+export { Method, ErrorCode, HttpMethods, AWSResult } from "./api";
+export {
+  RelationType,
+  AlternateFileType,
+  MetadataColumns,
+  emptyMetadata,
+  Orientation,
+} from "./models";
 export type { Query } from "./search";
 export {
   Join,

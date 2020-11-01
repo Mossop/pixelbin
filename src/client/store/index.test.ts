@@ -1,5 +1,5 @@
 import { buildStore } from ".";
-import type { Api, ResponseFor } from "../../model";
+import type { Api, ApiSerialization } from "../../model";
 import { decode } from "../../utils";
 import { StateDecoder } from "../api/decoders";
 import { serverStateIntoState } from "../api/types";
@@ -24,11 +24,12 @@ test("store initialization", async (): Promise<void> => {
     },
   });
 
-  let serverState: ResponseFor<Api.State> = {
+  let serverState: ApiSerialization<Api.State> = {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2017-10-23T23:34:21Z",
+      lastLogin: "2019-10-20T02:03:04Z",
       verified: true,
       storage: [],
       catalogs: [],
@@ -49,6 +50,7 @@ test("store initialization", async (): Promise<void> => {
         email: "dtownsend@oxymoronical.com",
         fullname: "Dave Townsend",
         created: expect.toEqualDate("2017-10-23T23:34:21Z"),
+        lastLogin: expect.toEqualDate("2019-10-20T02:03:04Z"),
         verified: true,
         storage: new Map(),
         catalogs: new Map(),

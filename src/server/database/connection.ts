@@ -199,7 +199,7 @@ export class DatabaseConnection {
   }
 
   public readonly getMedia = wrapped(Unsafe.getMedia);
-  public readonly withNewOriginal = wrapped(Unsafe.withNewOriginal);
+  public readonly withNewMediaFile = wrapped(Unsafe.withNewMediaFile);
   public readonly addAlternateFile = wrapped(Unsafe.addAlternateFile);
   public readonly getStorageConfig = wrapped(Unsafe.getStorageConfig);
 
@@ -209,10 +209,10 @@ export class DatabaseConnection {
 
   public readonly listDeletedMedia = wrapped(Unsafe.listDeletedMedia);
   public readonly deleteMedia = wrapped(Unsafe.deleteMedia);
-  public readonly getUnusedOriginals = wrapped(Unsafe.getUnusedOriginals);
-  public readonly deleteOriginal = wrapped(Unsafe.deleteOriginal);
+  public readonly getUnusedMediaFiles = wrapped(Unsafe.getUnusedMediaFiles);
+  public readonly deleteMediaFiles = wrapped(Unsafe.deleteMediaFiles);
   public readonly listAlternateFiles = wrapped(Unsafe.listAlternateFiles);
-  public readonly deleteAlternateFile = wrapped(Unsafe.deleteAlternateFile);
+  public readonly deleteAlternateFiles = wrapped(Unsafe.deleteAlternateFiles);
 
   public static async connect(name: string, config: DatabaseConfig): Promise<DatabaseConnection> {
     let dbLogger = logger.child({
@@ -328,8 +328,8 @@ export class UserScopedConnection {
         let visible = from(userDb.knex, table)
           .whereIn(`${table}.catalog`, userDb.catalogs());
 
-        if (table == Table.Media) {
-          visible = visible.where(ref(Table.Media, "deleted"), false);
+        if (table == Table.MediaInfo) {
+          visible = visible.where(ref(Table.MediaInfo, "deleted"), false);
         }
 
         counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
@@ -379,8 +379,8 @@ export class UserScopedConnection {
           .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), `${table}.catalog`)
           .where(ref(Table.UserCatalog, "user"), userDb.user);
 
-        if (table == Table.Media) {
-          query = query.where(ref(Table.Media, "deleted"), false);
+        if (table == Table.MediaInfo) {
+          query = query.where(ref(Table.MediaInfo, "deleted"), false);
         }
 
         counts = await query.select({
@@ -455,5 +455,5 @@ export class UserScopedConnection {
   public readonly listSavedSearches = wrapped(SearchQueries.listSavedSearches);
   public readonly createSavedSearch = wrapped(SearchQueries.createSavedSearch);
   public readonly editSavedSearch = wrapped(SearchQueries.editSavedSearch);
-  public readonly deleteSavedSearch = wrapped(SearchQueries.deleteSavedSearch);
+  public readonly deleteSavedSearches = wrapped(SearchQueries.deleteSavedSearches);
 }

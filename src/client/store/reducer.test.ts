@@ -80,6 +80,7 @@ test("updateServerState", (): void => {
     user: {
       catalogs: mapOf({}),
       created: "2020-04-05T12:34:45Z",
+      lastLogin: "2020-07-02T11:30:42Z",
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       storage: mapOf({}),

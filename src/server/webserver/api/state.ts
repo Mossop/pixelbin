@@ -1,9 +1,9 @@
-import type { Api, Query, ResponseFor } from "../../../model";
+import type { Api, Query, ApiSerialization, Requests } from "../../../model";
 import { isoDateTime, isDateTime } from "../../../utils";
 import type { Tables } from "../../database/types";
 import type { AppContext } from "../context";
 
-function queryIntoResponse(query: Query): ResponseFor<Query> {
+function queryIntoResponse(query: Query): ApiSerialization<Query> {
   if (query.type == "field") {
     if (isDateTime(query.value)) {
       return {
@@ -22,14 +22,16 @@ function queryIntoResponse(query: Query): ResponseFor<Query> {
   }
 }
 
-export function savedSearchIntoResponse(search: Api.SavedSearch): ResponseFor<Api.SavedSearch> {
+export function savedSearchIntoResponse(
+  search: Api.SavedSearch,
+): ApiSerialization<Api.SavedSearch> {
   return {
     ...search,
     query: queryIntoResponse(search.query),
   };
 }
 
-export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> | null> {
+export async function buildUser(ctx: AppContext): Promise<ApiSerialization<Api.User> | null> {
   if (!ctx.user) {
     return null;
   }
@@ -39,7 +41,7 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
   let storage = await userDb.listStorage();
   let apiStores = storage.map((storage: Tables.Storage): Api.Storage => {
     let {
-      user,
+      owner,
       accessKeyId,
       secretAccessKey,
       ...rest
@@ -52,6 +54,7 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
 
   return {
     ...user,
+    lastLogin: user.lastLogin ? isoDateTime(user.lastLogin) : null,
     created: isoDateTime(user.created),
     storage: apiStores,
     catalogs: await userDb.listCatalogs(),
@@ -62,26 +65,26 @@ export async function buildUser(ctx: AppContext): Promise<ResponseFor<Api.User> 
   };
 }
 
-export async function buildState(ctx: AppContext): Promise<ResponseFor<Api.State>> {
+export async function buildState(ctx: AppContext): Promise<ApiSerialization<Api.State>> {
   return {
     user: await buildUser(ctx),
   };
 }
 
-export async function getState(ctx: AppContext): Promise<ResponseFor<Api.State>> {
+export async function getState(ctx: AppContext): Promise<ApiSerialization<Api.State>> {
   return buildState(ctx);
 }
 
 export async function login(
   ctx: AppContext,
-  data: Api.LoginRequest,
-): Promise<ResponseFor<Api.State>> {
+  data: Requests.Login,
+): Promise<ApiSerialization<Api.State>> {
   await ctx.login(data.email, data.password);
 
   return buildState(ctx);
 }
 
-export async function logout(ctx: AppContext): Promise<ResponseFor<Api.State>> {
+export async function logout(ctx: AppContext): Promise<ApiSerialization<Api.State>> {
   await ctx.logout();
 
   return buildState(ctx);
@@ -89,8 +92,8 @@ export async function logout(ctx: AppContext): Promise<ResponseFor<Api.State>> {
 
 export async function signup(
   ctx: AppContext,
-  data: Api.SignupRequest,
-): Promise<ResponseFor<Api.State>> {
+  data: Requests.Signup,
+): Promise<ApiSerialization<Api.State>> {
   await ctx.dbConnection.createUser(data);
   await ctx.login(data.email, data.password);
 

@@ -1,7 +1,6 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
-import type { Api } from "../../model";
 import { Method } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
@@ -58,7 +57,7 @@ test("edit catalog", async (): Promise<void> => {
 
   typeString(nameInput, "Foo");
 
-  let { resolve } = deferRequest<Api.Catalog>();
+  let { resolve } = deferRequest<Method.CatalogEdit>();
 
   click(button);
 
@@ -68,7 +67,9 @@ test("edit catalog", async (): Promise<void> => {
 
   expect(lastCallArgs(mockedRequest)).toEqual([Method.CatalogEdit, {
     id: "catalog",
-    name: "Foo",
+    catalog: {
+      name: "Foo",
+    },
   }]);
 
   await resolve({

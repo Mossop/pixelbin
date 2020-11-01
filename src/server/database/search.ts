@@ -1,6 +1,6 @@
 import type Knex from "knex";
 
-import type { Search, Query } from "../../model";
+import type { Search, Query, ObjectModel } from "../../model";
 import { checkQuery, isCompoundQuery, Join, Modifier, Operator } from "../../model";
 import { isRelationQuery } from "../../model/search";
 import { isDateTime } from "../../utils";
@@ -8,11 +8,10 @@ import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { uuid } from "./id";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
-import { intoMedia } from "./media";
 import { from, insert, update, withChildren } from "./queries";
-import type { Media, Tables } from "./types";
-import { intoAPITypes, intoDBType, intoDBTypes, ref, Table } from "./types";
-import { ensureUserTransaction } from "./utils";
+import type { Tables } from "./types";
+import { applyTimeZoneFields, intoDBType, intoDBTypes, ref, Table } from "./types";
+import { deleteFields, ensureUserTransaction } from "./utils";
 
 function escape(value: unknown): string {
   return String(value);
@@ -176,65 +175,66 @@ export async function searchMedia(
   this: UserScopedConnection,
   catalog: string,
   search: Query,
-): Promise<Media[]> {
+): Promise<Tables.MediaView[]> {
   checkQuery(search);
 
-  let builder = from(this.knex, Table.StoredMediaDetail)
+  let builder = from(this.knex, Table.MediaView)
     .join(
       Table.UserCatalog,
       ref(Table.UserCatalog, "catalog"),
-      ref(Table.StoredMediaDetail, "catalog"),
+      ref(Table.MediaView, "catalog"),
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
     .andWhere(ref(Table.UserCatalog, "catalog"), catalog)
     .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-      ref(Table.StoredMediaDetail, "taken"),
-      ref(Table.StoredMediaDetail, "created"),
+      ref(Table.MediaView, "taken"),
+      ref(Table.MediaView, "created"),
     ]))
-    .select<Tables.StoredMediaDetail[]>(ref(Table.StoredMediaDetail));
+    .select<Tables.MediaView[]>(ref(Table.MediaView));
 
   builder = applyQuery(
     this,
     builder,
     catalog,
-    Table.StoredMediaDetail,
+    Table.MediaView,
     Join.And,
     search,
   );
 
-  return (await builder).map(intoMedia);
+  return (await builder).map(applyTimeZoneFields);
 }
 
 export const createSavedSearch = ensureUserTransaction(async function saveSavedSearch(
   this: UserScopedConnection,
-  data: Omit<Tables.SavedSearch, "id">,
+  catalog: ObjectModel.Catalog["id"],
+  data: Omit<ObjectModel.SavedSearch, "id">,
 ): Promise<Tables.SavedSearch> {
-  await this.checkWrite(Table.Catalog, [data.catalog]);
+  await this.checkWrite(Table.Catalog, [catalog]);
 
   let results = await insert(this.knex, Table.SavedSearch, {
     ...intoDBTypes(data),
     id: await uuid("S"),
+    catalog,
   }).returning("*");
 
   if (!results.length) {
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert SavedSearch record.");
   }
 
-  return intoAPITypes(results[0]);
+  return results[0];
 });
 
 export const editSavedSearch = ensureUserTransaction(async function editSavedSearch(
   this: UserScopedConnection,
   id: string,
-  data: Partial<Tables.SavedSearch>,
+  data: Partial<Omit<ObjectModel.SavedSearch, "id">>,
 ): Promise<Tables.SavedSearch> {
   await this.checkWrite(Table.SavedSearch, [id]);
 
-  let {
-    id: removedId,
-    catalog: removedCatalog,
-    ...updates
-  } = data;
+  let updates = deleteFields(data, [
+    "id",
+    "catalog",
+  ]);
 
   let results = await update(
     Table.SavedSearch,
@@ -246,10 +246,10 @@ export const editSavedSearch = ensureUserTransaction(async function editSavedSea
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit SavedSearch record.");
   }
 
-  return intoAPITypes(results[0]);
+  return results[0];
 });
 
-export const deleteSavedSearch = ensureUserTransaction(async function deleteSavedSearch(
+export const deleteSavedSearches = ensureUserTransaction(async function deleteSavedSearches(
   this: UserScopedConnection,
   ids: string[],
 ): Promise<void> {
@@ -271,5 +271,5 @@ export async function listSavedSearches(
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
     .select<Tables.SavedSearch[]>(ref(Table.SavedSearch));
-  return results.map(intoAPITypes);
+  return results;
 }

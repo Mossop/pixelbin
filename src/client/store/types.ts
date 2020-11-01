@@ -13,6 +13,7 @@ export interface UIState {
   readonly page: PageState;
   readonly overlay?: OverlayState;
 }
+
 export interface StoreState {
   readonly serverState: ServerState;
   readonly ui: UIState;

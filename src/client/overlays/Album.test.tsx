@@ -1,7 +1,6 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
-import type { Api } from "../../model";
 import { Method } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
@@ -53,7 +52,7 @@ test("create album", async (): Promise<void> => {
   let nameInput = expectChild<HTMLInputElement>(form, "#album-name");
   typeString(nameInput, "Foo");
 
-  let { resolve } = deferRequest<Api.Album>();
+  let { resolve } = deferRequest<Method.AlbumCreate>();
 
   click(button);
 
@@ -63,8 +62,10 @@ test("create album", async (): Promise<void> => {
 
   expect(lastCallArgs(mockedRequest)).toEqual([Method.AlbumCreate, {
     catalog: "catalog",
-    parent: null,
-    name: "Foo",
+    album: {
+      parent: null,
+      name: "Foo",
+    },
   }]);
 
   await resolve({
@@ -118,7 +119,7 @@ test("edit album", async (): Promise<void> => {
 
   typeString(nameInput, "Foo");
 
-  let { resolve } = deferRequest<Api.Album>();
+  let { resolve } = deferRequest<Method.AlbumEdit>();
 
   click(button);
 
@@ -128,8 +129,10 @@ test("edit album", async (): Promise<void> => {
 
   expect(lastCallArgs(mockedRequest)).toEqual([Method.AlbumEdit, {
     id: "album2",
-    parent: "album1",
-    name: "Foo",
+    album: {
+      parent: "album1",
+      name: "Foo",
+    },
   }]);
 
   await resolve({

@@ -8,7 +8,7 @@ import { DateTime as Luxon } from "luxon";
 
 import type { ObjectModel } from "../model";
 import type { DateTime } from "../utils";
-import { defer, now } from "../utils";
+import { stringSorted, defer, now } from "../utils";
 
 export function sortedIds<T extends { id: string }>(val: T[]): string[] {
   return val.map((item: { id: string }): string => item.id);
@@ -373,6 +373,16 @@ export function reordered<T>(item: T): T {
   return Object.fromEntries(
     Object.entries(item).map(([key, value]: [unknown, unknown]) => {
       if (Array.isArray(value)) {
+        if (key == "people") {
+          return [key, stringSorted(value, "person")];
+        }
+        if (key == "tags") {
+          return [key, stringSorted(value, "tag")];
+        }
+        if (key == "albums") {
+          return [key, stringSorted(value, "album")];
+        }
+
         return [key, reordered(value)];
       }
       return [key, value];

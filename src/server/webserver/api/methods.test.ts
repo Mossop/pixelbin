@@ -78,7 +78,9 @@ test("formdata decoding", async (): Promise<void> => {
     .put("/api/catalog/create")
     .field("json", JSON.stringify({
       storage: "s1",
-      name: "Good user",
+      catalog: {
+        name: "Good user",
+      },
     }))
     .expect("Content-Type", "application/json")
     .expect(200);

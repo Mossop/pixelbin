@@ -1,15 +1,16 @@
-import type { Api, Query } from "../../model";
+import type { Draft } from "immer";
+
+import type { Query } from "../../model";
 import { Method } from "../../model";
 import { request } from "./api";
-import type { Reference, SavedSearch } from "./highlevel";
-import { Catalog } from "./highlevel";
+import type { Reference, SavedSearch, Catalog } from "./highlevel";
 import type { MediaState, SavedSearchState } from "./types";
-import { mediaIntoState } from "./types";
+import { searchIntoState, mediaIntoState } from "./types";
 
 export async function searchMedia(
   catalog: Reference<Catalog>,
   query: Query,
-): Promise<MediaState[]> {
+): Promise<Draft<MediaState>[]> {
   let results = await request(Method.MediaSearch, {
     catalog: catalog.id,
     query,
@@ -19,36 +20,22 @@ export async function searchMedia(
 
 export async function createSavedSearch(
   catalog: Reference<Catalog>,
-  query: Query,
-  name: string,
-  shared: boolean,
-): Promise<SavedSearchState> {
-  let search = await request(Method.SavedSearchCreate, {
+  search: Omit<SavedSearchState, "id" | "catalog">,
+): Promise<Draft<SavedSearchState>> {
+  return request(Method.SavedSearchCreate, {
     catalog: catalog.id,
-    query,
-    name,
-    shared,
-  });
-
-  return {
-    ...search,
-    catalog: Catalog.ref(search.catalog),
-  };
+    search,
+  }).then(searchIntoState);
 }
 
 export async function editSavedSearch(
   search: Reference<SavedSearch>,
-  data: Partial<Pick<Api.SavedSearch, "name" | "query">>,
-): Promise<SavedSearchState> {
-  let updated = await request(Method.SavedSearchEdit, {
-    ...data,
+  updates: Partial<Omit<SavedSearchState, "id" | "catalog">>,
+): Promise<Draft<SavedSearchState>> {
+  return request(Method.SavedSearchEdit, {
     id: search.id,
-  });
-
-  return {
-    ...updated,
-    catalog: Catalog.ref(updated.catalog),
-  };
+    search: updates,
+  }).then(searchIntoState);
 }
 
 export async function deleteSavedSearches(

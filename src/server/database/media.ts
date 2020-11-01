@@ -5,58 +5,28 @@ import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
 import { from, update, insert } from "./queries";
-import type {
-  Tables,
-  Media,
-  UnprocessedMedia,
-} from "./types";
+import type { Tables } from "./types";
 import {
   Table,
   ref,
   intoDBTypes,
-  intoAPITypes,
   buildTimeZoneFields,
   applyTimeZoneFields,
 } from "./types";
-import { filterColumns, ensureUserTransaction, asTable } from "./utils";
-
-export function intoMedia(item: Tables.StoredMediaDetail & { deleted?: boolean }): Media {
-  let forApi = applyTimeZoneFields(intoAPITypes(item));
-  delete forApi.deleted;
-
-  if (forApi.uploaded) {
-    return forApi;
-  }
-
-  let {
-    uploaded,
-    fileSize,
-    mimetype,
-    width,
-    height,
-    duration,
-    frameRate,
-    bitRate,
-    original,
-    fileName,
-    ...unprocessed
-  } = forApi;
-
-  return unprocessed;
-}
+import { ensureUserTransaction, asTable, deleteFields } from "./utils";
 
 export const createMedia = ensureUserTransaction(async function createMedia(
   this: UserScopedConnection,
-  catalog: Tables.Media["catalog"],
-  data: Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">,
-): Promise<UnprocessedMedia> {
+  catalog: Tables.MediaView["catalog"],
+  data: Omit<Tables.MediaInfo, "id" | "catalog" | "created" | "updated" | "deleted">,
+): Promise<Tables.MediaView> {
   await this.checkWrite(Table.Catalog, [catalog]);
 
   let current = now();
   let id = await mediaId();
 
-  await insert(this.knex, Table.Media, intoDBTypes({
-    ...buildTimeZoneFields(filterColumns(Table.Media, data)),
+  await insert(this.knex, Table.MediaInfo, intoDBTypes({
+    ...buildTimeZoneFields(data),
     id,
     catalog,
     created: current,
@@ -74,22 +44,28 @@ export const createMedia = ensureUserTransaction(async function createMedia(
 
 export const editMedia = ensureUserTransaction(async function editMedia(
   this: UserScopedConnection,
-  id: Tables.Media["id"],
-  data: Partial<Omit<Tables.Media, "id" | "catalog" | "created" | "updated" | "deleted">>,
-): Promise<Media> {
-  await this.checkWrite(Table.Media, [id]);
+  id: Tables.MediaView["id"],
+  data: Partial<Omit<Tables.MediaInfo, "id" | "catalog" | "created" | "updated" | "deleted">>,
+): Promise<Tables.MediaView> {
+  await this.checkWrite(Table.MediaInfo, [id]);
+
+  let updateData = deleteFields(data, [
+    "id",
+    "catalog",
+    "created",
+  ]);
 
   await update(
-    Table.Media,
+    Table.MediaInfo,
     this.knex.where("id", id),
     intoDBTypes({
-      ...buildTimeZoneFields(filterColumns(Table.Media, data)),
+      ...buildTimeZoneFields(updateData),
       updated: now(),
       deleted: false,
     }),
   );
 
-  let edited = (await this.getMedia([id]))[0];
+  let [edited] = await this.getMedia([id]);
   if (!edited) {
     throw new DatabaseError(
       DatabaseErrorCode.UnknownError,
@@ -102,42 +78,45 @@ export const editMedia = ensureUserTransaction(async function editMedia(
 
 export async function getMedia(
   this: UserScopedConnection,
-  ids: string[],
-): Promise<(Media | null)[]> {
+  ids: Tables.MediaView["id"][],
+): Promise<(Tables.MediaView | null)[]> {
   if (ids.length == 0) {
     return [];
   }
 
-  let visible = from(this.knex, Table.StoredMediaDetail)
-    .whereIn(ref(Table.StoredMediaDetail, "catalog"), this.catalogs());
+  let visible = from(this.knex, Table.MediaView)
+    .whereIn(ref(Table.MediaView, "catalog"), this.catalogs());
 
-  type Joined = Tables.StoredMediaDetail | AllNull<Tables.StoredMediaDetail>;
+  type Joined = Tables.MediaView | AllNull<Tables.MediaView>;
 
   let foundMedia = await this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
     .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
     .orderBy("Ids.index")
     .select<Joined[]>("Visible.*");
 
-  return foundMedia.map((record: Joined) => {
+  return foundMedia.map((record: Joined): Tables.MediaView | null => {
     if (record.id == null) {
       return null;
     }
-    return intoMedia(record);
+    return applyTimeZoneFields(record);
   });
 }
 
 export const listAlternateFiles = ensureUserTransaction(async function listAlternateFiles(
   this: UserScopedConnection,
-  id: string,
+  media: Tables.MediaView["id"],
   type: AlternateFileType,
 ): Promise<Tables.AlternateFile[]> {
-  await this.checkRead(Table.Media, [id]);
+  await this.checkRead(Table.MediaInfo, [media]);
 
   return from(this.knex, Table.AlternateFile)
-    .join(Table.Original, ref(Table.Original, "id"), ref(Table.AlternateFile, "original"))
-    .join(Table.Media, ref(Table.Original, "media"), ref(Table.Media, "id"))
+    .join(
+      Table.MediaView,
+      ref(Table.AlternateFile, "mediaFile"),
+      this.knex.raw("??->>'id'", [ref(Table.MediaView, "file")]),
+    )
     .where(ref(Table.AlternateFile, "type"), type)
-    .where(ref(Table.Media, "id"), id)
+    .where(ref(Table.MediaView, "id"), media)
     .select(ref(Table.AlternateFile));
 });
 
@@ -145,10 +124,10 @@ export const deleteMedia = ensureUserTransaction(async function deleteMedia(
   this: UserScopedConnection,
   ids: string[],
 ): Promise<void> {
-  await this.checkWrite(Table.Media, ids);
+  await this.checkWrite(Table.MediaInfo, ids);
 
   await update(
-    Table.Media,
+    Table.MediaInfo,
     this.knex.whereIn("id", ids),
     { deleted: true },
   );

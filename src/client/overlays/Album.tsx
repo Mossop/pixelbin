@@ -4,7 +4,6 @@ import { createAlbum, editAlbum } from "../api/album";
 import type { Album, Reference } from "../api/highlevel";
 import { Catalog, useCatalogs } from "../api/highlevel";
 import type { MediaTarget } from "../api/media";
-import type { AlbumState, Create, Patch } from "../api/types";
 import { FormDialog, MediaTargetField, TextField, useFormState } from "../components/Forms";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
@@ -77,22 +76,18 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
 
     try {
       if (!album) {
-        let data: Create<AlbumState> = {
-          catalog: catalog.ref(),
+        let albumData = await createAlbum(catalog.ref(), {
           name: name,
           parent: parent instanceof Catalog ? null : parent.ref(),
-        };
+        });
 
-        let albumData = await createAlbum(data);
         actions.albumCreated(albumData);
       } else {
-        let updated: Patch<AlbumState> = {
-          id: album.ref(),
+        let albumData = await editAlbum(album.ref(), {
           name: name,
           parent: parent instanceof Catalog ? null : parent.ref(),
-        };
+        });
 
-        let albumData = await editAlbum(updated);
         actions.albumEdited(albumData);
       }
     } catch (e) {

@@ -21,7 +21,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import type { ObjectModel } from "../../model";
 import type { MediaState } from "../api/types";
-import { isProcessed } from "../api/types";
+import { isProcessedMedia } from "../api/types";
 import FixedAspect from "../components/FixedAspect";
 import Loading from "../components/Loading";
 import { Photo, Video } from "../components/Media";
@@ -329,10 +329,10 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
       onMouseMove={showOverlays}
     >
       {
-        isProcessed(mediaState)
+        isProcessedMedia(mediaState)
           ? <FixedAspect
-            width={mediaState.width}
-            height={mediaState.height}
+            width={mediaState.file.width}
+            height={mediaState.file.height}
             classes={
               {
                 root: classes.mediaArea,
@@ -341,7 +341,7 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
             }
           >
             {
-              mediaState.mimetype.startsWith("video/")
+              mediaState.file.mimetype.startsWith("video/")
                 ? <Video media={mediaState} displayOverlays={displayOverlays}>
                   {mediaControls}
                 </Video>

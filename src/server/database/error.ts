@@ -1,4 +1,4 @@
-import type { Table } from "./types";
+import { Table } from "./types";
 
 export enum DatabaseErrorCode {
   UnknownError,
@@ -15,10 +15,20 @@ export class DatabaseError extends Error {
   }
 }
 
+function nameFor(table: Table): string {
+  switch (table) {
+    case Table.MediaInfo:
+    case Table.MediaView:
+      return "Media";
+    default:
+      return table;
+  }
+}
+
 export function notfound(table: Table): never {
-  throw new DatabaseError(DatabaseErrorCode.MissingValue, `Unknown ${table}.`);
+  throw new DatabaseError(DatabaseErrorCode.MissingValue, `Unknown ${nameFor(table)}.`);
 }
 
 export function notwritable(table: Table): never {
-  throw new DatabaseError(DatabaseErrorCode.NotAuthorized, `Cannot modify ${table}.`);
+  throw new DatabaseError(DatabaseErrorCode.NotAuthorized, `Cannot modify ${nameFor(table)}.`);
 }

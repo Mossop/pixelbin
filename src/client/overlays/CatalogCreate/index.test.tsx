@@ -1,7 +1,6 @@
 import React from "react";
 
 import CatalogOverlay from ".";
-import type { Api } from "../../../model";
 import { AWSResult, Method } from "../../../model";
 import { lastCallArgs } from "../../../test-helpers";
 import {
@@ -83,7 +82,7 @@ test("create catalog", async (): Promise<void> => {
   let {
     call: badCall,
     resolve: badResolve,
-  } = deferRequest<Api.StorageTestResult, Api.StorageTestRequest>();
+  } = deferRequest<Method.StorageTest>();
 
   click(nextBtn);
 
@@ -133,7 +132,7 @@ test("create catalog", async (): Promise<void> => {
   let {
     call: goodCall,
     resolve: goodResolve,
-  } = deferRequest<Api.StorageTestResult, Api.StorageTestRequest>();
+  } = deferRequest<Method.StorageTest>();
 
   click(nextBtn);
 
@@ -188,7 +187,7 @@ test("create catalog", async (): Promise<void> => {
 
   expect(submitBtn.disabled).toBeFalsy();
 
-  let { call, resolve } = deferRequest<Api.Storage, Api.StorageCreateRequest>();
+  let { call, resolve } = deferRequest<Method.StorageCreate>();
 
   click(submitBtn);
 
@@ -206,7 +205,7 @@ test("create catalog", async (): Promise<void> => {
   let {
     call: storageCall,
     resolve: storageResolve,
-  } = deferRequest<Api.Catalog, Api.Create<Api.Catalog>>();
+  } = deferRequest<Method.CatalogCreate>();
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -238,7 +237,9 @@ test("create catalog", async (): Promise<void> => {
 
   expect(await storageCall).toEqual([Method.CatalogCreate, {
     storage: "st123",
-    name: "New catalog",
+    catalog: {
+      name: "New catalog",
+    },
   }]);
 
   expect(store.dispatch).toHaveBeenCalledTimes(0);
@@ -307,13 +308,15 @@ test("create catalog with existing storage", async (): Promise<void> => {
 
   expect(submitBtn.disabled).toBeFalsy();
 
-  let { call, resolve } = deferRequest<Api.Catalog, Api.Create<Api.Catalog>>();
+  let { call, resolve } = deferRequest<Method.CatalogCreate>();
 
   click(submitBtn);
 
   expect(await call).toEqual([Method.CatalogCreate, {
     storage: "st567",
-    name: "New catalog",
+    catalog: {
+      name: "New catalog",
+    },
   }]);
 
   expect(store.dispatch).toHaveBeenCalledTimes(0);

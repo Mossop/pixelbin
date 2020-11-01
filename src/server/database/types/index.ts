@@ -1,7 +1,5 @@
 import type Knex from "knex";
 
-import type { ObjectModel } from "../../../model";
-import { MetadataColumns } from "../../../model";
 import type { Obj } from "../../../utils";
 import * as Joins from "./joins";
 import * as Tables from "./tables";
@@ -18,8 +16,8 @@ export enum Table {
   Album = "Album",
   Tag = "Tag",
   Person = "Person",
-  Media = "Media",
-  Original = "Original",
+  MediaInfo = "MediaInfo",
+  MediaFile = "MediaFile",
   AlternateFile = "AlternateFile",
   SavedSearch = "SavedSearch",
 
@@ -29,8 +27,7 @@ export enum Table {
   MediaPerson = "Media_Person",
 
   // Not real tables.
-  StoredMedia = "StoredMedia",
-  StoredMediaDetail = "StoredMediaDetail",
+  MediaView = "MediaView",
   UserCatalog = "UserCatalog",
 }
 
@@ -41,8 +38,8 @@ export interface TableMapping {
   [Table.Album]: Tables.Album;
   [Table.Tag]: Tables.Tag;
   [Table.Person]: Tables.Person;
-  [Table.Media]: Tables.Media;
-  [Table.Original]: Tables.Original;
+  [Table.MediaInfo]: Tables.MediaInfo;
+  [Table.MediaFile]: Tables.MediaFile;
   [Table.AlternateFile]: Tables.AlternateFile;
   [Table.SavedSearch]: Tables.SavedSearch;
 
@@ -51,8 +48,7 @@ export interface TableMapping {
   [Table.MediaTag]: Joins.MediaTag;
   [Table.MediaPerson]: Joins.MediaPerson;
 
-  [Table.StoredMedia]: Tables.StoredMedia;
-  [Table.StoredMediaDetail]: Tables.StoredMediaDetail;
+  [Table.MediaView]: Tables.MediaView;
   [Table.UserCatalog]: Joins.UserCatalog;
 }
 
@@ -80,14 +76,3 @@ export function isRef<T extends Table>(ref: Obj | null): ref is Ref<T> {
 export function bindingParam(val: Knex.RawBinding | Ref): string {
   return val && isRef(val) ? "??" : "?";
 }
-
-export const COLUMNS = {
-  [Table.Media]: Object.keys(MetadataColumns),
-};
-
-export type UnprocessedMedia = ObjectModel.UnprocessedMedia;
-export type ProcessedMedia = ObjectModel.ProcessedMedia & {
-  original: string;
-  fileName: string;
-};
-export type Media = UnprocessedMedia | ProcessedMedia;

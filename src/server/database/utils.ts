@@ -4,18 +4,9 @@ import type { ObjectModel } from "../../model";
 import type { Func } from "../../utils";
 import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
-import type { Table } from "./types";
-import { COLUMNS } from "./types";
 
 export type TxnFn<C, R> = Func<[dbConnection: C], Promise<R>>;
 export type Named<F> = [name: string, transactionFn: F] | [transactionFn: F];
-
-export function filterColumns<T extends Table.Media, D>(table: T, data: D): D {
-  let allowed = COLUMNS[table];
-  return Object.fromEntries(Object.entries(data).filter(([key]: [string, unknown]): boolean => {
-    return allowed.includes(key);
-  })) as unknown as D;
-}
 
 export function rowFromLocation(
   knex: Knex,
@@ -115,4 +106,16 @@ export function ensureUserTransaction<A extends unknown[], R>(
       return fn.apply(userDb, args);
     });
   };
+}
+
+export function deleteFields<T>(value: T, fields: string[]): T {
+  let result: T = {
+    ...value,
+  };
+
+  for (let field of fields) {
+    delete result[field];
+  }
+
+  return result;
 }

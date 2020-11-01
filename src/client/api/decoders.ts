@@ -1,4 +1,3 @@
-import type { Result } from "ts.data.json";
 import { JsonDecoder } from "ts.data.json";
 
 import type { Api } from "../../model";
@@ -21,14 +20,26 @@ const LocationDecoder = JsonDecoder.object({
   bottom: JsonDecoder.number,
 }, "Location");
 
+export const MediaAlbumDecoder = JsonDecoder.object<Api.MediaAlbum>(
+  {
+    album: JsonDecoder.string,
+  },
+  "MediaAlbum",
+);
+
+export const MediaTagDecoder = JsonDecoder.object<Api.MediaTag>(
+  {
+    tag: JsonDecoder.string,
+  },
+  "MediaTag",
+);
+
 export const MediaPersonDecoder = JsonDecoder.object<Api.MediaPerson>(
   {
-    id: JsonDecoder.string,
-    catalog: JsonDecoder.string,
-    name: JsonDecoder.string,
+    person: JsonDecoder.string,
     location: JsonDecoder.nullable(LocationDecoder),
   },
-  "Person",
+  "MediaPerson",
 );
 
 export const TagDecoder = JsonDecoder.object<Api.Tag>(
@@ -54,8 +65,8 @@ export const AlbumDecoder = JsonDecoder.object<Api.Album>(
 export const CatalogDecoder = JsonDecoder.object<Api.Catalog>(
   {
     id: JsonDecoder.string,
-    name: JsonDecoder.string,
     storage: JsonDecoder.string,
+    name: JsonDecoder.string,
   },
   "Catalog",
 );
@@ -97,6 +108,7 @@ export const UserDecoder = JsonDecoder.object<Api.User>(
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
     created: DateDecoder,
+    lastLogin: DateDecoder,
     verified: JsonDecoder.boolean,
     storage: JsonDecoder.array(StorageDecoder, "Storage[]"),
     catalogs: JsonDecoder.array(CatalogDecoder, "Catalog[]"),
@@ -115,10 +127,29 @@ export const StateDecoder = JsonDecoder.object<Api.State>(
   "State",
 );
 
-export const UnprocessedMediaProperties = {
+const MediaFileDecoder = JsonDecoder.object<Api.MediaFile>({
   id: JsonDecoder.string,
+  thumbnailUrl: JsonDecoder.string,
+  originalUrl: JsonDecoder.string,
+  posterUrl: JsonDecoder.nullable(JsonDecoder.string),
+  height: JsonDecoder.number,
+  width: JsonDecoder.number,
+  fileSize: JsonDecoder.number,
+  mimetype: JsonDecoder.string,
+  uploaded: DateDecoder,
+  duration: JsonDecoder.nullable(JsonDecoder.number),
+  bitRate: JsonDecoder.nullable(JsonDecoder.number),
+  frameRate: JsonDecoder.nullable(JsonDecoder.number),
+}, "MediaFile");
+
+export const MediaDecoder = JsonDecoder.object<Api.Media>({
+  id: JsonDecoder.string,
+  catalog: JsonDecoder.string,
   created: DateDecoder,
   updated: DateDecoder,
+
+  file: JsonDecoder.nullable(MediaFileDecoder),
+
   filename: JsonDecoder.nullable(JsonDecoder.string),
   title: JsonDecoder.nullable(JsonDecoder.string),
   description: JsonDecoder.nullable(JsonDecoder.string),
@@ -146,38 +177,10 @@ export const UnprocessedMediaProperties = {
   focalLength: JsonDecoder.nullable(JsonDecoder.number),
   rating: JsonDecoder.nullable(JsonDecoder.number),
 
-  albums: JsonDecoder.array(AlbumDecoder, "album[]"),
-  tags: JsonDecoder.array(TagDecoder, "tag[]"),
-  people: JsonDecoder.array(MediaPersonDecoder, "person[]"),
-};
-
-export const UnprocessedMediaDecoder = JsonDecoder.object<Api.UnprocessedMedia>(
-  UnprocessedMediaProperties,
-  "UnprocessedMedia",
-);
-
-export const ProcessedMediaDecoder = JsonDecoder.object<Api.ProcessedMedia>({
-  ...UnprocessedMediaProperties,
-  thumbnailUrl: JsonDecoder.string,
-  originalUrl: JsonDecoder.string,
-  posterUrl: JsonDecoder.nullable(JsonDecoder.string),
-  height: JsonDecoder.number,
-  width: JsonDecoder.number,
-  fileSize: JsonDecoder.number,
-  mimetype: JsonDecoder.string,
-  uploaded: DateDecoder,
-  duration: JsonDecoder.nullable(JsonDecoder.number),
-  bitRate: JsonDecoder.nullable(JsonDecoder.number),
-  frameRate: JsonDecoder.nullable(JsonDecoder.number),
-}, "ProcessedMedia");
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const MediaDecoder = new JsonDecoder.Decoder<Api.Media>((json: any): Result<Api.Media> => {
-  if ("uploaded" in json && json.uploaded) {
-    return ProcessedMediaDecoder.decode(json);
-  }
-  return UnprocessedMediaDecoder.decode(json);
-});
+  albums: JsonDecoder.array(MediaAlbumDecoder, "MediaAlbum[]"),
+  tags: JsonDecoder.array(MediaTagDecoder, "MediaTag[]"),
+  people: JsonDecoder.array(MediaPersonDecoder, "MediaPerson[]"),
+}, "Media");
 
 export const MediaArrayDecoder = JsonDecoder.array(MediaDecoder, "Media[]");
 

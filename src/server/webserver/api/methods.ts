@@ -57,7 +57,7 @@ type RequestDecoders = {
   [M in WithArguments]: Api.RequestDecoder<DeBlobbed<Api.SignatureRequest<M>>>;
 };
 
-type ResponseType<T> = T extends Blob ? DirectResponse : Api.ResponseFor<T>;
+type ResponseType<T> = T extends Blob ? DirectResponse : Api.ApiSerialization<T>;
 
 export const apiDecoders: RequestDecoders = {
   [Method.Login]: Decoders.LoginRequest,
@@ -81,7 +81,7 @@ export const apiDecoders: RequestDecoders = {
   [Method.MediaGet]: Decoders.MediaGetRequest,
   [Method.MediaSearch]: Decoders.MediaSearchRequest,
   [Method.MediaCreate]: Decoders.MediaCreateRequest,
-  [Method.MediaEdit]: Decoders.MediaUpdateRequest,
+  [Method.MediaEdit]: Decoders.MediaEditRequest,
   [Method.MediaRelations]: Decoders.MediaRelationsRequest,
   [Method.MediaPeople]: Decoders.MediaPersonLocations,
   [Method.MediaDelete]: Decoders.StringArray,

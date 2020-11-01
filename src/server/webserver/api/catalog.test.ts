@@ -1,10 +1,11 @@
-import { ErrorCode, AWSResult, emptyMetadata } from "../../../model";
-import { RelationType } from "../../../model/api";
-import { expect, getStorageConfig } from "../../../test-helpers";
+import { ErrorCode, AWSResult, emptyMetadata, RelationType } from "../../../model";
+import { expect, getStorageConfig, mockDateTime } from "../../../test-helpers";
 import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { buildTestApp, expectUserState, fromCatalogs, catalogs, storage } from "../test-helpers";
 import { savedSearchIntoResponse } from "./state";
+
+jest.mock("../../../utils/datetime");
 
 const agent = buildTestApp();
 
@@ -145,7 +146,9 @@ test("Create catalog", async (): Promise<void> => {
     .put("/api/catalog/create")
     .send({
       storage: "s1",
-      name: "Bad user",
+      catalog: {
+        name: "Bad user",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -153,6 +156,8 @@ test("Create catalog", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2002-02-06T23:52:21Z");
 
   await request
     .post("/api/login")
@@ -167,7 +172,9 @@ test("Create catalog", async (): Promise<void> => {
     .put("/api/catalog/create")
     .send({
       storage: "s1",
-      name: "Wrong user",
+      catalog: {
+        name: "Wrong user",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -192,7 +199,9 @@ test("Create catalog", async (): Promise<void> => {
     .put("/api/catalog/create")
     .send({
       storage: storageId,
-      name: "Good user",
+      catalog: {
+        name: "Good user",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -213,6 +222,7 @@ test("Create catalog", async (): Promise<void> => {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00.000Z",
+    lastLogin: "2002-02-06T23:52:21Z",
     verified: true,
     storage: [{
       id: storageId,
@@ -240,7 +250,9 @@ test("Create catalog", async (): Promise<void> => {
     .put("/api/catalog/create")
     .send({
       storage: ourStore,
-      name: "Existing catalog",
+      catalog: {
+        name: "Existing catalog",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -259,7 +271,9 @@ test("Create catalog", async (): Promise<void> => {
     .put("/api/catalog/create")
     .send({
       storage: "s3",
-      name: "Inaccessible",
+      catalog: {
+        name: "Inaccessible",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -272,7 +286,9 @@ test("Edit catalog", async (): Promise<void> => {
     .patch("/api/catalog/edit")
     .send({
       id: "c1",
-      name: "Bad user",
+      catalog: {
+        name: "Bad user",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -280,6 +296,8 @@ test("Edit catalog", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2018-05-01T07:08:09Z");
 
   await request
     .post("/api/login")
@@ -294,7 +312,9 @@ test("Edit catalog", async (): Promise<void> => {
     .patch("/api/catalog/edit")
     .send({
       id: "c1",
-      name: "Updated",
+      catalog: {
+        name: "Updated",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -318,6 +338,7 @@ test("Edit catalog", async (): Promise<void> => {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00.000Z",
+    lastLogin: "2018-05-01T07:08:09Z",
     verified: true,
     storage: [],
     catalogs: expected,
@@ -340,10 +361,14 @@ test("Edit catalog", async (): Promise<void> => {
     .patch("/api/catalog/edit")
     .send({
       id: "c1",
-      name: "Bad edit",
+      catalog: {
+        name: "Bad edit",
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
+
+  mockDateTime("2019-06-02T07:08:09Z");
 
   await request
     .post("/api/login")
@@ -363,6 +388,7 @@ test("Edit catalog", async (): Promise<void> => {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00.000Z",
+    lastLogin: "2019-06-02T07:08:09Z",
     verified: true,
     storage: [],
     catalogs: expected,
@@ -380,8 +406,10 @@ test("Create album", async (): Promise<void> => {
     .put("/api/album/create")
     .send({
       catalog: "c1",
-      name: "Bad user",
-      parent: null,
+      album: {
+        name: "Bad user",
+        parent: null,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -389,6 +417,8 @@ test("Create album", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2003-04-23T11:23:46Z");
 
   await request
     .post("/api/login")
@@ -403,8 +433,10 @@ test("Create album", async (): Promise<void> => {
     .put("/api/album/create")
     .send({
       catalog: "c1",
-      name: "Good user",
-      parent: null,
+      album: {
+        name: "Good user",
+        parent: null,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -426,6 +458,7 @@ test("Create album", async (): Promise<void> => {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00.000Z",
+    lastLogin: "2003-04-23T11:23:46Z",
     verified: true,
     storage: [],
     catalogs: testData[Table.Catalog],
@@ -451,8 +484,10 @@ test("Create album", async (): Promise<void> => {
     .put("/api/album/create")
     .send({
       catalog: "c1",
-      name: "Bad catalog",
-      parent: null,
+      album: {
+        name: "Bad catalog",
+        parent: null,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -472,7 +507,7 @@ test("Edit album", async (): Promise<void> => {
     .patch("/api/album/edit")
     .send({
       id: "a1",
-      name: "Bad name",
+      album: { name: "Bad name" },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -480,6 +515,8 @@ test("Edit album", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2007-12-23T11:23:46Z");
 
   await request
     .post("/api/login")
@@ -494,7 +531,7 @@ test("Edit album", async (): Promise<void> => {
   response = await request
     .patch("/api/album/edit")
     .send({
-      name: "New name",
+      album: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(400);
@@ -511,7 +548,7 @@ test("Edit album", async (): Promise<void> => {
     .patch("/api/album/edit")
     .send({
       id: "a6",
-      name: "New name",
+      album: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -527,7 +564,7 @@ test("Edit album", async (): Promise<void> => {
     .patch("/api/album/edit")
     .send({
       id: "a1",
-      name: "New name",
+      album: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -544,7 +581,7 @@ test("Edit album", async (): Promise<void> => {
     .patch("/api/album/edit")
     .send({
       id: "a3",
-      parent: null,
+      album: { parent: null },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -569,6 +606,7 @@ test("Edit album", async (): Promise<void> => {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
     created: "2010-01-01T00:00:00Z",
+    lastLogin: "2007-12-23T11:23:46Z",
     verified: true,
     storage: storage([testData[Table.Storage][0]]),
     catalogs: catalogs("c1", testData[Table.Catalog]),
@@ -674,8 +712,10 @@ test("Create Tag", async (): Promise<void> => {
     .put("/api/tag/create")
     .send({
       catalog: "c1",
-      name: "Bad user",
-      parent: null,
+      tag: {
+        name: "Bad user",
+        parent: null,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -683,6 +723,8 @@ test("Create Tag", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2005-07-21T16:45:45Z");
 
   await request
     .post("/api/login")
@@ -697,8 +739,10 @@ test("Create Tag", async (): Promise<void> => {
     .put("/api/tag/create")
     .send({
       catalog: "c1",
-      name: "Good user",
-      parent: null,
+      tag: {
+        name: "Good user",
+        parent: null,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -720,6 +764,7 @@ test("Create Tag", async (): Promise<void> => {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00Z",
+    lastLogin: "2005-07-21T16:45:45Z",
     verified: true,
     storage: [],
     catalogs: testData[Table.Catalog],
@@ -745,8 +790,10 @@ test("Create Tag", async (): Promise<void> => {
     .put("/api/tag/create")
     .send({
       catalog: "c1",
-      name: "Bad catalog",
-      parent: null,
+      tag: {
+        name: "Bad catalog",
+        parent: null,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -766,7 +813,7 @@ test("Edit tag", async (): Promise<void> => {
     .patch("/api/tag/edit")
     .send({
       id: "c1",
-      name: "Bad name",
+      tag: { name: "Bad name" },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -774,6 +821,8 @@ test("Edit tag", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2005-10-10T10:10:10Z");
 
   await request
     .post("/api/login")
@@ -788,7 +837,7 @@ test("Edit tag", async (): Promise<void> => {
   response = await request
     .patch("/api/tag/edit")
     .send({
-      name: "New name",
+      tag: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(400);
@@ -805,7 +854,7 @@ test("Edit tag", async (): Promise<void> => {
     .patch("/api/tag/edit")
     .send({
       id: "t5",
-      name: "New name",
+      tag: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -821,7 +870,7 @@ test("Edit tag", async (): Promise<void> => {
     .patch("/api/tag/edit")
     .send({
       id: "t1",
-      name: "New name",
+      tag: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -845,6 +894,7 @@ test("Edit tag", async (): Promise<void> => {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
     created: "2010-01-01T00:00:00Z",
+    lastLogin: "2005-10-10T10:10:10Z",
     verified: true,
     storage: storage([testData[Table.Storage][0]]),
     catalogs: catalogs("c1", testData[Table.Catalog]),
@@ -871,7 +921,7 @@ test("Find Tag", async (): Promise<void> => {
     .post("/api/tag/find")
     .send({
       catalog: "c1",
-      tags: ["tag2", "Tag6"],
+      names: ["tag2", "Tag6"],
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -892,7 +942,7 @@ test("Find Tag", async (): Promise<void> => {
     .post("/api/tag/find")
     .send({
       catalog: "c1",
-      tags: ["tag2", "tag6", "newtag"],
+      names: ["tag2", "tag6", "newtag"],
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -922,7 +972,7 @@ test("Create Person", async (): Promise<void> => {
     .put("/api/person/create")
     .send({
       catalog: "c1",
-      name: "Bad user",
+      person: { name: "Bad user" },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -930,6 +980,8 @@ test("Create Person", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2020-02-02T00:00:00Z");
 
   await request
     .post("/api/login")
@@ -944,7 +996,7 @@ test("Create Person", async (): Promise<void> => {
     .put("/api/person/create")
     .send({
       catalog: "c1",
-      name: "Good user",
+      person: { name: "Good user" },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -965,6 +1017,7 @@ test("Create Person", async (): Promise<void> => {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00Z",
+    lastLogin: "2020-02-02T00:00:00Z",
     verified: true,
     storage: [],
     catalogs: testData[Table.Catalog],
@@ -990,7 +1043,7 @@ test("Create Person", async (): Promise<void> => {
     .put("/api/person/create")
     .send({
       catalog: "c1",
-      name: "Bad catalog",
+      person: { name: "Bad catalog" },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -1010,7 +1063,7 @@ test("Edit person", async (): Promise<void> => {
     .patch("/api/person/edit")
     .send({
       id: "c1",
-      name: "Bad name",
+      person: { name: "Bad name" },
     })
     .expect("Content-Type", "application/json")
     .expect(401);
@@ -1018,6 +1071,8 @@ test("Edit person", async (): Promise<void> => {
   expect(response.body).toEqual({
     code: ErrorCode.NotLoggedIn,
   });
+
+  mockDateTime("2020-03-21T10:30:00Z");
 
   await request
     .post("/api/login")
@@ -1032,7 +1087,7 @@ test("Edit person", async (): Promise<void> => {
   response = await request
     .patch("/api/person/edit")
     .send({
-      name: "New name",
+      person: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(400);
@@ -1049,7 +1104,7 @@ test("Edit person", async (): Promise<void> => {
     .patch("/api/person/edit")
     .send({
       id: "p4",
-      name: "New name",
+      person: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(404);
@@ -1065,7 +1120,7 @@ test("Edit person", async (): Promise<void> => {
     .patch("/api/person/edit")
     .send({
       id: "p1",
-      name: "New name",
+      person: { name: "New name" },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -1088,6 +1143,7 @@ test("Edit person", async (): Promise<void> => {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
     created: "2010-01-01T00:00:00Z",
+    lastLogin: "2020-03-21T10:30:00Z",
     verified: true,
     storage: storage([testData[Table.Storage][0]]),
     catalogs: catalogs("c1", testData[Table.Catalog]),

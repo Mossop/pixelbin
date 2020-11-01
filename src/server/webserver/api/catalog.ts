@@ -1,7 +1,7 @@
 import AWS from "aws-sdk";
 import fetch from "node-fetch";
 
-import type { Api, Create, ObjectModel, Patch, ResponseFor } from "../../../model";
+import type { Api, ApiSerialization, Requests } from "../../../model";
 import { AWSResult } from "../../../model";
 import { isoDateTime, now, s3Config, s3Params, s3PublicUrl } from "../../../utils";
 import type { UserScopedConnection } from "../../database";
@@ -13,7 +13,7 @@ export const testStorage = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    config: Api.StorageTestRequest,
+    config: Requests.StorageTest,
   ): Promise<Api.StorageTestResult> => {
     let resultCode = AWSResult.UploadFailure;
     let target = "pixelbin-storage-test";
@@ -93,13 +93,13 @@ export const createStorage = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.StorageCreateRequest,
+    data: Requests.StorageCreate,
   ): Promise<Api.Storage> => {
     let storage = await userDb.createStorage(data);
     let {
       accessKeyId,
       secretAccessKey,
-      user,
+      owner,
       ...rest
     } = storage;
     return rest;
@@ -110,9 +110,9 @@ export const createCatalog = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Create<ObjectModel.Catalog>,
+    data: Requests.CatalogCreate,
   ): Promise<Api.Catalog> => {
-    return userDb.createCatalog(data);
+    return userDb.createCatalog(data.storage, data.catalog);
   },
 );
 
@@ -120,9 +120,9 @@ export const editCatalog = ensureAuthenticated(
   async function editCatalog(
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.CatalogEditRequest,
+    data: Requests.CatalogEdit,
   ): Promise<Api.Catalog> {
-    return userDb.editCatalog(data.id, data);
+    return userDb.editCatalog(data.id, data.catalog);
   },
 );
 
@@ -130,8 +130,8 @@ export const listCatalog = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.CatalogListRequest,
-  ): Promise<ResponseFor<Api.Media>[]> => {
+    data: Requests.CatalogList,
+  ): Promise<ApiSerialization<Api.Media>[]> => {
     let media = await userDb.listMediaInCatalog(data.id);
     return media.map(buildResponseMedia);
   },
@@ -141,9 +141,9 @@ export const createAlbum = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Create<Api.Album>,
+    data: Requests.AlbumCreate,
   ): Promise<Api.Album> => {
-    return userDb.createAlbum(data.catalog, data);
+    return userDb.createAlbum(data.catalog, data.album);
   },
 );
 
@@ -151,9 +151,9 @@ export const editAlbum = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Patch<Api.Album>,
+    data: Requests.AlbumEdit,
   ): Promise<Api.Album> => {
-    return userDb.editAlbum(data.id, data);
+    return userDb.editAlbum(data.id, data.album);
   },
 );
 
@@ -161,8 +161,8 @@ export const listAlbum = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.AlbumListRequest,
-  ): Promise<ResponseFor<Api.Media>[]> => {
+    data: Requests.AlbumList,
+  ): Promise<ApiSerialization<Api.Media>[]> => {
     let media = await userDb.listMediaInAlbum(data.id, data.recursive);
     return media.map(buildResponseMedia);
   },
@@ -182,15 +182,19 @@ export const createTag = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Create<Api.Tag>,
+    data: Requests.TagCreate,
   ): Promise<Api.Tag> => {
-    return userDb.createTag(data.catalog, data);
+    return userDb.createTag(data.catalog, data.tag);
   },
 );
 
 export const editTag = ensureAuthenticated(
-  async (ctx: AppContext, userDb: UserScopedConnection, data: Patch<Api.Tag>): Promise<Api.Tag> => {
-    return userDb.editTag(data.id, data);
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Requests.TagEdit,
+  ): Promise<Api.Tag> => {
+    return userDb.editTag(data.id, data.tag);
   },
 );
 
@@ -198,12 +202,12 @@ export const findTag = ensureAuthenticatedTransaction(
   async function findTag(
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Api.TagFindRequest,
+    data: Requests.TagFind,
   ): Promise<Api.Tag[]> {
     let parent: string | null = null;
     let foundTags: Api.Tag[] = [];
 
-    for (let tag of data.tags) {
+    for (let tag of data.names) {
       let newTag = await userDb.createTag(data.catalog, {
         parent,
         name: tag,
@@ -231,9 +235,9 @@ export const createPerson = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Create<Api.Person>,
+    data: Requests.PersonCreate,
   ): Promise<Api.Person> => {
-    return userDb.createPerson(data.catalog, data);
+    return userDb.createPerson(data.catalog, data.person);
   },
 );
 
@@ -241,9 +245,9 @@ export const editPerson = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    data: Patch<Api.Person>,
+    data: Requests.PersonEdit,
   ): Promise<Api.Person> => {
-    return userDb.editPerson(data.id, data);
+    return userDb.editPerson(data.id, data.person);
   },
 );
 

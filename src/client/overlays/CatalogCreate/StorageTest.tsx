@@ -7,7 +7,7 @@ import CheckCircle from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
 import React, { useCallback, useEffect, useState } from "react";
 
-import type { Api } from "../../../model";
+import type { Api, Requests } from "../../../model";
 import { AWSResult } from "../../../model";
 import { testStorage } from "../../api/catalog";
 import Loading from "../../components/Loading";
@@ -32,7 +32,7 @@ const useStyles = makeStyles((theme: Theme) =>
 
 export interface StorageTestProps {
   visible: boolean;
-  storageConfig: Api.StorageCreateRequest;
+  storageConfig: Requests.StorageCreate;
   setCanProceed: (val: boolean) => void;
 }
 

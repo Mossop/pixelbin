@@ -33,7 +33,11 @@ test("Create saved search", async (): Promise<void> => {
     query,
   });
 
-  let result = await createSavedSearch(Catalog.ref("testcatalog"), query, "Test Search", true);
+  let result = await createSavedSearch(Catalog.ref("testcatalog"), {
+    query,
+    name: "Test Search",
+    shared: true,
+  });
 
   expect(result).toEqual({
     id: "testsearch",
@@ -53,9 +57,11 @@ test("Create saved search", async (): Promise<void> => {
     },
     body: {
       catalog: "testcatalog",
-      name: "Test Search",
-      shared: true,
-      query,
+      search: {
+        name: "Test Search",
+        shared: true,
+        query,
+      },
     },
   });
 });
@@ -101,7 +107,9 @@ test("Edit saved search", async (): Promise<void> => {
     },
     body: {
       id: "testsearch",
-      name: "Edited Search",
+      search: {
+        name: "Edited Search",
+      },
     },
   });
 });

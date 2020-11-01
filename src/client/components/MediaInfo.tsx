@@ -9,8 +9,8 @@ import React, { useCallback, useMemo } from "react";
 import type { ObjectModel } from "../../model";
 import { RelationType, Join, Operator } from "../../model";
 import { formatDateTime } from "../../utils";
-import type { Album, Reference, Tag } from "../api/highlevel";
-import type { MediaPersonState, MediaState } from "../api/types";
+import type { Reference, Album, Tag } from "../api/highlevel";
+import type { MediaAlbumState, MediaPersonState, MediaState, MediaTagState } from "../api/types";
 import { PageType } from "../pages/types";
 import { useSelector } from "../store";
 import type { StoreState } from "../store/types";
@@ -351,7 +351,11 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
       media.albums.length > 0 &&
       <LocalizedRow label="metadata-label-albums">
         <ul className={classes.fieldList}>
-          {media.albums.map((album: Reference<Album>) => <AlbumChip key={album.id} album={album}/>)}
+          {
+            media.albums.map(
+              (st: MediaAlbumState) => <AlbumChip key={st.album.id} album={st.album}/>,
+            )
+          }
         </ul>
       </LocalizedRow>
     }
@@ -368,7 +372,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
       media.tags.length > 0 &&
       <LocalizedRow label="metadata-label-tags">
         <ul className={classes.fieldList}>
-          {media.tags.map((tag: Reference<Tag>) => <TagChip key={tag.id} tag={tag}/>)}
+          {media.tags.map((st: MediaTagState) => <TagChip key={st.tag.id} tag={st.tag}/>)}
         </ul>
       </LocalizedRow>
     }
@@ -377,9 +381,9 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
       <LocalizedRow label="metadata-label-people">
         <ul className={classes.fieldList}>
           {
-            media.people.map((state: MediaPersonState) => <PersonChip
-              key={state.person.id}
-              state={state}
+            media.people.map((st: MediaPersonState) => <PersonChip
+              key={st.person.id}
+              state={st}
               onHighlightRegion={onHighlightRegion}
             />)
           }

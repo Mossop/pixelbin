@@ -1,3 +1,5 @@
+import type { Draft } from "immer";
+
 import { Method } from "../../model";
 import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
@@ -6,11 +8,11 @@ import { personIntoState } from "./types";
 
 export async function createPerson(
   catalog: Reference<Catalog>,
-  name: string,
-): Promise<PersonState> {
+  person: Omit<PersonState, "id" | "catalog">,
+): Promise<Draft<PersonState>> {
   let result = await request(Method.PersonCreate, {
     catalog: catalog.id,
-    name,
+    person,
   });
 
   return personIntoState(result);

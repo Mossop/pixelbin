@@ -41,7 +41,9 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
     setError(null);
 
     try {
-      let catalogData = await editCatalog(props.catalog, name);
+      let catalogData = await editCatalog(props.catalog, {
+        name,
+      });
       actions.catalogEdited(catalogData);
     } catch (e) {
       setError(e);

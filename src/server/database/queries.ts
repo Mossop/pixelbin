@@ -9,7 +9,6 @@ import type {
 import {
   ref,
   intoDBTypes,
-  bindingParam,
 } from "./types";
 
 export function drop<T extends Table>(
@@ -51,38 +50,6 @@ export function withParents<T extends Table.Tag | Table.Album>(
         .join("children", "children.parent", `${table}.id`);
     }),
   ).from("children");
-}
-
-export function insertFromSelect<T extends Table>(
-  knex: Knex,
-  table: T,
-  query: Knex.QueryInterface,
-  columns: WithRefs<TableRecord<T>>,
-): Knex.QueryBuilder<TableRecord<T>, number[]> {
-  let names = Object.keys(columns);
-  let values: (Knex.RawBinding | null)[] = Object.values(columns);
-
-  // Builds a raw query like `?? (??, ??, ...)` from insert table name and column names.
-  let intoList = knex.raw(
-    `?? (${names.map((): string => "??").join(", ")})`,
-    [
-      table,
-      ...names,
-    ],
-  );
-
-  let bindings: Knex.RawBinding[] = [];
-  let selectList = values.map((value: Knex.RawBinding | null): string => {
-    if (value === null) {
-      return "NULL";
-    }
-
-    bindings.push(value);
-
-    return bindingParam(value);
-  });
-
-  return knex.into(intoList).insert(query.select(knex.raw(selectList.join(", "), bindings)));
 }
 
 export function update<T extends Table>(

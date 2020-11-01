@@ -53,7 +53,7 @@ const decoders: ResponseDecoders = {
   [Method.PersonCreate]: JsonDecoderDecoder(Decoders.PersonDecoder),
   [Method.PersonEdit]: JsonDecoderDecoder(Decoders.PersonDecoder),
   [Method.PersonDelete]: VoidDecoder,
-  [Method.MediaCreate]: JsonDecoderDecoder(Decoders.UnprocessedMediaDecoder),
+  [Method.MediaCreate]: JsonDecoderDecoder(Decoders.MediaDecoder),
   [Method.MediaGet]: JsonDecoderDecoder(Decoders.MaybeMediaArrayDecoder),
   [Method.MediaSearch]: JsonDecoderDecoder(Decoders.MediaArrayDecoder),
   [Method.MediaEdit]: JsonDecoderDecoder(Decoders.MediaDecoder),

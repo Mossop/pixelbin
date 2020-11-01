@@ -12,8 +12,7 @@ import { now } from "../../utils";
 import { parseDateTime } from "../../utils/__mocks__/datetime";
 import { connection, insertTestData, buildTestDB, insertData } from "../database/test-helpers";
 import { Table } from "../database/types";
-import type { AlternateFile } from "../database/types/tables";
-import type { OriginalInfo } from "../database/unsafe";
+import type { AlternateFile, MediaFile } from "../database/types/tables";
 import { StorageService } from "../storage";
 import type { VideoInfo } from "./ffmpeg";
 import { encodeVideo, AudioCodec, VideoCodec, Container } from "./ffmpeg";
@@ -120,16 +119,19 @@ test("Process image metadata", async (): Promise<void> => {
     created: expect.toEqualDate(created),
     updated: expect.toEqualDate(uploaded),
 
-    uploaded: expect.toEqualDate(uploaded),
-    mimetype: "image/jpeg",
-    width: 500,
-    height: 331,
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-    fileSize: 55084,
-    fileName: "Testname.jpg",
-    original: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    file: {
+      uploaded: expect.toEqualDate(uploaded),
+      processVersion: 1,
+      mimetype: "image/jpeg",
+      width: 500,
+      height: 331,
+      duration: null,
+      frameRate: null,
+      bitRate: null,
+      fileSize: 55084,
+      fileName: "Testname.jpg",
+      id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    },
 
     filename: "Testname.jpg",
     title: null,
@@ -192,7 +194,7 @@ test("Process image metadata", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-150.jpg",
     fileSize: 2883,
@@ -204,7 +206,7 @@ test("Process image metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-200.jpg",
     fileSize: 3997,
@@ -216,7 +218,7 @@ test("Process image metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-300.jpg",
     fileSize: 7328,
@@ -228,7 +230,7 @@ test("Process image metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-400.jpg",
     fileSize: 11198,
@@ -240,7 +242,7 @@ test("Process image metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-500.jpg",
     fileSize: 17336,
@@ -320,6 +322,8 @@ test("Process image fails", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(created),
     updated: expect.toEqualDate(created),
+
+    file: null,
 
     ...emptyMetadata,
     city: "Portland",
@@ -402,16 +406,19 @@ test("Process video metadata", async (): Promise<void> => {
     created: expect.toEqualDate(created),
     updated: expect.toEqualDate(uploaded),
 
-    uploaded: expect.toEqualDate(uploaded),
-    fileSize: 4059609,
-    width: 1920,
-    height: 1080,
-    mimetype: "video/mp4",
-    duration: 1.74,
-    bitRate: 18664868,
-    frameRate: 59.202206,
-    fileName: "Testvideo.mp4",
-    original: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    file: {
+      uploaded: expect.toEqualDate(uploaded),
+      processVersion: 1,
+      fileSize: 4059609,
+      width: 1920,
+      height: 1080,
+      mimetype: "video/mp4",
+      duration: 1.74,
+      bitRate: 18664868,
+      frameRate: 59.202206,
+      fileName: "Testvideo.mp4",
+      id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    },
 
     filename: "Testvideo.mp4",
     title: null,
@@ -474,7 +481,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testvideo-150.jpg",
     fileSize: 4810,
@@ -486,7 +493,7 @@ test("Process video metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testvideo-200.jpg",
     fileSize: 7570,
@@ -498,7 +505,7 @@ test("Process video metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testvideo-300.jpg",
     fileSize: 14955,
@@ -510,7 +517,7 @@ test("Process video metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testvideo-400.jpg",
     fileSize: 23721,
@@ -522,7 +529,7 @@ test("Process video metadata", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testvideo-500.jpg",
     fileSize: 34910,
@@ -542,7 +549,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(encodes).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Reencode,
     fileName: "Testvideo-h264.mp4",
     fileSize: 2000000,
@@ -562,7 +569,7 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(posters).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Poster,
     fileName: "Testvideo-poster.jpg",
     fileSize: expect.toBeBetween(140000, 160000),
@@ -616,13 +623,13 @@ test("reprocess", async (): Promise<void> => {
     photographer: "Dave",
   });
 
-  let originalUploaded = parseDateTime("2020-01-01T02:56:53");
+  let fileUploaded = parseDateTime("2020-01-01T02:56:53");
 
-  let original = await dbConnection.withNewOriginal(media.id, {
+  let mediaFile = await dbConnection.withNewMediaFile(media.id, {
     ...emptyMetadata,
     processVersion: 1,
     city: "London",
-    uploaded: originalUploaded,
+    uploaded: fileUploaded,
     fileName: "old.jpg",
     fileSize: 1000,
     mimetype: "image/jpeg",
@@ -631,25 +638,30 @@ test("reprocess", async (): Promise<void> => {
     duration: null,
     frameRate: null,
     bitRate: null,
-  }, async (_: unknown, original: OriginalInfo): Promise<OriginalInfo> => original);
+  }, async (_: unknown, mediaFile: MediaFile): Promise<MediaFile> => mediaFile);
 
   let [foundMedia] = await user1Db.getMedia([media.id]);
   expect(foundMedia).toEqual({
     ...emptyMetadata,
     id: media.id,
     created: expect.toEqualDate(created),
-    updated: expect.toEqualDate(originalUploaded),
+    updated: expect.toEqualDate(fileUploaded),
     catalog: "c1",
-    uploaded: expect.toEqualDate(originalUploaded),
-    fileSize: 1000,
-    fileName: "old.jpg",
-    original: original.id,
-    mimetype: "image/jpeg",
-    width: 100,
-    height: 200,
-    duration: null,
-    frameRate: null,
-    bitRate: null,
+
+    file: {
+      processVersion: 1,
+      uploaded: expect.toEqualDate(fileUploaded),
+      fileSize: 1000,
+      fileName: "old.jpg",
+      id: mediaFile.id,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 200,
+      duration: null,
+      frameRate: null,
+      bitRate: null,
+    },
+
     city: "London",
     photographer: "Dave",
     albums: [],
@@ -691,16 +703,19 @@ test("reprocess", async (): Promise<void> => {
     created: expect.toEqualDate(created),
     updated: expect.toEqualDate(uploaded),
 
-    uploaded: expect.toEqualDate(uploaded),
-    mimetype: "image/jpeg",
-    width: 500,
-    height: 331,
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-    fileSize: 55084,
-    fileName: "Testname.jpg",
-    original: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    file: {
+      processVersion: 1,
+      uploaded: expect.toEqualDate(uploaded),
+      mimetype: "image/jpeg",
+      width: 500,
+      height: 331,
+      duration: null,
+      frameRate: null,
+      bitRate: null,
+      fileSize: 55084,
+      fileName: "Testname.jpg",
+      id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    },
 
     filename: "Testname.jpg",
     title: null,
@@ -732,7 +747,7 @@ test("reprocess", async (): Promise<void> => {
     people: [],
   });
 
-  expect(fullMedia!["original"]).not.toBe(original.id);
+  expect(fullMedia?.file?.id).not.toBe(mediaFile.id);
 
   expect(getLocalFilePathMock).toHaveBeenCalledTimes(6);
 
@@ -765,7 +780,7 @@ test("reprocess", async (): Promise<void> => {
 
   expect(thumbnails).toEqual([{
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-150.jpg",
     fileSize: 2883,
@@ -777,7 +792,7 @@ test("reprocess", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-200.jpg",
     fileSize: 3997,
@@ -789,7 +804,7 @@ test("reprocess", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-300.jpg",
     fileSize: 7328,
@@ -801,7 +816,7 @@ test("reprocess", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-400.jpg",
     fileSize: 11198,
@@ -813,7 +828,7 @@ test("reprocess", async (): Promise<void> => {
     duration: null,
   }, {
     id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    original: fullMedia!["original"],
+    mediaFile: fullMedia?.file?.id,
     type: AlternateFileType.Thumbnail,
     fileName: "Testname-500.jpg",
     fileSize: 17336,
@@ -840,7 +855,7 @@ test("reprocess", async (): Promise<void> => {
 
 test("purge", async (): Promise<void> => {
   await insertData({
-    [Table.Media]: [{
+    [Table.MediaInfo]: [{
       id: "media1",
       created: now(),
       deleted: false,
@@ -876,7 +891,7 @@ test("purge", async (): Promise<void> => {
       updated: now(),
       ...emptyMetadata,
     }],
-    [Table.Original]: [{
+    [Table.MediaFile]: [{
       id: "original1",
       media: "media1",
       uploaded: parseDateTime("2020-01-01T01:01:01"),
@@ -963,7 +978,7 @@ test("purge", async (): Promise<void> => {
     }],
     [Table.AlternateFile]: [{
       id: "alternate1",
-      original: "original1",
+      mediaFile: "original1",
       type: AlternateFileType.Poster,
       fileName: "alt1.jpg",
       fileSize: 100,
@@ -975,7 +990,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate2",
-      original: "original1",
+      mediaFile: "original1",
       type: AlternateFileType.Reencode,
       fileName: "alt2.jpg",
       fileSize: 100,
@@ -987,7 +1002,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate3",
-      original: "original1",
+      mediaFile: "original1",
       type: AlternateFileType.Thumbnail,
       fileName: "alt3.jpg",
       fileSize: 100,
@@ -999,7 +1014,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate4",
-      original: "original3",
+      mediaFile: "original3",
       type: AlternateFileType.Poster,
       fileName: "alt4.jpg",
       fileSize: 100,
@@ -1011,7 +1026,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate5",
-      original: "original3",
+      mediaFile: "original3",
       type: AlternateFileType.Reencode,
       fileName: "alt5.jpg",
       fileSize: 100,
@@ -1023,7 +1038,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate6",
-      original: "original3",
+      mediaFile: "original3",
       type: AlternateFileType.Thumbnail,
       fileName: "alt6.jpg",
       fileSize: 100,
@@ -1035,7 +1050,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate7",
-      original: "original5",
+      mediaFile: "original5",
       type: AlternateFileType.Poster,
       fileName: "alt7.jpg",
       fileSize: 100,
@@ -1047,7 +1062,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate8",
-      original: "original5",
+      mediaFile: "original5",
       type: AlternateFileType.Reencode,
       fileName: "alt8.jpg",
       fileSize: 100,
@@ -1059,7 +1074,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate9",
-      original: "original5",
+      mediaFile: "original5",
       type: AlternateFileType.Thumbnail,
       fileName: "alt9.jpg",
       fileSize: 100,
@@ -1071,7 +1086,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate10",
-      original: "original6",
+      mediaFile: "original6",
       type: AlternateFileType.Poster,
       fileName: "alt10.jpg",
       fileSize: 100,
@@ -1083,7 +1098,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate11",
-      original: "original6",
+      mediaFile: "original6",
       type: AlternateFileType.Reencode,
       fileName: "alt11.jpg",
       fileSize: 100,
@@ -1095,7 +1110,7 @@ test("purge", async (): Promise<void> => {
       frameRate: null,
     }, {
       id: "alternate12",
-      original: "original6",
+      mediaFile: "original6",
       type: AlternateFileType.Thumbnail,
       fileName: "alt12.jpg",
       fileSize: 100,

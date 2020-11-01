@@ -1,7 +1,6 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
-import type { Api } from "../../model";
 import { Method, ErrorCode } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
 import { parseDateTime } from "../../utils";
@@ -53,7 +52,7 @@ test("signup success", async (): Promise<void> => {
   click(button);
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let { resolve } = deferRequest<Api.State>();
+  let { resolve } = deferRequest<Method.Signup>();
   typeString(email, "foo@bar.com");
   typeString(name, "Bob Parr");
   typeString(password, "foopass");
@@ -81,6 +80,7 @@ test("signup success", async (): Promise<void> => {
       email: "foo@bar.com",
       fullname: "Bob Parr",
       created: parseDateTime("2019-05-06T12:34:56Z"),
+      lastLogin: parseDateTime("2020-03-01T12:34:56Z"),
       verified: true,
       storage: [],
       catalogs: [],
@@ -100,6 +100,7 @@ test("signup success", async (): Promise<void> => {
         email: "foo@bar.com",
         fullname: "Bob Parr",
         created: expect.toEqualDate("2019-05-06T12:34:56Z"),
+        lastLogin: expect.toEqualDate("2020-03-01T12:34:56Z"),
         verified: true,
         storage: mapOf({}),
         catalogs: mapOf({}),

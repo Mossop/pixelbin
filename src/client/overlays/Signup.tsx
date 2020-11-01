@@ -35,11 +35,11 @@ export default function SignupOverlay(): ReactResult {
     setError(null);
 
     try {
-      let serverState = await signup({
+      let serverState = await signup(
         email,
-        fullname,
         password,
-      });
+        fullname,
+      );
       actions.completeSignup(serverState);
     } catch (e) {
       setError(e);

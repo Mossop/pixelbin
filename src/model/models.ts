@@ -1,5 +1,11 @@
-import type { AllNull, Nullable, DateTime } from "../utils";
+import type { AllNull, DateTime } from "../utils";
 import type { Query } from "./search";
+
+export enum RelationType {
+  Tag = "tag",
+  Album = "album",
+  Person = "person",
+}
 
 /**
  * Describes the orientation of the image with two sides. The first side is
@@ -30,7 +36,6 @@ export interface User {
 }
 
 export interface Storage extends IdType {
-  user: User["email"],
   name: string;
   accessKeyId: string;
   secretAccessKey: string;
@@ -43,11 +48,9 @@ export interface Storage extends IdType {
 
 export interface Catalog extends IdType {
   name: string;
-  storage: Storage["id"];
 }
 
 export interface Person extends IdType {
-  catalog: Catalog["id"];
   name: string;
 }
 
@@ -58,59 +61,48 @@ export interface Location {
   bottom: number,
 }
 
-export type MediaPerson = Person & {
-  location: Location | null,
-};
-
 export interface Tag extends IdType {
-  catalog: Catalog["id"];
-  parent: Tag["id"] | null;
   name: string;
+  parent: Tag["id"] | null;
 }
 
 export interface Album extends IdType {
-  catalog: Catalog["id"];
-  parent: Album["id"] | null;
   name: string;
+  parent: Album["id"] | null;
 }
 
 export interface SavedSearch extends IdType {
-  catalog: Catalog["id"];
   name: string;
   shared: boolean;
   query: Query;
 }
 
 export interface Metadata {
-  filename: string;
-  title: string;
-  description: string;
-  label: string;
-  category: string;
-  taken: DateTime;
-  takenZone: string;
-  longitude: number;
-  latitude: number;
-  altitude: number;
-  location: string;
-  city: string;
-  state: string;
-  country: string;
-  orientation: Orientation;
-  make: string;
-  model: string;
-  lens: string;
-  photographer: string;
-  aperture: number;
-  shutterSpeed: string;
-  iso: number;
-  focalLength: number;
-  rating: number;
+  filename: string | null;
+  title: string | null;
+  description: string | null;
+  label: string | null;
+  category: string | null;
+  taken: DateTime | null;
+  takenZone: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  altitude: number | null;
+  location: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  orientation: Orientation | null;
+  make: string | null;
+  model: string | null;
+  lens: string | null;
+  photographer: string | null;
+  aperture: number | null;
+  shutterSpeed: string | null;
+  iso: number | null;
+  focalLength: number | null;
+  rating: number | null;
 }
-
-export type MetadataFields<T> = {
-  [K in keyof Metadata]: Metadata[K] extends T ? K : never;
-}[keyof Metadata];
 
 export type TypeName<K> = K extends string
   ? "string"
@@ -151,20 +143,22 @@ export const MetadataColumns: FieldTypes = {
   takenZone: "string",
 };
 
-export interface Media extends IdType {
-  catalog: Catalog["id"];
+export interface MediaInfo extends IdType {
   created: DateTime;
   updated: DateTime;
 }
 
-export interface MediaLists {
-  tags: Tag[];
-  albums: Album[];
-  people: MediaPerson[];
+export interface MediaAlbum {
+}
+
+export interface MediaTag {
+}
+
+export interface MediaPerson {
+  location: Location | null;
 }
 
 export interface FileInfo {
-  fileName: string;
   fileSize: number;
   mimetype: string;
   width: number;
@@ -174,13 +168,21 @@ export interface FileInfo {
   bitRate: number | null;
 }
 
-export type Original = IdType & FileInfo & {
-  media: Media["id"];
+export type MediaFile = IdType & FileInfo & {
   uploaded: DateTime;
+  processVersion: number;
 };
 
-export type UnprocessedMedia = Media & Nullable<Metadata> & MediaLists;
-export type ProcessedMedia = UnprocessedMedia & Omit<Original, "id" | "media" | "fileName">;
+export type Media = MediaInfo & Metadata & {
+  file: MediaFile | null;
+};
+export type PublicMedia = MediaInfo & {
+  file: MediaFile;
+};
+export type PublicMediaWithMetadata = PublicMedia & Metadata & {
+  tags: Tag["name"][];
+  people: Person["name"][];
+};
 
 export enum AlternateFileType {
   Thumbnail = "thumbnail",
@@ -189,7 +191,6 @@ export enum AlternateFileType {
 }
 
 export type AlternateFile = IdType & FileInfo & {
-  original: Original["id"];
   type: AlternateFileType;
 };
 

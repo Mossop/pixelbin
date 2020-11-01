@@ -41,7 +41,11 @@ export default function SaveSearchOverlay({
     setError(null);
 
     try {
-      let newSearch = await createSavedSearch(catalog, query, name, shared);
+      let newSearch = await createSavedSearch(catalog, {
+        query,
+        name,
+        shared,
+      });
       actions.searchSaved(newSearch);
     } catch (e) {
       setError(e);

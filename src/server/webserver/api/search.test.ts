@@ -58,6 +58,7 @@ test("Media search", async (): Promise<void> => {
     catalog: "c1",
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
+    file: null,
 
     ...emptyMetadata,
     title: "Media 1",
@@ -120,9 +121,11 @@ test("Saved searches", async (): Promise<void> => {
     .put("/api/search/create")
     .send({
       catalog: "c2",
-      name: "My search",
-      shared: true,
-      query: newQuery,
+      search: {
+        name: "My search",
+        shared: true,
+        query: newQuery,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);
@@ -159,7 +162,9 @@ test("Saved searches", async (): Promise<void> => {
     .patch("/api/search/edit")
     .send({
       id: newId,
-      query: newQuery2,
+      search: {
+        query: newQuery2,
+      },
     })
     .expect("Content-Type", "application/json")
     .expect(200);

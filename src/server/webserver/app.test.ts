@@ -1,7 +1,9 @@
-import { expect } from "../../test-helpers";
+import { expect, mockDateTime } from "../../test-helpers";
 import { insertTestData, testData } from "../database/test-helpers";
 import { Table } from "../database/types";
 import { buildTestApp } from "./test-helpers";
+
+jest.mock("../../utils/datetime");
 
 const agent = buildTestApp();
 
@@ -39,6 +41,8 @@ test("state checks", async (): Promise<void> => {
     user: null,
   });
 
+  let loginDT = mockDateTime("2020-02-03T05:02:56");
+
   await request
     .post("/api/login")
     .send({
@@ -57,6 +61,7 @@ test("state checks", async (): Promise<void> => {
       email: "someone1@nowhere.com",
       fullname: "Someone 1",
       created: expect.toEqualDate("2020-01-01T00:00:00.000Z"),
+      lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
       catalogs: testData[Table.Catalog],

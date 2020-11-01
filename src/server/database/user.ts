@@ -1,18 +1,18 @@
 import { hash as bcryptHash, compare as bcryptCompare } from "bcrypt";
 
+import type { ObjectModel } from "../../model";
 import { now } from "../../utils";
 import type { DatabaseConnection, UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { from, insert, update } from "./queries";
 import type { Tables } from "./types";
-import { Table, intoAPITypes } from "./types";
+import { Table } from "./types";
 
-type UserWithoutPassword = Omit<Tables.User, "password" | "lastLogin">;
 export async function loginUser(
   this: DatabaseConnection,
   email: Tables.User["email"],
-  password: Tables.User["password"],
-): Promise<UserWithoutPassword | undefined> {
+  password: string,
+): Promise<ObjectModel.User | undefined> {
   let users = await from(this.knex, Table.User).where({
     email,
   }).select("*");
@@ -22,18 +22,23 @@ export async function loginUser(
   }
 
   if (await bcryptCompare(password, users[0].password)) {
+    let lastLogin = now();
+
     await update(
       Table.User,
       this.knex.where({
         email,
       }),
       {
-        lastLogin: now(),
+        lastLogin,
       },
     );
 
-    let { password, lastLogin, ...rest } = users[0];
-    return intoAPITypes(rest);
+    let { password, ...rest } = users[0];
+    return {
+      ...rest,
+      lastLogin,
+    };
   }
 
   return undefined;
@@ -42,7 +47,7 @@ export async function loginUser(
 export async function createUser(
   this: DatabaseConnection,
   user: Omit<Tables.User, "created" | "lastLogin" | "verified">,
-): Promise<UserWithoutPassword> {
+): Promise<ObjectModel.User> {
   let hashed = await bcryptHash(user.password, 12);
 
   let results = await insert(this.knex, Table.User, {
@@ -57,13 +62,13 @@ export async function createUser(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Error creating user.");
   }
 
-  let { password, lastLogin, ...newUser } = intoAPITypes(results[0]);
+  let { password, ...newUser } = results[0];
   return newUser;
 }
 
 export async function listUsers(
   this: DatabaseConnection,
-): Promise<Omit<Tables.User, "password">[]> {
+): Promise<ObjectModel.User[]> {
   let users = await from(this.knex, Table.User).select("*");
   return users.map((user: Tables.User): Omit<Tables.User, "password"> => {
     let {
@@ -76,11 +81,11 @@ export async function listUsers(
 
 export async function getUser(
   this: UserScopedConnection,
-): Promise<UserWithoutPassword> {
+): Promise<ObjectModel.User> {
   let users = await from(this.knex, Table.User).where({
     email: this.user,
   }).select("*");
 
-  let { password, lastLogin, ...rest } = users[0];
-  return intoAPITypes(rest);
+  let { password, ...rest } = users[0];
+  return rest;
 }

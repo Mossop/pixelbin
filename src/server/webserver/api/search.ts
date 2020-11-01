@@ -1,4 +1,4 @@
-import type { Query, Api, ResponseFor } from "../../../model";
+import type { Query, Api, ApiSerialization, Requests } from "../../../model";
 import { isCompoundQuery } from "../../../model";
 import { isDateTime, isoDateTime } from "../../../utils";
 import type { UserScopedConnection } from "../../database";
@@ -10,14 +10,14 @@ export const searchMedia = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    search: Api.MediaSearchRequest,
-  ): Promise<ResponseFor<Api.Media>[]> => {
+    search: Requests.MediaSearch,
+  ): Promise<ApiSerialization<Api.Media>[]> => {
     let media = await userDb.searchMedia(search.catalog, search.query);
     return media.map(buildResponseMedia);
   },
 );
 
-function queryResponse(query: Query): ResponseFor<Query> {
+function queryResponse(query: Query): ApiSerialization<Query> {
   if (isCompoundQuery(query)) {
     return {
       ...query,
@@ -25,23 +25,19 @@ function queryResponse(query: Query): ResponseFor<Query> {
     };
   }
 
-  if (isDateTime(query.value)) {
-    return {
-      ...query,
-      value: isoDateTime(query.value),
-    };
-  }
-
-  return query as ResponseFor<Query>;
+  return {
+    ...query,
+    value: isDateTime(query.value) ? isoDateTime(query.value) : query.value,
+  };
 }
 
 export const createSavedSearch = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    search: Api.Create<Api.SavedSearch>,
-  ): Promise<ResponseFor<Api.SavedSearch>> => {
-    let saved = await userDb.createSavedSearch(search);
+    data: Requests.SavedSearchCreate,
+  ): Promise<ApiSerialization<Api.SavedSearch>> => {
+    let saved = await userDb.createSavedSearch(data.catalog, data.search);
     return {
       ...saved,
       query: queryResponse(saved.query),
@@ -53,9 +49,9 @@ export const editSavedSearch = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
-    search: Api.Patch<Api.SavedSearch>,
-  ): Promise<ResponseFor<Api.SavedSearch>> => {
-    let saved = await userDb.editSavedSearch(search.id, search);
+    data: Requests.SavedSearchEdit,
+  ): Promise<ApiSerialization<Api.SavedSearch>> => {
+    let saved = await userDb.editSavedSearch(data.id, data.search);
     return {
       ...saved,
       query: queryResponse(saved.query),
@@ -69,6 +65,6 @@ export const deleteSavedSearch = ensureAuthenticated(
     userDb: UserScopedConnection,
     searches: string[],
   ): Promise<void> => {
-    await userDb.deleteSavedSearch(searches);
+    await userDb.deleteSavedSearches(searches);
   },
 );

@@ -75,6 +75,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2020-09-02T07:56:00Z",
+      lastLogin: "2020-09-04T07:56:00Z",
       verified: true,
       storage: new Map(),
       catalogs: new Map(),

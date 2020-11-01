@@ -77,7 +77,7 @@ test("accepted delete album", async (): Promise<void> => {
 
   let accept = expectChild<HTMLButtonElement>(dialogContainer, "#confirm-dialog-accept");
 
-  let { call, resolve } = deferRequest<void, string[]>();
+  let { call, resolve } = deferRequest<Method.AlbumDelete>();
 
   click(accept);
 

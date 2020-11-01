@@ -2,7 +2,7 @@ import type { Deed } from "deeds/immer";
 import type { Draft } from "immer";
 import type { Unsubscribe } from "redux";
 
-import type { Query } from "../../model";
+import type { Api, Query } from "../../model";
 import { Operator, emptyMetadata } from "../../model";
 import type { Overwrite } from "../../utils";
 import { now } from "../../utils";
@@ -14,10 +14,10 @@ import type {
   PersonState,
   TagState,
   AlbumState,
-  UnprocessedMediaState,
-  ProcessedMediaState,
   StorageState,
   SavedSearchState,
+  MediaState,
+  ProcessedMediaState,
 } from "../api/types";
 import { PageType } from "../pages/types";
 import { provideService } from "../services";
@@ -158,15 +158,22 @@ function *iterSearches(
   }
 }
 
-export function mockUnprocessedMedia(
-  data: Partial<Draft<UnprocessedMediaState>>,
-): Draft<UnprocessedMediaState> {
+type PartialMediaState = Partial<Overwrite<MediaState, {
+  file: null,
+}>>;
+
+export function mockMedia(
+  data: Draft<PartialMediaState>,
+): Draft<MediaState> {
   let current = now();
 
   return {
     id: randomId(),
     created: current,
     updated: current,
+    catalog: Catalog.ref("catalog"),
+
+    file: null,
 
     tags: [],
     albums: [],
@@ -177,8 +184,12 @@ export function mockUnprocessedMedia(
   };
 }
 
+type PartialProcessedMediaState = Partial<Overwrite<MediaState, {
+  file: Partial<Api.MediaFile> | null,
+}>>;
+
 export function mockProcessedMedia(
-  data: Partial<Draft<ProcessedMediaState>>,
+  data: Partial<Draft<PartialProcessedMediaState>>,
 ): Draft<ProcessedMediaState> {
   let id = data.id ?? randomId();
   let current = now();
@@ -187,18 +198,7 @@ export function mockProcessedMedia(
     id,
     created: current,
     updated: current,
-
-    uploaded: current,
-    width: 1024,
-    height: 768,
-    mimetype: "image/jpeg",
-    fileSize: 1024,
-    duration: null,
-    bitRate: null,
-    frameRate: null,
-    thumbnailUrl: `http://localhost/media/thumbnail/${id}/${randomId()}`,
-    originalUrl: `http://localhost/media/original/${id}/${randomId()}`,
-    posterUrl: null,
+    catalog: Catalog.ref("catalog"),
 
     tags: [],
     albums: [],
@@ -206,6 +206,23 @@ export function mockProcessedMedia(
 
     ...emptyMetadata,
     ...data,
+
+    file: {
+      id: randomId(),
+      uploaded: current,
+      width: 1024,
+      height: 768,
+      mimetype: "image/jpeg",
+      fileSize: 1024,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      thumbnailUrl: `http://localhost/media/thumbnail/${id}/${randomId()}`,
+      originalUrl: `http://localhost/media/original/${id}/${randomId()}`,
+      posterUrl: null,
+
+      ...data.file ?? {},
+    },
   };
 }
 
@@ -279,6 +296,7 @@ export function mockServerState(catalogs?: MockCatalog[]): Draft<ServerState> {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2020-04-05T12:34:45Z",
+      lastLogin: "2020-07-02T11:30:42Z",
       verified: true,
       storage,
       catalogs: catalogMap,

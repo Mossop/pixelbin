@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import type { Files, File } from "formidable";
 import { JsonDecoder } from "ts.data.json";
 
-import type { Api, Create, Patch } from "../../../model";
+import type { Api, ObjectModel, Requests } from "../../../model";
 import { Orientation, RelationType } from "../../../model";
 import {
   getLogger,
@@ -37,26 +37,31 @@ function jsonDecoder<R>(decoder: JsonDecoder.Decoder<R>): Api.RequestDecoder<R> 
   };
 }
 
-const LocationDecoder = JsonDecoder.object<Api.Location>({
-  left: NumericDecoder,
-  right: NumericDecoder,
-  top: NumericDecoder,
-  bottom: NumericDecoder,
-}, "Location");
+export const StringArray = jsonDecoder(JsonDecoder.array(JsonDecoder.string, "string[]"));
 
-export const LoginRequest = jsonDecoder(JsonDecoder.object<Api.LoginRequest>({
+function OptionalOrNullDecoder<A>(
+  decoder: JsonDecoder.Decoder<A>,
+  name: string,
+): JsonDecoder.Decoder<A | null | undefined> {
+  return JsonDecoder.oneOf([
+    JsonDecoder.isNull(null),
+    JsonDecoder.optional(decoder),
+  ], name);
+}
+
+export const LoginRequest = jsonDecoder(JsonDecoder.object<Requests.Login>({
   email: JsonDecoder.string,
   password: JsonDecoder.string,
 }, "LoginRequest"));
 
-export const SignupRequest = jsonDecoder(JsonDecoder.object<Api.SignupRequest>({
+export const SignupRequest = jsonDecoder(JsonDecoder.object<Requests.Signup>({
   email: JsonDecoder.string,
   password: JsonDecoder.string,
   fullname: JsonDecoder.string,
 }, "SignupRequest"));
 
 export const StorageTestRequest = jsonDecoder(
-  JsonDecoder.object<Api.StorageTestRequest>({
+  JsonDecoder.object<Requests.StorageTest>({
     accessKeyId: JsonDecoder.string,
     secretAccessKey: JsonDecoder.string,
     bucket: JsonDecoder.string,
@@ -64,11 +69,11 @@ export const StorageTestRequest = jsonDecoder(
     path: JsonDecoder.nullable(JsonDecoder.string),
     endpoint: JsonDecoder.nullable(JsonDecoder.string),
     publicUrl: JsonDecoder.nullable(JsonDecoder.string),
-  }, "StorageCreateDecoder"),
+  }, "StorageTestDecoder"),
 );
 
 export const StorageCreateRequest = jsonDecoder(
-  JsonDecoder.object<Api.StorageCreateRequest>({
+  JsonDecoder.object<Requests.StorageCreate>({
     name: JsonDecoder.string,
     accessKeyId: JsonDecoder.string,
     secretAccessKey: JsonDecoder.string,
@@ -81,36 +86,44 @@ export const StorageCreateRequest = jsonDecoder(
 );
 
 export const CatalogCreateRequest = jsonDecoder(
-  JsonDecoder.object<Create<Api.Catalog>>({
+  JsonDecoder.object<Requests.CatalogCreate>({
     storage: JsonDecoder.string,
-    name: JsonDecoder.string,
+    catalog: JsonDecoder.object({
+      name: JsonDecoder.string,
+    }, "Catalog"),
   }, "CatalogCreateReqeust"),
 );
 
 export const CatalogEditRequest = jsonDecoder(
-  JsonDecoder.object<Api.CatalogEditRequest>({
+  JsonDecoder.object<Requests.CatalogEdit>({
     id: JsonDecoder.string,
-    name: JsonDecoder.optional(JsonDecoder.string),
+    catalog: JsonDecoder.object({
+      name: JsonDecoder.optional(JsonDecoder.string),
+    }, "Catalog"),
   }, "CatalogEditRequest"),
 );
 
-export const CatalogListRequest = jsonDecoder(JsonDecoder.object<Api.CatalogListRequest>({
+export const CatalogListRequest = jsonDecoder(JsonDecoder.object<Requests.CatalogList>({
   id: JsonDecoder.string,
 }, "CatalogListRequest"));
 
-export const AlbumCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Album>>({
+export const AlbumCreateRequest = jsonDecoder(JsonDecoder.object<Requests.AlbumCreate>({
   catalog: JsonDecoder.string,
-  name: JsonDecoder.string,
-  parent: JsonDecoder.nullable(JsonDecoder.string),
+  album: JsonDecoder.object({
+    name: JsonDecoder.string,
+    parent: JsonDecoder.nullable(JsonDecoder.string),
+  }, "Album"),
 }, "AlbumCreateRequest"));
 
-export const AlbumEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Album>>({
+export const AlbumEditRequest = jsonDecoder(JsonDecoder.object<Requests.AlbumEdit>({
   id: JsonDecoder.string,
-  name: JsonDecoder.optional(JsonDecoder.string),
-  parent: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  album: JsonDecoder.object({
+    name: JsonDecoder.optional(JsonDecoder.string),
+    parent: OptionalOrNullDecoder(JsonDecoder.string, "parent"),
+  }, "Album"),
 }, "AlbumEditRequest"));
 
-export const AlbumListRequest = jsonDecoder(JsonDecoder.object<Api.AlbumListRequest>({
+export const AlbumListRequest = jsonDecoder(JsonDecoder.object<Requests.AlbumList>({
   id: JsonDecoder.string,
   recursive: MappingDecoder(
     JsonDecoder.string,
@@ -119,67 +132,66 @@ export const AlbumListRequest = jsonDecoder(JsonDecoder.object<Api.AlbumListRequ
   ),
 }, "AlbumListRequest"));
 
-export const TagCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Tag>>({
+export const TagCreateRequest = jsonDecoder(JsonDecoder.object<Requests.TagCreate>({
   catalog: JsonDecoder.string,
-  name: JsonDecoder.string,
-  parent: JsonDecoder.nullable(JsonDecoder.string),
+  tag: JsonDecoder.object({
+    name: JsonDecoder.string,
+    parent: JsonDecoder.nullable(JsonDecoder.string),
+  }, "Tag"),
 }, "TagCreateRequest"));
 
-export const TagEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Tag>>({
+export const TagEditRequest = jsonDecoder(JsonDecoder.object<Requests.TagEdit>({
   id: JsonDecoder.string,
-  name: JsonDecoder.optional(JsonDecoder.string),
-  parent: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
+  tag: JsonDecoder.object({
+    name: JsonDecoder.optional(JsonDecoder.string),
+    parent: OptionalOrNullDecoder(JsonDecoder.string, "parent"),
+  }, "Tag"),
 }, "TagEditRequest"));
 
-export const TagFindRequest = jsonDecoder(JsonDecoder.object<Api.TagFindRequest>({
+export const TagFindRequest = jsonDecoder(JsonDecoder.object<Requests.TagFind>({
   catalog: JsonDecoder.string,
-  tags: JsonDecoder.array(JsonDecoder.string, "tag[]"),
+  names: JsonDecoder.array(JsonDecoder.string, "tag[]"),
 }, "TagFindRequest"));
 
-export const PersonCreateRequest = jsonDecoder(JsonDecoder.object<Create<Api.Person>>({
+export const PersonCreateRequest = jsonDecoder(JsonDecoder.object<Requests.PersonCreate>({
   catalog: JsonDecoder.string,
-  name: JsonDecoder.string,
+  person: JsonDecoder.object({
+    name: JsonDecoder.string,
+  }, "Person"),
 }, "PersonCreateRequest"));
 
-export const PersonEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.Person>>({
+export const PersonEditRequest = jsonDecoder(JsonDecoder.object<Requests.PersonEdit>({
   id: JsonDecoder.string,
-  name: JsonDecoder.optional(JsonDecoder.string),
+  person: JsonDecoder.object({
+    name: JsonDecoder.optional(JsonDecoder.string),
+  }, "Person"),
 }, "PersonEditRequest"));
 
-export const MediaGetRequest = jsonDecoder(JsonDecoder.object<Api.MediaGetRequest>({
+export const MediaGetRequest = jsonDecoder(JsonDecoder.object<Requests.MediaGet>({
   id: JsonDecoder.string,
 }, "MediaGetRequest"));
 
-export const MediaSearchRequest = jsonDecoder(JsonDecoder.object<Api.MediaSearchRequest>({
+export const MediaSearchRequest = jsonDecoder(JsonDecoder.object<Requests.MediaSearch>({
   catalog: JsonDecoder.string,
   query: QueryDecoder,
 }, "MediaSearchRequest"));
 
-export const SearchSaveRequest = jsonDecoder(JsonDecoder.object<Create<Api.SavedSearch>>({
-  catalog: JsonDecoder.string,
-  shared: JsonDecoder.boolean,
-  query: QueryDecoder,
-  name: JsonDecoder.string,
-}, "SavedSearch"));
+const LocationDecoder = JsonDecoder.object<Api.Location>({
+  left: NumericDecoder,
+  right: NumericDecoder,
+  top: NumericDecoder,
+  bottom: NumericDecoder,
+}, "Location");
 
-export const SearchEditRequest = jsonDecoder(JsonDecoder.object<Patch<Api.SavedSearch>>({
-  id: JsonDecoder.string,
-  shared: JsonDecoder.optional(JsonDecoder.boolean),
-  query: JsonDecoder.optional(QueryDecoder),
-  name: JsonDecoder.optional(JsonDecoder.string),
-}, "SavedSearch"));
-
-export const StringArray = jsonDecoder(JsonDecoder.array(JsonDecoder.string, "string[]"));
-
-const SelectedTagDecoder = oneOf<Api.SelectedTag>([
+const SelectedTagDecoder = oneOf<Requests.SelectedTag>([
   JsonDecoder.string,
   JsonDecoder.array(JsonDecoder.string, "string[]"),
 ], "SelectedTag");
 
-const SelectedPersonDecoder = oneOf<Api.SelectedPerson>([
+const SelectedPersonDecoder = oneOf<Requests.SelectedPerson>([
   JsonDecoder.string,
   JsonDecoder.object({
-    id: JsonDecoder.string,
+    person: JsonDecoder.string,
     location: JsonDecoder.optional(LocationDecoder),
   }, "Person"),
   JsonDecoder.object({
@@ -188,42 +200,40 @@ const SelectedPersonDecoder = oneOf<Api.SelectedPerson>([
   }, "Person"),
 ], "SelectedPerson");
 
-const mediaFields = {
-  filename: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  title: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  description: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  label: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  category: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  taken: JsonDecoder.nullable(JsonDecoder.optional(DateDecoder)),
-  takenZone: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  longitude: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
-  latitude: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
-  altitude: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
-  location: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  city: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  state: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  country: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  orientation: JsonDecoder.nullable(JsonDecoder.optional(
+const MetadataDecoder = JsonDecoder.object<Partial<ObjectModel.Metadata>>({
+  filename: OptionalOrNullDecoder(JsonDecoder.string, "filename"),
+  title: OptionalOrNullDecoder(JsonDecoder.string, "title"),
+  description: OptionalOrNullDecoder(JsonDecoder.string, "description"),
+  label: OptionalOrNullDecoder(JsonDecoder.string, "label"),
+  category: OptionalOrNullDecoder(JsonDecoder.string, "category"),
+  taken: OptionalOrNullDecoder(DateDecoder, "taken"),
+  takenZone: OptionalOrNullDecoder(JsonDecoder.string, "takenZone"),
+  longitude: OptionalOrNullDecoder(NumericDecoder, "longitude"),
+  latitude: OptionalOrNullDecoder(NumericDecoder, "latitude"),
+  altitude: OptionalOrNullDecoder(NumericDecoder, "altitude"),
+  location: OptionalOrNullDecoder(JsonDecoder.string, "location"),
+  city: OptionalOrNullDecoder(JsonDecoder.string, "city"),
+  state: OptionalOrNullDecoder(JsonDecoder.string, "state"),
+  country: OptionalOrNullDecoder(JsonDecoder.string, "country"),
+  orientation: OptionalOrNullDecoder(
     JsonDecoder.enumeration<Orientation>(Orientation, "Orientation"),
-  )),
-  make: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  model: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  lens: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  photographer: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  aperture: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
-  shutterSpeed: JsonDecoder.nullable(JsonDecoder.optional(JsonDecoder.string)),
-  iso: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
-  focalLength: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
-  rating: JsonDecoder.nullable(JsonDecoder.optional(NumericDecoder)),
-  albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
-  tags: JsonDecoder.optional(JsonDecoder.array(SelectedTagDecoder, "SelectedTag[]")),
-  people: JsonDecoder.optional(JsonDecoder.array(SelectedPersonDecoder, "SelectedPerson[]")),
-};
+    "orientation",
+  ),
+  make: OptionalOrNullDecoder(JsonDecoder.string, "make"),
+  model: OptionalOrNullDecoder(JsonDecoder.string, "model"),
+  lens: OptionalOrNullDecoder(JsonDecoder.string, "lens"),
+  photographer: OptionalOrNullDecoder(JsonDecoder.string, "photographer"),
+  aperture: OptionalOrNullDecoder(NumericDecoder, "aperture"),
+  shutterSpeed: OptionalOrNullDecoder(JsonDecoder.string, "shutterSpeed"),
+  iso: OptionalOrNullDecoder(NumericDecoder, "iso"),
+  focalLength: OptionalOrNullDecoder(NumericDecoder, "focalLength"),
+  rating: OptionalOrNullDecoder(NumericDecoder, "rating"),
+}, "Metadata");
 
 export async function MediaCreateRequest(
   data: unknown,
   files: Files | undefined,
-): Promise<DeBlobbed<Api.MediaCreateRequest>> {
+): Promise<DeBlobbed<Requests.MediaCreate>> {
   if (!files || !("file" in files)) {
     throw new Error("No file provided.");
   }
@@ -240,10 +250,13 @@ export async function MediaCreateRequest(
     }
   }
 
-  let decoder = JsonDecoder.object<DeBlobbed<Api.MediaCreateRequest>>({
+  let decoder = JsonDecoder.object<DeBlobbed<Requests.MediaCreate>>({
     file: JsonDecoder.constant(files.file),
     catalog: JsonDecoder.string,
-    ...mediaFields,
+    media: JsonDecoder.optional(MetadataDecoder),
+    albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
+    tags: JsonDecoder.optional(JsonDecoder.array(SelectedTagDecoder, "SelectedTag[]")),
+    people: JsonDecoder.optional(JsonDecoder.array(SelectedPersonDecoder, "SelectedPerson[]")),
   }, "MediaCreateRequest");
 
   try {
@@ -259,10 +272,10 @@ export async function MediaCreateRequest(
   }
 }
 
-export async function MediaUpdateRequest(
+export async function MediaEditRequest(
   data: unknown,
   files: Files | undefined,
-): Promise<DeBlobbed<Api.MediaUpdateRequest>> {
+): Promise<DeBlobbed<Requests.MediaEdit>> {
   if (files) {
     for (let [name, file] of Object.entries(files)) {
       if (name == "file") {
@@ -277,11 +290,14 @@ export async function MediaUpdateRequest(
     }
   }
 
-  let decoder = JsonDecoder.object<DeBlobbed<Api.MediaUpdateRequest>>({
+  let decoder = JsonDecoder.object<DeBlobbed<Requests.MediaEdit>>({
     id: JsonDecoder.string,
     file: JsonDecoder.constant(files?.file),
-    ...mediaFields,
-  }, "MediaUpdateRequest");
+    media: JsonDecoder.optional(MetadataDecoder),
+    albums: JsonDecoder.optional(JsonDecoder.array(JsonDecoder.string, "album[]")),
+    tags: JsonDecoder.optional(JsonDecoder.array(SelectedTagDecoder, "SelectedTag[]")),
+    people: JsonDecoder.optional(JsonDecoder.array(SelectedPersonDecoder, "SelectedPerson[]")),
+  }, "MediaEditRequest");
 
   try {
     return decoder.decodePromise(data);
@@ -304,26 +320,26 @@ const RelationTypeDecoder = oneOf([
   JsonDecoder.isExactly(RelationType.Person),
 ], "RelationType");
 
-const MediaRelationChangeDecoder = oneOf<Api.MediaRelationChange>([
-  JsonDecoder.object<Api.MediaRelationAdd>({
+const MediaRelationChangeDecoder = oneOf<Requests.MediaRelations>([
+  JsonDecoder.object<Requests.MediaRelationAdd>({
     operation: JsonDecoder.isExactly("add"),
     type: RelationTypeDecoder,
     media: JsonDecoder.array(JsonDecoder.string, "media[]"),
     items: JsonDecoder.array(JsonDecoder.string, "item[]"),
   }, "MediaRelationAdd"),
-  JsonDecoder.object<Api.MediaRelationDelete>({
+  JsonDecoder.object<Requests.MediaRelationDelete>({
     operation: JsonDecoder.isExactly("delete"),
     type: RelationTypeDecoder,
     media: JsonDecoder.array(JsonDecoder.string, "media[]"),
     items: JsonDecoder.array(JsonDecoder.string, "item[]"),
   }, "MediaRelationDelete"),
-  JsonDecoder.object<Api.MediaSetRelations>({
+  JsonDecoder.object<Requests.MediaSetRelations>({
     operation: JsonDecoder.isExactly("setRelations"),
     type: RelationTypeDecoder,
     media: JsonDecoder.array(JsonDecoder.string, "media[]"),
     items: JsonDecoder.array(JsonDecoder.string, "item[]"),
   }, "MediaSetRelations"),
-  JsonDecoder.object<Api.RelationsSetMedia>({
+  JsonDecoder.object<Requests.RelationsSetMedia>({
     operation: JsonDecoder.isExactly("setMedia"),
     type: RelationTypeDecoder,
     items: JsonDecoder.array(JsonDecoder.string, "item[]"),
@@ -336,13 +352,31 @@ export const MediaRelationsRequest = jsonDecoder(JsonDecoder.array(
   "MediaRelationChange[]",
 ));
 
-const MediaPersonLocationDecoder = JsonDecoder.object<Api.MediaPersonLocation>({
+const MediaPersonDecoder = JsonDecoder.object({
   media: JsonDecoder.string,
   person: JsonDecoder.string,
   location: JsonDecoder.optional(LocationDecoder),
-}, "MediaPersonLocation");
+}, "MediaPerson");
 
 export const MediaPersonLocations = jsonDecoder(JsonDecoder.array(
-  MediaPersonLocationDecoder,
-  "MediaPersonLocation[]",
+  MediaPersonDecoder,
+  "MediaPeople",
 ));
+
+export const SearchSaveRequest = jsonDecoder(JsonDecoder.object<Requests.SavedSearchCreate>({
+  catalog: JsonDecoder.string,
+  search: JsonDecoder.object<Omit<ObjectModel.SavedSearch, "id">>({
+    shared: JsonDecoder.boolean,
+    query: QueryDecoder,
+    name: JsonDecoder.string,
+  }, "Search"),
+}, "SavedSearch"));
+
+export const SearchEditRequest = jsonDecoder(JsonDecoder.object<Requests.SavedSearchEdit>({
+  id: JsonDecoder.string,
+  search: JsonDecoder.object<Partial<Omit<ObjectModel.SavedSearch, "id">>>({
+    shared: JsonDecoder.optional(JsonDecoder.boolean),
+    query: JsonDecoder.optional(QueryDecoder),
+    name: JsonDecoder.optional(JsonDecoder.string),
+  }, "Search"),
+}, "SavedSearch"));

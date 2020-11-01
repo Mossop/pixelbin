@@ -73,7 +73,9 @@ test("Create catalog", async (): Promise<void> => {
     storage: "str",
   });
 
-  let result = await createCatalog("Test catalog", "str");
+  let result = await createCatalog("str", {
+    name: "Test catalog",
+  });
 
   expect(result).toEqual({
     id: "testcatalog",
@@ -94,8 +96,10 @@ test("Create catalog", async (): Promise<void> => {
       "Content-Type": "application/json",
     },
     body: {
-      name: "Test catalog",
       storage: "str",
+      catalog: {
+        name: "Test catalog",
+      },
     },
   });
 });
@@ -107,7 +111,9 @@ test("Edit catalog", async (): Promise<void> => {
     storage: "str",
   });
 
-  let result = await editCatalog(Catalog.ref("testcatalog"), "Renamed catalog");
+  let result = await editCatalog(Catalog.ref("testcatalog"), {
+    name: "Renamed catalog",
+  });
 
   expect(result).toEqual({
     storage: "str",
@@ -125,7 +131,9 @@ test("Edit catalog", async (): Promise<void> => {
     },
     body: {
       id: "testcatalog",
-      name: "Renamed catalog",
+      catalog: {
+        name: "Renamed catalog",
+      },
     },
   });
 });

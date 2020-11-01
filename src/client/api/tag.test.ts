@@ -50,7 +50,7 @@ test("Create tag", async (): Promise<void> => {
     },
     body: {
       catalog: "testcatalog",
-      tags: ["foo", "bar"],
+      names: ["foo", "bar"],
     },
   });
 });

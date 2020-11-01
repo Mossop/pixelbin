@@ -8,21 +8,21 @@ export interface SharedCatalog {
 
 export type UserCatalog = SharedCatalog;
 
-export interface MediaAlbum {
+export type MediaAlbum = ObjectModel.MediaAlbum & {
   catalog: string;
   media: string;
   album: string;
-}
+};
 
-export interface MediaTag {
+export type MediaTag = ObjectModel.MediaTag & {
   catalog: string;
   media: string;
   tag: string;
-}
+};
 
-export interface MediaPerson {
+export type MediaPerson = ObjectModel.MediaPerson & {
   catalog: string;
   media: string;
   person: string;
   location: ObjectModel.Location | null;
-}
+};

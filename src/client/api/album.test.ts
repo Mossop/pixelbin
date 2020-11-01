@@ -2,7 +2,7 @@
 import { emptyMetadata, Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
-import { expect, mockProcessedMedia, mockServerState, mockUnprocessedMedia } from "../test-helpers";
+import { expect, mockProcessedMedia, mockMedia } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
 import {
   createAlbum,
@@ -28,8 +28,7 @@ test("Create album", async (): Promise<void> => {
     parent: null,
   });
 
-  let result = await createAlbum({
-    catalog: Catalog.ref("testcatalog"),
+  let result = await createAlbum(Catalog.ref("testcatalog"), {
     name: "Test album",
     parent: null,
   });
@@ -51,8 +50,10 @@ test("Create album", async (): Promise<void> => {
     },
     body: {
       catalog: "testcatalog",
-      name: "Test album",
-      parent: null,
+      album: {
+        name: "Test album",
+        parent: null,
+      },
     },
   });
 });
@@ -65,8 +66,7 @@ test("Edit album", async (): Promise<void> => {
     parent: "parentalbum",
   });
 
-  let result = await editAlbum({
-    id: Album.ref("testalbum"),
+  let result = await editAlbum(Album.ref("testalbum"), {
     name: "New test album",
   });
 
@@ -87,7 +87,9 @@ test("Edit album", async (): Promise<void> => {
     },
     body: {
       id: "testalbum",
-      name: "New test album",
+      album: {
+        name: "New test album",
+      },
     },
   });
 });
@@ -109,23 +111,15 @@ test("Delete album", async (): Promise<void> => {
 });
 
 test("Add media", async (): Promise<void> => {
-  let state = mockServerState([{
-    id: "testcatalog",
-    name: "Test catalog",
-    albums: [{
-      id: "testalbum",
-      name: "Test album",
-    }],
-  }]);
-  let media = mockUnprocessedMedia({
+  let media = mockMedia({
     id: "testmedia",
-    albums: [
-      Album.ref("testalbum"),
-    ],
+    albums: [{
+      album: Album.ref("testalbum"),
+    }],
   });
 
   mockResponse(Method.MediaRelations, 200, [
-    mediaIntoResponse(state, media),
+    mediaIntoResponse(media),
   ]);
 
   await addMediaToAlbum(Album.ref("testalbum"), [mediaRef(media)]);
@@ -148,19 +142,12 @@ test("Add media", async (): Promise<void> => {
 });
 
 test("Remove media", async (): Promise<void> => {
-  let state = mockServerState([{
-    name: "Test catalog",
-    albums: [{
-      id: "testalbum",
-      name: "Test album",
-    }],
-  }]);
-  let media = mockUnprocessedMedia({
+  let media = mockMedia({
     id: "testmedia",
   });
 
   mockResponse(Method.MediaRelations, 200, [
-    mediaIntoResponse(state, media),
+    mediaIntoResponse(media),
   ]);
 
   await removeMediaFromAlbum(Album.ref("testalbum"), [mediaRef(media)]);
@@ -183,30 +170,25 @@ test("Remove media", async (): Promise<void> => {
 });
 
 test("List album", async (): Promise<void> => {
-  let state = mockServerState([{
-    id: "testcatalog",
-    name: "Test catalog",
-    albums: [{
-      id: "testalbum",
-      name: "Test album",
-    }],
-  }]);
-  let media = mockUnprocessedMedia({
+  let media = mockMedia({
     id: "testmedia",
-    albums: [
-      Album.ref("testalbum"),
-    ],
+    albums: [{
+      album: Album.ref("testalbum"),
+    }],
   });
   let media2 = mockProcessedMedia({
     id: "testmedia2",
-    albums: [
-      Album.ref("testalbum"),
-    ],
+    file: {
+      id: "newfile",
+    },
+    albums: [{
+      album: Album.ref("testalbum"),
+    }],
   });
 
   mockResponse(Method.AlbumList, 200, [
-    mediaIntoResponse(state, media),
-    mediaIntoResponse(state, media2),
+    mediaIntoResponse(media),
+    mediaIntoResponse(media2),
   ]);
 
   let result = await listAlbumMedia(Album.ref("testalbum"), true);
@@ -223,32 +205,40 @@ test("List album", async (): Promise<void> => {
   expect(result).toEqual([{
     ...emptyMetadata,
     id: "testmedia",
+    catalog: expect.toBeRef("catalog"),
     created: expect.anything(),
     updated: expect.anything(),
-    albums: [
-      expect.toBeRef("testalbum"),
-    ],
+    file: null,
+    albums: [{
+      album: expect.toBeRef("testalbum"),
+    }],
     tags: [],
     people: [],
   }, {
     ...emptyMetadata,
     id: "testmedia2",
+    catalog: expect.toBeRef("catalog"),
     created: expect.anything(),
     updated: expect.anything(),
-    uploaded: expect.anything(),
-    bitRate: null,
-    duration: null,
-    fileSize: 1024,
-    frameRate: null,
-    width: 1024,
-    height: 768,
-    mimetype: "image/jpeg",
-    thumbnailUrl: expect.stringMatching(/^http:\/\/localhost\/media\/thumbnail\/testmedia2\//),
-    originalUrl: expect.stringMatching(/^http:\/\/localhost\/media\/original\/testmedia2\//),
-    posterUrl: null,
-    albums: [
-      expect.toBeRef("testalbum"),
-    ],
+
+    file: {
+      id: "newfile",
+      uploaded: expect.anything(),
+      bitRate: null,
+      duration: null,
+      fileSize: 1024,
+      frameRate: null,
+      width: 1024,
+      height: 768,
+      mimetype: "image/jpeg",
+      thumbnailUrl: expect.stringMatching(/^http:\/\/localhost\/media\/thumbnail\/testmedia2\//),
+      originalUrl: expect.stringMatching(/^http:\/\/localhost\/media\/original\/testmedia2\//),
+      posterUrl: null,
+    },
+
+    albums: [{
+      album: expect.toBeRef("testalbum"),
+    }],
     tags: [],
     people: [],
   }]);

@@ -5,27 +5,27 @@ import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
 import { drop, from, insert, update, withChildren } from "./queries";
 import type { Tables } from "./types";
-import { Table, ref, nameConstraint, intoAPITypes, intoDBTypes } from "./types";
-import { ensureUserTransaction } from "./utils";
+import { Table, ref, nameConstraint, intoDBTypes } from "./types";
+import { deleteFields, ensureUserTransaction } from "./utils";
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {
   return from(this.knex, Table.Storage)
-    .where(ref(Table.Storage, "user"), this.user)
+    .where(ref(Table.Storage, "owner"), this.user)
     .select(ref(Table.Storage));
 }
 
 export async function createStorage(
   this: UserScopedConnection,
-  data: Omit<Tables.Storage, "id" | "user">,
+  data: Omit<Tables.Storage, "id" | "owner">,
 ): Promise<Tables.Storage> {
   let results = await insert(this.knex, Table.Storage, {
     ...data,
     id: await uuid("S"),
-    user: this.user,
+    owner: this.user,
   }).returning("*");
 
   if (results.length) {
-    return intoAPITypes(results[0]);
+    return results[0];
   }
 
   throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Storage record.");
@@ -35,17 +35,18 @@ export async function listCatalogs(this: UserScopedConnection): Promise<Tables.C
   let results = await from(this.knex, Table.Catalog)
     .whereIn(ref(Table.Catalog, "id"), this.catalogs())
     .select<Tables.Catalog[]>(ref(Table.Catalog));
-  return results.map(intoAPITypes);
+  return results;
 }
 
 export const createCatalog = ensureUserTransaction(async function createCatalog(
   this: UserScopedConnection,
-  data: Omit<Tables.Catalog, "id">,
+  storage: Tables.Storage["id"],
+  data: Omit<Tables.Catalog, "id" | "storage">,
 ): Promise<Tables.Catalog> {
   let ids = await this.knex.from(Table.Storage)
     .where({
-      user: this.user,
-      id: data.storage,
+      owner: this.user,
+      id: storage,
     })
     .select("id");
 
@@ -56,7 +57,7 @@ export const createCatalog = ensureUserTransaction(async function createCatalog(
   let results = await insert(this.knex, Table.Catalog, {
     ...intoDBTypes(data),
     id: await uuid("C"),
-    storage: data.storage,
+    storage: storage,
   }).returning("*");
 
   if (!results.length) {
@@ -69,15 +70,15 @@ export const createCatalog = ensureUserTransaction(async function createCatalog(
 export const editCatalog = ensureUserTransaction(async function editCatalog(
   this: UserScopedConnection,
   id: Tables.Catalog["id"],
-  data: Partial<Tables.Catalog>,
+  data: Partial<Omit<Tables.Catalog, "id" | "storage">>,
 ): Promise<Tables.Catalog> {
   await this.checkWrite(Table.Catalog, [id]);
 
-  let {
-    id: removedId,
-    storage: removedStorage,
-    ...catalogUpdateData
-  } = data;
+  let catalogUpdateData = deleteFields(data, [
+    "id",
+    "storage",
+  ]);
+
   let results = await update(
     Table.Catalog,
     this.knex.where("id", id),
@@ -88,30 +89,29 @@ export const editCatalog = ensureUserTransaction(async function editCatalog(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Catalog record.");
   }
 
-  return intoAPITypes(results[0]);
+  return results[0];
 });
 
 export async function listAlbums(this: UserScopedConnection): Promise<Tables.Album[]> {
-  let results = await from(this.knex, Table.Album)
+  return from(this.knex, Table.Album)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
     .select<Tables.Album[]>(ref(Table.Album));
-  return results.map(intoAPITypes);
 }
 
 export async function listMediaInCatalog(
   this: UserScopedConnection,
   id: Tables.Catalog["id"],
-): Promise<Tables.StoredMediaDetail[]> {
+): Promise<Tables.MediaView[]> {
   await this.checkRead(Table.Catalog, [id]);
 
-  return from(this.knex, Table.StoredMediaDetail)
-    .andWhere(ref(Table.StoredMediaDetail, "catalog"), id)
+  return from(this.knex, Table.MediaView)
+    .andWhere(ref(Table.MediaView, "catalog"), id)
     .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-      ref(Table.StoredMediaDetail, "taken"),
-      ref(Table.StoredMediaDetail, "created"),
+      ref(Table.MediaView, "taken"),
+      ref(Table.MediaView, "created"),
     ]))
-    .select(ref(Table.StoredMediaDetail));
+    .select(ref(Table.MediaView));
 }
 
 export const createAlbum = ensureUserTransaction(async function createAlbum(
@@ -137,15 +137,15 @@ export const createAlbum = ensureUserTransaction(async function createAlbum(
 export const editAlbum = ensureUserTransaction(async function editAlbum(
   this: UserScopedConnection,
   id: Tables.Album["id"],
-  data: Partial<Tables.Album>,
+  data: Partial<Omit<Tables.Album, "id" | "catalog">>,
 ): Promise<Tables.Album> {
   await this.checkWrite(Table.Album, [id]);
 
-  let {
-    id: removedId,
-    catalog: removedCatalog,
-    ...albumUpdateData
-  } = data;
+  let albumUpdateData = deleteFields(data, [
+    "id",
+    "catalog",
+  ]);
+
   let results = await update(
     Table.Album,
     this.knex.where("id", id),
@@ -156,7 +156,7 @@ export const editAlbum = ensureUserTransaction(async function editAlbum(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Album record.");
   }
 
-  return intoAPITypes(results[0]);
+  return results[0];
 });
 
 export const deleteAlbums = ensureUserTransaction(async function deleteAlbums(
@@ -173,7 +173,7 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
   this: UserScopedConnection,
   id: Tables.Album["id"],
   recursive: boolean = false,
-): Promise<Tables.StoredMediaDetail[]> {
+): Promise<Tables.MediaView[]> {
   // This assumes that if you can read the album you can read its descendants.
   await this.checkRead(Table.Album, [id]);
 
@@ -195,29 +195,27 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
       .distinct(ref(Table.MediaAlbum, "media"));
   }
 
-  return from(this.knex, Table.StoredMediaDetail)
-    .whereIn(ref(Table.StoredMediaDetail, "id"), mediaIds)
+  return from(this.knex, Table.MediaView)
+    .whereIn(ref(Table.MediaView, "id"), mediaIds)
     .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-      ref(Table.StoredMediaDetail, "taken"),
-      ref(Table.StoredMediaDetail, "created"),
+      ref(Table.MediaView, "taken"),
+      ref(Table.MediaView, "created"),
     ]))
-    .select(ref(Table.StoredMediaDetail));
+    .select(ref(Table.MediaView));
 });
 
 export async function listPeople(this: UserScopedConnection): Promise<Tables.Person[]> {
-  let results = await from(this.knex, Table.Person)
+  return from(this.knex, Table.Person)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Person, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
     .select<Tables.Person[]>(ref(Table.Person));
-  return results.map(intoAPITypes);
 }
 
 export async function listTags(this: UserScopedConnection): Promise<Tables.Tag[]> {
-  let results = await from(this.knex, Table.Tag)
+  return from(this.knex, Table.Tag)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Tag, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
     .select<Tables.Tag[]>(ref(Table.Tag));
-  return results.map(intoAPITypes);
 }
 
 export const createTag = ensureUserTransaction(async function createTag(
@@ -251,7 +249,7 @@ export const createTag = ensureUserTransaction(async function createTag(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Tag record.");
   }
 
-  return intoAPITypes(rows[0]);
+  return rows[0];
 });
 
 export async function buildTags(
@@ -287,15 +285,15 @@ export async function buildTags(
 export const editTag = ensureUserTransaction(async function editTag(
   this: UserScopedConnection,
   id: Tables.Tag["id"],
-  data: Partial<Tables.Tag>,
+  data: Partial<Omit<Tables.Tag, "id" | "catalog">>,
 ): Promise<Tables.Tag> {
   await this.checkWrite(Table.Tag, [id]);
 
-  let {
-    id: removedId,
-    catalog: removedCatalog,
-    ...tagUpdateData
-  } = data;
+  let tagUpdateData = deleteFields(data, [
+    "id",
+    "catalog",
+  ]);
+
   let results = await update(
     Table.Tag,
     this.knex.where("id", id),
@@ -306,7 +304,7 @@ export const editTag = ensureUserTransaction(async function editTag(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Tag record.");
   }
 
-  return intoAPITypes(results[0]);
+  return results[0];
 });
 
 export const deleteTags = ensureUserTransaction(async function deleteTags(
@@ -350,21 +348,21 @@ export const createPerson = ensureUserTransaction(async function createPerson(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to insert Person record.");
   }
 
-  return intoAPITypes(rows[0]);
+  return rows[0];
 });
 
 export const editPerson = ensureUserTransaction(async function editPerson(
   this: UserScopedConnection,
   id: Tables.Person["id"],
-  data: Partial<Tables.Person>,
+  data: Partial<Omit<Tables.Person, "id" | "catalog">>,
 ): Promise<Tables.Person> {
   await this.checkWrite(Table.Person, [id]);
 
-  let {
-    id: removedId,
-    catalog: removedCatalog,
-    ...personUpdateData
-  } = data;
+  let personUpdateData = deleteFields(data, [
+    "id",
+    "catalog",
+  ]);
+
   let results = await update(
     Table.Person,
     this.knex.where("id", id),
@@ -375,7 +373,7 @@ export const editPerson = ensureUserTransaction(async function editPerson(
     throw new DatabaseError(DatabaseErrorCode.UnknownError, "Failed to edit Person record.");
   }
 
-  return intoAPITypes(results[0]);
+  return results[0];
 });
 
 export const deletePeople = ensureUserTransaction(async function deletePeople(

@@ -89,8 +89,9 @@ export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | nul
       if (!cancelled) {
         setList(media);
       }
-    }).catch(() => {
+    }).catch((e: unknown) => {
       if (!cancelled) {
+        console.error(e);
         setList([]);
       }
     });

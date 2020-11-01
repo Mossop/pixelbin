@@ -149,9 +149,8 @@ async function storageTest(id: string): Promise<void> {
     await fs.writeFile(testFile, "MYDATA");
 
     let storageConfig = await userDb.createStorage(config);
-    let catalog = await userDb.createCatalog({
+    let catalog = await userDb.createCatalog(storageConfig.id, {
       name: storageConfig.name,
-      storage: storageConfig.id,
     });
 
     let storage = await service.getStorage(catalog.id);

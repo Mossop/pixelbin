@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react";
 
-import type { Api } from "../../../model";
+import type { Requests } from "../../../model";
 import { TextField } from "../../components/Forms";
 import type { ObjectState } from "../../utils/state";
 import { nulledString } from "../../utils/state";
@@ -9,7 +9,7 @@ import type { ReactResult } from "../../utils/types";
 export interface StorageConfigProps {
   visible: boolean;
   storageType: string;
-  state: ObjectState<Api.StorageCreateRequest>;
+  state: ObjectState<Requests.StorageCreate>;
 }
 
 export default function StorageConfig({

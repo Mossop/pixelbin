@@ -1,5 +1,5 @@
 import type { DateTime } from "../utils";
-import type { RelationType } from "./api";
+import type { RelationType } from "./models";
 import { MetadataColumns } from "./models";
 
 export type FieldType = "number" | "string" | "date";

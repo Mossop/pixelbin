@@ -8,7 +8,7 @@ import React, { useCallback } from "react";
 
 import { getThumbnailUrl } from "../api/media";
 import type { MediaState, ProcessedMediaState } from "../api/types";
-import { isProcessed } from "../api/types";
+import { isProcessedMedia } from "../api/types";
 import type { ReactResult } from "../utils/types";
 import Loading from "./Loading";
 
@@ -75,7 +75,7 @@ export function Photo({
   return <React.Fragment>
     <img
       key={media.id}
-      src={media.originalUrl}
+      src={media.file.originalUrl}
       className={classes.media}
     />
     <Fade in={displayOverlays} timeout={500}>
@@ -96,11 +96,11 @@ export function Video({
   return <React.Fragment>
     <video
       key={media.id}
-      poster={media.posterUrl ?? undefined}
+      poster={media.file.posterUrl ?? undefined}
       controls={false}
       className={classes.media}
     >
-      <source src={media.originalUrl} type={media.mimetype}/>
+      <source src={media.file.originalUrl} type={media.file.mimetype}/>
     </video>
     <Fade in={displayOverlays} timeout={500}>
       <div className={classes.mediaControls}>
@@ -138,7 +138,7 @@ export function Preview({ media, thumbnailSize, onClick }: PreviewProps): ReactR
   let classes = usePreviewStyles({ thumbnailSize });
 
   let click = useCallback(() => {
-    if (onClick && isProcessed(media)) {
+    if (onClick && isProcessedMedia(media)) {
       onClick(media);
     }
   }, [media, onClick]);
@@ -150,7 +150,7 @@ export function Preview({ media, thumbnailSize, onClick }: PreviewProps): ReactR
   >
     <CardContent>
       {
-        isProcessed(media)
+        isProcessedMedia(media)
           ? <Thumbnail media={media} size={thumbnailSize}/>
           : <Loading width={thumbnailSize} height={thumbnailSize}/>
       }

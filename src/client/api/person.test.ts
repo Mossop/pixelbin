@@ -20,7 +20,9 @@ test("Create person", async (): Promise<void> => {
     name: "Test Person",
   });
 
-  let result = await createPerson(Catalog.ref("testcatalog"), "Test Person");
+  let result = await createPerson(Catalog.ref("testcatalog"), {
+    name: "Test Person",
+  });
 
   expect(result).toEqual({
     id: "testperson",
@@ -38,7 +40,9 @@ test("Create person", async (): Promise<void> => {
     },
     body: {
       catalog: "testcatalog",
-      name: "Test Person",
+      person: {
+        name: "Test Person",
+      },
     },
   });
 });

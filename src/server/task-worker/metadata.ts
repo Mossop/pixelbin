@@ -7,10 +7,7 @@ import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import sharp from "sharp";
 
 import type { ObjectModel } from "../../model";
-import type {
-  DateTime,
-  Nullable,
-} from "../../utils";
+import type { DateTime } from "../../utils";
 import {
   dateTimeFromMillis,
   entries,
@@ -38,6 +35,7 @@ type StoredTag<T> =
 type ExifTags = { [K in keyof Omit<Tags, ExcludedTags>]?: StoredTag<Tags[K]>; };
 
 export type StoredData = ObjectModel.FileInfo & {
+  fileName: string;
   exif: ExifTags;
   uploaded: DateTime;
 };
@@ -285,9 +283,9 @@ const parsers: MetadataParsers = {
   rating: [ratingParser],
 };
 
-export function parseMetadata(data: StoredData): Nullable<ObjectModel.Metadata> {
+export function parseMetadata(data: StoredData): ObjectModel.Metadata {
   // @ts-ignore
-  let metadata: Nullable<ObjectModel.Metadata> = Object.fromEntries(
+  let metadata: ObjectModel.Metadata = Object.fromEntries(
     entries(parsers).map(
       <K extends keyof MetadataParsers>(
         [key, parsers]: [K, MetadataParser<ObjectModel.Metadata[K]>[]],
@@ -382,14 +380,12 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
   };
 }
 
-export function getOriginal(
+export function getMediaFile(
   data: StoredData,
-): Omit<ObjectModel.Original, "id" | "media"> {
-  let { uploaded, exif, fileName, ...info } = data;
+): Omit<StoredData, "exif"> {
+  let { exif, ...info } = data;
 
   return {
     ...info,
-    fileName,
-    uploaded: uploaded,
   };
 }

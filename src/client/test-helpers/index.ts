@@ -1,12 +1,8 @@
 import { expect as jestExpect } from "@jest/globals";
-import { act } from "@testing-library/react";
 import { DateTime as Luxon } from "luxon";
 
 import type { Api } from "../../model";
-import type { DeferredCall } from "../../test-helpers";
-import { deferCall } from "../../test-helpers";
 import type { DateTime } from "../../utils";
-import { request } from "../api/api";
 import type { ErrorCode } from "../utils/exception";
 import { AppError } from "../utils/exception";
 
@@ -113,28 +109,6 @@ export const expect = jestExpect as unknown as jest.ExtendedExpect<typeof matche
 
 export const mapOf = <V>(obj: Record<string, V>): Map<string, V> => new Map(Object.entries(obj));
 
-export function deferRequest<R = unknown, D = unknown>(): DeferredCall<[Api.Method, D], R> {
-  let {
-    call,
-    reject,
-    resolve,
-    promise,
-  } = deferCall(request as unknown as (method: Api.Method, data: D) => Promise<R>);
-  return {
-    call,
-    resolve: async (...args: Parameters<typeof resolve>): Promise<void> => {
-      await act(() => {
-        return resolve(...args);
-      });
-    },
-    reject: async (...args: Parameters<typeof reject>): Promise<void> => {
-      await act(() => {
-        return reject(...args);
-      });
-    },
-    promise,
-  };
-}
-
+export * from "./api";
 export * from "./dom";
 export * from "./store";

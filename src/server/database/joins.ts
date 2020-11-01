@@ -1,9 +1,8 @@
-import type { Api } from "../../model";
 import { RelationType } from "../../model";
 import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { drop, from, insert } from "./queries";
-import type { Media } from "./types";
+import type { Joins, Tables } from "./types";
 import { Table } from "./types";
 import { ensureUserTransaction, rowFromLocation } from "./utils";
 
@@ -56,16 +55,16 @@ export const addMediaRelations = ensureUserTransaction(
     relation: T,
     media: string[],
     relations: string[],
-  ): Promise<Media[]> {
+  ): Promise<Tables.MediaView[]> {
     if (media.length == 0) {
       return [];
     }
 
-    let mediaCatalog = await getCatalog(this, Table.Media, media);
+    let mediaCatalog = await getCatalog(this, Table.MediaInfo, media);
 
     if (relations.length == 0) {
       // We know that all of these exist so skip the type check.
-      return this.getMedia(media) as Promise<Media[]>;
+      return this.getMedia(media) as Promise<Tables.MediaView[]>;
     }
 
     let table = RELATION_TABLE[relation];
@@ -103,7 +102,7 @@ export const addMediaRelations = ensureUserTransaction(
     });
 
     // We know that all of these exist so skip the type check.
-    return this.getMedia(media) as Promise<Media[]>;
+    return this.getMedia(media) as Promise<Tables.MediaView[]>;
   },
 );
 
@@ -113,16 +112,16 @@ export const removeMediaRelations = ensureUserTransaction(
     relation: T,
     media: string[],
     relations: string[],
-  ): Promise<Media[]> {
+  ): Promise<Tables.MediaView[]> {
     if (media.length == 0) {
       return [];
     }
 
-    let mediaCatalog = await getCatalog(this, Table.Media, media);
+    let mediaCatalog = await getCatalog(this, Table.MediaInfo, media);
 
     if (relations.length == 0) {
       // We know that all of these exist so skip the type check.
-      return this.getMedia(media) as Promise<Media[]>;
+      return this.getMedia(media) as Promise<Tables.MediaView[]>;
     }
 
     let table = RELATION_TABLE[relation];
@@ -142,7 +141,7 @@ export const removeMediaRelations = ensureUserTransaction(
       .delete();
 
     // We know that all of these exist so skip the type check.
-    return this.getMedia(media) as Promise<Media[]>;
+    return this.getMedia(media) as Promise<Tables.MediaView[]>;
   },
 );
 
@@ -152,7 +151,7 @@ export const setMediaRelations = ensureUserTransaction(
     relation: T,
     media: string[],
     relations: string[],
-  ): Promise<Media[]> {
+  ): Promise<Tables.MediaView[]> {
     if (!media.length) {
       return [];
     }
@@ -160,16 +159,16 @@ export const setMediaRelations = ensureUserTransaction(
     let table = RELATION_TABLE[relation];
 
     if (relations.length == 0) {
-      await this.checkWrite(Table.Media, media);
+      await this.checkWrite(Table.MediaInfo, media);
 
       await drop(this.knex, table)
         .whereIn("media", media);
 
       // We know that all of these exist so skip the type check.
-      return this.getMedia(media) as Promise<Media[]>;
+      return this.getMedia(media) as Promise<Tables.MediaView[]>;
     }
 
-    let mediaCatalog = await getCatalog(this, Table.Media, media);
+    let mediaCatalog = await getCatalog(this, Table.MediaInfo, media);
     let relationCatalog = await getCatalog(this, SOURCE_TABLE[table], relations);
 
     if (mediaCatalog != relationCatalog) {
@@ -207,7 +206,7 @@ export const setMediaRelations = ensureUserTransaction(
     });
 
     // We know that all of these exist so skip the type check.
-    return this.getMedia(media) as Promise<Media[]>;
+    return this.getMedia(media) as Promise<Tables.MediaView[]>;
   },
 );
 
@@ -217,7 +216,7 @@ export const setRelationMedia = ensureUserTransaction(
     relation: T,
     relations: string[],
     media: string[],
-  ): Promise<Media[]> {
+  ): Promise<Tables.MediaView[]> {
     let table = RELATION_TABLE[relation];
 
     if (media.length == 0) {
@@ -229,11 +228,11 @@ export const setRelationMedia = ensureUserTransaction(
       return [];
     }
 
-    let mediaCatalog = await getCatalog(this, Table.Media, media);
+    let mediaCatalog = await getCatalog(this, Table.MediaInfo, media);
 
     if (!relations.length) {
       // We know that all of these exist so skip the type check.
-      return this.getMedia(media) as Promise<Media[]>;
+      return this.getMedia(media) as Promise<Tables.MediaView[]>;
     }
 
     let relationCatalog = await getCatalog(this, SOURCE_TABLE[table], relations);
@@ -273,22 +272,26 @@ export const setRelationMedia = ensureUserTransaction(
     });
 
     // We know that all of these exist so skip the type check.
-    return this.getMedia(media) as Promise<Media[]>;
+    return this.getMedia(media) as Promise<Tables.MediaView[]>;
   },
 );
 
 export const setPersonLocations = ensureUserTransaction(async function setPersonLocations(
   this: UserScopedConnection,
-  locations: Api.MediaPersonLocation[],
-): Promise<Media[]> {
+  locations: Omit<Joins.MediaPerson, "catalog">[],
+): Promise<Tables.MediaView[]> {
   if (locations.length == 0) {
     return [];
   }
 
-  let people = locations.map((location: Api.MediaPersonLocation): string => location.person);
-  let media = locations.map((location: Api.MediaPersonLocation): string => location.media);
+  let people = locations.map(
+    (location: Omit<Joins.MediaPerson, "catalog">): string => location.person,
+  );
+  let media = locations.map(
+    (location: Omit<Joins.MediaPerson, "catalog">): string => location.media,
+  );
 
-  let mediaCatalog = await getCatalog(this, Table.Media, media);
+  let mediaCatalog = await getCatalog(this, Table.MediaInfo, media);
   let personCatalog = await getCatalog(this, Table.Person, people);
 
   if (mediaCatalog != personCatalog) {
@@ -298,7 +301,7 @@ export const setPersonLocations = ensureUserTransaction(async function setPerson
     );
   }
 
-  let inserts = locations.map((location: Api.MediaPersonLocation): unknown => ({
+  let inserts = locations.map((location: Omit<Joins.MediaPerson, "catalog">): unknown => ({
     catalog: mediaCatalog,
     media: location.media,
     person: location.person,
@@ -321,5 +324,5 @@ export const setPersonLocations = ensureUserTransaction(async function setPerson
   });
 
   // We know that all of these exist so skip the type check.
-  return this.getMedia(media) as Promise<Media[]>;
+  return this.getMedia(media) as Promise<Tables.MediaView[]>;
 });
