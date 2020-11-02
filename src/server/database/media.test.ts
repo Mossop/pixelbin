@@ -91,6 +91,15 @@ test("Media tests", async (): Promise<void> => {
   });
   expect(newMedia.taken?.hour).toBe(17);
 
+  let user = await dbConnection.getUserForMedia(id);
+  expect(user).toEqual({
+    email: "someone3@nowhere.com",
+    fullname: "Someone 3",
+    created: expect.toEqualDate("2015-01-01T00:00:00Z"),
+    lastLogin: expect.toEqualDate("2020-03-03T00:00:00Z"),
+    verified: true,
+  });
+
   let uploadedDT: DateTime = parseDateTime("2020-01-03T15:31:01Z");
 
   let info = await createMediaFile(dbConnection, id, {

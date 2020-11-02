@@ -311,7 +311,7 @@ test("Process image fails", async (): Promise<void> => {
   let storeFileMock = mockedFunction(storage.storeFile);
   storeFileMock.mockRejectedValueOnce(new Error("Failed to upload file."));
 
-  await handleUploadedFile(media.id);
+  await expect(handleUploadedFile(media.id)).rejects.toThrow("Failed to upload file.");
 
   expect(storeFileMock).toHaveBeenCalledTimes(1);
   expect(deleteUploadedFileMock).not.toHaveBeenCalled();

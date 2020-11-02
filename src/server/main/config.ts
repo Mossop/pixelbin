@@ -8,6 +8,7 @@ import type { LogConfig } from "../../utils";
 import { MappingDecoder, oneOf } from "../../utils";
 import type { CacheConfig } from "../cache";
 import type { DatabaseConfig } from "../database";
+import type { SmtpConfig } from "../email";
 import type { StorageConfig } from "../storage";
 
 const basedir = path.resolve(path.join(__dirname, "..", ".."));
@@ -22,6 +23,7 @@ export interface ServerConfig {
   logging: LogConfig;
   storage: StorageConfig;
   cache: CacheConfig;
+  smtp: SmtpConfig;
 }
 
 interface ConfigFile {
@@ -32,6 +34,7 @@ interface ConfigFile {
   logging: LogConfig;
   storage: StorageConfig;
   cache: CacheConfig;
+  smtp: SmtpConfig;
 }
 
 const LOG_LEVELS = [
@@ -106,6 +109,14 @@ const CacheConfigDecoder = JsonDecoder.object<CacheConfig>({
   namespace: JsonDecoder.optional(JsonDecoder.string),
 }, "CacheConfig");
 
+const SmtpConfigDecoder = JsonDecoder.object<SmtpConfig>({
+  from: JsonDecoder.string,
+  host: JsonDecoder.string,
+  port: JsonDecoder.optional(JsonDecoder.number),
+  ssl: JsonDecoder.optional(JsonDecoder.boolean),
+  tls: JsonDecoder.optional(JsonDecoder.boolean),
+}, "SmtpConfig");
+
 const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   htmlTemplate: JsonDecoder.string,
   clientRoot: JsonDecoder.string,
@@ -114,6 +125,7 @@ const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   logging: LogConfigDecoder,
   storage: StorageConfigDecoder,
   cache: CacheConfigDecoder,
+  smtp: SmtpConfigDecoder,
 }, "ConfigFile");
 
 export async function loadConfig(configFile: string): Promise<ServerConfig> {

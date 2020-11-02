@@ -3,11 +3,17 @@ import { getLogger } from "../../utils";
 
 const logger = getLogger("task-worker/task");
 
-type Task<A extends unknown[] = unknown[]> = (logger: Logger, ...args: A) => void | Promise<void>;
+type Task<
+  A extends unknown[] = unknown[],
+  R = void,
+> = (logger: Logger, ...args: A) => R | Promise<R>;
 
 let nextId = 0;
-export function bindTask<A extends unknown[]>(task: Task<A>): (...args: A) => Promise<void> {
-  return async (...args: A): Promise<void> => {
+export function bindTask<
+  A extends unknown[],
+  R = void,
+>(task: Task<A, R>): (...args: A) => Promise<R> {
+  return async (...args: A): Promise<R> => {
     let taskLogger = logger.child({
       task: task.name,
       instance: nextId++,
@@ -16,12 +22,14 @@ export function bindTask<A extends unknown[]>(task: Task<A>): (...args: A) => Pr
     let start = Date.now();
     taskLogger.trace("Task start");
     try {
-      await task(taskLogger, ...args);
+      let result = await task(taskLogger, ...args);
       taskLogger.trace({
         duration: Date.now() - start,
       }, "Task complete");
+      return result;
     } catch (e) {
       taskLogger.error(e, "Task threw exception");
+      throw e;
     }
   };
 }

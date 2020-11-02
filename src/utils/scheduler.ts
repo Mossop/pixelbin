@@ -56,4 +56,10 @@ export default class Scheduler {
 
     this.scheduleNext();
   }
+
+  public cancel(id: string): void {
+    this.pendingTasks.delete(id);
+
+    this.scheduleNext();
+  }
 }

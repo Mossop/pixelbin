@@ -4,6 +4,7 @@ import { install } from "source-map-support";
 import { getLogger, setLogConfig } from "../../utils";
 import Scheduler from "../../utils/scheduler";
 import { DatabaseConnection } from "../database";
+import { Emailer } from "../email";
 import { StorageService } from "../storage";
 import type { ServerConfig } from "./config";
 import { loadConfig } from "./config";
@@ -33,11 +34,17 @@ async function initStorage(): Promise<StorageService> {
   return new StorageService(config.storage, await Services.database);
 }
 
+async function initEmail(): Promise<Emailer> {
+  let config = await Services.config;
+  return new Emailer(config.smtp);
+}
+
 function startupServices(): void {
   provideService("taskManager", initTaskManager());
   provideService("database", initDatabase());
   provideService("storage", initStorage());
   provideService("webServers", initWebserver());
+  provideService("email", initEmail());
 }
 
 async function reprocessUploads(): Promise<void> {

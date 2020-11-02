@@ -1,3 +1,4 @@
+import type { ObjectModel } from "../../model";
 import type { DatabaseConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
@@ -149,4 +150,26 @@ export async function listAlternateFiles(
   return from(this.knex, Table.AlternateFile)
     .where(ref(Table.AlternateFile, "mediaFile"), mediaFile)
     .select(ref(Table.AlternateFile));
+}
+
+export async function getUserForMedia(
+  this: DatabaseConnection,
+  mediaId: string,
+): Promise<ObjectModel.User> {
+  let users = await from(this.knex, Table.MediaInfo)
+    .join(Table.Catalog, ref(Table.Catalog, "id"), ref(Table.MediaInfo, "catalog"))
+    .join(Table.Storage, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
+    .join(Table.User, ref(Table.User, "email"), ref(Table.Storage, "owner"))
+    .where(ref(Table.MediaInfo, "id"), mediaId)
+    .select<Tables.User[]>(ref(Table.User));
+
+  if (users.length != 1) {
+    throw new DatabaseError(DatabaseErrorCode.MissingValue, `Media ${mediaId} does not exist.`);
+  }
+
+  let {
+    password,
+    ...user
+  } = users[0];
+  return user;
 }

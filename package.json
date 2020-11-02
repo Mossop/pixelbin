@@ -117,6 +117,8 @@
     "clsx": "^1.1.1",
     "color-alpha": "^1.1.2",
     "deeds": "^3.0.0",
+    "email-addresses": "^3.1.0",
+    "emailjs": "^3.3.0",
     "execa": "^4.0.3",
     "exiftool-vendored": "^12.2.0",
     "ffprobe-client": "^1.1.6",

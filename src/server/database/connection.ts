@@ -213,6 +213,7 @@ export class DatabaseConnection {
   public readonly deleteMediaFiles = wrapped(Unsafe.deleteMediaFiles);
   public readonly listAlternateFiles = wrapped(Unsafe.listAlternateFiles);
   public readonly deleteAlternateFiles = wrapped(Unsafe.deleteAlternateFiles);
+  public readonly getUserForMedia = wrapped(Unsafe.getUserForMedia);
 
   public static async connect(name: string, config: DatabaseConfig): Promise<DatabaseConnection> {
     let dbLogger = logger.child({

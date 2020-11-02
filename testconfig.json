@@ -15,5 +15,9 @@
       "webserver-manager/worker": "info"
     }
   },
-  "storage": "data/server"
+  "storage": "data/server",
+  "smtp": {
+    "from": "PixelBin <hostmaster@pixelbin.com>",
+    "host": "mandelbrot"
+  }
 }
