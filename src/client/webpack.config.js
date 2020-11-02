@@ -3,6 +3,7 @@ const path = require("path");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const HtmlWebpackTagsPlugin = require("html-webpack-tags-plugin");
+const SriPlugin = require("webpack-subresource-integrity");
 
 /**
  * @typedef {Object} External
@@ -69,6 +70,7 @@ module.exports = (mode = "development") => {
       path: path.join(__dirname, "..", "..", "build", "client"),
       publicPath: "/app/",
       filename: "[name].[chunkhash].js",
+      crossOriginLoading: "anonymous",
     },
     stats: "errors-warnings",
     devtool: mode == "test" ? "inline-source-map" : "source-map",
@@ -89,7 +91,8 @@ module.exports = (mode = "development") => {
         filename: path.join(__dirname, "..", "..", "build", "index.html"),
         template: path.join(__dirname, "index.ejs"),
         scriptLoading: "defer",
-        inject: false,
+        inject: true,
+        minify: false,
       }),
       new HtmlWebpackTagsPlugin({
         tags: [
@@ -105,6 +108,9 @@ module.exports = (mode = "development") => {
           },
           ...buildExternals(),
         ],
+      }),
+      new SriPlugin({
+        hashFuncNames: ["sha256", "sha384"],
       }),
     ],
     optimization: {
