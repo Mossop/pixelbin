@@ -199,6 +199,7 @@ function Provider.processRenderedPhotos(context, exportContext)
     defaultCollection = Utils.getDefaultCollection(exportContext.publishService)
   end
 
+  -- A map of photos already supposedly uploaded.
   local publishedPhotos = {}
   for _, published in ipairs(defaultCollection:getPublishedPhotos()) do
     local photo = published:getPhoto()
@@ -284,17 +285,17 @@ function Provider.processRenderedPhotos(context, exportContext)
           strip = strip - 1
         end
 
-        local success
+        local success, childAlbum
         local failed = false
         targetAlbum = album
         for _, part in ipairs(parts) do
-          success, targetAlbum = api:getOrCreateChildAlbum(catalog, targetAlbum, part)
+          success, childAlbum = api:getOrCreateChildAlbum(catalog, targetAlbum, part)
           if not success then
-            info.rendition:uploadFailed(targetAlbum.name)
+            info.rendition:uploadFailed(childAlbum.name)
             failed = true
             break
           else
-            targetAlbum = targetAlbum.id
+            targetAlbum = childAlbum.id
           end
         end
 
@@ -350,42 +351,62 @@ function Provider.deletePublishedCollection(publishSettings, info)
 end
 
 function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback, collectionId)
-  local hasDelete = false
-  local mediaToDelete = {}
-  local albums = {}
   local api = API(publishSettings)
+  local collection = Utils.getCollectionsForId(collectionId)
+  local collectionInfo = collection:getCollectionInfoSummary()
 
-  for _, id in ipairs(arrayOfPhotoIds) do
-    local found, _, album, remoteId = string.find(id, "(.+)/(.+)")
-    if found == nil then
-      hasDelete = true
-      table.insert(mediaToDelete, id)
-    else
-      if not albums[album] then
-        albums[album] = { remoteId }
-      end
+  if (collectionInfo.isDefaultCollection) then
+    -- Deleting from the entire service.
+    local publishService = collection:getService()
+    local remotePhotos = {}
 
-      table.insert(albums[album], remoteId)
+    for _, photo in ipairs(collection:getPublishedPhotos()) do
+      remotePhotos[photo:getRemoteId()] = photo:getPhoto()
     end
-  end
 
-  for album, media in pairs(albums) do
-    local success, result = api:removeMediaFromAlbum(album, media)
-    if success then
-      for _, remoteId in ipairs(media) do
-        deletedCallback(album .. "/" .. remoteId)
+    Utils.runWithWriteAccess(logger, "Remove photos", function ()
+      for _, remoteId in ipairs(arrayOfPhotoIds) do
+        local photo = remotePhotos[remoteId]
+        if photo then
+          local collections = photo:getContainedPublishedCollections()
+          for _, collectionSet in ipairs(collections) do
+            if collectionSet:getService() == publishService then
+              collectionSet:removePhotos({ photo })
+            end
+          end
+        end
       end
-    else
-      error(result.name)
-    end
-  end
+    end)
 
-  if hasDelete then
-    api:deleteMedia(mediaToDelete)
-    -- TODO: Remove from other published collections.
+    api:deleteMedia(arrayOfPhotoIds)
 
-    for _, remoteId in ipairs(mediaToDelete) do
+    for _, remoteId in ipairs(arrayOfPhotoIds) do
       deletedCallback(remoteId)
+    end
+  else
+    -- Just deleting from this album.
+    local albums = {}
+
+    for _, id in ipairs(arrayOfPhotoIds) do
+      local found, _, album, remoteId = string.find(id, "(.+)/(.+)")
+      if found then
+        if not albums[album] then
+          albums[album] = {}
+        end
+
+        table.insert(albums[album], remoteId)
+      end
+    end
+
+    for album, media in pairs(albums) do
+      local success, result = api:removeMediaFromAlbum(album, media)
+      if success then
+        for _, remoteId in ipairs(media) do
+          deletedCallback(album .. "/" .. remoteId)
+        end
+      else
+        error(result.name)
+      end
     end
   end
 end
