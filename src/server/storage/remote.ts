@@ -41,7 +41,7 @@ export abstract class Remote {
     stream: NodeJS.ReadableStream,
     size?: number,
   ): Promise<void>;
-  public abstract getUrl(target: string): Promise<string>;
+  public abstract getUrl(target: string, contentType?: string): Promise<string>;
   public abstract stream(target: string): Promise<NodeJS.ReadableStream>;
   public abstract delete(target: string): Promise<void>;
 
@@ -78,7 +78,7 @@ class AWSRemote extends Remote {
     });
   }
 
-  public async getUrl(target: string): Promise<string> {
+  public async getUrl(target: string, contentType?: string): Promise<string> {
     let publicUrl = s3PublicUrl(this.storage, target);
     if (publicUrl) {
       return publicUrl;
@@ -88,6 +88,8 @@ class AWSRemote extends Remote {
     return this.s3.getSignedUrlPromise("getObject", {
       ...s3Params(this.storage, target),
       Expires: 60 * 5,
+      ResponseCacheControl: "max-age=1314000,immutable",
+      ResponseContentType: contentType,
     });
     /* eslint-enable @typescript-eslint/naming-convention */
   }

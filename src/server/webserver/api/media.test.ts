@@ -644,7 +644,7 @@ test("Media resources", async (): Promise<void> => {
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
   expect(getFileUrl).toHaveBeenCalledTimes(1);
-  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "foo.jpg");
+  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "foo.jpg", "image/jpeg");
   getFileUrl.mockClear();
 
   await request
@@ -673,7 +673,7 @@ test("Media resources", async (): Promise<void> => {
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
   expect(getFileUrl).toHaveBeenCalledTimes(1);
-  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "poster.jpg");
+  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "poster.jpg", "image/jpeg");
   getFileUrl.mockClear();
 
   await request

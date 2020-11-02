@@ -370,6 +370,8 @@ export const thumbnail = ensureAuthenticated(
           fit: "inside",
         }).jpeg({ quality: 85 }).toBuffer();
       }
+
+      ctx.set("Cache-Control", "max-age=1314000,immutable");
     } finally {
       storage.release();
     }
@@ -409,9 +411,11 @@ export const original = ensureAuthenticated(
         media.id,
         media.file.id,
         media.file.fileName,
+        media.file.mimetype,
       );
 
       ctx.status = 302;
+      ctx.set("Cache-Control", "max-age=1314000,immutable");
       ctx.redirect(originalUrl);
     } finally {
       storage.release();
@@ -455,9 +459,15 @@ export const poster = ensureAuthenticated(
 
     let storage = await ctx.storage.getStorage(media.catalog);
     try {
-      let posterUrl = await storage.get().getFileUrl(media.id, media.file.id, posters[0].fileName);
+      let posterUrl = await storage.get().getFileUrl(
+        media.id,
+        media.file.id,
+        posters[0].fileName,
+        posters[0].mimetype,
+      );
 
       ctx.status = 302;
+      ctx.set("Cache-Control", "max-age=1314000,immutable");
       ctx.redirect(posterUrl);
     } finally {
       storage.release();

@@ -37,9 +37,14 @@ export class Storage {
     return this.aws;
   }
 
-  public async getFileUrl(media: string, original: string, name: string): Promise<string> {
+  public async getFileUrl(
+    media: string,
+    original: string,
+    name: string,
+    contentType?: string,
+  ): Promise<string> {
     let remote = await this.remote;
-    return remote.getUrl(path.join(media, original, name));
+    return remote.getUrl(path.join(media, original, name), contentType);
   }
 
   public async streamFile(
