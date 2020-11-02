@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import { STATUS_CODES } from "http";
+import path from "path";
 
 import type { RouterParamContext } from "@koa/router";
 import Router from "@koa/router";
@@ -18,16 +19,30 @@ import { buildState } from "./api/state";
 import type { AppContext, ServicesContext } from "./context";
 import { buildContext } from "./context";
 import { errorHandler } from "./error";
+import type { WebserverConfig } from "./interfaces";
 import { APP_PATHS } from "./paths";
 import Services from "./services";
 
 async function buildAppContent(
-  path: string,
+  config: WebserverConfig,
   state: ApiSerialization<Api.State>,
 ): Promise<string> {
-  let content = await fs.readFile(path, { encoding: "utf8" });
+  let staticHash: string | null = null;
+
+  try {
+    staticHash = await fs.readFile(path.join(config.staticRoot, "hash.txt"), {
+      encoding: "utf8",
+    });
+  } catch (e) {
+    // Testing most likely.
+  }
+
+  let content = await fs.readFile(config.htmlTemplate, { encoding: "utf8" });
   return content
-    .replace("{% paths %}", JSON.stringify(APP_PATHS))
+    .replace("{% paths %}", JSON.stringify({
+      ...APP_PATHS,
+      static: `${APP_PATHS.static}${staticHash}/`,
+    }))
     .replace("{% state %}", JSON.stringify(state));
 }
 
@@ -87,6 +102,22 @@ export default async function buildApp(): Promise<App> {
     },
   );
 
+  let staticHash: string | null = null;
+
+  try {
+    staticHash = await fs.readFile(path.join(config.staticRoot, "hash.txt"), {
+      encoding: "utf8",
+    });
+  } catch (e) {
+    // Testing most likely.
+  }
+
+  let { staticRoot } = config;
+
+  if (staticHash) {
+    staticRoot = path.join(staticRoot, staticHash);
+  }
+
   let app = new Koa() as App;
   app.keys = config.secretKeys;
 
@@ -111,10 +142,21 @@ export default async function buildApp(): Promise<App> {
 
     .use(errorHandler)
 
-    .use(mount(APP_PATHS.static, serve(config.staticRoot)))
+    .use(
+      mount(
+        `${APP_PATHS.static}${staticHash}/`,
+        serve(staticRoot, {
+          maxAge: 1000 * 60 * 60 * 365,
+          immutable: true,
+        }),
+      ),
+    )
     .use(mount(APP_PATHS.static, notFound))
 
-    .use(mount(APP_PATHS.app, serve(config.appRoot)))
+    .use(mount(APP_PATHS.app, serve(config.appRoot, {
+      maxAge: 1000 * 60 * 60 * 365,
+      immutable: true,
+    })))
     .use(mount(APP_PATHS.app, notFound))
 
     .use(session({
@@ -129,7 +171,7 @@ export default async function buildApp(): Promise<App> {
     .use(async (ctx: AppContext): Promise<void> => {
       let state = await buildState(ctx);
       ctx.set("Content-Type", "text/html; charset=utf-8");
-      ctx.body = await buildAppContent(config.htmlTemplate, state);
+      ctx.body = await buildAppContent(config, state);
     });
 
   let server = await parent.getServer();

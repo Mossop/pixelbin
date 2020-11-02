@@ -1,7 +1,11 @@
+const { Buffer } = require("buffer");
+const crypto = require("crypto");
 const { promises: fs } = require("fs");
 const path = require("path");
+const { Transform } = require("stream");
 
 const gulp = require("gulp");
+const Vinyl = require("vinyl");
 const webpack = require("webpack");
 
 const { mergeCoverage, reportCoverage } = require("./ci/coverage");
@@ -29,10 +33,45 @@ async function showCoverage() {
 
 exports.showCoverage = showCoverage;
 
+function hashedDirectory(target) {
+  let buffer = [];
+  let hasher = crypto.createHash("md5");
+
+  return new Transform({
+    objectMode: true,
+    transform(chunk, encoding, callback) {
+      hasher.update(chunk.contents);
+      buffer.push(chunk);
+
+      callback();
+    },
+
+    final(callback) {
+      let hash = hasher.digest("hex");
+
+      for (let chunk of buffer) {
+        chunk.path = path.resolve(chunk.base, path.join(hash, chunk.relative));
+        this.push(chunk);
+      }
+
+      this.push(new Vinyl({
+        base: __dirname,
+        path: path.resolve(__dirname, target),
+        contents: Buffer.from(hash),
+      }));
+
+      callback();
+    },
+  });
+}
+
 function buildClientStatic() {
-  return gulp.src(path.join(__dirname, "static", "client", "**", "*"))
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return gulp.src(path.join(__dirname, "static", "client", "**", "*"), { nodir: true })
+    .pipe(hashedDirectory("hash.txt"))
     .pipe(gulp.dest(path.join(__dirname, "build", "static")));
 }
+exports.buildClientStatic = buildClientStatic;
 
 const watchClientStatic = gulp.series(buildClientStatic, () => {
   gulp.watch(path.join(__dirname, "static", "client", "**", "*"), buildClientStatic);
