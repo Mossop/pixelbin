@@ -8,6 +8,8 @@ local Utils = require "Utils"
 
 local API = { }
 
+local CSRF_HEADER = "X-CSRFToken";
+
 function API:parseHTTPResult(response, info)
   if not response then
     logger:error("Connection to server failed", info.error.errorCode, info.error.name)
@@ -113,7 +115,9 @@ function API:MULTIPART(path, content)
   local url = self.siteUrl .. "api/" .. path
 
   return self:callServer(function ()
-    return LrHttp.postMultipart(url, content)
+    return LrHttp.postMultipart(url, content, {
+      { field=CSRF_HEADER, value=self.csrfToken },
+    })
   end)
 end
 
@@ -137,7 +141,10 @@ function API:POST(path, content)
   end
 
   return self:callServer(function ()
-    return LrHttp.post(url, body, requestHeaders)
+    return LrHttp.post(url, body, {
+      { field = "Content-Type", value = "application/json" },
+      { field = CSRF_HEADER, value = self.csrfToken },
+    })
   end)
 end
 
@@ -150,7 +157,9 @@ function API:GET(path)
   local url = self.siteUrl .. "api/" .. path
 
   return self:callServer(function ()
-    return LrHttp.get(url)
+    return LrHttp.get(url, {
+      { field=CSRF_HEADER, value=self.csrfToken },
+    })
   end)
 end
 
@@ -198,6 +207,12 @@ function API:login()
     self.errorState = nil
     self.catalogs = result.user.catalogs
     self.albums = result.user.albums
+
+    for _, header in ipairs(info) do
+      if header.field == CSRF_HEADER then
+        self.csrfToken = header.value
+      end
+    end
 
     return success, nil
   end
@@ -547,6 +562,7 @@ local function get(settings)
     siteUrl = settings.siteUrl,
     email = settings.email,
     password = settings.password,
+    csrfToken = nil,
     loggedIn = false,
     errorState = nil,
     catalogs = {},
