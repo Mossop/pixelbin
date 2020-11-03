@@ -8,8 +8,7 @@ export interface LoggingContext {
 
 const mainLogger = getLogger("webserver/request");
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-let loggers = new WeakMap<object, Logger>();
+let loggers = new WeakMap<AppContext, Logger>();
 let requestId = 0;
 
 export default function(): DescriptorsFor<LoggingContext> {

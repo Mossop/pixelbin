@@ -1,3 +1,6 @@
+import { CookieAccessInfo } from "cookiejar";
+
+import { CSRF_COOKIE } from "../../model";
 import { expect, mockDateTime } from "../../test-helpers";
 import { insertTestData, testData } from "../database/test-helpers";
 import { Table } from "../database/types";
@@ -43,7 +46,7 @@ test("state checks", async (): Promise<void> => {
 
   let loginDT = mockDateTime("2020-02-03T05:02:56");
 
-  await request
+  response = await request
     .post("/api/login")
     .send({
       email: "someone1@nowhere.com",
@@ -51,6 +54,10 @@ test("state checks", async (): Promise<void> => {
     })
     .expect("Content-Type", "application/json")
     .expect(200);
+
+  // @ts-ignore
+  let token = request.jar.getCookie(CSRF_COOKIE, new CookieAccessInfo(null, "/", false, true));
+  expect(token).toBeTruthy();
 
   response = await request.get("/")
     .expect("Content-Type", "text/html; charset=utf-8")

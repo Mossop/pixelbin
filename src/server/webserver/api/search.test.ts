@@ -1,9 +1,9 @@
 import type { Search } from "../../../model";
-import { emptyMetadata, Join, Operator } from "../../../model";
+import { CSRF_HEADER, emptyMetadata, Join, Operator } from "../../../model";
 import { mockDateTime, expect } from "../../../test-helpers";
 import { insertTestData, connection, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
-import { buildTestApp } from "../test-helpers";
+import { buildTestApp, getCsrfToken } from "../test-helpers";
 
 jest.mock("../../../utils/datetime");
 
@@ -50,6 +50,7 @@ test("Media search", async (): Promise<void> => {
         value: "Media 1",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -92,6 +93,7 @@ test("Saved searches", async (): Promise<void> => {
   await request
     .delete("/api/search/delete")
     .send([expected[1].id])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect(200);
 
   expected.pop();
@@ -127,6 +129,7 @@ test("Saved searches", async (): Promise<void> => {
         query: newQuery,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -166,6 +169,7 @@ test("Saved searches", async (): Promise<void> => {
         query: newQuery2,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 

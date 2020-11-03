@@ -1,4 +1,4 @@
-import type { Context } from "koa";
+import type { ExtendableContext } from "koa";
 import type session from "koa-session";
 
 import type { DatabaseConnection, UserScopedConnection } from "../database";
@@ -9,19 +9,22 @@ import authContext from "./auth";
 import type { Session, TaskWorkerInterface } from "./interfaces";
 import type { LoggingContext } from "./logging";
 import loggingContext from "./logging";
+import type { SecurityContext } from "./security";
+import securityContext from "./security";
 import Services from "./services";
 
 export type DescriptorsFor<C> = {
   [K in keyof C]: TypedPropertyDescriptor<C[K]>;
 };
 
-export type ServicesContext = AuthContext & LoggingContext & {
+export type ServicesContext = AuthContext & LoggingContext & SecurityContext & {
   readonly storage: StorageService;
   readonly taskWorker: RemoteInterface<TaskWorkerInterface>;
   readonly dbConnection: DatabaseConnection;
   readonly userDb: UserScopedConnection | null;
 };
-export type AppContext = Omit<Context, "session"> & ServicesContext & {
+
+export type AppContext = Omit<ExtendableContext, "session"> & ServicesContext & {
   readonly session: (Session & session.Session) | null;
 };
 
@@ -33,6 +36,7 @@ export async function buildContext(): Promise<DescriptorsFor<ServicesContext>> {
   return {
     ...loggingContext(),
     ...authContext(),
+    ...securityContext(),
 
     userDb: {
       get(this: AppContext): UserScopedConnection | null {

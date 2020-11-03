@@ -1,6 +1,7 @@
+import { CSRF_HEADER } from "../../../model";
 import { insertTestData } from "../../database/test-helpers";
 import { ApiError } from "../error";
-import { buildTestApp } from "../test-helpers";
+import { buildTestApp, getCsrfToken } from "../test-helpers";
 import { decodeBody } from "./methods";
 
 const agent = buildTestApp();
@@ -82,6 +83,7 @@ test("formdata decoding", async (): Promise<void> => {
         name: "Good user",
       },
     }))
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 

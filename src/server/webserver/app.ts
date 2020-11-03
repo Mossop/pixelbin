@@ -4,6 +4,7 @@ import path from "path";
 
 import type { RouterParamContext } from "@koa/router";
 import Router from "@koa/router";
+import csp from "content-security-policy-builder";
 import type { DefaultState, DefaultContext } from "koa";
 import Koa from "koa";
 import koaBody from "koa-body";
@@ -25,6 +26,7 @@ import Services from "./services";
 
 async function buildAppContent(
   config: WebserverConfig,
+  nonce: string,
   state: ApiSerialization<Api.State>,
 ): Promise<string> {
   let staticHash: string | null = null;
@@ -43,7 +45,9 @@ async function buildAppContent(
       ...APP_PATHS,
       static: `${APP_PATHS.static}${staticHash}/`,
     }))
-    .replace("{% state %}", JSON.stringify(state));
+    .replace("{% state %}", JSON.stringify(state))
+    .replace(/\{% nonce %\}/g, nonce)
+    .replace(/ integrity="null"/g, "");
 }
 
 export type RouterContext<C> = C & RouterParamContext<DefaultState, C>;
@@ -162,6 +166,7 @@ export default async function buildApp(): Promise<App> {
     .use(session({
       renew: true,
       store: cache.sessionStore,
+      sameSite: "strict",
     }, app as unknown as Koa))
 
     .use(router.routes())
@@ -169,9 +174,25 @@ export default async function buildApp(): Promise<App> {
     .use(mount(`${APP_PATHS.root}media/`, notFound))
 
     .use(async (ctx: AppContext): Promise<void> => {
+      // Apply the CSRF token to the cookies if needed.
+      await ctx.setCsrfToken();
+      let nonce = await ctx.nonce;
+
       let state = await buildState(ctx);
+      ctx.set(
+        "Content-Security-Policy",
+        csp({
+          directives: {
+            defaultSrc: ["'self'"],
+            fontSrc: ["'self'", "fonts.gstatic.com"],
+            scriptSrc: ["'self'", `'nonce-${nonce}'`],
+            styleSrc: ["'self'", `'nonce-${nonce}'`],
+            imgSrc: ["'self'", "https://www.gravatar.com"],
+          },
+        }),
+      );
       ctx.set("Content-Type", "text/html; charset=utf-8");
-      ctx.body = await buildAppContent(config, state);
+      ctx.body = await buildAppContent(config, nonce, state);
     });
 
   let server = await parent.getServer();

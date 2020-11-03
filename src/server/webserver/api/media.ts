@@ -376,6 +376,7 @@ export const thumbnail = ensureAuthenticated(
       storage.release();
     }
   },
+  false,
 );
 
 export const original = ensureAuthenticated(
@@ -421,6 +422,7 @@ export const original = ensureAuthenticated(
       storage.release();
     }
   },
+  false,
 );
 
 export const poster = ensureAuthenticated(
@@ -473,6 +475,7 @@ export const poster = ensureAuthenticated(
       storage.release();
     }
   },
+  false,
 );
 
 function isMedia(item: MediaView | null): item is MediaView {

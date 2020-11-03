@@ -33,6 +33,7 @@ function buildExternals() {
     publicPath: false,
     attributes: {
       crossorigin: true,
+      nonce: "{% nonce %}",
     },
     external: {
       packageName: pkg.id,
@@ -94,23 +95,29 @@ module.exports = (mode = "development") => {
         inject: true,
         minify: false,
       }),
+      new SriPlugin({
+        hashFuncNames: ["sha256", "sha384"],
+      }),
       new HtmlWebpackTagsPlugin({
         tags: [
           {
             type: "css",
             path: "https://fonts.googleapis.com/css?family=Comfortaa",
             publicPath: false,
+            attributes: {
+              nonce: "{% nonce %}",
+            },
           },
           {
             type: "css",
             path: "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap",
             publicPath: false,
+            attributes: {
+              nonce: "{% nonce %}",
+            },
           },
           ...buildExternals(),
         ],
-      }),
-      new SriPlugin({
-        hashFuncNames: ["sha256", "sha384"],
       }),
     ],
     optimization: {

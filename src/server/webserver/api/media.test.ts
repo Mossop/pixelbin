@@ -5,6 +5,7 @@ import sharp from "sharp";
 
 import type { Api } from "../../../model";
 import {
+  CSRF_HEADER,
   AlternateFileType,
   emptyMetadata,
   ErrorCode,
@@ -15,7 +16,7 @@ import { now, parseDateTime } from "../../../utils";
 import type { MediaFile, MediaView } from "../../database";
 import { connection, insertTestData } from "../../database/test-helpers";
 import { StorageService } from "../../storage";
-import { buildTestApp } from "../test-helpers";
+import { buildTestApp, getCsrfToken } from "../test-helpers";
 
 jest.mock("../../storage");
 jest.mock("../../../utils/datetime");
@@ -53,6 +54,7 @@ test("Media upload", async (): Promise<void> => {
     .attach("file", Buffer.from("my file"), {
       filename: "myfile.jpg",
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -85,6 +87,7 @@ test("Media upload", async (): Promise<void> => {
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200)
     .then();
@@ -167,6 +170,7 @@ test("Media upload", async (): Promise<void> => {
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -290,6 +294,7 @@ test("Media edit", async (): Promise<void> => {
     .send({
       id: newMedia?.id,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -346,6 +351,7 @@ test("Media edit", async (): Promise<void> => {
       ],
       people: ["p1"],
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -398,6 +404,7 @@ test("Media edit", async (): Promise<void> => {
       albums: [],
       people: [],
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -442,6 +449,7 @@ test("Media edit", async (): Promise<void> => {
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200)
     .then();
@@ -509,6 +517,8 @@ test("Media edit", async (): Promise<void> => {
 
   await expect(fs.stat(path)).rejects.toThrowError("no such file or directory");
 
+  request = agent();
+
   await request
     .post("/api/login")
     .send({
@@ -523,6 +533,7 @@ test("Media edit", async (): Promise<void> => {
     .send({
       id: newMedia?.id,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -531,6 +542,7 @@ test("Media edit", async (): Promise<void> => {
     .send({
       id: "foo",
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 });
@@ -862,6 +874,7 @@ test("Get media", async (): Promise<void> => {
     .query({
       id: id1,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -883,6 +896,7 @@ test("Get media", async (): Promise<void> => {
     .query({
       id: id2,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -918,6 +932,7 @@ test("Get media", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -965,6 +980,7 @@ test("Get media", async (): Promise<void> => {
     .query({
       id: `${id2},${id1}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1010,6 +1026,7 @@ test("Get media", async (): Promise<void> => {
   await request
     .delete("/api/media/delete")
     .send([id2, id1])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect(200);
 
   response = await request
@@ -1017,6 +1034,7 @@ test("Get media", async (): Promise<void> => {
     .query({
       id: `${id2},${id1}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1051,6 +1069,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1088,6 +1107,7 @@ test("Media relations", async (): Promise<void> => {
   response = await request
     .patch("/api/media/relations")
     .send([])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1098,6 +1118,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1114,6 +1135,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["t1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1130,6 +1152,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1146,6 +1169,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["t2"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1164,6 +1188,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1180,6 +1205,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["t1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1196,6 +1222,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1212,6 +1239,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["t1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1228,6 +1256,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1249,6 +1278,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["t1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1265,6 +1295,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1286,6 +1317,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["t5"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(400);
 
@@ -1301,6 +1333,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1322,6 +1355,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["t1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1342,6 +1376,7 @@ test("Media relations", async (): Promise<void> => {
     .query({
       id: `${id1},${id2}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1358,6 +1393,7 @@ test("Media relations", async (): Promise<void> => {
       media: ["foobar"],
       items: ["a1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -1369,6 +1405,7 @@ test("Media relations", async (): Promise<void> => {
       media: [id1],
       items: ["foobar"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 });
@@ -1398,6 +1435,7 @@ test("Media person locations", async (): Promise<void> => {
     .query({
       id: `${media1.id},${media2.id}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1437,6 +1475,7 @@ test("Media person locations", async (): Promise<void> => {
       media: media2.id,
       person: "p1",
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1493,6 +1532,7 @@ test("Media person locations", async (): Promise<void> => {
         bottom: 1,
       },
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1566,6 +1606,7 @@ test("Media person locations", async (): Promise<void> => {
       person: "p2",
       location: null,
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1602,6 +1643,7 @@ test("Media person locations", async (): Promise<void> => {
       media: [media2.id],
       items: ["p1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1613,6 +1655,7 @@ test("Media person locations", async (): Promise<void> => {
       media: [media2.id],
       items: ["p1"],
     }])
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1621,6 +1664,7 @@ test("Media person locations", async (): Promise<void> => {
     .query({
       id: `${media1.id},${media2.id}`,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1704,6 +1748,7 @@ test("server overload", async (): Promise<void> => {
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(503)
     .then();

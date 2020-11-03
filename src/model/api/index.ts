@@ -6,6 +6,9 @@ import type * as Api from "./types";
 
 export * from "./types";
 
+export const CSRF_COOKIE = "csrftoken";
+export const CSRF_HEADER = "X-CSRFToken";
+
 export enum ErrorCode {
   UnknownException = "server-failure",
   BadMethod = "bad-method",

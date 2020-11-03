@@ -28,4 +28,5 @@ export type ParentProcessInterface = TaskWorkerInterface & {
 
 export interface Session {
   user?: string | null;
+  csrfToken?: string | null;
 }

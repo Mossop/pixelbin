@@ -67,10 +67,15 @@ export default function(): DescriptorsFor<AuthContext> {
 
 export function ensureAuthenticated<A extends unknown[], R>(
   cb: (ctx: AppContext, userDb: UserScopedConnection, ...args: A) => Promise<R>,
+  requireCsrfToken: boolean = true,
 ): (ctx: AppContext, ...args: A) => Promise<R> {
   return async (ctx: AppContext, ...args: A): Promise<R> => {
     let userDb = ctx.userDb;
     if (!userDb) {
+      throw new ApiError(ErrorCode.NotLoggedIn);
+    }
+
+    if (requireCsrfToken && !await ctx.verifyCsrfToken()) {
       throw new ApiError(ErrorCode.NotLoggedIn);
     }
 
@@ -80,10 +85,15 @@ export function ensureAuthenticated<A extends unknown[], R>(
 
 export function ensureAuthenticatedTransaction<A extends unknown[], R>(
   cb: (ctx: AppContext, userDb: UserScopedConnection, ...args: A) => Promise<R>,
+  requireCsrfToken: boolean = true,
 ): (ctx: AppContext, ...args: A) => Promise<R> {
   return async (ctx: AppContext, ...args: A): Promise<R> => {
     let userDb = ctx.userDb;
     if (!userDb) {
+      throw new ApiError(ErrorCode.NotLoggedIn);
+    }
+
+    if (requireCsrfToken && !await ctx.verifyCsrfToken()) {
       throw new ApiError(ErrorCode.NotLoggedIn);
     }
 

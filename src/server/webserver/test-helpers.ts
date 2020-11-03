@@ -1,10 +1,12 @@
 import net from "net";
 import path from "path";
 
+import { CookieAccessInfo } from "cookiejar";
 import type { SuperTest, Test } from "supertest";
 import { agent } from "supertest";
 
 import type { Api, ApiSerialization } from "../../model";
+import { CSRF_COOKIE } from "../../model";
 import { expect } from "../../test-helpers";
 import type { Obj, Resolver, Rejecter } from "../../utils";
 import { idSorted } from "../../utils";
@@ -98,6 +100,11 @@ export function buildTestApp(
   void buildApp();
 
   return (): SuperTest<Test> => agent(server);
+}
+
+export function getCsrfToken(request: SuperTest<Test>): string {
+  let token = request.jar.getCookie(CSRF_COOKIE, new CookieAccessInfo("", "/", false, true));
+  return token?.value ?? "";
 }
 
 export function catalogs(catalogs: string | string[], items: Api.Catalog[]): Api.Catalog[] {

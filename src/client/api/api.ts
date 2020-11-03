@@ -3,6 +3,7 @@ import { JsonDecoder } from "ts.data.json";
 
 import type { Api } from "../../model";
 import { HttpMethods, Method } from "../../model";
+import { CSRF_COOKIE, CSRF_HEADER } from "../../model/api";
 import { appURL, Url } from "../context";
 import { fetch, document } from "../environment";
 import { ApiError, ErrorCode, exception } from "../utils/exception";
@@ -72,7 +73,7 @@ export async function request<T extends Method>(
   let url = appURL(Url.API, method);
 
   let headers: Record<string, string> = {};
-  headers["X-CSRFToken"] = parseCookie(document.cookie)["csrftoken"];
+  headers[CSRF_HEADER] = parseCookie(document.cookie)[CSRF_COOKIE];
 
   let body: string | Record<string, string | Blob> | null = null;
 

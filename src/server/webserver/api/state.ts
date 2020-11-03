@@ -81,6 +81,7 @@ export async function login(
 ): Promise<ApiSerialization<Api.State>> {
   await ctx.login(data.email, data.password);
 
+  await ctx.setCsrfToken();
   return buildState(ctx);
 }
 

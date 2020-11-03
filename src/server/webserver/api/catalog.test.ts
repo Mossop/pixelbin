@@ -1,8 +1,15 @@
-import { ErrorCode, AWSResult, emptyMetadata, RelationType } from "../../../model";
+import { ErrorCode, AWSResult, emptyMetadata, RelationType, CSRF_HEADER } from "../../../model";
 import { expect, getStorageConfig, mockDateTime } from "../../../test-helpers";
 import { connection, insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
-import { buildTestApp, expectUserState, fromCatalogs, catalogs, storage } from "../test-helpers";
+import {
+  buildTestApp,
+  expectUserState,
+  fromCatalogs,
+  catalogs,
+  storage,
+  getCsrfToken,
+} from "../test-helpers";
 import { savedSearchIntoResponse } from "./state";
 
 jest.mock("../../../utils/datetime");
@@ -32,6 +39,7 @@ async function testStorage(id: string): Promise<void> {
   let response = await request
     .post("/api/storage/test")
     .send(config)
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -76,6 +84,7 @@ test("Test Bad storage", async (): Promise<void> => {
       path: null,
       publicUrl: null,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -109,6 +118,7 @@ test("Create storage", async (): Promise<void> => {
       path: null,
       publicUrl: null,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -150,6 +160,7 @@ test("Create catalog", async (): Promise<void> => {
         name: "Bad user",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -176,6 +187,7 @@ test("Create catalog", async (): Promise<void> => {
         name: "Wrong user",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -191,6 +203,7 @@ test("Create catalog", async (): Promise<void> => {
       path: null,
       publicUrl: null,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
   let storageId = response.body.id;
@@ -203,6 +216,7 @@ test("Create catalog", async (): Promise<void> => {
         name: "Good user",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -254,8 +268,11 @@ test("Create catalog", async (): Promise<void> => {
         name: "Existing catalog",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
+
+  request = agent();
 
   await request
     .post("/api/login")
@@ -275,6 +292,7 @@ test("Create catalog", async (): Promise<void> => {
         name: "Inaccessible",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 });
@@ -290,6 +308,7 @@ test("Edit catalog", async (): Promise<void> => {
         name: "Bad user",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -316,6 +335,7 @@ test("Edit catalog", async (): Promise<void> => {
         name: "Updated",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -348,6 +368,8 @@ test("Edit catalog", async (): Promise<void> => {
     searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
+  request = agent();
+
   await request
     .post("/api/login")
     .send({
@@ -365,10 +387,13 @@ test("Edit catalog", async (): Promise<void> => {
         name: "Bad edit",
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
   mockDateTime("2019-06-02T07:08:09Z");
+
+  request = agent();
 
   await request
     .post("/api/login")
@@ -411,6 +436,7 @@ test("Create album", async (): Promise<void> => {
         parent: null,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -438,6 +464,7 @@ test("Create album", async (): Promise<void> => {
         parent: null,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -471,6 +498,8 @@ test("Create album", async (): Promise<void> => {
     searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
+  request = agent();
+
   await request
     .post("/api/login")
     .send({
@@ -489,6 +518,7 @@ test("Create album", async (): Promise<void> => {
         parent: null,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -509,6 +539,7 @@ test("Edit album", async (): Promise<void> => {
       id: "a1",
       album: { name: "Bad name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -533,6 +564,7 @@ test("Edit album", async (): Promise<void> => {
     .send({
       album: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(400);
 
@@ -550,6 +582,7 @@ test("Edit album", async (): Promise<void> => {
       id: "a6",
       album: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -566,6 +599,7 @@ test("Edit album", async (): Promise<void> => {
       id: "a1",
       album: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -583,6 +617,7 @@ test("Edit album", async (): Promise<void> => {
       id: "a3",
       album: { parent: null },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -652,6 +687,7 @@ test("List album and catalog", async (): Promise<void> => {
       id: "a1",
       recursive: false,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -666,6 +702,7 @@ test("List album and catalog", async (): Promise<void> => {
       id: "a3",
       recursive: false,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -680,6 +717,7 @@ test("List album and catalog", async (): Promise<void> => {
       id: "a1",
       recursive: true,
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -694,6 +732,7 @@ test("List album and catalog", async (): Promise<void> => {
     .query({
       id: "c1",
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -717,6 +756,7 @@ test("Create Tag", async (): Promise<void> => {
         parent: null,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -744,6 +784,7 @@ test("Create Tag", async (): Promise<void> => {
         parent: null,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -777,6 +818,8 @@ test("Create Tag", async (): Promise<void> => {
     searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
+  request = agent();
+
   await request
     .post("/api/login")
     .send({
@@ -795,6 +838,7 @@ test("Create Tag", async (): Promise<void> => {
         parent: null,
       },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -815,6 +859,7 @@ test("Edit tag", async (): Promise<void> => {
       id: "c1",
       tag: { name: "Bad name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -839,6 +884,7 @@ test("Edit tag", async (): Promise<void> => {
     .send({
       tag: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(400);
 
@@ -856,6 +902,7 @@ test("Edit tag", async (): Promise<void> => {
       id: "t5",
       tag: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -872,6 +919,7 @@ test("Edit tag", async (): Promise<void> => {
       id: "t1",
       tag: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -923,6 +971,7 @@ test("Find Tag", async (): Promise<void> => {
       catalog: "c1",
       names: ["tag2", "Tag6"],
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -944,6 +993,7 @@ test("Find Tag", async (): Promise<void> => {
       catalog: "c1",
       names: ["tag2", "tag6", "newtag"],
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -974,6 +1024,7 @@ test("Create Person", async (): Promise<void> => {
       catalog: "c1",
       person: { name: "Bad user" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -998,6 +1049,7 @@ test("Create Person", async (): Promise<void> => {
       catalog: "c1",
       person: { name: "Good user" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 
@@ -1030,6 +1082,8 @@ test("Create Person", async (): Promise<void> => {
     searches: testData[Table.SavedSearch].map(savedSearchIntoResponse),
   });
 
+  request = agent();
+
   await request
     .post("/api/login")
     .send({
@@ -1045,6 +1099,7 @@ test("Create Person", async (): Promise<void> => {
       catalog: "c1",
       person: { name: "Bad catalog" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -1065,6 +1120,7 @@ test("Edit person", async (): Promise<void> => {
       id: "c1",
       person: { name: "Bad name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(401);
 
@@ -1089,6 +1145,7 @@ test("Edit person", async (): Promise<void> => {
     .send({
       person: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(400);
 
@@ -1106,6 +1163,7 @@ test("Edit person", async (): Promise<void> => {
       id: "p4",
       person: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(404);
 
@@ -1122,6 +1180,7 @@ test("Edit person", async (): Promise<void> => {
       id: "p1",
       person: { name: "New name" },
     })
+    .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
     .expect(200);
 

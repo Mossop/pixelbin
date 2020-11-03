@@ -6,7 +6,7 @@ import type * as Search from "./search";
 export { Api, ObjectModel, Search, Requests };
 
 export type { ApiSerialization } from "./api";
-export { Method, ErrorCode, HttpMethods, AWSResult } from "./api";
+export { Method, ErrorCode, HttpMethods, AWSResult, CSRF_COOKIE, CSRF_HEADER } from "./api";
 export {
   RelationType,
   AlternateFileType,
