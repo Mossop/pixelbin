@@ -10,6 +10,12 @@ services:
       POSTGRES_PASSWORD: pixelbin
       CONTAINER: postgres
 
+    healthcheck:
+      test: pg_isready
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
     volumes:
       - ../containers:/containers
       - ../data/postgres:/var/lib/postgresql/data:delegated
@@ -29,24 +35,14 @@ services:
 
     command: redis-server --appendonly yes
 
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: unless-stopped
-
-    environment:
-      PGADMIN_LISTEN_PORT: 9192
-      PGADMIN_DEFAULT_EMAIL: dtownsend@oxymoronical.com
-      PGADMIN_DEFAULT_PASSWORD: pgadmin
-
-    volumes:
-      - ../data/pgadmin:/var/lib/pgadmin
-
-    ports:
-      - 9192:9192
-
   minio:
     image: minio/minio
     restart: unless-stopped
+
+    # Not really, but it makes docker-compose wait for postgres to become available before quitting.
+    depends_on:
+      postgres:
+        condition: service_healthy
 
     environment:
       MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
