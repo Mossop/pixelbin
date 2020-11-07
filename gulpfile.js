@@ -4,6 +4,7 @@ const { promises: fs } = require("fs");
 const path = require("path");
 const { Transform } = require("stream");
 
+const AWS = require("aws-sdk");
 const gulp = require("gulp");
 const Vinyl = require("vinyl");
 const webpack = require("webpack");
@@ -237,13 +238,13 @@ async function eslint() {
 
 exports.lint = gulp.series(lintPackages, exports.buildServer, buildClientJs, eslint);
 
-exports.run = gulp.parallel(
+exports.testrun = gulp.parallel(
   watchClientJs,
   watchClientStatic,
   gulp.series(buildServer, async function() {
     let server = new Process("node", [
       path.join(__dirname, "build", "server"),
-      path.join(__dirname, "testconfig.json"),
+      path.join(__dirname, "testrun", "config.json"),
     ]);
     let pretty = new Process(await findBin(__dirname, "pino-pretty"));
     server.pipe(pretty);
@@ -256,6 +257,27 @@ exports.run = gulp.parallel(
 );
 
 exports.migrate = gulp.series(exports.build, async function migrate() {
+  let s3 = new AWS.S3({
+    endpoint: "http://localhost:9000",
+    apiVersion: "2006-03-01",
+    s3ForcePathStyle: true,
+    signatureVersion: "v4",
+    region: "us-west-001",
+
+    accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+    secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  });
+
+  await s3.createBucket({
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    Bucket: "pixelbin",
+  }).promise();
+
+  await s3.createBucket({
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    Bucket: "pixelbin-test",
+  }).promise();
+
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { DatabaseConnection } = require("./build/server/database");
 

@@ -5,7 +5,8 @@ packages/*/build
 /coverage
 /src/client/coverage
 packages/*/coverage
-/data
+/testrun/local
+/testrun/temp
 /.vscode
 /config.ini
 /test.ini

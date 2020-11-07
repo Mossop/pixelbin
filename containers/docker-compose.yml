@@ -8,7 +8,6 @@ services:
     environment:
       POSTGRES_USER: pixelbin
       POSTGRES_PASSWORD: pixelbin
-      CONTAINER: postgres
 
     healthcheck:
       test: pg_isready
@@ -16,19 +15,12 @@ services:
       timeout: 5s
       retries: 5
 
-    volumes:
-      - ../containers:/containers
-      - ../data/postgres:/var/lib/postgresql/data:delegated
-
     ports:
       - 5432:5432
 
   redis:
     image: redis
     restart: unless-stopped
-
-    volumes:
-      - ../data/redis:/data:delegated
 
     ports:
       - 6379:6379
@@ -48,9 +40,6 @@ services:
       MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
       MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
       MINIO_REGION_NAME: us-west-001
-
-    volumes:
-      - ../data/minio:/data:delegated
 
     ports:
       - 9000:9000
