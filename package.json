@@ -6,6 +6,11 @@
   "private": true,
   "license": "UNLICENSED",
   "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "scripts": {
+    "cleanBuild": "rimraf build",
+    "cleanJest": "jest --clearCache",
+    "clean": "run-z cleanBuild,cleanJest"
+  },
   "devDependencies": {
     "@jest/types": "^26.6.1",
     "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
@@ -98,6 +103,8 @@
     "koa-static": "^5.0.0",
     "pino-pretty": "^4.3.0",
     "pretty-hrtime": "^1.0.3",
+    "rimraf": "^3.0.2",
+    "run-z": "^1.6.0",
     "source-map-support": "^0.5.19",
     "supertest": "^5.0.0",
     "ts-jest": "^26.4.3",
