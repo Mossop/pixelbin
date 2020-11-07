@@ -23,18 +23,18 @@ export interface ServerConfig {
   logging: LogConfig;
   storage: StorageConfig;
   cache: CacheConfig;
-  smtp: SmtpConfig;
+  smtp: SmtpConfig | null;
 }
 
 interface ConfigFile {
-  htmlTemplate: string;
-  clientRoot: string;
-  staticRoot: string;
+  htmlTemplate?: string;
+  clientRoot?: string;
+  staticRoot?: string;
   database: DatabaseConfig;
-  logging: LogConfig;
-  storage: StorageConfig;
+  logging?: LogConfig;
+  storage?: string;
   cache: CacheConfig;
-  smtp: SmtpConfig;
+  smtp?: SmtpConfig;
 }
 
 const LOG_LEVELS = [
@@ -90,19 +90,6 @@ const DatabaseConfigDecoder = JsonDecoder.object<DatabaseConfig>({
   database: JsonDecoder.string,
 }, "DatabaseConfig");
 
-const StorageConfigDecoder = oneOf<StorageConfig>([
-  MappingDecoder(JsonDecoder.string, (val: string): StorageConfig => {
-    return {
-      tempDirectory: path.join(val, "temp"),
-      localDirectory: path.join(val, "local"),
-    };
-  }, "StorageConfig"),
-  JsonDecoder.object({
-    tempDirectory: JsonDecoder.string,
-    localDirectory: JsonDecoder.string,
-  }, "StorageConfig"),
-], "StorageConfig");
-
 const CacheConfigDecoder = JsonDecoder.object<CacheConfig>({
   host: JsonDecoder.string,
   port: JsonDecoder.optional(JsonDecoder.number),
@@ -118,14 +105,14 @@ const SmtpConfigDecoder = JsonDecoder.object<SmtpConfig>({
 }, "SmtpConfig");
 
 const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
-  htmlTemplate: JsonDecoder.string,
-  clientRoot: JsonDecoder.string,
-  staticRoot: JsonDecoder.string,
+  htmlTemplate: JsonDecoder.optional(JsonDecoder.string),
+  clientRoot: JsonDecoder.optional(JsonDecoder.string),
+  staticRoot: JsonDecoder.optional(JsonDecoder.string),
   database: DatabaseConfigDecoder,
-  logging: LogConfigDecoder,
-  storage: StorageConfigDecoder,
+  logging: JsonDecoder.optional(LogConfigDecoder),
+  storage: JsonDecoder.string,
   cache: CacheConfigDecoder,
-  smtp: SmtpConfigDecoder,
+  smtp: JsonDecoder.optional(SmtpConfigDecoder),
 }, "ConfigFile");
 
 export async function loadConfig(configFile: string): Promise<ServerConfig> {
@@ -143,40 +130,29 @@ export async function loadConfig(configFile: string): Promise<ServerConfig> {
 
   let configFileData: ConfigFile;
   try {
-    let parsed = JSON.parse(configContent);
-
-    if (!parsed.storageConfig) {
-      parsed.storageConfig = configRoot;
-    }
-
-    if (!parsed.logConfig) {
-      parsed.logConfig = "info";
-    }
-
-    if (!parsed.clientRoot) {
-      parsed.clientRoot = path.join(basedir, "client");
-    }
-
-    if (!parsed.htmlTemplate) {
-      parsed.htmlTemplate = path.join(basedir, "index.html");
-    }
-
-    if (!parsed.staticRoot) {
-      parsed.staticRoot = path.join(basedir, "static");
-    }
-
-    configFileData = await ConfigFileDecoder.decodePromise(parsed);
+    configFileData = await ConfigFileDecoder.decodePromise(JSON.parse(configContent));
   } catch (e) {
     throw new Error(`Failed to parse config file: ${e}`);
   }
 
+  let storage = path.resolve(configFileData.storage ?? configRoot);
+  let storageConfig: StorageConfig = {
+    tempDirectory: path.join(storage, "temp"),
+    localDirectory: path.join(storage, "local"),
+  };
+
   let config: ServerConfig = {
     webserverPackage: path.join(basedir, "server", "webserver"),
     taskWorkerPackage: path.join(basedir, "server", "task-worker"),
-    ...configFileData,
-    storage: {
-      tempDirectory: path.resolve(configRoot, configFileData.storage.tempDirectory),
-      localDirectory: path.resolve(configRoot, configFileData.storage.localDirectory),
+    clientRoot: configFileData.clientRoot ?? path.join(basedir, "client"),
+    staticRoot: configFileData.clientRoot ?? path.join(basedir, "static"),
+    htmlTemplate: configFileData.htmlTemplate ?? path.join(basedir, "index.html"),
+    smtp: configFileData.smtp ?? null,
+    storage: storageConfig,
+    cache: configFileData.cache,
+    database: configFileData.database,
+    logging: configFileData.logging ?? {
+      default: "warn",
     },
   };
 

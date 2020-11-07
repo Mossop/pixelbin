@@ -40,10 +40,14 @@ function buildFromAddress(mbox: ParsedMailbox, override: string | Partial<Addres
 }
 
 export class Emailer {
-  private client: SMTPClient;
-  private from: ParsedMailbox;
+  private client: SMTPClient | undefined;
+  private from: ParsedMailbox | undefined;
 
-  public constructor(private readonly config: SmtpConfig) {
+  public constructor(config: SmtpConfig | null) {
+    if (!config) {
+      return;
+    }
+
     let from = parseOneAddress(config.from);
     if (!isParsedMailbox(from)) {
       throw new Error("From address must be a mailbox.");
@@ -61,8 +65,12 @@ export class Emailer {
   }
 
   private send(content: Partial<MessageHeaders>): Promise<void> {
+    if (!this.client) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve: () => void, reject: (err: Error) => void) => {
-      this.client.send(new Message(content), (err: Error | null) => {
+      this.client?.send(new Message(content), (err: Error | null) => {
         if (err) {
           reject(err);
         } else {
@@ -73,6 +81,10 @@ export class Emailer {
   }
 
   public sendMessage(message: EmailMessage): Promise<void> {
+    if (!this.from) {
+      return Promise.resolve();
+    }
+
     return this.send({
       from: buildFromAddress(this.from, message.from),
       subject: message.subject,
