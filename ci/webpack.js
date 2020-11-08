@@ -49,7 +49,7 @@ async function build(mode) {
     chunkGroups: true,
     chunkOrigins: true,
   }, false);
-  await fs.writeFile(path.join(__dirname, "..", "build", "stats.json"), JSON.stringify(json));
+  await fs.writeFile(path.join(__dirname, "..", "dist", "stats.json"), JSON.stringify(json));
 
   console.log(stats.toString(webpackConfig.stats));
 

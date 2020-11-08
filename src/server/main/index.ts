@@ -90,7 +90,7 @@ async function main(args: string[]): Promise<void> {
   });
 
   if (!args.length) {
-    throw new Error("Must pass a config file.");
+    throw new Error("Must pass a config file or directory.");
   }
 
   let config = await loadConfig(args[0]);

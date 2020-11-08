@@ -31,15 +31,17 @@ async function buildAppContent(
 ): Promise<string> {
   let staticHash: string | null = null;
 
+  let base = path.resolve(path.dirname(path.dirname(__dirname)));
+
   try {
-    staticHash = await fs.readFile(path.join(config.staticRoot, "hash.txt"), {
+    staticHash = await fs.readFile(path.join(base, "static", "hash.txt"), {
       encoding: "utf8",
     });
   } catch (e) {
     // Testing most likely.
   }
 
-  let content = await fs.readFile(config.htmlTemplate, { encoding: "utf8" });
+  let content = await fs.readFile(path.join(base, "index.html"), { encoding: "utf8" });
   return content
     .replace("{% paths %}", JSON.stringify({
       ...APP_PATHS,
@@ -65,6 +67,8 @@ export default async function buildApp(): Promise<App> {
   let config = await parent.getConfig();
   let context = await buildContext();
   let cache = await Services.cache;
+
+  let base = path.resolve(path.dirname(path.dirname(__dirname)));
 
   let router = new Router<DefaultState, AppContext>();
 
@@ -106,17 +110,16 @@ export default async function buildApp(): Promise<App> {
     },
   );
 
+  let staticRoot = path.join(base, "static");
   let staticHash: string | null = null;
 
   try {
-    staticHash = await fs.readFile(path.join(config.staticRoot, "hash.txt"), {
+    staticHash = await fs.readFile(path.join(staticRoot, "hash.txt"), {
       encoding: "utf8",
     });
   } catch (e) {
     // Testing most likely.
   }
-
-  let { staticRoot } = config;
 
   let app = new Koa() as App;
   app.keys = config.secretKeys;
@@ -153,7 +156,7 @@ export default async function buildApp(): Promise<App> {
     )
     .use(mount(APP_PATHS.static, notFound))
 
-    .use(mount(APP_PATHS.app, serve(config.appRoot, {
+    .use(mount(APP_PATHS.app, serve(path.join(base, "client"), {
       maxAge: 1000 * 60 * 60 * 365,
       immutable: true,
     })))

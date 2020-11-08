@@ -1,4 +1,5 @@
 import child_process from "child_process";
+import path from "path";
 
 import { getLogger, bound } from "../../utils";
 import type {
@@ -20,9 +21,7 @@ const BACKOFF_DELAYS = [
   30 * 60000,
 ];
 
-export type TaskConfig = TaskWorkerConfig & {
-  taskWorkerPackage: string;
-};
+export type TaskConfig = TaskWorkerConfig;
 
 const logger = getLogger("tasks-manager");
 
@@ -32,6 +31,8 @@ export class TaskManager extends Service {
   public constructor(private readonly config: TaskConfig) {
     super(logger);
 
+    let module = path.resolve(path.join(path.dirname(__dirname), "task-worker"));
+
     this.pool = new WorkerPool<TaskWorkerInterface, ParentProcessInterface>({
       localInterface: bound(this.interface, this),
       minWorkers: 0,
@@ -40,7 +41,7 @@ export class TaskManager extends Service {
       logger,
       fork: async (): Promise<AbstractChildProcess> => {
         logger.trace("Forking new task worker process.");
-        return child_process.fork(config.taskWorkerPackage, [], {
+        return child_process.fork(module, [], {
           serialization: "advanced",
         });
       },
@@ -121,7 +122,6 @@ ${e.stack}`,
 export async function initTaskManager(): Promise<TaskManager> {
   let config = await Services.config;
   return new TaskManager({
-    taskWorkerPackage: config.taskWorkerPackage,
     database: config.database,
     logging: config.logging,
     storage: config.storage,

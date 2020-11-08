@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import { Process } from "./utils/process";
+import { Process } from "./server/utils/process";
 
 async function findBin(dir: string, name: string): Promise<string> {
   while (dir != "/") {
@@ -19,9 +19,8 @@ async function findBin(dir: string, name: string): Promise<string> {
 }
 
 async function main(args: string[]): Promise<number> {
-  console.log("Start", args);
   let server = new Process(process.execPath, [
-    path.join(__dirname, "main"),
+    path.join(__dirname, "server", "main"),
     ...args,
   ]);
   let pretty = new Process(await findBin(__dirname, "pino-pretty"));

@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../build",
+    "outDir": "../dist",
     "lib": [
       "ESNext"
     ],
@@ -11,6 +11,7 @@
     "server/**/*",
     "model/**/*",
     "utils/**/*",
+    "index.ts",
   ],
   "exclude": [
     "**/*.test.ts",

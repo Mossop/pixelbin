@@ -11,9 +11,7 @@ import { Service } from "./service";
 import Services from "./services";
 import type { TaskManager } from "./tasks";
 
-export type WebConfig = WebserverConfig & {
-  webserverPackage: string;
-};
+export type WebConfig = WebserverConfig;
 
 const logger = getLogger("webserver-manager");
 
@@ -37,6 +35,8 @@ export class WebserverManager extends Service {
       logger.info(`Listening on http://${address}`);
     }));
 
+    let module = path.resolve(path.join(path.dirname(__dirname), "webserver"));
+
     this.pool = new WorkerPool<undefined, ParentProcessInterface>({
       localInterface: bound(this.interface, this),
       minWorkers: 4,
@@ -44,7 +44,7 @@ export class WebserverManager extends Service {
       logger,
       fork: async (): Promise<AbstractChildProcess> => {
         logger.trace("Forking new process.");
-        return child_process.fork(config.webserverPackage, [], {
+        return child_process.fork(module, [], {
           serialization: "advanced",
         });
       },
@@ -82,10 +82,6 @@ export async function initWebserver(): Promise<WebserverManager> {
   let config = await Services.config;
 
   return new WebserverManager({
-    htmlTemplate: path.join(config.htmlTemplate),
-    webserverPackage: config.webserverPackage,
-    staticRoot: path.join(config.staticRoot),
-    appRoot: path.join(config.clientRoot),
     database: config.database,
     logging: config.logging,
     storage: config.storage,

@@ -23,7 +23,7 @@ async function migrate() {
   }).promise();
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { DatabaseConnection } = require("../build/server/database");
+  const { DatabaseConnection } = require("../dist/server/database");
 
   let connection = await DatabaseConnection.connect("gulp", {
     username: "pixelbin",
@@ -36,12 +36,12 @@ async function migrate() {
   await connection.knex.migrate.latest();
 
   await connection.createUser({
-    email: "dtownsend@oxymoronical.com",
-    fullname: "Dave Townsend",
-    password: "testpassword",
+    email: "admin@pixelbin.org",
+    fullname: "Pixelbin",
+    password: "pixelbin",
   });
 
-  let userDb = connection.forUser("dtownsend@oxymoronical.com");
+  let userDb = connection.forUser("admin@pixelbin.org");
   await userDb.createStorage({
     name: "Minio",
     accessKeyId: "AKIAIOSFODNN7EXAMPLE",

@@ -8,7 +8,7 @@
   "author": "Dave Townsend <dtownsend@oxymoronical.com>",
   "scripts": {
     "depcheck": "run-z --then depcheck",
-    "cleanBuild": "run-z --then rimraf build",
+    "cleanBuild": "run-z --then rimraf dist",
     "cleanJest": "run-z --then jest --clearCache",
     "cleanEslint": "run-z --then rimraf .eslintcache",
     "clean": "run-z cleanBuild,cleanJest,cleanEslint",
@@ -28,9 +28,9 @@
     "buildServer": "run-z --then tsc --project ./src/tsconfig.server.json",
     "watchServer": "run-z --then tsc --watch --project ./src/tsconfig.server.json",
     "build": "run-z buildClient,buildStatic,buildServer",
-    "start": "node ./build/server",
-    "migrate": "run-z buildServer --then node ./ci/migrate.js",
-    "testrun": "run-z buildServer watchClient,watchStatic --and node ./build/server testrun/config.json"
+    "start": "node ./dist",
+    "init-test-db": "run-z buildServer --then node ./ci/testdb.js",
+    "testrun": "run-z buildServer watchClient,watchStatic --and node ./dist testrun"
   },
   "devDependencies": {
     "@jest/globals": "^26.6.2",
@@ -49,6 +49,8 @@
     "@types/jest": "^26.0.15",
     "@types/jest-image-snapshot": "^4.1.2",
     "@types/karma": "^5.0.0",
+    "@types/karma-coverage-istanbul-reporter": "^2.1.0",
+    "@types/karma-webpack": "^2.0.7",
     "@types/koa": "^2.11.6",
     "@types/koa-mount": "^4.0.0",
     "@types/koa-static": "^4.0.1",

@@ -32,7 +32,7 @@ async function build() {
   let root = path.resolve(path.dirname(__dirname));
 
   let source = path.join(root, "static", "client");
-  let target = path.join(root, "build", "static");
+  let target = path.join(root, "dist", "static");
 
   let files = await listFiles("**/*", source);
   for (let file of files) {

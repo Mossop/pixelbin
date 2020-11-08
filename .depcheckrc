@@ -9,6 +9,8 @@
     "@types/istanbul-reports",
     "@types/jest",
     "@types/karma",
+    "@types/karma-coverage-istanbul-reporter",
+    "@types/karma-webpack",
     "@types/webpack",
     "@types/webpack-subresource-integrity",
     "cache-loader",

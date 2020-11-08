@@ -6,9 +6,6 @@ import type { DatabaseConfig } from "../database";
 import type { StorageConfig } from "../storage";
 
 export interface WebserverConfig {
-  htmlTemplate: string;
-  staticRoot: string;
-  appRoot: string;
   database: DatabaseConfig;
   logging: LogConfig;
   storage: StorageConfig;

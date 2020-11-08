@@ -3,7 +3,7 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
-    "outDir": "build",
+    "outDir": "dist",
     "lib": [
       "ESNext",
       "DOM",
@@ -11,7 +11,7 @@
     ]
   },
   "exclude": [
-    "build/**/*",
+    "dist/**/*",
   ],
   "include": [
     "ci/*",

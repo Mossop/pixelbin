@@ -68,7 +68,7 @@ module.exports = (mode = "development") => {
       extensions: [".js", ".jsx", ".ts", ".tsx"],
     },
     output: {
-      path: path.join(__dirname, "..", "..", "build", "client"),
+      path: path.join(__dirname, "..", "..", "dist", "client"),
       publicPath: "/app/",
       filename: "[name].[chunkhash].js",
       crossOriginLoading: "anonymous",
@@ -89,7 +89,7 @@ module.exports = (mode = "development") => {
         },
       }),
       new HtmlWebpackPlugin({
-        filename: path.join(__dirname, "..", "..", "build", "index.html"),
+        filename: path.join(__dirname, "..", "..", "dist", "index.html"),
         template: path.join(__dirname, "index.ejs"),
         scriptLoading: "defer",
         inject: true,
