@@ -2,9 +2,9 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es2019",
-    "declaration": true,
+    "declaration": false,
     "sourceMap": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "esModuleInterop": true,
     "moduleResolution": "Node",
     "resolveJsonModule": true,

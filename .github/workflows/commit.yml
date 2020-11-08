@@ -79,7 +79,6 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp
         npm install
 
     - name: Run tests
@@ -89,7 +88,7 @@ jobs:
         STORAGE_B2_ACCESS_KEY_ID: ${{ secrets.STORAGE_B2_ACCESS_KEY_ID }}
         STORAGE_B2_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_B2_SECRET_ACCESS_KEY }}
       run: |
-        gulp test
+        npm test
 
     - name: Upload code coverage
       env:
@@ -99,4 +98,4 @@ jobs:
 
     - name: Run lint checks
       run: |
-        gulp lint
+        npm run lint

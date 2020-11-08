@@ -40,12 +40,11 @@ jobs:
 
     - name: Install node packages
       run: |
-        npm install -g gulp
         npm install
 
     - name: Run tests
       run: |
-        gulp browserTests
+        npm run browserTests
 
     - name: Upload code coverage
       env:

@@ -78,7 +78,7 @@ async function startup(config: ServerConfig): Promise<void> {
   await startSchedule();
 }
 
-export async function main(args: string[]): Promise<void> {
+async function main(args: string[]): Promise<void> {
   process.on("SIGTERM", (): void => {
     logger.trace("Received SIGTERM.");
     quit();
@@ -99,3 +99,5 @@ export async function main(args: string[]): Promise<void> {
     logger.error(error, "Server startup threw error.");
   });
 }
+
+main(process.argv.slice(2)).catch(console.error);

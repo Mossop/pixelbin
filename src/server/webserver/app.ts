@@ -118,10 +118,6 @@ export default async function buildApp(): Promise<App> {
 
   let { staticRoot } = config;
 
-  if (staticHash) {
-    staticRoot = path.join(staticRoot, staticHash);
-  }
-
   let app = new Koa() as App;
   app.keys = config.secretKeys;
 

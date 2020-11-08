@@ -11,6 +11,6 @@ rm -rf testrun/local
 ${WORKSPACE}/containers/start.sh
 
 container=$(docker container ls -q --filter "ancestor=postgres")
-docker exec -it $container createdb -h localhost -U pixelbin pixelbin
+# Note the container automatically creates the pixelbin user and database.
 docker exec -it $container createdb -h localhost -U pixelbin pixelbin_test
-gulp migrate
+npm run migrate
