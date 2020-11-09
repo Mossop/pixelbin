@@ -1,5 +1,3 @@
-import path from "path";
-
 import Knex from "knex";
 import { DateTime as Luxon } from "luxon";
 import { types } from "pg";
@@ -10,6 +8,7 @@ import * as CatalogQueries from "./catalog";
 import { DatabaseError, DatabaseErrorCode, notfound, notwritable } from "./error";
 import * as Joins from "./joins";
 import * as MediaQueries from "./media";
+import Migrations from "./migrations";
 import { from } from "./queries";
 import * as SearchQueries from "./search";
 import type { TableRecord, UserRef } from "./types";
@@ -126,6 +125,18 @@ export class DatabaseConnection {
     }, "Database query response");
   };
 
+  public async migrate(): Promise<void> {
+    if (this._transaction) {
+      throw new Error("Cannot migrate while in a transaction.");
+    }
+
+    let migrations = new Migrations();
+
+    await this.knex.migrate.latest({
+      migrationSource: migrations,
+    });
+  }
+
   public forUser(user: UserRef): UserScopedConnection {
     return new UserScopedConnection(this, user);
   }
@@ -231,10 +242,6 @@ export class DatabaseConnection {
       asyncStackTraces: ["test", "development"].includes(process.env.NODE_ENV ?? ""),
       connection: `postgres://${auth}@${host}/${config.database}`,
       searchPath: schema ? [schema] : undefined,
-      migrations: {
-        directory: path.join(__dirname, "migrations"),
-        schemaName: schema ?? undefined,
-      },
       log: {
         warn(message: string): void {
           dbLogger.warn(message);

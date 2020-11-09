@@ -20,7 +20,7 @@ async function initDatabase(): Promise<DatabaseConnection> {
   let config = await Services.config;
 
   let dbConnection = await DatabaseConnection.connect("main", config.database);
-  await dbConnection.knex.migrate.latest();
+  await dbConnection.migrate();
 
   events.on("shutdown", () => {
     logger.catch(dbConnection.destroy());

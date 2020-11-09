@@ -33,7 +33,7 @@ async function migrate() {
     database: "pixelbin",
   });
 
-  await connection.knex.migrate.latest();
+  await connection.migrate();
 
   await connection.createUser({
     email: "admin@pixelbin.org",

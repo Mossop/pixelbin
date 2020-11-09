@@ -54,7 +54,7 @@ export async function initDB(): Promise<void> {
     await dbConnection.raw("CREATE SCHEMA ??;", [params.schema]);
   }
 
-  await dbConnection.knex.migrate.latest();
+  await dbConnection.migrate();
 }
 
 let first = true;
