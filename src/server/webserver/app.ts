@@ -29,17 +29,19 @@ async function buildAppContent(
   nonce: string,
   state: ApiSerialization<Api.State>,
 ): Promise<string> {
-  let staticHash: string | null = null;
+  if (process.env.NODE_ENV == "test") {
+    return `<html>
+<head>
+<script id="initial-state" type="application/json">${JSON.stringify(state)}</script>
+</head>
+</html>`;
+  }
 
   let base = path.resolve(path.dirname(path.dirname(__dirname)));
 
-  try {
-    staticHash = await fs.readFile(path.join(base, "static", "hash.txt"), {
-      encoding: "utf8",
-    });
-  } catch (e) {
-    // Testing most likely.
-  }
+  let staticHash = await fs.readFile(path.join(base, "static", "hash.txt"), {
+    encoding: "utf8",
+  });
 
   let content = await fs.readFile(path.join(base, "index.html"), { encoding: "utf8" });
   return content
@@ -111,12 +113,12 @@ export default async function buildApp(): Promise<App> {
   );
 
   let staticRoot = path.join(base, "static");
-  let staticHash: string | null = null;
+  let staticHash = "";
 
   try {
     staticHash = await fs.readFile(path.join(staticRoot, "hash.txt"), {
       encoding: "utf8",
-    });
+    }) + "/";
   } catch (e) {
     // Testing most likely.
   }
@@ -147,7 +149,7 @@ export default async function buildApp(): Promise<App> {
 
     .use(
       mount(
-        `${APP_PATHS.static}${staticHash}/`,
+        `${APP_PATHS.static}${staticHash}`,
         serve(staticRoot, {
           maxAge: 1000 * 60 * 60 * 365,
           immutable: true,
