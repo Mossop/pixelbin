@@ -188,7 +188,8 @@ export default async function buildApp(): Promise<App> {
             fontSrc: ["'self'", "fonts.gstatic.com"],
             scriptSrc: ["'self'", `'nonce-${nonce}'`],
             styleSrc: ["'self'", `'nonce-${nonce}'`],
-            imgSrc: ["'self'", "https://www.gravatar.com"],
+            imgSrc: ["'self'", "http:", "https:"],
+            mediaSrc: ["'self'", "http:", "https:"],
           },
         }),
       );
