@@ -126,7 +126,7 @@ export const loadConfig = serviceBuilder(
   "config",
   async function loadConfig(configTarget: string = ""): Promise<ServerConfig> {
     let configFile = await findConfig(configTarget);
-    let configRoot = path.dirname(configTarget);
+    let configRoot = path.dirname(configFile);
 
     let configContent: string;
     try {
