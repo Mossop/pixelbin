@@ -26,6 +26,14 @@ async function main(args: string[]): Promise<number> {
   let pretty = new Process(await findBin(__dirname, "pino-pretty"));
   server.pipe(pretty);
 
+  process.on("SIGTERM", (): void => {
+    server.kill("SIGTERM");
+  });
+
+  process.on("SIGINT", (): void => {
+    server.kill("SIGINT");
+  });
+
   return server.exitCode;
 }
 

@@ -103,13 +103,13 @@ const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   smtp: JsonDecoder.optional(SmtpConfigDecoder),
 }, "ConfigFile");
 
-async function findConfig(configTarget: string = ""): Promise<string> {
+async function findConfig(configTarget: string): Promise<string> {
   let target = path.resolve(configTarget);
 
   try {
     let stats = await fs.stat(target);
     if (stats.isDirectory()) {
-      target = path.join("pixelbin.json");
+      target = path.join(target, "pixelbin.json");
       stats = await fs.stat(target);
       if (!stats.isFile()) {
         throw new Error("Not a file.");

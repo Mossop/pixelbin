@@ -16,14 +16,17 @@ export type SeedOptions = GlobalOptions & {
   file: string;
 };
 
-class SinglePositionalAction extends Action {
+class SingleItemAction extends Action {
   public call(
     parser: ArgumentParser,
     namespace: Namespace,
     values: string | string[],
   ): void {
-    // @ts-ignore
-    namespace.file = values[0];
+    if (Array.isArray(values)) {
+      namespace[this.dest] = values[0];
+    } else {
+      namespace[this.dest] = values;
+    }
   }
 }
 
@@ -38,6 +41,7 @@ export default function cli(args: string[]): void {
 
   parser.add_argument("--config", {
     nargs: 1,
+    action: SingleItemAction,
     help: "The config file or directory to use. Defaults to the current directory.",
   });
 
@@ -55,7 +59,7 @@ export default function cli(args: string[]): void {
 
   seedParser.add_argument("file", {
     nargs: 1,
-    action: SinglePositionalAction,
+    action: SingleItemAction,
     help: "The file to seed the database with.",
   });
 
