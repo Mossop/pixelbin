@@ -1,0 +1,5 @@
+#! /bin/sh
+
+DIST=$(cd $(dirname "$0") && cd dist && pwd | sed -e s/\\/$//g)
+
+exec node ${DIST} $@

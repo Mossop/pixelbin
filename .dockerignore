@@ -1,0 +1,11 @@
+.*
+containers
+coverage
+dist
+testdata
+testrun
+Dockerfile
+jest.config.js
+README.md
+secrets.json
+node_modules
