@@ -8,7 +8,10 @@ RUN \
   npm install && \
   npm run build && \
   apk del --no-network builddeps && \
-  apk add --no-cache ffmpeg
+  apk add --no-cache ffmpeg perl && \
+  mkdir -p /config /data
+
+ENV PATH="/pixelbin:${PATH}"
 
 WORKDIR /config
 
