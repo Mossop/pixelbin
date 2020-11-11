@@ -89,25 +89,26 @@ export function setLogConfig(config: LevelWithSilent | LogConfig): void {
   }
 
   for (let [name, loggers] of Loggers.entries()) {
+    let level = getLoggerLevel(name);
     loggers.forEach((logger: Logger): void => {
-      logger.setLevel(getLoggerLevel(name));
+      logger.setLevel(level);
     });
   }
 }
 
-export function getLogger(name: string, options: pino.LoggerOptions = {}): Logger {
+export function getLogger(name: string): Logger {
   let loggers = Loggers.get(name);
   if (loggers) {
     return loggers[0];
   }
 
-  options = Object.assign(options, {
-    base: Object.assign(options.base ?? {}, { pid: process.pid }),
-    level: getLoggerLevel(name),
-    name,
-  });
-
   Loggers.set(name, []);
-  let logger = buildLogger(name, pino(options));
+  let logger = buildLogger(name, pino({
+    level: getLoggerLevel(name),
+    base: {
+      pid: process.pid,
+    },
+    name,
+  }));
   return logger;
 }
