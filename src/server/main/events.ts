@@ -1,6 +1,6 @@
 import { getLogger, SharedEmitter } from "../../utils";
 
-const logger = getLogger("server");
+const logger = getLogger("pixelbin");
 
 const events = new SharedEmitter<{
   shutdown: [];

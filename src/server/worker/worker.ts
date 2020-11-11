@@ -108,7 +108,7 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     }, {
       ...this.options,
       logger: this.logger.child({
-        name: this.logger.name + "/channel",
+        name: "channel",
       }),
     });
 

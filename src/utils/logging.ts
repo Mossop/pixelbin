@@ -22,7 +22,7 @@ function buildLogger(name: string, pinoLogger: pino.Logger): Logger {
     name,
     isLevelEnabled: pinoLogger.isLevelEnabled.bind(pinoLogger),
     child: (bindings: Bindings): Logger => {
-      let newName = bindings.name ?? name;
+      let newName = bindings.name ? `${name}/${bindings.name}` : name;
       return buildLogger(newName, pinoLogger.child(bindings));
     },
     catch: (promise: Promise<unknown>): void => {

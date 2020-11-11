@@ -74,7 +74,7 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       {
         ...options,
         logger: this.logger.child({
-          name: this.logger.name + "/channel",
+          name: "channel",
         }),
       },
     );

@@ -27,3 +27,19 @@ export function serviceProvider<SM>(
     map[service].resolve(value);
   };
 }
+
+type ServiceBuilder<SM> = <
+  S extends keyof SM,
+  A extends unknown[],
+>(service: S, builder: (...args: A) => ServiceResolution<SM, S>) => (...args: A) => void;
+export function serviceBuilderWrapper<SM>(map: SM): ServiceBuilder<SM> {
+  return <
+    S extends keyof SM,
+    A extends unknown[],
+  >(service: S, builder: (...args: A) => ServiceResolution<SM, S>): (...args: A) => void => {
+    return (...args: A): void => {
+      // @ts-ignore
+      map[service].resolve(builder(...args));
+    };
+  };
+}

@@ -27,6 +27,14 @@ export function defer<T = void>(): Deferred<T> {
   };
 }
 
+export function safeDefer<T = void>(): Deferred<T> {
+  let deferred = defer<T>();
+  deferred.promise.catch(() => {
+    // no-op
+  });
+  return deferred;
+}
+
 interface TrackedPromise<T> {
   promise: Promise<T>;
   id: string;

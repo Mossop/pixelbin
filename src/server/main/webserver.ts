@@ -8,12 +8,11 @@ import type { AbstractChildProcess } from "../worker";
 import { WorkerPool } from "../worker";
 import { quit } from "./events";
 import { Service } from "./service";
-import Services from "./services";
 import type { TaskManager } from "./tasks";
 
 export type WebConfig = WebserverConfig;
 
-const logger = getLogger("webserver-manager");
+const logger = getLogger("pixelbin/webserver");
 
 export class WebserverManager extends Service {
   private readonly server: net.Server;
@@ -76,16 +75,4 @@ export class WebserverManager extends Service {
       return this.taskManager.handleUploadedFile(id);
     },
   };
-}
-
-export async function initWebserver(): Promise<WebserverManager> {
-  let config = await Services.config;
-
-  return new WebserverManager({
-    database: config.database,
-    logging: config.logging,
-    storage: config.storage,
-    cache: config.cache,
-    secretKeys: ["Random secret"],
-  }, await Services.taskManager);
 }

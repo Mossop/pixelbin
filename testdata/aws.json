@@ -2,9 +2,10 @@
   "b2": {
     "name": "Backblaze B2",
     "endpoint": "https://s3.us-west-002.backblazeb2.com",
-    "publicUrl": "https://pixelbin-test.oxymoronical.com/file/pixelbin-test/",
+    "publicUrl": "https://pixelbin-test.oxymoronical.com/file/pixelbin-test/testruns",
     "bucket": "pixelbin-test",
-    "region": "us-west-002"
+    "region": "us-west-002",
+    "path": "testruns"
   },
   "aws": {
     "name": "AWS",

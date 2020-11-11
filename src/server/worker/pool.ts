@@ -249,7 +249,7 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
         workerProcess = await WorkerProcess.attach<R, L>({
           ...this.options,
           logger: this.logger.child({
-            name: this.logger.name + "/worker",
+            name: "worker",
           }),
           process: await this.options.fork(),
         });

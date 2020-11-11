@@ -23,7 +23,7 @@ const BACKOFF_DELAYS = [
 
 export type TaskConfig = TaskWorkerConfig;
 
-const logger = getLogger("tasks-manager");
+const logger = getLogger("pixelbin/tasks");
 
 export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
@@ -117,13 +117,4 @@ ${e.stack}`,
       return this.config;
     },
   };
-}
-
-export async function initTaskManager(): Promise<TaskManager> {
-  let config = await Services.config;
-  return new TaskManager({
-    database: config.database,
-    logging: config.logging,
-    storage: config.storage,
-  });
 }

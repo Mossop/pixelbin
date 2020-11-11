@@ -5,11 +5,12 @@ import type { Level, LevelWithSilent } from "pino";
 import { JsonDecoder } from "ts.data.json";
 
 import type { LogConfig } from "../../utils";
-import { MappingDecoder, oneOf } from "../../utils";
+import { setLogConfig, MappingDecoder, oneOf } from "../../utils";
 import type { CacheConfig } from "../cache";
 import type { DatabaseConfig } from "../database";
 import type { SmtpConfig } from "../email";
 import type { StorageConfig } from "../storage";
+import { serviceBuilder } from "./services";
 
 export interface ServerConfig {
   database: DatabaseConfig;
@@ -102,55 +103,72 @@ const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   smtp: JsonDecoder.optional(SmtpConfigDecoder),
 }, "ConfigFile");
 
-export async function loadConfig(configTarget: string): Promise<ServerConfig> {
-  let stats = await fs.stat(configTarget);
-  let configRoot = path.resolve(configTarget);
-  let configFile = configRoot;
-
-  if (stats.isDirectory()) {
-    configFile = path.join(configTarget, "pixelbin.json");
-  } else {
-    configRoot = path.dirname(configTarget);
-  }
-  let configContent: string;
+async function findConfig(configTarget: string = ""): Promise<string> {
+  let target = path.resolve(configTarget);
 
   try {
-    configContent = await fs.readFile(configFile, {
-      encoding: "utf8",
-    });
+    let stats = await fs.stat(target);
+    if (stats.isDirectory()) {
+      target = path.join("pixelbin.json");
+      stats = await fs.stat(target);
+      if (!stats.isFile()) {
+        throw new Error("Not a file.");
+      }
+    }
+
+    return target;
   } catch (e) {
-    throw new Error(`Failed to read config file: ${e}`);
+    throw new Error(`No configuration found at ${target}`);
   }
-
-  let configFileData: ConfigFile;
-  try {
-    configFileData = await ConfigFileDecoder.decodePromise(JSON.parse(configContent));
-  } catch (e) {
-    throw new Error(`Failed to parse config file: ${e}`);
-  }
-
-  let storage = path.resolve(configRoot, configFileData.storage ?? ".");
-  let storageConfig: StorageConfig = {
-    tempDirectory: path.join(storage, "temp"),
-    localDirectory: path.join(storage, "local"),
-  };
-
-  let config: ServerConfig = {
-    smtp: configFileData.smtp ?? null,
-    storage: storageConfig,
-    cache: configFileData.cache,
-    database: configFileData.database,
-    logging: configFileData.logging ?? {
-      default: "warn",
-    },
-  };
-
-  await fs.mkdir(config.storage.tempDirectory, {
-    recursive: true,
-  });
-  await fs.mkdir(config.storage.localDirectory, {
-    recursive: true,
-  });
-
-  return config;
 }
+
+export const loadConfig = serviceBuilder(
+  "config",
+  async function loadConfig(configTarget: string = ""): Promise<ServerConfig> {
+    let configFile = await findConfig(configTarget);
+    let configRoot = path.dirname(configTarget);
+
+    let configContent: string;
+    try {
+      configContent = await fs.readFile(configFile, {
+        encoding: "utf8",
+      });
+    } catch (e) {
+      throw new Error(`Failed to read config file: ${e}`);
+    }
+
+    let configFileData: ConfigFile;
+    try {
+      configFileData = await ConfigFileDecoder.decodePromise(JSON.parse(configContent));
+    } catch (e) {
+      throw new Error(`Failed to parse config file: ${e}`);
+    }
+
+    let storage = path.resolve(configRoot, configFileData.storage ?? ".");
+    let storageConfig: StorageConfig = {
+      tempDirectory: path.join(storage, "temp"),
+      localDirectory: path.join(storage, "local"),
+    };
+
+    let config: ServerConfig = {
+      smtp: configFileData.smtp ?? null,
+      storage: storageConfig,
+      cache: configFileData.cache,
+      database: configFileData.database,
+      logging: configFileData.logging ?? {
+        default: "warn",
+      },
+    };
+
+    await fs.mkdir(config.storage.tempDirectory, {
+      recursive: true,
+    });
+    await fs.mkdir(config.storage.localDirectory, {
+      recursive: true,
+    });
+
+    setLogConfig(config.logging);
+
+    return config;
+  },
+);
