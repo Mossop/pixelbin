@@ -35,22 +35,23 @@ async function migrate() {
 
   await connection.migrate();
 
-  await connection.createUser({
-    email: "admin@pixelbin.org",
-    fullname: "Pixelbin",
-    password: "pixelbin",
-  });
+  await connection.seed({
+    users: [{
+      email: "admin@pixelbin.org",
+      fullname: "Pixelbin",
+      password: "pixelbin",
 
-  let userDb = connection.forUser("admin@pixelbin.org");
-  await userDb.createStorage({
-    name: "Minio",
-    accessKeyId: "AKIAIOSFODNN7EXAMPLE",
-    secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-    bucket: "pixelbin",
-    region: "us-west-001",
-    path: null,
-    endpoint: "http://localhost:9000",
-    publicUrl: null,
+      storage: [{
+        name: "Minio",
+        accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+        secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        bucket: "pixelbin",
+        region: "us-west-001",
+        path: null,
+        endpoint: "http://localhost:9000",
+        publicUrl: null,
+      }],
+    }],
   });
 
   await connection.destroy();

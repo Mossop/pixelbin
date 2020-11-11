@@ -11,6 +11,7 @@ import * as MediaQueries from "./media";
 import Migrations from "./migrations";
 import { from } from "./queries";
 import * as SearchQueries from "./search";
+import { seed } from "./seed";
 import type { TableRecord, UserRef } from "./types";
 import { ref, Table } from "./types";
 import * as Unsafe from "./unsafe";
@@ -225,6 +226,8 @@ export class DatabaseConnection {
   public readonly listAlternateFiles = wrapped(Unsafe.listAlternateFiles);
   public readonly deleteAlternateFiles = wrapped(Unsafe.deleteAlternateFiles);
   public readonly getUserForMedia = wrapped(Unsafe.getUserForMedia);
+
+  public readonly seed = wrapped(seed);
 
   public static async connect(name: string, config: DatabaseConfig): Promise<DatabaseConnection> {
     let dbLogger = logger.child({
