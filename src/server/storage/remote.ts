@@ -78,15 +78,19 @@ class AWSRemote extends Remote {
     });
   }
 
+  public getFullTarget(target: string): string {
+    return `${this.catalog}/${target}`;
+  }
+
   public async getUrl(target: string, contentType?: string): Promise<string> {
-    let publicUrl = s3PublicUrl(this.storage, target);
+    let publicUrl = s3PublicUrl(this.storage, this.getFullTarget(target));
     if (publicUrl) {
       return publicUrl;
     }
 
     /* eslint-disable @typescript-eslint/naming-convention */
     return this.s3.getSignedUrlPromise("getObject", {
-      ...s3Params(this.storage, target),
+      ...s3Params(this.storage, this.getFullTarget(target)),
       Expires: 60 * 5,
       ResponseCacheControl: "max-age=1314000,immutable",
       ResponseContentType: contentType,
@@ -97,7 +101,7 @@ class AWSRemote extends Remote {
   public async upload(target: string, stream: NodeJS.ReadableStream, size?: number): Promise<void> {
     /* eslint-disable @typescript-eslint/naming-convention */
     let request = this.s3.upload({
-      ...s3Params(this.storage, target),
+      ...s3Params(this.storage, this.getFullTarget(target)),
       Body: stream,
       ContentLength: size,
     });
@@ -107,13 +111,13 @@ class AWSRemote extends Remote {
   }
 
   public async stream(target: string): Promise<NodeJS.ReadableStream> {
-    let publicUrl = s3PublicUrl(this.storage, target);
+    let publicUrl = s3PublicUrl(this.storage, this.getFullTarget(target));
     if (publicUrl) {
       let response = await fetch(publicUrl);
       return response.body;
     }
 
-    let request = this.s3.getObject(s3Params(this.storage, target));
+    let request = this.s3.getObject(s3Params(this.storage, this.getFullTarget(target)));
 
     let result = await request.promise();
     let body = result.Body;
@@ -132,6 +136,6 @@ class AWSRemote extends Remote {
   }
 
   public async delete(target: string): Promise<void> {
-    await this.s3.deleteObject(s3Params(this.storage, target)).promise();
+    await this.s3.deleteObject(s3Params(this.storage, this.getFullTarget(target))).promise();
   }
 }

@@ -24,8 +24,16 @@ interface S3Params {
 }
 
 function pathAppend(base: string | null, path: string): string {
+  if (path.startsWith("/")) {
+    path = path.substring(1);
+  }
+
   if (!base) {
     return path;
+  }
+
+  if (base.startsWith("/")) {
+    base = base.substring(1);
   }
 
   if (!base.endsWith("/")) {

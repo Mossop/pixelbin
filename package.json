@@ -30,7 +30,7 @@
     "build": "run-z buildClient,buildStatic,buildServer",
     "start": "node ./dist",
     "init-test-db": "run-z buildServer --then node ./ci/testdb.js",
-    "testrun": "run-z buildServer watchClient,watchStatic --and node ./dist testrun"
+    "testrun": "run-z buildServer watchClient,watchStatic --and node ./dist --config testrun"
   },
   "devDependencies": {
     "@jest/globals": "^26.6.2",
