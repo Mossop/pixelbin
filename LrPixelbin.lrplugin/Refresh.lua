@@ -12,7 +12,6 @@ Utils.runAsync(logger, "Refresh", function()
     local settings = service:getPublishSettings()
 
     local api = API(settings)
-    api:cache(service.localIdentifier)
     api:refresh()
   end
 end)

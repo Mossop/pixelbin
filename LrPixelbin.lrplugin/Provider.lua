@@ -451,7 +451,7 @@ local function verifyLogin(propertyTable)
 
   Utils.runAsync(logger, "verifyLogin", function()
     local api = API(propertyTable)
-    api:login()
+    api:refresh()
     local error = api:error()
 
     if error then
