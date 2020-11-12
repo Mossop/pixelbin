@@ -341,7 +341,7 @@ local function asList(val)
   return val
 end
 
-function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
+function API:upload(photo, catalog, filePath, remoteId)
   local mediaInfo = {
     tags = {},
     people = {},
@@ -451,22 +451,10 @@ function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
   end
 
   if remoteId then
-    if album then
-      success, result = self:addMediaToAlbum(album, { remoteId })
-      if not success then
-        return success, result
-      end
-    end
-
     mediaInfo.id = remoteId
     path = "media/edit"
   else
     mediaInfo.catalog = catalog
-    if album then
-      mediaInfo.albums = {
-        album,
-      }
-    end
     path = "media/create"
   end
 
@@ -480,16 +468,7 @@ function API:upload(photo, catalog, album, filePath, remoteId, inAlbum)
     { name = "file", fileName = photo:getFormattedMetadata("fileName"), filePath = filePath }
   }
 
-  success, result = self:MULTIPART(path, params)
-  if success or not album or (remoteId and not inAlbum) then
-    return success, result
-  end
-
-  if album then
-    self:removeMediaFromAlbum(album, { remoteId })
-  end
-
-  return success, result
+  return self:MULTIPART(path, params)
 end
 
 function API:refresh()
