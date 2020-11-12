@@ -79,6 +79,7 @@ test("signup success", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Bob Parr",
+      administrator: false,
       created: parseDateTime("2019-05-06T12:34:56Z"),
       lastLogin: parseDateTime("2020-03-01T12:34:56Z"),
       verified: true,
@@ -99,6 +100,7 @@ test("signup success", async (): Promise<void> => {
       user: {
         email: "foo@bar.com",
         fullname: "Bob Parr",
+        administrator: false,
         created: expect.toEqualDate("2019-05-06T12:34:56Z"),
         lastLogin: expect.toEqualDate("2020-03-01T12:34:56Z"),
         verified: true,

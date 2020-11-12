@@ -71,6 +71,7 @@ test("login success", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Someone",
+      administrator: false,
       created,
       lastLogin: created,
       verified: true,
@@ -91,6 +92,7 @@ test("login success", async (): Promise<void> => {
       user: {
         email: "foo@bar.com",
         fullname: "Someone",
+        administrator: false,
         created: expect.toEqualDate(created),
         lastLogin: expect.toEqualDate(created),
         verified: true,
