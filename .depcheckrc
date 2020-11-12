@@ -1,6 +1,7 @@
 {
   "ignores": [
     "@jsdevtools/coverage-istanbul-loader",
+    "@testing-library/user-event",
     "@types/color-support",
     "@types/css-mediaquery",
     "@types/glob",
