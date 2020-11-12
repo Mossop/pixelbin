@@ -1,4 +1,7 @@
 import { useLocalization } from "@fluent/react";
+import AddBoxIcon from "@material-ui/icons/AddBox";
+import EditIcon from "@material-ui/icons/Edit";
+import SearchIcon from "@material-ui/icons/Search";
 import type { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
@@ -79,14 +82,17 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
       [{
         id: "catalog-search",
         onClick: onCatalogSearch,
+        icon: <SearchIcon/>,
         label: l10n.getString("banner-search"),
       }, {
         id: "album-create",
         onClick: onAlbumCreate,
+        icon: <AddBoxIcon/>,
         label: l10n.getString("banner-album-new"),
       }, {
         id: "catalog-edit",
         onClick: onCatalogEdit,
+        icon: <EditIcon/>,
         label: l10n.getString("banner-catalog-edit"),
       }]
     }

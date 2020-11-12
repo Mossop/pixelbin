@@ -1,4 +1,8 @@
 import { useLocalization } from "@fluent/react";
+import AddBoxIcon from "@material-ui/icons/AddBox";
+import DeleteIcon from "@material-ui/icons/Delete";
+import EditIcon from "@material-ui/icons/Edit";
+import SearchIcon from "@material-ui/icons/Search";
 import type { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
@@ -100,18 +104,22 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
       [{
         id: "album-search",
         onClick: onAlbumSearch,
+        icon: <SearchIcon/>,
         label: l10n.getString("banner-search"),
       }, {
         id: "album-create",
         onClick: onAlbumCreate,
+        icon: <AddBoxIcon/>,
         label: l10n.getString("banner-album-new"),
       }, {
         id: "album-edit",
         onClick: onAlbumEdit,
+        icon: <EditIcon/>,
         label: l10n.getString("banner-album-edit"),
       }, {
         id: "album-delete",
         onClick: onAlbumDelete,
+        icon: <DeleteIcon/>,
         label: l10n.getString("banner-album-delete"),
       }]
     }

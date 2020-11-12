@@ -1,4 +1,6 @@
 import { useLocalization } from "@fluent/react";
+import EditIcon from "@material-ui/icons/Edit";
+import SaveIcon from "@material-ui/icons/Save";
 import type { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
@@ -77,10 +79,12 @@ export default function SearchPage({
       [{
         id: "edit-search",
         onClick: onEditSearch,
+        icon: <EditIcon/>,
         label: l10n.getString("banner-edit-search"),
       }, {
         id: "save-search",
         onClick: onSaveSearch,
+        icon: <SaveIcon/>,
         label: l10n.getString("banner-save-search"),
       }]
     }

@@ -4,10 +4,12 @@ import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
 import Hidden from "@material-ui/core/Hidden";
 import IconButton from "@material-ui/core/IconButton";
+import ListItemIcon from "@material-ui/core/ListItemIcon";
 import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
+import Tooltip from "@material-ui/core/Tooltip";
 import MenuIcon from "@material-ui/icons/Menu";
 import MoreVertIcon from "@material-ui/icons/MoreVert";
 import { usePopupState, bindTrigger, bindMenu } from "material-ui-popup-state/hooks";
@@ -52,6 +54,7 @@ const useStyles = makeStyles((theme: Theme) =>
 export interface PageOption {
   id: string;
   label: string;
+  icon: React.ReactNode;
   onClick: () => void;
 }
 
@@ -155,6 +158,9 @@ export default function Banner({
                   // eslint-disable-next-line react/jsx-no-bind
                   onClick={() => pageOptionClick(option)}
                 >
+                  <ListItemIcon>
+                    {option.icon}
+                  </ListItemIcon>
                   {option.label}
                 </MenuItem>)
               }
@@ -162,14 +168,18 @@ export default function Banner({
           </Hidden>
           <Hidden xsDown={true}>
             {
-              pageOptions.map((option: PageOption) => <Button
+              pageOptions.map((option: PageOption) => <Tooltip
                 key={option.id}
-                id={`pageoption-button-${option.id}`}
-                color="inherit"
-                onClick={option.onClick}
+                title={option.label}
               >
-                {option.label}
-              </Button>)
+                <IconButton
+                  id={`pageoption-button-${option.id}`}
+                  color="inherit"
+                  onClick={option.onClick}
+                >
+                  {option.icon}
+                </IconButton>
+              </Tooltip>)
             }
           </Hidden>
         </React.Fragment>
