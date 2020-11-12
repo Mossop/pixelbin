@@ -1,3 +1,5 @@
+import { act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 
 import CatalogOverlay from ".";
@@ -268,14 +270,23 @@ test("create catalog", async (): Promise<void> => {
 test("create catalog with existing storage", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     serverState: mockServerState([{
-      storage: "st567",
+      storage: {
+        id: "st567",
+        name: "Storage 1",
+      },
       name: "Existing catalog",
+    }, {
+      storage: {
+        id: "st527",
+        name: "Storage 2",
+      },
+      name: "Another catalog",
     }]),
   }));
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
 
-  let { dialogContainer } = render(<CatalogOverlay user={user}/>, store);
+  let { container, dialogContainer } = render(<CatalogOverlay user={user}/>, store);
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
@@ -296,6 +307,24 @@ test("create catalog with existing storage", async (): Promise<void> => {
   expect(backBtn.disabled).toBeTruthy();
   expect(nextBtn.disabled).toBeFalsy();
 
+  act(() => {
+    userEvent.click(field);
+  });
+
+  let menu = expectChild(container.ownerDocument, "#menu-catalog-existingStorage");
+  let items = [...menu.querySelectorAll("li")];
+  expect(items).toHaveLength(2);
+  expect(items[0].textContent).toBe("Storage 1");
+  expect(items[1].textContent).toBe("Storage 2");
+
+  act(() => {
+    userEvent.click(items[1]);
+  });
+
+  // expect(container.ownerDocument.querySelector("#menu-catalog-existingStorage")).toBeNull();
+
+  expect(select.value).toBe("st527");
+
   click(nextBtn);
 
   expect(backBtn.disabled).toBeFalsy();
@@ -313,7 +342,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
   click(submitBtn);
 
   expect(await call).toEqual([Method.CatalogCreate, {
-    storage: "st567",
+    storage: "st527",
     catalog: {
       name: "New catalog",
     },
@@ -323,7 +352,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
 
   await resolve({
     id: "Cat356",
-    storage: "st567",
+    storage: "st527",
     name: "New catalog",
   });
 
@@ -333,7 +362,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
     payload: [{
       id: "Cat356",
       name: "New catalog",
-      storage: "st567",
+      storage: "st527",
       people: mapOf({}),
       tags: mapOf({}),
       albums: mapOf({}),

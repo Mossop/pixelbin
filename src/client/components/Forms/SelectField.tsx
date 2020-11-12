@@ -3,7 +3,7 @@ import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
-import React, { forwardRef, useCallback } from "react";
+import React, { Children, forwardRef, useCallback } from "react";
 
 import type { FieldState } from "../../utils/state";
 import type { ReactRef, ReactResult } from "../../utils/types";
@@ -16,16 +16,16 @@ export interface SelectFieldProps {
   disabled?: boolean;
   required?: boolean;
   onChange?: (value: string) => void;
+  children: React.ReactElement<OptionProps> | React.ReactElement<OptionProps>[];
+}
+
+export interface OptionProps {
+  value: string | number;
   children: React.ReactNode;
 }
 
-export interface OptionProps<T> {
-  value: T;
-  children: React.ReactNode;
-}
-
-export function Option<T extends string | number>(
-  { value, children }: OptionProps<T>,
+export function Option(
+  { value, children }: OptionProps,
 ): ReactResult {
   return <MenuItem value={value}>
     {children}
@@ -64,13 +64,21 @@ export default forwardRef(
       <InputLabel htmlFor={id}>{l10n.getString(labelId)}</InputLabel>
       <Select
         id={id}
+        name={id}
         ref={ref}
         value={state.value}
         disabled={disabled}
         onChange={onSelectChange}
         required={required}
       >
-        {children}
+        {
+          Children.map(children, (child: React.ReactElement<OptionProps>) => {
+            return <MenuItem
+              key={child.props.value}
+              value={child.props.value}
+            >{child.props.children}</MenuItem>;
+          })
+        }
       </Select>
     </FormControl>;
   },

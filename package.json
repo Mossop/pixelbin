@@ -37,6 +37,7 @@
     "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
     "@koa/router": "^9.4.0",
     "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.2.2",
     "@types/argparse": "^2.0.2",
     "@types/bcrypt": "^3.0.0",
     "@types/color-support": "^1.1.0",
