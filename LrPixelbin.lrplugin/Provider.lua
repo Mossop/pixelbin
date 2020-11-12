@@ -3,6 +3,7 @@ local LrDialogs = import "LrDialogs"
 local LrApplication = import "LrApplication"
 local LrColor = import "LrColor"
 local LrPathUtils = import "LrPathUtils"
+local LrExportSettings = import "LrExportSettings"
 
 local bind = LrView.bind
 
@@ -487,6 +488,14 @@ function Provider.startDialog(propertyTable)
     propertyTable.LR_cantExportBecause = LOC "$$$/LrPixelBin/Settings/NotLoggedIn=Not yet logged in"
 
     propertyTable.catalogs = {}
+
+    local presets = LrExportSettings.videoExportPresets()
+    for _, preset in ipairs(presets) do
+      if preset:name() == "High" and preset:formatID() == "h.264" then
+        LrExportSettings.applyVideoExportPreset(propertyTable, preset)
+        break
+      end
+    end
   end
 
   propertyTable.error = ""
