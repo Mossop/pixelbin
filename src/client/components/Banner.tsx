@@ -10,14 +10,14 @@ import MenuItem from "@material-ui/core/MenuItem";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Tooltip from "@material-ui/core/Tooltip";
-import MenuIcon from "@material-ui/icons/Menu";
-import MoreVertIcon from "@material-ui/icons/MoreVert";
 import { usePopupState, bindTrigger, bindMenu } from "material-ui-popup-state/hooks";
 import md5 from "md5";
 import React, { useCallback } from "react";
 
 import { logout } from "../api/auth";
 import type { UserState } from "../api/types";
+import PageMenuIcon from "../icons/PageMenuIcon";
+import SidebarToggleIcon from "../icons/SidebarToggleIcon";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { useSelector } from "../store";
@@ -117,7 +117,7 @@ export default function Banner({
         color="inherit"
         aria-label="menu"
       >
-        <MenuIcon/>
+        <SidebarToggleIcon/>
       </IconButton>
     }
     <Box className={classes.title}>
@@ -131,7 +131,7 @@ export default function Banner({
         pageOptions && <React.Fragment>
           <Hidden smUp={true}>
             <IconButton {...bindTrigger(pageOptionsState)} color="inherit">
-              <MoreVertIcon/>
+              <PageMenuIcon/>
             </IconButton>
             <Menu
               {...bindMenu(pageOptionsState)}

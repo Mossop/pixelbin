@@ -1,6 +1,4 @@
 import { useLocalization } from "@fluent/react";
-import EditIcon from "@material-ui/icons/Edit";
-import SaveIcon from "@material-ui/icons/Save";
 import type { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
@@ -10,6 +8,8 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import SearchEditIcon from "../icons/SearchEditIcon";
+import SearchSaveIcon from "../icons/SearchSaveIcon";
 import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import type { SearchMediaLookup } from "../utils/medialookup";
@@ -79,12 +79,12 @@ export default function SearchPage({
       [{
         id: "edit-search",
         onClick: onEditSearch,
-        icon: <EditIcon/>,
+        icon: <SearchEditIcon/>,
         label: l10n.getString("banner-edit-search"),
       }, {
         id: "save-search",
         onClick: onSaveSearch,
-        icon: <SaveIcon/>,
+        icon: <SearchSaveIcon/>,
         label: l10n.getString("banner-save-search"),
       }]
     }

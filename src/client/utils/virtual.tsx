@@ -1,15 +1,17 @@
 import type { ReactLocalization } from "@fluent/react";
-import ImageSearchIcon from "@material-ui/icons/ImageSearch";
-import LocalOfferIcon from "@material-ui/icons/LocalOffer";
-import PeopleIcon from "@material-ui/icons/People";
-import PermMediaIcon from "@material-ui/icons/PermMedia";
-import PersonIcon from "@material-ui/icons/Person";
-import PhotoAlbumIcon from "@material-ui/icons/PhotoAlbum";
-import StorageIcon from "@material-ui/icons/Storage";
 import type { Draft } from "immer";
 import React from "react";
 
 import type { Album, Catalog, Person, SavedSearch, Tag } from "../api/highlevel";
+import AlbumIcon from "../icons/AlbumIcon";
+import AlbumsIcon from "../icons/AlbumsIcon";
+import CatalogIcon from "../icons/CatalogIcon";
+import PeopleIcon from "../icons/PeopleIcon";
+import PersonIcon from "../icons/PersonIcon";
+import SavedSearchesIcon from "../icons/SavedSearchesIcon";
+import SavedSearchIcon from "../icons/SavedSearchIcon";
+import TagIcon from "../icons/TagIcon";
+import TagsIcon from "../icons/TagsIcon";
 import { PageType } from "../pages/types";
 import type { UIState } from "../store/types";
 import type { ReactResult } from "./types";
@@ -94,7 +96,7 @@ class VirtualCatalogAlbums extends BaseVirtualCatalogItem {
   }
 
   public icon(): ReactResult {
-    return <PermMediaIcon/>;
+    return <AlbumsIcon/>;
   }
 
   public get children(): VirtualItem[] {
@@ -118,7 +120,7 @@ class VirtualCatalogTags extends BaseVirtualCatalogItem {
   }
 
   public icon(): ReactResult {
-    return <LocalOfferIcon/>;
+    return <TagsIcon/>;
   }
 
   public get children(): VirtualItem[] {
@@ -166,7 +168,7 @@ class VirtualCatalogSearches extends BaseVirtualCatalogItem {
   }
 
   public icon(): ReactResult {
-    return <ImageSearchIcon/>;
+    return <SavedSearchesIcon/>;
   }
 
   public get children(): VirtualItem[] {
@@ -199,7 +201,7 @@ export class VirtualCatalog extends BaseVirtualItem {
   }
 
   public icon(): ReactResult {
-    return <StorageIcon/>;
+    return <CatalogIcon/>;
   }
 
   public get children(): VirtualItem[] {
@@ -245,7 +247,7 @@ export class VirtualAlbum extends BaseVirtualItem {
   }
 
   public icon(): ReactResult {
-    return <PhotoAlbumIcon/>;
+    return <AlbumIcon/>;
   }
 
   public get children(): VirtualItem[] {
@@ -268,7 +270,7 @@ export class VirtualTag extends BaseVirtualItem {
   }
 
   public icon(): ReactResult {
-    return <LocalOfferIcon/>;
+    return <TagIcon/>;
   }
 
   public get children(): VirtualItem[] {
@@ -317,7 +319,7 @@ export class VirtualSearch extends BaseVirtualItem {
   }
 
   public icon(): ReactResult {
-    return <ImageSearchIcon/>;
+    return <SavedSearchIcon/>;
   }
 }
 

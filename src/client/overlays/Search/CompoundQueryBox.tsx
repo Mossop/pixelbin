@@ -5,23 +5,13 @@ import Link from "@material-ui/core/Link";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
-import DeleteIcon from "@material-ui/icons/Delete";
-import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
-import FileCopy from "@material-ui/icons/FileCopy";
-import InsertDriveFileIcon from "@material-ui/icons/InsertDriveFile";
-import LocalOfferIcon from "@material-ui/icons/LocalOffer";
-import PersonIcon from "@material-ui/icons/Person";
-import PhotoAlbumIcon from "@material-ui/icons/PhotoAlbum";
 import SpeedDial from "@material-ui/lab/SpeedDial";
 import SpeedDialAction from "@material-ui/lab/SpeedDialAction";
 import SpeedDialIcon from "@material-ui/lab/SpeedDialIcon";
 import clsx from "clsx";
 import React, { useState, useCallback, useMemo } from "react";
 
-import type {
-  Query,
-  Search,
-} from "../../../model";
+import type { Query, Search } from "../../../model";
 import {
   allowedFields,
   isCompoundQuery,
@@ -31,6 +21,13 @@ import {
   RelationType,
 } from "../../../model";
 import type { Catalog, Reference } from "../../api/highlevel";
+import AlbumSearchIcon from "../../icons/AlbumSearchIcon";
+import CompoundSearchIcon from "../../icons/CompoundSearchIcon";
+import DeleteIcon from "../../icons/DeleteIcon";
+import DragIndicatorIcon from "../../icons/DragIndicatorIcon";
+import FieldSearchIcon from "../../icons/FieldSearchIcon";
+import PersonSearchIcon from "../../icons/PersonSearchIcon";
+import TagSearchIcon from "../../icons/TagSearchIcon";
 import { useSelector } from "../../store";
 import type { StoreState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
@@ -366,7 +363,7 @@ export default function CompoundQueryBox({
           }
         >
           <SpeedDialAction
-            icon={<InsertDriveFileIcon/>}
+            icon={<FieldSearchIcon/>}
             tooltipTitle={l10n.getString("search-dialog-add-field")}
             tooltipPlacement="bottom"
             onClick={addField}
@@ -382,7 +379,7 @@ export default function CompoundQueryBox({
             }
           />
           <SpeedDialAction
-            icon={<FileCopy/>}
+            icon={<CompoundSearchIcon/>}
             tooltipTitle={l10n.getString("search-dialog-add-compound")}
             tooltipPlacement="bottom"
             onClick={addCompound}
@@ -399,7 +396,7 @@ export default function CompoundQueryBox({
           />
           {
             !currentRelation && <SpeedDialAction
-              icon={<PhotoAlbumIcon/>}
+              icon={<AlbumSearchIcon/>}
               tooltipTitle={l10n.getString("search-dialog-add-album")}
               tooltipPlacement="bottom"
               onClick={addAlbum}
@@ -417,7 +414,7 @@ export default function CompoundQueryBox({
           }
           {
             !currentRelation && <SpeedDialAction
-              icon={<LocalOfferIcon/>}
+              icon={<TagSearchIcon/>}
               tooltipTitle={l10n.getString("search-dialog-add-tag")}
               tooltipPlacement="bottom"
               onClick={addTag}
@@ -435,7 +432,7 @@ export default function CompoundQueryBox({
           }
           {
             !currentRelation && <SpeedDialAction
-              icon={<PersonIcon/>}
+              icon={<PersonSearchIcon/>}
               tooltipTitle={l10n.getString("search-dialog-add-person")}
               tooltipPlacement="bottom"
               onClick={addPerson}

@@ -10,12 +10,6 @@ import {
   ThemeProvider,
 } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
-import CloseIcon from "@material-ui/icons/Close";
-import FullscreenIcon from "@material-ui/icons/Fullscreen";
-import FullscreenExitIcon from "@material-ui/icons/FullscreenExit";
-import InfoIcon from "@material-ui/icons/Info";
-import NavigateBeforeIcon from "@material-ui/icons/NavigateBefore";
-import NavigateNextIcon from "@material-ui/icons/NavigateNext";
 import alpha from "color-alpha";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
@@ -28,6 +22,12 @@ import { Photo, Video } from "../components/Media";
 import MediaInfo from "../components/MediaInfo";
 import Page from "../components/Page";
 import { document } from "../environment";
+import CloseIcon from "../icons/CloseIcon";
+import EnterFullscreenIcon from "../icons/EnterFullscreenIcon";
+import ExitFullscreenIcon from "../icons/ExitFullscreenIcon";
+import InfoIcon from "../icons/InfoIcon";
+import NextIcon from "../icons/NextIcon";
+import PreviousIcon from "../icons/PreviousIcon";
 import { useActions } from "../store/actions";
 import type { UIState } from "../store/types";
 import Delayed from "../utils/delayed";
@@ -158,7 +158,7 @@ function MainOverlay({
             onClick={onPrevious}
             className={classes.navButton}
           >
-            <NavigateBeforeIcon/>
+            <PreviousIcon/>
           </IconButton>
         }
       </div>
@@ -168,7 +168,7 @@ function MainOverlay({
             onClick={onNext}
             className={classes.navButton}
           >
-            <NavigateNextIcon/>
+            <NextIcon/>
           </IconButton>
         }
       </div>
@@ -315,10 +315,10 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
 
   let mediaControls = fullscreen
     ? <IconButton onClick={exitFullscreen} className={classes.overlayButton}>
-      <FullscreenExitIcon/>
+      <ExitFullscreenIcon/>
     </IconButton>
     : <IconButton onClick={goFullscreen} className={classes.overlayButton}>
-      <FullscreenIcon/>
+      <EnterFullscreenIcon/>
     </IconButton>;
 
   return <Page sidebar="openable">

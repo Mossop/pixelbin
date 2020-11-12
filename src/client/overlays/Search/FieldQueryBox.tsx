@@ -7,8 +7,6 @@ import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import DeleteIcon from "@material-ui/icons/Delete";
-import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
 import { DateTimePicker } from "@material-ui/pickers";
 import clsx from "clsx";
 import type { Draft } from "immer";
@@ -28,6 +26,8 @@ import {
 } from "../../../model";
 import type { DateTime } from "../../../utils";
 import { now } from "../../../utils";
+import DeleteIcon from "../../icons/DeleteIcon";
+import DragIndicatorIcon from "../../icons/DragIndicatorIcon";
 import type { ReactResult } from "../../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>

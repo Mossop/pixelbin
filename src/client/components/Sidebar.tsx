@@ -7,9 +7,9 @@ import Slide from "@material-ui/core/Slide";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import type { TransitionProps } from "@material-ui/core/transitions";
-import CloseIcon from "@material-ui/icons/Close";
 import React, { forwardRef } from "react";
 
+import CloseIcon from "../icons/CloseIcon";
 import type { ReactChildren, ReactResult } from "../utils/types";
 
 const useStyles = makeStyles((theme: Theme) =>

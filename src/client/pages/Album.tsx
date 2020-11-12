@@ -1,8 +1,4 @@
 import { useLocalization } from "@fluent/react";
-import AddBoxIcon from "@material-ui/icons/AddBox";
-import DeleteIcon from "@material-ui/icons/Delete";
-import EditIcon from "@material-ui/icons/Edit";
-import SearchIcon from "@material-ui/icons/Search";
 import type { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
@@ -13,6 +9,10 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import AlbumAddIcon from "../icons/AlbumAddIcon";
+import AlbumDeleteIcon from "../icons/AlbumDeleteIcon";
+import AlbumEditIcon from "../icons/AlbumEditIcon";
+import SearchIcon from "../icons/SearchIcon";
 import { OverlayType } from "../overlays/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
@@ -109,17 +109,17 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
       }, {
         id: "album-create",
         onClick: onAlbumCreate,
-        icon: <AddBoxIcon/>,
+        icon: <AlbumAddIcon/>,
         label: l10n.getString("banner-album-new"),
       }, {
         id: "album-edit",
         onClick: onAlbumEdit,
-        icon: <EditIcon/>,
+        icon: <AlbumEditIcon/>,
         label: l10n.getString("banner-album-edit"),
       }, {
         id: "album-delete",
         onClick: onAlbumDelete,
-        icon: <DeleteIcon/>,
+        icon: <AlbumDeleteIcon/>,
         label: l10n.getString("banner-album-delete"),
       }]
     }

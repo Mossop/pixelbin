@@ -1,7 +1,4 @@
 import { useLocalization } from "@fluent/react";
-import AddBoxIcon from "@material-ui/icons/AddBox";
-import EditIcon from "@material-ui/icons/Edit";
-import SearchIcon from "@material-ui/icons/Search";
 import type { Draft } from "immer";
 import React, { useCallback, useMemo } from "react";
 
@@ -12,6 +9,9 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import AlbumAddIcon from "../icons/AlbumAddIcon";
+import CatalogEditIcon from "../icons/CatalogEditIcon";
+import SearchIcon from "../icons/SearchIcon";
 import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import type { CatalogMediaLookup } from "../utils/medialookup";
@@ -87,12 +87,12 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
       }, {
         id: "album-create",
         onClick: onAlbumCreate,
-        icon: <AddBoxIcon/>,
+        icon: <AlbumAddIcon/>,
         label: l10n.getString("banner-album-new"),
       }, {
         id: "catalog-edit",
         onClick: onCatalogEdit,
-        icon: <EditIcon/>,
+        icon: <CatalogEditIcon/>,
         label: l10n.getString("banner-catalog-edit"),
       }]
     }

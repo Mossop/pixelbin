@@ -5,9 +5,9 @@ import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles, useTheme } from "@material-ui/core/styles";
-import AddIcon from "@material-ui/icons/Add";
 import React, { useCallback } from "react";
 
+import CatalogAddIcon from "../icons/CatalogAddIcon";
 import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import type { ReactResult } from "../utils/types";
@@ -124,7 +124,7 @@ export default function SidebarTree(
     }
     <ListItem dense={true} button={true} onClick={onCreateCatalog}>
       <ListItemIcon className={classes.icon}>
-        <AddIcon/>
+        <CatalogAddIcon/>
       </ListItemIcon>
       <ListItemText>
         {l10n.getString("sidebar-add-catalog")}
