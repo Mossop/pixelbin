@@ -55,6 +55,7 @@ test("albumCreated", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       mystore: {
@@ -156,6 +157,7 @@ test("Album edited", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       mystore: {
@@ -327,6 +329,7 @@ test("Album deleted", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       mystore: {
@@ -421,6 +424,7 @@ test("Album deleted", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       mystore: {
@@ -508,6 +512,7 @@ test("Album deleted", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       mystore: {
@@ -564,6 +569,7 @@ test("Album deleted", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       mystore: {

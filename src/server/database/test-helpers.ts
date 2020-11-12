@@ -141,6 +141,7 @@ export const testData = {
     created: parseDateTime("2020-01-01T00:00:00Z"),
     lastLogin: null,
     verified: true,
+    administrator: false,
   }, {
     email: "someone2@nowhere.com",
     // "password2"
@@ -149,6 +150,7 @@ export const testData = {
     created: parseDateTime("2010-01-01T00:00:00Z"),
     lastLogin: parseDateTime("2020-02-02T00:00:00Z"),
     verified: true,
+    administrator: true,
   }, {
     email: "someone3@nowhere.com",
     // "password3"
@@ -157,6 +159,7 @@ export const testData = {
     created: parseDateTime("2015-01-01T00:00:00Z"),
     lastLogin: parseDateTime("2020-03-03T00:00:00Z"),
     verified: true,
+    administrator: false,
   }],
 
   [Table.Storage]: [{

@@ -222,6 +222,7 @@ exports.up = async function(knex: Knex): Promise<void> {
     table.string("email", 100).notNullable().unique().primary();
     table.string("password", 70);
     table.string("fullname", 200);
+    table.boolean("administrator").notNullable();
     table.dateTime("created", { useTz: true }).notNullable();
     table.dateTime("lastLogin", { useTz: true }).nullable();
     table.boolean("verified");

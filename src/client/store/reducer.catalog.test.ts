@@ -18,6 +18,7 @@ test("storageCreated", (): void => {
     catalogs: mapOf({}),
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
+    administrator: false,
     email: "dtownsend@oxymoronical.com",
     fullname: "Dave Townsend",
     storage: mapOf({}),
@@ -41,6 +42,7 @@ test("storageCreated", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       store465: {
@@ -65,6 +67,7 @@ test("catalogCreated", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({}),
     verified: true,
@@ -103,6 +106,7 @@ test("catalogCreated", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({}),
     verified: true,
@@ -174,6 +178,7 @@ test("catalogEdited", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       s1: {
@@ -235,6 +240,7 @@ test("catalogEdited", (): void => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       s1: {
@@ -308,6 +314,7 @@ test("searchSaved", () => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       s1: {
@@ -392,6 +399,7 @@ test("searchSaved", () => {
     created: "2020-04-05T12:34:45Z",
     lastLogin: "2020-07-02T11:30:42Z",
     email: "dtownsend@oxymoronical.com",
+    administrator: false,
     fullname: "Dave Townsend",
     storage: mapOf({
       s1: {

@@ -40,6 +40,7 @@ async function migrate() {
       email: "admin@pixelbin.org",
       fullname: "Pixelbin",
       password: "pixelbin",
+      administrator: true,
 
       storage: [{
         name: "Minio",

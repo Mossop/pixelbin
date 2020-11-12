@@ -30,6 +30,7 @@ export interface IdType<K = string> {
 export interface User {
   email: string;
   fullname: string;
+  administrator: boolean;
   created: DateTime;
   lastLogin: DateTime | null;
   verified: boolean;

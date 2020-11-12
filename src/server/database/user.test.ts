@@ -34,6 +34,7 @@ test("Test user retrieval", async (): Promise<void> => {
   expect(listed).toEqual({
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
+    administrator: false,
     created: expect.toEqualDate("2020-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate(loginDT),
     verified: true,
@@ -56,6 +57,7 @@ test("Test user retrieval", async (): Promise<void> => {
   expect(listed).toEqual({
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
+    administrator: true,
     created: expect.toEqualDate("2010-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate(loginDT),
     verified: true,
@@ -73,12 +75,14 @@ test("User creation", async (): Promise<void> => {
   let user = await dbConnection.createUser({
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
+    administrator: false,
     password: "foobar57",
   });
 
   expect(user).toEqual({
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
+    administrator: false,
     created: expect.toEqualDate(createdDT),
     lastLogin: null,
     verified: true,
@@ -91,6 +95,7 @@ test("User creation", async (): Promise<void> => {
   expect(listed).toEqual({
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
+    administrator: false,
     created: expect.toEqualDate(createdDT),
     lastLogin: null,
     verified: true,
@@ -103,6 +108,7 @@ test("User creation", async (): Promise<void> => {
   expect(found).toEqual({
     email: "newuser@foo.bar.com",
     fullname: "Dave Townsend",
+    administrator: false,
     created: expect.toEqualDate(createdDT),
     lastLogin: expect.toEqualDate(loginDT),
     verified: true,
@@ -114,6 +120,7 @@ test("User creation", async (): Promise<void> => {
     });
   expect(listed).toEqual({
     email: "newuser@foo.bar.com",
+    administrator: false,
     fullname: "Dave Townsend",
     created: expect.toEqualDate(createdDT),
     lastLogin: expect.toEqualDate(loginDT),
@@ -128,18 +135,21 @@ test("List users", async (): Promise<void> => {
   expect(users).toInclude([{
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
+    administrator: false,
     created: expect.toEqualDate("2020-01-01T00:00:00Z"),
     lastLogin: null,
     verified: true,
   }, {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
+    administrator: true,
     created: expect.toEqualDate("2010-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate("2020-02-02T00:00:00Z"),
     verified: true,
   }, {
     email: "someone3@nowhere.com",
     fullname: "Someone 3",
+    administrator: false,
     created: expect.toEqualDate("2015-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate("2020-03-03T00:00:00Z"),
     verified: true,

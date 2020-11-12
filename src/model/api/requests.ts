@@ -6,7 +6,10 @@ export interface Login {
   password: string;
 }
 
-export type Signup = Omit<ObjectModel.User, "created" | "lastLogin" | "verified"> & {
+export type Signup = Omit<
+  ObjectModel.User,
+  "administrator" | "created" | "lastLogin" | "verified"
+> & {
   password: string;
 };
 

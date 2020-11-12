@@ -95,6 +95,7 @@ test("Media tests", async (): Promise<void> => {
   expect(user).toEqual({
     email: "someone3@nowhere.com",
     fullname: "Someone 3",
+    administrator: false,
     created: expect.toEqualDate("2015-01-01T00:00:00Z"),
     lastLogin: expect.toEqualDate("2020-03-03T00:00:00Z"),
     verified: true,

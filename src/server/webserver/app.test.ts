@@ -65,6 +65,7 @@ test("state checks", async (): Promise<void> => {
 
   expect(stateFromResponse(response.text)).toEqual({
     user: {
+      administrator: false,
       email: "someone1@nowhere.com",
       fullname: "Someone 1",
       created: expect.toEqualDate("2020-01-01T00:00:00.000Z"),

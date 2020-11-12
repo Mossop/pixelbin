@@ -293,6 +293,7 @@ export function mockServerState(catalogs?: MockCatalog[]): Draft<ServerState> {
 
   return {
     user: {
+      administrator: false,
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2020-04-05T12:34:45Z",

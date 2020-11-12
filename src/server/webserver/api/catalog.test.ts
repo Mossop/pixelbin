@@ -234,6 +234,7 @@ test("Create catalog", async (): Promise<void> => {
 
   expectUserState(response.body, {
     email: "someone1@nowhere.com",
+    administrator: false,
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00.000Z",
     lastLogin: "2002-02-06T23:52:21Z",
@@ -357,6 +358,7 @@ test("Edit catalog", async (): Promise<void> => {
   expectUserState(response.body, {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
+    administrator: false,
     created: "2020-01-01T00:00:00.000Z",
     lastLogin: "2018-05-01T07:08:09Z",
     verified: true,
@@ -412,6 +414,7 @@ test("Edit catalog", async (): Promise<void> => {
   expectUserState(response.body, {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
+    administrator: false,
     created: "2020-01-01T00:00:00.000Z",
     lastLogin: "2019-06-02T07:08:09Z",
     verified: true,
@@ -484,6 +487,7 @@ test("Create album", async (): Promise<void> => {
   expectUserState(response.body, {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
+    administrator: false,
     created: "2020-01-01T00:00:00.000Z",
     lastLogin: "2003-04-23T11:23:46Z",
     verified: true,
@@ -640,6 +644,7 @@ test("Edit album", async (): Promise<void> => {
   expectUserState(response.body, {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
+    administrator: true,
     created: "2010-01-01T00:00:00Z",
     lastLogin: "2007-12-23T11:23:46Z",
     verified: true,
@@ -804,6 +809,7 @@ test("Create Tag", async (): Promise<void> => {
   expectUserState(response.body, {
     email: "someone1@nowhere.com",
     fullname: "Someone 1",
+    administrator: false,
     created: "2020-01-01T00:00:00Z",
     lastLogin: "2005-07-21T16:45:45Z",
     verified: true,
@@ -941,6 +947,7 @@ test("Edit tag", async (): Promise<void> => {
   expectUserState(response.body, {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
+    administrator: true,
     created: "2010-01-01T00:00:00Z",
     lastLogin: "2005-10-10T10:10:10Z",
     verified: true,
@@ -1067,6 +1074,7 @@ test("Create Person", async (): Promise<void> => {
 
   expectUserState(response.body, {
     email: "someone1@nowhere.com",
+    administrator: false,
     fullname: "Someone 1",
     created: "2020-01-01T00:00:00Z",
     lastLogin: "2020-02-02T00:00:00Z",
@@ -1201,6 +1209,7 @@ test("Edit person", async (): Promise<void> => {
   expectUserState(response.body, {
     email: "someone2@nowhere.com",
     fullname: "Someone 2",
+    administrator: true,
     created: "2010-01-01T00:00:00Z",
     lastLogin: "2020-03-21T10:30:00Z",
     verified: true,

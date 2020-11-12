@@ -16,6 +16,7 @@ async function urlTest(id: string): Promise<void> {
   let db = await connection;
   await db.createUser({
     email: "test@nowhere.com",
+    administrator: false,
     fullname: "Test",
     password: "Nope",
   });

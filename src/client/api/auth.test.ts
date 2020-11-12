@@ -51,6 +51,7 @@ test("Login", async (): Promise<void> => {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
+      administrator: false,
       created: "2019-02-03T06:08:12Z",
       lastLogin: "2018-01-03T06:08:12Z",
       verified: true,
@@ -99,6 +100,7 @@ test("Login", async (): Promise<void> => {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
+      administrator: false,
       created: expect.toEqualDate("2019-02-03T06:08:12Z"),
       lastLogin: expect.toEqualDate("2018-01-03T06:08:12Z"),
       verified: true,
@@ -193,6 +195,7 @@ test("Signup", async (): Promise<void> => {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
+      administrator: false,
       created: "2015-12-25T06:00:00Z",
       lastLogin: "2020-10-15T02:10:20Z",
       verified: true,
@@ -215,6 +218,7 @@ test("Signup", async (): Promise<void> => {
     user: {
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
+      administrator: false,
       created: expect.toEqualDate("2015-12-25T06:00:00Z"),
       lastLogin: expect.toEqualDate("2020-10-15T02:10:20Z"),
       verified: true,

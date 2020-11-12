@@ -107,6 +107,7 @@ export const UserDecoder = JsonDecoder.object<Api.User>(
   {
     email: JsonDecoder.string,
     fullname: JsonDecoder.string,
+    administrator: JsonDecoder.boolean,
     created: DateDecoder,
     lastLogin: DateDecoder,
     verified: JsonDecoder.boolean,

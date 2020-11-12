@@ -26,6 +26,7 @@ test("store initialization", async (): Promise<void> => {
 
   let serverState: ApiSerialization<Api.State> = {
     user: {
+      administrator: false,
       email: "dtownsend@oxymoronical.com",
       fullname: "Dave Townsend",
       created: "2017-10-23T23:34:21Z",
@@ -49,6 +50,7 @@ test("store initialization", async (): Promise<void> => {
       user: {
         email: "dtownsend@oxymoronical.com",
         fullname: "Dave Townsend",
+        administrator: false,
         created: expect.toEqualDate("2017-10-23T23:34:21Z"),
         lastLogin: expect.toEqualDate("2019-10-20T02:03:04Z"),
         verified: true,

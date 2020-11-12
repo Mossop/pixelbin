@@ -11,6 +11,7 @@ test("Basic database connection", async (): Promise<void> => {
 
   await insert(dbConnection.knex, Table.User, {
     email: "someone1@nowhere.com",
+    administrator: false,
     password: "foo",
     fullname: "Dave",
     lastLogin: null,

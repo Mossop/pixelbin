@@ -50,6 +50,7 @@ test("login and logout", async (): Promise<void> => {
     user: {
       email: "someone1@nowhere.com",
       fullname: "Someone 1",
+      administrator: false,
       created: expect.toEqualDate("2020-01-01T00:00:00Z"),
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,
@@ -71,6 +72,7 @@ test("login and logout", async (): Promise<void> => {
     user: {
       email: "someone1@nowhere.com",
       fullname: "Someone 1",
+      administrator: false,
       created: expect.toEqualDate("2020-01-01T00:00:00Z"),
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,
@@ -166,6 +168,7 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
+      administrator: false,
       created: expect.toEqualDate(createdDT),
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,
@@ -187,6 +190,7 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
+      administrator: false,
       created: expect.toEqualDate(createdDT),
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,
@@ -232,6 +236,7 @@ test("signup", async (): Promise<void> => {
     user: {
       email: "foo@bar.com",
       fullname: "Me",
+      administrator: false,
       created: expect.toEqualDate(createdDT),
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,

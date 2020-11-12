@@ -16,8 +16,9 @@ export type SeedStorage = Omit<Tables.Storage, "id" | "owner"> & {
   catalogs?: SeedCatalog[];
 };
 
-export type SeedUser = Omit<Tables.User, "created" | "lastLogin" | "verified"> & {
+export type SeedUser = Omit<Tables.User, "administrator" | "created" | "lastLogin" | "verified"> & {
   storage?: SeedStorage[];
+  administrator: boolean;
 };
 
 export interface Seed {
@@ -43,6 +44,7 @@ const SeedStorageDecoder = JsonDecoder.object<SeedStorage>({
 const SeedUserDecoder = JsonDecoder.object<SeedUser>({
   email: JsonDecoder.string,
   fullname: JsonDecoder.string,
+  administrator: JsonDecoder.boolean,
   password: JsonDecoder.string,
   storage: JsonDecoder.optional(JsonDecoder.array(SeedStorageDecoder, "SeedStorage[]")),
 }, "SeedUser");

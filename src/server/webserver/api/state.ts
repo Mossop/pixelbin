@@ -95,7 +95,10 @@ export async function signup(
   ctx: AppContext,
   data: Requests.Signup,
 ): Promise<ApiSerialization<Api.State>> {
-  await ctx.dbConnection.createUser(data);
+  await ctx.dbConnection.createUser({
+    ...data,
+    administrator: false,
+  });
   await ctx.login(data.email, data.password);
 
   return buildState(ctx);
