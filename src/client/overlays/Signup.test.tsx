@@ -53,9 +53,9 @@ test("signup success", async (): Promise<void> => {
   expect(store.dispatch).not.toHaveBeenCalled();
 
   let { resolve } = deferRequest<Method.Signup>();
-  typeString(email, "foo@bar.com");
-  typeString(name, "Bob Parr");
-  typeString(password, "foopass");
+  await typeString(email, "foo@bar.com");
+  await typeString(name, "Bob Parr");
+  await typeString(password, "foopass");
   click(button);
 
   expect(store.dispatch).not.toHaveBeenCalled();
@@ -141,7 +141,7 @@ test("signup failed", async (): Promise<void> => {
   expect(store.dispatch).not.toHaveBeenCalled();
 
   let { reject } = deferRequest();
-  typeString(email, "foo@bar.com");
+  await typeString(email, "foo@bar.com");
   click(button);
 
   expect(store.dispatch).not.toHaveBeenCalled();

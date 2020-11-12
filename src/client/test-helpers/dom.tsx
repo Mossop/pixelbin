@@ -5,14 +5,15 @@ import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import type { RenderResult } from "@testing-library/react";
 import {
   render as testRender,
-  fireEvent,
   cleanup,
   act,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { match as matchMediaQuery, MediaValues } from "css-mediaquery";
 import type { JSDOM } from "jsdom";
 import React, { Suspense } from "react";
 import { Provider } from "react-redux";
+import { config } from "react-transition-group";
 
 import type { StoreType } from "../store/types";
 import type { ReactChildren, ReactResult } from "../utils/types";
@@ -22,6 +23,8 @@ import type { MockStore } from "./store";
 const dom: JSDOM = jsdom;
 
 export { dom as jsdom };
+
+config.disabled = true;
 
 export function expectChild<T extends Element = Element>(
   container: ParentNode | null,
@@ -239,48 +242,16 @@ export async function resetDOM(): Promise<void> {
 }
 
 export function click(element: Element): void {
-  act(() => {
-    fireEvent.click(element);
-  });
+  act(() => userEvent.click(element));
 }
 
-export function sendKey(element: Element, key: string): void {
-  act(() => {
-    fireEvent.keyDown(element, {
-      key,
-    });
-
-    fireEvent.keyPress(element, {
-      key,
-    });
-
-    fireEvent.keyUp(element, {
-      key,
-    });
-  });
-}
-
-export function typeString(element: Element, str: string): void {
-  act(() => {
-    if (element instanceof HTMLInputElement) {
-      let proto = Object.getPrototypeOf(element);
-      let descriptor = Object.getOwnPropertyDescriptor(proto, "value");
-      descriptor?.set?.call(element, str);
-      fireEvent.input(element, {
-        data: str,
-      });
-    } else if (element instanceof HTMLTextAreaElement) {
-      element.textContent = str;
-      fireEvent.input(element, {
-        data: str,
-      });
-    }
-  });
+export async function typeString(element: Element, str: string): Promise<void> {
+  await act(() => userEvent.type(element, str, {
+    delay: 5,
+  }));
 }
 
 export function submit(element: Element): void {
-  act(() => {
-    expect(element.localName).toBe("form");
-    (element as HTMLFormElement).submit();
-  });
+  expect(element.localName).toBe("form");
+  act(() => (element as HTMLFormElement).submit());
 }

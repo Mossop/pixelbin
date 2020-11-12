@@ -1,5 +1,3 @@
-import { act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import React from "react";
 
 import CatalogOverlay from ".";
@@ -54,7 +52,7 @@ test("create catalog", async (): Promise<void> => {
   expect(nextBtn.disabled).toBeTruthy();
 
   let input = expectChild(form, "#storage-endpoint");
-  typeString(input, "http://localhost:9000");
+  await typeString(input, "http://localhost:9000");
 
   expect(backBtn.disabled).toBeTruthy();
   expect(nextBtn.disabled).toBeFalsy();
@@ -65,21 +63,21 @@ test("create catalog", async (): Promise<void> => {
   expect(nextBtn.disabled).toBeTruthy();
 
   input = expectChild(form, "#storage-name");
-  typeString(input, "New storage");
+  await typeString(input, "New storage");
   input = expectChild(form, "#storage-access-key");
-  typeString(input, "Access key");
+  await typeString(input, "Access key");
   input = expectChild(form, "#storage-secret-key");
-  typeString(input, "Secret");
+  await typeString(input, "Secret");
   input = expectChild(form, "#storage-bucket");
-  typeString(input, "Test bucket");
+  await typeString(input, "Test bucket");
   input = expectChild(form, "#storage-region");
-  typeString(input, "hell-circle5-001");
+  await typeString(input, "hell-circle5-001");
 
   expect(backBtn.disabled).toBeFalsy();
   expect(nextBtn.disabled).toBeFalsy();
 
   input = expectChild(form, "#storage-path");
-  typeString(input, "foo/bar");
+  await typeString(input, "foo/bar");
 
   let {
     call: badCall,
@@ -185,7 +183,7 @@ test("create catalog", async (): Promise<void> => {
   expect(submitBtn.disabled).toBeTruthy();
 
   input = expectChild(form, "#catalog-name");
-  typeString(input, "New catalog");
+  await typeString(input, "New catalog");
 
   expect(submitBtn.disabled).toBeFalsy();
 
@@ -307,9 +305,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
   expect(backBtn.disabled).toBeTruthy();
   expect(nextBtn.disabled).toBeFalsy();
 
-  act(() => {
-    userEvent.click(field);
-  });
+  click(field);
 
   let menu = expectChild(container.ownerDocument, "#menu-catalog-existingStorage");
   let items = [...menu.querySelectorAll("li")];
@@ -317,11 +313,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
   expect(items[0].textContent).toBe("Storage 1");
   expect(items[1].textContent).toBe("Storage 2");
 
-  act(() => {
-    userEvent.click(items[1]);
-  });
-
-  // expect(container.ownerDocument.querySelector("#menu-catalog-existingStorage")).toBeNull();
+  click(items[1]);
 
   expect(select.value).toBe("st527");
 
@@ -333,7 +325,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
   expect(submitBtn.disabled).toBeTruthy();
 
   let input = expectChild(form, "#catalog-name");
-  typeString(input, "New catalog");
+  await typeString(input, "New catalog");
 
   expect(submitBtn.disabled).toBeFalsy();
 

@@ -50,7 +50,7 @@ test("create album", async (): Promise<void> => {
   expect(store.dispatch).not.toHaveBeenCalled();
 
   let nameInput = expectChild<HTMLInputElement>(form, "#album-name");
-  typeString(nameInput, "Foo");
+  await typeString(nameInput, "Foo");
 
   let { resolve } = deferRequest<Method.AlbumCreate>();
 
@@ -109,7 +109,9 @@ test("edit album", async (): Promise<void> => {
   let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#album-name");
   expect(nameInput.value).toBe("Album 2");
 
-  typeString(nameInput, "");
+  nameInput.selectionStart = 0;
+  nameInput.selectionEnd = nameInput.value.length;
+  await typeString(nameInput, "{backspace}");
 
   let button = expectChild<HTMLButtonElement>(form, "#album-edit-submit");
   click(button);
@@ -117,7 +119,7 @@ test("edit album", async (): Promise<void> => {
   expect(mockedRequest).not.toHaveBeenCalled();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  typeString(nameInput, "Foo");
+  await typeString(nameInput, "Foo");
 
   let { resolve } = deferRequest<Method.AlbumEdit>();
 

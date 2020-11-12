@@ -47,7 +47,9 @@ test("edit catalog", async (): Promise<void> => {
   let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#catalog-name");
   expect(nameInput.value).toBe("Catalog");
 
-  typeString(nameInput, "");
+  nameInput.selectionStart = 0;
+  nameInput.selectionEnd = nameInput.value.length;
+  await typeString(nameInput, "{backspace}");
 
   let button = expectChild<HTMLButtonElement>(form, "#catalog-edit-submit");
   click(button);
@@ -55,7 +57,7 @@ test("edit catalog", async (): Promise<void> => {
   expect(mockedRequest).not.toHaveBeenCalled();
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  typeString(nameInput, "Foo");
+  await typeString(nameInput, "Foo");
 
   let { resolve } = deferRequest<Method.CatalogEdit>();
 

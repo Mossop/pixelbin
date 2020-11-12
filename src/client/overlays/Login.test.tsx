@@ -48,7 +48,7 @@ test("login success", async (): Promise<void> => {
   expect(store.dispatch).not.toHaveBeenCalled();
 
   let { resolve } = deferRequest<Method.Login>();
-  typeString(email, "foo@bar.com");
+  await typeString(email, "foo@bar.com");
   click(button);
 
   expect(store.dispatch).not.toHaveBeenCalled();
@@ -123,8 +123,8 @@ test("login failed", async (): Promise<void> => {
   expect(password.type).toBe("password");
   expect(password.disabled).toBeFalsy();
 
-  typeString(email, "foo@bar.com");
-  typeString(password, "foopass");
+  await typeString(email, "foo@bar.com");
+  await typeString(password, "foopass");
 
   let { reject } = deferRequest();
 

@@ -60,7 +60,7 @@ test("save search", async (): Promise<void> => {
   expect(pbl.checked).toBeTruthy();
 
   let name = expectChild<HTMLInputElement>(form, "input#save-search-name");
-  typeString(name, "Hello");
+  await typeString(name, "Hello");
 
   let button = expectChild<HTMLButtonElement>(form, "button#save-search-submit");
 
