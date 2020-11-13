@@ -20,7 +20,7 @@ export interface ServerConfig {
   smtp: SmtpConfig | null;
 }
 
-interface ConfigFile {
+export interface ConfigFile {
   database: DatabaseConfig;
   logging?: LogConfig;
   storage?: string;
@@ -144,7 +144,9 @@ export const loadConfig = serviceBuilder(
       throw new Error(`Failed to parse config file: ${e}`);
     }
 
-    let storage = path.resolve(configRoot, configFileData.storage ?? ".");
+    let storage = configFileData.storage
+      ? path.join(configRoot, configFileData.storage)
+      : configRoot;
     let storageConfig: StorageConfig = {
       tempDirectory: path.join(storage, "temp"),
       localDirectory: path.join(storage, "local"),
