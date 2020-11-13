@@ -55,6 +55,7 @@ test("page and sidebar", async (): Promise<void> => {
       pageOptions={
         [{
           id: "option1",
+          icon: <div/>,
           label: "Option 1",
           onClick: option1Click,
         }]

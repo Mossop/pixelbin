@@ -70,10 +70,12 @@ test("banner", async (): Promise<void> => {
       [{
         id: "option1",
         label: "Label 1",
+        icon: <div/>,
         onClick: option1Click,
       }, {
         id: "option2",
         label: "Label 2",
+        icon: <div/>,
         onClick: option2Click,
       }]
     }
