@@ -71,10 +71,15 @@ module.exports = {
       "**/*.test.tsx",
       "**/__mocks__/*.js",
       "**/__mocks__/*.ts",
+      "**/test-helpers*",
     ],
 
     env: {
       jest: true,
+    },
+
+    rules: {
+      "@typescript-eslint/unbound-method": "off",
     },
   }, {
     files: ["*.ts", "*.tsx"],
