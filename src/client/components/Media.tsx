@@ -1,9 +1,7 @@
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
-import Fade from "@material-ui/core/Fade";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
-import clsx from "clsx";
 import alpha from "color-alpha";
 import React, { useCallback } from "react";
 
@@ -11,6 +9,7 @@ import { getThumbnailUrl } from "../api/media";
 import type { MediaState, ProcessedMediaState } from "../api/types";
 import { isProcessedMedia } from "../api/types";
 import type { ReactResult } from "../utils/types";
+import { HoverArea } from "./HoverArea";
 import Loading from "./Loading";
 
 interface PreviewStyleProps {
@@ -62,13 +61,11 @@ const usePreviewStyles = makeStyles((theme: Theme) =>
 
 export interface MediaDisplayProps {
   media: ProcessedMediaState;
-  displayOverlays: boolean;
   children?: React.ReactNode;
 }
 
 export function Photo({
   media,
-  displayOverlays,
   children,
 }: MediaDisplayProps): ReactResult {
   let classes = useStyles();
@@ -80,20 +77,19 @@ export function Photo({
       src={media.file.originalUrl}
       className={classes.media}
     />
-    <Fade in={displayOverlays} timeout={500}>
+    <HoverArea>
       <div
         id="media-controls"
-        className={clsx(classes.mediaControls, displayOverlays ? "visible" : "hidden")}
+        className={classes.mediaControls}
       >
         {children}
       </div>
-    </Fade>
+    </HoverArea>
   </React.Fragment>;
 }
 
 export function Video({
   media,
-  displayOverlays,
   children,
 }: MediaDisplayProps): ReactResult {
   let classes = useStyles();
@@ -108,14 +104,14 @@ export function Video({
     >
       <source src={media.file.originalUrl} type={media.file.mimetype}/>
     </video>
-    <Fade in={displayOverlays} timeout={500}>
+    <HoverArea>
       <div
         id="media-controls"
-        className={clsx(classes.mediaControls, displayOverlays ? "visible" : "hidden")}
+        className={classes.mediaControls}
       >
         {children}
       </div>
-    </Fade>
+    </HoverArea>
   </React.Fragment>;
 }
 

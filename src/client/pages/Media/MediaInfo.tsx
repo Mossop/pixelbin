@@ -6,16 +6,16 @@ import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import React, { useCallback, useMemo } from "react";
 
-import type { ObjectModel } from "../../model";
-import { RelationType, Join, Operator } from "../../model";
-import { formatDateTime } from "../../utils";
-import type { Reference, Album, Tag } from "../api/highlevel";
-import type { MediaAlbumState, MediaPersonState, MediaState, MediaTagState } from "../api/types";
-import { PageType } from "../pages/types";
-import { useSelector } from "../store";
-import type { StoreState } from "../store/types";
-import type { ReactResult } from "../utils/types";
-import UILink from "./Link";
+import type { ObjectModel } from "../../../model";
+import { RelationType, Join, Operator } from "../../../model";
+import { formatDateTime } from "../../../utils";
+import type { Reference, Album, Tag } from "../../api/highlevel";
+import type { MediaAlbumState, MediaPersonState, MediaState, MediaTagState } from "../../api/types";
+import UILink from "../../components/Link";
+import { useSelector } from "../../store";
+import type { StoreState } from "../../store/types";
+import type { ReactResult } from "../../utils/types";
+import { PageType } from "../types";
 
 const FRACTION = /^(\d+)\/(\d+)$/;
 

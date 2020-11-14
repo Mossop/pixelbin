@@ -101,6 +101,25 @@ const matchers = {
     }
   },
 
+  toBeHidden(this: jest.MatcherContext, received: Element): jest.CustomMatcherResult {
+    let hidden = false;
+    let elem: Element | null = received;
+    while (elem) {
+      let style = elem.ownerDocument.defaultView?.getComputedStyle(elem);
+      if (style?.visibility == "hidden") {
+        hidden = true;
+        break;
+      }
+
+      elem = elem.parentElement;
+    }
+
+    return {
+      message: expectMessage(this, "toBeHidden", true, hidden),
+      pass: hidden,
+    };
+  },
+
   toBeAppError,
 };
 

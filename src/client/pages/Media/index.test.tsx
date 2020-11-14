@@ -2,12 +2,12 @@ import { act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 
-import { emptyMetadata, Method } from "../../model";
-import { lastCallArgs, mockedFunction } from "../../test-helpers";
-import { now } from "../../utils";
-import { request } from "../api/api";
-import { Catalog } from "../api/highlevel";
-import MediaInfo from "../components/MediaInfo";
+import MediaPage from ".";
+import { emptyMetadata, Method } from "../../../model";
+import { lastCallArgs, mockedFunction } from "../../../test-helpers";
+import { now } from "../../../utils";
+import { request } from "../../api/api";
+import { Catalog } from "../../api/highlevel";
 import {
   expect,
   render,
@@ -17,14 +17,14 @@ import {
   deferRequest,
   expectChild,
   click,
-} from "../test-helpers";
-import type { CatalogMediaLookup } from "../utils/medialookup";
-import { MediaLookupType } from "../utils/medialookup";
-import MediaPage from "./Media";
-import { PageType } from "./types";
+} from "../../test-helpers";
+import type { CatalogMediaLookup } from "../../utils/medialookup";
+import { MediaLookupType } from "../../utils/medialookup";
+import { PageType } from "../types";
+import MediaInfo from "./MediaInfo";
 
-jest.mock("../api/api");
-jest.mock("../components/MediaInfo", () => jest.fn(() => null));
+jest.mock("../../api/api");
+jest.mock("./MediaInfo", () => jest.fn(() => null));
 
 jest.useFakeTimers();
 
@@ -98,26 +98,20 @@ test("single media page", async (): Promise<void> => {
   let enterFullscreen = expectChild(container, "#enter-fullscreen");
   expect(container.querySelector("#exit-fullscreen")).toBeNull();
 
-  expect(container.querySelector(".hidden #main-overlay")).toBeNull();
-  expect(container.querySelector(".visible #main-overlay")).not.toBeNull();
-  expect(container.querySelector("#media-controls.hidden")).toBeNull();
-  expect(container.querySelector("#media-controls.visible")).not.toBeNull();
+  expect(expectChild(container, "#main-overlay")).not.toBeHidden();
+  expect(expectChild(container, "#media-controls")).not.toBeHidden();
 
   act(() => jest.runAllTimers());
 
-  expect(container.querySelector(".hidden #main-overlay")).not.toBeNull();
-  expect(container.querySelector(".visible #main-overlay")).toBeNull();
-  expect(container.querySelector("#media-controls.hidden")).not.toBeNull();
-  expect(container.querySelector("#media-controls.visible")).toBeNull();
+  expect(expectChild(container, "#main-overlay")).toBeHidden();
+  expect(expectChild(container, "#media-controls")).toBeHidden();
 
   let display = expectChild(container, "#media-display");
 
   act(() => userEvent.hover(display));
 
-  expect(container.querySelector(".hidden #main-overlay")).toBeNull();
-  expect(container.querySelector(".visible #main-overlay")).not.toBeNull();
-  expect(container.querySelector("#media-controls.hidden")).toBeNull();
-  expect(container.querySelector("#media-controls.visible")).not.toBeNull();
+  expect(expectChild(container, "#main-overlay")).not.toBeHidden();
+  expect(expectChild(container, "#media-controls")).not.toBeHidden();
 
   let original = expectChild(container, "#media-original");
   expect(original.localName).toBe("img");

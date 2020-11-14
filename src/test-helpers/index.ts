@@ -34,7 +34,7 @@ export function waitFor(
   });
 }
 
-function expectMessage(
+export function expectMessage(
   context: jest.MatcherContext,
   term: string,
   expected: unknown,
