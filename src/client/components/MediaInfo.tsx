@@ -262,7 +262,7 @@ function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactRes
 
 export interface MediaInfoProps {
   media: MediaState;
-  onHighlightRegion?: (region: ObjectModel.Location | null) => void;
+  onHighlightRegion: (region: ObjectModel.Location | null) => void;
 }
 
 export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps): ReactResult {

@@ -146,6 +146,7 @@ function MainOverlay({
       }
       {
         onGoBack && <IconButton
+          id="back-button"
           onClick={onGoBack}
           className={classes.overlayButton}
         >
@@ -361,6 +362,7 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
             {
               location &&
               <div
+                id="person-area"
                 className={classes.face}
                 style={
                   {
