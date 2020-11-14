@@ -17,6 +17,7 @@ const config = root => ({
     "<rootDir>/node_modules/",
   ],
   coveragePathIgnorePatterns: [
+    "src/client/environment/.*",
     "\\.(test|karma)\\.[jt]sx?$",
     "/test-helpers",
     "/\\.",

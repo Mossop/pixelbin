@@ -3,6 +3,7 @@ import CardContent from "@material-ui/core/CardContent";
 import Fade from "@material-ui/core/Fade";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
+import clsx from "clsx";
 import alpha from "color-alpha";
 import React, { useCallback } from "react";
 
@@ -74,12 +75,16 @@ export function Photo({
 
   return <React.Fragment>
     <img
+      id="media-original"
       key={media.id}
       src={media.file.originalUrl}
       className={classes.media}
     />
     <Fade in={displayOverlays} timeout={500}>
-      <div className={classes.mediaControls}>
+      <div
+        id="media-controls"
+        className={clsx(classes.mediaControls, displayOverlays ? "visible" : "hidden")}
+      >
         {children}
       </div>
     </Fade>
@@ -95,6 +100,7 @@ export function Video({
 
   return <React.Fragment>
     <video
+      id="media-original"
       key={media.id}
       poster={media.file.posterUrl ?? undefined}
       controls={false}
@@ -103,7 +109,10 @@ export function Video({
       <source src={media.file.originalUrl} type={media.file.mimetype}/>
     </video>
     <Fade in={displayOverlays} timeout={500}>
-      <div className={classes.mediaControls}>
+      <div
+        id="media-controls"
+        className={clsx(classes.mediaControls, displayOverlays ? "visible" : "hidden")}
+      >
         {children}
       </div>
     </Fade>

@@ -10,6 +10,7 @@ import {
   ThemeProvider,
 } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
+import clsx from "clsx";
 import alpha from "color-alpha";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
@@ -132,10 +133,11 @@ function MainOverlay({
 }: MainOverlayProps): ReactResult {
   let classes = useStyles();
 
-  return <div className={classes.overlayContent}>
+  return <div id="main-overlay" className={classes.overlayContent}>
     <div className={classes.overlayTop}>
       {
         onShowInfo && <IconButton
+          id="info-button"
           onClick={onShowInfo}
           className={classes.overlayButton}
         >
@@ -155,6 +157,7 @@ function MainOverlay({
       <div>
         {
           onPrevious && <IconButton
+            id="prev-button"
             onClick={onPrevious}
             className={classes.navButton}
           >
@@ -165,6 +168,7 @@ function MainOverlay({
       <div>
         {
           onNext && <IconButton
+            id="next-button"
             onClick={onNext}
             className={classes.navButton}
           >
@@ -243,7 +247,7 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
   );
 
   let onPrevious = useMemo(() => {
-    if (mediaIndex == 0 || !mediaList) {
+    if (mediaIndex <= 0 || !mediaList) {
       return null;
     }
 
@@ -261,7 +265,7 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
   }, [mediaIndex, mediaList, actions, lookup]);
 
   let onNext = useMemo(() => {
-    if (!mediaList || mediaIndex == mediaList.length - 1) {
+    if (!mediaList || mediaIndex == mediaList.length - 1 || mediaIndex < 0) {
       return null;
     }
 
@@ -282,8 +286,11 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
     setDisplayOverlays(false);
   }, []);
 
-  let delayed = useMemo(() => new Delayed(1500, hideOverlays), [hideOverlays]);
-  delayed.trigger();
+  let delayed = useMemo(() => {
+    let delayed = new Delayed(1500, hideOverlays);
+    delayed.trigger();
+    return delayed;
+  }, [hideOverlays]);
 
   let showOverlays = useCallback(() => {
     setDisplayOverlays(true);
@@ -299,13 +306,14 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
   }, []);
 
   if (!mediaList) {
-    return <Page>
+    return <Page sidebar="openable">
       <Loading className={classes.content}/>
     </Page>;
   }
 
   if (mediaIndex < 0) {
-    return <Page>
+    // TODO add an error component.
+    return <Page sidebar="openable">
       <Loading className={classes.content}/>
     </Page>;
   }
@@ -314,15 +322,16 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
   let title = mediaTitle(mediaState);
 
   let mediaControls = fullscreen
-    ? <IconButton onClick={exitFullscreen} className={classes.overlayButton}>
+    ? <IconButton id="exit-fullscreen" onClick={exitFullscreen} className={classes.overlayButton}>
       <ExitFullscreenIcon/>
     </IconButton>
-    : <IconButton onClick={goFullscreen} className={classes.overlayButton}>
+    : <IconButton id="enter-fullscreen" onClick={goFullscreen} className={classes.overlayButton}>
       <EnterFullscreenIcon/>
     </IconButton>;
 
   return <Page sidebar="openable">
     <div
+      id="media-display"
       className={classes.content}
       ref={areaRef}
       onMouseOver={showOverlays}
@@ -367,7 +376,7 @@ function MediaPage({ media, lookup }: MediaPageProps & AuthenticatedPageProps): 
           : <Loading className={classes.mediaArea}/>
       }
       <Fade in={displayOverlays} timeout={500}>
-        <div className={classes.overlay}>
+        <div className={clsx(classes.overlay, displayOverlays ? "visible" : "hidden")}>
           <MainOverlay
             onPrevious={onPrevious}
             onNext={onNext}
