@@ -90,12 +90,14 @@ export default function Banner({
       type: OverlayType.Login,
     });
   }, [actions, userMenuState]);
-  let showSignupOverlay = useCallback((): void => {
-    userMenuState.close();
-    actions.showOverlay({
-      type: OverlayType.Signup,
-    });
-  }, [actions, userMenuState]);
+
+  // let showSignupOverlay = useCallback((): void => {
+  //   userMenuState.close();
+  //   actions.showOverlay({
+  //     type: OverlayType.Signup,
+  //   });
+  // }, [actions, userMenuState]);
+
   let doLogout = useCallback(async (): Promise<void> => {
     userMenuState.close();
     let state = await logout();
@@ -224,7 +226,7 @@ export default function Banner({
             >
               {l10n.getString("banner-login")}
             </Button>
-            <Hidden xsDown={true}>
+            {/* <Hidden xsDown={true}>
               <Button
                 id="button-signup"
                 color="inherit"
@@ -232,7 +234,7 @@ export default function Banner({
               >
                 {l10n.getString("banner-signup")}
               </Button>
-            </Hidden>
+            </Hidden> */}
           </React.Fragment>
       }
     </Box>
