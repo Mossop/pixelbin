@@ -30,8 +30,11 @@ const ALLOWED_TYPES = [
 export const MEDIA_THUMBNAIL_SIZES = [
   150,
   200,
+  250,
   300,
+  350,
   400,
+  450,
   500,
 ];
 
@@ -55,11 +58,7 @@ export const purgeDeletedMedia = bindTask(
         }
 
         for (let alternate of await dbConnection.listAlternateFiles(mediaFile.id)) {
-          if (alternate.type == AlternateFileType.Poster ||
-            alternate.type == AlternateFileType.Reencode) {
-            await storage.get().deleteFile(mediaFile.media, mediaFile.id, alternate.fileName);
-          }
-
+          await storage.get().deleteFile(mediaFile.media, mediaFile.id, alternate.fileName);
           await dbConnection.deleteAlternateFiles([alternate.id]);
         }
 
@@ -177,11 +176,7 @@ export const handleUploadedFile = bindTask(
           logger.trace("Building thumbnails.");
           for (let size of MEDIA_THUMBNAIL_SIZES) {
             let fileName = `${baseName}-${size}.jpg`;
-            let target = await storage.get().getLocalFilePath(
-              mediaId,
-              mediaFile.id,
-              fileName,
-            );
+            let target = path.join(dir.path, fileName);
             let info = await sharp(source)
               .resize(size, size, {
                 fit: "inside",
@@ -202,6 +197,8 @@ export const handleUploadedFile = bindTask(
               frameRate: null,
               bitRate: null,
             });
+
+            await storage.get().storeFile(mediaId, mediaFile.id, fileName, target);
           }
 
           await storage.get().storeFile(mediaId, mediaFile.id, fileName, fileInfo.path);

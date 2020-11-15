@@ -1,6 +1,4 @@
-import fss, { promises as fs } from "fs";
-
-import sharp from "sharp";
+import { promises as fs } from "fs";
 
 import type {
   Api,
@@ -358,20 +356,16 @@ export const thumbnail = ensureAuthenticated(
 
     let storage = await ctx.storage.getStorage(media.catalog);
     try {
-      let path = await storage.get().getLocalFilePath(media.id, source.mediaFile, source.fileName);
+      let thumbUrl = await storage.get().getFileUrl(
+        media.id,
+        source.mediaFile,
+        source.fileName,
+        source.mimetype,
+      );
 
-      if (source.width > source.height && source.width == parsedSize ||
-          source.height > source.width && source.height == parsedSize) {
-        ctx.set("Content-Type", source.mimetype);
-        ctx.body = fss.createReadStream(path);
-      } else {
-        ctx.set("Content-Type", "image/jpeg");
-        ctx.body = await sharp(path).resize(parsedSize, parsedSize, {
-          fit: "inside",
-        }).jpeg({ quality: 85 }).toBuffer();
-      }
-
+      ctx.status = 302;
       ctx.set("Cache-Control", "max-age=1314000,immutable");
+      ctx.redirect(thumbUrl);
     } finally {
       storage.release();
     }

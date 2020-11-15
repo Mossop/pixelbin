@@ -26,7 +26,7 @@ jest.mock("./ffmpeg", () => {
   let actual = jest.requireActual("./ffmpeg");
   return {
     ...actual,
-    encodeVideo: jest.fn(() => Promise.resolve()),
+    encodeVideo: jest.fn(),
   };
 });
 /* eslint-enable */
@@ -107,6 +107,13 @@ test("Process image metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let storeFileMock = mockedFunction(storage.storeFile);
 
+  let buffers: Buffer[] = [];
+  storeFileMock.mockImplementation(
+    async (media: string, mediaFile: string, filename: string, source: string): Promise<void> => {
+      buffers.push(await fs.readFile(source));
+    },
+  );
+
   await handleUploadedFile(media.id);
 
   expect(deleteUploadedFileMock).toHaveBeenCalledTimes(1);
@@ -163,21 +170,13 @@ test("Process image metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(6);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
     encoding: "utf8",
   }));
   expect(contents).toMatchSnapshot("lamppost-metadata");
-
-  for (let size of MEDIA_THUMBNAIL_SIZES) {
-    let expectedFile = path.join(temp.path, `Testname-${size}.jpg`);
-    let buffer = await sharp(expectedFile).png().toBuffer();
-    expect(buffer).toMatchImageSnapshot({
-      customSnapshotIdentifier: `lamppost-thumb-${size}`,
-    });
-  }
 
   let thumbnails = await user1Db.listAlternateFiles(
     media.id,
@@ -192,77 +191,36 @@ test("Process image metadata", async (): Promise<void> => {
     thumbnails.map((t: AlternateFile): number => t.width),
   ).toEqual(MEDIA_THUMBNAIL_SIZES);
 
-  expect(thumbnails).toEqual([{
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-150.jpg",
-    fileSize: 2883,
-    mimetype: "image/jpeg",
-    width: 150,
-    height: 99,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-200.jpg",
-    fileSize: 3997,
-    mimetype: "image/jpeg",
-    width: 200,
-    height: 132,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-300.jpg",
-    fileSize: 7328,
-    mimetype: "image/jpeg",
-    width: 300,
-    height: 199,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-400.jpg",
-    fileSize: 11198,
-    mimetype: "image/jpeg",
-    width: 400,
-    height: 265,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-500.jpg",
-    fileSize: 17336,
-    mimetype: "image/jpeg",
-    width: 500,
-    height: 331,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }]);
+  let staticProperties = thumbnails.map((thumbnail: AlternateFile): unknown => {
+    let { id, mediaFile, ...rest } = thumbnail;
+    return rest;
+  });
 
-  expect(storeFileMock).toHaveBeenCalledTimes(1);
-  expect(storeFileMock).toHaveBeenLastCalledWith(
-    media.id,
-    expect.anything(),
-    "Testname.jpg",
-    sourceFile,
-  );
+  expect(staticProperties).toMatchSnapshot();
+
+  let { mediaFile } = thumbnails[0];
+
+  expect(storeFileMock).toHaveBeenCalledTimes(9);
+  expect(storeFileMock.mock.calls).toEqual([
+    [media.id, mediaFile, "Testname-150.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-200.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-250.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-300.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-350.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-400.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-450.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-500.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname.jpg", sourceFile],
+  ]);
 
   expect(mockedEncodeVideo).not.toHaveBeenCalled();
+
+  for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
+    let buffer = await sharp(buffers[i]).png().toBuffer();
+    expect(buffer).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-${MEDIA_THUMBNAIL_SIZES[i]}`,
+    });
+  }
 
   await temp.cleanup();
 });
@@ -376,23 +334,40 @@ test("Process video metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let storeFileMock = mockedFunction(storage.storeFile);
 
-  mockedEncodeVideo.mockImplementationOnce((): Promise<VideoInfo> => Promise.resolve({
-    format: {
-      duration: 100,
-      bitRate: 1000000,
-      container: Container.Matroska,
-      size: 2000000,
+  let buffers: Buffer[] = [];
+  storeFileMock.mockImplementation(
+    async (media: string, mediaFile: string, filename: string, source: string): Promise<void> => {
+      buffers.push(await fs.readFile(source));
     },
-    videoStream: {
-      codec: VideoCodec.AV1,
-      frameRate: 30,
-      width: 1920,
-      height: 1080,
-    },
-    audioStream: {
-      codec: AudioCodec.Vorbis,
-    },
-  }));
+  );
+
+  mockedEncodeVideo.mockImplementationOnce(async (
+    video: string,
+    videoCodec: VideoCodec,
+    audioCodec: AudioCodec,
+    container: Container,
+    target: string,
+  ): Promise<VideoInfo> => {
+    await fs.writeFile(target, "foobar");
+
+    return {
+      format: {
+        duration: 100,
+        bitRate: 1000000,
+        container: Container.Matroska,
+        size: 2000000,
+      },
+      videoStream: {
+        codec: VideoCodec.AV1,
+        frameRate: 30,
+        width: 1920,
+        height: 1080,
+      },
+      audioStream: {
+        codec: AudioCodec.Vorbis,
+      },
+    };
+  });
 
   await handleUploadedFile(media.id);
 
@@ -450,21 +425,13 @@ test("Process video metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(6);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
     encoding: "utf8",
   }));
   expect(contents).toMatchSnapshot("video-metadata");
-
-  for (let size of MEDIA_THUMBNAIL_SIZES) {
-    let expectedFile = path.join(temp.path, `Testvideo-${size}.jpg`);
-    let buffer = await sharp(expectedFile).png().toBuffer();
-    expect(buffer).toMatchImageSnapshot({
-      customSnapshotIdentifier: `video-thumb-${size}`,
-    });
-  }
 
   let thumbnails = await user1Db.listAlternateFiles(
     media.id,
@@ -479,67 +446,12 @@ test("Process video metadata", async (): Promise<void> => {
     thumbnails.map((t: AlternateFile): number => t.height),
   ).toEqual(MEDIA_THUMBNAIL_SIZES);
 
-  expect(thumbnails).toEqual([{
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testvideo-150.jpg",
-    fileSize: 4810,
-    mimetype: "image/jpeg",
-    width: 84,
-    height: 150,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testvideo-200.jpg",
-    fileSize: 7570,
-    mimetype: "image/jpeg",
-    width: 113,
-    height: 200,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testvideo-300.jpg",
-    fileSize: 14955,
-    mimetype: "image/jpeg",
-    width: 169,
-    height: 300,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testvideo-400.jpg",
-    fileSize: 23721,
-    mimetype: "image/jpeg",
-    width: 225,
-    height: 400,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testvideo-500.jpg",
-    fileSize: 34910,
-    mimetype: "image/jpeg",
-    width: 281,
-    height: 500,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }]);
+  let staticProperties = thumbnails.map((thumbnail: AlternateFile): unknown => {
+    let { id, mediaFile, ...rest } = thumbnail;
+    return rest;
+  });
+
+  expect(staticProperties).toMatchSnapshot();
 
   let encodes = await user1Db.listAlternateFiles(
     media.id,
@@ -591,12 +503,29 @@ test("Process video metadata", async (): Promise<void> => {
     expect.anything(),
   ]);
 
-  expect(storeFileMock).toHaveBeenCalledTimes(3);
+  let mediaFile = posters[0].mediaFile;
+
+  expect(storeFileMock).toHaveBeenCalledTimes(11);
   expect(storeFileMock.mock.calls).toEqual([
-    [media.id, expect.anything(), "Testvideo-poster.jpg", expect.anything()],
-    [media.id, storeFileMock.mock.calls[0][1], "Testvideo.mp4", sourceFile],
-    [media.id, storeFileMock.mock.calls[0][1], "Testvideo-h264.mp4", lastEncodeArgs[4]],
+    [media.id, mediaFile, "Testvideo-poster.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-150.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-200.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-250.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-300.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-350.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-400.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-450.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo-500.jpg", expect.anything()],
+    [media.id, mediaFile, "Testvideo.mp4", sourceFile],
+    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4]],
   ]);
+
+  for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
+    let buffer = await sharp(buffers[i + 1]).png().toBuffer();
+    expect(buffer).toMatchImageSnapshot({
+      customSnapshotIdentifier: `video-thumb-${MEDIA_THUMBNAIL_SIZES[i]}`,
+    });
+  }
 
   await temp.cleanup();
 });
@@ -625,7 +554,7 @@ test("reprocess", async (): Promise<void> => {
 
   let fileUploaded = parseDateTime("2020-01-01T02:56:53");
 
-  let mediaFile = await dbConnection.withNewMediaFile(media.id, {
+  let oldMediaFile = await dbConnection.withNewMediaFile(media.id, {
     ...emptyMetadata,
     processVersion: 1,
     city: "London",
@@ -653,7 +582,7 @@ test("reprocess", async (): Promise<void> => {
       uploaded: expect.toEqualDate(fileUploaded),
       fileSize: 1000,
       fileName: "old.jpg",
-      id: mediaFile.id,
+      id: oldMediaFile.id,
       mimetype: "image/jpeg",
       width: 100,
       height: 200,
@@ -690,6 +619,13 @@ test("reprocess", async (): Promise<void> => {
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let storeFileMock = mockedFunction(storage.storeFile);
+
+  let buffers: Buffer[] = [];
+  storeFileMock.mockImplementation(
+    async (media: string, mediaFile: string, filename: string, source: string): Promise<void> => {
+      buffers.push(await fs.readFile(source));
+    },
+  );
 
   await handleUploadedFile(media.id);
 
@@ -747,23 +683,15 @@ test("reprocess", async (): Promise<void> => {
     people: [],
   });
 
-  expect(fullMedia?.file?.id).not.toBe(mediaFile.id);
+  expect(fullMedia?.file?.id).not.toBe(oldMediaFile.id);
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(6);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
     encoding: "utf8",
   }));
   expect(contents).toMatchSnapshot("reprocessed-metadata");
-
-  for (let size of MEDIA_THUMBNAIL_SIZES) {
-    let expectedFile = path.join(temp.path, `Testname-${size}.jpg`);
-    let buffer = await sharp(expectedFile).png().toBuffer();
-    expect(buffer).toMatchImageSnapshot({
-      customSnapshotIdentifier: `lamppost-thumb-${size}`,
-    });
-  }
 
   let thumbnails = await user1Db.listAlternateFiles(
     media.id,
@@ -778,77 +706,36 @@ test("reprocess", async (): Promise<void> => {
     thumbnails.map((t: AlternateFile): number => t.width),
   ).toEqual(MEDIA_THUMBNAIL_SIZES);
 
-  expect(thumbnails).toEqual([{
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-150.jpg",
-    fileSize: 2883,
-    mimetype: "image/jpeg",
-    width: 150,
-    height: 99,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-200.jpg",
-    fileSize: 3997,
-    mimetype: "image/jpeg",
-    width: 200,
-    height: 132,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-300.jpg",
-    fileSize: 7328,
-    mimetype: "image/jpeg",
-    width: 300,
-    height: 199,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-400.jpg",
-    fileSize: 11198,
-    mimetype: "image/jpeg",
-    width: 400,
-    height: 265,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Thumbnail,
-    fileName: "Testname-500.jpg",
-    fileSize: 17336,
-    mimetype: "image/jpeg",
-    width: 500,
-    height: 331,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }]);
+  let staticProperties = thumbnails.map((thumbnail: AlternateFile): unknown => {
+    let { id, mediaFile, ...rest } = thumbnail;
+    return rest;
+  });
 
-  expect(storeFileMock).toHaveBeenCalledTimes(1);
-  expect(storeFileMock).toHaveBeenLastCalledWith(
-    media.id,
-    expect.anything(),
-    "Testname.jpg",
-    sourceFile,
-  );
+  expect(staticProperties).toMatchSnapshot();
+
+  let { mediaFile } = thumbnails[0];
+
+  expect(storeFileMock).toHaveBeenCalledTimes(9);
+  expect(storeFileMock.mock.calls).toEqual([
+    [media.id, mediaFile, "Testname-150.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-200.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-250.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-300.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-350.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-400.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-450.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname-500.jpg", expect.anything()],
+    [media.id, mediaFile, "Testname.jpg", sourceFile],
+  ]);
 
   expect(mockedEncodeVideo).not.toHaveBeenCalled();
+
+  for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
+    let buffer = await sharp(buffers[i]).png().toBuffer();
+    expect(buffer).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-${MEDIA_THUMBNAIL_SIZES[i]}`,
+    });
+  }
 
   await temp.cleanup();
 });
@@ -1135,13 +1022,16 @@ test("purge", async (): Promise<void> => {
   expect(deleteFile.mock.calls).toInclude([
     ["media1", "original1", "alt1.jpg"],
     ["media1", "original1", "alt2.jpg"],
+    ["media1", "original1", "alt3.jpg"],
     ["media1", "original1", "orig1.jpg"],
     ["media1", "original2", "orig2.jpg"],
     ["media3", "original5", "alt7.jpg"],
     ["media3", "original5", "alt8.jpg"],
+    ["media3", "original5", "alt9.jpg"],
     ["media3", "original5", "orig5.jpg"],
     ["media3", "original6", "alt10.jpg"],
     ["media3", "original6", "alt11.jpg"],
+    ["media3", "original6", "alt12.jpg"],
     ["media3", "original6", "orig6.jpg"],
   ]);
 

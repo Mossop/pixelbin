@@ -1,8 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import sharp from "sharp";
-
 import type { Api } from "../../../model";
 import {
   CSRF_HEADER,
@@ -637,27 +635,22 @@ test("Media resources", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  await request
-    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/200`)
-    .expect("Content-Type", "image/jpeg")
-    .expect(200);
-
-  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb1.jpg");
-  getLocalFilePath.mockClear();
+  expect(getLocalFilePath).not.toHaveBeenCalled();
 
   getFileUrl.mockImplementationOnce(
-    () => Promise.resolve(`http://original.foo/${media.id}/${mediaFile.id}`),
+    (
+      media: string,
+      file: string,
+      filename: string,
+      type?: string,
+    ) => Promise.resolve(`http://original.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
     .get(`/media/original/${media.id}/${mediaFile.id}`)
-    .expect("Location", `http://original.foo/${media.id}/${mediaFile.id}`)
+    .expect("Location", `http://original.foo/${media.id}/${mediaFile.id}/foo.jpg/image/jpeg`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
-  expect(getFileUrl).toHaveBeenCalledTimes(1);
-  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "foo.jpg", "image/jpeg");
-  getFileUrl.mockClear();
 
   await request
     .get(`/media/poster/${media.id}/${mediaFile.id}`)
@@ -676,17 +669,19 @@ test("Media resources", async (): Promise<void> => {
   });
 
   getFileUrl.mockImplementationOnce(
-    () => Promise.resolve(`http://poster.foo/${media.id}/${mediaFile.id}`),
+    (
+      media: string,
+      file: string,
+      filename: string,
+      type?: string,
+    ) => Promise.resolve(`http://poster.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
     .get(`/media/poster/${media.id}/${mediaFile.id}`)
-    .expect("Location", `http://poster.foo/${media.id}/${mediaFile.id}`)
+    .expect("Location", `http://poster.foo/${media.id}/${mediaFile.id}/poster.jpg/image/jpeg`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
-  expect(getFileUrl).toHaveBeenCalledTimes(1);
-  expect(getFileUrl).toHaveBeenLastCalledWith(media.id, mediaFile.id, "poster.jpg", "image/jpeg");
-  getFileUrl.mockClear();
 
   await request
     .get("/media/thumbnail/foo/bar/200")
@@ -700,76 +695,50 @@ test("Media resources", async (): Promise<void> => {
     .get("/media/original/foo/bar")
     .expect(404);
 
-  let response = await request
-    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/150`)
-    .expect("Content-Type", "image/jpeg")
-    .expect(200);
-
-  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb2.jpg");
-  getLocalFilePath.mockClear();
-
-  let image = sharp(response.body);
-  let metadata = await image.metadata();
-  expect(metadata.width).toBe(150);
-  expect(metadata.format).toBe("jpeg");
-
-  expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
-    customSnapshotIdentifier: "media-thumb-150",
-  });
-
-  response = await request
-    .get(`/media/thumbnail/${media.id}/${mediaFile.id}`)
-    .expect("Content-Type", "image/jpeg")
-    .expect(200);
-
-  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb2.jpg");
-  getLocalFilePath.mockClear();
-
-  image = sharp(response.body);
-  metadata = await image.metadata();
-  expect(metadata.width).toBe(150);
-  expect(metadata.format).toBe("jpeg");
-
-  expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
-    customSnapshotIdentifier: "media-thumb-150",
-  });
-
-  response = await request
+  getFileUrl.mockImplementation(
+    (
+      media: string,
+      file: string,
+      filename: string,
+      type?: string,
+    ) => Promise.resolve(`http://thumbnail.foo/${media}/${file}/${filename}/${type}`),
+  );
+  await request
     .get(`/media/thumbnail/${media.id}/${mediaFile.id}/200`)
-    .expect("Content-Type", "image/jpeg")
-    .expect(200);
+    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb1.jpg/image/jpeg`)
+    .expect(302);
 
-  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
-  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, "thumb1.jpg");
-  getLocalFilePath.mockClear();
+  await request
+    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/150`)
+    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb2.jpg/image/jpeg`)
+    .expect(302);
 
-  image = sharp(response.body);
-  metadata = await image.metadata();
-  expect(metadata.width).toBe(200);
-  expect(metadata.format).toBe("jpeg");
+  await request
+    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/300`)
+    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb2.jpg/image/jpeg`)
+    .expect(302);
 
-  expect(await sharp(response.body).png().toBuffer()).toMatchImageSnapshot({
-    customSnapshotIdentifier: "media-thumb-200",
-  });
+  await request
+    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/350`)
+    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb3.jpg/image/jpeg`)
+    .expect(302);
 
-  response = await request
+  await request
     .get(`/media/thumbnail/${media.id}/other/200`)
     .expect("Location", `/media/thumbnail/${media.id}/${mediaFile.id}/200`)
     .expect(301);
 
-  response = await request
+  await request
     .get(`/media/thumbnail/${media.id}/other`)
     .expect("Location", `/media/thumbnail/${media.id}/${mediaFile.id}`)
     .expect(301);
 
-  response = await request
+  await request
     .get(`/media/original/${media.id}/other`)
     .expect("Location", `/media/original/${media.id}/${mediaFile.id}`)
     .expect(301);
 
-  response = await request
+  await request
     .get(`/media/poster/${media.id}/other`)
     .expect("Location", `/media/poster/${media.id}/${mediaFile.id}`)
     .expect(301);
