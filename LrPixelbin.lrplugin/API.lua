@@ -116,7 +116,7 @@ function API:MULTIPART(path, content)
 
   return self:callServer(function ()
     return LrHttp.postMultipart(url, content, {
-      { field=CSRF_HEADER, value=self.csrfToken },
+      { field = CSRF_HEADER, value = self.csrfToken },
     })
   end)
 end
@@ -158,7 +158,7 @@ function API:GET(path)
 
   return self:callServer(function ()
     return LrHttp.get(url, {
-      { field=CSRF_HEADER, value=self.csrfToken },
+      { field = CSRF_HEADER, value = self.csrfToken },
     })
   end)
 end
@@ -207,11 +207,19 @@ function API:login()
     self.errorState = nil
     self.catalogs = result.user.catalogs
     self.albums = result.user.albums
+    self.csrfToken = nil
 
     for _, header in ipairs(info) do
-      if header.field == CSRF_HEADER then
+      if string.lower(header.field) == string.lower(CSRF_HEADER) then
         self.csrfToken = header.value
       end
+    end
+
+    if not self.csrfToken then
+      return false, {
+        code = "noCsrfToken",
+        name = LOC "$$$/LrPixelBin/API/BadHeaders=Np CSRF token was provided by the server."
+      }
     end
 
     return success, nil
