@@ -15,4 +15,6 @@ ENV PATH="/pixelbin:${PATH}"
 
 WORKDIR /config
 
+EXPOSE 8000
+
 ENTRYPOINT ["/pixelbin/pixelbin"]
