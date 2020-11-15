@@ -9,7 +9,7 @@ import {
   act,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { match as matchMediaQuery, MediaValues } from "css-mediaquery";
+import { match as matchMediaQuery } from "css-mediaquery";
 import type { JSDOM } from "jsdom";
 import React, { Suspense } from "react";
 import { Provider } from "react-redux";

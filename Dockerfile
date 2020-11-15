@@ -10,6 +10,7 @@ RUN \
   npm run build && \
   rm -rf node_modules && \
   npm install --only=production && \
+  npm dedupe && \
   apk del --no-network builddeps && \
   npm cache clean --force && \
   mkdir -p /config /data
