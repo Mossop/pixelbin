@@ -4,6 +4,7 @@ import Link from "@material-ui/core/Link";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
+import clsx from "clsx";
 import React, { useCallback, useMemo } from "react";
 
 import type { ObjectModel } from "../../../model";
@@ -103,7 +104,7 @@ function TagChip(props: { tag: Reference<Tag> }): ReactResult {
   let classes = useStyles();
   let tag = useSelector((state: StoreState): Tag => props.tag.deref(state.serverState));
 
-  return <li className={classes.fieldListItem}>
+  return <li id={`tag-${tag.id}`} className={classes.fieldListItem}>
     <UILink
       to={
         {
@@ -138,7 +139,7 @@ function AlbumChip(props: { album: Reference<Album> }): ReactResult {
   let classes = useStyles();
   let album = useSelector((state: StoreState): Album => props.album.deref(state.serverState));
 
-  return <li className={classes.fieldListItem}>
+  return <li id={`album-${album.id}`} className={classes.fieldListItem}>
     <UILink
       to={
         {
@@ -179,7 +180,7 @@ function PersonChip({
   }, [onHighlightRegion]);
 
   return <li
-    key={person.id}
+    id={`person-${person.id}`}
     onMouseEnter={onEnter}
     onMouseLeave={onLeave}
     className={classes.fieldListItem}
@@ -215,6 +216,7 @@ function PersonChip({
 }
 
 function Row(
+  id: string,
   label: React.ReactNode,
   value: React.ReactNode,
   multiline: boolean = false,
@@ -223,31 +225,49 @@ function Row(
 
   if (multiline) {
     return <React.Fragment>
-      <dt className={classes.multilineMetadataLabel}>{label}</dt>
-      <dd className={classes.multilineMetadataContent}>{value}</dd>
+      <dt
+        className={clsx(classes.multilineMetadataLabel, `metadata-${id}`, "metadata-label")}
+      >
+        {label}
+      </dt>
+      <dd
+        className={clsx(classes.multilineMetadataContent, `metadata-${id}`, "metadata-value")}
+      >
+        {value}
+      </dd>
     </React.Fragment>;
   }
 
   return <React.Fragment>
-    <dt className={classes.metadataLabel}>{label}</dt>
-    <dd className={classes.metadataContent}>{value}</dd>
+    <dt
+      className={clsx(classes.multilineMetadataLabel, `metadata-${id}`, "metadata-label")}
+    >
+      {label}
+    </dt>
+    <dd
+      className={clsx(classes.multilineMetadataContent, `metadata-${id}`, "metadata-value")}
+    >
+      {value}
+    </dd>
   </React.Fragment>;
 }
 
 interface LocalizedRowProps {
+  id: string,
   label: string;
   multiline?: boolean;
   children: React.ReactNode;
 }
 
 function LocalizedRow({
+  id,
   label,
   multiline,
   children,
 }: LocalizedRowProps): ReactResult {
   let { l10n } = useLocalization();
 
-  return Row(l10n.getString(label), children, multiline);
+  return Row(id, l10n.getString(label), children, multiline);
 }
 
 function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactResult {
@@ -255,7 +275,7 @@ function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactRes
     return null;
   }
 
-  return <LocalizedRow label={`metadata-label-${item}`}>
+  return <LocalizedRow id={item} label={`metadata-label-${item}`}>
     {media[item]}
   </LocalizedRow>;
 }
@@ -275,7 +295,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
     let item: MediaState[T] = media[metadata];
 
     if (item) {
-      return <LocalizedRow label={`metadata-label-${metadata}`}>
+      return <LocalizedRow id={metadata} label={`metadata-label-${metadata}`}>
         {
           // @ts-ignore
           cb(item)
@@ -306,7 +326,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
         ? `https://www.google.com/maps/@${media.latitude},${media.longitude}`
         : `https://www.google.com/maps/search/${encodeURIComponent(location.join(", "))}`;
 
-      return <LocalizedRow label="metadata-label-location">
+      return <LocalizedRow id="location" label="metadata-label-location">
         <Link
           target="_blank"
           rel="noreferrer"
@@ -317,7 +337,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
         </Link>
       </LocalizedRow>;
     } else if (media.longitude && media.latitude) {
-      return <LocalizedRow label="metadata-label-location">
+      return <LocalizedRow id="location" label="metadata-label-location">
         <Link
           target="_blank"
           rel="noreferrer"
@@ -337,7 +357,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
       return null;
     }
 
-    return <LocalizedRow label="metadata-label-taken">
+    return <LocalizedRow id="taken" label="metadata-label-taken">
       {formatDateTime(media.taken)}
     </LocalizedRow>;
   }, [media]);
@@ -349,7 +369,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
     {NormalMetadataItem(media, "category")}
     {
       media.albums.length > 0 &&
-      <LocalizedRow label="metadata-label-albums">
+      <LocalizedRow id="albums" label="metadata-label-albums">
         <ul className={classes.fieldList}>
           {
             media.albums.map(
@@ -363,14 +383,14 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
     {taken}
     {
       media.rating !== null &&
-      <LocalizedRow label="metadata-label-rating">
+      <LocalizedRow id="rating" label="metadata-label-rating">
         <Rating value={media.rating} readOnly={true}/>
       </LocalizedRow>
     }
     {location}
     {
       media.tags.length > 0 &&
-      <LocalizedRow label="metadata-label-tags">
+      <LocalizedRow id="tags" label="metadata-label-tags">
         <ul className={classes.fieldList}>
           {media.tags.map((st: MediaTagState) => <TagChip key={st.tag.id} tag={st.tag}/>)}
         </ul>
@@ -378,7 +398,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
     }
     {
       media.people.length > 0 &&
-      <LocalizedRow label="metadata-label-people">
+      <LocalizedRow id="people" label="metadata-label-people">
         <ul className={classes.fieldList}>
           {
             media.people.map((st: MediaPersonState) => <PersonChip
