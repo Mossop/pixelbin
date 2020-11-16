@@ -224,21 +224,23 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       return this.createWorker();
     }
 
-    // Generate a list of all the workers with the minimum number of running tasks.
-    let min = [this.workers[0]];
+    // Find the index of the first worker with the lowest task count.
+    let min = 0;
     for (let i = 1; i < this.workers.length; i++) {
-      if (min[0].taskCount > this.workers[i].taskCount) {
-        min = [this.workers[i]];
-      } else if (min[0].taskCount == this.workers[i].taskCount) {
-        min.push(this.workers[i]);
+      if (this.workers[min].taskCount > this.workers[i].taskCount) {
+        min = i;
       }
     }
 
-    if (min[0].taskCount > 0 && this.workers.length < this.options.maxWorkers) {
+    if (this.workers[min].taskCount > 0 && this.workers.length < this.options.maxWorkers) {
       return this.createWorker();
     }
 
-    return min[Math.floor(Math.random() * min.length)].worker;
+    // Move this record to the end of the array to make it less likely to be used next time.
+    let [record] = this.workers.splice(min, 1);
+    this.workers.push(record);
+
+    return record.worker;
   }
 
   private async createWorker(): Promise<WorkerProcess<R, L>> {

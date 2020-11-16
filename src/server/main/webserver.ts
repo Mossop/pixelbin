@@ -2,8 +2,12 @@ import child_process from "child_process";
 import net from "net";
 import path from "path";
 
-import { getLogger, listen, bound } from "../../utils";
-import type { WebserverConfig, ParentProcessInterface } from "../webserver/interfaces";
+import { getLogger, bound } from "../../utils";
+import type {
+  WebserverConfig,
+  ParentProcessInterface,
+  WebserverInterface,
+} from "../webserver/interfaces";
 import type { AbstractChildProcess } from "../worker";
 import { WorkerPool } from "../worker";
 import { quit } from "./events";
@@ -16,27 +20,17 @@ const logger = getLogger("pixelbin/webserver");
 
 export class WebserverManager extends Service {
   private readonly server: net.Server;
-  private readonly pool: WorkerPool<undefined, ParentProcessInterface>;
+  private readonly pool: WorkerPool<WebserverInterface, ParentProcessInterface>;
 
   public constructor(
     private readonly config: WebConfig,
     private readonly taskManager: TaskManager,
   ) {
     super(logger);
-    this.server = net.createServer();
-    this.logger.catch(listen(this.server, 8000).then((): void => {
-      let address = this.server.address();
-      if (address) {
-        if (typeof address != "string") {
-          address = `${address.address}:${address.port}`;
-        }
-      }
-      logger.info(`Listening on http://${address}`);
-    }));
 
     let module = path.resolve(path.join(path.dirname(__dirname), "webserver"));
 
-    this.pool = new WorkerPool<undefined, ParentProcessInterface>({
+    this.pool = new WorkerPool<WebserverInterface, ParentProcessInterface>({
       localInterface: bound(this.interface, this),
       minWorkers: 4,
       maxWorkers: 8,
@@ -50,6 +44,26 @@ export class WebserverManager extends Service {
     });
 
     this.pool.on("shutdown", quit);
+
+    this.server = net.createServer({
+      pauseOnConnect: true,
+    }, (socket: net.Socket): void => {
+      this.pool.remote.handleConnection(socket)
+        .catch((e: Error) => {
+          logger.error(e, "Worker failed to handle connection.");
+          socket.destroy(e);
+        });
+    });
+
+    this.server.listen(8000, (): void => {
+      let address = this.server.address();
+      if (address) {
+        if (typeof address != "string") {
+          address = `${address.address}:${address.port}`;
+        }
+      }
+      logger.info(`Listening on http://${address}`);
+    });
   }
 
   protected async shutdown(): Promise<void> {
@@ -59,10 +73,6 @@ export class WebserverManager extends Service {
 
   // ParentProcessInterface
   private interface: ParentProcessInterface = {
-    getServer(this: WebserverManager): net.Server {
-      return this.server;
-    },
-
     getConfig(this: WebserverManager): WebserverConfig {
       return this.config;
     },

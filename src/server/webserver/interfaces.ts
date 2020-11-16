@@ -19,9 +19,12 @@ export interface TaskWorkerInterface {
 }
 
 export type ParentProcessInterface = TaskWorkerInterface & {
-  getServer: () => net.Server;
   getConfig: () => WebserverConfig;
 };
+
+export interface WebserverInterface {
+  handleConnection: (socket: net.Socket) => void;
+}
 
 export interface Session {
   user?: string | null;

@@ -61,12 +61,14 @@ interface RemoteCall {
   id: string;
   method: string;
   arguments: unknown[];
+  handleArgument: number | null;
 }
 const RemoteCallDecoder = JsonDecoder.object<RemoteCall>({
   type: JsonDecoder.isExactly("call"),
   id: JsonDecoder.string,
   method: JsonDecoder.string,
   arguments: JsonDecoder.array(JsonDecoder.succeed, "arguments"),
+  handleArgument: JsonDecoder.nullable(JsonDecoder.number),
 }, "RemoteCall");
 
 interface RemoteCallAck {
@@ -275,7 +277,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
 
       switch (decoded.value.type) {
         case "call":
-          this.logger.catch(this.localCall(decoded.value));
+          this.logger.catch(this.localCall(decoded.value, handle));
           return;
         case "closed":
           this.innerClose();
@@ -324,7 +326,7 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
     }
   }
 
-  private async localCall(call: RemoteCall): Promise<void> {
+  private async localCall(call: RemoteCall, handle: unknown): Promise<void> {
     let performCall = async (method: string, args: unknown[]): Promise<unknown> => {
       if (!this.options.localInterface) {
         throw new Error("This remote provides no interface.");
@@ -345,6 +347,17 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
     }));
 
     try {
+      if (call.handleArgument !== null) {
+        if (call.handleArgument < 0 || call.handleArgument >= call.arguments.length) {
+          throw new Error(`Handle passed in unknown position (${call.handleArgument}).`);
+        }
+        if (!handle) {
+          throw new Error("Missing expected handle.");
+        }
+
+        call.arguments[call.handleArgument] = handle;
+      }
+
       let result = await performCall(call.method, call.arguments);
 
       if (result instanceof net.Socket || result instanceof net.Server) {
@@ -385,6 +398,19 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       throw new Error("Channel to remote process is closed.");
     }
 
+    let handle: SendHandle | undefined = undefined;
+    let handleArgument: null | number = null;
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] && (args[i] instanceof net.Socket || args[i] instanceof net.Server)) {
+        if (handleArgument !== null) {
+          throw new Error("Cannot pass multiple handle arguments.");
+        }
+        handleArgument = i;
+        handle = args[i] as SendHandle;
+        args[i] = null;
+      }
+    }
+
     let id = String(this.nextId++);
 
     let { promise, resolve, reject } = defer<unknown>();
@@ -406,7 +432,8 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       id,
       method,
       arguments: args,
-    }).catch((error: Error): void => {
+      handleArgument,
+    }, handle).catch((error: Error): void => {
       reject(error);
     });
 

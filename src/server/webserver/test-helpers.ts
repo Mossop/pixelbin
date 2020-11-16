@@ -1,3 +1,4 @@
+import type http from "http";
 import net from "net";
 import path from "path";
 
@@ -64,10 +65,6 @@ export function buildTestApp(
       };
     },
 
-    async getServer(): Promise<net.Server> {
-      return server;
-    },
-
     canStartTask: (): Promise<boolean> => Promise.resolve(true),
 
     handleUploadedFile: (): Promise<void> => Promise.resolve(),
@@ -95,6 +92,7 @@ export function buildTestApp(
   });
 
   void buildApp();
+  void Services.server.then((httpServer: http.Server) => httpServer.listen(server));
 
   return (): SuperTest<Test> => agent(server);
 }

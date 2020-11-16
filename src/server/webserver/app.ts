@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { STATUS_CODES } from "http";
+import http, { STATUS_CODES } from "http";
 import path from "path";
 
 import type { RouterParamContext } from "@koa/router";
@@ -22,7 +22,7 @@ import { buildContext } from "./context";
 import { errorHandler } from "./error";
 import type { WebserverConfig } from "./interfaces";
 import { APP_PATHS } from "./paths";
-import Services from "./services";
+import Services, { provideService } from "./services";
 
 async function buildAppContent(
   config: WebserverConfig,
@@ -64,7 +64,7 @@ async function notFound(ctx: AppContext): Promise<void> {
   ctx.body = "Not found";
 }
 
-export default async function buildApp(): Promise<App> {
+export default async function buildApp(): Promise<void> {
   let parent = await Services.parent;
   let config = await parent.getConfig();
   let context = await buildContext();
@@ -197,8 +197,5 @@ export default async function buildApp(): Promise<App> {
       ctx.body = await buildAppContent(config, nonce, state);
     });
 
-  let server = await parent.getServer();
-  app.listen(server);
-
-  return app;
+  provideService("server", http.createServer(app.callback()));
 }

@@ -1,3 +1,5 @@
+import type net from "net";
+
 import { install } from "source-map-support";
 
 import { getLogger, setLogConfig } from "../../utils";
@@ -7,7 +9,7 @@ import { StorageService } from "../storage";
 import { ParentProcess } from "../worker";
 import buildApp from "./app";
 import events from "./events";
-import type { ParentProcessInterface } from "./interfaces";
+import type { ParentProcessInterface, WebserverInterface } from "./interfaces";
 import Services, { provideService } from "./services";
 
 install();
@@ -18,12 +20,26 @@ async function shutdown(): Promise<void> {
   await (await Services.cache).destroy();
 }
 
+async function handleConnection(socket: net.Socket): Promise<void> {
+  let server = await Services.server;
+  socket.resume();
+  server.emit("connection", socket);
+
+  await new Promise<void>((resolve: () => void) => {
+    socket.on("close", resolve);
+  });
+}
+
 async function main(): Promise<void> {
   logger.info("Server startup.");
 
-  let connection = await ParentProcess.connect<ParentProcessInterface>({
+  let connection = await ParentProcess.connect<ParentProcessInterface, WebserverInterface>({
     logger,
+    localInterface: {
+      handleConnection,
+    },
   });
+
   try {
     let parent = connection.remote;
     connection.on("disconnect", () => void events.emit("shutdown"));

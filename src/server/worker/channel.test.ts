@@ -220,6 +220,7 @@ test("remote calling", async (): Promise<void> => {
     id: "0",
     method: "decrement",
     arguments: [5],
+    handleArgument: null,
   }, undefined]);
   send.mockClear();
 
@@ -262,6 +263,7 @@ test("remote calling", async (): Promise<void> => {
     id: "1",
     method: "decrement",
     arguments: [7],
+    handleArgument: null,
   }, undefined]);
   send.mockClear();
 
@@ -304,6 +306,7 @@ test("remote calling", async (): Promise<void> => {
     id: "2",
     method: "decrement",
     arguments: [58],
+    handleArgument: null,
   }, undefined]);
   send.mockClear();
 
@@ -336,6 +339,7 @@ test("remote calling", async (): Promise<void> => {
     id: "3",
     method: "decrement",
     arguments: [22],
+    handleArgument: null,
   }, undefined]);
   send.mockClear();
 

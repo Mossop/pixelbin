@@ -1,5 +1,3 @@
-import type { Server } from "net";
-
 export type Overwrite<A, B> = Omit<A, keyof B> & B;
 export type MakeRequired<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
 export type MakeOptional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>;
@@ -22,12 +20,6 @@ export type Nullable<T> = {
 export type AllNull<T> = {
   [K in keyof T]: null;
 };
-
-export function listen(server: Server, source: unknown): Promise<void> {
-  return new Promise((resolve: () => void): void => {
-    server.listen(source, resolve);
-  });
-}
 
 type Bound<I> = {
   [K in keyof I]: OmitThisParameter<I[K]>;

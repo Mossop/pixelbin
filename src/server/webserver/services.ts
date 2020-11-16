@@ -1,3 +1,5 @@
+import type http from "http";
+
 import { defer, buildServices, serviceProvider } from "../../utils";
 import type { Cache } from "../cache";
 import type { DatabaseConnection } from "../database";
@@ -10,6 +12,7 @@ const services = {
   storage: defer<StorageService>(),
   database: defer<DatabaseConnection>(),
   cache: defer<Cache>(),
+  server: defer<http.Server>(),
 };
 
 export const provideService = serviceProvider(services);

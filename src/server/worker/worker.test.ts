@@ -151,6 +151,7 @@ test("worker", async (): Promise<void> => {
       id: expect.anything(),
       method: "foo",
       arguments: [5],
+      handleArgument: null,
     },
   },
   undefined]);
@@ -178,6 +179,7 @@ test("worker", async (): Promise<void> => {
       id: expect.anything(),
       method: "bar",
       arguments: ["foo"],
+      handleArgument: null,
     },
   },
   undefined]);
