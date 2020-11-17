@@ -215,6 +215,12 @@ function Provider.processRenderedPhotos(context, exportContext)
       or LOC "$$$/LrPixelBin/Render/Progress=Publishing one photo to PixelBin",
   })
 
+  local operations = photoCount * 2 + 1
+  local currentOperation = 0
+  local updateProgress = function()
+    progressScope:setPortionComplete(currentOperation, operations)
+  end
+
   local api = API(publishSettings)
 
   local targetAlbums = {}
@@ -273,7 +279,8 @@ function Provider.processRenderedPhotos(context, exportContext)
 
   -- Now actually do the uploads.
   for i, info in ipairs(renditions) do
-    progressScope:setPortionComplete((i - 1) / (photoCount / 2))
+    currentOperation = currentOperation + 1
+    updateProgress()
 
     local targetAlbum = album
 
@@ -321,7 +328,9 @@ function Provider.processRenderedPhotos(context, exportContext)
 
     if not info.rendition.wasSkipped then
       local success, pathOrMessage = info.rendition:waitForRender()
-      progressScope:setPortionComplete((i - 0.5) / (photoCount / 2))
+
+      currentOperation = currentOperation + 1
+      updateProgress()
 
       if progressScope:isCanceled() then
         break
@@ -348,7 +357,12 @@ function Provider.processRenderedPhotos(context, exportContext)
       else
         info.rendition:uploadFailed(pathOrMessage)
       end
+    else
+      currentOperation = currentOperation + 1
     end
+
+    currentOperation = currentOperation + 1
+    updateProgress()
 
     if targetAlbum and remoteId then
       local success, result = api:addMediaToAlbum(targetAlbum, { remoteId })
