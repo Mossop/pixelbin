@@ -8,8 +8,7 @@ RUN \
   cd /pixelbin && \
   npm install && \
   npm run build && \
-  rm -rf node_modules && \
-  npm install --only=production && \
+  npm prune --production && \
   npm dedupe && \
   apk del --no-network builddeps && \
   npm cache clean --force && \
