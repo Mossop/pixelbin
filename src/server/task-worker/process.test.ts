@@ -354,17 +354,17 @@ test("Process video metadata", async (): Promise<void> => {
       format: {
         duration: 100,
         bitRate: 1000000,
-        container: Container.Matroska,
+        container,
         size: 2000000,
       },
       videoStream: {
-        codec: VideoCodec.AV1,
+        codec: videoCodec,
         frameRate: 30,
         width: 1920,
         height: 1080,
       },
       audioStream: {
-        codec: AudioCodec.Vorbis,
+        codec: audioCodec,
       },
     };
   });
@@ -465,7 +465,7 @@ test("Process video metadata", async (): Promise<void> => {
     type: AlternateFileType.Reencode,
     fileName: "Testvideo-h264.mp4",
     fileSize: 2000000,
-    mimetype: "video/mkv",
+    mimetype: "video/mp4",
     width: 1920,
     height: 1080,
     frameRate: 30,
@@ -517,7 +517,7 @@ test("Process video metadata", async (): Promise<void> => {
     [media.id, mediaFile, "Testvideo-450.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testvideo-500.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testvideo.mp4", sourceFile, "video/mp4"],
-    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4], "video/mkv"],
+    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4], "video/mp4"],
   ]);
 
   for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
