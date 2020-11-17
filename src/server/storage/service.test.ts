@@ -156,11 +156,12 @@ async function storageTest(id: string): Promise<void> {
 
     let storage = await service.getStorage(catalog.id);
 
-    await storage.get().storeFile("media", "info", "file.txt", testFile);
+    await storage.get().storeFile("media", "info", "file.txt", testFile, "text/foo");
 
     let url = await storage.get().getFileUrl("media", "info", "file.txt");
     let response = await fetch(url, { redirect: "follow" });
     expect(await response.text()).toBe("MYDATA");
+    expect(response.headers.get("Content-Type")).toBe("text/foo");
 
     let stream = await storage.get().streamFile("media", "info", "file.txt");
     let content = await new Promise((resolve: ((content: string) => void)): void => {

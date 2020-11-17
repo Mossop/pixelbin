@@ -156,7 +156,13 @@ export const handleUploadedFile = bindTask(
             source = path.join(dir.path, `${baseName}-poster.jpg`);
             await extractFrame(fileInfo.path, source);
 
-            await storage.get().storeFile(mediaId, mediaFile.id, path.basename(source), source);
+            await storage.get().storeFile(
+              mediaId,
+              mediaFile.id,
+              path.basename(source),
+              source,
+              "image/jpeg",
+            );
 
             let stat = await fs.stat(source);
             let metadata = await sharp(source).metadata();
@@ -198,10 +204,22 @@ export const handleUploadedFile = bindTask(
               bitRate: null,
             });
 
-            await storage.get().storeFile(mediaId, mediaFile.id, fileName, target);
+            await storage.get().storeFile(
+              mediaId,
+              mediaFile.id,
+              fileName,
+              target,
+              `image/${info.format}`,
+            );
           }
 
-          await storage.get().storeFile(mediaId, mediaFile.id, fileName, fileInfo.path);
+          await storage.get().storeFile(
+            mediaId,
+            mediaFile.id,
+            fileName,
+            fileInfo.path,
+            mediaFile.mimetype,
+          );
 
           return mediaFile;
         } catch (e) {
@@ -227,7 +245,13 @@ export const handleUploadedFile = bindTask(
             target,
           );
 
-          await storage.get().storeFile(mediaId, original.id, fileName, target);
+          await storage.get().storeFile(
+            mediaId,
+            original.id,
+            fileName,
+            target,
+            `video/${videoInfo.format.container}`,
+          );
 
           await dbConnection.addAlternateFile(original.id, {
             type: AlternateFileType.Reencode,

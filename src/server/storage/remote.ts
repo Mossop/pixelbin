@@ -39,7 +39,8 @@ export abstract class Remote {
   public abstract upload(
     target: string,
     stream: NodeJS.ReadableStream,
-    size?: number,
+    size: number,
+    mimetype: string,
   ): Promise<void>;
   public abstract getUrl(target: string, contentType?: string): Promise<string>;
   public abstract stream(target: string): Promise<NodeJS.ReadableStream>;
@@ -98,12 +99,19 @@ class AWSRemote extends Remote {
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 
-  public async upload(target: string, stream: NodeJS.ReadableStream, size?: number): Promise<void> {
+  public async upload(
+    target: string,
+    stream: NodeJS.ReadableStream,
+    size: number,
+    mimetype: string,
+  ): Promise<void> {
     /* eslint-disable @typescript-eslint/naming-convention */
     let request = this.s3.upload({
       ...s3Params(this.storage, this.getFullTarget(target)),
       Body: stream,
       ContentLength: size,
+      CacheControl: "max-age=1314000, immutable",
+      ContentType: mimetype,
     });
     /* eslint-enable @typescript-eslint/naming-convention */
 

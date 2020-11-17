@@ -202,15 +202,15 @@ test("Process image metadata", async (): Promise<void> => {
 
   expect(storeFileMock).toHaveBeenCalledTimes(9);
   expect(storeFileMock.mock.calls).toEqual([
-    [media.id, mediaFile, "Testname-150.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-200.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-250.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-300.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-350.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-400.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-450.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-500.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname.jpg", sourceFile],
+    [media.id, mediaFile, "Testname-150.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-200.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-250.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-300.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-350.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-400.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-450.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-500.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname.jpg", sourceFile, "image/jpeg"],
   ]);
 
   expect(mockedEncodeVideo).not.toHaveBeenCalled();
@@ -507,17 +507,17 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(storeFileMock).toHaveBeenCalledTimes(11);
   expect(storeFileMock.mock.calls).toEqual([
-    [media.id, mediaFile, "Testvideo-poster.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-150.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-200.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-250.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-300.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-350.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-400.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-450.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo-500.jpg", expect.anything()],
-    [media.id, mediaFile, "Testvideo.mp4", sourceFile],
-    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4]],
+    [media.id, mediaFile, "Testvideo-poster.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-150.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-200.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-250.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-300.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-350.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-400.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-450.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-500.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo.mp4", sourceFile, "video/mp4"],
+    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4], "video/mkv"],
   ]);
 
   for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
@@ -717,15 +717,15 @@ test("reprocess", async (): Promise<void> => {
 
   expect(storeFileMock).toHaveBeenCalledTimes(9);
   expect(storeFileMock.mock.calls).toEqual([
-    [media.id, mediaFile, "Testname-150.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-200.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-250.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-300.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-350.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-400.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-450.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname-500.jpg", expect.anything()],
-    [media.id, mediaFile, "Testname.jpg", sourceFile],
+    [media.id, mediaFile, "Testname-150.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-200.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-250.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-300.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-350.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-400.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-450.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-500.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname.jpg", sourceFile, "image/jpeg"],
   ]);
 
   expect(mockedEncodeVideo).not.toHaveBeenCalled();

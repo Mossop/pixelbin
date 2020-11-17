@@ -61,13 +61,14 @@ export class Storage {
     mediaFile: string,
     name: string,
     file: string,
+    mimetype: string,
   ): Promise<void> {
     let remote = await this.remote;
 
     let stat = await fs.stat(file);
     let stream = createReadStream(file);
 
-    await remote.upload(path.join(media, mediaFile, name), stream, stat.size);
+    await remote.upload(path.join(media, mediaFile, name), stream, stat.size, mimetype);
   }
 
   public async deleteFile(media: string, mediaFile: string, name: string): Promise<void> {
