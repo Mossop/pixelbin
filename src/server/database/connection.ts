@@ -167,7 +167,7 @@ export class DatabaseConnection {
         try {
           let result = await transactionFn(new DatabaseConnection(
             this._baseKnex,
-            this.logger.child({
+            this.logger.withBindings({
               transaction: name,
             }),
             trx,
@@ -230,11 +230,13 @@ export class DatabaseConnection {
   public readonly seed = wrapped(seed);
 
   public static async connect(name: string, config: DatabaseConfig): Promise<DatabaseConnection> {
-    let dbLogger = logger.child({
+    let dbLogger = logger.withBindings({
       connection: name,
     });
 
-    dbLogger.trace(config, "Connecting to database.");
+    dbLogger.trace({
+      config,
+    }, "Connecting to database.");
 
     let schema = process.env.NODE_ENV == "test" ? `test${process.pid}` : undefined;
     let auth = `${config.username}:${config.password}`;
@@ -280,7 +282,7 @@ export class UserScopedConnection {
   public readonly logger: Logger;
 
   public constructor(protected connection: DatabaseConnection, public readonly user: UserRef) {
-    this.logger = connection.logger.child({
+    this.logger = connection.logger.withBindings({
       user: this.user,
     });
   }

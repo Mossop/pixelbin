@@ -24,7 +24,7 @@ export interface WorkerProcessOptions<L> extends ChannelOptions<L> {
   process: AbstractChildProcess;
 }
 
-const logger = getLogger("worker-process");
+const logger = getLogger("worker");
 
 interface EventMap {
   disconnect: [];
@@ -44,7 +44,7 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     private options: WorkerProcessOptions<L>,
   ) {
     super();
-    this.logger = (options.logger ?? logger).child({ worker: options.process.pid });
+    this.logger = (options.logger ?? logger).withBindings({ worker: options.process.pid });
     this.workerRemote = null;
 
     this.ready = defer();
@@ -107,9 +107,7 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       }, handle);
     }, {
       ...this.options,
-      logger: this.logger.child({
-        name: "channel",
-      }),
+      logger: this.logger.child("channel"),
     });
 
     channel.on("message-call", (): void => {
@@ -142,7 +140,9 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
   private onMessage: NodeJS.MessageListener = (message: unknown, handle: unknown): void => {
     let decoded = IPC.MessageDecoder.decode(message);
     if (decoded.isOk()) {
-      this.logger.trace(decoded.value, "Saw message");
+      this.logger.trace({
+        message: decoded.value,
+      }, "Saw message");
       switch (decoded.value.type) {
         case "ready":
           this.ready.resolve();
@@ -157,7 +157,9 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
         }
       }
     } else {
-      this.logger.error(decoded.error, "Received invalid message: '%s'.");
+      this.logger.error({
+        error: decoded.error,
+      }, "Received invalid message: '%s'.");
     }
   };
 

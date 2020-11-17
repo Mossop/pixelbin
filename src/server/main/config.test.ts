@@ -4,6 +4,7 @@ import { promises as fs } from "fs";
 import path from "path";
 
 import { mockedFunction } from "../../test-helpers";
+import { Level } from "../../utils";
 import type { ConfigFile } from "./config";
 import { loadConfig } from "./config";
 
@@ -110,7 +111,7 @@ test("no path", async (): Promise<void> => {
       localDirectory: "foobar/local",
     },
     logging: {
-      default: "warn",
+      default: Level.Warn,
     },
     smtp: null,
   });
@@ -193,7 +194,7 @@ test("with directory", async (): Promise<void> => {
       localDirectory: "foobar/mydir/somewhere/local",
     },
     logging: {
-      default: "silent",
+      default: Level.Silent,
     },
     smtp: {
       from: "someone@there.com",

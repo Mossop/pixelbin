@@ -16,7 +16,7 @@ import type { TaskManager } from "./tasks";
 
 export type WebConfig = WebserverConfig;
 
-const logger = getLogger("pixelbin/webserver");
+const logger = getLogger("webserver");
 
 export class WebserverManager extends Service {
   private readonly server: net.Server;
@@ -49,9 +49,9 @@ export class WebserverManager extends Service {
       pauseOnConnect: true,
     }, (socket: net.Socket): void => {
       this.pool.remote.handleConnection(socket)
-        .catch((e: Error) => {
-          logger.error(e, "Worker failed to handle connection.");
-          socket.destroy(e);
+        .catch((error: Error) => {
+          logger.error({ error }, "Worker failed to handle connection.");
+          socket.destroy(error);
         });
     });
 

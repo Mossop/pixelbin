@@ -1,11 +1,10 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import type { Level, LevelWithSilent } from "pino";
 import { JsonDecoder } from "ts.data.json";
 
 import type { LogConfig } from "../../utils";
-import { setLogConfig, MappingDecoder, oneOf } from "../../utils";
+import { Level, LogConfigDecoder, setLogConfig } from "../../utils";
 import type { CacheConfig } from "../cache";
 import type { DatabaseConfig } from "../database";
 import type { SmtpConfig } from "../email";
@@ -27,51 +26,6 @@ export interface ConfigFile {
   cache: CacheConfig;
   smtp?: SmtpConfig;
 }
-
-const LOG_LEVELS = [
-  "fatal",
-  "error",
-  "warn",
-  "info",
-  "debug",
-  "trace",
-];
-
-const LevelDecoder = MappingDecoder(JsonDecoder.string, (val: string): Level => {
-  if (LOG_LEVELS.includes(val)) {
-    return val as Level;
-  }
-
-  throw new Error(`${val} is not a valid log level.`);
-}, "Level");
-
-const LevelWithSilentDecoder = MappingDecoder(
-  JsonDecoder.string,
-  (val: string): LevelWithSilent => {
-    if (val == "silent") {
-      return val;
-    }
-
-    if (LOG_LEVELS.includes(val)) {
-      return val as Level;
-    }
-
-    throw new Error(`${val} is not a valid log level.`);
-  },
-  "Level",
-);
-
-const LogConfigDecoder = oneOf<LogConfig>([
-  MappingDecoder(LevelWithSilentDecoder, (level: LevelWithSilent): LogConfig => {
-    return {
-      default: level,
-    };
-  }, "LogConfig"),
-  JsonDecoder.object<LogConfig>({
-    default: LevelWithSilentDecoder,
-    levels: JsonDecoder.optional(JsonDecoder.dictionary(LevelDecoder, "Levels")),
-  }, "LogConfig"),
-], "LogConfig");
 
 const DatabaseConfigDecoder = JsonDecoder.object<DatabaseConfig>({
   username: JsonDecoder.string,
@@ -158,7 +112,7 @@ export const loadConfig = serviceBuilder(
       cache: configFileData.cache,
       database: configFileData.database,
       logging: configFileData.logging ?? {
-        default: "warn",
+        default: Level.Warn,
       },
     };
 

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { awaitEvent, deferCall, mockedFunction, awaitCall } from "../../test-helpers";
+import { Level } from "../../utils";
 import { getTestDatabaseConfig } from "../database/test-helpers";
 import { mockNextParent } from "../worker/test-helpers";
 import type { ParentProcessInterface, TaskWorkerConfig } from "./interfaces";
@@ -15,7 +16,7 @@ test("init", async (): Promise<void> => {
   let config: TaskWorkerConfig = {
     database: getTestDatabaseConfig(),
     logging: {
-      default: "silent",
+      default: Level.Silent,
     },
     storage: {
       tempDirectory: "nowhere",

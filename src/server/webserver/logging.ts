@@ -6,7 +6,7 @@ export interface LoggingContext {
   readonly logger: Logger;
 }
 
-const mainLogger = getLogger("webserver/request");
+const mainLogger = getLogger("request");
 
 let loggers = new WeakMap<AppContext, Logger>();
 let requestId = 0;
@@ -20,7 +20,7 @@ export default function(): DescriptorsFor<LoggingContext> {
           return logger;
         }
 
-        logger = mainLogger.child({
+        logger = mainLogger.withBindings({
           id: requestId++,
           method: this.method,
           path: this.path,

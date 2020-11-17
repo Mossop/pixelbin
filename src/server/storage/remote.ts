@@ -65,7 +65,7 @@ class AWSRemote extends Remote {
   ) {
     super();
 
-    this.logger = logger.child({ catalog });
+    this.logger = logger.withBindings({ catalog });
     this.s3 = new AWS.S3({
       ...s3Config(storage),
       credentials: new DBCredentials(dbConnection, catalog, storage),

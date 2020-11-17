@@ -90,7 +90,7 @@ export const purgeDeletedMedia = bindTask(
 
 export const handleUploadedFile = bindTask(
   async function handleUploadedFile(logger: Logger, mediaId: string): Promise<void> {
-    logger = logger.child({
+    logger = logger.withBindings({
       media: mediaId,
     });
 

@@ -322,7 +322,9 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
           break;
       }
     } else {
-      this.logger.error("Received invalid message: '%s'.", decoded.error);
+      this.logger.error({
+        error: decoded.error,
+      }, "Received invalid message.");
     }
   }
 
@@ -333,7 +335,9 @@ export default class Channel<R = undefined, L = undefined> extends TypedEmitter<
       }
 
       if (!(method in this.options.localInterface)) {
-        this.logger.error("Remote called an unknown method: '%s'.", method);
+        this.logger.error({
+          method,
+        }, "Remote called an unknown method.");
         throw new Error(`Method ${method} does not exist.`);
       }
 

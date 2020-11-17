@@ -250,15 +250,13 @@ export class WorkerPool<R = undefined, L = undefined> extends TypedEmitter<Event
       try {
         workerProcess = await WorkerProcess.attach<R, L>({
           ...this.options,
-          logger: this.logger.child({
-            name: "worker",
-          }),
+          logger: this.logger.child("worker"),
           process: await this.options.fork(),
         });
-      } catch (e) {
+      } catch (error) {
         badWorkerCount++;
 
-        this.logger.warn(e, "Failed to attach to worker process.");
+        this.logger.warn({ error }, "Failed to attach to worker process.");
 
         if (badWorkerCount >= MAX_BAD_WORKERS) {
           this.logger.error("Saw too many worker failures, shutting down pool.");

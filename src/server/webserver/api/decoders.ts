@@ -20,7 +20,7 @@ export type DeBlobbed<T> = {
   [K in keyof T]: DeBlob<T[K]>;
 };
 
-const logger = getLogger("webserver/jsonDecoder");
+const logger = getLogger("jsonDecoder");
 
 function jsonDecoder<R>(decoder: JsonDecoder.Decoder<R>): Api.RequestDecoder<R> {
   return async (data: unknown, files: Files | undefined): Promise<R> => {
@@ -28,8 +28,8 @@ function jsonDecoder<R>(decoder: JsonDecoder.Decoder<R>): Api.RequestDecoder<R> 
       for (let file of Object.values(files)) {
         try {
           await fs.unlink(file.path);
-        } catch (e) {
-          logger.warn(e, `Failed to delete temporary file ${file.path}`);
+        } catch (error) {
+          logger.warn({ error }, `Failed to delete temporary file ${file.path}`);
         }
       }
     }
@@ -245,8 +245,8 @@ export async function MediaCreateRequest(
 
     try {
       await fs.unlink(file.path);
-    } catch (e) {
-      logger.warn(e, `Failed to delete temporary file ${file.path}`);
+    } catch (error) {
+      logger.warn({ error }, `Failed to delete temporary file ${file.path}`);
     }
   }
 
@@ -264,8 +264,8 @@ export async function MediaCreateRequest(
   } catch (e) {
     try {
       await fs.unlink(files.file.path);
-    } catch (e) {
-      logger.warn(e, `Failed to delete temporary file ${files.file.path}`);
+    } catch (error) {
+      logger.warn({ error }, `Failed to delete temporary file ${files.file.path}`);
     }
 
     throw e;
@@ -284,8 +284,8 @@ export async function MediaEditRequest(
 
       try {
         await fs.unlink(file.path);
-      } catch (e) {
-        logger.warn(e, `Failed to delete temporary file ${file.path}`);
+      } catch (error) {
+        logger.warn({ error }, `Failed to delete temporary file ${file.path}`);
       }
     }
   }
@@ -305,8 +305,8 @@ export async function MediaEditRequest(
     if (files?.file) {
       try {
         await fs.unlink(files.file.path);
-      } catch (e) {
-        logger.warn(e, `Failed to delete temporary file ${files.file.path}`);
+      } catch (error) {
+        logger.warn({ error }, `Failed to delete temporary file ${files.file.path}`);
       }
     }
 

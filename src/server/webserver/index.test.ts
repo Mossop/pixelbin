@@ -2,6 +2,7 @@
 import type net from "net";
 
 import { deferCall, mockedFunction } from "../../test-helpers";
+import { Level } from "../../utils";
 import { getTestDatabaseConfig } from "../database/test-helpers";
 import { mockNextParent } from "../worker/test-helpers";
 import type { ParentProcessInterface, WebserverConfig } from "./interfaces";
@@ -23,7 +24,7 @@ test("init", async (): Promise<void> => {
   let config: WebserverConfig = {
     database: getTestDatabaseConfig(),
     logging: {
-      default: "silent",
+      default: Level.Silent,
     },
     storage: {
       tempDirectory: "nowhere",

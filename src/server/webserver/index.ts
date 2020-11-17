@@ -2,7 +2,7 @@ import type net from "net";
 
 import { install } from "source-map-support";
 
-import { getLogger, setLogConfig } from "../../utils";
+import { getLogger, NDJsonTransport, setLogConfig } from "../../utils";
 import { Cache } from "../cache";
 import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
@@ -13,7 +13,9 @@ import type { ParentProcessInterface, WebserverInterface } from "./interfaces";
 import Services, { provideService } from "./services";
 
 install();
-const logger = getLogger("webserver");
+const logger = getLogger();
+logger.name = "web-worker";
+logger.config.transport = new NDJsonTransport(process.stdout);
 
 async function shutdown(): Promise<void> {
   await (await Services.database).destroy();
@@ -66,5 +68,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: Error): void => {
-  logger.error(error, "Server threw error while connecting.");
+  logger.error({ error }, "Server threw error while connecting.");
 });

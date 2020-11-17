@@ -8,7 +8,7 @@ import type { SeedOptions } from "./cli";
 import { quit } from "./events";
 import Services from "./services";
 
-const logger = getLogger("pixelbin");
+const logger = getLogger();
 
 export default async function seed(options: SeedOptions): Promise<void> {
   try {
@@ -20,24 +20,24 @@ export default async function seed(options: SeedOptions): Promise<void> {
       fileContent = await fs.readFile(file, {
         encoding: "utf8",
       });
-    } catch (e) {
-      logger.error(e, `Failed to read seed file ${file}`);
+    } catch (error) {
+      logger.error({ error }, `Failed to read seed file ${file}`);
       return;
     }
 
     let content: unknown;
     try {
       content = JSON.parse(fileContent);
-    } catch (e) {
-      logger.error(e, `Failed to parse seed file ${file}`);
+    } catch (error) {
+      logger.error({ error }, `Failed to parse seed file ${file}`);
       return;
     }
 
     let seed: Seed;
     try {
       seed = await SeedDecoder.decodePromise(content);
-    } catch (e) {
-      logger.error(e, `Failed to parse seed file ${file}`);
+    } catch (error) {
+      logger.error({ error }, `Failed to parse seed file ${file}`);
       return;
     }
 

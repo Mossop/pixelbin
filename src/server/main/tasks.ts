@@ -23,7 +23,7 @@ const BACKOFF_DELAYS = [
 
 export type TaskConfig = TaskWorkerConfig;
 
-const logger = getLogger("pixelbin/tasks");
+const logger = getLogger("taskmanager");
 
 export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
@@ -98,8 +98,8 @@ ${e.stack}`,
               this.handleUploadedFile(mediaId, attempt + 1);
             });
           }
-        } catch (e) {
-          logger.error(e);
+        } catch (error) {
+          logger.error({ error });
         }
       },
     );

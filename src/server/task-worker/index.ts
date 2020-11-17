@@ -1,7 +1,7 @@
 import { exiftool } from "exiftool-vendored";
 import { install } from "source-map-support";
 
-import { getLogger, setLogConfig } from "../../utils";
+import { getLogger, NDJsonTransport, setLogConfig } from "../../utils";
 import { DatabaseConnection } from "../database";
 import { StorageService } from "../storage";
 import { ParentProcess } from "../worker";
@@ -11,7 +11,9 @@ import { handleUploadedFile, purgeDeletedMedia } from "./process";
 import { provideService } from "./services";
 
 install();
-const logger = getLogger("task-worker");
+const logger = getLogger();
+logger.name = "task-worker";
+logger.config.transport = new NDJsonTransport(process.stdout);
 
 async function main(): Promise<void> {
   logger.info("Task worker startup.");
@@ -48,5 +50,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: Error): void => {
-  logger.error(error, "Task worker threw error while connecting.");
+  logger.error({ error }, "Task worker threw error while connecting.");
 });

@@ -31,7 +31,7 @@ export const serviceBuilder = serviceBuilderWrapper(services);
 const Services = buildServices(services);
 export default Services;
 
-const logger = getLogger("pixelbin");
+const logger = getLogger();
 
 export const initDatabase = serviceBuilder(
   "database",

@@ -11,8 +11,8 @@
   "logging": {
     "default": "debug",
     "levels": {
-      "tasks-manager/worker": "info",
-      "webserver-manager/worker": "info"
+      "main.taskmanager.worker": "info",
+      "main.webserver.worker": "info"
     }
   },
   "smtp": {

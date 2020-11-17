@@ -48,10 +48,14 @@ export async function errorHandler(
   } catch (e) {
     let error: ApiError;
     if (e instanceof ApiError) {
-      ctx.logger.trace(e, "Request threw an exception.");
+      ctx.logger.trace({
+        error: e,
+      }, "Request threw an exception.");
       error = e;
     } else if (e instanceof DatabaseError) {
-      ctx.logger.warn(e, "Database error occured.");
+      ctx.logger.warn({
+        error: e,
+      }, "Database error occured.");
 
       let code = ErrorCode.InvalidData;
       switch (e.code) {
@@ -67,7 +71,9 @@ export async function errorHandler(
         message: String(e),
       });
     } else {
-      ctx.logger.warn(e, "Application threw unknown exception.");
+      ctx.logger.warn({
+        error: e,
+      }, "Application threw unknown exception.");
       error = new ApiError(ErrorCode.UnknownException, {
         message: String(e),
       });

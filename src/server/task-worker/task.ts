@@ -1,7 +1,7 @@
 import type { Logger } from "../../utils";
 import { getLogger } from "../../utils";
 
-const logger = getLogger("task-worker/task");
+const logger = getLogger("task");
 
 type Task<
   A extends unknown[] = unknown[],
@@ -14,7 +14,7 @@ export function bindTask<
   R = void,
 >(task: Task<A, R>): (...args: A) => Promise<R> {
   return async (...args: A): Promise<R> => {
-    let taskLogger = logger.child({
+    let taskLogger = logger.withBindings({
       task: task.name,
       instance: nextId++,
     });
@@ -27,9 +27,9 @@ export function bindTask<
         duration: Date.now() - start,
       }, "Task complete");
       return result;
-    } catch (e) {
-      taskLogger.error(e, "Task threw exception");
-      throw e;
+    } catch (error) {
+      taskLogger.error({ error }, "Task threw exception");
+      throw error;
     }
   };
 }

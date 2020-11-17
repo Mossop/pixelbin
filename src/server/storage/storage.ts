@@ -14,7 +14,7 @@ export interface StoredFile {
   uploaded: DateTime;
 }
 
-export const logger = getLogger("storage");
+const logger = getLogger("storage");
 
 export class Storage {
   private readonly logger: Logger;
@@ -26,7 +26,7 @@ export class Storage {
     private readonly tempDirectory: string,
     private readonly localDirectory: string,
   ) {
-    this.logger = logger.child({ catalog });
+    this.logger = logger.withBindings({ catalog });
   }
 
   private get remote(): Promise<Remote> {
@@ -159,8 +159,8 @@ export class Storage {
       } else {
         logger.error({ meta }, "Uploaded metadata was malformed.");
       }
-    } catch (e) {
-      logger.error(e, "Failed getting uploaded file info.");
+    } catch (error) {
+      logger.error({ error }, "Failed getting uploaded file info.");
     }
 
     return null;

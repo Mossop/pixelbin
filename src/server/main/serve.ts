@@ -2,7 +2,7 @@ import { getLogger } from "../../utils";
 import { quit } from "./events";
 import Services, { initTaskManager, initWebserver, initEmail, initScheduler } from "./services";
 
-const logger = getLogger("pixelbin");
+const logger = getLogger();
 
 async function reprocessUploads(): Promise<void> {
   let service = await Services.storage;
@@ -43,8 +43,8 @@ export default async function serve(): Promise<void> {
   try {
     await reprocessUploads();
     await startSchedule();
-  } catch (e) {
-    logger.error(e, "Failed starting initial tasks.");
+  } catch (error) {
+    logger.error({ error }, "Failed starting initial tasks.");
     quit();
   }
 }

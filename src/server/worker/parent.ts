@@ -30,7 +30,7 @@ function getProcess(): AbstractProcess {
   throw new Error("Process has no IPC channel.");
 }
 
-const logger = getLogger("worker");
+const logger = getLogger("child");
 
 /**
  * Provides a communication mechanism back to the main process.
@@ -73,9 +73,7 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       },
       {
         ...options,
-        logger: this.logger.child({
-          name: "channel",
-        }),
+        logger: this.logger.child("channel"),
       },
     );
 
@@ -125,7 +123,9 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
         }
       }
     } else {
-      this.logger.error("Received invalid message: '%s'.", decoded.error);
+      this.logger.error({
+        error: decoded.error,
+      }, "Received invalid message: '%s'.");
     }
   };
 

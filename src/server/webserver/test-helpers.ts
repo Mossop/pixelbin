@@ -10,7 +10,7 @@ import type { Api, ApiSerialization } from "../../model";
 import { CSRF_COOKIE } from "../../model";
 import { expect } from "../../test-helpers";
 import type { Obj, Resolver, Rejecter } from "../../utils";
-import { idSorted } from "../../utils";
+import { Level, idSorted } from "../../utils";
 import type { CacheConfig } from "../cache";
 import { Cache } from "../cache";
 import type { DatabaseConnection } from "../database";
@@ -58,7 +58,7 @@ export function buildTestApp(
         secretKeys: ["foo"],
         database: getTestDatabaseConfig(),
         logging: {
-          default: "silent",
+          default: Level.Silent,
         },
         storage: storageConfig,
         cache: cacheConfig,

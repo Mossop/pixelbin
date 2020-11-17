@@ -7,7 +7,8 @@ import seed from "./seed";
 import serve from "./serve";
 import { initDatabase, initStorage } from "./services";
 
-const logger = getLogger("pixelbin");
+const logger = getLogger();
+logger.name = "main";
 
 export interface GlobalOptions {
 }
@@ -69,5 +70,5 @@ export default function cli(args: string[]): void {
   initDatabase();
   initStorage();
 
-  parsed.callback(parsed).catch(logger.error);
+  logger.catch(parsed.callback(parsed));
 }
