@@ -8,8 +8,7 @@ import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType, emptyMetadata } from "../../model";
 import { mockedFunction, expect, lastCallArgs, mockDateTime } from "../../test-helpers";
-import { now } from "../../utils";
-import { parseDateTime } from "../../utils/__mocks__/datetime";
+import { now, parseDateTime } from "../../utils";
 import { connection, insertTestData, buildTestDB, insertData } from "../database/test-helpers";
 import { Table } from "../database/types";
 import type { AlternateFile, MediaFile } from "../database/types/tables";
@@ -21,7 +20,6 @@ import services, { provideService } from "./services";
 
 /* eslint-disable */
 jest.mock("../storage");
-jest.mock("../../utils/datetime");
 jest.mock("./ffmpeg", () => {
   let actual = jest.requireActual("./ffmpeg");
   return {
@@ -79,8 +77,8 @@ test("Process image metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
-  let created = mockDateTime("2014-06-21T02:56:53");
-  let uploaded = parseDateTime("2015-06-21T02:56:53");
+  let created = mockDateTime("2014-06-21T02:56:53Z");
+  let uploaded = parseDateTime("2015-06-21T02:56:53Z");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
   let media = await user1Db.createMedia("c1", {
@@ -146,7 +144,7 @@ test("Process image metadata", async (): Promise<void> => {
     category: null,
     label: null,
     taken: expect.toEqualDate("2018-08-22T18:51:25.800-07:00"),
-    takenZone: "-07:00",
+    takenZone: "UTC-7",
     longitude: -121.517784,
     latitude: 45.715054,
     altitude: 28.4597,
@@ -240,8 +238,8 @@ test("Process image fails", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
-  let created = mockDateTime("2014-06-21T02:56:53");
-  let uploaded = parseDateTime("2015-06-21T02:56:53");
+  let created = mockDateTime("2014-06-21T02:56:53Z");
+  let uploaded = parseDateTime("2015-06-21T02:56:53Z");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
   let media = await user1Db.createMedia("c1", {
@@ -309,10 +307,10 @@ test("Process video metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
-  let uploaded = parseDateTime("2017-01-02T02:56:53");
+  let uploaded = parseDateTime("2017-01-02T02:56:53Z");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
 
-  let created = mockDateTime("2016-01-02T02:56:53");
+  let created = mockDateTime("2016-01-02T02:56:53Z");
   let media = await user1Db.createMedia("c1", emptyMetadata);
 
   getUploadedFileMock.mockResolvedValueOnce({
@@ -401,7 +399,7 @@ test("Process video metadata", async (): Promise<void> => {
     category: null,
     label: null,
     taken: expect.toEqualDate("2019-11-03T23:07:19-08:00"),
-    takenZone: "-08:00",
+    takenZone: "UTC-8",
     longitude: -122.6187,
     latitude: 45.5484,
     altitude: null,
@@ -545,14 +543,14 @@ test("reprocess", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
 
-  let created = mockDateTime("2018-01-01T02:56:53");
+  let created = mockDateTime("2018-01-01T02:56:53Z");
 
   let media = await user1Db.createMedia("c1", {
     ...emptyMetadata,
     photographer: "Dave",
   });
 
-  let fileUploaded = parseDateTime("2020-01-01T02:56:53");
+  let fileUploaded = parseDateTime("2020-01-01T02:56:53Z");
 
   let oldMediaFile = await dbConnection.withNewMediaFile(media.id, {
     ...emptyMetadata,
@@ -598,7 +596,7 @@ test("reprocess", async (): Promise<void> => {
     tags: [],
   });
 
-  let uploaded = parseDateTime("2020-01-02T02:56:53");
+  let uploaded = parseDateTime("2020-01-02T02:56:53Z");
   let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
 
   getUploadedFileMock.mockResolvedValueOnce({
@@ -659,7 +657,7 @@ test("reprocess", async (): Promise<void> => {
     category: null,
     label: null,
     taken: expect.toEqualDate("2018-08-22T18:51:25.800-07:00"),
-    takenZone: "-07:00",
+    takenZone: "UTC-7",
     longitude: -121.517784,
     latitude: 45.715054,
     altitude: 28.4597,
@@ -781,7 +779,7 @@ test("purge", async (): Promise<void> => {
     [Table.MediaFile]: [{
       id: "original1",
       media: "media1",
-      uploaded: parseDateTime("2020-01-01T01:01:01"),
+      uploaded: parseDateTime("2020-01-01T01:01:01Z"),
       processVersion: 1,
       fileName: "orig1.jpg",
       fileSize: 100,
@@ -795,7 +793,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "original2",
       media: "media1",
-      uploaded: parseDateTime("2020-02-01T01:01:01"),
+      uploaded: parseDateTime("2020-02-01T01:01:01Z"),
       processVersion: 1,
       fileName: "orig2.jpg",
       fileSize: 100,
@@ -809,7 +807,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "original3",
       media: "media1",
-      uploaded: parseDateTime("2020-03-01T01:01:01"),
+      uploaded: parseDateTime("2020-03-01T01:01:01Z"),
       processVersion: 1,
       fileName: "orig3.jpg",
       fileSize: 100,
@@ -823,7 +821,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "original4",
       media: "media2",
-      uploaded: parseDateTime("2020-01-01T01:01:01"),
+      uploaded: parseDateTime("2020-01-01T01:01:01Z"),
       processVersion: 1,
       fileName: "orig4.jpg",
       fileSize: 100,
@@ -837,7 +835,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "original5",
       media: "media3",
-      uploaded: parseDateTime("2020-01-01T01:01:01"),
+      uploaded: parseDateTime("2020-01-01T01:01:01Z"),
       processVersion: 1,
       fileName: "orig5.jpg",
       fileSize: 100,
@@ -851,7 +849,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "original6",
       media: "media3",
-      uploaded: parseDateTime("2020-02-01T01:01:01"),
+      uploaded: parseDateTime("2020-02-01T01:01:01Z"),
       processVersion: 1,
       fileName: "orig6.jpg",
       fileSize: 100,

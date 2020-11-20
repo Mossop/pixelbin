@@ -1,8 +1,58 @@
 import type Knex from "knex";
 
-import { MetadataColumns } from "../../../model";
 import type { TableRecord } from "../types";
-import { Table, ref, nameConstraint, columnFor } from "../types";
+import { ref, nameConstraint, columnFor } from "../types";
+
+// Fixed for this migration.
+enum Table {
+  User = "User",
+  Storage = "Storage",
+  Catalog = "Catalog",
+  Album = "Album",
+  Tag = "Tag",
+  Person = "Person",
+  MediaInfo = "MediaInfo",
+  MediaFile = "MediaFile",
+  AlternateFile = "AlternateFile",
+  SavedSearch = "SavedSearch",
+
+  SharedCatalog = "Shared_Catalog",
+  MediaAlbum = "Media_Album",
+  MediaTag = "Media_Tag",
+  MediaPerson = "Media_Person",
+
+  // Not real tables.
+  MediaView = "MediaView",
+  UserCatalog = "UserCatalog",
+}
+
+// Fixed for this migration.
+const MetadataColumns = [
+  "title",
+  "filename",
+  "description",
+  "category",
+  "label",
+  "location",
+  "city",
+  "state",
+  "country",
+  "make",
+  "model",
+  "lens",
+  "photographer",
+  "shutterSpeed",
+  "longitude",
+  "latitude",
+  "altitude",
+  "orientation",
+  "aperture",
+  "iso",
+  "focalLength",
+  "rating",
+  "taken",
+  "takenZone",
+];
 
 function id(table: Knex.CreateTableBuilder): void {
   table.string("id", 30).notNullable().unique().primary();
@@ -65,7 +115,7 @@ function buildMediaView(knex: Knex): Knex.QueryBuilder {
     tags: knex.raw("COALESCE(??, '[]'::json)", ["TagList.tags"]),
   };
 
-  for (let field of Object.keys(MetadataColumns)) {
+  for (let field of MetadataColumns) {
     mappings[field] = knex.raw("COALESCE(?, ?)", [
       knex.ref(`${Table.MediaInfo}.${field}`),
       knex.ref(`CurrentFile.${field}`),

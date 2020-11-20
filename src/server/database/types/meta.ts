@@ -1,10 +1,9 @@
 import type { default as Knex, Raw, Ref } from "knex";
-import { FixedOffsetZone } from "luxon";
 
 import { Table } from ".";
 import type { ObjectModel } from "../../../model";
-import type { AllNull, Obj, Nullable } from "../../../utils";
-import { isDateTime, isoDateTime } from "../../../utils";
+import type { AllNull, Obj } from "../../../utils";
+import { isDateTime, isoDateTime, hasTimezone } from "../../../utils";
 
 export type QueryBuilder<T, R = T[]> = Knex.QueryBuilder<T, R>;
 
@@ -14,36 +13,27 @@ export type WithRefs<Record> = {
   [K in keyof Record]: Raw | Ref<string, Obj> | Record[K];
 };
 
-type TimeFields = Nullable<Pick<ObjectModel.Metadata, "taken" | "takenZone">>;
-export function buildTimeZoneFields<T extends Partial<TimeFields>>(data: T): T {
-  if (data.taken === null) {
+export function buildTimeZoneFields<T extends Partial<ObjectModel.Metadata>>(data: T): T {
+  if (data.taken && !data.takenZone && hasTimezone(data.taken)) {
     return {
       ...data,
-      taken: null,
-      takenZone: null,
+      takenZone: data.taken.zone.name,
     };
-  } else if (isDateTime(data.taken)) {
-    return {
-      ...data,
-      taken: data.taken.setZone("UTC", { keepLocalTime: true }),
-      takenZone: data.takenZone ?? data.taken.toFormat("ZZ"),
-    };
-  } else {
-    return data;
   }
+
+  return data;
 }
 
-export function applyTimeZoneFields<T extends TimeFields>(data: T): T {
+export function applyTimeZoneFields<T extends ObjectModel.Metadata>(data: T): T {
+  // This is coming straight out of the database so the taken date is in local time wherever the
+  // photo was taken.
   if (data.taken && data.takenZone) {
-    let zone = FixedOffsetZone.parseSpecifier(`UTC${data.takenZone}`);
-    if (zone.isValid) {
-      return {
-        ...data,
-        taken: data.taken.setZone(zone, {
-          keepLocalTime: true,
-        }),
-      };
-    }
+    return {
+      ...data,
+      taken: data.taken.setZone(data.takenZone, {
+        keepLocalTime: true,
+      }),
+    };
   }
 
   return data;

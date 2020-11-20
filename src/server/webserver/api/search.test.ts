@@ -5,8 +5,6 @@ import { insertTestData, connection, testData } from "../../database/test-helper
 import { Table } from "../../database/types";
 import { buildTestApp, getCsrfToken } from "../test-helpers";
 
-jest.mock("../../../utils/datetime");
-
 const agent = buildTestApp();
 
 beforeEach(insertTestData);
@@ -16,13 +14,13 @@ test("Media search", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01Z");
   let media1 = await user1Db.createMedia("c1", {
     ...emptyMetadata,
     title: "Media 1",
   });
 
-  mockDateTime("2010-06-09T09:30:01");
+  mockDateTime("2010-06-09T09:30:01Z");
   await user1Db.createMedia("c1", {
     ...emptyMetadata,
     title: "Media 2",

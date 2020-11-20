@@ -6,8 +6,6 @@ import { insertTestData, testData } from "../database/test-helpers";
 import { Table } from "../database/types";
 import { buildTestApp } from "./test-helpers";
 
-jest.mock("../../utils/datetime");
-
 const agent = buildTestApp();
 
 beforeEach(insertTestData);
@@ -44,7 +42,7 @@ test("state checks", async (): Promise<void> => {
     user: null,
   });
 
-  let loginDT = mockDateTime("2020-02-03T05:02:56");
+  let loginDT = mockDateTime("2020-02-03T05:02:56Z");
 
   response = await request
     .post("/api/login")

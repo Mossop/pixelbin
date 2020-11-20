@@ -3,8 +3,6 @@ import { buildTestDB, insertTestData, connection, testData } from "./test-helper
 import type { Tables } from "./types";
 import { Table } from "./types";
 
-jest.mock("../../utils/datetime");
-
 buildTestDB();
 
 beforeEach((): Promise<void> => {
@@ -17,7 +15,7 @@ test("Test user retrieval", async (): Promise<void> => {
   let user = await dbConnection.loginUser("noone", "unknown");
   expect(user).toBeUndefined();
 
-  let loginDT = mockDateTime("2020-09-02T13:18:00");
+  let loginDT = mockDateTime("2020-09-02T13:18:00Z");
 
   user = await dbConnection.loginUser("someone1@nowhere.com", "password1");
   let { password, ...expected } = testData[Table.User][0];
@@ -40,7 +38,7 @@ test("Test user retrieval", async (): Promise<void> => {
     verified: true,
   });
 
-  loginDT = mockDateTime("2020-08-04T12:17:00");
+  loginDT = mockDateTime("2020-08-04T12:17:00Z");
 
   user = await dbConnection.loginUser("someone2@nowhere.com", "password2");
   let { password: password2, lastLogin: lastLogin2, ...expected2 } = testData[Table.User][1];
@@ -70,7 +68,7 @@ test("Test user retrieval", async (): Promise<void> => {
 test("User creation", async (): Promise<void> => {
   let dbConnection = await connection;
 
-  let createdDT = mockDateTime("2015-02-03T05:56:45");
+  let createdDT = mockDateTime("2015-02-03T05:56:45Z");
 
   let user = await dbConnection.createUser({
     email: "newuser@foo.bar.com",
@@ -101,7 +99,7 @@ test("User creation", async (): Promise<void> => {
     verified: true,
   });
 
-  let loginDT = mockDateTime("2020-03-01T13:18:00");
+  let loginDT = mockDateTime("2020-03-01T13:18:00Z");
 
   let found = await dbConnection.loginUser("newuser@foo.bar.com", "foobar57");
 

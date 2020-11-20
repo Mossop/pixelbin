@@ -17,7 +17,6 @@ import { StorageService } from "../../storage";
 import { buildTestApp, getCsrfToken } from "../test-helpers";
 
 jest.mock("../../storage");
-jest.mock("../../../utils/datetime");
 
 let parent = {
   canStartTask: jest.fn<Promise<boolean>, []>(() => Promise.resolve(true)),
@@ -69,7 +68,7 @@ test("Media upload", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  let createdDT = mockDateTime("2016-01-01T23:35:01");
+  let createdDT = mockDateTime("2016-01-01T23:35:01Z");
 
   let copyCall = deferCall(copyUploadedFileMock);
   let handleCall = deferCall(parent.handleUploadedFile);
@@ -123,7 +122,7 @@ test("Media upload", async (): Promise<void> => {
     created: expect.toEqualDate(createdDT),
     updated: expect.toEqualDate(createdDT),
     taken: "2020-04-05T17:01:04.000-07:00",
-    takenZone: "-07:00",
+    takenZone: "UTC-7",
     catalog: "c1",
     albums: [{
       album: "a1",
@@ -165,6 +164,7 @@ test("Media upload", async (): Promise<void> => {
     .field("people[2].location.right", "1")
     .field("people[2].location.top", "0")
     .field("people[2].location.bottom", "1")
+    .field("media.taken", "2020-05-02T07:08:09")
     .attach("file", Buffer.from("my file contents"), {
       filename: "myfile.jpg",
     })
@@ -177,6 +177,8 @@ test("Media upload", async (): Promise<void> => {
     id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
     created: expect.anything(),
     updated: expect.toEqualDate(response.body.created),
+    taken: "2020-05-02T07:08:09.000",
+    takenZone: null,
     file: null,
     catalog: "c1",
     albums: [],
@@ -200,6 +202,36 @@ test("Media upload", async (): Promise<void> => {
     }, {
       tag: "t2",
     }],
+  });
+
+  response = await request
+    .put("/api/media/create")
+    .field("json", JSON.stringify({
+      catalog: "c1",
+      media: {
+        taken: "2020-05-02T07:08:09",
+        takenZone: "America/Los_Angeles",
+      },
+    }))
+    .attach("file", Buffer.from("my file contents"), {
+      filename: "myfile.jpg",
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(reordered(response.body)).toEqual({
+    ...emptyMetadata,
+    id: expect.stringMatching(/M:[a-zA-Z0-9]+/),
+    created: expect.anything(),
+    updated: expect.toEqualDate(response.body.created),
+    taken: "2020-05-02T07:08:09.000-07:00",
+    takenZone: "America/Los_Angeles",
+    file: null,
+    catalog: "c1",
+    albums: [],
+    people: [],
+    tags: [],
   });
 });
 
@@ -225,6 +257,8 @@ test("Media edit", async (): Promise<void> => {
   let newMedia: MediaView | null = await user1Db.createMedia("c1", {
     ...emptyMetadata,
     title: "My title",
+    taken: parseDateTime("2020-04-05T02:05:23Z"),
+    takenZone: "UTC-7",
   });
 
   await user1Db.addMediaRelations(RelationType.Album, [newMedia.id], ["a1"]);
@@ -253,6 +287,8 @@ test("Media edit", async (): Promise<void> => {
     created: expect.anything(),
     updated: expect.toEqualDate(newMedia?.created ?? ""),
     file: null,
+    taken: expect.toEqualDate("2020-04-05T02:05:23.000-07:00"),
+    takenZone: "UTC-7",
 
     title: "My title",
 
@@ -291,6 +327,9 @@ test("Media edit", async (): Promise<void> => {
     .patch("/api/media/edit")
     .send({
       id: newMedia?.id,
+      media: {
+        takenZone: "UTC-4",
+      },
     })
     .set(CSRF_HEADER, getCsrfToken(request))
     .expect("Content-Type", "application/json")
@@ -303,6 +342,8 @@ test("Media edit", async (): Promise<void> => {
     created: expect.toEqualDate(newMedia?.created ?? ""),
     updated: expect.toEqualDate(updatedDT),
     file: null,
+    taken: "2020-04-05T02:05:23.000-04:00",
+    takenZone: "UTC-4",
 
     title: "My title",
 
@@ -340,7 +381,7 @@ test("Media edit", async (): Promise<void> => {
       id: newMedia?.id,
       media: {
         title: "New title",
-        taken: "2020-04-05T17:01:04-09:00",
+        taken: "2020-04-05T17:01:04",
       },
       albums: ["a2"],
       tags: [
@@ -362,8 +403,8 @@ test("Media edit", async (): Promise<void> => {
     file: null,
 
     title: "New title",
-    taken: "2020-04-05T17:01:04.000-09:00",
-    takenZone: "-09:00",
+    taken: "2020-04-05T17:01:04.000-04:00",
+    takenZone: "UTC-4",
 
     albums: [{
       album: "a2",
@@ -398,6 +439,7 @@ test("Media edit", async (): Promise<void> => {
       id: newMedia?.id,
       media: {
         city: "Portland",
+        taken: "2018-03-07T21:05:52-01:00",
       },
       albums: [],
       people: [],
@@ -416,8 +458,8 @@ test("Media edit", async (): Promise<void> => {
 
     title: "New title",
     city: "Portland",
-    taken: "2020-04-05T17:01:04.000-09:00",
-    takenZone: "-09:00",
+    taken: "2018-03-07T21:05:52.000-01:00",
+    takenZone: "UTC-1",
 
     albums: [],
     tags: [{
@@ -488,8 +530,8 @@ test("Media edit", async (): Promise<void> => {
 
     title: "New title",
     city: "London",
-    taken: "2020-04-05T17:01:04.000-09:00",
-    takenZone: "-09:00",
+    taken: "2018-03-07T21:05:52.000-01:00",
+    takenZone: "UTC-1",
 
     albums: [{
       album: "a1",
@@ -749,12 +791,12 @@ test("Get media", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01Z");
   let { id: id1 } = await user1Db.createMedia("c1", emptyMetadata);
 
-  let createdDT2 = mockDateTime("2010-06-09T09:30:01");
+  let createdDT2 = mockDateTime("2010-06-09T09:30:01Z");
   let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
-  let updatedDT2 = parseDateTime("2020-02-02T08:00:00");
+  let updatedDT2 = parseDateTime("2020-02-02T08:00:00Z");
   let mediaFileId = await db.withNewMediaFile(id2, {
     ...emptyMetadata,
     processVersion: 1,
@@ -1018,10 +1060,10 @@ test("Media relations", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01Z");
   let { id: id1 } = await user1Db.createMedia("c1", emptyMetadata);
 
-  let createdDT2 = mockDateTime("2010-06-09T09:30:01");
+  let createdDT2 = mockDateTime("2010-06-09T09:30:01Z");
   let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
 
   await request
@@ -1384,10 +1426,10 @@ test("Media person locations", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdDT1 = mockDateTime("2017-02-01T20:30:01");
+  let createdDT1 = mockDateTime("2017-02-01T20:30:01Z");
   let media1 = await user1Db.createMedia("c1", emptyMetadata);
 
-  let createdDT2 = mockDateTime("2010-06-09T09:30:01");
+  let createdDT2 = mockDateTime("2010-06-09T09:30:01Z");
   let media2 = await user1Db.createMedia("c1", emptyMetadata);
 
   await request

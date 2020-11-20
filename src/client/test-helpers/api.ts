@@ -5,7 +5,7 @@ import type { Api, Query } from "../../model";
 import type { ApiSerialization, ErrorData } from "../../model/api";
 import { deferCall, DeferredCall, mockedFunction } from "../../test-helpers";
 import type { Obj } from "../../utils";
-import { isDateTime } from "../../utils";
+import { isDateTime, isoDateTime } from "../../utils";
 import { request } from "../api/api";
 import type {
   CatalogState,
@@ -21,10 +21,6 @@ import type {
 } from "../api/types";
 import { isProcessedMedia } from "../api/types";
 import fetch from "../environment/fetch";
-
-const {
-  isoDateTime,
-} = jest.requireActual<typeof import("../../utils/datetime")>("../../utils/datetime");
 
 type Body = Blob | Obj | unknown[];
 

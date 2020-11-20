@@ -8,7 +8,10 @@ import { DateTime as Luxon } from "luxon";
 
 import type { ObjectModel } from "../model";
 import type { DateTime } from "../utils";
-import { stringSorted, defer, now } from "../utils";
+import { isDateTime, parseDateTime, stringSorted, defer } from "../utils";
+
+let original = Luxon.utc.bind(Luxon);
+const utc = jest.spyOn(Luxon, "utc").mockImplementation(original);
 
 export function sortedIds<T extends { id: string }>(val: T[]): string[] {
   return val.map((item: { id: string }): string => item.id);
@@ -75,24 +78,28 @@ const matchers = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     received: any,
     expected: DateTime | string,
+    timeZone?: string,
   ): jest.CustomMatcherResult {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let asStr = (val: any): string => {
-      if (Luxon.isDateTime(val)) {
-        return val.toUTC().toISO();
+      if (!isDateTime(val)) {
+        val = parseDateTime(String(val));
       }
 
-      return Luxon.fromISO(val, {
-        zone: "UTC",
-      }).toUTC().toISO();
+      if (timeZone) {
+        val = val.setZone(timeZone);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return val.toLocaleString(Luxon.DATETIME_HUGE_WITH_SECONDS);
     };
 
-    let receivedAsString = asStr(received);
-    let expectedAsString = asStr(expected);
+    let receivedStr = asStr(received);
+    let expectedStr = asStr(expected);
 
     return {
-      pass: receivedAsString == expectedAsString,
-      message: expectMessage(this, "toEqualDate", expectedAsString, receivedAsString),
+      pass: receivedStr == expectedStr,
+      message: expectMessage(this, "toEqualDate", expectedStr, receivedStr),
     };
   },
 
@@ -278,18 +285,8 @@ export function mock<
 }
 
 export function mockDateTime(result: DateTime | string): DateTime {
-  let dt = result instanceof Luxon
-    ? result
-    : Luxon.fromISO(result, {
-      zone: "UTC",
-      setZone: true,
-    });
-
-  let mockedNow = mockedFunction(now);
-
-  mockedNow.mockImplementationOnce((): DateTime => {
-    return dt;
-  });
+  let dt = isDateTime(result) ? result : parseDateTime(result);
+  utc.mockReturnValueOnce(dt);
 
   return dt;
 }

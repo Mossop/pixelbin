@@ -1,15 +1,11 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 import { Operator } from "../../model";
-import { defer } from "../../utils";
+import { defer, parseDateTime } from "../../utils";
 import type { DatabaseConfig } from "./connection";
 import { DatabaseConnection } from "./connection";
 import { insert } from "./queries";
 import type { TableRecord } from "./types";
 import { Table } from "./types";
-
-const {
-  parseDateTime,
-} = jest.requireActual<typeof import("../../utils/datetime")>("../../utils/datetime");
 
 const deferredConnection = defer<DatabaseConnection>();
 export const connection = deferredConnection.promise;

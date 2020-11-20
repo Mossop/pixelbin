@@ -3,6 +3,7 @@ import { DateTime as Luxon } from "luxon";
 
 import type { Api } from "../../model";
 import type { DateTime } from "../../utils";
+import { isDateTime, parseDateTime } from "../../utils";
 import type { ErrorCode } from "../utils/exception";
 import { AppError } from "../utils/exception";
 
@@ -53,24 +54,28 @@ const matchers = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     received: any,
     expected: DateTime | string,
+    timeZone?: string,
   ): jest.CustomMatcherResult {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let asStr = (val: any): string => {
-      if (Luxon.isDateTime(val)) {
-        return val.toUTC().toISO();
+      if (!isDateTime(val)) {
+        val = parseDateTime(String(val));
       }
 
-      return Luxon.fromISO(val, {
-        zone: "UTC",
-      }).toUTC().toISO();
+      if (timeZone) {
+        val = val.setZone(timeZone);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return val.toLocaleString(Luxon.DATETIME_HUGE_WITH_SECONDS);
     };
 
-    let receivedAsString = asStr(received);
-    let expectedAsString = asStr(expected);
+    let receivedStr = asStr(received);
+    let expectedStr = asStr(expected);
 
     return {
-      pass: receivedAsString == expectedAsString,
-      message: expectMessage(this, "toEqualDate", expectedAsString, receivedAsString),
+      pass: receivedStr == expectedStr,
+      message: expectMessage(this, "toEqualDate", expectedStr, receivedStr),
     };
   },
 

@@ -4,8 +4,6 @@ import { insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
 import { buildTestApp } from "../test-helpers";
 
-jest.mock("../../../utils/datetime");
-
 const agent = buildTestApp();
 
 beforeEach(insertTestData);
@@ -35,7 +33,7 @@ test("login and logout", async (): Promise<void> => {
     user: null,
   });
 
-  let loginDT = mockDateTime("2019-03-04T22:22:22");
+  let loginDT = mockDateTime("2019-03-04T22:22:22Z");
 
   response = await request
     .post("/api/login")
@@ -151,8 +149,8 @@ test("signup", async (): Promise<void> => {
     user: null,
   });
 
-  let createdDT = mockDateTime("2020-04-05T11:56:01");
-  let loginDT = mockDateTime("2020-04-06T11:56:01");
+  let createdDT = mockDateTime("2020-04-05T11:56:01Z");
+  let loginDT = mockDateTime("2020-04-06T11:56:01Z");
 
   response = await request
     .put("/api/signup")
@@ -221,7 +219,7 @@ test("signup", async (): Promise<void> => {
     user: null,
   });
 
-  loginDT = mockDateTime("2020-10-01T02:03:04");
+  loginDT = mockDateTime("2020-10-01T02:03:04Z");
 
   response = await request
     .post("/api/login")

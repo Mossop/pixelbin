@@ -30,13 +30,18 @@ test("Get media", async (): Promise<void> => {
   let media = mockMedia({
     id: "testmedia",
     created,
+    taken: parseDateTime("2020-04-02T06:23:57Z"),
+    takenZone: "UTC-8",
   });
 
   mockResponse(Method.MediaGet, 200, [mediaIntoResponse(media)]);
 
   let [result] = await getMedia(["testmedia"]);
 
-  expect(result).toEqual(media);
+  expect(result).toEqual({
+    ...media,
+    taken: expect.toEqualDate("2020-04-02T06:23:57-08:00"),
+  });
 
   expect(isProcessedMedia(result!)).toBeFalsy();
 
@@ -47,6 +52,63 @@ test("Get media", async (): Promise<void> => {
     headers: {
       "X-CSRFToken": "csrf-foobar",
     },
+  });
+
+  media = mockMedia({
+    id: "testmedia",
+    created,
+    taken: parseDateTime("2019-11-03T23:07:19"),
+    takenZone: "UTC-8",
+    longitude: -122.6187,
+    latitude: 45.5484,
+  });
+
+  mockResponse(Method.MediaGet, 200, [mediaIntoResponse(media)]);
+
+  [result] = await getMedia(["testmedia"]);
+
+  expect(result).toEqual({
+    ...media,
+    taken: expect.toEqualDate("2019-11-03T23:07:19-08:00", "America/Los_Angeles"),
+    takenZone: "America/Los_Angeles",
+  });
+
+  media = mockMedia({
+    id: "testmedia",
+    created,
+    taken: parseDateTime("2019-11-03T23:07:19"),
+    takenZone: "UTC-2",
+    longitude: -122.6187,
+    latitude: 45.5484,
+  });
+
+  mockResponse(Method.MediaGet, 200, [mediaIntoResponse(media)]);
+
+  [result] = await getMedia(["testmedia"]);
+
+  expect(result).toEqual({
+    ...media,
+    taken: expect.toEqualDate("2019-11-03T23:07:19-02:00"),
+    takenZone: "UTC-2",
+  });
+
+  media = mockMedia({
+    id: "testmedia",
+    created,
+    taken: parseDateTime("2019-11-03T23:07:19"),
+    takenZone: null,
+    longitude: -122.6187,
+    latitude: 45.5484,
+  });
+
+  mockResponse(Method.MediaGet, 200, [mediaIntoResponse(media)]);
+
+  [result] = await getMedia(["testmedia"]);
+
+  expect(result).toEqual({
+    ...media,
+    taken: expect.toEqualDate("2019-11-03T23:07:19-08:00", "America/Los_Angeles"),
+    takenZone: "America/Los_Angeles",
   });
 });
 

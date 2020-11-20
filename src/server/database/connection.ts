@@ -29,14 +29,16 @@ export interface DatabaseConfig {
   database: string;
 }
 
-function dateParse(val: string): DateTime {
-  return Luxon.fromSQL(val, {
-    zone: "UTC",
-  });
+function parseUTCDate(val: string): DateTime {
+  return Luxon.fromSQL(val).toUTC();
 }
 
-types.setTypeParser(types.builtins.TIMESTAMPTZ, dateParse);
-types.setTypeParser(types.builtins.TIMESTAMP, dateParse);
+function parseDate(val: string): DateTime {
+  return Luxon.fromSQL(val);
+}
+
+types.setTypeParser(types.builtins.TIMESTAMPTZ, parseUTCDate);
+types.setTypeParser(types.builtins.TIMESTAMP, parseDate);
 types.setTypeParser(types.builtins.INT8, BigInt);
 
 function wrapped<T, A extends unknown[], R>(

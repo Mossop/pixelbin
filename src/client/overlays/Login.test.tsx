@@ -65,7 +65,7 @@ test("login success", async (): Promise<void> => {
   }]);
 
   let dispatchCall = awaitCall(store.dispatch);
-  let created = parseDateTime("2016-05-23T14:56:32");
+  let created = parseDateTime("2016-05-23T14:56:32Z");
 
   await resolve({
     user: {

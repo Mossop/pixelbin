@@ -9,8 +9,6 @@ import { buildTestDB, connection } from "../database/test-helpers";
 import { StorageService } from "./service";
 import type { StoredFile } from "./storage";
 
-jest.mock("../../utils/datetime");
-
 buildTestDB();
 
 test("Basic storage", async (): Promise<void> => {
@@ -36,7 +34,7 @@ test("Basic storage", async (): Promise<void> => {
     let testFile = path.join(testTemp.path, "test1");
     await fs.writeFile(testFile, "MYDATA");
 
-    let uploaded = mockDateTime("2016-01-01T23:35:01");
+    let uploaded = mockDateTime("2016-01-01T23:35:01Z");
     await storage.get().copyUploadedFile("storage_id", testFile, "spoecial.txt");
 
     await fs.unlink(testFile);

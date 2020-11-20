@@ -38,15 +38,15 @@ test("Album media tests", async (): Promise<void> => {
 
   let media1 = await user1Db.createMedia("c1", {
     ...emptyMetadata,
-    taken: parseDateTime("2019-01-01T04:05:06"),
+    taken: parseDateTime("2019-01-01T04:05:06Z"),
   });
   let media2 = await user1Db.createMedia("c1", {
     ...emptyMetadata,
-    taken: parseDateTime("2020-01-01T04:05:06"),
+    taken: parseDateTime("2020-01-01T04:05:06Z"),
   });
   let media3 = await user1Db.createMedia("c1", {
     ...emptyMetadata,
-    taken: parseDateTime("2018-01-01T04:05:06"),
+    taken: parseDateTime("2018-01-01T04:05:06Z"),
   });
   let media4 = await user1Db.createMedia("c2", emptyMetadata);
   let media5 = await user1Db.createMedia("c2", emptyMetadata);

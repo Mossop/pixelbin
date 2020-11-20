@@ -1,4 +1,6 @@
 import type { Draft } from "immer";
+import { IANAZone } from "luxon";
+import tzLookup from "tz-lookup";
 
 import type { Api, ObjectModel } from "../../model";
 import type { Overwrite } from "../../utils";
@@ -78,9 +80,35 @@ export interface ServerState {
 }
 
 export function mediaIntoState(media: Api.Media): Draft<MediaState> {
+  let { taken, takenZone } = media;
+
+  if (taken) {
+    if (takenZone) {
+      taken = taken.setZone(takenZone, {
+        keepLocalTime: true,
+      });
+    }
+
+    if (!(taken.zone instanceof IANAZone) && media.latitude && media.longitude) {
+      try {
+        let gpsZone = IANAZone.create(tzLookup(media.latitude, media.longitude));
+        if (gpsZone.isValid && taken.offset == gpsZone.offset(taken.toMillis())) {
+          taken = taken.setZone(gpsZone, {
+            keepLocalTime: true,
+          });
+          takenZone = gpsZone.name;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
   return {
     ...media,
 
+    taken,
+    takenZone,
     catalog: Catalog.ref(media.catalog),
     albums: media.albums.map((album: Api.MediaAlbum): Draft<MediaAlbumState> => ({
       album: Album.ref(album.album),

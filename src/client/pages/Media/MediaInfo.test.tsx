@@ -56,8 +56,8 @@ test("Mediainfo", async (): Promise<void> => {
     }]),
   }));
 
-  let taken = parseDateTime("2020-02-03T05:06:06");
-  let created = parseDateTime("2020-11-10T00:00:00");
+  let taken = parseDateTime("2020-02-03T05:06:06Z");
+  let created = parseDateTime("2020-11-10T00:00:00Z");
 
   let media: ProcessedMediaState = {
     ...emptyMetadata,

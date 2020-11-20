@@ -7,8 +7,6 @@ import { buildTestDB, insertTestData, connection } from "./test-helpers";
 import type { Tables } from "./types";
 import { Table } from "./types";
 
-jest.mock("../../utils/datetime");
-
 buildTestDB();
 
 beforeEach((): Promise<void> => {
@@ -45,12 +43,13 @@ test("Media tests", async (): Promise<void> => {
   await expect(user3Db.createMedia("c1", emptyMetadata))
     .rejects.toThrow("Unknown Catalog.");
 
+  let taken = parseDateTime("2020-04-05T17:01:04-07:00");
   let createdDT = mockDateTime("2016-01-01T23:35:01Z");
 
   let newMedia = await user3Db.createMedia("c3", {
     ...emptyMetadata,
     title: "My title",
-    taken: parseDateTime("2020-04-05T17:01:04-07:00"),
+    taken,
   });
 
   let id = newMedia.id;
@@ -64,13 +63,12 @@ test("Media tests", async (): Promise<void> => {
 
     title: "My title",
     taken: expect.toEqualDate("2020-04-05T17:01:04-07:00"),
-    takenZone: "-07:00",
+    takenZone: "UTC-7",
 
     albums: [],
     tags: [],
     people: [],
   });
-  expect(newMedia.taken?.hour).toBe(17);
 
   let [foundMedia] = await user3Db.getMedia([id]);
   expect(foundMedia).toEqual({
@@ -83,13 +81,12 @@ test("Media tests", async (): Promise<void> => {
 
     title: "My title", // Media set
     taken: expect.toEqualDate("2020-04-05T17:01:04-07:00"), // Media set
-    takenZone: "-07:00",
+    takenZone: "UTC-7",
 
     albums: [],
     tags: [],
     people: [],
   });
-  expect(newMedia.taken?.hour).toBe(17);
 
   let user = await dbConnection.getUserForMedia(id);
   expect(user).toEqual({
@@ -139,7 +136,7 @@ test("Media tests", async (): Promise<void> => {
     title: "Info title",
     photographer: "Me",
     taken: expect.toEqualDate("2020-04-05T11:01:04-04:00"),
-    takenZone: "-04:00",
+    takenZone: "UTC-4",
   });
   expect(info.taken?.hour).toBe(11);
 
@@ -154,7 +151,7 @@ test("Media tests", async (): Promise<void> => {
     title: "My title", // Media set
     photographer: "Me", // OriginalInfo set
     taken: expect.toEqualDate("2020-04-05T17:01:04-07:00"), // Media set
-    takenZone: "-07:00",
+    takenZone: "UTC-7",
 
     file: {
       id: info.id,
@@ -174,7 +171,6 @@ test("Media tests", async (): Promise<void> => {
     tags: [],
     people: [],
   });
-  expect(foundMedia?.taken?.hour).toBe(17);
 
   let editedDT = mockDateTime("2020-02-03T15:31:01Z");
 
@@ -196,7 +192,7 @@ test("Media tests", async (): Promise<void> => {
     photographer: "Me", // OriginalInfo set
     city: "Portland", // Media set
     taken: expect.toEqualDate("2020-04-05T11:01:04-04:00"), // OriginalInfo set
-    takenZone: "-04:00",
+    takenZone: "UTC-4",
 
     file: {
       id: info.id,
@@ -216,9 +212,86 @@ test("Media tests", async (): Promise<void> => {
     tags: [],
     people: [],
   });
-  expect(foundMedia?.taken?.hour).toBe(11);
 
-  let uploaded2DT = mockDateTime("2020-02-04T15:31:01Z");
+  editedDT = mockDateTime("2020-09-02T05:06:23Z");
+
+  await user3Db.editMedia(id, {
+    taken: parseDateTime("2019-03-05T08:23:12"),
+  });
+
+  [foundMedia] = await user3Db.getMedia([id]);
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
+    id: id,
+    catalog: "c3",
+    created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(editedDT),
+
+    title: "Info title", // OriginalInfo set
+    photographer: "Me", // OriginalInfo set
+    city: "Portland", // Media set
+    taken: expect.toEqualDate("2019-03-05T08:23:12-07:00"), // Media set
+    takenZone: "UTC-7",
+
+    file: {
+      id: info.id,
+      processVersion: 5,
+      uploaded: expect.toEqualDate(uploadedDT),
+      mimetype: "image/jpeg",
+      width: 1024,
+      height: 768,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      fileSize: 1000,
+      fileName: "biz.jpg",
+    },
+
+    albums: [],
+    tags: [],
+    people: [],
+  });
+
+  editedDT = mockDateTime("2020-08-02T05:06:23Z");
+
+  await user3Db.editMedia(id, {
+    takenZone: null,
+  });
+
+  [foundMedia] = await user3Db.getMedia([id]);
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
+    id: id,
+    catalog: "c3",
+    created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(editedDT),
+
+    title: "Info title", // OriginalInfo set
+    photographer: "Me", // OriginalInfo set
+    city: "Portland", // Media set
+    taken: expect.toEqualDate("2019-03-05T08:23:12"), // Media set
+    takenZone: null,
+
+    file: {
+      id: info.id,
+      processVersion: 5,
+      uploaded: expect.toEqualDate(uploadedDT),
+      mimetype: "image/jpeg",
+      width: 1024,
+      height: 768,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      fileSize: 1000,
+      fileName: "biz.jpg",
+    },
+
+    albums: [],
+    tags: [],
+    people: [],
+  });
+
+  let uploaded2DT = mockDateTime("2020-09-04T15:31:01Z");
 
   info = await createMediaFile(dbConnection, id, {
     ...emptyMetadata,
@@ -267,6 +340,8 @@ test("Media tests", async (): Promise<void> => {
     title: "Different title", // OriginalInfo set
     model: "Some model", // OriginalInfo set
     city: "Portland", // Media set
+    taken: expect.toEqualDate("2019-03-05T08:23:12"), // Media set
+    takenZone: null,
 
     file: {
       id: info.id,
@@ -448,6 +523,8 @@ test("Media tests", async (): Promise<void> => {
     title: "Different title", // OriginalInfo set
     model: "Some model", // OriginalInfo set
     city: "Portland", // Media set
+    taken: expect.toEqualDate("2019-03-05T08:23:12"), // Media set
+    takenZone: null,
 
     file: {
       id: info.id,
@@ -490,6 +567,8 @@ test("Media tests", async (): Promise<void> => {
     title: "Different title", // OriginalInfo set
     model: "Some model", // OriginalInfo set
     city: "Portland", // Media set
+    taken: expect.toEqualDate("2019-03-05T08:23:12"), // Media set
+    takenZone: null,
 
     file: {
       id: info.id,

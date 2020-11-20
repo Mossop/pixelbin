@@ -12,8 +12,6 @@ import {
 } from "../test-helpers";
 import { savedSearchIntoResponse } from "./state";
 
-jest.mock("../../../utils/datetime");
-
 const agent = buildTestApp();
 
 beforeEach(insertTestData);
