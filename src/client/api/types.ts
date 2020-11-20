@@ -1,10 +1,11 @@
 import type { Draft } from "immer";
+import type { Zone } from "luxon";
 import { IANAZone } from "luxon";
 import tzLookup from "tz-lookup";
 
 import type { Api, ObjectModel } from "../../model";
-import type { Overwrite } from "../../utils";
-import { isoDateTime } from "../../utils";
+import type { Overwrite, DateTime } from "../../utils";
+import { hasTimezone, isoDateTime } from "../../utils";
 import type { ReadonlyMapOf } from "../utils/maps";
 import { intoMap } from "../utils/maps";
 import type { Reference } from "./highlevel";
@@ -80,6 +81,20 @@ export interface ServerState {
 }
 
 export function mediaIntoState(media: Api.Media): Draft<MediaState> {
+  const shouldReplaceZone = (taken: DateTime, gpsZone: Zone): boolean => {
+    // Only ever replace non-IANA zones with valid zones.
+    if (!gpsZone.isValid || taken.zone instanceof IANAZone) {
+      return false;
+    }
+
+    // Should always replace a missing or invalid zone.
+    if (!hasTimezone(taken) || !taken.zone.isValid) {
+      return true;
+    }
+
+    return taken.offset == gpsZone.offset(taken.toMillis());
+  };
+
   let { taken, takenZone } = media;
 
   if (taken) {
@@ -89,10 +104,10 @@ export function mediaIntoState(media: Api.Media): Draft<MediaState> {
       });
     }
 
-    if (!(taken.zone instanceof IANAZone) && media.latitude && media.longitude) {
+    if (media.latitude && media.longitude) {
       try {
         let gpsZone = IANAZone.create(tzLookup(media.latitude, media.longitude));
-        if (gpsZone.isValid && taken.offset == gpsZone.offset(taken.toMillis())) {
+        if (shouldReplaceZone(taken, gpsZone)) {
           taken = taken.setZone(gpsZone, {
             keepLocalTime: true,
           });

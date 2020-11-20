@@ -19,7 +19,6 @@ import type {
   MediaAlbumState,
   MediaTagState,
 } from "../api/types";
-import { isProcessedMedia } from "../api/types";
 import fetch from "../environment/fetch";
 
 type Body = Blob | Obj | unknown[];
@@ -120,29 +119,17 @@ export function callInfo(mockedFetch: jest.MockedFunction<Fetch>): CallInfo {
 export function mediaIntoResponse(
   media: MediaState,
 ): ApiSerialization<Api.Media> {
-  let response: ApiSerialization<MediaState>;
-  if (isProcessedMedia(media)) {
-    response = {
-      ...media,
-      created: isoDateTime(media.created),
-      updated: isoDateTime(media.updated),
-      taken: media.taken ? isoDateTime(media.taken) : null,
+  let response: ApiSerialization<MediaState> = {
+    ...media,
+    created: isoDateTime(media.created),
+    updated: isoDateTime(media.updated),
+    taken: media.taken ? isoDateTime(media.taken) : null,
 
-      file: {
-        ...media.file,
-        uploaded: isoDateTime(media.file.uploaded),
-      },
-    };
-  } else {
-    response = {
-      ...media,
-      created: isoDateTime(media.created),
-      updated: isoDateTime(media.updated),
-      taken: media.taken ? isoDateTime(media.taken) : null,
-
-      file: null,
-    };
-  }
+    file: media.file && {
+      ...media.file,
+      uploaded: isoDateTime(media.file.uploaded),
+    },
+  };
 
   return {
     ...response,

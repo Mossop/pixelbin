@@ -101,6 +101,7 @@ test("Get media", async (): Promise<void> => {
     latitude: 45.5484,
   });
 
+  expect(mediaIntoResponse(media).taken).toBe("2019-11-03T23:07:19.000");
   mockResponse(Method.MediaGet, 200, [mediaIntoResponse(media)]);
 
   [result] = await getMedia(["testmedia"]);
