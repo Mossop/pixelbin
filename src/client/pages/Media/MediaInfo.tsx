@@ -78,11 +78,8 @@ const useStyles = makeStyles((theme: Theme) =>
       margin: 0,
     },
     multilineMetadataLabel: {
-      fontWeight: "bold",
-      textAlign: "right",
     },
     multilineMetadataContent: {
-      margin: 0,
       gridColumn: "1 / 3",
     },
     fieldList: {
@@ -223,29 +220,27 @@ function Row(
 ): ReactResult {
   let classes = useStyles();
 
-  if (multiline) {
-    return <React.Fragment>
-      <dt
-        className={clsx(classes.multilineMetadataLabel, `metadata-${id}`, "metadata-label")}
-      >
-        {label}
-      </dt>
-      <dd
-        className={clsx(classes.multilineMetadataContent, `metadata-${id}`, "metadata-value")}
-      >
-        {value}
-      </dd>
-    </React.Fragment>;
-  }
+  let labelClasses = clsx(
+    classes.metadataLabel,
+    multiline && classes.multilineMetadataLabel,
+    `metadata-${id}`,
+    "metadata-label",
+  );
+  let contentClasses = clsx(
+    classes.metadataContent,
+    multiline && classes.multilineMetadataContent,
+    `metadata-${id}`,
+    "metadata-value",
+  );
 
   return <React.Fragment>
     <dt
-      className={clsx(classes.multilineMetadataLabel, `metadata-${id}`, "metadata-label")}
+      className={labelClasses}
     >
       {label}
     </dt>
     <dd
-      className={clsx(classes.multilineMetadataContent, `metadata-${id}`, "metadata-value")}
+      className={contentClasses}
     >
       {value}
     </dd>
