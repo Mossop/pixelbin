@@ -2,6 +2,7 @@ local LrHttp = import "LrHttp"
 local LrTasks = import "LrTasks"
 
 local json = require "json"
+local utf8 = require "utf8"
 
 local logger = require("Logging")("API")
 local Utils = require "Utils"
@@ -32,6 +33,13 @@ function API:parseHTTPResult(response, info)
     return false, {
       code = "notLoggedIn",
       name = LOC "$$$/LrPixelBin/API/NotLoggedIn=Not logged in.",
+    }
+  end
+
+  if info.status == 413 then
+    return false, {
+      code = "tooLarge",
+      name = LOC "$$$/LrPixelBin/API/TooLarge=This file is too large.",
     }
   end
 
@@ -349,11 +357,128 @@ local function asList(val)
   return val
 end
 
-function API:upload(photo, catalog, filePath, remoteId)
+function API:extractMetadata(photo, publishSettings)
+  local metadata = {}
+
+  local function addMetadata(metadataKey, value)
+    if value == nil then
+      return
+    end
+
+    if type(value) == "string" and value == "" then
+      return
+    end
+
+    metadata[metadataKey] = value
+  end
+
+  local function addRawMetadata(metadataKey, key)
+    addMetadata(metadataKey, photo:getRawMetadata(key))
+  end
+
+  local function addFormattedMetadata(metadataKey, key)
+    addMetadata(metadataKey, photo:getFormattedMetadata(key))
+  end
+
+  addFormattedMetadata("filename", "fileName")
+  addFormattedMetadata("title", "title")
+  addFormattedMetadata("description", "caption")
+  addFormattedMetadata("label", "label")
+  addFormattedMetadata("category", "iptcCategory")
+  addFormattedMetadata("taken", "dateCreated")
+  addFormattedMetadata("location", "location")
+  addFormattedMetadata("city", "city")
+  addFormattedMetadata("state", "stateProvince")
+  addFormattedMetadata("country", "country")
+  addFormattedMetadata("make", "cameraMake")
+  addFormattedMetadata("model", "cameraModel")
+  addFormattedMetadata("lens", "lens")
+  addFormattedMetadata("photographer", "artist")
+
+  addRawMetadata("iso", "isoSpeedRating")
+  addRawMetadata("aperture", "aperture")
+  addRawMetadata("focalLength", "focalLength")
+  addRawMetadata("altitude", "gpsAltitude")
+  addRawMetadata("rating", "rating")
+
+  local gps = photo:getRawMetadata("gps")
+  if gps then
+    addMetadata("longitude", gps.longitude)
+    addMetadata("latitude", gps.latitude)
+  end
+
+  local function decodeCharacter(val)
+    if val == 0xB9 then
+      return "1"
+    end
+
+    if val == 0xB2 then
+      return "2"
+    end
+
+    if val == 0xB3 then
+      return "3"
+    end
+
+    if val == 0x2070 then
+      return "0"
+    end
+
+    if val >= 0x2074 and val <= 0x2079 then
+      return tostring(val - 0x2070)
+    end
+
+    if val >= 0x2080 and val <= 0x2089 then
+      return tostring(val - 0x2080)
+    end
+
+    if val == 0x2044 then
+      return "/"
+    end
+
+    return string.char(val)
+  end
+
+  local function convertShutterSpeed(shutterSpeed)
+    local decoded = ""
+    local ch = 1
+    local val
+
+    while ch <= string.len(shutterSpeed) do
+      ch, val = utf8.next(shutterSpeed, ch)
+      if val == 0x20 then
+        return decoded
+      end
+      decoded = decoded .. decodeCharacter(val)
+    end
+
+    return decoded
+  end
+
+  local shutterSpeed = photo:getFormattedMetadata("shutterSpeed")
+  if shutterSpeed ~= nil then
+    metadata.shutterSpeed = convertShutterSpeed(shutterSpeed)
+  end
+
+  return metadata
+end
+
+function API:uploadMetadata(photo, publishSettings, remoteId)
   local mediaInfo = {
+    id = remoteId,
+    media = self:extractMetadata(photo, publishSettings),
+  }
+
+  return self:POST("media/edit", mediaInfo)
+end
+
+function API:upload(photo, publishSettings, filePath, remoteId)
+  local mediaInfo = {
+    media = self:extractMetadata(photo, publishSettings),
     tags = {},
     people = {},
   }
+
   local path
 
   local exiftool = _PLUGIN.path .. "/Image-ExifTool/" .. "exiftool"
@@ -462,7 +587,7 @@ function API:upload(photo, catalog, filePath, remoteId)
     mediaInfo.id = remoteId
     path = "media/edit"
   else
-    mediaInfo.catalog = catalog
+    mediaInfo.catalog = publishSettings.catalog
     path = "media/create"
   end
 

@@ -338,7 +338,7 @@ function Provider.processRenderedPhotos(context, exportContext)
 
       remoteId = nil
       if success then
-        local success, result = api:upload(info.rendition.photo, catalog, pathOrMessage, info.remoteId)
+        local success, result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, info.remoteId)
         if success then
           remoteId = result.id
           local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/" .. remoteId

@@ -10,8 +10,15 @@ return {
   LrInitPlugin = "Init.lua",
 
   LrExportMenuItems = {
-    title = "Reload Categories and Albums",
-    file = "Refresh.lua",
+    {
+      title = "Reload Categories and Albums",
+      file = "Refresh.lua",
+    },
+    {
+      title = "Re-upload Metadata",
+      file = "UploadMetadata.lua",
+      enabledWhen = "anythingSelected",
+    },
   },
 
   LrExportServiceProvider = {
