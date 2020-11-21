@@ -1,6 +1,5 @@
 import path from "path";
 
-import type { ExecaError } from "execa";
 import execa from "execa";
 import ffprobe from "ffprobe-client";
 import { dir as tmpdir } from "tmp-promise";
@@ -203,25 +202,18 @@ export async function probe(file: string): Promise<VideoInfo> {
 }
 
 export async function extractFrame(video: string, target: string): Promise<void> {
-  try {
-    /* eslint-disable array-element-newline */
-    await execa("ffmpeg", [
-      "-y",
-      "-loglevel", "warning",
-      "-i", video,
-      "-frames:v", "1",
-      "-q:v", "3",
-      "-f", "singlejpeg",
-      "-y",
-      target,
-    ], {
-      all: true,
-    });
-    /* eslint-enable array-element-newline */
-  } catch (e) {
-    let error: ExecaError = e;
-    throw error.all;
-  }
+  /* eslint-disable array-element-newline */
+  await execa("ffmpeg", [
+    "-y",
+    "-loglevel", "warning",
+    "-i", video,
+    "-frames:v", "1",
+    "-q:v", "3",
+    "-f", "singlejpeg",
+    "-y",
+    target,
+  ]);
+  /* eslint-enable array-element-newline */
 }
 
 export async function encodeVideo(
@@ -247,9 +239,7 @@ export async function encodeVideo(
       "-an",
       ...FFMPEG_ARGS[container],
       "/dev/null",
-    ], {
-      all: true,
-    });
+    ]);
 
     await execa("ffmpeg", [
       "-y",
@@ -261,15 +251,10 @@ export async function encodeVideo(
       ...FFMPEG_ARGS[audioCodec],
       ...FFMPEG_ARGS[container],
       target,
-    ], {
-      all: true,
-    });
+    ]);
     /* eslint-enable array-element-newline */
 
     return probe(target);
-  } catch (e) {
-    let error: ExecaError = e;
-    throw error.all;
   } finally {
     await dir.cleanup();
   }

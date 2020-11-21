@@ -4,6 +4,8 @@ import type { Next, DefaultContext, DefaultState, ParameterizedContext, BaseCont
 
 import type { Api } from "../../model";
 import { ErrorCode } from "../../model";
+import type { Serialized } from "../../utils";
+import { Serialize } from "../../utils";
 import { DatabaseError, DatabaseErrorCode } from "../database";
 import type { LoggingContext } from "./logging";
 
@@ -36,6 +38,14 @@ export class ApiError extends Error {
     ctx.message = STATUS_CODES[ctx.status] ?? "Unknown status";
     ctx.set("Content-Type", "application/json");
     ctx.body = JSON.stringify(body);
+  }
+
+  public [Serialize](): Serialized {
+    return {
+      code: this.code,
+      data: this.data,
+      stack: this.stack,
+    };
   }
 }
 
