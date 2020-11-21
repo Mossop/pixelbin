@@ -614,9 +614,13 @@ test("Media resources", async (): Promise<void> => {
 
   let media = await user1Db.createMedia("c1", emptyMetadata);
 
-  let mediaFile = await db.withNewMediaFile(
+  let mediaFile = await db.withNewMediaFileId(
     media.id,
-    {
+    (
+      db: unknown,
+      mediaFileId: string,
+      insert: (data: Omit<MediaFile, "id" | "media">) => Promise<MediaFile>,
+    ) => insert({
       ...emptyMetadata,
       uploaded: now(),
       processVersion: 2,
@@ -628,8 +632,7 @@ test("Media resources", async (): Promise<void> => {
       duration: null,
       bitRate: null,
       frameRate: null,
-    },
-    async (db: unknown, mediaFile: MediaFile) => mediaFile,
+    }),
   );
 
   await db.addAlternateFile(mediaFile.id, {
@@ -797,19 +800,27 @@ test("Get media", async (): Promise<void> => {
   let createdDT2 = mockDateTime("2010-06-09T09:30:01Z");
   let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
   let updatedDT2 = parseDateTime("2020-02-02T08:00:00Z");
-  let mediaFileId = await db.withNewMediaFile(id2, {
-    ...emptyMetadata,
-    processVersion: 1,
-    fileName: "stored.jpg",
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "video/mp4",
-    duration: 0,
-    frameRate: 0,
-    bitRate: 0,
-    uploaded: updatedDT2,
-  }, async (_: unknown, mediaFile: MediaFile): Promise<string> => mediaFile.id);
+
+  let { id: mediaFileId } = await db.withNewMediaFileId(
+    id2,
+    (
+      db: unknown,
+      mediaFileId: string,
+      insert: (data: Omit<MediaFile, "id" | "media">) => Promise<MediaFile>,
+    ) => insert({
+      ...emptyMetadata,
+      processVersion: 1,
+      fileName: "stored.jpg",
+      fileSize: 1,
+      width: 1,
+      height: 1,
+      mimetype: "video/mp4",
+      duration: 0,
+      frameRate: 0,
+      bitRate: 0,
+      uploaded: updatedDT2,
+    }),
+  );
 
   await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Poster,

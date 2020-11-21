@@ -1,6 +1,8 @@
 import type { AllNull, DateTime } from "../utils";
 import type { Query } from "./search";
 
+export const CURRENT_PROCESS_VERSION = 1;
+
 export enum RelationType {
   Tag = "tag",
   Album = "album",

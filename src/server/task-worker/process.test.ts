@@ -168,7 +168,7 @@ test("Process image metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(2);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
@@ -423,7 +423,7 @@ test("Process video metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(2);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
@@ -506,6 +506,7 @@ test("Process video metadata", async (): Promise<void> => {
   expect(storeFileMock).toHaveBeenCalledTimes(11);
   expect(storeFileMock.mock.calls).toEqual([
     [media.id, mediaFile, "Testvideo-poster.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4], "video/mp4"],
     [media.id, mediaFile, "Testvideo-150.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testvideo-200.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testvideo-250.jpg", expect.anything(), "image/jpeg"],
@@ -515,11 +516,10 @@ test("Process video metadata", async (): Promise<void> => {
     [media.id, mediaFile, "Testvideo-450.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testvideo-500.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testvideo.mp4", sourceFile, "video/mp4"],
-    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4], "video/mp4"],
   ]);
 
   for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
-    let buffer = await sharp(buffers[i + 1]).png().toBuffer();
+    let buffer = await sharp(buffers[i + 2]).png().toBuffer();
     expect(buffer).toMatchImageSnapshot({
       customSnapshotIdentifier: `video-thumb-${MEDIA_THUMBNAIL_SIZES[i]}`,
     });
@@ -552,20 +552,29 @@ test("reprocess", async (): Promise<void> => {
 
   let fileUploaded = parseDateTime("2020-01-01T02:56:53Z");
 
-  let oldMediaFile = await dbConnection.withNewMediaFile(media.id, {
-    ...emptyMetadata,
-    processVersion: 1,
-    city: "London",
-    uploaded: fileUploaded,
-    fileName: "old.jpg",
-    fileSize: 1000,
-    mimetype: "image/jpeg",
-    width: 100,
-    height: 200,
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  }, async (_: unknown, mediaFile: MediaFile): Promise<MediaFile> => mediaFile);
+  let oldMediaFile = await dbConnection.withNewMediaFileId(
+    media.id,
+    (
+      db: unknown,
+      id: string,
+      insert: (data: Omit<MediaFile, "id" | "media">) => Promise<MediaFile>,
+    ): Promise<MediaFile> => {
+      return insert({
+        ...emptyMetadata,
+        processVersion: 1,
+        city: "London",
+        uploaded: fileUploaded,
+        fileName: "old.jpg",
+        fileSize: 1000,
+        mimetype: "image/jpeg",
+        width: 100,
+        height: 200,
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      });
+    },
+  );
 
   let [foundMedia] = await user1Db.getMedia([media.id]);
   expect(foundMedia).toEqual({
@@ -683,7 +692,7 @@ test("reprocess", async (): Promise<void> => {
 
   expect(fullMedia?.file?.id).not.toBe(oldMediaFile.id);
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(2);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {

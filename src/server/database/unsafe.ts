@@ -27,35 +27,42 @@ export async function getMedia(
   }
 }
 
-export async function withNewMediaFile<T>(
+export async function withNewMediaFileId<T>(
   this: DatabaseConnection,
   media: Tables.MediaView["id"],
-  data: Omit<Tables.MediaFile, "id" | "media">,
   operation: (
     dbConnection: DatabaseConnection,
-    mediaFile: Tables.MediaFile,
+    mediaFileId: string,
+    insert: (data: Omit<Tables.MediaFile, "id" | "media">) => Promise<Tables.MediaFile>,
   ) => Promise<T>,
 ): Promise<T> {
   return this.inTransaction(
-    async function withNewOriginal(dbConnection: DatabaseConnection): Promise<T> {
-      let results: Tables.MediaFile[];
-      try {
-        results = await into(dbConnection.knex, Table.MediaFile).insert({
-          ...intoDBTypes(buildTimeZoneFields(data)),
-          id: await uuid("I"),
-          media,
-        }).returning("*");
-      } catch (e) {
-        notfound(Table.MediaInfo);
-      }
+    async function withNewMediaFileId(dbConnection: DatabaseConnection): Promise<T> {
+      let newId = await uuid("I");
 
-      if (results.length) {
-        return operation(dbConnection, applyTimeZoneFields(results[0]));
-      }
+      return operation(
+        dbConnection,
+        newId,
+        async (data: Omit<Tables.MediaFile, "id" | "media">): Promise<Tables.MediaFile> => {
+          try {
+            let results = await into(dbConnection.knex, Table.MediaFile).insert({
+              ...intoDBTypes(buildTimeZoneFields(data)),
+              id: newId,
+              media,
+            }).returning("*");
 
-      throw new DatabaseError(
-        DatabaseErrorCode.UnknownError,
-        "Failed to insert OriginalInfo record.",
+            if (results.length) {
+              return applyTimeZoneFields(results[0]);
+            }
+          } catch (e) {
+            notfound(Table.MediaInfo);
+          }
+
+          throw new DatabaseError(
+            DatabaseErrorCode.UnknownError,
+            "Failed to insert MediaFile record.",
+          );
+        },
       );
     },
   );

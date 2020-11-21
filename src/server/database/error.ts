@@ -10,8 +10,20 @@ export enum DatabaseErrorCode {
 }
 
 export class DatabaseError extends Error {
-  public constructor(public readonly code: DatabaseErrorCode, public readonly message: string) {
+  public constructor(
+    public readonly code: DatabaseErrorCode,
+    public readonly message: string,
+    private readonly error?: Error,
+  ) {
     super(message);
+  }
+
+  public get stack(): string | undefined {
+    if (this.error?.stack) {
+      return String(this.error.stack);
+    }
+
+    return super.stack;
   }
 }
 

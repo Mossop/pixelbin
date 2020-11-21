@@ -56,10 +56,11 @@ function wrapped<T, A extends unknown[], R>(
         throw new DatabaseError(
           DatabaseErrorCode.MissingRelationship,
           `Unknown ${e.constraint.substring(8)} when creating ${e.table}.`,
+          e,
         );
       }
 
-      throw new DatabaseError(DatabaseErrorCode.UnknownError, String(e));
+      throw new DatabaseError(DatabaseErrorCode.UnknownError, String(e), e);
     }
   };
 }
@@ -213,7 +214,7 @@ export class DatabaseConnection {
   }
 
   public readonly getMedia = wrapped(Unsafe.getMedia);
-  public readonly withNewMediaFile = wrapped(Unsafe.withNewMediaFile);
+  public readonly withNewMediaFileId = wrapped(Unsafe.withNewMediaFileId);
   public readonly addAlternateFile = wrapped(Unsafe.addAlternateFile);
   public readonly getStorageConfig = wrapped(Unsafe.getStorageConfig);
 
