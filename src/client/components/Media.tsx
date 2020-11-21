@@ -1,9 +1,10 @@
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
+import Fade from "@material-ui/core/Fade";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 
 import { getThumbnailUrl } from "../api/media";
 import type { MediaState, ProcessedMediaState } from "../api/types";
@@ -122,6 +123,7 @@ interface ThumbnailProps {
 
 function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
   let classes = usePreviewStyles({ thumbnailSize: size });
+  let [loaded, setLoaded] = useState(false);
 
   let ratios = [1.5, 2];
   let normal = getThumbnailUrl(media, size);
@@ -130,7 +132,11 @@ function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
     sizes.push(`${getThumbnailUrl(media, Math.round(size * ratio))} ${ratio}x`);
   }
 
-  return <img srcSet={sizes.join(", ")} className={classes.thumbnail} src={normal}/>;
+  let onload = useCallback(() => setLoaded(true), []);
+
+  return <Fade in={loaded}>
+    <img onLoad={onload} srcSet={sizes.join(", ")} className={classes.thumbnail} src={normal}/>
+  </Fade>;
 }
 
 export interface PreviewProps {
