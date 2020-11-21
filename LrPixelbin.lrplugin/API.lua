@@ -11,6 +11,14 @@ local API = { }
 
 local CSRF_HEADER = "X-CSRFToken";
 
+local function getCsrfToken(info)
+  for _, header in ipairs(info) do
+    if string.lower(header.field) == string.lower(CSRF_HEADER) then
+      return header.value
+    end
+  end
+end
+
 function API:parseHTTPResult(response, info)
   if not response then
     logger:error("Connection to server failed", info.error.errorCode, info.error.name)
@@ -120,11 +128,11 @@ function API:MULTIPART(path, content)
     return success, result
   end
 
-  local url = self.siteUrl .. "api/" .. path
+  local url = self.apiUrl .. "api/" .. path
 
   return self:callServer(function ()
     return LrHttp.postMultipart(url, content, {
-      { field = CSRF_HEADER, value = self.csrfToken },
+      { field = CSRF_HEADER, value = self.apiCsrfToken },
     })
   end)
 end
@@ -215,11 +223,17 @@ function API:login()
     self.errorState = nil
     self.catalogs = result.user.catalogs
     self.albums = result.user.albums
-    self.csrfToken = nil
+    self.csrfToken = getCsrfToken(info)
+    self.apiUrl = self.siteUrl
+    self.apiCsrfToken = self.csrfToken
 
-    for _, header in ipairs(info) do
-      if string.lower(header.field) == string.lower(CSRF_HEADER) then
-        self.csrfToken = header.value
+    if result.apiHost then
+      local apiUrl = string.sub(self.siteUrl, string.find(self.siteUrl, "^%a+://")) .. result.apiHost .. "/"
+      response, info = LrHttp.post(apiUrl .. "api/login", data, requestHeaders)
+      success, result = self:parseHTTPResult(response, info)
+      if success then
+        self.apiUrl = apiUrl
+        self.apiCsrfToken = getCsrfToken(info)
       end
     end
 
@@ -230,7 +244,7 @@ function API:login()
       }
     end
 
-    return success, nil
+    return true, nil
   end
 
   logger:error("Login failed", result.code, result.name)
@@ -672,9 +686,11 @@ local function get(settings)
     instanceKey = key,
     cacheCount = 0,
     siteUrl = settings.siteUrl,
+    apiUrl = settings.siteUrl,
     email = settings.email,
     password = settings.password,
     csrfToken = nil,
+    apiCsrfToken = nil,
     loggedIn = false,
     errorState = nil,
     catalogs = {},
