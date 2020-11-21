@@ -236,22 +236,35 @@ function buildLogMethod(level: Level): LogMethod {
   function log(bindings: Bindings, message?: string): void;
   function log(message: string): void;
   function log(this: LoggerImpl, ...args: unknown[]): void {
-    let bindings: Bindings;
-    if (args.length == 2) {
-      bindings = args[0] as Bindings;
-      let message = args[1] as string | undefined;
-      if (message) {
-        bindings.msg = message;
+    try {
+      let bindings: Bindings;
+      if (args.length == 2) {
+        bindings = args[0] as Bindings;
+        let message = args[1] as string | undefined;
+        if (message) {
+          bindings.msg = message;
+        }
+      } else if (typeof args[0] == "string") {
+        bindings = {
+          msg: args[0],
+        };
+      } else {
+        bindings = args[0] as Bindings;
       }
-    } else if (typeof args[0] == "string") {
-      bindings = {
-        msg: args[0],
-      };
-    } else {
-      bindings = args[0] as Bindings;
-    }
 
-    this.log(level, bindings);
+      this.log(level, bindings);
+    } catch (e) {
+      // Logging should never throw.
+      try {
+        this.log(Level.Error, {
+          error: e,
+          arguments: args,
+          msg: "Logging threw an unexpected exception.",
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
   }
 
   return log;
