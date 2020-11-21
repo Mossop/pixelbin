@@ -7,16 +7,13 @@ import type { MediaState, ProcessedMediaState } from "../api/types";
 import { useSelector } from "../store";
 import type { StoreState } from "../store/types";
 import type { ReactResult } from "../utils/types";
+import { IntersectionRoot, MountOnIntersect } from "./IntersectionObserver";
 import Loading from "./Loading";
 import { Preview } from "./Media";
 
-interface StyleProps {
-  thumbnailSize: number;
-}
-
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    grid: ({ thumbnailSize }: StyleProps) => {
+    grid: (thumbnailSize: number) => {
       let itemWidth = theme.spacing(4) + thumbnailSize;
       return {
         display: "grid",
@@ -24,6 +21,12 @@ const useStyles = makeStyles((theme: Theme) =>
         gridTemplateColumns: `repeat(auto-fill, ${itemWidth}px)`,
         gridGap: theme.spacing(1),
         gap: theme.spacing(1),
+      };
+    },
+    preview: (thumbnailSize: number) => {
+      return {
+        minHeight: thumbnailSize + theme.spacing(2),
+        minWidth: thumbnailSize,
       };
     },
   }));
@@ -35,21 +38,24 @@ export interface MediaGalleryProps {
 
 export default function MediaGallery({ media, onClick }: MediaGalleryProps): ReactResult {
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
-  let classes = useStyles({ thumbnailSize });
+  let classes = useStyles(thumbnailSize);
 
   if (!media) {
     return <Loading flexGrow={1}/>;
   }
   return <Box className={classes.grid}>
-    {
-      media.map((media: MediaState) => {
-        return <Preview
-          key={media.id}
-          media={media}
-          thumbnailSize={thumbnailSize}
-          onClick={onClick}
-        />;
-      })
-    }
+    <IntersectionRoot margin={`${thumbnailSize * 2}px 0px`}>
+      {
+        media.map((media: MediaState) => {
+          return <MountOnIntersect key={media.id} className={classes.preview}>
+            <Preview
+              media={media}
+              thumbnailSize={thumbnailSize}
+              onClick={onClick}
+            />
+          </MountOnIntersect>;
+        })
+      }
+    </IntersectionRoot>
   </Box>;
 }
