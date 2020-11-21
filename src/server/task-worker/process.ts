@@ -210,9 +210,9 @@ async function encodeFile(
           bitRate: videoInfo.format.bitRate,
           frameRate: videoInfo.videoStream?.frameRate ?? null,
         });
-      } catch (e) {
+      } catch (error) {
       // Failure to re-encode doesn't need to block anything.
-        logger.error(e, "Failed to re-encode video.");
+        logger.error({ error }, "Failed to re-encode video.");
       }
     }
 
