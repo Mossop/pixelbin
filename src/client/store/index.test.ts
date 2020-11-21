@@ -39,6 +39,7 @@ test("store initialization", async (): Promise<void> => {
       tags: [],
       searches: [],
     },
+    apiHost: null,
   };
 
   store.dispatch(

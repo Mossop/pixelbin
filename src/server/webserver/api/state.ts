@@ -68,6 +68,7 @@ export async function buildUser(ctx: AppContext): Promise<ApiSerialization<Api.U
 export async function buildState(ctx: AppContext): Promise<ApiSerialization<Api.State>> {
   return {
     user: await buildUser(ctx),
+    apiHost: ctx.config.apiHost,
   };
 }
 

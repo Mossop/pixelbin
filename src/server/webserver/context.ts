@@ -6,7 +6,7 @@ import type { StorageService } from "../storage";
 import type { RemoteInterface } from "../worker";
 import type { AuthContext } from "./auth";
 import authContext from "./auth";
-import type { Session, TaskWorkerInterface } from "./interfaces";
+import type { Session, TaskWorkerInterface, WebserverConfig } from "./interfaces";
 import type { LoggingContext } from "./logging";
 import loggingContext from "./logging";
 import type { SecurityContext } from "./security";
@@ -22,13 +22,16 @@ export type ServicesContext = AuthContext & LoggingContext & SecurityContext & {
   readonly taskWorker: RemoteInterface<TaskWorkerInterface>;
   readonly dbConnection: DatabaseConnection;
   readonly userDb: UserScopedConnection | null;
+  readonly config: WebserverConfig;
 };
 
 export type AppContext = Omit<ExtendableContext, "session"> & ServicesContext & {
   readonly session: (Session & session.Session) | null;
 };
 
-export async function buildContext(): Promise<DescriptorsFor<ServicesContext>> {
+export async function buildContext(
+  config: WebserverConfig,
+): Promise<DescriptorsFor<ServicesContext>> {
   let storage = await Services.storage;
   let parent = await Services.parent;
   let dbConnection = await Services.database;
@@ -37,6 +40,12 @@ export async function buildContext(): Promise<DescriptorsFor<ServicesContext>> {
     ...loggingContext(),
     ...authContext(),
     ...securityContext(),
+
+    config: {
+      get(this: AppContext): WebserverConfig {
+        return config;
+      },
+    },
 
     userDb: {
       get(this: AppContext): UserScopedConnection | null {

@@ -70,6 +70,7 @@ export type PublicMediaWithMetadata = Overwrite<ObjectModel.PublicMediaWithMetad
 
 export interface State {
   user: User | null;
+  apiHost: string | null;
 }
 
 export enum AWSResult {

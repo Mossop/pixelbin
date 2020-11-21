@@ -17,6 +17,7 @@ test("state", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual({
+    apiHost: "api.localhost",
     user: null,
   });
 });
@@ -30,6 +31,7 @@ test("login and logout", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual({
+    apiHost: "api.localhost",
     user: null,
   });
 
@@ -59,6 +61,7 @@ test("login and logout", async (): Promise<void> => {
       tags: testData[Table.Tag],
       searches: testData[Table.SavedSearch],
     },
+    apiHost: "api.localhost",
   });
 
   response = await request
@@ -81,6 +84,7 @@ test("login and logout", async (): Promise<void> => {
       tags: testData[Table.Tag],
       searches: testData[Table.SavedSearch],
     },
+    apiHost: "api.localhost",
   });
 
   response = await request
@@ -90,6 +94,7 @@ test("login and logout", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 
   response = await request
@@ -99,6 +104,7 @@ test("login and logout", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 });
 
@@ -112,6 +118,7 @@ test("login failure", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 
   response = await request
@@ -134,6 +141,7 @@ test("login failure", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 });
 
@@ -147,6 +155,7 @@ test("signup", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 
   let createdDT = mockDateTime("2020-04-05T11:56:01Z");
@@ -177,6 +186,7 @@ test("signup", async (): Promise<void> => {
       people: [],
       searches: [],
     },
+    apiHost: "api.localhost",
   });
 
   response = await request
@@ -199,6 +209,7 @@ test("signup", async (): Promise<void> => {
       people: [],
       searches: [],
     },
+    apiHost: "api.localhost",
   });
 
   response = await request
@@ -208,6 +219,7 @@ test("signup", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 
   response = await request
@@ -217,6 +229,7 @@ test("signup", async (): Promise<void> => {
 
   expect(response.body).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 
   loginDT = mockDateTime("2020-10-01T02:03:04Z");
@@ -245,5 +258,6 @@ test("signup", async (): Promise<void> => {
       people: [],
       searches: [],
     },
+    apiHost: "api.localhost",
   });
 });

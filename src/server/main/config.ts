@@ -17,6 +17,8 @@ export interface ServerConfig {
   storage: StorageConfig;
   cache: CacheConfig;
   smtp: SmtpConfig | null;
+  hosts: string[];
+  apiHost: string | null;
 }
 
 export interface ConfigFile {
@@ -25,6 +27,8 @@ export interface ConfigFile {
   storage?: string;
   cache: CacheConfig;
   smtp?: SmtpConfig;
+  hosts: string | string[];
+  apiHost?: string | null;
 }
 
 const DatabaseConfigDecoder = JsonDecoder.object<DatabaseConfig>({
@@ -55,6 +59,11 @@ const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   storage: JsonDecoder.optional(JsonDecoder.string),
   cache: CacheConfigDecoder,
   smtp: JsonDecoder.optional(SmtpConfigDecoder),
+  hosts: JsonDecoder.oneOf<string | string[]>([
+    JsonDecoder.string,
+    JsonDecoder.array(JsonDecoder.string, "hosts[]"),
+  ], "hosts"),
+  apiHost: JsonDecoder.optional(JsonDecoder.string),
 }, "ConfigFile");
 
 async function findConfig(configTarget: string): Promise<string> {
@@ -114,6 +123,8 @@ export const loadConfig = serviceBuilder(
       logging: configFileData.logging ?? {
         default: Level.Warn,
       },
+      hosts: Array.isArray(configFileData.hosts) ? configFileData.hosts : [configFileData.hosts],
+      apiHost: configFileData.apiHost ?? null,
     };
 
     await fs.mkdir(config.storage.tempDirectory, {

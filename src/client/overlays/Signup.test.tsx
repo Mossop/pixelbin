@@ -90,6 +90,7 @@ test("signup success", async (): Promise<void> => {
       tags: [],
       searches: [],
     },
+    apiHost: null,
   });
 
   let [deed] = await dispatchCall;

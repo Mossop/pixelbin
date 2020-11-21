@@ -90,6 +90,7 @@ test("banner", async (): Promise<void> => {
   let mockRequest = mockedFunction(request);
   mockRequest.mockImplementationOnce((): Api.State => ({
     user: null,
+    apiHost: null,
   }));
 
   let promise = awaitCall(store.dispatch);

@@ -13,13 +13,13 @@ import session from "koa-session";
 import serve from "koa-static";
 
 import type { Api, ApiSerialization } from "../../model";
-import { Method } from "../../model";
+import { Method, ErrorCode } from "../../model";
 import { thumbnail, original, poster } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import type { AppContext, ServicesContext } from "./context";
 import { buildContext } from "./context";
-import { errorHandler } from "./error";
+import { errorHandler, ApiError } from "./error";
 import type { WebserverConfig } from "./interfaces";
 import { APP_PATHS } from "./paths";
 import Services, { provideService } from "./services";
@@ -67,7 +67,7 @@ async function notFound(ctx: AppContext): Promise<void> {
 export default async function buildApp(): Promise<void> {
   let parent = await Services.parent;
   let config = await parent.getConfig();
-  let context = await buildContext();
+  let context = await buildContext(config);
   let cache = await Services.cache;
 
   let base = path.resolve(path.dirname(path.dirname(__dirname)));
@@ -130,6 +130,8 @@ export default async function buildApp(): Promise<void> {
     ...context,
   });
 
+  let allowedHosts = new Set(config.hosts);
+
   app
     .use(async (ctx: AppContext, next: Koa.Next): Promise<void> => {
       let start = Date.now();
@@ -146,6 +148,21 @@ export default async function buildApp(): Promise<void> {
     })
 
     .use(errorHandler)
+
+    .use(async (ctx: AppContext, next: Koa.Next): Promise<void> => {
+      let host = ctx.get("Host").replace(/:.*/, "");
+
+      if (allowedHosts.has(host)) {
+        return next();
+      }
+
+      let isApi = ctx.path.startsWith(APP_PATHS.api);
+      if (config.apiHost && isApi && host == config.apiHost) {
+        return next();
+      }
+
+      throw new ApiError(ErrorCode.InvalidHost);
+    })
 
     .use(
       mount(

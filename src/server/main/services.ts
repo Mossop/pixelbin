@@ -88,6 +88,8 @@ export const initWebserver = serviceBuilder(
       storage: config.storage,
       cache: config.cache,
       secretKeys: ["Random secret"],
+      hosts: config.hosts,
+      apiHost: config.apiHost,
     }, await Services.taskManager);
   },
 );

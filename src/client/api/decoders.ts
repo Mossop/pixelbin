@@ -124,6 +124,7 @@ export const UserDecoder = JsonDecoder.object<Api.User>(
 export const StateDecoder = JsonDecoder.object<Api.State>(
   {
     user: JsonDecoder.nullable(UserDecoder),
+    apiHost: JsonDecoder.nullable(JsonDecoder.string),
   },
   "State",
 );

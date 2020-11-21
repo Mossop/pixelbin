@@ -28,6 +28,7 @@ test("Bad state", async (): Promise<void> => {
 test("Get state", async (): Promise<void> => {
   mockResponse(Method.State, 200, {
     user: null,
+    apiHost: null,
   });
 
   let result = await state();
@@ -92,6 +93,7 @@ test("Login", async (): Promise<void> => {
       }],
       searches: [],
     },
+    apiHost: "fobar",
   });
 
   let result = await login("user", "pass");
@@ -172,6 +174,7 @@ test("Login", async (): Promise<void> => {
 test("Logout", async (): Promise<void> => {
   mockResponse(Method.Logout, 200, {
     user: null,
+    apiHost: null,
   });
 
   let result = await logout();
@@ -206,6 +209,7 @@ test("Signup", async (): Promise<void> => {
       albums: [],
       searches: [],
     },
+    apiHost: null,
   });
 
   let result = await signup(

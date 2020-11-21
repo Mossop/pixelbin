@@ -52,6 +52,7 @@ test("no path", async (): Promise<void> => {
     cache: {
       host: "local",
     },
+    hosts: "foo",
   };
 
   mockedResolved.mockImplementationOnce((target: string) => {
@@ -114,6 +115,8 @@ test("no path", async (): Promise<void> => {
       default: Level.Warn,
     },
     smtp: null,
+    hosts: ["foo"],
+    apiHost: null,
   });
 });
 
@@ -135,6 +138,8 @@ test("with directory", async (): Promise<void> => {
       from: "someone@there.com",
       host: "somewhere",
     },
+    hosts: ["foo", "bar"],
+    apiHost: "baz",
   };
 
   mockedResolved.mockImplementationOnce((target: string) => {
@@ -203,5 +208,10 @@ test("with directory", async (): Promise<void> => {
       ssl: undefined,
       tls: undefined,
     },
+    hosts: [
+      "foo",
+      "bar",
+    ],
+    apiHost: "baz",
   });
 });

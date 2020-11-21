@@ -11,6 +11,8 @@ export interface WebserverConfig {
   storage: StorageConfig;
   cache: CacheConfig;
   secretKeys: string[];
+  hosts: string[],
+  apiHost: string | null,
 }
 
 export interface TaskWorkerInterface {

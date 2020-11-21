@@ -34,6 +34,8 @@ test("init", async (): Promise<void> => {
       host: "localhost",
     },
     secretKeys: ["foo"],
+    hosts: [],
+    apiHost: null,
   };
 
   let parentInterface = {

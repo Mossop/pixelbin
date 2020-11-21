@@ -62,6 +62,8 @@ export function buildTestApp(
         },
         storage: storageConfig,
         cache: cacheConfig,
+        hosts: ["127.0.0.1", "somewhere"],
+        apiHost: "api.localhost",
       };
     },
 
@@ -135,12 +137,16 @@ export function fromCatalogs<T extends Api.Person | Api.Tag | Api.Album | Api.Sa
 
 export function expectUserState(json: Obj, state: ApiSerialization<Api.User> | null): void {
   if (!state) {
-    expect(json).toEqual({ user: null });
+    expect(json).toEqual({
+      user: null,
+      apiHost: "api.localhost",
+    });
     return;
   }
 
   expect(json).toEqual({
     user: expect.anything(),
+    apiHost: "api.localhost",
   });
 
   let received = {

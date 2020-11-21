@@ -40,6 +40,7 @@ test("state checks", async (): Promise<void> => {
 
   expect(stateFromResponse(response.text)).toEqual({
     user: null,
+    apiHost: "api.localhost",
   });
 
   let loginDT = mockDateTime("2020-02-03T05:02:56Z");
@@ -76,7 +77,50 @@ test("state checks", async (): Promise<void> => {
       tags: testData[Table.Tag],
       searches: testData[Table.SavedSearch],
     },
+    apiHost: "api.localhost",
   });
+});
+
+test("hosts", async (): Promise<void> => {
+  let request = agent();
+
+  await request
+    .get("/")
+    .expect(200);
+
+  await request
+    .get("/")
+    .set("Host", "somewhere")
+    .expect(200);
+
+  await request
+    .get("/")
+    .set("Host", "nowhere")
+    .expect(403);
+
+  await request
+    .get("/")
+    .set("Host", "api.localhost")
+    .expect(403);
+
+  await request
+    .get("/api/state")
+    .expect(200);
+
+  await request
+    .get("/api/state")
+    .set("Host", "somewhere")
+    .expect(200);
+
+  await request
+    .get("/api/state")
+    .set("Host", "nowhere")
+    .expect(403);
+
+  await request
+    .get("/api/state")
+    .set("Host", "api.localhost")
+    .expect(200);
 });
 
 test("routes", async (): Promise<void> => {

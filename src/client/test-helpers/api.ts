@@ -253,6 +253,7 @@ export function serverDataIntoResponse(serverState: ServerState): ApiSerializati
 
   return {
     user,
+    apiHost: null,
   };
 }
 

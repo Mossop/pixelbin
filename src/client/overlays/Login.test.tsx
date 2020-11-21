@@ -82,6 +82,7 @@ test("login success", async (): Promise<void> => {
       people: [],
       searches: [],
     },
+    apiHost: null,
   });
 
   let [deed] = await dispatchCall;

@@ -15,6 +15,7 @@ const ApiErrorStatus: Record<ErrorCode, number> = {
   [ErrorCode.InvalidData]: 400,
   [ErrorCode.NotFound]: 404,
   [ErrorCode.TemporaryFailure]: 503,
+  [ErrorCode.InvalidHost]: 403,
 };
 
 export class ApiError extends Error {

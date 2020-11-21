@@ -17,6 +17,7 @@ export enum ErrorCode {
   InvalidData = "invalid-data",
   NotFound = "not-found",
   TemporaryFailure = "temporary-failure",
+  InvalidHost = "invalid-host",
 }
 
 export interface ErrorData {
