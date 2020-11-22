@@ -83,7 +83,7 @@ export default async function buildApp(): Promise<void> {
       multipart: true,
       parsedMethods: ["POST", "PUT", "PATCH", "DELETE"],
       formidable: {
-        maxFileSize: 250 * 1024 * 1024,
+        maxFileSize: 400 * 1024 * 1024,
       },
     }), apiRequestHandler(method));
   }
