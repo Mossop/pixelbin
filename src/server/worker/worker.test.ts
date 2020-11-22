@@ -229,10 +229,11 @@ test("worker", async (): Promise<void> => {
   let dead = worker.kill();
   expect(mockProcess.disconnect).toHaveBeenCalledTimes(1);
   mockProcess.emit("disconnect");
+  mockProcess.emit("exit");
 
   await dead;
 
-  expect(mockProcess.kill).toHaveBeenCalledTimes(1);
+  expect(mockProcess.kill).toHaveBeenCalledTimes(0);
 });
 
 test("connect timeout", async (): Promise<void> => {

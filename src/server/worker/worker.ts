@@ -1,6 +1,6 @@
 import type { ChildProcess, SendHandle, Serializable } from "child_process";
 import type { EventEmitter } from "events";
-import { clearTimeout } from "timers";
+import { setTimeout, clearTimeout } from "timers";
 
 import type { Deferred, Logger } from "../../utils";
 import { defer, getLogger, TypedEmitter } from "../../utils";
@@ -85,14 +85,27 @@ export class WorkerProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     return this.workerRemote;
   }
 
-  public kill(...args: Parameters<ChildProcess["kill"]>): Promise<void> {
-    this.logger.debug("Killing worker.");
+  public async kill(...args: Parameters<ChildProcess["kill"]>): Promise<void> {
+    if (this.disconnected) {
+      return;
+    }
+
+    let timeoutPromise = new Promise<void>((resolve: () => void) => {
+      let timeout = setTimeout(() => {
+        this.logger.debug("Killing worker.");
+        this.options.process.kill(...args);
+      }, 500);
+
+      this.options.process.once("exit", () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+
+    this.logger.debug("Disconnecting worker.");
     this.options.process.disconnect();
 
-    return new Promise((resolve: () => void): void => {
-      this.once("disconnect", resolve);
-      this.options.process.kill(...args);
-    });
+    return timeoutPromise;
   }
 
   private async buildChannel(): Promise<void> {
