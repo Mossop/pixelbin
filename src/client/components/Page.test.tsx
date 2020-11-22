@@ -25,10 +25,11 @@ test("page and sidebar", async (): Promise<void> => {
   }));
 
   let { unmount } = render(
-    <Page/>,
+    <Page title="My title"/>,
     store,
   );
 
+  expect(document.title).toBe("My title");
   expect(document.querySelector("#sidebar-persistent")).toBeNull();
   expect(document.querySelector("#sidebar-modal")).toBeNull();
   expect(document.querySelector("#menu-button")).toBeNull();
@@ -52,6 +53,7 @@ test("page and sidebar", async (): Promise<void> => {
   let option1Click = jest.fn();
   render(
     <Page
+      title="Another title"
       pageOptions={
         [{
           id: "option1",
@@ -63,6 +65,8 @@ test("page and sidebar", async (): Promise<void> => {
     />,
     store,
   );
+
+  expect(document.title).toBe("Another title");
 
   let sidebar = expectChild(document, "#sidebar-persistent");
   expect(document.querySelector("#sidebar-modal")).toBeNull();

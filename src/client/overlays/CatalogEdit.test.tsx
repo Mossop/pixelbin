@@ -42,6 +42,8 @@ test("edit catalog", async (): Promise<void> => {
 
   let { dialogContainer } = render(<CatalogEditOverlay catalog={Catalog.ref("catalog")}/>, store);
 
+  expect(document.title).toBe("catalog-edit-title");
+
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
   let nameInput = expectChild<HTMLInputElement>(dialogContainer, "#catalog-name");

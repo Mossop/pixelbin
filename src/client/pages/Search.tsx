@@ -75,6 +75,7 @@ export default function SearchPage({
   }, [actions, catalog, query]);
 
   return <Page
+    title={l10n.getString("search-page-title")}
     pageOptions={
       [{
         id: "edit-search",

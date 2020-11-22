@@ -29,6 +29,9 @@ test("basic stepped dialog", async (): Promise<void> => {
       </Step>
     </SteppedDialog>,
   );
+
+  expect(document.title).toBe("foo");
+
   let form = expectChild(dialogContainer, "form");
   expect(form.querySelector("#stepped-dialog-error")).toBeNull();
 

@@ -1,3 +1,4 @@
+import { useLocalization } from "@fluent/react";
 import Typography from "@material-ui/core/Typography";
 import React from "react";
 
@@ -6,7 +7,9 @@ import Page from "../components/Page";
 import type { ReactResult } from "../utils/types";
 
 export default function NotFoundPage(): ReactResult {
-  return <Page>
+  let { l10n } = useLocalization();
+
+  return <Page title={l10n.getString("notfound-page-title")}>
     <Content>
       <Typography variant="h1">Not found</Typography>
     </Content>

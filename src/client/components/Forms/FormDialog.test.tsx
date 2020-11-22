@@ -10,6 +10,9 @@ test("basic form dialog", async (): Promise<void> => {
   let { dialogContainer } = render(
     <FormDialog titleId="foo" onSubmit={submit} onClose={close}/>,
   );
+
+  expect(document.title).toBe("foo");
+
   let form = expectChild(dialogContainer, "form");
   expect(form.querySelector("#form-dialog-error")).toBeNull();
 
@@ -49,6 +52,9 @@ test("custom form dialog", async (): Promise<void> => {
       <div id="mycontent"/>
     </FormDialog>,
   );
+
+  expect(document.title).toBe("bar");
+
   let form = expectChild(dialogContainer, "#mydialog");
   expect(form.localName).toBe("form");
   expect(form.querySelector("#mydialog-error")).toBeNull();

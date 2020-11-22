@@ -1,7 +1,7 @@
 import Box from "@material-ui/core/Box";
 import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import type { Catalog } from "../api/highlevel";
 import { useCatalogs } from "../api/highlevel";
@@ -45,12 +45,14 @@ export interface PageProps {
   selectedItem?: string;
   pageOptions?: PageOption[];
   sidebar?: SidebarProps["type"];
+  title: string;
 }
 
 export default function Page({
   selectedItem,
   pageOptions,
   sidebar,
+  title,
   children,
 }: PageProps): ReactResult {
   let catalogs = useCatalogs().map(
@@ -90,6 +92,12 @@ export default function Page({
   let { loggedIn } = useSelector((state: StoreState) => ({
     loggedIn: state.serverState.user,
   }));
+
+  useEffect(() => {
+    if (!uiState.overlay) {
+      document.title = title;
+    }
+  }, [title, uiState]);
 
   if (loggedIn) {
     return <Box className={classes.app}>

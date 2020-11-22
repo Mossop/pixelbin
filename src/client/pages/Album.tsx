@@ -99,6 +99,7 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
   }, [actions, album]);
 
   return <Page
+    title={album.name}
     selectedItem={props.album.id}
     pageOptions={
       [{

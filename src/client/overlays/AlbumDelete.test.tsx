@@ -41,6 +41,8 @@ test("cancelled delete album", async (): Promise<void> => {
 
   let { dialogContainer } = render(<AlbumDeleteOverlay album={Album.ref("album1")}/>, store);
 
+  expect(document.title).toBe("album-delete-title");
+
   let message = expectChild<HTMLParagraphElement>(dialogContainer, ".MuiDialogContent-root p");
   let cancel = expectChild<HTMLButtonElement>(dialogContainer, "#confirm-dialog-cancel");
 
@@ -74,6 +76,8 @@ test("accepted delete album", async (): Promise<void> => {
   }));
 
   let { dialogContainer } = render(<AlbumDeleteOverlay album={Album.ref("album1")}/>, store);
+
+  expect(document.title).toBe("album-delete-title");
 
   let accept = expectChild<HTMLButtonElement>(dialogContainer, "#confirm-dialog-accept");
 

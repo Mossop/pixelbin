@@ -48,6 +48,8 @@ test("catalog", async (): Promise<void> => {
     store,
   );
 
+  expect(document.title).toBe("Catalog");
+
   await expect(call).resolves.toEqual([
     Method.CatalogList,
     {

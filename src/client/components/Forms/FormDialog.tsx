@@ -8,7 +8,7 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles } from "@material-ui/core/styles";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Alert from "@material-ui/lab/Alert/Alert";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { errorString } from "../../utils/exception";
 import type { ReactResult } from "../../utils/types";
@@ -91,6 +91,10 @@ export default function FormDialog({
       onClose();
     }
   }, [onClose]);
+
+  useEffect(() => {
+    document.title = l10n.getString(titleId);
+  }, [l10n, titleId]);
 
   return <Dialog
     open={open}

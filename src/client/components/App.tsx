@@ -1,3 +1,4 @@
+import { useLocalization } from "@fluent/react";
 import type { ErrorInfo } from "react";
 import React, { PureComponent, Suspense } from "react";
 
@@ -39,10 +40,12 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
 }
 
 export default function App(): React.ReactElement | null {
+  let { l10n } = useLocalization();
+
   return <ErrorHandler>
     <Suspense
       fallback={
-        <PageComponent>
+        <PageComponent title={l10n.getString("loading-title")}>
           <Loading flexGrow={1}/>
         </PageComponent>
       }

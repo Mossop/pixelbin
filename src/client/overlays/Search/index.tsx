@@ -139,6 +139,10 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
     };
   }, [lookup]);
 
+  useEffect(() => {
+    document.title = l10n.getString("search-dialog-title");
+  }, [l10n]);
+
   let onUpdateQuery = useCallback(
     (oldQuery: Search.CompoundQuery, newQuery: Search.CompoundQuery): void => {
       setSearch(newQuery);

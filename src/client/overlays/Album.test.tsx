@@ -42,6 +42,8 @@ test("create album", async (): Promise<void> => {
 
   let { dialogContainer } = render(<AlbumOverlay parent={Catalog.ref("catalog")}/>, store);
 
+  expect(document.title).toBe("album-create-title");
+
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
   let button = expectChild<HTMLButtonElement>(form, "#album-create-submit");
   click(button);
@@ -103,6 +105,8 @@ test("edit album", async (): Promise<void> => {
   }));
 
   let { dialogContainer } = render(<AlbumOverlay album={Album.ref("album2")}/>, store);
+
+  expect(document.title).toBe("album-edit-title");
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 

@@ -10,7 +10,7 @@ import Stepper from "@material-ui/core/Stepper";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Alert from "@material-ui/lab/Alert/Alert";
-import React, { useState, useCallback, Children } from "react";
+import React, { useState, useCallback, Children, useEffect } from "react";
 
 import { errorString } from "../../utils/exception";
 import type { ReactResult } from "../../utils/types";
@@ -108,6 +108,10 @@ export default function SteppedDialog({
       onClose();
     }
   }, [onClose]);
+
+  useEffect(() => {
+    document.title = l10n.getString(titleId);
+  }, [l10n, titleId]);
 
   return <Dialog open={open} onClose={close} scroll="body" aria-labelledby={`${baseId}-title`}>
     <FormContextProvider disabled={disabled} canSubmit={canSubmit}>

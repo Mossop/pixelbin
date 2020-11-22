@@ -31,6 +31,8 @@ test("login success", async (): Promise<void> => {
 
   let { dialogContainer } = render(<LoginOverlay/>, store);
 
+  expect(document.title).toBe("login-title");
+
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
   let email = expectChild<HTMLInputElement>(form, "input#login-email");
@@ -111,6 +113,8 @@ test("login failed", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
   let { dialogContainer } = render(<LoginOverlay/>, store);
+
+  expect(document.title).toBe("login-title");
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 

@@ -36,7 +36,7 @@ export default function SavedSearchPage({
 
   let media = useMediaLookup(lookup);
 
-  return <Page selectedItem={searchId}>
+  return <Page title="search" selectedItem={searchId}>
     <Content>
       <MediaGallery media={media} onClick={onMediaClick}/>
     </Content>

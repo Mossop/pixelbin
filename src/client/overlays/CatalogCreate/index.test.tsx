@@ -28,6 +28,8 @@ test("create catalog", async (): Promise<void> => {
 
   let { dialogContainer } = render(<CatalogOverlay user={user}/>, store);
 
+  expect(document.title).toBe("catalog-create-title-first");
+
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
   expect(form.querySelector("#storage-existing")).toBeNull();
@@ -285,6 +287,8 @@ test("create catalog with existing storage", async (): Promise<void> => {
   let user = store.state.serverState.user!;
 
   let { container, dialogContainer } = render(<CatalogOverlay user={user}/>, store);
+
+  expect(document.title).toBe("catalog-create-title");
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 

@@ -13,7 +13,9 @@ import AlbumAddIcon from "../icons/AlbumAddIcon";
 import CatalogEditIcon from "../icons/CatalogEditIcon";
 import SearchIcon from "../icons/SearchIcon";
 import { OverlayType } from "../overlays/types";
+import { useSelector } from "../store";
 import { useActions } from "../store/actions";
+import type { StoreState } from "../store/types";
 import type { CatalogMediaLookup } from "../utils/medialookup";
 import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
@@ -27,6 +29,8 @@ export interface CatalogPageProps {
 export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageProps): ReactResult {
   let { l10n } = useLocalization();
   let actions = useActions();
+
+  let catalog = useSelector((store: StoreState) => props.catalog.deref(store.serverState));
 
   let onAlbumCreate = useCallback(
     () => actions.showOverlay({
@@ -77,6 +81,7 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
   }, [actions, props.catalog]);
 
   return <Page
+    title={catalog.name}
     selectedItem={props.catalog.id}
     pageOptions={
       [{

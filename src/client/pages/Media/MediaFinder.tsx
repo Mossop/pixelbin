@@ -1,3 +1,4 @@
+import { useLocalization } from "@fluent/react";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React, { useMemo } from "react";
@@ -10,6 +11,7 @@ import { useActions } from "../../store/actions";
 import type { UIState } from "../../store/types";
 import type { MediaLookup } from "../../utils/medialookup";
 import { MediaLookupType, useMediaLookup } from "../../utils/medialookup";
+import { mediaTitle } from "../../utils/metadata";
 import type { ReactResult } from "../../utils/types";
 import { PageType } from "../types";
 import MediaDisplay from "./MediaDisplay";
@@ -31,6 +33,7 @@ export interface MediaFinderProps {
 export default function MediaFinder({ media, lookup }: MediaFinderProps): ReactResult {
   let actions = useActions();
   let classes = useStyles();
+  let { l10n } = useLocalization();
 
   let mediaList = useMediaLookup(useMemo<MediaLookup>(() => {
     return lookup ?? {
@@ -111,14 +114,14 @@ export default function MediaFinder({ media, lookup }: MediaFinderProps): ReactR
   }, [mediaIndex, mediaList, actions, lookup]);
 
   if (!mediaList) {
-    return <Page sidebar="openable">
+    return <Page title={l10n.getString("loading-title")} sidebar="openable">
       <Loading className={classes.content}/>
     </Page>;
   }
 
   if (mediaIndex < 0) {
     // TODO add an error component.
-    return <Page sidebar="openable">
+    return <Page title={l10n.getString("loading-title")} sidebar="openable">
       <Loading className={classes.content}/>
     </Page>;
   }
@@ -126,12 +129,18 @@ export default function MediaFinder({ media, lookup }: MediaFinderProps): ReactR
   let foundMedia = mediaList[mediaIndex];
 
   if (!isProcessedMedia(foundMedia)) {
-    return <Page sidebar="openable">
+    return <Page
+      title={mediaTitle(foundMedia) ?? l10n.getString("media-page-title")}
+      sidebar="openable"
+    >
       <Loading className={classes.content}/>
     </Page>;
   }
 
-  return <Page sidebar="openable">
+  return <Page
+    title={mediaTitle(foundMedia) ?? l10n.getString("media-page-title")}
+    sidebar="openable"
+  >
     <MediaDisplay
       media={foundMedia}
       onNext={onNext}

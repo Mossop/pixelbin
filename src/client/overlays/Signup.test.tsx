@@ -31,6 +31,8 @@ test("signup success", async (): Promise<void> => {
 
   let { dialogContainer } = render(<SignupOverlay/>, store);
 
+  expect(document.title).toBe("signup-title");
+
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
   let email = expectChild<HTMLInputElement>(form, "#signup-email");

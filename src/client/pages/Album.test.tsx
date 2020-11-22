@@ -53,6 +53,8 @@ test("album", async (): Promise<void> => {
     store,
   );
 
+  expect(document.title).toBe("Album");
+
   let buttons = expectChild(container, "#banner-buttons");
 
   expect(store.dispatch).toHaveBeenCalledTimes(0);

@@ -48,6 +48,8 @@ test("save search", async (): Promise<void> => {
     query={query}
   />, store);
 
+  expect(document.title).toBe("save-search-title");
+
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
   let prv = expectChild<HTMLInputElement>(form, "#save-search-private");

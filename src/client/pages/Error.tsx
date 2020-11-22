@@ -2,7 +2,7 @@ import { Localized, useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import Link from "@material-ui/core/Link";
 import Typography from "@material-ui/core/Typography";
-import React from "react";
+import React, { useEffect } from "react";
 
 import AppBar from "../components/AppBar";
 import Content from "../components/Content";
@@ -27,6 +27,10 @@ export default function ErrorPage({ error }: ErrorPageProps): ReactResult {
 
     window.location.href = "/";
   };
+
+  useEffect(() => {
+    document.title = l10n.getString("error-page-title");
+  });
 
   return <React.Fragment>
     <AppBar>
