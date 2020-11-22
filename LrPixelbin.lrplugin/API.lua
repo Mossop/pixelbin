@@ -11,6 +11,33 @@ local API = { }
 
 local CSRF_HEADER = "X-CSRFToken";
 
+local CHARACTER_MAP = {
+  [0x2070] = "0",
+  [0xB9] = "1",
+  [0xB2] = "2",
+  [0xB3] = "3",
+  [0xBC] = "1/4",
+  [0xBD] = "1/2",
+  [0xBE] = "3/4",
+  [0x2044] = "/",
+  [0x2150] = "1/7",
+  [0x2151] = "1/9",
+  [0x2152] = "1/10",
+  [0x2153] = "1/3",
+  [0x2154] = "2/3",
+  [0x2155] = "1/5",
+  [0x2156] = "2/5",
+  [0x2157] = "3/5",
+  [0x2158] = "4/5",
+  [0x2159] = "1/6",
+  [0x215A] = "5/6",
+  [0x215B] = "1/8",
+  [0x215C] = "3/8",
+  [0x215D] = "5/8",
+  [0x215E] = "7/8",
+  [0x215F] = "1/",
+}
+
 local function getCsrfToken(info)
   for _, header in ipairs(info) do
     if string.lower(header.field) == string.lower(CSRF_HEADER) then
@@ -422,22 +449,6 @@ function API:extractMetadata(photo, publishSettings)
   end
 
   local function decodeCharacter(val)
-    if val == 0xB9 then
-      return "1"
-    end
-
-    if val == 0xB2 then
-      return "2"
-    end
-
-    if val == 0xB3 then
-      return "3"
-    end
-
-    if val == 0x2070 then
-      return "0"
-    end
-
     if val >= 0x2074 and val <= 0x2079 then
       return tostring(val - 0x2070)
     end
@@ -446,8 +457,8 @@ function API:extractMetadata(photo, publishSettings)
       return tostring(val - 0x2080)
     end
 
-    if val == 0x2044 then
-      return "/"
+    if CHARACTER_MAP[val] then
+      return CHARACTER_MAP[val]
     end
 
     return string.char(val)
