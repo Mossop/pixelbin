@@ -42,15 +42,15 @@ export default function securityContext(): DescriptorsFor<SecurityContext> {
             if (this.session) {
               this.session.csrfToken = token;
             }
-
-            this.cookies.set(CSRF_COOKIE, token, {
-              httpOnly: false,
-              sameSite: true,
-              overwrite: true,
-            });
           }
 
           this.set(CSRF_HEADER, token);
+
+          this.cookies.set(CSRF_COOKIE, token, {
+            httpOnly: false,
+            sameSite: true,
+            overwrite: true,
+          });
         };
       },
     },
@@ -59,12 +59,15 @@ export default function securityContext(): DescriptorsFor<SecurityContext> {
       get(this: AppContext): () => Promise<boolean> {
         return async (): Promise<boolean> => {
           if (!this.session?.csrfToken) {
-            this.logger.error("No CSRF token was provided.");
+            this.logger.error("No CSRF token was found in the session.");
             return false;
           }
 
           if (this.session.csrfToken != this.get(CSRF_HEADER)) {
-            this.logger.error("The CSRF token provided was incorrect.");
+            this.logger.error({
+              expected: this.session.csrfToken,
+              found: this.get(CSRF_HEADER),
+            }, "The CSRF token provided was incorrect.");
             return false;
           }
 
