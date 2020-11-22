@@ -11,13 +11,17 @@ return {
 
   LrExportMenuItems = {
     {
-      title = "Reload Categories and Albums",
+      title = LOC "$$$/LrPixelBin/ReloadMenu=Reload Categories and Albums",
       file = "Refresh.lua",
     },
     {
-      title = "Re-upload Metadata",
+      title = LOC "$$$/LrPixelBin/MetadataMenu=Re-upload Metadata",
       file = "UploadMetadata.lua",
       enabledWhen = "anythingSelected",
+    },
+    {
+      title = LOC "$$$/LrPixelBin/VerifyMenu=Verify Remote Status",
+      file = "VerifyRemote.lua",
     },
   },
 

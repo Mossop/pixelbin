@@ -284,7 +284,30 @@ function API:login()
 end
 
 function API:getMedia(ids)
+  local results = {}
+  local resultCount = 0
+
+  local function lookup(idlist, count)
+    if count == 0 then
+      return
+    end
+
+    local success, result = self:GET("media/get?id=" .. idlist)
+    if not success then
+      return
+    end
+
+    local index = 1
+    while index <= count do
+      results[resultCount + index] = result[index]
+      index = index + 1
+    end
+
+    resultCount = resultCount + count
+  end
+
   local idlist = ""
+  local lookupCount = 0
 
   for _, id in ipairs(ids) do
     if string.len(idlist) > 0 then
@@ -292,17 +315,19 @@ function API:getMedia(ids)
     else
       idlist = id
     end
+
+    lookupCount = lookupCount + 1
+
+    if string.len(idlist) > 3000 then
+      lookup(idlist, lookupCount)
+      idlist = ""
+      lookupCount = 0
+    end
   end
 
-  if string.len(idlist) == 0 then
-    return {}
-  end
+  lookup(idlist, lookupCount)
 
-  local success, result = self:GET("media/get?id=" .. idlist)
-  if not success then
-    return {}
-  end
-  return result
+  return results
 end
 
 function API:deleteMedia(ids)

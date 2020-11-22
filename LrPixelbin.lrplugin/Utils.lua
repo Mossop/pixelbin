@@ -19,11 +19,15 @@ end
 function Utils.runWithWriteAccess(logger, action, func)
   local catalog = LrApplication.activeCatalog()
 
-  catalog:withWriteAccessDo(action, function(context)
-    Utils.logFailures(context, logger, action)
+  if catalog.hasWriteAccess then
+    Utils.safeCall(logger, action, func)
+  else
+    catalog:withWriteAccessDo(action, function(context)
+      Utils.logFailures(context, logger, action)
 
-    func(context)
-  end)
+      func(context)
+    end)
+  end
 end
 
 function Utils.runAsync(logger, action, func)
