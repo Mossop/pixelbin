@@ -168,7 +168,7 @@ test("Process image metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(2);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
@@ -423,7 +423,7 @@ test("Process video metadata", async (): Promise<void> => {
     people: [],
   });
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(2);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
@@ -552,28 +552,26 @@ test("reprocess", async (): Promise<void> => {
 
   let fileUploaded = parseDateTime("2020-01-01T02:56:53Z");
 
-  let oldMediaFile = await dbConnection.withNewMediaFileId(
+  let oldMediaFile = await dbConnection.withNewMediaFile(
     media.id,
-    (
-      db: unknown,
-      id: string,
-      insert: (data: Omit<MediaFile, "id" | "media">) => Promise<MediaFile>,
-    ): Promise<MediaFile> => {
-      return insert({
-        ...emptyMetadata,
-        processVersion: 1,
-        city: "London",
-        uploaded: fileUploaded,
-        fileName: "old.jpg",
-        fileSize: 1000,
-        mimetype: "image/jpeg",
-        width: 100,
-        height: 200,
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      });
+    {
+      ...emptyMetadata,
+      processVersion: 1,
+      city: "London",
+      uploaded: fileUploaded,
+      fileName: "old.jpg",
+      fileSize: 1000,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 200,
+      duration: null,
+      frameRate: null,
+      bitRate: null,
     },
+    async (
+      db: unknown,
+      mediaFile: MediaFile,
+    ): Promise<MediaFile> => mediaFile,
   );
 
   let [foundMedia] = await user1Db.getMedia([media.id]);
@@ -692,7 +690,7 @@ test("reprocess", async (): Promise<void> => {
 
   expect(fullMedia?.file?.id).not.toBe(oldMediaFile.id);
 
-  expect(getLocalFilePathMock).toHaveBeenCalledTimes(2);
+  expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
   let metadataFile = path.join(temp.path, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {

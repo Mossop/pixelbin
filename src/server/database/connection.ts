@@ -214,7 +214,7 @@ export class DatabaseConnection {
   }
 
   public readonly getMedia = wrapped(Unsafe.getMedia);
-  public readonly withNewMediaFileId = wrapped(Unsafe.withNewMediaFileId);
+  public readonly withNewMediaFile = wrapped(Unsafe.withNewMediaFile);
   public readonly addAlternateFile = wrapped(Unsafe.addAlternateFile);
   public readonly getStorageConfig = wrapped(Unsafe.getStorageConfig);
 

@@ -19,6 +19,10 @@ export const StorageMock = {
   getUploadedFile: jest.fn((): Promise<null> => Promise.resolve(null)),
 
   deleteUploadedFile: jest.fn((): Promise<void> => Promise.resolve()),
+
+  inTransaction<T>(this: Storage, operation: (storage: Storage) => Promise<T>): Promise<T> {
+    return operation(this);
+  },
 };
 
 const getStorage = jest.fn((_id: string): Promise<RefCounted<typeof StorageMock>> => {

@@ -23,13 +23,13 @@ function createMediaFile(
   media: Tables.MediaView["id"],
   data: Omit<Tables.MediaFile, "id" | "media">,
 ): Promise<Tables.MediaFile> {
-  return connection.withNewMediaFileId(
+  return connection.withNewMediaFile(
     media,
-    (
+    data,
+    async (
       dbConnection: DatabaseConnection,
-      mediaFileId: string,
-      insert: (data: Omit<Tables.MediaFile, "id" | "media">) => Promise<Tables.MediaFile>,
-    ): Promise<Tables.MediaFile> => insert(data),
+      mediaFile: Tables.MediaFile,
+    ): Promise<Tables.MediaFile> => mediaFile,
   );
 }
 

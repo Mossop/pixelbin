@@ -614,13 +614,9 @@ test("Media resources", async (): Promise<void> => {
 
   let media = await user1Db.createMedia("c1", emptyMetadata);
 
-  let mediaFile = await db.withNewMediaFileId(
+  let mediaFile = await db.withNewMediaFile(
     media.id,
-    (
-      db: unknown,
-      mediaFileId: string,
-      insert: (data: Omit<MediaFile, "id" | "media">) => Promise<MediaFile>,
-    ) => insert({
+    {
       ...emptyMetadata,
       uploaded: now(),
       processVersion: 2,
@@ -632,7 +628,11 @@ test("Media resources", async (): Promise<void> => {
       duration: null,
       bitRate: null,
       frameRate: null,
-    }),
+    },
+    async (
+      db: unknown,
+      mediaFile: MediaFile,
+    ) => mediaFile,
   );
 
   await db.addAlternateFile(mediaFile.id, {
@@ -801,13 +801,9 @@ test("Get media", async (): Promise<void> => {
   let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
   let updatedDT2 = parseDateTime("2020-02-02T08:00:00Z");
 
-  let { id: mediaFileId } = await db.withNewMediaFileId(
+  let { id: mediaFileId } = await db.withNewMediaFile(
     id2,
-    (
-      db: unknown,
-      mediaFileId: string,
-      insert: (data: Omit<MediaFile, "id" | "media">) => Promise<MediaFile>,
-    ) => insert({
+    {
       ...emptyMetadata,
       processVersion: 1,
       fileName: "stored.jpg",
@@ -819,7 +815,11 @@ test("Get media", async (): Promise<void> => {
       frameRate: 0,
       bitRate: 0,
       uploaded: updatedDT2,
-    }),
+    },
+    async (
+      db: unknown,
+      mediaFile: MediaFile,
+    ) => mediaFile,
   );
 
   await db.addAlternateFile(mediaFileId, {

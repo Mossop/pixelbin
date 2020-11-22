@@ -27,43 +27,42 @@ export async function getMedia(
   }
 }
 
-export async function withNewMediaFileId<T>(
+export async function withNewMediaFile<T>(
   this: DatabaseConnection,
   media: Tables.MediaView["id"],
+  metadata: Omit<Tables.MediaFile, "id" | "media">,
   operation: (
     dbConnection: DatabaseConnection,
-    mediaFileId: string,
-    insert: (data: Omit<Tables.MediaFile, "id" | "media">) => Promise<Tables.MediaFile>,
+    mediaFile: Tables.MediaFile,
   ) => Promise<T>,
 ): Promise<T> {
   return this.inTransaction(
-    async function withNewMediaFileId(dbConnection: DatabaseConnection): Promise<T> {
+    async function withNewMediaFile(dbConnection: DatabaseConnection): Promise<T> {
       let newId = await uuid("I");
 
-      return operation(
-        dbConnection,
-        newId,
-        async (data: Omit<Tables.MediaFile, "id" | "media">): Promise<Tables.MediaFile> => {
-          try {
-            let results = await into(dbConnection.knex, Table.MediaFile).insert({
-              ...intoDBTypes(buildTimeZoneFields(data)),
-              id: newId,
-              media,
-            }).returning("*");
+      let results: Tables.MediaFile[];
+      try {
+        results = await into(dbConnection.knex, Table.MediaFile).insert({
+          ...intoDBTypes(buildTimeZoneFields(metadata)),
+          id: newId,
+          media,
+        }).returning("*");
+      } catch (error) {
+        if (error.table && error.constraint && error.constraint.startsWith("foreign_")) {
+          notfound(error.constraint.substring(8));
+        }
 
-            if (results.length) {
-              return applyTimeZoneFields(results[0]);
-            }
-          } catch (e) {
-            notfound(Table.MediaInfo);
-          }
+        throw error;
+      }
 
-          throw new DatabaseError(
-            DatabaseErrorCode.UnknownError,
-            "Failed to insert MediaFile record.",
-          );
-        },
-      );
+      if (results.length == 0) {
+        throw new DatabaseError(
+          DatabaseErrorCode.UnknownError,
+          "Failed to insert MediaFile record.",
+        );
+      }
+
+      return operation(dbConnection, applyTimeZoneFields(results[0]));
     },
   );
 }

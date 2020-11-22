@@ -17,19 +17,19 @@ export interface StoredFile {
 const logger = getLogger("storage");
 
 export class Storage {
-  private readonly logger: Logger;
-  private aws: Promise<Remote> | undefined;
+  protected readonly logger: Logger;
+  protected aws: Promise<Remote> | undefined;
 
   public constructor(
-    private readonly dbConnection: DatabaseConnection,
-    private readonly catalog: string,
-    private readonly tempDirectory: string,
-    private readonly localDirectory: string,
+    protected readonly dbConnection: DatabaseConnection,
+    protected readonly catalog: string,
+    protected readonly tempDirectory: string,
+    protected readonly localDirectory: string,
   ) {
     this.logger = logger.withBindings({ catalog });
   }
 
-  private get remote(): Promise<Remote> {
+  protected get remote(): Promise<Remote> {
     if (!this.aws) {
       this.aws = Remote.getAWSRemote(this.dbConnection, this.catalog);
     }
@@ -172,5 +172,100 @@ export class Storage {
     await fs.rmdir(targetDir, {
       recursive: true,
     });
+  }
+
+  public async inTransaction<T>(operation: (storage: Storage) => Promise<T>): Promise<T> {
+    let transaction = new StorageTransaction(
+      this.dbConnection,
+      this.catalog,
+      this.tempDirectory,
+      this.localDirectory,
+    );
+
+    try {
+      let result = await operation(transaction);
+      return result;
+    } catch (e) {
+      await transaction.rollback();
+      throw e;
+    }
+  }
+}
+
+interface AccessedFile {
+  media: string;
+  mediaFile: string;
+  name: string;
+}
+
+class StorageTransaction extends Storage {
+  protected localFiles: Set<string>;
+  protected localDirs: Set<string>;
+  protected remoteFiles: AccessedFile[];
+
+  public constructor(
+    dbConnection: DatabaseConnection,
+    catalog: string,
+    tempDirectory: string,
+    localDirectory: string,
+  ) {
+    super(dbConnection, catalog, tempDirectory, localDirectory);
+    this.localFiles = new Set();
+    this.localDirs = new Set();
+    this.remoteFiles = [];
+  }
+
+  public async storeFile(
+    media: string,
+    mediaFile: string,
+    name: string,
+    file: string,
+    mimetype: string,
+  ): Promise<void> {
+    this.remoteFiles.push({
+      media,
+      mediaFile,
+      name,
+    });
+    return super.storeFile(media, mediaFile, name, file, mimetype);
+  }
+
+  public async getLocalFilePath(
+    media: string,
+    mediaFile: string,
+    name: string,
+  ): Promise<string> {
+    let dir = path.join(this.localDirectory, this.catalog, media, mediaFile);
+    this.localDirs.add(dir);
+
+    let file = await super.getLocalFilePath(media, mediaFile, name);
+    this.localFiles.add(file);
+    return file;
+  }
+
+  public async rollback(): Promise<void> {
+    for (let { media, mediaFile, name } of this.remoteFiles) {
+      try {
+        await this.deleteFile(media, mediaFile, name);
+      } catch (error) {
+        this.logger.error({ error }, "Failed to delete remote file.");
+      }
+    }
+
+    for (let file of this.localFiles) {
+      try {
+        await fs.unlink(file);
+      } catch (error) {
+        // Might be already gone.
+      }
+    }
+
+    for (let dir of this.localDirs) {
+      try {
+        await fs.rmdir(dir);
+      } catch (error) {
+        // Just means there were files left.
+      }
+    }
   }
 }
