@@ -2,6 +2,7 @@ import type { ReactLocalization } from "@fluent/react";
 import type { Draft } from "immer";
 import React from "react";
 
+import { nameSorted } from "../../utils";
 import type { Album, Catalog, Person, SavedSearch, Tag } from "../api/highlevel";
 import AlbumIcon from "../icons/AlbumIcon";
 import AlbumsIcon from "../icons/AlbumsIcon";
@@ -100,8 +101,9 @@ class VirtualCatalogAlbums extends BaseVirtualCatalogItem {
   }
 
   public get children(): VirtualItem[] {
+    let albums = nameSorted(this.catalog.rootAlbums);
     return descend(
-      this.catalog.rootAlbums.map((album: Album) => album.virtual(this.treeOptions)),
+      albums.map((album: Album) => album.virtual(this.treeOptions)),
       this.treeOptions,
     );
   }
@@ -172,8 +174,9 @@ class VirtualCatalogSearches extends BaseVirtualCatalogItem {
   }
 
   public get children(): VirtualItem[] {
+    let searches = nameSorted(this.catalog.searches);
     return descend(
-      this.catalog.searches.map((search: SavedSearch) => search.virtual(this.treeOptions)),
+      searches.map((search: SavedSearch) => search.virtual(this.treeOptions)),
       this.treeOptions,
     );
   }
@@ -251,7 +254,8 @@ export class VirtualAlbum extends BaseVirtualItem {
   }
 
   public get children(): VirtualItem[] {
-    return descend(this.album.children.map(
+    let children = nameSorted(this.album.children);
+    return descend(children.map(
       (album: Album): VirtualAlbum => album.virtual(this.treeOptions),
     ), this.treeOptions);
   }

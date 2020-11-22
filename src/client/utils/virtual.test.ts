@@ -41,6 +41,12 @@ test("virtual iteration", async (): Promise<void> => {
           id: "album2",
           name: "Album 2",
         }],
+      }, {
+        id: "album3",
+        name: "Album 3",
+      }, {
+        id: "album0",
+        name: "Album 0",
       }],
       tags: [{
         id: "tag1",
@@ -89,11 +95,17 @@ test("virtual iteration", async (): Promise<void> => {
     children: [{
       id: "albumlist",
       children: [{
+        id: "album0",
+        children: [],
+      }, {
         id: "album1",
         children: [{
           id: "album2",
           children: [],
         }],
+      }, {
+        id: "album3",
+        children: [],
       }],
     }, {
       id: "taglist",
@@ -156,11 +168,17 @@ test("virtual iteration", async (): Promise<void> => {
     children: [{
       id: "albumlist",
       children: [{
+        id: "album0",
+        children: [],
+      }, {
         id: "album1",
         children: [{
           id: "album2",
           children: [],
         }],
+      }, {
+        id: "album3",
+        children: [],
       }],
     }, {
       id: "taglist",
@@ -210,11 +228,17 @@ test("virtual iteration", async (): Promise<void> => {
   expect(buildList(roots, VirtualTree.Albums)).toEqual([{
     id: "catalog1",
     children: [{
+      id: "album0",
+      children: [],
+    }, {
       id: "album1",
       children: [{
         id: "album2",
         children: [],
       }],
+    }, {
+      id: "album3",
+      children: [],
     }],
   }, {
     id: "catalog2",
@@ -232,11 +256,17 @@ test("virtual iteration", async (): Promise<void> => {
     children: [{
       id: "albumlist",
       children: [{
+        id: "album0",
+        children: [],
+      }, {
         id: "album1",
         children: [{
           id: "album2",
           children: [],
         }],
+      }, {
+        id: "album3",
+        children: [],
       }],
     }],
   }, {
