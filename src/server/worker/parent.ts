@@ -84,11 +84,11 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     });
 
     this.channel.on("connection-timeout", (): void => {
-      this.shutdown();
+      this.destroy();
     });
 
     this.channel.on("message-timeout", (): void => {
-      this.shutdown();
+      this.destroy();
     });
 
     this.logger.trace("Signalling worker ready.");
@@ -134,9 +134,17 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
       return;
     }
 
+    this.channel.close();
+    this.destroy();
+  }
+
+  public destroy(): void {
+    if (this.disconnected) {
+      return;
+    }
+
     this.logger.info("Worker shutdown");
 
-    this.channel.close();
     this.disconnected = true;
     this.emit("disconnect");
 
@@ -144,17 +152,21 @@ export class ParentProcess<R = undefined, L = undefined> extends TypedEmitter<Ev
     this.process.off("disconnect", this.onDisconnect);
     this.process.off("error", this.onError);
 
-    this.process.disconnect();
+    try {
+      this.process.disconnect();
+    } catch (e) {
+      // The process may have already disconnected.
+    }
   }
 
   private onDisconnect: () => void = (): void => {
     this.logger.debug("Parent process disconnected.");
-    this.shutdown();
+    this.destroy();
   };
 
   private onError: (err: Error) => void = (err: Error): void => {
     this.logger.debug({ error: err }, "Saw error.");
-    this.shutdown();
+    this.destroy();
   };
 
   private send(message: IPC.Ready | IPC.RPC, handle?: undefined | SendHandle): Promise<void> {
