@@ -61,7 +61,6 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
   if badPhotos > 0 then
     Utils.runWithWriteAccess(logger, "UpdateEdited", function()
       for _, publishedPhoto in ipairs(needsEdit) do
-        local filename = publishedPhoto:getPhoto():getFormattedMetadata("fileName")
         publishedPhoto:setEditedFlag(true)
       end
     end)
