@@ -152,7 +152,6 @@ const MediaFileDecoder = JsonDecoder.object<Api.MediaFile>({
   duration: JsonDecoder.nullable(JsonDecoder.number),
   bitRate: JsonDecoder.nullable(JsonDecoder.number),
   frameRate: JsonDecoder.nullable(JsonDecoder.number),
-  posters: JsonDecoder.array(AlternateDecoder, "thumbnail[]"),
   thumbnails: JsonDecoder.array(AlternateDecoder, "thumbnail[]"),
   alternatives: JsonDecoder.array(AlternateDecoder, "alternative[]"),
 }, "MediaFile");

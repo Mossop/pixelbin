@@ -54,7 +54,7 @@ test("Media tests", async (): Promise<void> => {
   let id = newMedia.id;
   expect(newMedia).toEqual({
     ...emptyMetadata,
-    id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
+    id: expect.toBeId("M"),
     catalog: "c3",
     created: expect.toEqualDate(createdDT),
     updated: expect.toEqualDate(createdDT),
@@ -119,7 +119,7 @@ test("Media tests", async (): Promise<void> => {
 
   expect(info).toEqual({
     ...emptyMetadata,
-    id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    id: expect.toBeId("I"),
     processVersion: 5,
     media: id,
     uploaded: expect.toEqualDate(uploadedDT),
@@ -165,7 +165,6 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 1000,
       fileName: "biz.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
 
@@ -209,7 +208,6 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 1000,
       fileName: "biz.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
 
@@ -251,7 +249,6 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 1000,
       fileName: "biz.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
 
@@ -293,7 +290,6 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 1000,
       fileName: "biz.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
 
@@ -323,7 +319,7 @@ test("Media tests", async (): Promise<void> => {
 
   expect(info).toEqual({
     ...emptyMetadata,
-    id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+    id: expect.toBeId("I"),
     processVersion: 7,
     media: id,
     uploaded: expect.toEqualDate(uploaded2DT),
@@ -367,7 +363,6 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 2000,
       fileName: "bar.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
 
@@ -401,8 +396,8 @@ test("Media tests", async (): Promise<void> => {
   });
 
   await dbConnection.addAlternateFile(info.id, {
-    type: AlternateFileType.Poster,
-    fileName: "poster.jpg",
+    type: AlternateFileType.Reencode,
+    fileName: "alternate.jpg",
     fileSize: 300,
     mimetype: "image/jpeg",
     width: 200,
@@ -417,7 +412,7 @@ test("Media tests", async (): Promise<void> => {
     (a: Tables.AlternateFile, b: Tables.AlternateFile): number => a.width - b.width,
   );
   expect(list).toEqual([{
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    id: expect.toBeId("F"),
     mediaFile: info.id,
     type: AlternateFileType.Thumbnail,
     fileName: "thumb.jpg",
@@ -429,7 +424,7 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     bitRate: null,
   }, {
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    id: expect.toBeId("F"),
     mediaFile: info.id,
     type: AlternateFileType.Thumbnail,
     fileName: "thumb.webp",
@@ -444,15 +439,15 @@ test("Media tests", async (): Promise<void> => {
   let jpgId = list[0].id;
   let webpId = list[1].id;
 
-  list = await user3Db.listAlternateFiles(id, AlternateFileType.Poster);
+  list = await user3Db.listAlternateFiles(id, AlternateFileType.Reencode);
   list.sort(
     (a: Tables.AlternateFile, b: Tables.AlternateFile): number => a.width - b.width,
   );
   expect(list).toEqual([{
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+    id: expect.toBeId("F"),
     mediaFile: info.id,
-    type: AlternateFileType.Poster,
-    fileName: "poster.jpg",
+    type: AlternateFileType.Reencode,
+    fileName: "alternate.jpg",
     fileSize: 300,
     mimetype: "image/jpeg",
     width: 200,
@@ -461,7 +456,7 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     bitRate: null,
   }]);
-  let posterId = list[0].id;
+  let alternateId = list[0].id;
 
   [foundMedia] = await user3Db.getMedia([id]);
   expect(foundMedia).toEqual({
@@ -490,9 +485,9 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 2000,
       fileName: "bar.jpg",
       thumbnails: expect.anything(),
-      posters: [{
-        id: posterId,
-        fileName: "poster.jpg",
+      alternatives: [{
+        id: alternateId,
+        fileName: "alternate.jpg",
         fileSize: 300,
         mimetype: "image/jpeg",
         width: 200,
@@ -501,7 +496,6 @@ test("Media tests", async (): Promise<void> => {
         frameRate: null,
         bitRate: null,
       }],
-      alternatives: [],
     },
 
     albums: [],
@@ -583,7 +577,7 @@ test("Media tests", async (): Promise<void> => {
 
   // Cannot list alternates for media the user cannot access.
   await expect(
-    user2Db.listAlternateFiles(id, AlternateFileType.Poster),
+    user2Db.listAlternateFiles(id, AlternateFileType.Reencode),
   ).rejects.toThrow("Unknown Media.");
 
   // Unknown properties should throw an error.
@@ -624,9 +618,9 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 2000,
       fileName: "bar.jpg",
       thumbnails: expect.anything(),
-      posters: [{
-        id: posterId,
-        fileName: "poster.jpg",
+      alternatives: [{
+        id: alternateId,
+        fileName: "alternate.jpg",
         fileSize: 300,
         mimetype: "image/jpeg",
         width: 200,
@@ -635,7 +629,6 @@ test("Media tests", async (): Promise<void> => {
         frameRate: null,
         bitRate: null,
       }],
-      alternatives: [],
     },
 
     albums: [{
@@ -681,9 +674,9 @@ test("Media tests", async (): Promise<void> => {
       fileSize: 2000,
       fileName: "bar.jpg",
       thumbnails: expect.anything(),
-      posters: [{
-        id: posterId,
-        fileName: "poster.jpg",
+      alternatives: [{
+        id: alternateId,
+        fileName: "alternate.jpg",
         fileSize: 300,
         mimetype: "image/jpeg",
         width: 200,
@@ -692,7 +685,6 @@ test("Media tests", async (): Promise<void> => {
         frameRate: null,
         bitRate: null,
       }],
-      alternatives: [],
     },
 
     albums: [],
@@ -728,7 +720,7 @@ test("Media tests", async (): Promise<void> => {
 
   await expect(user1Db.listMediaInAlbum("a8", true)).rejects.toThrow("Unknown Album.");
   await expect(
-    user1Db.listAlternateFiles(id, AlternateFileType.Poster),
+    user1Db.listAlternateFiles(id, AlternateFileType.Reencode),
   ).rejects.toThrow("Unknown Media.");
   await expect(
     user1Db.listAlternateFiles(id, AlternateFileType.Thumbnail),

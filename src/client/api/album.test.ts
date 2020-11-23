@@ -233,7 +233,6 @@ test("List album", async (): Promise<void> => {
       mimetype: "image/jpeg",
       thumbnails: [],
       originalUrl: expect.stringMatching(/^http:\/\/localhost\/media\/original\/testmedia2\//),
-      posters: [],
       alternatives: [],
     },
 

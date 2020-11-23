@@ -52,7 +52,6 @@ export type Alternate = Omit<ObjectModel.AlternateFile, "type"> & {
 
 export type MediaFile = Omit<ObjectModel.MediaFile, "processVersion"> & {
   originalUrl: string;
-  posters: Alternate[];
   thumbnails: Alternate[],
   alternatives: Alternate[],
 };

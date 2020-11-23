@@ -1,7 +1,9 @@
 import child_process from "child_process";
 import path from "path";
 
-import { getLogger, bound } from "../../utils";
+import { CURRENT_PROCESS_VERSION } from "../../model";
+import type { MakeRequired } from "../../utils";
+import { runTasks, getLogger, bound } from "../../utils";
 import type {
   TaskWorkerConfig,
   ParentProcessInterface,
@@ -21,23 +23,35 @@ const BACKOFF_DELAYS = [
   30 * 60000,
 ];
 
-export type TaskConfig = TaskWorkerConfig;
+export type TaskConfig = TaskWorkerConfig & {
+  minWorkers?: number;
+  maxWorkers?: number;
+  maxTasksPerWorker?: number;
+};
 
 const logger = getLogger("taskmanager");
 
+type WorkerCountField = "minWorkers" | "maxWorkers" | "maxTasksPerWorker";
 export class TaskManager extends Service {
   private readonly pool: WorkerPool<TaskWorkerInterface, ParentProcessInterface>;
+  private readonly config: MakeRequired<TaskConfig, WorkerCountField>;
 
-  public constructor(private readonly config: TaskConfig) {
+  public constructor(config: TaskConfig) {
     super(logger);
+    this.config = {
+      ...config,
+      minWorkers: config.minWorkers ?? 0,
+      maxWorkers: config.maxTasksPerWorker ?? 4,
+      maxTasksPerWorker: config.maxTasksPerWorker ?? 3,
+    };
 
     let module = path.resolve(path.join(path.dirname(__dirname), "task-worker"));
 
     this.pool = new WorkerPool<TaskWorkerInterface, ParentProcessInterface>({
       localInterface: bound(this.interface, this),
-      minWorkers: 0,
-      maxWorkers: 4,
-      maxTasksPerWorker: 3,
+      minWorkers: this.config.minWorkers,
+      maxWorkers: this.config.maxTasksPerWorker,
+      maxTasksPerWorker: this.config.maxTasksPerWorker,
       logger,
       fork: async (): Promise<AbstractChildProcess> => {
         logger.trace("Forking new task worker process.");
@@ -108,6 +122,25 @@ ${e.stack}`,
   public purgeDeletedMedia(): void {
     this.pool.remote.purgeDeletedMedia().catch(() => {
       // Error will have been logged in the task process.
+    });
+  }
+
+  public async updateOldMedia(): Promise<void> {
+    let db = await Services.database;
+    let outdated = await db.getOldMedia();
+    if (outdated.length == 0) {
+      return;
+    }
+
+    logger.info(`Updating ${outdated.length} media files to version ${CURRENT_PROCESS_VERSION}`);
+    let maxTasks = Math.max(1, this.config.maxWorkers * this.config.maxTasksPerWorker / 2);
+
+    await runTasks(maxTasks, (): Promise<void> | null => {
+      let media = outdated.shift();
+      if (media) {
+        return this.pool.remote.fullReprocess(media);
+      }
+      return null;
     });
   }
 

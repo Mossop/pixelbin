@@ -78,7 +78,7 @@ export function Photo({
       {
         alternates.map((alternate: Api.Alternate) => <source
           key={alternate.url}
-          src={alternate.url}
+          srcSet={alternate.url}
           type={alternate.mimetype}
         />)
       }
@@ -106,12 +106,23 @@ export function Video({
 }: MediaDisplayProps): ReactResult {
   let classes = useStyles();
 
-  let alternates = sorted(media.file.alternatives, "fileSize", (a: number, b: number) => a - b);
+  let alternates = sorted(
+    media.file.alternatives.filter((alt: Api.Alternate) => alt.mimetype.startsWith("video/")),
+    "fileSize",
+    (a: number, b: number) => a - b,
+  );
+
+  let posters = sorted(
+    media.file.alternatives.filter((alt: Api.Alternate) => alt.mimetype.startsWith("image/")),
+    "fileSize",
+    (a: number, b: number) => a - b,
+  );
+
   return <React.Fragment>
     <video
       id="media-original"
       key={media.id}
-      poster={media.file.posters.length ? media.file.posters[0].url : undefined}
+      poster={posters.length ? posters[0].url : undefined}
       controls={false}
       className={classes.media}
     >

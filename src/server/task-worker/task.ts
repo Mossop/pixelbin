@@ -14,8 +14,7 @@ export function bindTask<
   R = void,
 >(task: Task<A, R>): (...args: A) => Promise<R> {
   return async (...args: A): Promise<R> => {
-    let taskLogger = logger.withBindings({
-      task: task.name,
+    let taskLogger = logger.child(task.name).withBindings({
       instance: nextId++,
     });
 

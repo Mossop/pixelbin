@@ -15,4 +15,5 @@ export interface ParentProcessInterface {
 export interface TaskWorkerInterface {
   handleUploadedFile: (media: string) => void;
   purgeDeletedMedia: () => void;
+  fullReprocess: (media: string) => void;
 }

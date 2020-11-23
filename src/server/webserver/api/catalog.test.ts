@@ -121,7 +121,7 @@ test("Create storage", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual({
-    id: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+    id: expect.toBeId("S"),
     name: "My storage",
     endpoint: null,
     bucket: "buckit",
@@ -220,7 +220,7 @@ test("Create catalog", async (): Promise<void> => {
 
   let newCatalog = response.body;
   expect(newCatalog).toEqual({
-    id: expect.stringMatching(/^C:[a-zA-Z0-9]+/),
+    id: expect.toBeId("C"),
     storage: storageId,
     name: "Good user",
   });
@@ -471,7 +471,7 @@ test("Create album", async (): Promise<void> => {
 
   let newAlbum = response.body;
   expect(newAlbum).toEqual({
-    id: expect.stringMatching(/^A:[a-zA-Z0-9]+/),
+    id: expect.toBeId("A"),
     name: "Good user",
     parent: null,
     catalog: "c1",
@@ -793,7 +793,7 @@ test("Create Tag", async (): Promise<void> => {
 
   let newTag = response.body;
   expect(newTag).toEqual({
-    id: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
+    id: expect.toBeId("T"),
     name: "Good user",
     parent: null,
     catalog: "c1",
@@ -1060,7 +1060,7 @@ test("Create Person", async (): Promise<void> => {
 
   let newPerson = response.body;
   expect(newPerson).toEqual({
-    id: expect.stringMatching(/^P:[a-zA-Z0-9]+/),
+    id: expect.toBeId("P"),
     name: "Good user",
     catalog: "c1",
   });

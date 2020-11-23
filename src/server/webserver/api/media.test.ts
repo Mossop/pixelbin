@@ -282,7 +282,7 @@ test("Media edit", async (): Promise<void> => {
 
   expect(newMedia).toEqual({
     ...emptyMetadata,
-    id: expect.stringMatching(/^M:[a-zA-Z0-9]+/),
+    id: expect.toBeId("M"),
     catalog: "c1",
     created: expect.anything(),
     updated: expect.toEqualDate(newMedia?.created ?? ""),
@@ -412,7 +412,7 @@ test("Media edit", async (): Promise<void> => {
     tags: [{
       tag: "t2",
     }, {
-      tag: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
+      tag: expect.toBeId("T"),
     }],
     people: [{
       person: "p1",
@@ -465,7 +465,7 @@ test("Media edit", async (): Promise<void> => {
     tags: [{
       tag: "t2",
     }, {
-      tag: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
+      tag: expect.toBeId("T"),
     }],
     people: [],
   });
@@ -539,7 +539,7 @@ test("Media edit", async (): Promise<void> => {
     tags: [{
       tag: "t2",
     }, {
-      tag: expect.stringMatching(/^T:[a-zA-Z0-9]+/),
+      tag: expect.toBeId("T"),
     }],
     people: [],
   });
@@ -701,9 +701,9 @@ test("Media resources", async (): Promise<void> => {
     .get(`/media/${media.id}/${mediaFile.id}/unknown`)
     .expect(404);
 
-  let poster = await db.addAlternateFile(mediaFile.id, {
-    type: AlternateFileType.Poster,
-    fileName: "poster.jpg",
+  let alternate = await db.addAlternateFile(mediaFile.id, {
+    type: AlternateFileType.Reencode,
+    fileName: "alternate.jpg",
     fileSize: 0,
     mimetype: "image/jpeg",
     width: 400,
@@ -719,11 +719,11 @@ test("Media resources", async (): Promise<void> => {
       file: string,
       filename: string,
       type?: string,
-    ) => Promise.resolve(`http://poster.foo/${media}/${file}/${filename}/${type}`),
+    ) => Promise.resolve(`http://alternate.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
-    .get(`/media/${media.id}/${mediaFile.id}/${poster.id}`)
-    .expect("Location", `http://poster.foo/${media.id}/${mediaFile.id}/poster.jpg/image/jpeg`)
+    .get(`/media/${media.id}/${mediaFile.id}/${alternate.id}`)
+    .expect("Location", `http://alternate.foo/${media.id}/${mediaFile.id}/alternate.jpg/image/jpeg`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
@@ -783,9 +783,9 @@ test("Get media", async (): Promise<void> => {
     ) => mediaFile,
   );
 
-  let poster = await db.addAlternateFile(mediaFileId, {
-    type: AlternateFileType.Poster,
-    fileName: "poster.jpg",
+  let alternate = await db.addAlternateFile(mediaFileId, {
+    type: AlternateFileType.Reencode,
+    fileName: "alternate.jpg",
     fileSize: 1,
     width: 1,
     height: 1,
@@ -922,9 +922,9 @@ test("Get media", async (): Promise<void> => {
         frameRate: null,
         bitRate: null,
       }],
-      posters: [{
-        id: poster.id,
-        url: `/media/${id2}/${mediaFileId}/${poster.id}`,
+      alternatives: [{
+        id: alternate.id,
+        url: `/media/${id2}/${mediaFileId}/${alternate.id}`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -932,8 +932,7 @@ test("Get media", async (): Promise<void> => {
         duration: null,
         frameRate: null,
         bitRate: null,
-      }],
-      alternatives: [{
+      }, {
         id: encode1.id,
         url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
         fileSize: 1,
@@ -1012,9 +1011,9 @@ test("Get media", async (): Promise<void> => {
         frameRate: null,
         bitRate: null,
       }],
-      posters: [{
-        id: poster.id,
-        url: `/media/${id2}/${mediaFileId}/${poster.id}`,
+      alternatives: [{
+        id: alternate.id,
+        url: `/media/${id2}/${mediaFileId}/${alternate.id}`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1022,8 +1021,7 @@ test("Get media", async (): Promise<void> => {
         duration: null,
         frameRate: null,
         bitRate: null,
-      }],
-      alternatives: [{
+      }, {
         id: encode1.id,
         url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
         fileSize: 1,
@@ -1100,9 +1098,9 @@ test("Get media", async (): Promise<void> => {
         frameRate: null,
         bitRate: null,
       }],
-      posters: [{
-        id: poster.id,
-        url: `/media/${id2}/${mediaFileId}/${poster.id}`,
+      alternatives: [{
+        id: alternate.id,
+        url: `/media/${id2}/${mediaFileId}/${alternate.id}`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1110,8 +1108,7 @@ test("Get media", async (): Promise<void> => {
         duration: null,
         frameRate: null,
         bitRate: null,
-      }],
-      alternatives: [{
+      }, {
         id: encode1.id,
         url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
         fileSize: 1,

@@ -1,6 +1,7 @@
 import path from "path";
 
 import { exiftool } from "exiftool-vendored";
+import mockConsole from "jest-mock-console";
 
 import { expect } from "../../test-helpers";
 import { parseDateTime } from "../../utils";
@@ -214,6 +215,8 @@ test("rotated", async (): Promise<void> => {
 });
 
 test("video", async (): Promise<void> => {
+  mockConsole();
+
   let uploaded = parseDateTime("2010-01-03T09:30:23Z");
   let data = await parseFile({
     catalog: "foo",
@@ -231,7 +234,7 @@ test("video", async (): Promise<void> => {
     uploaded: expect.toEqualDate(uploaded),
     width: 1920,
     height: 1080,
-    mimetype: "video/mp4",
+    mimetype: "video/mp4;codecs=\"avc1.64002a,mp4a.40.2\"",
     duration: 1.74,
     bitRate: 18664868,
     frameRate: 59.202207150247155,
@@ -269,7 +272,7 @@ test("video", async (): Promise<void> => {
   let info = getMediaFile(data);
   expect(info).toEqual({
     uploaded: expect.toEqualDate(uploaded),
-    mimetype: "video/mp4",
+    mimetype: "video/mp4;codecs=\"avc1.64002a,mp4a.40.2\"",
     fileName: "test_video.foo",
     width: 1920,
     height: 1080,

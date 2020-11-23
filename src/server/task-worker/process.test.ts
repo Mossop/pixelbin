@@ -1,21 +1,27 @@
-import { promises as fs } from "fs";
+import { promises as fs, createReadStream } from "fs";
 import path from "path";
 
 import { exiftool } from "exiftool-vendored";
+import mockConsole from "jest-mock-console";
 import sharp from "sharp";
 import type { DirectoryResult } from "tmp-promise";
 import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType, emptyMetadata } from "../../model";
-import { mockedFunction, expect, lastCallArgs, mockDateTime } from "../../test-helpers";
-import { now, parseDateTime } from "../../utils";
+import { mockedFunction, expect, lastCallArgs, mockDateTime, deferCall } from "../../test-helpers";
+import { isoDateTime, now, parseDateTime } from "../../utils";
 import { connection, insertTestData, buildTestDB, insertData } from "../database/test-helpers";
 import { Table } from "../database/types";
-import type { AlternateFile, MediaFile } from "../database/types/tables";
+import type { MediaFile } from "../database/types/tables";
 import { StorageService } from "../storage";
 import type { VideoInfo } from "./ffmpeg";
 import { encodeVideo, AudioCodec, VideoCodec, Container } from "./ffmpeg";
-import { handleUploadedFile, MEDIA_THUMBNAIL_SIZES, purgeDeletedMedia } from "./process";
+import {
+  fullReprocess,
+  handleUploadedFile,
+  MEDIA_THUMBNAIL_SIZES,
+  purgeDeletedMedia,
+} from "./process";
 import services, { provideService } from "./services";
 
 /* eslint-disable */
@@ -66,10 +72,6 @@ test("Process image metadata", async (): Promise<void> => {
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
 
-  let temp = await tmpdir({
-    unsafeCleanup: true,
-  });
-
   let storage = (await (await services.storage).getStorage("")).get();
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -97,18 +99,21 @@ test("Process image metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
   getLocalFilePathMock.mockImplementation(
-    (media: string, original: string, name: string): Promise<string> => {
-      return Promise.resolve(path.join(temp.path, name));
+    async (media: string, original: string, name: string): Promise<string> => {
+      await fs.mkdir(path.join(temp!.path, "local", media, original), {
+        recursive: true,
+      });
+      return Promise.resolve(path.join(temp!.path, "local", media, original, name));
     },
   );
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let storeFileMock = mockedFunction(storage.storeFile);
 
-  let buffers: Buffer[] = [];
+  let buffers: Map<string, Buffer> = new Map();
   storeFileMock.mockImplementation(
     async (media: string, mediaFile: string, filename: string, source: string): Promise<void> => {
-      buffers.push(await fs.readFile(source));
+      buffers.set(filename, await fs.readFile(source));
     },
   );
 
@@ -126,7 +131,7 @@ test("Process image metadata", async (): Promise<void> => {
 
     file: {
       uploaded: expect.toEqualDate(uploaded),
-      processVersion: 1,
+      processVersion: 2,
       mimetype: "image/jpeg",
       width: 500,
       height: 331,
@@ -135,93 +140,190 @@ test("Process image metadata", async (): Promise<void> => {
       bitRate: null,
       fileSize: 55084,
       fileName: "Testname.jpg",
-      id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
+      id: expect.toBeId("I"),
 
+      alternatives: expect.toInclude([{
+        bitRate: null,
+        duration: null,
+        fileName: "Testname-webp.webp",
+        fileSize: 8716,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 500,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testname-jpg.jpg",
+        fileSize: 20706,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 500,
+      }]),
       thumbnails: expect.toInclude([{
         bitRate: null,
         duration: null,
         fileName: "Testname-150.jpg",
-        fileSize: 2883,
+        fileSize: 5456,
         frameRate: null,
         height: 99,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 150,
       }, {
         bitRate: null,
         duration: null,
+        fileName: "Testname-150.webp",
+        fileSize: 4342,
+        frameRate: null,
+        height: 99,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 150,
+      }, {
+        bitRate: null,
+        duration: null,
         fileName: "Testname-200.jpg",
-        fileSize: 3997,
+        fileSize: 6270,
         frameRate: null,
         height: 132,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 200,
       }, {
         bitRate: null,
         duration: null,
+        fileName: "Testname-200.webp",
+        fileSize: 4634,
+        frameRate: null,
+        height: 132,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 200,
+      }, {
+        bitRate: null,
+        duration: null,
         fileName: "Testname-250.jpg",
-        fileSize: 5652,
+        fileSize: 7297,
         frameRate: null,
         height: 166,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 250,
       }, {
         bitRate: null,
         duration: null,
+        fileName: "Testname-250.webp",
+        fileSize: 5066,
+        frameRate: null,
+        height: 166,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 250,
+      }, {
+        bitRate: null,
+        duration: null,
         fileName: "Testname-300.jpg",
-        fileSize: 7328,
+        fileSize: 8387,
         frameRate: null,
         height: 199,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 300,
       }, {
         bitRate: null,
         duration: null,
+        fileName: "Testname-300.webp",
+        fileSize: 5518,
+        frameRate: null,
+        height: 199,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 300,
+      }, {
+        bitRate: null,
+        duration: null,
         fileName: "Testname-350.jpg",
-        fileSize: 9076,
+        fileSize: 9503,
         frameRate: null,
         height: 232,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 350,
       }, {
         bitRate: null,
         duration: null,
+        fileName: "Testname-350.webp",
+        fileSize: 6014,
+        frameRate: null,
+        height: 232,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 350,
+      }, {
+        bitRate: null,
+        duration: null,
         fileName: "Testname-400.jpg",
-        fileSize: 11198,
+        fileSize: 10759,
         frameRate: null,
         height: 265,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 400,
       }, {
         bitRate: null,
         duration: null,
+        fileName: "Testname-400.webp",
+        fileSize: 6432,
+        frameRate: null,
+        height: 265,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 400,
+      }, {
+        bitRate: null,
+        duration: null,
         fileName: "Testname-450.jpg",
-        fileSize: 13745,
+        fileSize: 12385,
         frameRate: null,
         height: 298,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 450,
       }, {
         bitRate: null,
         duration: null,
+        fileName: "Testname-450.webp",
+        fileSize: 7040,
+        frameRate: null,
+        height: 298,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 450,
+      }, {
+        bitRate: null,
+        duration: null,
         fileName: "Testname-500.jpg",
-        fileSize: 17336,
+        fileSize: 14033,
         frameRate: null,
         height: 331,
-        id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
+        id: expect.toBeId("F"),
         mimetype: "image/jpeg",
         width: 500,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testname-500.webp",
+        fileSize: 7596,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 500,
       }]),
-      posters: expect.toInclude([
-      ]),
-      alternatives: expect.toInclude([
-      ]),
     },
 
     filename: "Testname.jpg",
@@ -256,68 +358,60 @@ test("Process image metadata", async (): Promise<void> => {
 
   expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
-  let metadataFile = path.join(temp.path, "metadata.json");
+  let mediaFile = fullMedia!.file!.id;
+
+  let metadataFile = path.join(temp!.path, "local", media.id, mediaFile, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
     encoding: "utf8",
   }));
   expect(contents).toMatchSnapshot("lamppost-metadata");
 
-  let thumbnails = await user1Db.listAlternateFiles(
-    media.id,
-    AlternateFileType.Thumbnail,
-  );
-  expect(thumbnails).toHaveLength(MEDIA_THUMBNAIL_SIZES.length);
-  thumbnails.sort((a: AlternateFile, b: AlternateFile): number => {
-    return a.width - b.width;
-  });
-
-  expect(
-    thumbnails.map((t: AlternateFile): number => t.width),
-  ).toEqual(MEDIA_THUMBNAIL_SIZES);
-
-  let staticProperties = thumbnails.map((thumbnail: AlternateFile): unknown => {
-    let { id, mediaFile, ...rest } = thumbnail;
-    return rest;
-  });
-
-  expect(staticProperties).toMatchSnapshot();
-
-  let { mediaFile } = thumbnails[0];
-
-  expect(storeFileMock).toHaveBeenCalledTimes(9);
-  expect(storeFileMock.mock.calls).toEqual([
+  expect(storeFileMock).toHaveBeenCalledTimes(19);
+  expect(storeFileMock.mock.calls).toInclude([
+    [media.id, mediaFile, "Testname-webp.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "Testname-jpg.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testname-150.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-150.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname-200.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-200.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname-250.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-250.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname-300.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-300.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname-350.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-350.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname-400.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-400.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname-450.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-450.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname-500.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testname-500.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testname.jpg", sourceFile, "image/jpeg"],
   ]);
 
   expect(mockedEncodeVideo).not.toHaveBeenCalled();
 
-  for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
-    let buffer = await sharp(buffers[i]).png().toBuffer();
-    expect(buffer).toMatchImageSnapshot({
-      customSnapshotIdentifier: `lamppost-thumb-${MEDIA_THUMBNAIL_SIZES[i]}`,
+  for (let size of MEDIA_THUMBNAIL_SIZES) {
+    let buffer = buffers.get(`Testname-${size}.jpg`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-jpg-${size}`,
+    });
+
+    buffer = buffers.get(`Testname-${size}.webp`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-webp-${size}`,
     });
   }
-
-  await temp.cleanup();
 });
 
 test("Process image fails", async (): Promise<void> => {
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
 
-  let temp = await tmpdir({
-    unsafeCleanup: true,
-  });
-
   let storage = (await (await services.storage).getStorage("")).get();
+  let rollback = mockedFunction(storage["rollback"] as () => Promise<void>);
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
@@ -342,21 +436,22 @@ test("Process image fails", async (): Promise<void> => {
   });
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
-  getLocalFilePathMock.mockImplementation(
-    (media: string, original: string, name: string): Promise<string> => {
-      return Promise.resolve(path.join(temp.path, name));
-    },
-  );
-
-  // eslint-disable-next-line @typescript-eslint/unbound-method
   let storeFileMock = mockedFunction(storage.storeFile);
   storeFileMock.mockRejectedValueOnce(new Error("Failed to upload file."));
 
-  await expect(handleUploadedFile(media.id)).rejects.toThrow("Failed to upload file.");
+  let call = deferCall(rollback);
 
-  expect(storeFileMock).toHaveBeenCalledTimes(1);
+  let result = handleUploadedFile(media.id);
+
+  await call.call;
+  expect(storeFileMock).toHaveBeenCalled();
+  storeFileMock.mockClear();
+  await call.resolve();
+
+  await expect(result).rejects.toThrow("Failed to upload file.");
+
   expect(deleteUploadedFileMock).not.toHaveBeenCalled();
+  expect(rollback).toHaveBeenCalledTimes(1);
 
   let [fullMedia] = await user1Db.getMedia([media.id]);
   expect(fullMedia).toEqual({
@@ -375,16 +470,13 @@ test("Process image fails", async (): Promise<void> => {
     people: [],
   });
 
-  await temp.cleanup();
+  expect(storeFileMock).not.toHaveBeenCalled();
 });
 
 test("Process video metadata", async (): Promise<void> => {
+  mockConsole();
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
-
-  let temp = await tmpdir({
-    unsafeCleanup: true,
-  });
 
   let storage = (await (await services.storage).getStorage("")).get();
 
@@ -410,18 +502,21 @@ test("Process video metadata", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
   getLocalFilePathMock.mockImplementation(
-    (media: string, original: string, name: string): Promise<string> => {
-      return Promise.resolve(path.join(temp.path, name));
+    async (media: string, original: string, name: string): Promise<string> => {
+      await fs.mkdir(path.join(temp!.path, "local", media, original), {
+        recursive: true,
+      });
+      return Promise.resolve(path.join(temp!.path, "local", media, original, name));
     },
   );
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let storeFileMock = mockedFunction(storage.storeFile);
 
-  let buffers: Buffer[] = [];
+  let buffers: Map<string, Buffer> = new Map();
   storeFileMock.mockImplementation(
     async (media: string, mediaFile: string, filename: string, source: string): Promise<void> => {
-      buffers.push(await fs.readFile(source));
+      buffers.set(filename, await fs.readFile(source));
     },
   );
 
@@ -440,6 +535,7 @@ test("Process video metadata", async (): Promise<void> => {
         bitRate: 1000000,
         container,
         size: 2000000,
+        mimetype: `video/${container};codecs="foo, bar"`,
       },
       videoStream: {
         codec: videoCodec,
@@ -467,125 +563,208 @@ test("Process video metadata", async (): Promise<void> => {
 
     file: {
       uploaded: expect.toEqualDate(uploaded),
-      processVersion: 1,
+      processVersion: 2,
       fileSize: 4059609,
       width: 1920,
       height: 1080,
-      mimetype: "video/mp4",
+      mimetype: "video/mp4;codecs=\"avc1.64002a,mp4a.40.2\"",
       duration: 1.74,
       bitRate: 18664868,
       frameRate: 59.202206,
       fileName: "Testvideo.mp4",
       id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
-      alternatives: [
-        {
-          bitRate: 1000000,
-          duration: 100,
-          fileName: "Testvideo-h264.mp4",
-          fileSize: 2000000,
-          frameRate: 30,
-          height: 1080,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "video/mp4",
-          width: 1920,
-        },
-      ],
-      posters: [
-        {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-poster.jpg",
-          fileSize: 150797,
-          frameRate: null,
-          height: 1920,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 1080,
-        },
-      ],
-      thumbnails: expect.toInclude([
-        {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-150.jpg",
-          fileSize: 4810,
-          frameRate: null,
-          height: 150,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 84,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-200.jpg",
-          fileSize: 7570,
-          frameRate: null,
-          height: 200,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 113,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-250.jpg",
-          fileSize: 11063,
-          frameRate: null,
-          height: 250,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 141,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-300.jpg",
-          fileSize: 14955,
-          frameRate: null,
-          height: 300,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 169,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-350.jpg",
-          fileSize: 19129,
-          frameRate: null,
-          height: 350,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 197,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-400.jpg",
-          fileSize: 23721,
-          frameRate: null,
-          height: 400,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 225,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-450.jpg",
-          fileSize: 28876,
-          frameRate: null,
-          height: 450,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 253,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testvideo-500.jpg",
-          fileSize: 34910,
-          frameRate: null,
-          height: 500,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 281,
-        },
-      ]),
+      alternatives: expect.toInclude([{
+        bitRate: 1000000,
+        duration: 100,
+        fileName: "Testvideo-h264.mp4",
+        fileSize: 2000000,
+        frameRate: 30,
+        height: 1080,
+        id: expect.toBeId("F"),
+        mimetype: "video/mp4;codecs=\"foo, bar\"",
+        width: 1920,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-webp.webp",
+        fileSize: 93194,
+        frameRate: null,
+        height: 1920,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 1080,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-jpg.jpg",
+        fileSize: 184460,
+        frameRate: null,
+        height: 1920,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 1080,
+      }]),
+      thumbnails: expect.toInclude([{
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-150.jpg",
+        fileSize: 3433,
+        frameRate: null,
+        height: 150,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 84,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-150.webp",
+        fileSize: 1986,
+        frameRate: null,
+        height: 150,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 84,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-200.jpg",
+        fileSize: 5372,
+        frameRate: null,
+        height: 200,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 113,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-200.webp",
+        fileSize: 2926,
+        frameRate: null,
+        height: 200,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 113,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-250.jpg",
+        fileSize: 7646,
+        frameRate: null,
+        height: 250,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 141,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-250.webp",
+        fileSize: 4084,
+        frameRate: null,
+        height: 250,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 141,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-300.jpg",
+        fileSize: 10280,
+        frameRate: null,
+        height: 300,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 169,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-300.webp",
+        fileSize: 5360,
+        frameRate: null,
+        height: 300,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 169,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-350.jpg",
+        fileSize: 13295,
+        frameRate: null,
+        height: 350,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 197,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-350.webp",
+        fileSize: 6866,
+        frameRate: null,
+        height: 350,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 197,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-400.jpg",
+        fileSize: 16596,
+        frameRate: null,
+        height: 400,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 225,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-400.webp",
+        fileSize: 8516,
+        frameRate: null,
+        height: 400,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 225,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-450.jpg",
+        fileSize: 20075,
+        frameRate: null,
+        height: 450,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 253,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-450.webp",
+        fileSize: 10146,
+        frameRate: null,
+        height: 450,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 253,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-500.jpg",
+        fileSize: 24073,
+        frameRate: null,
+        height: 500,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 281,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "Testvideo-500.webp",
+        fileSize: 12256,
+        frameRate: null,
+        height: 500,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 281,
+      }]),
     },
 
     filename: "Testvideo.mp4",
@@ -620,71 +799,13 @@ test("Process video metadata", async (): Promise<void> => {
 
   expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
-  let metadataFile = path.join(temp.path, "metadata.json");
+  let mediaFile = fullMedia!.file!.id;
+
+  let metadataFile = path.join(temp!.path, "local", media.id, mediaFile, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
     encoding: "utf8",
   }));
   expect(contents).toMatchSnapshot("video-metadata");
-
-  let thumbnails = await user1Db.listAlternateFiles(
-    media.id,
-    AlternateFileType.Thumbnail,
-  );
-  expect(thumbnails).toHaveLength(MEDIA_THUMBNAIL_SIZES.length);
-  thumbnails.sort((a: AlternateFile, b: AlternateFile): number => {
-    return a.height - b.height;
-  });
-
-  expect(
-    thumbnails.map((t: AlternateFile): number => t.height),
-  ).toEqual(MEDIA_THUMBNAIL_SIZES);
-
-  let staticProperties = thumbnails.map((thumbnail: AlternateFile): unknown => {
-    let { id, mediaFile, ...rest } = thumbnail;
-    return rest;
-  });
-
-  expect(staticProperties).toMatchSnapshot();
-
-  let encodes = await user1Db.listAlternateFiles(
-    media.id,
-    AlternateFileType.Reencode,
-  );
-  expect(encodes).toHaveLength(1);
-
-  expect(encodes).toEqual([{
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Reencode,
-    fileName: "Testvideo-h264.mp4",
-    fileSize: 2000000,
-    mimetype: "video/mp4",
-    width: 1920,
-    height: 1080,
-    frameRate: 30,
-    bitRate: 1000000,
-    duration: 100,
-  }]);
-
-  let posters = await user1Db.listAlternateFiles(
-    media.id,
-    AlternateFileType.Poster,
-  );
-  expect(posters).toHaveLength(1);
-
-  expect(posters).toEqual([{
-    id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-    mediaFile: fullMedia?.file?.id,
-    type: AlternateFileType.Poster,
-    fileName: "Testvideo-poster.jpg",
-    fileSize: expect.toBeBetween(140000, 160000),
-    mimetype: "image/jpeg",
-    width: 1080,
-    height: 1920,
-    frameRate: null,
-    bitRate: null,
-    duration: null,
-  }]);
 
   expect(mockedEncodeVideo).toHaveBeenCalledTimes(1);
   let lastEncodeArgs = lastCallArgs(mockedEncodeVideo);
@@ -696,40 +817,54 @@ test("Process video metadata", async (): Promise<void> => {
     expect.anything(),
   ]);
 
-  let mediaFile = posters[0].mediaFile;
-
-  expect(storeFileMock).toHaveBeenCalledTimes(11);
-  expect(storeFileMock.mock.calls).toEqual([
-    [media.id, mediaFile, "Testvideo-poster.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4], "video/mp4"],
+  expect(storeFileMock).toHaveBeenCalledTimes(20);
+  expect(storeFileMock.mock.calls).toInclude([
+    [media.id, mediaFile, "Testvideo-h264.mp4", lastEncodeArgs[4], "video/mp4;codecs=\"foo, bar\""],
+    [media.id, mediaFile, "Testvideo-webp.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "Testvideo-jpg.jpg", expect.anything(), "image/jpeg"],
     [media.id, mediaFile, "Testvideo-150.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-150.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testvideo-200.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-200.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testvideo-250.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-250.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testvideo-300.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-300.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testvideo-350.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-350.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testvideo-400.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-400.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testvideo-450.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "Testvideo-450.webp", expect.anything(), "image/webp"],
     [media.id, mediaFile, "Testvideo-500.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testvideo.mp4", sourceFile, "video/mp4"],
+    [media.id, mediaFile, "Testvideo-500.webp", expect.anything(), "image/webp"],
+    [
+      media.id,
+      mediaFile,
+      "Testvideo.mp4",
+      sourceFile,
+      "video/mp4;codecs=\"avc1.64002a,mp4a.40.2\"",
+    ],
   ]);
 
-  for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
-    let buffer = await sharp(buffers[i + 2]).png().toBuffer();
-    expect(buffer).toMatchImageSnapshot({
-      customSnapshotIdentifier: `video-thumb-${MEDIA_THUMBNAIL_SIZES[i]}`,
+  for (let size of MEDIA_THUMBNAIL_SIZES) {
+    let buffer = buffers.get(`Testvideo-${size}.jpg`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `video-thumb-jpg-${size}`,
+    });
+
+    buffer = buffers.get(`Testvideo-${size}.webp`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `video-thumb-webp-${size}`,
     });
   }
-
-  await temp.cleanup();
 });
 
-test("reprocess", async (): Promise<void> => {
+test("Process second file", async (): Promise<void> => {
   let dbConnection = await connection;
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
-
-  let temp = await tmpdir({
-    unsafeCleanup: true,
-  });
 
   let storage = (await (await services.storage).getStorage("")).get();
 
@@ -751,7 +886,7 @@ test("reprocess", async (): Promise<void> => {
     media.id,
     {
       ...emptyMetadata,
-      processVersion: 1,
+      processVersion: 2,
       city: "London",
       uploaded: fileUploaded,
       fileName: "old.jpg",
@@ -778,7 +913,7 @@ test("reprocess", async (): Promise<void> => {
     catalog: "c1",
 
     file: {
-      processVersion: 1,
+      processVersion: 2,
       uploaded: expect.toEqualDate(fileUploaded),
       fileSize: 1000,
       fileName: "old.jpg",
@@ -790,7 +925,6 @@ test("reprocess", async (): Promise<void> => {
       frameRate: null,
       bitRate: null,
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
 
@@ -807,7 +941,7 @@ test("reprocess", async (): Promise<void> => {
   getUploadedFileMock.mockResolvedValueOnce({
     catalog: "c1",
     media: media.id,
-    name: "Testname.jpg",
+    name: "NewFile.jpg",
     uploaded,
     path: sourceFile,
   });
@@ -815,18 +949,26 @@ test("reprocess", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
   getLocalFilePathMock.mockImplementation(
-    (media: string, original: string, name: string): Promise<string> => {
-      return Promise.resolve(path.join(temp.path, name));
+    async (media: string, original: string, name: string): Promise<string> => {
+      await fs.mkdir(path.join(temp!.path, "local", media, original), {
+        recursive: true,
+      });
+      return Promise.resolve(path.join(temp!.path, "local", media, original, name));
     },
   );
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let storeFileMock = mockedFunction(storage.storeFile);
 
-  let buffers: Buffer[] = [];
+  let buffers: Map<string, Buffer> = new Map();
   storeFileMock.mockImplementation(
-    async (media: string, mediaFile: string, filename: string, source: string): Promise<void> => {
-      buffers.push(await fs.readFile(source));
+    async (
+      media: string,
+      mediaFile: string,
+      filename: string,
+      source: string,
+    ): Promise<void> => {
+      buffers.set(filename, await fs.readFile(source));
     },
   );
 
@@ -843,7 +985,7 @@ test("reprocess", async (): Promise<void> => {
     updated: expect.toEqualDate(uploaded),
 
     file: {
-      processVersion: 1,
+      processVersion: 2,
       uploaded: expect.toEqualDate(uploaded),
       mimetype: "image/jpeg",
       width: 500,
@@ -852,96 +994,193 @@ test("reprocess", async (): Promise<void> => {
       frameRate: null,
       bitRate: null,
       fileSize: 55084,
-      fileName: "Testname.jpg",
+      fileName: "NewFile.jpg",
       id: expect.stringMatching(/^I:[a-zA-Z0-9]+/),
-      posters: [],
-      alternatives: [],
-      thumbnails: [
-        {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-150.jpg",
-          fileSize: 2883,
-          frameRate: null,
-          height: 99,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 150,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-200.jpg",
-          fileSize: 3997,
-          frameRate: null,
-          height: 132,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 200,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-250.jpg",
-          fileSize: 5652,
-          frameRate: null,
-          height: 166,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 250,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-300.jpg",
-          fileSize: 7328,
-          frameRate: null,
-          height: 199,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 300,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-350.jpg",
-          fileSize: 9076,
-          frameRate: null,
-          height: 232,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 350,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-400.jpg",
-          fileSize: 11198,
-          frameRate: null,
-          height: 265,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 400,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-450.jpg",
-          fileSize: 13745,
-          frameRate: null,
-          height: 298,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 450,
-        }, {
-          bitRate: null,
-          duration: null,
-          fileName: "Testname-500.jpg",
-          fileSize: 17336,
-          frameRate: null,
-          height: 331,
-          id: expect.stringMatching(/^F:[a-zA-Z0-9]+/),
-          mimetype: "image/jpeg",
-          width: 500,
-        },
-      ],
+      alternatives: expect.toInclude([{
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-webp.webp",
+        fileSize: 8716,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 500,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-jpg.jpg",
+        fileSize: 20706,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 500,
+      }]),
+      thumbnails: expect.toInclude([{
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-150.jpg",
+        fileSize: 5456,
+        frameRate: null,
+        height: 99,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 150,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-150.webp",
+        fileSize: 4342,
+        frameRate: null,
+        height: 99,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 150,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-200.jpg",
+        fileSize: 6270,
+        frameRate: null,
+        height: 132,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 200,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-200.webp",
+        fileSize: 4634,
+        frameRate: null,
+        height: 132,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 200,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-250.jpg",
+        fileSize: 7297,
+        frameRate: null,
+        height: 166,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 250,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-250.webp",
+        fileSize: 5066,
+        frameRate: null,
+        height: 166,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 250,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-300.jpg",
+        fileSize: 8387,
+        frameRate: null,
+        height: 199,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 300,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-300.webp",
+        fileSize: 5518,
+        frameRate: null,
+        height: 199,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 300,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-350.jpg",
+        fileSize: 9503,
+        frameRate: null,
+        height: 232,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 350,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-350.webp",
+        fileSize: 6014,
+        frameRate: null,
+        height: 232,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 350,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-400.jpg",
+        fileSize: 10759,
+        frameRate: null,
+        height: 265,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 400,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-400.webp",
+        fileSize: 6432,
+        frameRate: null,
+        height: 265,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 400,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-450.jpg",
+        fileSize: 12385,
+        frameRate: null,
+        height: 298,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 450,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-450.webp",
+        fileSize: 7040,
+        frameRate: null,
+        height: 298,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 450,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-500.jpg",
+        fileSize: 14033,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 500,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "NewFile-500.webp",
+        fileSize: 7596,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 500,
+      }]),
     },
 
-    filename: "Testname.jpg",
+    filename: "NewFile.jpg",
     title: null,
     description: null,
     category: null,
@@ -971,61 +1210,547 @@ test("reprocess", async (): Promise<void> => {
     people: [],
   });
 
-  expect(fullMedia?.file?.id).not.toBe(oldMediaFile.id);
+  let mediaFile = fullMedia!.file!.id;
+  expect(mediaFile).not.toBe(oldMediaFile.id);
 
   expect(getLocalFilePathMock).toHaveBeenCalledTimes(1);
 
-  let metadataFile = path.join(temp.path, "metadata.json");
+  let metadataFile = path.join(temp!.path, "local", media.id, mediaFile, "metadata.json");
+  let contents = JSON.parse(await fs.readFile(metadataFile, {
+    encoding: "utf8",
+  }));
+  expect(contents).toMatchSnapshot("newfile-metadata");
+
+  expect(storeFileMock).toHaveBeenCalledTimes(19);
+  expect(storeFileMock.mock.calls).toInclude([
+    [media.id, mediaFile, "NewFile-webp.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-jpg.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-150.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-150.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-200.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-200.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-250.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-250.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-300.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-300.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-350.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-350.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-400.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-400.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-450.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-450.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile-500.jpg", expect.anything(), "image/jpeg"],
+    [media.id, mediaFile, "NewFile-500.webp", expect.anything(), "image/webp"],
+    [media.id, mediaFile, "NewFile.jpg", sourceFile, "image/jpeg"],
+  ]);
+
+  expect(mockedEncodeVideo).not.toHaveBeenCalled();
+
+  for (let size of MEDIA_THUMBNAIL_SIZES) {
+    let buffer = buffers.get(`NewFile-${size}.jpg`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-jpg-${size}`,
+    });
+
+    buffer = buffers.get(`NewFile-${size}.webp`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-webp-${size}`,
+    });
+  }
+});
+
+test("Update old version", async (): Promise<void> => {
+  let dbConnection = await connection;
+  let createdDT = parseDateTime("2020-01-01T02:02:02Z");
+
+  await insertData({
+    [Table.MediaInfo]: [{
+      id: "media1",
+      created: createdDT,
+      deleted: false,
+      catalog: "c1",
+      updated: createdDT,
+      ...emptyMetadata,
+      city: "London",
+    }],
+    [Table.MediaFile]: [{
+      id: "original1",
+      media: "media1",
+      uploaded: parseDateTime("2020-03-01T01:01:01Z"),
+      processVersion: 1,
+      fileName: "orig1.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      ...emptyMetadata,
+      photographer: "Dave",
+    }],
+    [Table.AlternateFile]: [{
+      id: "alternate1",
+      mediaFile: "original1",
+      type: AlternateFileType.Reencode,
+      fileName: "alt1.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate2",
+      mediaFile: "original1",
+      type: AlternateFileType.Reencode,
+      fileName: "alt2.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }, {
+      id: "alternate3",
+      mediaFile: "original1",
+      type: AlternateFileType.Thumbnail,
+      fileName: "alt3.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+    }],
+  });
+
+  let storage = (await (await services.storage).getStorage("")).get();
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let getUploadedFileMock = mockedFunction(storage.getUploadedFile);
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let deleteFile = mockedFunction(storage.deleteFile);
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let deleteLocalFiles = mockedFunction(storage.deleteLocalFiles);
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let streamFile = mockedFunction(storage.streamFile);
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let getLocalFilePathMock = mockedFunction(storage.getLocalFilePath);
+  getLocalFilePathMock.mockImplementation(
+    async (media: string, original: string, name: string): Promise<string> => {
+      await fs.mkdir(path.join(temp!.path, "local", media, original), {
+        recursive: true,
+      });
+      return Promise.resolve(path.join(temp!.path, "local", media, original, name));
+    },
+  );
+
+  let fileUploaded = parseDateTime("2020-03-01T01:01:01Z");
+  let data = {
+    uploaded: isoDateTime(fileUploaded),
+    fileName: "oldname.jpg",
+  };
+
+  await fs.mkdir(path.join(temp!.path, "local", "media1", "original1"), {
+    recursive: true,
+  });
+  let metaFile = path.join(temp!.path, "local", "media1", "original1", "metadata.json");
+  await fs.writeFile(metaFile, JSON.stringify(data));
+
+  let user1Db = dbConnection.forUser("someone1@nowhere.com");
+
+  let [foundMedia] = await user1Db.getMedia(["media1"]);
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
+    id: "media1",
+    created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate("2020-03-01T01:01:01Z"),
+    catalog: "c1",
+
+    file: {
+      processVersion: 1,
+      uploaded: expect.toEqualDate("2020-03-01T01:01:01Z"),
+      fileSize: 100,
+      fileName: "orig1.jpg",
+      id: "original1",
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      frameRate: null,
+      bitRate: null,
+      thumbnails: [{
+        id: "alternate3",
+        fileName: "alt3.jpg",
+        fileSize: 100,
+        mimetype: "image/jpeg",
+        width: 100,
+        height: 100,
+        duration: null,
+        bitRate: null,
+        frameRate: null,
+      }],
+      alternatives: expect.toInclude([{
+        id: "alternate1",
+        fileName: "alt1.jpg",
+        fileSize: 100,
+        mimetype: "image/jpeg",
+        width: 100,
+        height: 100,
+        duration: null,
+        bitRate: null,
+        frameRate: null,
+      }, {
+        id: "alternate2",
+        fileName: "alt2.jpg",
+        fileSize: 100,
+        mimetype: "image/jpeg",
+        width: 100,
+        height: 100,
+        duration: null,
+        bitRate: null,
+        frameRate: null,
+      }]),
+    },
+
+    city: "London",
+    photographer: "Dave",
+    albums: [],
+    people: [],
+    tags: [],
+  });
+
+  let sourceFile = path.join(__dirname, "..", "..", "..", "testdata", "lamppost.jpg");
+  streamFile.mockImplementationOnce(async (): Promise<NodeJS.ReadableStream> => {
+    return createReadStream(sourceFile);
+  });
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let storeFileMock = mockedFunction(storage.storeFile);
+
+  let buffers: Map<string, Buffer> = new Map();
+  storeFileMock.mockImplementation(
+    async (
+      media: string,
+      mediaFile: string,
+      filename: string,
+      source: string,
+    ): Promise<void> => {
+      buffers.set(filename, await fs.readFile(source));
+    },
+  );
+
+  await fullReprocess("media1");
+
+  expect(getUploadedFileMock).not.toHaveBeenCalled();
+  expect(deleteUploadedFileMock).not.toHaveBeenCalled();
+  expect(streamFile).toHaveBeenCalledTimes(1);
+  expect(streamFile).toHaveBeenCalledWith("media1", "original1", "orig1.jpg");
+
+  let [fullMedia] = await user1Db.getMedia(["media1"]);
+  expect(fullMedia).toEqual({
+    id: "media1",
+    catalog: "c1",
+    created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(fileUploaded),
+
+    file: {
+      processVersion: 2,
+      uploaded: expect.toEqualDate(fileUploaded),
+      mimetype: "image/jpeg",
+      width: 500,
+      height: 331,
+      duration: null,
+      frameRate: null,
+      bitRate: null,
+      fileSize: 55084,
+      fileName: "oldname.jpg",
+      id: expect.toBeId("I"),
+      alternatives: expect.toInclude([{
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-webp.webp",
+        fileSize: 8716,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 500,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-jpg.jpg",
+        fileSize: 20706,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 500,
+      }]),
+      thumbnails: expect.toInclude([{
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-150.jpg",
+        fileSize: 5456,
+        frameRate: null,
+        height: 99,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 150,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-150.webp",
+        fileSize: 4342,
+        frameRate: null,
+        height: 99,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 150,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-200.jpg",
+        fileSize: 6270,
+        frameRate: null,
+        height: 132,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 200,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-200.webp",
+        fileSize: 4634,
+        frameRate: null,
+        height: 132,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 200,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-250.jpg",
+        fileSize: 7297,
+        frameRate: null,
+        height: 166,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 250,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-250.webp",
+        fileSize: 5066,
+        frameRate: null,
+        height: 166,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 250,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-300.jpg",
+        fileSize: 8387,
+        frameRate: null,
+        height: 199,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 300,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-300.webp",
+        fileSize: 5518,
+        frameRate: null,
+        height: 199,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 300,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-350.jpg",
+        fileSize: 9503,
+        frameRate: null,
+        height: 232,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 350,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-350.webp",
+        fileSize: 6014,
+        frameRate: null,
+        height: 232,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 350,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-400.jpg",
+        fileSize: 10759,
+        frameRate: null,
+        height: 265,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 400,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-400.webp",
+        fileSize: 6432,
+        frameRate: null,
+        height: 265,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 400,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-450.jpg",
+        fileSize: 12385,
+        frameRate: null,
+        height: 298,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 450,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-450.webp",
+        fileSize: 7040,
+        frameRate: null,
+        height: 298,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 450,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-500.jpg",
+        fileSize: 14033,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/jpeg",
+        width: 500,
+      }, {
+        bitRate: null,
+        duration: null,
+        fileName: "oldname-500.webp",
+        fileSize: 7596,
+        frameRate: null,
+        height: 331,
+        id: expect.toBeId("F"),
+        mimetype: "image/webp",
+        width: 500,
+      }]),
+    },
+
+    filename: "oldname.jpg",
+    title: null,
+    description: null,
+    category: null,
+    label: null,
+    taken: expect.toEqualDate("2018-08-22T18:51:25.800-07:00"),
+    takenZone: "UTC-7",
+    longitude: -121.517784,
+    latitude: 45.715054,
+    altitude: 28.4597,
+    location: "Hood River Waterfront Park",
+    city: "London",
+    state: "Oregon",
+    country: "USA",
+    orientation: null,
+    make: "NIKON CORPORATION",
+    model: "NIKON D7000",
+    lens: "18.0-200.0 mm f/3.5-5.6",
+    photographer: "Dave Townsend",
+    aperture: 11,
+    shutterSpeed: "1/2000",
+    iso: 400,
+    focalLength: 95,
+    rating: 4,
+
+    albums: [],
+    tags: [],
+    people: [],
+  });
+
+  let mediaFile = fullMedia!.file!.id;
+
+  let metadataFile = path.join(temp!.path, "local", "media1", mediaFile, "metadata.json");
   let contents = JSON.parse(await fs.readFile(metadataFile, {
     encoding: "utf8",
   }));
   expect(contents).toMatchSnapshot("reprocessed-metadata");
 
-  let thumbnails = await user1Db.listAlternateFiles(
-    media.id,
-    AlternateFileType.Thumbnail,
-  );
-  expect(thumbnails).toHaveLength(MEDIA_THUMBNAIL_SIZES.length);
-  thumbnails.sort((a: AlternateFile, b: AlternateFile): number => {
-    return a.width - b.width;
-  });
-
-  expect(
-    thumbnails.map((t: AlternateFile): number => t.width),
-  ).toEqual(MEDIA_THUMBNAIL_SIZES);
-
-  let staticProperties = thumbnails.map((thumbnail: AlternateFile): unknown => {
-    let { id, mediaFile, ...rest } = thumbnail;
-    return rest;
-  });
-
-  expect(staticProperties).toMatchSnapshot();
-
-  let { mediaFile } = thumbnails[0];
-
-  expect(storeFileMock).toHaveBeenCalledTimes(9);
-  expect(storeFileMock.mock.calls).toEqual([
-    [media.id, mediaFile, "Testname-150.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname-200.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname-250.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname-300.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname-350.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname-400.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname-450.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname-500.jpg", expect.anything(), "image/jpeg"],
-    [media.id, mediaFile, "Testname.jpg", sourceFile, "image/jpeg"],
+  expect(storeFileMock).toHaveBeenCalledTimes(19);
+  expect(storeFileMock.mock.calls).toInclude([
+    ["media1", mediaFile, "oldname-webp.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-jpg.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-150.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-150.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-200.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-200.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-250.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-250.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-300.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-300.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-350.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-350.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-400.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-400.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-450.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-450.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname-500.jpg", expect.anything(), "image/jpeg"],
+    ["media1", mediaFile, "oldname-500.webp", expect.anything(), "image/webp"],
+    ["media1", mediaFile, "oldname.jpg", expect.anything(), "image/jpeg"],
   ]);
 
   expect(mockedEncodeVideo).not.toHaveBeenCalled();
 
-  for (let i = 0; i < MEDIA_THUMBNAIL_SIZES.length; i++) {
-    let buffer = await sharp(buffers[i]).png().toBuffer();
-    expect(buffer).toMatchImageSnapshot({
-      customSnapshotIdentifier: `lamppost-thumb-${MEDIA_THUMBNAIL_SIZES[i]}`,
+  for (let size of MEDIA_THUMBNAIL_SIZES) {
+    let buffer = buffers.get(`oldname-${size}.jpg`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-jpg-${size}`,
+    });
+
+    buffer = buffers.get(`oldname-${size}.webp`);
+    expect(buffer).not.toBeUndefined();
+    expect(await sharp(buffer).png().toBuffer()).toMatchImageSnapshot({
+      customSnapshotIdentifier: `lamppost-thumb-webp-${size}`,
     });
   }
 
-  await temp.cleanup();
+  expect(deleteFile).not.toHaveBeenCalled();
+  expect(deleteLocalFiles).not.toHaveBeenCalled();
+
+  await purgeDeletedMedia();
+
+  expect(deleteFile.mock.calls).toInclude([
+    ["media1", "original1", "alt1.jpg"],
+    ["media1", "original1", "alt2.jpg"],
+    ["media1", "original1", "alt3.jpg"],
+    ["media1", "original1", "orig1.jpg"],
+  ]);
+
+  expect(deleteLocalFiles.mock.calls).toInclude([
+    ["media1", "original1"],
+  ]);
 });
 
 test("purge", async (): Promise<void> => {
@@ -1070,7 +1795,7 @@ test("purge", async (): Promise<void> => {
       id: "original1",
       media: "media1",
       uploaded: parseDateTime("2020-01-01T01:01:01Z"),
-      processVersion: 1,
+      processVersion: 2,
       fileName: "orig1.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1084,7 +1809,7 @@ test("purge", async (): Promise<void> => {
       id: "original2",
       media: "media1",
       uploaded: parseDateTime("2020-02-01T01:01:01Z"),
-      processVersion: 1,
+      processVersion: 2,
       fileName: "orig2.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1098,7 +1823,7 @@ test("purge", async (): Promise<void> => {
       id: "original3",
       media: "media1",
       uploaded: parseDateTime("2020-03-01T01:01:01Z"),
-      processVersion: 1,
+      processVersion: 2,
       fileName: "orig3.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1112,7 +1837,7 @@ test("purge", async (): Promise<void> => {
       id: "original4",
       media: "media2",
       uploaded: parseDateTime("2020-01-01T01:01:01Z"),
-      processVersion: 1,
+      processVersion: 2,
       fileName: "orig4.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1126,7 +1851,7 @@ test("purge", async (): Promise<void> => {
       id: "original5",
       media: "media3",
       uploaded: parseDateTime("2020-01-01T01:01:01Z"),
-      processVersion: 1,
+      processVersion: 2,
       fileName: "orig5.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1140,7 +1865,7 @@ test("purge", async (): Promise<void> => {
       id: "original6",
       media: "media3",
       uploaded: parseDateTime("2020-02-01T01:01:01Z"),
-      processVersion: 1,
+      processVersion: 2,
       fileName: "orig6.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1154,7 +1879,7 @@ test("purge", async (): Promise<void> => {
     [Table.AlternateFile]: [{
       id: "alternate1",
       mediaFile: "original1",
-      type: AlternateFileType.Poster,
+      type: AlternateFileType.Reencode,
       fileName: "alt1.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1190,7 +1915,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "alternate4",
       mediaFile: "original3",
-      type: AlternateFileType.Poster,
+      type: AlternateFileType.Reencode,
       fileName: "alt4.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1226,7 +1951,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "alternate7",
       mediaFile: "original5",
-      type: AlternateFileType.Poster,
+      type: AlternateFileType.Reencode,
       fileName: "alt7.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1262,7 +1987,7 @@ test("purge", async (): Promise<void> => {
     }, {
       id: "alternate10",
       mediaFile: "original6",
-      type: AlternateFileType.Poster,
+      type: AlternateFileType.Reencode,
       fileName: "alt10.jpg",
       fileSize: 100,
       mimetype: "image/jpeg",
@@ -1295,6 +2020,19 @@ test("purge", async (): Promise<void> => {
       duration: null,
       bitRate: null,
       frameRate: null,
+    }, {
+      id: "alternate13",
+      mediaFile: "original6",
+      // @ts-ignore Intentionally incorrect.
+      type: "foobar",
+      fileName: "alt13.jpg",
+      fileSize: 100,
+      mimetype: "image/jpeg",
+      width: 100,
+      height: 100,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
     }],
   });
 
@@ -1320,6 +2058,7 @@ test("purge", async (): Promise<void> => {
     ["media3", "original6", "alt10.jpg"],
     ["media3", "original6", "alt11.jpg"],
     ["media3", "original6", "alt12.jpg"],
+    ["media3", "original6", "alt13.jpg"],
     ["media3", "original6", "orig6.jpg"],
   ]);
 

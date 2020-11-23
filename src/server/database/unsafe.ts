@@ -1,4 +1,5 @@
 import type { ObjectModel } from "../../model";
+import { CURRENT_PROCESS_VERSION } from "../../model";
 import type { DatabaseConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
@@ -135,6 +136,7 @@ export async function getUnusedMediaFiles(
     .orderBy([
       { column: ref(Table.MediaFile, "media"), order: "asc" },
       { column: ref(Table.MediaFile, "uploaded"), order: "desc" },
+      { column: ref(Table.MediaFile, "processVersion"), order: "desc" },
     ])
     .distinctOn(ref(Table.MediaFile, "media"))
     .select(ref(Table.MediaFile, "id"));
@@ -184,4 +186,17 @@ export async function getUserForMedia(
     ...user
   } = users[0];
   return user;
+}
+
+export async function getOldMedia(
+  this: DatabaseConnection,
+): Promise<string[]> {
+  let results = await from(this.knex, Table.MediaView)
+    .where(
+      this.raw("(??->'processVersion')::integer", [ref(Table.MediaView, "file")]),
+      "<",
+      CURRENT_PROCESS_VERSION,
+    )
+    .select(ref(Table.MediaView, "id"));
+  return results.map(({ id }: { id: string }): string => id);
 }

@@ -13,6 +13,7 @@ export {
   MetadataColumns,
   emptyMetadata,
   Orientation,
+  CURRENT_PROCESS_VERSION,
 } from "./models";
 export type { Query } from "./search";
 export {

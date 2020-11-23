@@ -219,7 +219,6 @@ export function mockProcessedMedia(
       frameRate: null,
       originalUrl: `http://localhost/media/original/${id}/${randomId()}`,
       thumbnails: [],
-      posters: [],
       alternatives: [],
 
       ...data.file ?? {},

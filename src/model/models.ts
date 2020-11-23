@@ -1,7 +1,7 @@
 import type { AllNull, DateTime } from "../utils";
 import type { Query } from "./search";
 
-export const CURRENT_PROCESS_VERSION = 1;
+export const CURRENT_PROCESS_VERSION = 2;
 
 export enum RelationType {
   Tag = "tag",
@@ -189,7 +189,6 @@ export type PublicMediaWithMetadata = PublicMedia & Metadata & {
 
 export enum AlternateFileType {
   Thumbnail = "thumbnail",
-  Poster = "poster",
   Reencode = "reencode",
 }
 

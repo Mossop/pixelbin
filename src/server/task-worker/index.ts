@@ -7,7 +7,7 @@ import { StorageService } from "../storage";
 import { ParentProcess } from "../worker";
 import events from "./events";
 import type { ParentProcessInterface, TaskWorkerInterface } from "./interfaces";
-import { handleUploadedFile, purgeDeletedMedia } from "./process";
+import { handleUploadedFile, purgeDeletedMedia, fullReprocess } from "./process";
 import { provideService } from "./services";
 
 install();
@@ -22,6 +22,7 @@ async function main(): Promise<void> {
     localInterface: {
       handleUploadedFile,
       purgeDeletedMedia,
+      fullReprocess,
     },
     logger,
   });

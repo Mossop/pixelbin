@@ -54,7 +54,6 @@ export type MediaView = Omit<MediaInfo, "deleted"> & {
     fileName: string;
     thumbnails: Omit<AlternateFile, "mediaFile" | "type">[];
     alternatives: Omit<AlternateFile, "mediaFile" | "type">[];
-    posters: Omit<AlternateFile, "mediaFile" | "type">[];
   }>;
   albums: (ObjectModel.MediaAlbum & { album: Album["id"] })[];
   tags: (ObjectModel.MediaTag & { tag: Tag["id"] })[];

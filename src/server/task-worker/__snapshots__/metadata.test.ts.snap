@@ -1214,7 +1214,7 @@ Object {
   "fileSize": 4059609,
   "frameRate": 59.202207150247155,
   "height": 1080,
-  "mimetype": "video/mp4",
+  "mimetype": "video/mp4;codecs=\\"avc1.64002a,mp4a.40.2\\"",
   "uploaded": toEqualDate<2010-01-03T09:30:23.000Z>,
   "width": 1920,
 }

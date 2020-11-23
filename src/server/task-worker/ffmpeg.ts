@@ -1,9 +1,12 @@
+import { promises as fs } from "fs";
 import path from "path";
 
 import execa from "execa";
 import ffprobe from "ffprobe-client";
+import mp4box from "mp4box";
 import { dir as tmpdir } from "tmp-promise";
 import { JsonDecoder } from "ts.data.json";
+import MIMEType from "whatwg-mimetype";
 
 import { MappingDecoder, oneOf } from "../../utils";
 
@@ -15,6 +18,7 @@ export enum Container {
   Unknown = "unknown",
 
   MP4 = "mp4",
+  Ogg = "ogg",
   WebM = "webm",
   Matroska = "mkv",
 }
@@ -70,19 +74,10 @@ const FrameRateDecoder = MappingDecoder(JsonDecoder.string, (value: string): num
   }
 }, "frameRate");
 
-function EnumDecoder<T>(en: Record<string, string>, type: string): JsonDecoder.Decoder<T> {
-  return MappingDecoder(JsonDecoder.string, (value: string): T => {
-    for (let val of Object.values(en)) {
-      if (val == value) {
-        return value as unknown as T;
-      }
-    }
-
-    throw new Error(`${value} is not a valid ${type}.`);
-  }, type);
-}
-
-const VideoCodecDecoder = EnumDecoder<VideoCodec>(VideoCodec, "VideoCodec");
+const VideoCodecDecoder = JsonDecoder.oneOf([
+  JsonDecoder.enumeration<VideoCodec>(VideoCodec, "VideoCodec"),
+  JsonDecoder.constant(VideoCodec.Unknown),
+], "VideoCodec");
 
 const VideoStreamDecoder = JsonDecoder.object<VideoStream>({
   type: JsonDecoder.isExactly("video"),
@@ -96,7 +91,10 @@ const VideoStreamDecoder = JsonDecoder.object<VideoStream>({
   frameRate: "avg_frame_rate",
 });
 
-const AudioCodecDecoder = EnumDecoder<AudioCodec>(AudioCodec, "AudioCodec");
+const AudioCodecDecoder = JsonDecoder.oneOf([
+  JsonDecoder.enumeration<AudioCodec>(AudioCodec, "AudioCodec"),
+  JsonDecoder.constant(AudioCodec.Unknown),
+], "AudioCodec");
 
 export interface AudioStream {
   type: "audio";
@@ -123,6 +121,7 @@ interface Format {
   bitRate: number;
   container: Container;
   size: number;
+  mimetype: string;
 }
 
 const ContainerDecoder = MappingDecoder(JsonDecoder.string, (value: string): Container => {
@@ -141,7 +140,7 @@ const ContainerDecoder = MappingDecoder(JsonDecoder.string, (value: string): Con
   return Container.Unknown;
 }, "Container");
 
-const FormatDecoder = JsonDecoder.object<Format>({
+const ProbeFormatDecoder = JsonDecoder.object<Omit<Format, "mimetype">>({
   duration: StringNumberDecoder,
   bitRate: StringNumberDecoder,
   container: ContainerDecoder,
@@ -153,18 +152,53 @@ const FormatDecoder = JsonDecoder.object<Format>({
 
 interface ProbeResults {
   streams: Stream[];
-  format: Format;
+  format: Omit<Format, "mimetype">;
 }
 
 const ProbeResultsDecoder = JsonDecoder.object<ProbeResults>({
   streams: JsonDecoder.array(StreamDecoder, "Stream[]"),
-  format: FormatDecoder,
+  format: ProbeFormatDecoder,
 }, "ProbeResults");
 
 export interface VideoInfo {
   format: Format;
   videoStream: Omit<VideoStream, "type"> | null;
   audioStream: Omit<AudioStream, "type"> | null;
+}
+
+async function mp4mimetype(file: string): Promise<string> {
+  try {
+    let buffer = new Uint8Array(await fs.readFile(file)).buffer;
+
+    let info = await new Promise(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (resolve: (info: any) => void, reject: (error: Error) => void): void => {
+        let mp4File = mp4box.createFile();
+        mp4File.onReady = resolve;
+        mp4File.onError = reject;
+        buffer["fileStart"] = 0;
+        mp4File.appendBuffer(buffer);
+      },
+    );
+
+    if (info && "mime" in info) {
+      let mime = info.mime;
+      if (typeof mime == "string") {
+        let fullType = new MIMEType(mime);
+        let basicType = new MIMEType(fullType.essence);
+        let codecs = fullType.parameters.get("codecs");
+        if (codecs) {
+          basicType.parameters.set("codecs", codecs);
+        }
+
+        return basicType.toString();
+      }
+    }
+  } catch (e) {
+    // Ignore errors.
+  }
+
+  return "video/mp4";
 }
 
 export async function probe(file: string): Promise<VideoInfo> {
@@ -194,8 +228,29 @@ export async function probe(file: string): Promise<VideoInfo> {
     videoStream = stream;
   }
 
+  let mimetype = `video/${results.format.container}`;
+  const isNotUnknown = (stream: AudioStream | VideoStream): boolean => {
+    return stream.codec != "unknown";
+  };
+
+  if (results.streams.every(isNotUnknown) && audio.every(isNotUnknown)) {
+    switch (results.format.container) {
+      case Container.WebM:
+      case Container.Ogg: {
+        let codecs = results.streams.map((stream: Stream): string => stream.codec);
+        mimetype += `; codecs="${codecs.join(", ")}"`;
+        break;
+      }
+      case Container.MP4:
+        mimetype = await mp4mimetype(file);
+    }
+  }
+
   return {
-    format: results.format,
+    format: {
+      ...results.format,
+      mimetype,
+    },
     videoStream,
     audioStream,
   };

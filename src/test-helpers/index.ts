@@ -79,6 +79,18 @@ const matchers = {
     };
   },
 
+  toBeId(
+    this: jest.MatcherContext,
+    received: string,
+    expected: string,
+  ): jest.CustomMatcherResult {
+    let match = new RegExp(`^${expected}:[a-zA-Z0-9]+$`);
+    return {
+      pass: !!match.exec(received),
+      message: expectMessage(this, "toBeId", `${expected}:[a-zA-Z0-9]+`, received.toString()),
+    };
+  },
+
   toEqualDate(
     this: jest.MatcherContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,7 +101,11 @@ const matchers = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let asStr = (val: any): string => {
       if (!isDateTime(val)) {
-        val = parseDateTime(String(val));
+        try {
+          val = parseDateTime(String(val));
+        } catch (e) {
+          return String(val);
+        }
       }
 
       if (timeZone) {

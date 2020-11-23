@@ -132,7 +132,7 @@ test("Saved searches", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual({
-    id: expect.stringMatching(/^S:[a-zA-Z0-9]+/),
+    id: expect.toBeId("S"),
     catalog: "c2",
     name: "My search",
     shared: true,

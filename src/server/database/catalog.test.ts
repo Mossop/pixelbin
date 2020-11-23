@@ -170,7 +170,7 @@ test("Tag table tests", async (): Promise<void> => {
 
   expect(tag.id).not.toBe("Bad");
   expect(tag).toEqual({
-    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    id: expect.toBeId("T"),
     catalog: "c1",
     parent: null,
     name: "New Tag",
@@ -251,7 +251,7 @@ test("Tag table tests", async (): Promise<void> => {
     name: "New name",
   }, {
     catalog: "c1",
-    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    id: expect.toBeId("T"),
     parent: "t7",
     name: "new tag",
   }]);
@@ -259,17 +259,17 @@ test("Tag table tests", async (): Promise<void> => {
   created = await user1Db.buildTags("c1", ["New top", "inner", "new tag"]);
   expect(created).toEqual([{
     catalog: "c1",
-    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    id: expect.toBeId("T"),
     parent: null,
     name: "New top",
   }, {
     catalog: "c1",
-    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    id: expect.toBeId("T"),
     parent: created[0].id,
     name: "inner",
   }, {
     catalog: "c1",
-    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    id: expect.toBeId("T"),
     parent: created[1].id,
     name: "new tag",
   }]);
@@ -277,7 +277,7 @@ test("Tag table tests", async (): Promise<void> => {
   created = await user1Db.buildTags("c1", ["top-level"]);
   expect(created).toEqual([{
     catalog: "c1",
-    id: expect.stringMatching(/^T:[A-Za-z0-9]+/),
+    id: expect.toBeId("T"),
     parent: null,
     name: "top-level",
   }]);
@@ -361,7 +361,7 @@ test("Album table tests", async (): Promise<void> => {
 
   expect(album.id).not.toBe("Bad");
   expect(album).toEqual({
-    id: expect.stringMatching(/^A:[A-Za-z0-9]+/),
+    id: expect.toBeId("A"),
     catalog: "c1",
     parent: null,
     name: "New Album",
@@ -479,7 +479,7 @@ test("Person table tests", async (): Promise<void> => {
 
   expect(person.id).not.toBe("Bad");
   expect(person).toEqual({
-    id: expect.stringMatching(/^P:[A-Za-z0-9]+/),
+    id: expect.toBeId("P"),
     catalog: "c1",
     name: "New Person",
   });

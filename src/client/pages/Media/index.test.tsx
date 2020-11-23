@@ -75,7 +75,6 @@ test("single media page", async (): Promise<void> => {
       uploaded: dt,
       originalUrl: "http://localhost/original.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
     id: "foo",
@@ -235,7 +234,6 @@ test("multiple media page", async (): Promise<void> => {
       uploaded: dt,
       originalUrl: "http://localhost/original.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
     id: "foo",
@@ -259,8 +257,8 @@ test("multiple media page", async (): Promise<void> => {
       uploaded: dt,
       originalUrl: "http://localhost/original.mp4",
       thumbnails: [],
-      posters: [{
-        url: "http://localhost/poster.jpg",
+      alternatives: [{
+        url: "http://localhost/alternate.jpg",
         id: "post",
         fileSize: 1000,
         mimetype: "image/jpg",
@@ -270,7 +268,6 @@ test("multiple media page", async (): Promise<void> => {
         bitRate: null,
         duration: null,
       }],
-      alternatives: [],
     },
     id: "bar",
     created: dt,
@@ -334,7 +331,7 @@ test("multiple media page", async (): Promise<void> => {
 
   let original = expectChild(container, "#media-original");
   expect(original.localName).toBe("video");
-  expect(original.getAttribute("poster")).toBe("http://localhost/poster.jpg");
+  expect(original.getAttribute("poster")).toBe("http://localhost/alternate.jpg");
 
   let source = original.firstElementChild;
   expect(source?.localName).toBe("source");

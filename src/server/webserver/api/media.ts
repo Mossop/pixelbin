@@ -52,7 +52,6 @@ export function buildResponseMedia(
 
         thumbnails: media.file.thumbnails.map(mapAlternative),
         alternatives: media.file.alternatives.map(mapAlternative),
-        posters: media.file.posters.map(mapAlternative),
 
         originalUrl: `${APP_PATHS.root}media/${media.id}/${media.file.id}`,
       },
@@ -353,11 +352,6 @@ export const alternate = ensureAuthenticated(
     let alternate = media.file.thumbnails.find(
       (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,
     );
-    if (!alternate) {
-      alternate = media.file.posters.find(
-        (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,
-      );
-    }
     if (!alternate) {
       alternate = media.file.alternatives.find(
         (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,

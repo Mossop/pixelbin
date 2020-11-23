@@ -259,7 +259,6 @@ export const alternates: Migration = {
         ??,
         ??,
         ??,
-        ??,
         ??
       ) AS _)
       END`, [
@@ -276,7 +275,6 @@ export const alternates: Migration = {
         "CurrentFile.frameRate",
         "CurrentFile.bitRate",
         "CurrentFile.thumbnails",
-        "CurrentFile.posters",
         "CurrentFile.alternatives",
       ]),
       albums: knex.raw("COALESCE(??, '[]'::jsonb)", ["AlbumList.albums"]),
@@ -326,12 +324,6 @@ export const alternates: Migration = {
       })
       .as("Thumbnails");
 
-    let Posters = knex.from(Alternatives)
-      .where({
-        type: AlternateFileType.Poster,
-      })
-      .as("Posters");
-
     let Reencodes = knex.from(Alternatives)
       .where({
         type: AlternateFileType.Reencode,
@@ -340,16 +332,15 @@ export const alternates: Migration = {
 
     let CurrentFiles = knex(Table.MediaFile)
       .leftJoin(Thumbnails, "Thumbnails.mediaFile", ref(Table.MediaFile, "id"))
-      .leftJoin(Posters, "Posters.mediaFile", ref(Table.MediaFile, "id"))
       .leftJoin(Reencodes, "Reencodes.mediaFile", ref(Table.MediaFile, "id"))
       .orderBy([
         { column: ref(Table.MediaFile, "media"), order: "asc" },
         { column: ref(Table.MediaFile, "uploaded"), order: "desc" },
+        { column: ref(Table.MediaFile, "processVersion"), order: "desc" },
       ])
       .distinctOn(ref(Table.MediaFile, "media"))
       .select(ref(Table.MediaFile), {
         thumbnails: knex.raw("COALESCE(??, '[]'::jsonb)", "Thumbnails.alternates"),
-        posters: knex.raw("COALESCE(??, '[]'::jsonb)", "Posters.alternates"),
         alternatives: knex.raw("COALESCE(??, '[]'::jsonb)", "Reencodes.alternates"),
       })
       .as("CurrentFile");

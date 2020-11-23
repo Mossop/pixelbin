@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 
+import mockConsole from "jest-mock-console";
 import { dir as tmpdir } from "tmp-promise";
 
 import { expect } from "../../test-helpers";
@@ -9,9 +10,12 @@ import { probe, VideoCodec, AudioCodec, Container, encodeVideo } from "./ffmpeg"
 const TEST_VIDEO = path.join(__dirname, "..", "..", "..", "testdata", "video.mp4");
 
 test("probe", async (): Promise<void> => {
+  mockConsole();
+
   let results = await probe(TEST_VIDEO);
   expect(results).toEqual({
     format: {
+      mimetype: "video/mp4;codecs=\"avc1.64002a,mp4a.40.2\"",
       container: "mp4",
       bitRate: 18664868,
       duration: 1.74,
@@ -30,6 +34,8 @@ test("probe", async (): Promise<void> => {
 });
 
 test("h264 encode", async (): Promise<void> => {
+  mockConsole();
+
   let dir = await tmpdir({
     unsafeCleanup: true,
   });
@@ -52,6 +58,7 @@ test("h264 encode", async (): Promise<void> => {
 
     expect(results).toEqual({
       format: {
+        mimetype: "video/mp4;codecs=\"avc1.64002a,mp4a.40.2\"",
         container: "mp4",
         bitRate: expect.toBeBetween(5000000, 7000000),
         duration: expect.anything(),

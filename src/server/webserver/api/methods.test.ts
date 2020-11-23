@@ -1,4 +1,5 @@
 import { CSRF_HEADER } from "../../../model";
+import { expect } from "../../../test-helpers";
 import { insertTestData } from "../../database/test-helpers";
 import { ApiError } from "../error";
 import { buildTestApp, getCsrfToken } from "../test-helpers";
@@ -88,7 +89,7 @@ test("formdata decoding", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual({
-    id: expect.stringMatching(/^C:[a-zA-Z0-9]+/),
+    id: expect.toBeId("C"),
     storage: "s1",
     name: "Good user",
   });

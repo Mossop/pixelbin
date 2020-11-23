@@ -20,8 +20,16 @@ export const StorageMock = {
 
   deleteUploadedFile: jest.fn((): Promise<void> => Promise.resolve()),
 
-  inTransaction<T>(this: Storage, operation: (storage: Storage) => Promise<T>): Promise<T> {
-    return operation(this);
+  rollback: jest.fn(() => Promise.resolve()),
+
+  async inTransaction<T>(this: Storage, operation: (storage: Storage) => Promise<T>): Promise<T> {
+    try {
+      let result = await operation(this);
+      return result;
+    } catch (e) {
+      await this.rollback();
+      throw e;
+    }
   },
 };
 

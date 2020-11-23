@@ -24,6 +24,11 @@ async function startSchedule(): Promise<void> {
   scheduler.schedule("purge", 30000, purge);
 }
 
+async function updateOldMedia(): Promise<void> {
+  let tasks = await Services.taskManager;
+  return tasks.updateOldMedia();
+}
+
 export default async function serve(): Promise<void> {
   initTaskManager();
   initWebserver();
@@ -43,6 +48,7 @@ export default async function serve(): Promise<void> {
   try {
     await reprocessUploads();
     await startSchedule();
+    logger.catch(updateOldMedia());
   } catch (error) {
     logger.error({ error }, "Failed starting initial tasks.");
     quit();

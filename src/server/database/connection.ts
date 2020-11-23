@@ -229,6 +229,7 @@ export class DatabaseConnection {
   public readonly listAlternateFiles = wrapped(Unsafe.listAlternateFiles);
   public readonly deleteAlternateFiles = wrapped(Unsafe.deleteAlternateFiles);
   public readonly getUserForMedia = wrapped(Unsafe.getUserForMedia);
+  public readonly getOldMedia = wrapped(Unsafe.getOldMedia);
 
   public readonly seed = wrapped(seed);
 

@@ -5,6 +5,7 @@ import { ExifDate, ExifDateTime, ExifTime } from "exiftool-vendored";
 import { extension as mimeExtension } from "mime-types";
 import { Magic, MAGIC_MIME_TYPE } from "mmmagic";
 import sharp from "sharp";
+import MIMEType from "whatwg-mimetype";
 
 import type { ObjectModel } from "../../model";
 import type { DateTime } from "../../utils";
@@ -340,6 +341,11 @@ export function parseMetadata(data: StoredData): ObjectModel.Metadata {
   return metadata;
 }
 
+export function baseMimetype(type: string): string {
+  let mimetype = new MIMEType(type);
+  return mimetype.essence;
+}
+
 function detectMimetype(file: string): Promise<string> {
   return new Promise((resolve: (mime: string) => void, reject: (err: Error) => void): void => {
     let magic = new Magic(MAGIC_MIME_TYPE);
@@ -406,7 +412,7 @@ export async function parseFile(file: StoredFile): Promise<StoredData> {
     fileName,
     fileSize: videoInfo.format.size,
     uploaded: file.uploaded,
-    mimetype,
+    mimetype: videoInfo.format.mimetype,
     width: videoInfo.videoStream?.width ?? 0,
     height: videoInfo.videoStream?.height ?? 0,
     duration: videoInfo.format.duration,

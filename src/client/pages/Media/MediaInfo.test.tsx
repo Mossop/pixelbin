@@ -75,7 +75,6 @@ test("Mediainfo", async (): Promise<void> => {
       uploaded: created,
       originalUrl: "http://localhost/original.jpg",
       thumbnails: [],
-      posters: [],
       alternatives: [],
     },
     id: "foo",
