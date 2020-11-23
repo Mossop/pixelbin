@@ -622,3 +622,23 @@ test("Media tests", async (): Promise<void> => {
     user1Db.listAlternateFiles(id, AlternateFileType.Thumbnail),
   ).rejects.toThrow("Unknown Media.");
 });
+
+test("getMedia", async (): Promise<void> => {
+  let dbConnection = await connection;
+  let user3Db = dbConnection.forUser("someone3@nowhere.com");
+
+  let newMedia: Tables.MediaView[] = [];
+  for (let i = 0; i < 100; i++) {
+    newMedia.push(await user3Db.createMedia("c3", emptyMetadata));
+  }
+
+  let ids = newMedia.map((media: Tables.MediaView): string => media.id);
+  let results = (await user3Db.getMedia(ids))
+    .map((media: Tables.MediaView | null): string | undefined => media?.id);
+  expect(results).toEqual(ids);
+
+  ids.sort();
+  results = (await user3Db.getMedia(ids))
+    .map((media: Tables.MediaView | null): string | undefined => media?.id);
+  expect(results).toEqual(ids);
+});

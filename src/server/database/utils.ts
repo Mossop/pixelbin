@@ -38,35 +38,28 @@ export function asTable(
     );
   }
 
+  let valueBinding = (_: unknown, i: number): string => {
+    if (index) {
+      return `(?, ${i}::integer)`;
+    }
+    return "(?)";
+  };
+
+  let bindings = [
+    ...values,
+    table,
+    column,
+  ];
+
+  let sql: string;
   if (index) {
-    let elements: string[] = [];
-    let bindings: Knex.Value[] = [];
-
-    values.forEach((value: Knex.Value, index: number) => {
-      elements.push("(?, ?)");
-      bindings.push(index);
-      bindings.push(value);
-    });
-
-    return knex.raw(
-      `(VALUES ${elements}) AS ?? (??, ??)`,
-      [
-        ...bindings,
-        table,
-        index,
-        column,
-      ],
-    );
+    bindings.push(index);
+    sql = `(VALUES ${values.map(valueBinding).join(", ")}) AS ?? (??, ??)`;
+  } else {
+    sql = `(VALUES ${values.map(valueBinding).join(", ")}) AS ?? (??)`;
   }
 
-  return knex.raw(
-    `(VALUES ${values.map((): string => "(?)").join(", ")}) AS ?? (??)`,
-    [
-      ...values,
-      table,
-      column,
-    ],
-  );
+  return knex.raw(sql, bindings);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
