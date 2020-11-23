@@ -78,14 +78,49 @@ function joined(inner: MetadataParser<string[]>): MetadataParser<string> {
   };
 }
 
-function float(inner: MetadataParser<string>): MetadataParser<number> {
+function integer(inner: MetadataParser<unknown>): MetadataParser<number> {
   return (data: StoredData): number | null => {
-    let str = inner(data);
-    if (!str) {
+    let val = inner(data);
+    if (!val) {
       return null;
     }
 
-    return parseFloat(str);
+    if (typeof val == "number") {
+      return val;
+    }
+
+    if (typeof val != "string") {
+      return null;
+    }
+
+    let value = parseInt(val);
+    if (Number.isNaN(value)) {
+      return null;
+    }
+    return value;
+  };
+}
+
+function float(inner: MetadataParser<unknown>): MetadataParser<number> {
+  return (data: StoredData): number | null => {
+    let val = inner(data);
+    if (!val) {
+      return null;
+    }
+
+    if (typeof val == "number") {
+      return val;
+    }
+
+    if (typeof val != "string") {
+      return null;
+    }
+
+    let value = parseFloat(val);
+    if (Number.isNaN(value)) {
+      return null;
+    }
+    return value;
   };
 }
 
@@ -231,9 +266,9 @@ const parsers: MetadataParsers = {
   category: [straight("Category")],
   taken: [takenParser],
   takenZone: [],
-  longitude: [straight("GPSLongitude")],
-  latitude: [straight("GPSLatitude")],
-  altitude: [straight("GPSAltitude")],
+  longitude: [float(straight("GPSLongitude"))],
+  latitude: [float(straight("GPSLatitude"))],
+  altitude: [float(straight("GPSAltitude"))],
   location: [
     straight("Location"),
     straight("Sub-location"),
@@ -249,7 +284,7 @@ const parsers: MetadataParsers = {
   ],
   orientation: [
     ignoreVideos,
-    straight("Orientation"),
+    integer(straight("Orientation")),
     rotationParser,
   ],
   make: [
@@ -270,17 +305,17 @@ const parsers: MetadataParsers = {
     straight("By-line"),
   ],
   aperture: [
-    straight("FNumber"),
-    straight("ApertureValue"),
+    float(straight("FNumber")),
+    float(straight("ApertureValue")),
   ],
   shutterSpeed: [
     straight("ExposureTime"),
     straight("ShutterSpeed"),
     straight("ShutterSpeedValue"),
   ],
-  iso: [straight("ISO")],
+  iso: [float(straight("ISO"))],
   focalLength: [float(straight("FocalLength"))],
-  rating: [ratingParser],
+  rating: [float(ratingParser)],
 };
 
 export function parseMetadata(data: StoredData): ObjectModel.Metadata {

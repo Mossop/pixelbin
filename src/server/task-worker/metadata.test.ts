@@ -146,6 +146,73 @@ test("iptc", async (): Promise<void> => {
   });
 });
 
+test("rotated", async (): Promise<void> => {
+  let uploaded = parseDateTime("2010-06-03T12:30:23Z");
+  let data = await parseFile({
+    catalog: "foo",
+    media: "bar",
+    name: "rotated.jpg",
+    uploaded,
+    path: path.join(__dirname, "..", "..", "..", "testdata", "rotated.jpg"),
+  });
+  // This field is problematic and not important.
+  delete data.exif.TimeCreated;
+
+  expect(data).toMatchSnapshot({
+    fileName: "rotated.jpg",
+    fileSize: 83275,
+    uploaded: expect.toEqualDate(uploaded),
+    width: 200,
+    height: 300,
+    mimetype: "image/jpeg",
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+  }, "rotated-tags");
+
+  let metadata = parseMetadata(data);
+  expect(metadata).toEqual({
+    filename: "rotated.jpg",
+    title: null,
+    description: null,
+    category: null,
+    label: null,
+    taken: expect.toEqualDate("2017-07-04T09:29:49.660-08:00"),
+    takenZone: null,
+    longitude: -111.772536111667,
+    latitude: 40.3928666666667,
+    altitude: 1451.8272,
+    location: null,
+    city: "American Fork",
+    state: "Utah",
+    country: "USA",
+    orientation: null,
+    make: "Canon",
+    model: "Canon EOS REBEL T3i",
+    lens: null,
+    photographer: null,
+    aperture: 5,
+    shutterSpeed: "1/80",
+    iso: 100,
+    focalLength: 42,
+    rating: 4,
+  });
+  expect(metadata.taken?.hour).toBe(9);
+
+  let info = getMediaFile(data);
+  expect(info).toEqual({
+    uploaded: expect.toEqualDate(uploaded),
+    mimetype: "image/jpeg",
+    fileName: "rotated.jpg",
+    width: 200,
+    height: 300,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+    fileSize: 83275,
+  });
+});
+
 test("video", async (): Promise<void> => {
   let uploaded = parseDateTime("2010-01-03T09:30:23Z");
   let data = await parseFile({
