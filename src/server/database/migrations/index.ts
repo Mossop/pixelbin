@@ -59,6 +59,7 @@ export default class PixelbinMigrationSource implements MigrationSource<Pixelbin
       this._migrations = [
         new ModuleMigration("./base"),
         new InnerModuleMigration("./incremental", "takenZone"),
+        new InnerModuleMigration("./incremental", "jsonb"),
       ];
     }
 

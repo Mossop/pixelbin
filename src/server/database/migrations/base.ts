@@ -72,7 +72,7 @@ function foreignId<T extends Table, C extends keyof TableRecord<T>>(
     .onUpdate("CASCADE");
 }
 
-function buildMediaView(knex: Knex): Knex.QueryBuilder {
+export function buildMediaView(knex: Knex): Knex.QueryBuilder {
   let mappings = {
     id: ref(Table.MediaInfo, "id"),
     catalog: ref(Table.MediaInfo, "catalog"),
@@ -197,7 +197,7 @@ function buildUserCatalogView(knex: Knex): Knex.QueryBuilder {
   return owns.union(shares);
 }
 
-exports.up = async function(knex: Knex): Promise<void> {
+export async function up(knex: Knex): Promise<void> {
   function addMetadata(table: Knex.CreateTableBuilder): void {
     for (let name of [
       "filename",
@@ -482,13 +482,13 @@ exports.up = async function(knex: Knex): Promise<void> {
     Table.UserCatalog,
     buildUserCatalogView(knex),
   ]).toString());
-};
+}
 
 /**
  * @param {Knex} knex
  * @return {Knex.SchemaBuilder}
  */
-exports.down = async function(knex: Knex): Promise<void> {
+export async function down(knex: Knex): Promise<void> {
   await knex.schema
     .raw(knex.raw("DROP VIEW ??", [Table.MediaView]).toString())
     .raw(knex.raw("DROP VIEW ??", [Table.UserCatalog]).toString())
@@ -505,4 +505,4 @@ exports.down = async function(knex: Knex): Promise<void> {
     .dropTable(Table.Person)
     .dropTable(Table.Catalog)
     .dropTable(Table.User);
-};
+}
