@@ -659,7 +659,7 @@ test("Media resources", async (): Promise<void> => {
     frameRate: null,
   });
 
-  await db.addAlternateFile(mediaFile.id, {
+  let thumb = await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb3.jpg",
     fileSize: 0,
@@ -691,17 +691,17 @@ test("Media resources", async (): Promise<void> => {
     ) => Promise.resolve(`http://original.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
-    .get(`/media/original/${media.id}/${mediaFile.id}`)
+    .get(`/media/${media.id}/${mediaFile.id}`)
     .expect("Location", `http://original.foo/${media.id}/${mediaFile.id}/foo.jpg/image/jpeg`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
 
   await request
-    .get(`/media/poster/${media.id}/${mediaFile.id}`)
+    .get(`/media/${media.id}/${mediaFile.id}/unknown`)
     .expect(404);
 
-  await db.addAlternateFile(mediaFile.id, {
+  let poster = await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Poster,
     fileName: "poster.jpg",
     fileSize: 0,
@@ -722,22 +722,18 @@ test("Media resources", async (): Promise<void> => {
     ) => Promise.resolve(`http://poster.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
-    .get(`/media/poster/${media.id}/${mediaFile.id}`)
+    .get(`/media/${media.id}/${mediaFile.id}/${poster.id}`)
     .expect("Location", `http://poster.foo/${media.id}/${mediaFile.id}/poster.jpg/image/jpeg`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
 
   await request
-    .get("/media/thumbnail/foo/bar/200")
+    .get("/media/foo/bar/baz")
     .expect(404);
 
   await request
-    .get("/media/poster/foo/bar")
-    .expect(404);
-
-  await request
-    .get("/media/original/foo/bar")
+    .get("/media/foo/bar")
     .expect(404);
 
   getFileUrl.mockImplementation(
@@ -749,44 +745,9 @@ test("Media resources", async (): Promise<void> => {
     ) => Promise.resolve(`http://thumbnail.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
-    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/200`)
-    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb1.jpg/image/jpeg`)
-    .expect(302);
-
-  await request
-    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/150`)
-    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb2.jpg/image/jpeg`)
-    .expect(302);
-
-  await request
-    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/300`)
-    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb2.jpg/image/jpeg`)
-    .expect(302);
-
-  await request
-    .get(`/media/thumbnail/${media.id}/${mediaFile.id}/350`)
+    .get(`/media/${media.id}/${mediaFile.id}/${thumb.id}`)
     .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb3.jpg/image/jpeg`)
     .expect(302);
-
-  await request
-    .get(`/media/thumbnail/${media.id}/other/200`)
-    .expect("Location", `/media/thumbnail/${media.id}/${mediaFile.id}/200`)
-    .expect(301);
-
-  await request
-    .get(`/media/thumbnail/${media.id}/other`)
-    .expect("Location", `/media/thumbnail/${media.id}/${mediaFile.id}`)
-    .expect(301);
-
-  await request
-    .get(`/media/original/${media.id}/other`)
-    .expect("Location", `/media/original/${media.id}/${mediaFile.id}`)
-    .expect(301);
-
-  await request
-    .get(`/media/poster/${media.id}/other`)
-    .expect("Location", `/media/poster/${media.id}/${mediaFile.id}`)
-    .expect(301);
 });
 
 test("Get media", async (): Promise<void> => {
@@ -822,7 +783,7 @@ test("Get media", async (): Promise<void> => {
     ) => mediaFile,
   );
 
-  await db.addAlternateFile(mediaFileId, {
+  let poster = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Poster,
     fileName: "poster.jpg",
     fileSize: 1,
@@ -834,7 +795,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(mediaFileId, {
+  let thumb1 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb1.jpg",
     fileSize: 1,
@@ -846,7 +807,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(mediaFileId, {
+  let thumb2 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Thumbnail,
     fileName: "thumb2.jpg",
     fileSize: 1,
@@ -858,7 +819,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(mediaFileId, {
+  let encode1 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Reencode,
     fileName: "enc1.mp4",
     fileSize: 1,
@@ -870,7 +831,7 @@ test("Get media", async (): Promise<void> => {
     bitRate: null,
   });
 
-  await db.addAlternateFile(mediaFileId, {
+  let encode2 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Reencode,
     fileName: "enc2.ogg",
     fileSize: 1,
@@ -930,9 +891,7 @@ test("Get media", async (): Promise<void> => {
     updated: expect.toEqualDate(updatedDT2),
     file: {
       id: mediaFileId,
-      thumbnailUrl: `/media/thumbnail/${id2}/${mediaFileId}`,
-      originalUrl: `/media/original/${id2}/${mediaFileId}`,
-      posterUrl: `/media/poster/${id2}/${mediaFileId}`,
+      originalUrl: `/media/${id2}/${mediaFileId}`,
 
       fileSize: 1,
       width: 1,
@@ -942,6 +901,59 @@ test("Get media", async (): Promise<void> => {
       frameRate: 0,
       bitRate: 0,
       uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
+      thumbnails: [{
+        id: thumb1.id,
+        url: `/media/${id2}/${mediaFileId}/${thumb1.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }, {
+        id: thumb2.id,
+        url: `/media/${id2}/${mediaFileId}/${thumb2.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      posters: [{
+        id: poster.id,
+        url: `/media/${id2}/${mediaFileId}/${poster.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      alternatives: [{
+        id: encode1.id,
+        url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "video/mp4",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }, {
+        id: encode2.id,
+        url: `/media/${id2}/${mediaFileId}/${encode2.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "video/ogg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
     },
 
     albums: [],
@@ -978,9 +990,60 @@ test("Get media", async (): Promise<void> => {
 
     file: {
       id: mediaFileId,
-      thumbnailUrl: `/media/thumbnail/${id2}/${mediaFileId}`,
-      originalUrl: `/media/original/${id2}/${mediaFileId}`,
-      posterUrl: `/media/poster/${id2}/${mediaFileId}`,
+      originalUrl: `/media/${id2}/${mediaFileId}`,
+      thumbnails: [{
+        id: thumb1.id,
+        url: `/media/${id2}/${mediaFileId}/${thumb1.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }, {
+        id: thumb2.id,
+        url: `/media/${id2}/${mediaFileId}/${thumb2.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      posters: [{
+        id: poster.id,
+        url: `/media/${id2}/${mediaFileId}/${poster.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      alternatives: [{
+        id: encode1.id,
+        url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "video/mp4",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }, {
+        id: encode2.id,
+        url: `/media/${id2}/${mediaFileId}/${encode2.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "video/ogg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
 
       fileSize: 1,
       width: 1,
@@ -1015,9 +1078,60 @@ test("Get media", async (): Promise<void> => {
 
     file: {
       id: mediaFileId,
-      thumbnailUrl: `/media/thumbnail/${id2}/${mediaFileId}`,
-      originalUrl: `/media/original/${id2}/${mediaFileId}`,
-      posterUrl: `/media/poster/${id2}/${mediaFileId}`,
+      originalUrl: `/media/${id2}/${mediaFileId}`,
+      thumbnails: [{
+        id: thumb1.id,
+        url: `/media/${id2}/${mediaFileId}/${thumb1.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }, {
+        id: thumb2.id,
+        url: `/media/${id2}/${mediaFileId}/${thumb2.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      posters: [{
+        id: poster.id,
+        url: `/media/${id2}/${mediaFileId}/${poster.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "image/jpg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      alternatives: [{
+        id: encode1.id,
+        url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "video/mp4",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }, {
+        id: encode2.id,
+        url: `/media/${id2}/${mediaFileId}/${encode2.id}`,
+        fileSize: 1,
+        width: 1,
+        height: 1,
+        mimetype: "video/ogg",
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
 
       fileSize: 1,
       width: 1,

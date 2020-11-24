@@ -71,12 +71,18 @@ export async function addAlternateFile(
   this: DatabaseConnection,
   mediaFile: Tables.MediaFile["id"],
   data: Omit<Tables.AlternateFile, "id" | "mediaFile">,
-): Promise<void> {
-  await into(this.knex, Table.AlternateFile).insert({
+): Promise<Tables.AlternateFile> {
+  let results = await into(this.knex, Table.AlternateFile).insert({
     ...intoDBTypes(data),
     id: await uuid("F"),
     mediaFile,
-  });
+  }).returning("*");
+
+  if (results.length) {
+    return results[0];
+  }
+
+  throw new Error("Failed creating AlternateFile.");
 }
 
 export async function getStorageConfig(

@@ -1,5 +1,6 @@
 import type { default as Knex, Migration } from "knex";
 
+import { AlternateFileType } from "../../../model";
 import { ref } from "../types";
 import { buildMediaView } from "./base";
 
@@ -182,7 +183,7 @@ export const takenZone: Migration = {
   },
 };
 
-export const jsonb: Migration = {
+export const alternates: Migration = {
   up: async function(knex: Knex): Promise<void> {
     // Fixed for this migration.
     enum Table {
@@ -256,6 +257,9 @@ export const jsonb: Migration = {
         ??,
         ??,
         ??,
+        ??,
+        ??,
+        ??,
         ??
       ) AS _)
       END`, [
@@ -271,6 +275,9 @@ export const jsonb: Migration = {
         "CurrentFile.duration",
         "CurrentFile.frameRate",
         "CurrentFile.bitRate",
+        "CurrentFile.thumbnails",
+        "CurrentFile.posters",
+        "CurrentFile.alternatives",
       ]),
       albums: knex.raw("COALESCE(??, '[]'::jsonb)", ["AlbumList.albums"]),
       people: knex.raw("COALESCE(??, '[]'::jsonb)", ["PersonList.people"]),
@@ -292,12 +299,59 @@ export const jsonb: Migration = {
       }
     }
 
+    let Alternatives = knex(Table.AlternateFile)
+      .select({
+        mediaFile: "mediaFile",
+        type: "type",
+        alternates: knex.raw(`jsonb_agg(
+          (SELECT to_jsonb(_) FROM (SELECT ??, ??, ??, ??, ??, ??, ??, ??, ??) AS _)
+        )`, [
+          "id",
+          "fileName",
+          "fileSize",
+          "mimetype",
+          "width",
+          "height",
+          "duration",
+          "frameRate",
+          "bitRate",
+        ]),
+      })
+      .groupBy("mediaFile", "type")
+      .as("Alternative");
+
+    let Thumbnails = knex.from(Alternatives)
+      .where({
+        type: AlternateFileType.Thumbnail,
+      })
+      .as("Thumbnails");
+
+    let Posters = knex.from(Alternatives)
+      .where({
+        type: AlternateFileType.Poster,
+      })
+      .as("Posters");
+
+    let Reencodes = knex.from(Alternatives)
+      .where({
+        type: AlternateFileType.Reencode,
+      })
+      .as("Reencodes");
+
     let CurrentFiles = knex(Table.MediaFile)
+      .leftJoin(Thumbnails, "Thumbnails.mediaFile", ref(Table.MediaFile, "id"))
+      .leftJoin(Posters, "Posters.mediaFile", ref(Table.MediaFile, "id"))
+      .leftJoin(Reencodes, "Reencodes.mediaFile", ref(Table.MediaFile, "id"))
       .orderBy([
         { column: ref(Table.MediaFile, "media"), order: "asc" },
         { column: ref(Table.MediaFile, "uploaded"), order: "desc" },
       ])
       .distinctOn(ref(Table.MediaFile, "media"))
+      .select(ref(Table.MediaFile), {
+        thumbnails: knex.raw("COALESCE(??, '[]'::jsonb)", "Thumbnails.alternates"),
+        posters: knex.raw("COALESCE(??, '[]'::jsonb)", "Posters.alternates"),
+        alternatives: knex.raw("COALESCE(??, '[]'::jsonb)", "Reencodes.alternates"),
+      })
       .as("CurrentFile");
 
     let tags = knex(Table.MediaTag)

@@ -164,6 +164,9 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
+      thumbnails: [],
+      posters: [],
+      alternatives: [],
     },
 
     albums: [],
@@ -205,6 +208,9 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
+      thumbnails: [],
+      posters: [],
+      alternatives: [],
     },
 
     albums: [],
@@ -244,6 +250,9 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
+      thumbnails: [],
+      posters: [],
+      alternatives: [],
     },
 
     albums: [],
@@ -283,6 +292,9 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
+      thumbnails: [],
+      posters: [],
+      alternatives: [],
     },
 
     albums: [],
@@ -354,6 +366,9 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 2000,
       fileName: "bar.jpg",
+      thumbnails: [],
+      posters: [],
+      alternatives: [],
     },
 
     albums: [],
@@ -426,6 +441,8 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     bitRate: null,
   }]);
+  let jpgId = list[0].id;
+  let webpId = list[1].id;
 
   list = await user3Db.listAlternateFiles(id, AlternateFileType.Poster);
   list.sort(
@@ -440,6 +457,75 @@ test("Media tests", async (): Promise<void> => {
     mimetype: "image/jpeg",
     width: 200,
     height: 100,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  }]);
+  let posterId = list[0].id;
+
+  [foundMedia] = await user3Db.getMedia([id]);
+  expect(foundMedia).toEqual({
+    ...emptyMetadata,
+    id: id,
+    catalog: "c3",
+    created: expect.toEqualDate(createdDT),
+    updated: expect.toEqualDate(uploaded2DT),
+
+    title: "Different title", // OriginalInfo set
+    model: "Some model", // OriginalInfo set
+    city: "Portland", // Media set
+    taken: expect.toEqualDate("2019-03-05T08:23:12"), // Media set
+    takenZone: null,
+
+    file: {
+      id: info.id,
+      processVersion: 7,
+      uploaded: expect.toEqualDate(uploaded2DT),
+      mimetype: "image/jpeg",
+      width: 2048,
+      height: 1024,
+      duration: null,
+      bitRate: null,
+      frameRate: null,
+      fileSize: 2000,
+      fileName: "bar.jpg",
+      thumbnails: expect.anything(),
+      posters: [{
+        id: posterId,
+        fileName: "poster.jpg",
+        fileSize: 300,
+        mimetype: "image/jpeg",
+        width: 200,
+        height: 100,
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      alternatives: [],
+    },
+
+    albums: [],
+    tags: [],
+    people: [],
+  });
+
+  expect(foundMedia?.file?.thumbnails).toInclude([{
+    id: jpgId,
+    fileName: "thumb.jpg",
+    fileSize: 400,
+    mimetype: "image/jpeg",
+    width: 500,
+    height: 300,
+    duration: null,
+    frameRate: null,
+    bitRate: null,
+  }, {
+    id: webpId,
+    fileName: "thumb.webp",
+    fileSize: 200,
+    mimetype: "image/webp",
+    width: 600,
+    height: 300,
     duration: null,
     frameRate: null,
     bitRate: null,
@@ -537,6 +623,19 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 2000,
       fileName: "bar.jpg",
+      thumbnails: expect.anything(),
+      posters: [{
+        id: posterId,
+        fileName: "poster.jpg",
+        fileSize: 300,
+        mimetype: "image/jpeg",
+        width: 200,
+        height: 100,
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      alternatives: [],
     },
 
     albums: [{
@@ -581,6 +680,19 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 2000,
       fileName: "bar.jpg",
+      thumbnails: expect.anything(),
+      posters: [{
+        id: posterId,
+        fileName: "poster.jpg",
+        fileSize: 300,
+        mimetype: "image/jpeg",
+        width: 200,
+        height: 100,
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      }],
+      alternatives: [],
     },
 
     albums: [],

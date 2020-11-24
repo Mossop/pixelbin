@@ -6,7 +6,8 @@ import { makeStyles, createStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
 import React, { useCallback, useState } from "react";
 
-import { getThumbnailUrl } from "../api/media";
+import type { Api } from "../../model";
+import { sorted } from "../../utils";
 import type { MediaState, ProcessedMediaState } from "../api/types";
 import { isProcessedMedia } from "../api/types";
 import type { ReactResult } from "../utils/types";
@@ -71,13 +72,23 @@ export function Photo({
 }: MediaDisplayProps): ReactResult {
   let classes = useStyles();
 
+  let alternates = sorted(media.file.alternatives, "fileSize", (a: number, b: number) => a - b);
   return <React.Fragment>
-    <img
-      id="media-original"
-      key={media.id}
-      src={media.file.originalUrl}
-      className={classes.media}
-    />
+    <picture>
+      {
+        alternates.map((alternate: Api.Alternate) => <source
+          key={alternate.url}
+          src={alternate.url}
+          type={alternate.mimetype}
+        />)
+      }
+      <img
+        id="media-original"
+        key={media.id}
+        src={media.file.originalUrl}
+        className={classes.media}
+      />
+    </picture>
     <HoverArea>
       <div
         id="media-controls"
@@ -95,14 +106,22 @@ export function Video({
 }: MediaDisplayProps): ReactResult {
   let classes = useStyles();
 
+  let alternates = sorted(media.file.alternatives, "fileSize", (a: number, b: number) => a - b);
   return <React.Fragment>
     <video
       id="media-original"
       key={media.id}
-      poster={media.file.posterUrl ?? undefined}
+      poster={media.file.posters.length ? media.file.posters[0].url : undefined}
       controls={false}
       className={classes.media}
     >
+      {
+        alternates.map((alternate: Api.Alternate) => <source
+          key={alternate.url}
+          src={alternate.url}
+          type={alternate.mimetype}
+        />)
+      }
       <source src={media.file.originalUrl} type={media.file.mimetype}/>
     </video>
     <HoverArea>
@@ -125,17 +144,47 @@ function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
   let classes = usePreviewStyles({ thumbnailSize: size });
   let [loaded, setLoaded] = useState(false);
 
-  let ratios = [1.5, 2];
-  let normal = getThumbnailUrl(media, size);
-  let sizes = [normal];
-  for (let ratio of ratios) {
-    sizes.push(`${getThumbnailUrl(media, Math.round(size * ratio))} ${ratio}x`);
+  let typedSrcs: Map<string, string[]> = new Map();
+  let normalSrcs: string[] = [];
+
+  let thumbs = sorted(media.file.thumbnails, "width", (a: number, b: number) => a - b);
+
+  for (let thumb of thumbs) {
+    if (thumb.mimetype == "image/jpeg") {
+      normalSrcs.push(`${thumb.url} ${thumb.width}w`);
+    } else {
+      let srcs = typedSrcs.get(thumb.mimetype);
+      if (srcs === undefined) {
+        srcs = [];
+        typedSrcs.set(thumb.mimetype, srcs);
+      }
+      srcs.push(`${thumb.url} ${thumb.width}w`);
+    }
   }
 
   let onload = useCallback(() => setLoaded(true), []);
+  if (media.file.width < media.file.height) {
+    size = size * media.file.width / media.file.height;
+  }
 
+  let sources = [...typedSrcs.entries()];
   return <Fade in={loaded}>
-    <img onLoad={onload} srcSet={sizes.join(", ")} className={classes.thumbnail} src={normal}/>
+    <picture>
+      {
+        sources.map(([type, srcs]: [string, string[]]) => <source
+          key={type}
+          sizes={`${size}px`}
+          srcSet={srcs.join(", ")}
+          type={type}
+        />)
+      }
+      <img
+        onLoad={onload}
+        sizes={`${size}px`}
+        srcSet={normalSrcs.join(", ")}
+        className={classes.thumbnail}
+      />
+    </picture>
   </Fade>;
 }
 

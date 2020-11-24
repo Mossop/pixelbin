@@ -46,10 +46,15 @@ export type MediaPerson = ObjectModel.MediaPerson & {
   person: Person["id"];
 };
 
+export type Alternate = Omit<ObjectModel.AlternateFile, "type"> & {
+  url: string;
+};
+
 export type MediaFile = Omit<ObjectModel.MediaFile, "processVersion"> & {
-  thumbnailUrl: string;
   originalUrl: string;
-  posterUrl: string | null;
+  posters: Alternate[];
+  thumbnails: Alternate[],
+  alternatives: Alternate[],
 };
 
 export type Media = Overwrite<ObjectModel.Media, {

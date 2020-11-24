@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import path from "path";
 
 import { expect as jestExpect } from "@jest/globals";
+import { equals } from "expect/build/jasmineUtils";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
 import { DateTime as Luxon } from "luxon";
 
@@ -38,11 +39,16 @@ export function waitFor(
 }
 
 export function expectMessage(
-  context: jest.MatcherContext,
+  context: jest.MatcherContext | undefined,
   term: string,
   expected: unknown,
   received: unknown,
 ): () => string {
+  // Asymmetric matcher
+  if (!context) {
+    return () => term;
+  }
+
   return (): string => {
     return [
       context.utils.matcherHint(term, undefined, undefined, {
@@ -104,7 +110,7 @@ const matchers = {
   },
 
   toInclude(
-    this: jest.MatcherContext,
+    this: jest.MatcherContext | undefined,
     received: unknown[],
     expected: unknown[],
   ): jest.CustomMatcherResult {
@@ -118,7 +124,7 @@ const matchers = {
       pass = false;
       let ePos = 0;
       while (!pass && ePos < remaining.length) {
-        if (this.equals(received[rPos], remaining[ePos])) {
+        if (equals(received[rPos], remaining[ePos])) {
           remaining.splice(ePos, 1);
           pass = true;
         }

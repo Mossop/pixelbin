@@ -21,6 +21,6 @@ export async function getMedia(ids: string[]): Promise<(Draft<MediaState> | null
   });
 }
 
-export function getThumbnailUrl(media: ProcessedMediaState, size: number): string {
-  return `${media.file.thumbnailUrl}/${size}`;
+export function getThumbnailUrl(media: ProcessedMediaState): string {
+  return `${media.file.thumbnails[0]?.url}`;
 }

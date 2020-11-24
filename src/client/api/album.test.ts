@@ -231,9 +231,10 @@ test("List album", async (): Promise<void> => {
       width: 1024,
       height: 768,
       mimetype: "image/jpeg",
-      thumbnailUrl: expect.stringMatching(/^http:\/\/localhost\/media\/thumbnail\/testmedia2\//),
+      thumbnails: [],
       originalUrl: expect.stringMatching(/^http:\/\/localhost\/media\/original\/testmedia2\//),
-      posterUrl: null,
+      posters: [],
+      alternatives: [],
     },
 
     albums: [{

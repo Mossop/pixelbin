@@ -3,16 +3,12 @@ import { promises as fs } from "fs";
 import type {
   Api,
   ApiSerialization,
+  ObjectModel,
   Requests,
 } from "../../../model";
-import {
-  AlternateFileType,
-  ErrorCode,
-  RelationType,
-  emptyMetadata,
-} from "../../../model";
-import { chooseSize, isoDateTime } from "../../../utils";
-import type { MediaPerson, MediaView, UserScopedConnection } from "../../database";
+import { ErrorCode, RelationType, emptyMetadata } from "../../../model";
+import { isoDateTime } from "../../../utils";
+import type { AlternateFile, MediaPerson, MediaView, UserScopedConnection } from "../../database";
 import { deleteFields } from "../../database/utils";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import type { AppContext } from "../context";
@@ -20,10 +16,27 @@ import { ApiError } from "../error";
 import { APP_PATHS } from "../paths";
 import type { DeBlobbed } from "./decoders";
 
+type DBAlternative = Omit<ObjectModel.AlternateFile, "type"> & {
+  fileName: string;
+};
+
 export function buildResponseMedia(
   media: MediaView,
 ): ApiSerialization<Api.Media> {
   if (media.file) {
+    let mediaFile = media.file;
+    const mapAlternative = (alt: DBAlternative): Api.Alternate => {
+      let {
+        fileName,
+        ...fileInfo
+      } = alt;
+
+      return {
+        ...fileInfo,
+        url: `${APP_PATHS.root}media/${media.id}/${mediaFile.id}/${alt.id}`,
+      };
+    };
+
     return {
       ...media,
 
@@ -37,11 +50,11 @@ export function buildResponseMedia(
           "fileName",
         ]),
 
-        thumbnailUrl: `${APP_PATHS.root}media/thumbnail/${media.id}/${media.file.id}`,
-        originalUrl: `${APP_PATHS.root}media/original/${media.id}/${media.file.id}`,
-        posterUrl: media.file.mimetype.startsWith("video/")
-          ? `${APP_PATHS.root}media/poster/${media.id}/${media.file.id}`
-          : null,
+        thumbnails: media.file.thumbnails.map(mapAlternative),
+        alternatives: media.file.alternatives.map(mapAlternative),
+        posters: media.file.posters.map(mapAlternative),
+
+        originalUrl: `${APP_PATHS.root}media/${media.id}/${media.file.id}`,
       },
     };
   }
@@ -309,13 +322,13 @@ export const updateMedia = ensureAuthenticated(
   },
 );
 
-export const thumbnail = ensureAuthenticated(
+export const alternate = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
     id: string,
     mediaFile: string,
-    size?: string,
+    alternateId: string,
   ): Promise<void> => {
     let [media] = await userDb.getMedia([id]);
 
@@ -332,40 +345,43 @@ export const thumbnail = ensureAuthenticated(
     }
 
     if (mediaFile != media.file.id) {
-      ctx.status = 301;
-      if (size !== undefined) {
-        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.file.id}/${size}`);
-      } else {
-        ctx.redirect(`${APP_PATHS.root}media/thumbnail/${id}/${media.file.id}`);
-      }
-      return;
+      throw new ApiError(ErrorCode.NotFound, {
+        message: "Invalid media file.",
+      });
     }
 
-    let parsedSize = size ? parseInt(size) : 150;
-
-    let source = chooseSize(
-      await userDb.listAlternateFiles(media.id, AlternateFileType.Thumbnail),
-      parsedSize,
+    let alternate = media.file.thumbnails.find(
+      (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,
     );
+    if (!alternate) {
+      alternate = media.file.posters.find(
+        (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,
+      );
+    }
+    if (!alternate) {
+      alternate = media.file.alternatives.find(
+        (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,
+      );
+    }
 
-    if (!source) {
+    if (!alternate) {
       throw new ApiError(ErrorCode.NotFound, {
-        message: "Media not yet processed.",
+        message: "Unknown alternate.",
       });
     }
 
     let storage = await ctx.storage.getStorage(media.catalog);
     try {
-      let thumbUrl = await storage.get().getFileUrl(
+      let fileUrl = await storage.get().getFileUrl(
         media.id,
-        source.mediaFile,
-        source.fileName,
-        source.mimetype,
+        mediaFile,
+        alternate.fileName,
+        alternate.mimetype,
       );
 
       ctx.status = 302;
       ctx.set("Cache-Control", "max-age=1314000,immutable");
-      ctx.redirect(thumbUrl);
+      ctx.redirect(fileUrl);
     } finally {
       storage.release();
     }
@@ -412,59 +428,6 @@ export const original = ensureAuthenticated(
       ctx.status = 302;
       ctx.set("Cache-Control", "max-age=1314000,immutable");
       ctx.redirect(originalUrl);
-    } finally {
-      storage.release();
-    }
-  },
-  false,
-);
-
-export const poster = ensureAuthenticated(
-  async (
-    ctx: AppContext,
-    userDb: UserScopedConnection,
-    id: string,
-    mediaFile: string,
-  ): Promise<void> => {
-    let [media] = await userDb.getMedia([id]);
-
-    if (!media) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Media does not exist.",
-      });
-    }
-
-    if (!media.file) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Media not yet processed.",
-      });
-    }
-
-    if (mediaFile != media.file.id) {
-      ctx.status = 301;
-      ctx.redirect(`${APP_PATHS.root}media/poster/${id}/${media.file.id}`);
-      return;
-    }
-
-    let posters = await userDb.listAlternateFiles(media.id, AlternateFileType.Poster);
-    if (!posters.length) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "No poster image for this media.",
-      });
-    }
-
-    let storage = await ctx.storage.getStorage(media.catalog);
-    try {
-      let posterUrl = await storage.get().getFileUrl(
-        media.id,
-        media.file.id,
-        posters[0].fileName,
-        posters[0].mimetype,
-      );
-
-      ctx.status = 302;
-      ctx.set("Cache-Control", "max-age=1314000,immutable");
-      ctx.redirect(posterUrl);
     } finally {
       storage.release();
     }

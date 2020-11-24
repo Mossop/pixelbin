@@ -129,11 +129,21 @@ export const StateDecoder = JsonDecoder.object<Api.State>(
   "State",
 );
 
+const AlternateDecoder = JsonDecoder.object<Api.Alternate>({
+  id: JsonDecoder.string,
+  url: JsonDecoder.string,
+  height: JsonDecoder.number,
+  width: JsonDecoder.number,
+  fileSize: JsonDecoder.number,
+  mimetype: JsonDecoder.string,
+  duration: JsonDecoder.nullable(JsonDecoder.number),
+  bitRate: JsonDecoder.nullable(JsonDecoder.number),
+  frameRate: JsonDecoder.nullable(JsonDecoder.number),
+}, "Alternate");
+
 const MediaFileDecoder = JsonDecoder.object<Api.MediaFile>({
   id: JsonDecoder.string,
-  thumbnailUrl: JsonDecoder.string,
   originalUrl: JsonDecoder.string,
-  posterUrl: JsonDecoder.nullable(JsonDecoder.string),
   height: JsonDecoder.number,
   width: JsonDecoder.number,
   fileSize: JsonDecoder.number,
@@ -142,6 +152,9 @@ const MediaFileDecoder = JsonDecoder.object<Api.MediaFile>({
   duration: JsonDecoder.nullable(JsonDecoder.number),
   bitRate: JsonDecoder.nullable(JsonDecoder.number),
   frameRate: JsonDecoder.nullable(JsonDecoder.number),
+  posters: JsonDecoder.array(AlternateDecoder, "thumbnail[]"),
+  thumbnails: JsonDecoder.array(AlternateDecoder, "thumbnail[]"),
+  alternatives: JsonDecoder.array(AlternateDecoder, "alternative[]"),
 }, "MediaFile");
 
 export const MediaDecoder = JsonDecoder.object<Api.Media>({
