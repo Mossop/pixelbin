@@ -47,6 +47,7 @@ const useStyles = makeStyles(() =>
     viewport: {
       height: "100%",
       width: "100%",
+      position: "relative",
     },
   }));
 

@@ -4,17 +4,16 @@ import Paper from "@material-ui/core/Paper";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
-import alpha from "color-alpha";
 import React, { useCallback, useRef, useState } from "react";
 
 import type { ObjectModel } from "../../../model";
 import type { ProcessedMediaState } from "../../api/types";
-import FixedAspect from "../../components/FixedAspect";
 import { HoverArea, HoverContainer } from "../../components/HoverArea";
 import { Photo, Video } from "../../components/Media";
 import CloseIcon from "../../icons/CloseIcon";
 import EnterFullscreenIcon from "../../icons/EnterFullscreenIcon";
 import ExitFullscreenIcon from "../../icons/ExitFullscreenIcon";
+import InfoIcon from "../../icons/InfoIcon";
 import { useFullscreen } from "../../utils/hooks";
 import { mediaTitle } from "../../utils/metadata";
 import type { ReactResult } from "../../utils/types";
@@ -28,39 +27,18 @@ const useStyles = makeStyles((theme: Theme) =>
       position: "relative",
       background: theme.palette.background.default,
     },
-    mediaArea: {
-      position: "absolute",
-      height: "100%",
-      width: "100%",
-    },
-    viewport: {
-      position: "relative",
-    },
     overlay: {
       position: "absolute",
       height: "100%",
       width: "100%",
       pointerEvents: "none",
     },
-    navButton: {
-      "fontSize": "4rem",
-      "background": alpha(theme.palette.background.paper, 0.6),
-      "pointerEvents": "auto",
-      "& .MuiSvgIcon-root": {
-        fontSize: "inherit",
-      },
-    },
     overlayButton: {
+      "marginRight": theme.spacing(1),
       "fontSize": "2rem",
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
-    },
-    face: {
-      position: "absolute",
-      borderWidth: 2,
-      borderStyle: "solid",
-      borderColor: theme.palette.primary.dark,
     },
     infoTitlebar: {
       display: "flex",
@@ -95,7 +73,7 @@ export default function MediaDisplay({
   let [showMediaInfo, setShowMediaInfo] = useState(false);
   let [location, setLocation] = useState<ObjectModel.Location | null>(null);
 
-  let onShowInfo = useCallback(() => setShowMediaInfo(true), []);
+  let onShowInfo = useCallback(() => setShowMediaInfo(!showMediaInfo), [showMediaInfo]);
   let onCloseInfo = useCallback(() => setShowMediaInfo(false), []);
 
   let goFullscreen = useCallback(() => {
@@ -108,13 +86,32 @@ export default function MediaDisplay({
 
   let title = mediaTitle(media);
 
-  let mediaControls = fullscreen
-    ? <IconButton id="exit-fullscreen" onClick={exitFullscreen} className={classes.overlayButton}>
-      <ExitFullscreenIcon/>
+  let mediaControls = <React.Fragment>
+    {
+      fullscreen
+        ? <IconButton
+          id="exit-fullscreen"
+          onClick={exitFullscreen}
+          className={classes.overlayButton}
+        >
+          <ExitFullscreenIcon/>
+        </IconButton>
+        : <IconButton
+          id="enter-fullscreen"
+          onClick={goFullscreen}
+          className={classes.overlayButton}
+        >
+          <EnterFullscreenIcon/>
+        </IconButton>
+    }
+    <IconButton
+      id="info-button"
+      onClick={onShowInfo}
+      className={classes.overlayButton}
+    >
+      <InfoIcon/>
     </IconButton>
-    : <IconButton id="enter-fullscreen" onClick={goFullscreen} className={classes.overlayButton}>
-      <EnterFullscreenIcon/>
-    </IconButton>;
+  </React.Fragment>;
 
   return <React.Fragment>
     <HoverContainer
@@ -123,48 +120,21 @@ export default function MediaDisplay({
       ref={areaRef}
       initial={true}
     >
-      <FixedAspect
-        width={media.file.width}
-        height={media.file.height}
-        classes={
-          {
-            root: classes.mediaArea,
-            viewport: classes.viewport,
-          }
-        }
-      >
-        {
-          media.file.mimetype.startsWith("video/")
-            ? <Video media={media}>
-              {mediaControls}
-            </Video>
-            : <Photo media={media}>
-              {mediaControls}
-            </Photo>
-        }
-        {
-          location &&
-          <div
-            id="person-area"
-            className={classes.face}
-            style={
-              {
-                left: `${location.left * 100}%`,
-                top: `${location.top * 100}%`,
-                right: `${100 - location.right * 100}%`,
-                bottom: `${100 - location.bottom * 100}%`,
-              }
-            }
-          />
-        }
-      </FixedAspect>
+      {
+        media.file.mimetype.startsWith("video/")
+          ? <Video media={media}>
+            {mediaControls}
+          </Video>
+          : <Photo media={media} highlightRegion={location}>
+            {mediaControls}
+          </Photo>
+      }
       <HoverArea>
         <div className={classes.overlay}>
           <MainOverlay
             onPrevious={onPrevious}
             onNext={onNext}
             onGoBack={onGoBack}
-            onShowInfo={onShowInfo}
           />
         </div>
       </HoverArea>

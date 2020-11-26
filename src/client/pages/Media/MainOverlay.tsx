@@ -5,7 +5,6 @@ import alpha from "color-alpha";
 import React from "react";
 
 import CloseIcon from "../../icons/CloseIcon";
-import InfoIcon from "../../icons/InfoIcon";
 import NextIcon from "../../icons/NextIcon";
 import PreviousIcon from "../../icons/PreviousIcon";
 import type { ReactResult } from "../../utils/types";
@@ -29,23 +28,25 @@ const useStyles = makeStyles((theme: Theme) =>
       paddingLeft: theme.spacing(1),
     },
     overlayTop: {
-      background: alpha(theme.palette.background.paper, 0.6),
-      padding: theme.spacing(2),
-      pointerEvents: "auto",
+      paddingTop: theme.spacing(2),
+      paddingBottom: theme.spacing(2),
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-end",
     },
     navButton: {
       "fontSize": "4rem",
-      "background": alpha(theme.palette.background.paper, 0.6),
       "pointerEvents": "auto",
+      "background": alpha(theme.palette.background.paper, 0.6),
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
     },
     overlayButton: {
+      "marginRight": theme.spacing(2),
+      "pointerEvents": "auto",
       "fontSize": "2rem",
+      "background": alpha(theme.palette.background.paper, 0.6),
       "& .MuiSvgIcon-root": {
         fontSize: "inherit",
       },
@@ -56,28 +57,17 @@ interface MainOverlayProps {
   onNext?: (() => void) | null;
   onPrevious?: (() => void) | null;
   onGoBack?: (() => void) | null;
-  onShowInfo?: (() => void) | null;
 }
 
 export default function MainOverlay({
   onNext,
   onPrevious,
   onGoBack,
-  onShowInfo,
 }: MainOverlayProps): ReactResult {
   let classes = useStyles();
 
   return <div id="main-overlay" className={classes.overlayContent}>
     <div className={classes.overlayTop}>
-      {
-        onShowInfo && <IconButton
-          id="info-button"
-          onClick={onShowInfo}
-          className={classes.overlayButton}
-        >
-          <InfoIcon/>
-        </IconButton>
-      }
       {
         onGoBack && <IconButton
           id="back-button"

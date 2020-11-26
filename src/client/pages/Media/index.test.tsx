@@ -166,7 +166,7 @@ test("single media page", async (): Promise<void> => {
 
   let { onHighlightRegion } = lastCallArgs(mockedMediaInfo)[0];
 
-  expect(display.querySelector("#person-area")).toBeNull();
+  expect(display.querySelector("#highlight-region")).toBeNull();
 
   act(() => onHighlightRegion({
     left: 0.25,
@@ -175,7 +175,7 @@ test("single media page", async (): Promise<void> => {
     bottom: 0.7,
   }));
 
-  let area = expectChild(display, "#person-area");
+  let area = expectChild(display, "#highlight-region");
   let style = area.ownerDocument.defaultView?.getComputedStyle(area);
   expect(style?.left).toBe("25%");
   expect(style?.right).toBe("40%");
@@ -183,7 +183,7 @@ test("single media page", async (): Promise<void> => {
   expect(style?.bottom).toBe("30%");
 
   act(() => onHighlightRegion(null));
-  expect(display.querySelector("person-area")).toBeNull();
+  expect(display.querySelector("highlight-region")).toBeNull();
 });
 
 test("multiple media page", async (): Promise<void> => {

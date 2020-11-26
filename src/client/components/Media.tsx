@@ -1,16 +1,20 @@
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
 import Fade from "@material-ui/core/Fade";
+import IconButton from "@material-ui/core/IconButton";
+import LinearProgress from "@material-ui/core/LinearProgress";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 
-import type { Api } from "../../model";
+import type { Api, ObjectModel } from "../../model";
 import { sorted } from "../../utils";
 import type { MediaState, ProcessedMediaState } from "../api/types";
 import { isProcessedMedia } from "../api/types";
+import { PauseIcon, PlayIcon } from "../icons/MediaIcons";
 import type { ReactResult } from "../utils/types";
+import FixedAspect from "./FixedAspect";
 import { HoverArea } from "./HoverArea";
 import Loading from "./Loading";
 
@@ -27,16 +31,41 @@ const useStyles = makeStyles((theme: Theme) =>
       objectPosition: "center center",
       objectFit: "contain",
     },
+    container: {
+      position: "absolute",
+      height: "100%",
+      width: "100%",
+    },
     mediaControls: {
       position: "absolute",
       bottom: 0,
       right: 0,
       left: 0,
-      padding: theme.spacing(1),
+      paddingTop: theme.spacing(2),
+      paddingBottom: theme.spacing(2),
       background: alpha(theme.palette.background.paper, 0.6),
       display: "flex",
       flexDirection: "row",
+      alignItems: "center",
       justifyContent: "flex-end",
+    },
+    mediaControl: {
+      "marginLeft": theme.spacing(1),
+      "fontSize": "2rem",
+      "& .MuiSvgIcon-root": {
+        fontSize: "inherit",
+      },
+    },
+    highlightRegion: {
+      position: "absolute",
+      borderWidth: 2,
+      borderStyle: "solid",
+      borderColor: theme.palette.primary.dark,
+    },
+    scrubber: {
+      flex: 1,
+      margin: theme.spacing(1),
+      height: 8,
     },
   }));
 
@@ -63,32 +92,59 @@ const usePreviewStyles = makeStyles((theme: Theme) =>
 
 export interface MediaDisplayProps {
   media: ProcessedMediaState;
+  highlightRegion?: ObjectModel.Location | null;
   children?: React.ReactNode;
 }
 
 export function Photo({
   media,
+  highlightRegion,
   children,
 }: MediaDisplayProps): ReactResult {
   let classes = useStyles();
 
   let alternates = sorted(media.file.alternatives, "fileSize", (a: number, b: number) => a - b);
-  return <React.Fragment>
-    <picture>
-      {
-        alternates.map((alternate: Api.Alternate) => <source
-          key={alternate.url}
-          srcSet={alternate.url}
-          type={alternate.mimetype}
-        />)
+  return <div className={classes.container}>
+    <FixedAspect
+      width={media.file.width}
+      height={media.file.height}
+      classes={
+        {
+          root: classes.container,
+        }
       }
-      <img
-        id="media-original"
-        key={media.id}
-        src={media.file.originalUrl}
-        className={classes.media}
-      />
-    </picture>
+    >
+      <picture>
+        {
+          alternates.map((alternate: Api.Alternate) => <source
+            key={alternate.url}
+            srcSet={alternate.url}
+            type={alternate.mimetype}
+          />)
+        }
+        <img
+          id="media-original"
+          key={media.id}
+          src={media.file.originalUrl}
+          className={classes.media}
+        />
+      </picture>
+      {
+        highlightRegion &&
+        <div
+          id="highlight-region"
+          className={classes.highlightRegion}
+          style={
+            {
+              left: `${highlightRegion.left * 100}%`,
+              top: `${highlightRegion.top * 100}%`,
+              right: `${100 - highlightRegion.right * 100}%`,
+              bottom: `${100 - highlightRegion.bottom * 100}%`,
+            }
+          }
+        />
+      }
+    </FixedAspect>
     <HoverArea>
       <div
         id="media-controls"
@@ -97,11 +153,17 @@ export function Photo({
         {children}
       </div>
     </HoverArea>
-  </React.Fragment>;
+  </div>;
+}
+
+interface VideoState {
+  playing: boolean;
+  progress: number | null;
 }
 
 export function Video({
   media,
+  highlightRegion,
   children,
 }: MediaDisplayProps): ReactResult {
   let classes = useStyles();
@@ -118,32 +180,124 @@ export function Video({
     (a: number, b: number) => a - b,
   );
 
-  return <React.Fragment>
-    <video
-      id="media-original"
-      key={media.id}
-      poster={posters.length ? posters[0].url : undefined}
-      controls={false}
-      className={classes.media}
-    >
-      {
-        alternates.map((alternate: Api.Alternate) => <source
-          key={alternate.url}
-          src={alternate.url}
-          type={alternate.mimetype}
-        />)
+  let video = useRef<HTMLVideoElement>(null);
+
+  let play = useCallback(() => {
+    void video.current?.play();
+  }, []);
+  let pause = useCallback(() => {
+    video.current?.pause();
+  }, []);
+
+  let [videoState, setVideoState] = useState<VideoState>({
+    playing: false,
+    progress: null,
+  });
+  let updateState = useCallback(() => {
+    let tag = video.current;
+    if (!tag) {
+      setVideoState({
+        playing: false,
+        progress: null,
+      });
+      return;
+    }
+
+    let state: VideoState = {
+      playing: !tag.paused,
+      progress: null,
+    };
+
+    let { duration } = tag;
+    if (duration && !Number.isNaN(duration) && Number.isFinite(duration)) {
+      state.progress = 100 * tag.currentTime / duration;
+    }
+
+    setVideoState(state);
+  }, []);
+
+  return <div className={classes.container}>
+    <FixedAspect
+      width={media.file.width}
+      height={media.file.height}
+      classes={
+        {
+          root: classes.container,
+        }
       }
-      <source src={media.file.originalUrl} type={media.file.mimetype}/>
-    </video>
+    >
+      <video
+        id="media-original"
+        ref={video}
+        key={media.id}
+        poster={posters.length ? posters[0].url : undefined}
+        controls={false}
+        className={classes.media}
+        onPlay={updateState}
+        onPause={updateState}
+        onProgress={updateState}
+        onTimeUpdate={updateState}
+      >
+        {
+          alternates.map((alternate: Api.Alternate) => <source
+            key={alternate.url}
+            src={alternate.url}
+            type={alternate.mimetype}
+          />)
+        }
+        <source src={media.file.originalUrl} type={media.file.mimetype}/>
+      </video>
+      {
+        highlightRegion &&
+        <div
+          id="highlight-region"
+          className={classes.highlightRegion}
+          style={
+            {
+              left: `${highlightRegion.left * 100}%`,
+              top: `${highlightRegion.top * 100}%`,
+              right: `${100 - highlightRegion.right * 100}%`,
+              bottom: `${100 - highlightRegion.bottom * 100}%`,
+            }
+          }
+        />
+      }
+    </FixedAspect>
     <HoverArea>
       <div
         id="media-controls"
         className={classes.mediaControls}
       >
+        {
+          !videoState.playing
+            ? <IconButton
+              id="video-play"
+              onClick={play}
+              className={classes.mediaControl}
+            >
+              <PlayIcon/>
+            </IconButton>
+            : <IconButton
+              id="video-pause"
+              onClick={pause}
+              className={classes.mediaControl}
+            >
+              <PauseIcon/>
+            </IconButton>
+        }
+        {
+          videoState.progress == null
+            ? <LinearProgress className={classes.scrubber}/>
+            : <LinearProgress
+              className={classes.scrubber}
+              variant="determinate"
+              value={videoState.progress}
+            />
+        }
         {children}
       </div>
     </HoverArea>
-  </React.Fragment>;
+  </div>;
 }
 
 interface ThumbnailProps {
