@@ -15,7 +15,7 @@ export async function searchMedia(
     catalog: catalog.id,
     query,
   });
-  return results.map(mediaIntoState);
+  return Promise.all(results.map(mediaIntoState));
 }
 
 export async function createSavedSearch(

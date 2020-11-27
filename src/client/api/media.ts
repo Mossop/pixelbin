@@ -13,12 +13,12 @@ export async function getMedia(ids: string[]): Promise<(Draft<MediaState> | null
   let media = await request(Method.MediaGet, {
     id: ids.join(","),
   });
-  return media.map((media: Api.Media | null): Draft<MediaState> | null => {
+  return Promise.all(media.map((media: Api.Media | null): Promise<Draft<MediaState> | null> => {
     if (media) {
       return mediaIntoState(media);
     }
-    return null;
-  });
+    return Promise.resolve(null);
+  }));
 }
 
 export function getThumbnailUrl(media: ProcessedMediaState): string {

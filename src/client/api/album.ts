@@ -69,5 +69,5 @@ export async function listAlbumMedia(
     recursive,
   });
 
-  return media.map(mediaIntoState);
+  return Promise.all(media.map(mediaIntoState));
 }

@@ -1,7 +1,6 @@
 import type { Draft } from "immer";
 import type { Zone } from "luxon";
 import { IANAZone } from "luxon";
-import tzLookup from "tz-lookup";
 
 import type { Api, ObjectModel } from "../../model";
 import type { Overwrite, DateTime } from "../../utils";
@@ -80,7 +79,7 @@ export interface ServerState {
   readonly user: UserState | null;
 }
 
-export function mediaIntoState(media: Api.Media): Draft<MediaState> {
+export async function mediaIntoState(media: Api.Media): Promise<Draft<MediaState>> {
   const shouldReplaceZone = (taken: DateTime, gpsZone: Zone): boolean => {
     // Only ever replace non-IANA zones with valid zones.
     if (!gpsZone.isValid || taken.zone instanceof IANAZone) {
@@ -106,6 +105,8 @@ export function mediaIntoState(media: Api.Media): Draft<MediaState> {
 
     if (media.latitude && media.longitude) {
       try {
+        const { default: tzLookup } = await import("tz-lookup");
+
         let gpsZone = IANAZone.create(tzLookup(media.latitude, media.longitude));
         if (shouldReplaceZone(taken, gpsZone)) {
           taken = taken.setZone(gpsZone, {

@@ -54,5 +54,5 @@ export async function listCatalogMedia(
     id: catalog.id,
   });
 
-  return media.map(mediaIntoState);
+  return Promise.all(media.map(mediaIntoState));
 }
