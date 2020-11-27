@@ -4,7 +4,6 @@ import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
 import type { ReactResult } from "../utils/types";
-import SavedSearchDeleteOverlay from "./SavedSearchDelete";
 import { OverlayType } from "./types";
 
 const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./Login"));
@@ -19,6 +18,8 @@ const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ 
 const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./Search"));
 const SavedSearchOverlay = lazy(() =>
   import(/* webpackChunkName: "SavedSearchOverlay" */ "./SavedSearch"));
+const SavedSearchDeleteOverlay = lazy(() =>
+  import(/* webpackChunkName: "SavedSearchDeleteOverlay" */ "./SavedSearchDelete"));
 
 export default function Overlay(): ReactResult {
   let actions = useActions();
