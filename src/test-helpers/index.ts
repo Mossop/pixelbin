@@ -83,11 +83,17 @@ const matchers = {
     this: jest.MatcherContext,
     received: string,
     expected: string,
+    length: number = 10,
   ): jest.CustomMatcherResult {
-    let match = new RegExp(`^${expected}:[a-zA-Z0-9]+$`);
+    let match = new RegExp(`^${expected}:[a-zA-Z0-9]{${length}}$`);
     return {
       pass: !!match.exec(received),
-      message: expectMessage(this, "toBeId", `${expected}:[a-zA-Z0-9]+`, received.toString()),
+      message: expectMessage(
+        this,
+        "toBeId",
+        `${expected}:[a-zA-Z0-9]{${length}}`,
+        received.toString(),
+      ),
     };
   },
 

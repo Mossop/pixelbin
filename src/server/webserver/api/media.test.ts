@@ -282,7 +282,7 @@ test("Media edit", async (): Promise<void> => {
 
   expect(newMedia).toEqual({
     ...emptyMetadata,
-    id: expect.toBeId("M"),
+    id: expect.toBeId("M", 25),
     catalog: "c1",
     created: expect.anything(),
     updated: expect.toEqualDate(newMedia?.created ?? ""),

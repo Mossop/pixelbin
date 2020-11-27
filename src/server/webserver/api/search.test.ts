@@ -132,7 +132,7 @@ test("Saved searches", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual({
-    id: expect.toBeId("S"),
+    id: expect.toBeId("S", 25),
     catalog: "c2",
     name: "My search",
     shared: true,

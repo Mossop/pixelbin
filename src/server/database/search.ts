@@ -6,7 +6,7 @@ import { isRelationQuery } from "../../model/search";
 import { isDateTime } from "../../utils";
 import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
-import { uuid } from "./id";
+import { searchId } from "./id";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
 import { from, insert, update, withChildren } from "./queries";
 import type { Tables } from "./types";
@@ -213,7 +213,7 @@ export const createSavedSearch = ensureUserTransaction(async function saveSavedS
 
   let results = await insert(this.knex, Table.SavedSearch, {
     ...intoDBTypes(data),
-    id: await uuid("S"),
+    id: await searchId(),
     catalog,
   }).returning("*");
 
