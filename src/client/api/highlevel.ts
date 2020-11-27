@@ -538,6 +538,10 @@ export class SavedSearch implements Referencable<SavedSearch> {
     return this.state.name;
   }
 
+  public get shared(): boolean {
+    return this.state.shared;
+  }
+
   public get query(): Query {
     return this.state.query;
   }

@@ -3,7 +3,7 @@ import { castDraft } from "immer";
 import { Join } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import type { Obj } from "../../utils";
-import { Catalog, Album } from "../api/highlevel";
+import { Catalog, Album, SavedSearch } from "../api/highlevel";
 import type { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
@@ -185,14 +185,14 @@ test("saved search page", (): void => {
   expect(intoUIState(state("/search/foo"), LoggedOut)).toEqual({
     page: {
       type: PageType.SavedSearch,
-      searchId: "foo",
+      search: expect.toBeRef("foo"),
     },
   });
 
   expect(fromUIState({
     page: {
       type: PageType.SavedSearch,
-      searchId: "bar",
+      search: SavedSearch.ref("bar"),
     },
   })).toEqual(state("/search/bar"));
 });

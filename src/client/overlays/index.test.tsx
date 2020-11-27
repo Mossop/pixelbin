@@ -265,7 +265,7 @@ test("save search overlay", async (): Promise<void> => {
         type: PageType.Root,
       },
       overlay: {
-        type: OverlayType.SaveSearch,
+        type: OverlayType.SaveSearchCreate,
         catalog: Catalog.ref("catref"),
         query: {
           type: "field",

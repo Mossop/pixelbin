@@ -418,7 +418,7 @@ test("searchSaved", () => {
   expect(newState.ui).toEqual({
     page: {
       type: PageType.SavedSearch,
-      searchId: "s1",
+      search: expect.toBeRef("s1"),
     },
   });
 });

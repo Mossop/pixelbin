@@ -1,3 +1,4 @@
+import { useLocalization } from "@fluent/react";
 import React, { useCallback, useMemo } from "react";
 
 import type { Reference, SavedSearch } from "../api/highlevel";
@@ -6,6 +7,8 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import SavedSearchEditIcon from "../icons/SavedSearchEditIcon";
+import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import type { SavedSearchMediaLookup } from "../utils/medialookup";
 import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
@@ -20,6 +23,7 @@ export default function SavedSearchPage({
   search,
 }: SavedSearchPageProps): ReactResult {
   let actions = useActions();
+  let { l10n } = useLocalization();
 
   let savedSearch = useReference(search);
 
@@ -27,6 +31,14 @@ export default function SavedSearchPage({
     type: MediaLookupType.SavedSearch,
     search,
   }), [search]);
+
+  let onSearchEdit = useCallback(
+    () => actions.showOverlay({
+      type: OverlayType.SaveSearchEdit,
+      search,
+    }),
+    [actions, search],
+  );
 
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
@@ -40,7 +52,18 @@ export default function SavedSearchPage({
 
   let media = useMediaLookup(lookup);
 
-  return <Page title={savedSearch.name} selectedItem={savedSearch.id}>
+  return <Page
+    title={savedSearch.name}
+    selectedItem={savedSearch.id}
+    pageOptions={
+      [{
+        id: "search-edit",
+        onClick: onSearchEdit,
+        icon: <SavedSearchEditIcon/>,
+        label: l10n.getString("banner-search-edit"),
+      }]
+    }
+  >
     <Content>
       <MediaGallery media={media} onClick={onMediaClick}/>
     </Content>

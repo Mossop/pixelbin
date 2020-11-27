@@ -68,7 +68,7 @@ export default function SearchPage({
     };
 
     actions.showOverlay({
-      type: OverlayType.SaveSearch,
+      type: OverlayType.SaveSearchCreate,
       catalog,
       query: newQuery,
     });

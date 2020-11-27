@@ -51,7 +51,10 @@ export default function Overlay(): ReactResult {
       case OverlayType.Search: {
         return <SearchOverlay {...overlay}/>;
       }
-      case OverlayType.SaveSearch: {
+      case OverlayType.SaveSearchCreate: {
+        return <SaveSearchOverlay {...overlay}/>;
+      }
+      case OverlayType.SaveSearchEdit: {
         return <SaveSearchOverlay {...overlay}/>;
       }
     }
