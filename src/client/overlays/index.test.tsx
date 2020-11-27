@@ -56,8 +56,8 @@ jest.mock("./Search", (): unknown => {
   return () => <div id="search-overlay"/>;
 });
 
-jest.mock("./SaveSearch", (): unknown => {
-  return () => <div id="save-search-overlay"/>;
+jest.mock("./SavedSearch", (): unknown => {
+  return () => <div id="saved-search-overlay"/>;
 });
 
 test("no overlay", (): void => {
@@ -265,7 +265,7 @@ test("save search overlay", async (): Promise<void> => {
         type: PageType.Root,
       },
       overlay: {
-        type: OverlayType.SaveSearchCreate,
+        type: OverlayType.SavedSearchCreate,
         catalog: Catalog.ref("catref"),
         query: {
           type: "field",
@@ -282,7 +282,7 @@ test("save search overlay", async (): Promise<void> => {
   let { container } = render(<Overlay/>, store);
   expectChild(container, ".loading");
 
-  await waitFor(() => expectChild(container, "#save-search-overlay"));
+  await waitFor(() => expectChild(container, "#saved-search-overlay"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });

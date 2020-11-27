@@ -18,7 +18,7 @@ import {
   click,
   mockServerState,
 } from "../test-helpers";
-import SaveSearchOverlay from "./SaveSearch";
+import SavedSearchOverlay from "./SavedSearch";
 
 jest.mock("../api/api");
 
@@ -43,28 +43,28 @@ test("save search", async (): Promise<void> => {
     value: "fii",
   };
 
-  let { dialogContainer } = render(<SaveSearchOverlay
+  let { dialogContainer } = render(<SavedSearchOverlay
     catalog={Catalog.ref("catalog")}
     query={query}
   />, store);
 
-  expect(document.title).toBe("save-search-title");
+  expect(document.title).toBe("save-saved-search-title");
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let prv = expectChild<HTMLInputElement>(form, "#save-search-private");
+  let prv = expectChild<HTMLInputElement>(form, "#saved-search-private");
   expect(prv.checked).toBeTruthy();
-  let pbl = expectChild<HTMLInputElement>(form, "#save-search-public");
+  let pbl = expectChild<HTMLInputElement>(form, "#saved-search-public");
   expect(pbl.checked).toBeFalsy();
 
   click(pbl);
   expect(prv.checked).toBeFalsy();
   expect(pbl.checked).toBeTruthy();
 
-  let name = expectChild<HTMLInputElement>(form, "input#save-search-name");
+  let name = expectChild<HTMLInputElement>(form, "input#saved-search-name");
   await typeString(name, "Hello");
 
-  let button = expectChild<HTMLButtonElement>(form, "button#save-search-submit");
+  let button = expectChild<HTMLButtonElement>(form, "button#saved-search-submit");
 
   let { resolve } = deferRequest<Method.SavedSearchCreate>();
 
@@ -126,24 +126,24 @@ test("edit search", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<SaveSearchOverlay
+  let { dialogContainer } = render(<SavedSearchOverlay
     search={SavedSearch.ref("search1")}
   />, store);
 
-  expect(document.title).toBe("edit-search-title");
+  expect(document.title).toBe("edit-saved-search-title");
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let prv = expectChild<HTMLInputElement>(form, "#save-search-private");
+  let prv = expectChild<HTMLInputElement>(form, "#saved-search-private");
   expect(prv.checked).toBeFalsy();
-  let pbl = expectChild<HTMLInputElement>(form, "#save-search-public");
+  let pbl = expectChild<HTMLInputElement>(form, "#saved-search-public");
   expect(pbl.checked).toBeTruthy();
 
   click(prv);
   expect(prv.checked).toBeTruthy();
   expect(pbl.checked).toBeFalsy();
 
-  let name = expectChild<HTMLInputElement>(form, "input#save-search-name");
+  let name = expectChild<HTMLInputElement>(form, "input#saved-search-name");
   expect(name.value).toBe("My search");
 
   name.selectionStart = 0;
@@ -153,7 +153,7 @@ test("edit search", async (): Promise<void> => {
   await typeString(name, "Updated");
   let { resolve } = deferRequest<Method.SavedSearchEdit>();
 
-  let button = expectChild<HTMLButtonElement>(form, "button#save-search-submit");
+  let button = expectChild<HTMLButtonElement>(form, "button#saved-search-submit");
   click(button);
 
   await waitFor((): void => {
@@ -224,18 +224,18 @@ test("save private search", async (): Promise<void> => {
     value: "fii",
   };
 
-  let { dialogContainer } = render(<SaveSearchOverlay
+  let { dialogContainer } = render(<SavedSearchOverlay
     catalog={Catalog.ref("catalog")}
     query={query}
   />, store);
 
-  expect(document.title).toBe("save-search-title");
+  expect(document.title).toBe("save-saved-search-title");
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 
-  let prv = expectChild<HTMLInputElement>(form, "#save-search-private");
+  let prv = expectChild<HTMLInputElement>(form, "#saved-search-private");
   expect(prv.checked).toBeTruthy();
-  let pbl = expectChild<HTMLInputElement>(form, "#save-search-public");
+  let pbl = expectChild<HTMLInputElement>(form, "#saved-search-public");
   expect(pbl.checked).toBeFalsy();
 
   click(pbl);
@@ -246,10 +246,10 @@ test("save private search", async (): Promise<void> => {
   expect(prv.checked).toBeTruthy();
   expect(pbl.checked).toBeFalsy();
 
-  let name = expectChild<HTMLInputElement>(form, "input#save-search-name");
+  let name = expectChild<HTMLInputElement>(form, "input#saved-search-name");
   await typeString(name, "Hello");
 
-  let button = expectChild<HTMLButtonElement>(form, "button#save-search-submit");
+  let button = expectChild<HTMLButtonElement>(form, "button#saved-search-submit");
 
   let { resolve } = deferRequest<Method.SavedSearchCreate>();
 

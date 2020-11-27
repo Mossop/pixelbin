@@ -38,8 +38,8 @@ export async function editSavedSearch(
   }).then(searchIntoState);
 }
 
-export async function deleteSavedSearches(
-  searches: string[],
+export async function deleteSavedSearch(
+  search: Reference<SavedSearch>,
 ): Promise<void> {
-  await request(Method.SavedSearchDelete, searches);
+  await request(Method.SavedSearchDelete, [search.id]);
 }

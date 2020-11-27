@@ -4,6 +4,7 @@ import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
 import type { ReactResult } from "../utils/types";
+import SavedSearchDeleteOverlay from "./SavedSearchDelete";
 import { OverlayType } from "./types";
 
 const LoginOverlay = lazy(() => import(/* webpackChunkName: "LoginOverlay" */ "./Login"));
@@ -16,8 +17,8 @@ const CatalogEditOverlay = lazy(() =>
   import(/* webpackChunkName: "CatalogEdit" */ "./CatalogEdit"));
 const SignupOverlay = lazy(() => import(/* webpackChunkName: "SignupOverlay" */ "./Signup"));
 const SearchOverlay = lazy(() => import(/* webpackChunkName: "SearchOverlay" */ "./Search"));
-const SaveSearchOverlay = lazy(() =>
-  import(/* webpackChunkName: "SaveSearchOverlay" */ "./SaveSearch"));
+const SavedSearchOverlay = lazy(() =>
+  import(/* webpackChunkName: "SavedSearchOverlay" */ "./SavedSearch"));
 
 export default function Overlay(): ReactResult {
   let actions = useActions();
@@ -51,11 +52,14 @@ export default function Overlay(): ReactResult {
       case OverlayType.Search: {
         return <SearchOverlay {...overlay}/>;
       }
-      case OverlayType.SaveSearchCreate: {
-        return <SaveSearchOverlay {...overlay}/>;
+      case OverlayType.SavedSearchCreate: {
+        return <SavedSearchOverlay {...overlay}/>;
       }
-      case OverlayType.SaveSearchEdit: {
-        return <SaveSearchOverlay {...overlay}/>;
+      case OverlayType.SavedSearchEdit: {
+        return <SavedSearchOverlay {...overlay}/>;
+      }
+      case OverlayType.SavedSearchDelete: {
+        return <SavedSearchDeleteOverlay {...overlay}/>;
       }
     }
   }

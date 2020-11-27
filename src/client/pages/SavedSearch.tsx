@@ -7,6 +7,7 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import SavedSearchDeleteIcon from "../icons/SavedSearchDeleteIcon";
 import SavedSearchEditIcon from "../icons/SavedSearchEditIcon";
 import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
@@ -34,7 +35,15 @@ export default function SavedSearchPage({
 
   let onSearchEdit = useCallback(
     () => actions.showOverlay({
-      type: OverlayType.SaveSearchEdit,
+      type: OverlayType.SavedSearchEdit,
+      search,
+    }),
+    [actions, search],
+  );
+
+  let onSearchDelete = useCallback(
+    () => actions.showOverlay({
+      type: OverlayType.SavedSearchDelete,
       search,
     }),
     [actions, search],
@@ -57,10 +66,15 @@ export default function SavedSearchPage({
     selectedItem={savedSearch.id}
     pageOptions={
       [{
-        id: "search-edit",
+        id: "saved-search-edit",
         onClick: onSearchEdit,
         icon: <SavedSearchEditIcon/>,
-        label: l10n.getString("banner-search-edit"),
+        label: l10n.getString("banner-saved-search-edit"),
+      }, {
+        id: "saved-search-delete",
+        onClick: onSearchDelete,
+        icon: <SavedSearchDeleteIcon/>,
+        label: l10n.getString("banner-saved-search-delete"),
       }]
     }
   >

@@ -85,6 +85,29 @@ const catalogReducers = {
       },
     };
   },
+
+  searchDeleted(
+    state: Draft<StoreState>,
+    user: Draft<UserState>,
+    searchRef: Reference<SavedSearch>,
+  ): void {
+    for (let catalog of user.catalogs.values()) {
+      let search = catalog.searches.get(searchRef.id);
+      if (search) {
+        catalog.searches.delete(searchRef.id);
+
+        if (state.ui.page.type == PageType.SavedSearch && state.ui.page.search.id == search.id) {
+          state.ui.page = {
+            type: PageType.Catalog,
+            catalog: Catalog.ref(catalog),
+          };
+        }
+        break;
+      }
+    }
+
+    delete state.ui.overlay;
+  },
 };
 
 const albumReducers = {

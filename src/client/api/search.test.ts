@@ -6,7 +6,7 @@ import fetch from "../environment/fetch";
 import { expect } from "../test-helpers";
 import { mockResponse, callInfo } from "../test-helpers/api";
 import { Catalog, SavedSearch } from "./highlevel";
-import { createSavedSearch, editSavedSearch, deleteSavedSearches } from "./search";
+import { createSavedSearch, editSavedSearch, deleteSavedSearch } from "./search";
 
 jest.mock("../environment/fetch");
 
@@ -117,10 +117,7 @@ test("Edit saved search", async (): Promise<void> => {
 test("Delete saved search", async (): Promise<void> => {
   mockResponse(Method.SavedSearchDelete, 200, undefined);
 
-  await deleteSavedSearches([
-    "testsearch1",
-    "testsearch2",
-  ]);
+  await deleteSavedSearch(SavedSearch.ref("testsearch1"));
 
   let info = callInfo(mockedFetch);
   expect(info).toEqual({
@@ -132,7 +129,6 @@ test("Delete saved search", async (): Promise<void> => {
     },
     body: [
       "testsearch1",
-      "testsearch2",
     ],
   });
 });

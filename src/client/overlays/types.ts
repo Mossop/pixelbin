@@ -1,7 +1,8 @@
 import type { AlbumCreateOverlayProps, AlbumEditOverlayProps } from "./Album";
 import type { AlbumDeleteOverlayProps } from "./AlbumDelete";
 import type { CatalogEditOverlayProps } from "./CatalogEdit";
-import type { SaveSearchCreateOverlayProps, SaveSearchEditOverlayProps } from "./SaveSearch";
+import type { SavedSearchCreateOverlayProps, SavedSearchEditOverlayProps } from "./SavedSearch";
+import type { SavedSearchDeleteOverlayProps } from "./SavedSearchDelete";
 import type { SearchOverlayProps } from "./Search";
 
 export enum OverlayType {
@@ -13,8 +14,9 @@ export enum OverlayType {
   AlbumEdit = "editAlbum",
   AlbumDelete = "deleteAlbum",
   Search = "search",
-  SaveSearchCreate = "createSaveSearch",
-  SaveSearchEdit = "editSaveSearch",
+  SavedSearchCreate = "createSavedSearch",
+  SavedSearchEdit = "editSavedSearch",
+  SavedSearchDelete = "deleteSavedSearch",
 }
 
 interface BaseOverlayState {
@@ -41,12 +43,16 @@ type SearchOverlayState = SearchOverlayProps & {
   readonly type: OverlayType.Search;
 };
 
-type SaveSearchCreateOverlayState = SaveSearchCreateOverlayProps & {
-  readonly type: OverlayType.SaveSearchCreate;
+type SavedSearchCreateOverlayState = SavedSearchCreateOverlayProps & {
+  readonly type: OverlayType.SavedSearchCreate;
 };
 
-type SaveSearchEditOverlayState = SaveSearchEditOverlayProps & {
-  readonly type: OverlayType.SaveSearchEdit;
+type SaveSearchEditOverlayState = SavedSearchEditOverlayProps & {
+  readonly type: OverlayType.SavedSearchEdit;
+};
+
+type SavedSearchDeleteOverlayState = SavedSearchDeleteOverlayProps & {
+  readonly type: OverlayType.SavedSearchDelete;
 };
 
 export type OverlayState =
@@ -56,5 +62,6 @@ export type OverlayState =
    AlbumEditOverlayState |
    AlbumDeleteOverlayState |
    SearchOverlayState |
-   SaveSearchCreateOverlayState |
-   SaveSearchEditOverlayState;
+   SavedSearchCreateOverlayState |
+   SaveSearchEditOverlayState |
+   SavedSearchDeleteOverlayState;

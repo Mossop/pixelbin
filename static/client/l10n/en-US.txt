@@ -37,6 +37,8 @@ banner-search = Search…
 banner-album-new = New album…
 banner-album-edit = Edit album…
 banner-album-delete = Delete album…
+banner-saved-search-edit = Edit search…
+banner-saved-search-delete = Delete search…
 
 overlay-close =
   .title = Close
@@ -221,9 +223,12 @@ confirm-accept = Ok
 album-delete-title = Delete album
 album-delete-description = Are you sure you want to delete the "{$name}" album?
 
-save-search-title = Save this search
-edit-search-title = Edit this search
-save-search-submit = Save
-save-search-name = Name:
-save-search-private = Search is private.
-save-search-public = Search is shared publicly.
+save-saved-search-title = Save this search
+edit-saved-search-title = Edit this search
+saved-search-submit = Save
+saved-search-name = Name:
+saved-search-private = Search is private.
+saved-search-public = Search is shared publicly.
+
+saved-search-delete-title = Delete saved search
+saved-search-delete-description = Are you sure you want to delete the "{$name}" saved search?

@@ -10,18 +10,18 @@ import type { StoreState } from "../store/types";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
-export interface SaveSearchEditOverlayProps {
+export interface SavedSearchEditOverlayProps {
   search: Reference<SavedSearch>;
 }
 
-export interface SaveSearchCreateOverlayProps {
+export interface SavedSearchCreateOverlayProps {
   catalog: Reference<Catalog>;
   query: Query;
 }
 
-export type SaveSearchOverlayProps = SaveSearchCreateOverlayProps | SaveSearchEditOverlayProps;
+export type SavedSearchOverlayProps = SavedSearchCreateOverlayProps | SavedSearchEditOverlayProps;
 
-export default function SaveSearchOverlay(props: SaveSearchOverlayProps): ReactResult {
+export default function SavedSearchOverlay(props: SavedSearchOverlayProps): ReactResult {
   let { search, query, catalog } = useSelector((state: StoreState) => {
     let search: SavedSearch | null = null;
     let catalog: Catalog;
@@ -89,24 +89,24 @@ export default function SaveSearchOverlay(props: SaveSearchOverlayProps): ReactR
   }, [actions, state, catalog, query, search]);
 
   return <FormDialog
-    id="save-search"
+    id="saved-search"
     error={error}
     disabled={disabled}
-    titleId={search ? "edit-search-title" : "save-search-title"}
-    submitId="save-search-submit"
+    titleId={search ? "edit-saved-search-title" : "save-saved-search-title"}
+    submitId="saved-search-submit"
     onSubmit={onSubmit}
     onClose={actions.closeOverlay}
     onEntered={onDisplay}
   >
     <TextField
-      id="save-search-name"
-      labelId="save-search-name"
+      id="saved-search-name"
+      labelId="saved-search-name"
       state={state.name}
       ref={nameInput}
     />
     <RadioGroup name="shared" state={state.shared}>
-      <Radio id="save-search-private" labelId="save-search-private" value={false}/>
-      <Radio id="save-search-public" labelId="save-search-public" value={true}/>
+      <Radio id="saved-search-private" labelId="saved-search-private" value={false}/>
+      <Radio id="saved-search-public" labelId="saved-search-public" value={true}/>
     </RadioGroup>
   </FormDialog>;
 }
