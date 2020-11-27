@@ -1,7 +1,7 @@
 import { pathToRegexp } from "path-to-regexp";
 
 import { Join } from "../../model";
-import { Catalog, Album } from "../api/highlevel";
+import { Catalog, Album, SavedSearch } from "../api/highlevel";
 import type { ServerState } from "../api/types";
 import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
@@ -278,6 +278,32 @@ const pathMap: PathMap[] = [
   ],
 
   [
+    re("/search/:search/media/:media"),
+    (
+      serverState: ServerState,
+      historyState: HistoryState,
+      searchId: string,
+      mediaId: string,
+    ): UIState => {
+      let search = SavedSearch.safeFromState(serverState, searchId);
+      if (!search) {
+        return notfound(historyState);
+      }
+
+      return {
+        page: {
+          type: PageType.Media,
+          media: mediaId,
+          lookup: {
+            type: MediaLookupType.SavedSearch,
+            search: search.ref(),
+          },
+        },
+      };
+    },
+  ],
+
+  [
     re("/search/:search"),
     (
       serverState: ServerState,
@@ -287,7 +313,7 @@ const pathMap: PathMap[] = [
       return {
         page: {
           type: PageType.SavedSearch,
-          searchId,
+          search: SavedSearch.ref(searchId),
         },
       };
     },
@@ -323,7 +349,7 @@ export function fromUIState(uiState: UIState): HistoryState {
       return history.buildState("/");
     }
     case PageType.SavedSearch: {
-      return history.buildState(`/search/${uiState.page.searchId}`);
+      return history.buildState(`/search/${uiState.page.search.id}`);
     }
     case PageType.User: {
       return history.buildState("/user");
@@ -343,6 +369,10 @@ export function fromUIState(uiState: UIState): HistoryState {
         case MediaLookupType.Catalog:
           return history.buildState(
             `/catalog/${uiState.page.lookup.catalog.id}/media/${uiState.page.media}`,
+          );
+        case MediaLookupType.SavedSearch:
+          return history.buildState(
+            `/search/${uiState.page.lookup.search.id}/media/${uiState.page.media}`,
           );
         default:
           return history.buildState(`/media/${uiState.page.media}`);

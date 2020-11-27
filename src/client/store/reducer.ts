@@ -2,7 +2,7 @@ import { reducer } from "deeds/immer";
 import type { Draft } from "immer";
 
 import type { Reference } from "../api/highlevel";
-import { Catalog, Album } from "../api/highlevel";
+import { SavedSearch, Catalog, Album } from "../api/highlevel";
 import type {
   CatalogState,
   AlbumState,
@@ -81,7 +81,7 @@ const catalogReducers = {
     state.ui = {
       page: {
         type: PageType.SavedSearch,
-        searchId: search.id,
+        search: SavedSearch.ref(search),
       },
     };
   },

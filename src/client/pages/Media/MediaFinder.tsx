@@ -63,6 +63,13 @@ export default function MediaFinder({ media, lookup }: MediaFinderProps): ReactR
             catalog: lookup.catalog,
           },
         };
+      case MediaLookupType.SavedSearch:
+        return {
+          page: {
+            type: PageType.SavedSearch,
+            search: lookup.search,
+          },
+        };
     }
 
     return null;

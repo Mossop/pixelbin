@@ -313,7 +313,7 @@ export class VirtualSearch extends BaseVirtualItem {
     return {
       page: {
         type: PageType.SavedSearch,
-        searchId: this.search.id,
+        search: this.search.ref(),
       },
     };
   }

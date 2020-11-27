@@ -17,7 +17,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type { Query, Search } from "../../../model";
 import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
 import type { Catalog, Reference } from "../../api/highlevel";
-import type { MediaState } from "../../api/types";
+import type { MediaState, ServerState } from "../../api/types";
 import Loading from "../../components/Loading";
 import { Preview } from "../../components/Media";
 import { PageType } from "../../pages/types";
@@ -93,6 +93,7 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
   let [media, setMedia] = useState<readonly MediaState[]>([]);
 
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
+  let serverState = useSelector((state: StoreState): ServerState => state.serverState);
 
   let baseQuery = useMemo<Search.CompoundQuery>(() => {
     if (query) {
@@ -128,7 +129,7 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
   useEffect(() => {
     setSearching(true);
     let timeout = window.setTimeout(() => {
-      void lookupMedia(lookup).then((media: readonly MediaState[]) => {
+      void lookupMedia(serverState, lookup).then((media: readonly MediaState[]) => {
         setSearching(false);
         setMedia(media);
       });
@@ -137,7 +138,7 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [lookup]);
+  }, [serverState, lookup]);
 
   useEffect(() => {
     document.title = l10n.getString("search-dialog-title");

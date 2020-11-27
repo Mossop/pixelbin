@@ -1,3 +1,4 @@
+import type { Query } from "../../model";
 import { useSelector } from "../store";
 import type { StoreState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
@@ -535,6 +536,10 @@ export class SavedSearch implements Referencable<SavedSearch> {
 
   public get name(): string {
     return this.state.name;
+  }
+
+  public get query(): Query {
+    return this.state.query;
   }
 
   public static ref(data: MapId<SavedSearchState>): Reference<SavedSearch> {

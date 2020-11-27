@@ -5,10 +5,12 @@ import type { Query } from "../../model";
 import { memoized } from "../../utils";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
-import type { Album, Catalog, Reference } from "../api/highlevel";
+import type { Album, Catalog, Reference, SavedSearch } from "../api/highlevel";
 import { getMedia } from "../api/media";
 import { searchMedia } from "../api/search";
-import type { MediaState } from "../api/types";
+import type { MediaState, ServerState } from "../api/types";
+import { useSelector } from "../store";
+import type { StoreState } from "../store/types";
 
 export enum MediaLookupType {
   Single,
@@ -42,7 +44,7 @@ export interface SearchMediaLookup {
 
 export interface SavedSearchMediaLookup {
   readonly type: MediaLookupType.SavedSearch;
-  readonly search: string;
+  readonly search: Reference<SavedSearch>;
 }
 
 export type MediaLookup =
@@ -57,7 +59,10 @@ function isMedia(item: Draft<MediaState> | null): item is Draft<MediaState> {
 }
 
 export const lookupMedia = memoized(
-  async function lookupMedia(lookup: MediaLookup): Promise<readonly MediaState[]> {
+  async function lookupMedia(
+    serverState: ServerState,
+    lookup: MediaLookup,
+  ): Promise<readonly MediaState[]> {
     switch (lookup.type) {
       case MediaLookupType.Album: {
         return listAlbumMedia(lookup.album, lookup.recursive);
@@ -73,7 +78,8 @@ export const lookupMedia = memoized(
         return searchMedia(lookup.catalog, lookup.query);
       }
       case MediaLookupType.SavedSearch: {
-        return [];
+        let search = lookup.search.deref(serverState);
+        return searchMedia(search.catalog.ref(), search.query);
       }
     }
   },
@@ -81,11 +87,12 @@ export const lookupMedia = memoized(
 
 export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | null {
   let [list, setList] = useState<readonly MediaState[] | null>(null);
+  let serverState = useSelector((state: StoreState) => state.serverState);
 
   useEffect(() => {
     let cancelled = false;
 
-    lookupMedia(lookup).then((media: readonly MediaState[]): void => {
+    lookupMedia(serverState, lookup).then((media: readonly MediaState[]): void => {
       if (!cancelled) {
         setList(media);
       }
@@ -99,7 +106,7 @@ export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | nul
     return () => {
       cancelled = true;
     };
-  }, [lookup]);
+  }, [lookup, serverState]);
 
   return list;
 }
