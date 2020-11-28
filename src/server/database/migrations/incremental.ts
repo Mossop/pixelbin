@@ -410,3 +410,67 @@ export const alternates: Migration = {
     return takenZone.up(knex);
   },
 };
+
+export const text: Migration = {
+  up: async function(knex: Knex): Promise<void> {
+    await knex.schema.raw(knex.raw("DROP VIEW IF EXISTS ??", ["MediaView"]).toString());
+
+    let makeText = async (table: string, columns: string[]): Promise<void> => {
+      let sql = columns.map((): string => "ALTER COLUMN ?? TYPE text");
+      await knex.raw(`ALTER TABLE ?? ${sql.join(", ")}`, [
+        table,
+        ...columns,
+      ]);
+    };
+
+    let metadataColumns = [
+      "filename",
+      "title",
+      "description",
+      "label",
+      "category",
+      "location",
+      "city",
+      "state",
+      "country",
+      "make",
+      "model",
+      "lens",
+      "photographer",
+      "shutterSpeed",
+      "takenZone",
+    ];
+
+    await makeText("MediaInfo", metadataColumns);
+
+    await makeText("MediaFile", metadataColumns);
+    await makeText("MediaFile", ["fileName", "mimetype"]);
+
+    await makeText("AlternateFile", ["fileName", "mimetype"]);
+
+    await makeText("User", ["email", "fullname"]);
+
+    await makeText("Storage", [
+      "name",
+      "accessKeyId",
+      "secretAccessKey",
+      "bucket",
+      "region",
+      "path",
+      "endpoint",
+      "publicUrl",
+    ]);
+
+    await makeText("Catalog", ["name"]);
+    await makeText("Person", ["name"]);
+    await makeText("Tag", ["name"]);
+    await makeText("Album", ["name"]);
+    await makeText("SavedSearch", ["name"]);
+
+    await alternates.up(knex);
+  },
+
+  down: async function(): Promise<void> {
+    // Safe to be a no-op.
+  },
+};
