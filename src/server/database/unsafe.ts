@@ -105,9 +105,9 @@ export async function getStorageConfig(
 export async function listDeletedMedia(
   this: DatabaseConnection,
 ): Promise<Tables.MediaInfo[]> {
-  return from(this.knex, Table.MediaInfo)
+  return this.loggedQuery(from(this.knex, Table.MediaInfo)
     .where(this.knex.raw("??", [ref(Table.MediaInfo, "deleted")]))
-    .select(ref(Table.MediaInfo));
+    .select(ref(Table.MediaInfo)), "listDeletedMedia");
 }
 
 export async function deleteMedia(
@@ -141,11 +141,11 @@ export async function getUnusedMediaFiles(
     .distinctOn(ref(Table.MediaFile, "media"))
     .select(ref(Table.MediaFile, "id"));
 
-  return from(this.knex, Table.MediaFile)
+  return this.loggedQuery(from(this.knex, Table.MediaFile)
     .join(Table.MediaInfo, ref(Table.MediaInfo, "id"), ref(Table.MediaFile, "media"))
     .whereNotIn(ref(Table.MediaFile, "id"), currentFiles)
     .orWhere(this.raw("??", [ref(Table.MediaInfo, "deleted")]))
-    .select(ref(Table.MediaFile), ref(Table.MediaInfo, "catalog"));
+    .select(ref(Table.MediaFile), ref(Table.MediaInfo, "catalog")), "getUnusedMediaFiles");
 }
 
 export async function deleteAlternateFiles(
@@ -161,21 +161,21 @@ export async function listAlternateFiles(
   this: DatabaseConnection,
   mediaFile: string,
 ): Promise<Tables.AlternateFile[]> {
-  return from(this.knex, Table.AlternateFile)
+  return this.loggedQuery(from(this.knex, Table.AlternateFile)
     .where(ref(Table.AlternateFile, "mediaFile"), mediaFile)
-    .select(ref(Table.AlternateFile));
+    .select(ref(Table.AlternateFile)), "listAlternateFiles");
 }
 
 export async function getUserForMedia(
   this: DatabaseConnection,
   mediaId: string,
 ): Promise<ObjectModel.User> {
-  let users = await from(this.knex, Table.MediaInfo)
+  let users = await this.loggedQuery(from(this.knex, Table.MediaInfo)
     .join(Table.Catalog, ref(Table.Catalog, "id"), ref(Table.MediaInfo, "catalog"))
     .join(Table.Storage, ref(Table.Catalog, "storage"), ref(Table.Storage, "id"))
     .join(Table.User, ref(Table.User, "email"), ref(Table.Storage, "owner"))
     .where(ref(Table.MediaInfo, "id"), mediaId)
-    .select<Tables.User[]>(ref(Table.User));
+    .select<Tables.User[]>(ref(Table.User)), "getUserForMedia");
 
   if (users.length != 1) {
     throw new DatabaseError(DatabaseErrorCode.MissingValue, `Media ${mediaId} does not exist.`);
@@ -191,12 +191,11 @@ export async function getUserForMedia(
 export async function getOldMedia(
   this: DatabaseConnection,
 ): Promise<string[]> {
-  let results = await from(this.knex, Table.MediaView)
+  return this.loggedQuery(from(this.knex, Table.MediaView)
     .where(
       this.raw("(??->'processVersion')::integer", [ref(Table.MediaView, "file")]),
       "<",
       CURRENT_PROCESS_VERSION,
     )
-    .select(ref(Table.MediaView, "id"));
-  return results.map(({ id }: { id: string }): string => id);
+    .pluck(ref(Table.MediaView, "id")), "getOldMedia");
 }

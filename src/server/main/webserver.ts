@@ -16,7 +16,7 @@ import type { TaskManager } from "./tasks";
 
 export type WebConfig = WebserverConfig;
 
-const logger = getLogger("webserver");
+const logger = getLogger("web-pool");
 
 export class WebserverManager extends Service {
   private readonly server: net.Server;

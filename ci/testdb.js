@@ -25,7 +25,7 @@ async function migrate() {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { DatabaseConnection } = require("../dist/server/database");
 
-  let connection = await DatabaseConnection.connect("gulp", {
+  let connection = await DatabaseConnection.connect({
     username: "pixelbin",
     password: "pixelbin",
     host: "localhost",

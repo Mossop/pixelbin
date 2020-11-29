@@ -201,7 +201,7 @@ export async function searchMedia(
     search,
   );
 
-  return (await builder).map(applyTimeZoneFields);
+  return (await this.loggedQuery(builder, "search")).map(applyTimeZoneFields);
 }
 
 export const createSavedSearch = ensureUserTransaction(async function saveSavedSearch(
@@ -263,13 +263,12 @@ export const deleteSavedSearches = ensureUserTransaction(async function deleteSa
 export async function listSavedSearches(
   this: UserScopedConnection,
 ): Promise<Tables.SavedSearch[]> {
-  let results = await from(this.knex, Table.SavedSearch)
+  return this.loggedQuery(from(this.knex, Table.SavedSearch)
     .innerJoin(
       Table.UserCatalog,
       ref(Table.UserCatalog, "catalog"),
       ref(Table.SavedSearch, "catalog"),
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.SavedSearch[]>(ref(Table.SavedSearch));
-  return results;
+    .select<Tables.SavedSearch[]>(ref(Table.SavedSearch)), "listSavedSearches");
 }

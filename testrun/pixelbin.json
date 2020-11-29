@@ -9,10 +9,9 @@
     "host": "localhost"
   },
   "logging": {
-    "default": "debug",
+    "default": "info",
     "levels": {
-      "main.taskmanager": "info",
-      "main.webserver": "info"
+      "web-worker.database": "debug"
     }
   },
   "smtp": {

@@ -38,7 +38,7 @@ export const initDatabase = serviceBuilder(
   async function initDatabase(): Promise<DatabaseConnection> {
     let config = await Services.config;
 
-    let dbConnection = await DatabaseConnection.connect("main", config.database);
+    let dbConnection = await DatabaseConnection.connect(config.database);
     await dbConnection.migrate();
 
     events.on("shutdown", () => {

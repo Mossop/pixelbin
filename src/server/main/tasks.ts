@@ -29,7 +29,7 @@ export type TaskConfig = TaskWorkerConfig & {
   maxTasksPerWorker?: number;
 };
 
-const logger = getLogger("taskmanager");
+const logger = getLogger("task-pool");
 
 type WorkerCountField = "minWorkers" | "maxWorkers" | "maxTasksPerWorker";
 export class TaskManager extends Service {

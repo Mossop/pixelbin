@@ -1,3 +1,5 @@
+import { performance } from "perf_hooks";
+
 import Knex from "knex";
 import { DateTime as Luxon } from "luxon";
 import { types } from "pg";
@@ -103,7 +105,7 @@ export class DatabaseConnection {
       return;
     }
 
-    this.logger.debug({
+    this.logger.error({
       sql: data["sql"],
       bindings: data["bindings"],
       error,
@@ -139,6 +141,26 @@ export class DatabaseConnection {
     await this.knex.migrate.latest({
       migrationSource: migrations,
     });
+  }
+
+  public async loggedQuery<TRecord, TResult>(
+    query: Knex.QueryBuilder<TRecord, TResult>,
+    name?: string,
+  ): Promise<TResult> {
+    let logger = this.logger;
+    if (name) {
+      logger = logger.child(name);
+    }
+    let start = performance.now();
+    try {
+      return (await query) as TResult;
+    } finally {
+      let duration = Math.ceil(performance.now() - start);
+      logger.debug({
+        query: query.toSQL().sql,
+        duration,
+      }, "Completed database query.");
+    }
   }
 
   public forUser(user: UserRef): UserScopedConnection {
@@ -233,10 +255,8 @@ export class DatabaseConnection {
 
   public readonly seed = wrapped(seed);
 
-  public static async connect(name: string, config: DatabaseConfig): Promise<DatabaseConnection> {
-    let dbLogger = logger.withBindings({
-      connection: name,
-    });
+  public static async connect(config: DatabaseConfig): Promise<DatabaseConnection> {
+    let dbLogger = logger;
 
     dbLogger.trace({
       config,
@@ -335,12 +355,12 @@ export class UserScopedConnection {
       }[];
 
       if (table == Table.Catalog) {
-        counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+        counts = await userDb.loggedQuery(userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
           .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
           .where(ref(Table.UserCatalog, "user"), userDb.user)
           .select({
             count: userDb.raw("CAST(COUNT(*) AS integer)"),
-          });
+          }), "checkRead");
       } else {
         let visible = from(userDb.knex, table)
           .whereIn(`${table}.catalog`, userDb.catalogs());
@@ -349,11 +369,11 @@ export class UserScopedConnection {
           visible = visible.where(ref(Table.MediaInfo, "deleted"), false);
         }
 
-        counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+        counts = await userDb.loggedQuery(userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
           .join(visible.as("Visible"), "Ids.id", "Visible.id")
           .select({
             count: userDb.raw("CAST(COUNT(*) AS integer)"),
-          });
+          }), "checkRead");
       }
 
       if (!counts.length || counts[0].count != ids.length) {
@@ -378,13 +398,13 @@ export class UserScopedConnection {
           ref(Table.UserCatalog, "writable"),
         ]);
 
-        counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+        counts = await userDb.loggedQuery(userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
           .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
           .where(ref(Table.UserCatalog, "user"), userDb.user)
           .select({
             visible: userDb.raw("CAST(COUNT(*) AS integer)"),
             writable,
-          });
+          }), "checkWrite");
       } else {
         let writable = userDb.raw("CAST(COUNT(*) FILTER (WHERE ??=?) AS integer)", [
           ref(Table.UserCatalog, "writable"),
@@ -400,10 +420,10 @@ export class UserScopedConnection {
           query = query.where(ref(Table.MediaInfo, "deleted"), false);
         }
 
-        counts = await query.select({
+        counts = await userDb.loggedQuery(query.select({
           visible: userDb.raw("CAST(COUNT(*) AS integer)"),
           writable,
-        });
+        }), "checkWrite");
       }
 
       if (!counts.length || counts[0].visible != ids.length) {
@@ -427,6 +447,13 @@ export class UserScopedConnection {
       .where("user", this.user)
       .where("writable", true)
       .select("catalog");
+  }
+
+  public loggedQuery<TRecord, TResult>(
+    query: Knex.QueryBuilder<TRecord, TResult>,
+    name?: string,
+  ): Promise<TResult> {
+    return this.connection.loggedQuery(query, name);
   }
 
   public readonly getUser = wrapped(UserQueries.getUser);

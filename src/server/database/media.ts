@@ -89,10 +89,17 @@ export async function getMedia(
 
   type Joined = Tables.MediaView | AllNull<Tables.MediaView>;
 
-  let foundMedia = await this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
-    .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
-    .orderBy("Ids.index")
-    .select<Joined[]>("Visible.*");
+  let foundMedia: Joined[];
+  if (ids.length == 1) {
+    foundMedia = await this.loggedQuery(visible
+      .andWhere(ref(Table.MediaView, "id"), ids[0])
+      .select<Joined[]>("*"), "getMedia");
+  } else {
+    foundMedia = await this.loggedQuery(this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
+      .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
+      .orderBy("Ids.index")
+      .select<Joined[]>("Visible.*"), "getMedia");
+  }
 
   return foundMedia.map((record: Joined): Tables.MediaView | null => {
     if (record.id == null) {
@@ -109,7 +116,7 @@ export const listAlternateFiles = ensureUserTransaction(async function listAlter
 ): Promise<Tables.AlternateFile[]> {
   await this.checkRead(Table.MediaInfo, [media]);
 
-  return from(this.knex, Table.AlternateFile)
+  return this.loggedQuery(from(this.knex, Table.AlternateFile)
     .join(
       Table.MediaView,
       ref(Table.AlternateFile, "mediaFile"),
@@ -117,7 +124,7 @@ export const listAlternateFiles = ensureUserTransaction(async function listAlter
     )
     .where(ref(Table.AlternateFile, "type"), type)
     .where(ref(Table.MediaView, "id"), media)
-    .select(ref(Table.AlternateFile));
+    .select(ref(Table.AlternateFile)), "listAlternateFiles");
 });
 
 export const deleteMedia = ensureUserTransaction(async function deleteMedia(

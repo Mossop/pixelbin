@@ -32,9 +32,9 @@ export async function createStorage(
 }
 
 export async function listCatalogs(this: UserScopedConnection): Promise<Tables.Catalog[]> {
-  let results = await from(this.knex, Table.Catalog)
+  let results = await this.loggedQuery(from(this.knex, Table.Catalog)
     .whereIn(ref(Table.Catalog, "id"), this.catalogs())
-    .select<Tables.Catalog[]>(ref(Table.Catalog));
+    .select<Tables.Catalog[]>(ref(Table.Catalog)), "listCatalogs");
   return results;
 }
 
@@ -93,10 +93,10 @@ export const editCatalog = ensureUserTransaction(async function editCatalog(
 });
 
 export async function listAlbums(this: UserScopedConnection): Promise<Tables.Album[]> {
-  return from(this.knex, Table.Album)
+  return this.loggedQuery(from(this.knex, Table.Album)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.Album[]>(ref(Table.Album));
+    .select<Tables.Album[]>(ref(Table.Album)), "listAlbums");
 }
 
 export async function listMediaInCatalog(
@@ -105,13 +105,13 @@ export async function listMediaInCatalog(
 ): Promise<Tables.MediaView[]> {
   await this.checkRead(Table.Catalog, [id]);
 
-  return from(this.knex, Table.MediaView)
+  return this.loggedQuery(from(this.knex, Table.MediaView)
     .andWhere(ref(Table.MediaView, "catalog"), id)
     .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
       ref(Table.MediaView, "taken"),
       ref(Table.MediaView, "created"),
     ]))
-    .select(ref(Table.MediaView));
+    .select(ref(Table.MediaView)), "listMediaInCatalog");
 }
 
 export const createAlbum = ensureUserTransaction(async function createAlbum(
@@ -195,27 +195,27 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
       .distinct(ref(Table.MediaAlbum, "media"));
   }
 
-  return from(this.knex, Table.MediaView)
+  return this.loggedQuery(from(this.knex, Table.MediaView)
     .whereIn(ref(Table.MediaView, "id"), mediaIds)
     .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
       ref(Table.MediaView, "taken"),
       ref(Table.MediaView, "created"),
     ]))
-    .select(ref(Table.MediaView));
+    .select(ref(Table.MediaView)), "listMediaInAlbum");
 });
 
 export async function listPeople(this: UserScopedConnection): Promise<Tables.Person[]> {
-  return from(this.knex, Table.Person)
+  return this.loggedQuery(from(this.knex, Table.Person)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Person, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.Person[]>(ref(Table.Person));
+    .select<Tables.Person[]>(ref(Table.Person)), "listPeople");
 }
 
 export async function listTags(this: UserScopedConnection): Promise<Tables.Tag[]> {
-  return from(this.knex, Table.Tag)
+  return this.loggedQuery(from(this.knex, Table.Tag)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Tag, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.Tag[]>(ref(Table.Tag));
+    .select<Tables.Tag[]>(ref(Table.Tag)), "listTags");
 }
 
 export const createTag = ensureUserTransaction(async function createTag(

@@ -18,6 +18,21 @@ services:
     ports:
       - 5432:5432
 
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pixelbin.org
+      PGADMIN_DEFAULT_PASSWORD: pixelbin
+      PGADMIN_LISTEN_PORT: 7000
+
+    ports:
+      - 7000:7000
+
+    volumes:
+      - ../testrun/pgadmin.json:/pgadmin4/servers.json
+
   redis:
     image: redis
     restart: unless-stopped

@@ -51,7 +51,7 @@ async function main(): Promise<void> {
 
     setLogConfig(config.logging);
 
-    let dbConnection = await DatabaseConnection.connect("webserver", config.database);
+    let dbConnection = await DatabaseConnection.connect(config.database);
     events.on("shutdown", () => logger.catch(shutdown()));
 
     provideService("database", dbConnection);
