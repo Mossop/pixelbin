@@ -119,8 +119,8 @@ ${e.stack}`,
     );
   }
 
-  public purgeDeletedMedia(): void {
-    this.pool.remote.purgeDeletedMedia().catch(() => {
+  public purgeDeletedMedia(): Promise<void> {
+    return this.pool.remote.purgeDeletedMedia().catch(() => {
       // Error will have been logged in the task process.
     });
   }
@@ -138,7 +138,9 @@ ${e.stack}`,
     await runTasks(maxTasks, (): Promise<void> | null => {
       let media = outdated.shift();
       if (media) {
-        return this.pool.remote.reprocess(media);
+        return this.pool.remote.reprocess(media).catch(() => {
+          // Error will have been logged in the task process.
+        });
       }
       return null;
     });

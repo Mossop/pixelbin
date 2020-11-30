@@ -17,7 +17,7 @@ async function startSchedule(): Promise<void> {
 
   async function purge(): Promise<void> {
     let manager = await Services.taskManager;
-    manager.purgeDeletedMedia();
+    await manager.purgeDeletedMedia();
     scheduler.schedule("purge", 5 * 60 * 1000, purge);
   }
 
