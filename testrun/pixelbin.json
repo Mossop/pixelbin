@@ -11,7 +11,8 @@
   "logging": {
     "default": "info",
     "levels": {
-      "web-worker.database": "debug"
+      "web-worker.database": "debug",
+      "task-worker.task.reprocess": "trace"
     }
   },
   "smtp": {

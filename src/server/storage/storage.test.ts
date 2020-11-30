@@ -30,6 +30,7 @@ test("rollback", async (): Promise<void> => {
     upload: jest.fn(() => Promise.resolve()),
     getUrl: jest.fn(() => Promise.reject("Unimplemented")),
     stream: jest.fn(() => Promise.reject("Unimplemented")),
+    copy: jest.fn(() => Promise.resolve()),
     delete: jest.fn(() => Promise.resolve()),
   };
   mockedAWSRemote.mockResolvedValue(mockRemote);

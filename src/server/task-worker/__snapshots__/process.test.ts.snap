@@ -941,7 +941,7 @@ Object {
 }
 `;
 
-exports[`Update old version: reprocessed-metadata 1`] = `
+exports[`Reprocess old version: reprocessed-metadata 1`] = `
 Object {
   "bitRate": null,
   "duration": null,

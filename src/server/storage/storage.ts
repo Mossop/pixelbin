@@ -76,6 +76,20 @@ export class Storage {
     await remote.delete(path.join(media, mediaFile, name));
   }
 
+  public async copyFile(
+    media: string,
+    oldMediaFile: string,
+    oldName: string,
+    newMediaFile: string,
+    newName: string,
+  ): Promise<void> {
+    let remote = await this.remote;
+    await remote.copy(
+      path.join(media, oldMediaFile, oldName),
+      path.join(media, newMediaFile, newName),
+    );
+  }
+
   public async getLocalFilePath(
     media: string,
     mediaFile: string,
@@ -228,6 +242,21 @@ class StorageTransaction extends Storage {
       name,
     });
     return super.storeFile(media, mediaFile, name, file, mimetype);
+  }
+
+  public async copyFile(
+    media: string,
+    oldMediaFile: string,
+    oldName: string,
+    newMediaFile: string,
+    newName: string,
+  ): Promise<void> {
+    this.remoteFiles.push({
+      media,
+      mediaFile: newMediaFile,
+      name: newName,
+    });
+    return super.copyFile(media, oldMediaFile, oldName, newMediaFile, newName);
   }
 
   public async getLocalFilePath(

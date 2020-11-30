@@ -33,7 +33,7 @@ test("updateOldMedia", async (): Promise<void> => {
     queueLength: 0,
     shutdown: jest.fn(),
     remote: {
-      fullReprocess: jest.fn(),
+      reprocess: jest.fn(),
     },
   };
 
@@ -55,7 +55,7 @@ test("updateOldMedia", async (): Promise<void> => {
 
   type Call = [string, Deferred<void>];
   let calls: Call[] = [];
-  pool.remote.fullReprocess.mockImplementation((media: string): Promise<void> => {
+  pool.remote.reprocess.mockImplementation((media: string): Promise<void> => {
     let deferred = defer();
     calls.push([media, deferred]);
     return deferred.promise;

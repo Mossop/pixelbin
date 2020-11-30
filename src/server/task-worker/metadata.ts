@@ -359,6 +359,20 @@ function detectMimetype(file: string): Promise<string> {
   });
 }
 
+export async function serializeMetadata(data: StoredData, file: string): Promise<void> {
+  await fs.writeFile(file, JSON.stringify(data));
+}
+
+export async function deserializeMetadata(file: string): Promise<StoredData> {
+  let data = JSON.parse(await fs.readFile(file, {
+    encoding: "utf8",
+  }));
+
+  data.uploaded = parseDateTime(data.uploaded);
+
+  return data as StoredData;
+}
+
 export async function parseFile(file: StoredFile): Promise<StoredData> {
   let exiftool = await Services.exiftool;
   let tags = await exiftool.read(file.path, ["-c", "-n"]);

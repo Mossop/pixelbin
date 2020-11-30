@@ -36,7 +36,7 @@ export function buildTestDB(): void {
 export async function initDB(): Promise<void> {
   let dbConnection: DatabaseConnection;
   try {
-    dbConnection = await DatabaseConnection.connect("test", getTestDatabaseConfig());
+    dbConnection = await DatabaseConnection.connect(getTestDatabaseConfig());
     deferredConnection.resolve(dbConnection);
   } catch (e) {
     deferredConnection.reject(e);

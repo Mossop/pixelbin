@@ -1,7 +1,7 @@
 import type { AllNull, DateTime } from "../utils";
 import type { Query } from "./search";
 
-export const CURRENT_PROCESS_VERSION = 2;
+export const CURRENT_PROCESS_VERSION = 3;
 
 export enum RelationType {
   Tag = "tag",

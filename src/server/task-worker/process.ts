@@ -2,17 +2,23 @@ import { createWriteStream, promises as fs } from "fs";
 import path from "path";
 
 import sharp from "sharp";
-import type { Sharp } from "sharp";
+import type { Sharp, OutputInfo } from "sharp";
 import type { DirectoryResult } from "tmp-promise";
 import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType, CURRENT_PROCESS_VERSION } from "../../model";
 import type { Logger, RefCounted } from "../../utils";
-import { parseDateTime } from "../../utils";
-import type { DatabaseConnection, MediaFile } from "../database";
+import type { DatabaseConnection, MediaFile, MediaView } from "../database";
 import type { Storage, StoredFile } from "../storage";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
-import { parseFile, parseMetadata, getMediaFile, baseMimetype } from "./metadata";
+import {
+  deserializeMetadata,
+  serializeMetadata,
+  parseFile,
+  parseMetadata,
+  getMediaFile,
+  baseMimetype,
+} from "./metadata";
 import Services from "./services";
 import { bindTask } from "./task";
 
@@ -62,7 +68,9 @@ export const purgeDeletedMedia = bindTask(
         }
 
         for (let alternate of await dbConnection.listAlternateFiles(mediaFile.id)) {
-          await storage.get().deleteFile(mediaFile.media, mediaFile.id, alternate.fileName);
+          if (!alternate.local) {
+            await storage.get().deleteFile(mediaFile.media, mediaFile.id, alternate.fileName);
+          }
           await dbConnection.deleteAlternateFiles([alternate.id]);
         }
 
@@ -185,6 +193,7 @@ class MediaProcessor {
 
     await this.dbConnection.addAlternateFile(this.mediaFile.id, {
       type: AlternateFileType.Reencode,
+      local: false,
       fileName,
       fileSize: videoInfo.format.size,
       width: videoInfo.videoStream?.width ?? 0,
@@ -198,19 +207,26 @@ class MediaProcessor {
 
   private storeImage(image: Sharp, type: AlternateFileType, name: string): void {
     const doStore = async (): Promise<void> => {
-      let target = path.join(this.dir.path, name);
-      let info = await image.toFile(target);
+      let info: OutputInfo;
+      if (type == AlternateFileType.Thumbnail) {
+        let target = await this.storage.getLocalFilePath(this.mediaId, this.mediaFile.id, name);
+        info = await image.toFile(target);
+      } else {
+        let target = path.join(this.dir.path, name);
+        info = await image.toFile(target);
 
-      await this.storage.storeFile(
-        this.mediaId,
-        this.mediaFile.id,
-        name,
-        target,
-        `image/${info.format}`,
-      );
+        await this.storage.storeFile(
+          this.mediaId,
+          this.mediaFile.id,
+          name,
+          target,
+          `image/${info.format}`,
+        );
+      }
 
       await this.dbConnection.addAlternateFile(this.mediaFile.id, {
         type,
+        local: type == AlternateFileType.Thumbnail,
         fileName: name,
         fileSize: info.size,
         width: info.width,
@@ -363,7 +379,7 @@ export const handleUploadedFile = bindTask(
               "metadata.json",
             );
 
-            await fs.writeFile(metadataFile, JSON.stringify(data));
+            await serializeMetadata(data, metadataFile);
 
             let dir = await tmpdir({
               unsafeCleanup: true,
@@ -395,8 +411,194 @@ export const handleUploadedFile = bindTask(
   },
 );
 
-export const fullReprocess = bindTask(
-  async function fullReprocess(logger: Logger, mediaId: string): Promise<void> {
+async function stream(readStream: NodeJS.ReadableStream, target: string): Promise<void> {
+  let writeStream = createWriteStream(target);
+
+  let finished = new Promise<void>(
+    (
+      resolve: () => void,
+      reject: (error: Error) => void,
+    ): void => {
+      writeStream.on("error", reject);
+      readStream.on("error", reject);
+      writeStream.on("close", resolve);
+    },
+  );
+
+  readStream.pipe(writeStream);
+
+  return finished;
+}
+
+async function downloadThumbnails(logger: Logger, media: MediaView): Promise<void> {
+  if (!media.file) {
+    return;
+  }
+
+  let oldMediaFileId = media.file.id;
+
+  let dbConnection = await Services.database;
+  let storageService = await Services.storage;
+  let storage = await storageService.getStorage(media.catalog);
+
+  let metadataFile = await storage.get().getLocalFilePath(
+    media.id,
+    oldMediaFileId,
+    "metadata.json",
+  );
+
+  let data = await deserializeMetadata(metadataFile);
+
+  let metadata: Omit<MediaFile, "id" | "media" | "processVersion"> = {
+    ...parseMetadata(data),
+    ...getMediaFile(data),
+  };
+
+  await storage.get().inTransaction(async (storage: Storage): Promise<void> => {
+    await dbConnection.withNewMediaFile(
+      media.id,
+      {
+        ...metadata,
+        processVersion: CURRENT_PROCESS_VERSION,
+      },
+      async (
+        dbConnection: DatabaseConnection,
+        mediaFile: MediaFile,
+      ): Promise<void> => {
+        let metadataFile = await storage.getLocalFilePath(
+          media.id,
+          mediaFile.id,
+          "metadata.json",
+        );
+
+        await serializeMetadata(data, metadataFile);
+
+        let files = await dbConnection.listAlternateFiles(oldMediaFileId);
+
+        for (let file of files) {
+          if (file.type == AlternateFileType.Thumbnail) {
+            let target = await storage.getLocalFilePath(
+              media.id,
+              mediaFile.id,
+              file.fileName,
+            );
+            let readStream = await storage.streamFile(media.id, oldMediaFileId, file.fileName);
+            await stream(readStream, target);
+
+            await dbConnection.addAlternateFile(mediaFile.id, {
+              ...file,
+              local: true,
+            });
+          } else {
+            await storage.copyFile(
+              media.id,
+              oldMediaFileId,
+              file.fileName,
+              mediaFile.id,
+              file.fileName,
+            );
+
+            await dbConnection.addAlternateFile(mediaFile.id, {
+              ...file,
+              local: false,
+            });
+          }
+        }
+
+        await storage.copyFile(
+          media.id,
+          oldMediaFileId,
+          mediaFile.fileName,
+          mediaFile.id,
+          mediaFile.fileName,
+        );
+      },
+    );
+  });
+}
+
+async function fullReprocess(logger: Logger, media: MediaView): Promise<void> {
+  if (!media.file) {
+    return;
+  }
+
+  let dbConnection = await Services.database;
+  let storageService = await Services.storage;
+
+  let dir = await tmpdir({
+    unsafeCleanup: true,
+  });
+  let storage = await storageService.getStorage(media.catalog);
+  try {
+    let original = path.join(dir.path, "original");
+    let readStream = await storage.get().streamFile(media.id, media.file.id, media.file.fileName);
+    await stream(readStream, original);
+
+    let metadataFile = await storage.get().getLocalFilePath(
+      media.id,
+      media.file.id,
+      "metadata.json",
+    );
+
+    let oldData = await deserializeMetadata(metadataFile);
+
+    let file: StoredFile = {
+      path: original,
+      name: oldData.fileName,
+      media: media.id,
+      catalog: media.catalog,
+      uploaded: oldData.uploaded,
+    };
+
+    let data = await parseFile(file);
+
+    let metadata: Omit<MediaFile, "id" | "media" | "processVersion"> = {
+      ...parseMetadata(data),
+      ...getMediaFile(data),
+    };
+
+    await storage.get().inTransaction(async (storage: Storage): Promise<void> => {
+      await dbConnection.withNewMediaFile(
+        media.id,
+        {
+          ...metadata,
+          processVersion: CURRENT_PROCESS_VERSION,
+        },
+        async (
+          dbConnection: DatabaseConnection,
+          mediaFile: MediaFile,
+        ): Promise<void> => {
+          let metadataFile = await storage.getLocalFilePath(
+            media.id,
+            mediaFile.id,
+            "metadata.json",
+          );
+
+          await serializeMetadata(data, metadataFile);
+
+          let processor = new MediaProcessor(
+            logger,
+            dbConnection,
+            storage,
+            dir,
+            media.id,
+            mediaFile,
+            original,
+          );
+
+          await processor.processMedia();
+          logger.info("Reprocess complete.");
+        },
+      );
+    });
+  } finally {
+    storage.release();
+    await dir.cleanup();
+  }
+}
+
+export const reprocess = bindTask(
+  async function reprocess(logger: Logger, mediaId: string): Promise<void> {
     logger = logger.withBindings({
       media: mediaId,
     });
@@ -414,101 +616,27 @@ export const fullReprocess = bindTask(
       return;
     }
 
-    if (media.file.processVersion >= CURRENT_PROCESS_VERSION) {
-      logger.warn("Media is already processed.");
-      return;
-    }
+    logger.info("Reprocessing media");
 
-    logger.info({ media: mediaId }, "Reprocessing media");
+    while (media.file.processVersion < CURRENT_PROCESS_VERSION) {
+      switch (media.file.processVersion) {
+        case 2:
+          await downloadThumbnails(logger, media);
+          break;
+        default:
+          await fullReprocess(logger, media);
+      }
 
-    let storageService = await Services.storage;
+      media = await dbConnection.getMedia(mediaId);
+      if (!media) {
+        logger.warn("Reprocessing media caused it to be deleted.");
+        return;
+      }
 
-    let dir = await tmpdir({
-      unsafeCleanup: true,
-    });
-    let storage = await storageService.getStorage(media.catalog);
-    try {
-      let original = path.join(dir.path, "original");
-      let writeStream = createWriteStream(original);
-      let readStream = await storage.get().streamFile(mediaId, media.file.id, media.file.fileName);
-
-      let finished = new Promise<void>(
-        (
-          resolve: () => void,
-          reject: (error: Error) => void,
-        ): void => {
-          writeStream.on("error", reject);
-          readStream.on("error", reject);
-          writeStream.on("close", resolve);
-        },
-      );
-
-      readStream.pipe(writeStream);
-
-      await finished;
-
-      let metadataFile = await storage.get().getLocalFilePath(
-        mediaId,
-        media.file.id,
-        "metadata.json",
-      );
-
-      let oldData = JSON.parse(await fs.readFile(metadataFile, {
-        encoding: "utf8",
-      }));
-
-      let file: StoredFile = {
-        path: original,
-        name: oldData.fileName,
-        media: mediaId,
-        catalog: media.catalog,
-        uploaded: parseDateTime(oldData.uploaded),
-      };
-
-      let data = await parseFile(file);
-
-      let metadata: Omit<MediaFile, "id" | "media" | "processVersion"> = {
-        ...parseMetadata(data),
-        ...getMediaFile(data),
-      };
-
-      await storage.get().inTransaction(async (storage: Storage): Promise<void> => {
-        await dbConnection.withNewMediaFile(
-          mediaId,
-          {
-            ...metadata,
-            processVersion: CURRENT_PROCESS_VERSION,
-          },
-          async (
-            dbConnection: DatabaseConnection,
-            mediaFile: MediaFile,
-          ): Promise<void> => {
-            let metadataFile = await storage.getLocalFilePath(
-              mediaId,
-              mediaFile.id,
-              "metadata.json",
-            );
-
-            await fs.writeFile(metadataFile, JSON.stringify(data));
-
-            let processor = new MediaProcessor(
-              logger,
-              dbConnection,
-              storage,
-              dir,
-              mediaId,
-              mediaFile,
-              original,
-            );
-
-            await processor.processMedia();
-            logger.info("Reprocess complete.");
-          },
-        );
-      });
-    } finally {
-      storage.release();
-      await dir.cleanup();
+      if (!media.file) {
+        logger.warn("Reprocessing media caused it to become unprocessed.");
+        return;
+      }
     }
   },
 );

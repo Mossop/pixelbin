@@ -1,4 +1,4 @@
-import { promises as fs } from "fs";
+import { createReadStream, promises as fs } from "fs";
 
 import type {
   Api,
@@ -8,7 +8,7 @@ import type {
 } from "../../../model";
 import { ErrorCode, RelationType, emptyMetadata } from "../../../model";
 import { isoDateTime } from "../../../utils";
-import type { AlternateFile, MediaPerson, MediaView, UserScopedConnection } from "../../database";
+import type { MediaPerson, MediaView, UserScopedConnection } from "../../database";
 import { deleteFields } from "../../database/utils";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import type { AppContext } from "../context";
@@ -337,45 +337,48 @@ export const alternate = ensureAuthenticated(
       });
     }
 
-    if (!media.file) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Media not yet processed.",
-      });
-    }
-
-    if (mediaFile != media.file.id) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Invalid media file.",
-      });
-    }
-
-    let alternate = media.file.thumbnails.find(
-      (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,
-    );
-    if (!alternate) {
-      alternate = media.file.alternatives.find(
-        (item: Omit<AlternateFile, "type" | "mediaFile">): boolean => item.id == alternateId,
-      );
-    }
+    let alternate = await userDb.getMediaAlternate(id, mediaFile, alternateId);
 
     if (!alternate) {
       throw new ApiError(ErrorCode.NotFound, {
-        message: "Unknown alternate.",
+        message: "Alternate file does not exist.",
       });
     }
 
     let storage = await ctx.storage.getStorage(media.catalog);
     try {
-      let fileUrl = await storage.get().getFileUrl(
-        media.id,
-        mediaFile,
-        alternate.fileName,
-        alternate.mimetype,
-      );
+      if (alternate.local) {
+        let filePath = await storage.get().getLocalFilePath(
+          id,
+          mediaFile,
+          alternate.fileName,
+        );
 
-      ctx.status = 302;
-      ctx.set("Cache-Control", "max-age=1314000,immutable");
-      ctx.redirect(fileUrl);
+        try {
+          let stat = await fs.stat(filePath);
+
+          ctx.status = 200;
+          ctx.set("Cache-Control", "max-age=1314000,immutable");
+          ctx.type = alternate.mimetype;
+          ctx.length = stat.size;
+          ctx.body = createReadStream(filePath);
+        } catch (e) {
+          throw new ApiError(ErrorCode.NotFound, {
+            message: "Missing local file.",
+          });
+        }
+      } else {
+        let fileUrl = await storage.get().getFileUrl(
+          id,
+          mediaFile,
+          alternate.fileName,
+          alternate.mimetype,
+        );
+
+        ctx.status = 302;
+        ctx.set("Cache-Control", "max-age=1314000,immutable");
+        ctx.redirect(fileUrl);
+      }
     } finally {
       storage.release();
     }

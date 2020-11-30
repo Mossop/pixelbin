@@ -493,6 +493,7 @@ export class UserScopedConnection {
   public readonly editMedia = wrapped(MediaQueries.editMedia);
   public readonly getMedia = wrapped(MediaQueries.getMedia);
   public readonly listAlternateFiles = wrapped(MediaQueries.listAlternateFiles);
+  public readonly getMediaAlternate = wrapped(MediaQueries.getMediaAlternate);
   public readonly deleteMedia = wrapped(MediaQueries.deleteMedia);
   public readonly searchMedia = wrapped(SearchQueries.searchMedia);
 

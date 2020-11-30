@@ -61,6 +61,7 @@ export default class PixelbinMigrationSource implements MigrationSource<Pixelbin
         new InnerModuleMigration("./incremental", "takenZone"),
         new InnerModuleMigration("./incremental", "alternates"),
         new InnerModuleMigration("./incremental", "text"),
+        new InnerModuleMigration("./incremental", "localThumbs"),
       ];
     }
 

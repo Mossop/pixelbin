@@ -89,17 +89,21 @@ export async function getMedia(
 
   type Joined = Tables.MediaView | AllNull<Tables.MediaView>;
 
-  let foundMedia: Joined[];
   if (ids.length == 1) {
-    foundMedia = await this.loggedQuery(visible
+    let foundMedia = await this.loggedQuery(visible
       .andWhere(ref(Table.MediaView, "id"), ids[0])
-      .select<Joined[]>("*"), "getMedia");
-  } else {
-    foundMedia = await this.loggedQuery(this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
-      .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
-      .orderBy("Ids.index")
-      .select<Joined[]>("Visible.*"), "getMedia");
+      .select<Tables.MediaView[]>("*"), "getMedia");
+    if (foundMedia.length == 1) {
+      return [applyTimeZoneFields(foundMedia[0])];
+    } else {
+      return [null];
+    }
   }
+
+  let foundMedia = await this.loggedQuery(this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
+    .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
+    .orderBy("Ids.index")
+    .select<Joined[]>("Visible.*"), "getMedia");
 
   return foundMedia.map((record: Joined): Tables.MediaView | null => {
     if (record.id == null) {
@@ -107,6 +111,33 @@ export async function getMedia(
     }
     return applyTimeZoneFields(record);
   });
+}
+
+export async function getMediaAlternate(
+  this: UserScopedConnection,
+  media: string,
+  mediaFile: string,
+  alternate: string,
+): Promise<Tables.AlternateFile | null> {
+  let visible = from(this.knex, Table.MediaView)
+    .whereIn(ref(Table.MediaView, "catalog"), this.catalogs())
+    .select(ref(Table.MediaView, "id"));
+
+  let results = await from(this.knex, Table.AlternateFile)
+    .join(Table.MediaFile, ref(Table.MediaFile, "id"), ref(Table.AlternateFile, "mediaFile"))
+    .whereIn(ref(Table.MediaFile, "media"), visible)
+    .andWhere({
+      [ref(Table.MediaFile, "id")]: mediaFile,
+      [ref(Table.MediaFile, "media")]: media,
+      [ref(Table.AlternateFile, "id")]: alternate,
+    })
+    .select<Tables.AlternateFile[]>(ref(Table.AlternateFile));
+
+  if (results.length != 1) {
+    return null;
+  }
+
+  return results[0];
 }
 
 export const listAlternateFiles = ensureUserTransaction(async function listAlternateFiles(

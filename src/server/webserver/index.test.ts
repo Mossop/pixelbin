@@ -76,7 +76,7 @@ test("init", async (): Promise<void> => {
   expect(cacheConnect).toHaveBeenCalledTimes(1);
   expect(cacheConnect).toHaveBeenLastCalledWith(config.cache);
   expect(dbConnect).toHaveBeenCalledTimes(1);
-  expect(dbConnect).toHaveBeenLastCalledWith("webserver", config.database);
+  expect(dbConnect).toHaveBeenLastCalledWith(config.database);
   expect(service.destroy).not.toHaveBeenCalled();
 
   let destroyPromise = new Promise<void>((resolve: () => void) => {

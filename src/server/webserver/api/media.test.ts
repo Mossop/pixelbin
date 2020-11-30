@@ -1,6 +1,8 @@
 import { promises as fs } from "fs";
 import path from "path";
 
+import { dir as tmpdir } from "tmp-promise";
+
 import type { Api } from "../../../model";
 import {
   CSRF_HEADER,
@@ -637,6 +639,7 @@ test("Media resources", async (): Promise<void> => {
 
   await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Thumbnail,
+    local: true,
     fileName: "thumb1.jpg",
     fileSize: 0,
     mimetype: "image/jpeg",
@@ -649,6 +652,7 @@ test("Media resources", async (): Promise<void> => {
 
   await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Thumbnail,
+    local: true,
     fileName: "thumb2.jpg",
     fileSize: 0,
     mimetype: "image/jpeg",
@@ -661,6 +665,7 @@ test("Media resources", async (): Promise<void> => {
 
   let thumb = await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Thumbnail,
+    local: true,
     fileName: "thumb3.jpg",
     fileSize: 0,
     mimetype: "image/jpeg",
@@ -703,6 +708,7 @@ test("Media resources", async (): Promise<void> => {
 
   let alternate = await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Reencode,
+    local: false,
     fileName: "alternate.jpg",
     fileSize: 0,
     mimetype: "image/jpeg",
@@ -736,18 +742,24 @@ test("Media resources", async (): Promise<void> => {
     .get("/media/foo/bar")
     .expect(404);
 
-  getFileUrl.mockImplementation(
-    (
-      media: string,
-      file: string,
-      filename: string,
-      type?: string,
-    ) => Promise.resolve(`http://thumbnail.foo/${media}/${file}/${filename}/${type}`),
-  );
+  let temp = await tmpdir({
+    unsafeCleanup: true,
+  });
+  let source = path.join(temp.path, "test.txt");
+  await fs.writeFile(source, "Hello");
+
+  getFileUrl.mockClear();
+  getLocalFilePath.mockResolvedValueOnce(source);
   await request
     .get(`/media/${media.id}/${mediaFile.id}/${thumb.id}`)
-    .expect("Location", `http://thumbnail.foo/${media.id}/${mediaFile.id}/thumb3.jpg/image/jpeg`)
-    .expect(302);
+    .expect("Content-Type", "image/jpeg")
+    .expect(200);
+
+  expect(getFileUrl).not.toHaveBeenCalled();
+  expect(getLocalFilePath).toHaveBeenCalledTimes(1);
+  expect(getLocalFilePath).toHaveBeenLastCalledWith(media.id, mediaFile.id, thumb.fileName);
+
+  await temp.cleanup();
 });
 
 test("Get media", async (): Promise<void> => {
@@ -785,6 +797,7 @@ test("Get media", async (): Promise<void> => {
 
   let alternate = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Reencode,
+    local: false,
     fileName: "alternate.jpg",
     fileSize: 1,
     width: 1,
@@ -797,6 +810,7 @@ test("Get media", async (): Promise<void> => {
 
   let thumb1 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Thumbnail,
+    local: true,
     fileName: "thumb1.jpg",
     fileSize: 1,
     width: 1,
@@ -809,6 +823,7 @@ test("Get media", async (): Promise<void> => {
 
   let thumb2 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Thumbnail,
+    local: true,
     fileName: "thumb2.jpg",
     fileSize: 1,
     width: 1,
@@ -821,6 +836,7 @@ test("Get media", async (): Promise<void> => {
 
   let encode1 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Reencode,
+    local: false,
     fileName: "enc1.mp4",
     fileSize: 1,
     width: 1,
@@ -833,6 +849,7 @@ test("Get media", async (): Promise<void> => {
 
   let encode2 = await db.addAlternateFile(mediaFileId, {
     type: AlternateFileType.Reencode,
+    local: false,
     fileName: "enc2.ogg",
     fileSize: 1,
     width: 1,

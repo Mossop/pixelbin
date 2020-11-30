@@ -45,6 +45,7 @@ export type MediaFile = ObjectModel.MediaFile & Metadata & {
 export type AlternateFile = ObjectModel.AlternateFile & {
   mediaFile: MediaFile["id"];
   fileName: string;
+  local: boolean;
 };
 
 // A generated view.

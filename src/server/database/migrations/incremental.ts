@@ -1,4 +1,4 @@
-import type { default as Knex, Migration } from "knex";
+import type { AlterTableBuilder, default as Knex, Migration } from "knex";
 
 import { AlternateFileType } from "../../../model";
 import { ref } from "../types";
@@ -472,5 +472,20 @@ export const text: Migration = {
 
   down: async function(): Promise<void> {
     // Safe to be a no-op.
+  },
+};
+
+export const localThumbs: Migration = {
+  up: async function(knex: Knex): Promise<void> {
+    await knex.schema.alterTable("AlternateFile", (table: AlterTableBuilder): void => {
+      table.boolean("local").notNullable().defaultTo(false);
+      table.boolean("local").notNullable().alter();
+    });
+  },
+
+  down: async function(knex: Knex): Promise<void> {
+    await knex.schema.alterTable("AlternateFile", (table: AlterTableBuilder): void => {
+      table.dropColumn("local");
+    });
   },
 };

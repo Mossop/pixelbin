@@ -138,7 +138,7 @@ ${e.stack}`,
     await runTasks(maxTasks, (): Promise<void> | null => {
       let media = outdated.shift();
       if (media) {
-        return this.pool.remote.fullReprocess(media);
+        return this.pool.remote.reprocess(media);
       }
       return null;
     });

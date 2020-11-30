@@ -177,7 +177,20 @@ async function storageTest(id: string): Promise<void> {
 
     expect(content).toBe("MYDATA");
 
+    await storage.get().copyFile(
+      "media",
+      "info",
+      "file.txt",
+      "new",
+      "test.txt",
+    );
+    url = await storage.get().getFileUrl("media", "new", "test.txt");
+    response = await fetch(url, { redirect: "follow" });
+    expect(await response.text()).toBe("MYDATA");
+    expect(response.headers.get("Content-Type")).toBe("text/foo");
+
     await storage.get().deleteFile("media", "info", "file.txt");
+    await storage.get().deleteFile("media", "new", "test.txt");
   } finally {
     await testTemp.cleanup();
     await temp.cleanup();

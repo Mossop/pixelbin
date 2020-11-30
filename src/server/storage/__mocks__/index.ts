@@ -5,6 +5,8 @@ export const StorageMock = {
 
   streamFile: jest.fn((): Promise<void> => Promise.reject()),
 
+  copyFile: jest.fn((): Promise<void> => Promise.resolve()),
+
   deleteFile: jest.fn((): Promise<void> => Promise.resolve()),
 
   storeFile: jest.fn((): Promise<void> => Promise.resolve()),

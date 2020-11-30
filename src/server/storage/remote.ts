@@ -42,6 +42,7 @@ export abstract class Remote {
     size: number,
     mimetype: string,
   ): Promise<void>;
+  public abstract copy(source: string, target: string): Promise<void>;
   public abstract getUrl(target: string, contentType?: string): Promise<string>;
   public abstract stream(target: string): Promise<NodeJS.ReadableStream>;
   public abstract delete(target: string): Promise<void>;
@@ -112,6 +113,19 @@ class AWSRemote extends Remote {
       ContentLength: size,
       CacheControl: "max-age=1314000, immutable",
       ContentType: mimetype,
+    });
+    /* eslint-enable @typescript-eslint/naming-convention */
+
+    await request.promise();
+  }
+
+  public async copy(source: string, target: string): Promise<void> {
+    let copySource = s3Params(this.storage, this.getFullTarget(source));
+
+    /* eslint-disable @typescript-eslint/naming-convention */
+    let request = this.s3.copyObject({
+      ...s3Params(this.storage, this.getFullTarget(target)),
+      CopySource: `/${copySource.Bucket}/${copySource.Key}`,
     });
     /* eslint-enable @typescript-eslint/naming-convention */
 

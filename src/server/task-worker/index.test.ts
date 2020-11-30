@@ -47,7 +47,7 @@ test("init", async (): Promise<void> => {
   await dbConnected;
 
   expect(dbConnect).toHaveBeenCalledTimes(1);
-  expect(dbConnect).toHaveBeenLastCalledWith("tasks", config.database);
+  expect(dbConnect).toHaveBeenLastCalledWith(config.database);
   expect(service.destroy).not.toHaveBeenCalled();
 
   const { default: events } = await import("./events");

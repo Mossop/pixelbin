@@ -373,6 +373,7 @@ test("Media tests", async (): Promise<void> => {
 
   await dbConnection.addAlternateFile(info.id, {
     type: AlternateFileType.Thumbnail,
+    local: true,
     fileName: "thumb.webp",
     fileSize: 200,
     mimetype: "image/webp",
@@ -385,6 +386,7 @@ test("Media tests", async (): Promise<void> => {
 
   await dbConnection.addAlternateFile(info.id, {
     type: AlternateFileType.Thumbnail,
+    local: true,
     fileName: "thumb.jpg",
     fileSize: 400,
     mimetype: "image/jpeg",
@@ -397,6 +399,7 @@ test("Media tests", async (): Promise<void> => {
 
   await dbConnection.addAlternateFile(info.id, {
     type: AlternateFileType.Reencode,
+    local: false,
     fileName: "alternate.jpg",
     fileSize: 300,
     mimetype: "image/jpeg",
@@ -414,6 +417,7 @@ test("Media tests", async (): Promise<void> => {
   expect(list).toEqual([{
     id: expect.toBeId("F"),
     mediaFile: info.id,
+    local: true,
     type: AlternateFileType.Thumbnail,
     fileName: "thumb.jpg",
     fileSize: 400,
@@ -426,6 +430,7 @@ test("Media tests", async (): Promise<void> => {
   }, {
     id: expect.toBeId("F"),
     mediaFile: info.id,
+    local: true,
     type: AlternateFileType.Thumbnail,
     fileName: "thumb.webp",
     fileSize: 200,
@@ -439,12 +444,26 @@ test("Media tests", async (): Promise<void> => {
   let jpgId = list[0].id;
   let webpId = list[1].id;
 
+  let alternate = await user3Db.getMediaAlternate(id, info.id, jpgId);
+  expect(alternate).toEqual(list[0]);
+  alternate = await user3Db.getMediaAlternate(id, info.id, webpId);
+  expect(alternate).toEqual(list[1]);
+  alternate = await user3Db.getMediaAlternate(id, "foo", webpId);
+  expect(alternate).toBeNull();
+  alternate = await user3Db.getMediaAlternate("foo", info.id, webpId);
+  expect(alternate).toBeNull();
+  alternate = await user3Db.getMediaAlternate(id, info.id, "foo");
+  expect(alternate).toBeNull();
+  alternate = await user2Db.getMediaAlternate(id, info.id, jpgId);
+  expect(alternate).toBeNull();
+
   list = await user3Db.listAlternateFiles(id, AlternateFileType.Reencode);
   list.sort(
     (a: Tables.AlternateFile, b: Tables.AlternateFile): number => a.width - b.width,
   );
   expect(list).toEqual([{
     id: expect.toBeId("F"),
+    local: false,
     mediaFile: info.id,
     type: AlternateFileType.Reencode,
     fileName: "alternate.jpg",
