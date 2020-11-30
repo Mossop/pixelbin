@@ -104,6 +104,19 @@ export function Photo({
   let classes = useStyles();
 
   let alternates = sorted(media.file.alternatives, "fileSize", (a: number, b: number) => a - b);
+  let jpegPos = alternates.length - 1;
+  while (jpegPos >= 0 && alternates[jpegPos].mimetype != "image/jpeg") {
+    jpegPos--;
+  }
+
+  let fallbackUrl: string;
+  if (jpegPos >= 0) {
+    let [jpegAlternate] = alternates.splice(jpegPos, 1);
+    fallbackUrl = jpegAlternate.url;
+  } else {
+    fallbackUrl = media.file.originalUrl;
+  }
+
   return <div className={classes.container}>
     <FixedAspect
       width={media.file.width}
@@ -123,9 +136,9 @@ export function Photo({
           />)
         }
         <img
-          id="media-original"
+          id="media-fallback"
           key={media.id}
-          src={media.file.originalUrl}
+          src={fallbackUrl}
           className={classes.media}
         />
       </picture>
