@@ -131,6 +131,14 @@ export class DatabaseConnection {
     }, "Database query response");
   };
 
+  public clone(logger: Logger): DatabaseConnection {
+    if (this._transaction) {
+      throw new Error("Cannot clone while in a transaction.");
+    }
+
+    return new DatabaseConnection(this._baseKnex, logger);
+  }
+
   public async migrate(): Promise<void> {
     if (this._transaction) {
       throw new Error("Cannot migrate while in a transaction.");

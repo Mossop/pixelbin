@@ -50,7 +50,7 @@ function basename(source: string): string {
 
 export const purgeDeletedMedia = bindTask(
   async function purgeDeletedMedia(logger: Logger): Promise<void> {
-    let dbConnection = await Services.database;
+    let dbConnection = (await Services.database).clone(logger.child("database"));
     let storageService = await Services.storage;
     let cachedStorage: Map<string, RefCounted<Storage>> = new Map();
 
@@ -58,7 +58,7 @@ export const purgeDeletedMedia = bindTask(
       for (let mediaFile of await dbConnection.getUnusedMediaFiles()) {
         logger.trace({
           media: mediaFile.media,
-          original: mediaFile.id,
+          mediaFile: mediaFile.id,
         }, "Purging unused original.");
 
         let storage = cachedStorage.get(mediaFile.catalog);
@@ -69,11 +69,21 @@ export const purgeDeletedMedia = bindTask(
 
         for (let alternate of await dbConnection.listAlternateFiles(mediaFile.id)) {
           if (!alternate.local) {
+            logger.trace({
+              media: mediaFile.media,
+              mediaFile: mediaFile.id,
+              filename: alternate.fileName,
+            }, "Purging remote alternate file.");
             await storage.get().deleteFile(mediaFile.media, mediaFile.id, alternate.fileName);
           }
           await dbConnection.deleteAlternateFiles([alternate.id]);
         }
 
+        logger.trace({
+          media: mediaFile.media,
+          mediaFile: mediaFile.id,
+          filename: mediaFile.fileName,
+        }, "Purging remote file.");
         await storage.get().deleteFile(mediaFile.media, mediaFile.id, mediaFile.fileName);
         await storage.get().deleteLocalFiles(mediaFile.media, mediaFile.id);
         await dbConnection.deleteMediaFiles([mediaFile.id]);
@@ -331,7 +341,7 @@ export const handleUploadedFile = bindTask(
       media: mediaId,
     });
 
-    let dbConnection = await Services.database;
+    let dbConnection = (await Services.database).clone(logger.child("database"));
 
     let media = await dbConnection.getMedia(mediaId);
     if (!media) {
@@ -430,14 +440,19 @@ async function stream(readStream: NodeJS.ReadableStream, target: string): Promis
   return finished;
 }
 
-async function downloadThumbnails(logger: Logger, media: MediaView): Promise<void> {
+async function downloadThumbnails(
+  logger: Logger,
+  dbConnection: DatabaseConnection,
+  media: MediaView,
+): Promise<void> {
   if (!media.file) {
     return;
   }
 
+  logger.info("Downloading thumbnails");
+
   let oldMediaFileId = media.file.id;
 
-  let dbConnection = await Services.database;
   let storageService = await Services.storage;
   let storage = await storageService.getStorage(media.catalog);
 
@@ -483,6 +498,10 @@ async function downloadThumbnails(logger: Logger, media: MediaView): Promise<voi
               file.fileName,
             );
             let readStream = await storage.streamFile(media.id, oldMediaFileId, file.fileName);
+            logger.trace({
+              mediaFile: oldMediaFileId,
+              filename: file.fileName,
+            }, "Downloading thumbnail");
             await stream(readStream, target);
 
             await dbConnection.addAlternateFile(mediaFile.id, {
@@ -490,6 +509,10 @@ async function downloadThumbnails(logger: Logger, media: MediaView): Promise<voi
               local: true,
             });
           } else {
+            logger.trace({
+              mediaFile: oldMediaFileId,
+              filename: file.fileName,
+            }, "Copying remote alternate file");
             await storage.copyFile(
               media.id,
               oldMediaFileId,
@@ -505,6 +528,10 @@ async function downloadThumbnails(logger: Logger, media: MediaView): Promise<voi
           }
         }
 
+        logger.trace({
+          mediaFile: oldMediaFileId,
+          filename: mediaFile.fileName,
+        }, "Copying remote file");
         await storage.copyFile(
           media.id,
           oldMediaFileId,
@@ -517,12 +544,17 @@ async function downloadThumbnails(logger: Logger, media: MediaView): Promise<voi
   });
 }
 
-async function fullReprocess(logger: Logger, media: MediaView): Promise<void> {
+async function fullReprocess(
+  logger: Logger,
+  dbConnection: DatabaseConnection,
+  media: MediaView,
+): Promise<void> {
   if (!media.file) {
     return;
   }
 
-  let dbConnection = await Services.database;
+  logger.info("Performing full reprocess.");
+
   let storageService = await Services.storage;
 
   let dir = await tmpdir({
@@ -587,7 +619,6 @@ async function fullReprocess(logger: Logger, media: MediaView): Promise<void> {
           );
 
           await processor.processMedia();
-          logger.info("Reprocess complete.");
         },
       );
     });
@@ -603,7 +634,7 @@ export const reprocess = bindTask(
       media: mediaId,
     });
 
-    let dbConnection = await Services.database;
+    let dbConnection = (await Services.database).clone(logger.child("database"));
 
     let media = await dbConnection.getMedia(mediaId);
     if (!media) {
@@ -621,10 +652,10 @@ export const reprocess = bindTask(
     while (media.file.processVersion < CURRENT_PROCESS_VERSION) {
       switch (media.file.processVersion) {
         case 2:
-          await downloadThumbnails(logger, media);
+          await downloadThumbnails(logger, dbConnection, media);
           break;
         default:
-          await fullReprocess(logger, media);
+          await fullReprocess(logger, dbConnection, media);
       }
 
       media = await dbConnection.getMedia(mediaId);
