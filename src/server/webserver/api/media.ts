@@ -33,7 +33,7 @@ export function buildResponseMedia(
 
       return {
         ...fileInfo,
-        url: `${APP_PATHS.root}media/${media.id}/${mediaFile.id}/${alt.id}`,
+        url: `${APP_PATHS.root}media/${media.id}/${mediaFile.id}/${alt.id}/${alt.fileName}`,
       };
     };
 
@@ -53,7 +53,7 @@ export function buildResponseMedia(
         thumbnails: media.file.thumbnails.map(mapAlternative),
         alternatives: media.file.alternatives.map(mapAlternative),
 
-        originalUrl: `${APP_PATHS.root}media/${media.id}/${media.file.id}`,
+        originalUrl: `${APP_PATHS.root}media/${media.id}/${media.file.id}/${media.file.fileName}`,
       },
     };
   }

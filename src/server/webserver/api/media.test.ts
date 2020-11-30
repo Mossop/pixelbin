@@ -696,14 +696,14 @@ test("Media resources", async (): Promise<void> => {
     ) => Promise.resolve(`http://original.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
-    .get(`/media/${media.id}/${mediaFile.id}`)
+    .get(`/media/${media.id}/${mediaFile.id}/foo`)
     .expect("Location", `http://original.foo/${media.id}/${mediaFile.id}/foo.jpg/image/jpeg`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
 
   await request
-    .get(`/media/${media.id}/${mediaFile.id}/unknown`)
+    .get(`/media/${media.id}/${mediaFile.id}/unknown/bar`)
     .expect(404);
 
   let alternate = await db.addAlternateFile(mediaFile.id, {
@@ -728,18 +728,18 @@ test("Media resources", async (): Promise<void> => {
     ) => Promise.resolve(`http://alternate.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
-    .get(`/media/${media.id}/${mediaFile.id}/${alternate.id}`)
+    .get(`/media/${media.id}/${mediaFile.id}/${alternate.id}/file`)
     .expect("Location", `http://alternate.foo/${media.id}/${mediaFile.id}/alternate.jpg/image/jpeg`)
     .expect(302);
 
   expect(getLocalFilePath).not.toHaveBeenCalled();
 
   await request
-    .get("/media/foo/bar/baz")
+    .get("/media/foo/bar/baz/buz")
     .expect(404);
 
   await request
-    .get("/media/foo/bar")
+    .get("/media/foo/bar/baz")
     .expect(404);
 
   let temp = await tmpdir({
@@ -751,7 +751,7 @@ test("Media resources", async (): Promise<void> => {
   getFileUrl.mockClear();
   getLocalFilePath.mockResolvedValueOnce(source);
   await request
-    .get(`/media/${media.id}/${mediaFile.id}/${thumb.id}`)
+    .get(`/media/${media.id}/${mediaFile.id}/${thumb.id}/thumb.jpg`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
@@ -908,7 +908,7 @@ test("Get media", async (): Promise<void> => {
     updated: expect.toEqualDate(updatedDT2),
     file: {
       id: mediaFileId,
-      originalUrl: `/media/${id2}/${mediaFileId}`,
+      originalUrl: `/media/${id2}/${mediaFileId}/stored.jpg`,
 
       fileSize: 1,
       width: 1,
@@ -920,7 +920,7 @@ test("Get media", async (): Promise<void> => {
       uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
       thumbnails: [{
         id: thumb1.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb1.id}`,
+        url: `/media/${id2}/${mediaFileId}/${thumb1.id}/thumb1.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -930,7 +930,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: thumb2.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb2.id}`,
+        url: `/media/${id2}/${mediaFileId}/${thumb2.id}/thumb2.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -941,7 +941,7 @@ test("Get media", async (): Promise<void> => {
       }],
       alternatives: [{
         id: alternate.id,
-        url: `/media/${id2}/${mediaFileId}/${alternate.id}`,
+        url: `/media/${id2}/${mediaFileId}/${alternate.id}/alternate.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -951,7 +951,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: encode1.id,
-        url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
+        url: `/media/${id2}/${mediaFileId}/${encode1.id}/enc1.mp4`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -961,7 +961,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: encode2.id,
-        url: `/media/${id2}/${mediaFileId}/${encode2.id}`,
+        url: `/media/${id2}/${mediaFileId}/${encode2.id}/enc2.ogg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1006,10 +1006,10 @@ test("Get media", async (): Promise<void> => {
 
     file: {
       id: mediaFileId,
-      originalUrl: `/media/${id2}/${mediaFileId}`,
+      originalUrl: `/media/${id2}/${mediaFileId}/stored.jpg`,
       thumbnails: [{
         id: thumb1.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb1.id}`,
+        url: `/media/${id2}/${mediaFileId}/${thumb1.id}/thumb1.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1019,7 +1019,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: thumb2.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb2.id}`,
+        url: `/media/${id2}/${mediaFileId}/${thumb2.id}/thumb2.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1030,7 +1030,7 @@ test("Get media", async (): Promise<void> => {
       }],
       alternatives: [{
         id: alternate.id,
-        url: `/media/${id2}/${mediaFileId}/${alternate.id}`,
+        url: `/media/${id2}/${mediaFileId}/${alternate.id}/alternate.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1040,7 +1040,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: encode1.id,
-        url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
+        url: `/media/${id2}/${mediaFileId}/${encode1.id}/enc1.mp4`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1050,7 +1050,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: encode2.id,
-        url: `/media/${id2}/${mediaFileId}/${encode2.id}`,
+        url: `/media/${id2}/${mediaFileId}/${encode2.id}/enc2.ogg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1093,10 +1093,10 @@ test("Get media", async (): Promise<void> => {
 
     file: {
       id: mediaFileId,
-      originalUrl: `/media/${id2}/${mediaFileId}`,
+      originalUrl: `/media/${id2}/${mediaFileId}/stored.jpg`,
       thumbnails: [{
         id: thumb1.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb1.id}`,
+        url: `/media/${id2}/${mediaFileId}/${thumb1.id}/thumb1.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1106,7 +1106,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: thumb2.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb2.id}`,
+        url: `/media/${id2}/${mediaFileId}/${thumb2.id}/thumb2.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1117,7 +1117,7 @@ test("Get media", async (): Promise<void> => {
       }],
       alternatives: [{
         id: alternate.id,
-        url: `/media/${id2}/${mediaFileId}/${alternate.id}`,
+        url: `/media/${id2}/${mediaFileId}/${alternate.id}/alternate.jpg`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1127,7 +1127,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: encode1.id,
-        url: `/media/${id2}/${mediaFileId}/${encode1.id}`,
+        url: `/media/${id2}/${mediaFileId}/${encode1.id}/enc1.mp4`,
         fileSize: 1,
         width: 1,
         height: 1,
@@ -1137,7 +1137,7 @@ test("Get media", async (): Promise<void> => {
         bitRate: null,
       }, {
         id: encode2.id,
-        url: `/media/${id2}/${mediaFileId}/${encode2.id}`,
+        url: `/media/${id2}/${mediaFileId}/${encode2.id}/enc2.ogg`,
         fileSize: 1,
         width: 1,
         height: 1,

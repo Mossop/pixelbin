@@ -89,7 +89,7 @@ export default async function buildApp(): Promise<void> {
   }
 
   router.get(
-    `${APP_PATHS.root}media/:id/:fileId/:alternateId`,
+    `${APP_PATHS.root}media/:id/:fileId/:alternateId/:filename`,
     (ctx: RouterContext<AppContext>): Promise<void> => {
       let { id, fileId, alternateId } = ctx.params;
       return alternate(ctx, id, fileId, alternateId);
@@ -97,7 +97,7 @@ export default async function buildApp(): Promise<void> {
   );
 
   router.get(
-    `${APP_PATHS.root}media/:id/:fileId`,
+    `${APP_PATHS.root}media/:id/:fileId/:filename`,
     (ctx: RouterContext<AppContext>): Promise<void> => {
       let { id, fileId } = ctx.params;
       return original(ctx, id, fileId);
