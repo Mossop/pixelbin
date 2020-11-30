@@ -22,10 +22,13 @@ export async function runTasks(
     }
 
     runningTasks++;
-    task.finally(() => {
-      runningTasks--;
-      startTask();
-    });
+    task
+      .finally(() => {
+        runningTasks--;
+        startTask();
+      })
+      // Avoid unhandled promise rejections.
+      .catch(() => null);
   };
 
   for (let i = 0; i < maxTasks; i++) {
