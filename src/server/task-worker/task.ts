@@ -19,15 +19,18 @@ export function bindTask<
     });
 
     let start = Date.now();
-    taskLogger.trace("Task start");
+    taskLogger.debug("Task start");
     try {
       let result = await task(taskLogger, ...args);
-      taskLogger.trace({
+      taskLogger.debug({
         duration: Date.now() - start,
       }, "Task complete");
       return result;
     } catch (error) {
-      taskLogger.error({ error }, "Task threw exception");
+      taskLogger.error({
+        error,
+        duration: Date.now() - start,
+      }, "Task threw exception");
       throw error;
     }
   };
