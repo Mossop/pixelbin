@@ -637,6 +637,11 @@ export const reprocess = bindTask(
         logger.warn("Reprocessing media caused it to become unprocessed.");
         return;
       }
+
+      if (media.file.processVersion < CURRENT_PROCESS_VERSION) {
+        logger.error("Reprocessing media failed to update the process version.");
+        return;
+      }
     }
   },
 );
