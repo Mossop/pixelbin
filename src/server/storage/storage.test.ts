@@ -53,12 +53,21 @@ test("rollback", async (): Promise<void> => {
       await fs.writeFile(sourceFile, "boo");
       await storage.storeFile("mdi", "fl3", "thisone", sourceFile, "video/mp4");
 
+      await storage.copyFile("mdi", "fl1", "old", "fl2", "new");
+      await storage.copyFile("mdi", "fl1", "old", "fl3", "test");
+
       expect(mockRemote.upload.mock.calls).toEqual([
         ["mdi/fl/myname", expect.anything(), 5, "text/foo"],
         ["mdi/fl2/other", expect.anything(), 13, "image/jpeg"],
         ["mdi/fl3/thisone", expect.anything(), 3, "video/mp4"],
       ]);
       mockRemote.upload.mockClear();
+
+      expect(mockRemote.copy.mock.calls).toEqual([
+        ["mdi/fl1/old", "mdi/fl2/new"],
+        ["mdi/fl1/old", "mdi/fl3/test"],
+      ]);
+      mockRemote.copy.mockClear();
 
       let local = await storage.getLocalFilePath("md1", "mdfl", "myname");
       await expect(fs.stat(local)).rejects.toThrow();
@@ -85,6 +94,8 @@ test("rollback", async (): Promise<void> => {
       ["mdi/fl/myname"],
       ["mdi/fl2/other"],
       ["mdi/fl3/thisone"],
+      ["mdi/fl2/new"],
+      ["mdi/fl3/test"],
     ]);
     mockRemote.delete.mockClear();
 

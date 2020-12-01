@@ -430,7 +430,10 @@ async function stream(readStream: NodeJS.ReadableStream, target: string): Promis
       reject: (error: Error) => void,
     ): void => {
       writeStream.on("error", reject);
-      readStream.on("error", reject);
+      readStream.on("error", (error: Error) => {
+        writeStream.close();
+        reject(error);
+      });
       writeStream.on("close", resolve);
     },
   );

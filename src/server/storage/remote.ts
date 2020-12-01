@@ -1,6 +1,8 @@
+import { Agent as HttpAgent } from "http";
+import { Agent as HttpsAgent } from "https";
 import { Duplex, Readable } from "stream";
 
-import type { AWSError } from "aws-sdk";
+import type { AWSError, S3 } from "aws-sdk";
 import AWS, { Credentials } from "aws-sdk";
 import fetch from "node-fetch";
 
@@ -10,6 +12,14 @@ import { getLogger, s3Config, s3Params, s3PublicUrl } from "../../utils";
 import type { DatabaseConnection } from "../database";
 
 const logger = getLogger("aws");
+const httpAgent = new HttpAgent({
+  maxSockets: 25,
+  keepAlive: true,
+});
+const httpsAgent = new HttpsAgent({
+  maxSockets: 25,
+  keepAlive: true,
+});
 
 class DBCredentials extends Credentials {
   public constructor(
@@ -67,9 +77,17 @@ class AWSRemote extends Remote {
   ) {
     super();
 
+    let agent: HttpsAgent | HttpAgent = httpsAgent;
+    if (storage.endpoint?.startsWith("http:")) {
+      agent = httpAgent;
+    }
+
     this.logger = logger.withBindings({ catalog });
     this.s3 = new AWS.S3({
       ...s3Config(storage),
+      httpOptions: {
+        agent,
+      },
       credentials: new DBCredentials(dbConnection, catalog, storage),
       logger: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,7 +134,11 @@ class AWSRemote extends Remote {
     });
     /* eslint-enable @typescript-eslint/naming-convention */
 
-    await request.promise();
+    try {
+      await request.promise();
+    } catch (e) {
+      throw new Error(`Failed to upload file to '${target}': ${e}`);
+    }
   }
 
   public async copy(source: string, target: string): Promise<void> {
@@ -129,7 +151,11 @@ class AWSRemote extends Remote {
     });
     /* eslint-enable @typescript-eslint/naming-convention */
 
-    await request.promise();
+    try {
+      await request.promise();
+    } catch (e) {
+      throw new Error(`Failed to copy file from '${source}' to '${target}': ${e}`);
+    }
   }
 
   public async stream(target: string): Promise<NodeJS.ReadableStream> {
@@ -141,23 +167,37 @@ class AWSRemote extends Remote {
 
     let request = this.s3.getObject(s3Params(this.storage, this.getFullTarget(target)));
 
-    let result = await request.promise();
-    let body = result.Body;
-    if (!body) {
-      throw new Error("Unable to retrieve file.");
+    let result: S3.GetObjectOutput;
+    try {
+      result = await request.promise();
+    } catch (e) {
+      throw new Error(`Failed to retrieve '${target}': ${e}`);
     }
 
-    if (body instanceof Readable) {
-      return body;
+    let body = result.Body;
+    if (!body) {
+      throw new Error(`Failed to retrieve '${target}'.`);
     }
 
     let stream = new Duplex();
+
+    if (body instanceof Readable) {
+      body.on("error", (error: Error) => {
+        stream.destroy(new Error(`Failed to retrieve '${target}': ${error}`));
+      });
+      return body.pipe(stream);
+    }
+
     stream.push(body);
     stream.push(null);
     return stream;
   }
 
   public async delete(target: string): Promise<void> {
-    await this.s3.deleteObject(s3Params(this.storage, this.getFullTarget(target))).promise();
+    try {
+      await this.s3.deleteObject(s3Params(this.storage, this.getFullTarget(target))).promise();
+    } catch (e) {
+      throw new Error(`Failed to delete '${target}': ${e}`);
+    }
   }
 }
