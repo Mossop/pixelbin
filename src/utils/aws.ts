@@ -43,6 +43,10 @@ function pathAppend(base: string | null, path: string): string {
   return base + path;
 }
 
+export function s3Key(storageConfig: BaseConfig, path: string): string {
+  return pathAppend(storageConfig.path, path);
+}
+
 export function s3Params(storageConfig: BaseConfig, path: string): S3Params {
   return {
     Bucket: storageConfig.bucket,

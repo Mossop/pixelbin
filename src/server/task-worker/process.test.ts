@@ -1295,7 +1295,7 @@ test("Reprocess old version", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteUploadedFileMock = mockedFunction(storage.deleteUploadedFile);
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  let deleteFile = mockedFunction(storage.deleteFile);
+  let deleteFiles = mockedFunction(storage.deleteFiles);
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteLocalFiles = mockedFunction(storage.deleteLocalFiles);
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -1678,15 +1678,21 @@ test("Reprocess old version", async (): Promise<void> => {
     });
   }
 
-  expect(deleteFile).not.toHaveBeenCalled();
+  expect(deleteFiles).not.toHaveBeenCalled();
   expect(deleteLocalFiles).not.toHaveBeenCalled();
 
   await purgeDeletedMedia();
 
-  expect(deleteFile.mock.calls).toInclude([
-    ["media1", "original1", "alt1.jpg"],
-    ["media1", "original1", "alt2.jpg"],
-    ["media1", "original1", "orig1.jpg"],
+  expect(deleteFiles.mock.calls).toEqual([
+    [
+      "media1",
+      "original1",
+      expect.toInclude([
+        "alt1.jpg",
+        "alt2.jpg",
+        "orig1.jpg",
+      ]),
+    ],
   ]);
 
   expect(deleteLocalFiles.mock.calls).toInclude([
@@ -1830,7 +1836,7 @@ test("Download thumbnails", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let copyFile = mockedFunction(storage.copyFile);
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  let deleteFile = mockedFunction(storage.deleteFile);
+  let deleteFiles = mockedFunction(storage.deleteFiles);
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteLocalFiles = mockedFunction(storage.deleteLocalFiles);
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -1861,7 +1867,7 @@ test("Download thumbnails", async (): Promise<void> => {
 
   expect(getUploadedFileMock).not.toHaveBeenCalled();
   expect(deleteUploadedFileMock).not.toHaveBeenCalled();
-  expect(deleteFile).not.toHaveBeenCalled();
+  expect(deleteFiles).not.toHaveBeenCalled();
   expect(deleteLocalFiles).not.toHaveBeenCalled();
 
   let user1Db = dbConnection.forUser("someone1@nowhere.com");
@@ -2285,25 +2291,43 @@ test("purge", async (): Promise<void> => {
   let storage = (await (await services.storage).getStorage("")).get();
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  let deleteFile = mockedFunction(storage.deleteFile);
+  let deleteFiles = mockedFunction(storage.deleteFiles);
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let deleteLocalFiles = mockedFunction(storage.deleteLocalFiles);
 
   await purgeDeletedMedia();
 
-  expect(deleteFile.mock.calls).toInclude([
-    ["media1", "original1", "alt1.jpg"],
-    ["media1", "original1", "alt2.jpg"],
-    ["media1", "original1", "orig1.jpg"],
-    ["media1", "original2", "orig2.jpg"],
-    ["media3", "original5", "alt7.jpg"],
-    ["media3", "original5", "alt8.jpg"],
-    ["media3", "original5", "alt9.jpg"],
-    ["media3", "original5", "orig5.jpg"],
-    ["media3", "original6", "alt10.jpg"],
-    ["media3", "original6", "alt11.jpg"],
-    ["media3", "original6", "alt13.jpg"],
-    ["media3", "original6", "orig6.jpg"],
+  expect(deleteFiles.mock.calls).toInclude([
+    [
+      "media1",
+      "original1",
+      expect.toInclude([
+        "alt1.jpg",
+        "alt2.jpg",
+        "orig1.jpg",
+      ]),
+    ],
+    ["media1", "original2", ["orig2.jpg"]],
+    [
+      "media3",
+      "original5",
+      expect.toInclude([
+        "alt7.jpg",
+        "alt8.jpg",
+        "alt9.jpg",
+        "orig5.jpg",
+      ]),
+    ],
+    [
+      "media3",
+      "original6",
+      expect.toInclude([
+        "alt10.jpg",
+        "alt11.jpg",
+        "alt13.jpg",
+        "orig6.jpg",
+      ]),
+    ],
   ]);
 
   expect(deleteLocalFiles.mock.calls).toInclude([

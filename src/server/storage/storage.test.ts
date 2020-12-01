@@ -91,11 +91,9 @@ test("rollback", async (): Promise<void> => {
     })).rejects.toThrow("Bailing out");
 
     expect(mockRemote.delete.mock.calls).toEqual([
-      ["mdi/fl/myname"],
-      ["mdi/fl2/other"],
-      ["mdi/fl3/thisone"],
-      ["mdi/fl2/new"],
-      ["mdi/fl3/test"],
+      [["mdi/fl/myname"]],
+      [["mdi/fl2/other", "mdi/fl2/new"]],
+      [["mdi/fl3/thisone", "mdi/fl3/test"]],
     ]);
     mockRemote.delete.mockClear();
 

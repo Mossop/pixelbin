@@ -8,7 +8,7 @@ import fetch from "node-fetch";
 
 import type { ObjectModel } from "../../model";
 import type { Logger } from "../../utils";
-import { getLogger, s3Config, s3Params, s3PublicUrl } from "../../utils";
+import { s3Key, getLogger, s3Config, s3Params, s3PublicUrl } from "../../utils";
 import type { DatabaseConnection } from "../database";
 
 const logger = getLogger("aws");
@@ -55,7 +55,7 @@ export abstract class Remote {
   public abstract copy(source: string, target: string): Promise<void>;
   public abstract getUrl(target: string, contentType?: string): Promise<string>;
   public abstract stream(target: string): Promise<NodeJS.ReadableStream>;
-  public abstract delete(target: string): Promise<void>;
+  public abstract delete(target: string[]): Promise<void>;
 
   public static async getAWSRemote(
     dbConnection: DatabaseConnection,
@@ -193,11 +193,44 @@ class AWSRemote extends Remote {
     return stream;
   }
 
-  public async delete(target: string): Promise<void> {
+  public async delete(targets: string[]): Promise<void> {
+    if (targets.length == 0) {
+      return;
+    }
+
+    if (targets.length == 1) {
+      try {
+        await this.s3.deleteObject(
+          s3Params(this.storage, this.getFullTarget(targets[0])),
+        ).promise();
+        return;
+      } catch (e) {
+        throw new Error(`Failed to delete '${targets}': ${e}`);
+      }
+    }
+
+    let results: S3.DeleteObjectsOutput;
     try {
-      await this.s3.deleteObject(s3Params(this.storage, this.getFullTarget(target))).promise();
+      /* eslint-disable @typescript-eslint/naming-convention */
+      results = await this.s3.deleteObjects({
+        Bucket: this.storage.bucket,
+        Delete: {
+          Objects: targets.map((file: string): S3.ObjectIdentifier => ({
+            Key: s3Key(this.storage, this.getFullTarget(file)),
+          })),
+          Quiet: true,
+        },
+      }).promise();
+      /* eslint-enable @typescript-eslint/naming-convention */
     } catch (e) {
-      throw new Error(`Failed to delete '${target}': ${e}`);
+      let targetNames = targets.map((file: string): string => `'${file}'`);
+      throw new Error(`Failed to delete ${targetNames.join(", ")}: ${e}`);
+    }
+
+    if (results.Errors?.length) {
+      let targetNames = results.Errors.map((error: S3.Error): string => `'${error.Key}'`);
+      let errors = results.Errors.map((error: S3.Error): string => `'${error.Code}'`);
+      throw new Error(`Failed to delete ${targetNames.join(", ")}: ${errors.join(", ")}`);
     }
   }
 }

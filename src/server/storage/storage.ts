@@ -73,7 +73,12 @@ export class Storage {
 
   public async deleteFile(media: string, mediaFile: string, name: string): Promise<void> {
     let remote = await this.remote;
-    await remote.delete(path.join(media, mediaFile, name));
+    await remote.delete([path.join(media, mediaFile, name)]);
+  }
+
+  public async deleteFiles(media: string, mediaFile: string, names: string[]): Promise<void> {
+    let remote = await this.remote;
+    await remote.delete(names.map((name: string): string => path.join(media, mediaFile, name)));
   }
 
   public async copyFile(
@@ -206,16 +211,10 @@ export class Storage {
   }
 }
 
-interface AccessedFile {
-  media: string;
-  mediaFile: string;
-  name: string;
-}
-
 class StorageTransaction extends Storage {
   protected localFiles: Set<string>;
   protected localDirs: Set<string>;
-  protected remoteFiles: AccessedFile[];
+  protected remoteFiles: Map<string, Map<string, Set<string>>>;
 
   public constructor(
     dbConnection: DatabaseConnection,
@@ -226,7 +225,23 @@ class StorageTransaction extends Storage {
     super(dbConnection, catalog, tempDirectory, localDirectory);
     this.localFiles = new Set();
     this.localDirs = new Set();
-    this.remoteFiles = [];
+    this.remoteFiles = new Map();
+  }
+
+  private addRemoteFile(media: string, mediaFile: string, name: string): void {
+    let mediaMap = this.remoteFiles.get(media);
+    if (!mediaMap) {
+      mediaMap = new Map();
+      this.remoteFiles.set(media, mediaMap);
+    }
+
+    let fileSet = mediaMap.get(mediaFile);
+    if (!fileSet) {
+      fileSet = new Set();
+      mediaMap.set(mediaFile, fileSet);
+    }
+
+    fileSet.add(name);
   }
 
   public async storeFile(
@@ -236,11 +251,7 @@ class StorageTransaction extends Storage {
     file: string,
     mimetype: string,
   ): Promise<void> {
-    this.remoteFiles.push({
-      media,
-      mediaFile,
-      name,
-    });
+    this.addRemoteFile(media, mediaFile, name);
     return super.storeFile(media, mediaFile, name, file, mimetype);
   }
 
@@ -251,11 +262,7 @@ class StorageTransaction extends Storage {
     newMediaFile: string,
     newName: string,
   ): Promise<void> {
-    this.remoteFiles.push({
-      media,
-      mediaFile: newMediaFile,
-      name: newName,
-    });
+    this.addRemoteFile(media, newMediaFile, newName);
     return super.copyFile(media, oldMediaFile, oldName, newMediaFile, newName);
   }
 
@@ -273,11 +280,13 @@ class StorageTransaction extends Storage {
   }
 
   public async rollback(): Promise<void> {
-    for (let { media, mediaFile, name } of this.remoteFiles) {
-      try {
-        await this.deleteFile(media, mediaFile, name);
-      } catch (error) {
-        this.logger.error({ error }, "Failed to delete remote file.");
+    for (let [media, mediaMap] of this.remoteFiles) {
+      for (let [mediaFile, fileSet] of mediaMap) {
+        try {
+          await this.deleteFiles(media, mediaFile, [...fileSet.values()]);
+        } catch (error) {
+          this.logger.error({ error }, "Failed to delete remote files.");
+        }
       }
     }
 

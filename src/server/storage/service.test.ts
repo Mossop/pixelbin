@@ -184,13 +184,41 @@ async function storageTest(id: string): Promise<void> {
       "new",
       "test.txt",
     );
+    await storage.get().copyFile(
+      "media",
+      "info",
+      "file.txt",
+      "new",
+      "test2.txt",
+    );
     url = await storage.get().getFileUrl("media", "new", "test.txt");
     response = await fetch(url, { redirect: "follow" });
     expect(await response.text()).toBe("MYDATA");
     expect(response.headers.get("Content-Type")).toBe("text/foo");
 
     await storage.get().deleteFile("media", "info", "file.txt");
-    await storage.get().deleteFile("media", "new", "test.txt");
+    await storage.get().deleteFiles("media", "new", ["test.txt", "test2.txt"]);
+
+    url = await storage.get().getFileUrl("media", "info", "file.txt");
+    response = await fetch(url, { redirect: "follow" });
+    // Without the listbucket permission attempting to get a non-existent file
+    // may return a 403.
+    expect(response.status).toBeGreaterThanOrEqual(403);
+    expect(response.status).toBeLessThanOrEqual(404);
+
+    url = await storage.get().getFileUrl("media", "new", "test.txt");
+    response = await fetch(url, { redirect: "follow" });
+    // Without the listbucket permission attempting to get a non-existent file
+    // may return a 403.
+    expect(response.status).toBeGreaterThanOrEqual(403);
+    expect(response.status).toBeLessThanOrEqual(404);
+
+    url = await storage.get().getFileUrl("media", "new", "test2.txt");
+    response = await fetch(url, { redirect: "follow" });
+    // Without the listbucket permission attempting to get a non-existent file
+    // may return a 403.
+    expect(response.status).toBeGreaterThanOrEqual(403);
+    expect(response.status).toBeLessThanOrEqual(404);
   } finally {
     await testTemp.cleanup();
     await temp.cleanup();
