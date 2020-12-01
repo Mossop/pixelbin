@@ -8,7 +8,14 @@ import { dir as tmpdir } from "tmp-promise";
 
 import { AlternateFileType, CURRENT_PROCESS_VERSION } from "../../model";
 import type { Logger, RefCounted } from "../../utils";
-import type { AlternateFile, DatabaseConnection, MediaFile, MediaView } from "../database";
+import { runTasks } from "../../utils";
+import type {
+  AlternateFile,
+  DatabaseConnection,
+  MediaFile,
+  MediaView,
+  UnusedMediaFile,
+} from "../database";
 import type { Storage, StoredFile } from "../storage";
 import { extractFrame, encodeVideo, VideoCodec, AudioCodec, Container } from "./ffmpeg";
 import {
@@ -54,50 +61,60 @@ export const purgeDeletedMedia = bindTask(
     let storageService = await Services.storage;
     let cachedStorage: Map<string, RefCounted<Storage>> = new Map();
 
-    try {
-      for (let mediaFile of await dbConnection.getUnusedMediaFiles()) {
-        try {
-          logger.trace({
-            media: mediaFile.media,
-            mediaFile: mediaFile.id,
-          }, "Purging unused media file.");
+    let deleteMediaFile = async (mediaFile: UnusedMediaFile): Promise<void> => {
+      try {
+        logger.trace({
+          media: mediaFile.media,
+          mediaFile: mediaFile.id,
+        }, "Purging unused media file.");
 
-          let storage = cachedStorage.get(mediaFile.catalog);
-          if (!storage) {
-            storage = await storageService.getStorage(mediaFile.catalog);
-            cachedStorage.set(mediaFile.catalog, storage);
-          }
-
-          let filenames = [mediaFile.fileName];
-          let alternates = await dbConnection.listAlternateFiles(mediaFile.id);
-
-          for (let alternate of alternates) {
-            if (!alternate.local) {
-              filenames.push(alternate.fileName);
-            }
-          }
-
-          logger.trace({
-            media: mediaFile.media,
-            mediaFile: mediaFile.id,
-            filenames: mediaFile.fileName,
-          }, "Purging remote files.");
-          await storage.get().deleteFiles(mediaFile.media, mediaFile.id, filenames);
-
-          await dbConnection.deleteAlternateFiles(
-            alternates.map((a: AlternateFile): string => a.id),
-          );
-
-          await storage.get().deleteLocalFiles(mediaFile.media, mediaFile.id);
-          await dbConnection.deleteMediaFiles([mediaFile.id]);
-        } catch (error) {
-          logger.error({
-            media: mediaFile.media,
-            mediaFile: mediaFile.id,
-            error,
-          }, "Failed to delete unused media file.");
+        let storage = cachedStorage.get(mediaFile.catalog);
+        if (!storage) {
+          storage = await storageService.getStorage(mediaFile.catalog);
+          cachedStorage.set(mediaFile.catalog, storage);
         }
+
+        let filenames = [mediaFile.fileName];
+        let alternates = await dbConnection.listAlternateFiles(mediaFile.id);
+
+        for (let alternate of alternates) {
+          if (!alternate.local) {
+            filenames.push(alternate.fileName);
+          }
+        }
+
+        logger.trace({
+          media: mediaFile.media,
+          mediaFile: mediaFile.id,
+          filenames: mediaFile.fileName,
+        }, "Purging remote files.");
+        await storage.get().deleteFiles(mediaFile.media, mediaFile.id, filenames);
+
+        await dbConnection.deleteAlternateFiles(
+          alternates.map((a: AlternateFile): string => a.id),
+        );
+
+        await storage.get().deleteLocalFiles(mediaFile.media, mediaFile.id);
+        await dbConnection.deleteMediaFiles([mediaFile.id]);
+      } catch (error) {
+        logger.error({
+          media: mediaFile.media,
+          mediaFile: mediaFile.id,
+          error,
+        }, "Failed to delete unused media file.");
       }
+    };
+
+    try {
+      let mediaFiles = await dbConnection.getUnusedMediaFiles();
+
+      await runTasks(10, (): Promise<void> | null => {
+        let mediaFile = mediaFiles.shift();
+        if (mediaFile) {
+          return deleteMediaFile(mediaFile);
+        }
+        return null;
+      });
 
       for (let media of await dbConnection.listDeletedMedia()) {
         try {

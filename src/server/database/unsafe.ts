@@ -129,9 +129,11 @@ export async function deleteMediaFiles(
     .del();
 }
 
+export type UnusedMediaFile = Tables.MediaFile & { catalog: string };
+
 export async function getUnusedMediaFiles(
   this: DatabaseConnection,
-): Promise<(Tables.MediaFile & { catalog: string })[]> {
+): Promise<UnusedMediaFile[]> {
   let currentFiles = this.knex(Table.MediaFile)
     .orderBy([
       { column: ref(Table.MediaFile, "media"), order: "asc" },
