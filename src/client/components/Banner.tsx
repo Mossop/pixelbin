@@ -16,9 +16,9 @@ import React, { useCallback } from "react";
 
 import { logout } from "../api/auth";
 import type { UserState } from "../api/types";
+import { DialogType } from "../dialogs/types";
 import PageMenuIcon from "../icons/PageMenuIcon";
 import SidebarToggleIcon from "../icons/SidebarToggleIcon";
-import { OverlayType } from "../overlays/types";
 import { PageType } from "../pages/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
@@ -84,17 +84,17 @@ export default function Banner({
   let userMenuState = usePopupState({ variant: "popover", popupId: "user-menu" });
   let pageOptionsState = usePopupState({ variant: "popover", popupId: "page-options" });
 
-  let showLoginOverlay = useCallback((): void => {
+  let showLoginDialog = useCallback((): void => {
     userMenuState.close();
-    actions.showOverlay({
-      type: OverlayType.Login,
+    actions.showDialog({
+      type: DialogType.Login,
     });
   }, [actions, userMenuState]);
 
-  // let showSignupOverlay = useCallback((): void => {
+  // let showSignupDialog = useCallback((): void => {
   //   userMenuState.close();
-  //   actions.showOverlay({
-  //     type: OverlayType.Signup,
+  //   actions.showDialog({
+  //     type: DialogType.Signup,
   //   });
   // }, [actions, userMenuState]);
 
@@ -222,7 +222,7 @@ export default function Banner({
             <Button
               id="button-login"
               color="inherit"
-              onClick={showLoginOverlay}
+              onClick={showLoginDialog}
             >
               {l10n.getString("banner-login")}
             </Button>
@@ -230,7 +230,7 @@ export default function Banner({
               <Button
                 id="button-signup"
                 color="inherit"
-                onClick={showSignupOverlay}
+                onClick={showSignupDialog}
               >
                 {l10n.getString("banner-signup")}
               </Button>

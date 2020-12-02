@@ -11,8 +11,8 @@ import type {
   StorageState,
   SavedSearchState,
 } from "../api/types";
-import type { OverlayState } from "../overlays/types";
-import { OverlayType } from "../overlays/types";
+import type { DialogState } from "../dialogs/types";
+import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
 import { nameSorted } from "../utils/sort";
@@ -55,7 +55,7 @@ const catalogReducers = {
       });
     }
 
-    delete state.ui.overlay;
+    delete state.ui.dialog;
   },
 
   storageCreated(state: Draft<StoreState>, user: Draft<UserState>, storage: StorageState): void {
@@ -106,7 +106,7 @@ const catalogReducers = {
       }
     }
 
-    delete state.ui.overlay;
+    delete state.ui.dialog;
   },
 };
 
@@ -137,7 +137,7 @@ const albumReducers = {
       newCatalog.albums.set(album.id, album);
     }
 
-    delete state.ui.overlay;
+    delete state.ui.dialog;
   },
 
   albumDeleted(state: Draft<StoreState>, user: Draft<UserState>, albumRef: Reference<Album>): void {
@@ -168,7 +168,7 @@ const albumReducers = {
       }
     }
 
-    delete state.ui.overlay;
+    delete state.ui.dialog;
   },
 };
 
@@ -198,8 +198,8 @@ const authReducers = {
           },
         };
         if (!serverState.user.catalogs.size) {
-          state.ui.overlay = {
-            type: OverlayType.CatalogCreate,
+          state.ui.dialog = {
+            type: DialogType.CatalogCreate,
           };
         }
       }
@@ -212,8 +212,8 @@ const authReducers = {
       page: {
         type: PageType.User,
       },
-      overlay: {
-        type: OverlayType.CatalogCreate,
+      dialog: {
+        type: DialogType.CatalogCreate,
       },
     };
   },
@@ -243,8 +243,8 @@ export const reducers = {
     state.serverState = createDraft(serverState);
   },
 
-  showOverlay(state: Draft<StoreState>, overlay: Draft<OverlayState>): void {
-    state.ui.overlay = overlay;
+  showDialog(state: Draft<StoreState>, dialog: Draft<DialogState>): void {
+    state.ui.dialog = dialog;
   },
 
   navigate(state: Draft<StoreState>, uiState: UIState): void {
@@ -252,8 +252,8 @@ export const reducers = {
     state.ui = uiState as Draft<UIState>;
   },
 
-  closeOverlay(state: Draft<StoreState>): void {
-    delete state.ui.overlay;
+  closeDialog(state: Draft<StoreState>): void {
+    delete state.ui.dialog;
   },
 };
 

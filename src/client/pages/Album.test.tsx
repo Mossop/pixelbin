@@ -5,7 +5,7 @@ import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils";
 import { Album } from "../api/highlevel";
 import MediaGallery from "../components/MediaGallery";
-import { OverlayType } from "../overlays/types";
+import { DialogType } from "../dialogs/types";
 import {
   expect,
   mockStore,
@@ -71,9 +71,9 @@ test("album", async (): Promise<void> => {
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showOverlay",
+    type: "showDialog",
     payload: [{
-      type: OverlayType.AlbumEdit,
+      type: DialogType.AlbumEdit,
       album: expect.toBeRef("album1"),
     }],
   });
@@ -83,9 +83,9 @@ test("album", async (): Promise<void> => {
   click(button);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showOverlay",
+    type: "showDialog",
     payload: [{
-      type: OverlayType.AlbumCreate,
+      type: DialogType.AlbumCreate,
       parent: expect.toBeRef("album1"),
     }],
   });

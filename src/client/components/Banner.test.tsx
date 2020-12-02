@@ -4,7 +4,7 @@ import type { Api } from "../../model";
 import { Method } from "../../model";
 import { awaitCall, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";
-import { OverlayType } from "../overlays/types";
+import { DialogType } from "../dialogs/types";
 import {
   expect,
   render,
@@ -43,9 +43,9 @@ test("banner", async (): Promise<void> => {
   click(login);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch.mock.calls[0]).toEqual([{
-    type: "showOverlay",
+    type: "showDialog",
     payload: [{
-      type: OverlayType.Login,
+      type: DialogType.Login,
     }],
   }]);
   store.dispatch.mockClear();
@@ -53,9 +53,9 @@ test("banner", async (): Promise<void> => {
   // click(signup);
   // expect(store.dispatch).toHaveBeenCalledTimes(1);
   // expect(store.dispatch).toHaveBeenLastCalledWith({
-  //   type: "showOverlay",
+  //   type: "showDialog",
   //   payload: [{
-  //     type: OverlayType.Signup,
+  //     type: DialogType.Signup,
   //   }],
   // });
   // store.dispatch.mockClear();

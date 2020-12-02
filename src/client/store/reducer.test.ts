@@ -1,7 +1,7 @@
 import { enableMapSet } from "immer";
 
 import { Album } from "../api/highlevel";
-import { OverlayType } from "../overlays/types";
+import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect, mockServerState, mapOf } from "../test-helpers";
 import actions from "./actions";
@@ -38,20 +38,20 @@ test("Navigate", (): void => {
   });
 });
 
-test("closeOverlay", (): void => {
+test("closeDialog", (): void => {
   let state = mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.Login,
+      dialog: {
+        type: DialogType.Login,
       },
     },
   });
 
-  let action = actions.closeOverlay();
+  let action = actions.closeDialog();
 
   let newState = reducer(state, action);
 

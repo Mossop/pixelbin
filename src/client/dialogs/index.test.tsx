@@ -2,7 +2,7 @@
 import { waitFor } from "@testing-library/react";
 import React from "react";
 
-import Overlay from ".";
+import Dialog from ".";
 import { Operator } from "../../model";
 import { Catalog, Album } from "../api/highlevel";
 import { PageType } from "../pages/types";
@@ -13,54 +13,54 @@ import {
   mockStoreState,
   render,
 } from "../test-helpers";
-import type { AlbumOverlayProps } from "./Album";
-import type { AlbumDeleteOverlayProps } from "./AlbumDelete";
-import type { CatalogCreateOverlayProps } from "./CatalogCreate";
-import type { CatalogEditOverlayProps } from "./CatalogEdit";
-import { OverlayType } from "./types";
+import type { AlbumDialogProps } from "./Album";
+import type { AlbumDeleteDialogProps } from "./AlbumDelete";
+import type { CatalogCreateDialogProps } from "./CatalogCreate";
+import type { CatalogEditDialogProps } from "./CatalogEdit";
+import { DialogType } from "./types";
 
 jest.mock("./Album", (): unknown => {
-  return (props: AlbumOverlayProps) => {
+  return (props: AlbumDialogProps) => {
     if ("album" in props) {
-      return <div id="album-overlay" data-album={props.album.id}/>;
+      return <div id="album-dialog" data-album={props.album.id}/>;
     } else {
-      return <div id="album-overlay" data-parent={props.parent.id}/>;
+      return <div id="album-dialog" data-parent={props.parent.id}/>;
     }
   };
 });
 
 jest.mock("./AlbumDelete", (): unknown => {
-  return (props: AlbumDeleteOverlayProps) =>
-    <div id="album-delete-overlay" data-album={props.album.id}/>;
+  return (props: AlbumDeleteDialogProps) =>
+    <div id="album-delete-dialog" data-album={props.album.id}/>;
 });
 
 jest.mock("./CatalogEdit", (): unknown => {
-  return (props: CatalogEditOverlayProps) =>
-    <div id="catalog-edit-overlay" data-catalog={props.catalog.id}/>;
+  return (props: CatalogEditDialogProps) =>
+    <div id="catalog-edit-dialog" data-catalog={props.catalog.id}/>;
 });
 
 jest.mock("./CatalogCreate", (): unknown => {
-  return (props: CatalogCreateOverlayProps) =>
-    <div id="catalog-create-overlay" data-user={props.user.email}/>;
+  return (props: CatalogCreateDialogProps) =>
+    <div id="catalog-create-dialog" data-user={props.user.email}/>;
 });
 
 jest.mock("./Login", (): unknown => {
-  return () => <div id="login-overlay"/>;
+  return () => <div id="login-dialog"/>;
 });
 
 jest.mock("./Signup", (): unknown => {
-  return () => <div id="signup-overlay"/>;
+  return () => <div id="signup-dialog"/>;
 });
 
 jest.mock("./Search", (): unknown => {
-  return () => <div id="search-overlay"/>;
+  return () => <div id="search-dialog"/>;
 });
 
 jest.mock("./SavedSearch", (): unknown => {
-  return () => <div id="saved-search-overlay"/>;
+  return () => <div id="saved-search-dialog"/>;
 });
 
-test("no overlay", (): void => {
+test("no dialog", (): void => {
   let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
@@ -70,173 +70,173 @@ test("no overlay", (): void => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
 
   let loading = container.querySelector(".loading");
   expect(loading).toBeNull();
 });
 
-test("login overlay", async (): Promise<void> => {
+test("login dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.Login,
+      dialog: {
+        type: DialogType.Login,
       },
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
   expectChild(container, ".loading");
 
-  await waitFor(() => expectChild(container, "#login-overlay"));
+  await waitFor(() => expectChild(container, "#login-dialog"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("signup overlay", async (): Promise<void> => {
+test("signup dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     serverState: { user: null },
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.Signup,
+      dialog: {
+        type: DialogType.Signup,
       },
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
   expectChild(container, ".loading");
 
-  await waitFor(() => expectChild(container, "#signup-overlay"));
+  await waitFor(() => expectChild(container, "#signup-dialog"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("create album overlay", async (): Promise<void> => {
+test("create album dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.AlbumCreate,
+      dialog: {
+        type: DialogType.AlbumCreate,
         parent: Catalog.ref("catalog"),
       },
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
   expectChild(container, ".loading");
 
-  let div = await waitFor(() => expectChild(container, "#album-overlay"));
+  let div = await waitFor(() => expectChild(container, "#album-dialog"));
   expect(div.getAttribute("data-parent")).toBe("catalog");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("edit album overlay", async (): Promise<void> => {
+test("edit album dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.AlbumEdit,
+      dialog: {
+        type: DialogType.AlbumEdit,
         album: Album.ref("album"),
       },
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-  // The AlbumOverlay may have already resolved in the previous test.
-  expectChild(container, "#album-overlay,.loading");
+  let { container } = render(<Dialog/>, store);
+  // The AlbumDialog may have already resolved in the previous test.
+  expectChild(container, "#album-dialog,.loading");
 
-  let div = await waitFor(() => expectChild(container, "#album-overlay"));
+  let div = await waitFor(() => expectChild(container, "#album-dialog"));
   expect(div.getAttribute("data-album")).toBe("album");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("delete album overlay", async (): Promise<void> => {
+test("delete album dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.AlbumDelete,
+      dialog: {
+        type: DialogType.AlbumDelete,
         album: Album.ref("album"),
       },
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
-  // The AlbumOverlay may have already resolved in the previous test.
+  let { container } = render(<Dialog/>, store);
+  // The AlbumDialog may have already resolved in the previous test.
   expectChild(container, ".loading");
 
-  let div = await waitFor(() => expectChild(container, "#album-delete-overlay"));
+  let div = await waitFor(() => expectChild(container, "#album-delete-dialog"));
   expect(div.getAttribute("data-album")).toBe("album");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("create catalog overlay", async (): Promise<void> => {
+test("create catalog dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.CatalogCreate,
+      dialog: {
+        type: DialogType.CatalogCreate,
       },
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
   expectChild(container, ".loading");
 
-  let div = await waitFor(() => expectChild(container, "#catalog-create-overlay"));
+  let div = await waitFor(() => expectChild(container, "#catalog-create-dialog"));
   expect(div.getAttribute("data-user")).toBe(store.state.serverState.user?.email);
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("edit catalog overlay", async (): Promise<void> => {
+test("edit catalog dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.CatalogEdit,
+      dialog: {
+        type: DialogType.CatalogEdit,
         catalog: Catalog.ref("catref"),
       },
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
   expectChild(container, ".loading");
 
-  let div = await waitFor(() => expectChild(container, "#catalog-edit-overlay"));
+  let div = await waitFor(() => expectChild(container, "#catalog-edit-dialog"));
   expect(div.getAttribute("data-catalog")).toBe("catref");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("search overlay", async (): Promise<void> => {
+test("search dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.Search,
+      dialog: {
+        type: DialogType.Search,
         catalog: Catalog.ref("catref"),
         query: {
           type: "field",
@@ -250,22 +250,22 @@ test("search overlay", async (): Promise<void> => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
   expectChild(container, ".loading");
 
-  await waitFor(() => expectChild(container, "#search-overlay"));
+  await waitFor(() => expectChild(container, "#search-dialog"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });
 
-test("save search overlay", async (): Promise<void> => {
+test("save search dialog", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     ui: {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.SavedSearchCreate,
+      dialog: {
+        type: DialogType.SavedSearchCreate,
         catalog: Catalog.ref("catref"),
         query: {
           type: "field",
@@ -279,10 +279,10 @@ test("save search overlay", async (): Promise<void> => {
     },
   }));
 
-  let { container } = render(<Overlay/>, store);
+  let { container } = render(<Dialog/>, store);
   expectChild(container, ".loading");
 
-  await waitFor(() => expectChild(container, "#saved-search-overlay"));
+  await waitFor(() => expectChild(container, "#saved-search-dialog"));
 
   expect(store.dispatch).not.toHaveBeenCalled();
 });

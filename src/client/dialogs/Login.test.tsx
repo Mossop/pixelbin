@@ -18,7 +18,7 @@ import {
   click,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
-import LoginOverlay from "./Login";
+import LoginDialog from "./Login";
 
 jest.mock("../api/api");
 
@@ -29,7 +29,7 @@ afterEach(resetDOM);
 test("login success", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { dialogContainer } = render(<LoginOverlay/>, store);
+  let { dialogContainer } = render(<LoginDialog/>, store);
 
   expect(document.title).toBe("login-title");
 
@@ -112,7 +112,7 @@ test("login success", async (): Promise<void> => {
 test("login failed", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { dialogContainer } = render(<LoginOverlay/>, store);
+  let { dialogContainer } = render(<LoginDialog/>, store);
 
   expect(document.title).toBe("login-title");
 

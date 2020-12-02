@@ -7,9 +7,9 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import { DialogType } from "../dialogs/types";
 import SavedSearchDeleteIcon from "../icons/SavedSearchDeleteIcon";
 import SavedSearchEditIcon from "../icons/SavedSearchEditIcon";
-import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import type { SavedSearchMediaLookup } from "../utils/medialookup";
 import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
@@ -34,16 +34,16 @@ export default function SavedSearchPage({
   }), [search]);
 
   let onSearchEdit = useCallback(
-    () => actions.showOverlay({
-      type: OverlayType.SavedSearchEdit,
+    () => actions.showDialog({
+      type: DialogType.SavedSearchEdit,
       search,
     }),
     [actions, search],
   );
 
   let onSearchDelete = useCallback(
-    () => actions.showOverlay({
-      type: OverlayType.SavedSearchDelete,
+    () => actions.showDialog({
+      type: DialogType.SavedSearchDelete,
       search,
     }),
     [actions, search],

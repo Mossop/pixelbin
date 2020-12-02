@@ -2,22 +2,23 @@ import { Localized } from "@fluent/react";
 import Typography from "@material-ui/core/Typography";
 import React, { useCallback, useState } from "react";
 
-import type { SavedSearch, Reference } from "../api/highlevel";
-import { useReference } from "../api/highlevel";
-import { deleteSavedSearch } from "../api/search";
+import { deleteAlbum } from "../api/album";
+import type { Album, Reference } from "../api/highlevel";
 import ConfirmationDialog from "../components/Forms/ConfirmationDialog";
+import { useSelector } from "../store";
 import { useActions } from "../store/actions";
+import type { StoreState } from "../store/types";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
-export interface SavedSearchDeleteOverlayProps {
-  readonly search: Reference<SavedSearch>;
+export interface AlbumDeleteDialogProps {
+  readonly album: Reference<Album>;
 }
 
-export default function SavedSearchDeleteOverlay(
-  props: SavedSearchDeleteOverlayProps,
-): ReactResult {
-  let search = useReference(props.search);
+export default function AlbumDeleteDialog(props: AlbumDeleteDialogProps): ReactResult {
+  let album = useSelector((state: StoreState) => {
+    return props.album.deref(state.serverState);
+  });
 
   let [disabled, setDisabled] = useState(false);
   let [error, setError] = useState<AppError | null>(null);
@@ -29,22 +30,22 @@ export default function SavedSearchDeleteOverlay(
     setError(null);
 
     try {
-      await deleteSavedSearch(props.search);
-      actions.searchDeleted(props.search);
+      await deleteAlbum(props.album);
+      actions.albumDeleted(props.album);
     } catch (e) {
       setError(e);
       setDisabled(false);
     }
-  }, [props.search, actions]);
+  }, [props.album, actions]);
 
   return <ConfirmationDialog
     error={error}
     disabled={disabled}
-    titleId="saved-search-delete-title"
+    titleId="album-delete-title"
     onAccept={onAccept}
-    onClose={actions.closeOverlay}
+    onClose={actions.closeDialog}
   >
-    <Localized id="saved-search-delete-description" vars={{ name: search.name }}>
+    <Localized id="album-delete-description" vars={{ name: album.name }}>
       <Typography variant="body1"/>
     </Localized>
   </ConfirmationDialog>;

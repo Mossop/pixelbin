@@ -20,11 +20,11 @@ export interface CatalogCreateState {
   catalogName: string;
 }
 
-export interface CatalogCreateOverlayProps {
+export interface CatalogCreateDialogProps {
   user: UserState;
 }
 
-export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps): ReactResult {
+export default function CatalogCreateDialog({ user }: CatalogCreateDialogProps): ReactResult {
   let [disabled, setDisabled] = useState(false);
   let [error, setError] = useState<AppError | null>(null);
   let actions = useActions();
@@ -123,7 +123,7 @@ export default function CatalogCreateOverlay({ user }: CatalogCreateOverlayProps
     error={error}
     disabled={disabled}
     onSubmit={onSubmit}
-    onClose={actions.closeOverlay}
+    onClose={actions.closeDialog}
     onBackClick={onBack}
     onNextClick={onNext}
     currentStep={currentStep}

@@ -9,10 +9,10 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import { DialogType } from "../dialogs/types";
 import AlbumAddIcon from "../icons/AlbumAddIcon";
 import CatalogEditIcon from "../icons/CatalogEditIcon";
 import SearchIcon from "../icons/SearchIcon";
-import { OverlayType } from "../overlays/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
@@ -33,8 +33,8 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
   let catalog = useSelector((store: StoreState) => props.catalog.deref(store.serverState));
 
   let onAlbumCreate = useCallback(
-    () => actions.showOverlay({
-      type: OverlayType.AlbumCreate,
+    () => actions.showDialog({
+      type: DialogType.AlbumCreate,
       parent: props.catalog,
     }),
     [props, actions],
@@ -58,8 +58,8 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
   let media = useMediaLookup(lookup);
 
   let onCatalogEdit = useCallback(
-    () => actions.showOverlay({
-      type: OverlayType.CatalogEdit,
+    () => actions.showDialog({
+      type: DialogType.CatalogEdit,
       catalog: props.catalog,
     }),
     [props, actions],
@@ -73,8 +73,8 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
       queries: [],
     };
 
-    actions.showOverlay({
-      type: OverlayType.Search,
+    actions.showDialog({
+      type: DialogType.Search,
       catalog: props.catalog,
       query,
     });

@@ -9,11 +9,11 @@ import type { StoreState } from "../store/types";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
-export interface CatalogEditOverlayProps {
+export interface CatalogEditDialogProps {
   readonly catalog: Reference<Catalog>;
 }
 
-export default function CatalogEditOverlay(props: CatalogEditOverlayProps): ReactResult {
+export default function CatalogEditDialog(props: CatalogEditDialogProps): ReactResult {
   let catalog = useSelector((state: StoreState) => {
     return props.catalog.deref(state.serverState);
   });
@@ -59,7 +59,7 @@ export default function CatalogEditOverlay(props: CatalogEditOverlayProps): Reac
     titleId="catalog-edit-title"
     submitId="catalog-edit-submit"
     onSubmit={onSubmit}
-    onClose={actions.closeOverlay}
+    onClose={actions.closeDialog}
     onEntered={onDisplay}
   >
     <TextField

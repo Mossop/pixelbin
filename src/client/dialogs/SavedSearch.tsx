@@ -10,18 +10,18 @@ import type { StoreState } from "../store/types";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
-export interface SavedSearchEditOverlayProps {
+export interface SavedSearchEditDialogProps {
   search: Reference<SavedSearch>;
 }
 
-export interface SavedSearchCreateOverlayProps {
+export interface SavedSearchCreateDialogProps {
   catalog: Reference<Catalog>;
   query: Query;
 }
 
-export type SavedSearchOverlayProps = SavedSearchCreateOverlayProps | SavedSearchEditOverlayProps;
+export type SavedSearchDialogProps = SavedSearchCreateDialogProps | SavedSearchEditDialogProps;
 
-export default function SavedSearchOverlay(props: SavedSearchOverlayProps): ReactResult {
+export default function SavedSearchDialog(props: SavedSearchDialogProps): ReactResult {
   let { search, query, catalog } = useSelector((state: StoreState) => {
     let search: SavedSearch | null = null;
     let catalog: Catalog;
@@ -95,7 +95,7 @@ export default function SavedSearchOverlay(props: SavedSearchOverlayProps): Reac
     titleId={search ? "edit-saved-search-title" : "save-saved-search-title"}
     submitId="saved-search-submit"
     onSubmit={onSubmit}
-    onClose={actions.closeOverlay}
+    onClose={actions.closeDialog}
     onEntered={onDisplay}
   >
     <TextField

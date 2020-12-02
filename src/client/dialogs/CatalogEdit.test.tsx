@@ -16,7 +16,7 @@ import {
   render,
   resetDOM,
 } from "../test-helpers";
-import CatalogEditOverlay from "./CatalogEdit";
+import CatalogEditDialog from "./CatalogEdit";
 
 jest.mock("../api/api");
 
@@ -40,7 +40,7 @@ test("edit catalog", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<CatalogEditOverlay catalog={Catalog.ref("catalog")}/>, store);
+  let { dialogContainer } = render(<CatalogEditDialog catalog={Catalog.ref("catalog")}/>, store);
 
   expect(document.title).toBe("catalog-edit-title");
 

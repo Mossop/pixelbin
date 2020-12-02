@@ -13,17 +13,17 @@ import type { ReactResult } from "../utils/types";
 import type { VirtualItem } from "../utils/virtual";
 import { VirtualTree } from "../utils/virtual";
 
-export interface AlbumEditOverlayProps {
+export interface AlbumEditDialogProps {
   readonly album: Reference<Album>;
 }
 
-export interface AlbumCreateOverlayProps {
+export interface AlbumCreateDialogProps {
   readonly parent: Reference<MediaTarget>;
 }
 
-export type AlbumOverlayProps = AlbumEditOverlayProps | AlbumCreateOverlayProps;
+export type AlbumDialogProps = AlbumEditDialogProps | AlbumCreateDialogProps;
 
-export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
+export default function AlbumDialog(props: AlbumDialogProps): ReactResult {
   let { album, parent, catalog } = useSelector((state: StoreState) => {
     let album: Album | null = null;
     let catalog: Catalog;
@@ -104,7 +104,7 @@ export default function AlbumOverlay(props: AlbumOverlayProps): ReactResult {
     titleId={album ? "album-edit-title" : "album-create-title"}
     submitId={album ? "album-edit-submit" : "album-create-submit"}
     onSubmit={onSubmit}
-    onClose={actions.closeOverlay}
+    onClose={actions.closeDialog}
     onEntered={onDisplay}
   >
     <TextField

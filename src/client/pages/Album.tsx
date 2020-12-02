@@ -9,11 +9,11 @@ import type { MediaState } from "../api/types";
 import Content from "../components/Content";
 import MediaGallery from "../components/MediaGallery";
 import Page from "../components/Page";
+import { DialogType } from "../dialogs/types";
 import AlbumAddIcon from "../icons/AlbumAddIcon";
 import AlbumDeleteIcon from "../icons/AlbumDeleteIcon";
 import AlbumEditIcon from "../icons/AlbumEditIcon";
 import SearchIcon from "../icons/SearchIcon";
-import { OverlayType } from "../overlays/types";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
@@ -33,24 +33,24 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
   let album = useSelector((state: StoreState) => props.album.deref(state.serverState));
 
   let onAlbumEdit = useCallback(
-    () => actions.showOverlay({
-      type: OverlayType.AlbumEdit,
+    () => actions.showDialog({
+      type: DialogType.AlbumEdit,
       album: props.album,
     }),
     [actions, props.album],
   );
 
   let onAlbumCreate = useCallback(
-    () => actions.showOverlay({
-      type: OverlayType.AlbumCreate,
+    () => actions.showDialog({
+      type: DialogType.AlbumCreate,
       parent: props.album,
     }),
     [props.album, actions],
   );
 
   let onAlbumDelete = useCallback(
-    () => actions.showOverlay({
-      type: OverlayType.AlbumDelete,
+    () => actions.showDialog({
+      type: DialogType.AlbumDelete,
       album: props.album,
     }),
     [props.album, actions],
@@ -91,8 +91,8 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
       }],
     };
 
-    actions.showOverlay({
-      type: OverlayType.Search,
+    actions.showDialog({
+      type: DialogType.Search,
       catalog: album.catalog.ref(),
       query,
     });

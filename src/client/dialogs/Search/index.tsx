@@ -79,12 +79,12 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export interface SearchOverlayProps {
+export interface SearchDialogProps {
   readonly catalog: Reference<Catalog>;
   readonly query: Query | null;
 }
 
-export default function SearchOverlay({ catalog, query }: SearchOverlayProps): ReactResult {
+export default function SearchDialog({ catalog, query }: SearchDialogProps): ReactResult {
   let classes = useStyles();
   let { l10n } = useLocalization();
   let actions = useActions();
@@ -167,7 +167,7 @@ export default function SearchOverlay({ catalog, query }: SearchOverlayProps): R
 
   let close = useCallback(() => {
     setOpen(false);
-    actions.closeOverlay();
+    actions.closeDialog();
   }, [actions]);
 
   return <MuiPickersUtilsProvider utils={LuxonUtils}>

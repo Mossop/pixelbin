@@ -15,7 +15,7 @@ import {
   click,
   deferRequest,
 } from "../test-helpers";
-import SavedSearchDeleteOverlay from "./SavedSearchDelete";
+import SavedSearchDeleteDialog from "./SavedSearchDelete";
 
 jest.mock("../api/api");
 
@@ -36,7 +36,7 @@ test("cancelled delete search", async (): Promise<void> => {
   }));
 
   let { dialogContainer } = render(
-    <SavedSearchDeleteOverlay search={SavedSearch.ref("search1")}/>,
+    <SavedSearchDeleteDialog search={SavedSearch.ref("search1")}/>,
     store,
   );
 
@@ -53,7 +53,7 @@ test("cancelled delete search", async (): Promise<void> => {
   expect(store.dispatch).toHaveBeenCalledTimes(1);
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "closeOverlay",
+    type: "closeDialog",
     payload: [],
   });
 });
@@ -71,7 +71,7 @@ test("accepted delete search", async (): Promise<void> => {
   }));
 
   let { dialogContainer } = render(
-    <SavedSearchDeleteOverlay search={SavedSearch.ref("search1")}/>,
+    <SavedSearchDeleteDialog search={SavedSearch.ref("search1")}/>,
     store,
   );
 

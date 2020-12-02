@@ -2,7 +2,7 @@ import { useLocalization } from "@fluent/react";
 import type { ErrorInfo } from "react";
 import React, { PureComponent, Suspense } from "react";
 
-import Overlay from "../overlays";
+import Dialog from "../dialogs";
 import Page from "../pages";
 import ErrorPage from "../pages/Error";
 import Loading from "./Loading";
@@ -53,7 +53,7 @@ export default function App(): React.ReactElement | null {
       <Page/>
     </Suspense>
     <Suspense fallback={null}>
-      <Overlay/>
+      <Dialog/>
     </Suspense>
   </ErrorHandler>;
 }

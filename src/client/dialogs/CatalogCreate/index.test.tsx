@@ -1,6 +1,6 @@
 import React from "react";
 
-import CatalogOverlay from ".";
+import CatalogDialog from ".";
 import { AWSResult, Method } from "../../../model";
 import { lastCallArgs } from "../../../test-helpers";
 import {
@@ -26,7 +26,7 @@ test("create catalog", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
 
-  let { dialogContainer } = render(<CatalogOverlay user={user}/>, store);
+  let { dialogContainer } = render(<CatalogDialog user={user}/>, store);
 
   expect(document.title).toBe("catalog-create-title-first");
 
@@ -286,7 +286,7 @@ test("create catalog with existing storage", async (): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   let user = store.state.serverState.user!;
 
-  let { container, dialogContainer } = render(<CatalogOverlay user={user}/>, store);
+  let { container, dialogContainer } = render(<CatalogDialog user={user}/>, store);
 
   expect(document.title).toBe("catalog-create-title");
 

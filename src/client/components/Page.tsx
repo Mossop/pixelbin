@@ -94,7 +94,7 @@ export default function Page({
   }));
 
   useEffect(() => {
-    if (!uiState.overlay) {
+    if (!uiState.dialog) {
       document.title = title;
     }
   }, [title, uiState]);

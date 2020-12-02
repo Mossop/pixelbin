@@ -18,7 +18,7 @@ import {
   click,
   mockServerState,
 } from "../test-helpers";
-import SavedSearchOverlay from "./SavedSearch";
+import SavedSearchDialog from "./SavedSearch";
 
 jest.mock("../api/api");
 
@@ -43,7 +43,7 @@ test("save search", async (): Promise<void> => {
     value: "fii",
   };
 
-  let { dialogContainer } = render(<SavedSearchOverlay
+  let { dialogContainer } = render(<SavedSearchDialog
     catalog={Catalog.ref("catalog")}
     query={query}
   />, store);
@@ -126,7 +126,7 @@ test("edit search", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<SavedSearchOverlay
+  let { dialogContainer } = render(<SavedSearchDialog
     search={SavedSearch.ref("search1")}
   />, store);
 
@@ -224,7 +224,7 @@ test("save private search", async (): Promise<void> => {
     value: "fii",
   };
 
-  let { dialogContainer } = render(<SavedSearchOverlay
+  let { dialogContainer } = render(<SavedSearchDialog
     catalog={Catalog.ref("catalog")}
     query={query}
   />, store);

@@ -2,7 +2,7 @@ import type { Deed } from "deeds/immer";
 import type { Store } from "redux";
 
 import type { ServerState } from "../api/types";
-import type { OverlayState } from "../overlays/types";
+import type { DialogState } from "../dialogs/types";
 import type { PageState } from "../pages/types";
 
 interface Settings {
@@ -11,7 +11,7 @@ interface Settings {
 
 export interface UIState {
   readonly page: PageState;
-  readonly overlay?: OverlayState;
+  readonly dialog?: DialogState;
 }
 
 export interface StoreState {

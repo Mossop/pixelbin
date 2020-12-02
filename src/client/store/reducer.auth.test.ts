@@ -3,7 +3,7 @@ import type { Draft } from "immer";
 import { enableMapSet } from "immer";
 
 import type { ServerState } from "../api/types";
-import { OverlayType } from "../overlays/types";
+import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, mockServerState, expect } from "../test-helpers";
 import actions from "./actions";
@@ -90,8 +90,8 @@ test("Logging in with no catalogs shows catalog create", (): void => {
     page: {
       type: PageType.User,
     },
-    overlay: {
-      type: OverlayType.CatalogCreate,
+    dialog: {
+      type: DialogType.CatalogCreate,
     },
   };
 
@@ -116,8 +116,8 @@ test("Creating a user.", (): void => {
     page: {
       type: PageType.User,
     },
-    overlay: {
-      type: OverlayType.CatalogCreate,
+    dialog: {
+      type: DialogType.CatalogCreate,
     },
   };
 

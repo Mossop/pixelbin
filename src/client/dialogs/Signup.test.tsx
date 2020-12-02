@@ -18,7 +18,7 @@ import {
   click,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
-import SignupOverlay from "./Signup";
+import SignupDialog from "./Signup";
 
 jest.mock("../api/api");
 
@@ -29,7 +29,7 @@ afterEach(resetDOM);
 test("signup success", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { dialogContainer } = render(<SignupOverlay/>, store);
+  let { dialogContainer } = render(<SignupDialog/>, store);
 
   expect(document.title).toBe("signup-title");
 
@@ -120,7 +120,7 @@ test("signup success", async (): Promise<void> => {
 test("signup failed", async (): Promise<void> => {
   let store = mockStore(mockStoreState({}));
 
-  let { dialogContainer } = render(<SignupOverlay/>, store);
+  let { dialogContainer } = render(<SignupDialog/>, store);
 
   let form = expectChild<HTMLFormElement>(dialogContainer, "form");
 

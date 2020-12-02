@@ -3,7 +3,7 @@ import { pathToRegexp } from "path-to-regexp";
 import { Join } from "../../model";
 import { Catalog, Album, SavedSearch } from "../api/highlevel";
 import type { ServerState } from "../api/types";
-import { OverlayType } from "../overlays/types";
+import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import actions from "../store/actions";
 import type { StoreType, UIState } from "../store/types";
@@ -20,13 +20,13 @@ function re(pattern: string): RegExp {
 }
 
 function encodeTargetState(uiState: UIState): Map<string, string> | undefined {
-  if (uiState.overlay === undefined) {
+  if (uiState.dialog === undefined) {
     // This would guarantee infinite recursion.
     exception(ErrorCode.InvalidState);
   }
 
   let target: UIState = Object.assign({}, uiState, {
-    overlay: undefined,
+    dialog: undefined,
   });
 
   let historyState = fromUIState(target);
@@ -143,8 +143,8 @@ const pathMap: PathMap[] = [
     "/login",
     (serverState: ServerState, historyState: HistoryState): UIState => {
       return Object.assign({}, decodeTargetState(historyState.params, serverState), {
-        overlay: {
-          type: OverlayType.Login,
+        dialog: {
+          type: DialogType.Login,
         },
       });
     },
@@ -338,8 +338,8 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
 }
 
 export function fromUIState(uiState: UIState): HistoryState {
-  switch (uiState.overlay?.type) {
-    case OverlayType.Login: {
+  switch (uiState.dialog?.type) {
+    case DialogType.Login: {
       return history.buildState("/login", encodeTargetState(uiState));
     }
   }

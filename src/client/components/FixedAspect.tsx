@@ -29,7 +29,7 @@ const useStyles = makeStyles(() =>
       maxWidth: "100%",
       verticalAlign: "bottom",
     },
-    areaOverlay: ({ height, width }: FixedAspectProps) => ({
+    areaDialog: ({ height, width }: FixedAspectProps) => ({
       position: "absolute",
       bottom: 0,
       left: 0,
@@ -68,7 +68,7 @@ export default function FixedAspect(props: FixedAspectProps & ReactChildren): Re
       <div className={classes.row}>
         <span className={classes.inlineArea}>
           <svg className={classes.intrinsicBox} viewBox={`0 0 ${props.width} ${props.height}`}/>
-          <div className={classes.areaOverlay}>
+          <div className={classes.areaDialog}>
             <div className={classes.viewportContainer}>
               <div className={classes.viewport}>{props.children}</div>
             </div>

@@ -7,8 +7,8 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles, useTheme } from "@material-ui/core/styles";
 import React, { useCallback } from "react";
 
+import { DialogType } from "../dialogs/types";
 import CatalogAddIcon from "../icons/CatalogAddIcon";
-import { OverlayType } from "../overlays/types";
 import { useActions } from "../store/actions";
 import type { ReactResult } from "../utils/types";
 import type { VirtualItem } from "../utils/virtual";
@@ -111,8 +111,8 @@ export default function SidebarTree(
   let classes = useStyles();
 
   let onCreateCatalog = useCallback(() => {
-    actions.showOverlay({
-      type: OverlayType.CatalogCreate,
+    actions.showDialog({
+      type: DialogType.CatalogCreate,
     });
   }, [actions]);
 

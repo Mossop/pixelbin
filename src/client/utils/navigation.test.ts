@@ -5,7 +5,7 @@ import { mockedFunction } from "../../test-helpers";
 import type { Obj } from "../../utils";
 import { Catalog, Album, SavedSearch } from "../api/highlevel";
 import type { ServerState } from "../api/types";
-import { OverlayType } from "../overlays/types";
+import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import reducer from "../store/reducer";
 import type { StoreType } from "../store/types";
@@ -241,13 +241,13 @@ test("user page", (): void => {
   })).toEqual(state("/user"));
 });
 
-test("login overlay", (): void => {
+test("login dialog", (): void => {
   expect(intoUIState(state("/login"), LoggedOut)).toEqual({
     page: {
       type: PageType.Root,
     },
-    overlay: {
-      type: OverlayType.Login,
+    dialog: {
+      type: DialogType.Login,
     },
   });
 
@@ -255,8 +255,8 @@ test("login overlay", (): void => {
     page: {
       type: PageType.Root,
     },
-    overlay: {
-      type: OverlayType.Login,
+    dialog: {
+      type: DialogType.Login,
     },
   })).toEqual(state("/login"));
 
@@ -265,8 +265,8 @@ test("login overlay", (): void => {
       type: PageType.NotFound,
       history: state("/user"),
     },
-    overlay: {
-      type: OverlayType.Login,
+    dialog: {
+      type: DialogType.Login,
     },
   });
 
@@ -275,8 +275,8 @@ test("login overlay", (): void => {
       type: PageType.NotFound,
       history: state("/user"),
     },
-    overlay: {
-      type: OverlayType.Login,
+    dialog: {
+      type: DialogType.Login,
     },
   })).toEqual(state("/login", { path: "/user" }));
 
@@ -284,8 +284,8 @@ test("login overlay", (): void => {
     page: {
       type: PageType.User,
     },
-    overlay: {
-      type: OverlayType.Login,
+    dialog: {
+      type: DialogType.Login,
     },
   });
 
@@ -293,8 +293,8 @@ test("login overlay", (): void => {
     page: {
       type: PageType.User,
     },
-    overlay: {
-      type: OverlayType.Login,
+    dialog: {
+      type: DialogType.Login,
     },
   })).toEqual(state("/login", { path: "/user" }));
 });

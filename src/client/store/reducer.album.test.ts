@@ -1,7 +1,7 @@
 import { enableMapSet } from "immer";
 
 import { Catalog, Album } from "../api/highlevel";
-import { OverlayType } from "../overlays/types";
+import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import { mockStoreState, expect, mapOf, mockServerState } from "../test-helpers";
 import actions from "./actions";
@@ -26,8 +26,8 @@ test("albumCreated", (): void => {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.AlbumCreate,
+      dialog: {
+        type: DialogType.AlbumCreate,
         parent: Catalog.ref("cat1"),
       },
     },
@@ -128,8 +128,8 @@ test("Album edited", (): void => {
       page: {
         type: PageType.Root,
       },
-      overlay: {
-        type: OverlayType.AlbumEdit,
+      dialog: {
+        type: DialogType.AlbumEdit,
         album: Album.ref("album1"),
       },
     },
@@ -252,8 +252,8 @@ test("Album deleted", (): void => {
         type: PageType.Album,
         album: Album.ref("album3"),
       },
-      overlay: {
-        type: OverlayType.AlbumDelete,
+      dialog: {
+        type: DialogType.AlbumDelete,
         album: Album.ref("album3"),
       },
     },
@@ -350,8 +350,8 @@ test("Album deleted", (): void => {
       type: PageType.Album,
       album: Album.ref("album3"),
     },
-    overlay: {
-      type: OverlayType.AlbumDelete,
+    dialog: {
+      type: DialogType.AlbumDelete,
       album: Album.ref("album3"),
     },
   });
@@ -455,8 +455,8 @@ test("Album deleted", (): void => {
         type: PageType.Album,
         album: Album.ref("album6"),
       },
-      overlay: {
-        type: OverlayType.AlbumDelete,
+      dialog: {
+        type: DialogType.AlbumDelete,
         album: Album.ref("album6"),
       },
     },
@@ -543,8 +543,8 @@ test("Album deleted", (): void => {
         type: PageType.Album,
         album: Album.ref("album9"),
       },
-      overlay: {
-        type: OverlayType.AlbumDelete,
+      dialog: {
+        type: DialogType.AlbumDelete,
         album: Album.ref("album1"),
       },
     },

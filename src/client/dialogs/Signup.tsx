@@ -1,16 +1,17 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useState, useCallback, useRef } from "react";
 
-import { login } from "../api/auth";
+import { signup } from "../api/auth";
 import { FormDialog, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
-export default function LoginOverlay(): ReactResult {
+export default function SignupDialog(): ReactResult {
   let actions = useActions();
 
   let formState = useFormState({
     email: "",
+    fullname: "",
     password: "",
   });
 
@@ -23,8 +24,9 @@ export default function LoginOverlay(): ReactResult {
     emailInput.current?.focus();
   }, [emailInput]);
 
-  let onSubmit = useCallback(async () => {
-    let { email, password } = formState.value;
+  let onSubmit = useCallback(async (): Promise<void> => {
+    let { email, fullname, password } = formState.value;
+
     if (!email) {
       return;
     }
@@ -33,8 +35,12 @@ export default function LoginOverlay(): ReactResult {
     setError(null);
 
     try {
-      let serverState = await login(email, password);
-      actions.completeLogin(serverState);
+      let serverState = await signup(
+        email,
+        password,
+        fullname,
+      );
+      actions.completeSignup(serverState);
     } catch (e) {
       setError(e);
       setDisabled(false);
@@ -42,31 +48,36 @@ export default function LoginOverlay(): ReactResult {
 
       emailInput.current?.focus();
     }
-  }, [actions, emailInput, formState]);
+  }, [formState, actions]);
 
   return <FormDialog
-    id="login"
+    id="signup"
     error={error}
     disabled={disabled}
-    titleId="login-title"
-    submitId="login-submit"
+    titleId="signup-title"
+    submitId="signup-submit"
     onSubmit={onSubmit}
-    onClose={actions.closeOverlay}
+    onClose={actions.closeDialog}
     onEntered={onDisplay}
   >
     <TextField
-      id="login-email"
+      id="signup-email"
       type="email"
       autoComplete="email"
-      labelId="login-email"
+      labelId="signup-email"
       state={formState.email}
       ref={emailInput}
     />
     <TextField
-      id="login-password"
+      id="signup-fullname"
+      labelId="signup-name"
+      state={formState.fullname}
+    />
+    <TextField
+      id="signup-password"
       type="password"
-      autoComplete="current-password"
-      labelId="login-password"
+      autoComplete="new-password"
+      labelId="signup-password"
       state={formState.password}
     />
   </FormDialog>;

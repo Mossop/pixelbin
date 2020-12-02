@@ -17,7 +17,7 @@ import {
   click,
   deferRequest,
 } from "../test-helpers";
-import AlbumOverlay from "./Album";
+import AlbumDialog from "./Album";
 
 jest.mock("../api/api");
 
@@ -40,7 +40,7 @@ test("create album", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<AlbumOverlay parent={Catalog.ref("catalog")}/>, store);
+  let { dialogContainer } = render(<AlbumDialog parent={Catalog.ref("catalog")}/>, store);
 
   expect(document.title).toBe("album-create-title");
 
@@ -104,7 +104,7 @@ test("edit album", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<AlbumOverlay album={Album.ref("album2")}/>, store);
+  let { dialogContainer } = render(<AlbumDialog album={Album.ref("album2")}/>, store);
 
   expect(document.title).toBe("album-edit-title");
 

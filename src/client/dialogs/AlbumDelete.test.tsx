@@ -15,7 +15,7 @@ import {
   click,
   deferRequest,
 } from "../test-helpers";
-import AlbumDeleteOverlay from "./AlbumDelete";
+import AlbumDeleteDialog from "./AlbumDelete";
 
 jest.mock("../api/api");
 
@@ -39,7 +39,7 @@ test("cancelled delete album", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<AlbumDeleteOverlay album={Album.ref("album1")}/>, store);
+  let { dialogContainer } = render(<AlbumDeleteDialog album={Album.ref("album1")}/>, store);
 
   expect(document.title).toBe("album-delete-title");
 
@@ -54,7 +54,7 @@ test("cancelled delete album", async (): Promise<void> => {
   expect(store.dispatch).toHaveBeenCalledTimes(1);
 
   expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "closeOverlay",
+    type: "closeDialog",
     payload: [],
   });
 });
@@ -75,7 +75,7 @@ test("accepted delete album", async (): Promise<void> => {
     }]),
   }));
 
-  let { dialogContainer } = render(<AlbumDeleteOverlay album={Album.ref("album1")}/>, store);
+  let { dialogContainer } = render(<AlbumDeleteDialog album={Album.ref("album1")}/>, store);
 
   expect(document.title).toBe("album-delete-title");
 
