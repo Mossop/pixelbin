@@ -1,7 +1,6 @@
-import Box from "@material-ui/core/Box";
 import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Catalog } from "../api/highlevel";
 import { useCatalogs } from "../api/highlevel";
@@ -15,6 +14,7 @@ import {
   VirtualSearch,
   IncludeVirtualCategories,
 } from "../utils/virtual";
+import { APPBAR_HEIGHT } from "./AppBar";
 import type { PageOption } from "./Banner";
 import Banner from "./Banner";
 import type { SidebarProps } from "./Sidebar";
@@ -23,36 +23,47 @@ import SidebarTree from "./SidebarTree";
 
 const useStyles = makeStyles(() =>
   createStyles({
-    app: {
+    scrollArea: (showOverlay: boolean) => ({
+      height: "100%",
+      width: "100%",
+      overflow: showOverlay ? "hidden" : "auto",
       display: "flex",
       flexDirection: "column",
-      alignItems: "stretch",
-      justifyContent: "flex-start",
-      height: "100vh",
-      width: "100vw",
-    },
-    content: {
-      display: "flex",
-      flexDirection: "row",
       flexGrow: 1,
       alignItems: "stretch",
       justifyContent: "flex-start",
+    }),
+    contentRow: {
+      flexGrow: 1,
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "stretch",
+    },
+    content: {
+      flexGrow: 1,
+    },
+    overlay: {
+      position: "absolute",
+      top: APPBAR_HEIGHT,
+      bottom: 0,
+      left: 0,
+      right: 0,
     },
   }));
 
 export interface PageProps {
   children?: React.ReactNode;
+  overlay?: React.ReactNode;
   selectedItem?: string;
   pageOptions?: PageOption[];
-  sidebar?: SidebarProps["type"];
   title: string;
 }
 
 export default function Page({
   selectedItem,
   pageOptions,
-  sidebar,
   title,
+  overlay,
   children,
 }: PageProps): ReactResult {
   let catalogs = useCatalogs().map(
@@ -65,14 +76,18 @@ export default function Page({
     }),
   );
 
-  let theme = useTheme();
-  let classes = useStyles();
+  let hasOverlay = !!overlay;
 
-  let forceSidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
-  let sidebarType = forceSidebarModal ? "modal" : sidebar ?? "persistent";
+  let theme = useTheme();
+  let classes = useStyles(hasOverlay);
+
+  let sidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
   let [sidebarOpen, setSidebarOpen] = useState(false);
 
-  let uiState = useSelector((state: StoreState): UIState => state.ui);
+  let { uiState, loggedIn } = useSelector((state: StoreState) => ({
+    uiState: state.ui,
+    loggedIn: state.serverState.user,
+  }));
 
   let [lastUIState, setLastUIState] = useState<UIState | null>(null);
 
@@ -81,17 +96,9 @@ export default function Page({
     setLastUIState(uiState);
   }
 
-  let onMenuButtonClick = useCallback((): void => {
-    setSidebarOpen(true);
-  }, []);
-
   let onCloseSidebar = useCallback((): void => {
     setSidebarOpen(false);
   }, []);
-
-  let { loggedIn } = useSelector((state: StoreState) => ({
-    loggedIn: state.serverState.user,
-  }));
 
   useEffect(() => {
     if (!uiState.dialog) {
@@ -99,25 +106,52 @@ export default function Page({
     }
   }, [title, uiState]);
 
-  if (loggedIn) {
-    return <Box className={classes.app}>
+  let sidebarType = useMemo((): SidebarProps["type"] | null => {
+    if (!loggedIn) {
+      return null;
+    }
+
+    if (sidebarModal) {
+      return "modal";
+    }
+
+    if (hasOverlay) {
+      return "openable";
+    }
+
+    return "persistent";
+  }, [sidebarModal, hasOverlay, loggedIn]);
+
+  let onMenuButtonClick = useMemo(() => {
+    if (!sidebarType || sidebarType == "persistent") {
+      return null;
+    }
+    return () => setSidebarOpen(true);
+  }, [sidebarType]);
+
+  return <React.Fragment>
+    <div className={classes.scrollArea}>
       <Banner
-        onMenuButtonClick={sidebarType != "persistent" ? onMenuButtonClick : undefined}
+        onMenuButtonClick={onMenuButtonClick}
         pageOptions={pageOptions}
       />
-      <Box className={classes.content}>
-        <Sidebar type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
-          <SidebarTree roots={catalogs} selectedItem={selectedItem}/>
-        </Sidebar>
-        {children}
-      </Box>
-    </Box>;
-  }
-
-  return <Box className={classes.app}>
-    <Banner pageOptions={pageOptions}/>
-    <Box className={classes.content}>
-      {children}
-    </Box>
-  </Box>;
+      <div className={classes.contentRow}>
+        {
+          sidebarType &&
+          <Sidebar type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
+            <SidebarTree roots={catalogs} selectedItem={selectedItem}/>
+          </Sidebar>
+        }
+        <div className={classes.content}>
+          {children}
+        </div>
+      </div>
+    </div>
+    {
+      overlay &&
+      <div className={classes.overlay}>
+        {overlay}
+      </div>
+    }
+  </React.Fragment>;
 }

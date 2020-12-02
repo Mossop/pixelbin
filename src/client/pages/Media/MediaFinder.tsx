@@ -121,14 +121,14 @@ export default function MediaFinder({ media, lookup }: MediaFinderProps): ReactR
   }, [mediaIndex, mediaList, actions, lookup]);
 
   if (!mediaList) {
-    return <Page title={l10n.getString("loading-title")} sidebar="openable">
+    return <Page title={l10n.getString("loading-title")}>
       <Loading className={classes.content}/>
     </Page>;
   }
 
   if (mediaIndex < 0) {
     // TODO add an error component.
-    return <Page title={l10n.getString("loading-title")} sidebar="openable">
+    return <Page title={l10n.getString("loading-title")}>
       <Loading className={classes.content}/>
     </Page>;
   }
@@ -138,7 +138,6 @@ export default function MediaFinder({ media, lookup }: MediaFinderProps): ReactR
   if (!isProcessedMedia(foundMedia)) {
     return <Page
       title={mediaTitle(foundMedia) ?? l10n.getString("media-page-title")}
-      sidebar="openable"
     >
       <Loading className={classes.content}/>
     </Page>;
@@ -146,7 +145,6 @@ export default function MediaFinder({ media, lookup }: MediaFinderProps): ReactR
 
   return <Page
     title={mediaTitle(foundMedia) ?? l10n.getString("media-page-title")}
-    sidebar="openable"
   >
     <MediaDisplay
       media={foundMedia}

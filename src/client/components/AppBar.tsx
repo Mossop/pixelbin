@@ -1,16 +1,36 @@
-import type { AppBarProps } from "@material-ui/core/AppBar";
 import MuiAppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
+import type { Theme } from "@material-ui/core/styles";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React from "react";
 
-import type { ReactResult } from "../utils/types";
+import type { ReactChildren, ReactResult } from "../utils/types";
 
-export default function AppBar(props: AppBarProps): ReactResult {
-  let { children, ...forwarded } = props;
+export const APPBAR_HEIGHT = "9ex";
 
-  return <MuiAppBar id="appbar" position="sticky" elevation={0} {...forwarded}>
-    <Toolbar>
-      {children}
-    </Toolbar>
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    banner: {
+      height: APPBAR_HEIGHT,
+      paddingTop: theme.spacing(1),
+      paddingBottom: theme.spacing(1),
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2),
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+    },
+  }));
+
+export default function AppBar({ children }: ReactChildren): ReactResult {
+  let classes = useStyles();
+
+  return <MuiAppBar
+    id="appbar"
+    className={classes.banner}
+    position="sticky"
+    elevation={0}
+    role="banner"
+  >
+    {children}
   </MuiAppBar>;
 }

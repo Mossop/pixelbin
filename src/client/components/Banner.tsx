@@ -29,10 +29,8 @@ import Link from "./Link";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    banner: {
-      zIndex: theme.zIndex.drawer + 1,
-    },
     bannerButtons: {
+      flexGrow: 1,
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
@@ -42,9 +40,6 @@ const useStyles = makeStyles((theme: Theme) =>
       marginRight: theme.spacing(2),
     },
     title: {
-      flexGrow: 1,
-    },
-    titleText: {
       fontSize: "1.25rem",
       fontFamily: "\"Comfortaa\", cursive",
       fontWeight: "bold",
@@ -59,7 +54,7 @@ export interface PageOption {
 }
 
 export type BannerProps = ReactChildren & {
-  onMenuButtonClick?: () => void;
+  onMenuButtonClick?: (() => void) | null;
   pageOptions?: PageOption[];
 };
 
@@ -109,7 +104,7 @@ export default function Banner({
     pageOption.onClick();
   }, [pageOptionsState]);
 
-  return <AppBar className={classes.banner} role="banner">
+  return <AppBar>
     {
       onMenuButtonClick && <IconButton
         id="menu-button"
@@ -123,9 +118,7 @@ export default function Banner({
       </IconButton>
     }
     <Box className={classes.title}>
-      <Box className={classes.titleText} component="span">
-        <Link to={{ page: { type: PageType.Root } }} color="inherit">PixelBin</Link>
-      </Box>
+      <Link to={{ page: { type: PageType.Root } }} color="inherit">PixelBin</Link>
     </Box>
     <Box id="banner-buttons" className={classes.bannerButtons}>
       {children}

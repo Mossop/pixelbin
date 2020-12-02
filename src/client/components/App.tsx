@@ -1,4 +1,5 @@
 import { useLocalization } from "@fluent/react";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
 import type { ErrorInfo } from "react";
 import React, { PureComponent, Suspense } from "react";
 
@@ -39,21 +40,33 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
   }
 }
 
+const useStyles = makeStyles(() =>
+  createStyles({
+    app: {
+      height: "100vh",
+      width: "100vw",
+      position: "relative",
+    },
+  }));
+
 export default function App(): React.ReactElement | null {
   let { l10n } = useLocalization();
+  let classes = useStyles();
 
-  return <ErrorHandler>
-    <Suspense
-      fallback={
-        <PageComponent title={l10n.getString("loading-title")}>
-          <Loading flexGrow={1}/>
-        </PageComponent>
-      }
-    >
-      <Page/>
-    </Suspense>
-    <Suspense fallback={null}>
-      <Dialog/>
-    </Suspense>
-  </ErrorHandler>;
+  return <div className={classes.app}>
+    <ErrorHandler>
+      <Suspense
+        fallback={
+          <PageComponent title={l10n.getString("loading-title")}>
+            <Loading flexGrow={1}/>
+          </PageComponent>
+        }
+      >
+        <Page/>
+      </Suspense>
+      <Suspense fallback={null}>
+        <Dialog/>
+      </Suspense>
+    </ErrorHandler>
+  </div>;
 }
