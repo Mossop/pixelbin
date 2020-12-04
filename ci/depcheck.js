@@ -14,6 +14,7 @@ const ADDITIONAL_DEPENDENCIES = [
 const ADDITIONAL_DEV_DEPENDENCIES = [
   "@jsdevtools/coverage-istanbul-loader",
   "@types/node",
+  "@types/resize-observer-browser",
   "@typescript-eslint/eslint-plugin",
   "cache-loader",
   "cross-env",
