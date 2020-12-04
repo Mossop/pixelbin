@@ -1,11 +1,9 @@
-import { performance } from "perf_hooks";
-
 import Knex from "knex";
-import { DateTime as Luxon } from "luxon";
+import { DateTime as Luxon, FixedOffsetZone } from "luxon";
 import { types } from "pg";
 
 import type { DateTime, Logger, Obj } from "../../utils";
-import { getLogger } from "../../utils";
+import { Level, getLogger } from "../../utils";
 import * as CatalogQueries from "./catalog";
 import { DatabaseError, DatabaseErrorCode, notfound, notwritable } from "./error";
 import * as Joins from "./joins";
@@ -31,12 +29,83 @@ export interface DatabaseConfig {
   database: string;
 }
 
-function parseUTCDate(val: string): DateTime {
-  return Luxon.fromSQL(val).toUTC();
+// 2020-11-28 03:06:45.574+00
+const intSub = (
+  str: string,
+  start: number,
+  length: number,
+): number => parseInt(str.substring(start, start + length));
+
+export function parseUTCDate(val: string): DateTime {
+  let millis = 0;
+  if (val.length > 20) {
+    millis = parseInt(val.substring(20));
+  }
+
+  let dt = Luxon.utc(
+    intSub(val, 0, 4),
+    intSub(val, 5, 2),
+    intSub(val, 8, 2),
+    intSub(val, 11, 2),
+    intSub(val, 14, 2),
+    intSub(val, 17, 2),
+    millis,
+  );
+
+  let offsetChar = val.charAt(val.length - 3);
+  let offset = 0;
+  switch (offsetChar) {
+    case "+":
+    case "-": {
+      let hourOffset = parseInt(val.substring(val.length - 2));
+      if (offsetChar == "-") {
+        offset = -hourOffset * 60;
+      } else {
+        offset = hourOffset * 60;
+      }
+      break;
+    }
+    case ":": {
+      offsetChar = val.charAt(val.length - 6);
+      if (offsetChar != "+" && offsetChar != "-") {
+        break;
+      }
+
+      let hourOffset = parseInt(val.substring(val.length - 5));
+      let minuteOffset = parseInt(val.substring(val.length - 2));
+      if (val.charAt(val.length - 6) == "-") {
+        offset = -hourOffset * 60 + minuteOffset;
+      } else {
+        offset = -hourOffset * 60 + minuteOffset;
+      }
+      break;
+    }
+  }
+
+  if (offset != 0) {
+    dt = dt.setZone(FixedOffsetZone.instance(offset), {
+      keepLocalTime: true,
+    }).toUTC();
+  }
+
+  return dt;
 }
 
-function parseDate(val: string): DateTime {
-  return Luxon.fromSQL(val);
+export function parseDate(val: string): DateTime {
+  let millis = 0;
+  if (val.length > 20) {
+    millis = parseInt(val.substring(20));
+  }
+
+  return Luxon.local(
+    intSub(val, 0, 4),
+    intSub(val, 5, 2),
+    intSub(val, 8, 2),
+    intSub(val, 11, 2),
+    intSub(val, 14, 2),
+    intSub(val, 17, 2),
+    millis,
+  );
 }
 
 types.setTypeParser(types.builtins.TIMESTAMPTZ, parseUTCDate);
@@ -144,31 +213,11 @@ export class DatabaseConnection {
       throw new Error("Cannot migrate while in a transaction.");
     }
 
-    let migrations = new Migrations();
+    let migrateConfig = {
+      migrationSource: new Migrations(this.logger.child("migration")),
+    };
 
-    await this.knex.migrate.latest({
-      migrationSource: migrations,
-    });
-  }
-
-  public async loggedQuery<TRecord, TResult>(
-    query: Knex.QueryBuilder<TRecord, TResult>,
-    name?: string,
-  ): Promise<TResult> {
-    let logger = this.logger;
-    if (name) {
-      logger = logger.child(name);
-    }
-    let start = performance.now();
-    try {
-      return (await query) as TResult;
-    } finally {
-      let duration = Math.ceil(performance.now() - start);
-      logger.debug({
-        query: query.toSQL().sql,
-        duration,
-      }, "Completed database query.");
-    }
+    await this.knex.migrate.latest(migrateConfig);
   }
 
   public forUser(user: UserRef): UserScopedConnection {
@@ -353,95 +402,103 @@ export class UserScopedConnection {
   }
 
   public checkRead(table: Table, ids: string[]): Promise<void> {
-    return this.ensureTransaction(async function checkRead(userDb: UserScopedConnection) {
-      if (ids.length == 0) {
-        return;
-      }
-
-      let counts: {
-        count: number
-      }[];
-
-      if (table == Table.Catalog) {
-        counts = await userDb.loggedQuery(userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
-          .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
-          .where(ref(Table.UserCatalog, "user"), userDb.user)
-          .select({
-            count: userDb.raw("CAST(COUNT(*) AS integer)"),
-          }), "checkRead");
-      } else {
-        let visible = from(userDb.knex, table)
-          .whereIn(`${table}.catalog`, userDb.catalogs());
-
-        if (table == Table.MediaInfo) {
-          visible = visible.where(ref(Table.MediaInfo, "deleted"), false);
+    return this.logger.child("checkRead").time(
+      () => this.ensureTransaction(async function checkRead(userDb: UserScopedConnection) {
+        if (ids.length == 0) {
+          return;
         }
 
-        counts = await userDb.loggedQuery(userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
-          .join(visible.as("Visible"), "Ids.id", "Visible.id")
-          .select({
-            count: userDb.raw("CAST(COUNT(*) AS integer)"),
-          }), "checkRead");
-      }
+        let counts: {
+          count: number
+        }[];
 
-      if (!counts.length || counts[0].count != ids.length) {
-        notfound(table);
-      }
-    });
+        if (table == Table.Catalog) {
+          counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+            .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
+            .where(ref(Table.UserCatalog, "user"), userDb.user)
+            .select({
+              count: userDb.raw("CAST(COUNT(*) AS integer)"),
+            });
+        } else {
+          let visible = from(userDb.knex, table)
+            .whereIn(`${table}.catalog`, userDb.catalogs());
+
+          if (table == Table.MediaInfo) {
+            visible = visible.where(ref(Table.MediaInfo, "deleted"), false);
+          }
+
+          counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+            .join(visible.as("Visible"), "Ids.id", "Visible.id")
+            .select({
+              count: userDb.raw("CAST(COUNT(*) AS integer)"),
+            });
+        }
+
+        if (!counts.length || counts[0].count != ids.length) {
+          notfound(table);
+        }
+      }),
+      Level.Trace,
+      "Checked read permission.",
+    );
   }
 
   public async checkWrite(table: Table, ids: string[]): Promise<void> {
-    return this.ensureTransaction(async function checkRead(userDb: UserScopedConnection) {
-      if (ids.length == 0) {
-        return;
-      }
-
-      let counts: {
-        writable: number;
-        visible: number;
-      }[];
-
-      if (table == Table.Catalog) {
-        let writable = userDb.raw("CAST(COUNT(*) FILTER (WHERE ??=true) AS integer)", [
-          ref(Table.UserCatalog, "writable"),
-        ]);
-
-        counts = await userDb.loggedQuery(userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
-          .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
-          .where(ref(Table.UserCatalog, "user"), userDb.user)
-          .select({
-            visible: userDb.raw("CAST(COUNT(*) AS integer)"),
-            writable,
-          }), "checkWrite");
-      } else {
-        let writable = userDb.raw("CAST(COUNT(*) FILTER (WHERE ??=?) AS integer)", [
-          ref(Table.UserCatalog, "writable"),
-          true,
-        ]);
-
-        let query = userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
-          .join(table, `${table}.id`, "Ids.id")
-          .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), `${table}.catalog`)
-          .where(ref(Table.UserCatalog, "user"), userDb.user);
-
-        if (table == Table.MediaInfo) {
-          query = query.where(ref(Table.MediaInfo, "deleted"), false);
+    return this.logger.child("checkRead").time(
+      () => this.ensureTransaction(async function checkRead(userDb: UserScopedConnection) {
+        if (ids.length == 0) {
+          return;
         }
 
-        counts = await userDb.loggedQuery(query.select({
-          visible: userDb.raw("CAST(COUNT(*) AS integer)"),
-          writable,
-        }), "checkWrite");
-      }
+        let counts: {
+          writable: number;
+          visible: number;
+        }[];
 
-      if (!counts.length || counts[0].visible != ids.length) {
-        notfound(table);
-      }
+        if (table == Table.Catalog) {
+          let writable = userDb.raw("CAST(COUNT(*) FILTER (WHERE ??=true) AS integer)", [
+            ref(Table.UserCatalog, "writable"),
+          ]);
 
-      if (counts[0].writable != ids.length) {
-        notwritable(table);
-      }
-    });
+          counts = await userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+            .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), "Ids.id")
+            .where(ref(Table.UserCatalog, "user"), userDb.user)
+            .select({
+              visible: userDb.raw("CAST(COUNT(*) AS integer)"),
+              writable,
+            });
+        } else {
+          let writable = userDb.raw("CAST(COUNT(*) FILTER (WHERE ??=?) AS integer)", [
+            ref(Table.UserCatalog, "writable"),
+            true,
+          ]);
+
+          let query = userDb.knex(asTable(userDb.knex, ids, "Ids", "id"))
+            .join(table, `${table}.id`, "Ids.id")
+            .join(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), `${table}.catalog`)
+            .where(ref(Table.UserCatalog, "user"), userDb.user);
+
+          if (table == Table.MediaInfo) {
+            query = query.where(ref(Table.MediaInfo, "deleted"), false);
+          }
+
+          counts = await query.select({
+            visible: userDb.raw("CAST(COUNT(*) AS integer)"),
+            writable,
+          });
+        }
+
+        if (!counts.length || counts[0].visible != ids.length) {
+          notfound(table);
+        }
+
+        if (counts[0].writable != ids.length) {
+          notwritable(table);
+        }
+      }),
+      Level.Trace,
+      "Checked read permission.",
+    );
   }
 
   public catalogs(): Knex.QueryBuilder<TableRecord<Table.UserCatalog>, string> {
@@ -455,13 +512,6 @@ export class UserScopedConnection {
       .where("user", this.user)
       .where("writable", true)
       .select("catalog");
-  }
-
-  public loggedQuery<TRecord, TResult>(
-    query: Knex.QueryBuilder<TRecord, TResult>,
-    name?: string,
-  ): Promise<TResult> {
-    return this.connection.loggedQuery(query, name);
   }
 
   public readonly getUser = wrapped(UserQueries.getUser);
@@ -491,6 +541,9 @@ export class UserScopedConnection {
   public readonly editPerson = wrapped(CatalogQueries.editPerson);
   public readonly deletePeople = wrapped(CatalogQueries.deletePeople);
 
+  public readonly getMediaAlbums = wrapped(Joins.getMediaAlbums);
+  public readonly getMediaTags = wrapped(Joins.getMediaTags);
+  public readonly getMediaPeople = wrapped(Joins.getMediaPeople);
   public readonly addMediaRelations = wrapped(Joins.addMediaRelations);
   public readonly removeMediaRelations = wrapped(Joins.removeMediaRelations);
   public readonly setMediaRelations = wrapped(Joins.setMediaRelations);
@@ -501,7 +554,8 @@ export class UserScopedConnection {
   public readonly editMedia = wrapped(MediaQueries.editMedia);
   public readonly getMedia = wrapped(MediaQueries.getMedia);
   public readonly listAlternateFiles = wrapped(MediaQueries.listAlternateFiles);
-  public readonly getMediaAlternate = wrapped(MediaQueries.getMediaAlternate);
+  public readonly getMediaAlternates = wrapped(MediaQueries.getMediaAlternates);
+  public readonly getMediaFile = wrapped(MediaQueries.getMediaFile);
   public readonly deleteMedia = wrapped(MediaQueries.deleteMedia);
   public readonly searchMedia = wrapped(SearchQueries.searchMedia);
 

@@ -91,7 +91,15 @@ export function initialServerState(): ServerState {
     console.error("Missing initial state.");
   }
 
-  return { user: null };
+  return {
+    user: null,
+    thumbnails: {
+      encodings: [],
+      sizes: [],
+    },
+    encodings: [],
+    videoEncodings: [],
+  };
 }
 
 export function appContainer(): HTMLElement | null {

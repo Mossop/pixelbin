@@ -175,10 +175,6 @@ export function mockMedia(
 
     file: null,
 
-    tags: [],
-    albums: [],
-    people: [],
-
     ...emptyMetadata,
     ...data,
   };
@@ -200,10 +196,6 @@ export function mockProcessedMedia(
     updated: current,
     catalog: Catalog.ref("catalog"),
 
-    tags: [],
-    albums: [],
-    people: [],
-
     ...emptyMetadata,
     ...data,
 
@@ -217,9 +209,35 @@ export function mockProcessedMedia(
       duration: null,
       bitRate: null,
       frameRate: null,
-      originalUrl: `http://localhost/media/original/${id}/${randomId()}`,
-      thumbnails: [],
-      alternatives: [],
+      url: `http://localhost/media/original/${id}/${randomId()}`,
+      thumbnails: [{
+        mimetype: "image/jpeg",
+        size: 100,
+        url: `http://localhost/media/thumb/${id}/100/image-jpeg/${randomId()}`,
+      }, {
+        mimetype: "image/jpeg",
+        size: 200,
+        url: `http://localhost/media/thumb/${id}/200/image-jpeg/${randomId()}`,
+      }, {
+        mimetype: "image/webp",
+        size: 100,
+        url: `http://localhost/media/thumb/${id}/100/image-webp/${randomId()}`,
+      }, {
+        mimetype: "image/webp",
+        size: 200,
+        url: `http://localhost/media/thumb/${id}/200/image-webp/${randomId()}`,
+      }],
+      encodings: [{
+        mimetype: "image/webp",
+        url: `http://localhost/media/encoding/${id}/image-webp/${randomId()}`,
+      }, {
+        mimetype: "image/jpeg",
+        url: `http://localhost/media/encoding/${id}/image-jpeg/${randomId()}`,
+      }],
+      videoEncodings: [{
+        mimetype: "video/mp4",
+        url: `http://localhost/media/encoding/${id}/video-mp4/${randomId()}`,
+      }],
 
       ...data.file ?? {},
     },
@@ -281,6 +299,27 @@ export function mockStorage(mock: MockStorage): Draft<StorageState> {
   };
 }
 
+export const fixedState = {
+  apiHost: null,
+  thumbnails: {
+    encodings: [
+      "image/jpeg",
+      "image/webp",
+    ],
+    sizes: [
+      100,
+      200,
+    ],
+  },
+  encodings: [
+    "image/jpeg",
+    "image/webp",
+  ],
+  videoEncodings: [
+    "video/mp4",
+  ],
+};
+
 export function mockServerState(catalogs?: MockCatalog[]): Draft<ServerState> {
   if (catalogs === undefined) {
     catalogs = [];
@@ -302,16 +341,23 @@ export function mockServerState(catalogs?: MockCatalog[]): Draft<ServerState> {
       storage,
       catalogs: catalogMap,
     },
+    ...fixedState,
   };
 }
 
-export function mockStoreState(state?: Partial<Draft<StoreState>>): Draft<StoreState> {
-  if (state === undefined) {
-    state = {};
-  }
+type MockStoreState = Overwrite<Partial<Draft<StoreState>>, {
+  serverState?: Partial<Draft<ServerState>>
+}>;
 
+export function mockStoreState(state: MockStoreState = {}): Draft<StoreState> {
   return {
-    serverState: state.serverState ?? mockServerState(),
+    serverState: state.serverState
+      ? {
+        user: null,
+        ...fixedState,
+        ...state.serverState,
+      }
+      : mockServerState(),
     settings: state.settings ?? {
       thumbnailSize: 150,
     },
@@ -331,7 +377,7 @@ export interface MockStore {
 }
 
 let mockedStore: MockStore | null = null;
-export function mockStore(initialState: Draft<StoreState>): MockStore {
+export function mockStore(initialState: Draft<StoreState> = mockStoreState()): MockStore {
   if (!mockedStore) {
     mockedStore = {
       state: initialState,

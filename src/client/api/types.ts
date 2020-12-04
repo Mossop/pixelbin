@@ -1,14 +1,22 @@
 import type { Draft } from "immer";
 import type { Zone } from "luxon";
 import { IANAZone } from "luxon";
+import MIMEType from "whatwg-mimetype";
 
 import type { Api, ObjectModel } from "../../model";
 import type { Overwrite, DateTime } from "../../utils";
 import { hasTimezone, isoDateTime } from "../../utils";
+import Services from "../services";
 import type { ReadonlyMapOf } from "../utils/maps";
 import { intoMap } from "../utils/maps";
-import type { Reference } from "./highlevel";
-import { Album, Catalog, Person, Tag } from "./highlevel";
+import type { Reference, Person } from "./highlevel";
+import { Album, Catalog, Tag } from "./highlevel";
+
+const EXTENSION_MAP = {
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+};
 
 export type UserState = Overwrite<Readonly<ObjectModel.User>, {
   readonly created: string;
@@ -57,26 +65,75 @@ export type MediaPersonState = ObjectModel.MediaPerson & {
   readonly person: Reference<Person>;
 };
 
+export interface MediaRelations {
+  readonly albums: MediaAlbumState[];
+  readonly tags: MediaTagState[];
+  readonly people: MediaPersonState[];
+}
+
+export interface Thumbnail {
+  mimetype: string;
+  size: number;
+  url: string;
+}
+
+export interface Encoding {
+  mimetype: string;
+  url: string;
+}
+
+export type MediaFileState = Api.MediaFile & {
+  url: string;
+  thumbnails: Thumbnail[];
+  encodings: Encoding[];
+  videoEncodings: Encoding[];
+};
+
 export type MediaState = Overwrite<Api.Media, {
   catalog: Reference<Catalog>;
-  albums: MediaAlbumState[];
-  tags: MediaTagState[];
-  people: MediaPersonState[];
+  file: MediaFileState | null;
 }>;
 
 export type ProcessedMediaState = Overwrite<MediaState, {
-  file: NonNullable<MediaState["file"]>;
+  file: MediaFileState;
 }>;
 
 export function isProcessedMedia(media: MediaState): media is ProcessedMediaState {
   return !!media.file;
 }
 
-export type PublicMediaState = Api.PublicMedia;
-export type PublicMediaWithMetadataState = Api.PublicMediaWithMetadata;
+export interface Thumbnails {
+  readonly encodings: readonly string[];
+  readonly sizes: readonly number[];
+}
 
 export interface ServerState {
   readonly user: UserState | null;
+  readonly thumbnails: Thumbnails;
+  readonly encodings: readonly string[];
+  readonly videoEncodings: readonly string[];
+}
+
+function nameForType(mimetype: string, filename?: string | null): string {
+  let parsed = new MIMEType(mimetype);
+
+  if (filename) {
+    filename = filename.replace(/\..*$/, "");
+  } else {
+    filename = parsed.type;
+  }
+
+  if (parsed.essence in EXTENSION_MAP) {
+    filename += `.${EXTENSION_MAP[parsed.essence]}`;
+  }
+
+  return filename;
+}
+
+function encodingUrl(mimetype: string, filename: string | null): string {
+  let parsed = new MIMEType(mimetype);
+
+  return `${parsed.type}-${parsed.subtype}/${nameForType(mimetype, filename)}`;
 }
 
 export async function mediaIntoState(media: Api.Media): Promise<Draft<MediaState>> {
@@ -93,6 +150,9 @@ export async function mediaIntoState(media: Api.Media): Promise<Draft<MediaState
 
     return taken.offset == gpsZone.offset(taken.toMillis());
   };
+
+  let store = await Services.store;
+  let { thumbnails, encodings, videoEncodings } = store.getState().serverState;
 
   let { taken, takenZone } = media;
 
@@ -120,22 +180,43 @@ export async function mediaIntoState(media: Api.Media): Promise<Draft<MediaState
     }
   }
 
+  let file: MediaFileState | null = null;
+  if (media.file) {
+    let base = `/media/${media.id}/${media.file.id}`;
+
+    let thumbs: Thumbnail[] = [];
+    for (let encoding of thumbnails.encodings) {
+      for (let size of thumbnails.sizes) {
+        thumbs.push({
+          mimetype: encoding,
+          size,
+          url: `${base}/thumb/${size}/${encodingUrl(encoding, media.filename)}`,
+        });
+      }
+    }
+
+    file = {
+      ...media.file,
+      url: `${base}/${media.filename ?? nameForType(media.file.mimetype)}`,
+      thumbnails: thumbs,
+      encodings: encodings.map((encoding: string) => ({
+        mimetype: encoding,
+        url: `${base}/encoding/${encodingUrl(encoding, media.filename)}`,
+      })),
+      videoEncodings: videoEncodings.map((encoding: string) => ({
+        mimetype: encoding,
+        url: `${base}/encoding/${encodingUrl(encoding, media.filename)}`,
+      })),
+    };
+  }
+
   return {
     ...media,
 
     taken,
     takenZone,
     catalog: Catalog.ref(media.catalog),
-    albums: media.albums.map((album: Api.MediaAlbum): Draft<MediaAlbumState> => ({
-      album: Album.ref(album.album),
-    })),
-    tags: media.tags.map((tag: Api.MediaTag): Draft<MediaTagState> => ({
-      tag: Tag.ref(tag.tag),
-    })),
-    people: media.people.map((person: Api.MediaPerson): Draft<MediaPersonState> => ({
-      person: Person.ref(person.person),
-      location: person.location,
-    })),
+    file,
   };
 }
 
@@ -237,6 +318,7 @@ export function userIntoState(user: Api.User): Draft<UserState> {
 
 export function serverStateIntoState(state: Api.State): Draft<ServerState> {
   return {
+    ...state,
     user: state.user ? userIntoState(state.user) : null,
   };
 }

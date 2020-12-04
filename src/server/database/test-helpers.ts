@@ -4,8 +4,7 @@ import { defer, parseDateTime } from "../../utils";
 import type { DatabaseConfig } from "./connection";
 import { DatabaseConnection } from "./connection";
 import { insert } from "./queries";
-import type { TableRecord } from "./types";
-import { Table } from "./types";
+import { TableRecord, Table, Tables } from "./types";
 
 const deferredConnection = defer<DatabaseConnection>();
 export const connection = deferredConnection.promise;
@@ -119,8 +118,31 @@ export async function insertData(data: Seed): Promise<void> {
   await doInsert(Table.Album);
   await doInsert(Table.Tag);
   await doInsert(Table.Person);
-  await doInsert(Table.MediaInfo);
+
+  if (data[Table.MediaInfo]) {
+    // @ts-ignore
+    let records = data[Table.MediaInfo].map((data: Tables.MediaInfo): MediaInfo => {
+      return {
+        ...data,
+        mediaFile: null,
+      };
+    });
+    await insert(dbConnection.knex, Table.MediaInfo, records);
+  }
+
   await doInsert(Table.MediaFile);
+
+  if (data[Table.MediaInfo]) {
+    // @ts-ignore
+    for (let media of data[Table.MediaInfo]) {
+      if (media.mediaFile) {
+        await dbConnection.knex.into(Table.MediaInfo).where("id", media.id).update({
+          mediaFile: media.mediaFile,
+        });
+      }
+    }
+  }
+
   await doInsert(Table.AlternateFile);
   await doInsert(Table.SharedCatalog);
   await doInsert(Table.MediaAlbum);

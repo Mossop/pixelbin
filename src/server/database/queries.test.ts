@@ -28,7 +28,8 @@ test("Tag table tests", async (): Promise<void> => {
       dbConnection.knex,
       Table.Tag,
       from(dbConnection.knex, Table.Tag).where("id", "t2"),
-    ),
+      "AllTags",
+    ).from("AllTags"),
   );
   expect(tags).toHaveLength(4);
   expect(tags).toEqual([
@@ -43,7 +44,8 @@ test("Tag table tests", async (): Promise<void> => {
       dbConnection.knex,
       Table.Tag,
       from(dbConnection.knex, Table.Tag).where("id", "t7"),
-    ),
+      "AllTags",
+    ).from("AllTags"),
   );
   expect(tags).toHaveLength(3);
   expect(tags).toEqual([
@@ -93,7 +95,8 @@ test("Album table tests", async (): Promise<void> => {
       dbConnection.knex,
       Table.Album,
       from(dbConnection.knex, Table.Album).where("id", "a1"),
-    ),
+      "AllAlbums",
+    ).from("AllAlbums"),
   );
   expect(albums).toHaveLength(4);
   expect(albums).toEqual([

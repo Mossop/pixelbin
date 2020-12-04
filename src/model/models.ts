@@ -3,6 +3,17 @@ import type { Query } from "./search";
 
 export const CURRENT_PROCESS_VERSION = 3;
 
+export const MEDIA_THUMBNAIL_SIZES = [
+  150,
+  200,
+  250,
+  300,
+  350,
+  400,
+  450,
+  500,
+];
+
 export enum RelationType {
   Tag = "tag",
   Album = "album",

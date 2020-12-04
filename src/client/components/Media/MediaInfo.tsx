@@ -10,7 +10,13 @@ import React, { useCallback, useMemo } from "react";
 import { RelationType, Join, Operator } from "../../../model";
 import { formatDateTime } from "../../../utils";
 import type { Reference, Album, Tag, Person } from "../../api/highlevel";
-import type { MediaAlbumState, MediaPersonState, MediaState, MediaTagState } from "../../api/types";
+import type {
+  MediaAlbumState,
+  MediaPersonState,
+  MediaRelations,
+  MediaState,
+  MediaTagState,
+} from "../../api/types";
 import { PageType } from "../../pages/types";
 import { useSelector } from "../../store";
 import type { StoreState } from "../../store/types";
@@ -276,10 +282,15 @@ function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactRes
 
 export interface MediaInfoProps {
   media: MediaState;
+  relations?: MediaRelations | null;
   onHighlightPerson: (person: Reference<Person> | null) => void;
 }
 
-export default function MediaInfo({ media, onHighlightPerson }: MediaInfoProps): ReactResult {
+export default function MediaInfo({
+  media,
+  relations,
+  onHighlightPerson,
+}: MediaInfoProps): ReactResult {
   let classes = useStyles();
 
   let format = useCallback(<T extends keyof MediaState>(
@@ -362,11 +373,11 @@ export default function MediaInfo({ media, onHighlightPerson }: MediaInfoProps):
     {NormalMetadataItem(media, "description")}
     {NormalMetadataItem(media, "category")}
     {
-      media.albums.length > 0 &&
+      relations && relations.albums.length > 0 &&
       <LocalizedRow id="albums" label="metadata-label-albums">
         <ul className={classes.fieldList}>
           {
-            media.albums.map(
+            relations.albums.map(
               (st: MediaAlbumState) => <AlbumChip key={st.album.id} album={st.album}/>,
             )
           }
@@ -383,19 +394,19 @@ export default function MediaInfo({ media, onHighlightPerson }: MediaInfoProps):
     }
     {location}
     {
-      media.tags.length > 0 &&
+      relations && relations.tags.length > 0 &&
       <LocalizedRow id="tags" label="metadata-label-tags">
         <ul className={classes.fieldList}>
-          {media.tags.map((st: MediaTagState) => <TagChip key={st.tag.id} tag={st.tag}/>)}
+          {relations.tags.map((st: MediaTagState) => <TagChip key={st.tag.id} tag={st.tag}/>)}
         </ul>
       </LocalizedRow>
     }
     {
-      media.people.length > 0 &&
+      relations && relations.people.length > 0 &&
       <LocalizedRow id="people" label="metadata-label-people">
         <ul className={classes.fieldList}>
           {
-            media.people.map((st: MediaPersonState) => <PersonChip
+            relations.people.map((st: MediaPersonState) => <PersonChip
               key={st.person.id}
               state={st}
               onHighlightPerson={onHighlightPerson}

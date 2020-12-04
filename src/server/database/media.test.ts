@@ -1,8 +1,9 @@
-import { AlternateFileType, emptyMetadata, RelationType } from "../../model";
+import { AlternateFileType, emptyMetadata } from "../../model";
 import { expect, mockDateTime } from "../../test-helpers";
 import type { DateTime } from "../../utils";
 import { now, parseDateTime } from "../../utils";
 import type { DatabaseConnection } from "./connection";
+import type { MediaView } from "./mediaview";
 import { buildTestDB, insertTestData, connection } from "./test-helpers";
 import type { Tables } from "./types";
 import { Table } from "./types";
@@ -20,7 +21,7 @@ async function countRecords(connection: DatabaseConnection, table: Table): Promi
 
 function createMediaFile(
   connection: DatabaseConnection,
-  media: Tables.MediaView["id"],
+  media: MediaView["id"],
   data: Omit<Tables.MediaFile, "id" | "media">,
 ): Promise<Tables.MediaFile> {
   return connection.withNewMediaFile(
@@ -63,10 +64,6 @@ test("Media tests", async (): Promise<void> => {
     title: "My title",
     taken: expect.toEqualDate("2020-04-05T17:01:04-07:00"),
     takenZone: "UTC-7",
-
-    albums: [],
-    tags: [],
-    people: [],
   });
 
   let [foundMedia] = await user3Db.getMedia([id]);
@@ -81,10 +78,6 @@ test("Media tests", async (): Promise<void> => {
     title: "My title", // Media set
     taken: expect.toEqualDate("2020-04-05T17:01:04-07:00"), // Media set
     takenZone: "UTC-7",
-
-    albums: [],
-    tags: [],
-    people: [],
   });
 
   let user = await dbConnection.getUserForMedia(id);
@@ -164,13 +157,25 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
-      thumbnails: [],
-      alternatives: [],
     },
+  });
 
-    albums: [],
-    tags: [],
-    people: [],
+  let file = await user3Db.getMediaFile(id);
+  expect(file).toEqual({
+    id: info.id,
+    media: id,
+    catalog: "c3",
+    processVersion: 5,
+    uploaded: expect.toEqualDate(uploadedDT),
+    mimetype: "image/jpeg",
+    width: 1024,
+    height: 768,
+    duration: null,
+    bitRate: null,
+    frameRate: null,
+    fileSize: 1000,
+    fileName: "biz.jpg",
+
   });
 
   let editedDT = mockDateTime("2020-02-03T15:31:01Z");
@@ -207,13 +212,7 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
-      thumbnails: [],
-      alternatives: [],
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   });
 
   editedDT = mockDateTime("2020-09-02T05:06:23Z");
@@ -248,13 +247,7 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
-      thumbnails: [],
-      alternatives: [],
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   });
 
   editedDT = mockDateTime("2020-08-02T05:06:23Z");
@@ -289,13 +282,7 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 1000,
       fileName: "biz.jpg",
-      thumbnails: [],
-      alternatives: [],
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   });
 
   let uploaded2DT = mockDateTime("2020-09-04T15:31:01Z");
@@ -362,13 +349,7 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 2000,
       fileName: "bar.jpg",
-      thumbnails: [],
-      alternatives: [],
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   });
 
   await dbConnection.addAlternateFile(info.id, {
@@ -441,21 +422,50 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     bitRate: null,
   }]);
-  let jpgId = list[0].id;
-  let webpId = list[1].id;
 
-  let alternate = await user3Db.getMediaAlternate(id, info.id, jpgId);
-  expect(alternate).toEqual(list[0]);
-  alternate = await user3Db.getMediaAlternate(id, info.id, webpId);
-  expect(alternate).toEqual(list[1]);
-  alternate = await user3Db.getMediaAlternate(id, "foo", webpId);
-  expect(alternate).toBeNull();
-  alternate = await user3Db.getMediaAlternate("foo", info.id, webpId);
-  expect(alternate).toBeNull();
-  alternate = await user3Db.getMediaAlternate(id, info.id, "foo");
-  expect(alternate).toBeNull();
-  alternate = await user2Db.getMediaAlternate(id, info.id, jpgId);
-  expect(alternate).toBeNull();
+  let alternates = await user3Db.getMediaAlternates(
+    id,
+    info.id,
+    AlternateFileType.Thumbnail,
+    "image/jpeg",
+  );
+  expect(alternates).toEqual([{
+    ...list[0],
+    media: id,
+    catalog: "c3",
+  }]);
+  alternates = await user3Db.getMediaAlternates(
+    id,
+    info.id,
+    AlternateFileType.Thumbnail,
+    "image/webp",
+  );
+  expect(alternates).toEqual([{
+    ...list[1],
+    media: id,
+    catalog: "c3",
+  }]);
+  alternates = await user3Db.getMediaAlternates(
+    id,
+    info.id,
+    AlternateFileType.Thumbnail,
+    "image/unknown",
+  );
+  expect(alternates).toHaveLength(0);
+  alternates = await user3Db.getMediaAlternates(
+    id,
+    "foo",
+    AlternateFileType.Thumbnail,
+    "image/webp",
+  );
+  expect(alternates).toHaveLength(0);
+  alternates = await user3Db.getMediaAlternates(
+    "foo",
+    info.id,
+    AlternateFileType.Thumbnail,
+    "image/webp",
+  );
+  expect(alternates).toHaveLength(0);
 
   list = await user3Db.listAlternateFiles(id, AlternateFileType.Reencode);
   list.sort(
@@ -475,7 +485,6 @@ test("Media tests", async (): Promise<void> => {
     frameRate: null,
     bitRate: null,
   }]);
-  let alternateId = list[0].id;
 
   [foundMedia] = await user3Db.getMedia([id]);
   expect(foundMedia).toEqual({
@@ -503,46 +512,8 @@ test("Media tests", async (): Promise<void> => {
       frameRate: null,
       fileSize: 2000,
       fileName: "bar.jpg",
-      thumbnails: expect.anything(),
-      alternatives: [{
-        id: alternateId,
-        fileName: "alternate.jpg",
-        fileSize: 300,
-        mimetype: "image/jpeg",
-        width: 200,
-        height: 100,
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   });
-
-  expect(foundMedia?.file?.thumbnails).toInclude([{
-    id: jpgId,
-    fileName: "thumb.jpg",
-    fileSize: 400,
-    mimetype: "image/jpeg",
-    width: 500,
-    height: 300,
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  }, {
-    id: webpId,
-    fileName: "thumb.webp",
-    fileSize: 200,
-    mimetype: "image/webp",
-    width: 600,
-    height: 300,
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  }]);
 
   // Cannot create media in a catalog the user cannot access.
   await expect(user3Db.createMedia("c1", {
@@ -606,113 +577,7 @@ test("Media tests", async (): Promise<void> => {
     bob: "baz",
   })).rejects.toThrow("bob");
 
-  await user3Db.addMediaRelations(RelationType.Album, [id], ["a8"]);
-  await user3Db.addMediaRelations(RelationType.Tag, [id], ["t4"]);
-  await user3Db.addMediaRelations(RelationType.Person, [id], ["p4"]);
-
-  let [updated] = await user3Db.getMedia([id]);
-  expect(updated).toEqual({
-    ...emptyMetadata,
-    id: id,
-    catalog: "c3",
-    created: expect.toEqualDate(createdDT),
-    updated: expect.toEqualDate(uploaded2DT),
-
-    title: "Different title", // OriginalInfo set
-    model: "Some model", // OriginalInfo set
-    city: "Portland", // Media set
-    taken: expect.toEqualDate("2019-03-05T08:23:12"), // Media set
-    takenZone: null,
-
-    file: {
-      id: info.id,
-      processVersion: 7,
-      uploaded: expect.toEqualDate(uploaded2DT),
-      mimetype: "image/jpeg",
-      width: 2048,
-      height: 1024,
-      duration: null,
-      bitRate: null,
-      frameRate: null,
-      fileSize: 2000,
-      fileName: "bar.jpg",
-      thumbnails: expect.anything(),
-      alternatives: [{
-        id: alternateId,
-        fileName: "alternate.jpg",
-        fileSize: 300,
-        mimetype: "image/jpeg",
-        width: 200,
-        height: 100,
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
-    },
-
-    albums: [{
-      album: "a8",
-    }],
-    tags: [{
-      tag: "t4",
-    }],
-    people: [{
-      person: "p4",
-      location: null,
-    }],
-  });
-
-  await user3Db.deleteTags(["t3"]);
-  await user3Db.deleteAlbums(["a8"]);
-  await user3Db.deletePeople(["p4"]);
-
-  [updated] = await user3Db.getMedia([id]);
-  expect(updated).toEqual({
-    ...emptyMetadata,
-    id: id,
-    catalog: "c3",
-    created: expect.toEqualDate(createdDT),
-    updated: expect.toEqualDate(uploaded2DT),
-
-    title: "Different title", // OriginalInfo set
-    model: "Some model", // OriginalInfo set
-    city: "Portland", // Media set
-    taken: expect.toEqualDate("2019-03-05T08:23:12"), // Media set
-    takenZone: null,
-
-    file: {
-      id: info.id,
-      processVersion: 7,
-      uploaded: expect.toEqualDate(uploaded2DT),
-      mimetype: "image/jpeg",
-      width: 2048,
-      height: 1024,
-      duration: null,
-      bitRate: null,
-      frameRate: null,
-      fileSize: 2000,
-      fileName: "bar.jpg",
-      thumbnails: expect.anything(),
-      alternatives: [{
-        id: alternateId,
-        fileName: "alternate.jpg",
-        fileSize: 300,
-        mimetype: "image/jpeg",
-        width: 200,
-        height: 100,
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
-    },
-
-    albums: [],
-    tags: [],
-    people: [],
-  });
-
   expect(await countRecords(dbConnection, Table.MediaInfo)).toBe(2);
-  expect(await countRecords(dbConnection, Table.MediaView)).toBe(2);
   expect(await countRecords(dbConnection, Table.MediaAlbum)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaPerson)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaTag)).toBe(0);
@@ -729,7 +594,6 @@ test("Media tests", async (): Promise<void> => {
     newMedia,
   ]);
 
-  expect(await countRecords(dbConnection, Table.MediaView)).toBe(1);
   expect(await countRecords(dbConnection, Table.MediaInfo)).toBe(2);
   expect(await countRecords(dbConnection, Table.MediaAlbum)).toBe(0);
   expect(await countRecords(dbConnection, Table.MediaPerson)).toBe(0);
@@ -737,7 +601,7 @@ test("Media tests", async (): Promise<void> => {
   expect(await countRecords(dbConnection, Table.MediaFile)).toBe(2);
   expect(await countRecords(dbConnection, Table.AlternateFile)).toBe(3);
 
-  await expect(user1Db.listMediaInAlbum("a8", true)).rejects.toThrow("Unknown Album.");
+  await expect(user1Db.getMediaAlbums(id)).rejects.toThrow("Unknown Media.");
   await expect(
     user1Db.listAlternateFiles(id, AlternateFileType.Reencode),
   ).rejects.toThrow("Unknown Media.");
@@ -750,18 +614,18 @@ test("getMedia", async (): Promise<void> => {
   let dbConnection = await connection;
   let user3Db = dbConnection.forUser("someone3@nowhere.com");
 
-  let newMedia: Tables.MediaView[] = [];
+  let newMedia: MediaView[] = [];
   for (let i = 0; i < 100; i++) {
     newMedia.push(await user3Db.createMedia("c3", emptyMetadata));
   }
 
-  let ids = newMedia.map((media: Tables.MediaView): string => media.id);
+  let ids = newMedia.map((media: MediaView): string => media.id);
   let results = (await user3Db.getMedia(ids))
-    .map((media: Tables.MediaView | null): string | undefined => media?.id);
+    .map((media: MediaView | null): string | undefined => media?.id);
   expect(results).toEqual(ids);
 
   ids.sort();
   results = (await user3Db.getMedia(ids))
-    .map((media: Tables.MediaView | null): string | undefined => media?.id);
+    .map((media: MediaView | null): string | undefined => media?.id);
   expect(results).toEqual(ids);
 });

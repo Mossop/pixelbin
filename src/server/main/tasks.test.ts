@@ -67,6 +67,7 @@ test("updateOldMedia", async (): Promise<void> => {
   await insertData({
     [Table.MediaInfo]: [{
       id: "media1",
+      mediaFile: "original1",
       created: now(),
       deleted: false,
       catalog: "c1",
@@ -74,6 +75,7 @@ test("updateOldMedia", async (): Promise<void> => {
       ...emptyMetadata,
     }, {
       id: "media2",
+      mediaFile: "original2",
       created: now(),
       deleted: false,
       catalog: "c1",
@@ -81,6 +83,7 @@ test("updateOldMedia", async (): Promise<void> => {
       ...emptyMetadata,
     }, {
       id: "media3",
+      mediaFile: "original3",
       created: now(),
       deleted: false,
       catalog: "c1",
@@ -88,6 +91,7 @@ test("updateOldMedia", async (): Promise<void> => {
       ...emptyMetadata,
     }, {
       id: "media4",
+      mediaFile: "original4",
       created: now(),
       deleted: false,
       catalog: "c1",
@@ -95,6 +99,7 @@ test("updateOldMedia", async (): Promise<void> => {
       ...emptyMetadata,
     }, {
       id: "media5",
+      mediaFile: "original5",
       created: now(),
       deleted: false,
       catalog: "c1",

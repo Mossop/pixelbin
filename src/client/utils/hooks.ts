@@ -39,6 +39,51 @@ export function useFullscreen(): boolean {
   return fullscreen;
 }
 
+interface PromiseResult<T> {
+  result: T | undefined;
+  error: Error | undefined;
+}
+export function usePromise<T>(promise: Promise<T>): T | undefined {
+  let [result, setResult] = useState<PromiseResult<T>>({
+    result: undefined,
+    error: undefined,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    setResult({
+      result: undefined,
+      error: undefined,
+    });
+
+    promise.then((result: T) => {
+      if (!cancelled) {
+        setResult({
+          result,
+          error: undefined,
+        });
+      }
+    }, (error: Error) => {
+      if (!cancelled) {
+        setResult({
+          result: undefined,
+          error,
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [promise]);
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result.result;
+}
+
 export interface Size {
   width: number;
   height: number;

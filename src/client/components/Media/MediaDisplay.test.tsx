@@ -3,9 +3,10 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 
 import { emptyMetadata } from "../../../model";
-import { lastCallArgs, mockedFunction } from "../../../test-helpers";
+import { deferCall, lastCallArgs, mockedFunction } from "../../../test-helpers";
 import { now } from "../../../utils";
 import { Catalog, Person } from "../../api/highlevel";
+import { getMediaRelations } from "../../api/media";
 import type { MediaState } from "../../api/types";
 import {
   expect,
@@ -20,10 +21,15 @@ import MediaDisplay from "./MediaDisplay";
 import MediaInfo from "./MediaInfo";
 
 jest.mock("./MediaInfo", () => jest.fn(() => null));
+jest.mock("../../api/media", () => ({
+  __esModule: true,
+  getMediaRelations: jest.fn(),
+}));
 
 jest.useFakeTimers();
 
 const mockedMediaInfo = mockedFunction(MediaInfo);
+const mockedGetMediaRelations = mockedFunction(getMediaRelations);
 
 test("media display", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
@@ -52,28 +58,23 @@ test("media display", async (): Promise<void> => {
       bitRate: null,
       duration: null,
       uploaded: dt,
-      originalUrl: "http://localhost/original.jpg",
+      url: "http://localhost/original.jpg",
       thumbnails: [],
-      alternatives: [],
+      encodings: [{
+        url: "http://localhost/alt.jpg",
+        mimetype: "image/jpeg",
+      }],
+      videoEncodings: [],
     },
     id: "foo",
     created: dt,
     updated: dt,
-    albums: [],
-    tags: [],
-    people: [{
-      person: Person.ref("p1"),
-      location: {
-        left: 0.25,
-        right: 0.6,
-        top: 0.3,
-        bottom: 0.7,
-      },
-    }],
   }];
 
   let onChangeMedia = jest.fn();
   let onCloseMedia = jest.fn();
+
+  let { call, resolve } = deferCall(mockedGetMediaRelations);
 
   let { container } = render(
     <MediaDisplay
@@ -84,6 +85,23 @@ test("media display", async (): Promise<void> => {
     />,
     store,
   );
+
+  let ids = await call;
+  expect(ids).toEqual([["foo"]]);
+
+  await act(() => resolve([{
+    albums: [],
+    people: [{
+      person: Person.ref("p1"),
+      location: {
+        left: 0.25,
+        right: 0.6,
+        top: 0.3,
+        bottom: 0.7,
+      },
+    }],
+    tags: [],
+  }]));
 
   expect(mockedMediaInfo).not.toHaveBeenCalled();
 
@@ -112,7 +130,7 @@ test("media display", async (): Promise<void> => {
 
   let original = expectChild(container, "#media-fallback");
   expect(original.localName).toBe("img");
-  expect(original.getAttribute("src")).toBe("http://localhost/original.jpg");
+  expect(original.getAttribute("src")).toBe("http://localhost/alt.jpg");
 
   let fullscreenRequest = jest.fn()
     .mockReturnValue(Promise.resolve());
@@ -158,6 +176,19 @@ test("media display", async (): Promise<void> => {
       ...media[0],
       catalog: expect.toBeRef("catalog"),
     },
+    relations: {
+      albums: [],
+      people: [{
+        person: expect.toBeRef("p1"),
+        location: {
+          left: 0.25,
+          right: 0.6,
+          top: 0.3,
+          bottom: 0.7,
+        },
+      }],
+      tags: [],
+    },
     onHighlightPerson: expect.anything(),
   }, {});
 
@@ -201,16 +232,21 @@ test("multiple media page", async (): Promise<void> => {
       bitRate: null,
       duration: null,
       uploaded: dt,
-      originalUrl: "http://localhost/original.jpg",
-      thumbnails: [],
-      alternatives: [],
+      url: "http://localhost/original.jpg",
+      thumbnails: [{
+        url: "http://localhost/100.jpg",
+        mimetype: "image/jpeg",
+        size: 100,
+      }],
+      encodings: [{
+        url: "http://localhost/encoded.jpg",
+        mimetype: "image/jpeg",
+      }],
+      videoEncodings: [],
     },
     id: "foo",
     created: dt,
     updated: dt,
-    albums: [],
-    tags: [],
-    people: [],
   }, {
     ...emptyMetadata,
     catalog: Catalog.ref("catalog"),
@@ -224,30 +260,27 @@ test("multiple media page", async (): Promise<void> => {
       bitRate: null,
       duration: null,
       uploaded: dt,
-      originalUrl: "http://localhost/original.mp4",
-      thumbnails: [],
-      alternatives: [{
-        url: "http://localhost/alternate.jpg",
-        id: "post",
-        fileSize: 1000,
-        mimetype: "image/jpg",
-        width: 500,
-        height: 200,
-        frameRate: null,
-        bitRate: null,
-        duration: null,
+      url: "http://localhost/original.mp4",
+      thumbnails: [{
+        url: "http://localhost/100.jpg",
+        mimetype: "image/jpeg",
+        size: 100,
       }],
+      encodings: [{
+        url: "http://localhost/encoded.jpg",
+        mimetype: "image/jpeg",
+      }],
+      videoEncodings: [],
     },
     id: "bar",
     created: dt,
     updated: dt,
-    albums: [],
-    tags: [],
-    people: [],
   }];
 
   let onChangeMedia = jest.fn();
   let onCloseMedia = jest.fn();
+
+  let { call, resolve } = deferCall(mockedGetMediaRelations);
 
   let { container, rerender } = render(
     <MediaDisplay
@@ -258,6 +291,14 @@ test("multiple media page", async (): Promise<void> => {
     />,
     store,
   );
+
+  let ids = await call;
+  expect(ids).toEqual([["foo"]]);
+  await act(() => resolve([{
+    albums: [],
+    people: [],
+    tags: [],
+  }]));
 
   expect(mockedMediaInfo).not.toHaveBeenCalled();
 
@@ -275,6 +316,8 @@ test("multiple media page", async (): Promise<void> => {
   expect(onChangeMedia).toHaveBeenCalledTimes(1);
   onChangeMedia.mockClear();
 
+  ({ call, resolve } = deferCall(mockedGetMediaRelations));
+
   rerender(<MediaDisplay
     media={media}
     selectedMedia="bar"
@@ -282,11 +325,19 @@ test("multiple media page", async (): Promise<void> => {
     onCloseMedia={onCloseMedia}
   />);
 
+  ids = await call;
+  expect(ids).toEqual([["bar"]]);
+  await act(() => resolve([{
+    albums: [],
+    people: [],
+    tags: [],
+  }]));
+
   let prevButton = expectChild(container, "#prev-button");
 
   let original = expectChild(container, "#media-original");
   expect(original.localName).toBe("video");
-  expect(original.getAttribute("poster")).toBe("http://localhost/alternate.jpg");
+  expect(original.getAttribute("poster")).toBe("http://localhost/encoded.jpg");
 
   let source = original.firstElementChild;
   expect(source?.localName).toBe("source");

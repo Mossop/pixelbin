@@ -2,7 +2,7 @@
 import { Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
-import { expect, mapOf } from "../test-helpers";
+import { expect, fixedState, mapOf } from "../test-helpers";
 import { mockResponse, callInfo } from "../test-helpers/api";
 import { ErrorCode } from "../utils/exception";
 import { state, login, logout, signup } from "./auth";
@@ -29,12 +29,25 @@ test("Get state", async (): Promise<void> => {
   mockResponse(Method.State, 200, {
     user: null,
     apiHost: null,
+    thumbnails: {
+      encodings: [],
+      sizes: [],
+    },
+    encodings: [],
+    videoEncodings: [],
   });
 
   let result = await state();
 
   expect(result).toEqual({
     user: null,
+    apiHost: null,
+    thumbnails: {
+      encodings: [],
+      sizes: [],
+    },
+    encodings: [],
+    videoEncodings: [],
   });
 
   let info = callInfo(mockedFetch);
@@ -93,7 +106,7 @@ test("Login", async (): Promise<void> => {
       }],
       searches: [],
     },
-    apiHost: "fobar",
+    ...fixedState,
   });
 
   let result = await login("user", "pass");
@@ -154,6 +167,7 @@ test("Login", async (): Promise<void> => {
         },
       }),
     },
+    ...fixedState,
   });
 
   let info = callInfo(mockedFetch);
@@ -174,13 +188,14 @@ test("Login", async (): Promise<void> => {
 test("Logout", async (): Promise<void> => {
   mockResponse(Method.Logout, 200, {
     user: null,
-    apiHost: null,
+    ...fixedState,
   });
 
   let result = await logout();
 
   expect(result).toEqual({
     user: null,
+    ...fixedState,
   });
 
   let info = callInfo(mockedFetch);
@@ -209,7 +224,7 @@ test("Signup", async (): Promise<void> => {
       albums: [],
       searches: [],
     },
-    apiHost: null,
+    ...fixedState,
   });
 
   let result = await signup(
@@ -229,6 +244,7 @@ test("Signup", async (): Promise<void> => {
       storage: mapOf({}),
       catalogs: mapOf({}),
     },
+    ...fixedState,
   });
 
   let info = callInfo(mockedFetch);

@@ -3,7 +3,8 @@ import fetch from "node-fetch";
 
 import type { Api, ApiSerialization, Requests } from "../../../model";
 import { AWSResult } from "../../../model";
-import { isoDateTime, now, s3Config, s3Params, s3PublicUrl } from "../../../utils";
+import type { TimeLogger } from "../../../utils";
+import { isoDateTime, Level, now, s3Config, s3Params, s3PublicUrl } from "../../../utils";
 import type { UserScopedConnection } from "../../database";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import type { AppContext } from "../context";
@@ -132,8 +133,11 @@ export const listCatalog = ensureAuthenticated(
     userDb: UserScopedConnection,
     data: Requests.CatalogList,
   ): Promise<ApiSerialization<Api.Media>[]> => {
-    let media = await userDb.listMediaInCatalog(data.id);
-    return media.map(buildResponseMedia);
+    return ctx.logger.time(async (timeLogger: TimeLogger) => {
+      let media = await userDb.listMediaInCatalog(data.id);
+      timeLogger("dbquery");
+      return media.map(buildResponseMedia);
+    }, Level.Info, "Listed media in catalog.");
   },
 );
 

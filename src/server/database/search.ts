@@ -3,11 +3,14 @@ import type Knex from "knex";
 import type { Search, Query, ObjectModel } from "../../model";
 import { checkQuery, isCompoundQuery, Join, Modifier, Operator } from "../../model";
 import { isRelationQuery } from "../../model/search";
-import { isDateTime } from "../../utils";
+import type { TimeLogger } from "../../utils";
+import { isDateTime, Level } from "../../utils";
 import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { searchId } from "./id";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
+import type { MediaView } from "./mediaview";
+import { mediaView } from "./mediaview";
 import { from, insert, update, withChildren } from "./queries";
 import type { Tables } from "./types";
 import { applyTimeZoneFields, intoDBType, intoDBTypes, ref, Table } from "./types";
@@ -141,7 +144,7 @@ function applyQuery(
 
       if (query.recursive && (newTable == Table.Album || newTable == Table.Tag)) {
         // @ts-ignore
-        selected = withChildren(connection.knex, newTable, selected);
+        selected = withChildren(connection.knex, newTable, selected).from("parents");
       }
 
       let media = from(connection.knex, relationTable)
@@ -175,33 +178,35 @@ export async function searchMedia(
   this: UserScopedConnection,
   catalog: string,
   search: Query,
-): Promise<Tables.MediaView[]> {
-  checkQuery(search);
+): Promise<MediaView[]> {
+  return this.logger.child("searchMedia").timeLonger(async (timeLogger: TimeLogger) => {
+    await this.checkRead(Table.Catalog, [catalog]);
+    timeLogger("checkRead");
+    checkQuery(search);
+    timeLogger("checkQuery");
 
-  let builder = from(this.knex, Table.MediaView)
-    .join(
-      Table.UserCatalog,
-      ref(Table.UserCatalog, "catalog"),
-      ref(Table.MediaView, "catalog"),
-    )
-    .where(ref(Table.UserCatalog, "user"), this.user)
-    .andWhere(ref(Table.UserCatalog, "catalog"), catalog)
-    .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-      ref(Table.MediaView, "taken"),
-      ref(Table.MediaView, "created"),
-    ]))
-    .select<Tables.MediaView[]>(ref(Table.MediaView));
+    let builder = mediaView(this.knex)
+      .where(ref(Table.MediaView, "catalog"), catalog);
 
-  builder = applyQuery(
-    this,
-    builder,
-    catalog,
-    Table.MediaView,
-    Join.And,
-    search,
-  );
+    builder = applyQuery(
+      this,
+      builder,
+      catalog,
+      Table.MediaView,
+      Join.And,
+      search,
+    );
+    timeLogger("applyQuery");
 
-  return (await this.loggedQuery(builder, "search")).map(applyTimeZoneFields);
+    let media: MediaView[] = await builder
+      .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
+        ref(Table.MediaView, "taken"),
+        ref(Table.MediaView, "created"),
+      ]))
+      .select(ref(Table.MediaView));
+
+    return media.map(applyTimeZoneFields);
+  }, Level.Trace, 250, "Completed media search");
 }
 
 export const createSavedSearch = ensureUserTransaction(async function saveSavedSearch(
@@ -263,12 +268,12 @@ export const deleteSavedSearches = ensureUserTransaction(async function deleteSa
 export async function listSavedSearches(
   this: UserScopedConnection,
 ): Promise<Tables.SavedSearch[]> {
-  return this.loggedQuery(from(this.knex, Table.SavedSearch)
+  return from(this.knex, Table.SavedSearch)
     .innerJoin(
       Table.UserCatalog,
       ref(Table.UserCatalog, "catalog"),
       ref(Table.SavedSearch, "catalog"),
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.SavedSearch[]>(ref(Table.SavedSearch)), "listSavedSearches");
+    .select<Tables.SavedSearch[]>(ref(Table.SavedSearch));
 }

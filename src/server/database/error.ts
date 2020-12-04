@@ -30,7 +30,6 @@ export class DatabaseError extends Error {
 function nameFor(table: Table): string {
   switch (table) {
     case Table.MediaInfo:
-    case Table.MediaView:
       return "Media";
     default:
       return table;

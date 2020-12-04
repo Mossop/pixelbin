@@ -5,9 +5,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
 import React, { useCallback, useRef, useState } from "react";
 
-import type { Api } from "../../../model";
-import { sorted } from "../../../utils";
-import type { ProcessedMediaState } from "../../api/types";
+import type { Encoding, ProcessedMediaState } from "../../api/types";
 import { PauseIcon, PlayIcon } from "../../icons/MediaIcons";
 import type { ReactResult } from "../../utils/types";
 import { HoverArea } from "../HoverArea";
@@ -86,18 +84,6 @@ export function Video({
 }: VideoProps): ReactResult {
   let classes = useStyles();
 
-  let alternates = sorted(
-    media.file.alternatives.filter((alt: Api.Alternate) => alt.mimetype.startsWith("video/")),
-    "fileSize",
-    (a: number, b: number) => a - b,
-  );
-
-  let posters = sorted(
-    media.file.alternatives.filter((alt: Api.Alternate) => alt.mimetype.startsWith("image/")),
-    "fileSize",
-    (a: number, b: number) => a - b,
-  );
-
   let video = useRef<HTMLVideoElement>(null);
 
   let play = useCallback(() => {
@@ -134,12 +120,16 @@ export function Video({
     setVideoState(state);
   }, []);
 
+  let poster = media.file.encodings.find(
+    (encoding: Encoding): boolean => encoding.mimetype == "image/jpeg",
+  );
+
   return <React.Fragment>
     <video
       id="media-original"
       ref={video}
       key={media.id}
-      poster={posters.length ? posters[0].url : undefined}
+      poster={poster?.url}
       controls={false}
       className={classes.media}
       onPlay={updateState}
@@ -149,13 +139,13 @@ export function Video({
       onClick={videoState.playing ? pause : play}
     >
       {
-        alternates.map((alternate: Api.Alternate) => <source
-          key={alternate.url}
-          src={alternate.url}
-          type={alternate.mimetype}
+        media.file.videoEncodings.map((encoding: Encoding) => <source
+          key={encoding.mimetype}
+          src={encoding.url}
+          type={encoding.mimetype}
         />)
       }
-      <source src={media.file.originalUrl} type={media.file.mimetype}/>
+      <source src={media.file.url} type={media.file.mimetype}/>
     </video>
     {
       !videoState.playing &&

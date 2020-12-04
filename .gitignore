@@ -12,3 +12,5 @@ packages/*/coverage
 /test.ini
 .DS_Store
 secrets.json
+.eslintcache
+containers/import.sh

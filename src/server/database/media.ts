@@ -1,25 +1,28 @@
-import type { AlternateFileType } from "../../model";
-import type { AllNull } from "../../utils";
-import { now } from "../../utils";
+import type { QueryBuilder } from "knex";
+
+import type { ObjectModel, AlternateFileType } from "../../model";
+import { Level, now } from "../../utils";
 import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
+import type { MediaView } from "./mediaview";
+import { mediaView } from "./mediaview";
 import { from, update, insert } from "./queries";
 import type { Tables } from "./types";
 import {
+  applyTimeZoneFields,
   Table,
   ref,
   intoDBTypes,
   buildTimeZoneFields,
-  applyTimeZoneFields,
 } from "./types";
-import { ensureUserTransaction, asTable, deleteFields } from "./utils";
+import { ensureUserTransaction, deleteFields } from "./utils";
 
 export const createMedia = ensureUserTransaction(async function createMedia(
   this: UserScopedConnection,
-  catalog: Tables.MediaView["catalog"],
-  data: Omit<Tables.MediaInfo, "id" | "catalog" | "created" | "updated" | "deleted">,
-): Promise<Tables.MediaView> {
+  catalog: MediaView["catalog"],
+  data: Omit<Tables.MediaInfo, "id" | "catalog" | "created" | "updated" | "deleted" | "mediaFile">,
+): Promise<MediaView> {
   await this.checkWrite(Table.Catalog, [catalog]);
 
   let current = now();
@@ -32,7 +35,8 @@ export const createMedia = ensureUserTransaction(async function createMedia(
     created: current,
     updated: current,
     deleted: false,
-  })).returning("id");
+    mediaFile: null,
+  }));
 
   let results = await this.getMedia([id]);
   if (!results[0]) {
@@ -44,15 +48,16 @@ export const createMedia = ensureUserTransaction(async function createMedia(
 
 export const editMedia = ensureUserTransaction(async function editMedia(
   this: UserScopedConnection,
-  id: Tables.MediaView["id"],
+  id: MediaView["id"],
   data: Partial<Omit<Tables.MediaInfo, "id" | "catalog" | "created" | "updated" | "deleted">>,
-): Promise<Tables.MediaView> {
+): Promise<MediaView> {
   await this.checkWrite(Table.MediaInfo, [id]);
 
   let updateData = deleteFields(data, [
     "id",
     "catalog",
     "created",
+    "mediaFile",
   ]);
 
   await update(
@@ -78,60 +83,89 @@ export const editMedia = ensureUserTransaction(async function editMedia(
 
 export async function getMedia(
   this: UserScopedConnection,
-  ids: Tables.MediaView["id"][],
-): Promise<(Tables.MediaView | null)[]> {
+  ids: string[],
+): Promise<(MediaView | null)[]> {
   if (ids.length == 0) {
     return [];
   }
 
-  let visible = from(this.knex, Table.MediaView)
-    .whereIn(ref(Table.MediaView, "catalog"), this.catalogs());
+  return this.logger.child("getMedia").timeLonger(async (): Promise<(MediaView | null)[]> => {
+    let foundMedia = await mediaView(this.knex)
+      .whereIn(ref(Table.MediaView, "catalog"), this.catalogs())
+      .whereIn(ref(Table.MediaView, "id"), ids)
+      .select(ref(Table.MediaView));
 
-  type Joined = Tables.MediaView | AllNull<Tables.MediaView>;
+    let mediaMap: Map<string, Tables.MediaView> = new Map(foundMedia.map(
+      (media: Tables.MediaView): [string, Tables.MediaView] =>
+        [media.id, applyTimeZoneFields(media)],
+    ));
 
-  if (ids.length == 1) {
-    let foundMedia = await this.loggedQuery(visible
-      .andWhere(ref(Table.MediaView, "id"), ids[0])
-      .select<Tables.MediaView[]>("*"), "getMedia");
-    if (foundMedia.length == 1) {
-      return [applyTimeZoneFields(foundMedia[0])];
-    } else {
-      return [null];
-    }
-  }
-
-  let foundMedia = await this.loggedQuery(this.knex(asTable(this.knex, ids, "Ids", "id", "index"))
-    .leftJoin(visible.as("Visible"), "Visible.id", "Ids.id")
-    .orderBy("Ids.index")
-    .select<Joined[]>("Visible.*"), "getMedia");
-
-  return foundMedia.map((record: Joined): Tables.MediaView | null => {
-    if (record.id == null) {
-      return null;
-    }
-    return applyTimeZoneFields(record);
-  });
+    return ids.map((id: string): MediaView | null => mediaMap.get(id) ?? null);
+  }, Level.Trace, 100, "Fetched media.");
 }
 
-export async function getMediaAlternate(
+export type AlternateInfo = Tables.AlternateFile & {
+  media: string;
+  catalog: string;
+};
+
+export async function getMediaAlternates(
   this: UserScopedConnection,
   media: string,
   mediaFile: string,
-  alternate: string,
-): Promise<Tables.AlternateFile | null> {
-  let visible = from(this.knex, Table.MediaView)
-    .whereIn(ref(Table.MediaView, "catalog"), this.catalogs())
-    .select(ref(Table.MediaView, "id"));
-
-  let results = await from(this.knex, Table.AlternateFile)
+  type: AlternateFileType,
+  mimetype: string,
+): Promise<AlternateInfo[]> {
+  return from(this.knex, Table.AlternateFile)
     .join(Table.MediaFile, ref(Table.MediaFile, "id"), ref(Table.AlternateFile, "mediaFile"))
-    .whereIn(ref(Table.MediaFile, "media"), visible)
+    .join(Table.MediaInfo, ref(Table.MediaInfo, "id"), ref(Table.MediaFile, "media"))
+    .whereIn(ref(Table.MediaInfo, "catalog"), this.catalogs())
     .andWhere({
+      [ref(Table.MediaInfo, "id")]: media,
       [ref(Table.MediaFile, "id")]: mediaFile,
-      [ref(Table.MediaFile, "media")]: media,
-      [ref(Table.AlternateFile, "id")]: alternate,
+      [ref(Table.AlternateFile, "type")]: type,
     })
-    .select<Tables.AlternateFile[]>(ref(Table.AlternateFile));
+    .andWhere((qb: QueryBuilder) => {
+      void qb.where(ref(Table.AlternateFile, "mimetype"), mimetype)
+        .orWhere(ref(Table.AlternateFile, "mimetype"), "LIKE", `${mimetype};%`);
+    })
+    .select<AlternateInfo[]>(ref(Table.AlternateFile), {
+      media: ref(Table.MediaInfo, "id"),
+      catalog: ref(Table.MediaInfo, "catalog"),
+    });
+}
+
+export type MediaFileInfo = ObjectModel.MediaFile & {
+  media: string;
+  catalog: string;
+  fileName: string;
+};
+
+export async function getMediaFile(
+  this: UserScopedConnection,
+  media: string,
+): Promise<MediaFileInfo | null> {
+  let results = await from(this.knex, Table.MediaFile)
+    .join(Table.MediaInfo, ref(Table.MediaInfo, "mediaFile"), ref(Table.MediaFile, "id"))
+    .whereIn(ref(Table.MediaInfo, "catalog"), this.catalogs())
+    .andWhere({
+      [ref(Table.MediaInfo, "id")]: media,
+    })
+    .select<MediaFileInfo[]>({
+      id: ref(Table.MediaFile, "id"),
+      catalog: ref(Table.MediaInfo, "catalog"),
+      media: ref(Table.MediaFile, "media"),
+      fileName: ref(Table.MediaFile, "fileName"),
+      uploaded: ref(Table.MediaFile, "uploaded"),
+      processVersion: ref(Table.MediaFile, "processVersion"),
+      fileSize: ref(Table.MediaFile, "fileSize"),
+      mimetype: ref(Table.MediaFile, "mimetype"),
+      width: ref(Table.MediaFile, "width"),
+      height: ref(Table.MediaFile, "height"),
+      duration: ref(Table.MediaFile, "duration"),
+      frameRate: ref(Table.MediaFile, "frameRate"),
+      bitRate: ref(Table.MediaFile, "bitRate"),
+    });
 
   if (results.length != 1) {
     return null;
@@ -142,20 +176,25 @@ export async function getMediaAlternate(
 
 export const listAlternateFiles = ensureUserTransaction(async function listAlternateFiles(
   this: UserScopedConnection,
-  media: Tables.MediaView["id"],
+  media: MediaView["id"],
   type: AlternateFileType,
 ): Promise<Tables.AlternateFile[]> {
   await this.checkRead(Table.MediaInfo, [media]);
 
-  return this.loggedQuery(from(this.knex, Table.AlternateFile)
+  return from(this.knex, Table.AlternateFile)
     .join(
-      Table.MediaView,
+      Table.MediaFile,
       ref(Table.AlternateFile, "mediaFile"),
-      this.knex.raw("??->>'id'", [ref(Table.MediaView, "file")]),
+      ref(Table.MediaFile, "id"),
+    )
+    .join(
+      Table.MediaInfo,
+      ref(Table.MediaFile, "id"),
+      ref(Table.MediaInfo, "mediaFile"),
     )
     .where(ref(Table.AlternateFile, "type"), type)
-    .where(ref(Table.MediaView, "id"), media)
-    .select(ref(Table.AlternateFile)), "listAlternateFiles");
+    .where(ref(Table.MediaInfo, "id"), media)
+    .select(ref(Table.AlternateFile));
 });
 
 export const deleteMedia = ensureUserTransaction(async function deleteMedia(

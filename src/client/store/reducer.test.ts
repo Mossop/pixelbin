@@ -3,7 +3,7 @@ import { enableMapSet } from "immer";
 import { Album } from "../api/highlevel";
 import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
-import { mockStoreState, expect, mockServerState, mapOf } from "../test-helpers";
+import { mockStoreState, expect, mockServerState, mapOf, fixedState } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
 
@@ -87,5 +87,6 @@ test("updateServerState", (): void => {
       storage: mapOf({}),
       verified: true,
     },
+    ...fixedState,
   });
 });

@@ -2,7 +2,7 @@
 import { emptyMetadata, Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
-import { expect, mockProcessedMedia, mockMedia } from "../test-helpers";
+import { expect, mockProcessedMedia, mockMedia, mockStore } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
 import {
   createAlbum,
@@ -113,9 +113,6 @@ test("Delete album", async (): Promise<void> => {
 test("Add media", async (): Promise<void> => {
   let media = mockMedia({
     id: "testmedia",
-    albums: [{
-      album: Album.ref("testalbum"),
-    }],
   });
 
   mockResponse(Method.MediaRelations, 200, [
@@ -170,20 +167,16 @@ test("Remove media", async (): Promise<void> => {
 });
 
 test("List album", async (): Promise<void> => {
+  mockStore();
+
   let media = mockMedia({
     id: "testmedia",
-    albums: [{
-      album: Album.ref("testalbum"),
-    }],
   });
   let media2 = mockProcessedMedia({
     id: "testmedia2",
     file: {
       id: "newfile",
     },
-    albums: [{
-      album: Album.ref("testalbum"),
-    }],
   });
 
   mockResponse(Method.AlbumList, 200, [
@@ -209,11 +202,6 @@ test("List album", async (): Promise<void> => {
     created: expect.anything(),
     updated: expect.anything(),
     file: null,
-    albums: [{
-      album: expect.toBeRef("testalbum"),
-    }],
-    tags: [],
-    people: [],
   }, {
     ...emptyMetadata,
     id: "testmedia2",
@@ -231,15 +219,35 @@ test("List album", async (): Promise<void> => {
       width: 1024,
       height: 768,
       mimetype: "image/jpeg",
-      thumbnails: [],
-      originalUrl: expect.stringMatching(/^http:\/\/localhost\/media\/original\/testmedia2\//),
-      alternatives: [],
+      thumbnails: [{
+        mimetype: "image/jpeg",
+        size: 100,
+        url: "/media/testmedia2/newfile/thumb/100/image-jpeg/image.jpg",
+      }, {
+        mimetype: "image/jpeg",
+        size: 200,
+        url: "/media/testmedia2/newfile/thumb/200/image-jpeg/image.jpg",
+      }, {
+        mimetype: "image/webp",
+        size: 100,
+        url: "/media/testmedia2/newfile/thumb/100/image-webp/image.webp",
+      }, {
+        mimetype: "image/webp",
+        size: 200,
+        url: "/media/testmedia2/newfile/thumb/200/image-webp/image.webp",
+      }],
+      url: "/media/testmedia2/newfile/image.jpg",
+      encodings: [{
+        mimetype: "image/jpeg",
+        url: "/media/testmedia2/newfile/encoding/image-jpeg/image.jpg",
+      }, {
+        mimetype: "image/webp",
+        url: "/media/testmedia2/newfile/encoding/image-webp/image.webp",
+      }],
+      videoEncodings: [{
+        mimetype: "video/mp4",
+        url: "/media/testmedia2/newfile/encoding/video-mp4/video.mp4",
+      }],
     },
-
-    albums: [{
-      album: expect.toBeRef("testalbum"),
-    }],
-    tags: [],
-    people: [],
   }]);
 });

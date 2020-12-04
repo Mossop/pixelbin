@@ -7,7 +7,7 @@ import React from "react";
 import type { Api } from "../../../model";
 import { weakUpsert } from "../../../utils";
 import type { Person, Reference } from "../../api/highlevel";
-import type { MediaState } from "../../api/types";
+import type { MediaRelations, MediaState } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
 import FixedAspect from "../FixedAspect";
 
@@ -39,23 +39,25 @@ function locationKey(location: Api.Location): number {
 
 export interface FaceHighlightProps {
   media: MediaState;
+  relations?: MediaRelations | null;
   people: Reference<Person>[];
 }
 
 export default function FaceHighlight({
   media,
+  relations,
   people,
 }: FaceHighlightProps): ReactResult {
   let classes = useStyles();
 
-  if (!media.file) {
+  if (!media.file || !relations) {
     return null;
   }
 
   let locations: Api.Location[] = [];
 
   let ids = new Set(people.map((person: Reference<Person>): string => person.id));
-  for (let person of media.people) {
+  for (let person of relations.people) {
     if (ids.has(person.person.id) && person.location) {
       locations.push(person.location);
     }

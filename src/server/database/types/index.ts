@@ -26,9 +26,11 @@ export enum Table {
   MediaTag = "Media_Tag",
   MediaPerson = "Media_Person",
 
-  // Not real tables.
-  MediaView = "MediaView",
+  // A materialized view
   UserCatalog = "UserCatalog",
+
+  // Not a real table.
+  MediaView = "MediaView",
 }
 
 export interface TableMapping {
@@ -48,8 +50,9 @@ export interface TableMapping {
   [Table.MediaTag]: Joins.MediaTag;
   [Table.MediaPerson]: Joins.MediaPerson;
 
-  [Table.MediaView]: Tables.MediaView;
   [Table.UserCatalog]: Joins.UserCatalog;
+
+  [Table.MediaView]: Tables.MediaView;
 }
 
 export type TableRecord<T extends Table> = TableMapping[T];

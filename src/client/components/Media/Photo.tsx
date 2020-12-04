@@ -1,11 +1,9 @@
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
-import React from "react";
+import React, { useMemo } from "react";
 
-import type { Api } from "../../../model";
-import { sorted } from "../../../utils";
-import type { ProcessedMediaState } from "../../api/types";
+import type { Encoding, ProcessedMediaState } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
 import { HoverArea } from "../HoverArea";
 
@@ -44,33 +42,38 @@ export function Photo({
 }: PhotoProps): ReactResult {
   let classes = useStyles();
 
-  let alternates = sorted(media.file.alternatives, "fileSize", (a: number, b: number) => a - b);
-  let jpegPos = alternates.length - 1;
-  while (jpegPos >= 0 && alternates[jpegPos].mimetype != "image/jpeg") {
-    jpegPos--;
-  }
+  let { alternates, fallback } = useMemo(() => {
+    let alternates: Encoding[] = [];
+    let fallback: Encoding | null = null;
 
-  let fallbackUrl: string;
-  if (jpegPos >= 0) {
-    let [jpegAlternate] = alternates.splice(jpegPos, 1);
-    fallbackUrl = jpegAlternate.url;
-  } else {
-    fallbackUrl = media.file.originalUrl;
-  }
+    for (let encoding of media.file.encodings) {
+      if (encoding.mimetype == "image/jpeg") {
+        fallback = encoding;
+      } else {
+        alternates.push(encoding);
+      }
+    }
+
+    return {
+      alternates,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      fallback: fallback!,
+    };
+  }, [media]);
 
   return <React.Fragment>
     <picture>
       {
-        alternates.map((alternate: Api.Alternate) => <source
-          key={alternate.url}
-          srcSet={alternate.url}
-          type={alternate.mimetype}
+        alternates.map((encoding: Encoding) => <source
+          key={encoding.mimetype}
+          srcSet={encoding.url}
+          type={encoding.mimetype}
         />)
       }
       <img
         id="media-fallback"
         key={media.id}
-        src={fallbackUrl}
+        src={fallback.url}
         className={classes.media}
       />
     </picture>

@@ -3,7 +3,7 @@ import { ErrorCode, Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import { parseDateTime } from "../../utils";
 import fetch from "../environment/fetch";
-import { expect, mockMedia } from "../test-helpers";
+import { expect, mockMedia, mockStore } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
 import type { Media } from "./highlevel";
 import { mediaRef } from "./highlevel";
@@ -26,6 +26,8 @@ test("Media reference", (): void => {
 });
 
 test("Get media", async (): Promise<void> => {
+  mockStore();
+
   let created = parseDateTime("2020-04-21T20:41:20.824Z");
   let media = mockMedia({
     id: "testmedia",

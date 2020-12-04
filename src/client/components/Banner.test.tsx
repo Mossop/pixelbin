@@ -15,6 +15,7 @@ import {
   mockStoreState,
   mockServerState,
   Media,
+  fixedState,
 } from "../test-helpers";
 import Banner from "./Banner";
 
@@ -90,7 +91,7 @@ test("banner", async (): Promise<void> => {
   let mockRequest = mockedFunction(request);
   mockRequest.mockImplementationOnce((): Api.State => ({
     user: null,
-    apiHost: null,
+    ...fixedState,
   }));
 
   let promise = awaitCall(store.dispatch);
@@ -104,6 +105,7 @@ test("banner", async (): Promise<void> => {
     type: "completeLogout",
     payload: [{
       user: null,
+      ...fixedState,
     }],
   });
 

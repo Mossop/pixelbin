@@ -16,6 +16,7 @@ import {
   deferRequest,
   mapOf,
   click,
+  fixedState,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
 import SignupDialog from "./Signup";
@@ -92,7 +93,7 @@ test("signup success", async (): Promise<void> => {
       tags: [],
       searches: [],
     },
-    apiHost: null,
+    ...fixedState,
   });
 
   let [deed] = await dispatchCall;
@@ -110,6 +111,7 @@ test("signup success", async (): Promise<void> => {
         storage: mapOf({}),
         catalogs: mapOf({}),
       },
+      ...fixedState,
     }],
   });
 

@@ -82,6 +82,10 @@ module.exports = (mode = "development") => {
         use: loaders,
       }],
     },
+    externals: {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      perf_hooks: "null",
+    },
     plugins: [
       new ForkTsCheckerWebpackPlugin({
         typescript: {

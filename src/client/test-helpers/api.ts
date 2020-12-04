@@ -14,10 +14,7 @@ import type {
   PersonState,
   ServerState,
   MediaState,
-  MediaPersonState,
   SavedSearchState,
-  MediaAlbumState,
-  MediaTagState,
 } from "../api/types";
 import fetch from "../environment/fetch";
 
@@ -119,31 +116,31 @@ export function callInfo(mockedFetch: jest.MockedFunction<Fetch>): CallInfo {
 export function mediaIntoResponse(
   media: MediaState,
 ): ApiSerialization<Api.Media> {
-  let response: ApiSerialization<MediaState> = {
+  let file: ApiSerialization<Api.MediaFile> | null = null;
+  if (media.file) {
+    let {
+      url,
+      thumbnails,
+      encodings,
+      videoEncodings,
+      ...fields
+    } = media.file;
+
+    file = {
+      ...fields,
+      uploaded: isoDateTime(media.file.uploaded),
+    };
+  }
+
+  return {
     ...media,
     created: isoDateTime(media.created),
     updated: isoDateTime(media.updated),
     taken: media.taken ? isoDateTime(media.taken) : null,
 
-    file: media.file && {
-      ...media.file,
-      uploaded: isoDateTime(media.file.uploaded),
-    },
-  };
+    file,
 
-  return {
-    ...response,
     catalog: media.catalog.id,
-    albums: media.albums.map(
-      (st: MediaAlbumState): Api.MediaAlbum => ({ album: st.album.id }),
-    ),
-    tags: media.tags.map(
-      (st: MediaTagState): Api.MediaTag => ({ tag: st.tag.id }),
-    ),
-    people: media.people.map((st: MediaPersonState): Api.MediaPerson => ({
-      person: st.person.id,
-      location: st.location,
-    })),
   };
 }
 
@@ -251,7 +248,9 @@ export function serverDataIntoResponse(serverState: ServerState): ApiSerializati
     };
   }
 
+  // @ts-ignore: Draft status problems.
   return {
+    ...serverState,
     user,
     apiHost: null,
   };

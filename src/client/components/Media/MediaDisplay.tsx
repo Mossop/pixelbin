@@ -5,12 +5,13 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import type { Person, Reference } from "../../api/highlevel";
-import type { MediaState } from "../../api/types";
+import { getMediaRelations } from "../../api/media";
+import type { MediaRelations, MediaState } from "../../api/types";
 import { isProcessedMedia } from "../../api/types";
 import EnterFullscreenIcon from "../../icons/EnterFullscreenIcon";
 import ExitFullscreenIcon from "../../icons/ExitFullscreenIcon";
 import InfoIcon from "../../icons/InfoIcon";
-import { useFullscreen } from "../../utils/hooks";
+import { useFullscreen, usePromise } from "../../utils/hooks";
 import type { ReactResult } from "../../utils/types";
 import { HoverContainer } from "../HoverArea";
 import Loading from "../Loading";
@@ -89,6 +90,20 @@ export default function MediaDisplay({
     void document.exitFullscreen();
   }, []);
 
+  let relations = usePromise(useMemo(() => {
+    if (mediaIndex < 0) {
+      return Promise.resolve(null);
+    }
+
+    return getMediaRelations([media[mediaIndex].id]).then(
+      (results: (MediaRelations | null)[]): MediaRelations | null => results[0],
+      (error: Error) => {
+        console.error(error);
+        return null;
+      },
+    );
+  }, [media, mediaIndex]));
+
   let mediaControls = <React.Fragment>
     {
       fullscreen
@@ -148,6 +163,7 @@ export default function MediaDisplay({
       personHighlight &&
       <FaceHighlight
         media={mediaToShow}
+        relations={relations}
         people={[personHighlight]}
       />
     }
@@ -157,7 +173,7 @@ export default function MediaDisplay({
       onCloseMedia={onCloseMedia}
     />
     <Drawer anchor="right" open={showMediaInfo} onClose={onCloseInfo}>
-      <MediaInfo media={mediaToShow} onHighlightPerson={setPersonHighlight}/>
+      <MediaInfo media={mediaToShow} relations={relations} onHighlightPerson={setPersonHighlight}/>
     </Drawer>
   </HoverContainer>;
 }

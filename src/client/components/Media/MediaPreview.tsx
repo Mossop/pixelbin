@@ -5,7 +5,6 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React, { useCallback, useState } from "react";
 
-import { sorted } from "../../../utils";
 import type { MediaState, ProcessedMediaState } from "../../api/types";
 import { isProcessedMedia } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
@@ -44,18 +43,16 @@ function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
   let typedSrcs: Map<string, string[]> = new Map();
   let normalSrcs: string[] = [];
 
-  let thumbs = sorted(media.file.thumbnails, "width", (a: number, b: number) => a - b);
-
-  for (let thumb of thumbs) {
+  for (let thumb of media.file.thumbnails) {
     if (thumb.mimetype == "image/jpeg") {
-      normalSrcs.push(`${thumb.url} ${thumb.width}w`);
+      normalSrcs.push(`${thumb.url} ${thumb.size}w`);
     } else {
       let srcs = typedSrcs.get(thumb.mimetype);
       if (srcs === undefined) {
         srcs = [];
         typedSrcs.set(thumb.mimetype, srcs);
       }
-      srcs.push(`${thumb.url} ${thumb.width}w`);
+      srcs.push(`${thumb.url} ${thumb.size}w`);
     }
   }
 

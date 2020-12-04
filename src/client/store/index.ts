@@ -11,7 +11,15 @@ export function buildStore(): void {
   enableMapSet();
 
   let initialState: StoreState = {
-    serverState: { user: null },
+    serverState: {
+      user: null,
+      thumbnails: {
+        encodings: [],
+        sizes: [],
+      },
+      encodings: [],
+      videoEncodings: [],
+    },
     settings: {
       thumbnailSize: 150,
     },

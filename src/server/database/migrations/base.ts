@@ -1,7 +1,6 @@
 import type Knex from "knex";
 
-import type { TableRecord } from "../types";
-import { ref, nameConstraint, columnFor } from "../types";
+import { nameConstraint, columnFor } from "../types";
 
 // Fixed for this migration.
 enum Table {
@@ -24,6 +23,10 @@ enum Table {
   // Not real tables.
   MediaView = "MediaView",
   UserCatalog = "UserCatalog",
+}
+
+function ref(table: string, column: string): string {
+  return `${table}.${column}`;
 }
 
 // Fixed for this migration.
@@ -58,10 +61,10 @@ function id(table: Knex.CreateTableBuilder): void {
   table.string("id", 30).notNullable().unique().primary();
 }
 
-function foreignId<T extends Table, C extends keyof TableRecord<T>>(
+function foreignId(
   table: Knex.CreateTableBuilder,
-  target: T,
-  targetColumn: C,
+  target: string,
+  targetColumn: string,
   command: "CASCADE" | "NO ACTION" | "RESTRICT" = "CASCADE",
 ): void {
   table.string(columnFor(target), 30)
@@ -178,7 +181,7 @@ export function buildMediaView(knex: Knex): Knex.QueryBuilder {
     .select(mappings);
 }
 
-function buildUserCatalogView(knex: Knex): Knex.QueryBuilder {
+export function buildUserCatalogView(knex: Knex): Knex.QueryBuilder {
   let shares = knex(Table.SharedCatalog)
     .select({
       user: ref(Table.SharedCatalog, "user"),

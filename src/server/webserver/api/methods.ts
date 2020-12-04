@@ -30,6 +30,7 @@ import {
   relations,
   setMediaPeople,
   deleteMedia,
+  getMediaRelations,
 } from "./media";
 import {
   searchMedia,
@@ -79,6 +80,7 @@ export const apiDecoders: RequestDecoders = {
   [Method.PersonEdit]: Decoders.PersonEditRequest,
   [Method.PersonDelete]: Decoders.StringArray,
   [Method.MediaGet]: Decoders.MediaGetRequest,
+  [Method.MediaRelationsGet]: Decoders.MediaGetRequest,
   [Method.MediaSearch]: Decoders.MediaSearchRequest,
   [Method.MediaCreate]: Decoders.MediaCreateRequest,
   [Method.MediaEdit]: Decoders.MediaEditRequest,
@@ -119,6 +121,7 @@ const apiMethods: ApiInterface = {
   [Method.PersonEdit]: editPerson,
   [Method.PersonDelete]: deletePeople,
   [Method.MediaGet]: getMedia,
+  [Method.MediaRelationsGet]: getMediaRelations,
   [Method.MediaSearch]: searchMedia,
   [Method.MediaCreate]: createMedia,
   [Method.MediaEdit]: updateMedia,

@@ -1,15 +1,7 @@
 import type Knex from "knex";
 
-import type {
-  Table,
-  TableRecord,
-  WithRefs,
-  QueryBuilder,
-} from "./types";
-import {
-  ref,
-  intoDBTypes,
-} from "./types";
+import type { TableRecord, WithRefs, QueryBuilder, Table } from "./types";
+import { ref, intoDBTypes } from "./types";
 
 export function drop<T extends Table>(
   knex: Knex,
@@ -18,38 +10,38 @@ export function drop<T extends Table>(
   return knex<TableRecord<T>>(table).delete();
 }
 
-export function withChildren<T extends Table.Tag | Table.Album>(
-  knex: Knex,
+export function withChildren<T extends Table.Tag | Table.Album, TRecord, TResults>(
+  knex: Knex.QueryInterface<TRecord, TResults>,
   table: T,
   queryBuilder: QueryBuilder<TableRecord<T>>,
-): QueryBuilder<TableRecord<T>> {
-  // @ts-ignore
+  alias: string = "parents",
+): Knex.QueryBuilder<TRecord, TResults> {
   return knex.withRecursive(
-    "parents",
+    alias,
     queryBuilder.select(ref(table)).union((qb: Knex.QueryBuilder): void => {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       qb.from<TableRecord<T>>(table)
         .select(`${table}.*`)
-        .join("parents", "parents.id", `${table}.parent`);
+        .join(alias, `${alias}.id`, `${table}.parent`);
     }),
-  ).from("parents");
+  );
 }
 
-export function withParents<T extends Table.Tag | Table.Album>(
-  knex: Knex,
+export function withParents<T extends Table.Tag | Table.Album, TRecord, TResults>(
+  knex: Knex.QueryInterface<TRecord, TResults>,
   table: T,
   queryBuilder: QueryBuilder<TableRecord<T>>,
-): QueryBuilder<TableRecord<T>> {
-  // @ts-ignore
+  alias: string = "children",
+): Knex.QueryBuilder<TRecord, TResults> {
   return knex.withRecursive(
-    "children",
+    alias,
     queryBuilder.select(ref(table)).union((qb: Knex.QueryBuilder): void => {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       qb.from<TableRecord<T>>(table)
         .select(`${table}.*`)
-        .join("children", "children.parent", `${table}.id`);
+        .join(alias, `${alias}.parent`, `${table}.id`);
     }),
-  ).from("children");
+  );
 }
 
 export function update<T extends Table>(

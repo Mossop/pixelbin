@@ -56,7 +56,7 @@ module.exports = {
         from: "./src/client",
       }, {
         target: "./src/model",
-        from: "./src/client",
+        from: "./src/server",
       }],
     }],
   },

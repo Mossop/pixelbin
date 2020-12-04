@@ -4,7 +4,7 @@ import React from "react";
 import { emptyMetadata, Join, Operator, RelationType } from "../../../model";
 import { parseDateTime } from "../../../utils";
 import { Album, Catalog, Person, Tag } from "../../api/highlevel";
-import type { ProcessedMediaState } from "../../api/types";
+import type { MediaRelations, ProcessedMediaState } from "../../api/types";
 import { PageType } from "../../pages/types";
 import {
   render,
@@ -73,14 +73,25 @@ test("Mediainfo", async (): Promise<void> => {
       bitRate: null,
       duration: null,
       uploaded: created,
-      originalUrl: "http://localhost/original.jpg",
+      url: "http://localhost/original.jpg",
       thumbnails: [],
-      alternatives: [],
+      encodings: [],
+      videoEncodings: [],
     },
     id: "foo",
     created: created,
     updated: created,
 
+    taken,
+    city: "Portland",
+    photographer: "Dave Townsend",
+    aperture: 1.8,
+    shutterSpeed: "1/250",
+    iso: 100.3,
+    title: "Hello",
+  };
+
+  let relations: MediaRelations = {
     albums: [{
       album: Album.ref("a1"),
     }, {
@@ -103,20 +114,13 @@ test("Mediainfo", async (): Promise<void> => {
         right: 0.4,
       },
     }],
-
-    taken,
-    city: "Portland",
-    photographer: "Dave Townsend",
-    aperture: 1.8,
-    shutterSpeed: "1/250",
-    iso: 100.3,
-    title: "Hello",
   };
 
   let onHighlightPerson = jest.fn();
 
   let { container } = render(<MediaInfo
     media={media}
+    relations={relations}
     onHighlightPerson={onHighlightPerson}
   />, store);
 

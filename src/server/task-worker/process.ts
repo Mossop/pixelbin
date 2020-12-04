@@ -6,7 +6,7 @@ import type { Sharp, OutputInfo } from "sharp";
 import type { DirectoryResult } from "tmp-promise";
 import { dir as tmpdir } from "tmp-promise";
 
-import { AlternateFileType, CURRENT_PROCESS_VERSION } from "../../model";
+import { AlternateFileType, CURRENT_PROCESS_VERSION, MEDIA_THUMBNAIL_SIZES } from "../../model";
 import type { Logger, RefCounted } from "../../utils";
 import { runTasks } from "../../utils";
 import type {
@@ -38,17 +38,6 @@ const ALLOWED_TYPES = [
   "video/webm",
   "video/quicktime",
   "video/mpeg",
-];
-
-export const MEDIA_THUMBNAIL_SIZES = [
-  150,
-  200,
-  250,
-  300,
-  350,
-  400,
-  450,
-  500,
 ];
 
 function basename(source: string): string {

@@ -4,7 +4,7 @@ import { CSRF_COOKIE } from "../../model";
 import { expect, mockDateTime } from "../../test-helpers";
 import { insertTestData, testData } from "../database/test-helpers";
 import { Table } from "../database/types";
-import { buildTestApp } from "./test-helpers";
+import { buildTestApp, fixedState } from "./test-helpers";
 
 const agent = buildTestApp();
 
@@ -41,6 +41,7 @@ test("state checks", async (): Promise<void> => {
   expect(stateFromResponse(response.text)).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   let loginDT = mockDateTime("2020-02-03T05:02:56Z");
@@ -71,13 +72,14 @@ test("state checks", async (): Promise<void> => {
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
-      catalogs: testData[Table.Catalog],
-      albums: testData[Table.Album],
-      people: testData[Table.Person],
-      tags: testData[Table.Tag],
-      searches: testData[Table.SavedSearch],
+      catalogs: expect.toInclude(testData[Table.Catalog]),
+      albums: expect.toInclude(testData[Table.Album]),
+      people: expect.toInclude(testData[Table.Person]),
+      tags: expect.toInclude(testData[Table.Tag]),
+      searches: expect.toInclude(testData[Table.SavedSearch]),
     },
     apiHost: "api.localhost",
+    ...fixedState,
   });
 });
 

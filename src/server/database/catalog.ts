@@ -1,11 +1,15 @@
 import type Knex from "knex";
 
+import type { TimeLogger } from "../../utils";
+import { Level } from "../../utils";
 import type { UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { uuid } from "./id";
+import type { MediaView } from "./mediaview";
+import { mediaView } from "./mediaview";
 import { drop, from, insert, update, withChildren } from "./queries";
 import type { Tables } from "./types";
-import { Table, ref, nameConstraint, intoDBTypes } from "./types";
+import { applyTimeZoneFields, Table, ref, nameConstraint, intoDBTypes } from "./types";
 import { deleteFields, ensureUserTransaction } from "./utils";
 
 export async function listStorage(this: UserScopedConnection): Promise<Tables.Storage[]> {
@@ -32,10 +36,9 @@ export async function createStorage(
 }
 
 export async function listCatalogs(this: UserScopedConnection): Promise<Tables.Catalog[]> {
-  let results = await this.loggedQuery(from(this.knex, Table.Catalog)
+  return from(this.knex, Table.Catalog)
     .whereIn(ref(Table.Catalog, "id"), this.catalogs())
-    .select<Tables.Catalog[]>(ref(Table.Catalog)), "listCatalogs");
-  return results;
+    .select<Tables.Catalog[]>(ref(Table.Catalog));
 }
 
 export const createCatalog = ensureUserTransaction(async function createCatalog(
@@ -93,25 +96,31 @@ export const editCatalog = ensureUserTransaction(async function editCatalog(
 });
 
 export async function listAlbums(this: UserScopedConnection): Promise<Tables.Album[]> {
-  return this.loggedQuery(from(this.knex, Table.Album)
+  return from(this.knex, Table.Album)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Album, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.Album[]>(ref(Table.Album)), "listAlbums");
+    .select<Tables.Album[]>(ref(Table.Album));
 }
 
 export async function listMediaInCatalog(
   this: UserScopedConnection,
   id: Tables.Catalog["id"],
-): Promise<Tables.MediaView[]> {
-  await this.checkRead(Table.Catalog, [id]);
+): Promise<MediaView[]> {
+  return this.logger.child("listMediaInCatalog").timeLonger(async (timeLogger: TimeLogger) => {
+    await this.checkRead(Table.Catalog, [id]);
+    timeLogger("checkRead");
 
-  return this.loggedQuery(from(this.knex, Table.MediaView)
-    .andWhere(ref(Table.MediaView, "catalog"), id)
-    .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-      ref(Table.MediaView, "taken"),
-      ref(Table.MediaView, "created"),
-    ]))
-    .select(ref(Table.MediaView)), "listMediaInCatalog");
+    let media: MediaView[] = await mediaView(this.knex)
+      .where(ref(Table.MediaView, "catalog"), id)
+      .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
+        ref(Table.MediaView, "taken"),
+        ref(Table.MediaView, "created"),
+      ]))
+      .select(ref(Table.MediaView));
+    timeLogger("query");
+
+    return media.map(applyTimeZoneFields);
+  }, Level.Trace, 200, "Listed media in catalog.");
 }
 
 export const createAlbum = ensureUserTransaction(async function createAlbum(
@@ -173,49 +182,52 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
   this: UserScopedConnection,
   id: Tables.Album["id"],
   recursive: boolean = false,
-): Promise<Tables.MediaView[]> {
-  // This assumes that if you can read the album you can read its descendants.
-  await this.checkRead(Table.Album, [id]);
+): Promise<MediaView[]> {
+  return this.logger.child("listMediaInAlbum").timeLonger(async (timeLogger: TimeLogger) => {
+    // This assumes that if you can read the album you can read its descendants.
+    await this.checkRead(Table.Album, [id]);
+    timeLogger("checkRead");
 
-  let mediaIds: Knex.QueryBuilder;
-  if (recursive) {
-    let albums = withChildren(
-      this.knex,
-      Table.Album,
-      from(this.knex, Table.Album)
-        .where(ref(Table.Album, "id"), id),
-    ).select("id");
+    let media: Knex.QueryBuilder<MediaView, MediaView[]>;
+    if (recursive) {
+      media = mediaView(this.knex)
+        .whereIn(ref(Table.MediaView, "id"), withChildren(
+          this.knex,
+          Table.Album,
+          from(this.knex, Table.Album).where(ref(Table.Album, "id"), id),
+          "Albums",
+        )
+          .from("Albums")
+          .join(Table.MediaAlbum, ref(Table.MediaAlbum, "album"), "Albums.id")
+          .select(ref(Table.MediaAlbum, "media")));
+    } else {
+      media = mediaView(this.knex)
+        .join(Table.MediaAlbum, ref(Table.MediaAlbum, "media"), ref(Table.MediaView, "id"))
+        .where(ref(Table.MediaAlbum, "album"), id);
+    }
 
-    mediaIds = from(this.knex, Table.MediaAlbum)
-      .whereIn(ref(Table.MediaAlbum, "album"), albums)
-      .distinct(ref(Table.MediaAlbum, "media"));
-  } else {
-    mediaIds = from(this.knex, Table.MediaAlbum)
-      .where(ref(Table.MediaAlbum, "album"), id)
-      .distinct(ref(Table.MediaAlbum, "media"));
-  }
-
-  return this.loggedQuery(from(this.knex, Table.MediaView)
-    .whereIn(ref(Table.MediaView, "id"), mediaIds)
-    .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-      ref(Table.MediaView, "taken"),
-      ref(Table.MediaView, "created"),
-    ]))
-    .select(ref(Table.MediaView)), "listMediaInAlbum");
+    let found: MediaView[] = await media
+      .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
+        ref(Table.MediaView, "taken"),
+        ref(Table.MediaView, "created"),
+      ]))
+      .select(ref(Table.MediaView));
+    return found.map(applyTimeZoneFields);
+  }, Level.Trace, 200, "Listed media in album.");
 });
 
 export async function listPeople(this: UserScopedConnection): Promise<Tables.Person[]> {
-  return this.loggedQuery(from(this.knex, Table.Person)
+  return from(this.knex, Table.Person)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Person, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.Person[]>(ref(Table.Person)), "listPeople");
+    .select<Tables.Person[]>(ref(Table.Person));
 }
 
 export async function listTags(this: UserScopedConnection): Promise<Tables.Tag[]> {
-  return this.loggedQuery(from(this.knex, Table.Tag)
+  return from(this.knex, Table.Tag)
     .innerJoin(Table.UserCatalog, ref(Table.UserCatalog, "catalog"), ref(Table.Tag, "catalog"))
     .where(ref(Table.UserCatalog, "user"), this.user)
-    .select<Tables.Tag[]>(ref(Table.Tag)), "listTags");
+    .select<Tables.Tag[]>(ref(Table.Tag));
 }
 
 export const createTag = ensureUserTransaction(async function createTag(

@@ -1,5 +1,4 @@
 import type { ObjectModel } from "../../../model";
-import type { Overwrite } from "../../../utils";
 
 export type User = ObjectModel.User & {
   password: string;
@@ -35,6 +34,7 @@ export type Metadata = ObjectModel.Metadata;
 export type MediaInfo = ObjectModel.MediaInfo & Metadata & {
   catalog: Catalog["id"];
   deleted: boolean;
+  mediaFile: string | null;
 };
 
 export type MediaFile = ObjectModel.MediaFile & Metadata & {
@@ -48,15 +48,4 @@ export type AlternateFile = ObjectModel.AlternateFile & {
   local: boolean;
 };
 
-// A generated view.
-export type MediaView = Omit<MediaInfo, "deleted"> & {
-  file: null | Overwrite<ObjectModel.MediaFile, {
-    uploaded: string;
-    fileName: string;
-    thumbnails: Omit<AlternateFile, "mediaFile" | "type">[];
-    alternatives: Omit<AlternateFile, "mediaFile" | "type">[];
-  }>;
-  albums: (ObjectModel.MediaAlbum & { album: Album["id"] })[];
-  tags: (ObjectModel.MediaTag & { tag: Tag["id"] })[];
-  people: (ObjectModel.MediaPerson & { person: Person["id"] })[];
-};
+export { MediaView } from "../mediaview";

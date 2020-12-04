@@ -126,18 +126,6 @@ test("Media upload", async (): Promise<void> => {
     taken: "2020-04-05T17:01:04.000-07:00",
     takenZone: "UTC-7",
     catalog: "c1",
-    albums: [{
-      album: "a1",
-    }],
-    people: [{
-      person: "p1",
-      location: null,
-    }],
-    tags: [{
-      tag: "t1",
-    }, {
-      tag: "t2",
-    }],
   });
 
   expect(parent.handleUploadedFile).toHaveBeenCalledTimes(1);
@@ -152,6 +140,30 @@ test("Media upload", async (): Promise<void> => {
   expect(copyUploadedFileMock).toHaveBeenCalledTimes(1);
 
   await expect(fs.stat(path)).rejects.toThrowError("no such file or directory");
+
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: response.body.id,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
+    albums: [{
+      album: "a1",
+    }],
+    people: [{
+      person: "p1",
+      location: null,
+    }],
+    tags: [{
+      tag: "t1",
+    }, {
+      tag: "t2",
+    }],
+  }]);
 
   response = await request
     .put("/api/media/create")
@@ -183,8 +195,20 @@ test("Media upload", async (): Promise<void> => {
     takenZone: null,
     file: null,
     catalog: "c1",
+  });
+
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: response.body.id,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
     albums: [],
-    people: [{
+    people: expect.toInclude([{
       person: expect.stringMatching(/P:[a-zA-Z0-9]+/),
       location: {
         left: 0,
@@ -198,13 +222,13 @@ test("Media upload", async (): Promise<void> => {
     }, {
       person: "p2",
       location: null,
-    }],
+    }]),
     tags: [{
       tag: expect.stringMatching(/T:[a-zA-Z0-9]+/),
     }, {
       tag: "t2",
     }],
-  });
+  }]);
 
   response = await request
     .put("/api/media/create")
@@ -231,10 +255,22 @@ test("Media upload", async (): Promise<void> => {
     takenZone: "America/Los_Angeles",
     file: null,
     catalog: "c1",
+  });
+
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: response.body.id,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
     albums: [],
     people: [],
     tags: [],
-  });
+  }]);
 });
 
 test("Media edit", async (): Promise<void> => {
@@ -293,25 +329,6 @@ test("Media edit", async (): Promise<void> => {
     takenZone: "UTC-7",
 
     title: "My title",
-
-    albums: [{
-      album: "a1",
-    }],
-    tags: [{
-      tag: "t1",
-    }],
-    people: [{
-      person: "p1",
-      location: {
-        left: 0,
-        right: 1,
-        top: 0,
-        bottom: 1,
-      },
-    }, {
-      person: "p2",
-      location: null,
-    }],
   });
 
   await request
@@ -348,7 +365,18 @@ test("Media edit", async (): Promise<void> => {
     takenZone: "UTC-4",
 
     title: "My title",
+  });
 
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: newMedia?.id,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
     albums: [{
       album: "a1",
     }],
@@ -367,7 +395,7 @@ test("Media edit", async (): Promise<void> => {
       person: "p2",
       location: null,
     }],
-  });
+  }]);
 
   expect(getStorageMock).not.toHaveBeenCalled();
   expect(copyUploadedFileMock).not.toHaveBeenCalled();
@@ -407,7 +435,18 @@ test("Media edit", async (): Promise<void> => {
     title: "New title",
     taken: "2020-04-05T17:01:04.000-04:00",
     takenZone: "UTC-4",
+  });
 
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: newMedia?.id,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
     albums: [{
       album: "a2",
     }],
@@ -425,7 +464,7 @@ test("Media edit", async (): Promise<void> => {
         bottom: 1,
       },
     }],
-  });
+  }]);
 
   expect(getStorageMock).not.toHaveBeenCalled();
   expect(copyUploadedFileMock).not.toHaveBeenCalled();
@@ -462,7 +501,18 @@ test("Media edit", async (): Promise<void> => {
     city: "Portland",
     taken: "2018-03-07T21:05:52.000-01:00",
     takenZone: "UTC-1",
+  });
 
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: newMedia?.id,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
     albums: [],
     tags: [{
       tag: "t2",
@@ -470,7 +520,7 @@ test("Media edit", async (): Promise<void> => {
       tag: expect.toBeId("T"),
     }],
     people: [],
-  });
+  }]);
 
   expect(getStorageMock).not.toHaveBeenCalled();
   expect(copyUploadedFileMock).not.toHaveBeenCalled();
@@ -534,7 +584,18 @@ test("Media edit", async (): Promise<void> => {
     city: "London",
     taken: "2018-03-07T21:05:52.000-01:00",
     takenZone: "UTC-1",
+  });
 
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: newMedia?.id,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
     albums: [{
       album: "a1",
     }],
@@ -544,7 +605,7 @@ test("Media edit", async (): Promise<void> => {
       tag: expect.toBeId("T"),
     }],
     people: [],
-  });
+  }]);
 
   expect(parent.handleUploadedFile).toHaveBeenCalledTimes(1);
   expect(parent.handleUploadedFile).toHaveBeenLastCalledWith(newMedia?.id);
@@ -706,7 +767,7 @@ test("Media resources", async (): Promise<void> => {
     .get(`/media/${media.id}/${mediaFile.id}/unknown/bar`)
     .expect(404);
 
-  let alternate = await db.addAlternateFile(mediaFile.id, {
+  await db.addAlternateFile(mediaFile.id, {
     type: AlternateFileType.Reencode,
     local: false,
     fileName: "alternate.jpg",
@@ -728,7 +789,7 @@ test("Media resources", async (): Promise<void> => {
     ) => Promise.resolve(`http://alternate.foo/${media}/${file}/${filename}/${type}`),
   );
   await request
-    .get(`/media/${media.id}/${mediaFile.id}/${alternate.id}/file`)
+    .get(`/media/${media.id}/${mediaFile.id}/encoding/image-jpeg/file`)
     .expect("Location", `http://alternate.foo/${media.id}/${mediaFile.id}/alternate.jpg/image/jpeg`)
     .expect(302);
 
@@ -751,7 +812,7 @@ test("Media resources", async (): Promise<void> => {
   getFileUrl.mockClear();
   getLocalFilePath.mockResolvedValueOnce(source);
   await request
-    .get(`/media/${media.id}/${mediaFile.id}/${thumb.id}/thumb.jpg`)
+    .get(`/media/${media.id}/${mediaFile.id}/thumb/400/image-jpeg/thumb.jpg`)
     .expect("Content-Type", "image/jpeg")
     .expect(200);
 
@@ -795,71 +856,6 @@ test("Get media", async (): Promise<void> => {
     ) => mediaFile,
   );
 
-  let alternate = await db.addAlternateFile(mediaFileId, {
-    type: AlternateFileType.Reencode,
-    local: false,
-    fileName: "alternate.jpg",
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "image/jpg",
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  });
-
-  let thumb1 = await db.addAlternateFile(mediaFileId, {
-    type: AlternateFileType.Thumbnail,
-    local: true,
-    fileName: "thumb1.jpg",
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "image/jpg",
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  });
-
-  let thumb2 = await db.addAlternateFile(mediaFileId, {
-    type: AlternateFileType.Thumbnail,
-    local: true,
-    fileName: "thumb2.jpg",
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "image/jpg",
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  });
-
-  let encode1 = await db.addAlternateFile(mediaFileId, {
-    type: AlternateFileType.Reencode,
-    local: false,
-    fileName: "enc1.mp4",
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "video/mp4",
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  });
-
-  let encode2 = await db.addAlternateFile(mediaFileId, {
-    type: AlternateFileType.Reencode,
-    local: false,
-    fileName: "enc2.ogg",
-    fileSize: 1,
-    width: 1,
-    height: 1,
-    mimetype: "video/ogg",
-    duration: null,
-    frameRate: null,
-    bitRate: null,
-  });
-
   await request
     .post("/api/login")
     .send({
@@ -885,10 +881,6 @@ test("Get media", async (): Promise<void> => {
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
     file: null,
-
-    albums: [],
-    tags: [],
-    people: [],
   }]);
 
   response = await request
@@ -908,7 +900,6 @@ test("Get media", async (): Promise<void> => {
     updated: expect.toEqualDate(updatedDT2),
     file: {
       id: mediaFileId,
-      originalUrl: `/media/${id2}/${mediaFileId}/stored.jpg`,
 
       fileSize: 1,
       width: 1,
@@ -918,63 +909,7 @@ test("Get media", async (): Promise<void> => {
       frameRate: 0,
       bitRate: 0,
       uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
-      thumbnails: [{
-        id: thumb1.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb1.id}/thumb1.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: thumb2.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb2.id}/thumb2.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
-      alternatives: [{
-        id: alternate.id,
-        url: `/media/${id2}/${mediaFileId}/${alternate.id}/alternate.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: encode1.id,
-        url: `/media/${id2}/${mediaFileId}/${encode1.id}/enc1.mp4`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "video/mp4",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: encode2.id,
-        url: `/media/${id2}/${mediaFileId}/${encode2.id}/enc2.ogg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "video/ogg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   }]);
 
   response = await request
@@ -993,10 +928,6 @@ test("Get media", async (): Promise<void> => {
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
     file: null,
-
-    albums: [],
-    tags: [],
-    people: [],
   }, {
     ...emptyMetadata,
     id: id2,
@@ -1006,60 +937,6 @@ test("Get media", async (): Promise<void> => {
 
     file: {
       id: mediaFileId,
-      originalUrl: `/media/${id2}/${mediaFileId}/stored.jpg`,
-      thumbnails: [{
-        id: thumb1.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb1.id}/thumb1.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: thumb2.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb2.id}/thumb2.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
-      alternatives: [{
-        id: alternate.id,
-        url: `/media/${id2}/${mediaFileId}/${alternate.id}/alternate.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: encode1.id,
-        url: `/media/${id2}/${mediaFileId}/${encode1.id}/enc1.mp4`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "video/mp4",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: encode2.id,
-        url: `/media/${id2}/${mediaFileId}/${encode2.id}/enc2.ogg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "video/ogg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
-
       fileSize: 1,
       width: 1,
       height: 1,
@@ -1069,10 +946,6 @@ test("Get media", async (): Promise<void> => {
       bitRate: 0,
       uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   }]);
 
   response = await request
@@ -1093,60 +966,6 @@ test("Get media", async (): Promise<void> => {
 
     file: {
       id: mediaFileId,
-      originalUrl: `/media/${id2}/${mediaFileId}/stored.jpg`,
-      thumbnails: [{
-        id: thumb1.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb1.id}/thumb1.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: thumb2.id,
-        url: `/media/${id2}/${mediaFileId}/${thumb2.id}/thumb2.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
-      alternatives: [{
-        id: alternate.id,
-        url: `/media/${id2}/${mediaFileId}/${alternate.id}/alternate.jpg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "image/jpg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: encode1.id,
-        url: `/media/${id2}/${mediaFileId}/${encode1.id}/enc1.mp4`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "video/mp4",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }, {
-        id: encode2.id,
-        url: `/media/${id2}/${mediaFileId}/${encode2.id}/enc2.ogg`,
-        fileSize: 1,
-        width: 1,
-        height: 1,
-        mimetype: "video/ogg",
-        duration: null,
-        frameRate: null,
-        bitRate: null,
-      }],
-
       fileSize: 1,
       width: 1,
       height: 1,
@@ -1156,10 +975,6 @@ test("Get media", async (): Promise<void> => {
       bitRate: 0,
       uploaded: expect.toEqualDate("2020-02-02T08:00:00Z"),
     },
-
-    albums: [],
-    tags: [],
-    people: [],
   }, {
     ...emptyMetadata,
     id: id1,
@@ -1167,10 +982,6 @@ test("Get media", async (): Promise<void> => {
     created: expect.toEqualDate(createdDT1),
     updated: expect.toEqualDate(createdDT1),
     file: null,
-
-    albums: [],
-    tags: [],
-    people: [],
   }]);
 
   await request
@@ -1199,10 +1010,7 @@ test("Media relations", async (): Promise<void> => {
   let db = await connection;
   let user1Db = db.forUser("someone1@nowhere.com");
 
-  let createdDT1 = mockDateTime("2017-02-01T20:30:01Z");
   let { id: id1 } = await user1Db.createMedia("c1", emptyMetadata);
-
-  let createdDT2 = mockDateTime("2010-06-09T09:30:01Z");
   let { id: id2 } = await user1Db.createMedia("c1", emptyMetadata);
 
   await request
@@ -1215,7 +1023,7 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   let response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1224,26 +1032,12 @@ test("Media relations", async (): Promise<void> => {
     .expect(200);
 
   let media1 = {
-    ...emptyMetadata,
-    id: id1,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT1),
-    updated: expect.toEqualDate(createdDT1),
-    file: null,
-
     albums: [] as Api.MediaAlbum[],
     tags: [] as Api.MediaTag[],
     people: [] as Api.MediaPerson[],
   };
 
   let media2 = {
-    ...emptyMetadata,
-    id: id2,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT2),
-    updated: expect.toEqualDate(createdDT2),
-    file: null,
-
     albums: [] as Api.MediaAlbum[],
     tags: [] as Api.MediaTag[],
     people: [] as Api.MediaPerson[],
@@ -1264,7 +1058,7 @@ test("Media relations", async (): Promise<void> => {
   expect(response.body).toEqual([]);
 
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1293,12 +1087,21 @@ test("Media relations", async (): Promise<void> => {
     tag: "t1",
   }];
 
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: id1,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
   expect(response.body).toEqual([
     media1,
   ]);
 
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1329,12 +1132,8 @@ test("Media relations", async (): Promise<void> => {
     tag: "t2",
   }];
 
-  expect(response.body).toEqual([
-    media1,
-  ]);
-
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1363,12 +1162,8 @@ test("Media relations", async (): Promise<void> => {
     tag: "t2",
   }];
 
-  expect(response.body).toEqual([
-    media1,
-  ]);
-
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1397,12 +1192,8 @@ test("Media relations", async (): Promise<void> => {
     tag: "t1",
   }];
 
-  expect(response.body).toEqual([
-    media1,
-  ]);
-
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1436,12 +1227,8 @@ test("Media relations", async (): Promise<void> => {
     tag: "t2",
   }];
 
-  expect(response.body).toEqual([
-    media1,
-  ]);
-
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1479,7 +1266,7 @@ test("Media relations", async (): Promise<void> => {
   });
 
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1516,13 +1303,8 @@ test("Media relations", async (): Promise<void> => {
     tag: "t2",
   }];
 
-  expect(response.body).toInclude([
-    media1,
-    media2,
-  ]);
-
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${id1},${id2}`,
     })
@@ -1581,7 +1363,7 @@ test("Media person locations", async (): Promise<void> => {
     .expect(200);
 
   let response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${media1.id},${media2.id}`,
     })
@@ -1590,26 +1372,10 @@ test("Media person locations", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual([{
-    id: media1.id,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT1),
-    updated: expect.toEqualDate(createdDT1),
-    file: null,
-
-    ...emptyMetadata,
-
     albums: [],
     tags: [],
     people: [],
   }, {
-    id: media2.id,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT2),
-    updated: expect.toEqualDate(createdDT2),
-    file: null,
-
-    ...emptyMetadata,
-
     albums: [],
     tags: [],
     people: [],
@@ -1637,13 +1403,6 @@ test("Media person locations", async (): Promise<void> => {
     file: null,
 
     ...emptyMetadata,
-
-    albums: [],
-    tags: [],
-    people: [{
-      person: "p1",
-      location: null,
-    }],
   }, {
     id: media2.id,
     catalog: "c1",
@@ -1652,7 +1411,25 @@ test("Media person locations", async (): Promise<void> => {
     file: null,
 
     ...emptyMetadata,
+  }]);
 
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: `${media1.id},${media2.id}`,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
+
+  expect(response.body).toEqual([{
+    albums: [],
+    tags: [],
+    people: [{
+      person: "p1",
+      location: null,
+    }],
+  }, {
     albums: [],
     tags: [],
     people: [{
@@ -1661,7 +1438,7 @@ test("Media person locations", async (): Promise<void> => {
     }],
   }]);
 
-  response = await request
+  await request
     .patch("/api/media/people")
     .send([{
       media: media1.id,
@@ -1686,15 +1463,16 @@ test("Media person locations", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toInclude([{
-    id: media1.id,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT1),
-    updated: expect.toEqualDate(createdDT1),
-    file: null,
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: `${media1.id},${media2.id}`,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
 
-    ...emptyMetadata,
-
+  expect(response.body).toEqual([{
     albums: [],
     tags: [],
     people: [{
@@ -1707,14 +1485,6 @@ test("Media person locations", async (): Promise<void> => {
       },
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT2),
-    updated: expect.toEqualDate(createdDT2),
-    file: null,
-
-    ...emptyMetadata,
-
     albums: [],
     tags: [],
     people: [{
@@ -1760,18 +1530,19 @@ test("Media person locations", async (): Promise<void> => {
     .expect("Content-Type", "application/json")
     .expect(200);
 
-  expect(response.body).toInclude([{
-    id: media2.id,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT2),
-    updated: expect.toEqualDate(createdDT2),
-    file: null,
+  response = await request
+    .get("/api/media/relations/get")
+    .query({
+      id: `${media2.id}`,
+    })
+    .set(CSRF_HEADER, getCsrfToken(request))
+    .expect("Content-Type", "application/json")
+    .expect(200);
 
-    ...emptyMetadata,
-
+  expect(response.body).toEqual([{
     albums: [],
     tags: [],
-    people: [{
+    people: expect.toInclude([{
       person: "p1",
       location: {
         left: 0.5,
@@ -1782,7 +1553,7 @@ test("Media person locations", async (): Promise<void> => {
     }, {
       person: "p2",
       location: null,
-    }],
+    }]),
   }]);
 
   response = await request
@@ -1810,7 +1581,7 @@ test("Media person locations", async (): Promise<void> => {
     .expect(200);
 
   response = await request
-    .get("/api/media/get")
+    .get("/api/media/relations/get")
     .query({
       id: `${media1.id},${media2.id}`,
     })
@@ -1819,14 +1590,6 @@ test("Media person locations", async (): Promise<void> => {
     .expect(200);
 
   expect(response.body).toEqual([{
-    id: media1.id,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT1),
-    updated: expect.toEqualDate(createdDT1),
-    file: null,
-
-    ...emptyMetadata,
-
     albums: [],
     tags: [],
     people: [{
@@ -1839,14 +1602,6 @@ test("Media person locations", async (): Promise<void> => {
       },
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
-    created: expect.toEqualDate(createdDT2),
-    updated: expect.toEqualDate(createdDT2),
-    file: null,
-
-    ...emptyMetadata,
-
     albums: [],
     tags: [],
     people: [{

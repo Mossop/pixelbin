@@ -25,6 +25,7 @@ beforeEach(async (): Promise<void> => {
       deleted: false,
       created: parseDateTime("2020-01-02T04:05:06Z"),
       updated: parseDateTime("2020-01-02T04:05:06Z"),
+      mediaFile: null,
 
       title: "A test title",
       description: "A test description",
@@ -39,6 +40,7 @@ beforeEach(async (): Promise<void> => {
       deleted: false,
       created: parseDateTime("2020-01-04T04:05:06Z"),
       updated: parseDateTime("2020-01-04T04:05:06Z"),
+      mediaFile: null,
 
       title: "A different title",
       description: "Another description",
@@ -53,6 +55,7 @@ beforeEach(async (): Promise<void> => {
       deleted: false,
       created: parseDateTime("2020-01-02T04:05:06Z"),
       updated: parseDateTime("2020-01-02T04:05:06Z"),
+      mediaFile: null,
 
       description: "A third description",
       longitude: -34,
@@ -65,6 +68,7 @@ beforeEach(async (): Promise<void> => {
       deleted: false,
       created: parseDateTime("2020-02-01T04:05:06Z"),
       updated: parseDateTime("2020-02-01T04:05:06Z"),
+      mediaFile: null,
 
       description: "A test description",
       rating: 3,
@@ -78,6 +82,7 @@ beforeEach(async (): Promise<void> => {
       deleted: false,
       created: parseDateTime("2002-02-01T04:05:06Z"),
       updated: parseDateTime("2002-02-01T04:05:06Z"),
+      mediaFile: null,
     }, {
       ...emptyMetadata,
       id: "m6",
@@ -85,6 +90,7 @@ beforeEach(async (): Promise<void> => {
       deleted: false,
       created: parseDateTime("2019-06-01T04:05:06Z"),
       updated: parseDateTime("2004-02-01T04:05:06Z"),
+      mediaFile: null,
     }],
     [Table.MediaAlbum]: [{
       catalog: "c1",

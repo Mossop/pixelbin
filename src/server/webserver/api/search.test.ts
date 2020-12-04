@@ -61,10 +61,6 @@ test("Media search", async (): Promise<void> => {
 
     ...emptyMetadata,
     title: "Media 1",
-
-    albums: [],
-    tags: [],
-    people: [],
   }]);
 });
 

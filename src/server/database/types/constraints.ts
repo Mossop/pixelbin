@@ -1,11 +1,10 @@
 import type Knex from "knex";
 
-import type { Table } from ".";
 import { columnFor } from "./meta";
 
 export function nameConstraint(
   knex: Knex,
-  target: Table,
+  target: string,
   parent: string | null = "parent",
 ): Knex.Raw {
   let match: string;

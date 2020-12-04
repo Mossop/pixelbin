@@ -14,7 +14,7 @@ import serve from "koa-static";
 
 import type { Api, ApiSerialization } from "../../model";
 import { Method, ErrorCode } from "../../model";
-import { alternate, original } from "./api/media";
+import { alternate, original, thumbnail } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import type { AppContext, ServicesContext } from "./context";
@@ -89,18 +89,26 @@ export default async function buildApp(): Promise<void> {
   }
 
   router.get(
-    `${APP_PATHS.root}media/:id/:fileId/:alternateId/:filename`,
+    `${APP_PATHS.root}media/:id/:file/thumb/:size/:encoding/:filename`,
     (ctx: RouterContext<AppContext>): Promise<void> => {
-      let { id, fileId, alternateId } = ctx.params;
-      return alternate(ctx, id, fileId, alternateId);
+      let { id, size, file, encoding } = ctx.params;
+      return thumbnail(ctx, id, file, encoding, size);
     },
   );
 
   router.get(
-    `${APP_PATHS.root}media/:id/:fileId/:filename`,
+    `${APP_PATHS.root}media/:id/:file/encoding/:encoding/:filename`,
     (ctx: RouterContext<AppContext>): Promise<void> => {
-      let { id, fileId } = ctx.params;
-      return original(ctx, id, fileId);
+      let { id, encoding, file } = ctx.params;
+      return alternate(ctx, id, file, encoding);
+    },
+  );
+
+  router.get(
+    `${APP_PATHS.root}media/:id/:file/:filename`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, file } = ctx.params;
+      return original(ctx, id, file);
     },
   );
 

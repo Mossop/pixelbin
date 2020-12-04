@@ -61,6 +61,7 @@ export enum Method {
   PersonEdit = "person/edit",
   PersonDelete = "person/delete",
   MediaGet = "media/get",
+  MediaRelationsGet = "media/relations/get",
   MediaSearch = "media/search",
   MediaCreate = "media/create",
   MediaEdit = "media/edit",
@@ -98,6 +99,7 @@ export const HttpMethods: MethodList = {
   [Method.PersonEdit]: "PATCH",
   [Method.PersonDelete]: "DELETE",
   [Method.MediaGet]: "GET",
+  [Method.MediaRelationsGet]: "GET",
   [Method.MediaSearch]: "POST",
   [Method.MediaCreate]: "PUT",
   [Method.MediaEdit]: "PATCH",
@@ -144,6 +146,7 @@ export interface Signatures {
   [Method.PersonEdit]: Signature<Requests.PersonEdit, Api.Person>;
   [Method.PersonDelete]: Signature<Requests.PersonDelete, void>;
   [Method.MediaGet]: Signature<Requests.MediaGet, (Api.Media | null)[]>;
+  [Method.MediaRelationsGet]: Signature<Requests.MediaGet, (Api.MediaRelations | null)[]>;
   [Method.MediaSearch]: Signature<Requests.MediaSearch, Api.Media[]>;
   [Method.MediaCreate]: Signature<Requests.MediaCreate, Api.Media>;
   [Method.MediaEdit]: Signature<Requests.MediaEdit, Api.Media>;

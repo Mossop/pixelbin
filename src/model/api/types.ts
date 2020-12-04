@@ -46,35 +46,34 @@ export type MediaPerson = ObjectModel.MediaPerson & {
   person: Person["id"];
 };
 
+export interface MediaRelations {
+  albums: MediaAlbum[];
+  tags: MediaTag[];
+  people: MediaPerson[];
+}
+
 export type Alternate = Omit<ObjectModel.AlternateFile, "type"> & {
   url: string;
 };
 
-export type MediaFile = Omit<ObjectModel.MediaFile, "processVersion"> & {
-  originalUrl: string;
-  thumbnails: Alternate[],
-  alternatives: Alternate[],
-};
+export type MediaFile = Omit<ObjectModel.MediaFile, "processVersion">;
 
 export type Media = Overwrite<ObjectModel.Media, {
   catalog: Catalog["id"];
   file: MediaFile | null;
-  albums: MediaAlbum[];
-  tags: MediaTag[];
-  people: MediaPerson[];
 }>;
 
-export type PublicMedia = Overwrite<ObjectModel.PublicMedia, & {
-  file: MediaFile | null;
-}>;
-
-export type PublicMediaWithMetadata = Overwrite<ObjectModel.PublicMediaWithMetadata, {
-  file: MediaFile | null;
-}>;
+export interface Thumbnails {
+  encodings: string[];
+  sizes: number[];
+}
 
 export interface State {
   user: User | null;
   apiHost: string | null;
+  thumbnails: Thumbnails;
+  encodings: string[];
+  videoEncodings: string[];
 }
 
 export enum AWSResult {

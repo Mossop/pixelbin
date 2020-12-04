@@ -1,4 +1,5 @@
 import type { Api, Query, ApiSerialization, Requests } from "../../../model";
+import { MEDIA_THUMBNAIL_SIZES } from "../../../model";
 import { isoDateTime, isDateTime } from "../../../utils";
 import type { Tables } from "../../database/types";
 import type { AppContext } from "../context";
@@ -69,6 +70,20 @@ export async function buildState(ctx: AppContext): Promise<ApiSerialization<Api.
   return {
     user: await buildUser(ctx),
     apiHost: ctx.config.apiHost,
+    thumbnails: {
+      encodings: [
+        "image/jpeg",
+        "image/webp",
+      ],
+      sizes: MEDIA_THUMBNAIL_SIZES,
+    },
+    encodings: [
+      "image/jpeg",
+      "image/webp",
+    ],
+    videoEncodings: [
+      "video/mp4;codecs=\"avc1.640028,mp4a.40.2\"",
+    ],
   };
 }
 

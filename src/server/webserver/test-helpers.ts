@@ -23,6 +23,32 @@ import events from "./events";
 import type { ParentProcessInterface, WebserverConfig } from "./interfaces";
 import Services, { provideService } from "./services";
 
+export const fixedState = {
+  encodings: [
+    "image/jpeg",
+    "image/webp",
+  ],
+  thumbnails: {
+    encodings: [
+      "image/jpeg",
+      "image/webp",
+    ],
+    sizes: [
+      150,
+      200,
+      250,
+      300,
+      350,
+      400,
+      450,
+      500,
+    ],
+  },
+  videoEncodings: [
+    "video/mp4;codecs=\"avc1.640028,mp4a.40.2\"",
+  ],
+};
+
 export function buildTestApp(
   parentInterface: Partial<RemoteInterface<ParentProcessInterface>> = {},
 ): (() => SuperTest<Test>) {
@@ -140,6 +166,7 @@ export function expectUserState(json: Obj, state: ApiSerialization<Api.User> | n
     expect(json).toEqual({
       user: null,
       apiHost: "api.localhost",
+      ...fixedState,
     });
     return;
   }
@@ -147,6 +174,7 @@ export function expectUserState(json: Obj, state: ApiSerialization<Api.User> | n
   expect(json).toEqual({
     user: expect.anything(),
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   let received = {

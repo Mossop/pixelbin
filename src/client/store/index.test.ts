@@ -5,7 +5,7 @@ import { StateDecoder } from "../api/decoders";
 import { serverStateIntoState } from "../api/types";
 import { PageType } from "../pages/types";
 import services from "../services";
-import { expect } from "../test-helpers";
+import { expect, fixedState } from "../test-helpers";
 import actions from "./actions";
 
 test("store initialization", async (): Promise<void> => {
@@ -13,7 +13,15 @@ test("store initialization", async (): Promise<void> => {
 
   let store = await services.store;
   expect(store.getState()).toEqual({
-    serverState: { user: null },
+    serverState: {
+      user: null,
+      encodings: [],
+      thumbnails: {
+        encodings: [],
+        sizes: [],
+      },
+      videoEncodings: [],
+    },
     settings: {
       thumbnailSize: 150,
     },
@@ -39,7 +47,7 @@ test("store initialization", async (): Promise<void> => {
       tags: [],
       searches: [],
     },
-    apiHost: null,
+    ...fixedState,
   };
 
   store.dispatch(
@@ -58,6 +66,7 @@ test("store initialization", async (): Promise<void> => {
         storage: new Map(),
         catalogs: new Map(),
       },
+      ...fixedState,
     },
     settings: {
       thumbnailSize: 150,

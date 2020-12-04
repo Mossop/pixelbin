@@ -121,29 +121,27 @@ export const UserDecoder = JsonDecoder.object<Api.User>(
   "User",
 );
 
+export const ThumbnailsDecoder = JsonDecoder.object<Api.Thumbnails>(
+  {
+    encodings: JsonDecoder.array(JsonDecoder.string, "encoding[]"),
+    sizes: JsonDecoder.array(JsonDecoder.number, "size[]"),
+  },
+  "Thumbnails",
+);
+
 export const StateDecoder = JsonDecoder.object<Api.State>(
   {
     user: JsonDecoder.nullable(UserDecoder),
     apiHost: JsonDecoder.nullable(JsonDecoder.string),
+    thumbnails: ThumbnailsDecoder,
+    encodings: JsonDecoder.array(JsonDecoder.string, "encoding[]"),
+    videoEncodings: JsonDecoder.array(JsonDecoder.string, "videoEncoding[]"),
   },
   "State",
 );
 
-const AlternateDecoder = JsonDecoder.object<Api.Alternate>({
-  id: JsonDecoder.string,
-  url: JsonDecoder.string,
-  height: JsonDecoder.number,
-  width: JsonDecoder.number,
-  fileSize: JsonDecoder.number,
-  mimetype: JsonDecoder.string,
-  duration: JsonDecoder.nullable(JsonDecoder.number),
-  bitRate: JsonDecoder.nullable(JsonDecoder.number),
-  frameRate: JsonDecoder.nullable(JsonDecoder.number),
-}, "Alternate");
-
 const MediaFileDecoder = JsonDecoder.object<Api.MediaFile>({
   id: JsonDecoder.string,
-  originalUrl: JsonDecoder.string,
   height: JsonDecoder.number,
   width: JsonDecoder.number,
   fileSize: JsonDecoder.number,
@@ -152,9 +150,13 @@ const MediaFileDecoder = JsonDecoder.object<Api.MediaFile>({
   duration: JsonDecoder.nullable(JsonDecoder.number),
   bitRate: JsonDecoder.nullable(JsonDecoder.number),
   frameRate: JsonDecoder.nullable(JsonDecoder.number),
-  thumbnails: JsonDecoder.array(AlternateDecoder, "thumbnail[]"),
-  alternatives: JsonDecoder.array(AlternateDecoder, "alternative[]"),
 }, "MediaFile");
+
+export const MediaRelationsDecoder = JsonDecoder.array(JsonDecoder.object<Api.MediaRelations>({
+  albums: JsonDecoder.array(MediaAlbumDecoder, "MediaAlbum[]"),
+  tags: JsonDecoder.array(MediaTagDecoder, "MediaTag[]"),
+  people: JsonDecoder.array(MediaPersonDecoder, "MediaPerson[]"),
+}, "MediaRelations"), "MediaRelations[]");
 
 export const MediaDecoder = JsonDecoder.object<Api.Media>({
   id: JsonDecoder.string,
@@ -190,10 +192,6 @@ export const MediaDecoder = JsonDecoder.object<Api.Media>({
   iso: JsonDecoder.nullable(JsonDecoder.number),
   focalLength: JsonDecoder.nullable(JsonDecoder.number),
   rating: JsonDecoder.nullable(JsonDecoder.number),
-
-  albums: JsonDecoder.array(MediaAlbumDecoder, "MediaAlbum[]"),
-  tags: JsonDecoder.array(MediaTagDecoder, "MediaTag[]"),
-  people: JsonDecoder.array(MediaPersonDecoder, "MediaPerson[]"),
 }, "Media");
 
 export const MediaArrayDecoder = JsonDecoder.array(MediaDecoder, "Media[]");

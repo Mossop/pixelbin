@@ -24,5 +24,4 @@ export type MediaPerson = ObjectModel.MediaPerson & {
   catalog: string;
   media: string;
   person: string;
-  location: ObjectModel.Location | null;
 };

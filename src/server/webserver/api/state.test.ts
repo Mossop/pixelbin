@@ -2,7 +2,7 @@ import { ErrorCode } from "../../../model";
 import { expect, mockDateTime } from "../../../test-helpers";
 import { insertTestData, testData } from "../../database/test-helpers";
 import { Table } from "../../database/types";
-import { buildTestApp } from "../test-helpers";
+import { buildTestApp, fixedState } from "../test-helpers";
 
 const agent = buildTestApp();
 
@@ -19,6 +19,7 @@ test("state", async (): Promise<void> => {
   expect(response.body).toEqual({
     apiHost: "api.localhost",
     user: null,
+    ...fixedState,
   });
 });
 
@@ -33,6 +34,7 @@ test("login and logout", async (): Promise<void> => {
   expect(response.body).toEqual({
     apiHost: "api.localhost",
     user: null,
+    ...fixedState,
   });
 
   let loginDT = mockDateTime("2019-03-04T22:22:22Z");
@@ -55,13 +57,14 @@ test("login and logout", async (): Promise<void> => {
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
-      catalogs: testData[Table.Catalog],
-      albums: testData[Table.Album],
-      people: testData[Table.Person],
-      tags: testData[Table.Tag],
-      searches: testData[Table.SavedSearch],
+      catalogs: expect.toInclude(testData[Table.Catalog]),
+      albums: expect.toInclude(testData[Table.Album]),
+      people: expect.toInclude(testData[Table.Person]),
+      tags: expect.toInclude(testData[Table.Tag]),
+      searches: expect.toInclude(testData[Table.SavedSearch]),
     },
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   response = await request
@@ -78,13 +81,14 @@ test("login and logout", async (): Promise<void> => {
       lastLogin: expect.toEqualDate(loginDT),
       verified: true,
       storage: [],
-      catalogs: testData[Table.Catalog],
-      albums: testData[Table.Album],
-      people: testData[Table.Person],
-      tags: testData[Table.Tag],
-      searches: testData[Table.SavedSearch],
+      catalogs: expect.toInclude(testData[Table.Catalog]),
+      albums: expect.toInclude(testData[Table.Album]),
+      people: expect.toInclude(testData[Table.Person]),
+      tags: expect.toInclude(testData[Table.Tag]),
+      searches: expect.toInclude(testData[Table.SavedSearch]),
     },
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   response = await request
@@ -95,6 +99,7 @@ test("login and logout", async (): Promise<void> => {
   expect(response.body).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   response = await request
@@ -105,6 +110,7 @@ test("login and logout", async (): Promise<void> => {
   expect(response.body).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 });
 
@@ -119,6 +125,7 @@ test("login failure", async (): Promise<void> => {
   expect(response.body).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   response = await request
@@ -142,6 +149,7 @@ test("login failure", async (): Promise<void> => {
   expect(response.body).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 });
 
@@ -156,6 +164,7 @@ test("signup", async (): Promise<void> => {
   expect(response.body).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   let createdDT = mockDateTime("2020-04-05T11:56:01Z");
@@ -187,6 +196,7 @@ test("signup", async (): Promise<void> => {
       searches: [],
     },
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   response = await request
@@ -210,6 +220,7 @@ test("signup", async (): Promise<void> => {
       searches: [],
     },
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   response = await request
@@ -220,6 +231,7 @@ test("signup", async (): Promise<void> => {
   expect(response.body).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   response = await request
@@ -230,6 +242,7 @@ test("signup", async (): Promise<void> => {
   expect(response.body).toEqual({
     user: null,
     apiHost: "api.localhost",
+    ...fixedState,
   });
 
   loginDT = mockDateTime("2020-10-01T02:03:04Z");
@@ -259,5 +272,6 @@ test("signup", async (): Promise<void> => {
       searches: [],
     },
     apiHost: "api.localhost",
+    ...fixedState,
   });
 });

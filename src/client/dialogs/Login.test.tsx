@@ -16,6 +16,7 @@ import {
   deferRequest,
   mapOf,
   click,
+  fixedState,
 } from "../test-helpers";
 import { ApiError } from "../utils/exception";
 import LoginDialog from "./Login";
@@ -84,7 +85,7 @@ test("login success", async (): Promise<void> => {
       people: [],
       searches: [],
     },
-    apiHost: null,
+    ...fixedState,
   });
 
   let [deed] = await dispatchCall;
@@ -102,6 +103,7 @@ test("login success", async (): Promise<void> => {
         storage: mapOf({}),
         catalogs: mapOf({}),
       },
+      ...fixedState,
     }],
   });
 

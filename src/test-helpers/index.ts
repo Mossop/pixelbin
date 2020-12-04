@@ -12,7 +12,21 @@ import type { DateTime } from "../utils";
 import { isDateTime, parseDateTime, stringSorted, defer } from "../utils";
 
 let original = Luxon.utc.bind(Luxon);
-const utc = jest.spyOn(Luxon, "utc").mockImplementation(original);
+let pendingTimes: DateTime[] = [];
+// eslint-disable-next-line @typescript-eslint/typedef
+jest.spyOn(Luxon, "utc").mockImplementation((...args) => {
+  // We only want to mock 0-argument calls.
+  if (args.length > 0) {
+    return original(...args);
+  }
+
+  let mocked = pendingTimes.shift();
+  if (mocked) {
+    return mocked;
+  }
+
+  return original();
+});
 
 export function sortedIds<T extends { id: string }>(val: T[]): string[] {
   return val.map((item: { id: string }): string => item.id);
@@ -314,8 +328,7 @@ export function mock<
 
 export function mockDateTime(result: DateTime | string): DateTime {
   let dt = isDateTime(result) ? result : parseDateTime(result);
-  utc.mockReturnValueOnce(dt);
-
+  pendingTimes.push(dt);
   return dt;
 }
 

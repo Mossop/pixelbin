@@ -13,6 +13,8 @@ export async function loginUser(
   email: Tables.User["email"],
   password: string,
 ): Promise<ObjectModel.User | undefined> {
+  let lastLogin = now();
+
   let users = await from(this.knex, Table.User).where({
     email,
   }).select("*");
@@ -22,8 +24,6 @@ export async function loginUser(
   }
 
   if (await bcryptCompare(password, users[0].password)) {
-    let lastLogin = now();
-
     await update(
       Table.User,
       this.knex.where({

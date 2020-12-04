@@ -3,8 +3,15 @@ import type { Draft } from "immer";
 import type { Api } from "../../model";
 import { Method } from "../../model";
 import { request } from "./api";
-import type { Album, Catalog } from "./highlevel";
-import type { MediaState, ProcessedMediaState } from "./types";
+import type { Catalog } from "./highlevel";
+import { Person, Tag, Album } from "./highlevel";
+import type {
+  MediaAlbumState,
+  MediaPersonState,
+  MediaRelations,
+  MediaState,
+  MediaTagState,
+} from "./types";
 import { mediaIntoState } from "./types";
 
 export type MediaTarget = Catalog | Album;
@@ -21,6 +28,27 @@ export async function getMedia(ids: string[]): Promise<(Draft<MediaState> | null
   }));
 }
 
-export function getThumbnailUrl(media: ProcessedMediaState): string {
-  return `${media.file.thumbnails[0]?.url}`;
+export async function getMediaRelations(ids: string[]): Promise<(Draft<MediaRelations> | null)[]> {
+  let relations = await request(Method.MediaRelationsGet, {
+    id: ids.join(","),
+  });
+
+  return relations.map((relation: Api.MediaRelations | null): Draft<MediaRelations> | null => {
+    if (!relation) {
+      return null;
+    }
+
+    return {
+      albums: relation.albums.map((value: Api.MediaAlbum): MediaAlbumState => ({
+        album: Album.ref(value.album),
+      })),
+      tags: relation.tags.map((value: Api.MediaTag): MediaTagState => ({
+        tag: Tag.ref(value.tag),
+      })),
+      people: relation.people.map((value: Api.MediaPerson): MediaPersonState => ({
+        person: Person.ref(value.person),
+        location: value.location,
+      })),
+    };
+  });
 }

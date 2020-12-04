@@ -57,8 +57,8 @@ export function intoDBTypes<T>(data: T): T {
   );
 }
 
-export function columnFor(table: Table): string {
-  if (table == Table.MediaInfo || table == Table.MediaView) {
+export function columnFor(table: string): string {
+  if (table == Table.MediaInfo) {
     return "media";
   }
   return table.charAt(0).toLocaleLowerCase() + table.substr(1);

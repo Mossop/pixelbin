@@ -12,7 +12,13 @@
     "default": "info",
     "levels": {
       "web-worker.database": "debug",
-      "task-worker.task.reprocess": "trace"
+      "web-worker.database.getMedia": "trace",
+      "web-worker.database.searchMedia": "trace",
+      "web-worker.database.listMediaInCatalog": "trace",
+      "web-worker.database.listMediaInAlbum": "trace",
+      "task-worker.task.reprocess": "trace",
+      "main.database": "debug",
+      "main.database.migration": "trace"
     }
   },
   "smtp": {

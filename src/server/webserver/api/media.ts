@@ -3,59 +3,40 @@ import { createReadStream, promises as fs } from "fs";
 import type {
   Api,
   ApiSerialization,
-  ObjectModel,
   Requests,
 } from "../../../model";
-import { ErrorCode, RelationType, emptyMetadata } from "../../../model";
+import {
+  AlternateFileType,
+  ErrorCode,
+  RelationType,
+  emptyMetadata,
+} from "../../../model";
 import { isoDateTime } from "../../../utils";
-import type { MediaPerson, MediaView, UserScopedConnection } from "../../database";
+import type {
+  LinkedAlbum,
+  LinkedPerson,
+  LinkedTag,
+  MediaPerson,
+  MediaView,
+  UserScopedConnection,
+  AlternateInfo,
+} from "../../database";
 import { deleteFields } from "../../database/utils";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
 import type { AppContext } from "../context";
 import { ApiError } from "../error";
-import { APP_PATHS } from "../paths";
 import type { DeBlobbed } from "./decoders";
-
-type DBAlternative = Omit<ObjectModel.AlternateFile, "type"> & {
-  fileName: string;
-};
 
 export function buildResponseMedia(
   media: MediaView,
 ): ApiSerialization<Api.Media> {
+  let file: ApiSerialization<Api.MediaFile> | null = null;
+
   if (media.file) {
-    let mediaFile = media.file;
-    const mapAlternative = (alt: DBAlternative): Api.Alternate => {
-      let {
-        fileName,
-        ...fileInfo
-      } = alt;
-
-      return {
-        ...fileInfo,
-        url: `${APP_PATHS.root}media/${media.id}/${mediaFile.id}/${alt.id}/${alt.fileName}`,
-      };
-    };
-
-    return {
-      ...media,
-
-      created: isoDateTime(media.created),
-      updated: isoDateTime(media.updated),
-      taken: media.taken ? isoDateTime(media.taken) : null,
-
-      file: {
-        ...deleteFields(media.file, [
-          "processVersion",
-          "fileName",
-        ]),
-
-        thumbnails: media.file.thumbnails.map(mapAlternative),
-        alternatives: media.file.alternatives.map(mapAlternative),
-
-        originalUrl: `${APP_PATHS.root}media/${media.id}/${media.file.id}/${media.file.fileName}`,
-      },
-    };
+    file = deleteFields(media.file, [
+      "processVersion",
+      "fileName",
+    ]);
   }
 
   return {
@@ -65,7 +46,7 @@ export function buildResponseMedia(
     updated: isoDateTime(media.updated),
     taken: media.taken ? isoDateTime(media.taken) : null,
 
-    file: null,
+    file,
   };
 }
 
@@ -87,6 +68,50 @@ export const getMedia = ensureAuthenticated(
     let ids = data.id.split(",");
     let media = await userDb.getMedia(ids);
     return media.map(buildMaybeResponseMedia);
+  },
+);
+
+function tagRelations(tags: LinkedTag[]): Api.MediaTag[] {
+  return tags.map((tag: LinkedTag): Api.MediaTag => ({
+    tag: tag.tag.id,
+  }));
+}
+
+function albumRelations(albums: LinkedAlbum[]): Api.MediaAlbum[] {
+  return albums.map((album: LinkedAlbum): Api.MediaAlbum => ({
+    album: album.album.id,
+  }));
+}
+
+function peopleRelations(people: LinkedPerson[]): Api.MediaPerson[] {
+  return people.map((person: LinkedPerson): Api.MediaPerson => ({
+    person: person.person.id,
+    location: person.location,
+  }));
+}
+
+export const getMediaRelations = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    data: Requests.MediaGet,
+  ): Promise<(ApiSerialization<Api.MediaRelations> | null
+  )[]> => {
+    let ids = data.id.split(",");
+    let media = await userDb.getMedia(ids);
+    return Promise.all(
+      media.map(async (item: MediaView | null): Promise<Api.MediaRelations | null> => {
+        if (!item) {
+          return null;
+        }
+
+        return {
+          tags: tagRelations(await userDb.getMediaTags(item.id)),
+          albums: albumRelations(await userDb.getMediaAlbums(item.id)),
+          people: peopleRelations(await userDb.getMediaPeople(item.id)),
+        };
+      }),
+    );
   },
 );
 
@@ -321,67 +346,108 @@ export const updateMedia = ensureAuthenticated(
   },
 );
 
+async function serveAlternate(
+  ctx: AppContext,
+  userDB: UserScopedConnection,
+  alternate: AlternateInfo,
+): Promise<void> {
+  let storage = await ctx.storage.getStorage(alternate.catalog);
+  try {
+    if (alternate.local) {
+      let filePath = await storage.get().getLocalFilePath(
+        alternate.media,
+        alternate.mediaFile,
+        alternate.fileName,
+      );
+
+      try {
+        let stat = await fs.stat(filePath);
+
+        ctx.status = 200;
+        ctx.set("Cache-Control", "max-age=1314000,immutable");
+        ctx.type = alternate.mimetype;
+        ctx.length = stat.size;
+        ctx.body = createReadStream(filePath);
+      } catch (e) {
+        throw new ApiError(ErrorCode.NotFound, {
+          message: "Missing local file.",
+        });
+      }
+    } else {
+      let fileUrl = await storage.get().getFileUrl(
+        alternate.media,
+        alternate.mediaFile,
+        alternate.fileName,
+        alternate.mimetype,
+      );
+
+      ctx.status = 302;
+      ctx.set("Cache-Control", "max-age=1314000,immutable");
+      ctx.redirect(fileUrl);
+    }
+  } finally {
+    storage.release();
+  }
+}
+
 export const alternate = ensureAuthenticated(
   async (
     ctx: AppContext,
     userDb: UserScopedConnection,
     id: string,
     mediaFile: string,
-    alternateId: string,
+    encoding: string,
   ): Promise<void> => {
-    let [media] = await userDb.getMedia([id]);
+    let alternates = await userDb.getMediaAlternates(
+      id,
+      mediaFile,
+      AlternateFileType.Reencode,
+      encoding.replace(/-/, "/"),
+    );
 
-    if (!media) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Media does not exist.",
-      });
-    }
-
-    let alternate = await userDb.getMediaAlternate(id, mediaFile, alternateId);
-
-    if (!alternate) {
+    if (alternates.length == 0) {
       throw new ApiError(ErrorCode.NotFound, {
         message: "Alternate file does not exist.",
       });
     }
 
-    let storage = await ctx.storage.getStorage(media.catalog);
-    try {
-      if (alternate.local) {
-        let filePath = await storage.get().getLocalFilePath(
-          id,
-          mediaFile,
-          alternate.fileName,
-        );
+    return serveAlternate(ctx, userDb, alternates[0]);
+  },
+  false,
+);
 
-        try {
-          let stat = await fs.stat(filePath);
+export const thumbnail = ensureAuthenticated(
+  async (
+    ctx: AppContext,
+    userDb: UserScopedConnection,
+    id: string,
+    mediaFile: string,
+    encoding: string,
+    size: number,
+  ): Promise<void> => {
+    let alternates = await userDb.getMediaAlternates(
+      id,
+      mediaFile,
+      AlternateFileType.Thumbnail,
+      encoding.replace(/-/, "/"),
+    );
 
-          ctx.status = 200;
-          ctx.set("Cache-Control", "max-age=1314000,immutable");
-          ctx.type = alternate.mimetype;
-          ctx.length = stat.size;
-          ctx.body = createReadStream(filePath);
-        } catch (e) {
-          throw new ApiError(ErrorCode.NotFound, {
-            message: "Missing local file.",
-          });
-        }
-      } else {
-        let fileUrl = await storage.get().getFileUrl(
-          id,
-          mediaFile,
-          alternate.fileName,
-          alternate.mimetype,
-        );
+    let altSize = (alt: AlternateInfo): number => Math.max(alt.width, alt.height);
 
-        ctx.status = 302;
-        ctx.set("Cache-Control", "max-age=1314000,immutable");
-        ctx.redirect(fileUrl);
+    let chosen: AlternateInfo | null = null;
+    for (let alternate of alternates) {
+      if (!chosen || Math.abs(size - altSize(chosen)) > Math.abs(size - altSize(alternate))) {
+        chosen = alternate;
       }
-    } finally {
-      storage.release();
     }
+
+    if (!chosen) {
+      throw new ApiError(ErrorCode.NotFound, {
+        message: "Thumbnail does not exist.",
+      });
+    }
+
+    return serveAlternate(ctx, userDb, chosen);
   },
   false,
 );
@@ -393,33 +459,21 @@ export const original = ensureAuthenticated(
     id: string,
     mediaFile: string,
   ): Promise<void> => {
-    let [media] = await userDb.getMedia([id]);
+    let file = await userDb.getMediaFile(id);
 
-    if (!media) {
+    if (!file || file.id != mediaFile) {
       throw new ApiError(ErrorCode.NotFound, {
         message: "Media does not exist.",
       });
     }
 
-    if (!media.file) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Media not yet processed.",
-      });
-    }
-
-    if (mediaFile != media.file.id) {
-      ctx.status = 301;
-      ctx.redirect(`${APP_PATHS.root}media/original/${id}/${media.file.id}`);
-      return;
-    }
-
-    let storage = await ctx.storage.getStorage(media.catalog);
+    let storage = await ctx.storage.getStorage(file.catalog);
     try {
       let originalUrl = await storage.get().getFileUrl(
-        media.id,
-        media.file.id,
-        media.file.fileName,
-        media.file.mimetype,
+        file.media,
+        file.id,
+        file.fileName,
+        file.mimetype,
       );
 
       ctx.status = 302;

@@ -140,6 +140,8 @@ interface LogMethod {
   (message: string): void;
 }
 
+export type TimeLogger = (name: string) => void;
+
 export interface Logger {
   readonly name: string;
   readonly config: LoggerConfig;
@@ -148,6 +150,19 @@ export interface Logger {
   withBindings: (bindings: Bindings) => Logger;
   child: (name: string) => Logger;
   catch: (promise: Promise<unknown>) => void;
+  time: <T>(
+    operation: (timeLogger: TimeLogger) => Promise<T>,
+    level: Exclude<Level, Level.Silent | Level.All>,
+    message: string,
+    bindings?: Bindings,
+  ) => Promise<T>;
+  timeLonger: <T>(
+    operation: (timeLogger: TimeLogger) => Promise<T>,
+    level: Exclude<Level, Level.Silent | Level.All>,
+    limit: number,
+    message: string,
+    bindings?: Bindings,
+  ) => Promise<T>;
 
   fatal: LogMethod;
   error: LogMethod;
@@ -224,7 +239,7 @@ class RootLoggerConfigImpl extends BaseLoggerConfigImpl {
   }
 
   public get effectiveLevel(): Level {
-    return this.level ?? Level.Silent;
+    return this.level ?? Level.Error;
   }
 
   public get effectiveTransport(): Transport | null {
@@ -328,6 +343,53 @@ abstract class BaseLoggerImpl implements Logger {
   public info: LogMethod = buildLogMethod(Level.Info);
   public debug: LogMethod = buildLogMethod(Level.Debug);
   public trace: LogMethod = buildLogMethod(Level.Trace);
+
+  public time<T>(
+    operation: (timeLogger: TimeLogger) => Promise<T>,
+    level: Exclude<Level, Level.Silent | Level.All>,
+    message: string,
+    bindings: Bindings = {},
+  ): Promise<T> {
+    return this.timeLonger(operation, level, 0, message, bindings);
+  }
+
+  public async timeLonger<T>(
+    operation: (timeLogger: TimeLogger) => Promise<T>,
+    level: Exclude<Level, Level.Silent | Level.All>,
+    limit: number,
+    message: string,
+    bindings: Bindings = {},
+  ): Promise<T> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    let { performance } = require("perf_hooks");
+    let start = performance.now();
+    let last = start;
+    let marks: string[] = [];
+    let timeLogger = (name: string): void => {
+      let now = performance.now();
+      marks.push(`${name}: ${Math.ceil(now - last)}`);
+      last = now;
+    };
+
+    try {
+      return await operation(timeLogger);
+    } finally {
+      let now = performance.now();
+      if (start < last) {
+        marks.push(`final: ${Math.ceil(now - last)}`);
+      }
+
+      let duration = performance.now() - start;
+      if (duration > limit) {
+        this.log(level, {
+          ...bindings,
+          msg: message,
+          marks,
+          duration: Math.ceil(duration),
+        });
+      }
+    }
+  }
 }
 
 class LoggerImpl extends BaseLoggerImpl {

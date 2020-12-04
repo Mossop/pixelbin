@@ -1,8 +1,10 @@
 import { emptyMetadata, RelationType } from "../../model";
-import { expect, reordered, sortedIds } from "../../test-helpers";
-import { parseDateTime, stringSorted } from "../../utils";
+import { expect, sortedIds } from "../../test-helpers";
+import { parseDateTime } from "../../utils";
+import type { UserScopedConnection } from "./connection";
+import type { LinkedAlbum, LinkedPerson, LinkedTag } from "./joins";
+import type { MediaView } from "./mediaview";
 import { buildTestDB, connection, insertTestData } from "./test-helpers";
-import type { Tables } from "./types";
 
 buildTestDB();
 
@@ -10,20 +12,35 @@ beforeEach((): Promise<void> => {
   return insertTestData();
 });
 
-function extracted(
-  media: Pick<Tables.MediaView, "id" | "catalog" | "tags" | "albums" | "people"> | null,
-): unknown {
-  if (!media) {
-    return null;
-  }
+function sorted(items: string[]): string[] {
+  let result = [...items];
+  result.sort();
+  return result;
+}
 
-  return {
-    id: media.id,
-    catalog: media.catalog,
-    tags: stringSorted(media.tags, "tag"),
-    albums: stringSorted(media.albums, "album"),
-    people: stringSorted(media.people, "person"),
-  };
+function tagList(tags: LinkedTag[]): string[] {
+  return sorted(tags.map((tag: LinkedTag): string => tag.tag.id));
+}
+
+function albumList(albums: LinkedAlbum[]): string[] {
+  return albums.map((album: LinkedAlbum): string => album.album.id);
+}
+
+function personList(people: LinkedPerson[]): unknown[] {
+  return people.map((person: LinkedPerson): unknown => ({
+    person: person.person.id,
+    location: person.location,
+  }));
+}
+
+async function mediaRelations(db: UserScopedConnection, media: string[]): Promise<unknown> {
+  return Promise.all(media.map(async (item: string): Promise<unknown> => {
+    return {
+      tags: tagList(await db.getMediaTags(item)),
+      albums: albumList(await db.getMediaAlbums(item)),
+      people: personList(await db.getMediaPeople(item)),
+    };
+  }));
 }
 
 test("Album media tests", async (): Promise<void> => {
@@ -33,7 +50,7 @@ test("Album media tests", async (): Promise<void> => {
 
   let mediaInAlbum = async (album: string): Promise<string[]> => {
     let media = await user1Db.listMediaInAlbum(album);
-    return media.map((item: Tables.MediaView): string => item.id);
+    return media.map((item: MediaView): string => item.id);
   };
 
   let media1 = await user1Db.createMedia("c1", {
@@ -86,10 +103,6 @@ test("Album media tests", async (): Promise<void> => {
   ], [
     "a1",
   ]);
-
-  media1.albums.push({ album: "a1" });
-  media2.albums.push({ album: "a1" });
-  media3.albums.push({ album: "a1" });
 
   expect(added).toEqual([
     media1,
@@ -504,54 +517,52 @@ test("Album media tests", async (): Promise<void> => {
   await expect(user2Db.listMediaInAlbum("a7")).rejects.toThrow("Unknown Album.");
 
   let media = await user1Db.listMediaInAlbum("a1", true);
-  expect(media.map(extracted)).toEqual([{
-    id: media2.id,
-    catalog: "c1",
-
-    tags: [],
-    people: [],
-    albums: [{
-      album: "a3",
-    }],
-  }, {
-    id: media3.id,
-    catalog: "c1",
-
-    tags: [],
-    people: [],
-    albums: [{
-      album: "a1",
-    }],
-  }]);
+  expect(media).toInclude([
+    media2,
+    media3,
+  ]);
 
   media = await user1Db.listMediaInCatalog("c1");
   expect(media).toHaveLength(3);
 
-  expect(media.map(extracted)).toEqual([{
-    id: media2.id,
-    catalog: "c1",
+  expect(media).toInclude([
+    media2,
+    media1,
+    media3,
+  ]);
 
-    tags: [],
-    people: [],
-    albums: [{
-      album: "a3",
-    }],
-  }, {
-    id: media1.id,
-    catalog: "c1",
-
+  let relations = await mediaRelations(user1Db, [
+    media1.id,
+    media2.id,
+    media3.id,
+    media4.id,
+    media5.id,
+    media6.id,
+  ]);
+  expect(relations).toEqual([{
     tags: [],
     people: [],
     albums: [],
   }, {
-    id: media3.id,
-    catalog: "c1",
-
     tags: [],
     people: [],
-    albums: [{
-      album: "a1",
-    }],
+    albums: ["a3"],
+  }, {
+    tags: [],
+    people: [],
+    albums: ["a1"],
+  }, {
+    tags: [],
+    people: [],
+    albums: ["a7"],
+  }, {
+    tags: [],
+    people: [],
+    albums: ["a6", "a7"],
+  }, {
+    tags: [],
+    people: [],
+    albums: ["a7"],
   }]);
 });
 
@@ -578,16 +589,14 @@ test("Person location tests", async (): Promise<void> => {
     "p2",
   ]);
 
-  let media = await user1Db.getMedia([
+  let relations = await mediaRelations(user1Db, [
     media1.id,
     media2.id,
     media3.id,
     media4.id,
   ]);
 
-  expect(media.map(extracted)).toEqual([{
-    id: media1.id,
-    catalog: "c1",
+  expect(relations).toEqual([{
     albums: [],
     tags: [],
     people: [{
@@ -595,8 +604,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -604,8 +611,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media3.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -613,8 +618,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media4.id,
-    catalog: "c3",
     albums: [],
     tags: [],
     people: [],
@@ -631,16 +634,14 @@ test("Person location tests", async (): Promise<void> => {
     },
   }]);
 
-  media = await user1Db.getMedia([
+  relations = await mediaRelations(user1Db, [
     media1.id,
     media2.id,
     media3.id,
     media4.id,
   ]);
 
-  expect(media.map(extracted)).toEqual([{
-    id: media1.id,
-    catalog: "c1",
+  expect(relations).toEqual([{
     albums: [],
     tags: [],
     people: [{
@@ -656,8 +657,6 @@ test("Person location tests", async (): Promise<void> => {
       },
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -665,8 +664,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media3.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -674,8 +671,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media4.id,
-    catalog: "c3",
     albums: [],
     tags: [],
     people: [],
@@ -696,16 +691,14 @@ test("Person location tests", async (): Promise<void> => {
     },
   }]);
 
-  media = await user1Db.getMedia([
+  relations = await mediaRelations(user1Db, [
     media1.id,
     media2.id,
     media3.id,
     media4.id,
   ]);
 
-  expect(media.map(extracted)).toEqual([{
-    id: media1.id,
-    catalog: "c1",
+  expect(relations).toEqual([{
     albums: [],
     tags: [],
     people: [{
@@ -716,8 +709,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -733,8 +724,6 @@ test("Person location tests", async (): Promise<void> => {
       },
     }],
   }, {
-    id: media3.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -742,8 +731,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media4.id,
-    catalog: "c3",
     albums: [],
     tags: [],
     people: [],
@@ -834,16 +821,14 @@ test("Person location tests", async (): Promise<void> => {
     location: null,
   }])).rejects.toThrow();
 
-  media = await user1Db.getMedia([
+  relations = await mediaRelations(user1Db, [
     media1.id,
     media2.id,
     media3.id,
     media4.id,
   ]);
 
-  expect(media.map(extracted)).toEqual([{
-    id: media1.id,
-    catalog: "c1",
+  expect(relations).toEqual([{
     albums: [],
     tags: [],
     people: [{
@@ -854,8 +839,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -871,8 +854,6 @@ test("Person location tests", async (): Promise<void> => {
       },
     }],
   }, {
-    id: media3.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -880,8 +861,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media4.id,
-    catalog: "c3",
     albums: [],
     tags: [],
     people: [],
@@ -902,16 +881,14 @@ test("Person location tests", async (): Promise<void> => {
     location: null,
   }]);
 
-  media = await user1Db.getMedia([
+  relations = await mediaRelations(user1Db, [
     media1.id,
     media2.id,
     media3.id,
     media4.id,
   ]);
 
-  expect(reordered(media.map(extracted))).toEqual(reordered([{
-    id: media1.id,
-    catalog: "c1",
+  expect(relations).toEqual([{
     albums: [],
     tags: [],
     people: [{
@@ -927,8 +904,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -944,8 +919,6 @@ test("Person location tests", async (): Promise<void> => {
       },
     }],
   }, {
-    id: media3.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -953,12 +926,10 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media4.id,
-    catalog: "c3",
     albums: [],
     tags: [],
     people: [],
-  }]));
+  }]);
 
   await user1Db.setPersonLocations([{
     media: media1.id,
@@ -970,16 +941,14 @@ test("Person location tests", async (): Promise<void> => {
     location: null,
   }]);
 
-  media = await user1Db.getMedia([
+  relations = await mediaRelations(user1Db, [
     media1.id,
     media2.id,
     media3.id,
     media4.id,
   ]);
 
-  expect(media.map(extracted)).toEqual([{
-    id: media1.id,
-    catalog: "c1",
+  expect(relations).toEqual([{
     albums: [],
     tags: [],
     people: [{
@@ -990,8 +959,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media2.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -1002,8 +969,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media3.id,
-    catalog: "c1",
     albums: [],
     tags: [],
     people: [{
@@ -1011,8 +976,6 @@ test("Person location tests", async (): Promise<void> => {
       location: null,
     }],
   }, {
-    id: media4.id,
-    catalog: "c3",
     albums: [],
     tags: [],
     people: [],

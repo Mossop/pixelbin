@@ -1,7 +1,6 @@
 import type { AlterTableBuilder, default as Knex, Migration } from "knex";
 
 import { AlternateFileType } from "../../../model";
-import { ref } from "../types";
 import { buildMediaView } from "./base";
 
 export const takenZone: Migration = {
@@ -27,6 +26,10 @@ export const takenZone: Migration = {
       // Not real tables.
       MediaView = "MediaView",
       UserCatalog = "UserCatalog",
+    }
+
+    function ref(table: string, column: string): string {
+      return `${table}.${column}`;
     }
 
     // Fixed for this migration.
@@ -206,6 +209,13 @@ export const alternates: Migration = {
       // Not real tables.
       MediaView = "MediaView",
       UserCatalog = "UserCatalog",
+    }
+
+    function ref(table: string, column?: string): string {
+      if (!column) {
+        column = "*";
+      }
+      return `${table}.${column}`;
     }
 
     // Fixed for this migration.
