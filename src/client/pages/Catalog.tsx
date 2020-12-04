@@ -6,63 +6,68 @@ import type { Search } from "../../model";
 import { Join } from "../../model";
 import type { Catalog, Reference } from "../api/highlevel";
 import type { MediaState } from "../api/types";
-import Content from "../components/Content";
-import MediaGallery from "../components/MediaGallery";
-import Page from "../components/Page";
+import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
 import AlbumAddIcon from "../icons/AlbumAddIcon";
 import CatalogEditIcon from "../icons/CatalogEditIcon";
 import SearchIcon from "../icons/SearchIcon";
-import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import type { StoreState } from "../store/types";
 import type { CatalogMediaLookup } from "../utils/medialookup";
-import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
+import { MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
 
 export interface CatalogPageProps {
   readonly catalog: Reference<Catalog>;
+  readonly selectedMedia?: string;
 }
 
-export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageProps): ReactResult {
+export default function CatalogPage({
+  catalog,
+  selectedMedia,
+}: CatalogPageProps & AuthenticatedPageProps): ReactResult {
   let { l10n } = useLocalization();
   let actions = useActions();
-
-  let catalog = useSelector((store: StoreState) => props.catalog.deref(store.serverState));
 
   let onAlbumCreate = useCallback(
     () => actions.showDialog({
       type: DialogType.AlbumCreate,
-      parent: props.catalog,
+      parent: catalog,
     }),
-    [props, actions],
+    [catalog, actions],
   );
 
   let lookup = useMemo<CatalogMediaLookup>(() => ({
     type: MediaLookupType.Catalog,
-    catalog: props.catalog,
-  }), [props.catalog]);
+    catalog: catalog,
+  }), [catalog]);
 
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
-        type: PageType.Media,
-        media: media.id,
-        lookup,
+        type: PageType.Catalog,
+        catalog,
+        selectedMedia: media.id,
       },
     });
-  }, [actions, lookup]);
+  }, [actions, catalog]);
 
-  let media = useMediaLookup(lookup);
+  let onCloseMedia = useCallback(() => {
+    actions.navigate({
+      page: {
+        type: PageType.Catalog,
+        catalog,
+      },
+    });
+  }, [actions, catalog]);
 
   let onCatalogEdit = useCallback(
     () => actions.showDialog({
       type: DialogType.CatalogEdit,
-      catalog: props.catalog,
+      catalog: catalog,
     }),
-    [props, actions],
+    [catalog, actions],
   );
 
   let onCatalogSearch = useCallback(() => {
@@ -75,14 +80,17 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
 
     actions.showDialog({
       type: DialogType.Search,
-      catalog: props.catalog,
+      catalog: catalog,
       query,
     });
-  }, [actions, props.catalog]);
+  }, [actions, catalog]);
 
-  return <Page
-    title={catalog.name}
-    selectedItem={props.catalog.id}
+  return <MediaListPage
+    selectedItem={catalog.id}
+    selectedMedia={selectedMedia}
+    lookup={lookup}
+    onMediaClick={onMediaClick}
+    onCloseMedia={onCloseMedia}
     pageOptions={
       [{
         id: "catalog-search",
@@ -101,9 +109,5 @@ export default function CatalogPage(props: CatalogPageProps & AuthenticatedPageP
         label: l10n.getString("banner-catalog-edit"),
       }]
     }
-  >
-    <Content>
-      <MediaGallery media={media} onClick={onMediaClick}/>
-    </Content>
-  </Page>;
+  />;
 }

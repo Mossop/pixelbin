@@ -7,16 +7,15 @@ import Rating from "@material-ui/lab/Rating/Rating";
 import clsx from "clsx";
 import React, { useCallback, useMemo } from "react";
 
-import type { ObjectModel } from "../../../model";
 import { RelationType, Join, Operator } from "../../../model";
 import { formatDateTime } from "../../../utils";
-import type { Reference, Album, Tag } from "../../api/highlevel";
+import type { Reference, Album, Tag, Person } from "../../api/highlevel";
 import type { MediaAlbumState, MediaPersonState, MediaState, MediaTagState } from "../../api/types";
-import UILink from "../../components/Link";
+import { PageType } from "../../pages/types";
 import { useSelector } from "../../store";
 import type { StoreState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
-import { PageType } from "../types";
+import UILink from "../Link";
 
 const FRACTION = /^(\d+)\/(\d+)$/;
 
@@ -154,27 +153,27 @@ function AlbumChip(props: { album: Reference<Album> }): ReactResult {
 
 interface PersonChipProps {
   state: MediaPersonState;
-  onHighlightRegion?: (region: ObjectModel.Location | null) => void;
+  onHighlightPerson?: (person: Reference<Person> | null) => void;
 }
 
 function PersonChip({
   state,
-  onHighlightRegion,
+  onHighlightPerson,
 }: PersonChipProps): ReactResult {
   let classes = useStyles();
   let person = useSelector(({ serverState }: StoreState) => state.person.deref(serverState));
 
   let onEnter = useCallback(() => {
-    if (onHighlightRegion) {
-      onHighlightRegion(state.location);
+    if (onHighlightPerson) {
+      onHighlightPerson(state.person);
     }
-  }, [onHighlightRegion, state]);
+  }, [onHighlightPerson, state]);
 
   let onLeave = useCallback(() => {
-    if (onHighlightRegion) {
-      onHighlightRegion(null);
+    if (onHighlightPerson) {
+      onHighlightPerson(null);
     }
-  }, [onHighlightRegion]);
+  }, [onHighlightPerson]);
 
   return <li
     id={`person-${person.id}`}
@@ -277,10 +276,10 @@ function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactRes
 
 export interface MediaInfoProps {
   media: MediaState;
-  onHighlightRegion: (region: ObjectModel.Location | null) => void;
+  onHighlightPerson: (person: Reference<Person> | null) => void;
 }
 
-export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps): ReactResult {
+export default function MediaInfo({ media, onHighlightPerson }: MediaInfoProps): ReactResult {
   let classes = useStyles();
 
   let format = useCallback(<T extends keyof MediaState>(
@@ -399,7 +398,7 @@ export default function MediaInfo({ media, onHighlightRegion }: MediaInfoProps):
             media.people.map((st: MediaPersonState) => <PersonChip
               key={st.person.id}
               state={st}
-              onHighlightRegion={onHighlightRegion}
+              onHighlightPerson={onHighlightPerson}
             />)
           }
         </ul>

@@ -1,16 +1,17 @@
-import type { Draft } from "immer";
 import { useEffect, useState } from "react";
 
 import type { Query } from "../../model";
 import { memoized } from "../../utils";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
-import type { Album, Catalog, Reference, SavedSearch } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { Catalog, SavedSearch, Album } from "../api/highlevel";
 import { getMedia } from "../api/media";
 import { searchMedia } from "../api/search";
 import type { MediaState, ServerState } from "../api/types";
 import { useSelector } from "../store";
 import type { StoreState } from "../store/types";
+import { mediaTitle } from "./metadata";
 
 export enum MediaLookupType {
   Single,
@@ -54,52 +55,86 @@ export type MediaLookup =
   SearchMediaLookup |
   SavedSearchMediaLookup;
 
-function isMedia(item: Draft<MediaState> | null): item is Draft<MediaState> {
-  return !!item;
-}
-
 export const lookupMedia = memoized(
   async function lookupMedia(
     serverState: ServerState,
     lookup: MediaLookup,
-  ): Promise<readonly MediaState[]> {
+  ): Promise<MediaResults | null> {
     switch (lookup.type) {
       case MediaLookupType.Album: {
-        return listAlbumMedia(lookup.album, lookup.recursive);
+        let album = Album.safeFromState(serverState, lookup.album.id);
+        if (!album) {
+          return null;
+        }
+
+        return {
+          title: album.name,
+          media: await listAlbumMedia(lookup.album, lookup.recursive),
+        };
       }
       case MediaLookupType.Catalog: {
-        return listCatalogMedia(lookup.catalog);
+        let catalog = Catalog.safeFromState(serverState, lookup.catalog.id);
+        if (!catalog) {
+          return null;
+        }
+
+        return {
+          title: catalog.name,
+          media: await listCatalogMedia(lookup.catalog),
+        };
       }
       case MediaLookupType.Single: {
-        let media = await getMedia([lookup.media]);
-        return media.filter(isMedia);
+        let [media] = await getMedia([lookup.media]);
+        if (!media) {
+          return null;
+        }
+
+        return {
+          title: mediaTitle(media),
+          media: [media],
+        };
       }
       case MediaLookupType.Search: {
-        return searchMedia(lookup.catalog, lookup.query);
+        return {
+          title: null,
+          media: await searchMedia(lookup.catalog, lookup.query),
+        };
       }
       case MediaLookupType.SavedSearch: {
-        let search = lookup.search.deref(serverState);
-        return searchMedia(search.catalog.ref(), search.query);
+        let search = SavedSearch.safeFromState(serverState, lookup.search.id);
+        if (!search) {
+          return null;
+        }
+
+        return {
+          title: search.name,
+          media: await searchMedia(search.catalog.ref(), search.query),
+        };
       }
     }
   },
 );
 
-export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | null {
-  let [list, setList] = useState<readonly MediaState[] | null>(null);
+export interface MediaResults {
+  readonly title: string | null;
+  readonly media: readonly MediaState[];
+}
+
+export function useMediaLookup(lookup: MediaLookup): MediaResults | null | undefined {
+  let [results, setResults] = useState<MediaResults | null | undefined>(undefined);
   let serverState = useSelector((state: StoreState) => state.serverState);
 
   useEffect(() => {
     let cancelled = false;
 
-    lookupMedia(serverState, lookup).then((media: readonly MediaState[]): void => {
+    lookupMedia(serverState, lookup).then((results: MediaResults | null): void => {
       if (!cancelled) {
-        setList(media);
+        setResults(results);
       }
     }).catch((e: unknown) => {
       if (!cancelled) {
         console.error(e);
-        setList([]);
+        setResults(null);
       }
     });
 
@@ -108,5 +143,5 @@ export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | nul
     };
   }, [lookup, serverState]);
 
-  return list;
+  return results;
 }

@@ -19,12 +19,12 @@ import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
 import type { Catalog, Reference } from "../../api/highlevel";
 import type { MediaState, ServerState } from "../../api/types";
 import Loading from "../../components/Loading";
-import { Preview } from "../../components/Media";
+import MediaPreview from "../../components/Media/MediaPreview";
 import { PageType } from "../../pages/types";
 import { useSelector } from "../../store";
 import { useActions } from "../../store/actions";
 import type { StoreState } from "../../store/types";
-import type { MediaLookup } from "../../utils/medialookup";
+import type { MediaLookup, MediaResults } from "../../utils/medialookup";
 import { MediaLookupType, lookupMedia } from "../../utils/medialookup";
 import type { ReactResult } from "../../utils/types";
 import CompoundQueryBox from "./CompoundQueryBox";
@@ -129,9 +129,9 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
   useEffect(() => {
     setSearching(true);
     let timeout = window.setTimeout(() => {
-      void lookupMedia(serverState, lookup).then((media: readonly MediaState[]) => {
+      void lookupMedia(serverState, lookup).then((results: MediaResults | null | undefined) => {
         setSearching(false);
-        setMedia(media);
+        setMedia(results?.media ?? []);
       });
     }, 500);
 
@@ -201,7 +201,7 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
           </Typography>
           <Box className={classes.previews}>
             {
-              media.map((item: MediaState) => <Preview
+              media.map((item: MediaState) => <MediaPreview
                 key={item.id}
                 media={item}
                 thumbnailSize={thumbnailSize}

@@ -1,10 +1,10 @@
 import React from "react";
 
-import { emptyMetadata, Method } from "../../model";
+import { emptyMetadata, Join } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils";
 import { Catalog } from "../api/highlevel";
-import MediaGallery from "../components/MediaGallery";
+import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
 import {
   expect,
@@ -12,23 +12,20 @@ import {
   render,
   mockStoreState,
   mockServerState,
-  expectChild,
-  click,
   resetDOM,
-  deferRequest,
 } from "../test-helpers";
 import { MediaLookupType } from "../utils/medialookup";
 import CatalogPage from "./Catalog";
 import { PageType } from "./types";
 
-jest.mock("../api/api");
-jest.mock("../components/MediaGallery", () => jest.fn(() => null));
+jest.mock("../components/Media/MediaListPage");
 
 beforeEach(resetDOM);
 
-const mockedMediaGallery = mockedFunction(MediaGallery);
+const mockedMediaListPage = mockedFunction(MediaListPage);
+mockedMediaListPage.mockReturnValue(null);
 
-test("catalog", async (): Promise<void> => {
+test("catalog page", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog",
@@ -41,30 +38,110 @@ test("catalog", async (): Promise<void> => {
 
   let catalogRef = Catalog.ref("catalog");
 
-  let { call, resolve } = deferRequest<Method.CatalogList>();
-
-  let { container, rerender } = render(
+  let { rerender } = render(
     <CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>,
     store,
   );
 
-  expect(document.title).toBe("Catalog");
+  expect(mockedMediaListPage).toHaveBeenCalled();
 
-  await expect(call).resolves.toEqual([
-    Method.CatalogList,
-    {
-      id: "catalog",
-    },
-  ]);
+  let pageProps = lastCallArgs(mockedMediaListPage)[0];
 
-  let buttons = expectChild(container, "#banner-buttons");
+  expect(pageProps.lookup).toEqual({
+    type: MediaLookupType.Catalog,
+    catalog: expect.toBeRef("catalog"),
+  });
+  expect(pageProps.selectedMedia).toBeUndefined();
+  expect(pageProps.selectedItem).toBe("catalog");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
-  let button = expectChild(buttons, "#pageoption-button-album-create");
-  click(button);
+  let dt = now();
+  let media = {
+    ...emptyMetadata,
+    catalog: Catalog.ref("catalog"),
+    file: null,
+    id: "media1",
+    created: dt,
+    updated: dt,
+    albums: [],
+    tags: [],
+    people: [],
+  };
+
+  pageProps.onMediaClick(media);
+
   expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "navigate",
+    payload: [{
+      page: {
+        type: PageType.Catalog,
+        catalog: expect.toBeRef("catalog"),
+        selectedMedia: "media1",
+      },
+    }],
+  });
+
+  store.dispatch.mockClear();
+
+  rerender(<CatalogPage
+    user={store.state.serverState.user!}
+    catalog={catalogRef}
+    selectedMedia="media1"
+  />);
+
+  pageProps = lastCallArgs(mockedMediaListPage)[0];
+
+  expect(pageProps.lookup).toEqual({
+    type: MediaLookupType.Catalog,
+    catalog: expect.toBeRef("catalog"),
+  });
+  expect(pageProps.selectedMedia).toBe("media1");
+  expect(pageProps.selectedItem).toBe("catalog");
+
+  expect(store.dispatch).not.toHaveBeenCalled();
+
+  pageProps.onCloseMedia();
+
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "navigate",
+    payload: [{
+      page: {
+        type: PageType.Catalog,
+        catalog: expect.toBeRef("catalog"),
+      },
+    }],
+  });
+  store.dispatch.mockClear();
+
+  expect(pageProps.pageOptions).toHaveLength(3);
+  let pageOptions = pageProps.pageOptions!;
+  expect(pageOptions[0].label).toBe("banner-search");
+  expect(pageOptions[1].label).toBe("banner-album-new");
+  expect(pageOptions[2].label).toBe("banner-catalog-edit");
+
+  pageOptions[0].onClick();
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "showDialog",
+    payload: [{
+      type: DialogType.Search,
+      catalog: expect.toBeRef("catalog"),
+      query: {
+        invert: false,
+        type: "compound",
+        join: Join.And,
+        queries: [],
+      },
+    }],
+  });
+  store.dispatch.mockClear();
+
+  pageOptions[1].onClick();
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
     type: "showDialog",
     payload: [{
       type: DialogType.AlbumCreate,
@@ -73,138 +150,14 @@ test("catalog", async (): Promise<void> => {
   });
   store.dispatch.mockClear();
 
-  expect(mockedMediaGallery).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media: null,
-    onClick: expect.anything(),
-  });
-  mockedMediaGallery.mockClear();
-
-  let dt = now();
-  let media = [{
-    ...emptyMetadata,
-    catalog: "catalog",
-    file: null,
-    id: "media1",
-    created: dt,
-    updated: dt,
-    albums: [],
-    tags: [],
-    people: [],
-  }, {
-    ...emptyMetadata,
-    catalog: "catalog",
-    file: null,
-    id: "media2",
-    created: dt,
-    updated: dt,
-    albums: [],
-    tags: [],
-    people: [],
-  }, {
-    ...emptyMetadata,
-    catalog: "catalog",
-    file: null,
-    id: "media3",
-    created: dt,
-    updated: dt,
-    albums: [],
-    tags: [],
-    people: [],
-  }];
-
-  await resolve(media);
-
-  expect(mockedMediaGallery).toHaveBeenCalled();
-  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media: [{
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media1",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }, {
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media2",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }, {
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media3",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }],
-    onClick: expect.anything(),
-  });
-  mockedMediaGallery.mockClear();
-
-  let { call: call2, resolve: resolve2 } = deferRequest<Method.CatalogList>();
-  let wasCalled = false;
-  void call2.then(() => wasCalled = true);
-
-  rerender(<CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>);
-  expect(store.dispatch).not.toHaveBeenCalled();
-  expect(wasCalled).toBeFalsy();
-
-  catalogRef = Catalog.ref("catalog2");
-  rerender(<CatalogPage user={store.state.serverState.user!} catalog={catalogRef}/>);
-
-  expect(store.dispatch).not.toHaveBeenCalled();
-
-  await expect(call2).resolves.toEqual([
-    Method.CatalogList,
-    {
-      id: "catalog2",
-    },
-  ]);
-
-  media = [media[0]];
-  await resolve2(media);
-
-  expect(mockedMediaGallery).toHaveBeenCalled();
-  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media: [{
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media1",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }],
-    onClick: expect.anything(),
-  });
-  // @ts-ignore
-  lastCallArgs(mockedMediaGallery)[0].onClick({ id: "foo" });
-
+  pageOptions[2].onClick();
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
+    type: "showDialog",
     payload: [{
-      page: {
-        type: PageType.Media,
-        media: "foo",
-        lookup: {
-          type: MediaLookupType.Catalog,
-          catalog: expect.toBeRef("catalog2"),
-        },
-      },
+      type: DialogType.CatalogEdit,
+      catalog: expect.toBeRef("catalog"),
     }],
   });
+  store.dispatch.mockClear();
 });

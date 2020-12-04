@@ -5,15 +5,13 @@ import React, { useCallback, useMemo } from "react";
 import type { Query } from "../../model";
 import type { Catalog, Reference } from "../api/highlevel";
 import type { MediaState } from "../api/types";
-import Content from "../components/Content";
-import MediaGallery from "../components/MediaGallery";
-import Page from "../components/Page";
+import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
 import SearchEditIcon from "../icons/SearchEditIcon";
 import SearchSaveIcon from "../icons/SearchSaveIcon";
 import { useActions } from "../store/actions";
 import type { SearchMediaLookup } from "../utils/medialookup";
-import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
+import { MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
@@ -21,11 +19,13 @@ import { PageType } from "./types";
 export interface SearchPageProps {
   catalog: Reference<Catalog>;
   query: Query;
+  selectedMedia?: string;
 }
 
 export default function SearchPage({
   query,
   catalog,
+  selectedMedia,
 }: SearchPageProps & AuthenticatedPageProps): ReactResult {
   let { l10n } = useLocalization();
   let actions = useActions();
@@ -39,14 +39,23 @@ export default function SearchPage({
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
-        type: PageType.Media,
-        media: media.id,
-        lookup,
+        type: PageType.Search,
+        query,
+        catalog,
+        selectedMedia: media.id,
       },
     });
-  }, [actions, lookup]);
+  }, [actions, query, catalog]);
 
-  let media = useMediaLookup(lookup);
+  let onCloseMedia = useCallback((): void => {
+    actions.navigate({
+      page: {
+        type: PageType.Search,
+        query,
+        catalog,
+      },
+    });
+  }, [actions, query, catalog]);
 
   let onEditSearch = useCallback(() => {
     // @ts-ignore
@@ -74,8 +83,11 @@ export default function SearchPage({
     });
   }, [actions, catalog, query]);
 
-  return <Page
-    title={l10n.getString("search-page-title")}
+  return <MediaListPage
+    lookup={lookup}
+    selectedMedia={selectedMedia}
+    onMediaClick={onMediaClick}
+    onCloseMedia={onCloseMedia}
     pageOptions={
       [{
         id: "edit-search",
@@ -89,9 +101,5 @@ export default function SearchPage({
         label: l10n.getString("banner-save-search"),
       }]
     }
-  >
-    <Content>
-      <MediaGallery media={media} onClick={onMediaClick}/>
-    </Content>
-  </Page>;
+  />;
 }

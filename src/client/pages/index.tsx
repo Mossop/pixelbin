@@ -12,7 +12,6 @@ import { PageType } from "./types";
 const Album = lazy(() => import(/* webpackChunkName: "AlbumPage" */ "./Album"));
 const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./Catalog"));
 const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./User"));
-const Media = lazy(() => import(/* webpackChunkName: "MediaPage" */ "./Media"));
 const Search = lazy(() => import(/* webpackChunkName: "SearchPage" */ "./Search"));
 const SavedSearch = lazy(() => import(/* webpackChunkName: "SavedSearch" */ "./SavedSearch"));
 
@@ -32,9 +31,6 @@ export default function PageDisplay(): ReactResult {
       }
       case PageType.Album: {
         return <Album user={user} {...page}/>;
-      }
-      case PageType.Media: {
-        return <Media user={user} {...page}/>;
       }
       case PageType.Search: {
         return <Search user={user} {...page}/>;

@@ -10,7 +10,6 @@ import type { StoreType, UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import * as history from "./history";
 import type { HistoryState } from "./history";
-import { MediaLookupType } from "./medialookup";
 
 function re(pattern: string): RegExp {
   return pathToRegexp(pattern, undefined, {
@@ -208,23 +207,6 @@ const pathMap: PathMap[] = [
   ],
 
   [
-    re("/media/:media"),
-    (
-      serverState: ServerState,
-      historyState: HistoryState,
-      media: string,
-    ): UIState => {
-      return {
-        page: {
-          type: PageType.Media,
-          media,
-          lookup: null,
-        },
-      };
-    },
-  ],
-
-  [
     re("/catalog/:catalog/media/:media"),
     (
       serverState: ServerState,
@@ -239,12 +221,9 @@ const pathMap: PathMap[] = [
 
       return {
         page: {
-          type: PageType.Media,
-          media: mediaId,
-          lookup: {
-            type: MediaLookupType.Catalog,
-            catalog: catalog.ref(),
-          },
+          type: PageType.Catalog,
+          catalog: catalog.ref(),
+          selectedMedia: mediaId,
         },
       };
     },
@@ -265,13 +244,9 @@ const pathMap: PathMap[] = [
 
       return {
         page: {
-          type: PageType.Media,
-          media: mediaId,
-          lookup: {
-            type: MediaLookupType.Album,
-            album: album.ref(),
-            recursive: true,
-          },
+          type: PageType.Album,
+          album: album.ref(),
+          selectedMedia: mediaId,
         },
       };
     },
@@ -292,12 +267,9 @@ const pathMap: PathMap[] = [
 
       return {
         page: {
-          type: PageType.Media,
-          media: mediaId,
-          lookup: {
-            type: MediaLookupType.SavedSearch,
-            search: search.ref(),
-          },
+          type: PageType.SavedSearch,
+          search: search.ref(),
+          selectedMedia: mediaId,
         },
       };
     },
@@ -349,39 +321,36 @@ export function fromUIState(uiState: UIState): HistoryState {
       return history.buildState("/");
     }
     case PageType.SavedSearch: {
-      return history.buildState(`/search/${uiState.page.search.id}`);
+      let path = `/search/${uiState.page.search.id}`;
+      if (uiState.page.selectedMedia) {
+        path += `/media/${uiState.page.selectedMedia}`;
+      }
+      return history.buildState(path);
     }
     case PageType.User: {
       return history.buildState("/user");
     }
     case PageType.Catalog: {
-      return history.buildState(`/catalog/${uiState.page.catalog.id}`);
+      let path = `/catalog/${uiState.page.catalog.id}`;
+      if (uiState.page.selectedMedia) {
+        path += `/media/${uiState.page.selectedMedia}`;
+      }
+      return history.buildState(path);
     }
     case PageType.Album: {
-      return history.buildState(`/album/${uiState.page.album.id}`);
-    }
-    case PageType.Media: {
-      switch (uiState.page.lookup?.type) {
-        case MediaLookupType.Album:
-          return history.buildState(
-            `/album/${uiState.page.lookup.album.id}/media/${uiState.page.media}`,
-          );
-        case MediaLookupType.Catalog:
-          return history.buildState(
-            `/catalog/${uiState.page.lookup.catalog.id}/media/${uiState.page.media}`,
-          );
-        case MediaLookupType.SavedSearch:
-          return history.buildState(
-            `/search/${uiState.page.lookup.search.id}/media/${uiState.page.media}`,
-          );
-        default:
-          return history.buildState(`/media/${uiState.page.media}`);
+      let path = `/album/${uiState.page.album.id}`;
+      if (uiState.page.selectedMedia) {
+        path += `/media/${uiState.page.selectedMedia}`;
       }
+      return history.buildState(path);
     }
     case PageType.Search: {
-      return history.buildState(`/catalog/${uiState.page.catalog.id}/search`);
+      let path = `/catalog/${uiState.page.catalog.id}/search`;
+      if (uiState.page.selectedMedia) {
+        path += `/media/${uiState.page.selectedMedia}`;
+      }
+      return history.buildState(path);
     }
-
     case PageType.NotFound: {
       return uiState.page.history;
     }

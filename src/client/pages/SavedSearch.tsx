@@ -4,24 +4,24 @@ import React, { useCallback, useMemo } from "react";
 import type { Reference, SavedSearch } from "../api/highlevel";
 import { useReference } from "../api/highlevel";
 import type { MediaState } from "../api/types";
-import Content from "../components/Content";
-import MediaGallery from "../components/MediaGallery";
-import Page from "../components/Page";
+import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
 import SavedSearchDeleteIcon from "../icons/SavedSearchDeleteIcon";
 import SavedSearchEditIcon from "../icons/SavedSearchEditIcon";
 import { useActions } from "../store/actions";
 import type { SavedSearchMediaLookup } from "../utils/medialookup";
-import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
+import { MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import { PageType } from "./types";
 
 export interface SavedSearchPageProps {
   search: Reference<SavedSearch>;
+  selectedMedia?: string;
 }
 
 export default function SavedSearchPage({
   search,
+  selectedMedia,
 }: SavedSearchPageProps): ReactResult {
   let actions = useActions();
   let { l10n } = useLocalization();
@@ -52,18 +52,28 @@ export default function SavedSearchPage({
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
-        type: PageType.Media,
-        media: media.id,
-        lookup,
+        type: PageType.SavedSearch,
+        search,
+        selectedMedia: media.id,
       },
     });
-  }, [actions, lookup]);
+  }, [actions, search]);
 
-  let media = useMediaLookup(lookup);
+  let onCloseMedia = useCallback((): void => {
+    actions.navigate({
+      page: {
+        type: PageType.SavedSearch,
+        search,
+      },
+    });
+  }, [actions, search]);
 
-  return <Page
-    title={savedSearch.name}
+  return <MediaListPage
+    lookup={lookup}
     selectedItem={savedSearch.id}
+    selectedMedia={selectedMedia}
+    onMediaClick={onMediaClick}
+    onCloseMedia={onCloseMedia}
     pageOptions={
       [{
         id: "saved-search-edit",
@@ -77,9 +87,5 @@ export default function SavedSearchPage({
         label: l10n.getString("banner-saved-search-delete"),
       }]
     }
-  >
-    <Content>
-      <MediaGallery media={media} onClick={onMediaClick}/>
-    </Content>
-  </Page>;
+  />;
 }

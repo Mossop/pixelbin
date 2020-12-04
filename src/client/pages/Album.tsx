@@ -6,9 +6,7 @@ import type { Search } from "../../model";
 import { Join, Operator, RelationType } from "../../model";
 import type { Album, Reference } from "../api/highlevel";
 import type { MediaState } from "../api/types";
-import Content from "../components/Content";
-import MediaGallery from "../components/MediaGallery";
-import Page from "../components/Page";
+import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
 import AlbumAddIcon from "../icons/AlbumAddIcon";
 import AlbumDeleteIcon from "../icons/AlbumDeleteIcon";
@@ -18,61 +16,72 @@ import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
 import type { AlbumMediaLookup } from "../utils/medialookup";
-import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
+import { MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
 
 export interface AlbumPageProps {
   readonly album: Reference<Album>;
+  readonly selectedMedia?: string;
 }
 
-export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps): ReactResult {
+export default function AlbumPage({
+  album: albumRef,
+  selectedMedia,
+}: AlbumPageProps & AuthenticatedPageProps): ReactResult {
   let { l10n } = useLocalization();
   let actions = useActions();
-  let album = useSelector((state: StoreState) => props.album.deref(state.serverState));
+  let album = useSelector((state: StoreState) => albumRef.deref(state.serverState));
 
   let onAlbumEdit = useCallback(
     () => actions.showDialog({
       type: DialogType.AlbumEdit,
-      album: props.album,
+      album: albumRef,
     }),
-    [actions, props.album],
+    [actions, albumRef],
   );
 
   let onAlbumCreate = useCallback(
     () => actions.showDialog({
       type: DialogType.AlbumCreate,
-      parent: props.album,
+      parent: albumRef,
     }),
-    [props.album, actions],
+    [albumRef, actions],
   );
 
   let onAlbumDelete = useCallback(
     () => actions.showDialog({
       type: DialogType.AlbumDelete,
-      album: props.album,
+      album: albumRef,
     }),
-    [props.album, actions],
+    [albumRef, actions],
   );
 
   let lookup = useMemo<AlbumMediaLookup>(() => ({
     type: MediaLookupType.Album,
-    album: props.album,
+    album: albumRef,
     recursive: true,
-  }), [props.album]);
+  }), [albumRef]);
 
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
-        type: PageType.Media,
-        media: media.id,
-        lookup,
+        type: PageType.Album,
+        album: albumRef,
+        selectedMedia: media.id,
       },
     });
-  }, [actions, lookup]);
+  }, [actions, albumRef]);
 
-  let media = useMediaLookup(lookup);
+  let onCloseMedia = useCallback((): void => {
+    actions.navigate({
+      page: {
+        type: PageType.Album,
+        album: albumRef,
+      },
+    });
+  }, [actions, albumRef]);
 
   let onAlbumSearch = useCallback(() => {
     let query: Draft<Search.RelationQuery> = {
@@ -98,9 +107,12 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
     });
   }, [actions, album]);
 
-  return <Page
-    title={album.name}
-    selectedItem={props.album.id}
+  return <MediaListPage
+    lookup={lookup}
+    selectedMedia={selectedMedia}
+    selectedItem={albumRef.id}
+    onMediaClick={onMediaClick}
+    onCloseMedia={onCloseMedia}
     pageOptions={
       [{
         id: "album-search",
@@ -124,9 +136,5 @@ export default function AlbumPage(props: AlbumPageProps & AuthenticatedPageProps
         label: l10n.getString("banner-album-delete"),
       }]
     }
-  >
-    <Content>
-      <MediaGallery media={media} onClick={onMediaClick}/>
-    </Content>
-  </Page>;
+  />;
 }

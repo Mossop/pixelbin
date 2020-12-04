@@ -16,7 +16,6 @@ import {
 import type { AlbumPageProps } from "./Album";
 import type { CatalogPageProps } from "./Catalog";
 import type { ErrorPageProps } from "./Error";
-import type { MediaPageProps } from "./Media";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
 
@@ -41,14 +40,6 @@ jest.mock("./Album", (): unknown => {
     id="album"
     data-user={props.user.email}
     data-album={props.album.id}
-  />;
-});
-
-jest.mock("./Media", (): unknown => {
-  return (props: MediaPageProps & AuthenticatedPageProps) => <div
-    id="media"
-    data-user={props.user.email}
-    data-media={props.media}
   />;
 });
 
@@ -112,27 +103,6 @@ test("album page not logged in", (): void => {
   expect(div.getAttribute("data-error")).toMatch("invalid-state");
 });
 
-test("media page not logged in", (): void => {
-  mockConsole();
-
-  let store = mockStore(mockStoreState({
-    serverState: { user: null },
-    ui: {
-      page: {
-        type: PageType.Media,
-        media: "foo",
-        lookup: null,
-      },
-    },
-  }));
-
-  render(<Page/>, store);
-
-  let { container } = render(<Page/>, store);
-  let div = expectChild(container, "#error");
-  expect(div.getAttribute("data-error")).toMatch("invalid-state");
-});
-
 test("catalog page not logged in", (): void => {
   mockConsole();
 
@@ -184,25 +154,6 @@ test("album page logged in", async (): Promise<void> => {
 
   let div = await waitFor(() => expectChild(container, "#album"));
   expect(div.getAttribute("data-album")).toBe("foo");
-  expect(div.getAttribute("data-user")).toBe(store.state.serverState.user?.email);
-});
-
-test("media page logged in", async (): Promise<void> => {
-  let store = mockStore(mockStoreState({
-    ui: {
-      page: {
-        type: PageType.Media,
-        media: "foo",
-        lookup: null,
-      },
-    },
-  }));
-
-  let { container } = render(<Page/>, store);
-  expectChild(container, ".loading");
-
-  let div = await waitFor(() => expectChild(container, "#media"));
-  expect(div.getAttribute("data-media")).toBe("foo");
   expect(div.getAttribute("data-user")).toBe(store.state.serverState.user?.email);
 });
 

@@ -18,7 +18,6 @@ import {
 } from "../test-helpers";
 import type { HistoryState } from "./history";
 import { addListener, getState, pushState, replaceState } from "./history";
-import { MediaLookupType } from "./medialookup";
 import { intoUIState, fromUIState, stateURLMatches, watchStore } from "./navigation";
 
 /* eslint-disable */
@@ -113,7 +112,7 @@ test("catalog page", (): void => {
   })).toEqual(state("/catalog/testcatalog"));
 });
 
-test("media page", (): void => {
+test("media", (): void => {
   expect(intoUIState(state("/album/testalbum/media/testmedia"), LoggedOut)).toEqual({
     page: {
       type: PageType.NotFound,
@@ -123,27 +122,35 @@ test("media page", (): void => {
 
   expect(intoUIState(state("/album/testalbum/media/testmedia"), LoggedIn)).toEqual({
     page: {
-      type: PageType.Media,
-      media: "testmedia",
-      lookup: {
-        type: MediaLookupType.Album,
-        album: expect.toBeRef("testalbum"),
-        recursive: true,
-      },
+      type: PageType.Album,
+      album: expect.toBeRef("testalbum"),
+      selectedMedia: "testmedia",
     },
   });
 
   expect(fromUIState({
     page: {
-      type: PageType.Media,
-      media: "testmedia",
-      lookup: {
-        type: MediaLookupType.Album,
-        album: Album.ref("testalbum"),
-        recursive: true,
-      },
+      type: PageType.Album,
+      album: Album.ref("testalbum"),
+      selectedMedia: "testmedia",
     },
   })).toEqual(state("/album/testalbum/media/testmedia"));
+
+  expect(intoUIState(state("/catalog/testcatalog/media/testmedia"), LoggedIn)).toEqual({
+    page: {
+      type: PageType.Catalog,
+      catalog: expect.toBeRef("testcatalog"),
+      selectedMedia: "testmedia",
+    },
+  });
+
+  expect(fromUIState({
+    page: {
+      type: PageType.Catalog,
+      catalog: Catalog.ref("testcatalog"),
+      selectedMedia: "testmedia",
+    },
+  })).toEqual(state("/catalog/testcatalog/media/testmedia"));
 });
 
 test("search page", (): void => {

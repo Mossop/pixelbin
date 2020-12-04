@@ -8,7 +8,7 @@ export default function Loading(props: BoxProps): React.ReactElement {
   let { className: classes, ...boxProps } = props;
 
   return <Box
-    className={clsx("loading", props.className)}
+    className={clsx("loading", classes)}
     display="flex"
     alignItems="center"
     justifyContent="center"

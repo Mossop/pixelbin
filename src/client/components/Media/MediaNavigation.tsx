@@ -8,15 +8,20 @@ import CloseIcon from "../../icons/CloseIcon";
 import NextIcon from "../../icons/NextIcon";
 import PreviousIcon from "../../icons/PreviousIcon";
 import type { ReactResult } from "../../utils/types";
+import { HoverArea } from "../HoverArea";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    overlayContent: {
-      height: "100%",
-      width: "100%",
+    overlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
+      pointerEvents: "none",
     },
     overlayMiddle: {
       flexGrow: 1,
@@ -53,54 +58,54 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-interface MainOverlayProps {
-  onNext?: (() => void) | null;
-  onPrevious?: (() => void) | null;
-  onGoBack?: (() => void) | null;
+export interface MediaNavigationProps {
+  onNext: (() => void) | null;
+  onPrevious: (() => void) | null;
+  onCloseMedia: () => void;
 }
 
-export default function MainOverlay({
+export default function MediaNavigation({
   onNext,
   onPrevious,
-  onGoBack,
-}: MainOverlayProps): ReactResult {
+  onCloseMedia,
+}: MediaNavigationProps): ReactResult {
   let classes = useStyles();
 
-  return <div id="main-overlay" className={classes.overlayContent}>
-    <div className={classes.overlayTop}>
-      {
-        onGoBack && <IconButton
-          id="back-button"
-          onClick={onGoBack}
+  return <HoverArea>
+    <div id="main-overlay" className={classes.overlay}>
+      <div className={classes.overlayTop}>
+        <IconButton
+          id="close-button"
+          onClick={onCloseMedia}
           className={classes.overlayButton}
         >
           <CloseIcon/>
         </IconButton>
-      }
-    </div>
-    <div className={classes.overlayMiddle}>
-      <div>
-        {
-          onPrevious && <IconButton
-            id="prev-button"
-            onClick={onPrevious}
-            className={classes.navButton}
-          >
-            <PreviousIcon/>
-          </IconButton>
-        }
       </div>
-      <div>
-        {
-          onNext && <IconButton
-            id="next-button"
-            onClick={onNext}
-            className={classes.navButton}
-          >
-            <NextIcon/>
-          </IconButton>
-        }
+      <div className={classes.overlayMiddle}>
+        <div>
+          {
+            onPrevious && <IconButton
+              id="prev-button"
+              onClick={onPrevious}
+              className={classes.navButton}
+            >
+              <PreviousIcon/>
+            </IconButton>
+          }
+        </div>
+        <div>
+          {
+            onNext && <IconButton
+              id="next-button"
+              onClick={onNext}
+              className={classes.navButton}
+            >
+              <NextIcon/>
+            </IconButton>
+          }
+        </div>
       </div>
     </div>
-  </div>;
+  </HoverArea>;
 }

@@ -2,14 +2,13 @@ import Box from "@material-ui/core/Box";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React from "react";
+import { useSelector } from "react-redux";
 
-import type { MediaState, ProcessedMediaState } from "../api/types";
-import { useSelector } from "../store";
-import type { StoreState } from "../store/types";
-import type { ReactResult } from "../utils/types";
-import { IntersectionRoot, MountOnIntersect } from "./IntersectionObserver";
-import Loading from "./Loading";
-import { Preview } from "./Media";
+import type { MediaState } from "../../api/types";
+import type { StoreState } from "../../store/types";
+import type { ReactResult } from "../../utils/types";
+import { IntersectionRoot, MountOnIntersect } from "../IntersectionObserver";
+import MediaPreview from "./MediaPreview";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -32,23 +31,20 @@ const useStyles = makeStyles((theme: Theme) =>
   }));
 
 export interface MediaGalleryProps {
-  media?: readonly MediaState[] | null;
-  onClick?: (media: ProcessedMediaState) => void;
+  media: readonly MediaState[];
+  onClick?: (media: MediaState) => void;
 }
 
 export default function MediaGallery({ media, onClick }: MediaGalleryProps): ReactResult {
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
   let classes = useStyles(thumbnailSize);
 
-  if (!media) {
-    return <Loading flexGrow={1}/>;
-  }
   return <Box className={classes.grid}>
     <IntersectionRoot margin={`${thumbnailSize * 2}px 0px`}>
       {
         media.map((media: MediaState) => {
           return <MountOnIntersect key={media.id} className={classes.preview}>
-            <Preview
+            <MediaPreview
               media={media}
               thumbnailSize={thumbnailSize}
               onClick={onClick}

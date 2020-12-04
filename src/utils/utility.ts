@@ -57,3 +57,33 @@ export function nullIfEmpty(val: string | null): string | null {
 // function map<O, R>(obj: O, cb: <K extends SharedKeys<O, R>>(key: K, value: O[K]) => R[K]): R {
 //   return fromEntries(entries(obj).map(cb));
 // }
+
+export function upsert<
+  Key,
+  Value,
+  M extends Map<Key, Value>,
+>(map: M, key: Key, gen: () => Value): Value {
+  if (map.has(key)) {
+    // @ts-ignore
+    return map.get(key);
+  }
+
+  let value = gen();
+  map.set(key, value);
+  return value;
+}
+
+export function weakUpsert<
+  Key extends Obj,
+  Value,
+  M extends WeakMap<Key, Value>,
+>(map: M, key: Key, gen: () => Value): Value {
+  if (map.has(key)) {
+    // @ts-ignore
+    return map.get(key);
+  }
+
+  let value = gen();
+  map.set(key, value);
+  return value;
+}

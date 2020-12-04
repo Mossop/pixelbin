@@ -5,6 +5,7 @@ import { emptyMetadata, Join, Operator, RelationType } from "../../../model";
 import { parseDateTime } from "../../../utils";
 import { Album, Catalog, Person, Tag } from "../../api/highlevel";
 import type { ProcessedMediaState } from "../../api/types";
+import { PageType } from "../../pages/types";
 import {
   render,
   mockStore,
@@ -14,7 +15,6 @@ import {
   click,
   expect,
 } from "../../test-helpers";
-import { PageType } from "../types";
 import MediaInfo from "./MediaInfo";
 
 test("Mediainfo", async (): Promise<void> => {
@@ -113,11 +113,11 @@ test("Mediainfo", async (): Promise<void> => {
     title: "Hello",
   };
 
-  let onHighlightRegion = jest.fn();
+  let onHighlightPerson = jest.fn();
 
   let { container } = render(<MediaInfo
     media={media}
-    onHighlightRegion={onHighlightRegion}
+    onHighlightPerson={onHighlightPerson}
   />, store);
 
   let tag = expectChild(container, "#tag-t2");
@@ -172,29 +172,24 @@ test("Mediainfo", async (): Promise<void> => {
   store.dispatch.mockClear();
 
   let person = expectChild(container, "#person-p1");
-  expect(onHighlightRegion).not.toHaveBeenCalled();
+  expect(onHighlightPerson).not.toHaveBeenCalled();
   userEvent.hover(person);
-  expect(onHighlightRegion).toHaveBeenCalled();
-  expect(onHighlightRegion).toHaveBeenLastCalledWith(null);
+  expect(onHighlightPerson).toHaveBeenCalled();
+  expect(onHighlightPerson).toHaveBeenLastCalledWith(expect.toBeRef("p1"));
 
   userEvent.unhover(person);
-  expect(onHighlightRegion).toHaveBeenLastCalledWith(null);
+  expect(onHighlightPerson).toHaveBeenLastCalledWith(null);
 
-  onHighlightRegion.mockClear();
+  onHighlightPerson.mockClear();
 
   person = expectChild(container, "#person-p2");
 
   userEvent.hover(person);
-  expect(onHighlightRegion).toHaveBeenCalled();
-  expect(onHighlightRegion).toHaveBeenLastCalledWith({
-    top: 0.2,
-    bottom: 0.7,
-    left: 0.3,
-    right: 0.4,
-  });
+  expect(onHighlightPerson).toHaveBeenCalled();
+  expect(onHighlightPerson).toHaveBeenLastCalledWith(expect.toBeRef("p2"));
 
   userEvent.unhover(person);
-  expect(onHighlightRegion).toHaveBeenLastCalledWith(null);
+  expect(onHighlightPerson).toHaveBeenLastCalledWith(null);
 
   click(person.firstElementChild!);
 

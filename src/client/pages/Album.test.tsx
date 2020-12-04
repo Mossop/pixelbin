@@ -1,10 +1,10 @@
 import React from "react";
 
-import { emptyMetadata, Method } from "../../model";
+import { emptyMetadata, Join, Operator, RelationType } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils";
-import { Album } from "../api/highlevel";
-import MediaGallery from "../components/MediaGallery";
+import { Album, Catalog } from "../api/highlevel";
+import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
 import {
   expect,
@@ -12,97 +12,59 @@ import {
   render,
   mockStoreState,
   mockServerState,
-  expectChild,
-  click,
   resetDOM,
-  deferRequest,
 } from "../test-helpers";
 import { MediaLookupType } from "../utils/medialookup";
 import AlbumPage from "./Album";
 import { PageType } from "./types";
 
-jest.mock("../api/api");
-jest.mock("../components/MediaGallery", () => jest.fn(() => null));
+jest.mock("../components/Media/MediaListPage");
 
 beforeEach(resetDOM);
 
-const mockedMediaGallery = mockedFunction(MediaGallery);
+const mockedMediaListPage = mockedFunction(MediaListPage);
+mockedMediaListPage.mockReturnValue(null);
 
-test("album", async (): Promise<void> => {
+test("album page", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
       albums: [{
-        id: "album1",
-        name: "Album",
-      }, {
-        id: "album2",
-        name: "Album 2",
+        id: "album",
+        name: "test album",
       }],
+    }, {
+      id: "catalog2",
+      name: "Catalog 2",
     }]),
   }));
 
-  let albumRef = Album.ref("album1");
+  let albumRef = Album.ref("album");
 
-  let { call, resolve } = deferRequest<Method.AlbumList>();
-
-  let { container, rerender } = render(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  let { rerender } = render(
     <AlbumPage user={store.state.serverState.user!} album={albumRef}/>,
     store,
   );
 
-  expect(document.title).toBe("Album");
+  expect(mockedMediaListPage).toHaveBeenCalled();
 
-  let buttons = expectChild(container, "#banner-buttons");
+  let pageProps = lastCallArgs(mockedMediaListPage)[0];
 
-  expect(store.dispatch).toHaveBeenCalledTimes(0);
-
-  await expect(call).resolves.toEqual([
-    Method.AlbumList,
-    {
-      id: "album1",
-      recursive: true,
-    },
-  ]);
-
-  let button = expectChild(buttons, "#pageoption-button-album-edit");
-  click(button);
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showDialog",
-    payload: [{
-      type: DialogType.AlbumEdit,
-      album: expect.toBeRef("album1"),
-    }],
+  expect(pageProps.lookup).toEqual({
+    type: MediaLookupType.Album,
+    recursive: true,
+    album: expect.toBeRef("album"),
   });
-  store.dispatch.mockClear();
+  expect(pageProps.selectedMedia).toBeUndefined();
+  expect(pageProps.selectedItem).toBe("album");
 
-  button = expectChild(buttons, "#pageoption-button-album-create");
-  click(button);
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(store.dispatch)[0]).toEqual({
-    type: "showDialog",
-    payload: [{
-      type: DialogType.AlbumCreate,
-      parent: expect.toBeRef("album1"),
-    }],
-  });
-  store.dispatch.mockClear();
-
-  expect(mockedMediaGallery).toHaveBeenCalledTimes(1);
-  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media: null,
-    onClick: expect.anything(),
-  });
-  mockedMediaGallery.mockClear();
+  expect(store.dispatch).not.toHaveBeenCalled();
 
   let dt = now();
-
-  let media = [{
+  let media = {
     ...emptyMetadata,
-    catalog: "catalog",
+    catalog: Catalog.ref("catalog"),
     file: null,
     id: "media1",
     created: dt,
@@ -110,124 +72,119 @@ test("album", async (): Promise<void> => {
     albums: [],
     tags: [],
     people: [],
-  }, {
-    ...emptyMetadata,
-    catalog: "catalog",
-    file: null,
-    id: "media2",
-    created: dt,
-    updated: dt,
-    albums: [],
-    tags: [],
-    people: [],
-  }, {
-    ...emptyMetadata,
-    catalog: "catalog",
-    file: null,
-    id: "media3",
-    created: dt,
-    updated: dt,
-    albums: [],
-    tags: [],
-    people: [],
-  }];
+  };
 
-  await resolve(media);
-
-  expect(mockedMediaGallery).toHaveBeenCalled();
-  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media: [{
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media1",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }, {
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media2",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }, {
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media3",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }],
-    onClick: expect.anything(),
-  });
-  mockedMediaGallery.mockClear();
-
-  let { call: call2, resolve: resolve2 } = deferRequest<Method.AlbumList>();
-  let wasCalled = false;
-  void call2.then(() => wasCalled = true);
-
-  rerender(<AlbumPage user={store.state.serverState.user!} album={albumRef}/>);
-  expect(store.dispatch).not.toHaveBeenCalled();
-  expect(wasCalled).toBeFalsy();
-
-  albumRef = Album.ref("album2");
-  rerender(<AlbumPage user={store.state.serverState.user!} album={albumRef}/>);
-
-  expect(store.dispatch).not.toHaveBeenCalled();
-
-  await expect(call2).resolves.toEqual([
-    Method.AlbumList,
-    {
-      id: "album2",
-      recursive: true,
-    },
-  ]);
-
-  media = [media[0]];
-  await resolve2(media);
-
-  expect(mockedMediaGallery).toHaveBeenCalled();
-  expect(lastCallArgs(mockedMediaGallery)[0]).toEqual({
-    media: [{
-      ...emptyMetadata,
-      catalog: expect.toBeRef("catalog"),
-      file: null,
-      id: "media1",
-      created: dt,
-      updated: dt,
-      albums: [],
-      tags: [],
-      people: [],
-    }],
-    onClick: expect.anything(),
-  });
-
-  expect(store.dispatch).not.toHaveBeenCalled();
-  // @ts-ignore
-  lastCallArgs(mockedMediaGallery)[0].onClick({ id: "foo" });
+  pageProps.onMediaClick(media);
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
     type: "navigate",
     payload: [{
       page: {
-        type: PageType.Media,
-        media: "foo",
-        lookup: {
-          type: MediaLookupType.Album,
-          album: expect.toBeRef("album2"),
-          recursive: true,
-        },
+        type: PageType.Album,
+        album: expect.toBeRef("album"),
+        selectedMedia: "media1",
       },
     }],
   });
+
+  store.dispatch.mockClear();
+
+  rerender(<AlbumPage
+    user={store.state.serverState.user!}
+    album={albumRef}
+    selectedMedia="media1"
+  />);
+
+  pageProps = lastCallArgs(mockedMediaListPage)[0];
+
+  expect(pageProps.lookup).toEqual({
+    type: MediaLookupType.Album,
+    recursive: true,
+    album: expect.toBeRef("album"),
+  });
+  expect(pageProps.selectedMedia).toBe("media1");
+  expect(pageProps.selectedItem).toBe("album");
+
+  expect(store.dispatch).not.toHaveBeenCalled();
+
+  pageProps.onCloseMedia();
+
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "navigate",
+    payload: [{
+      page: {
+        type: PageType.Album,
+        album: expect.toBeRef("album"),
+      },
+    }],
+  });
+  store.dispatch.mockClear();
+
+  expect(pageProps.pageOptions).toHaveLength(4);
+  let pageOptions = pageProps.pageOptions!;
+  expect(pageOptions[0].label).toBe("banner-search");
+  expect(pageOptions[1].label).toBe("banner-album-new");
+  expect(pageOptions[2].label).toBe("banner-album-edit");
+  expect(pageOptions[3].label).toBe("banner-album-delete");
+
+  pageOptions[0].onClick();
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "showDialog",
+    payload: [{
+      type: DialogType.Search,
+      catalog: expect.toBeRef("catalog"),
+      query: {
+        invert: false,
+        type: "compound",
+        join: Join.And,
+        relation: RelationType.Album,
+        recursive: true,
+        queries: [{
+          invert: false,
+          type: "field",
+          field: "id",
+          modifier: null,
+          operator: Operator.Equal,
+          value: "album",
+        }],
+      },
+    }],
+  });
+  store.dispatch.mockClear();
+
+  pageOptions[1].onClick();
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "showDialog",
+    payload: [{
+      type: DialogType.AlbumCreate,
+      parent: expect.toBeRef("album"),
+    }],
+  });
+  store.dispatch.mockClear();
+
+  pageOptions[2].onClick();
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "showDialog",
+    payload: [{
+      type: DialogType.AlbumEdit,
+      album: expect.toBeRef("album"),
+    }],
+  });
+  store.dispatch.mockClear();
+
+  pageOptions[3].onClick();
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenLastCalledWith({
+    type: "showDialog",
+    payload: [{
+      type: DialogType.AlbumDelete,
+      album: expect.toBeRef("album"),
+    }],
+  });
+  store.dispatch.mockClear();
 });

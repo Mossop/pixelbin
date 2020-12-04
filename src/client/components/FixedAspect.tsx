@@ -1,80 +1,70 @@
-import { createStyles, makeStyles } from "@material-ui/core/styles";
-import clsx from "clsx";
-import React from "react";
+import React, { useRef } from "react";
 
+import { useElementSize } from "../utils/hooks";
 import type { ReactChildren, ReactResult } from "../utils/types";
 
-const useStyles = makeStyles(() =>
-  createStyles({
-    root: {
-      position: "relative",
-    },
-    fixedArea: {
-      position: "absolute",
-      height: "100%",
-      width: "100%",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-    },
-    row: {
-      textAlign: "center",
-      maxHeight: "100%",
-    },
-    inlineArea: {
-      position: "relative",
-    },
-    intrinsicBox: {
-      maxHeight: "100%",
-      maxWidth: "100%",
-      verticalAlign: "bottom",
-    },
-    areaDialog: ({ height, width }: FixedAspectProps) => ({
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      paddingTop: `${100 * height / width}%`,
-      textAlign: "initial",
-    }),
-    viewportContainer: {
-      position: "absolute",
-      top: 0,
-      bottom: 0,
-      left: 0,
-      right: 0,
-    },
-    viewport: {
-      height: "100%",
-      width: "100%",
-      position: "relative",
-    },
-  }));
+export type FixedAspectProps = {
+  aspectRatio: number;
+} & React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
 
-export interface FixedAspectProps {
-  width: number;
-  height: number;
-  classes?: {
-    root?: string;
-    viewport?: string;
-  };
-}
+export default function FixedAspect({
+  aspectRatio,
+  children,
+  style = {},
+  ...boxProps
+}: FixedAspectProps & ReactChildren): ReactResult {
+  let ref = useRef<HTMLDivElement>(null);
+  let elementSize = useElementSize(ref);
 
-export default function FixedAspect(props: FixedAspectProps & ReactChildren): ReactResult {
-  let classes = useStyles(props);
+  if (!elementSize) {
+    return <div
+      {...boxProps}
+      style={
+        {
+          position: "relative",
+          ...style,
+        }
+      }
+      ref={ref}
+    />;
+  }
 
-  return <div className={clsx(classes.root, props.classes?.root)}>
-    <div className={classes.fixedArea}>
-      <div className={classes.row}>
-        <span className={classes.inlineArea}>
-          <svg className={classes.intrinsicBox} viewBox={`0 0 ${props.width} ${props.height}`}/>
-          <div className={classes.areaDialog}>
-            <div className={classes.viewportContainer}>
-              <div className={classes.viewport}>{props.children}</div>
-            </div>
-          </div>
-        </span>
-      </div>
+  let elementRatio = elementSize.width / elementSize.height;
+
+  let targetWidth = elementSize.width;
+  let targetHeight = elementSize.height;
+
+  if (elementRatio > aspectRatio) {
+    targetWidth = aspectRatio * elementSize.height;
+  } else if (elementRatio < aspectRatio) {
+    targetHeight = elementSize.width / aspectRatio;
+  }
+
+  let xDiff = (elementSize.width - targetWidth) / 2;
+  let yDiff = (elementSize.height - targetHeight) / 2;
+
+  return <div
+    {...boxProps}
+    style={
+      {
+        position: "relative",
+        ...style,
+      }
+    }
+    ref={ref}
+  >
+    <div
+      style={
+        {
+          position: "absolute",
+          top: yDiff,
+          bottom: yDiff,
+          left: xDiff,
+          right: xDiff,
+        }
+      }
+    >
+      {children}
     </div>
   </div>;
 }

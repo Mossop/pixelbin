@@ -2,67 +2,46 @@ import { act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 
-import MediaPage from ".";
-import { emptyMetadata, Method } from "../../../model";
+import { emptyMetadata } from "../../../model";
 import { lastCallArgs, mockedFunction } from "../../../test-helpers";
 import { now } from "../../../utils";
-import { request } from "../../api/api";
-import { Catalog } from "../../api/highlevel";
+import { Catalog, Person } from "../../api/highlevel";
+import type { MediaState } from "../../api/types";
 import {
   expect,
   render,
   mockStore,
   mockStoreState,
   mockServerState,
-  deferRequest,
   expectChild,
   click,
 } from "../../test-helpers";
-import type { CatalogMediaLookup } from "../../utils/medialookup";
-import { MediaLookupType } from "../../utils/medialookup";
-import { PageType } from "../types";
+import MediaDisplay from "./MediaDisplay";
 import MediaInfo from "./MediaInfo";
 
-jest.mock("../../api/api");
 jest.mock("./MediaInfo", () => jest.fn(() => null));
 
 jest.useFakeTimers();
 
 const mockedMediaInfo = mockedFunction(MediaInfo);
-const mockedRequest = mockedFunction(request);
 
-test("single media page", async (): Promise<void> => {
+test("media display", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
     serverState: mockServerState([{
       id: "catalog",
       name: "Catalog",
+      people: [{
+        id: "p1",
+        name: "Bob",
+      }],
     }]),
   }));
 
-  let { call, resolve } = deferRequest<Method.MediaGet>();
-
-  let { container } = render(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    <MediaPage user={store.state.serverState.user!} media="foo" lookup={null}/>,
-    store,
-  );
-
-  expectChild(container, ".loading");
-  expectChild(document, "#menu-button");
-  expect(mockedMediaInfo).not.toHaveBeenCalled();
-
-  await expect(call).resolves.toEqual([
-    Method.MediaGet,
-    {
-      id: "foo",
-    },
-  ]);
-
   let dt = now();
 
-  let media = [{
+  let media: MediaState[] = [{
     ...emptyMetadata,
-    catalog: "catalog",
+    catalog: Catalog.ref("catalog"),
     file: {
       id: "inn",
       fileSize: 2000,
@@ -82,15 +61,33 @@ test("single media page", async (): Promise<void> => {
     updated: dt,
     albums: [],
     tags: [],
-    people: [],
+    people: [{
+      person: Person.ref("p1"),
+      location: {
+        left: 0.25,
+        right: 0.6,
+        top: 0.3,
+        bottom: 0.7,
+      },
+    }],
   }];
 
-  await resolve(media);
+  let onChangeMedia = jest.fn();
+  let onCloseMedia = jest.fn();
 
-  expect(container.querySelector(".loading")).toBeNull();
+  let { container } = render(
+    <MediaDisplay
+      media={media}
+      selectedMedia="foo"
+      onChangeMedia={onChangeMedia}
+      onCloseMedia={onCloseMedia}
+    />,
+    store,
+  );
+
   expect(mockedMediaInfo).not.toHaveBeenCalled();
 
-  expect(container.querySelector("#back-button")).toBeNull();
+  expect(container.querySelector("#close-button")).not.toBeNull();
   expect(container.querySelector("#prev-button")).toBeNull();
   expect(container.querySelector("#next-button")).toBeNull();
 
@@ -113,7 +110,7 @@ test("single media page", async (): Promise<void> => {
   expect(expectChild(container, "#main-overlay")).not.toBeHidden();
   expect(expectChild(container, "#media-controls")).not.toBeHidden();
 
-  let original = expectChild(container, "#media-original");
+  let original = expectChild(container, "#media-fallback");
   expect(original.localName).toBe("img");
   expect(original.getAttribute("src")).toBe("http://localhost/original.jpg");
 
@@ -161,29 +158,24 @@ test("single media page", async (): Promise<void> => {
       ...media[0],
       catalog: expect.toBeRef("catalog"),
     },
-    onHighlightRegion: expect.anything(),
+    onHighlightPerson: expect.anything(),
   }, {});
 
-  let { onHighlightRegion } = lastCallArgs(mockedMediaInfo)[0];
+  let { onHighlightPerson } = lastCallArgs(mockedMediaInfo)[0];
 
-  expect(display.querySelector("#highlight-region")).toBeNull();
+  expect(display.querySelector(".face-highlight")).toBeNull();
 
-  act(() => onHighlightRegion({
-    left: 0.25,
-    right: 0.6,
-    top: 0.3,
-    bottom: 0.7,
-  }));
+  act(() => onHighlightPerson(Person.ref("p1")));
 
-  let area = expectChild(display, "#highlight-region");
+  let area = expectChild(display, ".face-highlight");
   let style = area.ownerDocument.defaultView?.getComputedStyle(area);
   expect(style?.left).toBe("25%");
   expect(style?.right).toBe("40%");
   expect(style?.top).toBe("30%");
   expect(style?.bottom).toBe("30%");
 
-  act(() => onHighlightRegion(null));
-  expect(display.querySelector("highlight-region")).toBeNull();
+  act(() => onHighlightPerson(null));
+  expect(display.querySelector(".face-highlight")).toBeNull();
 });
 
 test("multiple media page", async (): Promise<void> => {
@@ -194,34 +186,11 @@ test("multiple media page", async (): Promise<void> => {
     }]),
   }));
 
-  let { call, resolve } = deferRequest<Method.CatalogList>();
-  let lookup: CatalogMediaLookup = {
-    type: MediaLookupType.Catalog,
-    catalog: Catalog.ref("catalog"),
-  };
-
-  let { container, rerender } = render(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    <MediaPage user={store.state.serverState.user!} media="foo" lookup={lookup}/>,
-    store,
-  );
-
-  expectChild(container, ".loading");
-  expectChild(document, "#menu-button");
-  expect(mockedMediaInfo).not.toHaveBeenCalled();
-
-  await expect(call).resolves.toEqual([
-    Method.CatalogList,
-    {
-      id: "catalog",
-    },
-  ]);
-
   let dt = now();
 
-  let media = [{
+  let media: MediaState[] = [{
     ...emptyMetadata,
-    catalog: "catalog",
+    catalog: Catalog.ref("catalog"),
     file: {
       id: "inn",
       fileSize: 2000,
@@ -244,7 +213,7 @@ test("multiple media page", async (): Promise<void> => {
     people: [],
   }, {
     ...emptyMetadata,
-    catalog: "catalog",
+    catalog: Catalog.ref("catalog"),
     file: {
       id: "inn",
       fileSize: 2000,
@@ -277,56 +246,42 @@ test("multiple media page", async (): Promise<void> => {
     people: [],
   }];
 
-  await resolve(media);
+  let onChangeMedia = jest.fn();
+  let onCloseMedia = jest.fn();
 
-  expect(container.querySelector(".loading")).toBeNull();
+  let { container, rerender } = render(
+    <MediaDisplay
+      media={media}
+      selectedMedia="foo"
+      onChangeMedia={onChangeMedia}
+      onCloseMedia={onCloseMedia}
+    />,
+    store,
+  );
+
   expect(mockedMediaInfo).not.toHaveBeenCalled();
 
-  let backButton = expectChild(container, "#back-button");
+  let closeButton = expectChild(container, "#close-button");
   expect(container.querySelector("#prev-button")).toBeNull();
   let nextButton = expectChild(container, "#next-button");
 
+  click(closeButton);
+
   expect(store.dispatch).not.toHaveBeenCalled();
-
-  mockedRequest.mockImplementation(() => {
-    throw new Error("Bad");
-  });
-  mockedRequest.mockClear();
-
-  click(backButton);
-
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
-    payload: [{
-      page: {
-        type: PageType.Catalog,
-        catalog: expect.toBeRef("catalog"),
-      },
-    }],
-  });
-
-  store.dispatch.mockClear();
+  expect(onCloseMedia).toHaveBeenCalledTimes(1);
+  onCloseMedia.mockClear();
 
   click(nextButton);
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
-    payload: [{
-      page: {
-        type: PageType.Media,
-        media: "bar",
-        lookup,
-      },
-    }],
-  });
+  expect(onChangeMedia).toHaveBeenCalledTimes(1);
+  onChangeMedia.mockClear();
 
-  store.dispatch.mockClear();
+  rerender(<MediaDisplay
+    media={media}
+    selectedMedia="bar"
+    onChangeMedia={onChangeMedia}
+    onCloseMedia={onCloseMedia}
+  />);
 
-  rerender(<MediaPage user={store.state.serverState.user!} media="bar" lookup={lookup}/>);
-
-  expect(container.querySelector(".loading")).toBeNull();
-  expect(container.querySelector("#next-button")).toBeNull();
   let prevButton = expectChild(container, "#prev-button");
 
   let original = expectChild(container, "#media-original");
@@ -337,18 +292,7 @@ test("multiple media page", async (): Promise<void> => {
   expect(source?.localName).toBe("source");
   expect(source?.getAttribute("src")).toBe("http://localhost/original.mp4");
 
-  expect(mockedRequest).not.toHaveBeenCalled();
-
   click(prevButton);
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
-    payload: [{
-      page: {
-        type: PageType.Media,
-        media: "foo",
-        lookup,
-      },
-    }],
-  });
+  expect(onChangeMedia).toHaveBeenCalledTimes(1);
+  onChangeMedia.mockClear();
 });
