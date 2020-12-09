@@ -115,12 +115,8 @@ export default function Page({
       return "modal";
     }
 
-    if (hasOverlay) {
-      return "openable";
-    }
-
     return "persistent";
-  }, [sidebarModal, hasOverlay, loggedIn]);
+  }, [sidebarModal, loggedIn]);
 
   let onMenuButtonClick = useMemo(() => {
     if (!sidebarType || sidebarType == "persistent") {
@@ -136,6 +132,12 @@ export default function Page({
         pageOptions={pageOptions}
       />
       <div className={classes.contentRow}>
+        {
+          hasOverlay && sidebarType == "persistent" &&
+          <Sidebar type="openable" open={sidebarOpen} onClose={onCloseSidebar}>
+            <SidebarTree roots={catalogs} selectedItem={selectedItem}/>
+          </Sidebar>
+        }
         {
           sidebarType &&
           <Sidebar type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>

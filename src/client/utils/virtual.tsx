@@ -209,10 +209,10 @@ export class VirtualCatalog extends BaseVirtualItem {
 
   public get children(): VirtualItem[] {
     let results = descend([
+      new VirtualCatalogSearches(this.catalog, this.treeOptions),
       new VirtualCatalogAlbums(this.catalog, this.treeOptions),
       new VirtualCatalogTags(this.catalog, this.treeOptions),
       new VirtualCatalogPeople(this.catalog, this.treeOptions),
-      new VirtualCatalogSearches(this.catalog, this.treeOptions),
     ], this.treeOptions);
 
     if (this.treeOptions.categories == IncludeVirtualCategories.IfNeeded ||

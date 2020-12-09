@@ -7,6 +7,7 @@ import type { MediaLookup } from "../../utils/medialookup";
 import { useMediaLookup } from "../../utils/medialookup";
 import type { ReactResult } from "../../utils/types";
 import type { PageOption } from "../Banner";
+import Content from "../Content";
 import Loading from "../Loading";
 import Page from "../Page";
 import MediaDisplay from "./MediaDisplay";
@@ -72,10 +73,12 @@ export default function MediaListPage({
       </ThemeProvider>
     }
   >
-    {
-      mediaResults
-        ? <MediaGallery media={mediaResults.media} onClick={onMediaClick}/>
-        : <Loading height="100%" width="100%"/>
-    }
+    <Content>
+      {
+        mediaResults
+          ? <MediaGallery media={mediaResults.media} onClick={onMediaClick}/>
+          : <Loading height="100%" width="100%"/>
+      }
+    </Content>
   </Page>;
 }
