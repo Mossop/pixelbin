@@ -1,5 +1,4 @@
 import { promises as fs } from "fs";
-import path from "path";
 
 import sharp from "sharp";
 import { file as tmpFile } from "tmp-promise";
@@ -43,11 +42,10 @@ async function buildImage(baseImage: Buffer): Promise<sharp.Sharp> {
 
   if (icc) {
     let tmp = await tmpFile();
-    let iccFile = path.join(tmp.path, "icc");
-    await fs.writeFile(iccFile, icc);
+    await fs.writeFile(tmp.path, icc);
     imageSource = imageSource.withMetadata({
       // @ts-ignore: Outdated types.
-      icc: iccFile,
+      icc: tmp.path,
     });
   }
 
