@@ -119,11 +119,11 @@ export default function Page({
   }, [sidebarModal, loggedIn]);
 
   let onMenuButtonClick = useMemo(() => {
-    if (!sidebarType || sidebarType == "persistent") {
+    if (!sidebarType || sidebarType == "persistent" && !hasOverlay) {
       return null;
     }
     return () => setSidebarOpen(true);
-  }, [sidebarType]);
+  }, [sidebarType, hasOverlay]);
 
   return <React.Fragment>
     <div className={classes.scrollArea}>
