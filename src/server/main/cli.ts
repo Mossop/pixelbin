@@ -6,6 +6,7 @@ import { loadConfig } from "./config";
 import seed from "./seed";
 import serve from "./serve";
 import { initDatabase, initStorage } from "./services";
+import verifyLocal from "./verifyLocal";
 
 const logger = getLogger();
 logger.name = "main";
@@ -62,6 +63,14 @@ export default function cli(args: string[]): void {
     nargs: 1,
     action: SingleItemAction,
     help: "The file to seed the database with.",
+  });
+
+  let verifyLocalParser = commandParser.add_parser("verifyLocal", {
+    help: "Verify that the local files are valid.",
+  });
+
+  verifyLocalParser.set_defaults({
+    callback: verifyLocal,
   });
 
   let parsed = parser.parse_args(args);

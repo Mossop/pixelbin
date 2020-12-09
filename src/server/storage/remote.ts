@@ -162,6 +162,9 @@ class AWSRemote extends Remote {
     let publicUrl = s3PublicUrl(this.storage, this.getFullTarget(target));
     if (publicUrl) {
       let response = await fetch(publicUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to retrieve '${target}': ${response.statusText}`);
+      }
       return response.body;
     }
 
