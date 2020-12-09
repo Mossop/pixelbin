@@ -73,12 +73,13 @@ export default function MediaListPage({
       </ThemeProvider>
     }
   >
-    <Content>
-      {
-        mediaResults
-          ? <MediaGallery media={mediaResults.media} onClick={onMediaClick}/>
-          : <Loading height="100%" width="100%"/>
-      }
-    </Content>
+    {
+      mediaResults
+        ? <Content>
+          <MediaGallery media={mediaResults.media} onClick={onMediaClick}/>
+        </Content>
+        : <Loading height="100%" width="100%"/>
+    }
+
   </Page>;
 }
