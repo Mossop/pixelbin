@@ -5,7 +5,7 @@ import { enableMapSet } from "immer";
 import type { ServerState } from "../api/types";
 import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
-import { mockStoreState, mockServerState, expect } from "../test-helpers";
+import { mockStoreState, mockServerState, expect, fixedState } from "../test-helpers";
 import actions from "./actions";
 import reducer from "./reducer";
 import type { UIState } from "./types";
@@ -81,6 +81,7 @@ test("Logging in with no catalogs shows catalog create", (): void => {
       storage: new Map(),
       catalogs: new Map(),
     },
+    ...fixedState,
   };
 
   let action = actions.completeLogin(newServerState);

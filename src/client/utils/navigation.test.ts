@@ -15,6 +15,7 @@ import {
   mapOf,
   mockStoreState,
   mockStore,
+  fixedState,
 } from "../test-helpers";
 import type { HistoryState } from "./history";
 import { addListener, getState, pushState, replaceState } from "./history";
@@ -47,6 +48,7 @@ function state(path: string, params?: Obj): HistoryState {
 
 const LoggedOut: ServerState = {
   user: null,
+  ...fixedState,
 };
 
 const LoggedIn = mockServerState([{

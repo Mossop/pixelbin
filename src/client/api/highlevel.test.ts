@@ -1,4 +1,4 @@
-import { mockServerState, expect } from "../test-helpers";
+import { mockServerState, expect, fixedState } from "../test-helpers";
 import { ErrorCode } from "../utils/exception";
 import { nameSorted } from "../utils/sort";
 import {
@@ -15,6 +15,7 @@ import type { ServerState } from "./types";
 
 const LoggedOut: ServerState = {
   user: null,
+  ...fixedState,
 };
 
 const LoggedIn = mockServerState([{
