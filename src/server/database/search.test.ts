@@ -856,7 +856,7 @@ test("saved searches", async (): Promise<void> => {
   let query1: Query = {
     type: "field",
     invert: false,
-    field: "filename",
+    field: "rating",
     modifier: null,
     operator: Operator.Empty,
     value: null,
@@ -970,6 +970,8 @@ test("saved searches", async (): Promise<void> => {
     value: "",
   };
 
+  await expect(dbConnection.sharedSearch(search2)).rejects.toThrow("Unknown SavedSearch");
+
   await user3Db.editSavedSearch(search2, {
     query: query3,
     name: "foo",
@@ -1009,5 +1011,13 @@ test("saved searches", async (): Promise<void> => {
       shared: true,
       query: query1,
     },
+  ]);
+
+  let { name, media } = await dbConnection.sharedSearch(search1);
+  expect(name).toBe("My search");
+  expect(ids(media)).toEqual([
+    "m6",
+    "m3",
+    "m5",
   ]);
 });

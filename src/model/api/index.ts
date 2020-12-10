@@ -71,6 +71,7 @@ export enum Method {
   SavedSearchCreate = "search/create",
   SavedSearchEdit = "search/edit",
   SavedSearchDelete = "search/delete",
+  SharedSearch = "search/shared",
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -109,6 +110,7 @@ export const HttpMethods: MethodList = {
   [Method.SavedSearchCreate]: "PUT",
   [Method.SavedSearchEdit]: "PATCH",
   [Method.SavedSearchDelete]: "DELETE",
+  [Method.SharedSearch]: "GET",
 };
 
 // Fake interface
@@ -156,6 +158,7 @@ export interface Signatures {
   [Method.SavedSearchCreate]: Signature<Requests.SavedSearchCreate, Api.SavedSearch>;
   [Method.SavedSearchEdit]: Signature<Requests.SavedSearchEdit, Api.SavedSearch>;
   [Method.SavedSearchDelete]: Signature<string[], void>;
+  [Method.SharedSearch]: Signature<Requests.SharedSearch, Api.SharedSearchResults | null>;
 }
 
 export type SignatureRequest<M extends Method> =

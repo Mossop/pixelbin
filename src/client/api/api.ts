@@ -65,6 +65,7 @@ const decoders: ResponseDecoders = {
   [Method.SavedSearchCreate]: JsonDecoderDecoder(Decoders.SavedSearchDecoder),
   [Method.SavedSearchEdit]: JsonDecoderDecoder(Decoders.SavedSearchDecoder),
   [Method.SavedSearchDelete]: VoidDecoder,
+  [Method.SharedSearch]: JsonDecoderDecoder(Decoders.SharedSearchResultsDecoder),
 };
 
 export async function request<T extends Method>(

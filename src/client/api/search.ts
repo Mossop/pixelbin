@@ -1,11 +1,11 @@
 import type { Draft } from "immer";
 
-import type { Query } from "../../model";
+import type { Api, Query } from "../../model";
 import { Method } from "../../model";
 import { request } from "./api";
 import type { Reference, SavedSearch, Catalog } from "./highlevel";
-import type { MediaState, SavedSearchState } from "./types";
-import { searchIntoState, mediaIntoState } from "./types";
+import type { MediaState, SavedSearchState, SharedSearchResults } from "./types";
+import { sharedMediaIntoState, searchIntoState, mediaIntoState } from "./types";
 
 export async function searchMedia(
   catalog: Reference<Catalog>,
@@ -42,4 +42,23 @@ export async function deleteSavedSearch(
   search: Reference<SavedSearch>,
 ): Promise<void> {
   await request(Method.SavedSearchDelete, [search.id]);
+}
+
+export async function getSharedSearchResults(search: string): Promise<SharedSearchResults | null> {
+  let results = await request(Method.SharedSearch, {
+    id: search,
+  });
+
+  if (!results) {
+    return null;
+  }
+
+  let media = await Promise.all(results.media.map((media: Api.SharedMediaWithMetadata) => {
+    return sharedMediaIntoState(media, search);
+  }));
+
+  return {
+    name: results.name,
+    media,
+  };
 }

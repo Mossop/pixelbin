@@ -97,6 +97,14 @@ export default async function buildApp(): Promise<void> {
   );
 
   router.get(
+    `${APP_PATHS.root}search/:search/media/:id/:file/thumb/:size/:encoding/:filename`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, size, file, encoding, search } = ctx.params;
+      return thumbnail(ctx, id, file, encoding, size, search);
+    },
+  );
+
+  router.get(
     `${APP_PATHS.root}media/:id/:file/encoding/:encoding/:filename`,
     (ctx: RouterContext<AppContext>): Promise<void> => {
       let { id, encoding, file } = ctx.params;
@@ -105,10 +113,26 @@ export default async function buildApp(): Promise<void> {
   );
 
   router.get(
+    `${APP_PATHS.root}search/:search/media/:id/:file/encoding/:encoding/:filename`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, encoding, file, search } = ctx.params;
+      return alternate(ctx, id, file, encoding, search);
+    },
+  );
+
+  router.get(
     `${APP_PATHS.root}media/:id/:file/:filename`,
     (ctx: RouterContext<AppContext>): Promise<void> => {
       let { id, file } = ctx.params;
       return original(ctx, id, file);
+    },
+  );
+
+  router.get(
+    `${APP_PATHS.root}search/:search/media/:id/:file/:filename`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, file, search } = ctx.params;
+      return original(ctx, id, file, search);
     },
   );
 

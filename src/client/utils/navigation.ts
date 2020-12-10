@@ -262,7 +262,13 @@ const pathMap: PathMap[] = [
     ): UIState => {
       let search = SavedSearch.safeFromState(serverState, searchId);
       if (!search) {
-        return notfound(historyState);
+        return {
+          page: {
+            type: PageType.SharedSearch,
+            search: searchId,
+            selectedMedia: mediaId,
+          },
+        };
       }
 
       return {
@@ -282,12 +288,22 @@ const pathMap: PathMap[] = [
       historyState: HistoryState,
       searchId: string,
     ): UIState => {
-      return {
-        page: {
-          type: PageType.SavedSearch,
-          search: SavedSearch.ref(searchId),
-        },
-      };
+      let search = SavedSearch.safeFromState(serverState, searchId);
+      if (search) {
+        return {
+          page: {
+            type: PageType.SavedSearch,
+            search: SavedSearch.ref(searchId),
+          },
+        };
+      } else {
+        return {
+          page: {
+            type: PageType.SharedSearch,
+            search: searchId,
+          },
+        };
+      }
     },
   ],
 ];
@@ -322,6 +338,13 @@ export function fromUIState(uiState: UIState): HistoryState {
     }
     case PageType.SavedSearch: {
       let path = `/search/${uiState.page.search.id}`;
+      if (uiState.page.selectedMedia) {
+        path += `/media/${uiState.page.selectedMedia}`;
+      }
+      return history.buildState(path);
+    }
+    case PageType.SharedSearch: {
+      let path = `/search/${uiState.page.search}`;
       if (uiState.page.selectedMedia) {
         path += `/media/${uiState.page.selectedMedia}`;
       }

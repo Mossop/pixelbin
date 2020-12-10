@@ -14,6 +14,7 @@ const Catalog = lazy(() => import(/* webpackChunkName: "CatalogPage" */ "./Catal
 const User = lazy(() => import(/* webpackChunkName: "UserPage" */ "./User"));
 const Search = lazy(() => import(/* webpackChunkName: "SearchPage" */ "./Search"));
 const SavedSearch = lazy(() => import(/* webpackChunkName: "SavedSearch" */ "./SavedSearch"));
+const SharedSearch = lazy(() => import(/* webpackChunkName: "SharedSearch" */ "./SharedSearch"));
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({
@@ -35,6 +36,9 @@ export default function PageDisplay(): ReactResult {
       case PageType.Search: {
         return <Search user={user} {...page}/>;
       }
+      case PageType.SavedSearch: {
+        return <SavedSearch {...page}/>;
+      }
     }
   }
 
@@ -42,8 +46,8 @@ export default function PageDisplay(): ReactResult {
     case PageType.Root: {
       return <Root/>;
     }
-    case PageType.SavedSearch: {
-      return <SavedSearch {...page}/>;
+    case PageType.SharedSearch: {
+      return <SharedSearch {...page}/>;
     }
     case PageType.NotFound: {
       return <NotFound/>;

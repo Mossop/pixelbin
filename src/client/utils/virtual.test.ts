@@ -93,6 +93,12 @@ test("virtual iteration", async (): Promise<void> => {
   expect(buildList(roots)).toEqual([{
     id: "catalog1",
     children: [{
+      id: "searchlist",
+      children: [{
+        id: "search1",
+        children: [],
+      }],
+    }, {
       id: "albumlist",
       children: [{
         id: "album0",
@@ -125,16 +131,13 @@ test("virtual iteration", async (): Promise<void> => {
         id: "bob",
         children: [],
       }],
-    }, {
-      id: "searchlist",
-      children: [{
-        id: "search1",
-        children: [],
-      }],
     }],
   }, {
     id: "catalog2",
     children: [{
+      id: "searchlist",
+      children: [],
+    }, {
       id: "albumlist",
       children: [{
         id: "album3",
@@ -155,9 +158,6 @@ test("virtual iteration", async (): Promise<void> => {
     }, {
       id: "personlist",
       children: [],
-    }, {
-      id: "searchlist",
-      children: [],
     }],
   }]);
 
@@ -166,6 +166,12 @@ test("virtual iteration", async (): Promise<void> => {
   }))).toEqual([{
     id: "catalog1",
     children: [{
+      id: "searchlist",
+      children: [{
+        id: "search1",
+        children: [],
+      }],
+    }, {
       id: "albumlist",
       children: [{
         id: "album0",
@@ -198,16 +204,13 @@ test("virtual iteration", async (): Promise<void> => {
         id: "bob",
         children: [],
       }],
-    }, {
-      id: "searchlist",
-      children: [{
-        id: "search1",
-        children: [],
-      }],
     }],
   }, {
     id: "catalog2",
     children: [{
+      id: "searchlist",
+      children: [],
+    }, {
       id: "albumlist",
       children: [{
         id: "album3",
@@ -218,9 +221,6 @@ test("virtual iteration", async (): Promise<void> => {
       children: [],
     }, {
       id: "personlist",
-      children: [],
-    }, {
-      id: "searchlist",
       children: [],
     }],
   }]);

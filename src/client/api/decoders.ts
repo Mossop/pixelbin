@@ -158,14 +158,7 @@ export const MediaRelationsDecoder = JsonDecoder.array(JsonDecoder.object<Api.Me
   people: JsonDecoder.array(MediaPersonDecoder, "MediaPerson[]"),
 }, "MediaRelations"), "MediaRelations[]");
 
-export const MediaDecoder = JsonDecoder.object<Api.Media>({
-  id: JsonDecoder.string,
-  catalog: JsonDecoder.string,
-  created: DateDecoder,
-  updated: DateDecoder,
-
-  file: JsonDecoder.nullable(MediaFileDecoder),
-
+const MetadataDecoders = {
   filename: JsonDecoder.nullable(JsonDecoder.string),
   title: JsonDecoder.nullable(JsonDecoder.string),
   description: JsonDecoder.nullable(JsonDecoder.string),
@@ -192,7 +185,28 @@ export const MediaDecoder = JsonDecoder.object<Api.Media>({
   iso: JsonDecoder.nullable(JsonDecoder.number),
   focalLength: JsonDecoder.nullable(JsonDecoder.number),
   rating: JsonDecoder.nullable(JsonDecoder.number),
+};
+
+export const MediaDecoder = JsonDecoder.object<Api.Media>({
+  id: JsonDecoder.string,
+  catalog: JsonDecoder.string,
+  created: DateDecoder,
+  updated: DateDecoder,
+
+  file: JsonDecoder.nullable(MediaFileDecoder),
+
+  ...MetadataDecoders,
 }, "Media");
+
+const SharedMediaWithMetadataDecoder = JsonDecoder.object<Api.SharedMediaWithMetadata>({
+  id: JsonDecoder.string,
+  created: DateDecoder,
+  updated: DateDecoder,
+
+  file: MediaFileDecoder,
+
+  ...MetadataDecoders,
+}, "SharedMediaWithMetadata");
 
 export const MediaArrayDecoder = JsonDecoder.array(MediaDecoder, "Media[]");
 
@@ -203,6 +217,11 @@ export const MaybeMediaArrayDecoder = JsonDecoder.array(
   ], "Media | null"),
   "(Media | null)[]",
 );
+
+export const SharedSearchResultsDecoder = JsonDecoder.object<Api.SharedSearchResults>({
+  name: JsonDecoder.string,
+  media: JsonDecoder.array(SharedMediaWithMetadataDecoder, "SharedMediaWithMetadata[]"),
+}, "SharedSearchResults");
 
 export const ErrorDataDecoder = JsonDecoder.object<Api.ErrorData>({
   code: EnumDecoder(JsonDecoder.string, "ErrorCode"),

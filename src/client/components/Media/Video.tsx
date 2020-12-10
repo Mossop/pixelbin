@@ -5,7 +5,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
 import React, { useCallback, useRef, useState } from "react";
 
-import type { Encoding, ProcessedMediaState } from "../../api/types";
+import type { Encoding, MediaFileState } from "../../api/types";
 import { PauseIcon, PlayIcon } from "../../icons/MediaIcons";
 import type { ReactResult } from "../../utils/types";
 import { HoverArea } from "../HoverArea";
@@ -74,12 +74,12 @@ interface VideoState {
 }
 
 export interface VideoProps {
-  media: ProcessedMediaState;
+  mediaFile: MediaFileState;
   children?: React.ReactNode;
 }
 
 export function Video({
-  media,
+  mediaFile,
   children,
 }: VideoProps): ReactResult {
   let classes = useStyles();
@@ -120,7 +120,7 @@ export function Video({
     setVideoState(state);
   }, []);
 
-  let poster = media.file.encodings.find(
+  let poster = mediaFile.encodings.find(
     (encoding: Encoding): boolean => encoding.mimetype == "image/jpeg",
   );
 
@@ -128,7 +128,6 @@ export function Video({
     <video
       id="media-original"
       ref={video}
-      key={media.id}
       poster={poster?.url}
       controls={false}
       className={classes.media}
@@ -139,13 +138,13 @@ export function Video({
       onClick={videoState.playing ? pause : play}
     >
       {
-        media.file.videoEncodings.map((encoding: Encoding) => <source
+        mediaFile.videoEncodings.map((encoding: Encoding) => <source
           key={encoding.mimetype}
           src={encoding.url}
           type={encoding.mimetype}
         />)
       }
-      <source src={media.file.url} type={media.file.mimetype}/>
+      <source src={mediaFile.url} type={mediaFile.mimetype}/>
     </video>
     {
       !videoState.playing &&

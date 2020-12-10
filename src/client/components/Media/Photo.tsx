@@ -3,7 +3,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
 import React, { useMemo } from "react";
 
-import type { Encoding, ProcessedMediaState } from "../../api/types";
+import type { Encoding, MediaFileState } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
 import { HoverArea } from "../HoverArea";
 
@@ -32,12 +32,12 @@ const useStyles = makeStyles((theme: Theme) =>
   }));
 
 export interface PhotoProps {
-  media: ProcessedMediaState;
+  mediaFile: MediaFileState;
   children?: React.ReactNode;
 }
 
 export function Photo({
-  media,
+  mediaFile,
   children,
 }: PhotoProps): ReactResult {
   let classes = useStyles();
@@ -46,7 +46,7 @@ export function Photo({
     let alternates: Encoding[] = [];
     let fallback: Encoding | null = null;
 
-    for (let encoding of media.file.encodings) {
+    for (let encoding of mediaFile.encodings) {
       if (encoding.mimetype == "image/jpeg") {
         fallback = encoding;
       } else {
@@ -59,7 +59,7 @@ export function Photo({
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       fallback: fallback!,
     };
-  }, [media]);
+  }, [mediaFile]);
 
   return <React.Fragment>
     <picture>
@@ -72,7 +72,6 @@ export function Photo({
       }
       <img
         id="media-fallback"
-        key={media.id}
         src={fallback.url}
         className={classes.media}
       />

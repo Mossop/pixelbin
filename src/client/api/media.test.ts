@@ -9,7 +9,7 @@ import type { Media } from "./highlevel";
 import { mediaRef } from "./highlevel";
 import { getMedia } from "./media";
 import type { ServerState } from "./types";
-import { isProcessedMedia } from "./types";
+import { isProcessed } from "./types";
 
 jest.mock("../environment/fetch");
 
@@ -45,7 +45,7 @@ test("Get media", async (): Promise<void> => {
     taken: expect.toEqualDate("2020-04-02T06:23:57-08:00"),
   });
 
-  expect(isProcessedMedia(result!)).toBeFalsy();
+  expect(isProcessed(result!)).toBeFalsy();
 
   let info = callInfo(mockedFetch);
   expect(info).toEqual({

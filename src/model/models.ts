@@ -190,13 +190,10 @@ export type MediaFile = IdType & FileInfo & {
 export type Media = MediaInfo & Metadata & {
   file: MediaFile | null;
 };
-export type PublicMedia = MediaInfo & {
+export type SharedMedia = MediaInfo & {
   file: MediaFile;
 };
-export type PublicMediaWithMetadata = PublicMedia & Metadata & {
-  tags: Tag["name"][];
-  people: Person["name"][];
-};
+export type SharedMediaWithMetadata = SharedMedia & Metadata;
 
 export enum AlternateFileType {
   Thumbnail = "thumbnail",

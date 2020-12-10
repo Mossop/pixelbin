@@ -89,16 +89,31 @@ export type MediaFileState = Api.MediaFile & {
   videoEncodings: Encoding[];
 };
 
-export type MediaState = Overwrite<Api.Media, {
+export type UnprocessedMediaState = Overwrite<Api.Media, {
   catalog: Reference<Catalog>;
-  file: MediaFileState | null;
+  file: null;
 }>;
 
-export type ProcessedMediaState = Overwrite<MediaState, {
+export type ProcessedMediaState = Overwrite<Api.Media, {
+  catalog: Reference<Catalog>;
   file: MediaFileState;
 }>;
 
-export function isProcessedMedia(media: MediaState): media is ProcessedMediaState {
+export type MediaState = UnprocessedMediaState | ProcessedMediaState;
+
+export type SharedMediaWithMetadataState = Overwrite<Api.SharedMediaWithMetadata, {
+  file: MediaFileState;
+}>;
+
+export type BaseMediaState = MediaState | SharedMediaWithMetadataState;
+
+export type SharedSearchResults = Overwrite<Api.SharedSearchResults, {
+  media: SharedMediaWithMetadataState[];
+}>;
+
+export function isProcessed<T extends BaseMediaState>(
+  media: T,
+): media is Exclude<T, UnprocessedMediaState> {
   return !!media.file;
 }
 
@@ -136,7 +151,35 @@ function encodingUrl(mimetype: string, filename: string | null): string {
   return `${parsed.type}-${parsed.subtype}/${nameForType(mimetype, filename)}`;
 }
 
-export async function mediaIntoState(media: Api.Media): Promise<Draft<MediaState>> {
+export async function sharedMediaIntoState(
+  media: Api.SharedMediaWithMetadata,
+  search: string,
+): Promise<Draft<SharedMediaWithMetadataState>> {
+  let {
+    catalog,
+    ...result
+  } = await baseMediaIntoState({
+    ...media,
+    catalog: "",
+  }, `/search/${search}`);
+
+  if (!result.file) {
+    throw new Error("Unexpected");
+  }
+
+  return result;
+}
+
+export async function mediaIntoState(
+  media: Api.Media,
+): Promise<Draft<MediaState>> {
+  return baseMediaIntoState(media);
+}
+
+export async function baseMediaIntoState(
+  media: Api.Media,
+  urlPrefix: string = "",
+): Promise<Draft<MediaState>> {
   const shouldReplaceZone = (taken: DateTime, gpsZone: Zone): boolean => {
     // Only ever replace non-IANA zones with valid zones.
     if (!gpsZone.isValid || taken.zone instanceof IANAZone) {
@@ -182,7 +225,7 @@ export async function mediaIntoState(media: Api.Media): Promise<Draft<MediaState
 
   let file: MediaFileState | null = null;
   if (media.file) {
-    let base = `/media/${media.id}/${media.file.id}`;
+    let base = `${urlPrefix}/media/${media.id}/${media.file.id}`;
 
     let thumbs: Thumbnail[] = [];
     for (let encoding of thumbnails.encodings) {

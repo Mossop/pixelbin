@@ -59,6 +59,10 @@ const LoggedIn = mockServerState([{
     id: "testalbum",
     name: "Test Album 1",
   }],
+  searches: [{
+    id: "testsearch",
+    name: "Saved Search",
+  }],
 }]);
 
 test("index page", (): void => {
@@ -191,12 +195,42 @@ test("search page", (): void => {
 });
 
 test("saved search page", (): void => {
-  expect(intoUIState(state("/search/foo"), LoggedOut)).toEqual({
+  expect(intoUIState(state("/search/testsearch"), LoggedOut)).toEqual({
     page: {
-      type: PageType.SavedSearch,
-      search: expect.toBeRef("foo"),
+      type: PageType.SharedSearch,
+      search: "testsearch",
     },
   });
+
+  expect(intoUIState(state("/search/testsearch"), LoggedIn)).toEqual({
+    page: {
+      type: PageType.SavedSearch,
+      search: expect.toBeRef("testsearch"),
+    },
+  });
+
+  expect(fromUIState({
+    page: {
+      type: PageType.SharedSearch,
+      search: "bar",
+      selectedMedia: "baz",
+    },
+  })).toEqual(state("/search/bar/media/baz"));
+
+  expect(fromUIState({
+    page: {
+      type: PageType.SharedSearch,
+      search: "bar",
+    },
+  })).toEqual(state("/search/bar"));
+
+  expect(fromUIState({
+    page: {
+      type: PageType.SavedSearch,
+      search: SavedSearch.ref("bar"),
+      selectedMedia: "baz",
+    },
+  })).toEqual(state("/search/bar/media/baz"));
 
   expect(fromUIState({
     page: {

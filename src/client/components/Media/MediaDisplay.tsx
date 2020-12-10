@@ -6,8 +6,8 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import type { Person, Reference } from "../../api/highlevel";
 import { getMediaRelations } from "../../api/media";
-import type { MediaRelations, MediaState } from "../../api/types";
-import { isProcessedMedia } from "../../api/types";
+import type { BaseMediaState, MediaRelations } from "../../api/types";
+import { isProcessed } from "../../api/types";
 import EnterFullscreenIcon from "../../icons/EnterFullscreenIcon";
 import ExitFullscreenIcon from "../../icons/ExitFullscreenIcon";
 import InfoIcon from "../../icons/InfoIcon";
@@ -41,22 +41,22 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export interface MediaDisplayProps {
-  media: readonly MediaState[];
+export interface MediaDisplayProps<T extends BaseMediaState> {
+  media: readonly T[];
   selectedMedia: string;
-  onChangeMedia: (media: MediaState) => void;
+  onChangeMedia: (media: T) => void;
   onCloseMedia: () => void;
 }
 
-export default function MediaDisplay({
+export default function MediaDisplay<T extends BaseMediaState>({
   media,
   selectedMedia,
   onChangeMedia,
   onCloseMedia,
-}: MediaDisplayProps): ReactResult {
+}: MediaDisplayProps<T>): ReactResult {
   let classes = useStyles();
   let mediaIndex = useMemo(() => {
-    return media.findIndex((media: MediaState): boolean => media.id == selectedMedia);
+    return media.findIndex((media: T): boolean => media.id == selectedMedia);
   }, [media, selectedMedia]);
 
   let onPrevious = useMemo(() => {
@@ -104,6 +104,12 @@ export default function MediaDisplay({
     );
   }, [media, mediaIndex]));
 
+  if (mediaIndex < 0) {
+    throw new Error("Unexpected failure to find media.");
+  }
+
+  let mediaToShow = media[mediaIndex];
+
   let mediaControls = <React.Fragment>
     {
       fullscreen
@@ -131,20 +137,14 @@ export default function MediaDisplay({
     </IconButton>
   </React.Fragment>;
 
-  if (mediaIndex < 0) {
-    throw new Error("Unexpected failure to find media.");
-  }
-
-  let mediaToShow = media[mediaIndex];
-
   let content: React.ReactNode = null;
-  if (isProcessedMedia(mediaToShow)) {
+  if (isProcessed(mediaToShow)) {
     if (mediaToShow.file.mimetype.startsWith("video/")) {
-      content = <Video media={mediaToShow}>
+      content = <Video mediaFile={mediaToShow.file}>
         {mediaControls}
       </Video>;
     } else {
-      content = <Photo media={mediaToShow}>
+      content = <Photo mediaFile={mediaToShow.file}>
         {mediaControls}
       </Photo>;
     }
@@ -160,9 +160,9 @@ export default function MediaDisplay({
   >
     {content}
     {
-      personHighlight &&
+      personHighlight && isProcessed(mediaToShow) &&
       <FaceHighlight
-        media={mediaToShow}
+        mediaFile={mediaToShow.file}
         relations={relations}
         people={[personHighlight]}
       />
@@ -173,7 +173,11 @@ export default function MediaDisplay({
       onCloseMedia={onCloseMedia}
     />
     <Drawer anchor="right" open={showMediaInfo} onClose={onCloseInfo}>
-      <MediaInfo media={mediaToShow} relations={relations} onHighlightPerson={setPersonHighlight}/>
+      <MediaInfo
+        media={mediaToShow}
+        relations={relations}
+        onHighlightPerson={setPersonHighlight}
+      />
     </Drawer>
   </HoverContainer>;
 }

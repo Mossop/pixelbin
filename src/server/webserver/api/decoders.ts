@@ -380,3 +380,7 @@ export const SearchEditRequest = jsonDecoder(JsonDecoder.object<Requests.SavedSe
     name: JsonDecoder.optional(JsonDecoder.string),
   }, "Search"),
 }, "SavedSearch"));
+
+export const SharedSearchRequest = jsonDecoder(JsonDecoder.object<Requests.SharedSearch>({
+  id: JsonDecoder.string,
+}, "SharedSearchRequest"));

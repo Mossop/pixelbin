@@ -7,7 +7,7 @@ import React from "react";
 import type { Api } from "../../../model";
 import { weakUpsert } from "../../../utils";
 import type { Person, Reference } from "../../api/highlevel";
-import type { MediaRelations, MediaState } from "../../api/types";
+import type { MediaFileState, MediaRelations } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
 import FixedAspect from "../FixedAspect";
 
@@ -38,19 +38,19 @@ function locationKey(location: Api.Location): number {
 }
 
 export interface FaceHighlightProps {
-  media: MediaState;
+  mediaFile: MediaFileState;
   relations?: MediaRelations | null;
   people: Reference<Person>[];
 }
 
 export default function FaceHighlight({
-  media,
+  mediaFile,
   relations,
   people,
 }: FaceHighlightProps): ReactResult {
   let classes = useStyles();
 
-  if (!media.file || !relations) {
+  if (!relations) {
     return null;
   }
 
@@ -65,7 +65,7 @@ export default function FaceHighlight({
 
   return <FixedAspect
     className={classes.bounds}
-    aspectRatio={media.file.width / media.file.height}
+    aspectRatio={mediaFile.width / mediaFile.height}
   >
     <div className={classes.viewport}>
       {

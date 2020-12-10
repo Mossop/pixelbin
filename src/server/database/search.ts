@@ -3,10 +3,9 @@ import type Knex from "knex";
 import type { Search, Query, ObjectModel } from "../../model";
 import { checkQuery, isCompoundQuery, Join, Modifier, Operator } from "../../model";
 import { isRelationQuery } from "../../model/search";
-import type { TimeLogger } from "../../utils";
 import { isDateTime, Level } from "../../utils";
-import type { UserScopedConnection } from "./connection";
-import { DatabaseError, DatabaseErrorCode } from "./error";
+import type { DatabaseConnection, UserScopedConnection } from "./connection";
+import { DatabaseError, DatabaseErrorCode, notfound } from "./error";
 import { searchId } from "./id";
 import { ITEM_LINK, RELATION_TABLE, SOURCE_TABLE } from "./joins";
 import type { MediaView } from "./mediaview";
@@ -21,7 +20,7 @@ function escape(value: unknown): string {
 }
 
 function applyFieldQuery(
-  connection: UserScopedConnection,
+  knex: Knex,
   builder: Knex.QueryBuilder,
   table: Table,
   join: Join,
@@ -99,7 +98,7 @@ function applyFieldQuery(
       break;
   }
 
-  return where(builder, join, false)(connection.raw(sql, bindings));
+  return where(builder, join, false)(knex.raw(sql, bindings));
 }
 
 function where(builder: Knex.QueryBuilder, join: Join, invert: boolean): Knex.Where {
@@ -121,7 +120,7 @@ function where(builder: Knex.QueryBuilder, join: Join, invert: boolean): Knex.Wh
 }
 
 function applyQuery(
-  connection: UserScopedConnection,
+  knex: Knex,
   builder: Knex.QueryBuilder,
   catalog: string,
   currentTable: Table,
@@ -134,20 +133,20 @@ function applyQuery(
       let newTable = SOURCE_TABLE[relationTable];
       let link = ITEM_LINK[relationTable];
 
-      let selected = from(connection.knex, newTable)
+      let selected = from(knex, newTable)
         .where(`${newTable}.catalog`, catalog)
         .andWhere((builder: Knex.QueryBuilder): void => {
           for (let q of query.queries) {
-            builder = applyQuery(connection, builder, catalog, newTable, query.join, q);
+            builder = applyQuery(knex, builder, catalog, newTable, query.join, q);
           }
         });
 
       if (query.recursive && (newTable == Table.Album || newTable == Table.Tag)) {
         // @ts-ignore
-        selected = withChildren(connection.knex, newTable, selected).from("parents");
+        selected = withChildren(knex, newTable, selected).from("parents");
       }
 
-      let media = from(connection.knex, relationTable)
+      let media = from(knex, relationTable)
         .join(selected.as("Selected"), "Selected.id", `${relationTable}.${link}`)
         .select(`${relationTable}.media`);
 
@@ -165,13 +164,70 @@ function applyQuery(
     } else {
       return where(builder, currentJoin, query.invert)((builder: Knex.QueryBuilder): void => {
         for (let q of query.queries) {
-          builder = applyQuery(connection, builder, catalog, currentTable, query.join, q);
+          builder = applyQuery(knex, builder, catalog, currentTable, query.join, q);
         }
       });
     }
   } else {
-    return applyFieldQuery(connection, builder, currentTable, currentJoin, query);
+    return applyFieldQuery(knex, builder, currentTable, currentJoin, query);
   }
+}
+
+function buildSearch(
+  knex: Knex,
+  catalog: string,
+  query: Query,
+): Knex.QueryBuilder<MediaView, MediaView[]> {
+  checkQuery(query);
+
+  let builder = mediaView(knex)
+    .where(ref(Table.MediaView, "catalog"), catalog);
+
+  builder = applyQuery(
+    knex,
+    builder,
+    catalog,
+    Table.MediaView,
+    Join.And,
+    query,
+  );
+
+  return builder
+    .orderByRaw(knex.raw("COALESCE(??, ??) DESC", [
+      ref(Table.MediaView, "taken"),
+      ref(Table.MediaView, "created"),
+    ])) as Knex.QueryBuilder<MediaView, MediaView[]>;
+}
+
+interface SharedSearch {
+  name: string;
+  query: Knex.QueryBuilder<MediaView, MediaView[]>;
+}
+
+export async function getSharedSearch(
+  this: DatabaseConnection,
+  search: string,
+): Promise<SharedSearch> {
+  if (!this.isInTransaction) {
+    throw new Error("getSharedSearch reqires a transaction to operate safely.");
+  }
+
+  let savedSearches = await from(this.knex, Table.SavedSearch)
+    .where({
+      [ref(Table.SavedSearch, "id")]: search,
+      [ref(Table.SavedSearch, "shared")]: true,
+    });
+
+  if (savedSearches.length != 1) {
+    notfound(Table.SavedSearch);
+  }
+
+  let { name, catalog, query } = savedSearches[0];
+
+  return {
+    name,
+    query: buildSearch(this.knex, catalog, query),
+  };
 }
 
 export async function searchMedia(
@@ -179,31 +235,11 @@ export async function searchMedia(
   catalog: string,
   search: Query,
 ): Promise<MediaView[]> {
-  return this.logger.child("searchMedia").timeLonger(async (timeLogger: TimeLogger) => {
+  return this.logger.child("searchMedia").timeLonger(async () => {
     await this.checkRead(Table.Catalog, [catalog]);
-    timeLogger("checkRead");
-    checkQuery(search);
-    timeLogger("checkQuery");
 
-    let builder = mediaView(this.knex)
-      .where(ref(Table.MediaView, "catalog"), catalog);
-
-    builder = applyQuery(
-      this,
-      builder,
-      catalog,
-      Table.MediaView,
-      Join.And,
-      search,
-    );
-    timeLogger("applyQuery");
-
-    let media: MediaView[] = await builder
-      .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-        ref(Table.MediaView, "taken"),
-        ref(Table.MediaView, "created"),
-      ]))
-      .select(ref(Table.MediaView));
+    let media = await buildSearch(this.knex, catalog, search)
+      .select<MediaView[]>(ref(Table.MediaView));
 
     return media.map(applyTimeZoneFields);
   }, Level.Trace, 250, "Completed media search");
@@ -276,4 +312,26 @@ export async function listSavedSearches(
     )
     .where(ref(Table.UserCatalog, "user"), this.user)
     .select<Tables.SavedSearch[]>(ref(Table.SavedSearch));
+}
+
+export interface SharedSearchResults {
+  name: string;
+  media: MediaView[];
+}
+
+export async function sharedSearch(
+  this: DatabaseConnection,
+  search: string,
+): Promise<SharedSearchResults> {
+  return this.inTransaction(
+    async function sharedSearch(db: DatabaseConnection): Promise<SharedSearchResults> {
+      let { name, query } = await db.getSharedSearch(search);
+      let media = await query.select<MediaView[]>(ref(Table.MediaView));
+
+      return {
+        name,
+        media: media.map(applyTimeZoneFields),
+      };
+    },
+  );
 }

@@ -187,7 +187,7 @@ export function expectUserState(json: Obj, state: ApiSerialization<Api.User> | n
     lastLogin: state.lastLogin ? expect.toEqualDate(state.lastLogin) : null,
   };
 
-  for (let arr of ["catalogs", "albums", "people", "tags"]) {
+  for (let arr of ["catalogs", "albums", "people", "tags", "searches"]) {
     if (arr in received) {
       received[arr] = idSorted(received[arr]);
     }

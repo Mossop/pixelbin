@@ -37,6 +37,7 @@ import {
   createSavedSearch,
   deleteSavedSearch,
   editSavedSearch,
+  sharedSearch,
 } from "./search";
 import { getState, login, logout, signup } from "./state";
 
@@ -90,6 +91,7 @@ export const apiDecoders: RequestDecoders = {
   [Method.SavedSearchCreate]: Decoders.SearchSaveRequest,
   [Method.SavedSearchEdit]: Decoders.SearchEditRequest,
   [Method.SavedSearchDelete]: Decoders.StringArray,
+  [Method.SharedSearch]: Decoders.SharedSearchRequest,
 };
 
 type ApiInterface = {
@@ -131,6 +133,7 @@ const apiMethods: ApiInterface = {
   [Method.SavedSearchCreate]: createSavedSearch,
   [Method.SavedSearchEdit]: editSavedSearch,
   [Method.SavedSearchDelete]: deleteSavedSearch,
+  [Method.SharedSearch]: sharedSearch,
 };
 
 const KEY_PARSE = /^(?<part>[^.[]+)(?<indexes>(?:\[\d+\])*)(?:\.(?<rest>.+))?$/;

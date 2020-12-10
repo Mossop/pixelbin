@@ -4,6 +4,7 @@ import type { AlbumPageProps } from "./Album";
 import type { CatalogPageProps } from "./Catalog";
 import type { SavedSearchPageProps } from "./SavedSearch";
 import type { SearchPageProps } from "./Search";
+import type { SharedSearchPageProps } from "./SharedSearch";
 
 export enum PageType {
   Root = "root",
@@ -12,6 +13,7 @@ export enum PageType {
   User = "user",
   Search = "search",
   SavedSearch = "savedSearch",
+  SharedSearch = "sharedearch",
   NotFound = "notfound",
 }
 
@@ -39,6 +41,10 @@ type SavedSearchPageState = SavedSearchPageProps & {
   readonly type: PageType.SavedSearch;
 };
 
+type SharedSearchPageState = SharedSearchPageProps & {
+  readonly type: PageType.SharedSearch;
+};
+
 interface NotFoundPageState {
   readonly type: PageType.NotFound;
   readonly history: HistoryState;
@@ -50,4 +56,5 @@ export type PageState =
   AlbumPageState |
   NotFoundPageState |
   SearchPageState |
-  SavedSearchPageState;
+  SavedSearchPageState |
+  SharedSearchPageState;

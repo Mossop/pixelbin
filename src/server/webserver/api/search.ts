@@ -1,7 +1,7 @@
 import type { Query, Api, ApiSerialization, Requests } from "../../../model";
 import { isCompoundQuery } from "../../../model";
 import { isDateTime, isoDateTime } from "../../../utils";
-import type { UserScopedConnection } from "../../database";
+import type { MediaView, UserScopedConnection } from "../../database";
 import { ensureAuthenticated } from "../auth";
 import type { AppContext } from "../context";
 import { buildResponseMedia } from "./media";
@@ -68,3 +68,37 @@ export const deleteSavedSearch = ensureAuthenticated(
     await userDb.deleteSavedSearches(searches);
   },
 );
+
+export async function sharedSearch(
+  ctx: AppContext,
+  data: Requests.SharedSearch,
+): Promise<ApiSerialization<Api.SharedSearchResults | null>> {
+  let buildSharedMedia = (
+    media: MediaView,
+  ): ApiSerialization<Api.SharedMediaWithMetadata> | null => {
+    if (!media.file) {
+      return null;
+    }
+
+    let {
+      catalog,
+      ...shared
+    } = buildResponseMedia(media);
+
+    // @ts-ignore: The initial check should ensure this is correct.
+    return shared;
+  };
+
+  let isMedia = (
+    item: ApiSerialization<Api.SharedMedia> | null,
+  ): item is ApiSerialization<Api.SharedMedia> => {
+    return !!item;
+  };
+
+  let results = await ctx.dbConnection.sharedSearch(data.id);
+  return {
+    name: results.name,
+    // @ts-ignore
+    media: results.media.map(buildSharedMedia).filter(isMedia),
+  };
+}

@@ -5,8 +5,8 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React, { useCallback, useState } from "react";
 
-import type { MediaState, ProcessedMediaState } from "../../api/types";
-import { isProcessedMedia } from "../../api/types";
+import type { BaseMediaState, MediaFileState } from "../../api/types";
+import { isProcessed } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
 import Loading from "../Loading";
 
@@ -32,18 +32,18 @@ const useStyles = makeStyles((theme: Theme) =>
   }));
 
 interface ThumbnailProps {
-  media: ProcessedMediaState;
+  mediaFile: MediaFileState;
   size: number;
 }
 
-function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
+function Thumbnail({ mediaFile, size }: ThumbnailProps): ReactResult {
   let classes = useStyles(size);
   let [loaded, setLoaded] = useState(false);
 
   let typedSrcs: Map<string, string[]> = new Map();
   let normalSrcs: string[] = [];
 
-  for (let thumb of media.file.thumbnails) {
+  for (let thumb of mediaFile.thumbnails) {
     if (thumb.mimetype == "image/jpeg") {
       normalSrcs.push(`${thumb.url} ${thumb.size}w`);
     } else {
@@ -57,8 +57,8 @@ function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
   }
 
   let onload = useCallback(() => setLoaded(true), []);
-  if (media.file.width < media.file.height) {
-    size = size * media.file.width / media.file.height;
+  if (mediaFile.width < mediaFile.height) {
+    size = size * mediaFile.width / mediaFile.height;
   }
 
   let sources = [...typedSrcs.entries()];
@@ -82,17 +82,17 @@ function Thumbnail({ media, size }: ThumbnailProps): ReactResult {
   </Fade>;
 }
 
-export interface MediaPreviewProps {
-  media: MediaState;
+export interface MediaPreviewProps<T extends BaseMediaState> {
+  media: T;
   thumbnailSize: number;
-  onClick?: (media: MediaState) => void;
+  onClick?: (media: T) => void;
 }
 
-export default function MediaPreview({
+export default function MediaPreview<T extends BaseMediaState>({
   media,
   thumbnailSize,
   onClick,
-}: MediaPreviewProps): ReactResult {
+}: MediaPreviewProps<T>): ReactResult {
   let classes = useStyles(thumbnailSize);
   let click = useCallback(() => {
     if (onClick) {
@@ -107,8 +107,8 @@ export default function MediaPreview({
   >
     <CardContent>
       {
-        isProcessedMedia(media)
-          ? <Thumbnail media={media} size={thumbnailSize}/>
+        isProcessed(media)
+          ? <Thumbnail mediaFile={media.file} size={thumbnailSize}/>
           : <Loading width={thumbnailSize} height={thumbnailSize}/>
       }
     </CardContent>

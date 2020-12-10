@@ -21,6 +21,8 @@ export type AllNull<T> = {
   [K in keyof T]: null;
 };
 
+export type Maybe<T> = T | Obj;
+
 type Bound<I> = {
   [K in keyof I]: OmitThisParameter<I[K]>;
 };

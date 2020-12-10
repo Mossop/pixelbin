@@ -157,3 +157,7 @@ export interface SavedSearchEdit {
   id: ObjectModel.SavedSearch["id"];
   search: Partial<Omit<ObjectModel.SavedSearch, "id">>;
 }
+
+export interface SharedSearch {
+  id: string;
+}

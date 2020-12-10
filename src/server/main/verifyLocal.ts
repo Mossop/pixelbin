@@ -54,7 +54,9 @@ async function buildImage(baseImage: Buffer): Promise<sharp.Sharp> {
 
 function bufferFromStream(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return new Promise((resolve: (buff: Buffer) => void, reject: (error: Error) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let chunks: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     stream.on("data", (chunk: any) => chunks.push(chunk));
     stream.on("error", reject);
     stream.on("end", () => {

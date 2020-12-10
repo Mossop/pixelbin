@@ -7,6 +7,7 @@ import Rating from "@material-ui/lab/Rating/Rating";
 import clsx from "clsx";
 import React, { useCallback, useMemo } from "react";
 
+import type { ObjectModel } from "../../../model";
 import { RelationType, Join, Operator } from "../../../model";
 import { formatDateTime } from "../../../utils";
 import type { Reference, Album, Tag, Person } from "../../api/highlevel";
@@ -270,7 +271,10 @@ function LocalizedRow({
   return Row(id, l10n.getString(label), children, multiline);
 }
 
-function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactResult {
+function NormalMetadataItem(
+  media: ObjectModel.Metadata,
+  item: keyof ObjectModel.Metadata,
+): ReactResult {
   if (!media[item]) {
     return null;
   }
@@ -281,7 +285,7 @@ function NormalMetadataItem(media: MediaState, item: keyof MediaState): ReactRes
 }
 
 export interface MediaInfoProps {
-  media: MediaState;
+  media: ObjectModel.Metadata;
   relations?: MediaRelations | null;
   onHighlightPerson: (person: Reference<Person> | null) => void;
 }
@@ -293,11 +297,11 @@ export default function MediaInfo({
 }: MediaInfoProps): ReactResult {
   let classes = useStyles();
 
-  let format = useCallback(<T extends keyof MediaState>(
+  let format = useCallback(<T extends keyof ObjectModel.Metadata>(
     metadata: T,
     cb: (item: NonNullable<MediaState[T]>) => React.ReactNode,
   ): ReactResult => {
-    let item: MediaState[T] = media[metadata];
+    let item: ObjectModel.Metadata[T] = media[metadata];
 
     if (item) {
       return <LocalizedRow id={metadata} label={`metadata-label-${metadata}`}>

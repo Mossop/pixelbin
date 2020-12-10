@@ -10,4 +10,4 @@ export type { Seed } from "./seed";
 export type { UnusedMediaFile } from "./unsafe";
 export type { MediaView } from "./mediaview";
 export type { LinkedPerson, LinkedAlbum, LinkedTag } from "./joins";
-export type { AlternateInfo } from "./media";
+export type { AlternateInfo, MediaFileInfo } from "./media";

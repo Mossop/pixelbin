@@ -2,7 +2,7 @@ import type { QueryBuilder } from "knex";
 
 import type { ObjectModel, AlternateFileType } from "../../model";
 import { Level, now } from "../../utils";
-import type { UserScopedConnection } from "./connection";
+import type { DatabaseConnection, UserScopedConnection } from "./connection";
 import { DatabaseError, DatabaseErrorCode } from "./error";
 import { mediaId } from "./id";
 import type { MediaView } from "./mediaview";
@@ -109,6 +109,37 @@ export type AlternateInfo = Tables.AlternateFile & {
   catalog: string;
 };
 
+export async function getSearchMediaAlternates(
+  this: DatabaseConnection,
+  search: string,
+  media: string,
+  mediaFile: string,
+  type: AlternateFileType,
+  mimetype: string,
+): Promise<AlternateInfo[]> {
+  return this.inTransaction(async function getSearchMediaAlternates(db: DatabaseConnection) {
+    let { query } = await db.getSharedSearch(search);
+
+    return query
+      .join(Table.MediaInfo, ref(Table.MediaView, "id"), ref(Table.MediaInfo, "id"))
+      .join(Table.MediaFile, ref(Table.MediaFile, "id"), ref(Table.MediaInfo, "mediaFile"))
+      .join(Table.AlternateFile, ref(Table.MediaFile, "id"), ref(Table.AlternateFile, "mediaFile"))
+      .andWhere({
+        [ref(Table.MediaView, "id")]: media,
+        [ref(Table.MediaFile, "id")]: mediaFile,
+        [ref(Table.AlternateFile, "type")]: type,
+      })
+      .andWhere((qb: QueryBuilder) => {
+        void qb.where(ref(Table.AlternateFile, "mimetype"), mimetype)
+          .orWhere(ref(Table.AlternateFile, "mimetype"), "LIKE", `${mimetype};%`);
+      })
+      .select<AlternateInfo[]>(ref(Table.AlternateFile), {
+        media: ref(Table.MediaInfo, "id"),
+        catalog: ref(Table.MediaInfo, "catalog"),
+      });
+  });
+}
+
 export async function getMediaAlternates(
   this: UserScopedConnection,
   media: string,
@@ -140,6 +171,44 @@ export type MediaFileInfo = ObjectModel.MediaFile & {
   catalog: string;
   fileName: string;
 };
+
+export async function getSearchMediaFile(
+  this: DatabaseConnection,
+  search: string,
+  media: string,
+): Promise<MediaFileInfo | null> {
+  return this.inTransaction(async function getSearchMediaFile(db: DatabaseConnection) {
+    let { query } = await db.getSharedSearch(search);
+
+    let results = await query
+      .join(Table.MediaInfo, ref(Table.MediaView, "id"), ref(Table.MediaInfo, "id"))
+      .join(Table.MediaFile, ref(Table.MediaInfo, "mediaFile"), ref(Table.MediaFile, "id"))
+      .where({
+        [ref(Table.MediaView, "id")]: media,
+      })
+      .select<MediaFileInfo[]>({
+        id: ref(Table.MediaFile, "id"),
+        catalog: ref(Table.MediaInfo, "catalog"),
+        media: ref(Table.MediaFile, "media"),
+        fileName: ref(Table.MediaFile, "fileName"),
+        uploaded: ref(Table.MediaFile, "uploaded"),
+        processVersion: ref(Table.MediaFile, "processVersion"),
+        fileSize: ref(Table.MediaFile, "fileSize"),
+        mimetype: ref(Table.MediaFile, "mimetype"),
+        width: ref(Table.MediaFile, "width"),
+        height: ref(Table.MediaFile, "height"),
+        duration: ref(Table.MediaFile, "duration"),
+        frameRate: ref(Table.MediaFile, "frameRate"),
+        bitRate: ref(Table.MediaFile, "bitRate"),
+      });
+
+    if (results.length != 1) {
+      return null;
+    }
+
+    return results[0];
+  });
+}
 
 export async function getMediaFile(
   this: UserScopedConnection,

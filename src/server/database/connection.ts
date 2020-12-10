@@ -201,7 +201,7 @@ export class DatabaseConnection {
   };
 
   public clone(logger: Logger): DatabaseConnection {
-    if (this._transaction) {
+    if (this.isInTransaction) {
       throw new Error("Cannot clone while in a transaction.");
     }
 
@@ -209,7 +209,7 @@ export class DatabaseConnection {
   }
 
   public async migrate(): Promise<void> {
-    if (this._transaction) {
+    if (this.isInTransaction) {
       throw new Error("Cannot migrate while in a transaction.");
     }
 
@@ -224,10 +224,14 @@ export class DatabaseConnection {
     return new UserScopedConnection(this, user);
   }
 
+  public get isInTransaction(): boolean {
+    return !!this._transaction;
+  }
+
   public ensureTransaction<R>(...args: Named<TxnFn<DatabaseConnection, R>>): Promise<R> {
     let [name, transactionFn] = named(args);
 
-    if (this._transaction) {
+    if (this.isInTransaction) {
       return transactionFn(this);
     }
 
@@ -243,7 +247,7 @@ export class DatabaseConnection {
     try {
       let base = this._transaction ?? this._baseKnex;
       return base.transaction(async (trx: Knex.Transaction): Promise<R> => {
-        if (this._transaction) {
+        if (this.isInTransaction) {
           this.inInnerTransaction = true;
         }
         try {
@@ -285,7 +289,7 @@ export class DatabaseConnection {
   }
 
   public destroy(): Promise<void> {
-    if (this._transaction) {
+    if (this.isInTransaction) {
       throw new Error("Cannot destroy a transaction.");
     }
 
@@ -309,6 +313,11 @@ export class DatabaseConnection {
   public readonly deleteAlternateFiles = wrapped(Unsafe.deleteAlternateFiles);
   public readonly getUserForMedia = wrapped(Unsafe.getUserForMedia);
   public readonly getOldMedia = wrapped(Unsafe.getOldMedia);
+
+  public readonly getSharedSearch = wrapped(SearchQueries.getSharedSearch);
+  public readonly sharedSearch = wrapped(SearchQueries.sharedSearch);
+  public readonly getSearchMediaFile = wrapped(MediaQueries.getSearchMediaFile);
+  public readonly getSearchMediaAlternates = wrapped(MediaQueries.getSearchMediaAlternates);
 
   public readonly seed = wrapped(seed);
 

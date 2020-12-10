@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Search } from "../../model";
-import { Method, Operator } from "../../model";
+import { emptyMetadata, Method, Operator } from "../../model";
 import { mockedFunction } from "../../test-helpers";
 import fetch from "../environment/fetch";
-import { expect } from "../test-helpers";
+import { expect, mockStore } from "../test-helpers";
 import { mockResponse, callInfo } from "../test-helpers/api";
 import { Catalog, SavedSearch } from "./highlevel";
-import { createSavedSearch, editSavedSearch, deleteSavedSearch } from "./search";
+import {
+  createSavedSearch,
+  editSavedSearch,
+  deleteSavedSearch,
+  getSharedSearchResults,
+} from "./search";
 
 jest.mock("../environment/fetch");
 
@@ -130,5 +135,90 @@ test("Delete saved search", async (): Promise<void> => {
     body: [
       "testsearch1",
     ],
+  });
+});
+
+test("List public search", async (): Promise<void> => {
+  mockStore();
+
+  mockResponse(Method.SharedSearch, 200, {
+    name: "My search",
+    media: [{
+      id: "foo",
+      created: "2020-03-04T05:06:07Z",
+      updated: "2020-03-04T05:06:07Z",
+      ...emptyMetadata,
+      file: {
+        id: "test",
+        uploaded: "2020-03-04T05:06:07Z",
+        width: 200,
+        height: 300,
+        mimetype: "image/jpeg",
+        fileSize: 2000,
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+      },
+    }],
+  });
+
+  let results = await getSharedSearchResults("testsearch");
+  expect(results).toEqual({
+    name: "My search",
+    media: [{
+      id: "foo",
+      created: expect.toEqualDate("2020-03-04T05:06:07Z"),
+      updated: expect.toEqualDate("2020-03-04T05:06:07Z"),
+      ...emptyMetadata,
+      file: {
+        id: "test",
+        uploaded: expect.toEqualDate("2020-03-04T05:06:07Z"),
+        width: 200,
+        height: 300,
+        mimetype: "image/jpeg",
+        fileSize: 2000,
+        duration: null,
+        frameRate: null,
+        bitRate: null,
+        encodings: [{
+          mimetype: "image/jpeg",
+          url: "/search/testsearch/media/foo/test/encoding/image-jpeg/image.jpg",
+        }, {
+          mimetype: "image/webp",
+          url: "/search/testsearch/media/foo/test/encoding/image-webp/image.webp",
+        }],
+        thumbnails: [{
+          mimetype: "image/jpeg",
+          size: 100,
+          url: "/search/testsearch/media/foo/test/thumb/100/image-jpeg/image.jpg",
+        }, {
+          mimetype: "image/jpeg",
+          size: 200,
+          url: "/search/testsearch/media/foo/test/thumb/200/image-jpeg/image.jpg",
+        }, {
+          mimetype: "image/webp",
+          size: 100,
+          url: "/search/testsearch/media/foo/test/thumb/100/image-webp/image.webp",
+        }, {
+          mimetype: "image/webp",
+          size: 200,
+          url: "/search/testsearch/media/foo/test/thumb/200/image-webp/image.webp",
+        }],
+        url: "/search/testsearch/media/foo/test/image.jpg",
+        videoEncodings: [{
+          mimetype: "video/mp4",
+          url: "/search/testsearch/media/foo/test/encoding/video-mp4/video.mp4",
+        }],
+      },
+    }],
+  });
+
+  let info = callInfo(mockedFetch);
+  expect(info).toEqual({
+    method: "GET",
+    path: "http://pixelbin/api/search/shared?id=testsearch",
+    headers: {
+      "X-CSRFToken": "csrf-foobar",
+    },
   });
 });

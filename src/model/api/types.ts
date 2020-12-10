@@ -63,6 +63,19 @@ export type Media = Overwrite<ObjectModel.Media, {
   file: MediaFile | null;
 }>;
 
+export type SharedMedia = Overwrite<ObjectModel.SharedMedia, {
+  file: MediaFile;
+}>;
+
+export type SharedMediaWithMetadata = Overwrite<ObjectModel.SharedMediaWithMetadata, {
+  file: MediaFile;
+}>;
+
+export interface SharedSearchResults {
+  name: string;
+  media: SharedMediaWithMetadata[];
+}
+
 export interface Thumbnails {
   encodings: string[];
   sizes: number[];

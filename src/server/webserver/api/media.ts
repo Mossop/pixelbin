@@ -20,6 +20,7 @@ import type {
   MediaView,
   UserScopedConnection,
   AlternateInfo,
+  MediaFileInfo,
 } from "../../database";
 import { deleteFields } from "../../database/utils";
 import { ensureAuthenticated, ensureAuthenticatedTransaction } from "../auth";
@@ -348,7 +349,6 @@ export const updateMedia = ensureAuthenticated(
 
 async function serveAlternate(
   ctx: AppContext,
-  userDB: UserScopedConnection,
   alternate: AlternateInfo,
 ): Promise<void> {
   let storage = await ctx.storage.getStorage(alternate.catalog);
@@ -390,101 +390,128 @@ async function serveAlternate(
   }
 }
 
-export const alternate = ensureAuthenticated(
-  async (
-    ctx: AppContext,
-    userDb: UserScopedConnection,
-    id: string,
-    mediaFile: string,
-    encoding: string,
-  ): Promise<void> => {
-    let alternates = await userDb.getMediaAlternates(
+export async function alternate(
+  ctx: AppContext,
+  id: string,
+  mediaFile: string,
+  encoding: string,
+  search?: string,
+): Promise<void> {
+  let alternates: AlternateInfo[];
+  let userDb = ctx.userDb;
+  if (userDb) {
+    alternates = await userDb.getMediaAlternates(
       id,
       mediaFile,
       AlternateFileType.Reencode,
       encoding.replace(/-/, "/"),
     );
+  } else if (!search) {
+    throw new ApiError(ErrorCode.NotLoggedIn);
+  } else {
+    alternates = await ctx.dbConnection.getSearchMediaAlternates(
+      search,
+      id,
+      mediaFile,
+      AlternateFileType.Reencode,
+      encoding.replace(/-/, "/"),
+    );
+  }
 
-    if (alternates.length == 0) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Alternate file does not exist.",
-      });
-    }
+  if (alternates.length == 0) {
+    throw new ApiError(ErrorCode.NotFound, {
+      message: "Alternate file does not exist.",
+    });
+  }
 
-    return serveAlternate(ctx, userDb, alternates[0]);
-  },
-  false,
-);
+  return serveAlternate(ctx, alternates[0]);
+}
 
-export const thumbnail = ensureAuthenticated(
-  async (
-    ctx: AppContext,
-    userDb: UserScopedConnection,
-    id: string,
-    mediaFile: string,
-    encoding: string,
-    size: number,
-  ): Promise<void> => {
-    let alternates = await userDb.getMediaAlternates(
+export async function thumbnail(
+  ctx: AppContext,
+  id: string,
+  mediaFile: string,
+  encoding: string,
+  size: number,
+  search?: string,
+): Promise<void> {
+  let alternates: AlternateInfo[];
+  let userDb = ctx.userDb;
+  if (userDb) {
+    alternates = await userDb.getMediaAlternates(
       id,
       mediaFile,
       AlternateFileType.Thumbnail,
       encoding.replace(/-/, "/"),
     );
+  } else if (!search) {
+    throw new ApiError(ErrorCode.NotLoggedIn);
+  } else {
+    alternates = await ctx.dbConnection.getSearchMediaAlternates(
+      search,
+      id,
+      mediaFile,
+      AlternateFileType.Thumbnail,
+      encoding.replace(/-/, "/"),
+    );
+  }
 
-    let altSize = (alt: AlternateInfo): number => Math.max(alt.width, alt.height);
+  let altSize = (alt: AlternateInfo): number => Math.max(alt.width, alt.height);
 
-    let chosen: AlternateInfo | null = null;
-    for (let alternate of alternates) {
-      if (!chosen || Math.abs(size - altSize(chosen)) > Math.abs(size - altSize(alternate))) {
-        chosen = alternate;
-      }
+  let chosen: AlternateInfo | null = null;
+  for (let alternate of alternates) {
+    if (!chosen || Math.abs(size - altSize(chosen)) > Math.abs(size - altSize(alternate))) {
+      chosen = alternate;
     }
+  }
 
-    if (!chosen) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Thumbnail does not exist.",
-      });
-    }
+  if (!chosen) {
+    throw new ApiError(ErrorCode.NotFound, {
+      message: "Thumbnail does not exist.",
+    });
+  }
 
-    return serveAlternate(ctx, userDb, chosen);
-  },
-  false,
-);
+  return serveAlternate(ctx, chosen);
+}
 
-export const original = ensureAuthenticated(
-  async (
-    ctx: AppContext,
-    userDb: UserScopedConnection,
-    id: string,
-    mediaFile: string,
-  ): Promise<void> => {
-    let file = await userDb.getMediaFile(id);
+export async function original(
+  ctx: AppContext,
+  id: string,
+  mediaFile: string,
+  search?: string,
+): Promise<void> {
+  let file: MediaFileInfo | null;
+  let userDb = ctx.userDb;
+  if (userDb) {
+    file = await userDb.getMediaFile(id);
+  } else if (!search) {
+    throw new ApiError(ErrorCode.NotLoggedIn);
+  } else {
+    file = await ctx.dbConnection.getSearchMediaFile(search, id);
+  }
 
-    if (!file || file.id != mediaFile) {
-      throw new ApiError(ErrorCode.NotFound, {
-        message: "Media does not exist.",
-      });
-    }
+  if (!file || file.id != mediaFile) {
+    throw new ApiError(ErrorCode.NotFound, {
+      message: "Media does not exist.",
+    });
+  }
 
-    let storage = await ctx.storage.getStorage(file.catalog);
-    try {
-      let originalUrl = await storage.get().getFileUrl(
-        file.media,
-        file.id,
-        file.fileName,
-        file.mimetype,
-      );
+  let storage = await ctx.storage.getStorage(file.catalog);
+  try {
+    let originalUrl = await storage.get().getFileUrl(
+      file.media,
+      file.id,
+      file.fileName,
+      file.mimetype,
+    );
 
-      ctx.status = 302;
-      ctx.set("Cache-Control", "max-age=1314000,immutable");
-      ctx.redirect(originalUrl);
-    } finally {
-      storage.release();
-    }
-  },
-  false,
-);
+    ctx.status = 302;
+    ctx.set("Cache-Control", "max-age=1314000,immutable");
+    ctx.redirect(originalUrl);
+  } finally {
+    storage.release();
+  }
+}
 
 function isMedia(item: MediaView | null): item is MediaView {
   return !!item;
