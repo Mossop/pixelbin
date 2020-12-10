@@ -1,4 +1,4 @@
-import { RefCounted } from "../../utils";
+import { RefCounted } from "../../utils/gc";
 import { promiseEvent } from "./helpers";
 
 type ImageSource = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;

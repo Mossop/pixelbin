@@ -2,7 +2,7 @@ import type { ReactLocalization } from "@fluent/react";
 import type { Draft } from "immer";
 import React from "react";
 
-import { nameSorted } from "../../utils";
+import { nameSorted } from "../../utils/sort";
 import type { Album, Catalog, Person, SavedSearch, Tag } from "../api/highlevel";
 import AlbumIcon from "../icons/AlbumIcon";
 import AlbumsIcon from "../icons/AlbumsIcon";

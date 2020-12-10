@@ -2,7 +2,7 @@ import { castDraft } from "immer";
 
 import { Join } from "../../model";
 import { mockedFunction } from "../../test-helpers";
-import type { Obj } from "../../utils";
+import type { Obj } from "../../utils/utility";
 import { Catalog, Album, SavedSearch } from "../api/highlevel";
 import type { ServerState } from "../api/types";
 import { DialogType } from "../dialogs/types";

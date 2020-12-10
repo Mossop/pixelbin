@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { Query } from "../../model";
-import { memoized } from "../../utils";
+import { memoized } from "../../utils/memo";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
 import type { Reference } from "../api/highlevel";

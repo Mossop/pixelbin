@@ -2,7 +2,7 @@ import React from "react";
 
 import { emptyMetadata, Join, Operator, RelationType } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
-import { now } from "../../utils";
+import { now } from "../../utils/datetime";
 import { Album, Catalog } from "../api/highlevel";
 import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";

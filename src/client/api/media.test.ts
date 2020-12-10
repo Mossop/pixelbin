@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { ErrorCode, Method } from "../../model";
 import { mockedFunction } from "../../test-helpers";
-import { parseDateTime } from "../../utils";
+import { parseDateTime } from "../../utils/datetime";
 import fetch from "../environment/fetch";
 import { expect, mockMedia, mockStore } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";

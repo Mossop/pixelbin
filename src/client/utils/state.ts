@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import { memoized } from "../../utils";
+import { memoized } from "../../utils/memo";
 
 export interface FieldState<T> {
   readonly value: T;

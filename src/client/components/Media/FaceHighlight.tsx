@@ -5,7 +5,7 @@ import alpha from "color-alpha";
 import React from "react";
 
 import type { Api } from "../../../model";
-import { weakUpsert } from "../../../utils";
+import { weakUpsert } from "../../../utils/utility";
 import type { Person, Reference } from "../../api/highlevel";
 import type { MediaFileState, MediaRelations } from "../../api/types";
 import type { ReactResult } from "../../utils/types";

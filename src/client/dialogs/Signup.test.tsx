@@ -3,7 +3,7 @@ import React from "react";
 
 import { Method, ErrorCode } from "../../model";
 import { awaitCall, lastCallArgs, mockedFunction } from "../../test-helpers";
-import { parseDateTime } from "../../utils";
+import { parseDateTime } from "../../utils/datetime";
 import { request } from "../api/api";
 import {
   expect,

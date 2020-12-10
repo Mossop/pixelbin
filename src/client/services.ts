@@ -1,4 +1,5 @@
-import { defer, buildServices, serviceProvider } from "../utils";
+import { defer } from "../utils/defer";
+import { buildServices, serviceProvider } from "../utils/services";
 import type { StoreType } from "./store/types";
 
 const services = {

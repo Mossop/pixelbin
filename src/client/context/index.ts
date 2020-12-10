@@ -1,6 +1,6 @@
 import { JsonDecoder } from "ts.data.json";
 
-import { decode, MappingDecoder } from "../../utils";
+import { decode, MappingDecoder } from "../../utils/decoders";
 import { StateDecoder } from "../api/decoders";
 import type { ServerState } from "../api/types";
 import { serverStateIntoState } from "../api/types";

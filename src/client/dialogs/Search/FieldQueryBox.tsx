@@ -24,8 +24,8 @@ import {
   Operator,
   valueType,
 } from "../../../model";
-import type { DateTime } from "../../../utils";
-import { now } from "../../../utils";
+import type { DateTime } from "../../../utils/datetime";
+import { now } from "../../../utils/datetime";
 import DeleteIcon from "../../icons/DeleteIcon";
 import DragIndicatorIcon from "../../icons/DragIndicatorIcon";
 import type { ReactResult } from "../../utils/types";

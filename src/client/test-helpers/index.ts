@@ -2,8 +2,8 @@ import { expect as jestExpect } from "@jest/globals";
 import { DateTime as Luxon } from "luxon";
 
 import type { Api } from "../../model";
-import type { DateTime } from "../../utils";
-import { isDateTime, parseDateTime } from "../../utils";
+import type { DateTime } from "../../utils/datetime";
+import { isDateTime, parseDateTime } from "../../utils/datetime";
 import type { ErrorCode } from "../utils/exception";
 import { AppError } from "../utils/exception";
 

@@ -4,8 +4,8 @@ import { act } from "@testing-library/react";
 import type { Api, Query } from "../../model";
 import type { ApiSerialization, ErrorData } from "../../model/api";
 import { deferCall, DeferredCall, mockedFunction } from "../../test-helpers";
-import type { Obj } from "../../utils";
-import { isDateTime, isoDateTime } from "../../utils";
+import { isDateTime, isoDateTime } from "../../utils/datetime";
+import type { Obj } from "../../utils/utility";
 import { request } from "../api/api";
 import type {
   CatalogState,

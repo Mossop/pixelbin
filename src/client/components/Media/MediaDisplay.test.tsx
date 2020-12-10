@@ -4,7 +4,7 @@ import React from "react";
 
 import { emptyMetadata } from "../../../model";
 import { deferCall, lastCallArgs, mockedFunction } from "../../../test-helpers";
-import { now } from "../../../utils";
+import { now } from "../../../utils/datetime";
 import { Catalog, Person } from "../../api/highlevel";
 import { getMediaRelations } from "../../api/media";
 import type { MediaState } from "../../api/types";

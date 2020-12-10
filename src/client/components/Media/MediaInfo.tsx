@@ -9,7 +9,7 @@ import React, { useCallback, useMemo } from "react";
 
 import type { ObjectModel } from "../../../model";
 import { RelationType, Join, Operator } from "../../../model";
-import { formatDateTime } from "../../../utils";
+import { formatDateTime } from "../../../utils/datetime";
 import type { Reference, Album, Tag, Person } from "../../api/highlevel";
 import type {
   MediaAlbumState,

@@ -1,6 +1,6 @@
 import { buildStore } from ".";
 import type { Api, ApiSerialization } from "../../model";
-import { decode } from "../../utils";
+import { decode } from "../../utils/decoders";
 import { StateDecoder } from "../api/decoders";
 import { serverStateIntoState } from "../api/types";
 import { PageType } from "../pages/types";

@@ -2,7 +2,8 @@ import { JsonDecoder } from "ts.data.json";
 
 import type { Api } from "../../model";
 import { Orientation } from "../../model";
-import { DateDecoder, EnumDecoder, oneOf, QueryDecoder } from "../../utils";
+import { DateDecoder, EnumDecoder, oneOf } from "../../utils/decoders";
+import { QueryDecoder } from "../../utils/search";
 
 export const PersonDecoder = JsonDecoder.object<Api.Person>(
   {

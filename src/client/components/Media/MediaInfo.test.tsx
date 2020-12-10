@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 
 import { emptyMetadata, Join, Operator, RelationType } from "../../../model";
-import { parseDateTime } from "../../../utils";
+import { parseDateTime } from "../../../utils/datetime";
 import { Album, Catalog, Person, Tag } from "../../api/highlevel";
 import type { MediaRelations, ProcessedMediaState } from "../../api/types";
 import { PageType } from "../../pages/types";

@@ -4,8 +4,9 @@ import { IANAZone } from "luxon";
 import MIMEType from "whatwg-mimetype";
 
 import type { Api, ObjectModel } from "../../model";
-import type { Overwrite, DateTime } from "../../utils";
-import { hasTimezone, isoDateTime } from "../../utils";
+import type { DateTime } from "../../utils/datetime";
+import { hasTimezone, isoDateTime } from "../../utils/datetime";
+import type { Overwrite } from "../../utils/utility";
 import Services from "../services";
 import type { ReadonlyMapOf } from "../utils/maps";
 import { intoMap } from "../utils/maps";
