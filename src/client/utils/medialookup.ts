@@ -4,14 +4,13 @@ import type { Query } from "../../model";
 import { memoized } from "../../utils/memo";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
-import type { Reference } from "../api/highlevel";
-import { Catalog, SavedSearch, Album } from "../api/highlevel";
+import type { Reference, Catalog, Album } from "../api/highlevel";
+import { SavedSearch } from "../api/highlevel";
 import { getMedia } from "../api/media";
 import { searchMedia } from "../api/search";
 import type { MediaState, ServerState } from "../api/types";
 import { useSelector } from "../store";
 import type { StoreState } from "../store/types";
-import { mediaTitle } from "./metadata";
 
 export enum MediaLookupType {
   Single,
@@ -59,29 +58,13 @@ export const lookupMedia = memoized(
   async function lookupMedia(
     serverState: ServerState,
     lookup: MediaLookup,
-  ): Promise<MediaResults | null> {
+  ): Promise<readonly MediaState[] | null> {
     switch (lookup.type) {
       case MediaLookupType.Album: {
-        let album = Album.safeFromState(serverState, lookup.album.id);
-        if (!album) {
-          return null;
-        }
-
-        return {
-          title: album.name,
-          media: await listAlbumMedia(lookup.album, lookup.recursive),
-        };
+        return listAlbumMedia(lookup.album, lookup.recursive);
       }
       case MediaLookupType.Catalog: {
-        let catalog = Catalog.safeFromState(serverState, lookup.catalog.id);
-        if (!catalog) {
-          return null;
-        }
-
-        return {
-          title: catalog.name,
-          media: await listCatalogMedia(lookup.catalog),
-        };
+        return listCatalogMedia(lookup.catalog);
       }
       case MediaLookupType.Single: {
         let [media] = await getMedia([lookup.media]);
@@ -89,16 +72,10 @@ export const lookupMedia = memoized(
           return null;
         }
 
-        return {
-          title: mediaTitle(media),
-          media: [media],
-        };
+        return [media];
       }
       case MediaLookupType.Search: {
-        return {
-          title: null,
-          media: await searchMedia(lookup.catalog, lookup.query),
-        };
+        return searchMedia(lookup.catalog, lookup.query);
       }
       case MediaLookupType.SavedSearch: {
         let search = SavedSearch.safeFromState(serverState, lookup.search.id);
@@ -106,28 +83,20 @@ export const lookupMedia = memoized(
           return null;
         }
 
-        return {
-          title: search.name,
-          media: await searchMedia(search.catalog.ref(), search.query),
-        };
+        return searchMedia(search.catalog.ref(), search.query);
       }
     }
   },
 );
 
-export interface MediaResults {
-  readonly title: string | null;
-  readonly media: readonly MediaState[];
-}
-
-export function useMediaLookup(lookup: MediaLookup): MediaResults | null | undefined {
-  let [results, setResults] = useState<MediaResults | null | undefined>(undefined);
+export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | null | undefined {
+  let [results, setResults] = useState<readonly MediaState[] | null | undefined>(undefined);
   let serverState = useSelector((state: StoreState) => state.serverState);
 
   useEffect(() => {
     let cancelled = false;
 
-    lookupMedia(serverState, lookup).then((results: MediaResults | null): void => {
+    lookupMedia(serverState, lookup).then((results: readonly MediaState[] | null): void => {
       if (!cancelled) {
         setResults(results);
       }

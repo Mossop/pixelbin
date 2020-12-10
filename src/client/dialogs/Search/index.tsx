@@ -24,7 +24,7 @@ import { PageType } from "../../pages/types";
 import { useSelector } from "../../store";
 import { useActions } from "../../store/actions";
 import type { StoreState } from "../../store/types";
-import type { MediaLookup, MediaResults } from "../../utils/medialookup";
+import type { MediaLookup } from "../../utils/medialookup";
 import { MediaLookupType, lookupMedia } from "../../utils/medialookup";
 import type { ReactResult } from "../../utils/types";
 import CompoundQueryBox from "./CompoundQueryBox";
@@ -129,10 +129,12 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
   useEffect(() => {
     setSearching(true);
     let timeout = window.setTimeout(() => {
-      void lookupMedia(serverState, lookup).then((results: MediaResults | null | undefined) => {
-        setSearching(false);
-        setMedia(results?.media ?? []);
-      });
+      void lookupMedia(serverState, lookup).then(
+        (media: readonly MediaState[] | null | undefined) => {
+          setSearching(false);
+          setMedia(media ?? []);
+        },
+      );
     }, 500);
 
     return () => {

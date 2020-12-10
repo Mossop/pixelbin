@@ -1,6 +1,6 @@
 import { useLocalization } from "@fluent/react";
 import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
-import React, { useMemo } from "react";
+import React from "react";
 
 import type { MediaState } from "../../api/types";
 import type { MediaLookup } from "../../utils/medialookup";
@@ -22,6 +22,7 @@ const darkTheme = createMuiTheme({
 export interface MediaListPageProps {
   onMediaClick: (media: MediaState) => void;
   onCloseMedia: () => void;
+  galleryTitle: string;
   lookup: MediaLookup;
   selectedMedia?: string;
   selectedItem?: string;
@@ -31,21 +32,16 @@ export interface MediaListPageProps {
 export default function MediaListPage({
   onMediaClick,
   onCloseMedia,
+  galleryTitle,
   lookup,
   selectedMedia,
   selectedItem,
   pageOptions,
 }: MediaListPageProps): ReactResult {
   let { l10n } = useLocalization();
-  let mediaResults = useMediaLookup(lookup);
-  let title = useMemo(() => {
-    if (!mediaResults) {
-      return l10n.getString("loading-title");
-    }
-    return mediaResults.title ?? "";
-  }, [l10n, mediaResults]);
+  let media = useMediaLookup(lookup);
 
-  if (mediaResults === null) {
+  if (media === null) {
     return <Page
       title={l10n.getString("notfound-page-title")}
       selectedItem={selectedItem}
@@ -54,16 +50,16 @@ export default function MediaListPage({
   }
 
   return <Page
-    title={title}
+    title={galleryTitle}
     selectedItem={selectedItem}
     pageOptions={pageOptions}
     overlay={
       selectedMedia &&
       <ThemeProvider theme={darkTheme}>
         {
-          mediaResults
+          media
             ? <MediaDisplay
-              media={mediaResults.media}
+              media={media}
               selectedMedia={selectedMedia}
               onChangeMedia={onMediaClick}
               onCloseMedia={onCloseMedia}
@@ -74,9 +70,9 @@ export default function MediaListPage({
     }
   >
     {
-      mediaResults
+      media
         ? <Content>
-          <MediaGallery media={mediaResults.media} onClick={onMediaClick}/>
+          <MediaGallery media={media} onClick={onMediaClick}/>
         </Content>
         : <Loading height="100%" width="100%"/>
     }

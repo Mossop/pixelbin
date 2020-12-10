@@ -85,6 +85,7 @@ export default function SearchPage({
 
   return <MediaListPage
     lookup={lookup}
+    galleryTitle={l10n.getString("search-page-title")}
     selectedMedia={selectedMedia}
     onMediaClick={onMediaClick}
     onCloseMedia={onCloseMedia}

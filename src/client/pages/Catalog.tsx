@@ -5,6 +5,7 @@ import React, { useCallback, useMemo } from "react";
 import type { Search } from "../../model";
 import { Join } from "../../model";
 import type { Catalog, Reference } from "../api/highlevel";
+import { useReference } from "../api/highlevel";
 import type { MediaState } from "../api/types";
 import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
@@ -24,50 +25,51 @@ export interface CatalogPageProps {
 }
 
 export default function CatalogPage({
-  catalog,
+  catalog: catalogRef,
   selectedMedia,
 }: CatalogPageProps & AuthenticatedPageProps): ReactResult {
   let { l10n } = useLocalization();
   let actions = useActions();
+  let catalog = useReference(catalogRef);
 
   let onAlbumCreate = useCallback(
     () => actions.showDialog({
       type: DialogType.AlbumCreate,
-      parent: catalog,
+      parent: catalogRef,
     }),
-    [catalog, actions],
+    [catalogRef, actions],
   );
 
   let lookup = useMemo<CatalogMediaLookup>(() => ({
     type: MediaLookupType.Catalog,
-    catalog: catalog,
-  }), [catalog]);
+    catalog: catalogRef,
+  }), [catalogRef]);
 
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
         type: PageType.Catalog,
-        catalog,
+        catalog: catalogRef,
         selectedMedia: media.id,
       },
     });
-  }, [actions, catalog]);
+  }, [actions, catalogRef]);
 
   let onCloseMedia = useCallback(() => {
     actions.navigate({
       page: {
         type: PageType.Catalog,
-        catalog,
+        catalog: catalogRef,
       },
     });
-  }, [actions, catalog]);
+  }, [actions, catalogRef]);
 
   let onCatalogEdit = useCallback(
     () => actions.showDialog({
       type: DialogType.CatalogEdit,
-      catalog: catalog,
+      catalog: catalogRef,
     }),
-    [catalog, actions],
+    [catalogRef, actions],
   );
 
   let onCatalogSearch = useCallback(() => {
@@ -80,13 +82,14 @@ export default function CatalogPage({
 
     actions.showDialog({
       type: DialogType.Search,
-      catalog: catalog,
+      catalog: catalogRef,
       query,
     });
-  }, [actions, catalog]);
+  }, [actions, catalogRef]);
 
   return <MediaListPage
-    selectedItem={catalog.id}
+    galleryTitle={catalog.name}
+    selectedItem={catalogRef.id}
     selectedMedia={selectedMedia}
     lookup={lookup}
     onMediaClick={onMediaClick}

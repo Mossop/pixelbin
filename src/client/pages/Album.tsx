@@ -109,6 +109,7 @@ export default function AlbumPage({
 
   return <MediaListPage
     lookup={lookup}
+    galleryTitle={album.name}
     selectedMedia={selectedMedia}
     selectedItem={albumRef.id}
     onMediaClick={onMediaClick}

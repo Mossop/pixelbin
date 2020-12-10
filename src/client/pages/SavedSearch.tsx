@@ -70,6 +70,7 @@ export default function SavedSearchPage({
 
   return <MediaListPage
     lookup={lookup}
+    galleryTitle={savedSearch.name}
     selectedItem={savedSearch.id}
     selectedMedia={selectedMedia}
     onMediaClick={onMediaClick}
