@@ -74,7 +74,7 @@ export default function MediaListPage({
         ? <Content>
           <MediaGallery media={media} onClick={onMediaClick}/>
         </Content>
-        : <Loading height="100%" width="100%"/>
+        : <Loading flexGrow={1}/>
     }
 
   </Page>;

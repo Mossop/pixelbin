@@ -41,6 +41,10 @@ const useStyles = makeStyles(() =>
     },
     content: {
       flexGrow: 1,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "start",
+      alignItems: "stretch",
     },
     overlay: {
       position: "absolute",
