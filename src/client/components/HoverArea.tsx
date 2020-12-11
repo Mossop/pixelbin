@@ -4,6 +4,7 @@ import React, {
   forwardRef,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -42,6 +43,8 @@ export const HoverContainer = forwardRef(
       }
       return delayed;
     }, [initial, timeout]);
+
+    useEffect(() => () => delayed.cancel());
 
     let markHovered = useCallback(() => {
       setHovered(true);

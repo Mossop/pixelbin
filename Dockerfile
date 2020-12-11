@@ -7,7 +7,8 @@ RUN \
   apk add --no-cache --virtual builddeps git python3 build-base && \
   cd /pixelbin && \
   npm install && \
-  npm run build && \
+  npm run buildStatic buildServer && \
+  node ./ci/webpack.js && \
   npm prune --production && \
   npm dedupe && \
   apk del --no-network builddeps && \
