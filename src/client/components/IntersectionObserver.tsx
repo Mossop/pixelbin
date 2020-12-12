@@ -42,7 +42,7 @@ class IntersectionListener {
 const IntersectionContext = createContext<IntersectionListener | null>(null);
 
 export interface IntersectionRootProps {
-  root?: Element;
+  root?: Element | null;
   margin?: string;
   threshold?: number | number[];
   children: React.ReactNode;
@@ -54,11 +54,17 @@ export function IntersectionRoot({
   threshold,
   children,
 }: IntersectionRootProps): ReactResult {
-  let listener = useMemo(() => new IntersectionListener({
-    root,
-    rootMargin: margin,
-    threshold,
-  }), [root, margin, threshold]);
+  let listener = useMemo(() => {
+    if (root === null) {
+      return null;
+    }
+
+    return new IntersectionListener({
+      root,
+      rootMargin: margin,
+      threshold,
+    });
+  }, [root, margin, threshold]);
 
   return <IntersectionContext.Provider value={listener}>
     {children}

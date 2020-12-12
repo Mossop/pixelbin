@@ -18,6 +18,7 @@ import type { Query, Search } from "../../../model";
 import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
 import type { Catalog, Reference } from "../../api/highlevel";
 import type { MediaState, ServerState } from "../../api/types";
+import { IntersectionRoot, MountOnIntersect } from "../../components/IntersectionObserver";
 import Loading from "../../components/Loading";
 import MediaPreview from "../../components/Media/MediaPreview";
 import { PageType } from "../../pages/types";
@@ -54,6 +55,7 @@ const useStyles = makeStyles((theme: Theme) =>
       paddingLeft: theme.spacing(1),
     },
     results: {
+      flex: 1,
       display: "flex",
       flexDirection: "column",
       minHeight: 256,
@@ -69,13 +71,29 @@ const useStyles = makeStyles((theme: Theme) =>
       background: "rgba(0, 0, 0, 0.5)",
       borderRadius: 8,
     },
-    previews: {
-      overflowX: "auto",
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "stretch",
-      justifyContent: "flex-start",
-      padding: theme.spacing(1),
+    previewArea: (thumbnailSize: number) => {
+      let itemWidth = theme.spacing(4) + thumbnailSize;
+      return {
+        overflowY: "auto",
+        maxHeight: itemWidth,
+      };
+    },
+    previews: (thumbnailSize: number) => {
+      let itemWidth = theme.spacing(4) + thumbnailSize;
+      return {
+        padding: theme.spacing(1),
+        display: "grid",
+        gridAutoRows: "1fr",
+        gridTemplateColumns: `repeat(auto-fill, ${itemWidth}px)`,
+        gridGap: theme.spacing(1),
+        gap: theme.spacing(1),
+      };
+    },
+    preview: (thumbnailSize: number) => {
+      return {
+        minHeight: thumbnailSize + theme.spacing(2),
+        minWidth: thumbnailSize,
+      };
     },
   }));
 
@@ -85,14 +103,15 @@ export interface SearchDialogProps {
 }
 
 export default function SearchDialog({ catalog, query }: SearchDialogProps): ReactResult {
-  let classes = useStyles();
+  let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
+  let classes = useStyles(thumbnailSize);
   let { l10n } = useLocalization();
   let actions = useActions();
   let [open, setOpen] = useState(true);
   let [searching, setSearching] = useState(true);
   let [media, setMedia] = useState<readonly MediaState[]>([]);
+  let [resultsArea, setResultsArea] = useState<HTMLDivElement | null>(null);
 
-  let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
   let serverState = useSelector((state: StoreState): ServerState => state.serverState);
 
   let baseQuery = useMemo<Search.CompoundQuery>(() => {
@@ -201,15 +220,23 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
               })
             }
           </Typography>
-          <Box className={classes.previews}>
-            {
-              media.map((item: MediaState) => <MediaPreview
-                key={item.id}
-                media={item}
-                thumbnailSize={thumbnailSize}
-              />)
-            }
-          </Box>
+          <div className={classes.previewArea} ref={setResultsArea}>
+            <IntersectionRoot root={resultsArea} margin={`${thumbnailSize}px 0px`}>
+              <Box className={classes.previews}>
+                {
+                  media.map((item: MediaState) => <MountOnIntersect
+                    key={item.id}
+                    className={classes.preview}
+                  >
+                    <MediaPreview
+                      media={item}
+                      thumbnailSize={thumbnailSize}
+                    />
+                  </MountOnIntersect>)
+                }
+              </Box>
+            </IntersectionRoot>
+          </div>
           <Fade in={searching}>
             <Loading className={classes.resultsLoading}/>
           </Fade>

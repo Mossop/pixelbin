@@ -104,6 +104,7 @@ export default function MediaPreview<T extends BaseMediaState>({
     key={media.id}
     className={classes.preview}
     onClick={click}
+    elevation={3}
   >
     <CardContent>
       {
