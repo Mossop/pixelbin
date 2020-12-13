@@ -63,7 +63,7 @@ export function nullIfEmpty(val: string | null): string | null {
 export function upsert<
   Key,
   Value,
-  M extends Map<Key, Value>,
+  M extends Map<Key, Value> = Map<Key, Value>,
 >(map: M, key: Key, gen: () => Value): Value {
   if (map.has(key)) {
     // @ts-ignore
@@ -78,7 +78,7 @@ export function upsert<
 export function weakUpsert<
   Key extends Obj,
   Value,
-  M extends WeakMap<Key, Value>,
+  M extends WeakMap<Key, Value> = WeakMap<Key, Value>,
 >(map: M, key: Key, gen: () => Value): Value {
   if (map.has(key)) {
     // @ts-ignore

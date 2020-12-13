@@ -10,7 +10,7 @@ import SavedSearchDeleteIcon from "../icons/SavedSearchDeleteIcon";
 import SavedSearchEditIcon from "../icons/SavedSearchEditIcon";
 import { useActions } from "../store/actions";
 import type { SavedSearchMediaLookup } from "../utils/medialookup";
-import { MediaLookupType } from "../utils/medialookup";
+import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import { PageType } from "./types";
 
@@ -32,6 +32,8 @@ export default function SavedSearchPage({
     type: MediaLookupType.SavedSearch,
     search,
   }), [search]);
+
+  let media = useMediaLookup(lookup);
 
   let onSearchEdit = useCallback(
     () => actions.showDialog({
@@ -69,7 +71,7 @@ export default function SavedSearchPage({
   }, [actions, search]);
 
   return <MediaListPage
-    lookup={lookup}
+    media={media}
     galleryTitle={savedSearch.name}
     selectedItem={savedSearch.id}
     selectedMedia={selectedMedia}

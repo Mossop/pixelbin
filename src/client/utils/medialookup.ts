@@ -95,6 +95,7 @@ export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | nul
 
   useEffect(() => {
     let cancelled = false;
+    setResults(undefined);
 
     lookupMedia(serverState, lookup).then((results: readonly MediaState[] | null): void => {
       if (!cancelled) {

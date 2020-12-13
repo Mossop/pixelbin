@@ -1,10 +1,10 @@
 import { useLocalization } from "@fluent/react";
 import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
-import React from "react";
+import React, { useMemo } from "react";
 
-import type { MediaState } from "../../api/types";
-import type { MediaLookup } from "../../utils/medialookup";
-import { useMediaLookup } from "../../utils/medialookup";
+import type { BaseMediaState } from "../../api/types";
+import type { MediaGroup } from "../../utils/sort";
+import { groupMedia, Grouping, Ordering } from "../../utils/sort";
 import type { ReactResult } from "../../utils/types";
 import type { PageOption } from "../Banner";
 import Content from "../Content";
@@ -19,27 +19,56 @@ const darkTheme = createMuiTheme({
   },
 });
 
-export interface MediaListPageProps {
-  onMediaClick: (media: MediaState) => void;
+export interface MediaListPageProps<T extends BaseMediaState> {
+  onMediaClick: (media: T) => void;
   onCloseMedia: () => void;
   galleryTitle: string;
-  lookup: MediaLookup;
+  media: readonly T[] | null | undefined;
   selectedMedia?: string;
   selectedItem?: string;
   pageOptions?: PageOption[];
 }
 
-export default function MediaListPage({
+export default function MediaListPage<T extends BaseMediaState>({
   onMediaClick,
   onCloseMedia,
   galleryTitle,
-  lookup,
+  media,
   selectedMedia,
   selectedItem,
   pageOptions,
-}: MediaListPageProps): ReactResult {
+}: MediaListPageProps<T>): ReactResult {
   let { l10n } = useLocalization();
-  let media = useMediaLookup(lookup);
+
+  let {
+    mediaGroups,
+    orderedMedia,
+  } = useMemo(() => {
+    if (!media) {
+      return {
+        mediaGroups: null,
+        orderedMedia: null,
+      };
+    }
+
+    let mediaGroups = groupMedia(
+      Grouping.Year,
+      false,
+      Ordering.Date,
+      false,
+      media,
+    );
+
+    let orderedMedia: T[] = [];
+    orderedMedia = orderedMedia.concat(
+      ...mediaGroups.map((group: MediaGroup<T>): T[] => group.media),
+    );
+
+    return {
+      mediaGroups,
+      orderedMedia,
+    };
+  }, [media]);
 
   if (media === null) {
     return <Page
@@ -57,9 +86,9 @@ export default function MediaListPage({
       selectedMedia &&
       <ThemeProvider theme={darkTheme}>
         {
-          media
+          orderedMedia
             ? <MediaDisplay
-              media={media}
+              media={orderedMedia}
               selectedMedia={selectedMedia}
               onChangeMedia={onMediaClick}
               onCloseMedia={onCloseMedia}
@@ -70,9 +99,9 @@ export default function MediaListPage({
     }
   >
     {
-      media
+      mediaGroups
         ? <Content>
-          <MediaGallery media={media} onClick={onMediaClick}/>
+          <MediaGallery groups={mediaGroups} onClick={onMediaClick}/>
         </Content>
         : <Loading flexGrow={1}/>
     }

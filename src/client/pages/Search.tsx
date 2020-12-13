@@ -11,7 +11,7 @@ import SearchEditIcon from "../icons/SearchEditIcon";
 import SearchSaveIcon from "../icons/SearchSaveIcon";
 import { useActions } from "../store/actions";
 import type { SearchMediaLookup } from "../utils/medialookup";
-import { MediaLookupType } from "../utils/medialookup";
+import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
@@ -35,6 +35,8 @@ export default function SearchPage({
     catalog,
     query,
   }), [catalog, query]);
+
+  let media = useMediaLookup(lookup);
 
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
@@ -84,7 +86,7 @@ export default function SearchPage({
   }, [actions, catalog, query]);
 
   return <MediaListPage
-    lookup={lookup}
+    media={media}
     galleryTitle={l10n.getString("search-page-title")}
     selectedMedia={selectedMedia}
     onMediaClick={onMediaClick}

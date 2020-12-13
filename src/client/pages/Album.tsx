@@ -16,7 +16,7 @@ import { useSelector } from "../store";
 import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
 import type { AlbumMediaLookup } from "../utils/medialookup";
-import { MediaLookupType } from "../utils/medialookup";
+import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
@@ -64,6 +64,8 @@ export default function AlbumPage({
     recursive: true,
   }), [albumRef]);
 
+  let media = useMediaLookup(lookup);
+
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
       page: {
@@ -108,7 +110,7 @@ export default function AlbumPage({
   }, [actions, album]);
 
   return <MediaListPage
-    lookup={lookup}
+    media={media}
     galleryTitle={album.name}
     selectedMedia={selectedMedia}
     selectedItem={albumRef.id}

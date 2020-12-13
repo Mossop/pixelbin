@@ -112,10 +112,6 @@ export async function listMediaInCatalog(
 
     let media: MediaView[] = await mediaView(this.knex)
       .where(ref(Table.MediaView, "catalog"), id)
-      .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-        ref(Table.MediaView, "taken"),
-        ref(Table.MediaView, "created"),
-      ]))
       .select(ref(Table.MediaView));
     timeLogger("query");
 
@@ -207,10 +203,6 @@ export const listMediaInAlbum = ensureUserTransaction(async function listMediaIn
     }
 
     let found: MediaView[] = await media
-      .orderByRaw(this.raw("COALESCE(??, ??) DESC", [
-        ref(Table.MediaView, "taken"),
-        ref(Table.MediaView, "created"),
-      ]))
       .select(ref(Table.MediaView));
     return found.map(applyTimeZoneFields);
   }, Level.Trace, 200, "Listed media in album.");

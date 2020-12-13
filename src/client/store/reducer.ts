@@ -1,6 +1,7 @@
 import { reducer } from "deeds/immer";
 import type { Draft } from "immer";
 
+import { nameSorted } from "../../utils/sort";
 import type { Reference } from "../api/highlevel";
 import { SavedSearch, Catalog, Album } from "../api/highlevel";
 import type {
@@ -15,7 +16,6 @@ import type { DialogState } from "../dialogs/types";
 import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
-import { nameSorted } from "../utils/sort";
 import type { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
@@ -183,7 +183,7 @@ const authReducers = {
     state.serverState = createDraft(serverState);
 
     if (serverState.user) {
-      let catalogs = nameSorted(serverState.user.catalogs);
+      let catalogs = nameSorted([...serverState.user.catalogs.values()]);
       if (catalogs.length) {
         state.ui = {
           page: {

@@ -1,6 +1,6 @@
+import { nameSorted } from "../../utils/sort";
 import { mockServerState, expect, fixedState } from "../test-helpers";
 import { ErrorCode } from "../utils/exception";
-import { nameSorted } from "../utils/sort";
 import {
   catalogs,
   Catalog,

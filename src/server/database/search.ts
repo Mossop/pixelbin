@@ -183,20 +183,14 @@ function buildSearch(
   let builder = mediaView(knex)
     .where(ref(Table.MediaView, "catalog"), catalog);
 
-  builder = applyQuery(
+  return applyQuery(
     knex,
     builder,
     catalog,
     Table.MediaView,
     Join.And,
     query,
-  );
-
-  return builder
-    .orderByRaw(knex.raw("COALESCE(??, ??) DESC", [
-      ref(Table.MediaView, "taken"),
-      ref(Table.MediaView, "created"),
-    ])) as Knex.QueryBuilder<MediaView, MediaView[]>;
+  ) as Knex.QueryBuilder<MediaView, MediaView[]>;
 }
 
 interface SharedSearch {

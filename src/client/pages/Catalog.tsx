@@ -14,7 +14,7 @@ import CatalogEditIcon from "../icons/CatalogEditIcon";
 import SearchIcon from "../icons/SearchIcon";
 import { useActions } from "../store/actions";
 import type { CatalogMediaLookup } from "../utils/medialookup";
-import { MediaLookupType } from "../utils/medialookup";
+import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
@@ -44,6 +44,8 @@ export default function CatalogPage({
     type: MediaLookupType.Catalog,
     catalog: catalogRef,
   }), [catalogRef]);
+
+  let media = useMediaLookup(lookup);
 
   let onMediaClick = useCallback((media: MediaState): void => {
     actions.navigate({
@@ -91,7 +93,7 @@ export default function CatalogPage({
     galleryTitle={catalog.name}
     selectedItem={catalogRef.id}
     selectedMedia={selectedMedia}
-    lookup={lookup}
+    media={media}
     onMediaClick={onMediaClick}
     onCloseMedia={onCloseMedia}
     pageOptions={
