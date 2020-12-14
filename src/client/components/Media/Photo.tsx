@@ -11,6 +11,10 @@ const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     media: {
       position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       height: "100%",
       width: "100%",
       objectPosition: "center center",
@@ -34,10 +38,12 @@ const useStyles = makeStyles((theme: Theme) =>
 export interface PhotoProps {
   mediaFile: MediaFileState;
   children?: React.ReactNode;
+  onLoad: () => void;
 }
 
 export function Photo({
   mediaFile,
+  onLoad,
   children,
 }: PhotoProps): ReactResult {
   let classes = useStyles();
@@ -74,6 +80,7 @@ export function Photo({
         id="media-fallback"
         src={fallback.url}
         className={classes.media}
+        onLoad={onLoad}
       />
     </picture>
     <HoverArea>

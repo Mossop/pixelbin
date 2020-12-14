@@ -1,4 +1,5 @@
 import Drawer from "@material-ui/core/Drawer";
+import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
@@ -32,6 +33,20 @@ const useStyles = makeStyles((theme: Theme) =>
       alignItems: "stretch",
       justifyContent: "stretch",
     },
+    loading: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    media: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
     overlayButton: {
       "marginRight": theme.spacing(1),
       "fontSize": "2rem",
@@ -59,10 +74,14 @@ export default function MediaDisplay<T extends BaseMediaState>({
     return media.findIndex((media: T): boolean => media.id == selectedMedia);
   }, [media, selectedMedia]);
 
+  let [loaded, setLoaded] = useState(false);
+  let onLoad = useCallback(() => setLoaded(true), []);
+
   let onPrevious = useMemo(() => {
     if (mediaIndex <= 0) {
       return null;
     }
+    setLoaded(false);
     return () => onChangeMedia(media[mediaIndex - 1]);
   }, [media, onChangeMedia, mediaIndex]);
 
@@ -70,6 +89,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
     if (mediaIndex < 0 || mediaIndex >= media.length - 1) {
       return null;
     }
+    setLoaded(false);
     return () => onChangeMedia(media[mediaIndex + 1]);
   }, [media, onChangeMedia, mediaIndex]);
 
@@ -137,19 +157,17 @@ export default function MediaDisplay<T extends BaseMediaState>({
     </IconButton>
   </React.Fragment>;
 
-  let content: React.ReactNode = null;
+  let content: React.ReactElement | undefined = undefined;
   if (isProcessed(mediaToShow)) {
     if (mediaToShow.file.mimetype.startsWith("video/")) {
-      content = <Video mediaFile={mediaToShow.file}>
+      content = <Video mediaFile={mediaToShow.file} key={mediaToShow.id} onLoad={onLoad}>
         {mediaControls}
       </Video>;
     } else {
-      content = <Photo mediaFile={mediaToShow.file}>
+      content = <Photo mediaFile={mediaToShow.file} key={mediaToShow.id} onLoad={onLoad}>
         {mediaControls}
       </Photo>;
     }
-  } else {
-    content = <Loading/>;
   }
 
   return <HoverContainer
@@ -158,7 +176,15 @@ export default function MediaDisplay<T extends BaseMediaState>({
     ref={areaRef}
     initial={true}
   >
-    {content}
+    {
+      !loaded &&
+      <Loading className={classes.loading}/>
+    }
+    <Fade in={loaded} timeout={500}>
+      <div className={classes.media}>
+        {content}
+      </div>
+    </Fade>
     {
       personHighlight && isProcessed(mediaToShow) &&
       <FaceHighlight

@@ -14,6 +14,10 @@ const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     media: {
       position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       height: "100%",
       width: "100%",
       objectPosition: "center center",
@@ -75,11 +79,13 @@ interface VideoState {
 
 export interface VideoProps {
   mediaFile: MediaFileState;
+  onLoad: () => void;
   children?: React.ReactNode;
 }
 
 export function Video({
   mediaFile,
+  onLoad,
   children,
 }: VideoProps): ReactResult {
   let classes = useStyles();
@@ -136,6 +142,7 @@ export function Video({
       onProgress={updateState}
       onTimeUpdate={updateState}
       onClick={videoState.playing ? pause : play}
+      onLoadedData={onLoad}
     >
       {
         mediaFile.videoEncodings.map((encoding: Encoding) => <source
