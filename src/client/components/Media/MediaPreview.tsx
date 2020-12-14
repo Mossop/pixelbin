@@ -1,6 +1,5 @@
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
 import Fade from "@material-ui/core/Fade";
+import Paper from "@material-ui/core/Paper";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import React, { useCallback, useState } from "react";
@@ -8,6 +7,7 @@ import React, { useCallback, useState } from "react";
 import type { BaseMediaState, MediaFileState } from "../../api/types";
 import { isProcessed } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
+import { MountOnIntersect } from "../IntersectionObserver";
 import Loading from "../Loading";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -17,17 +17,30 @@ const useStyles = makeStyles((theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "flex-start",
-      paddingTop: theme.spacing(1),
-      paddingBottom: theme.spacing(1),
+      padding: theme.spacing(2),
     },
-    thumbnail: (thumbnailSize: number) => {
-      return {
-        display: "block",
-        objectFit: "contain",
-        objectPosition: "center center",
-        width: `${thumbnailSize}px`,
-        height: `${thumbnailSize}px`,
-      };
+    thumbnailOuter: {
+      width: "100%",
+      paddingTop: "100%",
+      position: "relative",
+    },
+    thumbnailInner: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+    },
+    thumbnailContainer: {
+      height: "100%",
+      width: "100%",
+    },
+    thumbnail: {
+      display: "block",
+      objectFit: "contain",
+      objectPosition: "center center",
+      width: "100%",
+      height: "100%",
     },
   }));
 
@@ -100,18 +113,20 @@ export default function MediaPreview<T extends BaseMediaState>({
     }
   }, [onClick, media]);
 
-  return <Card
+  return <Paper
     key={media.id}
     className={classes.preview}
     onClick={click}
     elevation={3}
   >
-    <CardContent>
+    <div className={classes.thumbnailOuter}>
       {
         isProcessed(media)
-          ? <Thumbnail mediaFile={media.file} size={thumbnailSize}/>
-          : <Loading width={thumbnailSize} height={thumbnailSize}/>
+          ? <MountOnIntersect className={classes.thumbnailInner}>
+            <Thumbnail mediaFile={media.file} size={thumbnailSize}/>
+          </MountOnIntersect>
+          : <Loading className={classes.thumbnailInner}/>
       }
-    </CardContent>
-  </Card>;
+    </div>
+  </Paper>;
 }

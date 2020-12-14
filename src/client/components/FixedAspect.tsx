@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 
 import { useElementSize } from "../utils/hooks";
 import type { ReactChildren, ReactResult } from "../utils/types";
@@ -13,8 +13,8 @@ export default function FixedAspect({
   style = {},
   ...boxProps
 }: FixedAspectProps & ReactChildren): ReactResult {
-  let ref = useRef<HTMLDivElement>(null);
-  let elementSize = useElementSize(ref);
+  let [element, setElement] = useState<HTMLDivElement | null>(null);
+  let elementSize = useElementSize(element);
 
   if (!elementSize) {
     return <div
@@ -25,7 +25,7 @@ export default function FixedAspect({
           ...style,
         }
       }
-      ref={ref}
+      ref={setElement}
     />;
   }
 
@@ -51,7 +51,7 @@ export default function FixedAspect({
         ...style,
       }
     }
-    ref={ref}
+    ref={setElement}
   >
     <div
       style={

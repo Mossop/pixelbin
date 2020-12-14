@@ -1,5 +1,4 @@
-import type { MutableRefObject } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 
 import { document, window } from "../environment";
 
@@ -108,18 +107,32 @@ function observedSize(size: ObservedSize | ResizeObserverSize): ObservedSize {
   return size;
 }
 
-export function useElementSize(ref: MutableRefObject<Element | null>): Size | null {
-  let [elementSize, setElementSize] = useState<Size | null>(null);
+const initialSize = "ResizeObserver" in window ? undefined : null;
+export function useElementSize(element: Element | null | undefined): Size | null | undefined {
+  let [elementSize, setElementSize] = useState<Size | null | undefined>(initialSize);
 
-  let observer = useMemo((): ResizeObserver | null => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!("ResizeObserver" in window)) {
-      return null;
+  let size = useRef<{ width: number; height: number } | undefined>(undefined);
+
+  let setSize = useCallback((width: number, height: number): void => {
+    if (!size.current || size.current.width != width || size.current.height != height) {
+      size.current = {
+        width,
+        height,
+      };
+      setElementSize(size.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    let observer: ResizeObserver | undefined = undefined;
+
+    if (!("ResizeObserver" in window) || !element) {
+      return;
     }
 
-    return new window.ResizeObserver((entries: readonly ResizeObserverEntry[]) => {
+    observer = new ResizeObserver((entries: readonly ResizeObserverEntry[]) => {
       for (let { target, borderBoxSize } of entries) {
-        if (target == ref.current) {
+        if (target == element) {
           borderBoxSize = observedSize(borderBoxSize);
           if (!borderBoxSize) {
             continue;
@@ -130,43 +143,79 @@ export function useElementSize(ref: MutableRefObject<Element | null>): Size | nu
             blockSize: height,
           } = borderBoxSize[0];
 
-          if (elementSize && width == elementSize.width && height == elementSize.height) {
-            return;
-          }
-
-          setElementSize({
-            width,
-            height,
-          });
-
+          setSize(width, height);
           return;
         }
       }
     });
-  }, [elementSize, ref]);
 
-  useEffect(() => {
-    let { current } = ref;
-    if (current) {
-      if (!elementSize) {
-        let { width, height } = current.getBoundingClientRect();
-        setElementSize({ width, height });
-        return;
-      }
+    observer.observe(element, {
+      box: "border-box",
+    });
 
-      if (observer) {
-        observer.observe(current, {
-          box: "border-box",
-        });
-      }
-    }
+    let { width, height } = element.getBoundingClientRect();
+    setElementSize({ width, height });
 
     return () => {
-      if (current && observer) {
-        observer.unobserve(current);
+      if (observer) {
+        observer.disconnect();
       }
     };
-  }, [elementSize, observer, ref]);
+  }, [element, setSize]);
 
   return elementSize;
+}
+
+export function useElementWidth(element: Element | null | undefined): number | null | undefined {
+  let [elementWidth, setElementWidth] = useState<number | null | undefined>(initialSize);
+
+  let width = useRef<number | undefined>(undefined);
+
+  let setWidth = useCallback((newWidth: number): void => {
+    if (width.current != newWidth) {
+      width.current = newWidth;
+      setElementWidth(newWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    let observer: ResizeObserver | undefined = undefined;
+
+    if (!("ResizeObserver" in window) || !element) {
+      return;
+    }
+
+    observer = new ResizeObserver((entries: readonly ResizeObserverEntry[]) => {
+      for (let { target, borderBoxSize } of entries) {
+        if (target == element) {
+          borderBoxSize = observedSize(borderBoxSize);
+          if (!borderBoxSize) {
+            continue;
+          }
+
+          let {
+            inlineSize: width,
+          } = borderBoxSize[0];
+
+          setWidth(width);
+          return;
+        }
+      }
+    });
+
+    observer.observe(element, {
+      box: "border-box",
+    });
+
+    let { width } = element.getBoundingClientRect();
+    setElementWidth(width);
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [element, setWidth]);
+
+  return elementWidth;
 }

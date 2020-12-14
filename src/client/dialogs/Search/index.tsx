@@ -18,9 +18,9 @@ import type { Query, Search } from "../../../model";
 import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
 import type { Catalog, Reference } from "../../api/highlevel";
 import type { MediaState, ServerState } from "../../api/types";
-import { IntersectionRoot, MountOnIntersect } from "../../components/IntersectionObserver";
+import { IntersectionRoot } from "../../components/IntersectionObserver";
 import Loading from "../../components/Loading";
-import MediaPreview from "../../components/Media/MediaPreview";
+import PreviewGrid from "../../components/Media/PreviewGrid";
 import { PageType } from "../../pages/types";
 import { useSelector } from "../../store";
 import { useActions } from "../../store/actions";
@@ -78,22 +78,8 @@ const useStyles = makeStyles((theme: Theme) =>
         maxHeight: itemWidth,
       };
     },
-    previews: (thumbnailSize: number) => {
-      let itemWidth = theme.spacing(4) + thumbnailSize;
-      return {
-        padding: theme.spacing(1),
-        display: "grid",
-        gridAutoRows: "1fr",
-        gridTemplateColumns: `repeat(auto-fill, ${itemWidth}px)`,
-        gridGap: theme.spacing(1),
-        gap: theme.spacing(1),
-      };
-    },
-    preview: (thumbnailSize: number) => {
-      return {
-        minHeight: thumbnailSize + theme.spacing(2),
-        minWidth: thumbnailSize,
-      };
+    previews: {
+      padding: theme.spacing(1),
     },
   }));
 
@@ -221,20 +207,8 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
             }
           </Typography>
           <div className={classes.previewArea} ref={setResultsArea}>
-            <IntersectionRoot root={resultsArea} margin={`${thumbnailSize}px 0px`}>
-              <Box className={classes.previews}>
-                {
-                  media.map((item: MediaState) => <MountOnIntersect
-                    key={item.id}
-                    className={classes.preview}
-                  >
-                    <MediaPreview
-                      media={item}
-                      thumbnailSize={thumbnailSize}
-                    />
-                  </MountOnIntersect>)
-                }
-              </Box>
+            <IntersectionRoot root={resultsArea} margin="250px 0px">
+              <PreviewGrid media={media} className={classes.previews}/>
             </IntersectionRoot>
           </div>
           <Fade in={searching}>
