@@ -57,7 +57,7 @@ const useStyles = makeStyles((theme: Theme) =>
   }));
 
 export interface MediaDisplayProps<T extends BaseMediaState> {
-  media: readonly T[];
+  media: readonly T[] | null;
   selectedMedia: string;
   onChangeMedia: (media: T) => void;
   onCloseMedia: () => void;
@@ -71,6 +71,10 @@ export default function MediaDisplay<T extends BaseMediaState>({
 }: MediaDisplayProps<T>): ReactResult {
   let classes = useStyles();
   let mediaIndex = useMemo(() => {
+    if (!media) {
+      return -1;
+    }
+
     return media.findIndex((media: T): boolean => media.id == selectedMedia);
   }, [media, selectedMedia]);
 
@@ -78,7 +82,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
   let onLoad = useCallback(() => setLoaded(true), []);
 
   let onPrevious = useMemo(() => {
-    if (mediaIndex <= 0) {
+    if (mediaIndex <= 0 || !media) {
       return null;
     }
     setLoaded(false);
@@ -86,7 +90,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
   }, [media, onChangeMedia, mediaIndex]);
 
   let onNext = useMemo(() => {
-    if (mediaIndex < 0 || mediaIndex >= media.length - 1) {
+    if (mediaIndex < 0 || !media || mediaIndex >= media.length - 1) {
       return null;
     }
     setLoaded(false);
@@ -111,7 +115,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
   }, []);
 
   let relations = usePromise(useMemo(() => {
-    if (mediaIndex < 0) {
+    if (mediaIndex < 0 || !media) {
       return Promise.resolve(null);
     }
 
@@ -124,11 +128,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
     );
   }, [media, mediaIndex]));
 
-  if (mediaIndex < 0) {
-    throw new Error("Unexpected failure to find media.");
-  }
-
-  let mediaToShow = media[mediaIndex];
+  let mediaToShow = media?.[mediaIndex];
 
   let mediaControls = <React.Fragment>
     {
@@ -158,7 +158,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
   </React.Fragment>;
 
   let content: React.ReactElement | undefined = undefined;
-  if (isProcessed(mediaToShow)) {
+  if (mediaToShow && isProcessed(mediaToShow)) {
     if (mediaToShow.file.mimetype.startsWith("video/")) {
       content = <Video mediaFile={mediaToShow.file} key={mediaToShow.id} onLoad={onLoad}>
         {mediaControls}
@@ -186,7 +186,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
       </div>
     </Fade>
     {
-      personHighlight && isProcessed(mediaToShow) &&
+      personHighlight && mediaToShow && isProcessed(mediaToShow) &&
       <FaceHighlight
         mediaFile={mediaToShow.file}
         relations={relations}
@@ -198,12 +198,15 @@ export default function MediaDisplay<T extends BaseMediaState>({
       onNext={onNext}
       onCloseMedia={onCloseMedia}
     />
-    <Drawer anchor="right" open={showMediaInfo} onClose={onCloseInfo}>
-      <MediaInfo
-        media={mediaToShow}
-        relations={relations}
-        onHighlightPerson={setPersonHighlight}
-      />
-    </Drawer>
+    {
+      mediaToShow &&
+      <Drawer anchor="right" open={showMediaInfo} onClose={onCloseInfo}>
+        <MediaInfo
+          media={mediaToShow}
+          relations={relations}
+          onHighlightPerson={setPersonHighlight}
+        />
+      </Drawer>
+    }
   </HoverContainer>;
 }

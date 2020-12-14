@@ -85,16 +85,12 @@ export default function MediaListPage<T extends BaseMediaState>({
     overlay={
       selectedMedia &&
       <ThemeProvider theme={darkTheme}>
-        {
-          orderedMedia
-            ? <MediaDisplay
-              media={orderedMedia}
-              selectedMedia={selectedMedia}
-              onChangeMedia={onMediaClick}
-              onCloseMedia={onCloseMedia}
-            />
-            : <Loading height="100%" width="100%"/>
-        }
+        <MediaDisplay
+          media={orderedMedia}
+          selectedMedia={selectedMedia}
+          onChangeMedia={onMediaClick}
+          onCloseMedia={onCloseMedia}
+        />
       </ThemeProvider>
     }
   >
