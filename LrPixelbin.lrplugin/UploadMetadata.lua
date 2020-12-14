@@ -1,4 +1,5 @@
 local LrApplication = import "LrApplication"
+local LrProgressScope = import "LrProgressScope"
 
 local Utils = require "Utils"
 local API = require "API"
@@ -14,11 +15,21 @@ local function uploadMetadata(photo, publishSettings, remoteId)
   end
 end
 
-Utils.runAsync(logger, "UploadMetadata", function()
+Utils.runAsync(logger, "UploadMetadata", function(context)
   local photos = {}
+  local totalPhotos = 0
   for _, photo in ipairs(LrApplication.activeCatalog():getTargetPhotos()) do
     photos[photo:getRawMetadata("uuid")] = true
+    totalPhotos = totalPhotos + 1
   end
+
+  local scope = LrProgressScope({
+    title = "Uploading metadata",
+    functionContext = context,
+  })
+
+  local count = 0
+  scope:setPortionComplete(count, totalPhotos)
 
   for _, source in ipairs(LrApplication.activeCatalog():getActiveSources()) do
     if source:type() == "LrPublishedCollection" then
@@ -34,11 +45,19 @@ Utils.runAsync(logger, "UploadMetadata", function()
         end
 
         for _, photo in ipairs(source:getPhotos()) do
+          if scope:isCanceled() then
+            return
+          end
+
           if photos[photo:getRawMetadata("uuid")] and publishedPhotos[photo.localIdentifier] then
             uploadMetadata(photo, settings, publishedPhotos[photo.localIdentifier])
+            count = count + 1
+            scope:setPortionComplete(count, totalPhotos)
           end
         end
       end
     end
   end
+
+  scope:done()
 end)

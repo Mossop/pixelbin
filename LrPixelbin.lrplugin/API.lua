@@ -452,7 +452,6 @@ function API:extractMetadata(photo, publishSettings)
   addFormattedMetadata("description", "caption")
   addFormattedMetadata("label", "label")
   addFormattedMetadata("category", "iptcCategory")
-  addFormattedMetadata("taken", "dateCreated")
   addFormattedMetadata("location", "location")
   addFormattedMetadata("city", "city")
   addFormattedMetadata("state", "stateProvince")
@@ -467,6 +466,11 @@ function API:extractMetadata(photo, publishSettings)
   addRawMetadata("focalLength", "focalLength")
   addRawMetadata("altitude", "gpsAltitude")
   addRawMetadata("rating", "rating")
+
+  -- In order of preference, least accurate first.
+  addRawMetadata("taken", "dateTimeDigitizedISO8601")
+  addRawMetadata("taken", "dateTimeOriginalISO8601")
+  addFormattedMetadata("taken", "dateCreated")
 
   local gps = photo:getRawMetadata("gps")
   if gps then
