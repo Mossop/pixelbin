@@ -2,6 +2,7 @@ import IconButton from "@material-ui/core/IconButton";
 import LinearProgress from "@material-ui/core/LinearProgress";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
+import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
 import React, { useCallback, useRef, useState } from "react";
 
@@ -54,6 +55,10 @@ const useStyles = makeStyles((theme: Theme) =>
         fontSize: "inherit",
       },
     },
+    time: {
+      padding: theme.spacing(1),
+      color: theme.palette.text.primary,
+    },
     navButton: {
       "fontSize": "4rem",
       "pointerEvents": "auto",
@@ -75,6 +80,7 @@ const useStyles = makeStyles((theme: Theme) =>
 interface VideoState {
   playing: boolean;
   progress: number | null;
+  currentTime: string;
 }
 
 export interface VideoProps {
@@ -102,25 +108,35 @@ export function Video({
   let [videoState, setVideoState] = useState<VideoState>({
     playing: false,
     progress: null,
+    currentTime: "0:00",
   });
   let updateState = useCallback(() => {
+    let formattedTime = (time: number): string => {
+      let minutes = Math.floor(time / 60);
+      let seconds = Math.round(time % 60);
+
+      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    };
+
+    let state: VideoState = {
+      playing: false,
+      progress: null,
+      currentTime: "0:00",
+    };
+
     let tag = video.current;
     if (!tag) {
-      setVideoState({
-        playing: false,
-        progress: null,
-      });
+      setVideoState(state);
       return;
     }
 
-    let state: VideoState = {
-      playing: !tag.paused,
-      progress: null,
-    };
+    state.playing = !tag.paused;
+    state.currentTime = formattedTime(tag.currentTime);
 
     let { duration } = tag;
     if (duration && !Number.isNaN(duration) && Number.isFinite(duration)) {
       state.progress = 100 * tag.currentTime / duration;
+      state.currentTime += ` / ${formattedTime(duration)}`;
     }
 
     setVideoState(state);
@@ -195,6 +211,7 @@ export function Video({
               value={videoState.progress}
             />
         }
+        <Typography variant="h6" className={classes.time}>{videoState.currentTime}</Typography>
         {children}
       </div>
     </HoverArea>
