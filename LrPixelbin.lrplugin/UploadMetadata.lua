@@ -1,4 +1,5 @@
 local LrApplication = import "LrApplication"
+local LrDialogs = import "LrDialogs"
 local LrProgressScope = import "LrProgressScope"
 
 local Utils = require "Utils"
@@ -16,6 +17,8 @@ local function uploadMetadata(photo, publishSettings, remoteId)
 end
 
 Utils.runAsync(logger, "UploadMetadata", function(context)
+  LrDialogs.attachErrorDialogToFunctionContext(context)
+
   local photos = {}
   local totalPhotos = 0
   for _, photo in ipairs(LrApplication.activeCatalog():getTargetPhotos()) do

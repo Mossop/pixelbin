@@ -424,8 +424,62 @@ local function asList(val)
   return val
 end
 
+local function hasKeyword(photo, keyword)
+  for _, found in ipairs(keyword:getPhotos()) do
+    if found == photo then
+      return true
+    end
+  end
+
+  return false
+end
+
+local function findKeywords(photo, keywords, found)
+  for _, keyword in ipairs(keywords) do
+    if hasKeyword(photo, keyword) then
+      table.insert(found, keyword)
+    end
+
+    findKeywords(photo, keyword:getChildren(), found)
+  end
+end
+
 function API:extractMetadata(photo, publishSettings)
-  local metadata = {}
+  local metadata = {
+    media = {},
+    tags = {},
+  }
+
+  local people = {}
+  local keywords = {}
+  findKeywords(photo, photo.catalog:getKeywords(), keywords)
+
+  for _, keyword in ipairs(keywords) do
+    local attributes = keyword:getAttributes()
+    if attributes.includeOnExport and attributes.keywordType == "person" then
+      table.insert(people, { name = keyword:getName() })
+      keyword = keyword:getParent()
+    end
+
+    local hasTag = false
+    local tag = {}
+    while keyword do
+      attributes = keyword:getAttributes()
+
+      if not attributes.includeOnExport then
+        hasTag = false
+        break
+      end
+
+      table.insert(tag, 1, keyword:getName())
+      hasTag = true
+      keyword = keyword:getParent()
+    end
+
+    if hasTag then
+      table.insert(metadata.tags, tag)
+    end
+  end
 
   local function addMetadata(metadataKey, value)
     if value == nil then
@@ -436,7 +490,7 @@ function API:extractMetadata(photo, publishSettings)
       return
     end
 
-    metadata[metadataKey] = value
+    metadata.media[metadataKey] = value
   end
 
   local function addRawMetadata(metadataKey, key)
@@ -512,27 +566,25 @@ function API:extractMetadata(photo, publishSettings)
 
   local shutterSpeed = photo:getFormattedMetadata("shutterSpeed")
   if shutterSpeed ~= nil then
-    metadata.shutterSpeed = convertShutterSpeed(shutterSpeed)
+    metadata.media.shutterSpeed = convertShutterSpeed(shutterSpeed)
+  end
+
+  if photo:getRawMetadata("fileFormat") == "VIDEO" then
+    metadata.people = people
   end
 
   return metadata
 end
 
 function API:uploadMetadata(photo, publishSettings, remoteId)
-  local mediaInfo = {
-    id = remoteId,
-    media = self:extractMetadata(photo, publishSettings),
-  }
+  local mediaInfo = self:extractMetadata(photo, publishSettings)
+  mediaInfo.id = remoteId
 
   return self:POST("media/edit", mediaInfo)
 end
 
 function API:upload(photo, publishSettings, filePath, remoteId)
-  local mediaInfo = {
-    media = self:extractMetadata(photo, publishSettings),
-    tags = {},
-    people = {},
-  }
+  local mediaInfo = self:extractMetadata(photo, publishSettings)
 
   local path
 
@@ -567,6 +619,7 @@ function API:upload(photo, publishSettings, filePath, remoteId)
 
   local foundPeople = {}
   if exifdata.PersonInImage then
+    mediaInfo.people = {}
     for _, person in ipairs(asList(exifdata.PersonInImage)) do
       local personInfo = {
         name = person,
@@ -595,45 +648,6 @@ function API:upload(photo, publishSettings, filePath, remoteId)
           top = regionAreaY[i] - (regionAreaH[i] / 2),
           bottom = regionAreaY[i] + (regionAreaH[i] / 2),
         }
-      end
-    end
-  end
-
-  if exifdata.HierarchicalSubject then
-    for _, tagstr in ipairs(asList(exifdata.HierarchicalSubject)) do
-      local tag = {}
-      local depth = 1
-      local start = 0
-
-      local pos, _ = string.find(tagstr, "|")
-      while pos do
-        table.insert(tag, string.sub(tagstr, start, pos - 1))
-        depth = depth + 1
-        start = pos + 1
-        pos, _ = string.find(tagstr, "|", start)
-      end
-
-      table.insert(tag, string.sub(tagstr, start))
-
-      if foundPeople[tag[depth]] then
-        table.remove(tag)
-        depth = depth - 1
-      end
-
-      if depth > 0 then
-        table.insert(mediaInfo.tags, tag)
-      end
-    end
-  elseif exifdata.Subject then
-    for _, tag in ipairs(asList(exifdata.Subject)) do
-      if not foundPeople[tag] then
-        table.insert(mediaInfo.tags, { tag })
-      end
-    end
-  elseif exifdata.Keywords then
-    for _, tag in ipairs(asList(exifdata.Keywords)) do
-      if not foundPeople[tag] then
-        table.insert(mediaInfo.tags, { tag })
       end
     end
   end
