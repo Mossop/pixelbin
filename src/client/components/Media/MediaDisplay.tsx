@@ -9,6 +9,7 @@ import type { Person, Reference } from "../../api/highlevel";
 import { getMediaRelations } from "../../api/media";
 import type { BaseMediaState, MediaRelations } from "../../api/types";
 import { isProcessed } from "../../api/types";
+import DownloadIcon from "../../icons/DownloadIcon";
 import EnterFullscreenIcon from "../../icons/EnterFullscreenIcon";
 import ExitFullscreenIcon from "../../icons/ExitFullscreenIcon";
 import InfoIcon from "../../icons/InfoIcon";
@@ -131,6 +132,18 @@ export default function MediaDisplay<T extends BaseMediaState>({
   let mediaToShow = media?.[mediaIndex];
 
   let mediaControls = <React.Fragment>
+    {
+      mediaToShow && isProcessed(mediaToShow) &&
+      <IconButton
+        id="download-button"
+        component="a"
+        className={classes.overlayButton}
+        href={mediaToShow.file.url}
+        download={true}
+      >
+        <DownloadIcon/>
+      </IconButton>
+    }
     {
       fullscreen
         ? <IconButton
