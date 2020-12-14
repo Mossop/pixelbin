@@ -33,6 +33,7 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       alignItems: "stretch",
       justifyContent: "stretch",
+      zIndex: 1,
     },
     loading: {
       position: "absolute",

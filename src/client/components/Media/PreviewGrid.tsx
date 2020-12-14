@@ -22,7 +22,6 @@ const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     baseGrid: {
       margin: 0,
-      paddingTop: theme.spacing(1),
       display: "grid",
       gridAutoRows: "1fr",
       gridGap: theme.spacing(1),

@@ -7,7 +7,6 @@ import type { MediaGroup } from "../../utils/sort";
 import { groupMedia, Grouping, Ordering } from "../../utils/sort";
 import type { ReactResult } from "../../utils/types";
 import type { PageOption } from "../Banner";
-import Content from "../Content";
 import Loading from "../Loading";
 import Page from "../Page";
 import MediaDisplay from "./MediaDisplay";
@@ -96,9 +95,7 @@ export default function MediaListPage<T extends BaseMediaState>({
   >
     {
       mediaGroups
-        ? <Content>
-          <MediaGallery groups={mediaGroups} onClick={onMediaClick}/>
-        </Content>
+        ? <MediaGallery groups={mediaGroups} onClick={onMediaClick}/>
         : <Loading flexGrow={1}/>
     }
 
