@@ -143,7 +143,11 @@ export default function Page({
             <SidebarTree selectedItem={selectedItem}/>
           </Sidebar>
         }
-        <div key="content" ref={setContentElement} className={classes.content}>
+        <div
+          key="content"
+          ref={sidebarType == "persistent" ? setContentElement : null}
+          className={classes.content}
+        >
           {children}
         </div>
       </div>

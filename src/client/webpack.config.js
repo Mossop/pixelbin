@@ -130,8 +130,9 @@ module.exports = (mode = "development") => {
       }),
     ],
     optimization: {
+      usedExports: true,
       splitChunks: {
-        chunks: "all",
+        chunks: "async",
       },
     },
   };
