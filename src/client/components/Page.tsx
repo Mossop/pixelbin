@@ -133,17 +133,17 @@ export default function Page({
       <div className={classes.contentRow}>
         {
           hasOverlay && sidebarType == "persistent" &&
-          <Sidebar type="openable" open={sidebarOpen} onClose={onCloseSidebar}>
+          <Sidebar key="overlaySidebar" type="openable" open={sidebarOpen} onClose={onCloseSidebar}>
             <SidebarTree selectedItem={selectedItem}/>
           </Sidebar>
         }
         {
           sidebarType &&
-          <Sidebar type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
+          <Sidebar key="sidebar" type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
             <SidebarTree selectedItem={selectedItem}/>
           </Sidebar>
         }
-        <div ref={setContentElement} className={classes.content}>
+        <div key="content" ref={setContentElement} className={classes.content}>
           {children}
         </div>
       </div>
