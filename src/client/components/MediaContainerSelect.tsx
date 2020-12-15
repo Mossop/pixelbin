@@ -1,4 +1,3 @@
-import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
@@ -7,9 +6,9 @@ import { createStyles, makeStyles, useTheme } from "@material-ui/core/styles";
 import React, { forwardRef, useCallback, useMemo } from "react";
 
 import type { Album, Catalog } from "../api/highlevel";
+import AlbumIcon from "../icons/AlbumIcon";
+import CatalogIcon from "../icons/CatalogIcon";
 import type { ReactRef, ReactResult } from "../utils/types";
-import type { VirtualItem } from "../utils/virtual";
-import { VirtualAlbum, VirtualCatalog } from "../utils/virtual";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -35,44 +34,42 @@ export interface MediaTargetSelectProps {
   id: string;
   disabled?: boolean;
   required?: boolean;
-  roots: VirtualItem[];
+  catalogs: Catalog[];
+  currentTarget?: string | null;
   value: Album | Catalog;
   onChange?: (selected: Album | Catalog) => void;
 }
 
-export default forwardRef(function MediaTargetSelect(
-  {
-    id,
-    disabled,
-    required,
-    roots,
-    value,
-    onChange,
-  }: MediaTargetSelectProps,
-  ref: ReactRef<HTMLElement> | null,
-): ReactResult {
-  let { l10n } = useLocalization();
+export default forwardRef(function MediaTargetSelect({
+  id,
+  disabled,
+  required,
+  catalogs,
+  value,
+  currentTarget,
+  onChange,
+}: MediaTargetSelectProps, ref: ReactRef<HTMLElement> | null): ReactResult {
   let theme = useTheme();
   let classes = useStyles();
 
   interface ItemInfo {
-    item: VirtualItem;
+    item: Album | Catalog;
+    icon: React.ReactNode;
     depth: number;
-    value: Album | Catalog;
   }
 
   let itemMap = useMemo(() => {
-    let addItem = (item: VirtualItem, depth: number): void => {
-      let value: Album | Catalog;
-      if (item instanceof VirtualAlbum) {
-        value = item.album;
-      } else if (item instanceof VirtualCatalog) {
-        value = item.catalog;
-      } else {
+    let addItem = (item: Album, depth: number): void => {
+      if (item.id == currentTarget) {
         return;
       }
 
-      itemMap.set(item.id, { item, depth, value });
+      itemMap.set(item.id, {
+        item,
+        depth,
+        icon: <AlbumIcon/>,
+      });
+
       for (let child of item.children) {
         addItem(child, depth + 1);
       }
@@ -80,19 +77,27 @@ export default forwardRef(function MediaTargetSelect(
 
     let itemMap = new Map<string, ItemInfo>();
 
-    for (let root of roots) {
-      addItem(root, 0);
+    for (let catalog of catalogs) {
+      itemMap.set(catalog.id, {
+        item: catalog,
+        depth: 0,
+        icon: <CatalogIcon/>,
+      });
+
+      for (let album of catalog.rootAlbums) {
+        addItem(album, 1);
+      }
     }
 
     return itemMap;
-  }, [roots]);
+  }, [catalogs, currentTarget]);
 
   let onSelectChange = useCallback(
     (event: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
       if (onChange && typeof event.target.value == "string") {
         let info = itemMap.get(event.target.value);
         if (info) {
-          onChange(info.value);
+          onChange(info.item);
         }
       }
     },
@@ -110,7 +115,7 @@ export default forwardRef(function MediaTargetSelect(
     {
       Array.from(
         itemMap.values(),
-        ({ item, depth }: ItemInfo): ReactResult => {
+        ({ item, depth, icon }: ItemInfo): ReactResult => {
           return <MenuItem
             key={item.id}
             value={item.id}
@@ -121,8 +126,8 @@ export default forwardRef(function MediaTargetSelect(
             }
           >
             <Box className={classes.item}>
-              <Box className={classes.icon}>{item.icon()}</Box>
-              <span>{item.label(l10n)}</span>
+              <Box className={classes.icon}>{icon}</Box>
+              <span>{item.name}</span>
             </Box>
           </MenuItem>;
         },

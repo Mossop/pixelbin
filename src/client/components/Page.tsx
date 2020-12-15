@@ -2,19 +2,10 @@ import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { Catalog } from "../api/highlevel";
-import { useCatalogs } from "../api/highlevel";
 import { useSelector } from "../store";
 import type { StoreState, UIState } from "../store/types";
 import { useElementWidth } from "../utils/hooks";
 import type { ReactResult } from "../utils/types";
-import type { VirtualItem } from "../utils/virtual";
-import {
-  BaseVirtualCatalogItem,
-  VirtualAlbum,
-  VirtualSearch,
-  IncludeVirtualCategories,
-} from "../utils/virtual";
 import { APPBAR_HEIGHT } from "./AppBar";
 import type { PageOption } from "./Banner";
 import Banner from "./Banner";
@@ -77,16 +68,6 @@ export default function Page({
   overlay,
   children,
 }: PageProps): ReactResult {
-  let catalogs = useCatalogs().map(
-    (catalog: Catalog): VirtualItem => catalog.virtual({
-      filter: (item: VirtualItem): boolean => {
-        return item instanceof VirtualAlbum || item instanceof VirtualSearch ||
-          item instanceof BaseVirtualCatalogItem;
-      },
-      categories: IncludeVirtualCategories.IfNeeded,
-    }),
-  );
-
   let hasOverlay = !!overlay;
 
   let theme = useTheme();
@@ -153,13 +134,13 @@ export default function Page({
         {
           hasOverlay && sidebarType == "persistent" &&
           <Sidebar type="openable" open={sidebarOpen} onClose={onCloseSidebar}>
-            <SidebarTree roots={catalogs} selectedItem={selectedItem}/>
+            <SidebarTree selectedItem={selectedItem}/>
           </Sidebar>
         }
         {
           sidebarType &&
           <Sidebar type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
-            <SidebarTree roots={catalogs} selectedItem={selectedItem}/>
+            <SidebarTree selectedItem={selectedItem}/>
           </Sidebar>
         }
         <div ref={setContentElement} className={classes.content}>

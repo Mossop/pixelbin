@@ -1,18 +1,12 @@
+import { useCallback } from "react";
+
 import type { Query } from "../../model";
+import { memoized } from "../../utils/memo";
 import { useSelector } from "../store";
 import type { StoreState } from "../store/types";
 import { exception, ErrorCode } from "../utils/exception";
 import { intoId } from "../utils/maps";
 import type { MapId } from "../utils/maps";
-import type { VirtualTreeOptions } from "../utils/virtual";
-import {
-  VirtualAlbum,
-  VirtualCatalog,
-  VirtualPerson,
-  VirtualTag,
-  VirtualTree,
-  VirtualSearch,
-} from "../utils/virtual";
 import type {
   ServerState,
   CatalogState,
@@ -22,32 +16,6 @@ import type {
   MediaState,
   SavedSearchState,
 } from "./types";
-
-interface StateCache {
-  readonly albums: Map<string, Album>;
-  readonly tags: Map<string, Tag>;
-  readonly people: Map<string, Person>;
-  readonly catalogs: Map<string, Catalog>;
-  readonly searches: Map<string, SavedSearch>;
-}
-
-const STATE_CACHE: WeakMap<ServerState, StateCache> = new WeakMap();
-
-function buildStateCache(serverState: ServerState): StateCache {
-  let cache: StateCache = {
-    albums: new Map<string, Album>(),
-    tags: new Map<string, Tag>(),
-    people: new Map<string, Person>(),
-    catalogs: new Map<string, Catalog>(),
-    searches: new Map<string, SavedSearch>(),
-  };
-  STATE_CACHE.set(serverState, cache);
-  return cache;
-}
-
-function getStateCache(serverState: ServerState): StateCache {
-  return STATE_CACHE.get(serverState) ?? buildStateCache(serverState);
-}
 
 export interface APIItemBuilder<T> {
   fromState: (serverState: ServerState, id: string) => T;
@@ -164,10 +132,6 @@ export class Tag implements Referencable<Tag> {
       );
   }
 
-  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualTag {
-    return new VirtualTag(this, treeType);
-  }
-
   public static ref(data: MapId<TagState>): Reference<Tag> {
     return new APIItemReference(intoId(data), Tag);
   }
@@ -176,13 +140,7 @@ export class Tag implements Referencable<Tag> {
     return new APIItemReference(this.id, Tag);
   }
 
-  public static fromState(serverState: ServerState, id: string): Tag {
-    let cache = getStateCache(serverState);
-    let tag = cache.tags.get(id);
-    if (tag) {
-      return tag;
-    }
-
+  public static fromState = memoized((serverState: ServerState, id: string): Tag => {
     let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
@@ -191,14 +149,12 @@ export class Tag implements Referencable<Tag> {
     for (let catalog of user.catalogs.values()) {
       let tagState = catalog.tags.get(id);
       if (tagState) {
-        tag = new Tag(serverState, tagState);
-        cache.tags.set(id, tag);
-        return tag;
+        return new Tag(serverState, tagState);
       }
     }
 
     exception(ErrorCode.UnknownTag);
-  }
+  });
 
   public static safeFromState(
     serverState: ServerState,
@@ -240,24 +196,11 @@ export class Person implements Referencable<Person> {
     return new APIItemReference(intoId(data), Person);
   }
 
-  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualPerson {
-    return new VirtualPerson(this, treeType);
-  }
-
   public ref(): Reference<Person> {
     return new APIItemReference(this.id, Person);
   }
 
-  public static fromState(
-    serverState: ServerState,
-    id: string,
-  ): Person {
-    let cache = getStateCache(serverState);
-    let person = cache.people.get(id);
-    if (person) {
-      return person;
-    }
-
+  public static fromState = memoized((serverState: ServerState, id: string): Person => {
     let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
@@ -266,14 +209,12 @@ export class Person implements Referencable<Person> {
     for (let catalog of user.catalogs.values()) {
       let personState = catalog.people.get(id);
       if (personState) {
-        person = new Person(serverState, personState);
-        cache.people.set(id, person);
-        return person;
+        return new Person(serverState, personState);
       }
     }
 
     exception(ErrorCode.UnknownPerson);
-  }
+  });
 
   public static safeFromState(
     serverState: ServerState,
@@ -346,10 +287,6 @@ export class Album implements Referencable<Album> {
     return false;
   }
 
-  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualAlbum {
-    return new VirtualAlbum(this, treeType);
-  }
-
   public static ref(data: MapId<AlbumState>): Reference<Album> {
     return new APIItemReference(intoId(data), Album);
   }
@@ -358,16 +295,7 @@ export class Album implements Referencable<Album> {
     return new APIItemReference(this.id, Album);
   }
 
-  public static fromState(
-    serverState: ServerState,
-    id: string,
-  ): Album {
-    let cache = getStateCache(serverState);
-    let album = cache.albums.get(id);
-    if (album) {
-      return album;
-    }
-
+  public static fromState = memoized((serverState: ServerState, id: string): Album => {
     let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
@@ -376,14 +304,12 @@ export class Album implements Referencable<Album> {
     for (let catalog of user.catalogs.values()) {
       let state = catalog.albums.get(id);
       if (state) {
-        album = new Album(serverState, state);
-        cache.albums.set(id, album);
-        return album;
+        return new Album(serverState, state);
       }
     }
 
     exception(ErrorCode.UnknownAlbum);
-  }
+  });
 
   public static safeFromState(
     serverState: ServerState,
@@ -465,10 +391,6 @@ export class Catalog implements Referencable<Catalog> {
     );
   }
 
-  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualCatalog {
-    return new VirtualCatalog(this, treeType);
-  }
-
   public static ref(data: MapId<CatalogState>): Reference<Catalog> {
     return new APIItemReference(intoId(data), Catalog);
   }
@@ -477,16 +399,7 @@ export class Catalog implements Referencable<Catalog> {
     return new APIItemReference(this.id, Catalog);
   }
 
-  public static fromState(
-    serverState: ServerState,
-    id: string,
-  ): Catalog {
-    let cache = getStateCache(serverState);
-    let catalog = cache.catalogs.get(id);
-    if (catalog) {
-      return catalog;
-    }
-
+  public static fromState = memoized((serverState: ServerState, id: string): Catalog => {
     let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
@@ -494,13 +407,11 @@ export class Catalog implements Referencable<Catalog> {
 
     let state = user.catalogs.get(id);
     if (state) {
-      catalog = new Catalog(serverState, state);
-      cache.catalogs.set(id, catalog);
-      return catalog;
+      return new Catalog(serverState, state);
     }
 
     exception(ErrorCode.UnknownCatalog);
-  }
+  });
 
   public static safeFromState(
     serverState: ServerState,
@@ -550,24 +461,11 @@ export class SavedSearch implements Referencable<SavedSearch> {
     return new APIItemReference(intoId(data), SavedSearch);
   }
 
-  public virtual(treeType: VirtualTreeOptions = VirtualTree.All): VirtualSearch {
-    return new VirtualSearch(this, treeType);
-  }
-
   public ref(): Reference<SavedSearch> {
     return new APIItemReference(this.id, SavedSearch);
   }
 
-  public static fromState(
-    serverState: ServerState,
-    id: string,
-  ): SavedSearch {
-    let cache = getStateCache(serverState);
-    let search = cache.searches.get(id);
-    if (search) {
-      return search;
-    }
-
+  public static fromState = memoized((serverState: ServerState, id: string): SavedSearch => {
     let { user } = serverState;
     if (!user) {
       exception(ErrorCode.NotLoggedIn);
@@ -576,14 +474,12 @@ export class SavedSearch implements Referencable<SavedSearch> {
     for (let catalog of user.catalogs.values()) {
       let searchState = catalog.searches.get(id);
       if (searchState) {
-        search = new SavedSearch(serverState, searchState);
-        cache.searches.set(id, search);
-        return search;
+        return new SavedSearch(serverState, searchState);
       }
     }
 
     exception(ErrorCode.UnknownSearch);
-  }
+  });
 
   public static safeFromState(
     serverState: ServerState,
@@ -597,7 +493,7 @@ export class SavedSearch implements Referencable<SavedSearch> {
   }
 }
 
-export function catalogs(serverState: ServerState): Catalog[] {
+export const catalogs = memoized(function catalogs(serverState: ServerState): Catalog[] {
   if (serverState.user) {
     return Array.from(
       serverState.user.catalogs.keys(),
@@ -605,15 +501,23 @@ export function catalogs(serverState: ServerState): Catalog[] {
     );
   }
   return [];
-}
+});
 
 export function useCatalogs(): Catalog[] {
-  return useSelector((state: StoreState): Catalog[] => catalogs(state.serverState));
+  return useSelector(
+    useCallback(
+      (state: StoreState): Catalog[] => catalogs(state.serverState),
+      [],
+    ),
+  );
 }
 
 export function useReference<T>(reference: Reference<T>): T;
 export function useReference<T>(reference: Reference<T> | null): T | null {
   return useSelector(
-    (state: StoreState): T | null => reference?.deref(state.serverState) ?? null,
+    useCallback(
+      (state: StoreState): T | null => reference?.deref(state.serverState) ?? null,
+      [reference],
+    ),
   );
 }

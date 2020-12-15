@@ -10,8 +10,6 @@ import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
-import type { VirtualItem } from "../utils/virtual";
-import { VirtualTree } from "../utils/virtual";
 
 export interface AlbumEditDialogProps {
   readonly album: Reference<Album>;
@@ -59,11 +57,10 @@ export default function AlbumDialog(props: AlbumDialogProps): ReactResult {
     nameInput.current?.focus();
   }, [nameInput]);
 
-  let catalogs = useCatalogs().map(
-    (catalog: Catalog): VirtualItem => catalog.virtual(VirtualTree.Albums),
-  );
-
-  let roots = album ? [album.catalog.virtual(VirtualTree.Albums)] : catalogs;
+  let catalogs = useCatalogs();
+  if (album) {
+    catalogs = [album.catalog];
+  }
 
   let onSubmit = useCallback(async () => {
     let { name, parent } = state.value;
@@ -117,7 +114,8 @@ export default function AlbumDialog(props: AlbumDialogProps): ReactResult {
       id="album-parent"
       labelId={album ? "album-edit-parent" : "album-create-parent"}
       state={state.parent}
-      roots={roots}
+      catalogs={catalogs}
+      currentTarget={album?.id}
     />
   </FormDialog>;
 }
