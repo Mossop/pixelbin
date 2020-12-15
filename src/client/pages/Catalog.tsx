@@ -89,6 +89,23 @@ export default function CatalogPage({
     });
   }, [actions, catalogRef]);
 
+  let pageOptions = useMemo(() => [{
+    id: "catalog-search",
+    onClick: onCatalogSearch,
+    icon: <SearchIcon/>,
+    label: l10n.getString("banner-search"),
+  }, {
+    id: "album-create",
+    onClick: onAlbumCreate,
+    icon: <AlbumAddIcon/>,
+    label: l10n.getString("banner-album-new"),
+  }, {
+    id: "catalog-edit",
+    onClick: onCatalogEdit,
+    icon: <CatalogEditIcon/>,
+    label: l10n.getString("banner-catalog-edit"),
+  }], [l10n, onAlbumCreate, onCatalogEdit, onCatalogSearch]);
+
   return <MediaListPage
     galleryTitle={catalog.name}
     selectedItem={catalogRef.id}
@@ -96,23 +113,6 @@ export default function CatalogPage({
     media={media}
     onMediaClick={onMediaClick}
     onCloseMedia={onCloseMedia}
-    pageOptions={
-      [{
-        id: "catalog-search",
-        onClick: onCatalogSearch,
-        icon: <SearchIcon/>,
-        label: l10n.getString("banner-search"),
-      }, {
-        id: "album-create",
-        onClick: onAlbumCreate,
-        icon: <AlbumAddIcon/>,
-        label: l10n.getString("banner-album-new"),
-      }, {
-        id: "catalog-edit",
-        onClick: onCatalogEdit,
-        icon: <CatalogEditIcon/>,
-        label: l10n.getString("banner-catalog-edit"),
-      }]
-    }
+    pageOptions={pageOptions}
   />;
 }

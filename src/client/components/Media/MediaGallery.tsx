@@ -7,6 +7,7 @@ import React from "react";
 import type { BaseMediaState } from "../../api/types";
 import type { MediaGroup } from "../../utils/sort";
 import type { ReactResult } from "../../utils/types";
+import { ReactMemo } from "../../utils/types";
 import { APPBAR_HEIGHT } from "../AppBar";
 import { IntersectionRoot } from "../IntersectionObserver";
 import PreviewGrid from "./PreviewGrid";
@@ -46,7 +47,7 @@ export interface MediaGalleryProps<T extends BaseMediaState> {
   onClick?: (media: T) => void;
 }
 
-export default function MediaGallery<T extends BaseMediaState>({
+export default ReactMemo(function MediaGallery<T extends BaseMediaState>({
   groups,
   onClick,
 }: MediaGalleryProps<T>): ReactResult {
@@ -69,4 +70,4 @@ export default function MediaGallery<T extends BaseMediaState>({
       }
     </IntersectionRoot>
   </dl>;
-}
+});

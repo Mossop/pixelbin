@@ -9,7 +9,8 @@ const SriPlugin = require("webpack-subresource-integrity");
  * @typedef {Object} External
  * @property {string} id
  * @property {string} variable
- * @property {string} path
+ * @property {string} developmentPath
+ * @property {string} productionPath
  */
 
 // eslint-disable-next-line import/no-restricted-paths
@@ -24,22 +25,26 @@ const externals = require("./externals.json");
  */
 
 /**
+ * @param {"development" | "production" | "test"} mode
  * @returns {HtmlWebpackTagsPlugin.MaybeScriptTagOptions[]}
  */
-function buildExternals() {
-  return externals.map(pkg => ({
-    type: "js",
-    path: `https://unpkg.com/${pkg.id}@${lock.dependencies[pkg.id].version}/${pkg.path}`,
-    publicPath: false,
-    attributes: {
-      crossorigin: true,
-      nonce: "{% nonce %}",
-    },
-    external: {
-      packageName: pkg.id,
-      variableName: pkg.variable,
-    },
-  }));
+function buildExternals(mode) {
+  return externals.map(pkg => {
+    let path = mode == "production" ? pkg.productionPath : pkg.developmentPath;
+    return {
+      type: "js",
+      path: `https://unpkg.com/${pkg.id}@${lock.dependencies[pkg.id].version}/${path}`,
+      publicPath: false,
+      attributes: {
+        crossorigin: true,
+        nonce: "{% nonce %}",
+      },
+      external: {
+        packageName: pkg.id,
+        variableName: pkg.variable,
+      },
+    };
+  });
 }
 
 /** @type {(mode?: "test" | "development" | "production") => Configuration} */
@@ -120,7 +125,7 @@ module.exports = (mode = "development") => {
               nonce: "{% nonce %}",
             },
           },
-          ...buildExternals(),
+          ...buildExternals(mode),
         ],
       }),
     ],

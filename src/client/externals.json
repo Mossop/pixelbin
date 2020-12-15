@@ -2,16 +2,19 @@
   {
     "id": "react",
     "variable": "React",
-    "path": "umd/react.development.js"
+    "developmentPath": "umd/react.development.js",
+    "productionPath": "umd/react.development.js"
   },
   {
     "id": "react-dom",
     "variable": "ReactDOM",
-    "path": "umd/react-dom.development.js"
+    "developmentPath": "umd/react-dom.development.js",
+    "productionPath": "umd/react-dom.development.js"
   },
   {
     "id": "luxon",
     "variable": "luxon",
-    "path": "build/global/luxon.min.js"
+    "developmentPath": "build/global/luxon.js",
+    "productionPath": "build/global/luxon.min.js"
   }
 ]

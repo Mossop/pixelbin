@@ -6,6 +6,7 @@ import type { Catalog } from "../api/highlevel";
 import { useCatalogs } from "../api/highlevel";
 import { useSelector } from "../store";
 import type { StoreState, UIState } from "../store/types";
+import { useElementWidth } from "../utils/hooks";
 import type { ReactResult } from "../utils/types";
 import type { VirtualItem } from "../utils/virtual";
 import {
@@ -21,12 +22,17 @@ import type { SidebarProps } from "./Sidebar";
 import Sidebar from "./Sidebar";
 import SidebarTree from "./SidebarTree";
 
+interface StyleProps {
+  contentWidth: number | null | undefined;
+  hasOverlay: boolean;
+}
+
 const useStyles = makeStyles(() =>
   createStyles({
-    scrollArea: (showOverlay: boolean) => ({
+    scrollArea: ({ hasOverlay }: StyleProps) => ({
       height: "100%",
       width: "100%",
-      overflow: showOverlay ? "hidden" : "auto",
+      overflow: hasOverlay ? "hidden" : "auto",
       display: "flex",
       flexDirection: "column",
       flexGrow: 1,
@@ -39,13 +45,14 @@ const useStyles = makeStyles(() =>
       flexDirection: "row",
       alignItems: "stretch",
     },
-    content: {
-      flexGrow: 1,
+    content: ({ contentWidth }: StyleProps) => ({
+      flexGrow: contentWidth ? undefined : 1,
+      width: contentWidth ?? undefined,
       display: "flex",
       flexDirection: "column",
       justifyContent: "start",
       alignItems: "stretch",
-    },
+    }),
     overlay: {
       position: "absolute",
       top: APPBAR_HEIGHT,
@@ -83,10 +90,17 @@ export default function Page({
   let hasOverlay = !!overlay;
 
   let theme = useTheme();
-  let classes = useStyles(hasOverlay);
 
   let sidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
   let [sidebarOpen, setSidebarOpen] = useState(false);
+
+  let [contentElement, setContentElement] = useState<HTMLElement | null>(null);
+  let contentWidth = useElementWidth(contentElement);
+
+  let classes = useStyles({
+    hasOverlay,
+    contentWidth: hasOverlay ? contentWidth : undefined,
+  });
 
   let { uiState, loggedIn } = useSelector((state: StoreState) => ({
     uiState: state.ui,
@@ -148,7 +162,7 @@ export default function Page({
             <SidebarTree roots={catalogs} selectedItem={selectedItem}/>
           </Sidebar>
         }
-        <div className={classes.content}>
+        <div ref={setContentElement} className={classes.content}>
           {children}
         </div>
       </div>

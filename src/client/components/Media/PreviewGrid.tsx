@@ -11,6 +11,7 @@ import { useSelector } from "../../store";
 import type { StoreState } from "../../store/types";
 import { useElementWidth } from "../../utils/hooks";
 import type { ReactResult } from "../../utils/types";
+import { ReactMemo } from "../../utils/types";
 import MediaPreview from "./MediaPreview";
 
 interface StyleProps {
@@ -48,7 +49,7 @@ export type PreviewGridProps<T extends BaseMediaState> = Overwrite<BoxProps, {
   onClick?: (media: T) => void;
 }>;
 
-export default function PreviewGrid<T extends BaseMediaState>({
+export default ReactMemo(function PreviewGrid<T extends BaseMediaState>({
   media,
   className,
   onClick,
@@ -64,7 +65,7 @@ export default function PreviewGrid<T extends BaseMediaState>({
 
   let gridClass = clsx(
     classes.baseGrid,
-    containerWidth === null ? classes.fixedGrid : classes.flexibleGrid,
+    containerWidth ? classes.flexibleGrid : classes.fixedGrid,
   );
 
   return <Box
@@ -74,7 +75,7 @@ export default function PreviewGrid<T extends BaseMediaState>({
     ref={setListElement}
   >
     {
-      containerWidth !== undefined && media.map((media: T) => {
+      media.map((media: T) => {
         return <MediaPreview
           key={media.id}
           media={media}
@@ -84,4 +85,4 @@ export default function PreviewGrid<T extends BaseMediaState>({
       })
     }
   </Box>;
-}
+});

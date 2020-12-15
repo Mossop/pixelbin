@@ -67,9 +67,7 @@ export function binarySearch<T>(items: readonly T[], item: T, comparator: Compar
   let first = 0;
   let last = items.length - 1;
   while (first <= last) {
-    // console.log("Compare loop start", items[first], items[last]);
     let compared = comparator(item, items[first]);
-    // console.log("First result", compared);
     if (compared <= 0) {
       return first;
     }
@@ -79,19 +77,16 @@ export function binarySearch<T>(items: readonly T[], item: T, comparator: Compar
     }
 
     compared = comparator(item, items[last]);
-    // console.log("Last result", compared);
     if (compared >= 0) {
       return last + 1;
     }
 
     let mid = Math.ceil((first + last) / 2);
-    // console.log("Midpoint", items[mid]);
     if (mid == last) {
       return last;
     }
 
     compared = comparator(item, items[mid]);
-    // console.log("Midpoint result", compared);
     if (compared == 0) {
       return mid;
     }

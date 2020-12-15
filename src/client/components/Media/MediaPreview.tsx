@@ -7,6 +7,7 @@ import React, { useCallback, useState } from "react";
 import type { BaseMediaState, MediaFileState } from "../../api/types";
 import { isProcessed } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
+import { ReactMemo } from "../../utils/types";
 import { MountOnIntersect } from "../IntersectionObserver";
 import Loading from "../Loading";
 
@@ -101,7 +102,7 @@ export interface MediaPreviewProps<T extends BaseMediaState> {
   onClick?: (media: T) => void;
 }
 
-export default function MediaPreview<T extends BaseMediaState>({
+export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
   media,
   thumbnailSize,
   onClick,
@@ -129,4 +130,4 @@ export default function MediaPreview<T extends BaseMediaState>({
       }
     </div>
   </Paper>;
-}
+});

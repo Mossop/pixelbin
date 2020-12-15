@@ -70,6 +70,18 @@ export default function SavedSearchPage({
     });
   }, [actions, search]);
 
+  let pageOptions = useMemo(() => [{
+    id: "saved-search-edit",
+    onClick: onSearchEdit,
+    icon: <SavedSearchEditIcon/>,
+    label: l10n.getString("banner-saved-search-edit"),
+  }, {
+    id: "saved-search-delete",
+    onClick: onSearchDelete,
+    icon: <SavedSearchDeleteIcon/>,
+    label: l10n.getString("banner-saved-search-delete"),
+  }], [l10n, onSearchDelete, onSearchEdit]);
+
   return <MediaListPage
     media={media}
     galleryTitle={savedSearch.name}
@@ -77,18 +89,6 @@ export default function SavedSearchPage({
     selectedMedia={selectedMedia}
     onMediaClick={onMediaClick}
     onCloseMedia={onCloseMedia}
-    pageOptions={
-      [{
-        id: "saved-search-edit",
-        onClick: onSearchEdit,
-        icon: <SavedSearchEditIcon/>,
-        label: l10n.getString("banner-saved-search-edit"),
-      }, {
-        id: "saved-search-delete",
-        onClick: onSearchDelete,
-        icon: <SavedSearchDeleteIcon/>,
-        label: l10n.getString("banner-saved-search-delete"),
-      }]
-    }
+    pageOptions={pageOptions}
   />;
 }

@@ -109,6 +109,28 @@ export default function AlbumPage({
     });
   }, [actions, album]);
 
+  let pageOptions = useMemo(() => [{
+    id: "album-search",
+    onClick: onAlbumSearch,
+    icon: <SearchIcon/>,
+    label: l10n.getString("banner-search"),
+  }, {
+    id: "album-create",
+    onClick: onAlbumCreate,
+    icon: <AlbumAddIcon/>,
+    label: l10n.getString("banner-album-new"),
+  }, {
+    id: "album-edit",
+    onClick: onAlbumEdit,
+    icon: <AlbumEditIcon/>,
+    label: l10n.getString("banner-album-edit"),
+  }, {
+    id: "album-delete",
+    onClick: onAlbumDelete,
+    icon: <AlbumDeleteIcon/>,
+    label: l10n.getString("banner-album-delete"),
+  }], [l10n, onAlbumCreate, onAlbumDelete, onAlbumEdit, onAlbumSearch]);
+
   return <MediaListPage
     media={media}
     galleryTitle={album.name}
@@ -116,28 +138,6 @@ export default function AlbumPage({
     selectedItem={albumRef.id}
     onMediaClick={onMediaClick}
     onCloseMedia={onCloseMedia}
-    pageOptions={
-      [{
-        id: "album-search",
-        onClick: onAlbumSearch,
-        icon: <SearchIcon/>,
-        label: l10n.getString("banner-search"),
-      }, {
-        id: "album-create",
-        onClick: onAlbumCreate,
-        icon: <AlbumAddIcon/>,
-        label: l10n.getString("banner-album-new"),
-      }, {
-        id: "album-edit",
-        onClick: onAlbumEdit,
-        icon: <AlbumEditIcon/>,
-        label: l10n.getString("banner-album-edit"),
-      }, {
-        id: "album-delete",
-        onClick: onAlbumDelete,
-        icon: <AlbumDeleteIcon/>,
-        label: l10n.getString("banner-album-delete"),
-      }]
-    }
+    pageOptions={pageOptions}
   />;
 }

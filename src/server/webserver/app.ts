@@ -221,19 +221,21 @@ export default async function buildApp(): Promise<void> {
       let nonce = await ctx.nonce;
 
       let state = await buildState(ctx);
-      ctx.set(
-        "Content-Security-Policy",
-        csp({
-          directives: {
-            defaultSrc: ["'self'"],
-            fontSrc: ["'self'", "fonts.gstatic.com"],
-            scriptSrc: ["'self'", `'nonce-${nonce}'`],
-            styleSrc: ["'self'", `'nonce-${nonce}'`],
-            imgSrc: ["'self'", "http:", "https:"],
-            mediaSrc: ["'self'", "http:", "https:"],
-          },
-        }),
-      );
+      if (ctx.host != "localhost" && !ctx.host.startsWith("localhost:")) {
+        ctx.set(
+          "Content-Security-Policy",
+          csp({
+            directives: {
+              defaultSrc: ["'self'"],
+              fontSrc: ["'self'", "fonts.gstatic.com"],
+              scriptSrc: ["'self'", `'nonce-${nonce}'`],
+              styleSrc: ["'self'", `'nonce-${nonce}'`],
+              imgSrc: ["'self'", "http:", "https:"],
+              mediaSrc: ["'self'", "http:", "https:"],
+            },
+          }),
+        );
+      }
       ctx.set("Content-Type", "text/html; charset=utf-8");
       ctx.body = await buildAppContent(config, nonce, state);
     });
