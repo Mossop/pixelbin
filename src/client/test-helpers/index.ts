@@ -120,7 +120,12 @@ const matchers = {
     }
 
     return {
-      message: expectMessage(this, "toBeHidden", true, hidden),
+      message: expectMessage(
+        this,
+        "toBeHidden",
+        this.isNot ? "not hidden" : "hidden",
+        hidden ? "hidden" : "not hidden",
+      ),
       pass: hidden,
     };
   },

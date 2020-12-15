@@ -110,7 +110,7 @@ test("Album media tests", async (): Promise<void> => {
     media3,
   ]);
 
-  expect(await mediaInAlbum("a1")).toEqual([
+  expect(await mediaInAlbum("a1")).toInclude([
     media2.id,
     media1.id,
     media3.id,
@@ -137,7 +137,7 @@ test("Album media tests", async (): Promise<void> => {
     media3,
   ]);
 
-  expect(await mediaInAlbum("a1")).toEqual([
+  expect(await mediaInAlbum("a1")).toInclude([
     media2.id,
     media1.id,
     media3.id,
@@ -415,7 +415,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a1")).toEqual([
     media3.id,
   ]);
-  expect(await mediaInAlbum("a2")).toEqual([
+  expect(await mediaInAlbum("a2")).toInclude([
     media2.id,
     media1.id,
     media3.id,
@@ -451,7 +451,7 @@ test("Album media tests", async (): Promise<void> => {
   expect(await mediaInAlbum("a1")).toEqual([
     media3.id,
   ]);
-  expect(await mediaInAlbum("a2")).toEqual([
+  expect(await mediaInAlbum("a2")).toInclude([
     media2.id,
     media3.id,
   ]);

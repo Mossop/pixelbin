@@ -14,16 +14,25 @@ import {
   mockServerState,
   resetDOM,
 } from "../test-helpers";
-import { MediaLookupType } from "../utils/medialookup";
+import { MediaLookupType, useMediaLookup } from "../utils/medialookup";
 import CatalogPage from "./Catalog";
 import { PageType } from "./types";
 
 jest.mock("../components/Media/MediaListPage");
+jest.mock("../utils/medialookup", () => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return {
+    // @ts-ignore
+    ...jest.requireActual("../utils/medialookup"),
+    useMediaLookup: jest.fn(),
+  };
+});
 
 beforeEach(resetDOM);
 
 const mockedMediaListPage = mockedFunction(MediaListPage);
 mockedMediaListPage.mockReturnValue(null);
+const mockedMediaLookup = mockedFunction(useMediaLookup);
 
 test("catalog page", async (): Promise<void> => {
   let store = mockStore(mockStoreState({
@@ -47,12 +56,14 @@ test("catalog page", async (): Promise<void> => {
 
   let pageProps = lastCallArgs(mockedMediaListPage)[0];
 
-  expect(pageProps.lookup).toEqual({
+  expect(pageProps.media).toBeUndefined();
+  expect(pageProps.selectedMedia).toBeUndefined();
+  expect(pageProps.selectedItem).toBe("catalog");
+
+  expect(mockedMediaLookup).toHaveBeenLastCalledWith({
     type: MediaLookupType.Catalog,
     catalog: expect.toBeRef("catalog"),
   });
-  expect(pageProps.selectedMedia).toBeUndefined();
-  expect(pageProps.selectedItem).toBe("catalog");
 
   expect(store.dispatch).not.toHaveBeenCalled();
 
@@ -93,10 +104,7 @@ test("catalog page", async (): Promise<void> => {
 
   pageProps = lastCallArgs(mockedMediaListPage)[0];
 
-  expect(pageProps.lookup).toEqual({
-    type: MediaLookupType.Catalog,
-    catalog: expect.toBeRef("catalog"),
-  });
+  expect(pageProps.media).toBeUndefined();
   expect(pageProps.selectedMedia).toBe("media1");
   expect(pageProps.selectedItem).toBe("catalog");
 

@@ -188,7 +188,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     modifier: null,
     operator: Operator.Equal,
     value: 3,
-  })).resolves.toEqual([
+  })).resolves.toInclude([
     "m6",
     "m3",
     "m2",
@@ -268,7 +268,7 @@ test("Numeric metadata search", async (): Promise<void> => {
     modifier: null,
     operator: Operator.Empty,
     value: null,
-  })).resolves.toEqual([
+  })).resolves.toInclude([
     "m6",
     "m3",
     "m5",
@@ -1015,7 +1015,7 @@ test("saved searches", async (): Promise<void> => {
 
   let { name, media } = await dbConnection.sharedSearch(search1);
   expect(name).toBe("My search");
-  expect(ids(media)).toEqual([
+  expect(ids(media)).toInclude([
     "m6",
     "m3",
     "m5",

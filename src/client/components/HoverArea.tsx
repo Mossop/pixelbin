@@ -23,60 +23,56 @@ export type HoverContainerProps = {
   timeout?: number;
 } & React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
 
-export const HoverContainer = forwardRef(
-  function HoverContainer(props: HoverContainerProps, ref: ReactRef | null): ReactResult {
-    let {
-      onMouseOver,
-      onMouseMove,
-      initial = false,
-      timeout = 1500,
-      children,
-      ...rest
-    } = props;
+export const HoverContainer = forwardRef(function HoverContainer({
+  onMouseOver,
+  onMouseMove,
+  initial = false,
+  timeout = 1500,
+  children,
+  ...rest
+}: HoverContainerProps, ref: ReactRef | null): ReactResult {
+  let [hovered, setHovered] = useState(initial);
 
-    let [hovered, setHovered] = useState(initial);
-
-    let delayed = useMemo(() => {
-      let delayed = new Delayed(timeout, () => setHovered(false));
-      if (initial) {
-        delayed.trigger();
-      }
-      return delayed;
-    }, [initial, timeout]);
-
-    useEffect(() => () => delayed.cancel());
-
-    let markHovered = useCallback(() => {
-      setHovered(true);
+  let delayed = useMemo(() => {
+    let delayed = new Delayed(timeout, () => setHovered(false));
+    if (initial) {
       delayed.trigger();
-    }, [delayed]);
+    }
+    return delayed;
+  }, [initial, timeout]);
 
-    let mouseOver = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
-      if (onMouseOver) {
-        onMouseOver(event);
-      }
-      markHovered();
-    }, [markHovered, onMouseOver]);
+  useEffect(() => () => delayed.cancel());
 
-    let mouseMove = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
-      if (onMouseMove) {
-        onMouseMove(event);
-      }
-      markHovered();
-    }, [markHovered, onMouseMove]);
+  let markHovered = useCallback(() => {
+    setHovered(true);
+    delayed.trigger();
+  }, [delayed]);
 
-    return <div
-      onMouseOver={mouseOver}
-      onMouseMove={mouseMove}
-      ref={ref}
-      {...rest}
-    >
-      <HoverContext.Provider value={hovered}>
-        {children}
-      </HoverContext.Provider>
-    </div>;
-  },
-);
+  let mouseOver = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
+    if (onMouseOver) {
+      onMouseOver(event);
+    }
+    markHovered();
+  }, [markHovered, onMouseOver]);
+
+  let mouseMove = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
+    if (onMouseMove) {
+      onMouseMove(event);
+    }
+    markHovered();
+  }, [markHovered, onMouseMove]);
+
+  return <div
+    onMouseOver={mouseOver}
+    onMouseMove={mouseMove}
+    ref={ref}
+    {...rest}
+  >
+    <HoverContext.Provider value={hovered}>
+      {children}
+    </HoverContext.Provider>
+  </div>;
+});
 
 export interface HoverAreaProps {
   timeout?: number;
