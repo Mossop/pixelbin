@@ -1,7 +1,6 @@
 /* eslint-disable react/display-name */
 import { waitFor } from "@testing-library/react";
 import mockConsole from "jest-mock-console";
-import React from "react";
 
 import Page from ".";
 import { Album, Catalog } from "../api/highlevel";

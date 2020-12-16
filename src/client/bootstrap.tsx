@@ -1,5 +1,4 @@
 import CssBaseline from "@material-ui/core/CssBaseline";
-import React from "react";
 import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
 
@@ -23,10 +22,10 @@ async function init(): Promise<void> {
   reactRender(
     <Provider store={store}>
       <LocalizationContext baseurl={`${appURL(Url.L10n)}`} locales={["en-US"]}>
-        <React.Fragment>
+        <>
           <CssBaseline/>
           <App/>
-        </React.Fragment>
+        </>
       </LocalizationContext>
     </Provider>,
     appContainer(),

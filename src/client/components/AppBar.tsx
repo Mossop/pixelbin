@@ -1,7 +1,6 @@
 import MuiAppBar from "@material-ui/core/AppBar";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import React from "react";
 
 import type { ReactChildren, ReactResult } from "../utils/types";
 

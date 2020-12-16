@@ -2,7 +2,7 @@ import { useLocalization } from "@fluent/react";
 import FormControl from "@material-ui/core/FormControl";
 import Input from "@material-ui/core/Input";
 import InputLabel from "@material-ui/core/InputLabel";
-import React, { forwardRef, useCallback } from "react";
+import { forwardRef, useCallback } from "react";
 
 import type { FieldState } from "../../utils/state";
 import type { ReactRef, ReactResult } from "../../utils/types";

@@ -1,6 +1,5 @@
 import { useLocalization } from "@fluent/react";
 import Typography from "@material-ui/core/Typography";
-import React from "react";
 
 import Content from "../components/Content";
 import Page from "../components/Page";

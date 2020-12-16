@@ -1,4 +1,4 @@
-import React, { lazy } from "react";
+import { lazy } from "react";
 
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";

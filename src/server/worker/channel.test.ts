@@ -362,4 +362,3 @@ test("undefined interface", async (): Promise<void> => {
   expect(await leftChannel.remote).toBeUndefined();
   expect(await rightChannel.remote).toBeUndefined();
 });
-

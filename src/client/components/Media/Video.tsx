@@ -4,7 +4,7 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { Encoding, MediaFileState } from "../../api/types";
 import { PauseIcon, PlayIcon } from "../../icons/MediaIcons";
@@ -146,7 +146,7 @@ export function Video({
     (encoding: Encoding): boolean => encoding.mimetype == "image/jpeg",
   );
 
-  return <React.Fragment>
+  return <>
     <video
       id="media-original"
       ref={video}
@@ -215,5 +215,5 @@ export function Video({
         {children}
       </div>
     </HoverArea>
-  </React.Fragment>;
+  </>;
 }

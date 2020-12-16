@@ -1,5 +1,4 @@
 import { render, waitFor } from "@testing-library/react";
-import React from "react";
 
 import { deferCall } from "../../test-helpers";
 import fetch from "../environment/fetch";

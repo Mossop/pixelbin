@@ -1,6 +1,6 @@
 import { Localized } from "@fluent/react";
 import Typography from "@material-ui/core/Typography";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { deleteAlbum } from "../api/album";
 import type { Album, Reference } from "../api/highlevel";

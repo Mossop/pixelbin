@@ -1,5 +1,4 @@
 import type { Draft } from "immer";
-import React from "react";
 
 import { PageType } from "../pages/types";
 import type { UIState } from "../store/types";

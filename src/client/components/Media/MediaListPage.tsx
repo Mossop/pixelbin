@@ -1,6 +1,6 @@
 import { useLocalization } from "@fluent/react";
 import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import type { BaseMediaState } from "../../api/types";
 import type { MediaGroup } from "../../utils/sort";

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 
 import type { Requests } from "../../../model";
 import { TextField } from "../../components/Forms";
@@ -25,7 +25,7 @@ export default function StorageConfig({
     }
   }, [nameRef, visible]);
 
-  return <React.Fragment>
+  return <>
     <TextField
       id="storage-name"
       ref={nameRef}
@@ -62,5 +62,5 @@ export default function StorageConfig({
       labelId="storage-path"
       state={nulledString(state.path)}
     />
-  </React.Fragment>;
+  </>;
 }

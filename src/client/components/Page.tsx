@@ -1,6 +1,6 @@
 import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSelector } from "../store";
 import type { StoreState, UIState } from "../store/types";
@@ -124,7 +124,7 @@ export default function Page({
     return () => setSidebarOpen(true);
   }, [sidebarType, hasOverlay]);
 
-  return <React.Fragment>
+  return <>
     <div className={classes.scrollArea}>
       <Banner
         onMenuButtonClick={onMenuButtonClick}
@@ -158,5 +158,5 @@ export default function Page({
         {overlay}
       </div>
     }
-  </React.Fragment>;
+  </>;
 }

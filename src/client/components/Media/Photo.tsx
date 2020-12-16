@@ -1,7 +1,7 @@
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import type { Encoding, MediaFileState } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
@@ -67,7 +67,7 @@ export function Photo({
     };
   }, [mediaFile]);
 
-  return <React.Fragment>
+  return <>
     <picture>
       {
         alternates.map((encoding: Encoding) => <source
@@ -91,5 +91,5 @@ export function Photo({
         {children}
       </div>
     </HoverArea>
-  </React.Fragment>;
+  </>;
 }

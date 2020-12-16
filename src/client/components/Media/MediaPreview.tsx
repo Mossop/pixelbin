@@ -2,7 +2,7 @@ import Fade from "@material-ui/core/Fade";
 import Paper from "@material-ui/core/Paper";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { BaseMediaState, MediaFileState } from "../../api/types";
 import { isProcessed } from "../../api/types";

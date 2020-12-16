@@ -1,6 +1,6 @@
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 import type { ObjectState } from "../../utils/state";
 import { wrapState } from "../../utils/state";

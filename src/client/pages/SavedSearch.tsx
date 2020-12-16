@@ -1,5 +1,5 @@
 import { useLocalization } from "@fluent/react";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import type { Reference, SavedSearch } from "../api/highlevel";
 import { useReference } from "../api/highlevel";

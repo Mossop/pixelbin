@@ -8,7 +8,7 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles } from "@material-ui/core/styles";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Alert from "@material-ui/lab/Alert/Alert";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { errorString } from "../../utils/exception";
 import type { ReactResult } from "../../utils/types";

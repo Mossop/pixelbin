@@ -33,7 +33,7 @@ export const takenZone: Migration = {
     }
 
     // Fixed for this migration.
-    const MetadataColumns = [
+    const metadataColumns = [
       "title",
       "filename",
       "description",
@@ -102,7 +102,7 @@ export const takenZone: Migration = {
       tags: knex.raw("COALESCE(??, '[]'::json)", ["TagList.tags"]),
     };
 
-    for (let field of MetadataColumns) {
+    for (let field of metadataColumns) {
       if (field == "takenZone") {
         mappings[field] = knex.raw("CASE WHEN ? IS NULL THEN ? ELSE ? END", [
           knex.ref(`${Table.MediaInfo}.taken`),
@@ -117,7 +117,7 @@ export const takenZone: Migration = {
       }
     }
 
-    let CurrentFiles = knex(Table.MediaFile)
+    let currentFiles = knex(Table.MediaFile)
       .orderBy([
         { column: ref(Table.MediaFile, "media"), order: "asc" },
         { column: ref(Table.MediaFile, "uploaded"), order: "desc" },
@@ -165,7 +165,7 @@ export const takenZone: Migration = {
       .as("PersonList");
 
     let viewSchema = knex(Table.MediaInfo)
-      .leftJoin(CurrentFiles, "CurrentFile.media", ref(Table.MediaInfo, "id"))
+      .leftJoin(currentFiles, "CurrentFile.media", ref(Table.MediaInfo, "id"))
       .leftJoin(tags, "TagList.media", ref(Table.MediaInfo, "id"))
       .leftJoin(albums, "AlbumList.media", ref(Table.MediaInfo, "id"))
       .leftJoin(people, "PersonList.media", ref(Table.MediaInfo, "id"))
@@ -219,7 +219,7 @@ export const alternates: Migration = {
     }
 
     // Fixed for this migration.
-    const MetadataColumns = [
+    const metadataColumns = [
       "title",
       "filename",
       "description",
@@ -292,7 +292,7 @@ export const alternates: Migration = {
       tags: knex.raw("COALESCE(??, '[]'::jsonb)", ["TagList.tags"]),
     };
 
-    for (let field of MetadataColumns) {
+    for (let field of metadataColumns) {
       if (field == "takenZone") {
         mappings[field] = knex.raw("CASE WHEN ? IS NULL THEN ? ELSE ? END", [
           knex.ref(`${Table.MediaInfo}.taken`),
@@ -307,7 +307,7 @@ export const alternates: Migration = {
       }
     }
 
-    let Alternatives = knex(Table.AlternateFile)
+    let alternatives = knex(Table.AlternateFile)
       .select({
         mediaFile: "mediaFile",
         type: "type",
@@ -328,21 +328,21 @@ export const alternates: Migration = {
       .groupBy("mediaFile", "type")
       .as("Alternative");
 
-    let Thumbnails = knex.from(Alternatives)
+    let thumbnails = knex.from(alternatives)
       .where({
         type: AlternateFileType.Thumbnail,
       })
       .as("Thumbnails");
 
-    let Reencodes = knex.from(Alternatives)
+    let reencodes = knex.from(alternatives)
       .where({
         type: AlternateFileType.Reencode,
       })
       .as("Reencodes");
 
-    let CurrentFiles = knex(Table.MediaFile)
-      .leftJoin(Thumbnails, "Thumbnails.mediaFile", ref(Table.MediaFile, "id"))
-      .leftJoin(Reencodes, "Reencodes.mediaFile", ref(Table.MediaFile, "id"))
+    let currentFiles = knex(Table.MediaFile)
+      .leftJoin(thumbnails, "Thumbnails.mediaFile", ref(Table.MediaFile, "id"))
+      .leftJoin(reencodes, "Reencodes.mediaFile", ref(Table.MediaFile, "id"))
       .orderBy([
         { column: ref(Table.MediaFile, "media"), order: "asc" },
         { column: ref(Table.MediaFile, "uploaded"), order: "desc" },
@@ -395,7 +395,7 @@ export const alternates: Migration = {
       .as("PersonList");
 
     let viewSchema = knex(Table.MediaInfo)
-      .leftJoin(CurrentFiles, "CurrentFile.media", ref(Table.MediaInfo, "id"))
+      .leftJoin(currentFiles, "CurrentFile.media", ref(Table.MediaInfo, "id"))
       .leftJoin(tags, "TagList.media", ref(Table.MediaInfo, "id"))
       .leftJoin(albums, "AlbumList.media", ref(Table.MediaInfo, "id"))
       .leftJoin(people, "PersonList.media", ref(Table.MediaInfo, "id"))

@@ -1,5 +1,4 @@
 import userEvent from "@testing-library/user-event";
-import React from "react";
 
 import { emptyMetadata, Join, Operator, RelationType } from "../../../model";
 import { parseDateTime } from "../../../utils/datetime";

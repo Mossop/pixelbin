@@ -1,5 +1,4 @@
 import { Localized as FluentLocalized } from "@fluent/react";
-import React from "react";
 
 import { mockedFunction } from "../../test-helpers";
 import { render } from "../test-helpers";

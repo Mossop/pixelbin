@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
 
 import { editCatalog } from "../api/catalog";

@@ -2,7 +2,6 @@ import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
-import React from "react";
 
 import CloseIcon from "../../icons/CloseIcon";
 import NextIcon from "../../icons/NextIcon";

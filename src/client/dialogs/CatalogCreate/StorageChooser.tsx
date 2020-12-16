@@ -1,5 +1,4 @@
 import Box from "@material-ui/core/Box";
-import React from "react";
 
 import type { CatalogCreateState } from ".";
 import type { StorageState } from "../../api/types";
@@ -21,7 +20,7 @@ export default function StorageChooser({
 }: StorageChooserProps): ReactResult {
   return <RadioGroup name="storageType" state={state.storageType}>
     {
-      storage.size > 0 && <React.Fragment>
+      storage.size > 0 && <>
         <Radio id="storage-type-existing" labelId="storage-type-existing" value="existing"/>
         <Box pl={3}>
           <SelectField
@@ -40,7 +39,7 @@ export default function StorageChooser({
             }
           </SelectField>
         </Box>
-      </React.Fragment>
+      </>
     }
     <Radio id="storage-type-aws" labelId="storage-type-aws" value="aws"/>
     <Radio id="storage-type-compatible" labelId="storage-type-compatible" value="compatible"/>

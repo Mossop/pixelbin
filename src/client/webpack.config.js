@@ -3,6 +3,7 @@ const path = require("path");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const HtmlWebpackTagsPlugin = require("html-webpack-tags-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 const SriPlugin = require("webpack-subresource-integrity");
 
 /**
@@ -131,8 +132,10 @@ module.exports = (mode = "development") => {
     ],
     optimization: {
       usedExports: true,
+      minimize: true,
+      minimizer: [new TerserPlugin()],
       splitChunks: {
-        chunks: "async",
+        chunks: "all",
       },
     },
   };

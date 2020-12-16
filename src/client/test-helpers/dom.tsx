@@ -11,7 +11,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { match as matchMediaQuery } from "css-mediaquery";
 import type { JSDOM } from "jsdom";
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import { Provider } from "react-redux";
 import { config } from "react-transition-group";
 
@@ -198,7 +198,7 @@ class MediaQuery implements MediaQueryList {
   }
 }
 
-let MediaQueries: MediaQuery[] = [];
+const MediaQueries: MediaQuery[] = [];
 function updateQueries(): void {
   act(() => {
     for (let query of MediaQueries) {
@@ -233,7 +233,7 @@ export async function resetDOM(): Promise<void> {
     document.body.firstChild.remove();
   }
 
-  MediaQueries = [];
+  MediaQueries.splice(0, MediaQueries.length);
   window.matchMedia = (query: string) => {
     let mediaQuery = new MediaQuery(query);
     MediaQueries.push(mediaQuery);

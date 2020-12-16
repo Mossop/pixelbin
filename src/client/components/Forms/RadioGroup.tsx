@@ -1,7 +1,7 @@
 import { useLocalization } from "@fluent/react";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import MuiRadio from "@material-ui/core/Radio";
-import React, { createContext, useCallback, useContext } from "react";
+import { createContext, useCallback, useContext } from "react";
 
 import type { FieldState } from "../../utils/state";
 import type { ReactChildren, ReactResult } from "../../utils/types";

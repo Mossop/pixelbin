@@ -12,7 +12,7 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 
 import type { Query, Search } from "../../../model";
 import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
@@ -29,6 +29,10 @@ import type { MediaLookup } from "../../utils/medialookup";
 import { MediaLookupType, lookupMedia } from "../../utils/medialookup";
 import type { ReactResult } from "../../utils/types";
 import CompoundQueryBox from "./CompoundQueryBox";
+
+interface StyleProps {
+  thumbnailSize: number;
+}
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -71,7 +75,7 @@ const useStyles = makeStyles((theme: Theme) =>
       background: "rgba(0, 0, 0, 0.5)",
       borderRadius: 8,
     },
-    previewArea: (thumbnailSize: number) => {
+    previewArea: ({ thumbnailSize }: StyleProps) => {
       let itemWidth = theme.spacing(4) + thumbnailSize;
       return {
         overflowY: "auto",
@@ -90,7 +94,7 @@ export interface SearchDialogProps {
 
 export default function SearchDialog({ catalog, query }: SearchDialogProps): ReactResult {
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
-  let classes = useStyles(thumbnailSize);
+  let classes = useStyles({ thumbnailSize });
   let { l10n } = useLocalization();
   let actions = useActions();
   let [open, setOpen] = useState(true);

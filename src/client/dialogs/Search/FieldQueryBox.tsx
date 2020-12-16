@@ -10,7 +10,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import { DateTimePicker } from "@material-ui/pickers";
 import clsx from "clsx";
 import type { Draft } from "immer";
-import React, { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 import type {
   RelationType,

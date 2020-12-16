@@ -2,7 +2,6 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
-import React from "react";
 
 import type { BaseMediaState } from "../../api/types";
 import type { MediaGroup } from "../../utils/sort";

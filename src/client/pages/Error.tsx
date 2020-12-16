@@ -2,7 +2,7 @@ import { Localized, useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import Link from "@material-ui/core/Link";
 import Typography from "@material-ui/core/Typography";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 import AppBar from "../components/AppBar";
 import Content from "../components/Content";
@@ -32,7 +32,7 @@ export default function ErrorPage({ error }: ErrorPageProps): ReactResult {
     document.title = l10n.getString("error-page-title");
   });
 
-  return <React.Fragment>
+  return <>
     <AppBar>
       <Box
         style={
@@ -65,5 +65,5 @@ export default function ErrorPage({ error }: ErrorPageProps): ReactResult {
         <Typography variant="body1"/>
       </Localized>
     </Content>
-  </React.Fragment>;
+  </>;
 }

@@ -12,7 +12,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Tooltip from "@material-ui/core/Tooltip";
 import { usePopupState, bindTrigger, bindMenu } from "material-ui-popup-state/hooks";
 import md5 from "md5";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 
 import { logout } from "../api/auth";
 import type { UserState } from "../api/types";
@@ -123,7 +123,7 @@ export default function Banner({
     <Box id="banner-buttons" className={classes.bannerButtons}>
       {children}
       {
-        pageOptions && <React.Fragment>
+        pageOptions && <>
           <Hidden smUp={true}>
             <IconButton {...bindTrigger(pageOptionsState)} color="inherit">
               <PageMenuIcon/>
@@ -177,11 +177,11 @@ export default function Banner({
               </Tooltip>)
             }
           </Hidden>
-        </React.Fragment>
+        </>
       }
       {
         user
-          ? <React.Fragment>
+          ? <>
             <IconButton id="banner-user-menu" {...bindTrigger(userMenuState)}>
               <Avatar
                 alt={user.fullname}
@@ -210,8 +210,8 @@ export default function Banner({
                 {l10n.getString("banner-logout")}
               </MenuItem>
             </Menu>
-          </React.Fragment>
-          : <React.Fragment>
+          </>
+          : <>
             <Button
               id="button-login"
               color="inherit"
@@ -228,7 +228,7 @@ export default function Banner({
                 {l10n.getString("banner-signup")}
               </Button>
             </Hidden> */}
-          </React.Fragment>
+          </>
       }
     </Box>
   </AppBar>;

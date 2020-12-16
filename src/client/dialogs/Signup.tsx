@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 
 import { signup } from "../api/auth";
 import { FormDialog, TextField, useFormState } from "../components/Forms";

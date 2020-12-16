@@ -3,7 +3,7 @@ import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles, useTheme } from "@material-ui/core/styles";
-import React, { forwardRef, useCallback, useMemo } from "react";
+import { forwardRef, useCallback, useMemo } from "react";
 
 import type { Album, Catalog } from "../api/highlevel";
 import AlbumIcon from "../icons/AlbumIcon";

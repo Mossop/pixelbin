@@ -103,4 +103,3 @@ export interface StorageTestResult {
   result: AWSResult;
   message: string | null;
 }
-

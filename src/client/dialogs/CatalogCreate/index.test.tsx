@@ -1,5 +1,3 @@
-import React from "react";
-
 import CatalogDialog from ".";
 import { AWSResult, Method } from "../../../model";
 import { lastCallArgs } from "../../../test-helpers";

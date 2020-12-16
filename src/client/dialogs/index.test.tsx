@@ -1,6 +1,5 @@
 /* eslint-disable react/display-name */
 import { waitFor } from "@testing-library/react";
-import React from "react";
 
 import Dialog from ".";
 import { Operator } from "../../model";

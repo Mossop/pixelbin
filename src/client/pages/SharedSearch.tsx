@@ -1,5 +1,5 @@
 import { useLocalization } from "@fluent/react";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { getSharedSearchResults } from "../api/search";
 import type { SharedMediaWithMetadataState } from "../api/types";

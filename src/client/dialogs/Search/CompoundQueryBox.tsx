@@ -9,7 +9,7 @@ import SpeedDial from "@material-ui/lab/SpeedDial";
 import SpeedDialAction from "@material-ui/lab/SpeedDialAction";
 import SpeedDialIcon from "@material-ui/lab/SpeedDialIcon";
 import clsx from "clsx";
-import React, { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 import type { Query, Search } from "../../../model";
 import {
@@ -320,25 +320,23 @@ export default function CompoundQueryBox({
     <Box className={clsx(classes.compoundQueries, isInner && classes.innerCompoundQueries)}>
       {
         query.queries.map((innerQuery: Search.Query): ReactResult => {
-          return <React.Fragment key={queryKey(innerQuery)}>
-            {
-              isCompoundQuery(innerQuery)
-                ? <CompoundQueryBox
-                  inRelation={currentRelation}
-                  onUpdateQuery={updateQuery}
-                  query={innerQuery}
-                  isInner={true}
-                  catalog={catalogRef}
-                  onDeleteQuery={queryDeleted}
-                />
-                : <FieldQueryBox
-                  inRelation={currentRelation}
-                  onUpdateQuery={updateQuery}
-                  query={innerQuery}
-                  onDeleteQuery={queryDeleted}
-                />
-            }
-          </React.Fragment>;
+          return isCompoundQuery(innerQuery)
+            ? <CompoundQueryBox
+              key={queryKey(innerQuery)}
+              inRelation={currentRelation}
+              onUpdateQuery={updateQuery}
+              query={innerQuery}
+              isInner={true}
+              catalog={catalogRef}
+              onDeleteQuery={queryDeleted}
+            />
+            : <FieldQueryBox
+              key={queryKey(innerQuery)}
+              inRelation={currentRelation}
+              onUpdateQuery={updateQuery}
+              query={innerQuery}
+              onDeleteQuery={queryDeleted}
+            />;
         })
       }
       <Box className={classes.addRow}>

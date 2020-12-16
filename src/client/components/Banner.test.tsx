@@ -1,5 +1,3 @@
-import React from "react";
-
 import type { Api } from "../../model";
 import { Method } from "../../model";
 import { awaitCall, mockedFunction } from "../../test-helpers";

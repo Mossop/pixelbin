@@ -1,7 +1,7 @@
 import { useLocalization } from "@fluent/react";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import type { ErrorInfo } from "react";
-import React, { PureComponent, Suspense } from "react";
+import { PureComponent, Suspense } from "react";
 
 import Dialog from "../dialogs";
 import Page from "../pages";

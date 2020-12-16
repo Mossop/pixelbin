@@ -1,7 +1,7 @@
 import type { LinkTypeMap } from "@material-ui/core/Link";
 import MuiLink from "@material-ui/core/Link";
 import type { Draft } from "immer";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 
 import { useActions } from "../store/actions";
 import type { UIState } from "../store/types";

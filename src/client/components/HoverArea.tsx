@@ -1,5 +1,5 @@
 import Fade from "@material-ui/core/Fade";
-import React, {
+import {
   createContext,
   forwardRef,
   useCallback,

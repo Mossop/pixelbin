@@ -125,7 +125,7 @@ export function buildMediaView(knex: Knex): Knex.QueryBuilder {
     ]);
   }
 
-  let CurrentFiles = knex(Table.MediaFile)
+  let currentFiles = knex(Table.MediaFile)
     .orderBy([
       { column: ref(Table.MediaFile, "media"), order: "asc" },
       { column: ref(Table.MediaFile, "uploaded"), order: "desc" },
@@ -173,7 +173,7 @@ export function buildMediaView(knex: Knex): Knex.QueryBuilder {
     .as("PersonList");
 
   return knex(Table.MediaInfo)
-    .leftJoin(CurrentFiles, "CurrentFile.media", ref(Table.MediaInfo, "id"))
+    .leftJoin(currentFiles, "CurrentFile.media", ref(Table.MediaInfo, "id"))
     .leftJoin(tags, "TagList.media", ref(Table.MediaInfo, "id"))
     .leftJoin(albums, "AlbumList.media", ref(Table.MediaInfo, "id"))
     .leftJoin(people, "PersonList.media", ref(Table.MediaInfo, "id"))

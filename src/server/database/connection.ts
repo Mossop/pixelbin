@@ -148,8 +148,8 @@ export class DatabaseConnection {
     if (_transaction) {
       this.knex = _transaction;
     } else {
-      this.knex = _baseKnex["withUserParams"]({
-        ..._baseKnex["userParams"] ?? {},
+      this.knex = _baseKnex.withUserParams({
+        ..._baseKnex.userParams,
       });
     }
 

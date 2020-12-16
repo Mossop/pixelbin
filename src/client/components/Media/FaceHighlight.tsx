@@ -2,7 +2,6 @@ import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
 import alpha from "color-alpha";
-import React from "react";
 
 import type { Api } from "../../../model";
 import { weakUpsert } from "../../../utils/utility";

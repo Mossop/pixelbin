@@ -1,5 +1,3 @@
-import React from "react";
-
 import { Method } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { request } from "../api/api";

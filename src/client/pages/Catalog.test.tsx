@@ -1,5 +1,3 @@
-import React from "react";
-
 import { emptyMetadata, Join } from "../../model";
 import { lastCallArgs, mockedFunction } from "../../test-helpers";
 import { now } from "../../utils/datetime";

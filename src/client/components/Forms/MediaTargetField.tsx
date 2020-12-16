@@ -1,7 +1,7 @@
 import { useLocalization } from "@fluent/react";
 import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
-import React, { forwardRef, useCallback } from "react";
+import { forwardRef, useCallback } from "react";
 
 import type { Catalog } from "../../api/highlevel";
 import type { MediaTarget } from "../../api/media";

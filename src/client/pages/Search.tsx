@@ -1,6 +1,6 @@
 import { useLocalization } from "@fluent/react";
 import type { Draft } from "immer";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import type { Query } from "../../model";
 import type { Catalog, Reference } from "../api/highlevel";

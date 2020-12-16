@@ -3,7 +3,7 @@ import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { Person, Reference } from "../../api/highlevel";
 import { getMediaRelations } from "../../api/media";
@@ -132,7 +132,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
 
   let mediaToShow = media?.[mediaIndex];
 
-  let mediaControls = <React.Fragment>
+  let mediaControls = <>
     {
       mediaToShow && isProcessed(mediaToShow) &&
       <IconButton
@@ -169,7 +169,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
     >
       <InfoIcon/>
     </IconButton>
-  </React.Fragment>;
+  </>;
 
   let content: React.ReactElement | undefined = undefined;
   if (mediaToShow && isProcessed(mediaToShow)) {

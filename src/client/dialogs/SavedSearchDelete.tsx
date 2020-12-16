@@ -1,6 +1,6 @@
 import { Localized } from "@fluent/react";
 import Typography from "@material-ui/core/Typography";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { SavedSearch, Reference } from "../api/highlevel";
 import { useReference } from "../api/highlevel";

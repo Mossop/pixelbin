@@ -3,7 +3,7 @@ import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
-import React, { Children, forwardRef, useCallback } from "react";
+import { Children, forwardRef, useCallback } from "react";
 
 import type { FieldState } from "../../utils/state";
 import type { ReactRef, ReactResult } from "../../utils/types";

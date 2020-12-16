@@ -10,7 +10,7 @@ import Stepper from "@material-ui/core/Stepper";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Alert from "@material-ui/lab/Alert/Alert";
-import React, { useState, useCallback, Children, useEffect } from "react";
+import { useState, useCallback, Children, useEffect } from "react";
 
 import { errorString } from "../../utils/exception";
 import type { ReactResult } from "../../utils/types";

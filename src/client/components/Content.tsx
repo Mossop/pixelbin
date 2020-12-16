@@ -3,7 +3,6 @@ import Box from "@material-ui/core/Box";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
-import React from "react";
 
 import type { ReactResult } from "../utils/types";
 

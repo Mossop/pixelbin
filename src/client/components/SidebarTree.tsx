@@ -6,7 +6,7 @@ import ListItemText from "@material-ui/core/ListItemText";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 
 import type { Album, Catalog, SavedSearch } from "../api/highlevel";
 import { useCatalogs } from "../api/highlevel";
@@ -81,7 +81,7 @@ function SidebarItem({
     };
   }
 
-  return <React.Fragment>
+  return <>
     <ListItem
       {...buttonProps}
       dense={true}
@@ -100,7 +100,7 @@ function SidebarItem({
         {children}
       </List>
     }
-  </React.Fragment>;
+  </>;
 }
 
 interface AlbumItemProps {
@@ -257,7 +257,7 @@ const CatalogItem = ReactMemo(function CatalogItem({
 
   let children: React.ReactNode = null;
   if (searches.length && albums.length) {
-    children = <React.Fragment>
+    children = <>
       <SavedSearchesItem
         searches={searches}
         selectedItem={selectedItem}
@@ -266,7 +266,7 @@ const CatalogItem = ReactMemo(function CatalogItem({
         albums={albums}
         selectedItem={selectedItem}
       />
-    </React.Fragment>;
+    </>;
   } else if (searches.length) {
     children = searches.map((search: SavedSearch) => <SavedSearchItem
       key={search.id}

@@ -5,7 +5,7 @@ import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import clsx from "clsx";
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import type { ObjectModel } from "../../../model";
 import { RelationType, Join, Operator } from "../../../model";
@@ -239,7 +239,7 @@ function Row(
     "metadata-value",
   );
 
-  return <React.Fragment>
+  return <>
     <dt
       className={labelClasses}
     >
@@ -250,7 +250,7 @@ function Row(
     >
       {value}
     </dd>
-  </React.Fragment>;
+  </>;
 }
 
 interface LocalizedRowProps {
@@ -431,10 +431,10 @@ export default function MediaInfo({
     }
     {
       format("aperture", (value: number): React.ReactNode => {
-        return <React.Fragment>
+        return <>
           <i>f</i>
           {`/${value.toFixed(1)}`}
-        </React.Fragment>;
+        </>;
       })
     }
     {format("iso", (value: number): string => `ISO ${Math.round(value)}`)}
