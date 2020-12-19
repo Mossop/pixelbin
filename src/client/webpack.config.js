@@ -132,7 +132,7 @@ module.exports = (mode = "development") => {
     ],
     optimization: {
       usedExports: true,
-      minimize: true,
+      minimize: mode == "production",
       minimizer: [new TerserPlugin()],
       splitChunks: {
         chunks: "all",

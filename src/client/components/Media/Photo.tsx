@@ -83,13 +83,8 @@ export function Photo({
         onLoad={onLoad}
       />
     </picture>
-    <HoverArea>
-      <div
-        id="media-controls"
-        className={classes.mediaControls}
-      >
-        {children}
-      </div>
+    <HoverArea id="media-controls" className={classes.mediaControls}>
+      {children}
     </HoverArea>
   </>;
 }

@@ -180,40 +180,35 @@ export function Video({
         </IconButton>
       </div>
     }
-    <HoverArea>
-      <div
-        id="media-controls"
-        className={classes.mediaControls}
-      >
-        {
-          !videoState.playing
-            ? <IconButton
-              id="video-play"
-              onClick={play}
-              className={classes.mediaControl}
-            >
-              <PlayIcon/>
-            </IconButton>
-            : <IconButton
-              id="video-pause"
-              onClick={pause}
-              className={classes.mediaControl}
-            >
-              <PauseIcon/>
-            </IconButton>
-        }
-        {
-          videoState.progress == null
-            ? <LinearProgress className={classes.scrubber}/>
-            : <LinearProgress
-              className={classes.scrubber}
-              variant="determinate"
-              value={videoState.progress}
-            />
-        }
-        <Typography variant="h6" className={classes.time}>{videoState.currentTime}</Typography>
-        {children}
-      </div>
+    <HoverArea id="media-controls" className={classes.mediaControls}>
+      {
+        !videoState.playing
+          ? <IconButton
+            id="video-play"
+            onClick={play}
+            className={classes.mediaControl}
+          >
+            <PlayIcon/>
+          </IconButton>
+          : <IconButton
+            id="video-pause"
+            onClick={pause}
+            className={classes.mediaControl}
+          >
+            <PauseIcon/>
+          </IconButton>
+      }
+      {
+        videoState.progress == null
+          ? <LinearProgress className={classes.scrubber}/>
+          : <LinearProgress
+            className={classes.scrubber}
+            variant="determinate"
+            value={videoState.progress}
+          />
+      }
+      <Typography variant="h6" className={classes.time}>{videoState.currentTime}</Typography>
+      {children}
     </HoverArea>
   </>;
 }

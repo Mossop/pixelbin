@@ -6,16 +6,28 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import Delayed from "../utils/delayed";
+import { useChainedEvent } from "../utils/hooks";
 import type { ReactRef, ReactResult } from "../utils/types";
 
-const HoverContext = createContext(false);
+interface HoverProps {
+  hovered: boolean;
+  alterBlocking: (blocked: boolean) => void;
+}
 
-export function useHoverContext(): boolean {
-  return useContext(HoverContext);
+const HoverContext = createContext<HoverProps | null>(null);
+
+export function useHoverContext(): HoverProps {
+  return useContext(HoverContext) ?? {
+    hovered: false,
+    alterBlocking: () => {
+    // no-op.
+    },
+  };
 }
 
 export type HoverContainerProps = {
@@ -24,70 +36,163 @@ export type HoverContainerProps = {
 } & React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
 
 export const HoverContainer = forwardRef(function HoverContainer({
-  onMouseOver,
-  onMouseMove,
+  onPointerEnter,
+  onPointerMove,
+  onPointerUp,
   initial = false,
   timeout = 1500,
   children,
   ...rest
 }: HoverContainerProps, ref: ReactRef | null): ReactResult {
-  let [hovered, setHovered] = useState(initial);
+  let [hovered, setHovered] = useState(false);
+  let blockCount = useRef(0);
+  let touched = useRef(false);
 
-  let delayed = useMemo(() => {
-    let delayed = new Delayed(timeout, () => setHovered(false));
+  let alterBlocking = useCallback((blocking: boolean): void => {
+    blockCount.current += blocking ? 1 : -1;
+    setHovered(blockCount.current > 0);
+  }, []);
+
+  let delayRef = useRef(useMemo(() => {
+    let delayed = new Delayed(
+      () => alterBlocking(true),
+      () => alterBlocking(false),
+      timeout,
+    );
+
     if (initial) {
       delayed.trigger();
     }
     return delayed;
-  }, [initial, timeout]);
+  }, [initial, timeout, alterBlocking]));
 
-  useEffect(() => () => delayed.cancel());
+  let context = useMemo(() => ({
+    hovered,
+    alterBlocking,
+  }), [hovered, alterBlocking]);
 
-  let markHovered = useCallback(() => {
-    setHovered(true);
-    delayed.trigger();
-  }, [delayed]);
+  useEffect(() => {
+    let delay = delayRef.current;
+    delay.resume(timeout);
+    return () => delay.pause();
+  }, [timeout]);
 
-  let mouseOver = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
-    if (onMouseOver) {
-      onMouseOver(event);
+  let markHovered = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType == "mouse") {
+      console.trace("markHovered");
+      delayRef.current.trigger();
     }
-    markHovered();
-  }, [markHovered, onMouseOver]);
+  }, [delayRef]);
 
-  let mouseMove = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
-    if (onMouseMove) {
-      onMouseMove(event);
-    }
-    markHovered();
-  }, [markHovered, onMouseMove]);
+  let pointerEnter = useChainedEvent(
+    markHovered,
+    onPointerEnter,
+  );
+
+  let pointerMove = useChainedEvent(
+    markHovered,
+    onPointerMove,
+  );
+
+  let pointerUp = useChainedEvent(
+    useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
+      if (event.pointerType != "mouse") {
+        touched.current = !touched.current;
+        alterBlocking(touched.current);
+      }
+    }, [alterBlocking]),
+    onPointerUp,
+  );
 
   return <div
-    onMouseOver={mouseOver}
-    onMouseMove={mouseMove}
+    onPointerEnter={pointerEnter}
+    onPointerMove={pointerMove}
+    onPointerUp={pointerUp}
     ref={ref}
     {...rest}
   >
-    <HoverContext.Provider value={hovered}>
+    <HoverContext.Provider value={context}>
       {children}
     </HoverContext.Provider>
   </div>;
 });
 
-export interface HoverAreaProps {
+export type HoverAreaProps = {
   timeout?: number;
-  children?: React.ReactElement;
-}
+} & React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
 
-export function HoverArea(props: HoverAreaProps): ReactResult {
-  let hovered = useHoverContext();
-
+export function HoverArea({
+  timeout = 500,
+  onPointerUp,
+  onPointerEnter,
+  onPointerLeave,
+  children,
+  ...props
+}: HoverAreaProps): ReactResult {
   let {
-    timeout = 500,
-    children,
-  } = props;
+    hovered,
+    alterBlocking,
+  } = useHoverContext();
+
+  let blocked = useRef(false);
+
+  let makeBlocking = useCallback((blocking: boolean) => {
+    if (blocked.current == blocking) {
+      return;
+    }
+
+    blocked.current = blocking;
+    alterBlocking(blocking);
+  }, [alterBlocking]);
+
+  useEffect(() => {
+    if (blocked.current) {
+      alterBlocking(true);
+    }
+
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (blocked.current) {
+        alterBlocking(false);
+      }
+    };
+  }, [alterBlocking]);
+
+  let pointerUp = useChainedEvent(
+    useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
+      event.stopPropagation();
+    }, []),
+    onPointerUp,
+  );
+
+  let pointerEnter = useChainedEvent(
+    useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
+      if (event.pointerType == "mouse") {
+        console.trace("pointerEnter");
+        makeBlocking(true);
+      }
+    }, [makeBlocking]),
+    onPointerEnter,
+  );
+
+  let pointerLeave = useChainedEvent(
+    useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
+      if (event.pointerType == "mouse") {
+        console.trace("pointerLeave");
+        makeBlocking(false);
+      }
+    }, [makeBlocking]),
+    onPointerLeave,
+  );
 
   return <Fade in={hovered} timeout={timeout}>
-    {children}
+    <div
+      onPointerUp={pointerUp}
+      onPointerEnter={pointerEnter}
+      onPointerLeave={pointerLeave}
+      {...props}
+    >
+      {children}
+    </div>
   </Fade>;
 }

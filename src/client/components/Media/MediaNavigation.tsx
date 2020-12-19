@@ -37,6 +37,7 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-end",
+      alignSelf: "end",
     },
     navButton: {
       "fontSize": "4rem",
@@ -70,41 +71,43 @@ export default function MediaNavigation({
 }: MediaNavigationProps): ReactResult {
   let classes = useStyles();
 
-  return <HoverArea>
-    <div id="main-overlay" className={classes.overlay}>
-      <div className={classes.overlayTop}>
-        <IconButton
-          id="close-button"
-          onClick={onCloseMedia}
-          className={classes.overlayButton}
-        >
-          <CloseIcon/>
-        </IconButton>
-      </div>
-      <div className={classes.overlayMiddle}>
-        <div>
-          {
-            onPrevious && <IconButton
+  return <div id="main-overlay" className={classes.overlay}>
+    <HoverArea className={classes.overlayTop}>
+      <IconButton
+        id="close-button"
+        onClick={onCloseMedia}
+        className={classes.overlayButton}
+      >
+        <CloseIcon/>
+      </IconButton>
+    </HoverArea>
+    <div className={classes.overlayMiddle}>
+      <div>
+        {
+          onPrevious && <HoverArea key="previous">
+            <IconButton
               id="prev-button"
               onClick={onPrevious}
               className={classes.navButton}
             >
               <PreviousIcon/>
             </IconButton>
-          }
-        </div>
-        <div>
-          {
-            onNext && <IconButton
+          </HoverArea>
+        }
+      </div>
+      <div>
+        {
+          onNext && <HoverArea key="next">
+            <IconButton
               id="next-button"
               onClick={onNext}
               className={classes.navButton}
             >
               <NextIcon/>
             </IconButton>
-          }
-        </div>
+          </HoverArea>
+        }
       </div>
     </div>
-  </HoverArea>;
+  </div>;
 }

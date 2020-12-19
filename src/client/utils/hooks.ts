@@ -229,3 +229,17 @@ export function useElementWidth(element: Element | null | undefined): number | n
 
   return elementWidth;
 }
+
+type EventHandler<E> = (event: E) => void;
+export function useChainedEvent<E>(
+  handler: EventHandler<E>,
+  original?: EventHandler<E> | null,
+): EventHandler<E> {
+  return useCallback((event: E): void => {
+    if (original) {
+      original(event);
+    }
+
+    handler(event);
+  }, [handler, original]);
+}
