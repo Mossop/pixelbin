@@ -14,7 +14,7 @@ delete webpackConfig.output;
 delete webpackConfig.entry;
 
 let scripts = externals.map(pkg => {
-  return path.join(__dirname, "..", "..", "node_modules", pkg.id, pkg.path);
+  return path.join(__dirname, "..", "..", "node_modules", pkg.id, pkg.developmentPath);
 });
 
 let browsers = ["FirefoxHeadless", "ChromeHeadless"];

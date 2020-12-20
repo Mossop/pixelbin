@@ -1,20 +1,25 @@
+import Dialog from "@material-ui/core/Dialog";
 import Drawer from "@material-ui/core/Drawer";
 import Fade from "@material-ui/core/Fade";
 import IconButton from "@material-ui/core/IconButton";
+import Slide from "@material-ui/core/Slide";
 import type { Theme } from "@material-ui/core/styles";
-import { createStyles, makeStyles } from "@material-ui/core/styles";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useTheme, createStyles, makeStyles } from "@material-ui/core/styles";
+import type { TransitionProps } from "@material-ui/core/transitions";
+import useMediaQuery from "@material-ui/core/useMediaQuery";
+import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
 
 import type { Person, Reference } from "../../api/highlevel";
 import { getMediaRelations } from "../../api/media";
 import type { BaseMediaState, MediaRelations } from "../../api/types";
 import { isProcessed } from "../../api/types";
+import CloseIcon from "../../icons/CloseIcon";
 import DownloadIcon from "../../icons/DownloadIcon";
 import EnterFullscreenIcon from "../../icons/EnterFullscreenIcon";
 import ExitFullscreenIcon from "../../icons/ExitFullscreenIcon";
 import InfoIcon from "../../icons/InfoIcon";
 import { useFullscreen, usePromise } from "../../utils/hooks";
-import type { ReactResult } from "../../utils/types";
+import type { ReactChildren, ReactResult } from "../../utils/types";
 import { HoverContainer } from "../HoverArea";
 import Loading from "../Loading";
 import FaceHighlight from "./FaceHighlight";
@@ -49,6 +54,12 @@ const useStyles = makeStyles((theme: Theme) =>
       right: 0,
       bottom: 0,
     },
+    closeButton: {
+      position: "sticky",
+      alignSelf: "end",
+      top: 0,
+      padding: theme.spacing(1),
+    },
     overlayButton: {
       "marginRight": theme.spacing(1),
       "fontSize": "2rem",
@@ -57,6 +68,51 @@ const useStyles = makeStyles((theme: Theme) =>
       },
     },
   }));
+
+const Transition = forwardRef(function Transition(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  props: TransitionProps & { children?: React.ReactElement<any, any> },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="left" ref={ref} {...props}/>;
+});
+
+interface InfoAreaProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+function InfoArea({
+  open,
+  onClose,
+  children,
+}: InfoAreaProps & ReactChildren): ReactResult {
+  let classes = useStyles();
+  let theme = useTheme();
+  let infoModal = useMediaQuery(theme.breakpoints.down("xs"));
+
+  if (infoModal) {
+    return <Dialog
+      open={open}
+      fullScreen={true}
+      TransitionComponent={Transition}
+    >
+      <IconButton
+        aria-label="close"
+        id="sidebar-close"
+        className={classes.closeButton}
+        onClick={onClose}
+      >
+        <CloseIcon/>
+      </IconButton>
+      {children}
+    </Dialog>;
+  } else {
+    return <Drawer anchor="right" open={open} onClose={onClose}>
+      {children}
+    </Drawer>;
+  }
+}
 
 export interface MediaDisplayProps<T extends BaseMediaState> {
   media: readonly T[] | null;
@@ -214,13 +270,13 @@ export default function MediaDisplay<T extends BaseMediaState>({
     />
     {
       mediaToShow &&
-      <Drawer anchor="right" open={showMediaInfo} onClose={onCloseInfo}>
+      <InfoArea open={showMediaInfo} onClose={onCloseInfo}>
         <MediaInfo
           media={mediaToShow}
           relations={relations}
           onHighlightPerson={setPersonHighlight}
         />
-      </Drawer>
+      </InfoArea>
     }
   </HoverContainer>;
 }

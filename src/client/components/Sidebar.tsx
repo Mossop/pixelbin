@@ -17,14 +17,11 @@ const useStyles = makeStyles((theme: Theme) =>
     paper: {
       position: "sticky",
     },
-    sidebarContent: {
-      paddingTop: theme.spacing(2),
-    },
     closeButton: {
-      position: "absolute",
+      position: "sticky",
+      alignSelf: "end",
       top: 0,
-      right: 0,
-      zIndex: theme.zIndex.modal + 10,
+      padding: theme.spacing(1),
     },
   }));
 
@@ -72,12 +69,15 @@ function ModalSidebar({
     fullScreen={true}
     TransitionComponent={Transition}
   >
-    <Box className={classes.closeButton}>
-      <IconButton aria-label="close" id="sidebar-close" onClick={onClose}>
-        <CloseIcon/>
-      </IconButton>
-    </Box>
-    <Box className={classes.sidebarContent}>
+    <IconButton
+      aria-label="close"
+      id="sidebar-close"
+      className={classes.closeButton}
+      onClick={onClose}
+    >
+      <CloseIcon/>
+    </IconButton>
+    <Box>
       {children}
     </Box>
   </Dialog>;
