@@ -37,7 +37,6 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-end",
-      alignSelf: "end",
     },
     navButton: {
       "fontSize": "4rem",
@@ -72,15 +71,17 @@ export default function MediaNavigation({
   let classes = useStyles();
 
   return <div id="main-overlay" className={classes.overlay}>
-    <HoverArea className={classes.overlayTop}>
-      <IconButton
-        id="close-button"
-        onClick={onCloseMedia}
-        className={classes.overlayButton}
-      >
-        <CloseIcon/>
-      </IconButton>
-    </HoverArea>
+    <div className={classes.overlayTop}>
+      <HoverArea>
+        <IconButton
+          id="close-button"
+          onClick={onCloseMedia}
+          className={classes.overlayButton}
+        >
+          <CloseIcon/>
+        </IconButton>
+      </HoverArea>
+    </div>
     <div className={classes.overlayMiddle}>
       <div>
         {
