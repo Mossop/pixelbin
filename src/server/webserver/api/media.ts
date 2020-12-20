@@ -513,6 +513,48 @@ export async function original(
   }
 }
 
+export async function download(
+  ctx: AppContext,
+  id: string,
+  mediaFile: string,
+  filename: string,
+  search?: string,
+): Promise<void> {
+  let file: MediaFileInfo | null;
+  let userDb = ctx.userDb;
+  if (userDb) {
+    file = await userDb.getMediaFile(id);
+  } else if (!search) {
+    throw new ApiError(ErrorCode.NotLoggedIn);
+  } else {
+    file = await ctx.dbConnection.getSearchMediaFile(search, id);
+  }
+
+  if (!file || file.id != mediaFile) {
+    throw new ApiError(ErrorCode.NotFound, {
+      message: "Media does not exist.",
+    });
+  }
+
+  let storage = await ctx.storage.getStorage(file.catalog);
+  try {
+    let stream = await storage.get().streamFile(
+      file.media,
+      file.id,
+      file.fileName,
+    );
+
+    ctx.status = 200;
+    ctx.set("Cache-Control", "max-age=1314000,immutable");
+    ctx.set("Content-Disposition", `attachment; filename="${filename}"`);
+    ctx.type = file.mimetype;
+    ctx.length = file.fileSize;
+    ctx.body = stream;
+  } finally {
+    storage.release();
+  }
+}
+
 function isMedia(item: MediaView | null): item is MediaView {
   return !!item;
 }

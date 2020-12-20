@@ -236,7 +236,7 @@ test("List album", async (): Promise<void> => {
         size: 200,
         url: "/media/testmedia2/newfile/thumb/200/image-webp/image.webp",
       }],
-      url: "/media/testmedia2/newfile/image.jpg",
+      url: "/download/testmedia2/newfile/image.jpg",
       encodings: [{
         mimetype: "image/jpeg",
         url: "/media/testmedia2/newfile/encoding/image-jpeg/image.jpg",

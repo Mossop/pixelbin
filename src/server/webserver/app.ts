@@ -14,7 +14,7 @@ import serve from "koa-static";
 
 import type { Api, ApiSerialization } from "../../model";
 import { Method, ErrorCode } from "../../model";
-import { alternate, original, thumbnail } from "./api/media";
+import { alternate, download, original, thumbnail } from "./api/media";
 import { apiRequestHandler } from "./api/methods";
 import { buildState } from "./api/state";
 import type { AppContext, ServicesContext } from "./context";
@@ -129,10 +129,26 @@ export default async function buildApp(): Promise<void> {
   );
 
   router.get(
+    `${APP_PATHS.root}download/:id/:file/:filename`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, file, filename } = ctx.params;
+      return download(ctx, id, file, filename);
+    },
+  );
+
+  router.get(
     `${APP_PATHS.root}search/:search/media/:id/:file/:filename`,
     (ctx: RouterContext<AppContext>): Promise<void> => {
       let { id, file, search } = ctx.params;
       return original(ctx, id, file, search);
+    },
+  );
+
+  router.get(
+    `${APP_PATHS.root}search/:search/download/:id/:file/:filename`,
+    (ctx: RouterContext<AppContext>): Promise<void> => {
+      let { id, file, filename, search } = ctx.params;
+      return download(ctx, id, file, filename, search);
     },
   );
 

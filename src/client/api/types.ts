@@ -241,7 +241,8 @@ export async function baseMediaIntoState(
 
     file = {
       ...media.file,
-      url: `${base}/${media.filename ?? nameForType(media.file.mimetype)}`,
+      url: `${urlPrefix}/download/${media.id}/${media.file.id}/` +
+        `${nameForType(media.file.mimetype, media.filename)}`,
       thumbnails: thumbs,
       encodings: encodings.map((encoding: string) => ({
         mimetype: encoding,

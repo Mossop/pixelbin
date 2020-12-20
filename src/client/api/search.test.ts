@@ -204,7 +204,7 @@ test("List public search", async (): Promise<void> => {
           size: 200,
           url: "/search/testsearch/media/foo/test/thumb/200/image-webp/image.webp",
         }],
-        url: "/search/testsearch/media/foo/test/image.jpg",
+        url: "/search/testsearch/download/foo/test/image.jpg",
         videoEncodings: [{
           mimetype: "video/mp4",
           url: "/search/testsearch/media/foo/test/encoding/video-mp4/video.mp4",
