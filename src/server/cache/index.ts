@@ -109,7 +109,7 @@ export class Cache {
   public async setSession(key: string, data: Session, maxAge?: number): Promise<void> {
     await this.set(`session:${key}`, JSON.stringify(data));
     if (maxAge) {
-      await this.expire(key, maxAge);
+      await this.expire(`session:${key}`, maxAge);
     }
   }
 

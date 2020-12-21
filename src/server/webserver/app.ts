@@ -225,6 +225,7 @@ export default async function buildApp(): Promise<void> {
       renew: true,
       store: cache.sessionStore,
       sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     }, app as unknown as Koa))
 
     .use(router.routes())
