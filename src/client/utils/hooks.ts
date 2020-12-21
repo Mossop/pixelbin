@@ -243,3 +243,31 @@ export function useChainedEvent<E>(
     handler(event);
   }, [handler, original]);
 }
+
+export function useViewportSize(): Size {
+  let [size, setSize] = useState<Size>({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
+  let update = useCallback(() => {
+    let { innerWidth, innerHeight } = window;
+    setSize((size: Size): Size => {
+      if (innerWidth != size.width || innerHeight != size.height) {
+        return {
+          width: innerWidth,
+          height: innerHeight,
+        };
+      }
+
+      return size;
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [update]);
+
+  return size;
+}

@@ -6,6 +6,8 @@ import { PureComponent, Suspense } from "react";
 import Dialog from "../dialogs";
 import Page from "../pages";
 import ErrorPage from "../pages/Error";
+import type { Size } from "../utils/hooks";
+import { useViewportSize } from "../utils/hooks";
 import Loading from "./Loading";
 import PageComponent from "./Page";
 
@@ -42,16 +44,17 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
 
 const useStyles = makeStyles(() =>
   createStyles({
-    app: {
-      height: "100vh",
-      width: "100vw",
+    app: ({ height, width }: Size) => ({
       position: "relative",
-    },
+      width,
+      height,
+    }),
   }));
 
 export default function App(): React.ReactElement | null {
   let { l10n } = useLocalization();
-  let classes = useStyles();
+  let size = useViewportSize();
+  let classes = useStyles(size);
 
   return <div className={classes.app}>
     <ErrorHandler>
