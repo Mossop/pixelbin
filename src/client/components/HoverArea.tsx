@@ -79,7 +79,6 @@ export const HoverContainer = forwardRef(function HoverContainer({
 
   let markHovered = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType == "mouse") {
-      console.trace("markHovered");
       delayRef.current.trigger();
     }
   }, [delayRef]);
@@ -168,7 +167,6 @@ export function HoverArea({
   let pointerEnter = useChainedEvent(
     useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
       if (event.pointerType == "mouse") {
-        console.trace("pointerEnter");
         makeBlocking(true);
       }
     }, [makeBlocking]),
@@ -178,7 +176,6 @@ export function HoverArea({
   let pointerLeave = useChainedEvent(
     useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
       if (event.pointerType == "mouse") {
-        console.trace("pointerLeave");
         makeBlocking(false);
       }
     }, [makeBlocking]),
