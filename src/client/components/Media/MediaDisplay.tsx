@@ -7,7 +7,7 @@ import type { Theme } from "@material-ui/core/styles";
 import { useTheme, createStyles, makeStyles } from "@material-ui/core/styles";
 import type { TransitionProps } from "@material-ui/core/transitions";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Person, Reference } from "../../api/highlevel";
 import { getMediaRelations } from "../../api/media";
@@ -19,6 +19,7 @@ import EnterFullscreenIcon from "../../icons/EnterFullscreenIcon";
 import ExitFullscreenIcon from "../../icons/ExitFullscreenIcon";
 import InfoIcon from "../../icons/InfoIcon";
 import { useFullscreen, usePromise } from "../../utils/hooks";
+import { mediaTitle } from "../../utils/metadata";
 import type { ReactChildren, ReactResult } from "../../utils/types";
 import { HoverContainer } from "../HoverArea";
 import Loading from "../Loading";
@@ -115,6 +116,7 @@ function InfoArea({
 }
 
 export interface MediaDisplayProps<T extends BaseMediaState> {
+  galleryTitle: string;
   media: readonly T[] | null;
   selectedMedia: string;
   onChangeMedia: (media: T) => void;
@@ -122,6 +124,7 @@ export interface MediaDisplayProps<T extends BaseMediaState> {
 }
 
 export default function MediaDisplay<T extends BaseMediaState>({
+  galleryTitle,
   media,
   selectedMedia,
   onChangeMedia,
@@ -187,6 +190,11 @@ export default function MediaDisplay<T extends BaseMediaState>({
   }, [media, mediaIndex]));
 
   let mediaToShow = media?.[mediaIndex];
+
+  useEffect(() => {
+    let base = mediaToShow ? mediaTitle(mediaToShow) : null;
+    document.title = base ? `${base} - ${galleryTitle}` : galleryTitle;
+  }, [mediaToShow, galleryTitle]);
 
   let mediaControls = <>
     {

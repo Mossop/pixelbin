@@ -85,6 +85,7 @@ export default function MediaListPage<T extends BaseMediaState>({
       selectedMedia &&
       <ThemeProvider theme={darkTheme}>
         <MediaDisplay
+          galleryTitle={galleryTitle}
           media={orderedMedia}
           selectedMedia={selectedMedia}
           onChangeMedia={onMediaClick}

@@ -100,10 +100,10 @@ export default function Page({
   }, []);
 
   useEffect(() => {
-    if (!uiState.dialog) {
+    if (!uiState.dialog && !hasOverlay) {
       document.title = title;
     }
-  }, [title, uiState]);
+  }, [hasOverlay, title, uiState]);
 
   let sidebarType = useMemo((): SidebarProps["type"] | null => {
     if (!loggedIn) {
