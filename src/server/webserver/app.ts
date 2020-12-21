@@ -49,6 +49,7 @@ async function buildAppContent(
       ...APP_PATHS,
       static: `${APP_PATHS.static}${staticHash}/`,
     }))
+    .replace(/\{% static %\}/g, `${APP_PATHS.static}${staticHash}`)
     .replace("{% state %}", JSON.stringify(state))
     .replace(/\{% nonce %\}/g, nonce)
     .replace(/ integrity="null"/g, "");
