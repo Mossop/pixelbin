@@ -2,10 +2,15 @@ import Fade from "@material-ui/core/Fade";
 import Paper from "@material-ui/core/Paper";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import { useCallback, useState } from "react";
+import Rating from "@material-ui/lab/Rating/Rating";
+import clsx from "clsx";
+import alpha from "color-alpha";
+import React, { useCallback, useState } from "react";
 
 import type { BaseMediaState, MediaFileState } from "../../api/types";
 import { isProcessed } from "../../api/types";
+import PhotoIcon from "../../icons/PhotoIcon";
+import VideoIcon from "../../icons/VideoIcon";
 import type { ReactResult } from "../../utils/types";
 import { ReactMemo } from "../../utils/types";
 import { MountOnIntersect } from "../IntersectionObserver";
@@ -14,11 +19,11 @@ import Loading from "../Loading";
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     preview: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      padding: theme.spacing(2),
+      "position": "relative",
+      "padding": theme.spacing(2),
+      "&:hover .hoverOpacity": {
+        filter: "opacity(1)",
+      },
     },
     thumbnailOuter: {
       width: "100%",
@@ -42,6 +47,24 @@ const useStyles = makeStyles((theme: Theme) =>
       objectPosition: "center center",
       width: "100%",
       height: "100%",
+    },
+    overlayBar: {
+      backgroundColor: alpha(theme.palette.background.paper, 0.7),
+      position: "absolute",
+      padding: theme.spacing(1),
+      bottom: 0,
+      left: 0,
+      right: 0,
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      fontSize: "1.05rem",
+      filter: "opacity(0.5)",
+      transition: "filter 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
+    },
+    fixedFont: {
+      fontSize: "inherit",
     },
   }));
 
@@ -128,6 +151,19 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
           </MountOnIntersect>
           : <Loading className={classes.thumbnailInner}/>
       }
+    </div>
+    <div className={clsx(classes.overlayBar, "hoverOpacity")}>
+      <div>
+        <Rating value={media.rating} readOnly={true} className={classes.fixedFont}/>
+      </div>
+      <div>
+        {
+          media.file?.mimetype.startsWith("image/") && <PhotoIcon className={classes.fixedFont}/>
+        }
+        {
+          media.file?.mimetype.startsWith("video/") && <VideoIcon className={classes.fixedFont}/>
+        }
+      </div>
     </div>
   </Paper>;
 });
