@@ -2,32 +2,22 @@ import { enableMapSet } from "immer";
 import { useStore as useReduxStore, useSelector as useReduxSelector } from "react-redux";
 import { createStore } from "redux";
 
-import { PageType } from "../pages/types";
+import { initialServerState } from "../context";
 import { provideService } from "../services";
+import { getUIState } from "../utils/navigation";
 import reducer from "./reducer";
 import type { StoreState, StoreType } from "./types";
 
-export function buildStore(): void {
+export function buildStore(): StoreType {
   enableMapSet();
 
+  let serverState = initialServerState();
   let initialState: StoreState = {
-    serverState: {
-      user: null,
-      thumbnails: {
-        encodings: [],
-        sizes: [],
-      },
-      encodings: [],
-      videoEncodings: [],
-    },
+    serverState,
     settings: {
       thumbnailSize: 150,
     },
-    ui: {
-      page: {
-        type: PageType.Root,
-      },
-    },
+    ui: getUIState(serverState),
   };
 
   let store = createStore(
@@ -38,6 +28,7 @@ export function buildStore(): void {
   );
 
   provideService("store", store);
+  return store;
 }
 
 export const useStore = useReduxStore as () => StoreType;

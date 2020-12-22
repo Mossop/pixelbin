@@ -16,6 +16,7 @@ import type { DialogState } from "../dialogs/types";
 import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
 import { createDraft } from "../utils/helpers";
+import { pushUIState, replaceUIState } from "../utils/navigation";
 import type { StoreState, UIState } from "./types";
 
 type MappedReducer<S> =
@@ -55,7 +56,12 @@ const catalogReducers = {
       });
     }
 
-    delete state.ui.dialog;
+    let {
+      dialog,
+      ...uiState
+    } = state.ui;
+
+    state.ui = replaceUIState(uiState);
   },
 
   storageCreated(state: Draft<StoreState>, user: Draft<UserState>, storage: StorageState): void {
@@ -64,12 +70,12 @@ const catalogReducers = {
 
   catalogCreated(state: Draft<StoreState>, user: Draft<UserState>, catalog: CatalogState): void {
     user.catalogs.set(catalog.id, createDraft(catalog));
-    state.ui = {
+    state.ui = pushUIState({
       page: {
         type: PageType.Catalog,
         catalog: Catalog.ref(catalog),
       },
-    };
+    });
   },
 
   searchSaved(state: Draft<StoreState>, user: Draft<UserState>, search: SavedSearchState): void {
@@ -78,12 +84,12 @@ const catalogReducers = {
       catalog.searches.set(search.id, createDraft(search));
     }
 
-    state.ui = {
+    state.ui = pushUIState({
       page: {
         type: PageType.SavedSearch,
         search: SavedSearch.ref(search),
       },
-    };
+    });
   },
 
   searchDeleted(
@@ -97,16 +103,24 @@ const catalogReducers = {
         catalog.searches.delete(searchRef.id);
 
         if (state.ui.page.type == PageType.SavedSearch && state.ui.page.search.id == search.id) {
-          state.ui.page = {
-            type: PageType.Catalog,
-            catalog: Catalog.ref(catalog),
-          };
+          state.ui = pushUIState({
+            page: {
+              type: PageType.Catalog,
+              catalog: Catalog.ref(catalog),
+            },
+          });
+          return;
         }
         break;
       }
     }
 
-    delete state.ui.dialog;
+    let {
+      dialog,
+      ...uiState
+    } = state.ui;
+
+    state.ui = replaceUIState(uiState);
   },
 };
 
@@ -117,12 +131,12 @@ const albumReducers = {
       catalog.albums.set(album.id, album);
     }
 
-    state.ui = {
+    state.ui = pushUIState({
       page: {
         type: PageType.Album,
         album: Album.ref(album),
       },
-    };
+    });
   },
 
   albumEdited(state: Draft<StoreState>, user: Draft<UserState>, album: AlbumState): void {
@@ -137,24 +151,40 @@ const albumReducers = {
       newCatalog.albums.set(album.id, album);
     }
 
-    delete state.ui.dialog;
+    let {
+      dialog,
+      ...uiState
+    } = state.ui;
+
+    state.ui = replaceUIState(uiState);
   },
 
   albumDeleted(state: Draft<StoreState>, user: Draft<UserState>, albumRef: Reference<Album>): void {
+    let newUIState = state.ui;
+
     let deleteAlbum = (catalog: Draft<CatalogState>, album: AlbumState): void => {
       for (let child of [...catalog.albums.values()]) {
         if (child.parent?.id == album.id) {
           deleteAlbum(catalog, child);
         }
       }
+
       catalog.albums.delete(album.id);
-      if (state.ui.page.type == PageType.Album && state.ui.page.album.id == album.id) {
+
+      if (newUIState.page.type == PageType.Album && newUIState.page.album.id == album.id) {
         if (album.parent) {
-          state.ui.page.album = album.parent;
+          newUIState = {
+            page: {
+              type: PageType.Album,
+              album: album.parent,
+            },
+          };
         } else {
-          state.ui.page = {
-            type: PageType.Catalog,
-            catalog: album.catalog,
+          newUIState = {
+            page: {
+              type: PageType.Catalog,
+              catalog: album.catalog,
+            },
           };
         }
       }
@@ -168,7 +198,16 @@ const albumReducers = {
       }
     }
 
-    delete state.ui.dialog;
+    if (newUIState !== state.ui) {
+      state.ui = pushUIState(newUIState);
+    } else {
+      let {
+        dialog,
+        ...uiState
+      } = state.ui;
+
+      state.ui = replaceUIState(uiState);
+    }
   },
 };
 
@@ -185,22 +224,25 @@ const authReducers = {
     if (serverState.user) {
       let catalogs = nameSorted([...serverState.user.catalogs.values()]);
       if (catalogs.length) {
-        state.ui = {
+        state.ui = replaceUIState({
           page: {
             type: PageType.Catalog,
             catalog: Catalog.ref(catalogs[0]),
           },
-        };
+        });
       } else {
-        state.ui = {
+        state.ui = replaceUIState({
           page: {
             type: PageType.User,
           },
-        };
+        });
         if (!serverState.user.catalogs.size) {
-          state.ui.dialog = {
-            type: DialogType.CatalogCreate,
-          };
+          state.ui = replaceUIState({
+            ...state.ui,
+            dialog: {
+              type: DialogType.CatalogCreate,
+            },
+          });
         }
       }
     }
@@ -208,23 +250,23 @@ const authReducers = {
 
   completeSignup(state: Draft<StoreState>, serverData: ServerState): void {
     state.serverState = createDraft(serverData);
-    state.ui = {
+    state.ui = replaceUIState({
       page: {
         type: PageType.User,
       },
       dialog: {
         type: DialogType.CatalogCreate,
       },
-    };
+    });
   },
 
   completeLogout(state: Draft<StoreState>, serverData: ServerState): void {
     state.serverState = createDraft(serverData);
-    state.ui = {
+    state.ui = pushUIState({
       page: {
         type: PageType.Root,
       },
-    };
+    });
   },
 };
 
@@ -243,17 +285,38 @@ export const reducers = {
     state.serverState = createDraft(serverState);
   },
 
-  showDialog(state: Draft<StoreState>, dialog: Draft<DialogState>): void {
-    state.ui.dialog = dialog;
-  },
-
-  navigate(state: Draft<StoreState>, uiState: UIState): void {
-    // It is important that this object not be modified in any way.
+  setUIState(state: Draft<StoreState>, uiState: UIState): void {
     state.ui = uiState as Draft<UIState>;
   },
 
+  pushUIState(state: Draft<StoreState>, uiState: Partial<UIState>): void {
+    state.ui = pushUIState({
+      ...state.ui,
+      ...uiState,
+    });
+  },
+
+  replaceUIState(state: Draft<StoreState>, uiState: Partial<UIState>): void {
+    state.ui = replaceUIState({
+      ...state.ui,
+      ...uiState,
+    });
+  },
+
+  showDialog(state: Draft<StoreState>, dialog: Draft<DialogState>): void {
+    state.ui = replaceUIState({
+      ...state.ui,
+      dialog,
+    });
+  },
+
   closeDialog(state: Draft<StoreState>): void {
-    delete state.ui.dialog;
+    let {
+      dialog,
+      ...uiState
+    } = state.ui;
+
+    state.ui = replaceUIState(uiState);
   },
 };
 

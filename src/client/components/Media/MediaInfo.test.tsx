@@ -131,7 +131,7 @@ test("Mediainfo", async (): Promise<void> => {
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
+    type: "pushUIState",
     payload: [{
       page: {
         type: PageType.Search,
@@ -164,7 +164,7 @@ test("Mediainfo", async (): Promise<void> => {
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
+    type: "pushUIState",
     payload: [{
       page: {
         type: PageType.Album,
@@ -198,7 +198,7 @@ test("Mediainfo", async (): Promise<void> => {
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
+    type: "pushUIState",
     payload: [{
       page: {
         type: PageType.Search,

@@ -12,6 +12,7 @@ import SearchSaveIcon from "../icons/SearchSaveIcon";
 import { useActions } from "../store/actions";
 import type { SearchMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
+import { goBack } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
@@ -39,25 +40,36 @@ export default function SearchPage({
   let media = useMediaLookup(lookup);
 
   let onMediaClick = useCallback((media: MediaState): void => {
-    actions.navigate({
-      page: {
-        type: PageType.Search,
-        query,
-        catalog,
-        selectedMedia: media.id,
-      },
-    });
-  }, [actions, query, catalog]);
+    if (selectedMedia) {
+      actions.replaceUIState({
+        page: {
+          type: PageType.Search,
+          query,
+          catalog,
+          selectedMedia: media.id,
+        },
+      });
+    } else {
+      actions.pushUIState({
+        page: {
+          type: PageType.Search,
+          query,
+          catalog,
+          selectedMedia: media.id,
+        },
+      });
+    }
+  }, [actions, query, selectedMedia, catalog]);
 
   let onCloseMedia = useCallback((): void => {
-    actions.navigate({
+    goBack({
       page: {
         type: PageType.Search,
         query,
         catalog,
       },
     });
-  }, [actions, query, catalog]);
+  }, [query, catalog]);
 
   let onEditSearch = useCallback(() => {
     // @ts-ignore

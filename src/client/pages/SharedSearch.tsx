@@ -6,6 +6,7 @@ import type { SharedMediaWithMetadataState } from "../api/types";
 import MediaListPage from "../components/Media/MediaListPage";
 import { useActions } from "../store/actions";
 import { usePromise } from "../utils/hooks";
+import { goBack } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
 import { PageType } from "./types";
 
@@ -32,24 +33,34 @@ export default function SharedSearchPage({
   }, [l10n, searchResults]);
 
   let onMediaClick = useCallback((media: SharedMediaWithMetadataState): void => {
-    actions.navigate({
-      page: {
-        type: PageType.SharedSearch,
-        search,
-        selectedMedia: media.id,
-      },
-    });
-  }, [search, actions]);
+    if (selectedMedia) {
+      actions.replaceUIState({
+        page: {
+          type: PageType.SharedSearch,
+          search,
+          selectedMedia: media.id,
+        },
+      });
+    } else {
+      actions.pushUIState({
+        page: {
+          type: PageType.SharedSearch,
+          search,
+          selectedMedia: media.id,
+        },
+      });
+    }
+  }, [search, selectedMedia, actions]);
 
   let onCloseMedia = useCallback((): void => {
-    actions.navigate({
+    goBack({
       page: {
         type: PageType.SharedSearch,
         search,
         selectedMedia: undefined,
       },
     });
-  }, [search, actions]);
+  }, [search]);
 
   return <MediaListPage
     onMediaClick={onMediaClick}

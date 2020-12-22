@@ -11,7 +11,7 @@ beforeAll(() => {
   enableMapSet();
 });
 
-test("Navigate", (): void => {
+test("Navigation", (): void => {
   let state = mockStoreState({
     serverState: { user: null },
     ui: {
@@ -21,7 +21,7 @@ test("Navigate", (): void => {
     },
   });
 
-  let action = actions.navigate({
+  let action = actions.pushUIState({
     page: {
       type: PageType.Album,
       album: Album.ref("testalbum"),

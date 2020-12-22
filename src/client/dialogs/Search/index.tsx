@@ -94,6 +94,7 @@ export interface SearchDialogProps {
 
 export default function SearchDialog({ catalog, query }: SearchDialogProps): ReactResult {
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
+  let pageType = useSelector((state: StoreState): PageType => state.ui.page.type);
   let classes = useStyles({ thumbnailSize });
   let { l10n } = useLocalization();
   let actions = useActions();
@@ -167,14 +168,24 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
   }, [baseQuery]);
 
   let onSearch = useCallback(() => {
-    actions.navigate({
-      page: {
-        type: PageType.Search,
-        catalog: catalog,
-        query: search,
-      },
-    });
-  }, [actions, catalog, search]);
+    if (pageType == PageType.Search) {
+      actions.replaceUIState({
+        page: {
+          type: PageType.Search,
+          catalog: catalog,
+          query: search,
+        },
+      });
+    } else {
+      actions.pushUIState({
+        page: {
+          type: PageType.Search,
+          catalog: catalog,
+          query: search,
+        },
+      });
+    }
+  }, [actions, catalog, search, pageType]);
 
   let close = useCallback(() => {
     setOpen(false);

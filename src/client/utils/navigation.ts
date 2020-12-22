@@ -1,3 +1,4 @@
+import type { Draft } from "immer";
 import { pathToRegexp } from "path-to-regexp";
 
 import { Join } from "../../model";
@@ -5,11 +6,14 @@ import { Catalog, Album, SavedSearch } from "../api/highlevel";
 import type { ServerState } from "../api/types";
 import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
+import Services from "../services";
 import actions from "../store/actions";
 import type { StoreType, UIState } from "../store/types";
 import { exception, ErrorCode } from "./exception";
 import * as history from "./history";
 import type { HistoryState } from "./history";
+
+type EncodedUIState = Omit<HistoryState, "state">;
 
 function re(pattern: string): RegExp {
   return pathToRegexp(pattern, undefined, {
@@ -29,9 +33,6 @@ function encodeTargetState(uiState: UIState): Map<string, string> | undefined {
   });
 
   let historyState = fromUIState(target);
-  if (historyState.state !== undefined) {
-    exception(ErrorCode.InvalidState);
-  }
 
   if (historyState.path == "/" && !historyState.params?.size) {
     return undefined;
@@ -85,7 +86,7 @@ function decodeTargetState(
     path = "/";
   }
 
-  let historyState: HistoryState = {
+  let historyState: EncodedUIState = {
     path,
     hash,
     params: clone.size ? clone : undefined,
@@ -105,16 +106,16 @@ function notfound(historyState: HistoryState): UIState {
 
 type PathMap = [
   RegExp,
-  (serverState: ServerState, historyState: HistoryState, ...args: string[]) => UIState,
+  (serverState: ServerState, historyState: EncodedUIState, ...args: string[]) => UIState,
 ] | [
   string,
-  (serverState: ServerState, historyState: HistoryState) => UIState,
+  (serverState: ServerState, historyState: EncodedUIState) => UIState,
 ];
 
 const pathMap: PathMap[] = [
   [
     "/user",
-    (serverState: ServerState, historyState: HistoryState): UIState => {
+    (serverState: ServerState, historyState: EncodedUIState): UIState => {
       if (!serverState.user) {
         return notfound(historyState);
       }
@@ -140,7 +141,7 @@ const pathMap: PathMap[] = [
 
   [
     "/login",
-    (serverState: ServerState, historyState: HistoryState): UIState => {
+    (serverState: ServerState, historyState: EncodedUIState): UIState => {
       return Object.assign({}, decodeTargetState(historyState.params, serverState), {
         dialog: {
           type: DialogType.Login,
@@ -151,7 +152,7 @@ const pathMap: PathMap[] = [
 
   [
     re("/catalog/:id/search"),
-    (serverState: ServerState, historyState: HistoryState, id: string): UIState => {
+    (serverState: ServerState, historyState: EncodedUIState, id: string): UIState => {
       let catalog = Catalog.safeFromState(serverState, id);
       if (!catalog) {
         return notfound(historyState);
@@ -174,7 +175,7 @@ const pathMap: PathMap[] = [
 
   [
     re("/catalog/:id"),
-    (serverState: ServerState, historyState: HistoryState, id: string): UIState => {
+    (serverState: ServerState, historyState: EncodedUIState, id: string): UIState => {
       let catalog = Catalog.safeFromState(serverState, id);
       if (!catalog) {
         return notfound(historyState);
@@ -191,7 +192,7 @@ const pathMap: PathMap[] = [
 
   [
     re("/album/:id"),
-    (serverState: ServerState, historyState: HistoryState, id: string): UIState => {
+    (serverState: ServerState, historyState: EncodedUIState, id: string): UIState => {
       let album = Album.safeFromState(serverState, id);
       if (!album) {
         return notfound(historyState);
@@ -210,7 +211,7 @@ const pathMap: PathMap[] = [
     re("/catalog/:catalog/media/:media"),
     (
       serverState: ServerState,
-      historyState: HistoryState,
+      historyState: EncodedUIState,
       catalogId: string,
       mediaId: string,
     ): UIState => {
@@ -233,7 +234,7 @@ const pathMap: PathMap[] = [
     re("/album/:album/media/:media"),
     (
       serverState: ServerState,
-      historyState: HistoryState,
+      historyState: EncodedUIState,
       albumId: string,
       mediaId: string,
     ): UIState => {
@@ -256,7 +257,7 @@ const pathMap: PathMap[] = [
     re("/search/:search/media/:media"),
     (
       serverState: ServerState,
-      historyState: HistoryState,
+      historyState: EncodedUIState,
       searchId: string,
       mediaId: string,
     ): UIState => {
@@ -285,7 +286,7 @@ const pathMap: PathMap[] = [
     re("/search/:search"),
     (
       serverState: ServerState,
-      historyState: HistoryState,
+      historyState: EncodedUIState,
       searchId: string,
     ): UIState => {
       let search = SavedSearch.safeFromState(serverState, searchId);
@@ -308,7 +309,7 @@ const pathMap: PathMap[] = [
   ],
 ];
 
-export function intoUIState(historyState: HistoryState, serverState: ServerState): UIState {
+export function intoUIState(historyState: EncodedUIState, serverState: ServerState): UIState {
   for (let [pattern, callback] of pathMap) {
     if (typeof pattern == "string") {
       if (pattern == historyState.path) {
@@ -325,7 +326,7 @@ export function intoUIState(historyState: HistoryState, serverState: ServerState
   return notfound(historyState);
 }
 
-export function fromUIState(uiState: UIState): HistoryState {
+export function fromUIState(uiState: UIState): EncodedUIState {
   switch (uiState.dialog?.type) {
     case DialogType.Login: {
       return history.buildState("/login", encodeTargetState(uiState));
@@ -380,70 +381,63 @@ export function fromUIState(uiState: UIState): HistoryState {
   }
 }
 
-// Checks that the history states match in all respects other than the state.
-export function stateURLMatches(a: HistoryState, b: HistoryState): boolean {
-  if (!Object.is(a.path, b.path)) {
-    return false;
+export function getUIState(serverState: ServerState): UIState {
+  return intoUIState(history.getState(), serverState);
+}
+
+function isPushedState(): boolean {
+  return !!history.getState().state?.pushed;
+}
+
+export function pushUIState(state: UIState): Draft<UIState> {
+  history.pushState({
+    ...fromUIState(state),
+    state: {
+      pushed: true,
+    },
+  });
+  return state as Draft<UIState>;
+}
+
+export function replaceUIState(state: UIState): Draft<UIState> {
+  history.replaceState({
+    ...fromUIState(state),
+    state: {
+      pushed: isPushedState(),
+    },
+  });
+  return state as Draft<UIState>;
+}
+
+export function goBack(state: UIState): void {
+  if (isPushedState()) {
+    history.back();
+    return;
   }
 
-  if (!Object.is(a.hash, b.hash)) {
-    return false;
+  void Services.store.then((store: StoreType): void => {
+    store.dispatch(actions.replaceUIState(state));
+  });
+}
+
+export function closeDialog(): void {
+  if (isPushedState()) {
+    history.back();
+    return;
   }
 
-  if (Object.is(a.params, b.params)) {
-    return true;
-  }
-
-  if (!a.params || !b.params) {
-    return false;
-  }
-
-  let keys = new Set(a.params.keys());
-  for (let key of b.params.keys()) {
-    if (!keys.has(key)) {
-      return false;
-    }
-  }
-
-  for (let key of keys) {
-    if (!b.params.has(key)) {
-      return false;
-    }
-
-    if (!Object.is(a.params.get(key), b.params.get(key))) {
-      return false;
-    }
-  }
-
-  return true;
+  void Services.store.then((store: StoreType): void => {
+    let {
+      dialog,
+      ...uiState
+    } = store.getState().ui;
+    store.dispatch(actions.replaceUIState(uiState));
+  });
 }
 
 export function watchStore(store: StoreType): void {
-  let historyState = history.getState();
-  let uiState = intoUIState(historyState, store.getState().serverState);
-
-  history.addListener((newHistoryState: HistoryState): void => {
-    historyState = newHistoryState;
-    uiState = intoUIState(historyState, store.getState().serverState);
-    store.dispatch(actions.navigate(uiState));
-  });
-
-  store.dispatch(actions.navigate(uiState));
-
-  store.subscribe((): void => {
-    let storeUIState = store.getState().ui;
-    if (storeUIState === uiState) {
-      return;
-    }
-
-    uiState = storeUIState;
-    let newHistoryState = fromUIState(uiState);
-    if (stateURLMatches(historyState, newHistoryState)) {
-      history.replaceState(newHistoryState);
-    } else {
-      history.pushState(newHistoryState);
-    }
-
-    historyState = newHistoryState;
+  history.addListener((historyState: HistoryState): void => {
+    let { serverState } = store.getState();
+    store.dispatch(actions.setUIState(intoUIState(historyState, serverState)));
   });
 }

@@ -6,7 +6,8 @@ export interface HistoryState {
   readonly path: string;
   readonly params?: ReadonlyMap<string, string>;
   readonly hash?: string;
-  readonly state?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly state?: any;
 }
 
 let listening = false;
@@ -84,6 +85,10 @@ export function buildURL(state: HistoryState): string {
   }
 
   return url.toString();
+}
+
+export function back(): void {
+  window.history.back();
 }
 
 export function pushState(state: HistoryState): void {

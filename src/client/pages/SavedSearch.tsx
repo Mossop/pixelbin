@@ -11,6 +11,7 @@ import SavedSearchEditIcon from "../icons/SavedSearchEditIcon";
 import { useActions } from "../store/actions";
 import type { SavedSearchMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
+import { goBack } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
 import { PageType } from "./types";
 
@@ -52,23 +53,33 @@ export default function SavedSearchPage({
   );
 
   let onMediaClick = useCallback((media: MediaState): void => {
-    actions.navigate({
-      page: {
-        type: PageType.SavedSearch,
-        search,
-        selectedMedia: media.id,
-      },
-    });
-  }, [actions, search]);
+    if (selectedMedia) {
+      actions.replaceUIState({
+        page: {
+          type: PageType.SavedSearch,
+          search,
+          selectedMedia: media.id,
+        },
+      });
+    } else {
+      actions.pushUIState({
+        page: {
+          type: PageType.SavedSearch,
+          search,
+          selectedMedia: media.id,
+        },
+      });
+    }
+  }, [actions, selectedMedia, search]);
 
   let onCloseMedia = useCallback((): void => {
-    actions.navigate({
+    goBack({
       page: {
         type: PageType.SavedSearch,
         search,
       },
     });
-  }, [actions, search]);
+  }, [search]);
 
   let pageOptions = useMemo(() => [{
     id: "saved-search-edit",

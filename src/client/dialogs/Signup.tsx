@@ -4,6 +4,7 @@ import { signup } from "../api/auth";
 import { FormDialog, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
 import type { AppError } from "../utils/exception";
+import { closeDialog } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
 
 export default function SignupDialog(): ReactResult {
@@ -57,7 +58,7 @@ export default function SignupDialog(): ReactResult {
     titleId="signup-title"
     submitId="signup-submit"
     onSubmit={onSubmit}
-    onClose={actions.closeDialog}
+    onClose={closeDialog}
     onEntered={onDisplay}
   >
     <TextField

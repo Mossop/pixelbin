@@ -81,15 +81,19 @@ export default function Banner({
 
   let showLoginDialog = useCallback((): void => {
     userMenuState.close();
-    actions.showDialog({
-      type: DialogType.Login,
+    actions.pushUIState({
+      dialog: {
+        type: DialogType.Login,
+      },
     });
   }, [actions, userMenuState]);
 
   // let showSignupDialog = useCallback((): void => {
   //   userMenuState.close();
-  //   actions.showDialog({
-  //     type: DialogType.Signup,
+  //   actions.pushUIState({
+  //     dialog: {
+  //       type: DialogType.Signup,
+  //     },
   //   });
   // }, [actions, userMenuState]);
 

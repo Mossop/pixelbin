@@ -30,7 +30,7 @@ test("link", (): void => {
   click(link);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch.mock.calls[0][0]).toEqual({
-    type: "navigate",
+    type: "pushUIState",
     payload: [target],
   });
 });

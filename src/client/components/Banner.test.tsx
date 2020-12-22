@@ -42,9 +42,11 @@ test("banner", async (): Promise<void> => {
   click(login);
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch.mock.calls[0]).toEqual([{
-    type: "showDialog",
+    type: "pushUIState",
     payload: [{
-      type: DialogType.Login,
+      dialog: {
+        type: DialogType.Login,
+      },
     }],
   }]);
   store.dispatch.mockClear();
@@ -52,9 +54,11 @@ test("banner", async (): Promise<void> => {
   // click(signup);
   // expect(store.dispatch).toHaveBeenCalledTimes(1);
   // expect(store.dispatch).toHaveBeenLastCalledWith({
-  //   type: "showDialog",
+  //   type: "pushUIState",
   //   payload: [{
-  //     type: DialogType.Signup,
+  //     dialog: {
+  //       type: DialogType.Signup,
+  //     },
   //   }],
   // });
   // store.dispatch.mockClear();

@@ -24,7 +24,7 @@ export default function Link({
   let actions = useActions();
 
   let onClick = useCallback((event: React.MouseEvent): void => {
-    actions.navigate(to);
+    actions.pushUIState(to);
     event.preventDefault();
   }, [actions, to]);
 

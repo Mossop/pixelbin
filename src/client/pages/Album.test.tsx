@@ -87,7 +87,7 @@ test("album page", async (): Promise<void> => {
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
+    type: "pushUIState",
     payload: [{
       page: {
         type: PageType.Album,
@@ -115,17 +115,7 @@ test("album page", async (): Promise<void> => {
 
   pageProps.onCloseMedia();
 
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
-    payload: [{
-      page: {
-        type: PageType.Album,
-        album: expect.toBeRef("album"),
-      },
-    }],
-  });
-  store.dispatch.mockClear();
+  expect(store.dispatch).not.toHaveBeenCalled();
 
   expect(pageProps.pageOptions).toHaveLength(4);
   let pageOptions = pageProps.pageOptions!;

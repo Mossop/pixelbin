@@ -82,7 +82,7 @@ test("catalog page", async (): Promise<void> => {
 
   expect(store.dispatch).toHaveBeenCalledTimes(1);
   expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
+    type: "pushUIState",
     payload: [{
       page: {
         type: PageType.Catalog,
@@ -110,17 +110,7 @@ test("catalog page", async (): Promise<void> => {
 
   pageProps.onCloseMedia();
 
-  expect(store.dispatch).toHaveBeenCalledTimes(1);
-  expect(store.dispatch).toHaveBeenLastCalledWith({
-    type: "navigate",
-    payload: [{
-      page: {
-        type: PageType.Catalog,
-        catalog: expect.toBeRef("catalog"),
-      },
-    }],
-  });
-  store.dispatch.mockClear();
+  expect(store.dispatch).not.toHaveBeenCalled();
 
   expect(pageProps.pageOptions).toHaveLength(3);
   let pageOptions = pageProps.pageOptions!;

@@ -3,20 +3,13 @@ import { render as reactRender } from "react-dom";
 import { Provider } from "react-redux";
 
 import App from "./components/App";
-import { appContainer, appURL, Url, initialServerState } from "./context";
+import { appContainer, appURL, Url } from "./context";
 import { LocalizationContext } from "./l10n/LocalizationContext";
-import services from "./services";
 import { buildStore } from "./store";
-import actions from "./store/actions";
 import { watchStore } from "./utils/navigation";
 
 async function init(): Promise<void> {
-  buildStore();
-
-  let store = await services.store;
-
-  let serverState = initialServerState();
-  store.dispatch(actions.updateServerState(serverState));
+  let store = buildStore();
   watchStore(store);
 
   reactRender(

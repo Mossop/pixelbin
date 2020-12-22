@@ -117,7 +117,7 @@ const AlbumItem = ReactMemo(function AlbumItem({
   let actions = useActions();
 
   let navigate = useCallback(() => {
-    actions.navigate({
+    actions.pushUIState({
       page: {
         type: PageType.Album,
         album: album.ref(),
@@ -161,7 +161,7 @@ const SavedSearchItem = ReactMemo(function SavedSearchItem({
   let actions = useActions();
 
   let navigate = useCallback(() => {
-    actions.navigate({
+    actions.pushUIState({
       page: {
         type: PageType.SavedSearch,
         search: search.ref(),
@@ -247,7 +247,7 @@ const CatalogItem = ReactMemo(function CatalogItem({
   let albums = catalog.albums;
 
   let navigate = useCallback(() => {
-    actions.navigate({
+    actions.pushUIState({
       page: {
         type: PageType.Catalog,
         catalog: catalog.ref(),

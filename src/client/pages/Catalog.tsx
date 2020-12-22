@@ -15,6 +15,7 @@ import SearchIcon from "../icons/SearchIcon";
 import { useActions } from "../store/actions";
 import type { CatalogMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
+import { goBack } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
@@ -48,23 +49,33 @@ export default function CatalogPage({
   let media = useMediaLookup(lookup);
 
   let onMediaClick = useCallback((media: MediaState): void => {
-    actions.navigate({
-      page: {
-        type: PageType.Catalog,
-        catalog: catalogRef,
-        selectedMedia: media.id,
-      },
-    });
-  }, [actions, catalogRef]);
+    if (selectedMedia) {
+      actions.replaceUIState({
+        page: {
+          type: PageType.Catalog,
+          catalog: catalogRef,
+          selectedMedia: media.id,
+        },
+      });
+    } else {
+      actions.pushUIState({
+        page: {
+          type: PageType.Catalog,
+          catalog: catalogRef,
+          selectedMedia: media.id,
+        },
+      });
+    }
+  }, [actions, selectedMedia, catalogRef]);
 
   let onCloseMedia = useCallback(() => {
-    actions.navigate({
+    goBack({
       page: {
         type: PageType.Catalog,
         catalog: catalogRef,
       },
     });
-  }, [actions, catalogRef]);
+  }, [catalogRef]);
 
   let onCatalogEdit = useCallback(
     () => actions.showDialog({

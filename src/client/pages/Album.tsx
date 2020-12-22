@@ -17,6 +17,7 @@ import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
 import type { AlbumMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
+import { goBack } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 import { PageType } from "./types";
@@ -67,23 +68,33 @@ export default function AlbumPage({
   let media = useMediaLookup(lookup);
 
   let onMediaClick = useCallback((media: MediaState): void => {
-    actions.navigate({
-      page: {
-        type: PageType.Album,
-        album: albumRef,
-        selectedMedia: media.id,
-      },
-    });
-  }, [actions, albumRef]);
+    if (selectedMedia) {
+      actions.replaceUIState({
+        page: {
+          type: PageType.Album,
+          album: albumRef,
+          selectedMedia: media.id,
+        },
+      });
+    } else {
+      actions.pushUIState({
+        page: {
+          type: PageType.Album,
+          album: albumRef,
+          selectedMedia: media.id,
+        },
+      });
+    }
+  }, [actions, selectedMedia, albumRef]);
 
   let onCloseMedia = useCallback((): void => {
-    actions.navigate({
+    goBack({
       page: {
         type: PageType.Album,
         album: albumRef,
       },
     });
-  }, [actions, albumRef]);
+  }, [albumRef]);
 
   let onAlbumSearch = useCallback(() => {
     let query: Draft<Search.RelationQuery> = {
