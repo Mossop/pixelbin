@@ -6,6 +6,7 @@ import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import clsx from "clsx";
 import { useCallback, useMemo } from "react";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
 
 import type { ObjectModel } from "../../../model";
 import { RelationType, Join, Operator } from "../../../model";
@@ -84,6 +85,8 @@ const useStyles = makeStyles((theme: Theme) =>
       margin: 0,
     },
     multilineMetadataLabel: {
+      gridColumn: "1 / 3",
+      textAlign: "left",
     },
     multilineMetadataContent: {
       gridColumn: "1 / 3",
@@ -100,6 +103,9 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     chipLink: {
       cursor: "pointer",
+    },
+    map: {
+      paddingTop: "75%",
     },
   }));
 
@@ -218,12 +224,19 @@ function PersonChip({
   </li>;
 }
 
-function Row(
-  id: string,
-  label: React.ReactNode,
-  value: React.ReactNode,
-  multiline: boolean = false,
-): ReactResult {
+interface RowProps {
+  id: string;
+  multiline?: boolean;
+  label: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function Row({
+  id,
+  label,
+  children,
+  multiline = false,
+}: RowProps): ReactResult {
   let classes = useStyles();
 
   let labelClasses = clsx(
@@ -248,7 +261,7 @@ function Row(
     <dd
       className={contentClasses}
     >
-      {value}
+      {children}
     </dd>
   </>;
 }
@@ -268,7 +281,7 @@ function LocalizedRow({
 }: LocalizedRowProps): ReactResult {
   let { l10n } = useLocalization();
 
-  return Row(id, l10n.getString(label), children, multiline);
+  return <Row id={id} label={l10n.getString(label)} multiline={multiline}>{children}</Row>;
 }
 
 function NormalMetadataItem(
@@ -296,6 +309,7 @@ export default function MediaInfo({
   onHighlightPerson,
 }: MediaInfoProps): ReactResult {
   let classes = useStyles();
+  let { l10n } = useLocalization();
 
   let format = useCallback(<T extends keyof ObjectModel.Metadata>(
     metadata: T,
@@ -330,36 +344,42 @@ export default function MediaInfo({
       location.push(media.country);
     }
 
-    if (location.length) {
-      let target = media.longitude && media.latitude
-        ? `https://www.google.com/maps/@${media.latitude},${media.longitude}`
-        : `https://www.google.com/maps/search/${encodeURIComponent(location.join(", "))}`;
+    if (media.longitude && media.latitude) {
+      let label = location.length
+        ? l10n.getString("metadata-label-location-description", {
+          location: location.join(", "),
+        })
+        : l10n.getString("metadata-label-location");
 
+      return <Row id="location" label={label} multiline={true}>
+        <MapContainer
+          className={classes.map}
+          center={[media.latitude, media.longitude]}
+          zoom={13}
+          scrollWheelZoom={false}
+        >
+          <TileLayer
+            attribution="&copy; <a href='http://osm.org/copyright'>OpenStreetMap</a> contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <Marker position={[media.latitude, media.longitude]}/>
+        </MapContainer>
+      </Row>;
+    } else if (location.length) {
       return <LocalizedRow id="location" label="metadata-label-location">
         <Link
           target="_blank"
           rel="noreferrer"
-          href={target}
+          href={`https://www.google.com/maps/search/${encodeURIComponent(location.join(", "))}`}
           color="secondary"
         >
           {location.join(", ")}
         </Link>
       </LocalizedRow>;
-    } else if (media.longitude && media.latitude) {
-      return <LocalizedRow id="location" label="metadata-label-location">
-        <Link
-          target="_blank"
-          rel="noreferrer"
-          href={`https://www.google.com/maps/@${media.latitude},${media.longitude}`}
-          color="secondary"
-        >
-          {media.latitude} {media.longitude}
-        </Link>
-      </LocalizedRow>;
     } else {
       return null;
     }
-  }, [media]);
+  }, [media, l10n, classes]);
 
   let taken = useMemo(() => {
     if (media.taken === null) {

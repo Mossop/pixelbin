@@ -126,6 +126,16 @@ module.exports = (mode = "development") => {
               nonce: "{% nonce %}",
             },
           },
+          {
+            type: "css",
+            path: "https://unpkg.com/leaflet@1.7.1/dist/leaflet.css",
+            publicPath: false,
+            attributes: {
+              nonce: "{% nonce %}",
+              integrity:
+  "sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==",
+            },
+          },
           ...buildExternals(mode),
         ],
       }),

@@ -112,6 +112,7 @@ metadata-label-description = Description:
 metadata-label-category = Category:
 metadata-label-label = Label:
 metadata-label-location = Location:
+metadata-label-location-description = Location: {$location}
 
 metadata-label-taken = Taken at:
 metadata-label-make = Make:
