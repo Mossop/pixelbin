@@ -12,9 +12,10 @@ const ADDITIONAL_DEPENDENCIES = [
 ];
 
 const ADDITIONAL_DEV_DEPENDENCIES = [
-  "@jsdevtools/coverage-istanbul-loader",
+  "@types/leaflet",
   "@types/node",
   "@types/resize-observer-browser",
+  "@types/terser-webpack-plugin",
   "@typescript-eslint/eslint-plugin",
   "cache-loader",
   "cross-env",
@@ -28,15 +29,7 @@ const ADDITIONAL_DEV_DEPENDENCIES = [
   "jest-environment-jsdom-global",
   "jest-environment-jsdom-sixteen",
   "jsdom",
-  "karma-chrome-launcher",
-  "karma-coverage",
-  "karma-coverage-istanbul-reporter",
-  "karma-firefox-launcher",
-  "karma-jasmine",
-  "karma-safarinative-launcher",
-  "karma-sourcemap-loader",
-  "karma-typescript",
-  "karma-webpack",
+  "leaflet",
   "rimraf",
   "run-z",
   "ts-jest",

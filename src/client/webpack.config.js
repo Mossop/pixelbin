@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 const path = require("path");
 
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
@@ -26,7 +27,7 @@ const externals = require("./externals.json");
  */
 
 /**
- * @param {"development" | "production" | "test"} mode
+ * @param {"development" | "production"} mode
  * @returns {HtmlWebpackTagsPlugin.MaybeScriptTagOptions[]}
  */
 function buildExternals(mode) {
@@ -48,25 +49,10 @@ function buildExternals(mode) {
   });
 }
 
-/** @type {(mode?: "test" | "development" | "production") => Configuration} */
+/** @type {(mode?: "development" | "production") => Configuration} */
 module.exports = (mode = "development") => {
-  /** @type {import("webpack").RuleSetUse} */
-  let loaders = [{
-    loader: "ts-loader",
-    options: {
-      transpileOnly: true,
-      configFile: path.join(__dirname, "..", "tsconfig.client.json"),
-    },
-  }];
-
-  if (mode == "test") {
-    loaders.unshift("@jsdevtools/coverage-istanbul-loader");
-  }
-
-  loaders.unshift("cache-loader");
-
   return {
-    mode: mode == "test" ? "development" : mode,
+    mode,
     entry: {
       app: path.join(__dirname, "bootstrap.tsx"),
     },
@@ -80,12 +66,25 @@ module.exports = (mode = "development") => {
       crossOriginLoading: "anonymous",
     },
     stats: "errors-warnings",
-    devtool: mode == "test" ? "inline-source-map" : "source-map",
+    devtool: "source-map",
     module: {
       rules: [{
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
-        use: loaders,
+        use: [
+          "cache-loader",
+          {
+            loader: "ts-loader",
+            options: {
+              transpileOnly: true,
+              configFile: path.join(__dirname, "..", "tsconfig.client.json"),
+            },
+          },
+        ],
+      }, {
+        test: /\.js/,
+        include: /node_modules\/@fluent\//,
+        type: "javascript/auto",
       }],
     },
     externals: {
@@ -142,8 +141,14 @@ module.exports = (mode = "development") => {
     ],
     optimization: {
       usedExports: true,
-      minimize: mode == "production",
-      minimizer: [new TerserPlugin()],
+      mangleExports: false,
+      minimize: false, // mode == "production",
+      minimizer: [new TerserPlugin({
+        terserOptions: {
+          keep_classnames: true,
+          keep_fnames: true,
+        },
+      })],
       splitChunks: {
         chunks: "all",
       },

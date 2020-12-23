@@ -5,7 +5,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
 import { useState } from "react";
 
-import type { Overwrite } from "../../../utils";
+import type { Overwrite } from "../../../utils/utility";
 import type { BaseMediaState } from "../../api/types";
 import { useSelector } from "../../store";
 import type { StoreState } from "../../store/types";

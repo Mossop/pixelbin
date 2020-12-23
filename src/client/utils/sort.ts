@@ -1,6 +1,6 @@
-import { upsert } from "../../utils";
 import type { Comparator } from "../../utils/sort";
 import { reversed, binarySearch, numberComparator } from "../../utils/sort";
+import { upsert } from "../../utils/utility";
 import type { BaseMediaState } from "../api/types";
 import { mediaDate } from "./metadata";
 
