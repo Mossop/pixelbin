@@ -3,20 +3,18 @@ import Box from "@material-ui/core/Box";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
-import { useState } from "react";
 
 import type { Overwrite } from "../../../utils/utility";
 import type { BaseMediaState } from "../../api/types";
 import { useSelector } from "../../store";
 import type { StoreState } from "../../store/types";
-import { useElementWidth } from "../../utils/hooks";
 import type { ReactResult } from "../../utils/types";
 import { ReactMemo } from "../../utils/types";
 import MediaPreview from "./MediaPreview";
 
 interface StyleProps {
   thumbnailSize: number;
-  containerWidth: number | null | undefined;
+  width: number | null | undefined;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -31,7 +29,7 @@ const useStyles = makeStyles((theme: Theme) =>
     fixedGrid: ({ thumbnailSize }: StyleProps) => ({
       gridTemplateColumns: `repeat(auto-fill, ${theme.spacing(4) + thumbnailSize}px)`,
     }),
-    flexibleGrid: ({ thumbnailSize, containerWidth }: StyleProps) => {
+    flexibleGrid: ({ thumbnailSize, width: containerWidth }: StyleProps) => {
       if (!containerWidth) {
         return {};
       }
@@ -46,33 +44,31 @@ const useStyles = makeStyles((theme: Theme) =>
 
 export type PreviewGridProps<T extends BaseMediaState> = Overwrite<BoxProps, {
   media: readonly T[];
+  width: number | null | undefined;
   onClick?: (media: T) => void;
 }>;
 
 export default ReactMemo(function PreviewGrid<T extends BaseMediaState>({
   media,
+  width,
   className,
   onClick,
   ...boxProps
 }: PreviewGridProps<T>): ReactResult {
-  let [listElement, setListElement] = useState<HTMLElement | null>(null);
   let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
-  let containerWidth = useElementWidth(listElement);
   let classes = useStyles({
     thumbnailSize,
-    containerWidth,
+    width,
   });
 
   let gridClass = clsx(
     classes.baseGrid,
-    containerWidth ? classes.flexibleGrid : classes.fixedGrid,
+    width ? classes.flexibleGrid : classes.fixedGrid,
   );
 
   return <Box
     className={clsx(gridClass, className)}
     {...boxProps}
-    // @ts-ignore: Seems to be a bug in the types?
-    ref={setListElement}
   >
     {
       media.map((media: T) => {

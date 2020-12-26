@@ -25,6 +25,7 @@ import { PageType } from "../../pages/types";
 import { useSelector } from "../../store";
 import { useActions } from "../../store/actions";
 import type { StoreState } from "../../store/types";
+import { useElementWidth } from "../../utils/hooks";
 import type { MediaLookup } from "../../utils/medialookup";
 import { MediaLookupType, lookupMedia } from "../../utils/medialookup";
 import type { ReactResult } from "../../utils/types";
@@ -102,6 +103,7 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
   let [searching, setSearching] = useState(true);
   let [media, setMedia] = useState<readonly MediaState[]>([]);
   let [resultsArea, setResultsArea] = useState<HTMLDivElement | null>(null);
+  let width = useElementWidth(resultsArea);
 
   let serverState = useSelector((state: StoreState): ServerState => state.serverState);
 
@@ -223,7 +225,7 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
           </Typography>
           <div className={classes.previewArea} ref={setResultsArea}>
             <IntersectionRoot root={resultsArea} margin="250px 0px">
-              <PreviewGrid media={media} className={classes.previews}/>
+              <PreviewGrid media={media} className={classes.previews} width={width}/>
             </IntersectionRoot>
           </div>
           <Fade in={searching}>

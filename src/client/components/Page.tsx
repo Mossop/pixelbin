@@ -1,52 +1,45 @@
 import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSelector } from "../store";
 import type { StoreState, UIState } from "../store/types";
-import { useElementWidth } from "../utils/hooks";
 import type { ReactResult } from "../utils/types";
-import { APPBAR_HEIGHT } from "./AppBar";
 import type { PageOption } from "./Banner";
 import Banner from "./Banner";
 import type { SidebarProps } from "./Sidebar";
 import Sidebar from "./Sidebar";
 import SidebarTree from "./SidebarTree";
 
-interface StyleProps {
-  contentWidth: number | null | undefined;
-  hasOverlay: boolean;
-}
-
 const useStyles = makeStyles(() =>
   createStyles({
-    scrollArea: ({ hasOverlay }: StyleProps) => ({
+    pageContent: {
       height: "100%",
       width: "100%",
-      overflow: hasOverlay ? "hidden" : "auto",
       display: "flex",
       flexDirection: "column",
-      flexGrow: 1,
       alignItems: "stretch",
-      justifyContent: "flex-start",
-    }),
+      justifyContent: "start",
+    },
     contentRow: {
-      flexGrow: 1,
+      flex: 1,
       display: "flex",
       flexDirection: "row",
       alignItems: "stretch",
+      justifyContent: "start",
+      position: "relative",
+      overflow: "hidden",
     },
-    content: ({ contentWidth }: StyleProps) => ({
-      flexGrow: contentWidth ? undefined : 1,
-      width: contentWidth ?? undefined,
+    content: {
+      flex: 1,
       display: "flex",
       flexDirection: "column",
       justifyContent: "start",
       alignItems: "stretch",
-    }),
+    },
     overlay: {
       position: "absolute",
-      top: APPBAR_HEIGHT,
+      top: 0,
       bottom: 0,
       left: 0,
       right: 0,
@@ -75,13 +68,7 @@ export default function Page({
   let sidebarModal = useMediaQuery(theme.breakpoints.down("xs"));
   let [sidebarOpen, setSidebarOpen] = useState(false);
 
-  let [contentElement, setContentElement] = useState<HTMLElement | null>(null);
-  let contentWidth = useElementWidth(contentElement);
-
-  let classes = useStyles({
-    hasOverlay,
-    contentWidth: hasOverlay ? contentWidth : undefined,
-  });
+  let classes = useStyles();
 
   let { uiState, loggedIn } = useSelector((state: StoreState) => ({
     uiState: state.ui,
@@ -124,39 +111,33 @@ export default function Page({
     return () => setSidebarOpen(true);
   }, [sidebarType, hasOverlay]);
 
-  return <>
-    <div className={classes.scrollArea}>
-      <Banner
-        onMenuButtonClick={onMenuButtonClick}
-        pageOptions={pageOptions}
-      />
-      <div className={classes.contentRow}>
-        {
-          hasOverlay && sidebarType == "persistent" &&
-          <Sidebar key="overlaySidebar" type="openable" open={sidebarOpen} onClose={onCloseSidebar}>
-            <SidebarTree selectedItem={selectedItem}/>
-          </Sidebar>
-        }
-        {
-          sidebarType &&
-          <Sidebar key="sidebar" type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
-            <SidebarTree selectedItem={selectedItem}/>
-          </Sidebar>
-        }
-        <div
-          key="content"
-          ref={sidebarType == "persistent" ? setContentElement : null}
-          className={classes.content}
-        >
-          {children}
+  return <div className={classes.pageContent}>
+    <Banner
+      onMenuButtonClick={onMenuButtonClick}
+      pageOptions={pageOptions}
+    />
+    <div className={classes.contentRow}>
+      {
+        hasOverlay && sidebarType == "persistent" &&
+        <Sidebar key="overlaySidebar" type="openable" open={sidebarOpen} onClose={onCloseSidebar}>
+          <SidebarTree selectedItem={selectedItem}/>
+        </Sidebar>
+      }
+      {
+        sidebarType &&
+        <Sidebar key="sidebar" type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
+          <SidebarTree selectedItem={selectedItem}/>
+        </Sidebar>
+      }
+      <Fragment key="content">
+        {children}
+      </Fragment>
+      {
+        overlay &&
+        <div className={classes.overlay}>
+          {overlay}
         </div>
-      </div>
+      }
     </div>
-    {
-      overlay &&
-      <div className={classes.overlay}>
-        {overlay}
-      </div>
-    }
-  </>;
+  </div>;
 }

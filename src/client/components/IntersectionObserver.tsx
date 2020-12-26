@@ -1,33 +1,49 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { ReactResult } from "../utils/types";
 
 class IntersectionListener {
-  private readonly observer: IntersectionObserver;
-  private readonly observers: WeakMap<Element, (entry: IntersectionObserverEntry) => void>;
+  private observer: IntersectionObserver | undefined;
+  private readonly elements: Map<Element, (entry: IntersectionObserverEntry) => void>;
 
-  public constructor(options: IntersectionObserverInit) {
-    this.observer = new IntersectionObserver(
-      (entries: IntersectionObserverEntry[]) => this.onIntersection(entries),
-      options,
-    );
-
-    this.observers = new WeakMap();
+  public constructor() {
+    this.elements = new Map();
   }
 
-  public addObserver(element: Element, callback: (entry: IntersectionObserverEntry) => void): void {
-    this.observers.set(element, callback);
-    this.observer.observe(element);
+  public setObserver(observer: IntersectionObserver | undefined): void {
+    if (observer === this.observer) {
+      return;
+    }
+
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    this.observer = observer;
+
+    if (this.observer) {
+      for (let element of this.elements.keys()) {
+        this.observer.observe(element);
+      }
+    }
   }
 
-  public removeObserver(element: Element): void {
-    this.observer.unobserve(element);
-    this.observers.delete(element);
+  public observeElement(
+    element: Element,
+    callback: (entry: IntersectionObserverEntry) => void,
+  ): void {
+    this.elements.set(element, callback);
+    this.observer?.observe(element);
   }
 
-  private onIntersection(entries: IntersectionObserverEntry[]): void {
+  public unobserveElement(element: Element): void {
+    this.observer?.unobserve(element);
+    this.elements.delete(element);
+  }
+
+  public onIntersection(entries: IntersectionObserverEntry[]): void {
     for (let entry of entries) {
-      let observer = this.observers.get(entry.target);
+      let observer = this.elements.get(entry.target);
       if (observer) {
         try {
           observer(entry);
@@ -39,7 +55,7 @@ class IntersectionListener {
   }
 }
 
-const IntersectionContext = createContext<IntersectionListener | null>(null);
+const IntersectionContext = createContext<IntersectionListener>(new IntersectionListener());
 
 export interface IntersectionRootProps {
   root?: Element | null;
@@ -55,55 +71,65 @@ export function IntersectionRoot({
   children,
 }: IntersectionRootProps): ReactResult {
   let listener = useMemo(() => {
-    if (root === null) {
-      return null;
-    }
+    return new IntersectionListener();
+  }, []);
 
-    return new IntersectionListener({
-      root,
-      rootMargin: margin,
-      threshold,
-    });
-  }, [root, margin, threshold]);
+  useEffect(() => {
+    if (root === null) {
+      return;
+    }
+    let observer = new IntersectionObserver(
+      (entries: IntersectionObserverEntry[]): void => listener.onIntersection(entries),
+      {
+        root,
+        rootMargin: margin,
+        threshold,
+      },
+    );
+
+    listener.setObserver(observer);
+
+    return () => listener.setObserver(undefined);
+  }, [root, margin, threshold, listener]);
 
   return <IntersectionContext.Provider value={listener}>
     {children}
   </IntersectionContext.Provider>;
 }
 
-export type MountOnIntersectProps = {
-  children: React.ReactNode;
-  unmount?: boolean;
-} & React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
+export enum IntersectionState {
+  NotIntersecting,
+  PreviouslyIntersecting,
+  Intersecting,
+}
 
-export function MountOnIntersect(props: MountOnIntersectProps): ReactResult {
+export function useIntersectionState(element: Element | null): IntersectionState {
+  let [state, setState] = useState(IntersectionState.NotIntersecting);
+
   let listener = useContext(IntersectionContext);
-  let ref = useRef<HTMLDivElement>(null);
-  let [intersected, setIntersected] = useState(false);
 
-  let {
-    children,
-    unmount,
-    ...divProps
-  } = props;
+  let callback = useCallback((entry: IntersectionObserverEntry): void => {
+    setState((state: IntersectionState): IntersectionState => {
+      if (entry.isIntersecting) {
+        return IntersectionState.Intersecting;
+      }
 
-  useEffect((): (() => void) | void => {
-    if (ref.current && listener) {
-      let current = ref.current;
+      if (state == IntersectionState.NotIntersecting) {
+        return state;
+      }
 
-      listener.addObserver(current, (entry: IntersectionObserverEntry): void => {
-        if (entry.isIntersecting) {
-          setIntersected(true);
-        } else if (unmount) {
-          setIntersected(false);
-        }
-      });
+      return IntersectionState.PreviouslyIntersecting;
+    });
+  }, []);
 
-      return () => listener?.removeObserver(current);
+  useEffect(() => {
+    if (!element) {
+      return;
     }
-  }, [listener, unmount]);
 
-  return <div ref={ref} {...divProps}>
-    {intersected && children}
-  </div>;
+    listener.observeElement(element, callback);
+    return () => listener.unobserveElement(element);
+  }, [callback, listener, element]);
+
+  return state;
 }

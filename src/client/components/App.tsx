@@ -45,7 +45,6 @@ class ErrorHandler extends PureComponent<ErrorHandlerProps, ErrorHandlerState> {
 const useStyles = makeStyles(() =>
   createStyles({
     app: ({ height, width }: Size) => ({
-      position: "relative",
       width,
       height,
     }),

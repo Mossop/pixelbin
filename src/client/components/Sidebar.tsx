@@ -15,7 +15,7 @@ import type { ReactChildren, ReactResult } from "../utils/types";
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     paper: {
-      position: "sticky",
+      overflow: "auto",
     },
     closeButton: {
       position: "sticky",

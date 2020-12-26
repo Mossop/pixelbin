@@ -13,11 +13,14 @@ import PhotoIcon from "../../icons/PhotoIcon";
 import VideoIcon from "../../icons/VideoIcon";
 import type { ReactResult } from "../../utils/types";
 import { ReactMemo } from "../../utils/types";
-import { MountOnIntersect } from "../IntersectionObserver";
+import { IntersectionState, useIntersectionState } from "../IntersectionObserver";
 import Loading from "../Loading";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
+    unmounted: {
+      paddingTop: "100%",
+    },
     preview: {
       "position": "relative",
       "padding": theme.spacing(2),
@@ -73,7 +76,7 @@ interface ThumbnailProps {
   size: number;
 }
 
-function Thumbnail({ mediaFile, size }: ThumbnailProps): ReactResult {
+const Thumbnail = ReactMemo(function Thumbnail({ mediaFile, size }: ThumbnailProps): ReactResult {
   let classes = useStyles(size);
   let [loaded, setLoaded] = useState(false);
 
@@ -117,7 +120,7 @@ function Thumbnail({ mediaFile, size }: ThumbnailProps): ReactResult {
       />
     </picture>
   </Fade>;
-}
+});
 
 export interface MediaPreviewProps<T extends BaseMediaState> {
   media: T;
@@ -130,6 +133,7 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
   thumbnailSize,
   onClick,
 }: MediaPreviewProps<T>): ReactResult {
+  let [element, setElement] = useState<HTMLElement | null>(null);
   let classes = useStyles(thumbnailSize);
   let click = useCallback(() => {
     if (onClick) {
@@ -137,18 +141,24 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
     }
   }, [onClick, media]);
 
+  let state = useIntersectionState(element);
+
+  if (state != IntersectionState.Intersecting) {
+    return <div className={classes.unmounted} ref={setElement}/>;
+  }
+
   return <Paper
-    key={media.id}
     className={classes.preview}
     onClick={click}
     elevation={3}
+    ref={setElement}
   >
     <div className={classes.thumbnailOuter}>
       {
         isProcessed(media)
-          ? <MountOnIntersect className={classes.thumbnailInner}>
+          ? <div className={classes.thumbnailInner}>
             <Thumbnail mediaFile={media.file} size={thumbnailSize}/>
-          </MountOnIntersect>
+          </div>
           : <Loading className={classes.thumbnailInner}/>
       }
     </div>

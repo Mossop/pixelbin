@@ -1,8 +1,9 @@
 import { useLocalization } from "@fluent/react";
-import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles";
-import { useMemo } from "react";
+import { ThemeProvider, createMuiTheme, makeStyles, createStyles } from "@material-ui/core/styles";
+import { useMemo, useState } from "react";
 
 import type { BaseMediaState } from "../../api/types";
+import { useElementWidth } from "../../utils/hooks";
 import type { MediaGroup } from "../../utils/sort";
 import { groupMedia, Grouping, Ordering } from "../../utils/sort";
 import type { ReactResult } from "../../utils/types";
@@ -17,6 +18,16 @@ const darkTheme = createMuiTheme({
     type: "dark",
   },
 });
+
+const useStyles = makeStyles(() =>
+  createStyles({
+    content: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+    },
+  }));
 
 export interface MediaListPageProps<T extends BaseMediaState> {
   onMediaClick: (media: T) => void;
@@ -38,6 +49,9 @@ export default function MediaListPage<T extends BaseMediaState>({
   pageOptions,
 }: MediaListPageProps<T>): ReactResult {
   let { l10n } = useLocalization();
+  let [element, setElement] = useState<Element | null>(null);
+  let width = useElementWidth(element);
+  let classes = useStyles();
 
   let {
     mediaGroups,
@@ -94,11 +108,12 @@ export default function MediaListPage<T extends BaseMediaState>({
       </ThemeProvider>
     }
   >
-    {
-      mediaGroups
-        ? <MediaGallery groups={mediaGroups} onClick={onMediaClick}/>
-        : <Loading flexGrow={1}/>
-    }
-
+    <div ref={setElement} className={classes.content}>
+      {
+        width !== null && mediaGroups
+          ? <MediaGallery groups={mediaGroups} width={width} onClick={onMediaClick}/>
+          : <Loading flexGrow={1}/>
+      }
+    </div>
   </Page>;
 }

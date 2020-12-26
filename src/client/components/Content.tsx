@@ -9,7 +9,7 @@ import type { ReactResult } from "../utils/types";
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     content: {
-      flexGrow: 1,
+      flex: 1,
       padding: theme.spacing(1),
       display: "flex",
       flexDirection: "column",

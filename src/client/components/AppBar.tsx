@@ -4,12 +4,9 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 
 import type { ReactChildren, ReactResult } from "../utils/types";
 
-export const APPBAR_HEIGHT = "9ex";
-
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     banner: {
-      height: APPBAR_HEIGHT,
       paddingTop: theme.spacing(1),
       paddingBottom: theme.spacing(1),
       paddingLeft: theme.spacing(2),
@@ -26,7 +23,7 @@ export default function AppBar({ children }: ReactChildren): ReactResult {
   return <MuiAppBar
     id="appbar"
     className={classes.banner}
-    position="sticky"
+    position="static"
     elevation={0}
     role="banner"
   >

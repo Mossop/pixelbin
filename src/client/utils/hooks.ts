@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { document, window } from "../environment";
 
@@ -173,19 +173,27 @@ class SizeObserver {
 }
 
 const initialSize = "ResizeObserver" in window ? undefined : null;
+
+/**
+ * Returns the current size of an element or null if the size is not yet known or undefined
+ * if size observing is not supported in this browser.
+ */
 export function useElementSize(element: Element | null | undefined): Size | null | undefined {
   let [elementSize, setElementSize] = useState<Size | null | undefined>(initialSize);
 
-  let size = useRef<{ width: number; height: number } | undefined>(undefined);
-
   let setSize = useCallback((width: number, height: number): void => {
-    if (!size.current || size.current.width != width || size.current.height != height) {
-      size.current = {
-        width,
-        height,
-      };
-      setElementSize(size.current);
-    }
+    width = Math.round(width);
+    height = Math.round(height);
+    setElementSize((size: Size | null | undefined): Size => {
+      if (!size || size.width != width || size.height != height) {
+        return {
+          width,
+          height,
+        };
+      }
+
+      return size;
+    });
   }, []);
 
   useEffect(() => {
@@ -203,16 +211,15 @@ export function useElementSize(element: Element | null | undefined): Size | null
   return elementSize;
 }
 
+/**
+ * Returns the current width of an element or null if the width is not yet known or undefined
+ * if size observing is not supported in this browser.
+ */
 export function useElementWidth(element: Element | null | undefined): number | null | undefined {
   let [elementWidth, setElementWidth] = useState<number | null | undefined>(initialSize);
 
-  let width = useRef<number | undefined>(undefined);
-
   let setWidth = useCallback((newWidth: number): void => {
-    if (width.current != newWidth) {
-      width.current = newWidth;
-      setElementWidth(newWidth);
-    }
+    setElementWidth(Math.round(newWidth));
   }, []);
 
   useEffect(() => {
