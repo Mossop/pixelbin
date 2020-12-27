@@ -8,6 +8,7 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
 import { useCallback } from "react";
 
+import { nameSorted } from "../../utils/sort";
 import type { Album, Catalog, Reference, SavedSearch } from "../api/highlevel";
 import { refIs, useCatalogs } from "../api/highlevel";
 import { DialogType } from "../dialogs/types";
@@ -128,7 +129,7 @@ const AlbumItem = ReactMemo(function AlbumItem({
   let innerAlbums = album.children;
   let children: React.ReactNode = null;
   if (innerAlbums.length) {
-    children = innerAlbums.map((innerAlbum: Album) => <AlbumItem
+    children = nameSorted(innerAlbums).map((innerAlbum: Album) => <AlbumItem
       key={innerAlbum.id}
       album={innerAlbum}
       depth={depth + 1}
@@ -243,8 +244,8 @@ const CatalogItem = ReactMemo(function CatalogItem({
 }: CatalogItemProps): ReactResult {
   let actions = useActions();
 
-  let searches = catalog.searches;
-  let albums = catalog.albums;
+  let searches = nameSorted(catalog.searches);
+  let albums = nameSorted(catalog.rootAlbums);
 
   let navigate = useCallback(() => {
     actions.pushUIState({
