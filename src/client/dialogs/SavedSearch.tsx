@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 
 import type { Query } from "../../model";
-import type { Catalog, Reference, SavedSearch } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { deref, Catalog, SavedSearch } from "../api/highlevel";
 import { createSavedSearch, editSavedSearch } from "../api/search";
 import { FormDialog, Radio, RadioGroup, TextField, useFormState } from "../components/Forms";
 import { useSelector } from "../store";
@@ -28,11 +29,11 @@ export default function SavedSearchDialog(props: SavedSearchDialogProps): ReactR
     let query: Query;
 
     if ("search" in props) {
-      search = props.search.deref(state.serverState);
+      search = deref(SavedSearch, props.search, state.serverState);
       catalog = search.catalog;
       query = search.query;
     } else {
-      catalog = props.catalog.deref(state.serverState);
+      catalog = deref(Catalog, props.catalog, state.serverState);
       query = props.query;
     }
 

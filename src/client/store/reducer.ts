@@ -3,7 +3,7 @@ import type { Draft } from "immer";
 
 import { nameSorted } from "../../utils/sort";
 import type { Reference } from "../api/highlevel";
-import { SavedSearch, Catalog, Album } from "../api/highlevel";
+import { refIs, refId, SavedSearch, Catalog, Album } from "../api/highlevel";
 import type {
   CatalogState,
   AlbumState,
@@ -79,7 +79,7 @@ const catalogReducers = {
   },
 
   searchSaved(state: Draft<StoreState>, user: Draft<UserState>, search: SavedSearchState): void {
-    let catalog = user.catalogs.get(search.catalog.id);
+    let catalog = user.catalogs.get(refId(search.catalog));
     if (catalog) {
       catalog.searches.set(search.id, createDraft(search));
     }
@@ -98,11 +98,12 @@ const catalogReducers = {
     searchRef: Reference<SavedSearch>,
   ): void {
     for (let catalog of user.catalogs.values()) {
-      let search = catalog.searches.get(searchRef.id);
+      let search = catalog.searches.get(refId(searchRef));
       if (search) {
-        catalog.searches.delete(searchRef.id);
+        catalog.searches.delete(refId(searchRef));
 
-        if (state.ui.page.type == PageType.SavedSearch && state.ui.page.search.id == search.id) {
+        if (state.ui.page.type == PageType.SavedSearch &&
+            refIs(state.ui.page.search, search.id)) {
           state.ui = pushUIState({
             page: {
               type: PageType.Catalog,
@@ -126,7 +127,7 @@ const catalogReducers = {
 
 const albumReducers = {
   albumCreated(state: Draft<StoreState>, user: Draft<UserState>, album: AlbumState): void {
-    let catalog = user.catalogs.get(album.catalog.id);
+    let catalog = user.catalogs.get(refId(album.catalog));
     if (catalog) {
       catalog.albums.set(album.id, album);
     }
@@ -140,7 +141,7 @@ const albumReducers = {
   },
 
   albumEdited(state: Draft<StoreState>, user: Draft<UserState>, album: AlbumState): void {
-    let newCatalog = user.catalogs.get(album.catalog.id);
+    let newCatalog = user.catalogs.get(refId(album.catalog));
     if (newCatalog) {
       for (let catalog of user.catalogs.values()) {
         if (catalog != newCatalog && catalog.albums.has(album.id)) {
@@ -164,14 +165,14 @@ const albumReducers = {
 
     let deleteAlbum = (catalog: Draft<CatalogState>, album: AlbumState): void => {
       for (let child of [...catalog.albums.values()]) {
-        if (child.parent?.id == album.id) {
+        if (refIs(child.parent, album.id)) {
           deleteAlbum(catalog, child);
         }
       }
 
       catalog.albums.delete(album.id);
 
-      if (newUIState.page.type == PageType.Album && newUIState.page.album.id == album.id) {
+      if (newUIState.page.type == PageType.Album && refId(newUIState.page.album) == album.id) {
         if (album.parent) {
           newUIState = {
             page: {
@@ -191,7 +192,7 @@ const albumReducers = {
     };
 
     for (let catalog of user.catalogs.values()) {
-      let album = catalog.albums.get(albumRef.id);
+      let album = catalog.albums.get(refId(albumRef));
       if (album) {
         deleteAlbum(catalog, album);
         break;

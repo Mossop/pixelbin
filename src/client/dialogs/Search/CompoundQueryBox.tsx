@@ -20,7 +20,8 @@ import {
   Operator,
   RelationType,
 } from "../../../model";
-import type { Catalog, Reference } from "../../api/highlevel";
+import type { Reference } from "../../api/highlevel";
+import { Catalog, useReference } from "../../api/highlevel";
 import AlbumSearchIcon from "../../icons/AlbumSearchIcon";
 import CompoundSearchIcon from "../../icons/CompoundSearchIcon";
 import DeleteIcon from "../../icons/DeleteIcon";
@@ -28,8 +29,6 @@ import DragIndicatorIcon from "../../icons/DragIndicatorIcon";
 import FieldSearchIcon from "../../icons/FieldSearchIcon";
 import PersonSearchIcon from "../../icons/PersonSearchIcon";
 import TagSearchIcon from "../../icons/TagSearchIcon";
-import { useSelector } from "../../store";
-import type { StoreState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
 import FieldQueryBox from "./FieldQueryBox";
 
@@ -138,9 +137,7 @@ export default function CompoundQueryBox({
   let classes = useStyles();
   let { l10n } = useLocalization();
   let [deleting, setDeleting] = useState(false);
-  let catalog = useSelector(
-    (state: StoreState): Catalog => catalogRef.deref(state.serverState),
-  );
+  let catalog = useReference(Catalog, catalogRef);
 
   let [dialOpen, setDialOpen] = useState(false);
   let onDialOpen = useCallback(() => setDialOpen(true), []);

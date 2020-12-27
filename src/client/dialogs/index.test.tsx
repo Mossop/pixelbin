@@ -3,7 +3,7 @@ import { waitFor } from "@testing-library/react";
 
 import Dialog from ".";
 import { Operator } from "../../model";
-import { Catalog, Album } from "../api/highlevel";
+import { Catalog, Album, refId } from "../api/highlevel";
 import { PageType } from "../pages/types";
 import {
   expect,
@@ -21,21 +21,21 @@ import { DialogType } from "./types";
 jest.mock("./Album", (): unknown => {
   return (props: AlbumDialogProps) => {
     if ("album" in props) {
-      return <div id="album-dialog" data-album={props.album.id}/>;
+      return <div id="album-dialog" data-album={refId(props.album)}/>;
     } else {
-      return <div id="album-dialog" data-parent={props.parent.id}/>;
+      return <div id="album-dialog" data-parent={refId(props.parent)}/>;
     }
   };
 });
 
 jest.mock("./AlbumDelete", (): unknown => {
   return (props: AlbumDeleteDialogProps) =>
-    <div id="album-delete-dialog" data-album={props.album.id}/>;
+    <div id="album-delete-dialog" data-album={refId(props.album)}/>;
 });
 
 jest.mock("./CatalogEdit", (): unknown => {
   return (props: CatalogEditDialogProps) =>
-    <div id="catalog-edit-dialog" data-catalog={props.catalog.id}/>;
+    <div id="catalog-edit-dialog" data-catalog={refId(props.catalog)}/>;
 });
 
 jest.mock("./CatalogCreate", (): unknown => {

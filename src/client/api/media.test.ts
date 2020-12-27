@@ -5,10 +5,7 @@ import { parseDateTime } from "../../utils/datetime";
 import fetch from "../environment/fetch";
 import { expect, mockMedia, mockStore } from "../test-helpers";
 import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
-import type { Media } from "./highlevel";
-import { mediaRef } from "./highlevel";
 import { getMedia } from "./media";
-import type { ServerState } from "./types";
 import { isProcessed } from "./types";
 
 jest.mock("../environment/fetch");
@@ -16,14 +13,6 @@ jest.mock("../environment/fetch");
 const mockedFetch = mockedFunction(fetch);
 
 document.cookie = "csrftoken=csrf-foobar";
-
-test("Media reference", (): void => {
-  let media: Media = mockMedia({});
-
-  let ref = mediaRef(media);
-  expect(ref.id).toBe(media.id);
-  expect(ref.deref(null as unknown as ServerState)).toBe(media);
-});
 
 test("Get media", async (): Promise<void> => {
   mockStore();

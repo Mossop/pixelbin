@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback } from "react";
-import { useSelector } from "react-redux";
 
 import { editCatalog } from "../api/catalog";
-import type { Catalog, Reference } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { Catalog, useReference } from "../api/highlevel";
 import { FormDialog, TextField, useFormState } from "../components/Forms";
 import { useActions } from "../store/actions";
-import type { StoreState } from "../store/types";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
@@ -13,10 +12,10 @@ export interface CatalogEditDialogProps {
   readonly catalog: Reference<Catalog>;
 }
 
-export default function CatalogEditDialog(props: CatalogEditDialogProps): ReactResult {
-  let catalog = useSelector((state: StoreState) => {
-    return props.catalog.deref(state.serverState);
-  });
+export default function CatalogEditDialog({
+  catalog: catalogRef,
+}: CatalogEditDialogProps): ReactResult {
+  let catalog = useReference(Catalog, catalogRef);
 
   let state = useFormState({
     name: catalog.name,
@@ -41,7 +40,7 @@ export default function CatalogEditDialog(props: CatalogEditDialogProps): ReactR
     setError(null);
 
     try {
-      let catalogData = await editCatalog(props.catalog, {
+      let catalogData = await editCatalog(catalogRef, {
         name,
       });
       actions.catalogEdited(catalogData);
@@ -50,7 +49,7 @@ export default function CatalogEditDialog(props: CatalogEditDialogProps): ReactR
       setDisabled(false);
       nameInput.current?.focus();
     }
-  }, [actions, state, props.catalog]);
+  }, [actions, state, catalogRef]);
 
   return <FormDialog
     id="catalog-edit"

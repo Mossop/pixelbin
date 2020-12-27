@@ -81,7 +81,7 @@ const matchers = {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toBeRef(received: any, id: string): jest.CustomMatcherResult {
-    if (received && typeof received == "object" && "deref" in received && received.id == id) {
+    if (received && typeof received == "string" && received == id) {
       return {
         message: (): string => `expected ${received} not to be a reference with id ${id}`,
         pass: true,

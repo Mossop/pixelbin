@@ -3,6 +3,7 @@ import type { Draft } from "immer";
 import { Method } from "../../model";
 import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
+import { refId } from "./highlevel";
 import type { TagState } from "./types";
 import { tagIntoState } from "./types";
 
@@ -11,7 +12,7 @@ export async function findTag(
   names: string[],
 ): Promise<readonly Draft<TagState>[]> {
   let tags = await request(Method.TagFind, {
-    catalog: catalog.id,
+    catalog: refId(catalog),
     names,
   });
 

@@ -3,18 +3,31 @@ import type { Draft } from "immer";
 import type { Api } from "../../model";
 import { Method } from "../../model";
 import { request } from "./api";
-import type { Catalog } from "./highlevel";
-import { Person, Tag, Album } from "./highlevel";
+import type { Reference } from "./highlevel";
+import { Catalog, Person, Tag, Album } from "./highlevel";
 import type {
   MediaAlbumState,
   MediaPersonState,
   MediaRelations,
   MediaState,
   MediaTagState,
+  ServerState,
 } from "./types";
 import { mediaIntoState } from "./types";
 
 export type MediaTarget = Catalog | Album;
+
+export function mediaTargetDeref(
+  ref: Reference<Catalog> | Reference<Album> | Reference<MediaTarget>,
+  serverState: ServerState,
+): MediaTarget {
+  let catalog = Catalog.safeFromState(serverState, ref as unknown as string);
+  if (catalog) {
+    return catalog;
+  }
+
+  return Album.fromState(serverState, ref as unknown as string);
+}
 
 export async function getMedia(ids: string[]): Promise<(Draft<MediaState> | null)[]> {
   let media = await request(Method.MediaGet, {

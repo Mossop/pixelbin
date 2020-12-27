@@ -7,9 +7,8 @@ import {
   Album,
   Tag,
   Person,
-  dereferencer,
-  PendingAPIItem,
   SavedSearch,
+  deref,
 } from "./highlevel";
 import type { ServerState } from "./types";
 
@@ -102,7 +101,7 @@ test("Catalog structures.", (): void => {
 
   let catref = Catalog.ref("testcatalog1");
   expect((): void => {
-    catref.deref(LoggedOut);
+    deref(Catalog, catref, LoggedOut);
   }).toThrowAppError(ErrorCode.NotLoggedIn);
 
   expect((): void => {
@@ -117,9 +116,9 @@ test("Catalog structures.", (): void => {
   expect(cats[1].id).toBe("testcatalog2");
   expect(cats[1].name).toBe("Test catalog 2");
 
-  expect(catref.deref(LoggedIn)).toBe(cats[0]);
+  expect(deref(Catalog, catref, LoggedIn)).toBe(cats[0]);
   expect(Catalog.fromState(LoggedIn, "testcatalog1")).toBe(cats[0]);
-  expect(cats[0].ref().deref(LoggedIn)).toBe(cats[0]);
+  expect(deref(Catalog, cats[0].ref(), LoggedIn)).toBe(cats[0]);
 
   expect(cats[0].albums).toHaveLength(3);
   expect(cats[0].people).toHaveLength(1);
@@ -130,7 +129,7 @@ test("Catalog structures.", (): void => {
   expect(cats[1].tags).toHaveLength(0);
   expect(cats[1].searches).toHaveLength(0);
 
-  let mutated = cats[0].ref().deref(Mutated);
+  let mutated = deref(Catalog, cats[0].ref(), Mutated);
   expect(mutated).not.toBe(cats[0]);
   expect(mutated.id).toBe("testcatalog1");
   expect(mutated.name).toBe("Test catalog 1");
@@ -162,7 +161,7 @@ test("Album structures.", (): void => {
   expect(catalog.getAlbum("testalbum1")).toBe(roots[0]);
   expect(catalog.getAlbum("testalbum5")).toBeUndefined();
 
-  expect(Album.ref("testalbum1").deref(LoggedIn)).toBe(roots[0]);
+  expect(deref(Album, Album.ref("testalbum1"), LoggedIn)).toBe(roots[0]);
 
   let children = nameSorted(roots[0].children);
   expect(children).toHaveLength(2);
@@ -186,9 +185,9 @@ test("Album structures.", (): void => {
   expect(children[0].isAncestorOf(children[1])).toBeFalsy();
   expect(children[1].isAncestorOf(children[0])).toBeFalsy();
 
-  expect(children[0].ref().deref(LoggedIn)).toBe(children[0]);
+  expect(deref(Album, children[0].ref(), LoggedIn)).toBe(children[0]);
 
-  let mutated = children[0].ref().deref(Mutated);
+  let mutated = deref(Album, children[0].ref(), Mutated);
   expect(mutated).not.toBe(children[0]);
   expect(mutated.parent).toBeUndefined();
 });
@@ -215,7 +214,7 @@ test("Tag structures.", (): void => {
 
   expect(catalog.rootTags[0]).toBe(roots[0]);
 
-  expect(Tag.ref("testtag1").deref(LoggedIn)).toBe(roots[0]);
+  expect(deref(Tag, Tag.ref("testtag1"), LoggedIn)).toBe(roots[0]);
 
   let children = nameSorted(roots[0].children);
   expect(children).toHaveLength(1);
@@ -226,9 +225,9 @@ test("Tag structures.", (): void => {
   expect(children[0].parent).toBe(roots[0]);
   expect(children[0].children).toHaveLength(0);
 
-  expect(children[0].ref().deref(LoggedIn)).toBe(children[0]);
+  expect(deref(Tag, children[0].ref(), LoggedIn)).toBe(children[0]);
 
-  let mutated = roots[0].ref().deref(Mutated);
+  let mutated = deref(Tag, roots[0].ref(), Mutated);
   expect(mutated).not.toBe(roots[0]);
   expect(mutated.parent).toBeUndefined();
 });
@@ -252,11 +251,11 @@ test("Person structures.", (): void => {
   expect(people[0].name).toBe("Test person 1");
   expect(people[0].catalog).toBe(catalog);
 
-  expect(Person.ref("testperson1").deref(LoggedIn)).toBe(people[0]);
+  expect(deref(Person, Person.ref("testperson1"), LoggedIn)).toBe(people[0]);
 
-  expect(people[0].ref().deref(LoggedIn)).toBe(people[0]);
+  expect(deref(Person, people[0].ref(), LoggedIn)).toBe(people[0]);
 
-  let mutated = people[0].ref().deref(Mutated);
+  let mutated = deref(Person, people[0].ref(), Mutated);
   expect(mutated).not.toBe(people[0]);
 });
 
@@ -279,33 +278,12 @@ test("Search structures.", (): void => {
   expect(searches[0].name).toBe("my search");
   expect(searches[0].catalog).toBe(catalog);
 
-  expect(SavedSearch.ref("search1").deref(LoggedIn)).toBe(searches[0]);
+  expect(deref(SavedSearch, SavedSearch.ref("search1"), LoggedIn)).toBe(searches[0]);
 
-  expect(searches[0].ref().deref(LoggedIn)).toBe(searches[0]);
+  expect(deref(SavedSearch, searches[0].ref(), LoggedIn)).toBe(searches[0]);
 
-  let mutated = searches[0].ref().deref(Mutated);
+  let mutated = deref(SavedSearch, searches[0].ref(), Mutated);
   expect(mutated).not.toBe(searches[0]);
-});
-
-test("Dereferer.", (): void => {
-  let dereferer = dereferencer(LoggedIn);
-
-  let ref = Album.ref("testalbum1");
-  let album = ref.deref(LoggedIn);
-  expect(dereferer(ref)).toBe(album);
-  expect(dereferer(undefined)).toBeUndefined();
-});
-
-test("Pending.", async (): Promise<void> => {
-  let album = Album.ref("testalbum1").deref(LoggedIn);
-
-  let pending = new PendingAPIItem(Promise.resolve(album.ref()));
-  expect(pending.ref).toBeUndefined();
-
-  let ref = await pending.promise;
-  expect(ref.deref(LoggedIn)).toBe(album);
-  expect(pending.ref).not.toBeUndefined();
-  expect(pending.ref?.deref(LoggedIn)).toBe(album);
 });
 
 test("Bad tag state", (): void => {
@@ -318,7 +296,7 @@ test("Bad tag state", (): void => {
     }],
   }]);
 
-  let tag = Tag.ref("tag").deref(state);
+  let tag = deref(Tag, Tag.ref("tag"), state);
   expect(tag.children).toHaveLength(0);
 
   state.user?.catalogs.delete("catalog");
@@ -344,7 +322,7 @@ test("Bad album state", (): void => {
     }],
   }]);
 
-  let album = Album.ref("album").deref(state);
+  let album = deref(Album, Album.ref("album"), state);
   expect(album.children).toHaveLength(0);
 
   state.user?.catalogs.delete("catalog");

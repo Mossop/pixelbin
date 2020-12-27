@@ -2,8 +2,8 @@ import { Localized } from "@fluent/react";
 import Typography from "@material-ui/core/Typography";
 import { useCallback, useState } from "react";
 
-import type { SavedSearch, Reference } from "../api/highlevel";
-import { useReference } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { useReference, SavedSearch } from "../api/highlevel";
 import { deleteSavedSearch } from "../api/search";
 import ConfirmationDialog from "../components/Forms/ConfirmationDialog";
 import { useActions } from "../store/actions";
@@ -17,7 +17,7 @@ export interface SavedSearchDeleteDialogProps {
 export default function SavedSearchDeleteDialog(
   props: SavedSearchDeleteDialogProps,
 ): ReactResult {
-  let search = useReference(props.search);
+  let search = useReference(SavedSearch, props.search);
 
   let [disabled, setDisabled] = useState(false);
   let [error, setError] = useState<AppError | null>(null);

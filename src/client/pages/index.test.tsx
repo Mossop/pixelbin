@@ -3,7 +3,7 @@ import { waitFor } from "@testing-library/react";
 import mockConsole from "jest-mock-console";
 
 import Page from ".";
-import { Album, Catalog } from "../api/highlevel";
+import { Album, Catalog, refId } from "../api/highlevel";
 import {
   expect,
   render,
@@ -30,7 +30,7 @@ jest.mock("./Catalog", (): unknown => {
   return (props: CatalogPageProps & AuthenticatedPageProps) => <div
     id="catalog"
     data-user={props.user.email}
-    data-catalog={props.catalog.id}
+    data-catalog={refId(props.catalog)}
   />;
 });
 
@@ -38,7 +38,7 @@ jest.mock("./Album", (): unknown => {
   return (props: AlbumPageProps & AuthenticatedPageProps) => <div
     id="album"
     data-user={props.user.email}
-    data-album={props.album.id}
+    data-album={refId(props.album)}
   />;
 });
 

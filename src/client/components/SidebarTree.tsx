@@ -8,8 +8,8 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
 import { useCallback } from "react";
 
-import type { Album, Catalog, SavedSearch } from "../api/highlevel";
-import { useCatalogs } from "../api/highlevel";
+import type { Album, Catalog, Reference, SavedSearch } from "../api/highlevel";
+import { refIs, useCatalogs } from "../api/highlevel";
 import { DialogType } from "../dialogs/types";
 import AlbumIcon from "../icons/AlbumIcon";
 import AlbumsIcon from "../icons/AlbumsIcon";
@@ -106,7 +106,7 @@ function SidebarItem({
 interface AlbumItemProps {
   album: Album;
   depth: number;
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
 }
 
 const AlbumItem = ReactMemo(function AlbumItem({
@@ -138,7 +138,7 @@ const AlbumItem = ReactMemo(function AlbumItem({
 
   return <SidebarItem
     onClick={navigate}
-    selected={album.id == selectedItem}
+    selected={refIs(album.id, selectedItem)}
     label={album.name}
     icon={<AlbumIcon/>}
     depth={depth}
@@ -150,7 +150,7 @@ const AlbumItem = ReactMemo(function AlbumItem({
 interface SavedSearchItemProps {
   search: SavedSearch;
   depth: number;
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
 }
 
 const SavedSearchItem = ReactMemo(function SavedSearchItem({
@@ -171,7 +171,7 @@ const SavedSearchItem = ReactMemo(function SavedSearchItem({
 
   return <SidebarItem
     onClick={navigate}
-    selected={search.id == selectedItem}
+    selected={refIs(search.id, selectedItem)}
     label={search.name}
     icon={<SavedSearchIcon/>}
     depth={depth}
@@ -180,7 +180,7 @@ const SavedSearchItem = ReactMemo(function SavedSearchItem({
 
 interface SavedSearchesItemProps {
   searches: SavedSearch[];
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
 }
 
 function SavedSearchesItem({
@@ -207,7 +207,7 @@ function SavedSearchesItem({
 
 interface AlbumsItemProps {
   albums: Album[];
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
 }
 
 function AlbumsItem({
@@ -234,7 +234,7 @@ function AlbumsItem({
 
 interface CatalogItemProps {
   catalog: Catalog;
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
 }
 
 const CatalogItem = ReactMemo(function CatalogItem({
@@ -287,7 +287,7 @@ const CatalogItem = ReactMemo(function CatalogItem({
     onClick={navigate}
     label={catalog.name}
     icon={<CatalogIcon/>}
-    selected={catalog.id == selectedItem}
+    selected={refIs(catalog.id, selectedItem)}
     depth={0}
   >
     {children}
@@ -295,7 +295,7 @@ const CatalogItem = ReactMemo(function CatalogItem({
 });
 
 export interface SidebarTreeProps {
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
 }
 
 export default ReactMemo(function SidebarTree({

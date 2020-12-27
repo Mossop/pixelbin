@@ -21,87 +21,61 @@ export interface APIItemBuilder<T> {
   fromState: (serverState: ServerState, id: string) => T;
 }
 
-export type Dereferenced<T> = T extends Reference<infer R> ? R : T;
-
+// Fake interface
 export interface Reference<T> {
-  readonly id: string;
-  readonly deref: (serverState: ServerState) => T;
-  readonly toString: () => string;
+  fakeType: "Reference";
+  base: APIItemBuilder<T>;
+}
+
+export function refId<T>(ref: Reference<T>): string {
+  return ref as unknown as string;
+}
+
+export function deref<T>(type: APIItemBuilder<T>, ref: Reference<T>, serverState: ServerState): T {
+  return type.fromState(serverState, ref as unknown as string);
+}
+
+export function refIs(
+  a: Reference<unknown> | string | null | undefined,
+  b: Reference<unknown> | string | null | undefined,
+): boolean {
+  return Object.is(a, b);
+}
+
+function ref<T>(type: APIItemBuilder<T>, id: string): Reference<T> {
+  return id as unknown as Reference<T>;
 }
 
 export type Media = MediaState;
-export function mediaRef(media: MediaState): Reference<Media> {
-  return {
-    id: media.id,
-    deref: (): MediaState => media,
-    toString: (): string => media.id,
-  };
+
+interface ItemState {
+  id: string;
 }
 
-export type Derefer = <T>(ref: Reference<T> | undefined) => T | undefined;
-
-export function dereferencer(serverState: ServerState): Derefer {
-  return <T>(ref: Reference<T> | undefined): T | undefined => ref?.deref(serverState);
-}
-
-export interface Referencable<T> {
-  ref: () => Reference<T>;
-}
-
-interface Pending<T> {
-  readonly ref: Reference<T> | undefined;
-  readonly promise: Promise<Reference<T>>;
-}
-
-export class APIItemReference<T> implements Reference<T> {
-  public constructor(public readonly id: string, private cls: APIItemBuilder<T>) {}
-
-  public deref(serverState: ServerState): T {
-    return this.cls.fromState(serverState, this.id);
-  }
-
-  public toString(): string {
-    return this.id;
-  }
-}
-
-export class PendingAPIItem<T> implements Pending<T> {
-  private foundRef: Reference<T> | undefined = undefined;
-
-  public constructor(public readonly promise: Promise<Reference<T>>) {
-    void promise.then((ref: Reference<T>): void => {
-      this.foundRef = ref;
-    });
-  }
-
-  public get ref(): Reference<T> | undefined {
-    return this.foundRef;
-  }
-}
-
-export abstract class APIItem<T> {
-  public abstract get id(): string;
-  public abstract ref(): Reference<T>;
-}
-
-export class Tag implements Referencable<Tag> {
-  private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: TagState,
+export abstract class APIItem<T extends ItemState> {
+  protected constructor(
+    protected readonly serverState: ServerState,
+    protected readonly state: T,
   ) {}
 
-  public toState(): TagState {
+  public get id(): string {
+    return this.state.id;
+  }
+
+  public toState(): T {
     return {
       ...this.state,
     };
   }
 
-  public get catalog(): Catalog {
-    return this.state.catalog.deref(this.serverState);
+  public ref<S extends ItemState, T extends APIItem<S>>(this: T): Reference<T> {
+    return this.id as unknown as Reference<T>;
   }
+}
 
-  public get id(): string {
-    return this.state.id;
+export class Tag extends APIItem<TagState> {
+  public get catalog(): Catalog {
+    return deref(Catalog, this.state.catalog, this.serverState);
   }
 
   public get name(): string {
@@ -109,7 +83,9 @@ export class Tag implements Referencable<Tag> {
   }
 
   public get parent(): Tag | undefined {
-    return this.state.parent?.deref(this.serverState);
+    return this.state.parent
+      ? deref(Tag, this.state.parent, this.serverState)
+      : undefined;
   }
 
   public get children(): Tag[] {
@@ -118,14 +94,14 @@ export class Tag implements Referencable<Tag> {
       exception(ErrorCode.NotLoggedIn);
     }
 
-    let catalogState: CatalogState | undefined = user.catalogs.get(this.state.catalog.id);
+    let catalogState: CatalogState | undefined = user.catalogs.get(refId(this.state.catalog));
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);
     }
 
     return Array.from(catalogState.tags.values())
-      .filter((tagState: TagState): boolean => tagState.parent?.id == this.id)
+      .filter((tagState: TagState): boolean => refIs(tagState.parent, this.id))
       .map(
         (tagState: TagState): Tag =>
           Tag.fromState(this.serverState, tagState.id),
@@ -133,11 +109,7 @@ export class Tag implements Referencable<Tag> {
   }
 
   public static ref(data: MapId<TagState>): Reference<Tag> {
-    return new APIItemReference(intoId(data), Tag);
-  }
-
-  public ref(): Reference<Tag> {
-    return new APIItemReference(this.id, Tag);
+    return ref(Tag, intoId(data));
   }
 
   public static fromState = memoized((serverState: ServerState, id: string): Tag => {
@@ -168,24 +140,9 @@ export class Tag implements Referencable<Tag> {
   }
 }
 
-export class Person implements Referencable<Person> {
-  private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: PersonState,
-  ) {}
-
-  public toState(): PersonState {
-    return {
-      ...this.state,
-    };
-  }
-
+export class Person extends APIItem<PersonState> {
   public get catalog(): Catalog {
-    return this.state.catalog.deref(this.serverState);
-  }
-
-  public get id(): string {
-    return this.state.id;
+    return deref(Catalog, this.state.catalog, this.serverState);
   }
 
   public get name(): string {
@@ -193,11 +150,7 @@ export class Person implements Referencable<Person> {
   }
 
   public static ref(data: MapId<PersonState>): Reference<Person> {
-    return new APIItemReference(intoId(data), Person);
-  }
-
-  public ref(): Reference<Person> {
-    return new APIItemReference(this.id, Person);
+    return ref(Person, intoId(data));
   }
 
   public static fromState = memoized((serverState: ServerState, id: string): Person => {
@@ -228,24 +181,9 @@ export class Person implements Referencable<Person> {
   }
 }
 
-export class Album implements Referencable<Album> {
-  private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: AlbumState,
-  ) {}
-
-  public toState(): AlbumState {
-    return {
-      ...this.state,
-    };
-  }
-
-  public get id(): string {
-    return this.state.id;
-  }
-
+export class Album extends APIItem<AlbumState> {
   public get catalog(): Catalog {
-    return this.state.catalog.deref(this.serverState);
+    return deref(Catalog, this.state.catalog, this.serverState);
   }
 
   public get name(): string {
@@ -253,7 +191,9 @@ export class Album implements Referencable<Album> {
   }
 
   public get parent(): Album | undefined {
-    return this.state.parent?.deref(this.serverState);
+    return this.state.parent
+      ? deref(Album, this.state.parent, this.serverState)
+      : undefined;
   }
 
   public get children(): Album[] {
@@ -262,14 +202,14 @@ export class Album implements Referencable<Album> {
       exception(ErrorCode.NotLoggedIn);
     }
 
-    let catalogState: CatalogState | undefined = user.catalogs.get(this.state.catalog.id);
+    let catalogState: CatalogState | undefined = user.catalogs.get(refId(this.state.catalog));
 
     if (!catalogState) {
       exception(ErrorCode.UnknownCatalog);
     }
 
     return Array.from(catalogState.albums.values())
-      .filter((albumState: AlbumState): boolean => albumState.parent?.id == this.id)
+      .filter((albumState: AlbumState): boolean => refIs(albumState.parent, this.id))
       .map(
         (albumState: AlbumState): Album =>
           Album.fromState(this.serverState, albumState.id),
@@ -288,11 +228,7 @@ export class Album implements Referencable<Album> {
   }
 
   public static ref(data: MapId<AlbumState>): Reference<Album> {
-    return new APIItemReference(intoId(data), Album);
-  }
-
-  public ref(): Reference<Album> {
-    return new APIItemReference(this.id, Album);
+    return ref(Album, intoId(data));
   }
 
   public static fromState = memoized((serverState: ServerState, id: string): Album => {
@@ -323,22 +259,7 @@ export class Album implements Referencable<Album> {
   }
 }
 
-export class Catalog implements Referencable<Catalog> {
-  private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: CatalogState,
-  ) {}
-
-  public toState(): CatalogState {
-    return {
-      ...this.state,
-    };
-  }
-
-  public get id(): string {
-    return this.state.id;
-  }
-
+export class Catalog extends APIItem<CatalogState> {
   public get name(): string {
     return this.state.name;
   }
@@ -392,11 +313,7 @@ export class Catalog implements Referencable<Catalog> {
   }
 
   public static ref(data: MapId<CatalogState>): Reference<Catalog> {
-    return new APIItemReference(intoId(data), Catalog);
-  }
-
-  public ref(): Reference<Catalog> {
-    return new APIItemReference(this.id, Catalog);
+    return ref(Catalog, intoId(data));
   }
 
   public static fromState = memoized((serverState: ServerState, id: string): Catalog => {
@@ -425,24 +342,9 @@ export class Catalog implements Referencable<Catalog> {
   }
 }
 
-export class SavedSearch implements Referencable<SavedSearch> {
-  private constructor(
-    private readonly serverState: ServerState,
-    private readonly state: SavedSearchState,
-  ) {}
-
-  public toState(): SavedSearchState {
-    return {
-      ...this.state,
-    };
-  }
-
+export class SavedSearch extends APIItem<SavedSearchState> {
   public get catalog(): Catalog {
-    return this.state.catalog.deref(this.serverState);
-  }
-
-  public get id(): string {
-    return this.state.id;
+    return deref(Catalog, this.state.catalog, this.serverState);
   }
 
   public get name(): string {
@@ -458,11 +360,7 @@ export class SavedSearch implements Referencable<SavedSearch> {
   }
 
   public static ref(data: MapId<SavedSearchState>): Reference<SavedSearch> {
-    return new APIItemReference(intoId(data), SavedSearch);
-  }
-
-  public ref(): Reference<SavedSearch> {
-    return new APIItemReference(this.id, SavedSearch);
+    return ref(SavedSearch, intoId(data));
   }
 
   public static fromState = memoized((serverState: ServerState, id: string): SavedSearch => {
@@ -512,12 +410,12 @@ export function useCatalogs(): Catalog[] {
   );
 }
 
-export function useReference<T>(reference: Reference<T>): T;
-export function useReference<T>(reference: Reference<T> | null): T | null {
+export function useReference<T>(type: APIItemBuilder<T>, reference: Reference<T>): T;
+export function useReference<T>(type: APIItemBuilder<T>, reference: Reference<T> | null): T | null {
   return useSelector(
     useCallback(
-      (state: StoreState): T | null => reference?.deref(state.serverState) ?? null,
-      [reference],
+      (state: StoreState): T | null => reference ? deref(type, reference, state.serverState) : null,
+      [type, reference],
     ),
   );
 }

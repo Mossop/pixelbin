@@ -7,12 +7,10 @@ import { mockResponse, callInfo, mediaIntoResponse } from "../test-helpers/api";
 import {
   createAlbum,
   editAlbum,
-  addMediaToAlbum,
-  removeMediaFromAlbum,
   listAlbumMedia,
   deleteAlbum,
 } from "./album";
-import { Catalog, Album, mediaRef } from "./highlevel";
+import { Catalog, Album } from "./highlevel";
 
 jest.mock("../environment/fetch");
 
@@ -107,62 +105,6 @@ test("Delete album", async (): Promise<void> => {
       "X-CSRFToken": "csrf-foobar",
     },
     body: ["testalbum"],
-  });
-});
-
-test("Add media", async (): Promise<void> => {
-  let media = mockMedia({
-    id: "testmedia",
-  });
-
-  mockResponse(Method.MediaRelations, 200, [
-    mediaIntoResponse(media),
-  ]);
-
-  await addMediaToAlbum(Album.ref("testalbum"), [mediaRef(media)]);
-
-  let info = callInfo(mockedFetch);
-  expect(info).toEqual({
-    method: "PATCH",
-    path: "http://pixelbin/api/media/relations",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": "csrf-foobar",
-    },
-    body: [{
-      operation: "add",
-      type: "album",
-      items: ["testalbum"],
-      media: ["testmedia"],
-    }],
-  });
-});
-
-test("Remove media", async (): Promise<void> => {
-  let media = mockMedia({
-    id: "testmedia",
-  });
-
-  mockResponse(Method.MediaRelations, 200, [
-    mediaIntoResponse(media),
-  ]);
-
-  await removeMediaFromAlbum(Album.ref("testalbum"), [mediaRef(media)]);
-
-  let info = callInfo(mockedFetch);
-  expect(info).toEqual({
-    method: "PATCH",
-    path: "http://pixelbin/api/media/relations",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": "csrf-foobar",
-    },
-    body: [{
-      operation: "delete",
-      type: "album",
-      items: ["testalbum"],
-      media: ["testmedia"],
-    }],
   });
 });
 

@@ -2,7 +2,7 @@ import type { Draft } from "immer";
 import { pathToRegexp } from "path-to-regexp";
 
 import { Join } from "../../model";
-import { Catalog, Album, SavedSearch } from "../api/highlevel";
+import { Catalog, Album, SavedSearch, refId } from "../api/highlevel";
 import type { ServerState } from "../api/types";
 import { DialogType } from "../dialogs/types";
 import { PageType } from "../pages/types";
@@ -338,7 +338,7 @@ export function fromUIState(uiState: UIState): EncodedUIState {
       return history.buildState("/");
     }
     case PageType.SavedSearch: {
-      let path = `/search/${uiState.page.search.id}`;
+      let path = `/search/${refId(uiState.page.search)}`;
       if (uiState.page.selectedMedia) {
         path += `/media/${uiState.page.selectedMedia}`;
       }
@@ -355,21 +355,21 @@ export function fromUIState(uiState: UIState): EncodedUIState {
       return history.buildState("/user");
     }
     case PageType.Catalog: {
-      let path = `/catalog/${uiState.page.catalog.id}`;
+      let path = `/catalog/${refId(uiState.page.catalog)}`;
       if (uiState.page.selectedMedia) {
         path += `/media/${uiState.page.selectedMedia}`;
       }
       return history.buildState(path);
     }
     case PageType.Album: {
-      let path = `/album/${uiState.page.album.id}`;
+      let path = `/album/${refId(uiState.page.album)}`;
       if (uiState.page.selectedMedia) {
         path += `/media/${uiState.page.selectedMedia}`;
       }
       return history.buildState(path);
     }
     case PageType.Search: {
-      let path = `/catalog/${uiState.page.catalog.id}/search`;
+      let path = `/catalog/${refId(uiState.page.catalog)}/search`;
       if (uiState.page.selectedMedia) {
         path += `/media/${uiState.page.selectedMedia}`;
       }

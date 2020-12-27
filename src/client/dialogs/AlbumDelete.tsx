@@ -3,11 +3,10 @@ import Typography from "@material-ui/core/Typography";
 import { useCallback, useState } from "react";
 
 import { deleteAlbum } from "../api/album";
-import type { Album, Reference } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { Album, useReference } from "../api/highlevel";
 import ConfirmationDialog from "../components/Forms/ConfirmationDialog";
-import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import type { StoreState } from "../store/types";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
@@ -15,10 +14,10 @@ export interface AlbumDeleteDialogProps {
   readonly album: Reference<Album>;
 }
 
-export default function AlbumDeleteDialog(props: AlbumDeleteDialogProps): ReactResult {
-  let album = useSelector((state: StoreState) => {
-    return props.album.deref(state.serverState);
-  });
+export default function AlbumDeleteDialog({
+  album: albumRef,
+}: AlbumDeleteDialogProps): ReactResult {
+  let album = useReference(Album, albumRef);
 
   let [disabled, setDisabled] = useState(false);
   let [error, setError] = useState<AppError | null>(null);
@@ -30,13 +29,13 @@ export default function AlbumDeleteDialog(props: AlbumDeleteDialogProps): ReactR
     setError(null);
 
     try {
-      await deleteAlbum(props.album);
-      actions.albumDeleted(props.album);
+      await deleteAlbum(albumRef);
+      actions.albumDeleted(albumRef);
     } catch (e) {
       setError(e);
       setDisabled(false);
     }
-  }, [props.album, actions]);
+  }, [albumRef, actions]);
 
   return <ConfirmationDialog
     error={error}

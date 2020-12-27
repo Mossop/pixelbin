@@ -6,6 +6,7 @@ import alpha from "color-alpha";
 import type { Api } from "../../../model";
 import { weakUpsert } from "../../../utils/utility";
 import type { Person, Reference } from "../../api/highlevel";
+import { refId } from "../../api/highlevel";
 import type { MediaFileState, MediaRelations } from "../../api/types";
 import type { ReactResult } from "../../utils/types";
 import FixedAspect from "../FixedAspect";
@@ -55,9 +56,9 @@ export default function FaceHighlight({
 
   let locations: Api.Location[] = [];
 
-  let ids = new Set(people.map((person: Reference<Person>): string => person.id));
+  let ids = new Set(people.map(refId));
   for (let person of relations.people) {
-    if (ids.has(person.person.id) && person.location) {
+    if (ids.has(refId(person.person)) && person.location) {
       locations.push(person.location);
     }
   }

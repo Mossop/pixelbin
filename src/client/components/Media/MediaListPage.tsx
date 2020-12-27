@@ -2,6 +2,7 @@ import { useLocalization } from "@fluent/react";
 import { ThemeProvider, createMuiTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import { useMemo, useState } from "react";
 
+import type { Reference } from "../../api/highlevel";
 import type { BaseMediaState } from "../../api/types";
 import { useElementWidth } from "../../utils/hooks";
 import type { MediaGroup } from "../../utils/sort";
@@ -35,7 +36,7 @@ export interface MediaListPageProps<T extends BaseMediaState> {
   galleryTitle: string;
   media: readonly T[] | null | undefined;
   selectedMedia?: string;
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
   pageOptions?: PageOption[];
 }
 

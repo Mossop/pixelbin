@@ -4,6 +4,7 @@ import type { Api, ObjectModel, Requests } from "../../model";
 import { Method } from "../../model";
 import { request } from "./api";
 import type { Catalog, Reference } from "./highlevel";
+import { refId } from "./highlevel";
 import type { CatalogState, MediaState, StorageState } from "./types";
 import { mediaIntoState } from "./types";
 
@@ -42,7 +43,7 @@ export async function editCatalog(
   updates: Omit<ObjectModel.Catalog, "id">,
 ): Promise<Draft<Omit<CatalogState, "albums" | "tags" | "people" | "searches">>> {
   return request(Method.CatalogEdit, {
-    id: catalog.id,
+    id: refId(catalog),
     catalog: updates,
   });
 }
@@ -51,7 +52,7 @@ export async function listCatalogMedia(
   catalog: Reference<Catalog>,
 ): Promise<Draft<MediaState>[]> {
   let media = await request(Method.CatalogList, {
-    id: catalog.id,
+    id: refId(catalog),
   });
 
   return Promise.all(media.map(mediaIntoState));

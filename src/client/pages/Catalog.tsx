@@ -4,8 +4,8 @@ import { useCallback, useMemo } from "react";
 
 import type { Search } from "../../model";
 import { Join } from "../../model";
-import type { Catalog, Reference } from "../api/highlevel";
-import { useReference } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { useReference, Catalog } from "../api/highlevel";
 import type { MediaState } from "../api/types";
 import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
@@ -31,7 +31,7 @@ export default function CatalogPage({
 }: CatalogPageProps & AuthenticatedPageProps): ReactResult {
   let { l10n } = useLocalization();
   let actions = useActions();
-  let catalog = useReference(catalogRef);
+  let catalog = useReference(Catalog, catalogRef);
 
   let onAlbumCreate = useCallback(
     () => actions.showDialog({
@@ -119,7 +119,7 @@ export default function CatalogPage({
 
   return <MediaListPage
     galleryTitle={catalog.name}
-    selectedItem={catalogRef.id}
+    selectedItem={catalogRef}
     selectedMedia={selectedMedia}
     media={media}
     onMediaClick={onMediaClick}

@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 
 import { createAlbum, editAlbum } from "../api/album";
-import type { Album, Reference } from "../api/highlevel";
-import { Catalog, useCatalogs } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { Album, deref, Catalog, useCatalogs } from "../api/highlevel";
 import type { MediaTarget } from "../api/media";
+import { mediaTargetDeref } from "../api/media";
 import { FormDialog, MediaTargetField, TextField, useFormState } from "../components/Forms";
 import { useSelector } from "../store";
 import { useActions } from "../store/actions";
@@ -28,11 +29,11 @@ export default function AlbumDialog(props: AlbumDialogProps): ReactResult {
     let parent: Album | Catalog;
 
     if ("album" in props) {
-      album = props.album.deref(state.serverState);
+      album = deref(Album, props.album, state.serverState);
       catalog = album.catalog;
       parent = album.parent ?? catalog;
     } else {
-      parent = props.parent.deref(state.serverState);
+      parent = mediaTargetDeref(props.parent, state.serverState);
       catalog = parent instanceof Catalog ? parent : parent.catalog;
     }
 

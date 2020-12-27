@@ -11,7 +11,8 @@ import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import type { ObjectModel } from "../../../model";
 import { RelationType, Join, Operator } from "../../../model";
 import { formatDateTime } from "../../../utils/datetime";
-import type { Reference, Album, Tag, Person } from "../../api/highlevel";
+import type { Reference } from "../../api/highlevel";
+import { refId, Tag, useReference, Album, Person } from "../../api/highlevel";
 import type {
   MediaAlbumState,
   MediaPersonState,
@@ -20,8 +21,6 @@ import type {
   MediaTagState,
 } from "../../api/types";
 import { PageType } from "../../pages/types";
-import { useSelector } from "../../store";
-import type { StoreState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
 import UILink from "../Link";
 
@@ -111,7 +110,7 @@ const useStyles = makeStyles((theme: Theme) =>
 
 function TagChip(props: { tag: Reference<Tag> }): ReactResult {
   let classes = useStyles();
-  let tag = useSelector((state: StoreState): Tag => props.tag.deref(state.serverState));
+  let tag = useReference(Tag, props.tag);
 
   return <li id={`tag-${tag.id}`} className={classes.fieldListItem}>
     <UILink
@@ -146,7 +145,7 @@ function TagChip(props: { tag: Reference<Tag> }): ReactResult {
 
 function AlbumChip(props: { album: Reference<Album> }): ReactResult {
   let classes = useStyles();
-  let album = useSelector((state: StoreState): Album => props.album.deref(state.serverState));
+  let album = useReference(Album, props.album);
 
   return <li id={`album-${album.id}`} className={classes.fieldListItem}>
     <UILink
@@ -174,7 +173,7 @@ function PersonChip({
   onHighlightPerson,
 }: PersonChipProps): ReactResult {
   let classes = useStyles();
-  let person = useSelector(({ serverState }: StoreState) => state.person.deref(serverState));
+  let person = useReference(Person, state.person);
 
   let onEnter = useCallback(() => {
     if (onHighlightPerson) {
@@ -402,7 +401,7 @@ export default function MediaInfo({
         <ul className={classes.fieldList}>
           {
             relations.albums.map(
-              (st: MediaAlbumState) => <AlbumChip key={st.album.id} album={st.album}/>,
+              (st: MediaAlbumState) => <AlbumChip key={refId(st.album)} album={st.album}/>,
             )
           }
         </ul>
@@ -421,7 +420,7 @@ export default function MediaInfo({
       relations && relations.tags.length > 0 &&
       <LocalizedRow id="tags" label="metadata-label-tags">
         <ul className={classes.fieldList}>
-          {relations.tags.map((st: MediaTagState) => <TagChip key={st.tag.id} tag={st.tag}/>)}
+          {relations.tags.map((st: MediaTagState) => <TagChip key={refId(st.tag)} tag={st.tag}/>)}
         </ul>
       </LocalizedRow>
     }
@@ -431,7 +430,7 @@ export default function MediaInfo({
         <ul className={classes.fieldList}>
           {
             relations.people.map((st: MediaPersonState) => <PersonChip
-              key={st.person.id}
+              key={refId(st.person)}
               state={st}
               onHighlightPerson={onHighlightPerson}
             />)

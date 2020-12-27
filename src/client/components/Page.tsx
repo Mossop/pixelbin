@@ -2,6 +2,7 @@ import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
+import type { Reference } from "../api/highlevel";
 import { useSelector } from "../store";
 import type { StoreState, UIState } from "../store/types";
 import type { ReactResult } from "../utils/types";
@@ -49,7 +50,7 @@ const useStyles = makeStyles(() =>
 export interface PageProps {
   children?: React.ReactNode;
   overlay?: React.ReactNode;
-  selectedItem?: string;
+  selectedItem?: Reference<unknown>;
   pageOptions?: PageOption[];
   title: string;
 }

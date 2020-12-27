@@ -5,7 +5,7 @@ import { memoized } from "../../utils/memo";
 import { listAlbumMedia } from "../api/album";
 import { listCatalogMedia } from "../api/catalog";
 import type { Reference, Catalog, Album } from "../api/highlevel";
-import { SavedSearch } from "../api/highlevel";
+import { refId, SavedSearch } from "../api/highlevel";
 import { getMedia } from "../api/media";
 import { searchMedia } from "../api/search";
 import type { MediaState, ServerState } from "../api/types";
@@ -78,7 +78,7 @@ export const lookupMedia = memoized(
         return searchMedia(lookup.catalog, lookup.query);
       }
       case MediaLookupType.SavedSearch: {
-        let search = SavedSearch.safeFromState(serverState, lookup.search.id);
+        let search = SavedSearch.safeFromState(serverState, refId(lookup.search));
         if (!search) {
           return null;
         }

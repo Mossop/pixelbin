@@ -4,7 +4,8 @@ import { useCallback, useMemo } from "react";
 
 import type { Search } from "../../model";
 import { Join, Operator, RelationType } from "../../model";
-import type { Album, Reference } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { Album, useReference } from "../api/highlevel";
 import type { MediaState } from "../api/types";
 import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
@@ -12,9 +13,7 @@ import AlbumAddIcon from "../icons/AlbumAddIcon";
 import AlbumDeleteIcon from "../icons/AlbumDeleteIcon";
 import AlbumEditIcon from "../icons/AlbumEditIcon";
 import SearchIcon from "../icons/SearchIcon";
-import { useSelector } from "../store";
 import { useActions } from "../store/actions";
-import type { StoreState } from "../store/types";
 import type { AlbumMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import { goBack } from "../utils/navigation";
@@ -33,7 +32,7 @@ export default function AlbumPage({
 }: AlbumPageProps & AuthenticatedPageProps): ReactResult {
   let { l10n } = useLocalization();
   let actions = useActions();
-  let album = useSelector((state: StoreState) => albumRef.deref(state.serverState));
+  let album = useReference(Album, albumRef);
 
   let onAlbumEdit = useCallback(
     () => actions.showDialog({
@@ -146,7 +145,7 @@ export default function AlbumPage({
     media={media}
     galleryTitle={album.name}
     selectedMedia={selectedMedia}
-    selectedItem={albumRef.id}
+    selectedItem={albumRef}
     onMediaClick={onMediaClick}
     onCloseMedia={onCloseMedia}
     pageOptions={pageOptions}

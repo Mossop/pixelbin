@@ -1,8 +1,8 @@
 import { useLocalization } from "@fluent/react";
 import { useCallback, useMemo } from "react";
 
-import type { Reference, SavedSearch } from "../api/highlevel";
-import { useReference } from "../api/highlevel";
+import type { Reference } from "../api/highlevel";
+import { useReference, SavedSearch } from "../api/highlevel";
 import type { MediaState } from "../api/types";
 import MediaListPage from "../components/Media/MediaListPage";
 import { DialogType } from "../dialogs/types";
@@ -27,7 +27,7 @@ export default function SavedSearchPage({
   let actions = useActions();
   let { l10n } = useLocalization();
 
-  let savedSearch = useReference(search);
+  let savedSearch = useReference(SavedSearch, search);
 
   let lookup = useMemo<SavedSearchMediaLookup>(() => ({
     type: MediaLookupType.SavedSearch,
@@ -96,7 +96,7 @@ export default function SavedSearchPage({
   return <MediaListPage
     media={media}
     galleryTitle={savedSearch.name}
-    selectedItem={savedSearch.id}
+    selectedItem={search}
     selectedMedia={selectedMedia}
     onMediaClick={onMediaClick}
     onCloseMedia={onCloseMedia}

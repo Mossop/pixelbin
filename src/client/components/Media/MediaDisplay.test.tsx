@@ -78,6 +78,7 @@ test("media display", async (): Promise<void> => {
 
   let { container } = render(
     <MediaDisplay
+      galleryTitle="gallery"
       media={media}
       selectedMedia="foo"
       onChangeMedia={onChangeMedia}
@@ -284,6 +285,7 @@ test("multiple media page", async (): Promise<void> => {
 
   let { container, rerender } = render(
     <MediaDisplay
+      galleryTitle="gallery"
       media={media}
       selectedMedia="foo"
       onChangeMedia={onChangeMedia}
@@ -319,6 +321,7 @@ test("multiple media page", async (): Promise<void> => {
   ({ call, resolve } = deferCall(mockedGetMediaRelations));
 
   rerender(<MediaDisplay
+    galleryTitle="gallery"
     media={media}
     selectedMedia="bar"
     onChangeMedia={onChangeMedia}

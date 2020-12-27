@@ -69,6 +69,5 @@ export default function SharedSearchPage({
     media={searchResults && searchResults.media}
     galleryTitle={title}
     selectedMedia={selectedMedia}
-    selectedItem={search}
   />;
 }

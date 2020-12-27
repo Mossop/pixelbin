@@ -3,6 +3,7 @@ import type { Draft } from "immer";
 import { Method, RelationType } from "../../model";
 import { request } from "./api";
 import type { Album, Reference, Media, Catalog } from "./highlevel";
+import { refId } from "./highlevel";
 import type { AlbumState, MediaState } from "./types";
 import { albumIntoState, mediaIntoState } from "./types";
 
@@ -11,10 +12,10 @@ export function createAlbum(
   album: Omit<AlbumState, "id" | "catalog">,
 ): Promise<Draft<AlbumState>> {
   return request(Method.AlbumCreate, {
-    catalog: catalog.id,
+    catalog: refId(catalog),
     album: {
       ...album,
-      parent: album.parent?.id ?? null,
+      parent: album.parent ? refId(album.parent) : null,
     },
   }).then(albumIntoState);
 }
@@ -24,16 +25,16 @@ export function editAlbum(
   updates: Partial<Omit<AlbumState, "id" | "catalog">>,
 ): Promise<Draft<AlbumState>> {
   return request(Method.AlbumEdit, {
-    id: album.id,
+    id: refId(album),
     album: {
       ...updates,
-      parent: updates.parent ? updates.parent.id : updates.parent,
+      parent: updates.parent ? refId(updates.parent) : updates.parent,
     },
   }).then(albumIntoState);
 }
 
 export function deleteAlbum(album: Reference<Album>): Promise<void> {
-  return request(Method.AlbumDelete, [album.id]);
+  return request(Method.AlbumDelete, [refId(album)]);
 }
 
 export async function addMediaToAlbum(
@@ -43,8 +44,8 @@ export async function addMediaToAlbum(
   await request(Method.MediaRelations, [{
     operation: "add",
     type: RelationType.Album,
-    media: media.map((m: Reference<Media>): string => m.id),
-    items: [album.id],
+    media: media.map(refId),
+    items: [refId(album)],
   }]);
 }
 
@@ -55,8 +56,8 @@ export async function removeMediaFromAlbum(
   await request(Method.MediaRelations, [{
     operation: "delete",
     type: RelationType.Album,
-    media: media.map((m: Reference<Media>): string => m.id),
-    items: [album.id],
+    media: media.map(refId),
+    items: [refId(album)],
   }]);
 }
 
@@ -65,7 +66,7 @@ export async function listAlbumMedia(
   recursive: boolean,
 ): Promise<Draft<MediaState>[]> {
   let media = await request(Method.AlbumList, {
-    id: album.id,
+    id: refId(album),
     recursive,
   });
 

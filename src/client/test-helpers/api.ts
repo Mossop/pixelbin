@@ -7,6 +7,7 @@ import { deferCall, DeferredCall, mockedFunction } from "../../test-helpers";
 import { isDateTime, isoDateTime } from "../../utils/datetime";
 import type { Obj } from "../../utils/utility";
 import { request } from "../api/api";
+import { refId } from "../api/highlevel";
 import type {
   CatalogState,
   AlbumState,
@@ -140,14 +141,14 @@ export function mediaIntoResponse(
 
     file,
 
-    catalog: media.catalog.id,
+    catalog: refId(media.catalog),
   };
 }
 
 export function personIntoResponse(person: PersonState): Api.Person {
   let result: Api.Person = {
     ...person,
-    catalog: person.catalog.id,
+    catalog: refId(person.catalog),
   };
 
   return result;
@@ -156,8 +157,8 @@ export function personIntoResponse(person: PersonState): Api.Person {
 export function albumIntoResponse(album: AlbumState): Api.Album {
   let result: Api.Album = {
     ...album,
-    parent: album.parent?.id ?? null,
-    catalog: album.catalog.id,
+    parent: album.parent ? refId(album.parent) : null,
+    catalog: refId(album.catalog),
   };
 
   return result;
@@ -166,8 +167,8 @@ export function albumIntoResponse(album: AlbumState): Api.Album {
 export function tagIntoResponse(tag: TagState): Api.Tag {
   let result: Api.Tag = {
     ...tag,
-    parent: tag.parent?.id ?? null,
-    catalog: tag.catalog.id,
+    parent: tag.parent ? refId(tag.parent) : null,
+    catalog: refId(tag.catalog),
   };
 
   return result;
@@ -190,7 +191,7 @@ function queryIntoResponse(query: Query): ApiSerialization<Query> {
 export function searchIntoResponse(search: SavedSearchState): ApiSerialization<Api.SavedSearch> {
   return {
     ...search,
-    catalog: search.catalog.id,
+    catalog: refId(search.catalog),
     query: queryIntoResponse(search.query),
   };
 }
