@@ -1,7 +1,10 @@
+import { Localized } from "@fluent/react";
+import { Fade } from "@material-ui/core";
 import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
+import { useEffect, useMemo, useState } from "react";
 
 import CloseIcon from "../../icons/CloseIcon";
 import NextIcon from "../../icons/NextIcon";
@@ -30,6 +33,25 @@ const useStyles = makeStyles((theme: Theme) =>
       justifyContent: "space-between",
       paddingRight: theme.spacing(1),
       paddingLeft: theme.spacing(1),
+      position: "relative",
+    },
+    touchMessageOverlay: {
+      position: "absolute",
+      top: 0,
+      left: theme.spacing(1),
+      right: theme.spacing(1),
+      bottom: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    touchMessage: {
+      background: alpha(theme.palette.background.paper, 0.6),
+      color: theme.palette.text.primary,
+      padding: theme.spacing(2),
+      fontSize: "2rem",
+      margin: 0,
+      textAlign: "center",
     },
     overlayTop: {
       paddingTop: theme.spacing(2),
@@ -69,6 +91,11 @@ export default function MediaNavigation({
   onCloseMedia,
 }: MediaNavigationProps): ReactResult {
   let classes = useStyles();
+  let canHover = useMemo(() => window.matchMedia("(any-hover: hover)").matches, []);
+  let [showMessage, setShowMessage] = useState(!canHover);
+  useEffect(() => {
+    setTimeout(() => setShowMessage(false), 4000);
+  }, []);
 
   return <div id="main-overlay" className={classes.overlay}>
     <div className={classes.overlayTop}>
@@ -83,32 +110,44 @@ export default function MediaNavigation({
       </HoverArea>
     </div>
     <div className={classes.overlayMiddle}>
-      <div>
-        {
-          onPrevious && <HoverArea key="previous">
-            <IconButton
-              id="prev-button"
-              onClick={onPrevious}
-              className={classes.navButton}
-            >
-              <PreviousIcon/>
-            </IconButton>
-          </HoverArea>
-        }
-      </div>
-      <div>
-        {
-          onNext && <HoverArea key="next">
-            <IconButton
-              id="next-button"
-              onClick={onNext}
-              className={classes.navButton}
-            >
-              <NextIcon/>
-            </IconButton>
-          </HoverArea>
-        }
-      </div>
+      {
+        !showMessage &&
+        <>
+          <div>
+            {
+              onPrevious && <HoverArea key="previous">
+                <IconButton
+                  id="prev-button"
+                  onClick={onPrevious}
+                  className={classes.navButton}
+                >
+                  <PreviousIcon/>
+                </IconButton>
+              </HoverArea>
+            }
+          </div>
+          <div>
+            {
+              onNext && <HoverArea key="next">
+                <IconButton
+                  id="next-button"
+                  onClick={onNext}
+                  className={classes.navButton}
+                >
+                  <NextIcon/>
+                </IconButton>
+              </HoverArea>
+            }
+          </div>
+        </>
+      }
+      <Fade in={showMessage} unmountOnExit={true}>
+        <div className={classes.touchMessageOverlay}>
+          <Localized id="media-touch-controls-message">
+            <p className={classes.touchMessage}/>
+          </Localized>
+        </div>
+      </Fade>
     </div>
   </div>;
 }

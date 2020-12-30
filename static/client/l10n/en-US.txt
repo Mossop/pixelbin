@@ -105,6 +105,8 @@ aws-presigned-failure = Failed to generate a temporary access token
 aws-public-url-failure = Failed to retrieve test file from public URL
 aws-unknown-failure = An unknown error occurred.
 
+media-touch-controls-message = Tap to show or hide the controls.
+
 metadata-label-filename = Filename:
 metadata-label-title = Title:
 metadata-label-albums = In albums:

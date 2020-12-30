@@ -1,5 +1,4 @@
 import Fade from "@material-ui/core/Fade";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
 import {
   createContext,
   forwardRef,
