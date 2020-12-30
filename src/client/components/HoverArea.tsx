@@ -1,4 +1,5 @@
 import Fade from "@material-ui/core/Fade";
+import useMediaQuery from "@material-ui/core/useMediaQuery";
 import {
   createContext,
   forwardRef,
@@ -31,7 +32,6 @@ export function useHoverContext(): HoverProps {
 }
 
 export type HoverContainerProps = {
-  initial?: boolean;
   timeout?: number;
 } & React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
 
@@ -39,14 +39,14 @@ export const HoverContainer = forwardRef(function HoverContainer({
   onPointerEnter,
   onPointerMove,
   onPointerUp,
-  initial = false,
   timeout = 1500,
   children,
   ...rest
 }: HoverContainerProps, ref: ReactRef | null): ReactResult {
-  let [hovered, setHovered] = useState(false);
-  let blockCount = useRef(0);
-  let touched = useRef(false);
+  let canHover = useMemo(() => window.matchMedia("(any-hover: hover)").matches, []);
+  let touched = useRef(!canHover);
+  let blockCount = useRef(touched.current ? 1 : 0);
+  let [hovered, setHovered] = useState(blockCount.current > 0);
 
   let alterBlocking = useCallback((blocking: boolean): void => {
     blockCount.current += blocking ? 1 : -1;
@@ -60,11 +60,9 @@ export const HoverContainer = forwardRef(function HoverContainer({
       timeout,
     );
 
-    if (initial) {
-      delayed.trigger();
-    }
+    delayed.trigger();
     return delayed;
-  }, [initial, timeout, alterBlocking]));
+  }, [timeout, alterBlocking]));
 
   let context = useMemo(() => ({
     hovered,

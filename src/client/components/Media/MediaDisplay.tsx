@@ -59,7 +59,6 @@ const useStyles = makeStyles((theme: Theme) =>
       position: "sticky",
       alignSelf: "end",
       top: 0,
-      padding: theme.spacing(1),
     },
     overlayButton: {
       "marginRight": theme.spacing(1),
@@ -252,7 +251,6 @@ export default function MediaDisplay<T extends BaseMediaState>({
     id="media-display"
     className={classes.root}
     ref={areaRef}
-    initial={true}
   >
     {
       !loaded &&
