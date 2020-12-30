@@ -142,7 +142,7 @@ module.exports = (mode = "development") => {
     optimization: {
       usedExports: true,
       mangleExports: false,
-      minimize: false, // mode == "production",
+      minimize: mode == "production",
       minimizer: [new TerserPlugin({
         terserOptions: {
           keep_classnames: true,
