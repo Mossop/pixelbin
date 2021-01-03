@@ -92,7 +92,7 @@
     "eslint": "^7.12.1",
     "eslint-import-resolver-ts": "^0.4.2",
     "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-mossop": "github:Mossop/eslint-plugin-mossop#1.0.11",
+    "eslint-plugin-mossop": "github:Mossop/eslint-plugin-mossop#1.0.12",
     "eslint-plugin-react": "^7.21.5",
     "eslint-plugin-react-hooks": "^4.2.0",
     "expect": "^26.6.2",
