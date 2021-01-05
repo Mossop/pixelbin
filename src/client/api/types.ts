@@ -6,6 +6,7 @@ import MIMEType from "whatwg-mimetype";
 import type { Api, ObjectModel } from "../../model";
 import type { DateTime } from "../../utils/datetime";
 import { hasTimezone, isoDateTime } from "../../utils/datetime";
+import { memoized } from "../../utils/memo";
 import type { Overwrite } from "../../utils/utility";
 import Services from "../services";
 import type { ReadonlyMapOf } from "../utils/maps";
@@ -130,8 +131,10 @@ export interface ServerState {
   readonly videoEncodings: readonly string[];
 }
 
+const mimeType = memoized((mimetype: string): MIMEType => new MIMEType(mimetype));
+
 function nameForType(mimetype: string, filename?: string | null): string {
-  let parsed = new MIMEType(mimetype);
+  let parsed = mimeType(mimetype);
 
   if (filename) {
     filename = filename.replace(/\..*$/, "");
@@ -147,7 +150,7 @@ function nameForType(mimetype: string, filename?: string | null): string {
 }
 
 function encodingUrl(mimetype: string, filename: string | null): string {
-  let parsed = new MIMEType(mimetype);
+  let parsed = mimeType(mimetype);
 
   return `${parsed.type}-${parsed.subtype}/${nameForType(mimetype, filename)}`;
 }

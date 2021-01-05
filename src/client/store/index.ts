@@ -1,4 +1,5 @@
 import { enableMapSet } from "immer";
+import { useCallback } from "react";
 import { useStore as useReduxStore, useSelector as useReduxSelector } from "react-redux";
 import { createStore } from "redux";
 
@@ -32,7 +33,11 @@ export function buildStore(): StoreType {
 }
 
 export const useStore = useReduxStore as () => StoreType;
-export const useSelector = useReduxSelector as <R>(
+
+export function useSelector<R>(
   selector: (state: StoreState) => R,
-  equalityFn?: (left: R, right: R) => boolean
-) => R;
+  params: unknown[] = [],
+): R {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useReduxSelector(useCallback(selector, params));
+}

@@ -1,2 +1,17 @@
 [
+  {
+    "id": "react",
+    "variable": "React",
+    "path": "umd/react.production.min.js"
+  },
+  {
+    "id": "react-dom",
+    "variable": "ReactDOM",
+    "path": "umd/react-dom.production.min.js"
+  },
+  {
+    "id": "luxon",
+    "variable": "luxon",
+    "path": "build/global/luxon.min.js"
+  }
 ]

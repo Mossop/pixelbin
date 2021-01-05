@@ -133,7 +133,6 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
   thumbnailSize,
   onClick,
 }: MediaPreviewProps<T>): ReactResult {
-  let [element, setElement] = useState<HTMLElement | null>(null);
   let classes = useStyles(thumbnailSize);
   let click = useCallback(() => {
     if (onClick) {
@@ -141,7 +140,7 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
     }
   }, [onClick, media]);
 
-  let state = useIntersectionState(element);
+  let { state, setElement } = useIntersectionState();
 
   if (state != IntersectionState.Intersecting) {
     return <div className={classes.unmounted} ref={setElement}/>;

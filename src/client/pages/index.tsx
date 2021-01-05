@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazy, useCallback } from "react";
 
 import { useSelector } from "../store";
 import type { StoreState } from "../store/types";
@@ -18,9 +18,9 @@ const SharedSearch = lazy(() => import(/* webpackChunkName: "SharedSearch" */ ".
 
 export default function PageDisplay(): ReactResult {
   let { user, page } = useSelector((state: StoreState) => ({
-    user: state.serverState.user,
-    page: state.ui.page,
-  }));
+      user: state.serverState.user,
+      page: state.ui.page,
+    });
 
   if (user) {
     switch (page.type) {

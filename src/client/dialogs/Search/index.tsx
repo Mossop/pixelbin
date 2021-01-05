@@ -94,8 +94,15 @@ export interface SearchDialogProps {
 }
 
 export default function SearchDialog({ catalog, query }: SearchDialogProps): ReactResult {
-  let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
-  let pageType = useSelector((state: StoreState): PageType => state.ui.page.type);
+  let {
+    thumbnailSize,
+    pageType,
+    serverState,
+  } = useSelector((state: StoreState) => ({
+    thumbnailSize: state.settings.thumbnailSize,
+    pageType: state.ui.page.type,
+    serverState: state.serverState,
+  }));
   let classes = useStyles({ thumbnailSize });
   let { l10n } = useLocalization();
   let actions = useActions();
@@ -104,8 +111,6 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
   let [media, setMedia] = useState<readonly MediaState[]>([]);
   let [resultsArea, setResultsArea] = useState<HTMLDivElement | null>(null);
   let width = useElementWidth(resultsArea);
-
-  let serverState = useSelector((state: StoreState): ServerState => state.serverState);
 
   let baseQuery = useMemo<Search.CompoundQuery>(() => {
     if (query) {

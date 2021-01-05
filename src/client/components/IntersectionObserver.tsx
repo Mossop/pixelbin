@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { ReactResult } from "../utils/types";
 
@@ -103,7 +111,13 @@ export enum IntersectionState {
   Intersecting,
 }
 
-export function useIntersectionState(element: Element | null): IntersectionState {
+export interface IntersectionStateHook {
+  state: IntersectionState;
+  setElement: (element: Element | null) => void;
+}
+
+export function useIntersectionState(): IntersectionStateHook {
+  let element = useRef<Element | null>(null);
   let [state, setState] = useState(IntersectionState.NotIntersecting);
 
   let listener = useContext(IntersectionContext);
@@ -122,14 +136,24 @@ export function useIntersectionState(element: Element | null): IntersectionState
     });
   }, []);
 
-  useEffect(() => {
-    if (!element) {
+  let setElement = useCallback((newElement: Element | null): void => {
+    if (element.current === newElement) {
       return;
     }
 
-    listener.observeElement(element, callback);
-    return () => listener.unobserveElement(element);
-  }, [callback, listener, element]);
+    if (element.current) {
+      listener.unobserveElement(element.current);
+    }
 
-  return state;
+    element.current = newElement;
+
+    if (element.current) {
+      listener.observeElement(element.current, callback);
+    }
+  }, [callback, listener]);
+
+  return {
+    state,
+    setElement,
+  };
 }

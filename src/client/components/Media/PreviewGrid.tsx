@@ -3,6 +3,7 @@ import Box from "@material-ui/core/Box";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
+import { useCallback } from "react";
 
 import type { Overwrite } from "../../../utils/utility";
 import type { BaseMediaState } from "../../api/types";

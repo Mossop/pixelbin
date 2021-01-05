@@ -402,20 +402,13 @@ export const catalogs = memoized(function catalogs(serverState: ServerState): Ca
 });
 
 export function useCatalogs(): Catalog[] {
-  return useSelector(
-    useCallback(
-      (state: StoreState): Catalog[] => catalogs(state.serverState),
-      [],
-    ),
-  );
+  return useSelector((state: StoreState): Catalog[] => catalogs(state.serverState));
 }
 
 export function useReference<T>(type: APIItemBuilder<T>, reference: Reference<T>): T;
 export function useReference<T>(type: APIItemBuilder<T>, reference: Reference<T> | null): T | null {
   return useSelector(
-    useCallback(
-      (state: StoreState): T | null => reference ? deref(type, reference, state.serverState) : null,
-      [type, reference],
-    ),
+    (state: StoreState): T | null => reference ? deref(type, reference, state.serverState) : null,
+    [type, reference],
   );
 }
