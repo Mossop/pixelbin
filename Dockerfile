@@ -1,5 +1,7 @@
 FROM node:14-alpine
 
+ARG mode=production
+
 COPY . /pixelbin/
 
 RUN \
@@ -8,7 +10,7 @@ RUN \
   cd /pixelbin && \
   npm install && \
   npm run buildStatic buildServer && \
-  node ./ci/webpack.js && \
+  node ./ci/webpack.js $mode && \
   npm prune --production && \
   npm dedupe && \
   apk del --no-network builddeps && \

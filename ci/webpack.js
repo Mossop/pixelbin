@@ -18,7 +18,7 @@ function config(args) {
 }
 
 /**
- * @param {"test" | "development" | "production"} mode
+ * @param {"development" | "production"} mode
  * @return {Promise<void>}
  */
 async function build(mode) {

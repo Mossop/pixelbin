@@ -4,7 +4,6 @@ const path = require("path");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const HtmlWebpackTagsPlugin = require("html-webpack-tags-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
 const SriPlugin = require("webpack-subresource-integrity");
 
 /**
@@ -51,6 +50,29 @@ function buildExternals(mode) {
 
 /** @type {(mode?: "development" | "production") => Configuration} */
 module.exports = (mode = "development") => {
+  let splitChunks = mode == "production"
+    ? {
+      chunks: "all",
+    }
+    : {
+      chunks: "all",
+      maxInitialRequests: Infinity,
+      minSize: 0,
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name(module) {
+            // get the name. E.g. node_modules/packageName/not/this/part.js
+            // or node_modules/packageName
+            const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)[1];
+
+            // npm package names are URL-safe, but some servers don't like @ symbols
+            return `npm.${packageName.replace("@", "")}`;
+          },
+        },
+      },
+    };
+
   return {
     mode,
     entry: {
@@ -143,15 +165,8 @@ module.exports = (mode = "development") => {
       usedExports: true,
       mangleExports: false,
       minimize: mode == "production",
-      minimizer: [new TerserPlugin({
-        terserOptions: {
-          keep_classnames: true,
-          keep_fnames: true,
-        },
-      })],
-      splitChunks: {
-        chunks: "all",
-      },
+      splitChunks,
+      chunkIds: "named",
     },
   };
 };
