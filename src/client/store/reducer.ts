@@ -282,6 +282,10 @@ export const reducers = {
   ...mediaReducers,
   ...authReducers,
 
+  seenTouchMessage(state: Draft<StoreState>): void {
+    state.settings.seenTouchMessage = true;
+  },
+
   updateServerState(state: Draft<StoreState>, serverState: ServerState): void {
     state.serverState = createDraft(serverState);
   },

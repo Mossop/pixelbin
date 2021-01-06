@@ -4,11 +4,14 @@ import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import CloseIcon from "../../icons/CloseIcon";
 import NextIcon from "../../icons/NextIcon";
 import PreviousIcon from "../../icons/PreviousIcon";
+import { useSelector } from "../../store";
+import { useActions } from "../../store/actions";
+import type { StoreState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
 import { HoverArea } from "../HoverArea";
 
@@ -85,6 +88,10 @@ export interface MediaNavigationProps {
   onCloseMedia: () => void;
 }
 
+function seenTouchMessageSelector(state: StoreState): boolean {
+  return state.settings.seenTouchMessage;
+}
+
 export default function MediaNavigation({
   onNext,
   onPrevious,
@@ -92,10 +99,12 @@ export default function MediaNavigation({
 }: MediaNavigationProps): ReactResult {
   let classes = useStyles();
   let canHover = useMemo(() => window.matchMedia("(any-hover: hover)").matches, []);
-  let [showMessage, setShowMessage] = useState(!canHover);
+  let showMessage = !useSelector(seenTouchMessageSelector) && !canHover;
+  let actions = useActions();
+
   useEffect(() => {
-    setTimeout(() => setShowMessage(false), 4000);
-  }, []);
+    setTimeout(() => actions.seenTouchMessage(), 4000);
+  }, [actions]);
 
   return <div id="main-overlay" className={classes.overlay}>
     <div className={classes.overlayTop}>

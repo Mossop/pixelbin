@@ -7,6 +7,7 @@ import type { PageState } from "../pages/types";
 
 interface Settings {
   readonly thumbnailSize: number;
+  readonly seenTouchMessage: boolean;
 }
 
 export interface UIState {

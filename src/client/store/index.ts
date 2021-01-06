@@ -17,6 +17,7 @@ export function buildStore(): StoreType {
     serverState,
     settings: {
       thumbnailSize: 150,
+      seenTouchMessage: false,
     },
     ui: getUIState(serverState),
   };
