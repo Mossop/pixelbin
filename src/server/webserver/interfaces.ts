@@ -11,7 +11,7 @@ export interface WebserverConfig {
   storage: StorageConfig;
   cache: CacheConfig;
   secretKeys: string[];
-  hosts: string[],
+  hosts: string[] | null,
   apiHost: string | null,
 }
 

@@ -24,9 +24,5 @@
   "smtp": {
     "from": "PixelBin <hostmaster@pixelbin.com>",
     "host": "mandelbrot"
-  },
-  "hosts": [
-    "localhost",
-    "127.0.0.1"
-  ]
+  }
 }

@@ -171,7 +171,7 @@ export default async function buildApp(): Promise<void> {
     ...context,
   });
 
-  let allowedHosts = new Set(config.hosts);
+  let allowedHosts: Set<string> | null = config.hosts !== null ? new Set(config.hosts) : null;
 
   app
     .use(async (ctx: AppContext, next: Koa.Next): Promise<void> => {
@@ -193,7 +193,7 @@ export default async function buildApp(): Promise<void> {
     .use(async (ctx: AppContext, next: Koa.Next): Promise<void> => {
       let host = ctx.get("Host").replace(/:.*/, "");
 
-      if (allowedHosts.has(host)) {
+      if (!allowedHosts || allowedHosts.has(host)) {
         return next();
       }
 

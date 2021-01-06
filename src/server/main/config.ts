@@ -17,7 +17,7 @@ export interface ServerConfig {
   storage: StorageConfig;
   cache: CacheConfig;
   smtp: SmtpConfig | null;
-  hosts: string[];
+  hosts: string[] | null;
   apiHost: string | null;
 }
 
@@ -27,7 +27,7 @@ export interface ConfigFile {
   storage?: string;
   cache: CacheConfig;
   smtp?: SmtpConfig;
-  hosts: string | string[];
+  hosts?: string | string[];
   apiHost?: string | null;
 }
 
@@ -59,10 +59,10 @@ const ConfigFileDecoder = JsonDecoder.object<ConfigFile>({
   storage: JsonDecoder.optional(JsonDecoder.string),
   cache: CacheConfigDecoder,
   smtp: JsonDecoder.optional(SmtpConfigDecoder),
-  hosts: JsonDecoder.oneOf<string | string[]>([
+  hosts: JsonDecoder.optional(JsonDecoder.oneOf<string | string[]>([
     JsonDecoder.string,
     JsonDecoder.array(JsonDecoder.string, "hosts[]"),
-  ], "hosts"),
+  ], "hosts")),
   apiHost: JsonDecoder.optional(JsonDecoder.string),
 }, "ConfigFile");
 
@@ -115,6 +115,11 @@ export const loadConfig = serviceBuilder(
       localDirectory: path.join(storage, "local"),
     };
 
+    let hosts: string[] | null = null;
+    if (configFileData.hosts) {
+      hosts = Array.isArray(configFileData.hosts) ? configFileData.hosts : [configFileData.hosts];
+    }
+
     let config: ServerConfig = {
       smtp: configFileData.smtp ?? null,
       storage: storageConfig,
@@ -123,7 +128,7 @@ export const loadConfig = serviceBuilder(
       logging: configFileData.logging ?? {
         default: Level.Warn,
       },
-      hosts: Array.isArray(configFileData.hosts) ? configFileData.hosts : [configFileData.hosts],
+      hosts,
       apiHost: configFileData.apiHost ?? null,
     };
 
