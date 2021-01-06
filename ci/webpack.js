@@ -22,6 +22,10 @@ function config(args) {
  * @return {Promise<void>}
  */
 async function build(mode) {
+  await fs.mkdir(path.join(__dirname, "..", "dist"), {
+    recursive: true,
+  });
+
   let webpackConfig = require("../src/client/webpack.config")(mode);
   let compiler = webpack(webpackConfig);
 
