@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { shallowEqual } from "react-redux";
 
 import { createAlbum, editAlbum } from "../api/album";
 import type { Reference } from "../api/highlevel";
@@ -23,26 +24,29 @@ export interface AlbumCreateDialogProps {
 export type AlbumDialogProps = AlbumEditDialogProps | AlbumCreateDialogProps;
 
 export default function AlbumDialog(props: AlbumDialogProps): ReactResult {
-  let { album, parent, catalog } = useSelector((state: StoreState) => {
-    let album: Album | null = null;
-    let catalog: Catalog;
-    let parent: Album | Catalog;
+  let { album, parent, catalog } = useSelector(
+    useCallback((state: StoreState) => {
+      let album: Album | null = null;
+      let catalog: Catalog;
+      let parent: Album | Catalog;
 
-    if ("album" in props) {
-      album = deref(Album, props.album, state.serverState);
-      catalog = album.catalog;
-      parent = album.parent ?? catalog;
-    } else {
-      parent = mediaTargetDeref(props.parent, state.serverState);
-      catalog = parent instanceof Catalog ? parent : parent.catalog;
-    }
+      if ("album" in props) {
+        album = deref(Album, props.album, state.serverState);
+        catalog = album.catalog;
+        parent = album.parent ?? catalog;
+      } else {
+        parent = mediaTargetDeref(props.parent, state.serverState);
+        catalog = parent instanceof Catalog ? parent : parent.catalog;
+      }
 
-    return {
-      album,
-      catalog,
-      parent,
-    };
-  });
+      return {
+        album,
+        catalog,
+        parent,
+      };
+    }, [props]),
+    shallowEqual,
+  );
 
   let state = useFormState({
     name: album?.name ?? "",

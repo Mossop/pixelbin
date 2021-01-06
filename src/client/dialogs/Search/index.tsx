@@ -13,16 +13,17 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { shallowEqual } from "react-redux";
 
 import type { Query, Search } from "../../../model";
 import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
 import type { Catalog, Reference } from "../../api/highlevel";
-import type { MediaState, ServerState } from "../../api/types";
+import type { MediaState } from "../../api/types";
 import { IntersectionRoot } from "../../components/IntersectionObserver";
 import Loading from "../../components/Loading";
 import PreviewGrid from "../../components/Media/PreviewGrid";
 import { PageType } from "../../pages/types";
-import { useSelector } from "../../store";
+import { useSelector, useServerState } from "../../store";
 import { useActions } from "../../store/actions";
 import type { StoreState } from "../../store/types";
 import { useElementWidth } from "../../utils/hooks";
@@ -93,16 +94,25 @@ export interface SearchDialogProps {
   readonly query: Query | null;
 }
 
+interface SearchDialogState {
+  thumbnailSize: number;
+  pageType: PageType;
+}
+
+function searchDialogStateSelector(state: StoreState): SearchDialogState {
+  return {
+    thumbnailSize: state.settings.thumbnailSize,
+    pageType: state.ui.page.type,
+  };
+}
+
 export default function SearchDialog({ catalog, query }: SearchDialogProps): ReactResult {
+  let serverState = useServerState();
+
   let {
     thumbnailSize,
     pageType,
-    serverState,
-  } = useSelector((state: StoreState) => ({
-    thumbnailSize: state.settings.thumbnailSize,
-    pageType: state.ui.page.type,
-    serverState: state.serverState,
-  }));
+  } = useSelector(searchDialogStateSelector, shallowEqual);
   let classes = useStyles({ thumbnailSize });
   let { l10n } = useLocalization();
   let actions = useActions();

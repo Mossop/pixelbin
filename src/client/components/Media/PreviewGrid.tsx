@@ -3,7 +3,6 @@ import Box from "@material-ui/core/Box";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
-import { useCallback } from "react";
 
 import type { Overwrite } from "../../../utils/utility";
 import type { BaseMediaState } from "../../api/types";
@@ -49,6 +48,10 @@ export type PreviewGridProps<T extends BaseMediaState> = Overwrite<BoxProps, {
   onClick?: (media: T) => void;
 }>;
 
+function thumbnailSizeSelector(state: StoreState): number {
+  return state.settings.thumbnailSize;
+}
+
 export default ReactMemo(function PreviewGrid<T extends BaseMediaState>({
   media,
   width,
@@ -56,7 +59,7 @@ export default ReactMemo(function PreviewGrid<T extends BaseMediaState>({
   onClick,
   ...boxProps
 }: PreviewGridProps<T>): ReactResult {
-  let thumbnailSize = useSelector((state: StoreState): number => state.settings.thumbnailSize);
+  let thumbnailSize = useSelector(thumbnailSizeSelector);
   let classes = useStyles({
     thumbnailSize,
     width,

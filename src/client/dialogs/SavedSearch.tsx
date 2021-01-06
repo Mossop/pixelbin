@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { shallowEqual } from "react-redux";
 
 import type { Query } from "../../model";
 import type { Reference } from "../api/highlevel";
@@ -23,26 +24,29 @@ export interface SavedSearchCreateDialogProps {
 export type SavedSearchDialogProps = SavedSearchCreateDialogProps | SavedSearchEditDialogProps;
 
 export default function SavedSearchDialog(props: SavedSearchDialogProps): ReactResult {
-  let { search, query, catalog } = useSelector((state: StoreState) => {
-    let search: SavedSearch | null = null;
-    let catalog: Catalog;
-    let query: Query;
+  let { search, query, catalog } = useSelector(
+    useCallback((state: StoreState) => {
+      let search: SavedSearch | null = null;
+      let catalog: Catalog;
+      let query: Query;
 
-    if ("search" in props) {
-      search = deref(SavedSearch, props.search, state.serverState);
-      catalog = search.catalog;
-      query = search.query;
-    } else {
-      catalog = deref(Catalog, props.catalog, state.serverState);
-      query = props.query;
-    }
+      if ("search" in props) {
+        search = deref(SavedSearch, props.search, state.serverState);
+        catalog = search.catalog;
+        query = search.query;
+      } else {
+        catalog = deref(Catalog, props.catalog, state.serverState);
+        query = props.query;
+      }
 
-    return {
-      query,
-      catalog,
-      search,
-    };
-  });
+      return {
+        query,
+        catalog,
+        search,
+      };
+    }, [props]),
+    shallowEqual,
+  );
 
   let state = useFormState({
     name: search?.name ?? "",

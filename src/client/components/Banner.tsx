@@ -20,9 +20,8 @@ import { DialogType } from "../dialogs/types";
 import PageMenuIcon from "../icons/PageMenuIcon";
 import SidebarToggleIcon from "../icons/SidebarToggleIcon";
 import { PageType } from "../pages/types";
-import { useSelector } from "../store";
+import { useUserState } from "../store";
 import { useActions } from "../store/actions";
-import type { StoreState } from "../store/types";
 import type { ReactChildren, ReactResult } from "../utils/types";
 import AppBar from "./AppBar";
 import Link from "./Link";
@@ -74,7 +73,7 @@ export default function Banner({
   let { l10n } = useLocalization();
   let actions = useActions();
   let classes = useStyles();
-  let user = useSelector((state: StoreState): UserState | null => state.serverState.user);
+  let user = useUserState();
 
   let userMenuState = usePopupState({ variant: "popover", popupId: "user-menu" });
   let pageOptionsState = usePopupState({ variant: "popover", popupId: "page-options" });

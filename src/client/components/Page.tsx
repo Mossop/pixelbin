@@ -3,7 +3,7 @@ import useMediaQuery from "@material-ui/core/useMediaQuery";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Reference } from "../api/highlevel";
-import { useSelector } from "../store";
+import { useSelector, useUserState } from "../store";
 import type { StoreState, UIState } from "../store/types";
 import type { ReactResult } from "../utils/types";
 import type { PageOption } from "./Banner";
@@ -55,6 +55,10 @@ export interface PageProps {
   title: string;
 }
 
+function uiStateSelector(state: StoreState): UIState {
+  return state.ui;
+}
+
 export default function Page({
   selectedItem,
   pageOptions,
@@ -71,10 +75,8 @@ export default function Page({
 
   let classes = useStyles();
 
-  let { uiState, loggedIn } = useSelector((state: StoreState) => ({
-    uiState: state.ui,
-    loggedIn: state.serverState.user,
-  }));
+  let uiState = useSelector(uiStateSelector);
+  let loggedIn = !!useUserState();
 
   let [lastUIState, setLastUIState] = useState<UIState | null>(null);
 

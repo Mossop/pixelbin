@@ -1,9 +1,10 @@
-import { lazy, useCallback } from "react";
+import { lazy } from "react";
 
-import { useSelector } from "../store";
+import { useSelector, useUserState } from "../store";
 import { useActions } from "../store/actions";
 import type { StoreState } from "../store/types";
 import type { ReactResult } from "../utils/types";
+import type { DialogState } from "./types";
 import { DialogType } from "./types";
 
 const LoginDialog = lazy(() => import(/* webpackChunkName: "LoginDialog" */ "./Login"));
@@ -21,13 +22,15 @@ const SavedSearchDialog = lazy(() =>
 const SavedSearchDeleteDialog = lazy(() =>
   import(/* webpackChunkName: "SavedSearchDeleteDialog" */ "./SavedSearchDelete"));
 
+function dialogSelector(state: StoreState): DialogState | undefined {
+  return state.ui.dialog;
+}
+
 export default function Dialog(): ReactResult {
   let actions = useActions();
 
-  let { dialog, user } = useSelector((state: StoreState) => ({
-    dialog: state.ui.dialog,
-    user: state.serverState.user,
-  }));
+  let user = useUserState();
+  let dialog = useSelector(dialogSelector);
 
   if (!dialog) {
     return null;

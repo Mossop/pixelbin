@@ -9,8 +9,7 @@ import { refId, SavedSearch } from "../api/highlevel";
 import { getMedia } from "../api/media";
 import { searchMedia } from "../api/search";
 import type { MediaState, ServerState } from "../api/types";
-import { useSelector } from "../store";
-import type { StoreState } from "../store/types";
+import { useServerState } from "../store";
 
 export enum MediaLookupType {
   Single,
@@ -91,7 +90,7 @@ export const lookupMedia = memoized(
 
 export function useMediaLookup(lookup: MediaLookup): readonly MediaState[] | null | undefined {
   let [results, setResults] = useState<readonly MediaState[] | null | undefined>(undefined);
-  let serverState = useSelector((state: StoreState) => state.serverState);
+  let serverState = useServerState();
 
   useEffect(() => {
     let cancelled = false;

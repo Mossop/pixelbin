@@ -1,8 +1,8 @@
 import { enableMapSet } from "immer";
-import { useCallback } from "react";
 import { useStore as useReduxStore, useSelector as useReduxSelector } from "react-redux";
 import { createStore } from "redux";
 
+import type { ServerState, UserState } from "../api/types";
 import { initialServerState } from "../context";
 import { provideService } from "../services";
 import { getUIState } from "../utils/navigation";
@@ -34,10 +34,23 @@ export function buildStore(): StoreType {
 
 export const useStore = useReduxStore as () => StoreType;
 
-export function useSelector<R>(
+export const useSelector = useReduxSelector as <R>(
   selector: (state: StoreState) => R,
-  params: unknown[] = [],
-): R {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useReduxSelector(useCallback(selector, params));
+  equalityFn?: (left: R, right: R) => boolean
+) => R;
+
+function userStateSelector(state: StoreState): UserState | null {
+  return state.serverState.user;
+}
+
+export function useUserState(): UserState | null {
+  return useSelector(userStateSelector);
+}
+
+function serverStateSelector(state: StoreState): ServerState {
+  return state.serverState;
+}
+
+export function useServerState(): ServerState {
+  return useSelector(serverStateSelector);
 }
