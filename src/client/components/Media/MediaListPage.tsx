@@ -66,7 +66,7 @@ export default function MediaListPage<T extends BaseMediaState>({
     }
 
     let mediaGroups = groupMedia(
-      Grouping.Year,
+      Grouping.Month,
       false,
       Ordering.Date,
       false,

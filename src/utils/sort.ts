@@ -24,17 +24,25 @@ export function nullFirst<T>(inner: Comparator<T>): Comparator<T | null | undefi
 export function reversed<T>(inner: Comparator<T>): Comparator<T> {
   return (a: T, b: T) => -inner(a, b);
 }
+export function keyedComparator<A extends Obj, K extends keyof A>(
+  key: K,
+  comparator: Comparator<A[K]>,
+): Comparator<A> {
+  return (a: A, b: A): number => comparator(a[key], b[key]);
+}
 
-export function sorted<A extends Obj, K extends keyof A>(
+export function sorted<T>(items: T[], comparator: Comparator<T>): T[] {
+  let results = Array.from(items);
+  results.sort(comparator);
+  return results;
+}
+
+export function keySorted<A extends Obj, K extends keyof A>(
   items: A[],
   key: K,
   comparator: Comparator<A[K]>,
 ): A[] {
-  let results = Array.from(items);
-  results.sort((a: A, b: A): number => {
-    return comparator(a[key], b[key]);
-  });
-  return results;
+  return sorted(items, keyedComparator(key, comparator));
 }
 
 type StringProps<A> = {
@@ -46,7 +54,7 @@ export function stringSorted<
   K extends StringProps<A>,
 >(items: A[], key: K): A[] {
   // @ts-ignore
-  return sorted(items, key, stringComparator);
+  return keySorted(items, key, stringComparator);
 }
 
 export function idSorted<A extends { id: string }>(items: A[]): A[] {
