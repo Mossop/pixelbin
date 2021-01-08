@@ -1,30 +1,26 @@
 import { useLocalization } from "@fluent/react";
-import Avatar from "@material-ui/core/Avatar";
+import { useMediaQuery, useTheme } from "@material-ui/core";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
-import Hidden from "@material-ui/core/Hidden";
 import IconButton from "@material-ui/core/IconButton";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import Menu from "@material-ui/core/Menu";
-import MenuItem from "@material-ui/core/MenuItem";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import Tooltip from "@material-ui/core/Tooltip";
-import { usePopupState, bindTrigger, bindMenu } from "material-ui-popup-state/hooks";
-import md5 from "md5";
-import { useCallback } from "react";
+import { lazy, Suspense, useCallback } from "react";
 
-import { logout } from "../api/auth";
-import type { UserState } from "../api/types";
 import { DialogType } from "../dialogs/types";
-import PageMenuIcon from "../icons/PageMenuIcon";
 import SidebarToggleIcon from "../icons/SidebarToggleIcon";
 import { PageType } from "../pages/types";
 import { useUserState } from "../store";
 import { useActions } from "../store/actions";
 import type { ReactChildren, ReactResult } from "../utils/types";
 import AppBar from "./AppBar";
+import Tooltip from "./LazyTooltip";
 import Link from "./Link";
+
+const UserMenu = lazy(() => import(/* webpackChunkName: "UserMenu" */ "./UserMenu"));
+const PageOptionsMenu = lazy(
+  () => import(/* webpackChunkName: "PageOptionsMenu" */ "./PageOptionsMenu"),
+);
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -57,15 +53,6 @@ export type BannerProps = ReactChildren & {
   pageOptions?: PageOption[];
 };
 
-function avatarSources(user: UserState): string[] {
-  let hash = md5(user.email);
-  return [
-    `https://www.gravatar.com/avatar/${hash}?s=40`,
-    `https://www.gravatar.com/avatar/${hash}?s=60 1.5x`,
-    `https://www.gravatar.com/avatar/${hash}?s=80 2x`,
-  ];
-}
-
 export default function Banner({
   pageOptions,
   onMenuButtonClick, children,
@@ -74,18 +61,16 @@ export default function Banner({
   let actions = useActions();
   let classes = useStyles();
   let user = useUserState();
-
-  let userMenuState = usePopupState({ variant: "popover", popupId: "user-menu" });
-  let pageOptionsState = usePopupState({ variant: "popover", popupId: "page-options" });
+  let theme = useTheme();
+  let narrow = useMediaQuery(theme.breakpoints.down("xs"));
 
   let showLoginDialog = useCallback((): void => {
-    userMenuState.close();
     actions.pushUIState({
       dialog: {
         type: DialogType.Login,
       },
     });
-  }, [actions, userMenuState]);
+  }, [actions]);
 
   // let showSignupDialog = useCallback((): void => {
   //   userMenuState.close();
@@ -95,17 +80,6 @@ export default function Banner({
   //     },
   //   });
   // }, [actions, userMenuState]);
-
-  let doLogout = useCallback(async (): Promise<void> => {
-    userMenuState.close();
-    let state = await logout();
-    actions.completeLogout(state);
-  }, [actions, userMenuState]);
-
-  let pageOptionClick = useCallback((pageOption: PageOption): void => {
-    pageOptionsState.close();
-    pageOption.onClick();
-  }, [pageOptionsState]);
 
   return <AppBar>
     {
@@ -126,94 +100,30 @@ export default function Banner({
     <Box id="banner-buttons" className={classes.bannerButtons}>
       {children}
       {
-        pageOptions && <>
-          <Hidden smUp={true}>
-            <IconButton {...bindTrigger(pageOptionsState)} color="inherit">
-              <PageMenuIcon/>
-            </IconButton>
-            <Menu
-              {...bindMenu(pageOptionsState)}
-              anchorOrigin={
-                {
-                  vertical: "bottom",
-                  horizontal: "right",
-                }
-              }
-              transformOrigin={
-                {
-                  vertical: "top",
-                  horizontal: "right",
-                }
-              }
-              keepMounted={true}
-              getContentAnchorEl={null}
+        pageOptions && (
+          narrow
+            ? <Suspense fallback={null}>
+              <PageOptionsMenu pageOptions={pageOptions}/>
+            </Suspense>
+            : pageOptions.map((option: PageOption) => <Tooltip
+              key={option.id}
+              title={option.label}
             >
-              {
-                pageOptions.map((option: PageOption) => <MenuItem
-                  key={option.id}
-                  id={`pageoption-menu-${option.id}`}
-                  color="inherit"
-                  // eslint-disable-next-line react/jsx-no-bind
-                  onClick={() => pageOptionClick(option)}
-                >
-                  <ListItemIcon>
-                    {option.icon}
-                  </ListItemIcon>
-                  {option.label}
-                </MenuItem>)
-              }
-            </Menu>
-          </Hidden>
-          <Hidden xsDown={true}>
-            {
-              pageOptions.map((option: PageOption) => <Tooltip
-                key={option.id}
-                title={option.label}
+              <IconButton
+                id={`pageoption-button-${option.id}`}
+                color="inherit"
+                onClick={option.onClick}
               >
-                <IconButton
-                  id={`pageoption-button-${option.id}`}
-                  color="inherit"
-                  onClick={option.onClick}
-                >
-                  {option.icon}
-                </IconButton>
-              </Tooltip>)
-            }
-          </Hidden>
-        </>
+                {option.icon}
+              </IconButton>
+            </Tooltip>)
+        )
       }
       {
         user
-          ? <>
-            <IconButton id="banner-user-menu" {...bindTrigger(userMenuState)}>
-              <Avatar
-                alt={user.fullname}
-                srcSet={avatarSources(user).join(", ")}
-                src={avatarSources(user)[0]}
-              />
-            </IconButton>
-            <Menu
-              {...bindMenu(userMenuState)}
-              anchorOrigin={
-                {
-                  vertical: "bottom",
-                  horizontal: "right",
-                }
-              }
-              transformOrigin={
-                {
-                  vertical: "top",
-                  horizontal: "right",
-                }
-              }
-              keepMounted={true}
-              getContentAnchorEl={null}
-            >
-              <MenuItem id="user-menu-logout" onClick={doLogout}>
-                {l10n.getString("banner-logout")}
-              </MenuItem>
-            </Menu>
-          </>
+          ? <Suspense fallback={null}>
+            <UserMenu user={user}/>
+          </Suspense>
           : <>
             <Button
               id="button-login"
@@ -222,15 +132,14 @@ export default function Banner({
             >
               {l10n.getString("banner-login")}
             </Button>
-            {/* <Hidden xsDown={true}>
+            {/* narrow &&
               <Button
                 id="button-signup"
                 color="inherit"
                 onClick={showSignupDialog}
               >
                 {l10n.getString("banner-signup")}
-              </Button>
-            </Hidden> */}
+              </Button> */}
           </>
       }
     </Box>

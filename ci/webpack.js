@@ -27,6 +27,10 @@ async function build(mode) {
   });
 
   let webpackConfig = require("../src/client/webpack.config")(mode);
+  if (mode == "production") {
+    webpackConfig.profile = true;
+    webpackConfig.parallelism = 1;
+  }
   let compiler = webpack(webpackConfig);
 
   /**
@@ -44,16 +48,18 @@ async function build(mode) {
     });
   });
 
-  let json = stats.toJson({
-    moduleTrace: true,
-    modules: true,
-    entrypoints: true,
-    chunkModules: true,
-    chunks: true,
-    chunkGroups: true,
-    chunkOrigins: true,
-  }, false);
-  await fs.writeFile(path.join(__dirname, "..", "dist", "stats.json"), JSON.stringify(json));
+  if (mode == "production") {
+    let json = stats.toJson({
+      moduleTrace: true,
+      modules: true,
+      entrypoints: true,
+      chunkModules: true,
+      chunks: true,
+      chunkGroups: true,
+      chunkOrigins: true,
+    }, false);
+    await fs.writeFile(path.join(__dirname, "..", "dist", "stats.json"), JSON.stringify(json));
+  }
 
   console.log(stats.toString(webpackConfig.stats));
 

@@ -8,9 +8,8 @@ import type { StoreState, UIState } from "../store/types";
 import type { ReactResult } from "../utils/types";
 import type { PageOption } from "./Banner";
 import Banner from "./Banner";
+import Sidebar from "./LazySidebar";
 import type { SidebarProps } from "./Sidebar";
-import Sidebar from "./Sidebar";
-import SidebarTree from "./SidebarTree";
 
 const useStyles = makeStyles(() =>
   createStyles({
@@ -60,7 +59,6 @@ function uiStateSelector(state: StoreState): UIState {
 }
 
 export default function Page({
-  selectedItem,
   pageOptions,
   title,
   overlay,
@@ -122,15 +120,16 @@ export default function Page({
     <div className={classes.contentRow}>
       {
         hasOverlay && sidebarType == "persistent" &&
-        <Sidebar key="overlaySidebar" type="openable" open={sidebarOpen} onClose={onCloseSidebar}>
-          <SidebarTree selectedItem={selectedItem}/>
-        </Sidebar>
+        <Sidebar key="overlaySidebar" type="openable" open={sidebarOpen} onClose={onCloseSidebar}/>
       }
       {
         sidebarType &&
-        <Sidebar key="sidebar" type={sidebarType} open={sidebarOpen} onClose={onCloseSidebar}>
-          <SidebarTree selectedItem={selectedItem}/>
-        </Sidebar>
+        <Sidebar
+          key="sidebar"
+          type={sidebarType}
+          open={sidebarType == "persistent" || sidebarOpen}
+          onClose={onCloseSidebar}
+        />
       }
       <Fragment key="content">
         {children}

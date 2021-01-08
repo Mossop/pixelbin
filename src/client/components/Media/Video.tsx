@@ -25,6 +25,7 @@ const useStyles = makeStyles((theme: Theme) =>
       objectFit: "contain",
     },
     mediaControls: {
+      fontSize: "4rem",
       position: "absolute",
       bottom: 0,
       right: 0,
@@ -60,7 +61,6 @@ const useStyles = makeStyles((theme: Theme) =>
       color: theme.palette.text.primary,
     },
     navButton: {
-      "fontSize": "4rem",
       "pointerEvents": "auto",
       "background": alpha(theme.palette.background.paper, 0.6),
       "& .MuiSvgIcon-root": {

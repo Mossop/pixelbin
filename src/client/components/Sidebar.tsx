@@ -1,6 +1,4 @@
 import Box from "@material-ui/core/Box";
-import Dialog from "@material-ui/core/Dialog";
-import Drawer from "@material-ui/core/Drawer";
 import IconButton from "@material-ui/core/IconButton";
 import Paper from "@material-ui/core/Paper";
 import Slide from "@material-ui/core/Slide";
@@ -9,8 +7,12 @@ import { makeStyles, createStyles } from "@material-ui/core/styles";
 import type { TransitionProps } from "@material-ui/core/transitions";
 import { forwardRef } from "react";
 
+import type { Reference } from "../api/highlevel";
 import CloseIcon from "../icons/CloseIcon";
 import type { ReactChildren, ReactResult } from "../utils/types";
+import Dialog from "./LazyDialog";
+import Drawer from "./LazyDrawer";
+import SidebarTree from "./SidebarTree";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -32,6 +34,7 @@ export type OpenableSidebarProps = ReactChildren & {
 
 export type SidebarProps = OpenableSidebarProps & {
   type: "openable" | "persistent" | "modal";
+  selectedItem?: Reference<unknown>;
 };
 
 const Transition = forwardRef(function Transition(
@@ -93,13 +96,19 @@ function PopoutSidebar({
   </Drawer>;
 }
 
-export default function Sidebar(props: SidebarProps): ReactResult {
+export default function Sidebar({ selectedItem, ...props }: SidebarProps): ReactResult {
   switch (props.type) {
     case "modal":
-      return <ModalSidebar {...props}/>;
+      return <ModalSidebar {...props}>
+        <SidebarTree selectedItem={selectedItem}/>
+      </ModalSidebar>;
     case "persistent":
-      return <PersistentSidebar {...props}/>;
+      return <PersistentSidebar {...props}>
+        <SidebarTree selectedItem={selectedItem}/>
+      </PersistentSidebar>;
     case "openable":
-      return <PopoutSidebar {...props}/>;
+      return <PopoutSidebar {...props}>
+        <SidebarTree selectedItem={selectedItem}/>
+      </PopoutSidebar>;
   }
 }

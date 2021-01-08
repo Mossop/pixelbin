@@ -3,6 +3,7 @@ import { Fade } from "@material-ui/core";
 import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
+import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
 import { useEffect, useMemo } from "react";
 
@@ -59,9 +60,14 @@ const useStyles = makeStyles((theme: Theme) =>
     overlayTop: {
       paddingTop: theme.spacing(2),
       paddingBottom: theme.spacing(2),
+      background: alpha(theme.palette.background.paper, 0.6),
+      fontSize: "4rem",
       display: "flex",
       flexDirection: "row",
-      justifyContent: "flex-end",
+      alignItems: "center",
+    },
+    mediaInfo: {
+      flex: 1,
     },
     navButton: {
       "fontSize": "4rem",
@@ -107,8 +113,9 @@ export default function MediaNavigation({
   }, [actions]);
 
   return <div id="main-overlay" className={classes.overlay}>
-    <div className={classes.overlayTop}>
-      <HoverArea>
+    <HoverArea>
+      <div className={classes.overlayTop}>
+        <Typography className={classes.mediaInfo} component="p">Hello</Typography>
         <IconButton
           id="close-button"
           onClick={onCloseMedia}
@@ -116,8 +123,8 @@ export default function MediaNavigation({
         >
           <CloseIcon/>
         </IconButton>
-      </HoverArea>
-    </div>
+      </div>
+    </HoverArea>
     <div className={classes.overlayMiddle}>
       {
         !showMessage &&
