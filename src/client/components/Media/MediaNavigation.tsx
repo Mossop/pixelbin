@@ -1,5 +1,5 @@
 import { Localized } from "@fluent/react";
-import { Fade } from "@material-ui/core";
+import { Fade, Tooltip } from "@material-ui/core";
 import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
@@ -7,6 +7,8 @@ import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
 import { useEffect, useMemo } from "react";
 
+import { formatDateTime } from "../../../utils/datetime";
+import type { BaseMediaState } from "../../api/types";
 import CloseIcon from "../../icons/CloseIcon";
 import NextIcon from "../../icons/NextIcon";
 import PreviousIcon from "../../icons/PreviousIcon";
@@ -65,9 +67,13 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
+      pointerEvents: "auto",
     },
     mediaInfo: {
-      flex: 1,
+      fontSize: "1.1rem",
+      color: theme.palette.text.primary,
+      marginLeft: theme.spacing(4),
     },
     navButton: {
       "fontSize": "4rem",
@@ -79,7 +85,6 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     overlayButton: {
       "marginRight": theme.spacing(2),
-      "pointerEvents": "auto",
       "fontSize": "2rem",
       "background": alpha(theme.palette.background.paper, 0.6),
       "& .MuiSvgIcon-root": {
@@ -88,7 +93,8 @@ const useStyles = makeStyles((theme: Theme) =>
     },
   }));
 
-export interface MediaNavigationProps {
+export interface MediaNavigationProps<T extends BaseMediaState> {
+  media: T;
   onNext: (() => void) | null;
   onPrevious: (() => void) | null;
   onCloseMedia: () => void;
@@ -98,11 +104,12 @@ function seenTouchMessageSelector(state: StoreState): boolean {
   return state.settings.seenTouchMessage;
 }
 
-export default function MediaNavigation({
+export default function MediaNavigation<T extends BaseMediaState>({
+  media,
   onNext,
   onPrevious,
   onCloseMedia,
-}: MediaNavigationProps): ReactResult {
+}: MediaNavigationProps<T>): ReactResult {
   let classes = useStyles();
   let canHover = useMemo(() => window.matchMedia("(any-hover: hover)").matches, []);
   let showMessage = !useSelector(seenTouchMessageSelector) && !canHover;
@@ -115,7 +122,14 @@ export default function MediaNavigation({
   return <div id="main-overlay" className={classes.overlay}>
     <HoverArea>
       <div className={classes.overlayTop}>
-        <Typography className={classes.mediaInfo} component="p">Hello</Typography>
+        {
+          media.taken &&
+          <Tooltip title={formatDateTime(media.taken)}>
+            <Typography className={classes.mediaInfo} component="p">
+              {media.taken.toRelative()}
+            </Typography>
+          </Tooltip>
+        }
         <IconButton
           id="close-button"
           onClick={onCloseMedia}

@@ -269,11 +269,15 @@ export default function MediaDisplay<T extends BaseMediaState>({
         people={[personHighlight]}
       />
     }
-    <MediaNavigation
-      onPrevious={onPrevious}
-      onNext={onNext}
-      onCloseMedia={onCloseMedia}
-    />
+    {
+      mediaToShow &&
+      <MediaNavigation
+        media={mediaToShow}
+        onPrevious={onPrevious}
+        onNext={onNext}
+        onCloseMedia={onCloseMedia}
+      />
+    }
     {
       mediaToShow &&
       <InfoArea open={showMediaInfo} onClose={onCloseInfo}>
