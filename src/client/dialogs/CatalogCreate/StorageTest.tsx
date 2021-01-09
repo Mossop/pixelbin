@@ -1,8 +1,7 @@
-import { useLocalization } from "@fluent/react";
+import { useLocalization, Localized } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import type { Theme } from "@material-ui/core/styles";
 import { makeStyles, createStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
 import CheckCircle from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
 import { useCallback, useEffect, useState } from "react";
@@ -21,6 +20,11 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     testText: {
       fontSize: "3rem",
+    },
+    testResult: {
+      textAlign: "center",
+      fontSize: "2rem",
+      fontWeight: "bold",
     },
     success: {
       color: theme.palette.success.main,
@@ -84,9 +88,9 @@ export default function StorageTest({
       className={classes.failure}
     >
       <ErrorIcon className={classes.testIcon}/>
-      <Typography id="storage-test-result" variant="h4" align="center">
-        {l10n.getString(`aws-${testResult.result}`)}
-      </Typography>
+      <Localized id={`aws-${testResult.result}`}>
+        <h3 className={classes.testResult}/>
+      </Localized>
       {
         testResult.message && <Box
           id="storage-failure-message"
@@ -108,9 +112,9 @@ export default function StorageTest({
       className={classes.success}
     >
       <CheckCircle className={classes.testIcon}/>
-      <Typography id="storage-test-result" variant="h4" align="center">
-        {l10n.getString("storage-test-success")}
-      </Typography>
+      <Localized id="storage-test-success">
+        <h3 className={classes.testResult}/>
+      </Localized>
     </Box>;
   }
 }

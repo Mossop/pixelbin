@@ -1,8 +1,6 @@
-import type { ReactLocalization } from "@fluent/react";
+import type { LocalizedProps, ReactLocalization } from "@fluent/react";
 
 import type { Api } from "../../model";
-import type { L10nInfo } from "../l10n";
-import { l10nInfo } from "../l10n";
 
 export enum ErrorCode {
   InvalidResponse = "invalid-response",
@@ -45,7 +43,7 @@ export abstract class AppError extends Error {
     this.error = error;
   }
 
-  public abstract l10nInfo(): L10nInfo;
+  public abstract l10nInfo(): LocalizedProps;
 
   public asString(l10n: ReactLocalization): string {
     let info = this.l10nInfo();
@@ -65,14 +63,20 @@ export class ApiError extends AppError {
     super(data.code, data.data);
   }
 
-  public l10nInfo(): L10nInfo {
-    return l10nInfo(`api-error-${this.code}`, this.args);
+  public l10nInfo(): LocalizedProps {
+    return {
+      id: `api-error-${this.code}`,
+      vars: this.args,
+    };
   }
 }
 
 export class InternalError extends AppError {
-  public l10nInfo(): L10nInfo {
-    return l10nInfo(`internal-error-${this.code}`, this.args);
+  public l10nInfo(): LocalizedProps {
+    return {
+      id: `internal-error-${this.code}`,
+      vars: this.args,
+    };
   }
 }
 

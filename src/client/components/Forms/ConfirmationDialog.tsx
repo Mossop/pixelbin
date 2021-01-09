@@ -3,34 +3,22 @@ import Box from "@material-ui/core/Box";
 import Dialog from "@material-ui/core/Dialog/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles } from "@material-ui/core/styles";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Alert from "@material-ui/lab/Alert/Alert";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { errorString } from "../../utils/exception";
 import type { ReactResult } from "../../utils/types";
 import { Button } from "./Button";
+import DialogTitle from "./DialogTitle";
 import { FormContextProvider } from "./shared";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    title: {
-      paddingTop: theme.spacing(2),
-      paddingLeft: theme.spacing(2),
-      paddingRight: theme.spacing(2),
-      paddingBottom: 0,
-    },
     error: {
       marginBottom: theme.spacing(2),
-    },
-    content: {
-      paddingBottom: 0,
-    },
-    actions: {
-      padding: theme.spacing(1),
     },
   }));
 
@@ -84,10 +72,6 @@ export default function ConfirmationDialog({
     }
   }, [onClose]);
 
-  useEffect(() => {
-    document.title = l10n.getString(titleId);
-  }, [l10n, titleId]);
-
   return <Dialog
     open={open}
     onClose={close}
@@ -95,14 +79,12 @@ export default function ConfirmationDialog({
     aria-labelledby={`${baseId}-title`}
   >
     <FormContextProvider disabled={disabled}>
-      <DialogTitle id={`${baseId}-title`} className={classes.title}>
-        {l10n.getString(titleId)}
-      </DialogTitle>
-      <DialogContent className={classes.content}>
+      <DialogTitle id={`${baseId}-title`} title={l10n.getString(titleId)}/>
+      <DialogContent>
         {errorMessage}
         {children}
       </DialogContent>
-      <DialogActions disableSpacing={true} className={classes.actions}>
+      <DialogActions>
         <Button
           id={`${baseId}-cancel`}
           onClick={close}

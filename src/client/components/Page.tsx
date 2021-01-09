@@ -1,6 +1,6 @@
 import { useTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 
 import type { Reference } from "../api/highlevel";
 import { useSelector, useUserState } from "../store";
@@ -10,6 +10,7 @@ import type { PageOption } from "./Banner";
 import Banner from "./Banner";
 import Sidebar from "./LazySidebar";
 import type { SidebarProps } from "./Sidebar";
+import Title from "./Title";
 
 const useStyles = makeStyles(() =>
   createStyles({
@@ -87,12 +88,6 @@ export default function Page({
     setSidebarOpen(false);
   }, []);
 
-  useEffect(() => {
-    if (!uiState.dialog && !hasOverlay) {
-      document.title = title;
-    }
-  }, [hasOverlay, title, uiState]);
-
   let sidebarType = useMemo((): SidebarProps["type"] | null => {
     if (!loggedIn) {
       return null;
@@ -113,6 +108,7 @@ export default function Page({
   }, [sidebarType, hasOverlay]);
 
   return <div className={classes.pageContent}>
+    <Title source="page" title={title}/>
     <Banner
       onMenuButtonClick={onMenuButtonClick}
       pageOptions={pageOptions}

@@ -35,7 +35,7 @@ const useStyles = makeStyles((theme: Theme) =>
       marginRight: theme.spacing(2),
     },
     title: {
-      fontSize: "1.25rem",
+      fontSize: "1.5rem",
       fontFamily: "\"Comfortaa\", cursive",
       fontWeight: "bold",
     },

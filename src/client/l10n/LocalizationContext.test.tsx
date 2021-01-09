@@ -4,7 +4,6 @@ import { deferCall } from "../../test-helpers";
 import fetch from "../environment/fetch";
 import { expectChild } from "../test-helpers";
 import { LocalizationContext } from "./LocalizationContext";
-import { Localized } from "./Localized";
 
 jest.mock("../environment/fetch", (): unknown => {
   return {

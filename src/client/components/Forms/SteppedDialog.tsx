@@ -3,36 +3,18 @@ import Box from "@material-ui/core/Box";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
 import MuiStep from "@material-ui/core/Step";
 import StepLabel from "@material-ui/core/StepLabel";
 import Stepper from "@material-ui/core/Stepper";
-import type { Theme } from "@material-ui/core/styles";
-import { makeStyles, createStyles } from "@material-ui/core/styles";
 import Alert from "@material-ui/lab/Alert/Alert";
-import { useState, useCallback, Children, useEffect } from "react";
+import { useState, useCallback, Children } from "react";
 
 import { errorString } from "../../utils/exception";
 import type { ReactResult } from "../../utils/types";
 import { Button, SubmitButton } from "./Button";
+import DialogTitle from "./DialogTitle";
 import type { FormContext } from "./shared";
 import { FormContextProvider } from "./shared";
-
-const useStyles = makeStyles((theme: Theme) =>
-  createStyles({
-    title: {
-      paddingTop: theme.spacing(2),
-      paddingLeft: theme.spacing(2),
-      paddingRight: theme.spacing(2),
-      paddingBottom: 0,
-    },
-    content: {
-      paddingBottom: 0,
-    },
-    actions: {
-      padding: theme.spacing(1),
-    },
-  }));
 
 export interface StepProps {
   titleId: string;
@@ -83,7 +65,6 @@ export default function SteppedDialog({
   disabled,
 }: SteppedDialogProps): ReactResult {
   let { l10n } = useLocalization();
-  let classes = useStyles();
   let [open, setOpen] = useState(true);
 
   let baseId = id ?? "stepped-dialog";
@@ -109,17 +90,11 @@ export default function SteppedDialog({
     }
   }, [onClose]);
 
-  useEffect(() => {
-    document.title = l10n.getString(titleId);
-  }, [l10n, titleId]);
-
   return <Dialog open={open} onClose={close} scroll="body" aria-labelledby={`${baseId}-title`}>
     <FormContextProvider disabled={disabled} canSubmit={canSubmit}>
       <form onSubmit={submit}>
-        <DialogTitle id={`${baseId}-title`} className={classes.title}>
-          {l10n.getString(titleId)}
-        </DialogTitle>
-        <DialogContent className={classes.content}>
+        <DialogTitle id={`${baseId}-title`} title={l10n.getString(titleId)}/>
+        <DialogContent>
           <Stepper activeStep={currentStep} alternativeLabel={true}>
             {
               Children.map(children, (child: React.ReactElement<StepProps>) => {
@@ -150,7 +125,7 @@ export default function SteppedDialog({
             }
           </Box>
         </DialogContent>
-        <DialogActions className={classes.actions}>
+        <DialogActions>
           <Button
             id={`${baseId}-cancel`}
             onClick={close}

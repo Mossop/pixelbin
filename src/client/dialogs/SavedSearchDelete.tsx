@@ -1,11 +1,10 @@
-import { Localized } from "@fluent/react";
-import Typography from "@material-ui/core/Typography";
 import { useCallback, useState } from "react";
 
 import type { Reference } from "../api/highlevel";
 import { useReference, SavedSearch } from "../api/highlevel";
 import { deleteSavedSearch } from "../api/search";
 import ConfirmationDialog from "../components/Forms/ConfirmationDialog";
+import { Text } from "../components/Text";
 import { useActions } from "../store/actions";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
@@ -44,8 +43,6 @@ export default function SavedSearchDeleteDialog(
     onAccept={onAccept}
     onClose={actions.closeDialog}
   >
-    <Localized id="saved-search-delete-description" vars={{ name: search.name }}>
-      <Typography variant="body1"/>
-    </Localized>
+    <Text l10nId="saved-search-delete-description" l10nVars={{ name: search.name }}/>
   </ConfirmationDialog>;
 }

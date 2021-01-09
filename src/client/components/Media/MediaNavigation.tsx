@@ -3,7 +3,6 @@ import { Fade, Tooltip } from "@material-ui/core";
 import IconButton from "@material-ui/core/IconButton";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
 import { useEffect, useMemo } from "react";
 
@@ -17,6 +16,7 @@ import { useActions } from "../../store/actions";
 import type { StoreState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
 import { HoverArea } from "../HoverArea";
+import { MediaInfo } from "../Text";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -56,7 +56,6 @@ const useStyles = makeStyles((theme: Theme) =>
       color: theme.palette.text.primary,
       padding: theme.spacing(2),
       fontSize: "2rem",
-      margin: 0,
       textAlign: "center",
     },
     overlayTop: {
@@ -71,25 +70,18 @@ const useStyles = makeStyles((theme: Theme) =>
       pointerEvents: "auto",
     },
     mediaInfo: {
-      fontSize: "1.1rem",
       color: theme.palette.text.primary,
       marginLeft: theme.spacing(4),
     },
     navButton: {
-      "fontSize": "4rem",
-      "pointerEvents": "auto",
-      "background": alpha(theme.palette.background.paper, 0.6),
-      "& .MuiSvgIcon-root": {
-        fontSize: "inherit",
-      },
+      fontSize: "4rem",
+      pointerEvents: "auto",
+      background: alpha(theme.palette.background.paper, 0.6),
     },
     overlayButton: {
-      "marginRight": theme.spacing(2),
-      "fontSize": "2rem",
-      "background": alpha(theme.palette.background.paper, 0.6),
-      "& .MuiSvgIcon-root": {
-        fontSize: "inherit",
-      },
+      marginRight: theme.spacing(2),
+      fontSize: "2rem",
+      background: alpha(theme.palette.background.paper, 0.6),
     },
   }));
 
@@ -125,9 +117,9 @@ export default function MediaNavigation<T extends BaseMediaState>({
         {
           media.taken &&
           <Tooltip title={formatDateTime(media.taken)}>
-            <Typography className={classes.mediaInfo} component="p">
+            <MediaInfo className={classes.mediaInfo}>
               {media.taken.toRelative()}
-            </Typography>
+            </MediaInfo>
           </Tooltip>
         }
         <IconButton

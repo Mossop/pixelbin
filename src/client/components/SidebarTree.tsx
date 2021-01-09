@@ -32,6 +32,7 @@ const useStyles = makeStyles((theme: Theme) =>
     icon: {
       paddingRight: theme.spacing(1),
       minWidth: theme.spacing(1) + 24,
+      fontSize: theme.typography.pxToRem(24),
     },
     item: ({ depth }: StyleProps) => ({
       paddingLeft: theme.spacing(2 + depth * 2),

@@ -1,8 +1,8 @@
 import { useLocalization } from "@fluent/react";
-import Typography from "@material-ui/core/Typography";
 
 import Content from "../components/Content";
 import Page from "../components/Page";
+import { PageTitle } from "../components/Title";
 import type { ReactResult } from "../utils/types";
 import type { AuthenticatedPageProps } from "./types";
 
@@ -11,7 +11,7 @@ export default function UserPage(_props: AuthenticatedPageProps): ReactResult {
 
   return <Page title={l10n.getString("user-page-title")}>
     <Content>
-      <Typography variant="h1">User</Typography>
+      <PageTitle/>
     </Content>
   </Page>;
 }

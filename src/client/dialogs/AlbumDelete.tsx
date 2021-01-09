@@ -1,11 +1,10 @@
-import { Localized } from "@fluent/react";
-import Typography from "@material-ui/core/Typography";
 import { useCallback, useState } from "react";
 
 import { deleteAlbum } from "../api/album";
 import type { Reference } from "../api/highlevel";
 import { Album, useReference } from "../api/highlevel";
 import ConfirmationDialog from "../components/Forms/ConfirmationDialog";
+import { Text } from "../components/Text";
 import { useActions } from "../store/actions";
 import type { AppError } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
@@ -44,8 +43,6 @@ export default function AlbumDeleteDialog({
     onAccept={onAccept}
     onClose={actions.closeDialog}
   >
-    <Localized id="album-delete-description" vars={{ name: album.name }}>
-      <Typography variant="body1"/>
-    </Localized>
+    <Text l10nId="album-delete-description" l10nVars={{ name: album.name }}/>
   </ConfirmationDialog>;
 }

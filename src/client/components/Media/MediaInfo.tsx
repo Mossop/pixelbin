@@ -80,9 +80,6 @@ const useStyles = makeStyles((theme: Theme) =>
       fontWeight: "bold",
       textAlign: "right",
     },
-    metadataContent: {
-      margin: 0,
-    },
     multilineMetadataLabel: {
       gridColumn: "1 / 3",
       textAlign: "left",
@@ -94,7 +91,6 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       listStyle: "none",
-      padding: 0,
     },
     fieldListItem: {
       paddingRight: theme.spacing(1),
@@ -245,7 +241,6 @@ function Row({
     "metadata-label",
   );
   let contentClasses = clsx(
-    classes.metadataContent,
     multiline && classes.multilineMetadataContent,
     `metadata-${id}`,
     "metadata-value",

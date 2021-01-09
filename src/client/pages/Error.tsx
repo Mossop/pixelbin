@@ -1,11 +1,11 @@
-import { Localized, useLocalization } from "@fluent/react";
+import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import Link from "@material-ui/core/Link";
-import Typography from "@material-ui/core/Typography";
-import { useEffect } from "react";
 
 import AppBar from "../components/AppBar";
 import Content from "../components/Content";
+import { Text, SectionHeader } from "../components/Text";
+import Title from "../components/Title";
 import { errorString } from "../utils/exception";
 import type { ReactResult } from "../utils/types";
 
@@ -28,16 +28,13 @@ export default function ErrorPage({ error }: ErrorPageProps): ReactResult {
     window.location.href = "/";
   };
 
-  useEffect(() => {
-    document.title = l10n.getString("error-page-title");
-  });
-
   return <>
+    <Title source="page" title={l10n.getString("error-page-title")}/>
     <AppBar>
       <Box
         style={
           {
-            fontSize: "1.25rem",
+            fontSize: "1.5rem",
             fontFamily: "\"Comfortaa\", cursive",
             fontWeight: "bold",
           }
@@ -48,12 +45,12 @@ export default function ErrorPage({ error }: ErrorPageProps): ReactResult {
       </Box>
     </AppBar>
     <Content>
-      <Localized id="error-title"><Typography variant="h2"/></Localized>
-      <Localized id="error-content"><Typography variant="body1"/></Localized>
+      <SectionHeader l10nId="error-title"/>
+      <Text l10nId="error-content"/>
       <Box m={2} component="pre">{errorString(l10n, error)}</Box>
-      <Localized
-        id="error-suggestion"
-        elems={
+      <Text
+        l10nId="error-suggestion"
+        l10nElements={
           {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             Reload: <Link href="" onClick={onRefresh}/>,
@@ -61,9 +58,7 @@ export default function ErrorPage({ error }: ErrorPageProps): ReactResult {
             Main: <Link href="/" onClick={onLoadMainPage}/>,
           }
         }
-      >
-        <Typography variant="body1"/>
-      </Localized>
+      />
     </Content>
   </>;
 }

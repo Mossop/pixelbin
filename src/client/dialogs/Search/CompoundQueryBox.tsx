@@ -1,10 +1,9 @@
-import { Localized, useLocalization } from "@fluent/react";
+import { useLocalization } from "@fluent/react";
 import Box from "@material-ui/core/Box";
 import IconButton from "@material-ui/core/IconButton";
 import Link from "@material-ui/core/Link";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
 import SpeedDial from "@material-ui/lab/SpeedDial";
 import SpeedDialAction from "@material-ui/lab/SpeedDialAction";
 import SpeedDialIcon from "@material-ui/lab/SpeedDialIcon";
@@ -22,6 +21,7 @@ import {
 } from "../../../model";
 import type { Reference } from "../../api/highlevel";
 import { Catalog, useReference } from "../../api/highlevel";
+import { Text } from "../../components/Text";
 import AlbumSearchIcon from "../../icons/AlbumSearchIcon";
 import CompoundSearchIcon from "../../icons/CompoundSearchIcon";
 import DeleteIcon from "../../icons/DeleteIcon";
@@ -80,10 +80,11 @@ const useStyles = makeStyles((theme: Theme) =>
       flexDirection: "row",
       justifyContent: "start",
     },
+    fabRoot: {
+      lineHeight: "inherit",
+    },
     addIcon: {
-      width: 32,
-      height: 32,
-      minHeight: 32,
+      fontSize: theme.typography.pxToRem(24),
     },
     addActions: {
       paddingLeft: "40px !important",
@@ -106,11 +107,9 @@ const useStyles = makeStyles((theme: Theme) =>
       marginBottom: theme.spacing(0.5),
     },
     buttonLink: {
-      font: "inherit",
       color: theme.palette.background.default,
       backgroundColor: theme.palette.secondary.main,
-      paddingLeft: theme.spacing(1),
-      paddingRight: theme.spacing(1),
+      padding: theme.spacing(1),
       borderRadius: theme.shape.borderRadius,
       verticalAlign: "baseline",
       boxShadow: theme.shadows[2],
@@ -281,14 +280,14 @@ export default function CompoundQueryBox({
           <DragIndicatorIcon/>
         </Box>
       }
-      <Localized
-        id={subheaderId}
-        vars={
+      <Text
+        l10nId={subheaderId}
+        l10nVars={
           {
             catalog: catalog.name,
           }
         }
-        elems={
+        l10nElements={
           {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             Join: <Link
@@ -298,9 +297,7 @@ export default function CompoundQueryBox({
             />,
           }
         }
-      >
-        <Typography className={classes.compoundTitle} variant="subtitle1"/>
-      </Localized>
+      />
       {
         deleteQuery &&
         <IconButton
@@ -342,12 +339,12 @@ export default function CompoundQueryBox({
           open={dialOpen}
           onOpen={onDialOpen}
           onClose={onDialClose}
-          icon={<SpeedDialIcon/>}
+          icon={<SpeedDialIcon classes={{ icon: classes.addIcon }}/>}
           direction="right"
           transitionDuration={0}
           classes={
             {
-              fab: classes.addIcon,
+              fab: classes.fabRoot,
               actions: classes.addActions,
             }
           }
@@ -358,13 +355,13 @@ export default function CompoundQueryBox({
           }
         >
           <SpeedDialAction
-            icon={<FieldSearchIcon/>}
+            icon={<FieldSearchIcon className={classes.addIcon}/>}
             tooltipTitle={l10n.getString("search-dialog-add-field")}
             tooltipPlacement="bottom"
             onClick={addField}
             classes={
               {
-                fab: classes.addIcon,
+                fab: classes.fabRoot,
               }
             }
             FabProps={
@@ -374,13 +371,13 @@ export default function CompoundQueryBox({
             }
           />
           <SpeedDialAction
-            icon={<CompoundSearchIcon/>}
+            icon={<CompoundSearchIcon className={classes.addIcon}/>}
             tooltipTitle={l10n.getString("search-dialog-add-compound")}
             tooltipPlacement="bottom"
             onClick={addCompound}
             classes={
               {
-                fab: classes.addIcon,
+                fab: classes.fabRoot,
               }
             }
             FabProps={
@@ -391,13 +388,13 @@ export default function CompoundQueryBox({
           />
           {
             !currentRelation && <SpeedDialAction
-              icon={<AlbumSearchIcon/>}
+              icon={<AlbumSearchIcon className={classes.addIcon}/>}
               tooltipTitle={l10n.getString("search-dialog-add-album")}
               tooltipPlacement="bottom"
               onClick={addAlbum}
               classes={
                 {
-                  fab: classes.addIcon,
+                  fab: classes.fabRoot,
                 }
               }
               FabProps={
@@ -409,13 +406,13 @@ export default function CompoundQueryBox({
           }
           {
             !currentRelation && <SpeedDialAction
-              icon={<TagSearchIcon/>}
+              icon={<TagSearchIcon className={classes.addIcon}/>}
               tooltipTitle={l10n.getString("search-dialog-add-tag")}
               tooltipPlacement="bottom"
               onClick={addTag}
               classes={
                 {
-                  fab: classes.addIcon,
+                  fab: classes.fabRoot,
                 }
               }
               FabProps={
@@ -427,13 +424,13 @@ export default function CompoundQueryBox({
           }
           {
             !currentRelation && <SpeedDialAction
-              icon={<PersonSearchIcon/>}
+              icon={<PersonSearchIcon className={classes.addIcon}/>}
               tooltipTitle={l10n.getString("search-dialog-add-person")}
               tooltipPlacement="bottom"
               onClick={addPerson}
               classes={
                 {
-                  fab: classes.addIcon,
+                  fab: classes.fabRoot,
                 }
               }
               FabProps={

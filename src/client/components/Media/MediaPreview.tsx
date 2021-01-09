@@ -66,9 +66,6 @@ const useStyles = makeStyles((theme: Theme) =>
       filter: "opacity(0.5)",
       transition: "filter 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
     },
-    fixedFont: {
-      fontSize: "inherit",
-    },
   }));
 
 interface ThumbnailProps {
@@ -163,14 +160,14 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
     </div>
     <div className={clsx(classes.overlayBar, "hoverOpacity")}>
       <div>
-        <Rating value={media.rating} readOnly={true} className={classes.fixedFont}/>
+        <Rating value={media.rating} readOnly={true}/>
       </div>
       <div>
         {
-          media.file?.mimetype.startsWith("image/") && <PhotoIcon className={classes.fixedFont}/>
+          media.file?.mimetype.startsWith("image/") && <PhotoIcon/>
         }
         {
-          media.file?.mimetype.startsWith("video/") && <VideoIcon className={classes.fixedFont}/>
+          media.file?.mimetype.startsWith("video/") && <VideoIcon/>
         }
       </div>
     </div>

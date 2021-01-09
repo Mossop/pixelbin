@@ -1,6 +1,5 @@
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
 import { useState } from "react";
 
@@ -9,12 +8,12 @@ import type { MediaGroup } from "../../utils/sort";
 import type { ReactResult } from "../../utils/types";
 import { ReactMemo } from "../../utils/types";
 import { IntersectionRoot } from "../IntersectionObserver";
+import { SectionHeader } from "../Text";
 import PreviewGrid from "./PreviewGrid";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     groupList: {
-      margin: 0,
       flex: 1,
       overflow: "scroll",
     },
@@ -28,6 +27,7 @@ const useStyles = makeStyles((theme: Theme) =>
         paddingLeft: theme.spacing(2),
         paddingRight: theme.spacing(2),
         paddingBottom: theme.spacing(1),
+        paddingTop: theme.spacing(1),
         position: "sticky",
         top: 0,
         backgroundImage: `linear-gradient(${gradientStops.join(", ")})`,
@@ -39,7 +39,7 @@ const useStyles = makeStyles((theme: Theme) =>
     groupGrid: {
       paddingLeft: theme.spacing(1),
       paddingRight: theme.spacing(1),
-      paddingBottom: theme.spacing(3),
+      paddingBottom: theme.spacing(2),
     },
   }));
 
@@ -60,18 +60,17 @@ export default ReactMemo(function MediaGallery<T extends BaseMediaState>({
   return <dl className={classes.groupList} ref={setElement}>
     <IntersectionRoot margin="500px 0px" root={element}>
       {
-        groups.map((group: MediaGroup<T>) => <div key={group.id}>
-          <dt id={`gallery-group-${group.id}`} className={classes.groupHeader}>
-            <Typography variant="h2">{group.renderHeader()}</Typography>
-          </dt>
+        groups.map((group: MediaGroup<T>) => <section key={group.id}>
+          <div id={`gallery-group-${group.id}`} className={classes.groupHeader}>
+            <SectionHeader>{group.renderHeader()}</SectionHeader>
+          </div>
           <PreviewGrid
             width={width}
             media={group.media}
             onClick={onClick}
-            component="dd"
             className={classes.groupGrid}
           />
-        </div>)
+        </section>)
       }
     </IntersectionRoot>
   </dl>;

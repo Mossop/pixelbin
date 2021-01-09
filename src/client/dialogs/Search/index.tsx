@@ -5,12 +5,10 @@ import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
 import Divider from "@material-ui/core/Divider";
 import Fade from "@material-ui/core/Fade";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { shallowEqual } from "react-redux";
@@ -19,6 +17,7 @@ import type { Query, Search } from "../../../model";
 import { isCompoundQuery, isRelationQuery, Join } from "../../../model";
 import type { Catalog, Reference } from "../../api/highlevel";
 import type { MediaState } from "../../api/types";
+import DialogTitle from "../../components/Forms/DialogTitle";
 import { IntersectionRoot } from "../../components/IntersectionObserver";
 import Loading from "../../components/Loading";
 import PreviewGrid from "../../components/Media/PreviewGrid";
@@ -38,20 +37,8 @@ interface StyleProps {
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    title: {
-      paddingTop: theme.spacing(2),
-      paddingLeft: theme.spacing(2),
-      paddingRight: theme.spacing(2),
-      paddingBottom: 0,
-    },
     content: {
-      paddingBottom: 0,
-      display: "flex",
-      flexDirection: "column",
       minWidth: "50vw",
-    },
-    actions: {
-      padding: theme.spacing(1),
     },
     resultsDivider: {
       marginTop: theme.spacing(2),
@@ -59,6 +46,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     resultCount: {
       paddingLeft: theme.spacing(1),
+      fontSize: "1.2rem",
     },
     results: {
       flex: 1,
@@ -169,10 +157,6 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
     };
   }, [serverState, lookup]);
 
-  useEffect(() => {
-    document.title = l10n.getString("search-dialog-title");
-  }, [l10n]);
-
   let onUpdateQuery = useCallback(
     (oldQuery: Search.CompoundQuery, newQuery: Search.CompoundQuery): void => {
       setSearch(newQuery);
@@ -217,11 +201,7 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
       maxWidth={false}
       aria-labelledby="search-dialog-title"
     >
-      <DialogTitle id="search-dialog-title" className={classes.title}>
-        {
-          l10n.getString("search-dialog-title")
-        }
-      </DialogTitle>
+      <DialogTitle id="search-dialog-title" title={l10n.getString("search-dialog-title")}/>
       <DialogContent className={classes.content}>
         <CompoundQueryBox
           inRelation={null}
@@ -231,13 +211,13 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
         />
         <Divider className={classes.resultsDivider}/>
         <Box className={classes.results}>
-          <Typography className={classes.resultCount} component="h3" variant="h6">
+          <h3 className={classes.resultCount}>
             {
               l10n.getString("search-dialog-results", {
                 count: media.length,
               })
             }
-          </Typography>
+          </h3>
           <div className={classes.previewArea} ref={setResultsArea}>
             <IntersectionRoot root={resultsArea} margin="250px 0px">
               <PreviewGrid media={media} className={classes.previews} width={width}/>
@@ -248,7 +228,7 @@ export default function SearchDialog({ catalog, query }: SearchDialogProps): Rea
           </Fade>
         </Box>
       </DialogContent>
-      <DialogActions disableSpacing={true} className={classes.actions}>
+      <DialogActions>
         <Button id="search-dialog-reset" onClick={onReset}>
           {l10n.getString("search-dialog-reset")}
         </Button>

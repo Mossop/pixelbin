@@ -7,7 +7,7 @@ import type { Theme } from "@material-ui/core/styles";
 import { useTheme, createStyles, makeStyles } from "@material-ui/core/styles";
 import type { TransitionProps } from "@material-ui/core/transitions";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
 
 import type { Person, Reference } from "../../api/highlevel";
 import { getMediaRelations } from "../../api/media";
@@ -23,6 +23,7 @@ import { mediaTitle } from "../../utils/metadata";
 import type { ReactChildren, ReactResult } from "../../utils/types";
 import { HoverContainer } from "../HoverArea";
 import Loading from "../Loading";
+import Title from "../Title";
 import FaceHighlight from "./FaceHighlight";
 import MediaInfo from "./MediaInfo";
 import MediaNavigation from "./MediaNavigation";
@@ -61,11 +62,8 @@ const useStyles = makeStyles((theme: Theme) =>
       top: 0,
     },
     overlayButton: {
-      "marginRight": theme.spacing(1),
-      "fontSize": "2rem",
-      "& .MuiSvgIcon-root": {
-        fontSize: "inherit",
-      },
+      marginRight: theme.spacing(1),
+      fontSize: "2rem",
     },
   }));
 
@@ -190,9 +188,9 @@ export default function MediaDisplay<T extends BaseMediaState>({
 
   let mediaToShow = media?.[mediaIndex];
 
-  useEffect(() => {
+  let title = useMemo(() => {
     let base = mediaToShow ? mediaTitle(mediaToShow) : null;
-    document.title = base ? `${base} - ${galleryTitle}` : galleryTitle;
+    return base ? `${base} - ${galleryTitle}` : galleryTitle;
   }, [mediaToShow, galleryTitle]);
 
   let mediaControls = <>
@@ -252,6 +250,7 @@ export default function MediaDisplay<T extends BaseMediaState>({
     className={classes.root}
     ref={areaRef}
   >
+    <Title source="overlay" title={title}/>
     {
       !loaded &&
       <Loading className={classes.loading}/>

@@ -1,4 +1,5 @@
 import { useLocalization } from "@fluent/react";
+import type { Theme } from "@material-ui/core/styles";
 import { ThemeProvider, createMuiTheme, makeStyles, createStyles } from "@material-ui/core/styles";
 import { useMemo, useState } from "react";
 
@@ -14,7 +15,8 @@ import Page from "../Page";
 import MediaDisplay from "./MediaDisplay";
 import MediaGallery from "./MediaGallery";
 
-const darkTheme = createMuiTheme({
+const darkTheme = (theme: Theme): Theme => createMuiTheme({
+  ...theme,
   palette: {
     type: "dark",
   },
@@ -109,12 +111,12 @@ export default function MediaListPage<T extends BaseMediaState>({
       </ThemeProvider>
     }
   >
-    <div ref={setElement} className={classes.content}>
+    <main ref={setElement} className={classes.content}>
       {
         width !== null && mediaGroups
           ? <MediaGallery groups={mediaGroups} width={width} onClick={onMediaClick}/>
           : <Loading flexGrow={1}/>
       }
-    </div>
+    </main>
   </Page>;
 }

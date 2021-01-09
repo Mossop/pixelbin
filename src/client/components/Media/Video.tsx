@@ -2,7 +2,6 @@ import IconButton from "@material-ui/core/IconButton";
 import LinearProgress from "@material-ui/core/LinearProgress";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
 import alpha from "color-alpha";
 import { useCallback, useRef, useState } from "react";
 
@@ -10,6 +9,7 @@ import type { Encoding, MediaFileState } from "../../api/types";
 import { PauseIcon, PlayIcon } from "../../icons/MediaIcons";
 import type { ReactResult } from "../../utils/types";
 import { HoverArea } from "../HoverArea";
+import { MediaInfo } from "../Text";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -50,11 +50,8 @@ const useStyles = makeStyles((theme: Theme) =>
       pointerEvents: "none",
     },
     mediaControl: {
-      "marginLeft": theme.spacing(1),
-      "fontSize": "2rem",
-      "& .MuiSvgIcon-root": {
-        fontSize: "inherit",
-      },
+      marginLeft: theme.spacing(1),
+      fontSize: "2rem",
     },
     time: {
       padding: theme.spacing(1),
@@ -63,9 +60,6 @@ const useStyles = makeStyles((theme: Theme) =>
     navButton: {
       "pointerEvents": "auto",
       "background": alpha(theme.palette.background.paper, 0.6),
-      "& .MuiSvgIcon-root": {
-        fontSize: "inherit",
-      },
       "&:hover": {
         background: alpha(theme.palette.background.paper, 0.6),
       },
@@ -74,6 +68,9 @@ const useStyles = makeStyles((theme: Theme) =>
       flex: 1,
       margin: theme.spacing(1),
       height: 8,
+    },
+    deterministic: {
+      transition: "transform .25s linear",
     },
   }));
 
@@ -205,9 +202,14 @@ export function Video({
             className={classes.scrubber}
             variant="determinate"
             value={videoState.progress}
+            classes={
+              {
+                bar1Determinate: classes.deterministic,
+              }
+            }
           />
       }
-      <Typography variant="h6" className={classes.time}>{videoState.currentTime}</Typography>
+      <MediaInfo className={classes.time}>{videoState.currentTime}</MediaInfo>
       {children}
     </HoverArea>
   </>;
