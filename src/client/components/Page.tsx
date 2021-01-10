@@ -63,6 +63,7 @@ export default function Page({
   pageOptions,
   title,
   overlay,
+  selectedItem,
   children,
 }: PageProps): ReactResult {
   let hasOverlay = !!overlay;
@@ -116,13 +117,20 @@ export default function Page({
     <div className={classes.contentRow}>
       {
         hasOverlay && sidebarType == "persistent" &&
-        <Sidebar key="overlaySidebar" type="openable" open={sidebarOpen} onClose={onCloseSidebar}/>
+        <Sidebar
+          key="overlaySidebar"
+          type="openable"
+          selectedItem={selectedItem}
+          open={sidebarOpen}
+          onClose={onCloseSidebar}
+        />
       }
       {
         sidebarType &&
         <Sidebar
           key="sidebar"
           type={sidebarType}
+          selectedItem={selectedItem}
           open={sidebarType == "persistent" || sidebarOpen}
           onClose={onCloseSidebar}
         />

@@ -15,7 +15,7 @@ import { useActions } from "../store/actions";
 import type { ReactChildren, ReactResult } from "../utils/types";
 import AppBar from "./AppBar";
 import Tooltip from "./LazyTooltip";
-import Link from "./Link";
+import UILink from "./Link";
 
 const UserMenu = lazy(() => import(/* webpackChunkName: "UserMenu" */ "./UserMenu"));
 const PageOptionsMenu = lazy(
@@ -95,7 +95,7 @@ export default function Banner({
       </IconButton>
     }
     <Box className={classes.title}>
-      <Link to={{ page: { type: PageType.Root } }} color="inherit">PixelBin</Link>
+      <UILink to={{ page: { type: PageType.Root } }}>PixelBin</UILink>
     </Box>
     <Box id="banner-buttons" className={classes.bannerButtons}>
       {children}

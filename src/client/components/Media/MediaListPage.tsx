@@ -1,10 +1,13 @@
 import { useLocalization } from "@fluent/react";
 import type { Theme } from "@material-ui/core/styles";
 import { ThemeProvider, createMuiTheme, makeStyles, createStyles } from "@material-ui/core/styles";
-import { useMemo, useState } from "react";
+import type { Draft } from "immer";
+import { useCallback, useMemo, useState } from "react";
 
 import type { Reference } from "../../api/highlevel";
 import type { BaseMediaState } from "../../api/types";
+import { useActions } from "../../store/actions";
+import type { UIState } from "../../store/types";
 import { useElementWidth } from "../../utils/hooks";
 import type { MediaGroup } from "../../utils/sort";
 import { groupMedia, Grouping, Ordering } from "../../utils/sort";
@@ -33,7 +36,7 @@ const useStyles = makeStyles(() =>
   }));
 
 export interface MediaListPageProps<T extends BaseMediaState> {
-  onMediaClick: (media: T) => void;
+  getMediaUIState: (media: T) => Draft<UIState>;
   onCloseMedia: () => void;
   galleryTitle: string;
   media: readonly T[] | null | undefined;
@@ -43,7 +46,7 @@ export interface MediaListPageProps<T extends BaseMediaState> {
 }
 
 export default function MediaListPage<T extends BaseMediaState>({
-  onMediaClick,
+  getMediaUIState,
   onCloseMedia,
   galleryTitle,
   media,
@@ -51,6 +54,7 @@ export default function MediaListPage<T extends BaseMediaState>({
   selectedItem,
   pageOptions,
 }: MediaListPageProps<T>): ReactResult {
+  let actions = useActions();
   let { l10n } = useLocalization();
   let [element, setElement] = useState<Element | null>(null);
   let width = useElementWidth(element);
@@ -86,6 +90,10 @@ export default function MediaListPage<T extends BaseMediaState>({
     };
   }, [media]);
 
+  let mediaClick = useCallback((media: T): void => {
+    actions.replaceUIState(getMediaUIState(media));
+  }, [actions, getMediaUIState]);
+
   if (media === null) {
     return <Page
       title={l10n.getString("notfound-page-title")}
@@ -105,7 +113,7 @@ export default function MediaListPage<T extends BaseMediaState>({
           galleryTitle={galleryTitle}
           media={orderedMedia}
           selectedMedia={selectedMedia}
-          onChangeMedia={onMediaClick}
+          onChangeMedia={mediaClick}
           onCloseMedia={onCloseMedia}
         />
       </ThemeProvider>
@@ -114,7 +122,7 @@ export default function MediaListPage<T extends BaseMediaState>({
     <main ref={setElement} className={classes.content}>
       {
         width !== null && mediaGroups
-          ? <MediaGallery groups={mediaGroups} width={width} onClick={onMediaClick}/>
+          ? <MediaGallery groups={mediaGroups} width={width} getMediaUIState={getMediaUIState}/>
           : <Loading flexGrow={1}/>
       }
     </main>

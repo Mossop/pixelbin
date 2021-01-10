@@ -1,5 +1,5 @@
-import type { LinkTypeMap } from "@material-ui/core/Link";
-import MuiLink from "@material-ui/core/Link";
+import { createStyles, makeStyles } from "@material-ui/core/styles";
+import clsx from "clsx";
 import type { Draft } from "immer";
 import { useCallback } from "react";
 
@@ -9,32 +9,41 @@ import { buildURL } from "../utils/history";
 import { fromUIState } from "../utils/navigation";
 import type { ReactChildren, ReactResult } from "../utils/types";
 
+const useStyles = makeStyles(() =>
+  createStyles({
+    link: {
+      textDecoration: "none",
+      color: "inherit",
+      cursor: "pointer",
+    },
+  }));
+
 export type LinkProps = ReactChildren & {
   to: Draft<UIState>;
-  color?: LinkTypeMap["props"]["color"];
-  underline?: LinkTypeMap["props"]["underline"];
+  className?: string;
 };
 
-export default function Link({
+export default function UILink({
   to,
-  color,
-  underline,
+  className,
   children,
 }: LinkProps): ReactResult {
+  let classes = useStyles();
   let actions = useActions();
 
   let onClick = useCallback((event: React.MouseEvent): void => {
-    actions.pushUIState(to);
-    event.preventDefault();
+    if (event.button == 0) {
+      actions.pushUIState(to);
+      event.preventDefault();
+    }
   }, [actions, to]);
 
   let url = buildURL(fromUIState(to));
-  return <MuiLink
-    underline={underline ?? "none"}
-    color={color}
+  return <a
     href={url}
     onClick={onClick}
+    className={clsx(classes.link, className)}
   >
     {children}
-  </MuiLink>;
+  </a>;
 }

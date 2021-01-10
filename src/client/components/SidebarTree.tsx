@@ -20,6 +20,9 @@ import SavedSearchesIcon from "../icons/SavedSearchesIcon";
 import SavedSearchIcon from "../icons/SavedSearchIcon";
 import { PageType } from "../pages/types";
 import { useActions } from "../store/actions";
+import type { UIState } from "../store/types";
+import { buildURL } from "../utils/history";
+import { fromUIState } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
 import { ReactMemo } from "../utils/types";
 
@@ -56,7 +59,8 @@ interface SidebarItemProps {
   depth: number;
   label: string;
   children?: React.ReactNode;
-  onClick?: () => void;
+  targetUIState?: UIState;
+  onClick?: (event: React.MouseEvent) => void;
 }
 
 function SidebarItem({
@@ -64,45 +68,86 @@ function SidebarItem({
   icon,
   depth,
   label,
+  targetUIState,
   onClick,
   children,
 }: SidebarItemProps): ReactResult {
+  let actions = useActions();
   let classes = useStyles({ depth });
 
   let className = clsx(
     classes.item,
     selected && classes.selectedItem,
-    !selected && onClick ? classes.selectableItem : classes.unselectableItem,
+    !selected && (onClick || targetUIState) ? classes.selectableItem : classes.unselectableItem,
   );
 
-  let buttonProps = {};
-  if (onClick && !selected) {
-    buttonProps = {
-      button: true,
-      onClick,
-    };
-  }
-
-  return <>
-    <ListItem
-      {...buttonProps}
-      dense={true}
-      className={className}
-      component="div"
-    >
-      <ListItemIcon className={classes.icon}>
-        {icon}
-      </ListItemIcon>
-      <ListItemText>
-        {label}
-      </ListItemText>
-    </ListItem>
-    {
-      children && <List component="div" disablePadding={true}>
-        {children}
-      </List>
+  let click = useCallback((event: React.MouseEvent) => {
+    if (onClick) {
+      onClick(event);
     }
+
+    if (event.defaultPrevented || event.button != 0) {
+      return;
+    }
+
+    if (targetUIState) {
+      event.preventDefault();
+      actions.pushUIState(targetUIState);
+    }
+  }, [targetUIState, actions, onClick]);
+
+  let content = <>
+    <ListItemIcon className={classes.icon}>
+      {icon}
+    </ListItemIcon>
+    <ListItemText>
+      {label}
+    </ListItemText>
   </>;
+
+  let childItems = children && <List component="div" disablePadding={true}>
+    {children}
+  </List>;
+
+  if (targetUIState && !selected) {
+    return <>
+      <ListItem
+        dense={true}
+        className={className}
+        button={true}
+        component="a"
+        href={buildURL(fromUIState(targetUIState))}
+        onClick={click}
+      >
+        {content}
+      </ListItem>
+      {childItems}
+    </>;
+  } else if (onClick && !selected) {
+    return <>
+      <ListItem
+        dense={true}
+        className={className}
+        button={true}
+        onClick={click}
+      >
+        {content}
+      </ListItem>
+      {childItems}
+    </>;
+  } else {
+    return <>
+      <ListItem
+        dense={true}
+        className={className}
+        component="div"
+        onClick={click}
+      >
+        {content}
+      </ListItem>
+      {childItems}
+    </>;
+  }
 }
 
 interface AlbumItemProps {
@@ -116,17 +161,6 @@ const AlbumItem = ReactMemo(function AlbumItem({
   depth,
   selectedItem,
 }: AlbumItemProps): ReactResult {
-  let actions = useActions();
-
-  let navigate = useCallback(() => {
-    actions.pushUIState({
-      page: {
-        type: PageType.Album,
-        album: album.ref(),
-      },
-    });
-  }, [actions, album]);
-
   let innerAlbums = album.children;
   let children: React.ReactNode = null;
   if (innerAlbums.length) {
@@ -139,7 +173,14 @@ const AlbumItem = ReactMemo(function AlbumItem({
   }
 
   return <SidebarItem
-    onClick={navigate}
+    targetUIState={
+      {
+        page: {
+          type: PageType.Album,
+          album: album.ref(),
+        },
+      }
+    }
     selected={refIs(album.id, selectedItem)}
     label={album.name}
     icon={<AlbumIcon/>}
@@ -160,19 +201,15 @@ const SavedSearchItem = ReactMemo(function SavedSearchItem({
   depth,
   selectedItem,
 }: SavedSearchItemProps): ReactResult {
-  let actions = useActions();
-
-  let navigate = useCallback(() => {
-    actions.pushUIState({
-      page: {
-        type: PageType.SavedSearch,
-        search: search.ref(),
-      },
-    });
-  }, [actions, search]);
-
   return <SidebarItem
-    onClick={navigate}
+    targetUIState={
+      {
+        page: {
+          type: PageType.SavedSearch,
+          search: search.ref(),
+        },
+      }
+    }
     selected={refIs(search.id, selectedItem)}
     label={search.name}
     icon={<SavedSearchIcon/>}
@@ -243,19 +280,8 @@ const CatalogItem = ReactMemo(function CatalogItem({
   catalog,
   selectedItem,
 }: CatalogItemProps): ReactResult {
-  let actions = useActions();
-
   let searches = nameSorted(catalog.searches);
   let albums = nameSorted(catalog.rootAlbums);
-
-  let navigate = useCallback(() => {
-    actions.pushUIState({
-      page: {
-        type: PageType.Catalog,
-        catalog: catalog.ref(),
-      },
-    });
-  }, [actions, catalog]);
 
   let children: React.ReactNode = null;
   if (searches.length && albums.length) {
@@ -286,7 +312,14 @@ const CatalogItem = ReactMemo(function CatalogItem({
   }
 
   return <SidebarItem
-    onClick={navigate}
+    targetUIState={
+      {
+        page: {
+          type: PageType.Catalog,
+          catalog: catalog.ref(),
+        },
+      }
+    }
     label={catalog.name}
     icon={<CatalogIcon/>}
     selected={refIs(catalog.id, selectedItem)}

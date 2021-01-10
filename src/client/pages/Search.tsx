@@ -10,6 +10,7 @@ import { DialogType } from "../dialogs/types";
 import SearchEditIcon from "../icons/SearchEditIcon";
 import SearchSaveIcon from "../icons/SearchSaveIcon";
 import { useActions } from "../store/actions";
+import type { UIState } from "../store/types";
 import type { SearchMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import { goBack } from "../utils/navigation";
@@ -39,27 +40,17 @@ export default function SearchPage({
 
   let media = useMediaLookup(lookup);
 
-  let onMediaClick = useCallback((media: MediaState): void => {
-    if (selectedMedia) {
-      actions.replaceUIState({
-        page: {
-          type: PageType.Search,
-          query,
-          catalog,
-          selectedMedia: media.id,
-        },
-      });
-    } else {
-      actions.pushUIState({
-        page: {
-          type: PageType.Search,
-          query,
-          catalog,
-          selectedMedia: media.id,
-        },
-      });
-    }
-  }, [actions, query, selectedMedia, catalog]);
+  let getMediaUIState = useCallback((media: MediaState): Draft<UIState> => {
+    return {
+      page: {
+        type: PageType.Search,
+        // @ts-ignore
+        query,
+        catalog,
+        selectedMedia: media.id,
+      },
+    };
+  }, [query, catalog]);
 
   let onCloseMedia = useCallback((): void => {
     goBack({
@@ -113,7 +104,7 @@ export default function SearchPage({
     media={media}
     galleryTitle={l10n.getString("search-page-title")}
     selectedMedia={selectedMedia}
-    onMediaClick={onMediaClick}
+    getMediaUIState={getMediaUIState}
     onCloseMedia={onCloseMedia}
     pageOptions={pageOptions}
   />;

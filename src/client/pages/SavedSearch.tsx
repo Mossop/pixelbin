@@ -1,4 +1,5 @@
 import { useLocalization } from "@fluent/react";
+import type { Draft } from "immer";
 import { useCallback, useMemo } from "react";
 
 import type { Reference } from "../api/highlevel";
@@ -9,6 +10,7 @@ import { DialogType } from "../dialogs/types";
 import SavedSearchDeleteIcon from "../icons/SavedSearchDeleteIcon";
 import SavedSearchEditIcon from "../icons/SavedSearchEditIcon";
 import { useActions } from "../store/actions";
+import type { UIState } from "../store/types";
 import type { SavedSearchMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import { goBack } from "../utils/navigation";
@@ -52,25 +54,15 @@ export default function SavedSearchPage({
     [actions, search],
   );
 
-  let onMediaClick = useCallback((media: MediaState): void => {
-    if (selectedMedia) {
-      actions.replaceUIState({
-        page: {
-          type: PageType.SavedSearch,
-          search,
-          selectedMedia: media.id,
-        },
-      });
-    } else {
-      actions.pushUIState({
-        page: {
-          type: PageType.SavedSearch,
-          search,
-          selectedMedia: media.id,
-        },
-      });
-    }
-  }, [actions, selectedMedia, search]);
+  let getMediaUIState = useCallback((media: MediaState): Draft<UIState> => {
+    return {
+      page: {
+        type: PageType.SavedSearch,
+        search,
+        selectedMedia: media.id,
+      },
+    };
+  }, [search]);
 
   let onCloseMedia = useCallback((): void => {
     goBack({
@@ -98,7 +90,7 @@ export default function SavedSearchPage({
     galleryTitle={savedSearch.name}
     selectedItem={search}
     selectedMedia={selectedMedia}
-    onMediaClick={onMediaClick}
+    getMediaUIState={getMediaUIState}
     onCloseMedia={onCloseMedia}
     pageOptions={pageOptions}
   />;

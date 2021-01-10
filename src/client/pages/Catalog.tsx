@@ -13,6 +13,7 @@ import AlbumAddIcon from "../icons/AlbumAddIcon";
 import CatalogEditIcon from "../icons/CatalogEditIcon";
 import SearchIcon from "../icons/SearchIcon";
 import { useActions } from "../store/actions";
+import type { UIState } from "../store/types";
 import type { CatalogMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import { goBack } from "../utils/navigation";
@@ -48,25 +49,15 @@ export default function CatalogPage({
 
   let media = useMediaLookup(lookup);
 
-  let onMediaClick = useCallback((media: MediaState): void => {
-    if (selectedMedia) {
-      actions.replaceUIState({
-        page: {
-          type: PageType.Catalog,
-          catalog: catalogRef,
-          selectedMedia: media.id,
-        },
-      });
-    } else {
-      actions.pushUIState({
-        page: {
-          type: PageType.Catalog,
-          catalog: catalogRef,
-          selectedMedia: media.id,
-        },
-      });
-    }
-  }, [actions, selectedMedia, catalogRef]);
+  let getMediaUIState = useCallback((media: MediaState): Draft<UIState> => {
+    return {
+      page: {
+        type: PageType.Catalog,
+        catalog: catalogRef,
+        selectedMedia: media.id,
+      },
+    };
+  }, [catalogRef]);
 
   let onCloseMedia = useCallback(() => {
     goBack({
@@ -122,7 +113,7 @@ export default function CatalogPage({
     selectedItem={catalogRef}
     selectedMedia={selectedMedia}
     media={media}
-    onMediaClick={onMediaClick}
+    getMediaUIState={getMediaUIState}
     onCloseMedia={onCloseMedia}
     pageOptions={pageOptions}
   />;

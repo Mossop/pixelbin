@@ -14,6 +14,7 @@ import AlbumDeleteIcon from "../icons/AlbumDeleteIcon";
 import AlbumEditIcon from "../icons/AlbumEditIcon";
 import SearchIcon from "../icons/SearchIcon";
 import { useActions } from "../store/actions";
+import type { UIState } from "../store/types";
 import type { AlbumMediaLookup } from "../utils/medialookup";
 import { useMediaLookup, MediaLookupType } from "../utils/medialookup";
 import { goBack } from "../utils/navigation";
@@ -66,25 +67,15 @@ export default function AlbumPage({
 
   let media = useMediaLookup(lookup);
 
-  let onMediaClick = useCallback((media: MediaState): void => {
-    if (selectedMedia) {
-      actions.replaceUIState({
-        page: {
-          type: PageType.Album,
-          album: albumRef,
-          selectedMedia: media.id,
-        },
-      });
-    } else {
-      actions.pushUIState({
-        page: {
-          type: PageType.Album,
-          album: albumRef,
-          selectedMedia: media.id,
-        },
-      });
-    }
-  }, [actions, selectedMedia, albumRef]);
+  let getMediaUIState = useCallback((media: MediaState): Draft<UIState> => {
+    return {
+      page: {
+        type: PageType.Album,
+        album: albumRef,
+        selectedMedia: media.id,
+      },
+    };
+  }, [albumRef]);
 
   let onCloseMedia = useCallback((): void => {
     goBack({
@@ -146,7 +137,7 @@ export default function AlbumPage({
     galleryTitle={album.name}
     selectedMedia={selectedMedia}
     selectedItem={albumRef}
-    onMediaClick={onMediaClick}
+    getMediaUIState={getMediaUIState}
     onCloseMedia={onCloseMedia}
     pageOptions={pageOptions}
   />;

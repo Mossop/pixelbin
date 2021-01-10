@@ -5,15 +5,18 @@ import { createStyles, makeStyles } from "@material-ui/core/styles";
 import Rating from "@material-ui/lab/Rating/Rating";
 import clsx from "clsx";
 import alpha from "color-alpha";
+import type { Draft } from "immer";
 import React, { useCallback, useState } from "react";
 
 import type { BaseMediaState, MediaFileState } from "../../api/types";
 import { isProcessed } from "../../api/types";
 import PhotoIcon from "../../icons/PhotoIcon";
 import VideoIcon from "../../icons/VideoIcon";
+import type { UIState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
 import { ReactMemo } from "../../utils/types";
 import { IntersectionState, useIntersectionState } from "../IntersectionObserver";
+import UILink from "../Link";
 import Loading from "../Loading";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -122,20 +125,15 @@ const Thumbnail = ReactMemo(function Thumbnail({ mediaFile, size }: ThumbnailPro
 export interface MediaPreviewProps<T extends BaseMediaState> {
   media: T;
   thumbnailSize: number;
-  onClick?: (media: T) => void;
+  targetUIState?: Draft<UIState>;
 }
 
 export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
   media,
   thumbnailSize,
-  onClick,
+  targetUIState,
 }: MediaPreviewProps<T>): ReactResult {
   let classes = useStyles(thumbnailSize);
-  let click = useCallback(() => {
-    if (onClick) {
-      onClick(media);
-    }
-  }, [onClick, media]);
 
   let { state, setElement } = useIntersectionState();
 
@@ -143,9 +141,8 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
     return <div className={classes.unmounted} ref={setElement}/>;
   }
 
-  return <Paper
+  let component = <Paper
     className={classes.preview}
-    onClick={click}
     elevation={3}
     ref={setElement}
   >
@@ -172,4 +169,10 @@ export default ReactMemo(function MediaPreview<T extends BaseMediaState>({
       </div>
     </div>
   </Paper>;
+
+  if (targetUIState) {
+    return <UILink to={targetUIState}>{component}</UILink>;
+  }
+
+  return component;
 });

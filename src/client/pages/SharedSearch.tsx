@@ -1,10 +1,11 @@
 import { useLocalization } from "@fluent/react";
+import type { Draft } from "immer";
 import { useCallback, useMemo } from "react";
 
 import { getSharedSearchResults } from "../api/search";
 import type { SharedMediaWithMetadataState } from "../api/types";
 import MediaListPage from "../components/Media/MediaListPage";
-import { useActions } from "../store/actions";
+import type { UIState } from "../store/types";
 import { usePromise } from "../utils/hooks";
 import { goBack } from "../utils/navigation";
 import type { ReactResult } from "../utils/types";
@@ -20,7 +21,6 @@ export default function SharedSearchPage({
   selectedMedia,
 }: SharedSearchPageProps): ReactResult {
   let { l10n } = useLocalization();
-  let actions = useActions();
   let searchResults = usePromise(useMemo(() => {
     return getSharedSearchResults(search);
   }, [search]));
@@ -32,25 +32,15 @@ export default function SharedSearchPage({
     return searchResults.name;
   }, [l10n, searchResults]);
 
-  let onMediaClick = useCallback((media: SharedMediaWithMetadataState): void => {
-    if (selectedMedia) {
-      actions.replaceUIState({
-        page: {
-          type: PageType.SharedSearch,
-          search,
-          selectedMedia: media.id,
-        },
-      });
-    } else {
-      actions.pushUIState({
-        page: {
-          type: PageType.SharedSearch,
-          search,
-          selectedMedia: media.id,
-        },
-      });
-    }
-  }, [search, selectedMedia, actions]);
+  let getMediaUIState = useCallback((media: SharedMediaWithMetadataState): Draft<UIState> => {
+    return {
+      page: {
+        type: PageType.SharedSearch,
+        search,
+        selectedMedia: media.id,
+      },
+    };
+  }, [search]);
 
   let onCloseMedia = useCallback((): void => {
     goBack({
@@ -63,7 +53,7 @@ export default function SharedSearchPage({
   }, [search]);
 
   return <MediaListPage
-    onMediaClick={onMediaClick}
+    getMediaUIState={getMediaUIState}
     onCloseMedia={onCloseMedia}
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     media={searchResults && searchResults.media}

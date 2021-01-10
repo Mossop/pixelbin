@@ -3,11 +3,12 @@ import Box from "@material-ui/core/Box";
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import clsx from "clsx";
+import type { Draft } from "immer";
 
 import type { Overwrite } from "../../../utils/utility";
 import type { BaseMediaState } from "../../api/types";
 import { useSelector } from "../../store";
-import type { StoreState } from "../../store/types";
+import type { StoreState, UIState } from "../../store/types";
 import type { ReactResult } from "../../utils/types";
 import { ReactMemo } from "../../utils/types";
 import MediaPreview from "./MediaPreview";
@@ -44,7 +45,7 @@ const useStyles = makeStyles((theme: Theme) =>
 export type PreviewGridProps<T extends BaseMediaState> = Overwrite<BoxProps, {
   media: readonly T[];
   width: number | null | undefined;
-  onClick?: (media: T) => void;
+  getMediaUIState?: (media: T) => Draft<UIState>;
 }>;
 
 function thumbnailSizeSelector(state: StoreState): number {
@@ -55,7 +56,7 @@ export default ReactMemo(function PreviewGrid<T extends BaseMediaState>({
   media,
   width,
   className,
-  onClick,
+  getMediaUIState,
   ...boxProps
 }: PreviewGridProps<T>): ReactResult {
   let thumbnailSize = useSelector(thumbnailSizeSelector);
@@ -79,7 +80,7 @@ export default ReactMemo(function PreviewGrid<T extends BaseMediaState>({
           key={media.id}
           media={media}
           thumbnailSize={thumbnailSize}
-          onClick={onClick}
+          targetUIState={getMediaUIState ? getMediaUIState(media) : undefined}
         />;
       })
     }

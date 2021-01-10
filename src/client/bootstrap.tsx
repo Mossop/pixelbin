@@ -23,6 +23,11 @@ const themeOverrides = (theme: Theme): Theme => createMuiTheme({
           fontSize: "inherit",
           padding: 0,
           margin: 0,
+          color: "inherit",
+          cursor: "inherit",
+        },
+        "body": {
+          cursor: "default",
         },
         "#title": {
           display: "none",

@@ -1,9 +1,11 @@
 import type { Theme } from "@material-ui/core/styles";
 import { createStyles, makeStyles } from "@material-ui/core/styles";
 import alpha from "color-alpha";
+import type { Draft } from "immer";
 import { useState } from "react";
 
 import type { BaseMediaState } from "../../api/types";
+import type { UIState } from "../../store/types";
 import type { MediaGroup } from "../../utils/sort";
 import type { ReactResult } from "../../utils/types";
 import { ReactMemo } from "../../utils/types";
@@ -46,13 +48,13 @@ const useStyles = makeStyles((theme: Theme) =>
 export interface MediaGalleryProps<T extends BaseMediaState> {
   groups: readonly MediaGroup<T>[];
   width: number | undefined;
-  onClick?: (media: T) => void;
+  getMediaUIState?: (media: T) => Draft<UIState>;
 }
 
 export default ReactMemo(function MediaGallery<T extends BaseMediaState>({
   groups,
   width,
-  onClick,
+  getMediaUIState,
 }: MediaGalleryProps<T>): ReactResult {
   let [element, setElement] = useState<HTMLElement | null>(null);
   let classes = useStyles();
@@ -67,7 +69,7 @@ export default ReactMemo(function MediaGallery<T extends BaseMediaState>({
           <PreviewGrid
             width={width}
             media={group.media}
-            onClick={onClick}
+            getMediaUIState={getMediaUIState}
             className={classes.groupGrid}
           />
         </section>)
