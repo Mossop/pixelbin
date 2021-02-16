@@ -17,7 +17,7 @@ const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     groupList: {
       flex: 1,
-      overflow: "scroll",
+      overflowY: "scroll",
     },
     groupHeader: () => {
       let gradientStops = [
