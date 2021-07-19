@@ -157,7 +157,7 @@
     "node-fetch": "^2.6.1",
     "pg": "^8.4.2",
     "pino-pretty": "^4.3.0",
-    "redis": "^3.0.2",
+    "redis": "^3.1.1",
     "sharp": "^0.27.0",
     "source-map-support": "^0.5.19",
     "tmp-promise": "^3.0.2",
