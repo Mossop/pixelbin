@@ -142,7 +142,7 @@
     "ffprobe-client": "^1.1.6",
     "formidable": "^1.2.2",
     "handy-redis": "^2.0.2",
-    "immer": "^8.0.1",
+    "immer": "^9.0.6",
     "knex": "^0.21.8",
     "koa": "^2.12.1",
     "koa-body": "^4.2.0",
