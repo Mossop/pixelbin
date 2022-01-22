@@ -153,7 +153,7 @@
     "mime-types": "^2.1.27",
     "mmmagic": "^0.5.3",
     "mp4box": "^0.4.1",
-    "nanoid": "^3.1.16",
+    "nanoid": "^3.1.31",
     "node-fetch": "^2.6.1",
     "pg": "^8.4.2",
     "pino-pretty": "^4.3.0",
