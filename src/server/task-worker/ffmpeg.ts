@@ -264,7 +264,6 @@ export async function extractFrame(video: string, target: string): Promise<void>
     "-i", video,
     "-frames:v", "1",
     "-q:v", "3",
-    "-f", "singlejpeg",
     "-y",
     target,
   ]);
