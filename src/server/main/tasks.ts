@@ -41,8 +41,8 @@ export class TaskManager extends Service {
     this.config = {
       ...config,
       minWorkers: config.minWorkers ?? 0,
-      maxWorkers: config.maxTasksPerWorker ?? 2,
-      maxTasksPerWorker: config.maxTasksPerWorker ?? 2,
+      maxWorkers: config.maxTasksPerWorker ?? 4,
+      maxTasksPerWorker: config.maxTasksPerWorker ?? 3,
     };
 
     let module = path.resolve(path.join(path.dirname(__dirname), "task-worker"));

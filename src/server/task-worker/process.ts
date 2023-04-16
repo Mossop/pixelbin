@@ -302,7 +302,7 @@ class MediaProcessor {
   public async buildImageSource(): Promise<void> {
     let baseImage = this.source;
     if (this.mediaFile.mimetype.startsWith("video/")) {
-      baseImage = path.join(this.dir.path, "extracted");
+      baseImage = path.join(this.dir.path, "extracted.jpg");
       await extractFrame(this.source, baseImage);
     }
 
