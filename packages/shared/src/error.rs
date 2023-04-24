@@ -27,6 +27,8 @@ pub enum Error {
         #[from]
         source: io::Error,
     },
+    #[error("S3 Error: {message}")]
+    S3Error { message: String },
     #[error("Unknown error")]
     Unknown,
 }

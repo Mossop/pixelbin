@@ -5,6 +5,7 @@ use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
 use pixelbin_shared::{load_config, Result};
 use pixelbin_store::Store;
+use pixelbin_tasks::{verify_local_storage, verify_online_storage};
 
 #[derive(Args)]
 struct Stats;
@@ -26,11 +27,35 @@ impl Runnable for Stats {
     }
 }
 
+#[derive(Args)]
+struct VerifyLocal;
+
+#[async_trait]
+impl Runnable for VerifyLocal {
+    async fn run(self, store: Store) -> Result {
+        verify_local_storage(store).await
+    }
+}
+
+#[derive(Args)]
+struct VerifyOnline;
+
+#[async_trait]
+impl Runnable for VerifyOnline {
+    async fn run(self, store: Store) -> Result {
+        verify_online_storage(store).await
+    }
+}
+
 #[enum_dispatch]
 #[derive(Subcommand)]
 enum Command {
     /// List some basic stats about objects in the database.
     Stats,
+    /// Verifies that the expected locally stored files are present.
+    VerifyLocal,
+    /// Verifies that the expected online stored files are present.
+    VerifyOnline,
 }
 
 #[async_trait]
@@ -51,7 +76,7 @@ struct CliArgs {
 
 async fn inner_main(args: CliArgs) -> Result {
     let config = load_config(args.config.as_deref())?;
-    let store = Store::new(&config.database_url).await?;
+    let store = Store::new(config).await?;
 
     args.command.run(store).await
 }

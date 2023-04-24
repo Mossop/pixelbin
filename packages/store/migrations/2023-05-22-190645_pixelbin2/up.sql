@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION refreshusercatalogs() RETURNS trigger
+CREATE OR REPLACE FUNCTION refresh_user_catalogs() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
           BEGIN
@@ -36,19 +36,24 @@ CREATE TABLE IF NOT EXISTS "album" (
     catalog character varying(30) NOT NULL
 );
 
+ALTER TABLE IF EXISTS "AlternateFile" RENAME COLUMN "fileName" TO "file_name";
+ALTER TABLE IF EXISTS "AlternateFile" RENAME COLUMN "fileSize" TO "file_size";
+ALTER TABLE IF EXISTS "AlternateFile" RENAME COLUMN "frameRate" TO "frame_rate";
+ALTER TABLE IF EXISTS "AlternateFile" RENAME COLUMN "bitRate" TO "bit_rate";
+ALTER TABLE IF EXISTS "AlternateFile" RENAME COLUMN "mediaFile" TO "media_file";
 ALTER TABLE IF EXISTS "AlternateFile" RENAME TO "alternate_file";
 CREATE TABLE IF NOT EXISTS "alternate_file" (
     id character varying(30) NOT NULL,
     type character varying(20) NOT NULL,
-    "fileName" text NOT NULL,
-    "fileSize" integer NOT NULL,
+    file_name text NOT NULL,
+    file_size integer NOT NULL,
     mimetype text NOT NULL,
     width integer NOT NULL,
     height integer NOT NULL,
     duration real,
-    "frameRate" real,
-    "bitRate" real,
-    "mediaFile" character varying(30) NOT NULL,
+    frame_rate real,
+    bit_rate real,
+    media_file character varying(30) NOT NULL,
     local boolean NOT NULL
 );
 
@@ -59,19 +64,27 @@ CREATE TABLE IF NOT EXISTS "catalog" (
     storage character varying(30) NOT NULL
 );
 
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "processVersion" TO "process_version";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "fileName" TO "file_name";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "fileSize" TO "file_size";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "frameRate" TO "frame_rate";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "bitRate" TO "bit_rate";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "shutterSpeed" TO "shutter_speed";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "takenZone" TO "taken_zone";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "focalLength" TO "focal_length";
 ALTER TABLE IF EXISTS "MediaFile" RENAME TO "media_file";
 CREATE TABLE IF NOT EXISTS "media_file" (
     id character varying(30) NOT NULL,
     uploaded timestamp with time zone NOT NULL,
-    "processVersion" integer NOT NULL,
-    "fileName" text NOT NULL,
-    "fileSize" integer NOT NULL,
+    process_version integer NOT NULL,
+    file_name text NOT NULL,
+    file_size integer NOT NULL,
     mimetype text NOT NULL,
     width integer NOT NULL,
     height integer NOT NULL,
     duration real,
-    "frameRate" real,
-    "bitRate" real,
+    frame_rate real,
+    bit_rate real,
     filename text,
     title text,
     description text,
@@ -85,8 +98,8 @@ CREATE TABLE IF NOT EXISTS "media_file" (
     model text,
     lens text,
     photographer text,
-    "shutterSpeed" text,
-    "takenZone" text,
+    shutter_speed text,
+    taken_zone text,
     orientation integer,
     iso integer,
     rating integer,
@@ -94,13 +107,17 @@ CREATE TABLE IF NOT EXISTS "media_file" (
     latitude real,
     altitude real,
     aperture real,
-    "focalLength" real,
+    focal_length real,
     taken timestamp without time zone,
     media character varying(30) NOT NULL
 );
 
-ALTER TABLE IF EXISTS "MediaInfo" RENAME TO "media_info";
-CREATE TABLE IF NOT EXISTS "media_info" (
+ALTER TABLE IF EXISTS "MediaInfo" RENAME COLUMN "shutterSpeed" TO "shutter_speed";
+ALTER TABLE IF EXISTS "MediaInfo" RENAME COLUMN "takenZone" TO "taken_zone";
+ALTER TABLE IF EXISTS "MediaInfo" RENAME COLUMN "focalLength" TO "focal_length";
+ALTER TABLE IF EXISTS "MediaInfo" RENAME COLUMN "mediaFile" TO "media_file";
+ALTER TABLE IF EXISTS "MediaInfo" RENAME TO "media_item";
+CREATE TABLE IF NOT EXISTS "media_item" (
     id character varying(30) NOT NULL,
     deleted boolean NOT NULL,
     created timestamp with time zone NOT NULL,
@@ -118,8 +135,8 @@ CREATE TABLE IF NOT EXISTS "media_info" (
     model text,
     lens text,
     photographer text,
-    "shutterSpeed" text,
-    "takenZone" text,
+    shutter_speed text,
+    taken_zone text,
     orientation integer,
     iso integer,
     rating integer,
@@ -127,10 +144,10 @@ CREATE TABLE IF NOT EXISTS "media_info" (
     latitude real,
     altitude real,
     aperture real,
-    "focalLength" real,
+    focal_length real,
     taken timestamp without time zone,
     catalog character varying(30) NOT NULL,
-    "mediaFile" character varying(30)
+    media_file character varying(30)
 );
 
 ALTER TABLE IF EXISTS "Media_Album" RENAME TO "media_album";
@@ -178,17 +195,20 @@ CREATE TABLE IF NOT EXISTS "shared_catalog" (
     catalog character varying(30) NOT NULL
 );
 
+ALTER TABLE IF EXISTS "Storage" RENAME COLUMN "accessKeyId" TO "access_key_id";
+ALTER TABLE IF EXISTS "Storage" RENAME COLUMN "secretAccessKey" TO "secret_access_key";
+ALTER TABLE IF EXISTS "Storage" RENAME COLUMN "publicUrl" TO "public_url";
 ALTER TABLE IF EXISTS "Storage" RENAME TO "storage";
 CREATE TABLE IF NOT EXISTS "storage" (
     id character varying(30) NOT NULL,
     name text NOT NULL,
-    "accessKeyId" text NOT NULL,
-    "secretAccessKey" text NOT NULL,
+    access_key_id text NOT NULL,
+    secret_access_key text NOT NULL,
     bucket text NOT NULL,
     region text NOT NULL,
     path text,
     endpoint text,
-    "publicUrl" text,
+    public_url text,
     owner character varying(30) NOT NULL
 );
 
@@ -200,6 +220,7 @@ CREATE TABLE IF NOT EXISTS "tag" (
     catalog character varying(30) NOT NULL
 );
 
+ALTER TABLE IF EXISTS "User" RENAME COLUMN "lastLogin" TO "last_login";
 ALTER TABLE IF EXISTS "User" RENAME TO "user";
 CREATE TABLE IF NOT EXISTS "user" (
     email text NOT NULL,
@@ -207,7 +228,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     fullname text,
     administrator boolean NOT NULL,
     created timestamp with time zone NOT NULL,
-    "lastLogin" timestamp with time zone,
+    last_login timestamp with time zone,
     verified boolean
 );
 
@@ -234,11 +255,11 @@ ALTER TABLE "media_album" DROP CONSTRAINT IF EXISTS "foreign_Album";
 ALTER TABLE "person" DROP CONSTRAINT IF EXISTS "foreign_Catalog";
 ALTER TABLE "tag" DROP CONSTRAINT IF EXISTS "foreign_Catalog";
 ALTER TABLE "album" DROP CONSTRAINT IF EXISTS "foreign_Catalog";
-ALTER TABLE "media_info" DROP CONSTRAINT IF EXISTS "foreign_Catalog";
+ALTER TABLE "media_item" DROP CONSTRAINT IF EXISTS "foreign_Catalog";
 ALTER TABLE "saved_search" DROP CONSTRAINT IF EXISTS "foreign_Catalog";
 ALTER TABLE "shared_catalog" DROP CONSTRAINT IF EXISTS "foreign_Catalog";
 ALTER TABLE "alternate_file" DROP CONSTRAINT IF EXISTS "foreign_MediaFile";
-ALTER TABLE "media_info" DROP CONSTRAINT IF EXISTS "foreign_MediaFile";
+ALTER TABLE "media_item" DROP CONSTRAINT IF EXISTS "foreign_MediaFile";
 ALTER TABLE "media_file" DROP CONSTRAINT IF EXISTS "foreign_MediaInfo";
 ALTER TABLE "media_album" DROP CONSTRAINT IF EXISTS "foreign_MediaInfo";
 ALTER TABLE "media_tag" DROP CONSTRAINT IF EXISTS "foreign_MediaInfo";
@@ -272,10 +293,10 @@ ALTER TABLE "media_file"
 ALTER TABLE "media_file"
     ADD CONSTRAINT "media_file_pkey" PRIMARY KEY (id);
 
-ALTER TABLE "media_info"
+ALTER TABLE "media_item"
     DROP CONSTRAINT IF EXISTS "MediaInfo_pkey";
-ALTER TABLE "media_info"
-    ADD CONSTRAINT "media_info_pkey" PRIMARY KEY (id);
+ALTER TABLE "media_item"
+    ADD CONSTRAINT "media_item_pkey" PRIMARY KEY (id);
 
 ALTER TABLE "person"
     DROP CONSTRAINT IF EXISTS "Person_pkey";
@@ -331,7 +352,7 @@ ALTER TABLE "catalog"
     DROP CONSTRAINT IF EXISTS "unique_Catalog_id";
 ALTER TABLE "media_file"
     DROP CONSTRAINT IF EXISTS "unique_MediaFile_id";
-ALTER TABLE "media_info"
+ALTER TABLE "media_item"
     DROP CONSTRAINT IF EXISTS "unique_MediaInfo_id";
 ALTER TABLE "person"
     DROP CONSTRAINT IF EXISTS "unique_Person_id";
@@ -361,26 +382,26 @@ ALTER TABLE "tag"
 ALTER TABLE "tag"
     ADD CONSTRAINT "tag_unique_catalog_id" UNIQUE (catalog, id);
 
-ALTER TABLE "media_info"
+ALTER TABLE "media_item"
     DROP CONSTRAINT IF EXISTS "unique_MediaInfo_catalog_id";
-ALTER TABLE "media_info"
-    ADD CONSTRAINT "media_info_unique_catalog_id" UNIQUE (catalog, id);
+ALTER TABLE "media_item"
+    ADD CONSTRAINT "media_item_unique_catalog_id" UNIQUE (catalog, id);
 
 -- Sanity
 
-ALTER TABLE "media_info"
+ALTER TABLE "media_item"
     DROP CONSTRAINT IF EXISTS "unique_MediaInfo_mediaFile";
-ALTER TABLE "media_info"
-    ADD CONSTRAINT "media_info_unique_mediaFile" UNIQUE ("mediaFile");
+ALTER TABLE "media_item"
+    ADD CONSTRAINT "media_item_unique_media_file" UNIQUE ("media_file");
 
-ALTER INDEX IF EXISTS "idx_AlternateFile_mediaFile_type" RENAME TO "alternate_file_idx_mediaFile_type";
-CREATE INDEX IF NOT EXISTS "alternate_file_idx_mediaFile_type" ON "alternate_file" USING btree ("mediaFile", type);
+ALTER INDEX IF EXISTS "idx_AlternateFile_mediaFile_type" RENAME TO "alternate_file_idx_media_file_type";
+CREATE INDEX IF NOT EXISTS "alternate_file_idx_media_file_type" ON "alternate_file" USING btree ("media_file", type);
 
 ALTER INDEX IF EXISTS "idx_MediaFile_media" RENAME TO "media_file_idx_media";
 CREATE INDEX IF NOT EXISTS "media_file_idx_media" ON "media_file" USING btree (media);
 
-ALTER INDEX IF EXISTS "idx_MediaInfo_catalog" RENAME TO "media_info_idx_catalog";
-CREATE INDEX IF NOT EXISTS "media_info_idx_catalog" ON "media_info" USING btree (catalog);
+ALTER INDEX IF EXISTS "idx_MediaInfo_catalog" RENAME TO "media_item_idx_catalog";
+CREATE INDEX IF NOT EXISTS "media_item_idx_catalog" ON "media_item" USING btree (catalog);
 
 ALTER INDEX IF EXISTS "idx_user_catalog_catalog" RENAME TO "user_catalog_idx_catalog";
 CREATE INDEX IF NOT EXISTS "user_catalog_idx_catalog" ON "user_catalog" USING btree (catalog);
@@ -397,9 +418,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS "person_unique_catalog_name" ON "person" USING
 ALTER INDEX IF EXISTS "unique_Tag_catalog_parent_name" RENAME TO "tag_unique_catalog_parent_name";
 CREATE UNIQUE INDEX IF NOT EXISTS "tag_unique_catalog_parent_name" ON "tag" USING btree (COALESCE(parent, catalog), lower(name));
 
-CREATE OR REPLACE TRIGGER "refreshuser_catalogsFromCatalogs" AFTER INSERT OR DELETE OR UPDATE OR TRUNCATE ON "catalog" FOR EACH STATEMENT EXECUTE FUNCTION refreshusercatalogs();
-CREATE OR REPLACE TRIGGER "refreshuser_catalogsFromSharedCatalogs" AFTER INSERT OR DELETE OR UPDATE OR TRUNCATE ON "shared_catalog" FOR EACH STATEMENT EXECUTE FUNCTION refreshusercatalogs();
+CREATE OR REPLACE TRIGGER "refresh_user_catalogs_from_catalogs" AFTER INSERT OR DELETE OR UPDATE OR TRUNCATE ON "catalog" FOR EACH STATEMENT EXECUTE FUNCTION refresh_user_catalogs();
+CREATE OR REPLACE TRIGGER "refresh_user_catalogs_from_shared_catalogs" AFTER INSERT OR DELETE OR UPDATE OR TRUNCATE ON "shared_catalog" FOR EACH STATEMENT EXECUTE FUNCTION refresh_user_catalogs();
 
+DROP TRIGGER IF EXISTS "refreshUserCatalogsFromCatalogs" ON "catalog";
+DROP TRIGGER IF EXISTS "refreshUserCatalogsFromSharedCatalogs" ON "shared_catalog";
+
+DROP FUNCTION IF EXISTS refreshusercatalogs();
 
 -- Foreign keys
 
@@ -418,7 +443,7 @@ ALTER TABLE "tag"
 ALTER TABLE "album"
     ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-ALTER TABLE "media_info"
+ALTER TABLE "media_item"
     ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "saved_search"
@@ -428,22 +453,22 @@ ALTER TABLE "shared_catalog"
     ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "alternate_file"
-    ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("mediaFile") REFERENCES "media_file"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("media_file") REFERENCES "media_file"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
-ALTER TABLE "media_info"
-    ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("mediaFile") REFERENCES "media_file"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+ALTER TABLE "media_item"
+    ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("media_file") REFERENCES "media_file"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE "media_file"
-    ADD CONSTRAINT "foreign_media_info" FOREIGN KEY (media) REFERENCES "media_info"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (media) REFERENCES "media_item"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "media_album"
-    ADD CONSTRAINT "foreign_media_info" FOREIGN KEY (catalog, media) REFERENCES "media_info"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (catalog, media) REFERENCES "media_item"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "media_tag"
-    ADD CONSTRAINT "foreign_media_info" FOREIGN KEY (catalog, media) REFERENCES "media_info"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (catalog, media) REFERENCES "media_item"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "media_person"
-    ADD CONSTRAINT "foreign_media_info" FOREIGN KEY (catalog, media) REFERENCES "media_info"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (catalog, media) REFERENCES "media_item"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "media_person"
     ADD CONSTRAINT "foreign_person" FOREIGN KEY (catalog, person) REFERENCES "person"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;

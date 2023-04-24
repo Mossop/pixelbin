@@ -28,19 +28,19 @@
   * A tag.
   * Belongs to a `catalog` via the `catalog` field.
   * Can belong to a parent `tag` via the `parent` field.
-* `media_info`
+* `media_item`
   * A media item.
   * Belongs to a `catalog` via the `catalog` field.
   * References the current `media_file` via the `mediaFile` field.
 * `media_file`
   * A particular uploaded piece of media.
-  * Belongs to a `media_info` via the `media` field.
+  * Belongs to a `media_item` via the `media` field.
 * `alternate_file`
   * An alternative representation of an uploaded media file.
   * Belongs to a `media_file` via the `mediaFile` field.
 * `media_album`
-  * Links `media_info` to an `album` via the `media` and `album` fields.
+  * Links `media_item` to an `album` via the `media` and `album` fields.
 * `media_person`
-  * Links `media_info` to a `person` via the `media` and `person` fields.
+  * Links `media_item` to a `person` via the `media` and `person` fields.
 * `media_tag`
-  * Links `media_info` to a `tag` via the `media` and `tag` fields.
+  * Links `media_item` to a `tag` via the `media` and `tag` fields.
