@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+
+    environment:
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - 5432:5432
+
+    volumes:
+      - "./data/postgres:/var/lib/postgresql/data"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin@pixelbin.org
+      PGADMIN_DEFAULT_PASSWORD: pgadmin
+
+    ports:
+      - 5454:80
+
+    volumes:
+      - "./data/pgadmin:/var/lib/pgadmin"
+      - "./servers.json:/pgadmin4/servers.json"
