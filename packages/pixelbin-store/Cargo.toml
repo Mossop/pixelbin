@@ -1,8 +1,0 @@
-[package]
-name = "pixelbin-store"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-diesel = { version = "2.0.4", features = ["64-column-tables"] }
-diesel-async = { version = "0.2.2", features = ["postgres"] }
