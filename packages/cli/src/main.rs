@@ -1,13 +1,10 @@
-mod error;
-
-use std::{env, io};
+use std::{env, io, path::PathBuf};
 
 use async_trait::async_trait;
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
+use pixelbin_shared::{load_config, Result};
 use pixelbin_store::Store;
-
-use error::Result;
 
 #[derive(Args)]
 struct Stats;
@@ -32,6 +29,7 @@ impl Runnable for Stats {
 #[enum_dispatch]
 #[derive(Subcommand)]
 enum Command {
+    /// List some basic stats about objects in the database.
     Stats,
 }
 
@@ -44,12 +42,16 @@ pub trait Runnable {
 #[derive(Parser)]
 #[clap(author, version)]
 struct CliArgs {
+    #[clap(short, long)]
+    config: Option<PathBuf>,
+
     #[clap(subcommand)]
     command: Command,
 }
 
 async fn inner_main(args: CliArgs) -> Result {
-    let store = Store::new("postgres://pixelbin:pixelbin@localhost/pixelbin-prod").await?;
+    let config = load_config(args.config.as_deref())?;
+    let store = Store::new(&config.database_url).await?;
 
     args.command.run(store).await
 }
@@ -59,7 +61,7 @@ async fn main() {
     let args = CliArgs::parse();
 
     let log_filter =
-        env::var("RUST_LOG").unwrap_or_else(|_| "pixelbin_store=trace,warn".to_string());
+        env::var("RUST_LOG").unwrap_or_else(|_| "pixelbin_cli=trace,pixelbin_shared=trace,pixelbin_tasks=trace,pixelbin_store=trace,warn".to_string());
 
     let subscriber = tracing_subscriber::fmt()
         .with_env_filter(log_filter)

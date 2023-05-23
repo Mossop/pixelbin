@@ -4,11 +4,10 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 mod db;
-mod error;
 mod schema;
 
 use db::{connect, DbPool};
-pub use error::{Error, Result};
+use pixelbin_shared::Result;
 use schema::*;
 
 #[derive(Clone)]

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+pixelbin-shared = { path = "../shared" }
 pixelbin-store = { path = "../store" }
 clap = { version = "4.3.0", features = ["derive", "env"] }
 tokio = { version = "1.28.1", features = ["full"] }

@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "packages/shared",
+  "packages/store",
+  "packages/tasks",
   "packages/cli",
-  "packages/store"
 ]
