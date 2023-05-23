@@ -24,6 +24,8 @@ pub struct StoreStats {
     pub tags: u32,
     pub people: u32,
     pub media: u32,
+    pub files: u32,
+    pub alternate_files: u32,
 }
 
 impl Store {
@@ -36,15 +38,14 @@ impl Store {
     pub async fn stats(&self) -> Result<StoreStats> {
         let mut conn = self.pool.get().await?;
 
-        let users = user::table.count().get_result::<i64>(&mut conn).await?;
-        let catalogs = catalog::table.count().get_result::<i64>(&mut conn).await?;
-        let albums = album::table.count().get_result::<i64>(&mut conn).await?;
-        let tags = tag::table.count().get_result::<i64>(&mut conn).await?;
-        let people = person::table.count().get_result::<i64>(&mut conn).await?;
-        let media = media_info::table
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await?;
+        let users: i64 = user::table.count().get_result(&mut conn).await?;
+        let catalogs: i64 = catalog::table.count().get_result(&mut conn).await?;
+        let albums: i64 = album::table.count().get_result(&mut conn).await?;
+        let tags: i64 = tag::table.count().get_result(&mut conn).await?;
+        let people: i64 = person::table.count().get_result(&mut conn).await?;
+        let media: i64 = media_info::table.count().get_result(&mut conn).await?;
+        let files: i64 = media_file::table.count().get_result(&mut conn).await?;
+        let alternate_files: i64 = alternate_file::table.count().get_result(&mut conn).await?;
 
         Ok(StoreStats {
             users: users as u32,
@@ -53,6 +54,8 @@ impl Store {
             tags: tags as u32,
             people: people as u32,
             media: media as u32,
+            files: files as u32,
+            alternate_files: alternate_files as u32,
         })
     }
 }
