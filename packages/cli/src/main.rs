@@ -3,6 +3,7 @@ use std::{env, io, path::PathBuf};
 use async_trait::async_trait;
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
+use pixelbin_server::serve;
 use pixelbin_shared::{load_config, Result};
 use pixelbin_store::Store;
 use pixelbin_tasks::{verify_local_storage, verify_online_storage};
@@ -10,7 +11,7 @@ use pixelbin_tasks::{verify_local_storage, verify_online_storage};
 #[derive(Args)]
 struct Stats;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl Runnable for Stats {
     async fn run(self, store: Store) -> Result {
         let stats = store.stats().await?;
@@ -30,7 +31,7 @@ impl Runnable for Stats {
 #[derive(Args)]
 struct VerifyLocal;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl Runnable for VerifyLocal {
     async fn run(self, store: Store) -> Result {
         verify_local_storage(store).await
@@ -40,16 +41,28 @@ impl Runnable for VerifyLocal {
 #[derive(Args)]
 struct VerifyOnline;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl Runnable for VerifyOnline {
     async fn run(self, store: Store) -> Result {
         verify_online_storage(store).await
     }
 }
 
+#[derive(Args)]
+struct Serve;
+
+#[async_trait(?Send)]
+impl Runnable for Serve {
+    async fn run(self, store: Store) -> Result {
+        serve(store).await
+    }
+}
+
 #[enum_dispatch]
 #[derive(Subcommand)]
 enum Command {
+    /// Runs the server.
+    Serve,
     /// List some basic stats about objects in the database.
     Stats,
     /// Verifies that the expected locally stored files are present.
@@ -58,7 +71,7 @@ enum Command {
     VerifyOnline,
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 #[enum_dispatch(Command)]
 pub trait Runnable {
     async fn run(self, store: Store) -> Result;

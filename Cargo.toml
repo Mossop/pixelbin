@@ -4,4 +4,5 @@ members = [
   "packages/store",
   "packages/tasks",
   "packages/cli",
+  "packages/server",
 ]

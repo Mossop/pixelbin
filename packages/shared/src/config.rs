@@ -23,6 +23,9 @@ pub struct Config {
 
     /// The database connection url.
     pub database_url: String,
+
+    /// The port to run the webserver on.
+    pub port: Option<u16>,
 }
 
 fn resolve(root: &Path, path: &mut PathBuf) -> Result {

@@ -100,6 +100,10 @@ impl Store {
         })
     }
 
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
     pub async fn online_uri(
         &self,
         storage: &Storage,
