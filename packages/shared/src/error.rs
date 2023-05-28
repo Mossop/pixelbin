@@ -1,6 +1,7 @@
 use std::io;
 
 use diesel_async::pooled_connection::deadpool::{BuildError, PoolError};
+use handlebars::RenderError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -26,6 +27,11 @@ pub enum Error {
     IoError {
         #[from]
         source: io::Error,
+    },
+    #[error("Template Error: {source}")]
+    RenderError {
+        #[from]
+        source: RenderError,
     },
     #[error("S3 Error: {message}")]
     S3Error { message: String },
