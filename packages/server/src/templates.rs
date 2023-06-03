@@ -6,7 +6,7 @@ use rust_embed::RustEmbed;
 use pixelbin_shared::Result;
 
 #[derive(RustEmbed)]
-#[folder = "templates/"]
+#[folder = "../../target/web/templates/"]
 struct TemplateAssets;
 
 const NO_DATA: Option<String> = None;

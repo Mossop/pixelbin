@@ -1,0 +1,50 @@
+{
+  "name": "pixelbin-web",
+  "version": "1.0.0",
+  "description": "Web client for the Pixelbin service",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mossop/pixelbin.git"
+  },
+  "author": "Dave Townsend <dtownsend@oxymoronical.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Mossop/pixelbin/issues"
+  },
+  "homepage": "https://github.com/Mossop/pixelbin#readme",
+  "scripts": {
+    "lint": "eslint .",
+    "build": "webpack"
+  },
+  "dependencies": {
+    "@material/web": "^1.0.0-pre.9",
+    "core-js": "^3.30.2",
+    "lit": "^2.7.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.1",
+    "@babel/plugin-proposal-decorators": "^7.22.3",
+    "@babel/plugin-transform-class-properties": "^7.22.3",
+    "@babel/preset-env": "^7.22.4",
+    "@mossop/config": "^1.2.3",
+    "@types/gulp": "^4.0.11",
+    "@types/node": "^20.2.5",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "@typescript-eslint/parser": "^5.59.8",
+    "babel-loader": "^9.1.2",
+    "eslint": "^8.41.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "^2.27.5",
+    "gulp": "^4.0.2",
+    "html-webpack-plugin": "^5.5.1",
+    "html-webpack-tags-plugin": "^3.0.2",
+    "prettier": "^2.8.8",
+    "sass-embedded": "^1.62.0",
+    "scss-reset": "^1.4.2",
+    "typescript": "^5.1.3",
+    "webpack": "^5.85.0",
+    "webpack-subresource-integrity": "^5.2.0-rc.1"
+  }
+}

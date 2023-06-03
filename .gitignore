@@ -1,3 +1,4 @@
 /target/
 /testing/data/
 .DS_Store
+/node_modules/

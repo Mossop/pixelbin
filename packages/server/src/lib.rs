@@ -11,7 +11,7 @@ use templates::Templates;
 mod templates;
 
 #[derive(RustEmbed)]
-#[folder = "static/"]
+#[folder = "../../target/web/static/"]
 struct StaticAssets;
 
 #[derive(Debug)]

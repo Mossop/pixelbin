@@ -1,0 +1,7 @@
+{
+  "name": "pixelbin",
+  "private": true,
+  "workspaces": [
+    "packages/web"
+  ]
+}

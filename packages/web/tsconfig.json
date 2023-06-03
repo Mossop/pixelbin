@@ -1,0 +1,13 @@
+{
+  "extends": "@mossop/config/web-ts/tsconfig.base.json",
+
+  "compilerOptions": {
+    "allowJs": true,
+  },
+
+  "include": [
+    ".*.js",
+    "*.js",
+    "src/**/*.js",
+  ],
+}
