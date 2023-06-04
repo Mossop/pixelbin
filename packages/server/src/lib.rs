@@ -1,7 +1,15 @@
 #![deny(unreachable_pub)]
 use std::fmt;
 
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder, ResponseError};
+use actix_session::{
+    config::{CookieContentSecurity, PersistentSession, TtlExtensionPolicy},
+    storage::CookieSessionStore,
+    Session, SessionMiddleware,
+};
+use actix_web::{
+    cookie::{time::Duration, Key},
+    get, web, App, HttpResponse, HttpServer, Responder, ResponseError,
+};
 use mime_guess::from_path;
 use pixelbin_shared::{Error, Result};
 use pixelbin_store::Store;
@@ -42,7 +50,7 @@ struct AppState<'a> {
 type HttpResult<T> = std::result::Result<T, InternalError>;
 
 #[get("/")]
-async fn index(state: web::Data<AppState<'_>>) -> HttpResult<impl Responder> {
+async fn index(state: web::Data<AppState<'_>>, session: Session) -> HttpResult<impl Responder> {
     Ok(HttpResponse::Ok()
         .content_type("text/html")
         .body(state.templates.index()?))
@@ -74,6 +82,17 @@ pub async fn serve(store: Store) -> Result {
         App::new()
             .app_data(app_data.clone())
             .wrap(middleware::Logging)
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
+                    .cookie_name("pxlbin".to_string())
+                    .cookie_content_security(CookieContentSecurity::Private)
+                    .session_lifecycle(
+                        PersistentSession::default()
+                            .session_ttl(Duration::days(30))
+                            .session_ttl_extension_policy(TtlExtensionPolicy::OnEveryRequest),
+                    )
+                    .build(),
+            )
             .service(index)
             .service(static_files)
     })
