@@ -8,6 +8,7 @@ use pixelbin_store::Store;
 use rust_embed::RustEmbed;
 use templates::Templates;
 
+mod middleware;
 mod templates;
 
 #[derive(RustEmbed)]
@@ -72,6 +73,7 @@ pub async fn serve(store: Store) -> Result {
     HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
+            .wrap(middleware::Logging)
             .service(index)
             .service(static_files)
     })

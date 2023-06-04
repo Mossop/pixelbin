@@ -99,7 +99,7 @@ async fn main() {
     let args = CliArgs::parse();
 
     let log_filter =
-        env::var("RUST_LOG").unwrap_or_else(|_| "pixelbin_cli=trace,pixelbin_shared=trace,pixelbin_tasks=trace,pixelbin_store=trace,warn".to_string());
+        env::var("RUST_LOG").unwrap_or_else(|_| "pixelbin_cli=trace,pixelbin_shared=trace,pixelbin_tasks=trace,pixelbin_store=trace,pixelbin_server=trace,warn".to_string());
 
     let subscriber = tracing_subscriber::fmt()
         .with_env_filter(log_filter)

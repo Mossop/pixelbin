@@ -1738,6 +1738,7 @@ name = "pixelbin-server"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "futures",
  "handlebars",
  "mime_guess",
  "pixelbin-shared",
