@@ -1,71 +1,38 @@
 #![deny(unreachable_pub)]
-use std::fmt;
+use std::time::Duration;
 
 use actix_session::{
     config::{CookieContentSecurity, PersistentSession, TtlExtensionPolicy},
     storage::CookieSessionStore,
-    Session, SessionMiddleware,
+    SessionMiddleware,
 };
 use actix_web::{
-    cookie::{time::Duration, Key},
-    get, web, App, HttpResponse, HttpServer, Responder, ResponseError,
+    cookie::{time::Duration as CookieDuration, Key},
+    web, App, HttpServer,
 };
-use mime_guess::from_path;
-use pixelbin_shared::{Error, Result};
+use cache::Cache;
+use pixelbin_shared::Result;
 use pixelbin_store::Store;
-use rust_embed::RustEmbed;
 use templates::Templates;
 
+mod cache;
+mod extractor;
+mod handler;
 mod middleware;
 mod templates;
+mod util;
 
-#[derive(RustEmbed)]
-#[folder = "../../target/web/static/"]
-struct StaticAssets;
+const SESSION_LENGTH: u64 = 60 * 60 * 24 * 7;
 
-#[derive(Debug)]
-struct InternalError {
-    inner: Error,
+#[derive(Clone, Default)]
+struct Session {
+    user_id: Option<String>,
 }
-
-impl fmt::Display for InternalError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.inner.fmt(f)
-    }
-}
-
-impl From<Error> for InternalError {
-    fn from(value: Error) -> Self {
-        Self { inner: value }
-    }
-}
-
-impl ResponseError for InternalError {}
 
 struct AppState<'a> {
     store: Store,
+    sessions: Cache<String, Session>,
     templates: Templates<'a>,
-}
-
-type HttpResult<T> = std::result::Result<T, InternalError>;
-
-#[get("/")]
-async fn index(state: web::Data<AppState<'_>>, session: Session) -> HttpResult<impl Responder> {
-    Ok(HttpResponse::Ok()
-        .content_type("text/html")
-        .body(state.templates.index()?))
-}
-
-#[get("/static/{_:.*}")]
-async fn static_files(path: web::Path<String>) -> impl Responder {
-    let local_path = path.as_str();
-
-    match StaticAssets::get(local_path) {
-        Some(content) => HttpResponse::Ok()
-            .content_type(from_path(local_path).first_or_octet_stream().as_ref())
-            .body(content.data.into_owned()),
-        None => HttpResponse::NotFound().body("404 Not Found"),
-    }
 }
 
 pub async fn serve(store: Store) -> Result {
@@ -73,6 +40,7 @@ pub async fn serve(store: Store) -> Result {
 
     let state = AppState {
         store,
+        sessions: Cache::new(Duration::from_secs(SESSION_LENGTH)),
         templates: Templates::new(),
     };
 
@@ -83,18 +51,18 @@ pub async fn serve(store: Store) -> Result {
             .app_data(app_data.clone())
             .wrap(middleware::Logging)
             .wrap(
-                SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
+                SessionMiddleware::builder(CookieSessionStore::default(), Key::generate())
                     .cookie_name("pxlbin".to_string())
                     .cookie_content_security(CookieContentSecurity::Private)
                     .session_lifecycle(
                         PersistentSession::default()
-                            .session_ttl(Duration::days(30))
+                            .session_ttl(CookieDuration::seconds(SESSION_LENGTH as i64))
                             .session_ttl_extension_policy(TtlExtensionPolicy::OnEveryRequest),
                     )
                     .build(),
             )
-            .service(index)
-            .service(static_files)
+            .service(handler::index)
+            .service(handler::static_files)
     })
     .bind(("0.0.0.0", port))?
     .run()
