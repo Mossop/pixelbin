@@ -2,20 +2,25 @@
 //! A basic abstraction around the pixelbin data stores.
 use std::path::PathBuf;
 
+use async_trait::async_trait;
 use aws::AwsClient;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{
+    scoped_futures::{ScopedBoxFuture, ScopedFutureExt},
+    AsyncConnection, RunQueryDsl,
+};
 
 mod aws;
 mod db;
-mod models;
+#[allow(unreachable_pub)]
+mod manual_schema;
+pub mod models;
 #[allow(unreachable_pub)]
 mod schema;
 
 pub use aws::RemotePath;
-use db::{connect, DbPool};
-use models::{AlternateFile, Storage};
-pub use models::{AlternateFileType, MediaFile, Orientation};
+pub use db::DbQueries;
+use db::{connect, DbConnection, DbPool};
 use pixelbin_shared::{Config, Result};
 use schema::*;
 use tokio::fs;
@@ -30,22 +35,10 @@ pub struct Store {
     pool: DbPool,
 }
 
-#[derive(Clone, Debug)]
-pub struct StoreStats {
-    pub users: u32,
-    pub catalogs: u32,
-    pub albums: u32,
-    pub tags: u32,
-    pub people: u32,
-    pub media: u32,
-    pub files: u32,
-    pub alternate_files: u32,
-}
-
 #[derive(Queryable, Clone, Debug)]
 pub struct LocalAlternateFile {
     pub id: String,
-    pub file_type: AlternateFileType,
+    pub file_type: models::AlternateFileType,
     #[diesel(serialize_as = String, deserialize_as = String)]
     pub path: PathBuf,
     pub file_size: i32,
@@ -104,9 +97,29 @@ impl Store {
         &self.config
     }
 
+    pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
+    where
+        R: 'a + Send,
+        F: for<'b> FnOnce(Transaction<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
+    {
+        let mut conn = self.pool.get().await?;
+
+        Ok(conn
+            .transaction(|mut conn| {
+                async move {
+                    cb(Transaction {
+                        connection: &mut conn,
+                    })
+                    .await
+                }
+                .scope_boxed()
+            })
+            .await?)
+    }
+
     pub async fn online_uri(
         &self,
-        storage: &Storage,
+        storage: &models::Storage,
         path: &RemotePath,
         mimetype: &str,
     ) -> Result<String> {
@@ -114,41 +127,10 @@ impl Store {
         client.file_uri(path, mimetype).await
     }
 
-    pub async fn stats(&self) -> Result<StoreStats> {
-        let mut conn = self.pool.get().await?;
-
-        let users: i64 = user::table.count().get_result(&mut conn).await?;
-        let catalogs: i64 = catalog::table.count().get_result(&mut conn).await?;
-        let albums: i64 = album::table.count().get_result(&mut conn).await?;
-        let tags: i64 = tag::table.count().get_result(&mut conn).await?;
-        let people: i64 = person::table.count().get_result(&mut conn).await?;
-        let media: i64 = media_item::table.count().get_result(&mut conn).await?;
-        let files: i64 = media_file::table.count().get_result(&mut conn).await?;
-        let alternate_files: i64 = alternate_file::table.count().get_result(&mut conn).await?;
-
-        Ok(StoreStats {
-            users: users as u32,
-            catalogs: catalogs as u32,
-            albums: albums as u32,
-            tags: tags as u32,
-            people: people as u32,
-            media: media as u32,
-            files: files as u32,
-            alternate_files: alternate_files as u32,
-        })
-    }
-
-    pub async fn list_storage(&self) -> Result<Vec<Storage>> {
-        let mut conn = self.pool.get().await?;
-
-        let stores = storage::table.load::<Storage>(&mut conn).await?;
-        Ok(stores)
-    }
-
     pub async fn list_online_alternate_files(
         &self,
-        storage: &Storage,
-    ) -> Result<Vec<(AlternateFile, MediaFilePath, RemotePath)>> {
+        storage: &models::Storage,
+    ) -> Result<Vec<(models::AlternateFile, MediaFilePath, RemotePath)>> {
         let mut conn = self.pool.get().await?;
 
         let files = alternate_file::table
@@ -162,7 +144,7 @@ impl Store {
                 media_item::id,
                 media_item::catalog,
             ))
-            .load::<(AlternateFile, String, String)>(&mut conn)
+            .load::<(models::AlternateFile, String, String)>(&mut conn)
             .await?;
 
         Ok(files
@@ -177,8 +159,8 @@ impl Store {
 
     pub async fn list_online_media_files(
         &self,
-        storage: &Storage,
-    ) -> Result<Vec<(MediaFile, MediaFilePath, RemotePath)>> {
+        storage: &models::Storage,
+    ) -> Result<Vec<(models::MediaFile, MediaFilePath, RemotePath)>> {
         let mut conn = self.pool.get().await?;
 
         let files = media_file::table
@@ -186,7 +168,7 @@ impl Store {
             .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
             .filter(catalog::storage.eq(&storage.id))
             .select((media_file::all_columns, media_item::catalog))
-            .load::<(MediaFile, String)>(&mut conn)
+            .load::<(models::MediaFile, String)>(&mut conn)
             .await?;
 
         Ok(files
@@ -225,7 +207,7 @@ impl Store {
 
     pub async fn list_local_alternate_files(
         &self,
-    ) -> Result<Vec<(AlternateFile, MediaFilePath, PathBuf)>> {
+    ) -> Result<Vec<(models::AlternateFile, MediaFilePath, PathBuf)>> {
         let mut conn = self.pool.get().await?;
 
         let files = alternate_file::table
@@ -237,7 +219,7 @@ impl Store {
                 media_item::id,
                 media_item::catalog,
             ))
-            .load::<(AlternateFile, String, String)>(&mut conn)
+            .load::<(models::AlternateFile, String, String)>(&mut conn)
             .await?;
 
         Ok(files
@@ -252,5 +234,32 @@ impl Store {
                 (alternate, file_path, local_path)
             })
             .collect())
+    }
+}
+
+#[async_trait]
+impl db::sealed::ConnectionProvider for Store {
+    async fn with_connection<'a, R, F>(&mut self, cb: F) -> Result<R>
+    where
+        R: 'a,
+        F: for<'b> FnOnce(&'b mut DbConnection) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
+    {
+        let mut conn = self.pool.get().await?;
+        cb(&mut conn).await
+    }
+}
+
+pub struct Transaction<'a> {
+    connection: &'a mut DbConnection,
+}
+
+#[async_trait]
+impl<'t> db::sealed::ConnectionProvider for Transaction<'t> {
+    async fn with_connection<'a, R, F>(&mut self, cb: F) -> Result<R>
+    where
+        R: 'a,
+        F: for<'b> FnOnce(&'b mut DbConnection) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
+    {
+        cb(self.connection).await
     }
 }

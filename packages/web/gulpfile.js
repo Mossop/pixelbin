@@ -4,14 +4,21 @@ const path = require("path");
 const { promises: fs } = require("fs");
 
 const webpack = require("webpack");
-const sass = require("sass-embedded");
-const { parallel, src, dest } = require("gulp");
+const { parallel, series, src, dest, watch } = require("gulp");
 
 const TARGET = path.join(__dirname, "..", "..", "target", "web");
 
-function promiseWebpack(config) {
+async function clean() {
+  await fs.rm(TARGET, { recursive: true, force: true });
+}
+exports.clean = clean;
+
+function buildJs() {
+  let config = require("./webpack.config.js")({ mode: "development" });
+  let compiler = webpack(config);
+
   return new Promise((resolve, reject) => {
-    webpack(config, (err, stats) => {
+    compiler.run((err, stats) => {
       if (err) {
         reject(err);
         return;
@@ -28,29 +35,31 @@ function promiseWebpack(config) {
     });
   });
 }
-
-async function clean() {
-  await fs.rm(TARGET, { recursive: true, force: true });
-}
-exports.clean = clean;
-
-async function buildJs() {
-  let config = require("./webpack.config.js")({ mode: "development" });
-
-  await promiseWebpack(config);
-}
 exports.buildJs = buildJs;
 
-async function buildCss() {
-  let { css } = await sass.compileAsync(
-    path.join(__dirname, "css", "main.scss"),
-  );
-  await fs.mkdir(path.join(TARGET, "static", "css"), { recursive: true });
-  await fs.writeFile(path.join(TARGET, "static", "css", "main.css"), css, {
-    encoding: "utf8",
+function watchJs() {
+  let config = require("./webpack.config.js")({ mode: "development" });
+  let compiler = webpack(config);
+
+  return new Promise((_resolve, reject) => {
+    let watching = compiler.watch({}, (err, stats) => {
+      if (err) {
+        watching.close(() => {
+          reject(err);
+        });
+        return;
+      }
+
+      console.log(
+        stats.toString({
+          chunks: false,
+          colors: true,
+        }),
+      );
+    });
   });
 }
-exports.buildCss = buildCss;
+exports.watchJs = watchJs;
 
 function buildStatic() {
   return src(path.join(__dirname, "static", "**", "*")).pipe(
@@ -59,4 +68,12 @@ function buildStatic() {
 }
 exports.buildStatic = buildStatic;
 
-exports.build = parallel(buildJs, buildStatic, buildCss);
+function watchStatic() {
+  watch([path.join(__dirname, "static", "**", "*")], buildStatic);
+}
+exports.watchStatic = series(buildStatic, watchStatic);
+
+exports.build = parallel(buildJs, buildStatic);
+exports.watch = parallel(watchJs, exports.watchStatic);
+
+exports.default = exports.build;

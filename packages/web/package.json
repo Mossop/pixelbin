@@ -13,8 +13,7 @@
   },
   "homepage": "https://github.com/Mossop/pixelbin#readme",
   "scripts": {
-    "lint": "eslint .",
-    "build": "webpack"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@material/web": "^1.0.0-pre.9",
@@ -39,10 +38,7 @@
     "eslint-plugin-import": "^2.27.5",
     "gulp": "^4.0.2",
     "html-webpack-plugin": "^5.5.1",
-    "html-webpack-tags-plugin": "^3.0.2",
     "prettier": "^2.8.8",
-    "sass-embedded": "^1.62.0",
-    "scss-reset": "^1.4.2",
     "typescript": "^5.1.3",
     "webpack": "^5.85.0",
     "webpack-subresource-integrity": "^5.2.0-rc.1"

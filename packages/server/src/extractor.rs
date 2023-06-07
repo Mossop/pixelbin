@@ -27,7 +27,10 @@ impl FromRequest for Session {
                 }
             };
 
-            Ok(data.sessions.get(session_id).await)
+            Ok(data
+                .sessions
+                .get_or_create(session_id, |id| Session { id, email: None })
+                .await)
         })
     }
 }

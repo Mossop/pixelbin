@@ -1,6 +1,10 @@
 use std::fmt;
 
-use actix_web::ResponseError;
+use actix_web::{
+    body::BoxBody,
+    http::header::{self, TryIntoHeaderValue},
+    HttpResponse, ResponseError,
+};
 use nano_id::base62;
 use pixelbin_shared::Error;
 
@@ -29,6 +33,18 @@ impl From<Error> for InternalError {
     }
 }
 
-impl ResponseError for InternalError {}
+impl ResponseError for InternalError {
+    fn error_response(&self) -> HttpResponse<BoxBody> {
+        let mut res = HttpResponse::new(self.status_code());
+        let message = format!("{}", self);
+
+        tracing::error!(message = message);
+
+        let mime = mime::TEXT_PLAIN_UTF_8.try_into_value().unwrap();
+        res.headers_mut().insert(header::CONTENT_TYPE, mime);
+
+        res.set_body(BoxBody::new(message))
+    }
+}
 
 pub(crate) type HttpResult<T> = std::result::Result<T, InternalError>;

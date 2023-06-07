@@ -17,10 +17,9 @@ pub enum Error {
         source: PoolError,
     },
     #[error("Database Error: {source}")]
-    DbQueryError {
-        #[from]
-        source: diesel::result::Error,
-    },
+    DbQueryError { source: diesel::result::Error },
+    #[error("Item requested does not exist")]
+    NotFound,
     #[error("Config File Error: {message}")]
     ConfigError { message: String },
     #[error("IO Error: {source}")]
@@ -37,6 +36,16 @@ pub enum Error {
     S3Error { message: String },
     #[error("Unknown error")]
     Unknown,
+}
+
+impl From<diesel::result::Error> for Error {
+    fn from(error: diesel::result::Error) -> Self {
+        if error == diesel::result::Error::NotFound {
+            Error::NotFound
+        } else {
+            Error::DbQueryError { source: error }
+        }
+    }
 }
 
 pub type Result<T = ()> = std::result::Result<T, Error>;

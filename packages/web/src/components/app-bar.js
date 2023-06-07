@@ -12,23 +12,23 @@ export class AppBar extends LitElement {
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
-      color: var(--accent-color);
-      background: var(--accent-background);
-      padding: calc(2 * var(--padding));
+      color: var(--md-sys-color-on-primary);
+      background: var(--md-sys-color-primary);
+      padding: calc(2 * var(--spacing));
     }
 
-    h1 {
-      font-size: 1.5rem;
+    #title {
       font-family: "Comfortaa", cursive;
-      font-weight: bold;
-      margin: 0;
     }
   `;
 
   render() {
-    return html`<header>
-      <h1>${this.title}</h1>
-      <div><slot></slot></div>
-    </header>`;
+    return html`
+      <link rel="stylesheet" href="/static/css/shared.css" />
+      <header>
+        <h1 id="title" class="title-large">${this.title}</h1>
+        <div><slot></slot></div>
+      </header>
+    `;
   }
 }

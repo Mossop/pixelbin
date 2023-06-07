@@ -1,7 +1,6 @@
 const path = require("path");
 
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const HtmlWebpackTagsPlugin = require("html-webpack-tags-plugin");
 const { SubresourceIntegrityPlugin } = require("webpack-subresource-integrity");
 
 const TARGET = path.join(__dirname, "..", "..", "target", "web");
@@ -10,39 +9,41 @@ const TARGET = path.join(__dirname, "..", "..", "target", "web");
  * @typedef { import("webpack").Configuration } Configuration
  */
 
+const ENTRIES = ["index"];
+
 /** @type {({mode?: "development" | "production"}) => Configuration} */
-module.exports = ({ mode = "development" }) => {
-  let splitChunks =
-    mode == "production"
-      ? {
-          chunks: "all",
-        }
-      : {
-          chunks: "all",
-          maxInitialRequests: Infinity,
-          minSize: 0,
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name(module) {
-                // get the name. E.g. node_modules/packageName/not/this/part.js
-                // or node_modules/packageName
-                const packageName = module.context.match(
-                  /[\\/]node_modules[\\/](.*?)([\\/]|$)/,
-                )[1];
+module.exports = ({ mode = "development" }) =>
+  // let splitChunks =
+  //   mode == "production"
+  //     ? {
+  //         chunks: "all",
+  //       }
+  //     : {
+  //         chunks: "all",
+  //         maxInitialRequests: Infinity,
+  //         minSize: 0,
+  //         cacheGroups: {
+  //           vendor: {
+  //             test: /[\\/]node_modules[\\/]/,
+  //             name(module) {
+  //               // get the name. E.g. node_modules/packageName/not/this/part.js
+  //               // or node_modules/packageName
+  //               const packageName = module.context.match(
+  //                 /[\\/]node_modules[\\/](.*?)([\\/]|$)/,
+  //               )[1];
 
-                // npm package names are URL-safe, but some servers don't like @ symbols
-                return `npm.${packageName.replace("@", "")}`;
-              },
-            },
-          },
-        };
+  //               // npm package names are URL-safe, but some servers don't like @ symbols
+  //               return `npm.${packageName.replace("@", "")}`;
+  //             },
+  //           },
+  //         },
+  //       };
 
-  return {
+  ({
     mode,
-    entry: {
-      index: path.join(__dirname, "src", "index.js"),
-    },
+    entry: Object.fromEntries(
+      ENTRIES.map((name) => [name, path.join(__dirname, "src", `${name}.js`)]),
+    ),
     resolve: {
       extensions: [".js"],
     },
@@ -64,38 +65,26 @@ module.exports = ({ mode = "development" }) => {
       ],
     },
     plugins: [
-      new HtmlWebpackPlugin({
-        filename: path.join(TARGET, "templates", "index.hbs"),
-        template: path.join(__dirname, "templates", "index.hbs"),
-        scriptLoading: "defer",
-        inject: true,
-        minify: false,
-        chunks: ["index"],
-      }),
+      ...ENTRIES.map(
+        (name) =>
+          new HtmlWebpackPlugin({
+            filename: path.join(TARGET, "templates", `${name}.hbs`),
+            template: path.join(__dirname, "templates", `${name}.hbs`),
+            scriptLoading: "defer",
+            inject: true,
+            minify: false,
+            chunks: [name],
+          }),
+      ),
       new SubresourceIntegrityPlugin({
         hashFuncNames: ["sha256", "sha384"],
-      }),
-      new HtmlWebpackTagsPlugin({
-        tags: [
-          {
-            type: "css",
-            path: "https://fonts.googleapis.com/css?family=Comfortaa",
-            publicPath: false,
-          },
-          {
-            type: "css",
-            path: "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap",
-            publicPath: false,
-          },
-        ],
       }),
     ],
     optimization: {
       usedExports: true,
       mangleExports: false,
       minimize: mode == "production",
-      splitChunks,
+      // splitChunks,
       chunkIds: "named",
     },
-  };
-};
+  });

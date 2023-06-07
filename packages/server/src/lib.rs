@@ -24,9 +24,10 @@ mod util;
 
 const SESSION_LENGTH: u64 = 60 * 60 * 24 * 7;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 struct Session {
-    user_id: Option<String>,
+    id: String,
+    email: Option<String>,
 }
 
 struct AppState<'a> {
@@ -49,9 +50,8 @@ pub async fn serve(store: Store) -> Result {
     HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
-            .wrap(middleware::Logging)
             .wrap(
-                SessionMiddleware::builder(CookieSessionStore::default(), Key::generate())
+                SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
                     .cookie_name("pxlbin".to_string())
                     .cookie_content_security(CookieContentSecurity::Private)
                     .session_lifecycle(
@@ -61,8 +61,10 @@ pub async fn serve(store: Store) -> Result {
                     )
                     .build(),
             )
+            .wrap(middleware::Logging)
             .service(handler::index)
             .service(handler::static_files)
+            .service(handler::api_login)
     })
     .bind(("0.0.0.0", port))?
     .run()

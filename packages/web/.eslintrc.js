@@ -5,4 +5,8 @@ module.exports = {
   },
 
   extends: [require.resolve("@mossop/config/web-ts/eslintrc")],
+
+  env: {
+    browser: true,
+  },
 };

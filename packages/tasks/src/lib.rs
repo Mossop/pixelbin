@@ -4,7 +4,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use pixelbin_shared::Result;
-use pixelbin_store::{RemotePath, Store};
+use pixelbin_store::{DbQueries, RemotePath, Store};
 
 pub async fn prune(_store: Store, _dry_run: bool) -> Result {
     Ok(())
@@ -46,7 +46,7 @@ pub async fn verify_local_storage(store: Store) -> Result {
     Ok(())
 }
 
-pub async fn verify_online_storage(store: Store) -> Result {
+pub async fn verify_online_storage(mut store: Store) -> Result {
     tracing::trace!("Verifying online files");
 
     let stores = store.list_storage().await?;

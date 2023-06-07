@@ -1,21 +1,67 @@
 use actix_web::{body::BoxBody, get, http::StatusCode, post, web, HttpResponse, Responder};
 use mime_guess::from_path;
+use pixelbin_shared::Result;
+use pixelbin_store::{models, DbQueries};
 use rust_embed::RustEmbed;
+use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
 
-use crate::util::HttpResult;
-use crate::AppState;
+use crate::{templates, AppState};
+use crate::{util::HttpResult, Session};
 
 #[derive(RustEmbed)]
 #[folder = "../../target/web/static/"]
 struct StaticAssets;
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UserState {
+    #[serde(flatten)]
+    user: models::User,
+    storage: Vec<models::Storage>,
+    catalogs: Vec<models::Catalog>,
+    people: Vec<models::Person>,
+    tags: Vec<models::Tag>,
+    albums: Vec<models::Album>,
+    searches: Vec<models::SavedSearch>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ApiState {
+    user: Option<UserState>,
+}
+
+async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Result<ApiState> {
+    if let Some(ref email) = session.email {
+        let user = db.user(email).await?;
+        let catalogs = db.list_user_catalogs(email).await?;
+        let catalog_ids: Vec<&str> = catalogs.iter().map(|c| c.id.as_str()).collect();
+
+        Ok(ApiState {
+            user: Some(UserState {
+                user,
+                storage: db.list_user_storage(email).await?,
+                people: db.list_catalog_people(&catalog_ids).await?,
+                tags: db.list_catalog_tags(&catalog_ids).await?,
+                albums: db.list_catalog_albums(&catalog_ids).await?,
+                searches: db.list_catalog_searches(&catalog_ids).await?,
+                catalogs,
+            }),
+        })
+    } else {
+        Ok(ApiState { user: None })
+    }
+}
+
 #[get("/")]
-async fn index(state: web::Data<AppState<'_>>) -> HttpResult<impl Responder> {
+async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResult<impl Responder> {
     Ok(HttpResponse::Ok()
         .content_type("text/html")
-        .body(state.templates.index()?))
+        .body(app_state.templates.index(templates::Index {
+            user: session.email.clone(),
+        })?))
 }
 
 #[get("/static/{_:.*}")]
@@ -87,7 +133,7 @@ impl<T> From<T> for ApiResult<T> {
 impl<T: Serialize> Responder for ApiResult<T> {
     type Body = BoxBody;
 
-    fn respond_to(self, req: &actix_web::HttpRequest) -> HttpResponse<Self::Body> {
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> HttpResponse<Self::Body> {
         match self {
             ApiResult::Ok(inner) => HttpResponse::Ok()
                 .content_type("application/json")
@@ -97,37 +143,6 @@ impl<T: Serialize> Responder for ApiResult<T> {
     }
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct CatalogState {
-    id: String,
-    storage: String,
-    name: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AlbumState {
-    id: String,
-    catalog: String,
-    parent: Option<String>,
-    name: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct UserState {
-    catalogs: Vec<CatalogState>,
-    albums: Vec<AlbumState>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ApiState {
-    user: Option<UserState>,
-    api_host: Option<String>,
-}
-
 #[derive(Deserialize)]
 struct Credentials {
     email: String,
@@ -135,8 +150,37 @@ struct Credentials {
 }
 
 #[post("/api/login")]
-async fn api_login(credentials: web::Json<Credentials>) -> HttpResult<ApiResult<ApiState>> {
-    Ok(ApiErrorCode::NotLoggedIn.into())
+async fn api_login(
+    app_state: web::Data<AppState<'_>>,
+    session: Session,
+    credentials: web::Json<Credentials>,
+) -> HttpResult<ApiResult<ApiState>> {
+    Ok(app_state
+        .store
+        .clone()
+        .in_transaction(|mut trx| {
+            async move {
+                match trx
+                    .verify_credentials(&credentials.email, &credentials.password)
+                    .await?
+                {
+                    Some(user) => {
+                        let session = app_state
+                            .sessions
+                            .update(&session.id, |sess| {
+                                sess.email = Some(user.email.clone());
+                            })
+                            .await
+                            .unwrap();
+
+                        Ok(build_state(&mut trx, &session).await?.into())
+                    }
+                    None => Ok(ApiErrorCode::NotLoggedIn.into()),
+                }
+            }
+            .scope_boxed()
+        })
+        .await?)
 }
 
 #[serde_as]

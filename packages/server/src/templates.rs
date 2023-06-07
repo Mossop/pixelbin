@@ -4,12 +4,21 @@ use handlebars::Handlebars;
 use rust_embed::RustEmbed;
 
 use pixelbin_shared::Result;
+use serde::Serialize;
 
 #[derive(RustEmbed)]
 #[folder = "../../target/web/templates/"]
 struct TemplateAssets;
 
-const NO_DATA: Option<String> = None;
+#[derive(Serialize)]
+pub(crate) struct Index {
+    pub(crate) user: Option<String>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct Login {
+    pub(crate) source: Option<String>,
+}
 
 pub(crate) struct Templates<'a> {
     handlebars: Handlebars<'a>,
@@ -33,7 +42,7 @@ impl<'a> Templates<'a> {
         Templates { handlebars }
     }
 
-    pub(crate) fn index(&self) -> Result<String> {
-        Ok(self.handlebars.render("index", &NO_DATA)?)
+    pub(crate) fn index(&self, data: Index) -> Result<String> {
+        Ok(self.handlebars.render("index", &data)?)
     }
 }

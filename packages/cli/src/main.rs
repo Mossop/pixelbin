@@ -5,7 +5,7 @@ use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
 use pixelbin_server::serve;
 use pixelbin_shared::{load_config, Result};
-use pixelbin_store::Store;
+use pixelbin_store::{DbQueries, Store};
 use pixelbin_tasks::{verify_local_storage, verify_online_storage};
 
 #[derive(Args)]
@@ -13,7 +13,7 @@ struct Stats;
 
 #[async_trait(?Send)]
 impl Runnable for Stats {
-    async fn run(self, store: Store) -> Result {
+    async fn run(self, mut store: Store) -> Result {
         let stats = store.stats().await?;
         println!("Users:           {}", stats.users);
         println!("Catalogs:        {}", stats.catalogs);

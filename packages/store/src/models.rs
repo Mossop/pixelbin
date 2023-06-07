@@ -1,8 +1,83 @@
 use diesel::{backend, deserialize, sql_types, Queryable};
+use serde::Serialize;
+use serde_json::Value;
 use time::{OffsetDateTime, PrimitiveDateTime};
 
 use crate::{aws::AwsClient, RemotePath};
 use pixelbin_shared::Result;
+
+pub(crate) mod serialize_datetime {
+    use serde::{Serialize, Serializer};
+    use time::{
+        format_description::well_known::{iso8601::Config, Iso8601},
+        OffsetDateTime,
+    };
+
+    const DATETIME_FORMAT: u128 = Config::DEFAULT.encode();
+
+    pub(crate) fn serialize<S>(dt: &OffsetDateTime, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        dt.format(&Iso8601::<DATETIME_FORMAT>)
+            .unwrap()
+            .serialize(serializer)
+    }
+
+    pub(crate) mod option {
+        use super::*;
+
+        pub(crate) fn serialize<S>(
+            dt: &Option<OffsetDateTime>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            dt.map(|dt| dt.format(&Iso8601::<DATETIME_FORMAT>).unwrap())
+                .serialize(serializer)
+        }
+    }
+}
+
+pub(crate) mod serialize_primitive_datetime {
+    use serde::{Serialize, Serializer};
+    use time::{
+        format_description::well_known::{
+            iso8601::{Config, FormattedComponents},
+            Iso8601,
+        },
+        PrimitiveDateTime,
+    };
+
+    const DATETIME_FORMAT: u128 = Config::DEFAULT
+        .set_formatted_components(FormattedComponents::DateTime)
+        .encode();
+
+    pub(crate) fn serialize<S>(dt: &PrimitiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        dt.format(&Iso8601::<DATETIME_FORMAT>)
+            .unwrap()
+            .serialize(serializer)
+    }
+
+    pub(crate) mod option {
+        use super::*;
+
+        pub(crate) fn serialize<S>(
+            dt: &Option<PrimitiveDateTime>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            dt.map(|dt| dt.format(&Iso8601::<DATETIME_FORMAT>).unwrap())
+                .serialize(serializer)
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, deserialize::FromSqlRow)]
 pub enum AlternateFileType {
@@ -57,17 +132,34 @@ where
     }
 }
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Serialize, Clone, Debug)]
+pub struct User {
+    pub email: String,
+    #[serde(skip)]
+    pub(crate) _password: Option<String>,
+    pub fullname: Option<String>,
+    pub administrator: bool,
+    #[serde(with = "serialize_datetime")]
+    pub created: OffsetDateTime,
+    #[serde(with = "serialize_datetime::option")]
+    pub last_login: Option<OffsetDateTime>,
+    pub verified: Option<bool>,
+}
+
+#[derive(Queryable, Serialize, Clone, Debug)]
 pub struct Storage {
     pub id: String,
     pub name: String,
-    pub access_key_id: String,
-    pub secret_access_key: String,
+    #[serde(skip)]
+    pub(crate) access_key_id: String,
+    #[serde(skip)]
+    pub(crate) secret_access_key: String,
     pub bucket: String,
     pub region: String,
     pub path: Option<String>,
     pub endpoint: Option<String>,
     pub public_url: Option<String>,
+    #[serde(skip)]
     pub owner: String,
 }
 
@@ -82,9 +174,49 @@ impl Storage {
     }
 }
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Serialize, Clone, Debug)]
+pub struct Catalog {
+    pub id: String,
+    pub name: String,
+    pub storage: String,
+}
+
+#[derive(Queryable, Serialize, Clone, Debug)]
+pub struct Person {
+    pub id: String,
+    pub name: String,
+    pub catalog: String,
+}
+
+#[derive(Queryable, Serialize, Clone, Debug)]
+pub struct Tag {
+    pub id: String,
+    pub parent: Option<String>,
+    pub name: String,
+    pub catalog: String,
+}
+
+#[derive(Queryable, Serialize, Clone, Debug)]
+pub struct Album {
+    pub id: String,
+    pub parent: Option<String>,
+    pub name: String,
+    pub catalog: String,
+}
+
+#[derive(Queryable, Serialize, Clone, Debug)]
+pub struct SavedSearch {
+    id: String,
+    name: String,
+    shared: bool,
+    query: Value,
+    catalog: String,
+}
+
+#[derive(Queryable, Serialize, Clone, Debug)]
 pub struct MediaFile {
     pub id: String,
+    #[serde(with = "serialize_datetime")]
     pub uploaded: OffsetDateTime,
     pub process_version: i32,
     pub file_name: String,
@@ -118,6 +250,7 @@ pub struct MediaFile {
     pub altitude: Option<f32>,
     pub aperture: Option<f32>,
     pub focal_length: Option<f32>,
+    #[serde(with = "serialize_primitive_datetime::option")]
     pub taken: Option<PrimitiveDateTime>,
     pub media: String,
 }

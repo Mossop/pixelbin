@@ -1,0 +1,24 @@
+@import url(https://cdn.jsdelivr.net/npm/modern-css-reset/dist/reset.min.css);
+@import url(typography.module.css);
+
+.vertical {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: stretch;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  justify-content: start;
+  align-items: stretch;
+}
+
+.spaced {
+  gap: var(--spacing);
+}
+
+md-outlined-text-field {
+  margin-top: var(--spacing);
+}
