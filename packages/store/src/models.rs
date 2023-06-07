@@ -136,7 +136,7 @@ where
 pub struct User {
     pub email: String,
     #[serde(skip)]
-    pub(crate) _password: Option<String>,
+    pub(crate) password: Option<String>,
     pub fullname: Option<String>,
     pub administrator: bool,
     #[serde(with = "serialize_datetime")]

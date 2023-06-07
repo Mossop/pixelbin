@@ -11,7 +11,7 @@ pub async fn prune(_store: Store, _dry_run: bool) -> Result {
 }
 
 pub async fn verify_local_storage(store: Store) -> Result {
-    tracing::trace!("Verifying local files");
+    tracing::debug!("Verifying local files");
 
     let mut local_files: HashMap<PathBuf, u64> =
         store.list_local_files().await?.into_iter().collect();
@@ -47,7 +47,7 @@ pub async fn verify_local_storage(store: Store) -> Result {
 }
 
 pub async fn verify_online_storage(mut store: Store) -> Result {
-    tracing::trace!("Verifying online files");
+    tracing::debug!("Verifying online files");
 
     let stores = store.list_storage().await?;
     let mut errors = 0;

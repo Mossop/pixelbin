@@ -71,7 +71,7 @@ where
                 );
             } else {
                 event!(
-                    Level::DEBUG,
+                    Level::TRACE,
                     duration = duration.as_millis(),
                     status = status.as_str()
                 );

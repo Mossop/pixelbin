@@ -46,7 +46,7 @@ fn resolve(root: &Path, path: &mut PathBuf) -> Result {
 
 impl Config {
     pub fn load(config_file: &Path) -> Result<Self> {
-        tracing::trace!("Loading config from {}", config_file.display());
+        tracing::debug!("Loading config from {}", config_file.display());
         let root = env::current_dir()
             .unwrap()
             .join(config_file.parent().unwrap());

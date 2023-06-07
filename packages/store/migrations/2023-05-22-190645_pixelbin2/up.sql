@@ -488,4 +488,3 @@ ALTER TABLE "storage"
 ALTER TABLE "shared_catalog"
     ADD CONSTRAINT "foreign_user" FOREIGN KEY ("user") REFERENCES "user"(email) ON UPDATE CASCADE ON DELETE CASCADE;
 
-REFRESH MATERIALIZED VIEW "user_catalog";

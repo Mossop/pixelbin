@@ -3,21 +3,26 @@ use diesel::prelude::*;
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     scoped_futures::ScopedFutureExt,
-    AsyncPgConnection, RunQueryDsl,
+    AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
 };
 use time::OffsetDateTime;
+use tracing::instrument;
 
 use crate::{manual_schema::*, models, schema::*, Result};
 
 pub(crate) type DbConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<DbConnection>;
 
+#[instrument(err)]
 pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
     let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url);
     let pool = Pool::builder(config).build()?;
 
     // Verify that we can connect.
-    let _connection = pool.get().await?;
+    let mut connection = pool.get().await?;
+    connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
+        .await?;
 
     Ok(pool)
 }
@@ -71,14 +76,14 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                     None => return Ok(None),
                 };
 
-                // if let Some(ref password_hash) = user.password {
-                //     match bcrypt::verify(password, password_hash) {
-                //         Ok(true) => (),
-                //         _ => return Ok(None),
-                //     }
-                // } else {
-                //     return Ok(None);
-                // }
+                if let Some(ref password_hash) = user.password {
+                    match bcrypt::verify(password, password_hash) {
+                        Ok(true) => (),
+                        _ => return Ok(None),
+                    }
+                } else {
+                    return Ok(None);
+                }
 
                 user.last_login = Some(OffsetDateTime::now_utc());
 

@@ -7,6 +7,16 @@ use pixelbin_server::serve;
 use pixelbin_shared::{load_config, Result};
 use pixelbin_store::{DbQueries, Store};
 use pixelbin_tasks::{verify_local_storage, verify_online_storage};
+use tracing::Level;
+use tracing_subscriber::EnvFilter;
+
+const LOG_DEFAULTS: [(&str, Level); 5] = [
+    ("pixelbin_cli", Level::DEBUG),
+    ("pixelbin_shared", Level::DEBUG),
+    ("pixelbin_tasks", Level::DEBUG),
+    ("pixelbin_store", Level::DEBUG),
+    ("pixelbin_server", Level::DEBUG),
+];
 
 #[derive(Args)]
 struct Stats;
@@ -98,8 +108,18 @@ async fn inner_main(args: CliArgs) -> Result {
 async fn main() {
     let args = CliArgs::parse();
 
-    let log_filter =
-        env::var("RUST_LOG").unwrap_or_else(|_| "pixelbin_cli=trace,pixelbin_shared=trace,pixelbin_tasks=trace,pixelbin_store=trace,pixelbin_server=trace,warn".to_string());
+    let log_filter = match env::var("RUST_LOG").as_deref() {
+        Ok("") | Err(_) => {
+            let mut filter = EnvFilter::new("warn");
+
+            for (module, level) in LOG_DEFAULTS {
+                filter = filter.add_directive(format!("{}={}", module, level).parse().unwrap());
+            }
+
+            filter
+        }
+        Ok(s) => EnvFilter::from_env(s),
+    };
 
     let subscriber = tracing_subscriber::fmt()
         .with_env_filter(log_filter)
