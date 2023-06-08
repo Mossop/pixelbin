@@ -22,6 +22,8 @@ mod middleware;
 mod templates;
 mod util;
 
+pub(crate) use handler::ApiState;
+
 const SESSION_LENGTH: u64 = 60 * 60 * 24 * 7;
 
 #[derive(Clone)]

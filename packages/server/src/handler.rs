@@ -30,7 +30,7 @@ struct UserState {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ApiState {
+pub(crate) struct ApiState {
     user: Option<UserState>,
 }
 
@@ -59,11 +59,19 @@ async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Resu
 
 #[get("/")]
 async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResult<impl Responder> {
-    Ok(HttpResponse::Ok()
-        .content_type("text/html")
-        .body(app_state.templates.index(templates::Index {
-            user: session.email.clone(),
-        })?))
+    let api_state = app_state
+        .store
+        .clone()
+        .in_transaction(|mut trx| {
+            async move { build_state(&mut trx, &session).await }.scope_boxed()
+        })
+        .await?;
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(
+        app_state
+            .templates
+            .index(templates::Index { state: api_state })?,
+    ))
 }
 
 #[get("/static/{_:.*}")]

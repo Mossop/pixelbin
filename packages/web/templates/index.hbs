@@ -11,9 +11,10 @@
 </head>
 <body>
   <app-bar title="PixelBin">
-    {{#if user}}
+    {{#if state.user}}
+      <avatar-button email="{{state.user.email}}"></avatar-button>
     {{/if}}
-    {{#unless user}}
+    {{#unless state.user}}
       <md-tonal-button onclick="login()">Login</md-tonal-button>
     {{/unless}}
   </app-bar>

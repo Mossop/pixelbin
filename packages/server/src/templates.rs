@@ -3,6 +3,7 @@ use std::str::from_utf8;
 use handlebars::Handlebars;
 use rust_embed::RustEmbed;
 
+use crate::ApiState;
 use pixelbin_shared::Result;
 use serde::Serialize;
 
@@ -12,12 +13,7 @@ struct TemplateAssets;
 
 #[derive(Serialize)]
 pub(crate) struct Index {
-    pub(crate) user: Option<String>,
-}
-
-#[derive(Serialize)]
-pub(crate) struct Login {
-    pub(crate) source: Option<String>,
+    pub(crate) state: ApiState,
 }
 
 pub(crate) struct Templates<'a> {
