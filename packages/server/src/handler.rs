@@ -6,6 +6,7 @@ use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
+use tracing::instrument;
 
 use crate::{templates, AppState};
 use crate::{util::HttpResult, Session};
@@ -33,6 +34,7 @@ struct ApiState {
     user: Option<UserState>,
 }
 
+#[instrument(skip_all, err)]
 async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Result<ApiState> {
     if let Some(ref email) = session.email {
         let user = db.user(email).await?;

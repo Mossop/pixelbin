@@ -54,27 +54,27 @@ where
         Box::pin(async move {
             let res = fut.await?;
 
-            let duration = Instant::now().duration_since(start);
+            let duration = Instant::now().duration_since(start).as_millis();
             let status = res.status();
 
-            if status.is_client_error() {
-                event!(
-                    Level::WARN,
-                    duration = duration.as_millis(),
-                    status = status.as_str()
-                );
-            } else if status.is_server_error() {
+            if status.is_server_error() {
                 event!(
                     Level::ERROR,
-                    duration = duration.as_millis(),
-                    status = status.as_str()
+                    duration = duration,
+                    status = status.as_str(),
+                    "Server error"
                 );
-            } else {
+            } else if status.is_client_error() {
                 event!(
-                    Level::TRACE,
-                    duration = duration.as_millis(),
-                    status = status.as_str()
+                    Level::WARN,
+                    duration = duration,
+                    status = status.as_str(),
+                    "Client error"
                 );
+            } else if duration >= 250 {
+                event!(Level::WARN, duration = duration, "Slow response");
+            } else {
+                event!(Level::TRACE, duration = duration, status = status.as_str());
             };
 
             span.exit();
