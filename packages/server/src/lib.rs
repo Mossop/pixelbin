@@ -67,6 +67,7 @@ pub async fn serve(store: Store) -> Result {
             .service(handler::index)
             .service(handler::static_files)
             .service(handler::api_login)
+            .service(handler::api_logout)
     })
     .bind(("0.0.0.0", port))?
     .run()

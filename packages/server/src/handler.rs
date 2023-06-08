@@ -193,6 +193,27 @@ async fn api_login(
         .await?)
 }
 
+#[post("/api/logout")]
+async fn api_logout(
+    app_state: web::Data<AppState<'_>>,
+    session: Session,
+) -> HttpResult<ApiResult<ApiState>> {
+    let session = app_state
+        .sessions
+        .update(&session.id, |sess| {
+            sess.email = None;
+        })
+        .await
+        .unwrap();
+
+    Ok(app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move { Ok(build_state(&mut trx, &session).await?.into()) }.scope_boxed()
+        })
+        .await?)
+}
+
 #[serde_as]
 #[derive(Deserialize)]
 struct MediaList {

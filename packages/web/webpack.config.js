@@ -50,7 +50,7 @@ module.exports = ({ mode = "development" }) =>
     output: {
       path: path.join(TARGET, "static", "js"),
       publicPath: "/static/js/",
-      filename: "[name].[chunkhash].js",
+      filename: mode == "production" ? "[name].[chunkhash].js" : "[name].js",
       crossOriginLoading: "anonymous",
     },
     stats: "errors-warnings",

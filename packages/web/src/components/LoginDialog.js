@@ -8,44 +8,46 @@ import { login } from "../modules/api";
 export class LoginDialog extends LitElement {
   static styles = css``;
 
-  dialogElement = createRef();
+  modalElement = createRef();
 
   emailInput = createRef();
 
   passwordInput = createRef();
 
+  createRenderRoot() {
+    return this;
+  }
+
   render() {
     return html`
-      <link rel="stylesheet" href="/static/css/shared.css" />
-
-      <md-dialog
-        ${ref(this.dialogElement)}
-        fullscreen="true"
-        open="true"
-        @closed="${this.closed}"
-      >
-        <p slot="header" class="headline-small">Login</p>
-        <form action="#" class="spaced vertical">
-          <md-outlined-text-field
+      <ui-dialog ${ref(this.modalElement)} @closed=${this.closed}>
+        <div slot="header">Login</div>
+        <form class="d-flex flex-column align-items-stretch gap-3">
+          <ui-textfield
             ${ref(this.emailInput)}
             type="email"
-            label="Email address"
-            ?required=${true}
-          ></md-outlined-text-field>
-          <md-outlined-text-field
+            name="email"
+            autocomplete="email"
+            label="Email Address:"
+          ></ui-textfield>
+          <ui-textfield
             ${ref(this.passwordInput)}
             type="password"
-            label="Password"
-            ?required=${true}
-          ></md-outlined-text-field>
+            name="password"
+            autocomplete="password"
+            label="Password:"
+          ></ui-textfield>
         </form>
-        <div slot="footer" class="spaced horizontal">
-          <md-outlined-button @click="${this.cancel}"
-            >Cancel</md-outlined-button
+        <div
+          slot="footer"
+          class="d-flex justify-content-end align-items-center gap-3"
+        >
+          <ui-button color="outline-secondary" @click=${this.cancel}
+            >Cancel</ui-button
           >
-          <md-filled-button @click="${this.login}">Login</md-filled-button>
+          <ui-button @click=${this.login}>Login</ui-button>
         </div>
-      </md-dialog>
+      </ui-dialog>
     `;
   }
 
@@ -54,7 +56,7 @@ export class LoginDialog extends LitElement {
   }
 
   cancel() {
-    this.dialogElement.value?.close();
+    this.modalElement.value?.close();
   }
 
   async login() {

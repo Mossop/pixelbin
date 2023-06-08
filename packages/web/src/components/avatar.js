@@ -2,6 +2,8 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import md5 from "md5";
 
+import { logout } from "../modules/api";
+
 /**
  * @param {string} email
  * @returns {string[]}
@@ -15,16 +17,9 @@ function avatarSources(email) {
   ];
 }
 
-@customElement("avatar-button")
-export class AvatarButton extends LitElement {
+@customElement("ui-avatar")
+export class Avatar extends LitElement {
   static styles = css`
-    button {
-      border: 0;
-      padding: 0;
-      margin: 0;
-      background: transparent;
-    }
-
     img {
       border-radius: 50%;
     }
@@ -33,13 +28,22 @@ export class AvatarButton extends LitElement {
   @property()
   email = "";
 
+  async logout() {
+    try {
+      await logout();
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   render() {
     let sources = avatarSources(this.email);
 
     return html`
-      <link rel="stylesheet" href="/static/css/shared.css" />
+      <link rel="stylesheet" href="/static/css/embedded.css" />
 
-      <button>
+      <button @click=${this.logout} class="btn shadow-none border-0 m-0 p-0">
         <img src=${sources[0]} srcset=${sources.join(",")} />
       </button>
     `;

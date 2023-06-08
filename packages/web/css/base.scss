@@ -1,0 +1,17 @@
+// Required Bootstrap functions
+@import "bootstrap/scss/functions";
+
+// Variable defaults
+$primary: #3f51b5;
+$secondary: #8d8fa6;
+$enable-shadows: true;
+
+// Required Bootstrap variables
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/variables-dark";
+
+// Default map overrides
+
+// Required Bootstrap parts
+@import "bootstrap/scss/maps";
+@import "bootstrap/scss/mixins";
