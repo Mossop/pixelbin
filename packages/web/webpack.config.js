@@ -62,6 +62,23 @@ module.exports = ({ mode = "development" }) =>
           exclude: /node_modules/,
           loader: "babel-loader",
         },
+        {
+          test: /\.s[ac]ss$/i,
+          use: [
+            {
+              loader: "css-loader",
+              options: {
+                sourceMap: false,
+              },
+            },
+            {
+              loader: "sass-loader",
+              options: {
+                sourceMap: false,
+              },
+            },
+          ],
+        },
       ],
     },
     plugins: [

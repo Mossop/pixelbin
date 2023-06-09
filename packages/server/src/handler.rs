@@ -1,4 +1,9 @@
-use actix_web::{body::BoxBody, get, http::StatusCode, post, web, HttpResponse, Responder};
+use actix_web::{
+    body::BoxBody,
+    get,
+    http::{header, StatusCode},
+    post, web, HttpRequest, HttpResponse, Responder,
+};
 use mime_guess::from_path;
 use pixelbin_shared::Result;
 use pixelbin_store::{models, DbQueries};
@@ -6,9 +11,10 @@ use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use tracing::instrument;
 
-use crate::{templates, AppState};
+use crate::{middleware::cacheable, templates, AppState};
 use crate::{util::HttpResult, Session};
 
 #[derive(RustEmbed)]
@@ -75,14 +81,26 @@ async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResu
 }
 
 #[get("/static/{_:.*}")]
-async fn static_files(path: web::Path<String>) -> impl Responder {
-    let local_path = path.as_str();
+async fn static_files(path: web::Path<String>, request: HttpRequest) -> HttpResult<impl Responder> {
+    let local_path = path.to_owned();
 
-    match StaticAssets::get(local_path) {
-        Some(content) => HttpResponse::Ok()
-            .content_type(from_path(local_path).first_or_octet_stream().as_ref())
-            .body(content.data.into_owned()),
-        None => HttpResponse::NotFound().body("404 Not Found"),
+    match StaticAssets::get(&local_path) {
+        Some(content) => {
+            let last_modified = content
+                .metadata
+                .last_modified()
+                .and_then(|lm| OffsetDateTime::from_unix_timestamp(lm as i64).ok());
+
+            Ok(cacheable(&request, last_modified, || {
+                Box::pin(async move {
+                    Ok(HttpResponse::Ok()
+                        .content_type(from_path(local_path).first_or_octet_stream().as_ref())
+                        .body(content.data.into_owned()))
+                })
+            })
+            .await?)
+        }
+        None => Ok(HttpResponse::NotFound().body("404 Not Found")),
     }
 }
 

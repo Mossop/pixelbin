@@ -1,21 +1,26 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
+import styles from "../modules/styles";
+
 @customElement("ui-dialog")
 export class Dialog extends LitElement {
-  static styles = css`
-    .modal-backdrop {
-      display: none;
-    }
+  static styles = [
+    styles,
+    css`
+      .modal-backdrop {
+        display: none;
+      }
 
-    .modal-backdrop.active {
-      display: block;
-    }
+      .modal-backdrop.active {
+        display: block;
+      }
 
-    .modal.active {
-      display: block;
-    }
-  `;
+      .modal.active {
+        display: block;
+      }
+    `,
+  ];
 
   @state()
   shown = false;
@@ -55,8 +60,6 @@ export class Dialog extends LitElement {
     }
 
     return html`
-      <link rel="stylesheet" href="/static/css/embedded.css" />
-
       <div
         class="modal-backdrop fade ${classes.join(" ")}"
         @transitionend=${this.transitionEnd}
