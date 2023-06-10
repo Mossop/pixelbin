@@ -176,6 +176,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                     .inner_join(user_catalog::table.on(user_catalog::catalog.eq(catalog::id)))
                     .filter(user_catalog::user.eq(user))
                     .select(catalog::all_columns)
+                    .order(catalog::name.asc())
                     .load::<models::Catalog>(conn)
                     .await?)
             }
@@ -190,6 +191,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                 Ok(person::table
                     .filter(person::catalog.eq_any(catalogs))
                     .select(person::all_columns)
+                    .order(person::name.asc())
                     .load::<models::Person>(conn)
                     .await?)
             }
@@ -204,6 +206,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                 Ok(tag::table
                     .filter(tag::catalog.eq_any(catalogs))
                     .select(tag::all_columns)
+                    .order(tag::name.asc())
                     .load::<models::Tag>(conn)
                     .await?)
             }
@@ -218,6 +221,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                 Ok(album::table
                     .filter(album::catalog.eq_any(catalogs))
                     .select(album::all_columns)
+                    .order(album::name.asc())
                     .load::<models::Album>(conn)
                     .await?)
             }
@@ -235,6 +239,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                 Ok(saved_search::table
                     .filter(saved_search::catalog.eq_any(catalogs))
                     .select(saved_search::all_columns)
+                    .order(saved_search::name.asc())
                     .load::<models::SavedSearch>(conn)
                     .await?)
             }

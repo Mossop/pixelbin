@@ -2,23 +2,9 @@
 
 <html>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="minimum-scale=1, initial-scale=1, maximum-scale=1, width=device-width, height=device-height">
-<link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/css/main.css">
+{{> head}}
 <title>PixelBin</title>
 </head>
-<body class="d-flex flex-column align-items-stretch">
-  <ui-appbar title="PixelBin">
-    {{#if state.user}}
-      <ui-avatar email="{{state.user.email}}"></ui-avatar>
-    {{/if}}
-    {{#unless state.user}}
-      <ui-button color="light" onclick="login()">Login</ui-button>
-    {{/unless}}
-  </ui-appbar>
-  <main class="flex-grow-1">Hello</main>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-</body>
+{{> header}}
+{{> footer}}
 </html>

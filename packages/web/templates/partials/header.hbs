@@ -1,0 +1,17 @@
+<body class="d-flex flex-column align-items-stretch">
+  <ui-appbar title="PixelBin">
+    {{#if user}}
+      <ui-avatar email="{{user.email}}"></ui-avatar>
+    {{/if}}
+    {{#unless user}}
+      <ui-button color="light" onclick="login()">Login</ui-button>
+    {{/unless}}
+  </ui-appbar>
+  {{#if user}}
+    <div class="flex-grow-1 flex-shrink-1 d-flex flex-row overflow-hidden">
+      <nav class="overflow-y-auto text-body-secondary bg-body-secondary">
+        {{> sidenav catalogs=user.catalogs}}
+      </nav>
+  {{/if}}
+    <main class="flex-grow-1">
+

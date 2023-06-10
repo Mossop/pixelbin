@@ -206,11 +206,11 @@ pub struct Album {
 
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct SavedSearch {
-    id: String,
-    name: String,
-    shared: bool,
-    query: Value,
-    catalog: String,
+    pub id: String,
+    pub name: String,
+    pub shared: bool,
+    pub query: Value,
+    pub catalog: String,
 }
 
 #[derive(Queryable, Serialize, Clone, Debug)]

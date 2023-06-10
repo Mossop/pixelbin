@@ -1,8 +1,5 @@
 use actix_web::{
-    body::BoxBody,
-    get,
-    http::{header, StatusCode},
-    post, web, HttpRequest, HttpResponse, Responder,
+    body::BoxBody, get, http::StatusCode, post, web, HttpRequest, HttpResponse, Responder,
 };
 use mime_guess::from_path;
 use pixelbin_shared::Result;
@@ -11,10 +8,14 @@ use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
-use time::{format_description::well_known::Rfc2822, OffsetDateTime};
+use time::OffsetDateTime;
 use tracing::instrument;
 
-use crate::{middleware::cacheable, templates, AppState};
+use crate::{
+    middleware::cacheable,
+    templates::{self, AlbumNav, CatalogNav, UserNav},
+    AppState,
+};
 use crate::{util::HttpResult, Session};
 
 #[derive(RustEmbed)]
@@ -26,12 +27,8 @@ struct StaticAssets;
 struct UserState {
     #[serde(flatten)]
     user: models::User,
-    storage: Vec<models::Storage>,
-    catalogs: Vec<models::Catalog>,
-    people: Vec<models::Person>,
-    tags: Vec<models::Tag>,
-    albums: Vec<models::Album>,
-    searches: Vec<models::SavedSearch>,
+    #[serde(flatten)]
+    nav: UserNav,
 }
 
 #[derive(Serialize)]
@@ -40,22 +37,80 @@ pub(crate) struct ApiState {
     user: Option<UserState>,
 }
 
+fn build_searches(
+    searches: &mut Vec<models::SavedSearch>,
+    catalog: &str,
+) -> Vec<models::SavedSearch> {
+    let mut result = Vec::new();
+
+    let mut i = 0;
+    while i < searches.len() {
+        if searches[i].catalog == catalog {
+            result.push(searches.swap_remove(i));
+        } else {
+            i += 1;
+        }
+    }
+
+    result
+}
+
+fn build_album_children(albums: &Vec<models::Album>, album: &str) -> Vec<AlbumNav> {
+    albums
+        .iter()
+        .filter_map(|a| {
+            if a.parent.as_deref() == Some(album) {
+                Some(AlbumNav {
+                    album: a.clone(),
+                    children: build_album_children(albums, &a.id),
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+fn build_catalog_albums(albums: &Vec<models::Album>, catalog: &str) -> Vec<AlbumNav> {
+    albums
+        .iter()
+        .filter_map(|a| {
+            if a.catalog == catalog && a.parent == None {
+                Some(AlbumNav {
+                    album: a.clone(),
+                    children: build_album_children(albums, &a.id),
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 #[instrument(skip_all, err)]
 async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Result<ApiState> {
     if let Some(ref email) = session.email {
         let user = db.user(email).await?;
         let catalogs = db.list_user_catalogs(email).await?;
         let catalog_ids: Vec<&str> = catalogs.iter().map(|c| c.id.as_str()).collect();
+        let albums = db.list_catalog_albums(&catalog_ids).await?;
+        let mut searches = db.list_catalog_searches(&catalog_ids).await?;
+
+        let catalog_nav = catalogs
+            .into_iter()
+            .map(|catalog| CatalogNav {
+                albums: build_catalog_albums(&albums, &catalog.id),
+                searches: build_searches(&mut searches, &catalog.id),
+                catalog,
+            })
+            .collect::<Vec<CatalogNav>>();
 
         Ok(ApiState {
             user: Some(UserState {
                 user,
-                storage: db.list_user_storage(email).await?,
-                people: db.list_catalog_people(&catalog_ids).await?,
-                tags: db.list_catalog_tags(&catalog_ids).await?,
-                albums: db.list_catalog_albums(&catalog_ids).await?,
-                searches: db.list_catalog_searches(&catalog_ids).await?,
-                catalogs,
+                nav: UserNav {
+                    catalogs: catalog_nav,
+                },
             }),
         })
     } else {
