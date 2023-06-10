@@ -17,7 +17,7 @@ export class IconList extends LitElement {
 
   render() {
     return html`
-      <ul class="ps-3 m-0">
+      <ul class="p-0 m-0">
         <slot></slot>
       </ul>
     `;
@@ -26,7 +26,18 @@ export class IconList extends LitElement {
 
 @customElement("ui-iconlistitem")
 export class IconListItem extends LitElement {
-  static styles = [styles, css``];
+  static styles = [
+    styles,
+    css`
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+    `,
+  ];
+
+  @property()
+  href = "";
 
   @property()
   label = "";
@@ -35,11 +46,24 @@ export class IconListItem extends LitElement {
   icon = "";
 
   render() {
+    if (this.href) {
+      return html`<li>
+        <a class="d-flex flex-row align-items-center pb-1" href=${this.href}
+          ><ui-icon class="pe-2" icon=${this.icon}></ui-icon>${this.label}</a
+        >
+        <div class="ps-3">
+          <slot></slot>
+        </div>
+      </li>`;
+    }
+
     return html`<li>
       <div class="d-flex flex-row align-items-center pb-1">
         <ui-icon class="pe-2" icon=${this.icon}></ui-icon>${this.label}
       </div>
-      <slot></slot>
+      <div class="ps-3">
+        <slot></slot>
+      </div>
     </li>`;
   }
 }

@@ -1,7 +1,7 @@
 {{#*inline "albums"}}
   <ui-iconlist>
     {{#each this.albums}}
-      <ui-iconlistitem icon="images" label="{{this.name}}">
+      <ui-iconlistitem icon="images" href="/album/{{this.id}}" label="{{this.name}}">
         {{#if (gt (len this.children) 0)}}
           {{> albums albums=this.children}}
         {{/if}}
@@ -12,13 +12,13 @@
 
 <ui-iconlist>
   {{#each catalogs}}
-    <ui-iconlistitem icon="file-earmark-richtext" label="{{this.name}}">
+    <ui-iconlistitem icon="file-earmark-richtext" href="/catalog/{{this.id}}" label="{{this.name}}">
       <ui-iconlist>
         {{#if (gt (len this.searches) 0)}}
           <ui-iconlistitem icon="search" label="Saved Searches">
             <ui-iconlist>
               {{#each this.searches}}
-                <ui-iconlistitem icon="search" label="{{this.name}}"></ui-iconlistitem>
+                <ui-iconlistitem icon="search" href="/search/{{this.id}}" label="{{this.name}}"></ui-iconlistitem>
               {{/each}}
             </ui-iconlist>
           </ui-iconlistitem>
