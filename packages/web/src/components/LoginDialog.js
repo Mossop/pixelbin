@@ -75,3 +75,7 @@ export class LoginDialog extends LitElement {
     document.body.appendChild(new LoginDialog());
   }
 }
+
+window.login = () => {
+  LoginDialog.show();
+};

@@ -143,11 +143,23 @@ async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResu
     ))
 }
 
+fn default_true() -> bool {
+    true
+}
+
+#[serde_as]
+#[derive(Deserialize)]
+struct AlbumQuery {
+    #[serde(default = "default_true")]
+    recursive: bool,
+}
+
 #[get("/album/{album_id}")]
 async fn album(
     app_state: web::Data<AppState<'_>>,
     session: Session,
     album_id: web::Path<String>,
+    query: web::Query<AlbumQuery>,
 ) -> HttpResult<impl Responder> {
     let email = if let Some(ref email) = session.email {
         email.to_owned()
@@ -162,8 +174,15 @@ async fn album(
                 let state = build_state(&mut trx, &session).await?;
 
                 let album = trx.user_album(&email, &album_id).await?;
+                let media = trx
+                    .user_album_media(&email, &album_id, query.recursive)
+                    .await?;
 
-                Ok(templates::Album { state, album })
+                Ok(templates::Album {
+                    state,
+                    album,
+                    media,
+                })
             }
             .scope_boxed()
         })
@@ -332,12 +351,12 @@ async fn api_logout(
 
 #[serde_as]
 #[derive(Deserialize)]
-struct MediaList {
+struct MediaListQuery {
     #[serde_as(as = "StringWithSeparator::<CommaSeparator, String>")]
     id: Vec<String>,
 }
 
 #[get("/api/media/get")]
-async fn api_media_get(media_list: web::Query<MediaList>) -> HttpResult<HttpResponse> {
+async fn api_media_get(media_list: web::Query<MediaListQuery>) -> HttpResult<HttpResponse> {
     todo!();
 }

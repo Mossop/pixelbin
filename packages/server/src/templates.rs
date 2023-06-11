@@ -3,6 +3,7 @@ use std::str::from_utf8;
 use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError};
 use pixelbin_store::models;
 use rust_embed::RustEmbed;
+use serde_json::Value;
 
 use crate::ApiState;
 use pixelbin_shared::Result;
@@ -44,6 +45,58 @@ fn json_helper(
     Ok(())
 }
 
+fn attrs_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let param = h.param(0).ok_or(RenderError::new("param not found"))?;
+    match param.value() {
+        Value::Null => Err(RenderError::new(
+            "unexpected null when expanding attributed",
+        )),
+        Value::Bool(_) => Err(RenderError::new(
+            "unexpected boolean when expanding attributed",
+        )),
+        Value::Number(_) => Err(RenderError::new(
+            "unexpected number when expanding attributed",
+        )),
+        Value::String(_) => Err(RenderError::new(
+            "unexpected string when expanding attributed",
+        )),
+        Value::Array(_) => Err(RenderError::new(
+            "unexpected array when expanding attributed",
+        )),
+        Value::Object(obj) => {
+            for (key, v) in obj {
+                let value = match v {
+                    Value::Null => {
+                        continue;
+                    }
+                    Value::Bool(b) => b.to_string(),
+                    Value::Number(n) => n.to_string(),
+                    Value::String(s) => s.clone(),
+                    Value::Array(_) => {
+                        return Err(RenderError::new(
+                            "unexpected array when expanding attributed",
+                        ))
+                    }
+                    Value::Object(_) => {
+                        return Err(RenderError::new(
+                            "unexpected object when expanding attributed",
+                        ))
+                    }
+                };
+
+                out.write(&format!("{key}=\"{value}\""))?;
+            }
+            Ok(())
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) struct Index {
     #[serde(flatten)]
@@ -55,6 +108,7 @@ pub(crate) struct Album {
     #[serde(flatten)]
     pub(crate) state: ApiState,
     pub(crate) album: models::Album,
+    pub(crate) media: Vec<models::MediaView>,
 }
 
 #[derive(Serialize)]
@@ -72,6 +126,7 @@ impl<'a> Templates<'a> {
         let mut handlebars = Handlebars::new();
         handlebars.set_strict_mode(true);
         handlebars.register_helper("json", Box::new(json_helper));
+        handlebars.register_helper("attrs", Box::new(attrs_helper));
 
         for name in TemplateAssets::iter() {
             if name.ends_with(".hbs") {

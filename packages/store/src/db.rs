@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use diesel::prelude::*;
+use diesel::{prelude::*, sql_types};
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     scoped_futures::ScopedFutureExt,
@@ -13,6 +13,31 @@ use pixelbin_shared::Error;
 
 pub(crate) type DbConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<DbConnection>;
+
+sql_function!(
+    #[sql_name = "GREATEST"]
+    fn greatest(a: sql_types::Timestamptz, b: sql_types::Nullable<sql_types::Timestamptz>) -> sql_types::Timestamptz
+);
+
+sql_function!(
+    #[sql_name = "COALESCE"]
+    fn coalesce_str(a: sql_types::Nullable<sql_types::VarChar>, b: sql_types::Nullable<sql_types::VarChar>) -> sql_types::Nullable<sql_types::VarChar>
+);
+
+sql_function!(
+    #[sql_name = "COALESCE"]
+    fn coalesce_int(a: sql_types::Nullable<sql_types::Int4>, b: sql_types::Nullable<sql_types::Int4>) -> sql_types::Nullable<sql_types::Int4>
+);
+
+sql_function!(
+    #[sql_name = "COALESCE"]
+    fn coalesce_float(a: sql_types::Nullable<sql_types::Float4>, b: sql_types::Nullable<sql_types::Float4>) -> sql_types::Nullable<sql_types::Float4>
+);
+
+sql_function!(
+    #[sql_name = "COALESCE"]
+    fn coalesce_pdt(a: sql_types::Nullable<sql_types::Timestamp>, b: sql_types::Nullable<sql_types::Timestamp>) -> sql_types::Nullable<sql_types::Timestamp>
+);
 
 #[instrument(err)]
 pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
@@ -239,6 +264,61 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                     .await
                     .optional()?
                     .ok_or_else(|| Error::NotFound)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
+    async fn user_album_media(
+        &mut self,
+        email: &str,
+        album: &str,
+        recursive: bool,
+    ) -> Result<Vec<models::MediaView>> {
+        self.with_connection(|conn| {
+            async move {
+                Ok(user_catalog::table
+                    .inner_join(media_item::table.on(media_item::catalog.eq(user_catalog::catalog)))
+                    .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+                    .inner_join(
+                        media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
+                    )
+                    .filter(user_catalog::user.eq(email))
+                    .filter(media_album::album.eq(album))
+                    .select((
+                        media_item::id,
+                        media_item::catalog,
+                        media_item::created,
+                        greatest(media_item::updated, media_file::uploaded.nullable()),
+                        coalesce_str(media_item::filename, media_file::filename),
+                        coalesce_str(media_item::title, media_file::title),
+                        coalesce_str(media_item::description, media_file::description),
+                        coalesce_str(media_item::label, media_file::label),
+                        coalesce_str(media_item::category, media_file::category),
+                        coalesce_pdt(media_item::taken, media_file::taken),
+                        coalesce_str(media_item::taken_zone, media_file::taken_zone),
+                        coalesce_float(media_item::longitude, media_file::longitude),
+                        coalesce_float(media_item::latitude, media_file::latitude),
+                        coalesce_float(media_item::altitude, media_file::altitude),
+                        coalesce_str(media_item::location, media_file::location),
+                        coalesce_str(media_item::city, media_file::city),
+                        coalesce_str(media_item::state, media_file::state),
+                        coalesce_str(media_item::country, media_file::country),
+                        coalesce_int(media_item::orientation, media_file::orientation),
+                        coalesce_str(media_item::make, media_file::make),
+                        coalesce_str(media_item::model, media_file::model),
+                        coalesce_str(media_item::lens, media_file::lens),
+                        coalesce_str(media_item::photographer, media_file::photographer),
+                        coalesce_float(media_item::aperture, media_file::aperture),
+                        coalesce_str(media_item::shutter_speed, media_file::shutter_speed),
+                        coalesce_int(media_item::iso, media_file::iso),
+                        coalesce_float(media_item::focal_length, media_file::focal_length),
+                        coalesce_int(media_item::rating, media_file::rating),
+                        // pub file: Option<MediaViewFile>,
+                    ))
+                    .load::<models::MediaView>(conn)
+                    .await?)
             }
             .scope_boxed()
         })

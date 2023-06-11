@@ -1,5 +1,6 @@
 use diesel::{backend, deserialize, serialize, sql_types, AsExpression, Queryable};
 use serde::Serialize;
+use serde_repr::Serialize_repr;
 use time::{OffsetDateTime, PrimitiveDateTime};
 
 use crate::{aws::AwsClient, search::Query, RemotePath};
@@ -120,8 +121,8 @@ where
 }
 
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, AsExpression, deserialize::FromSqlRow)]
-#[diesel(sql_type = sql_types::Integer)]
+#[derive(Debug, Clone, Copy, Serialize_repr, AsExpression, deserialize::FromSqlRow)]
+#[diesel(sql_type = sql_types::Int4)]
 pub enum Orientation {
     TopLeft = 1,
     TopRight = 2,
@@ -133,10 +134,10 @@ pub enum Orientation {
     LeftBottom = 8,
 }
 
-impl<DB> deserialize::FromSql<sql_types::Integer, DB> for Orientation
+impl<DB> deserialize::FromSql<sql_types::Int4, DB> for Orientation
 where
     DB: backend::Backend,
-    i32: deserialize::FromSql<sql_types::Integer, DB>,
+    i32: deserialize::FromSql<sql_types::Int4, DB>,
 {
     fn from_sql(bytes: backend::RawValue<DB>) -> deserialize::Result<Self> {
         match i32::from_sql(bytes)? {
@@ -153,10 +154,10 @@ where
     }
 }
 
-impl<DB> serialize::ToSql<sql_types::Integer, DB> for Orientation
+impl<DB> serialize::ToSql<sql_types::Int4, DB> for Orientation
 where
     DB: backend::Backend,
-    i32: serialize::ToSql<sql_types::Integer, DB>,
+    i32: serialize::ToSql<sql_types::Int4, DB>,
 {
     fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, DB>) -> serialize::Result {
         match self {
@@ -310,4 +311,56 @@ pub struct AlternateFile {
     pub bit_rate: Option<f32>,
     pub media_file: String,
     pub local: bool,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct MediaViewFile {
+    pub id: String,
+    pub file_size: u64,
+    pub mimetype: String,
+    pub width: u32,
+    pub height: u32,
+    pub duration: Option<f64>,
+    pub frame_rate: Option<f64>,
+    pub bit_rate: Option<f64>,
+    #[serde(with = "serialize_datetime")]
+    pub uploaded: OffsetDateTime,
+    pub file_name: String,
+}
+
+#[derive(Queryable, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaView {
+    pub id: String,
+    pub catalog: String,
+    #[serde(with = "serialize_datetime")]
+    pub created: OffsetDateTime,
+    #[serde(with = "serialize_datetime")]
+    pub updated: OffsetDateTime,
+    pub filename: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub label: Option<String>,
+    pub category: Option<String>,
+    #[serde(with = "serialize_primitive_datetime::option")]
+    pub taken: Option<PrimitiveDateTime>,
+    pub taken_zone: Option<String>,
+    pub longitude: Option<f32>,
+    pub latitude: Option<f32>,
+    pub altitude: Option<f32>,
+    pub location: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub country: Option<String>,
+    pub orientation: Option<Orientation>,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub lens: Option<String>,
+    pub photographer: Option<String>,
+    pub aperture: Option<f32>,
+    pub shutter_speed: Option<String>,
+    pub iso: Option<i32>,
+    pub focal_length: Option<f32>,
+    pub rating: Option<i32>,
+    // pub file: Option<MediaViewFile>,
 }
