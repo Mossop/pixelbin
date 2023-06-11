@@ -50,6 +50,19 @@ pub(crate) struct Index {
     pub(crate) state: ApiState,
 }
 
+#[derive(Serialize)]
+pub(crate) struct Album {
+    #[serde(flatten)]
+    pub(crate) state: ApiState,
+    pub(crate) album: models::Album,
+}
+
+#[derive(Serialize)]
+pub(crate) struct NotFound {
+    #[serde(flatten)]
+    pub(crate) state: ApiState,
+}
+
 pub(crate) struct Templates<'a> {
     handlebars: Handlebars<'a>,
 }
@@ -83,5 +96,13 @@ impl<'a> Templates<'a> {
 
     pub(crate) fn index(&self, data: Index) -> Result<String> {
         Ok(self.handlebars.render("index", &data)?)
+    }
+
+    pub(crate) fn album(&self, data: Album) -> Result<String> {
+        Ok(self.handlebars.render("album", &data)?)
+    }
+
+    pub(crate) fn not_found(&self, data: NotFound) -> Result<String> {
+        Ok(self.handlebars.render("notfound", &data)?)
     }
 }

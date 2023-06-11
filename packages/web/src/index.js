@@ -1,10 +1,4 @@
-import "./components/AppBar.js";
-import "./components/Avatar.js";
-import "./components/Button.js";
-import "./components/Dialog.js";
-import "./components/Icon.js";
-import "./components/IconList.js";
-import "./components/TextField.js";
+import "./components";
 import { LoginDialog } from "./components/LoginDialog.js";
 
 window.login = function login() {

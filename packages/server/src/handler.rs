@@ -2,7 +2,7 @@ use actix_web::{
     body::BoxBody, get, http::StatusCode, post, web, HttpRequest, HttpResponse, Responder,
 };
 use mime_guess::from_path;
-use pixelbin_shared::Result;
+use pixelbin_shared::{Error, Result};
 use pixelbin_store::{models, DbQueries};
 use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
@@ -55,11 +55,11 @@ fn build_searches(
     result
 }
 
-fn build_album_children(albums: &Vec<models::Album>, album: &str) -> Vec<AlbumNav> {
+fn build_album_children(albums: &Vec<models::Album>, alb: &str) -> Vec<AlbumNav> {
     albums
         .iter()
         .filter_map(|a| {
-            if a.parent.as_deref() == Some(album) {
+            if a.parent.as_deref() == Some(alb) {
                 Some(AlbumNav {
                     album: a.clone(),
                     children: build_album_children(albums, &a.id),
@@ -93,8 +93,8 @@ async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Resu
         let user = db.user(email).await?;
         let catalogs = db.list_user_catalogs(email).await?;
         let catalog_ids: Vec<&str> = catalogs.iter().map(|c| c.id.as_str()).collect();
-        let albums = db.list_catalog_albums(&catalog_ids).await?;
-        let mut searches = db.list_catalog_searches(&catalog_ids).await?;
+        let albums = db.list_user_albums(&email).await?;
+        let mut searches = db.list_user_searches(&email).await?;
 
         let catalog_nav = catalogs
             .into_iter()
@@ -118,6 +118,14 @@ async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Resu
     }
 }
 
+async fn not_found(app_state: &AppState<'_>, state: ApiState) -> Result<HttpResponse> {
+    Ok(HttpResponse::NotFound().content_type("text/html").body(
+        app_state
+            .templates
+            .not_found(templates::NotFound { state })?,
+    ))
+}
+
 #[get("/")]
 async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResult<impl Responder> {
     let api_state = app_state
@@ -133,6 +141,40 @@ async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResu
             .templates
             .index(templates::Index { state: api_state })?,
     ))
+}
+
+#[get("/album/{album_id}")]
+async fn album(
+    app_state: web::Data<AppState<'_>>,
+    session: Session,
+    album_id: web::Path<String>,
+) -> HttpResult<impl Responder> {
+    let email = if let Some(ref email) = session.email {
+        email.to_owned()
+    } else {
+        return Ok(not_found(&app_state, ApiState { user: None }).await?);
+    };
+
+    match app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let state = build_state(&mut trx, &session).await?;
+
+                let album = trx.user_album(&email, &album_id).await?;
+
+                Ok(templates::Album { state, album })
+            }
+            .scope_boxed()
+        })
+        .await
+    {
+        Ok(data) => Ok(HttpResponse::Ok()
+            .content_type("text/html")
+            .body(app_state.templates.album(data)?)),
+        Err(Error::NotFound) => Ok(not_found(&app_state, ApiState { user: None }).await?),
+        Err(e) => Err(e.into()),
+    }
 }
 
 #[get("/static/{_:.*}")]
@@ -245,9 +287,9 @@ async fn api_login(
             async move {
                 match trx
                     .verify_credentials(&credentials.email, &credentials.password)
-                    .await?
+                    .await
                 {
-                    Some(user) => {
+                    Ok(user) => {
                         let session = app_state
                             .sessions
                             .update(&session.id, |sess| {
@@ -258,7 +300,8 @@ async fn api_login(
 
                         Ok(build_state(&mut trx, &session).await?.into())
                     }
-                    None => Ok(ApiErrorCode::NotLoggedIn.into()),
+                    Err(Error::NotFound) => Ok(ApiErrorCode::NotLoggedIn.into()),
+                    Err(e) => Err(e.into()),
                 }
             }
             .scope_boxed()

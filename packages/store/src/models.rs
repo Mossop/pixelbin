@@ -258,6 +258,7 @@ pub struct MediaFile {
     pub id: String,
     #[serde(with = "serialize_datetime")]
     pub uploaded: OffsetDateTime,
+    #[serde(skip)]
     pub process_version: i32,
     pub file_name: String,
     pub file_size: i32,

@@ -1,4 +1,4 @@
-use crate::schema::catalog;
+use crate::schema::{album, catalog, person, saved_search, tag};
 
 diesel::table! {
     user_catalog (user, catalog) {
@@ -9,3 +9,7 @@ diesel::table! {
 }
 
 diesel::allow_tables_to_appear_in_same_query!(user_catalog, catalog);
+diesel::allow_tables_to_appear_in_same_query!(user_catalog, person);
+diesel::allow_tables_to_appear_in_same_query!(user_catalog, album);
+diesel::allow_tables_to_appear_in_same_query!(user_catalog, tag);
+diesel::allow_tables_to_appear_in_same_query!(user_catalog, saved_search);

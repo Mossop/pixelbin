@@ -9,6 +9,7 @@ use time::OffsetDateTime;
 use tracing::instrument;
 
 use crate::{manual_schema::*, models, schema::*, Result};
+use pixelbin_shared::Error;
 
 pub(crate) type DbConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<DbConnection>;
@@ -58,31 +59,24 @@ pub struct StoreStats {
 
 #[async_trait]
 pub trait DbQueries: sealed::ConnectionProvider + Sized {
-    async fn verify_credentials(
-        &mut self,
-        email: &str,
-        password: &str,
-    ) -> Result<Option<models::User>> {
+    async fn verify_credentials(&mut self, email: &str, password: &str) -> Result<models::User> {
         self.with_connection(|conn| {
             async move {
-                let mut user = match user::table
+                let mut user: models::User = user::table
                     .filter(user::email.eq(email))
                     .select(user::all_columns)
                     .get_result::<models::User>(conn)
                     .await
                     .optional()?
-                {
-                    Some(u) => u,
-                    None => return Ok(None),
-                };
+                    .ok_or_else(|| Error::NotFound)?;
 
                 if let Some(ref password_hash) = user.password {
                     match bcrypt::verify(password, password_hash) {
                         Ok(true) => (),
-                        _ => return Ok(None),
+                        _ => return Err(Error::NotFound),
                     }
                 } else {
-                    return Ok(None);
+                    return Err(Error::NotFound);
                 }
 
                 user.last_login = Some(OffsetDateTime::now_utc());
@@ -93,7 +87,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                     .execute(conn)
                     .await?;
 
-                Ok(Some(user))
+                Ok(user)
             }
             .scope_boxed()
         })
@@ -155,11 +149,11 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn list_user_storage(&mut self, user: &str) -> Result<Vec<models::Storage>> {
+    async fn list_user_storage(&mut self, email: &str) -> Result<Vec<models::Storage>> {
         self.with_connection(|conn| {
             async move {
                 Ok(storage::table
-                    .filter(storage::owner.eq(user))
+                    .filter(storage::owner.eq(email))
                     .select(storage::all_columns)
                     .load::<models::Storage>(conn)
                     .await?)
@@ -169,12 +163,12 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn list_user_catalogs(&mut self, user: &str) -> Result<Vec<models::Catalog>> {
+    async fn list_user_catalogs(&mut self, email: &str) -> Result<Vec<models::Catalog>> {
         self.with_connection(|conn| {
             async move {
                 Ok(catalog::table
                     .inner_join(user_catalog::table.on(user_catalog::catalog.eq(catalog::id)))
-                    .filter(user_catalog::user.eq(user))
+                    .filter(user_catalog::user.eq(email))
                     .select(catalog::all_columns)
                     .order(catalog::name.asc())
                     .load::<models::Catalog>(conn)
@@ -185,11 +179,12 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn list_catalog_people(&mut self, catalogs: &Vec<&str>) -> Result<Vec<models::Person>> {
+    async fn list_user_people(&mut self, email: &str) -> Result<Vec<models::Person>> {
         self.with_connection(|conn| {
             async move {
-                Ok(person::table
-                    .filter(person::catalog.eq_any(catalogs))
+                Ok(user_catalog::table
+                    .inner_join(person::table.on(person::catalog.eq(user_catalog::catalog)))
+                    .filter(user_catalog::user.eq(email))
                     .select(person::all_columns)
                     .order(person::name.asc())
                     .load::<models::Person>(conn)
@@ -200,11 +195,12 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn list_catalog_tags(&mut self, catalogs: &Vec<&str>) -> Result<Vec<models::Tag>> {
+    async fn list_user_tags(&mut self, email: &str) -> Result<Vec<models::Tag>> {
         self.with_connection(|conn| {
             async move {
-                Ok(tag::table
-                    .filter(tag::catalog.eq_any(catalogs))
+                Ok(user_catalog::table
+                    .inner_join(tag::table.on(tag::catalog.eq(user_catalog::catalog)))
+                    .filter(user_catalog::user.eq(email))
                     .select(tag::all_columns)
                     .order(tag::name.asc())
                     .load::<models::Tag>(conn)
@@ -215,11 +211,12 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn list_catalog_albums(&mut self, catalogs: &Vec<&str>) -> Result<Vec<models::Album>> {
+    async fn list_user_albums(&mut self, email: &str) -> Result<Vec<models::Album>> {
         self.with_connection(|conn| {
             async move {
-                Ok(album::table
-                    .filter(album::catalog.eq_any(catalogs))
+                Ok(user_catalog::table
+                    .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+                    .filter(user_catalog::user.eq(email))
                     .select(album::all_columns)
                     .order(album::name.asc())
                     .load::<models::Album>(conn)
@@ -230,14 +227,32 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn list_catalog_searches(
-        &mut self,
-        catalogs: &Vec<&str>,
-    ) -> Result<Vec<models::SavedSearch>> {
+    async fn user_album(&mut self, email: &str, album: &str) -> Result<models::Album> {
         self.with_connection(|conn| {
             async move {
-                Ok(saved_search::table
-                    .filter(saved_search::catalog.eq_any(catalogs))
+                user_catalog::table
+                    .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+                    .filter(user_catalog::user.eq(email))
+                    .filter(album::id.eq(album))
+                    .select(album::all_columns)
+                    .get_result::<models::Album>(conn)
+                    .await
+                    .optional()?
+                    .ok_or_else(|| Error::NotFound)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
+    async fn list_user_searches(&mut self, email: &str) -> Result<Vec<models::SavedSearch>> {
+        self.with_connection(|conn| {
+            async move {
+                Ok(user_catalog::table
+                    .inner_join(
+                        saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)),
+                    )
+                    .filter(user_catalog::user.eq(email))
                     .select(saved_search::all_columns)
                     .order(saved_search::name.asc())
                     .load::<models::SavedSearch>(conn)

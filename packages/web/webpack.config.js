@@ -9,7 +9,7 @@ const TARGET = path.join(__dirname, "..", "..", "target", "web");
  * @typedef { import("webpack").Configuration } Configuration
  */
 
-const ENTRIES = ["index"];
+const ENTRIES = ["index", "album", "notfound"];
 
 /** @type {({mode?: "development" | "production"}) => Configuration} */
 module.exports = ({ mode = "development" }) =>
