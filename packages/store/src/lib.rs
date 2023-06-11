@@ -17,6 +17,7 @@ mod manual_schema;
 pub mod models;
 #[allow(unreachable_pub)]
 mod schema;
+pub mod search;
 
 pub use aws::RemotePath;
 pub use db::DbQueries;

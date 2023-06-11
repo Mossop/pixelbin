@@ -1,9 +1,8 @@
-use diesel::{backend, deserialize, sql_types, Queryable};
+use diesel::{backend, deserialize, serialize, sql_types, AsExpression, Queryable};
 use serde::Serialize;
-use serde_json::Value;
 use time::{OffsetDateTime, PrimitiveDateTime};
 
-use crate::{aws::AwsClient, RemotePath};
+use crate::{aws::AwsClient, search::Query, RemotePath};
 use pixelbin_shared::Result;
 
 pub(crate) mod serialize_datetime {
@@ -79,7 +78,8 @@ pub(crate) mod serialize_primitive_datetime {
     }
 }
 
-#[derive(Debug, Clone, Copy, deserialize::FromSqlRow)]
+#[derive(Debug, Clone, Copy, AsExpression, deserialize::FromSqlRow)]
+#[diesel(sql_type = sql_types::VarChar)]
 pub enum AlternateFileType {
     Thumbnail,
     Reencode,
@@ -99,8 +99,29 @@ where
     }
 }
 
+impl serialize::ToSql<sql_types::VarChar, diesel::pg::Pg> for AlternateFileType
+where
+    String: serialize::ToSql<sql_types::VarChar, diesel::pg::Pg>,
+{
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut serialize::Output<'b, '_, diesel::pg::Pg>,
+    ) -> serialize::Result {
+        let string = match self {
+            AlternateFileType::Thumbnail => "thumbnail".to_string(),
+            AlternateFileType::Reencode => "reencode".to_string(),
+        };
+
+        <String as serialize::ToSql<sql_types::VarChar, diesel::pg::Pg>>::to_sql(
+            &string,
+            &mut out.reborrow(),
+        )
+    }
+}
+
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, deserialize::FromSqlRow)]
+#[derive(Debug, Clone, Copy, AsExpression, deserialize::FromSqlRow)]
+#[diesel(sql_type = sql_types::Integer)]
 pub enum Orientation {
     TopLeft = 1,
     TopRight = 2,
@@ -128,6 +149,25 @@ where
             7 => Ok(Orientation::RightBottom),
             8 => Ok(Orientation::LeftBottom),
             x => Err(format!("Unrecognized variant {}", x).into()),
+        }
+    }
+}
+
+impl<DB> serialize::ToSql<sql_types::Integer, DB> for Orientation
+where
+    DB: backend::Backend,
+    i32: serialize::ToSql<sql_types::Integer, DB>,
+{
+    fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, DB>) -> serialize::Result {
+        match self {
+            Orientation::TopLeft => 1.to_sql(out),
+            Orientation::TopRight => 2.to_sql(out),
+            Orientation::BottomRight => 3.to_sql(out),
+            Orientation::BottomLeft => 4.to_sql(out),
+            Orientation::LeftTop => 5.to_sql(out),
+            Orientation::RightTop => 6.to_sql(out),
+            Orientation::RightBottom => 7.to_sql(out),
+            Orientation::LeftBottom => 8.to_sql(out),
         }
     }
 }
@@ -209,7 +249,7 @@ pub struct SavedSearch {
     pub id: String,
     pub name: String,
     pub shared: bool,
-    pub query: Value,
+    pub query: Query,
     pub catalog: String,
 }
 
