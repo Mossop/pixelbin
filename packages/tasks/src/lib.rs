@@ -39,7 +39,7 @@ pub async fn verify_local_storage(store: Store) -> Result {
         files - errors,
         errors
     );
-    if local_files.len() > 0 {
+    if !local_files.is_empty() {
         tracing::warn!("Saw {} local files that need pruning.", local_files.len());
     }
 

@@ -8,7 +8,7 @@ use std::{
 
 use tokio::sync::Mutex;
 
-fn flush<K, V>(map: &mut HashMap<K, (Instant, V)>) {}
+fn flush<K, V>(_map: &mut HashMap<K, (Instant, V)>) {}
 
 #[derive(Clone)]
 pub(crate) struct Cache<K, V> {

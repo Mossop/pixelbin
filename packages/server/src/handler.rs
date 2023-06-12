@@ -1,4 +1,4 @@
-use std::{cmp::max, collections::HashMap, path::PathBuf};
+use std::{cmp::max, path::PathBuf};
 
 use actix_web::{
     body::BoxBody,
@@ -15,7 +15,7 @@ use pixelbin_store::{
 use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
-use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
+use serde_with::serde_as;
 use time::OffsetDateTime;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
@@ -108,7 +108,7 @@ fn build_catalog_albums(albums: &Vec<models::Album>, catalog: &str) -> Vec<Album
     albums
         .iter()
         .filter_map(|a| {
-            if a.catalog == catalog && a.parent == None {
+            if a.catalog == catalog && a.parent.is_none() {
                 Some(AlbumNav {
                     album: a.clone(),
                     children: build_album_children(albums, &a.id),
@@ -125,8 +125,8 @@ async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Resu
     if let Some(ref email) = session.email {
         let user = db.user(email).await?;
         let catalogs = db.list_user_catalogs(email).await?;
-        let albums = db.list_user_albums(&email).await?;
-        let mut searches = db.list_user_searches(&email).await?;
+        let albums = db.list_user_albums(email).await?;
+        let mut searches = db.list_user_searches(email).await?;
 
         let catalog_nav = catalogs
             .into_iter()
@@ -250,22 +250,21 @@ async fn thumbnail(
     path: web::Path<ThumbnailPath>,
 ) -> HttpResult<impl Responder> {
     let email = session.email.as_deref();
-    let mimetype = path.mimetype.replace("-", "/");
+    let mimetype = path.mimetype.replace('-', "/");
     let target_size = path.size as i32;
 
     let alternates = match app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                Ok(trx
-                    .list_media_alternates(
-                        email,
-                        &path.item,
-                        &path.file,
-                        &mimetype,
-                        AlternateFileType::Thumbnail,
-                    )
-                    .await?)
+                trx.list_media_alternates(
+                    email,
+                    &path.item,
+                    &path.file,
+                    &mimetype,
+                    AlternateFileType::Thumbnail,
+                )
+                .await
             }
             .scope_boxed()
         })
@@ -319,14 +318,14 @@ async fn static_files(path: web::Path<String>, request: HttpRequest) -> HttpResu
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 enum ApiErrorCode {
-    UnknownException,
-    BadMethod,
+    // UnknownException,
+    // BadMethod,
     NotLoggedIn,
-    LoginFailed,
-    InvalidData,
-    NotFound,
-    TemporaryFailure,
-    InvalidHost,
+    // LoginFailed,
+    // InvalidData,
+    // NotFound,
+    // TemporaryFailure,
+    // InvalidHost,
 }
 
 impl ApiErrorCode {
@@ -340,22 +339,22 @@ struct ApiError {
     code: ApiErrorCode,
 }
 
-impl Into<HttpResponse> for ApiError {
-    fn into(self) -> HttpResponse {
-        let code = match self.code {
-            ApiErrorCode::UnknownException => 500,
-            ApiErrorCode::BadMethod => 405,
+impl From<ApiError> for HttpResponse {
+    fn from(api_error: ApiError) -> HttpResponse {
+        let code = match api_error.code {
+            // ApiErrorCode::UnknownException => 500,
+            // ApiErrorCode::BadMethod => 405,
             ApiErrorCode::NotLoggedIn => 401,
-            ApiErrorCode::LoginFailed => 401,
-            ApiErrorCode::InvalidData => 400,
-            ApiErrorCode::NotFound => 404,
-            ApiErrorCode::TemporaryFailure => 503,
-            ApiErrorCode::InvalidHost => 403,
+            // ApiErrorCode::LoginFailed => 401,
+            // ApiErrorCode::InvalidData => 400,
+            // ApiErrorCode::NotFound => 404,
+            // ApiErrorCode::TemporaryFailure => 503,
+            // ApiErrorCode::InvalidHost => 403,
         };
 
         HttpResponse::build(StatusCode::from_u16(code).unwrap())
             .content_type("application/json")
-            .body(serde_json::to_string_pretty(&self).unwrap())
+            .body(serde_json::to_string_pretty(&api_error).unwrap())
     }
 }
 
@@ -417,7 +416,7 @@ async fn api_login(
                         Ok(build_state(&mut trx, &session).await?.into())
                     }
                     Err(Error::NotFound) => Ok(ApiErrorCode::NotLoggedIn.into()),
-                    Err(e) => Err(e.into()),
+                    Err(e) => Err(e),
                 }
             }
             .scope_boxed()
@@ -447,15 +446,15 @@ async fn api_logout(
         .await?)
 }
 
-#[serde_as]
-#[derive(Debug, Deserialize)]
-struct MediaListQuery {
-    #[serde_as(as = "StringWithSeparator::<CommaSeparator, String>")]
-    id: Vec<String>,
-}
+// #[serde_as]
+// #[derive(Debug, Deserialize)]
+// struct MediaListQuery {
+//     #[serde_as(as = "StringWithSeparator::<CommaSeparator, String>")]
+//     id: Vec<String>,
+// }
 
-#[get("/api/media/get")]
-#[instrument]
-async fn api_media_get(media_list: web::Query<MediaListQuery>) -> HttpResult<HttpResponse> {
-    todo!();
-}
+// #[get("/api/media/get")]
+// #[instrument]
+// async fn api_media_get(media_list: web::Query<MediaListQuery>) -> HttpResult<HttpResponse> {
+//     todo!();
+// }

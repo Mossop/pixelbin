@@ -105,18 +105,17 @@ impl Store {
     {
         let mut conn = self.pool.get().await?;
 
-        Ok(conn
-            .transaction(|mut conn| {
-                async move {
-                    cb(Transaction {
-                        connection: &mut conn,
-                        config: self.config.clone(),
-                    })
-                    .await
-                }
-                .scope_boxed()
-            })
-            .await?)
+        conn.transaction(|conn| {
+            async move {
+                cb(Transaction {
+                    connection: conn,
+                    config: self.config.clone(),
+                })
+                .await
+            }
+            .scope_boxed()
+        })
+        .await
     }
 
     pub async fn online_uri(
@@ -187,7 +186,7 @@ impl Store {
         let mut files = Vec::<(PathBuf, u64)>::new();
 
         let mut readers = vec![fs::read_dir(&self.config.local_storage).await?];
-        while readers.len() > 0 {
+        while !readers.is_empty() {
             let reader = readers.last_mut().unwrap();
             match reader.next_entry().await? {
                 Some(entry) => {

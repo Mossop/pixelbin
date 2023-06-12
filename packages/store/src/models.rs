@@ -54,14 +54,14 @@ pub(crate) mod serialize_primitive_datetime {
         .set_formatted_components(FormattedComponents::DateTime)
         .encode();
 
-    pub(crate) fn serialize<S>(dt: &PrimitiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        dt.format(&Iso8601::<DATETIME_FORMAT>)
-            .unwrap()
-            .serialize(serializer)
-    }
+    // pub(crate) fn serialize<S>(dt: &PrimitiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
+    // where
+    //     S: Serializer,
+    // {
+    //     dt.format(&Iso8601::<DATETIME_FORMAT>)
+    //         .unwrap()
+    //         .serialize(serializer)
+    // }
 
     pub(crate) mod option {
         use super::*;

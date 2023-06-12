@@ -323,7 +323,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         &mut self,
         email: &str,
         album: &str,
-        recursive: bool,
+        _recursive: bool,
     ) -> Result<Vec<models::MediaView>> {
         self.with_connection(|conn| {
             async move {

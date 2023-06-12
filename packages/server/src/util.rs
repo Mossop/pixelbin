@@ -12,9 +12,9 @@ pub(crate) fn long_id(prefix: &str) -> String {
     format!("{prefix}:{}", base62::<25>())
 }
 
-pub(crate) fn short_id(prefix: &str) -> String {
-    format!("{prefix}:{}", base62::<10>())
-}
+// pub(crate) fn short_id(prefix: &str) -> String {
+//     format!("{prefix}:{}", base62::<10>())
+// }
 
 #[derive(Debug)]
 pub(crate) struct InternalError {
