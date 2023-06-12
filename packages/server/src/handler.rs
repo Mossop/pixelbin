@@ -1,14 +1,24 @@
+use std::{cmp::max, collections::HashMap, path::PathBuf};
+
 use actix_web::{
-    body::BoxBody, get, http::StatusCode, post, web, HttpRequest, HttpResponse, Responder,
+    body::BoxBody,
+    get,
+    http::{header, StatusCode},
+    post, web, HttpRequest, HttpResponse, Responder,
 };
 use mime_guess::from_path;
 use pixelbin_shared::{Error, Result};
-use pixelbin_store::{models, DbQueries};
+use pixelbin_store::{
+    models::{self, AlternateFileType},
+    DbQueries, MediaFilePath,
+};
 use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::CommaSeparator, serde_as, StringWithSeparator};
 use time::OffsetDateTime;
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
 use tracing::instrument;
 
 use crate::{
@@ -35,6 +45,29 @@ struct UserState {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ApiState {
     user: Option<UserState>,
+}
+
+fn alt_size(alt: &(models::AlternateFile, MediaFilePath, PathBuf)) -> i32 {
+    max(alt.0.width, alt.0.height)
+}
+
+fn choose_alternate(
+    mut alternates: Vec<(models::AlternateFile, MediaFilePath, PathBuf)>,
+    size: i32,
+) -> Option<(models::AlternateFile, MediaFilePath, PathBuf)> {
+    if alternates.is_empty() {
+        return None;
+    }
+
+    let mut chosen = alternates.swap_remove(0);
+
+    for alternate in alternates {
+        if (size - alt_size(&chosen)).abs() > (size - alt_size(&alternate)).abs() {
+            chosen = alternate;
+        }
+    }
+
+    Some(chosen)
 }
 
 fn build_searches(
@@ -92,7 +125,6 @@ async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Resu
     if let Some(ref email) = session.email {
         let user = db.user(email).await?;
         let catalogs = db.list_user_catalogs(email).await?;
-        let catalog_ids: Vec<&str> = catalogs.iter().map(|c| c.id.as_str()).collect();
         let albums = db.list_user_albums(&email).await?;
         let mut searches = db.list_user_searches(&email).await?;
 
@@ -127,6 +159,7 @@ async fn not_found(app_state: &AppState<'_>, state: ApiState) -> Result<HttpResp
 }
 
 #[get("/")]
+#[instrument(skip_all)]
 async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResult<impl Responder> {
     let api_state = app_state
         .store
@@ -148,19 +181,22 @@ fn default_true() -> bool {
 }
 
 #[serde_as]
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct AlbumQuery {
     #[serde(default = "default_true")]
     recursive: bool,
 }
 
 #[get("/album/{album_id}")]
+#[instrument(skip(app_state, session))]
 async fn album(
     app_state: web::Data<AppState<'_>>,
     session: Session,
     album_id: web::Path<String>,
     query: web::Query<AlbumQuery>,
 ) -> HttpResult<impl Responder> {
+    let config = app_state.store.config().clone();
+
     let email = if let Some(ref email) = session.email {
         email.to_owned()
     } else {
@@ -182,6 +218,7 @@ async fn album(
                     state,
                     album,
                     media,
+                    thumbnails: config.thumbnails.clone(),
                 })
             }
             .scope_boxed()
@@ -196,7 +233,66 @@ async fn album(
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct ThumbnailPath {
+    item: String,
+    file: String,
+    size: u32,
+    mimetype: String,
+    _filename: String,
+}
+
+#[get("/media/{item}/{file}/thumb/{size}/{mimetype}/{_filename}")]
+#[instrument(skip(app_state, session))]
+async fn thumbnail(
+    app_state: web::Data<AppState<'_>>,
+    session: Session,
+    path: web::Path<ThumbnailPath>,
+) -> HttpResult<impl Responder> {
+    let email = session.email.as_deref();
+    let mimetype = path.mimetype.replace("-", "/");
+    let target_size = path.size as i32;
+
+    let alternates = match app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                Ok(trx
+                    .list_media_alternates(
+                        email,
+                        &path.item,
+                        &path.file,
+                        &mimetype,
+                        AlternateFileType::Thumbnail,
+                    )
+                    .await?)
+            }
+            .scope_boxed()
+        })
+        .await
+    {
+        Ok(alternates) => alternates,
+        Err(Error::NotFound) => return Ok(not_found(&app_state, ApiState { user: None }).await?),
+        Err(e) => return Err(e.into()),
+    };
+
+    match choose_alternate(alternates, target_size) {
+        Some((alternate, _media_path, path)) => {
+            let file = File::open(&path).await?;
+            let stream = ReaderStream::new(file);
+
+            Ok(HttpResponse::Ok()
+                .content_type(alternate.mimetype.clone())
+                .append_header((header::CACHE_CONTROL, "max-age=1314000,immutable"))
+                .append_header((header::CONTENT_LENGTH, alternate.file_size))
+                .streaming(stream))
+        }
+        None => Ok(not_found(&app_state, ApiState { user: None }).await?),
+    }
+}
+
 #[get("/static/{_:.*}")]
+#[instrument(skip(request))]
 async fn static_files(path: web::Path<String>, request: HttpRequest) -> HttpResult<impl Responder> {
     let local_path = path.to_owned();
 
@@ -294,6 +390,7 @@ struct Credentials {
 }
 
 #[post("/api/login")]
+#[instrument(skip(app_state, session, credentials))]
 async fn api_login(
     app_state: web::Data<AppState<'_>>,
     session: Session,
@@ -329,6 +426,7 @@ async fn api_login(
 }
 
 #[post("/api/logout")]
+#[instrument(skip(app_state, session))]
 async fn api_logout(
     app_state: web::Data<AppState<'_>>,
     session: Session,
@@ -350,13 +448,14 @@ async fn api_logout(
 }
 
 #[serde_as]
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct MediaListQuery {
     #[serde_as(as = "StringWithSeparator::<CommaSeparator, String>")]
     id: Vec<String>,
 }
 
 #[get("/api/media/get")]
+#[instrument]
 async fn api_media_get(media_list: web::Query<MediaListQuery>) -> HttpResult<HttpResponse> {
     todo!();
 }

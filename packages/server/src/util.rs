@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, io};
 
 use actix_web::{
     body::BoxBody,
@@ -30,6 +30,14 @@ impl fmt::Display for InternalError {
 impl From<Error> for InternalError {
     fn from(value: Error) -> Self {
         Self { inner: value }
+    }
+}
+
+impl From<io::Error> for InternalError {
+    fn from(value: io::Error) -> Self {
+        Self {
+            inner: value.into(),
+        }
     }
 }
 

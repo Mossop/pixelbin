@@ -41,9 +41,9 @@ module.exports = ({ mode = "development" }) =>
 
   ({
     mode,
-    entry: Object.fromEntries(
-      ENTRIES.map((name) => [name, path.join(__dirname, "src", `${name}.js`)]),
-    ),
+    entry: {
+      index: path.join(__dirname, "src", "index.js"),
+    },
     resolve: {
       extensions: [".js"],
     },
@@ -90,7 +90,7 @@ module.exports = ({ mode = "development" }) =>
             scriptLoading: "defer",
             inject: true,
             minify: false,
-            chunks: [name],
+            chunks: ["index"],
           }),
       ),
       new SubresourceIntegrityPlugin({

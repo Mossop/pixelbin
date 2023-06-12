@@ -26,7 +26,7 @@ use pixelbin_shared::{Config, Result};
 use schema::*;
 use tokio::fs;
 
-fn joinable(st: &str) -> &str {
+pub(crate) fn joinable(st: &str) -> &str {
     st.trim_matches('/')
 }
 
@@ -110,6 +110,7 @@ impl Store {
                 async move {
                     cb(Transaction {
                         connection: &mut conn,
+                        config: self.config.clone(),
                     })
                     .await
                 }
@@ -248,10 +249,15 @@ impl db::sealed::ConnectionProvider for Store {
         let mut conn = self.pool.get().await?;
         cb(&mut conn).await
     }
+
+    fn config(&self) -> Config {
+        self.config.clone()
+    }
 }
 
 pub struct Transaction<'a> {
     connection: &'a mut DbConnection,
+    config: Config,
 }
 
 #[async_trait]
@@ -262,5 +268,9 @@ impl<'t> db::sealed::ConnectionProvider for Transaction<'t> {
         F: for<'b> FnOnce(&'b mut DbConnection) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
     {
         cb(self.connection).await
+    }
+
+    fn config(&self) -> Config {
+        self.config.clone()
     }
 }

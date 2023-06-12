@@ -1,12 +1,29 @@
 use std::{
+    collections::HashMap,
     env,
     fs::{self, File},
     path::{Path, PathBuf},
 };
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbnailConfig {
+    pub alternate_types: Vec<String>,
+    pub sizes: Vec<u32>,
+}
+
+impl Default for ThumbnailConfig {
+    fn default() -> Self {
+        ThumbnailConfig {
+            alternate_types: vec!["image/webp".to_string()],
+            sizes: vec![150, 200, 250, 300, 350, 400, 450, 500],
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -26,6 +43,9 @@ pub struct Config {
 
     /// The port to run the webserver on.
     pub port: Option<u16>,
+
+    #[serde(default)]
+    pub thumbnails: ThumbnailConfig,
 }
 
 fn resolve(root: &Path, path: &mut PathBuf) -> Result {

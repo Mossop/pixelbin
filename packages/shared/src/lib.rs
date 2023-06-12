@@ -6,7 +6,7 @@ mod error;
 
 use std::path::Path;
 
-pub use config::Config;
+pub use config::{Config, ThumbnailConfig};
 pub use error::{Error, Result};
 
 pub fn load_config(config_file: Option<&Path>) -> Result<Config> {

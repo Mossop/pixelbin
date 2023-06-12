@@ -1,5 +1,7 @@
 mod functions;
 
+use std::path::PathBuf;
+
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::{
@@ -10,7 +12,7 @@ use diesel_async::{
 use time::OffsetDateTime;
 use tracing::instrument;
 
-use crate::{manual_schema::*, models, schema::*, Result};
+use crate::{joinable, manual_schema::*, models, schema::*, MediaFilePath, Result};
 use functions::*;
 use pixelbin_shared::Error;
 
@@ -79,6 +81,7 @@ macro_rules! media_view_query {
                 )
                     .nullable(),
             ))
+            .distinct()
     };
 }
 
@@ -101,6 +104,7 @@ pub(crate) mod sealed {
     use crate::Result;
     use async_trait::async_trait;
     use diesel_async::scoped_futures::ScopedBoxFuture;
+    use pixelbin_shared::Config;
 
     #[async_trait]
     pub trait ConnectionProvider {
@@ -110,6 +114,8 @@ pub(crate) mod sealed {
             F: for<'b> FnOnce(&'b mut DbConnection) -> ScopedBoxFuture<'a, 'b, Result<R>>
                 + Send
                 + 'a;
+
+        fn config(&self) -> Config;
     }
 }
 
@@ -330,6 +336,66 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                     .filter(user_catalog::user.eq(email))
                     .load::<models::MediaView>(conn)
                     .await?)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
+    async fn list_media_alternates(
+        &mut self,
+        email: Option<&str>,
+        item: &str,
+        file: &str,
+        mimetype: &str,
+        alternate_type: models::AlternateFileType,
+    ) -> Result<Vec<(models::AlternateFile, MediaFilePath, PathBuf)>> {
+        let config = self.config();
+
+        self.with_connection(|conn| {
+            async move {
+                if let Some(email) = email {
+                    let files =
+                        user_catalog::table
+                            .filter(user_catalog::user.eq(email))
+                            .inner_join(
+                                media_item::table.on(media_item::catalog.eq(user_catalog::catalog)),
+                            )
+                            .filter(media_item::id.eq(item))
+                            .filter(media_item::media_file.eq(file))
+                            .inner_join(alternate_file::table.on(
+                                media_item::media_file.eq(alternate_file::media_file.nullable()),
+                            ))
+                            .filter(alternate_file::mimetype.eq(mimetype))
+                            .filter(alternate_file::type_.eq(alternate_type))
+                            .select((
+                                alternate_file::all_columns,
+                                media_item::id,
+                                media_item::catalog,
+                            ))
+                            .load::<(models::AlternateFile, String, String)>(conn)
+                            .await?;
+
+                    if !files.is_empty() {
+                        return Ok(files
+                            .into_iter()
+                            .map(|(alternate, media_item, catalog)| {
+                                let file_path = MediaFilePath::new(
+                                    &catalog,
+                                    &media_item,
+                                    &alternate.media_file,
+                                );
+                                let local_path = config
+                                    .local_storage
+                                    .join(file_path.local_path())
+                                    .join(joinable(&alternate.file_name));
+                                (alternate, file_path, local_path)
+                            })
+                            .collect::<Vec<(models::AlternateFile, MediaFilePath, PathBuf)>>());
+                    }
+                }
+
+                Ok(vec![])
             }
             .scope_boxed()
         })

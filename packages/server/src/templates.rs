@@ -8,7 +8,7 @@ use rust_embed::RustEmbed;
 use serde_json::Value;
 
 use crate::ApiState;
-use pixelbin_shared::Result;
+use pixelbin_shared::{Result, ThumbnailConfig};
 use serde::Serialize;
 
 #[derive(RustEmbed)]
@@ -33,6 +33,49 @@ pub(crate) struct CatalogNav {
 #[derive(Serialize)]
 pub(crate) struct UserNav {
     pub(crate) catalogs: Vec<CatalogNav>,
+}
+
+fn mime_ext_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let param = h.param(0).ok_or(RenderError::new("param not found"))?;
+    let mimetype = match param.value() {
+        Value::String(s) => s.clone(),
+        _ => return Err(RenderError::new("unexpected type when stripping extension")),
+    };
+
+    match mimetype.as_str() {
+        "image/webp" => out.write("webp")?,
+        "image/jpeg" => out.write("jpg")?,
+        _ => out.write("bin")?,
+    }
+
+    Ok(())
+}
+
+fn strip_ext_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let param = h.param(0).ok_or(RenderError::new("param not found"))?;
+    let str = match param.value() {
+        Value::String(s) => s.clone(),
+        _ => return Err(RenderError::new("unexpected type when stripping extension")),
+    };
+
+    if let Some(index) = str.rfind('.') {
+        out.write(&str[0..index])?;
+    } else {
+        out.write(&str)?;
+    }
+    Ok(())
 }
 
 fn json_helper(
@@ -103,6 +146,7 @@ pub(crate) struct Album {
     pub(crate) state: ApiState,
     pub(crate) album: models::Album,
     pub(crate) media: Vec<models::MediaView>,
+    pub(crate) thumbnails: ThumbnailConfig,
 }
 
 #[derive(Serialize)]
@@ -121,6 +165,8 @@ impl<'a> Templates<'a> {
         handlebars.set_strict_mode(true);
         handlebars.register_helper("json", Box::new(json_helper));
         handlebars.register_helper("attrs", Box::new(attrs_helper));
+        handlebars.register_helper("strip_ext", Box::new(strip_ext_helper));
+        handlebars.register_helper("mime_ext", Box::new(mime_ext_helper));
 
         for name in TemplateAssets::iter() {
             if name.ends_with(".hbs") {

@@ -1,5 +1,5 @@
 use crate::schema::{
-    album, catalog, media_album, media_file, media_item, person, saved_search, tag,
+    album, alternate_file, catalog, media_album, media_file, media_item, person, saved_search, tag,
 };
 
 diesel::table! {
@@ -18,3 +18,4 @@ diesel::allow_tables_to_appear_in_same_query!(user_catalog, saved_search);
 diesel::allow_tables_to_appear_in_same_query!(user_catalog, media_item);
 diesel::allow_tables_to_appear_in_same_query!(user_catalog, media_file);
 diesel::allow_tables_to_appear_in_same_query!(user_catalog, media_album);
+diesel::allow_tables_to_appear_in_same_query!(user_catalog, alternate_file);

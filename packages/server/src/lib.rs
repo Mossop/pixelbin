@@ -66,6 +66,7 @@ pub async fn serve(store: Store) -> Result {
             .wrap(middleware::Logging)
             .service(handler::index)
             .service(handler::album)
+            .service(handler::thumbnail)
             .service(handler::static_files)
             .service(handler::api_login)
             .service(handler::api_logout)

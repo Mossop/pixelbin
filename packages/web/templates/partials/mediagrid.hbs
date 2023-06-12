@@ -1,0 +1,23 @@
+<ui-thumbnailgrid>
+  {{#each media}}
+    <ui-thumbnail href="{{../base}}/media/{{this.id}}" {{attrs this}}>
+    <picture>
+      {{#each ../thumbnails.alternateTypes}}
+        <source
+          sizes="150px"
+          srcset="{{#each ../../thumbnails.sizes}}/media/{{../../this.id}}/{{../../this.file.id}}/thumb/{{this}}/image-webp/{{strip_ext ../../this.filename}}.{{mime_ext ../this}} {{this}}w,{{/each}}"
+          type="{{this}}">
+        </source>
+      {{/each}}
+      <img
+        loading="lazy"
+        decoding="async"
+        sizes="150px"
+        srcset="{{#each ../thumbnails.sizes}}/media/{{../this.id}}/{{../this.file.id}}/thumb/{{this}}/image-jpeg/{{strip_ext ../this.filename}}.jpg {{this}}w,{{/each}}"
+        class="d-block object-fit-contain"
+        style="width: 150px; height: 150px; object-position: center center"
+      >
+    </picture>
+    </ui-thumbnail>
+  {{/each}}
+</ui-thumbnailgrid>
