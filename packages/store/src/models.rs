@@ -310,17 +310,17 @@ pub struct AlternateFile {
     pub local: bool,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaViewFile {
     pub id: String,
-    pub file_size: u64,
+    pub file_size: i32,
     pub mimetype: String,
-    pub width: u32,
-    pub height: u32,
-    pub duration: Option<f64>,
-    pub frame_rate: Option<f64>,
-    pub bit_rate: Option<f64>,
+    pub width: i32,
+    pub height: i32,
+    pub duration: Option<f32>,
+    pub frame_rate: Option<f32>,
+    pub bit_rate: Option<f32>,
     #[serde(with = "serialize_datetime")]
     pub uploaded: OffsetDateTime,
     pub file_name: String,
@@ -360,5 +360,5 @@ pub struct MediaView {
     pub iso: Option<i32>,
     pub focal_length: Option<f32>,
     pub rating: Option<i32>,
-    // pub file: Option<MediaViewFile>,
+    pub file: Option<MediaViewFile>,
 }

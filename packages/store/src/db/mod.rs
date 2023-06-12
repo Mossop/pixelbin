@@ -297,7 +297,19 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                         coalesce(media_item::iso, media_file::iso),
                         coalesce(media_item::focal_length, media_file::focal_length),
                         coalesce(media_item::rating, media_file::rating),
-                        // pub file: Option<MediaViewFile>,
+                        (
+                            media_file::id,
+                            media_file::file_size,
+                            media_file::mimetype,
+                            media_file::width,
+                            media_file::height,
+                            media_file::duration,
+                            media_file::frame_rate,
+                            media_file::bit_rate,
+                            media_file::uploaded,
+                            media_file::file_name,
+                        )
+                            .nullable(),
                     ))
                     .load::<models::MediaView>(conn)
                     .await?)

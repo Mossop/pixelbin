@@ -1,6 +1,8 @@
 use std::str::from_utf8;
 
-use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError};
+use handlebars::{
+    html_escape, Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError,
+};
 use pixelbin_store::models;
 use rust_embed::RustEmbed;
 use serde_json::Value;
@@ -55,19 +57,19 @@ fn attrs_helper(
     let param = h.param(0).ok_or(RenderError::new("param not found"))?;
     match param.value() {
         Value::Null => Err(RenderError::new(
-            "unexpected null when expanding attributed",
+            "unexpected null when expanding attributes",
         )),
         Value::Bool(_) => Err(RenderError::new(
-            "unexpected boolean when expanding attributed",
+            "unexpected boolean when expanding attributes",
         )),
         Value::Number(_) => Err(RenderError::new(
-            "unexpected number when expanding attributed",
+            "unexpected number when expanding attributes",
         )),
         Value::String(_) => Err(RenderError::new(
-            "unexpected string when expanding attributed",
+            "unexpected string when expanding attributes",
         )),
         Value::Array(_) => Err(RenderError::new(
-            "unexpected array when expanding attributed",
+            "unexpected array when expanding attributes",
         )),
         Value::Object(obj) => {
             for (key, v) in obj {
@@ -78,19 +80,11 @@ fn attrs_helper(
                     Value::Bool(b) => b.to_string(),
                     Value::Number(n) => n.to_string(),
                     Value::String(s) => s.clone(),
-                    Value::Array(_) => {
-                        return Err(RenderError::new(
-                            "unexpected array when expanding attributed",
-                        ))
-                    }
-                    Value::Object(_) => {
-                        return Err(RenderError::new(
-                            "unexpected object when expanding attributed",
-                        ))
-                    }
+                    Value::Array(a) => serde_json::to_string(a).unwrap(),
+                    Value::Object(o) => serde_json::to_string(o).unwrap(),
                 };
 
-                out.write(&format!("{key}=\"{value}\""))?;
+                out.write(&format!("{key}=\"{}\" ", html_escape(&value)))?;
             }
             Ok(())
         }
