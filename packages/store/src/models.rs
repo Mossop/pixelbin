@@ -254,12 +254,10 @@ pub struct SavedSearch {
     pub catalog: String,
 }
 
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Queryable, Clone, Debug)]
 pub struct MediaFile {
     pub id: String,
-    #[serde(with = "serialize_datetime")]
     pub uploaded: OffsetDateTime,
-    #[serde(skip)]
     pub process_version: i32,
     pub file_name: String,
     pub file_size: i32,
@@ -292,7 +290,6 @@ pub struct MediaFile {
     pub altitude: Option<f32>,
     pub aperture: Option<f32>,
     pub focal_length: Option<f32>,
-    #[serde(with = "serialize_primitive_datetime::option")]
     pub taken: Option<PrimitiveDateTime>,
     pub media: String,
 }
@@ -314,6 +311,7 @@ pub struct AlternateFile {
 }
 
 #[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaViewFile {
     pub id: String,
     pub file_size: u64,

@@ -1,5 +1,7 @@
+mod functions;
+
 use async_trait::async_trait;
-use diesel::{prelude::*, sql_types};
+use diesel::prelude::*;
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     scoped_futures::ScopedFutureExt,
@@ -9,35 +11,11 @@ use time::OffsetDateTime;
 use tracing::instrument;
 
 use crate::{manual_schema::*, models, schema::*, Result};
+use functions::*;
 use pixelbin_shared::Error;
 
 pub(crate) type DbConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<DbConnection>;
-
-sql_function!(
-    #[sql_name = "GREATEST"]
-    fn greatest(a: sql_types::Timestamptz, b: sql_types::Nullable<sql_types::Timestamptz>) -> sql_types::Timestamptz
-);
-
-sql_function!(
-    #[sql_name = "COALESCE"]
-    fn coalesce_str(a: sql_types::Nullable<sql_types::VarChar>, b: sql_types::Nullable<sql_types::VarChar>) -> sql_types::Nullable<sql_types::VarChar>
-);
-
-sql_function!(
-    #[sql_name = "COALESCE"]
-    fn coalesce_int(a: sql_types::Nullable<sql_types::Int4>, b: sql_types::Nullable<sql_types::Int4>) -> sql_types::Nullable<sql_types::Int4>
-);
-
-sql_function!(
-    #[sql_name = "COALESCE"]
-    fn coalesce_float(a: sql_types::Nullable<sql_types::Float4>, b: sql_types::Nullable<sql_types::Float4>) -> sql_types::Nullable<sql_types::Float4>
-);
-
-sql_function!(
-    #[sql_name = "COALESCE"]
-    fn coalesce_pdt(a: sql_types::Nullable<sql_types::Timestamp>, b: sql_types::Nullable<sql_types::Timestamp>) -> sql_types::Nullable<sql_types::Timestamp>
-);
 
 #[instrument(err)]
 pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
@@ -291,30 +269,34 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                         media_item::catalog,
                         media_item::created,
                         greatest(media_item::updated, media_file::uploaded.nullable()),
-                        coalesce_str(media_item::filename, media_file::filename),
-                        coalesce_str(media_item::title, media_file::title),
-                        coalesce_str(media_item::description, media_file::description),
-                        coalesce_str(media_item::label, media_file::label),
-                        coalesce_str(media_item::category, media_file::category),
-                        coalesce_pdt(media_item::taken, media_file::taken),
-                        coalesce_str(media_item::taken_zone, media_file::taken_zone),
-                        coalesce_float(media_item::longitude, media_file::longitude),
-                        coalesce_float(media_item::latitude, media_file::latitude),
-                        coalesce_float(media_item::altitude, media_file::altitude),
-                        coalesce_str(media_item::location, media_file::location),
-                        coalesce_str(media_item::city, media_file::city),
-                        coalesce_str(media_item::state, media_file::state),
-                        coalesce_str(media_item::country, media_file::country),
-                        coalesce_int(media_item::orientation, media_file::orientation),
-                        coalesce_str(media_item::make, media_file::make),
-                        coalesce_str(media_item::model, media_file::model),
-                        coalesce_str(media_item::lens, media_file::lens),
-                        coalesce_str(media_item::photographer, media_file::photographer),
-                        coalesce_float(media_item::aperture, media_file::aperture),
-                        coalesce_str(media_item::shutter_speed, media_file::shutter_speed),
-                        coalesce_int(media_item::iso, media_file::iso),
-                        coalesce_float(media_item::focal_length, media_file::focal_length),
-                        coalesce_int(media_item::rating, media_file::rating),
+                        coalesce(media_item::filename, media_file::filename),
+                        coalesce(media_item::title, media_file::title),
+                        coalesce(media_item::description, media_file::description),
+                        coalesce(media_item::label, media_file::label),
+                        coalesce(media_item::category, media_file::category),
+                        coalesce(media_item::taken, media_file::taken),
+                        select_zone(
+                            media_item::taken,
+                            media_item::taken_zone,
+                            media_file::taken_zone,
+                        ),
+                        coalesce(media_item::longitude, media_file::longitude),
+                        coalesce(media_item::latitude, media_file::latitude),
+                        coalesce(media_item::altitude, media_file::altitude),
+                        coalesce(media_item::location, media_file::location),
+                        coalesce(media_item::city, media_file::city),
+                        coalesce(media_item::state, media_file::state),
+                        coalesce(media_item::country, media_file::country),
+                        coalesce(media_item::orientation, media_file::orientation),
+                        coalesce(media_item::make, media_file::make),
+                        coalesce(media_item::model, media_file::model),
+                        coalesce(media_item::lens, media_file::lens),
+                        coalesce(media_item::photographer, media_file::photographer),
+                        coalesce(media_item::aperture, media_file::aperture),
+                        coalesce(media_item::shutter_speed, media_file::shutter_speed),
+                        coalesce(media_item::iso, media_file::iso),
+                        coalesce(media_item::focal_length, media_file::focal_length),
+                        coalesce(media_item::rating, media_file::rating),
                         // pub file: Option<MediaViewFile>,
                     ))
                     .load::<models::MediaView>(conn)
