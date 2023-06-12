@@ -50,6 +50,7 @@ export class Dialog extends LitElement {
   firstUpdated() {
     setTimeout(() => {
       this.shown = true;
+      this.querySelector("input[autofocus]")?.focus();
     }, 100);
   }
 
@@ -64,13 +65,7 @@ export class Dialog extends LitElement {
         class="modal-backdrop fade ${classes.join(" ")}"
         @transitionend=${this.transitionEnd}
       ></div>
-      <div
-        class="modal fade ${classes.join(" ")}
-        tabindex="-1"
-        aria-modal="true"
-        role="dialog"
-        @click=${this.click}
-      >
+      <div class="modal fade ${classes.join(" ")}" @click=${this.click}>
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header border-0 py-1 fs-3">

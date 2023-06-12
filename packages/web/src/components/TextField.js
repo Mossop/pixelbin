@@ -23,6 +23,9 @@ export class TextField extends LitElement {
   @property()
   autocomplete = "text";
 
+  @property({ type: Boolean })
+  autofocus = false;
+
   get value() {
     return this.inputElement.value?.value ?? "";
   }
@@ -36,6 +39,7 @@ export class TextField extends LitElement {
       <label for=${this.id} class="form-label">${this.label}</label>
       <input
         ${ref(this.inputElement)}
+        ?autofocus=${this.autofocus}
         name=${this.name}
         type=${this.type}
         autocomplete=${this.autocomplete}

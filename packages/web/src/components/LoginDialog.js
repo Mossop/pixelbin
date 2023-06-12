@@ -25,6 +25,7 @@ export class LoginDialog extends LitElement {
         <form class="d-flex flex-column align-items-stretch gap-3">
           <ui-textfield
             ${ref(this.emailInput)}
+            autofocus
             type="email"
             name="email"
             autocomplete="email"
