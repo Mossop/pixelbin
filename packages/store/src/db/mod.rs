@@ -82,6 +82,11 @@ macro_rules! media_view_query {
                     .nullable(),
             ))
             .distinct()
+            .order(
+                coalesce(media_item::taken, media_file::taken.nullable())
+                    .desc()
+                    .nulls_last(),
+            )
     };
 }
 

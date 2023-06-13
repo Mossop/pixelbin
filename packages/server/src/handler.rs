@@ -23,7 +23,7 @@ use tracing::instrument;
 
 use crate::{
     middleware::cacheable,
-    templates::{self, AlbumNav, CatalogNav, UserNav},
+    templates::{self, group_by_taken, AlbumNav, CatalogNav, UserNav},
     AppState,
 };
 use crate::{util::HttpResult, Session};
@@ -217,7 +217,7 @@ async fn album(
                 Ok(templates::Album {
                     state,
                     album,
-                    media,
+                    media_groups: group_by_taken(media),
                     thumbnails: config.thumbnails.clone(),
                 })
             }

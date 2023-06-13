@@ -1,4 +1,4 @@
-use std::str::from_utf8;
+use std::{collections::BTreeMap, str::from_utf8};
 
 use handlebars::{
     html_escape, Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderError,
@@ -6,14 +6,72 @@ use handlebars::{
 use pixelbin_store::models;
 use rust_embed::RustEmbed;
 use serde_json::Value;
+use time::{format_description::FormatItem, macros::format_description, Month, UtcOffset};
 
 use crate::ApiState;
 use pixelbin_shared::{Result, ThumbnailConfig};
 use serde::Serialize;
 
+const ZONE_FORMAT: &[FormatItem<'_>] =
+    format_description!("UTC[offset_hour padding:none sign:mandatory]");
+
 #[derive(RustEmbed)]
 #[folder = "../../target/web/templates/"]
 struct TemplateAssets;
+
+#[derive(Serialize)]
+pub(crate) struct MediaGroup {
+    pub(crate) title: String,
+    pub(crate) media: Vec<models::MediaView>,
+}
+
+pub(crate) fn group_by_taken(media_list: Vec<models::MediaView>) -> Vec<MediaGroup> {
+    let mut groups: BTreeMap<(i32, u8), Vec<models::MediaView>> = BTreeMap::new();
+    let mut remains: Vec<models::MediaView> = Vec::new();
+
+    for media in media_list {
+        let zone = media
+            .taken_zone
+            .as_deref()
+            .and_then(|zstr| UtcOffset::parse(zstr, ZONE_FORMAT).ok());
+
+        let dt = match (media.taken, zone) {
+            (Some(ref pdt), Some(offset)) => pdt.assume_offset(offset),
+            (Some(ref pdt), None) => pdt.assume_utc(),
+            _ => {
+                remains.push(media);
+                continue;
+            }
+        };
+
+        let key = (dt.year(), dt.month().into());
+        if let Some(list) = groups.get_mut(&key) {
+            list.push(media);
+            continue;
+        }
+
+        groups.insert(key, vec![media]);
+    }
+
+    let mut groups: Vec<MediaGroup> = groups
+        .into_iter()
+        .map(|((year, month), media)| MediaGroup {
+            title: format!("{} {year}", Month::try_from(month).unwrap()),
+            media,
+        })
+        .collect();
+
+    groups.reverse();
+
+    if !remains.is_empty() {
+        groups.push(MediaGroup {
+            title: "Unknown".to_string(),
+            media: remains,
+        });
+    }
+
+    groups
+}
 
 #[derive(Serialize)]
 pub(crate) struct AlbumNav {
@@ -141,11 +199,12 @@ pub(crate) struct Index {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Album {
     #[serde(flatten)]
     pub(crate) state: ApiState,
     pub(crate) album: models::Album,
-    pub(crate) media: Vec<models::MediaView>,
+    pub(crate) media_groups: Vec<MediaGroup>,
     pub(crate) thumbnails: ThumbnailConfig,
 }
 
