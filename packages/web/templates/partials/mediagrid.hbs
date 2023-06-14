@@ -3,7 +3,7 @@
     <h2 class="pb-2 m-0 fw-normal">{{this.title}}</h2>
     <ui-thumbnailgrid>
       {{#each this.media}}
-        <ui-thumbnail href="{{../../base}}/media/{{this.id}}" {{attrs this}}>
+        <ui-thumbnail href="{{../../base}}/media/{{this.id}}">
         <picture>
           {{#each ../../thumbnails.alternateTypes}}
             <source
