@@ -1,5 +1,3 @@
-use std::{cmp::max, path::PathBuf};
-
 use actix_web::{
     body::BoxBody,
     get,
@@ -8,10 +6,7 @@ use actix_web::{
 };
 use mime_guess::from_path;
 use pixelbin_shared::{Error, Result};
-use pixelbin_store::{
-    models::{self, AlternateFileType},
-    DbQueries, MediaFilePath,
-};
+use pixelbin_store::{models::AlternateFileType, DbQueries};
 use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
@@ -23,7 +18,8 @@ use tracing::instrument;
 
 use crate::{
     middleware::cacheable,
-    templates::{self, group_by_taken, AlbumNav, CatalogNav, UserNav},
+    templates,
+    util::{build_state, choose_alternate, group_by_taken, ApiState},
     AppState,
 };
 use crate::{util::HttpResult, Session};
@@ -31,124 +27,6 @@ use crate::{util::HttpResult, Session};
 #[derive(RustEmbed)]
 #[folder = "../../target/web/static/"]
 struct StaticAssets;
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct UserState {
-    #[serde(flatten)]
-    user: models::User,
-    #[serde(flatten)]
-    nav: UserNav,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ApiState {
-    user: Option<UserState>,
-}
-
-fn alt_size(alt: &(models::AlternateFile, MediaFilePath, PathBuf)) -> i32 {
-    max(alt.0.width, alt.0.height)
-}
-
-fn choose_alternate(
-    mut alternates: Vec<(models::AlternateFile, MediaFilePath, PathBuf)>,
-    size: i32,
-) -> Option<(models::AlternateFile, MediaFilePath, PathBuf)> {
-    if alternates.is_empty() {
-        return None;
-    }
-
-    let mut chosen = alternates.swap_remove(0);
-
-    for alternate in alternates {
-        if (size - alt_size(&chosen)).abs() > (size - alt_size(&alternate)).abs() {
-            chosen = alternate;
-        }
-    }
-
-    Some(chosen)
-}
-
-fn build_searches(
-    searches: &mut Vec<models::SavedSearch>,
-    catalog: &str,
-) -> Vec<models::SavedSearch> {
-    let mut result = Vec::new();
-
-    let mut i = 0;
-    while i < searches.len() {
-        if searches[i].catalog == catalog {
-            result.push(searches.swap_remove(i));
-        } else {
-            i += 1;
-        }
-    }
-
-    result
-}
-
-fn build_album_children(albums: &Vec<models::Album>, alb: &str) -> Vec<AlbumNav> {
-    albums
-        .iter()
-        .filter_map(|a| {
-            if a.parent.as_deref() == Some(alb) {
-                Some(AlbumNav {
-                    album: a.clone(),
-                    children: build_album_children(albums, &a.id),
-                })
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-fn build_catalog_albums(albums: &Vec<models::Album>, catalog: &str) -> Vec<AlbumNav> {
-    albums
-        .iter()
-        .filter_map(|a| {
-            if a.catalog == catalog && a.parent.is_none() {
-                Some(AlbumNav {
-                    album: a.clone(),
-                    children: build_album_children(albums, &a.id),
-                })
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-#[instrument(skip_all, err)]
-async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Result<ApiState> {
-    if let Some(ref email) = session.email {
-        let user = db.user(email).await?;
-        let catalogs = db.list_user_catalogs(email).await?;
-        let albums = db.list_user_albums(email).await?;
-        let mut searches = db.list_user_searches(email).await?;
-
-        let catalog_nav = catalogs
-            .into_iter()
-            .map(|catalog| CatalogNav {
-                albums: build_catalog_albums(&albums, &catalog.id),
-                searches: build_searches(&mut searches, &catalog.id),
-                catalog,
-            })
-            .collect::<Vec<CatalogNav>>();
-
-        Ok(ApiState {
-            user: Some(UserState {
-                user,
-                nav: UserNav {
-                    catalogs: catalog_nav,
-                },
-            }),
-        })
-    } else {
-        Ok(ApiState { user: None })
-    }
-}
 
 async fn not_found(app_state: &AppState<'_>, state: ApiState) -> Result<HttpResponse> {
     Ok(HttpResponse::NotFound().content_type("text/html").body(
