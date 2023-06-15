@@ -7,6 +7,7 @@ use pixelbin_store::models;
 use rust_embed::RustEmbed;
 use serde_json::Value;
 use time::{format_description::FormatItem, macros::format_description, Month, UtcOffset};
+use tracing::instrument;
 
 use crate::ApiState;
 use pixelbin_shared::{Result, ThumbnailConfig};
@@ -115,6 +116,28 @@ fn mime_ext_helper(
     Ok(())
 }
 
+fn concat_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let mut strs: Vec<String> = Vec::new();
+
+    for param in h.params() {
+        match param.value() {
+            Value::String(s) => strs.push(s.clone()),
+            Value::Number(n) => strs.push(n.to_string()),
+            _ => return Err(RenderError::new("unexpected type in concat")),
+        }
+    }
+
+    out.write(&strs.join(""))?;
+
+    Ok(())
+}
+
 fn strip_ext_helper(
     h: &Helper,
     _: &Handlebars,
@@ -123,8 +146,8 @@ fn strip_ext_helper(
     out: &mut dyn Output,
 ) -> HelperResult {
     let param = h.param(0).ok_or(RenderError::new("param not found"))?;
-    let str = match param.value() {
-        Value::String(s) => s.clone(),
+    let str = match param.value().as_str() {
+        Some(s) => s.to_owned(),
         _ => return Err(RenderError::new("unexpected type when stripping extension")),
     };
 
@@ -156,23 +179,11 @@ fn attrs_helper(
     out: &mut dyn Output,
 ) -> HelperResult {
     let param = h.param(0).ok_or(RenderError::new("param not found"))?;
-    match param.value() {
-        Value::Null => Err(RenderError::new(
-            "unexpected null when expanding attributes",
+    match param.value().as_object() {
+        None => Err(RenderError::new(
+            "unexpected value when expanding attributes",
         )),
-        Value::Bool(_) => Err(RenderError::new(
-            "unexpected boolean when expanding attributes",
-        )),
-        Value::Number(_) => Err(RenderError::new(
-            "unexpected number when expanding attributes",
-        )),
-        Value::String(_) => Err(RenderError::new(
-            "unexpected string when expanding attributes",
-        )),
-        Value::Array(_) => Err(RenderError::new(
-            "unexpected array when expanding attributes",
-        )),
-        Value::Object(obj) => {
+        Some(obj) => {
             for (key, v) in obj {
                 let value = match v {
                     Value::Null => {
@@ -226,6 +237,7 @@ impl<'a> Templates<'a> {
         handlebars.register_helper("attrs", Box::new(attrs_helper));
         handlebars.register_helper("strip_ext", Box::new(strip_ext_helper));
         handlebars.register_helper("mime_ext", Box::new(mime_ext_helper));
+        handlebars.register_helper("concat", Box::new(concat_helper));
 
         for name in TemplateAssets::iter() {
             if name.ends_with(".hbs") {
@@ -248,14 +260,17 @@ impl<'a> Templates<'a> {
         Templates { handlebars }
     }
 
+    #[instrument(skip_all)]
     pub(crate) fn index(&self, data: Index) -> Result<String> {
         Ok(self.handlebars.render("index", &data)?)
     }
 
+    #[instrument(skip_all)]
     pub(crate) fn album(&self, data: Album) -> Result<String> {
         Ok(self.handlebars.render("album", &data)?)
     }
 
+    #[instrument(skip_all)]
     pub(crate) fn not_found(&self, data: NotFound) -> Result<String> {
         Ok(self.handlebars.render("notfound", &data)?)
     }
