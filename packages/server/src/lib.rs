@@ -13,8 +13,8 @@ use actix_web::{
 use cache::Cache;
 use pixelbin_shared::Result;
 use pixelbin_store::Store;
-use templates::Templates;
 
+mod api;
 mod cache;
 mod extractor;
 mod handler;
@@ -30,10 +30,15 @@ struct Session {
     email: Option<String>,
 }
 
-struct AppState<'a> {
+impl From<String> for Session {
+    fn from(id: String) -> Self {
+        Self { id, email: None }
+    }
+}
+
+struct AppState {
     store: Store,
     sessions: Cache<String, Session>,
-    templates: Templates<'a>,
 }
 
 pub async fn serve(store: Store) -> Result {
@@ -42,7 +47,6 @@ pub async fn serve(store: Store) -> Result {
     let state = AppState {
         store,
         sessions: Cache::new(Duration::from_secs(SESSION_LENGTH)),
-        templates: Templates::new(),
     };
 
     let app_data = web::Data::new(state);
@@ -66,8 +70,8 @@ pub async fn serve(store: Store) -> Result {
             .service(handler::album)
             .service(handler::thumbnail)
             .service(handler::static_files)
-            .service(handler::api_login)
-            .service(handler::api_logout)
+            .service(api::login)
+            .service(api::logout)
     })
     .bind(("0.0.0.0", port))?
     .run()

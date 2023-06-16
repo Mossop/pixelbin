@@ -88,22 +88,23 @@ function watchJs() {
 exports.watchJs = watchJs;
 
 function buildStatic() {
-  return src(path.join(__dirname, "static", "**", "*")).pipe(
-    dest(path.join(TARGET, "static")),
-  );
+  return src(
+    [
+      path.join(__dirname, "static", "**", "*"),
+      path.join(__dirname, "templates", "includes", "*"),
+      path.join(__dirname, "templates", "*.html"),
+    ],
+    { base: __dirname },
+  ).pipe(dest(path.join(TARGET)));
 }
-function buildPartials() {
-  return src(path.join(__dirname, "templates", "partials", "*")).pipe(
-    dest(path.join(TARGET, "templates", "partials")),
-  );
-}
-exports.buildStatic = parallel(buildStatic, buildPartials);
+exports.buildStatic = buildStatic;
 
 function watchStatic() {
   watch(
     [
       path.join(__dirname, "static", "**", "*"),
-      path.join(__dirname, "templates", "partials", "*"),
+      path.join(__dirname, "templates", "includes", "*"),
+      path.join(__dirname, "templates", "*.html"),
     ],
     exports.buildStatic,
   );

@@ -9,8 +9,6 @@ const TARGET = path.join(__dirname, "..", "..", "target", "web");
  * @typedef { import("webpack").Configuration } Configuration
  */
 
-const ENTRIES = ["index", "album", "notfound"];
-
 /** @type {({mode?: "development" | "production"}) => Configuration} */
 module.exports = ({ mode = "development" }) =>
   // let splitChunks =
@@ -82,17 +80,14 @@ module.exports = ({ mode = "development" }) =>
       ],
     },
     plugins: [
-      ...ENTRIES.map(
-        (name) =>
-          new HtmlWebpackPlugin({
-            filename: path.join(TARGET, "templates", `${name}.hbs`),
-            template: path.join(__dirname, "templates", `${name}.hbs`),
-            scriptLoading: "defer",
-            inject: true,
-            minify: false,
-            chunks: ["index"],
-          }),
-      ),
+      new HtmlWebpackPlugin({
+        filename: path.join(TARGET, "templates", "base", `base.html`),
+        template: path.join(__dirname, "templates", "base", `base.html`),
+        scriptLoading: "defer",
+        inject: true,
+        minify: false,
+        chunks: ["index"],
+      }),
       new SubresourceIntegrityPlugin({
         hashFuncNames: ["sha256", "sha384"],
       }),

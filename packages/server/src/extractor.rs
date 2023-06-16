@@ -12,7 +12,7 @@ impl FromRequest for Session {
         let req = req.clone();
 
         Box::pin(async move {
-            let data = web::Data::<AppState<'_>>::extract(&req).await?;
+            let data = web::Data::<AppState>::extract(&req).await?;
             let cookie_session = ActixSession::extract(&req).await?;
 
             let session_id = match cookie_session.get::<String>("id")? {
@@ -27,10 +27,7 @@ impl FromRequest for Session {
                 }
             };
 
-            Ok(data
-                .sessions
-                .get_or_create(session_id, |id| Session { id, email: None })
-                .await)
+            Ok(data.sessions.get_or_create(&session_id).await)
         })
     }
 }

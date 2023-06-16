@@ -1,15 +1,11 @@
-use actix_web::{
-    body::BoxBody,
-    get,
-    http::{header, StatusCode},
-    post, web, HttpRequest, HttpResponse, Responder,
-};
+use actix_web::{get, http::header, web, HttpRequest, HttpResponse, Responder};
+use askama::Template;
 use mime_guess::from_path;
 use pixelbin_shared::{Error, Result};
 use pixelbin_store::{models::AlternateFileType, DbQueries};
 use rust_embed::RustEmbed;
 use scoped_futures::ScopedFutureExt;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_with::serde_as;
 use time::OffsetDateTime;
 use tokio::fs::File;
@@ -18,8 +14,8 @@ use tracing::instrument;
 
 use crate::{
     middleware::cacheable,
-    templates,
-    util::{build_state, choose_alternate, group_by_taken, ApiState},
+    templates::{self, build_catalog_navs},
+    util::{build_base_state, choose_alternate, group_by_taken},
     AppState,
 };
 use crate::{util::HttpResult, Session};
@@ -28,30 +24,42 @@ use crate::{util::HttpResult, Session};
 #[folder = "../../target/web/static/"]
 struct StaticAssets;
 
-async fn not_found(app_state: &AppState<'_>, state: ApiState) -> Result<HttpResponse> {
-    Ok(HttpResponse::NotFound().content_type("text/html").body(
-        app_state
-            .templates
-            .not_found(templates::NotFound { state })?,
-    ))
+async fn not_found(app_state: &AppState, session: &Session) -> Result<HttpResponse> {
+    let base = app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move { build_base_state(&mut trx, session).await }.scope_boxed()
+        })
+        .await?;
+
+    let template = templates::NotFound {
+        catalogs: build_catalog_navs(&base),
+        user: base.user,
+    };
+
+    Ok(HttpResponse::NotFound()
+        .content_type("text/html")
+        .body(template.render().unwrap()))
 }
 
 #[get("/")]
 #[instrument(skip_all)]
-async fn index(app_state: web::Data<AppState<'_>>, session: Session) -> HttpResult<impl Responder> {
-    let api_state = app_state
+async fn index(app_state: web::Data<AppState>, session: Session) -> HttpResult<impl Responder> {
+    let base = app_state
         .store
-        .clone()
         .in_transaction(|mut trx| {
-            async move { build_state(&mut trx, &session).await }.scope_boxed()
+            async move { build_base_state(&mut trx, &session).await }.scope_boxed()
         })
         .await?;
 
-    Ok(HttpResponse::Ok().content_type("text/html").body(
-        app_state
-            .templates
-            .index(templates::Index { state: api_state })?,
-    ))
+    let template = templates::Index {
+        catalogs: build_catalog_navs(&base),
+        user: base.user,
+    };
+
+    Ok(HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap()))
 }
 
 fn default_true() -> bool {
@@ -68,7 +76,7 @@ struct AlbumQuery {
 #[get("/album/{album_id}")]
 #[instrument(skip(app_state, session))]
 async fn album(
-    app_state: web::Data<AppState<'_>>,
+    app_state: web::Data<AppState>,
     session: Session,
     album_id: web::Path<String>,
     query: web::Query<AlbumQuery>,
@@ -78,24 +86,28 @@ async fn album(
     let email = if let Some(ref email) = session.email {
         email.to_owned()
     } else {
-        return Ok(not_found(&app_state, ApiState { user: None }).await?);
+        return Ok(not_found(&app_state, &session).await?);
     };
 
+    let sess = session.clone();
     match app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let state = build_state(&mut trx, &session).await?;
-
                 let album = trx.user_album(&email, &album_id).await?;
                 let media = trx
                     .user_album_media(&email, &album_id, query.recursive)
                     .await?;
 
+                let media_groups = group_by_taken(media);
+
+                let base = build_base_state(&mut trx, &sess).await?;
+
                 Ok(templates::Album {
-                    state,
-                    album,
-                    media_groups: group_by_taken(media),
+                    catalogs: build_catalog_navs(&base),
+                    user: base.user,
+                    album: album.clone(),
+                    media_groups: media_groups.clone(),
                     thumbnails: config.thumbnails.clone(),
                 })
             }
@@ -103,10 +115,10 @@ async fn album(
         })
         .await
     {
-        Ok(data) => Ok(HttpResponse::Ok()
+        Ok(template) => Ok(HttpResponse::Ok()
             .content_type("text/html")
-            .body(app_state.templates.album(data)?)),
-        Err(Error::NotFound) => Ok(not_found(&app_state, ApiState { user: None }).await?),
+            .body(template.render().unwrap())),
+        Err(Error::NotFound) => Ok(not_found(&app_state, &session).await?),
         Err(e) => Err(e.into()),
     }
 }
@@ -123,7 +135,7 @@ struct ThumbnailPath {
 #[get("/media/{item}/{file}/thumb/{size}/{mimetype}/{_filename}")]
 #[instrument(skip(app_state, session))]
 async fn thumbnail(
-    app_state: web::Data<AppState<'_>>,
+    app_state: web::Data<AppState>,
     session: Session,
     path: web::Path<ThumbnailPath>,
 ) -> HttpResult<impl Responder> {
@@ -149,7 +161,7 @@ async fn thumbnail(
         .await
     {
         Ok(alternates) => alternates,
-        Err(Error::NotFound) => return Ok(not_found(&app_state, ApiState { user: None }).await?),
+        Err(Error::NotFound) => return Ok(not_found(&app_state, &session).await?),
         Err(e) => return Err(e.into()),
     };
 
@@ -164,7 +176,7 @@ async fn thumbnail(
                 .append_header((header::CONTENT_LENGTH, alternate.file_size))
                 .streaming(stream))
         }
-        None => Ok(not_found(&app_state, ApiState { user: None }).await?),
+        None => Ok(not_found(&app_state, &session).await?),
     }
 }
 
@@ -192,147 +204,3 @@ async fn static_files(path: web::Path<String>, request: HttpRequest) -> HttpResu
         None => Ok(HttpResponse::NotFound().body("404 Not Found")),
     }
 }
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-enum ApiErrorCode {
-    // UnknownException,
-    // BadMethod,
-    NotLoggedIn,
-    // LoginFailed,
-    // InvalidData,
-    // NotFound,
-    // TemporaryFailure,
-    // InvalidHost,
-}
-
-impl ApiErrorCode {
-    fn into<T>(self) -> ApiResult<T> {
-        ApiResult::Err(ApiError { code: self })
-    }
-}
-
-#[derive(Serialize)]
-struct ApiError {
-    code: ApiErrorCode,
-}
-
-impl From<ApiError> for HttpResponse {
-    fn from(api_error: ApiError) -> HttpResponse {
-        let code = match api_error.code {
-            // ApiErrorCode::UnknownException => 500,
-            // ApiErrorCode::BadMethod => 405,
-            ApiErrorCode::NotLoggedIn => 401,
-            // ApiErrorCode::LoginFailed => 401,
-            // ApiErrorCode::InvalidData => 400,
-            // ApiErrorCode::NotFound => 404,
-            // ApiErrorCode::TemporaryFailure => 503,
-            // ApiErrorCode::InvalidHost => 403,
-        };
-
-        HttpResponse::build(StatusCode::from_u16(code).unwrap())
-            .content_type("application/json")
-            .body(serde_json::to_string_pretty(&api_error).unwrap())
-    }
-}
-
-enum ApiResult<T> {
-    Ok(T),
-    Err(ApiError),
-}
-
-impl<T> From<T> for ApiResult<T> {
-    fn from(result: T) -> Self {
-        Self::Ok(result)
-    }
-}
-
-impl<T: Serialize> Responder for ApiResult<T> {
-    type Body = BoxBody;
-
-    fn respond_to(self, _req: &actix_web::HttpRequest) -> HttpResponse<Self::Body> {
-        match self {
-            ApiResult::Ok(inner) => HttpResponse::Ok()
-                .content_type("application/json")
-                .body(serde_json::to_string_pretty(&inner).unwrap()),
-            ApiResult::Err(err) => err.into(),
-        }
-    }
-}
-
-#[derive(Deserialize)]
-struct Credentials {
-    email: String,
-    password: String,
-}
-
-#[post("/api/login")]
-#[instrument(skip(app_state, session, credentials))]
-async fn api_login(
-    app_state: web::Data<AppState<'_>>,
-    session: Session,
-    credentials: web::Json<Credentials>,
-) -> HttpResult<ApiResult<ApiState>> {
-    Ok(app_state
-        .store
-        .clone()
-        .in_transaction(|mut trx| {
-            async move {
-                match trx
-                    .verify_credentials(&credentials.email, &credentials.password)
-                    .await
-                {
-                    Ok(user) => {
-                        let session = app_state
-                            .sessions
-                            .update(&session.id, |sess| {
-                                sess.email = Some(user.email.clone());
-                            })
-                            .await
-                            .unwrap();
-
-                        Ok(build_state(&mut trx, &session).await?.into())
-                    }
-                    Err(Error::NotFound) => Ok(ApiErrorCode::NotLoggedIn.into()),
-                    Err(e) => Err(e),
-                }
-            }
-            .scope_boxed()
-        })
-        .await?)
-}
-
-#[post("/api/logout")]
-#[instrument(skip(app_state, session))]
-async fn api_logout(
-    app_state: web::Data<AppState<'_>>,
-    session: Session,
-) -> HttpResult<ApiResult<ApiState>> {
-    let session = app_state
-        .sessions
-        .update(&session.id, |sess| {
-            sess.email = None;
-        })
-        .await
-        .unwrap();
-
-    Ok(app_state
-        .store
-        .in_transaction(|mut trx| {
-            async move { Ok(build_state(&mut trx, &session).await?.into()) }.scope_boxed()
-        })
-        .await?)
-}
-
-// #[serde_as]
-// #[derive(Debug, Deserialize)]
-// struct MediaListQuery {
-//     #[serde_as(as = "StringWithSeparator::<CommaSeparator, String>")]
-//     id: Vec<String>,
-// }
-
-// #[get("/api/media/get")]
-// #[instrument]
-// async fn api_media_get(media_list: web::Query<MediaListQuery>) -> HttpResult<HttpResponse> {
-//     todo!();
-// }

@@ -204,11 +204,13 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
     async fn user(&mut self, email: &str) -> Result<models::User> {
         self.with_connection(|conn| {
             async move {
-                Ok(user::table
+                user::table
                     .filter(user::email.eq(email))
                     .select(user::all_columns)
                     .get_result::<models::User>(conn)
-                    .await?)
+                    .await
+                    .optional()?
+                    .ok_or_else(|| Error::NotFound)
             }
             .scope_boxed()
         })

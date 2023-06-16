@@ -42,14 +42,10 @@ where
 
 impl<K, V> Cache<K, V>
 where
-    K: Eq + Hash,
-    V: Clone,
+    K: Eq + Hash + Clone,
+    V: Clone + From<K>,
 {
-    pub(crate) async fn get_or_create<Q, F>(&self, key: Q, create: F) -> V
-    where
-        Q: ToOwned<Owned = K>,
-        F: FnOnce(Q) -> V,
-    {
+    pub(crate) async fn get_or_create(&self, key: &K) -> V {
         let mut map = self.map.lock().await;
         flush(&mut map);
 
@@ -59,24 +55,28 @@ where
             .and_modify(|val| {
                 val.0 = newttl;
             })
-            .or_insert_with(|| (newttl, create(key)))
+            .or_insert_with(|| (newttl, key.to_owned().into()))
             .1
             .clone()
     }
 
-    pub(crate) async fn update<Q, F>(&self, key: &Q, cb: F) -> Option<V>
+    pub(crate) async fn update<F>(&self, key: &K, cb: F) -> V
     where
-        K: Borrow<Q>,
-        Q: Hash + Eq + ?Sized,
         F: FnOnce(&mut V),
     {
         let mut map = self.map.lock().await;
 
+        let newttl = Instant::now() + self.ttl;
+
         if let Some(value) = map.get_mut(key) {
             cb(&mut value.1);
-            Some(value.1.clone())
+            value.0 = newttl;
+            value.1.clone()
         } else {
-            None
+            let mut item = key.to_owned().into();
+            cb(&mut item);
+            map.insert(key.clone(), (newttl, item.clone()));
+            item
         }
     }
 }
