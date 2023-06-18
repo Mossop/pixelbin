@@ -1,4 +1,7 @@
 {
+    "files.associations": {
+        "*.html": "jinja"
+    },
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": true
     },

@@ -10,7 +10,7 @@ use actix_web::{
 };
 use futures::future::LocalBoxFuture;
 use time::{format_description::well_known::Rfc2822, OffsetDateTime};
-use tracing::{event, span, Level};
+use tracing::{event, field, span, Level};
 
 pub(crate) struct Logging;
 
@@ -48,7 +48,15 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let span = span!(Level::INFO, "request", path = req.path()).entered();
+        let span = span!(
+            Level::INFO,
+            "request",
+            "url.path" = req.path(),
+            "http.request.method" = %req.method(),
+            "http.response.status_code" = field::Empty,
+            "otel.status_code" = field::Empty,
+        )
+        .entered();
         let start = Instant::now();
 
         let fut = self.service.call(req);
@@ -59,6 +67,8 @@ where
             let duration = Instant::now().duration_since(start).as_millis();
             let status = res.status();
 
+            span.record("http.response.status_code", status.as_u16());
+
             if status.is_server_error() {
                 event!(
                     Level::ERROR,
@@ -66,6 +76,7 @@ where
                     status = status.as_str(),
                     "Server error"
                 );
+                span.record("otel.status_code", "Error");
             } else if status.is_client_error() {
                 event!(
                     Level::WARN,
@@ -73,6 +84,7 @@ where
                     status = status.as_str(),
                     "Client error"
                 );
+                span.record("otel.status_code", "Error");
             } else if duration >= 250 {
                 event!(Level::WARN, duration = duration, "Slow response");
             } else {

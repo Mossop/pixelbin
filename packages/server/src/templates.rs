@@ -63,7 +63,6 @@ fn build_catalog_searches(
         .collect()
 }
 
-#[instrument(level = "trace", skip(albums))]
 fn build_album_children(albums: &[models::Album], alb: &str) -> Vec<AlbumNav> {
     albums
         .iter()

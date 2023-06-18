@@ -26,3 +26,11 @@ services:
     volumes:
       - "./data/pgadmin:/var/lib/pgadmin"
       - "./servers.json:/pgadmin4/servers.json"
+
+  jaeger:
+    image: jaegertracing/all-in-one
+    restart: always
+
+    ports:
+      - "4317:4317"
+      - "16686:16686"

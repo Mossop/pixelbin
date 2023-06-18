@@ -30,6 +30,8 @@ pub struct Config {
     #[serde(default)]
     storage: PathBuf,
 
+    pub telemetry: Option<String>,
+
     #[serde(default)]
     /// The location of locally stored alternate files.
     pub local_storage: PathBuf,

@@ -1,14 +1,21 @@
-use std::{env, io, path::PathBuf};
+use std::{env, error::Error, io, path::PathBuf, result, time::Duration};
 
 use async_trait::async_trait;
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
+use opentelemetry::{
+    sdk::{trace, Resource},
+    KeyValue,
+};
+use opentelemetry_otlp::WithExportConfig;
 use pixelbin_server::serve;
 use pixelbin_shared::{load_config, Result};
 use pixelbin_store::{DbQueries, Store};
 use pixelbin_tasks::{verify_local_storage, verify_online_storage};
 use tracing::Level;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{
+    layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+};
 
 const LOG_DEFAULTS: [(&str, Level); 5] = [
     ("pixelbin_cli", Level::DEBUG),
@@ -97,18 +104,8 @@ struct CliArgs {
     command: Command,
 }
 
-async fn inner_main(args: CliArgs) -> Result {
-    let config = load_config(args.config.as_deref())?;
-    let store = Store::new(config).await?;
-
-    args.command.run(store).await
-}
-
-#[tokio::main]
-async fn main() {
-    let args = CliArgs::parse();
-
-    let log_filter = match env::var("RUST_LOG").as_deref() {
+fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
+    let filter = match env::var("RUST_LOG").as_deref() {
         Ok("") | Err(_) => {
             let mut filter = EnvFilter::new("warn");
 
@@ -121,17 +118,67 @@ async fn main() {
         Ok(s) => EnvFilter::from_env(s),
     };
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_env_filter(log_filter)
+    let formatter = tracing_subscriber::fmt::layer()
         .with_ansi(true)
         .pretty()
         .with_writer(io::stderr)
-        .finish();
-    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
-        eprintln!("Unable to set global default subscriber: {e}");
+        .with_filter(filter);
+
+    let registry = Registry::default().with(formatter);
+
+    if let Some(telemetry_host) = telemetry {
+        let tracer =
+            opentelemetry_otlp::new_pipeline()
+                .tracing()
+                .with_exporter(
+                    opentelemetry_otlp::new_exporter()
+                        .tonic()
+                        .with_endpoint(telemetry_host)
+                        .with_timeout(Duration::from_secs(3)),
+                )
+                .with_trace_config(trace::config().with_resource(Resource::new(vec![
+                    KeyValue::new("service.name", "pixelbin"),
+                ])))
+                .install_batch(opentelemetry::runtime::Tokio)?;
+
+        let mut filter = EnvFilter::new("warn");
+
+        for (module, _) in LOG_DEFAULTS {
+            filter = filter.add_directive(format!("{}=trace", module).parse().unwrap());
+        }
+
+        let telemetry = tracing_opentelemetry::layer()
+            .with_exception_fields(true)
+            .with_tracked_inactivity(true)
+            .with_tracer(tracer)
+            .with_filter(filter);
+
+        registry.with(telemetry).init();
+    } else {
+        registry.init();
     }
 
-    if let Err(e) = inner_main(args).await {
-        tracing::error!("{}", e);
+    Ok(())
+}
+
+async fn inner_main() -> result::Result<(), Box<dyn Error>> {
+    let args = CliArgs::parse();
+    let config = load_config(args.config.as_deref())?;
+
+    if let Err(e) = init_logging(config.telemetry.as_deref()) {
+        eprintln!("Failed to initialise logging: {e}");
+    }
+
+    let store = Store::new(config).await?;
+
+    args.command.run(store).await?;
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() {
+    if let Err(e) = inner_main().await {
+        eprintln!("{e}");
     }
 }

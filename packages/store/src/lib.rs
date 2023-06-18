@@ -25,6 +25,7 @@ use db::{connect, DbConnection, DbPool};
 use pixelbin_shared::{Config, Result};
 use schema::*;
 use tokio::fs;
+use tracing::instrument;
 
 pub(crate) fn joinable(st: &str) -> &str {
     st.trim_matches('/')
@@ -98,6 +99,7 @@ impl Store {
         &self.config
     }
 
+    #[instrument(skip_all)]
     pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
     where
         R: 'a + Send,
