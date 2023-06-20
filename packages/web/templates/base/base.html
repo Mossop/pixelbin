@@ -22,7 +22,7 @@
   </ui-appbar>
   {%- if !catalogs.is_empty() %}
     <div class="flex-grow-1 flex-shrink-1 d-flex flex-row overflow-hidden">
-      <nav class="overflow-y-auto flex-shrink-0 text-body bg-body p-3">
+      <nav class="overflow-y-auto flex-shrink-0  text-body-secondary bg-body-secondary border-end p-3">
         <ui-iconlist>
           {%- for catalog in catalogs %}
             <ui-iconlistitem icon="file-earmark-richtext" href="/catalog/{{catalog.catalog.id}}" label="{{catalog.catalog.name}}">

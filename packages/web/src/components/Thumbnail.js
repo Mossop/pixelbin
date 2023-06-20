@@ -30,7 +30,7 @@ export class Thumbnail extends LitElement {
 
       <a
         href=${this.href}
-        class="d-block shadow-sm text-body bg-body rounded-1"
+        class="d-block border shadow text-body bg-body rounded-1"
       >
         <div class="p-2">
           <slot></slot>

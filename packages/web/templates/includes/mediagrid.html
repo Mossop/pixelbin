@@ -1,6 +1,8 @@
 {% for group in media_groups -%}
-  <section class="pb-3">
-    <h2 class="pb-2 m-0 fw-normal">{{group.title}}</h2>
+  <section>
+    <div class="p-2 position-sticky top-0 mediagroup">
+      <h2 class="p-0 m-0 fw-normal">{{group.title}}</h2>
+    </div>
     <ui-thumbnailgrid>
       {%- for media in group.media %}
         <ui-thumbnail href="{{base}}/media/{{media.id}}">

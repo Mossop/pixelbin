@@ -1,9 +1,15 @@
-import { LitElement, html } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 @customElement("ui-icon")
 export class Icon extends LitElement {
-  static styles = [];
+  static styles = [
+    css`
+      i {
+        opacity: 0.54;
+      }
+    `,
+  ];
 
   @property()
   icon = "";
