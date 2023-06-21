@@ -5,7 +5,7 @@
     </div>
     <ui-thumbnailgrid>
       {%- for media in group.media %}
-        <ui-thumbnail href="{{base}}/media/{{media.id}}">
+        <ui-thumbnail rating="{{media.rating|default("")}}" href="{{base}}/media/{{media.id}}">
           {%- match media.file %}
             {%- when Some with (file) -%}
               <picture>

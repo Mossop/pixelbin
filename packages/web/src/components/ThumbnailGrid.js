@@ -9,7 +9,7 @@ export class ThumbnailGrid extends LitElement {
     return html`
       <link rel="stylesheet" href="/static/css/embedded.css" />
 
-      <div class="d-flex flex-wrap gap-2 px-2 pb-3"><slot></slot></div>
+      <div class="d-flex flex-wrap gap-2 px-2 pb-4"><slot></slot></div>
     `;
   }
 }

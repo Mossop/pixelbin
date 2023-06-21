@@ -4,6 +4,7 @@ import "./components/Button.js";
 import "./components/Dialog.js";
 import "./components/Icon.js";
 import "./components/IconList.js";
+import "./components/Rating.js";
 import "./components/TextField.js";
 import "./components/Thumbnail.js";
 import "./components/ThumbnailGrid.js";
