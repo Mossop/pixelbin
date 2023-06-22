@@ -8,7 +8,7 @@
         <ui-thumbnail rating="{{media.rating|default("")}}" href="{{base}}/media/{{media.id}}">
           {%- match media.file %}
             {%- when Some with (file) -%}
-              <picture>
+              <picture style="width: 100%; aspect-ratio: 1">
                 {%- for type in thumbnails.alternate_types %}
                   <source
                     sizes="150px"
@@ -30,7 +30,7 @@
                     {%- endfor -%}
                   "
                   class="d-block object-fit-contain"
-                  style="width: 150px; height: 150px; object-position: center center"
+                  style="width: 100%; aspect-ratio: 1; object-position: center center"
                 >
               </picture>
             {%- else -%}

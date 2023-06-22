@@ -7,10 +7,8 @@ export class Thumbnail extends LitElement {
   static styles = [
     bootstrap,
     css`
-      img {
-        object-position: center center;
-        width: 150px;
-        height: 150px;
+      .inner {
+        aspect-ratio: 1;
       }
     `,
   ];
@@ -31,7 +29,7 @@ export class Thumbnail extends LitElement {
 
   render() {
     let rootClasses =
-      "d-block border shadow text-body bg-body rounded-1 p-2 position-relative";
+      "inner d-block border shadow text-body bg-body rounded-1 p-2 position-relative";
 
     let content = html`
       <slot></slot>

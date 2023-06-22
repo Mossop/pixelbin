@@ -25,6 +25,8 @@ export class Avatar extends LitElement {
     css`
       img {
         border-radius: 50%;
+        height: 2.5em;
+        width: 2.5em;
       }
     `,
   ];
