@@ -1,9 +1,11 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { bootstrap } from "../modules/styles";
 
 @customElement("ui-iconlist")
 export class IconList extends LitElement {
   static styles = [
+    bootstrap,
     css`
       ul,
       ol {
@@ -14,8 +16,6 @@ export class IconList extends LitElement {
 
   render() {
     return html`
-      <link rel="stylesheet" href="/static/css/embedded.css" />
-
       <ul class="p-0 m-0">
         <slot></slot>
       </ul>
@@ -26,6 +26,7 @@ export class IconList extends LitElement {
 @customElement("ui-iconlistitem")
 export class IconListItem extends LitElement {
   static styles = [
+    bootstrap,
     css`
       a {
         text-decoration: none;
@@ -46,8 +47,6 @@ export class IconListItem extends LitElement {
   render() {
     if (this.href) {
       return html`
-        <link rel="stylesheet" href="/static/css/embedded.css" />
-
         <li>
           <a class="d-flex flex-row align-items-center pb-1" href=${this.href}
             ><ui-icon class="pe-2" icon=${this.icon}></ui-icon>${this.label}</a
@@ -60,8 +59,6 @@ export class IconListItem extends LitElement {
     }
 
     return html`
-      <link rel="stylesheet" href="/static/css/embedded.css" />
-
       <li>
         <div class="d-flex flex-row align-items-center pb-1">
           <ui-icon class="pe-2" icon=${this.icon}></ui-icon>${this.label}

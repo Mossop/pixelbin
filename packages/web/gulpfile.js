@@ -9,6 +9,12 @@ const { parallel, series, src, dest, watch } = require("gulp");
 
 const TARGET = path.join(__dirname, "..", "..", "target", "web");
 
+const STATICS = [
+  path.join(__dirname, "static", "**", "*"),
+  path.join(__dirname, "templates", "includes", "*"),
+  path.join(__dirname, "templates", "*.html"),
+];
+
 async function clean() {
   await fs.rm(TARGET, { recursive: true, force: true });
 }
@@ -17,7 +23,7 @@ exports.clean = clean;
 async function buildCss() {
   await fs.mkdir(path.join(TARGET, "static", "css"), { recursive: true });
 
-  for (let target of ["main", "embedded"]) {
+  for (let target of ["main", "bootstrap"]) {
     let { css } = sass.compile(path.join(__dirname, "css", `${target}.scss`), {
       loadPaths: [path.join(__dirname, "..", "..", "node_modules")],
       sourceMap: true,
@@ -88,30 +94,16 @@ function watchJs() {
 exports.watchJs = watchJs;
 
 function buildStatic() {
-  return src(
-    [
-      path.join(__dirname, "static", "**", "*"),
-      path.join(__dirname, "templates", "includes", "*"),
-      path.join(__dirname, "templates", "*.html"),
-    ],
-    { base: __dirname },
-  ).pipe(dest(path.join(TARGET)));
+  return src(STATICS, { base: __dirname }).pipe(dest(TARGET));
 }
 exports.buildStatic = buildStatic;
 
 function watchStatic() {
-  watch(
-    [
-      path.join(__dirname, "static", "**", "*"),
-      path.join(__dirname, "templates", "includes", "*"),
-      path.join(__dirname, "templates", "*.html"),
-    ],
-    exports.buildStatic,
-  );
+  watch(STATICS, exports.buildStatic);
 }
 exports.watchStatic = series(exports.buildStatic, watchStatic);
 
-exports.build = parallel(buildJs, buildCss, exports.buildStatic);
+exports.build = parallel(buildJs, buildCss, buildStatic);
 exports.watch = parallel(watchJs, exports.watchCss, exports.watchStatic);
 
 exports.default = exports.build;

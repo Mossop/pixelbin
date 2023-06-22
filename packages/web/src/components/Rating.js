@@ -1,9 +1,11 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { bootstrap } from "../modules/styles";
 
 @customElement("ui-rating")
 export class Rating extends LitElement {
   static styles = [
+    bootstrap,
     css`
       .filled {
         color: rgb(255, 180, 0);
@@ -16,8 +18,6 @@ export class Rating extends LitElement {
 
   render() {
     return html`
-      <link rel="stylesheet" href="/static/css/embedded.css" />
-
       <div class="d-flex justify-content-start align-items-center gap-1">
         <ui-icon
           icon="star-fill"

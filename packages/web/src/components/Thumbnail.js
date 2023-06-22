@@ -1,9 +1,11 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { bootstrap } from "../modules/styles";
 
 @customElement("ui-thumbnail")
 export class Thumbnail extends LitElement {
   static styles = [
+    bootstrap,
     css`
       img {
         object-position: center center;
@@ -42,17 +44,9 @@ export class Thumbnail extends LitElement {
     `;
 
     if (this.href) {
-      return html`
-        <link rel="stylesheet" href="/static/css/embedded.css" />
-
-        <a href=${this.href} class=${rootClasses}>${content}</a>
-      `;
+      return html` <a href=${this.href} class=${rootClasses}>${content}</a> `;
     }
 
-    return html`
-      <link rel="stylesheet" href="/static/css/embedded.css" />
-
-      <div class=${rootClasses}>${content}</div>
-    `;
+    return html` <div class=${rootClasses}>${content}</div> `;
   }
 }

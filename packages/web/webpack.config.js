@@ -61,6 +61,13 @@ module.exports = ({ mode = "development" }) =>
           loader: "babel-loader",
         },
         {
+          test: /\.css$/i,
+          loader: "css-loader",
+          options: {
+            sourceMap: false,
+          },
+        },
+        {
           test: /\.s[ac]ss$/i,
           use: [
             {

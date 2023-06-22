@@ -3,6 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import md5 from "md5";
 
 import { logout } from "../modules/api";
+import { bootstrap } from "../modules/styles";
 
 /**
  * @param {string} email
@@ -20,6 +21,7 @@ function avatarSources(email) {
 @customElement("ui-avatar")
 export class Avatar extends LitElement {
   static styles = [
+    bootstrap,
     css`
       img {
         border-radius: 50%;
@@ -43,8 +45,6 @@ export class Avatar extends LitElement {
     let sources = avatarSources(this.email);
 
     return html`
-      <link rel="stylesheet" href="/static/css/embedded.css" />
-
       <button @click=${this.logout} class="btn shadow-none border-0 m-0 p-0">
         <img src=${sources[0]} srcset=${sources.join(",")} />
       </button>
