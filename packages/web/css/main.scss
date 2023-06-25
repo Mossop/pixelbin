@@ -12,6 +12,7 @@ html, body {
 
 .mediagroup {
   background-color: rgba(var(--bs-body-bg-rgb), 0.85);
+  z-index: 1;
 }
 
 .text-body-secondary {
