@@ -12,16 +12,13 @@ use diesel_async::{
 
 mod aws;
 mod db;
-#[allow(unreachable_pub)]
-mod manual_schema;
 pub mod models;
 #[allow(unreachable_pub)]
 mod schema;
-pub mod search;
 
 pub use aws::RemotePath;
 pub use db::DbQueries;
-use db::{connect, DbConnection, DbPool};
+use db::{connect, sealed::ConnectionProvider, DbConnection, DbPool};
 use pixelbin_shared::{Config, Result};
 use schema::*;
 use tokio::fs;
@@ -241,7 +238,7 @@ impl Store {
 }
 
 #[async_trait]
-impl db::sealed::ConnectionProvider for Store {
+impl ConnectionProvider for Store {
     async fn with_connection<'a, R, F>(&mut self, cb: F) -> Result<R>
     where
         R: 'a,
@@ -262,7 +259,7 @@ pub struct Transaction<'a> {
 }
 
 #[async_trait]
-impl<'t> db::sealed::ConnectionProvider for Transaction<'t> {
+impl<'t> ConnectionProvider for Transaction<'t> {
     async fn with_connection<'a, R, F>(&mut self, cb: F) -> Result<R>
     where
         R: 'a,
@@ -273,5 +270,27 @@ impl<'t> db::sealed::ConnectionProvider for Transaction<'t> {
 
     fn config(&self) -> Config {
         self.config.clone()
+    }
+}
+
+impl<'a> Transaction<'a> {
+    pub async fn update_searches(&mut self, catalog: &str) -> Result {
+        self.with_connection(|conn| {
+            async move {
+                let searches = saved_search::table
+                    .filter(saved_search::catalog.eq(catalog))
+                    .select(saved_search::all_columns)
+                    .load::<models::SavedSearch>(conn)
+                    .await?;
+
+                for search in searches {
+                    search.update(conn).await?;
+                }
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
     }
 }

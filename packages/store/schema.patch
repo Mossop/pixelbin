@@ -1,0 +1,29 @@
+diff --git a/src/schema.rs b/src/schema.rs
+index 8bd0055..e1657cd 100644
+--- a/src/schema.rs
++++ b/src/schema.rs
+@@ -216,9 +216,13 @@ diesel::table! {
+     }
+ }
+ 
+-diesel::joinable!(catalog -> storage (storage));
+-diesel::joinable!(media_person -> person (catalog));
+-diesel::joinable!(media_search -> saved_search (catalog));
++diesel::table! {
++    user_catalog (user, catalog) {
++        user -> Varchar,
++        catalog -> Varchar,
++        writable -> Bool,
++    }
++}
+ 
+ diesel::allow_tables_to_appear_in_same_query!(
+     album,
+@@ -233,6 +237,7 @@ diesel::allow_tables_to_appear_in_same_query!(
+     person,
+     saved_search,
+     shared_catalog,
++    user_catalog,
+     storage,
+     tag,
+     user,

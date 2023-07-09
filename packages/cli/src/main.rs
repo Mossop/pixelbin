@@ -11,17 +11,17 @@ use opentelemetry_otlp::WithExportConfig;
 use pixelbin_server::serve;
 use pixelbin_shared::{load_config, Result};
 use pixelbin_store::{DbQueries, Store};
-use pixelbin_tasks::{verify_local_storage, verify_online_storage};
+use pixelbin_tasks::{rebuild_searches, verify_local_storage, verify_online_storage};
 use tracing::Level;
 use tracing_subscriber::{
-    layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+    fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 
 const LOG_DEFAULTS: [(&str, Level); 5] = [
     ("pixelbin_cli", Level::DEBUG),
     ("pixelbin_shared", Level::DEBUG),
     ("pixelbin_tasks", Level::DEBUG),
-    ("pixelbin_store", Level::DEBUG),
+    ("pixelbin_store", Level::TRACE),
     ("pixelbin_server", Level::DEBUG),
 ];
 
@@ -75,6 +75,16 @@ impl Runnable for Serve {
     }
 }
 
+#[derive(Args)]
+struct RebuildSearches;
+
+#[async_trait(?Send)]
+impl Runnable for RebuildSearches {
+    async fn run(self, store: Store) -> Result {
+        rebuild_searches(store).await
+    }
+}
+
 #[enum_dispatch]
 #[derive(Subcommand)]
 enum Command {
@@ -86,6 +96,8 @@ enum Command {
     VerifyLocal,
     /// Verifies that the expected online stored files are present.
     VerifyOnline,
+    /// Re-runs all saved searches to verify correctness.
+    RebuildSearches,
 }
 
 #[async_trait(?Send)]
@@ -120,6 +132,7 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
 
     let formatter = tracing_subscriber::fmt::layer()
         .with_ansi(true)
+        .with_span_events(FmtSpan::CLOSE)
         .pretty()
         .with_writer(io::stderr)
         .with_filter(filter);

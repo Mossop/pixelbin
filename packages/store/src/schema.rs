@@ -138,6 +138,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    media_search (media, search) {
+        catalog -> Varchar,
+        media -> Varchar,
+        search -> Varchar,
+        added -> Timestamptz,
+    }
+}
+
+diesel::table! {
     media_tag (media, tag) {
         catalog -> Varchar,
         media -> Varchar,
@@ -207,8 +216,13 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(catalog -> storage (storage));
-diesel::joinable!(media_person -> person (catalog));
+diesel::table! {
+    user_catalog (user, catalog) {
+        user -> Varchar,
+        catalog -> Varchar,
+        writable -> Bool,
+    }
+}
 
 diesel::allow_tables_to_appear_in_same_query!(
     album,
@@ -218,10 +232,12 @@ diesel::allow_tables_to_appear_in_same_query!(
     media_file,
     media_item,
     media_person,
+    media_search,
     media_tag,
     person,
     saved_search,
     shared_catalog,
+    user_catalog,
     storage,
     tag,
     user,

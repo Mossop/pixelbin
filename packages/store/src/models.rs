@@ -1,9 +1,15 @@
-use diesel::{backend, deserialize, serialize, sql_types, AsExpression, Queryable};
+use diesel::{
+    backend, debug_query, delete, deserialize, insert_into, pg::Pg, prelude::*, serialize,
+    sql_types, AsExpression, Queryable,
+};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
 use serde_repr::Serialize_repr;
 use time::{OffsetDateTime, PrimitiveDateTime};
+use tracing::{instrument, trace};
 
-use crate::{aws::AwsClient, search::Query, RemotePath};
+use crate::{aws::AwsClient, RemotePath};
+use crate::{db::search::CompoundQueryItem, schema::*};
 use pixelbin_shared::Result;
 
 pub(crate) mod serialize_datetime {
@@ -91,7 +97,7 @@ where
     DB: backend::Backend,
     String: deserialize::FromSql<sql_types::VarChar, DB>,
 {
-    fn from_sql(bytes: backend::RawValue<DB>) -> deserialize::Result<Self> {
+    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
         match String::from_sql(bytes)?.as_str() {
             "thumbnail" => Ok(AlternateFileType::Thumbnail),
             "reencode" => Ok(AlternateFileType::Reencode),
@@ -139,7 +145,7 @@ where
     DB: backend::Backend,
     i32: deserialize::FromSql<sql_types::Int4, DB>,
 {
-    fn from_sql(bytes: backend::RawValue<DB>) -> deserialize::Result<Self> {
+    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
         match i32::from_sql(bytes)? {
             1 => Ok(Orientation::TopLeft),
             2 => Ok(Orientation::TopRight),
@@ -250,8 +256,63 @@ pub struct SavedSearch {
     pub id: String,
     pub name: String,
     pub shared: bool,
-    pub query: Query,
+    pub query: CompoundQueryItem,
     pub catalog: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = media_search)]
+struct MediaSearch {
+    catalog: String,
+    media: String,
+    search: String,
+    added: OffsetDateTime,
+}
+
+impl SavedSearch {
+    #[instrument(skip(self, conn), fields(search = self.id))]
+    pub(crate) async fn update(&self, conn: &mut AsyncPgConnection) -> Result {
+        let select = media_item::table
+            .left_outer_join(
+                media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
+            )
+            .filter(media_item::catalog.eq(&self.catalog))
+            .filter(self.query.filter(&self.catalog))
+            .select(media_item::id)
+            .distinct();
+
+        trace!(query = %debug_query::<Pg, _>(&select), "Running query");
+
+        let matching_media = select.load::<String>(conn).await?;
+
+        let now = OffsetDateTime::now_utc();
+
+        let inserts: Vec<MediaSearch> = matching_media
+            .iter()
+            .map(|id| MediaSearch {
+                catalog: self.catalog.clone(),
+                media: id.to_owned(),
+                search: self.id.to_string(),
+                added: now,
+            })
+            .collect();
+
+        insert_into(media_search::table)
+            .values(inserts)
+            .on_conflict_do_nothing()
+            .execute(conn)
+            .await?;
+
+        delete(
+            media_search::table
+                .filter(media_search::search.eq(&self.id))
+                .filter(media_search::media.ne_all(matching_media)),
+        )
+        .execute(conn)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[derive(Queryable, Clone, Debug)]

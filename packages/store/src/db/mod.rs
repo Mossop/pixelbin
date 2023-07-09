@@ -1,4 +1,5 @@
-mod functions;
+pub(crate) mod functions;
+pub(crate) mod search;
 
 use std::path::PathBuf;
 
@@ -12,83 +13,13 @@ use diesel_async::{
 use time::OffsetDateTime;
 use tracing::instrument;
 
-use crate::{joinable, manual_schema::*, models, schema::*, MediaFilePath, Result};
-use functions::*;
+use crate::{joinable, models, schema::*, MediaFilePath, Result};
 use pixelbin_shared::Error;
+
+use functions::*;
 
 pub(crate) type DbConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<DbConnection>;
-
-macro_rules! media_view_query {
-    () => {
-        media_item::table
-            .left_outer_join(
-                media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
-            )
-            .select((
-                media_item::id,
-                media_item::catalog,
-                media_item::created,
-                greatest(media_item::updated, media_file::uploaded.nullable()),
-                coalesce(media_item::filename, media_file::filename.nullable()),
-                coalesce(media_item::title, media_file::title.nullable()),
-                coalesce(media_item::description, media_file::description.nullable()),
-                coalesce(media_item::label, media_file::label.nullable()),
-                coalesce(media_item::category, media_file::category.nullable()),
-                coalesce(media_item::taken, media_file::taken.nullable()),
-                select_zone(
-                    media_item::taken,
-                    media_item::taken_zone,
-                    media_file::taken_zone.nullable(),
-                ),
-                coalesce(media_item::longitude, media_file::longitude.nullable()),
-                coalesce(media_item::latitude, media_file::latitude.nullable()),
-                coalesce(media_item::altitude, media_file::altitude.nullable()),
-                coalesce(media_item::location, media_file::location.nullable()),
-                coalesce(media_item::city, media_file::city.nullable()),
-                coalesce(media_item::state, media_file::state.nullable()),
-                coalesce(media_item::country, media_file::country.nullable()),
-                coalesce(media_item::orientation, media_file::orientation.nullable()),
-                coalesce(media_item::make, media_file::make.nullable()),
-                coalesce(media_item::model, media_file::model.nullable()),
-                coalesce(media_item::lens, media_file::lens.nullable()),
-                coalesce(
-                    media_item::photographer,
-                    media_file::photographer.nullable(),
-                ),
-                coalesce(media_item::aperture, media_file::aperture.nullable()),
-                coalesce(
-                    media_item::shutter_speed,
-                    media_file::shutter_speed.nullable(),
-                ),
-                coalesce(media_item::iso, media_file::iso.nullable()),
-                coalesce(
-                    media_item::focal_length,
-                    media_file::focal_length.nullable(),
-                ),
-                coalesce(media_item::rating, media_file::rating.nullable()),
-                (
-                    media_file::id,
-                    media_file::file_size,
-                    media_file::mimetype,
-                    media_file::width,
-                    media_file::height,
-                    media_file::duration,
-                    media_file::frame_rate,
-                    media_file::bit_rate,
-                    media_file::uploaded,
-                    media_file::file_name,
-                )
-                    .nullable(),
-            ))
-            .distinct()
-            .order(
-                coalesce(media_item::taken, media_file::taken.nullable())
-                    .desc()
-                    .nulls_last(),
-            )
-    };
-}
 
 #[instrument(err)]
 pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
@@ -230,6 +161,19 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
+    async fn list_catalogs(&mut self) -> Result<Vec<models::Catalog>> {
+        self.with_connection(|conn| {
+            async move {
+                Ok(catalog::table
+                    .select(catalog::all_columns)
+                    .load::<models::Catalog>(conn)
+                    .await?)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
     async fn list_user_storage(&mut self, email: &str) -> Result<Vec<models::Storage>> {
         self.with_connection(|conn| {
             async move {
@@ -334,7 +278,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
     ) -> Result<Vec<models::MediaView>> {
         self.with_connection(|conn| {
             async move {
-                Ok(media_view_query!()
+                Ok(media_view!()
                     .inner_join(
                         user_catalog::table.on(media_item::catalog.eq(user_catalog::catalog)),
                     )

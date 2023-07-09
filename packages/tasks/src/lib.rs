@@ -3,10 +3,32 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
+use scoped_futures::ScopedFutureExt;
+
 use pixelbin_shared::Result;
 use pixelbin_store::{DbQueries, RemotePath, Store};
 
 pub async fn prune(_store: Store, _dry_run: bool) -> Result {
+    Ok(())
+}
+
+pub async fn rebuild_searches(store: Store) -> Result {
+    tracing::debug!("Rebuilding searches");
+
+    store
+        .in_transaction(|mut tx| {
+            async move {
+                let catalogs = tx.list_catalogs().await?;
+
+                for catalog in catalogs {
+                    tx.update_searches(&catalog.id).await?;
+                }
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
+
     Ok(())
 }
 

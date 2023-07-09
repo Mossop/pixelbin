@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use diesel::{expression::AsExpression, sql_function, sql_types::*};
 
 sql_function!(
@@ -7,22 +5,31 @@ sql_function!(
     fn greatest(a: Timestamptz, b: Nullable<Timestamptz>) -> Timestamptz
 );
 
-pub(crate) fn coalesce<T, A, B>(a: A, b: B) -> coalesce::HelperType<T, A, B>
+sql_function!(
+    fn char_length(a: Nullable<Text>) -> Nullable<Integer>
+);
+
+sql_function!(
+    fn coalesce<T: SingleValue>(a: Nullable<T>, b: Nullable<T>) -> Nullable<T>
+);
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum DateComponent {
+    Year,
+    Month,
+}
+
+pub(crate) fn extract<A>(a: A, c: DateComponent) -> extract::HelperType<A>
 where
-    A: AsExpression<Nullable<T>>,
-    B: AsExpression<Nullable<T>>,
-    T: SingleValue + SqlType,
+    A: AsExpression<Nullable<Timestamp>>,
 {
-    coalesce::Coalesce {
+    extract::Extract {
         a: a.as_expression(),
-        b: b.as_expression(),
-        _output: PhantomData,
+        c,
     }
 }
 
-pub(crate) mod coalesce {
-    use std::marker::PhantomData;
-
+pub(crate) mod extract {
     use super::*;
     use diesel::expression::{
         is_aggregate, AppearsOnTable, AsExpression, Expression, SelectableExpression, ValidGrouping,
@@ -31,58 +38,52 @@ pub(crate) mod coalesce {
     use diesel::{self, QueryResult};
 
     #[derive(Debug, Clone, Copy, QueryId)]
-    pub(crate) struct Coalesce<T, A, B> {
+    pub(crate) struct Extract<A> {
         pub(super) a: A,
-        pub(super) b: B,
-        pub(super) _output: PhantomData<T>,
+        pub(super) c: DateComponent,
     }
 
-    impl<T, A, B, GroupByClause> ValidGrouping<GroupByClause> for Coalesce<T, A, B> {
+    impl<A, GroupByClause> ValidGrouping<GroupByClause> for Extract<A> {
         type IsAggregate = is_aggregate::Never;
     }
 
-    pub(crate) type HelperType<T, A, B> = Coalesce<
-        T,
-        <A as AsExpression<Nullable<T>>>::Expression,
-        <B as AsExpression<Nullable<T>>>::Expression,
-    >;
+    pub(crate) type HelperType<A> = Extract<<A as AsExpression<Nullable<Timestamp>>>::Expression>;
 
-    impl<T, A, B> Expression for Coalesce<T, A, B>
+    impl<A> Expression for Extract<A>
     where
-        (A, B): Expression,
-        T: SingleValue,
+        A: Expression,
     {
-        type SqlType = Nullable<T>;
+        type SqlType = Nullable<Integer>;
     }
 
-    impl<T, A, B, QS> SelectableExpression<QS> for Coalesce<T, A, B>
+    impl<A, QS> SelectableExpression<QS> for Extract<A>
     where
         A: SelectableExpression<QS>,
-        B: SelectableExpression<QS>,
         Self: AppearsOnTable<QS>,
     {
     }
 
-    impl<T, A, B, QS> AppearsOnTable<QS> for Coalesce<T, A, B>
+    impl<A, QS> AppearsOnTable<QS> for Extract<A>
     where
         A: AppearsOnTable<QS>,
-        B: AppearsOnTable<QS>,
         Self: Expression,
     {
     }
 
-    impl<T, A, B, QS> QueryFragment<QS> for Coalesce<T, A, B>
+    impl<A, QS> QueryFragment<QS> for Extract<A>
     where
         QS: diesel::backend::Backend,
         A: QueryFragment<QS>,
-        B: QueryFragment<QS>,
     {
         #[allow(unused_assignments)]
         fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, QS>) -> QueryResult<()> {
-            out.push_sql("COALESCE(");
+            out.push_sql("EXTRACT(");
+            match self.c {
+                DateComponent::Month => out.push_sql("MONTH"),
+                DateComponent::Year => out.push_sql("YEAR"),
+            }
+            out.push_sql(" FROM ");
             self.a.walk_ast(out.reborrow())?;
-            out.push_sql(", ");
-            self.b.walk_ast(out.reborrow())?;
             out.push_sql(")");
             Ok(())
         }
@@ -172,3 +173,79 @@ pub(crate) mod select_zone {
         }
     }
 }
+
+macro_rules! media_field {
+    (taken_zone) => {
+        crate::db::functions::select_zone(
+            crate::schema::media_item::taken,
+            crate::schema::media_item::taken_zone,
+            crate::schema::media_file::taken_zone.nullable(),
+        )
+    };
+    ($field:ident) => {
+        crate::db::functions::coalesce(
+            crate::schema::media_item::$field,
+            crate::schema::media_file::$field.nullable(),
+        )
+    };
+}
+
+macro_rules! media_view {
+    () => {
+        crate::schema::media_item::table
+            .left_outer_join(crate::schema::media_file::table.on(
+                crate::schema::media_item::media_file.eq(crate::schema::media_file::id.nullable()),
+            ))
+            .select((
+                crate::schema::media_item::id,
+                crate::schema::media_item::catalog,
+                crate::schema::media_item::created,
+                crate::db::functions::greatest(
+                    crate::schema::media_item::updated,
+                    crate::schema::media_file::uploaded.nullable(),
+                ),
+                media_field!(filename),
+                media_field!(title),
+                media_field!(description),
+                media_field!(label),
+                media_field!(category),
+                media_field!(taken),
+                media_field!(taken_zone),
+                media_field!(longitude),
+                media_field!(latitude),
+                media_field!(altitude),
+                media_field!(location),
+                media_field!(city),
+                media_field!(state),
+                media_field!(country),
+                media_field!(orientation),
+                media_field!(make),
+                media_field!(model),
+                media_field!(lens),
+                media_field!(photographer),
+                media_field!(aperture),
+                media_field!(shutter_speed),
+                media_field!(iso),
+                media_field!(focal_length),
+                media_field!(rating),
+                (
+                    crate::schema::media_file::id,
+                    crate::schema::media_file::file_size,
+                    crate::schema::media_file::mimetype,
+                    crate::schema::media_file::width,
+                    crate::schema::media_file::height,
+                    crate::schema::media_file::duration,
+                    crate::schema::media_file::frame_rate,
+                    crate::schema::media_file::bit_rate,
+                    crate::schema::media_file::uploaded,
+                    crate::schema::media_file::file_name,
+                )
+                    .nullable(),
+            ))
+            .distinct()
+            .order(media_field!(taken).desc().nulls_last())
+    };
+}
+
+pub(crate) use media_field;
+pub(crate) use media_view;
