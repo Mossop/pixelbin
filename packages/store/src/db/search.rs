@@ -14,12 +14,8 @@ use diesel::{
     },
 };
 use monostate::MustBe;
-use serde::{
-    de::Error,
-    de::{DeserializeOwned, Unexpected},
-    Deserialize, Deserializer, Serialize,
-};
-use serde_json::{Map, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use serde_plain::derive_display_from_serialize;
 
 use crate::schema::*;
@@ -32,6 +28,10 @@ type MediaViewQS = LeftJoinQuerySource<
     dsl::Eq<media_item::media_file, dsl::Nullable<media_file::id>>,
 >;
 type Boxed<QS, T = Bool> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
+
+pub(crate) trait FilterGen<QS> {
+    fn filter_gen(&self, catalog: &str) -> Boxed<QS>;
+}
 
 pub(crate) fn field_query<QS, F, FT>(
     field: F,
@@ -248,14 +248,14 @@ pub(crate) mod field_query {
     }
 }
 
-pub enum TypedField<QS> {
+pub(crate) enum TypedField<QS> {
     Text(Boxed<QS, Nullable<Text>>),
     Float(Boxed<QS, Nullable<Float>>),
     Integer(Boxed<QS, Nullable<Integer>>),
     Date(Boxed<QS, Nullable<Timestamp>>),
 }
 
-pub trait Field {
+pub(crate) trait Field {
     type QuerySource: 'static;
 
     fn field(&self) -> TypedField<Self::QuerySource> {
@@ -263,21 +263,9 @@ pub trait Field {
     }
 }
 
-pub trait RelationField: Field {
-    fn relation_type() -> RelationType;
-
+pub(crate) trait RelationField: Field {
     fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS>;
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum RelationType {
-    Tag,
-    Album,
-    Person,
-}
-
-derive_display_from_serialize!(RelationType);
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -306,7 +294,7 @@ pub enum Modifier {
 derive_display_from_serialize!(Modifier);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum Join {
+pub(crate) enum Join {
     #[serde(rename = "&&")]
     And,
     #[serde(rename = "||")]
@@ -381,7 +369,7 @@ impl Field for MediaField {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum TagField {
+pub(crate) enum TagField {
     Id,
     Name,
 }
@@ -398,10 +386,6 @@ impl Field for TagField {
 }
 
 impl RelationField for TagField {
-    fn relation_type() -> RelationType {
-        RelationType::Tag
-    }
-
     fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS> {
         let select = tag::table
             .filter(tag::catalog.eq(catalog.to_owned()))
@@ -416,7 +400,7 @@ impl RelationField for TagField {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum PersonField {
+pub(crate) enum PersonField {
     Id,
     Name,
 }
@@ -433,10 +417,6 @@ impl Field for PersonField {
 }
 
 impl RelationField for PersonField {
-    fn relation_type() -> RelationType {
-        RelationType::Person
-    }
-
     fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS> {
         let select = person::table
             .filter(person::catalog.eq(catalog.to_owned()))
@@ -451,7 +431,7 @@ impl RelationField for PersonField {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum AlbumField {
+pub(crate) enum AlbumField {
     Id,
     Name,
 }
@@ -468,10 +448,6 @@ impl Field for AlbumField {
 }
 
 impl RelationField for AlbumField {
-    fn relation_type() -> RelationType {
-        RelationType::Album
-    }
-
     fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS> {
         let select = album::table
             .filter(album::catalog.eq(catalog.to_owned()))
@@ -486,19 +462,22 @@ impl RelationField for AlbumField {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct FieldQuery<F: Field> {
+pub struct FieldQuery<F> {
     #[serde(rename = "type")]
     _type: String,
     pub invert: bool,
-    #[serde(bound(deserialize = "F: DeserializeOwned"))]
     pub field: F,
     pub modifier: Option<Modifier>,
     pub operator: Operator,
     pub value: Option<Value>,
 }
 
-impl<F: Field> FieldQuery<F> {
-    fn filter(&self) -> Boxed<F::QuerySource> {
+impl<F, QS> FilterGen<QS> for FieldQuery<F>
+where
+    QS: 'static,
+    F: Field<QuerySource = QS>,
+{
+    fn filter_gen(&self, _catalog: &str) -> Boxed<QS> {
         match self.field.field() {
             TypedField::Text(f) => match self.modifier {
                 Some(Modifier::Length) => Box::new(field_query(
@@ -542,221 +521,165 @@ impl<F: Field> FieldQuery<F> {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub(crate) enum RelationQueryItem<R, F> {
+    Field(FieldQuery<F>),
+    Compound(R),
+}
+
+impl<R, F, QS> FilterGen<QS> for RelationQueryItem<R, F>
+where
+    R: FilterGen<QS>,
+    FieldQuery<F>: FilterGen<QS>,
+{
+    fn filter_gen(&self, catalog: &str) -> Boxed<QS> {
+        match self {
+            RelationQueryItem::Field(f) => f.filter_gen(catalog),
+            RelationQueryItem::Compound(f) => f.filter_gen(catalog),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TagRelation {
+    #[serde(rename = "type")]
+    _type: MustBe!("compound"),
+    #[serde(flatten)]
+    joined: JoinedQueries<RelationQueryItem<TagRelation, TagField>>,
+    #[serde(rename = "relation")]
+    _relation: MustBe!("tag"),
+}
+
+impl FilterGen<tag::table> for TagRelation {
+    fn filter_gen(&self, catalog: &str) -> Boxed<tag::table> {
+        self.joined.filter_gen(catalog)
+    }
+}
+
+impl FilterGen<MediaViewQS> for TagRelation {
+    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
+        TagField::media_filter(
+            catalog,
+            <Self as FilterGen<tag::table>>::filter_gen(self, catalog),
+        )
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AlbumRelation {
+    #[serde(rename = "type")]
+    _type: MustBe!("compound"),
+    #[serde(flatten)]
+    joined: JoinedQueries<RelationQueryItem<AlbumRelation, AlbumField>>,
+    #[serde(rename = "relation")]
+    _relation: MustBe!("album"),
+}
+
+impl FilterGen<album::table> for AlbumRelation {
+    fn filter_gen(&self, catalog: &str) -> Boxed<album::table> {
+        self.joined.filter_gen(catalog)
+    }
+}
+
+impl FilterGen<MediaViewQS> for AlbumRelation {
+    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
+        AlbumField::media_filter(
+            catalog,
+            <Self as FilterGen<album::table>>::filter_gen(self, catalog),
+        )
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PersonRelation {
+    #[serde(rename = "type")]
+    _type: MustBe!("compound"),
+    #[serde(flatten)]
+    joined: JoinedQueries<RelationQueryItem<PersonRelation, PersonField>>,
+    #[serde(rename = "relation")]
+    _relation: MustBe!("person"),
+}
+
+impl FilterGen<person::table> for PersonRelation {
+    fn filter_gen(&self, catalog: &str) -> Boxed<person::table> {
+        self.joined.filter_gen(catalog)
+    }
+}
+
+impl FilterGen<MediaViewQS> for PersonRelation {
+    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
+        PersonField::media_filter(
+            catalog,
+            <Self as FilterGen<person::table>>::filter_gen(self, catalog),
+        )
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, AsExpression, deserialize::FromSqlRow)]
+#[diesel(sql_type = sql_types::Json)]
+#[serde(untagged)]
+pub enum CompoundQueryItem {
+    Field(FieldQuery<MediaField>),
+    Tag(TagRelation),
+    Person(PersonRelation),
+    Album(AlbumRelation),
+    Compound(CompoundQuery),
+}
+
+impl FilterGen<MediaViewQS> for CompoundQueryItem {
+    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
+        match self {
+            CompoundQueryItem::Field(f) => f.filter_gen(catalog),
+            CompoundQueryItem::Tag(f) => f.filter_gen(catalog),
+            CompoundQueryItem::Person(f) => f.filter_gen(catalog),
+            CompoundQueryItem::Album(f) => f.filter_gen(catalog),
+            CompoundQueryItem::Compound(f) => f.filter_gen(catalog),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct JoinedQueries<Q> {
+    pub(crate) invert: bool,
+    pub(crate) join: Join,
+    pub(crate) queries: Vec<Q>,
+}
+
+impl<Q, QS> FilterGen<QS> for JoinedQueries<Q>
+where
+    QS: 'static,
+    Q: FilterGen<QS>,
+{
+    fn filter_gen(&self, catalog: &str) -> Boxed<QS> {
+        let mut filter: Boxed<QS> = self.queries[0].filter_gen(catalog);
+
+        for query in self.queries.iter().skip(1) {
+            filter = match self.join {
+                Join::And => Box::new(filter.and(query.filter_gen(catalog))),
+                Join::Or => Box::new(filter.or(query.filter_gen(catalog))),
+            };
+        }
+
+        if self.invert {
+            Box::new(not(filter))
+        } else {
+            filter
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CompoundQuery {
     #[serde(rename = "type")]
     _type: MustBe!("compound"),
-    pub invert: bool,
-    pub join: Join,
-    pub queries: Vec<CompoundQueryItem>,
+    #[serde(flatten)]
+    joined: JoinedQueries<CompoundQueryItem>,
 }
 
-impl CompoundQuery {
-    fn filter(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        let mut filter: Boxed<MediaViewQS> = self.queries[0].filter(catalog);
-
-        for query in self.queries.iter().skip(1) {
-            filter = match self.join {
-                Join::And => Box::new(filter.and(query.filter(catalog))),
-                Join::Or => Box::new(filter.or(query.filter(catalog))),
-            };
-        }
-
-        if self.invert {
-            Box::new(not(filter))
-        } else {
-            filter
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub enum RelationQueryItem<F: RelationField> {
-    Compound(RelationQuery<F>),
-    Field(FieldQuery<F>),
-}
-
-impl<F> RelationQueryItem<F>
-where
-    F: RelationField,
-{
-    fn filter(&self) -> Boxed<F::QuerySource> {
-        match self {
-            RelationQueryItem::Compound(q) => q.filter_relation(),
-            RelationQueryItem::Field(q) => q.filter(),
-        }
-    }
-}
-
-fn deserialize_value<'de, D: Deserializer<'de>, T: DeserializeOwned>(
-    value: Value,
-) -> Result<T, D::Error> {
-    serde_json::from_value::<T>(value).map_err(|e| D::Error::custom(e.to_string()))
-}
-
-impl<'de, F> Deserialize<'de> for RelationQueryItem<F>
-where
-    F: RelationField + DeserializeOwned,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let object = Map::<String, Value>::deserialize(deserializer)?;
-
-        let typ = match object.get("type") {
-            Some(Value::String(s)) => s.clone(),
-            Some(v) => {
-                return Err(D::Error::custom(format!(
-                    "Expected `type` to be a string but got {v}"
-                )))
-            }
-            None => return Err(D::Error::missing_field("type")),
-        };
-
-        match typ.as_str() {
-            "field" => {
-                let query = deserialize_value::<D, FieldQuery<F>>(Value::Object(object))?;
-                Ok(Self::Field(query))
-            }
-            "compound" => {
-                let rel = match object.get("relation") {
-                    Some(v) => deserialize_value::<D, RelationType>(v.clone())?,
-                    None => return Err(D::Error::missing_field("relation")),
-                };
-
-                if rel != F::relation_type() {
-                    return Err(D::Error::invalid_value(
-                        Unexpected::Str(&rel.to_string()),
-                        &F::relation_type().to_string().as_str(),
-                    ));
-                }
-
-                let query = deserialize_value::<D, RelationQuery<F>>(Value::Object(object))?;
-                Ok(Self::Compound(query))
-            }
-            o => Err(D::Error::invalid_value(
-                Unexpected::Str(o),
-                &"`field` or `compound`",
-            )),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RelationQuery<F: RelationField> {
-    #[serde(rename = "type")]
-    _type: String,
-    pub invert: bool,
-    pub join: Join,
-    #[serde(bound(deserialize = "F: DeserializeOwned"))]
-    pub queries: Vec<RelationQueryItem<F>>,
-    pub relation: RelationType,
-    pub recursive: bool,
-}
-
-impl<F: RelationField> RelationQuery<F> {
-    fn filter_relation(&self) -> Boxed<F::QuerySource> {
-        let mut filter: Boxed<F::QuerySource> = self.queries[0].filter();
-
-        for query in self.queries.iter().skip(1) {
-            filter = match self.join {
-                Join::And => Box::new(filter.and(query.filter())),
-                Join::Or => Box::new(filter.or(query.filter())),
-            };
-        }
-
-        if self.invert {
-            Box::new(not(filter))
-        } else {
-            filter
-        }
-    }
-
-    fn filter(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        F::media_filter(catalog, self.filter_relation())
-    }
-}
-
-#[derive(Debug, Serialize, Clone, AsExpression, deserialize::FromSqlRow)]
-#[diesel(sql_type = sql_types::Json)]
-pub enum CompoundQueryItem {
-    Field(FieldQuery<MediaField>),
-    Tag(RelationQuery<TagField>),
-    Person(RelationQuery<PersonField>),
-    Album(RelationQuery<AlbumField>),
-    Compound(CompoundQuery),
-}
-
-impl CompoundQueryItem {
-    pub(crate) fn filter(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        match self {
-            CompoundQueryItem::Field(q) => q.filter(),
-            CompoundQueryItem::Tag(q) => q.filter(catalog),
-            CompoundQueryItem::Person(q) => q.filter(catalog),
-            CompoundQueryItem::Album(q) => q.filter(catalog),
-            CompoundQueryItem::Compound(q) => q.filter(catalog),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for CompoundQueryItem {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let object = Map::<String, Value>::deserialize(deserializer)?;
-
-        let typ = match object.get("type") {
-            Some(Value::String(s)) => s.clone(),
-            Some(v) => {
-                return Err(D::Error::custom(format!(
-                    "Expected `type` to be a string but got {v}"
-                )))
-            }
-            None => return Err(D::Error::missing_field("type")),
-        };
-
-        match typ.as_str() {
-            "field" => {
-                let query = deserialize_value::<D, FieldQuery<MediaField>>(Value::Object(object))?;
-                Ok(Self::Field(query))
-            }
-            "compound" => {
-                let rel = match object.get("relation") {
-                    Some(v) => Some(deserialize_value::<D, RelationType>(v.clone())?),
-                    None => None,
-                };
-
-                match rel {
-                    Some(RelationType::Album) => {
-                        let query = deserialize_value::<D, RelationQuery<AlbumField>>(
-                            Value::Object(object),
-                        )?;
-                        Ok(Self::Album(query))
-                    }
-                    Some(RelationType::Person) => {
-                        let query = deserialize_value::<D, RelationQuery<PersonField>>(
-                            Value::Object(object),
-                        )?;
-                        Ok(Self::Person(query))
-                    }
-                    Some(RelationType::Tag) => {
-                        let query =
-                            deserialize_value::<D, RelationQuery<TagField>>(Value::Object(object))?;
-                        Ok(Self::Tag(query))
-                    }
-                    None => {
-                        let query = deserialize_value::<D, CompoundQuery>(Value::Object(object))?;
-                        Ok(Self::Compound(query))
-                    }
-                }
-            }
-            o => Err(D::Error::invalid_value(
-                Unexpected::Str(o),
-                &"`field` or `compound`",
-            )),
-        }
+impl FilterGen<MediaViewQS> for CompoundQuery {
+    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
+        self.joined.filter_gen(catalog)
     }
 }
 
@@ -797,6 +720,8 @@ mod tests {
 
     #[test]
     fn parsing() {
+        attempt_parse(r#"{"invert":false,"type":"compound","join":"&&","queries":[]}"#);
+        attempt_parse(r#"{"invert":true,"type":"compound","join":"||","queries":[]}"#);
         attempt_parse(
             r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"compound","join":"||","queries":[{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:JDkiNRe5vR"},{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:i9hZrZVwPP"}],"relation":"person","recursive":false}]}"#,
         );

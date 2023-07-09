@@ -8,7 +8,7 @@ use serde_repr::Serialize_repr;
 use time::{OffsetDateTime, PrimitiveDateTime};
 use tracing::{instrument, trace};
 
-use crate::{aws::AwsClient, RemotePath};
+use crate::{aws::AwsClient, db::search::FilterGen, RemotePath};
 use crate::{db::search::CompoundQueryItem, schema::*};
 use pixelbin_shared::Result;
 
@@ -277,7 +277,7 @@ impl SavedSearch {
                 media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
             )
             .filter(media_item::catalog.eq(&self.catalog))
-            .filter(self.query.filter(&self.catalog))
+            .filter(self.query.filter_gen(&self.catalog))
             .select(media_item::id)
             .distinct();
 
