@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use diesel::{
     backend, deserialize,
     dsl::{self, not},
@@ -7,7 +5,7 @@ use diesel::{
     helper_types::LeftJoinQuerySource,
     pg::Pg,
     prelude::*,
-    query_builder::QueryFragment,
+    query_builder::AstPass,
     serialize,
     sql_types::{
         self, Bool, Double, Float, Integer, Nullable, SingleValue, SqlType, Text, Timestamp,
@@ -33,120 +31,73 @@ pub(crate) trait FilterGen<QS> {
     fn filter_gen(&self, catalog: &str) -> Boxed<QS>;
 }
 
-pub(crate) fn field_query<QS, F, FT>(
+pub(crate) fn field_query<F, FT>(
     field: F,
     operator: Operator,
-    value: &Option<Value>,
     invert: bool,
-) -> Boxed<QS>
+) -> field_query::HelperType<F, FT>
 where
     F: AsExpression<FT>,
     FT: SingleValue + SqlType,
-    <F as AsExpression<FT>>::Expression:
-        'static + SelectableExpression<QS> + QueryFragment<Pg> + Send,
 {
-    match value {
-        Some(Value::String(s)) => Box::new(field_query::FieldQuery::<_, String, Text> {
-            field: field.as_expression(),
-            operator,
-            value: s.clone(),
-            _sql_type: PhantomData,
-            invert,
-        }),
-        Some(Value::Number(n)) => {
-            if let Some(v) = n.as_i64() {
-                Box::new(field_query::FieldQuery::<_, i32, Integer> {
-                    field: field.as_expression(),
-                    operator,
-                    value: v as i32,
-                    _sql_type: PhantomData,
-                    invert,
-                })
-            } else if let Some(v) = n.as_f64() {
-                Box::new(field_query::FieldQuery::<_, f64, Double> {
-                    field: field.as_expression(),
-                    operator,
-                    value: v,
-                    _sql_type: PhantomData,
-                    invert,
-                })
-            } else {
-                Box::new(field_query::FieldQuery::<_, i32, Integer> {
-                    field: field.as_expression(),
-                    operator,
-                    value: 0,
-                    _sql_type: PhantomData,
-                    invert,
-                })
-            }
-        }
-        _ => Box::new(field_query::FieldQuery::<_, i32, Integer> {
-            field: field.as_expression(),
-            operator,
-            value: 0,
-            _sql_type: PhantomData,
-            invert,
-        }),
+    field_query::FieldQuery {
+        field: field.as_expression(),
+        operator,
+        invert,
     }
 }
 
 pub(crate) mod field_query {
-    use std::marker::PhantomData;
-
     use super::*;
     use diesel::{
         expression::{
             is_aggregate, AppearsOnTable, Expression, SelectableExpression, ValidGrouping,
         },
         query_builder::{AstPass, QueryFragment, QueryId},
-        serialize::ToSql,
-        sql_types::HasSqlType,
         QueryResult,
     };
 
     #[derive(Debug, Clone, QueryId)]
-    pub(crate) struct FieldQuery<F, V, S> {
+    pub(crate) struct FieldQuery<F> {
         pub(super) field: F,
         pub(super) operator: Operator,
-        pub(super) value: V,
         pub(super) invert: bool,
-        pub(super) _sql_type: PhantomData<S>,
     }
 
-    impl<F, V, S, GroupByClause> ValidGrouping<GroupByClause> for FieldQuery<F, V, S> {
+    impl<F, GroupByClause> ValidGrouping<GroupByClause> for FieldQuery<F> {
         type IsAggregate = is_aggregate::Never;
     }
 
-    impl<F, V, S> Expression for FieldQuery<F, V, S>
+    pub(crate) type HelperType<F, FT> = FieldQuery<<F as AsExpression<FT>>::Expression>;
+
+    impl<F> Expression for FieldQuery<F>
     where
         F: Expression,
     {
         type SqlType = Bool;
     }
 
-    impl<F, V, S, QS> SelectableExpression<QS> for FieldQuery<F, V, S>
+    impl<F, QS> SelectableExpression<QS> for FieldQuery<F>
     where
         F: SelectableExpression<QS>,
         Self: AppearsOnTable<QS>,
     {
     }
 
-    impl<F, V, S, QS> AppearsOnTable<QS> for FieldQuery<F, V, S>
+    impl<F, QS> AppearsOnTable<QS> for FieldQuery<F>
     where
         F: AppearsOnTable<QS>,
         Self: Expression,
     {
     }
 
-    impl<F, S, V> QueryFragment<Pg> for FieldQuery<F, V, S>
+    impl<F> QueryFragment<Pg> for FieldQuery<F>
     where
         F: QueryFragment<Pg>,
-        V: ToSql<S, Pg>,
-        Pg: HasSqlType<S>,
     {
         #[allow(unused_assignments)]
         fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, Pg>) -> QueryResult<()> {
-            match (self.operator, self.invert) {
+            match (&self.operator, self.invert) {
                 (Operator::Empty, false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NULL");
@@ -155,90 +106,92 @@ pub(crate) mod field_query {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NOT NULL");
                 }
-                (Operator::Equal, false) => {
+                (Operator::Equal(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NOT DISTINCT FROM ");
-                    out.push_bind_param(&self.value)?;
+                    v.bind_value(&mut out)?;
                 }
-                (Operator::Equal, true) => {
+                (Operator::Equal(v), true) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS DISTINCT FROM ");
-                    out.push_bind_param(&self.value)?;
+                    v.bind_value(&mut out)?;
                 }
-                (Operator::LessThan, false) => {
+                (Operator::LessThan(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" < ");
-                    out.push_bind_param(&self.value)?;
+                    v.bind_value(&mut out)?;
                 }
-                (Operator::LessThan, true) => {
+                (Operator::LessThan(v), true) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" >= ");
-                    out.push_bind_param(&self.value)?;
+                    v.bind_value(&mut out)?;
                 }
-                (Operator::LessThanOrEqual, false) => {
+                (Operator::LessThanOrEqual(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" <= ");
-                    out.push_bind_param(&self.value)?;
+                    v.bind_value(&mut out)?;
                 }
-                (Operator::LessThanOrEqual, true) => {
+                (Operator::LessThanOrEqual(v), true) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" > ");
-                    out.push_bind_param(&self.value)?;
+                    v.bind_value(&mut out)?;
                 }
-                (Operator::Contains, false) => {
+                (Operator::Contains(v), false) => {
+                    self.field.walk_ast(out.reborrow())?;
+                    out.push_sql(" LIKE '%' || ");
+                    out.push_bind_param::<Text, _>(v)?;
+                    out.push_sql(" || '%'");
+                }
+                (Operator::Contains(v), true) => {
+                    out.push_sql("(");
+                    self.field.walk_ast(out.reborrow())?;
+                    out.push_sql(" IS NULL OR ");
+                    self.field.walk_ast(out.reborrow())?;
+                    out.push_sql(" NOT LIKE  '%' || ");
+                    out.push_bind_param::<Text, _>(v)?;
+                    out.push_sql(" || '%')");
+                }
+                (Operator::StartsWith(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" LIKE ");
-                    out.push_bind_param(&self.value)?;
+                    out.push_bind_param::<Text, _>(v)?;
+                    out.push_sql(" || '%'");
                 }
-                (Operator::Contains, true) => {
+                (Operator::StartsWith(v), true) => {
                     out.push_sql("(");
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NULL OR ");
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" NOT LIKE ");
-                    out.push_bind_param(&self.value)?;
-                    out.push_sql(")");
+                    out.push_bind_param::<Text, _>(v)?;
+                    out.push_sql(" || '%')");
                 }
-                (Operator::StartsWith, false) => {
+                (Operator::EndsWith(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" LIKE ");
-                    out.push_bind_param(&self.value)?;
+                    out.push_sql(" LIKE '%' || ");
+                    out.push_bind_param::<Text, _>(v)?;
                 }
-                (Operator::StartsWith, true) => {
+                (Operator::EndsWith(v), true) => {
                     out.push_sql("(");
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NULL OR ");
                     self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" NOT LIKE ");
-                    out.push_bind_param(&self.value)?;
+                    out.push_sql(" NOT LIKE '%' || ");
+                    out.push_bind_param::<Text, _>(v)?;
                     out.push_sql(")");
                 }
-                (Operator::EndsWith, false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" LIKE ");
-                    out.push_bind_param(&self.value)?;
-                }
-                (Operator::EndsWith, true) => {
-                    out.push_sql("(");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" IS NULL OR ");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" NOT LIKE ");
-                    out.push_bind_param(&self.value)?;
-                    out.push_sql(")");
-                }
-                (Operator::Matches, false) => {
+                (Operator::Matches(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" ~ ");
-                    out.push_bind_param(&self.value)?;
+                    out.push_bind_param::<Text, _>(v)?;
                 }
-                (Operator::Matches, true) => {
+                (Operator::Matches(v), true) => {
                     out.push_sql("(");
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NULL OR ");
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" !~ ");
-                    out.push_bind_param(&self.value)?;
+                    out.push_bind_param::<Text, _>(v)?;
                     out.push_sql(")");
                 }
             }
@@ -258,30 +211,46 @@ pub(crate) enum TypedField<QS> {
 pub(crate) trait Field {
     type QuerySource: 'static;
 
-    fn field(&self) -> TypedField<Self::QuerySource> {
-        todo!();
-    }
+    fn field(&self) -> TypedField<Self::QuerySource>;
 }
 
 pub(crate) trait RelationField: Field {
     fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS>;
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-#[serde(rename_all = "lowercase")]
-pub enum Operator {
-    Empty,
-    Equal,
-    LessThan,
-    #[serde(rename = "lessthanequal")]
-    LessThanOrEqual,
-    Contains,
-    StartsWith,
-    EndsWith,
-    Matches,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum SqlValue {
+    String(String),
+    Bool(bool),
+    Integer(i32),
+    Double(f64),
 }
 
-derive_display_from_serialize!(Operator);
+impl SqlValue {
+    fn bind_value<'__b>(&'__b self, out: &mut AstPass<'_, '__b, Pg>) -> QueryResult<()> {
+        match self {
+            SqlValue::String(f) => out.push_bind_param::<Text, _>(f),
+            SqlValue::Bool(f) => out.push_bind_param::<Bool, _>(f),
+            SqlValue::Integer(f) => out.push_bind_param::<Integer, _>(f),
+            SqlValue::Double(f) => out.push_bind_param::<Double, _>(f),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "lowercase", tag = "operator", content = "value")]
+pub enum Operator {
+    Empty,
+    Equal(SqlValue),
+    LessThan(SqlValue),
+    #[serde(rename = "lessthanequal")]
+    LessThanOrEqual(SqlValue),
+    Contains(String),
+    StartsWith(String),
+    EndsWith(String),
+    Matches(String),
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
@@ -468,8 +437,8 @@ pub struct FieldQuery<F> {
     pub invert: bool,
     pub field: F,
     pub modifier: Option<Modifier>,
+    #[serde(flatten)]
     pub operator: Operator,
-    pub value: Option<Value>,
 }
 
 impl<F, QS> FilterGen<QS> for FieldQuery<F>
@@ -482,40 +451,37 @@ where
             TypedField::Text(f) => match self.modifier {
                 Some(Modifier::Length) => Box::new(field_query(
                     char_length(f),
-                    self.operator,
-                    &self.value,
+                    self.operator.clone(),
                     self.invert,
                 )),
                 Some(ref m) => panic!("Unexpected modifier {m} for text"),
-                None => Box::new(field_query(f, self.operator, &self.value, self.invert)),
+                None => Box::new(field_query(f, self.operator.clone(), self.invert)),
             },
             TypedField::Float(f) => {
                 if let Some(ref m) = self.modifier {
                     panic!("Unexpected modifier {m} for float");
                 }
-                Box::new(field_query(f, self.operator, &self.value, self.invert))
+                Box::new(field_query(f, self.operator.clone(), self.invert))
             }
             TypedField::Integer(f) => {
                 if let Some(ref m) = self.modifier {
                     panic!("Unexpected modifier {m} for integer");
                 }
-                Box::new(field_query(f, self.operator, &self.value, self.invert))
+                Box::new(field_query(f, self.operator.clone(), self.invert))
             }
             TypedField::Date(f) => match self.modifier {
                 Some(Modifier::Month) => Box::new(field_query(
                     extract(f, super::functions::DateComponent::Month),
-                    self.operator,
-                    &self.value,
+                    self.operator.clone(),
                     self.invert,
                 )),
                 Some(Modifier::Year) => Box::new(field_query(
                     extract(f, super::functions::DateComponent::Year),
-                    self.operator,
-                    &self.value,
+                    self.operator.clone(),
                     self.invert,
                 )),
                 Some(ref m) => panic!("Unexpected modifier {m} for date"),
-                None => Box::new(field_query(f, self.operator, &self.value, self.invert)),
+                None => Box::new(field_query(f, self.operator.clone(), self.invert)),
             },
         }
     }
