@@ -147,8 +147,8 @@ pub(crate) fn choose_alternate(
 pub(crate) struct BaseTemplateState {
     pub(crate) user: Option<models::User>,
     pub(crate) catalogs: Vec<models::Catalog>,
-    pub(crate) albums: Vec<models::Album>,
-    pub(crate) searches: Vec<models::SavedSearch>,
+    pub(crate) albums: Vec<(models::Album, i64)>,
+    pub(crate) searches: Vec<(models::SavedSearch, i64)>,
 }
 
 #[instrument(skip_all)]
@@ -162,8 +162,8 @@ pub(crate) async fn build_base_state<Q: DbQueries + Send>(
                 return Ok(BaseTemplateState {
                     user: Some(user),
                     catalogs: db.list_user_catalogs(email).await?,
-                    albums: db.list_user_albums(email).await?,
-                    searches: db.list_user_searches(email).await?,
+                    albums: db.list_user_albums_with_count(email).await?,
+                    searches: db.list_user_searches_with_count(email).await?,
                 })
             }
             Err(Error::NotFound) => {}

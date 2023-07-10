@@ -48,14 +48,17 @@ mod filters {
 
 #[instrument(level = "trace", skip(searches))]
 fn build_catalog_searches(
-    searches: &[models::SavedSearch],
+    searches: &[(models::SavedSearch, i64)],
     catalog: &str,
-) -> Vec<models::SavedSearch> {
+) -> Vec<SearchNav> {
     searches
         .iter()
-        .filter_map(|s| {
+        .filter_map(|(s, c)| {
             if s.catalog.as_str() == catalog {
-                Some(s.clone())
+                Some(SearchNav {
+                    search: s.clone(),
+                    media: *c,
+                })
             } else {
                 None
             }
@@ -63,13 +66,14 @@ fn build_catalog_searches(
         .collect()
 }
 
-fn build_album_children(albums: &[models::Album], alb: &str) -> Vec<AlbumNav> {
+fn build_album_children(albums: &[(models::Album, i64)], alb: &str) -> Vec<AlbumNav> {
     albums
         .iter()
-        .filter_map(|a| {
+        .filter_map(|(a, c)| {
             if a.parent.as_deref() == Some(alb) {
                 Some(AlbumNav {
                     album: a.clone(),
+                    media: *c,
                     children: build_album_children(albums, &a.id),
                 })
             } else {
@@ -80,13 +84,14 @@ fn build_album_children(albums: &[models::Album], alb: &str) -> Vec<AlbumNav> {
 }
 
 #[instrument(level = "trace", skip(albums))]
-fn build_catalog_albums(albums: &[models::Album], catalog: &str) -> Vec<AlbumNav> {
+fn build_catalog_albums(albums: &[(models::Album, i64)], catalog: &str) -> Vec<AlbumNav> {
     albums
         .iter()
-        .filter_map(|a| {
+        .filter_map(|(a, c)| {
             if a.catalog == catalog && a.parent.is_none() {
                 Some(AlbumNav {
                     album: a.clone(),
+                    media: *c,
                     children: build_album_children(albums, &a.id),
                 })
             } else {
@@ -112,12 +117,18 @@ pub(crate) fn build_catalog_navs(base: &BaseTemplateState) -> Vec<CatalogNav> {
 #[template(path = "includes/album-nav.html")]
 pub(crate) struct AlbumNav {
     pub(crate) album: models::Album,
+    pub(crate) media: i64,
     pub(crate) children: Vec<AlbumNav>,
+}
+
+pub(crate) struct SearchNav {
+    pub(crate) search: models::SavedSearch,
+    pub(crate) media: i64,
 }
 
 pub(crate) struct CatalogNav {
     pub(crate) catalog: models::Catalog,
-    pub(crate) searches: Vec<models::SavedSearch>,
+    pub(crate) searches: Vec<SearchNav>,
     pub(crate) albums: Vec<AlbumNav>,
 }
 

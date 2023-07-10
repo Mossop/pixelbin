@@ -33,7 +33,7 @@
                   <ui-iconlistitem icon="search" label="Saved Searches">
                     <ui-iconlist>
                       {%- for search in catalog.searches %}
-                        <ui-iconlistitem icon="search" href="/search/{{search.id}}" label="{{search.name}}"></ui-iconlistitem>
+                        <ui-iconlistitem icon="search" href="/search/{{search.search.id}}" count="{{search.media}}" label="{{search.search.name}}"></ui-iconlistitem>
                       {%- endfor %}
                     </ui-iconlist>
                   </ui-iconlistitem>

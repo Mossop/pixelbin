@@ -4,7 +4,7 @@ pub(crate) mod search;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
-use diesel::prelude::*;
+use diesel::{dsl::count, prelude::*};
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     scoped_futures::ScopedFutureExt,
@@ -250,6 +250,27 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
+    async fn list_user_albums_with_count(
+        &mut self,
+        email: &str,
+    ) -> Result<Vec<(models::Album, i64)>> {
+        self.with_connection(|conn| {
+            async move {
+                Ok(user_catalog::table
+                    .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+                    .left_join(media_album::table.on(media_album::album.eq(album::id)))
+                    .filter(user_catalog::user.eq(email))
+                    .group_by(album::id)
+                    .select((album::all_columns, count(media_album::media.nullable())))
+                    .order(album::name.asc())
+                    .load::<(models::Album, i64)>(conn)
+                    .await?)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
     async fn user_album(&mut self, email: &str, album: &str) -> Result<models::Album> {
         self.with_connection(|conn| {
             async move {
@@ -376,6 +397,32 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                     .select(saved_search::all_columns)
                     .order(saved_search::name.asc())
                     .load::<models::SavedSearch>(conn)
+                    .await?)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
+    async fn list_user_searches_with_count(
+        &mut self,
+        email: &str,
+    ) -> Result<Vec<(models::SavedSearch, i64)>> {
+        self.with_connection(|conn| {
+            async move {
+                Ok(user_catalog::table
+                    .inner_join(
+                        saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)),
+                    )
+                    .left_join(media_search::table.on(media_search::search.eq(saved_search::id)))
+                    .filter(user_catalog::user.eq(email))
+                    .group_by(saved_search::id)
+                    .select((
+                        saved_search::all_columns,
+                        count(media_search::media.nullable()),
+                    ))
+                    .order(saved_search::name.asc())
+                    .load::<(models::SavedSearch, i64)>(conn)
                     .await?)
             }
             .scope_boxed()
