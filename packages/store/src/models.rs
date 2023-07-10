@@ -8,7 +8,11 @@ use serde_repr::Serialize_repr;
 use time::{OffsetDateTime, PrimitiveDateTime};
 use tracing::{instrument, trace};
 
-use crate::{aws::AwsClient, db::search::FilterGen, RemotePath};
+use crate::{
+    aws::AwsClient,
+    db::{functions::media_view, search::FilterGen},
+    RemotePath,
+};
 use crate::{db::search::CompoundQueryItem, schema::*};
 use pixelbin_shared::Result;
 
@@ -251,6 +255,17 @@ pub struct Album {
     pub catalog: String,
 }
 
+impl Album {
+    #[instrument(skip(self, conn), fields(album = self.id))]
+    pub async fn list_media(&self, conn: &mut AsyncPgConnection) -> Result<Vec<MediaView>> {
+        Ok(media_view!()
+            .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+            .filter(media_album::album.eq(&self.id))
+            .load::<MediaView>(conn)
+            .await?)
+    }
+}
+
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct SavedSearch {
     pub id: String,
@@ -270,6 +285,15 @@ struct MediaSearch {
 }
 
 impl SavedSearch {
+    #[instrument(skip(self, conn), fields(search = self.id))]
+    pub async fn list_media(&self, conn: &mut AsyncPgConnection) -> Result<Vec<MediaView>> {
+        Ok(media_view!()
+            .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
+            .filter(media_search::search.eq(&self.id))
+            .load::<MediaView>(conn)
+            .await?)
+    }
+
     #[instrument(skip(self, conn), fields(search = self.id))]
     pub(crate) async fn update(&self, conn: &mut AsyncPgConnection) -> Result {
         let select = media_item::table

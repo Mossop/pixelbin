@@ -144,3 +144,13 @@ pub(crate) struct Album {
     pub(crate) media_groups: Vec<MediaGroup>,
     pub(crate) thumbnails: ThumbnailConfig,
 }
+
+#[derive(Template)]
+#[template(path = "search.html")]
+pub(crate) struct Search {
+    pub(crate) user: Option<models::User>,
+    pub(crate) catalogs: Vec<CatalogNav>,
+    pub(crate) search: models::SavedSearch,
+    pub(crate) media_groups: Vec<MediaGroup>,
+    pub(crate) thumbnails: ThumbnailConfig,
+}

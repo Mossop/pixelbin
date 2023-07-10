@@ -16,8 +16,6 @@ use tracing::instrument;
 use crate::{joinable, models, schema::*, MediaFilePath, Result};
 use pixelbin_shared::Error;
 
-use functions::*;
-
 pub(crate) type DbConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<DbConnection>;
 
@@ -270,27 +268,41 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn user_album_media(
+    async fn album_media(
         &mut self,
-        email: &str,
-        album: &str,
+        album: &models::Album,
         _recursive: bool,
     ) -> Result<Vec<models::MediaView>> {
+        self.with_connection(|conn| album.list_media(conn).scope_boxed())
+            .await
+    }
+
+    async fn user_search(&mut self, email: &str, search: &str) -> Result<models::SavedSearch> {
         self.with_connection(|conn| {
             async move {
-                Ok(media_view!()
+                user_catalog::table
                     .inner_join(
-                        user_catalog::table.on(media_item::catalog.eq(user_catalog::catalog)),
+                        saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)),
                     )
-                    .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
-                    .filter(media_album::album.eq(album))
                     .filter(user_catalog::user.eq(email))
-                    .load::<models::MediaView>(conn)
-                    .await?)
+                    .filter(saved_search::id.eq(search))
+                    .select(saved_search::all_columns)
+                    .get_result::<models::SavedSearch>(conn)
+                    .await
+                    .optional()?
+                    .ok_or_else(|| Error::NotFound)
             }
             .scope_boxed()
         })
         .await
+    }
+
+    async fn search_media(
+        &mut self,
+        search: &models::SavedSearch,
+    ) -> Result<Vec<models::MediaView>> {
+        self.with_connection(|conn| search.list_media(conn).scope_boxed())
+            .await
     }
 
     async fn list_media_alternates(

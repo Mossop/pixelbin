@@ -204,30 +204,30 @@ macro_rules! media_view {
                     crate::schema::media_item::updated,
                     crate::schema::media_file::uploaded.nullable(),
                 ),
-                media_field!(filename),
-                media_field!(title),
-                media_field!(description),
-                media_field!(label),
-                media_field!(category),
-                media_field!(taken),
-                media_field!(taken_zone),
-                media_field!(longitude),
-                media_field!(latitude),
-                media_field!(altitude),
-                media_field!(location),
-                media_field!(city),
-                media_field!(state),
-                media_field!(country),
-                media_field!(orientation),
-                media_field!(make),
-                media_field!(model),
-                media_field!(lens),
-                media_field!(photographer),
-                media_field!(aperture),
-                media_field!(shutter_speed),
-                media_field!(iso),
-                media_field!(focal_length),
-                media_field!(rating),
+                crate::db::functions::media_field!(filename),
+                crate::db::functions::media_field!(title),
+                crate::db::functions::media_field!(description),
+                crate::db::functions::media_field!(label),
+                crate::db::functions::media_field!(category),
+                crate::db::functions::media_field!(taken),
+                crate::db::functions::media_field!(taken_zone),
+                crate::db::functions::media_field!(longitude),
+                crate::db::functions::media_field!(latitude),
+                crate::db::functions::media_field!(altitude),
+                crate::db::functions::media_field!(location),
+                crate::db::functions::media_field!(city),
+                crate::db::functions::media_field!(state),
+                crate::db::functions::media_field!(country),
+                crate::db::functions::media_field!(orientation),
+                crate::db::functions::media_field!(make),
+                crate::db::functions::media_field!(model),
+                crate::db::functions::media_field!(lens),
+                crate::db::functions::media_field!(photographer),
+                crate::db::functions::media_field!(aperture),
+                crate::db::functions::media_field!(shutter_speed),
+                crate::db::functions::media_field!(iso),
+                crate::db::functions::media_field!(focal_length),
+                crate::db::functions::media_field!(rating),
                 (
                     crate::schema::media_file::id,
                     crate::schema::media_file::file_size,
@@ -243,7 +243,11 @@ macro_rules! media_view {
                     .nullable(),
             ))
             .distinct()
-            .order(media_field!(taken).desc().nulls_last())
+            .order(
+                crate::db::functions::media_field!(taken)
+                    .desc()
+                    .nulls_last(),
+            )
     };
 }
 

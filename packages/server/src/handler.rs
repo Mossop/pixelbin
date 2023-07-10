@@ -95,9 +95,7 @@ async fn album(
         .in_transaction(|mut trx| {
             async move {
                 let album = trx.user_album(&email, &album_id).await?;
-                let media = trx
-                    .user_album_media(&email, &album_id, query.recursive)
-                    .await?;
+                let media = trx.album_media(&album, query.recursive).await?;
 
                 let media_groups = group_by_taken(media);
 
@@ -107,6 +105,53 @@ async fn album(
                     catalogs: build_catalog_navs(&base),
                     user: base.user,
                     album: album.clone(),
+                    media_groups: media_groups.clone(),
+                    thumbnails: config.thumbnails.clone(),
+                })
+            }
+            .scope_boxed()
+        })
+        .await
+    {
+        Ok(template) => Ok(HttpResponse::Ok()
+            .content_type("text/html")
+            .body(template.render().unwrap())),
+        Err(Error::NotFound) => Ok(not_found(&app_state, &session).await?),
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[get("/search/{search_id}")]
+#[instrument(skip(app_state, session))]
+async fn search(
+    app_state: web::Data<AppState>,
+    session: Session,
+    search_id: web::Path<String>,
+) -> HttpResult<impl Responder> {
+    let config = app_state.store.config().clone();
+
+    let email = if let Some(ref email) = session.email {
+        email.to_owned()
+    } else {
+        return Ok(not_found(&app_state, &session).await?);
+    };
+
+    let sess = session.clone();
+    match app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let search = trx.user_search(&email, &search_id).await?;
+                let media = trx.search_media(&search).await?;
+
+                let media_groups = group_by_taken(media);
+
+                let base = build_base_state(&mut trx, &sess).await?;
+
+                Ok(templates::Search {
+                    catalogs: build_catalog_navs(&base),
+                    user: base.user,
+                    search: search.clone(),
                     media_groups: media_groups.clone(),
                     thumbnails: config.thumbnails.clone(),
                 })
