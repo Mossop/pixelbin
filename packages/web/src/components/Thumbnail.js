@@ -10,6 +10,15 @@ export class Thumbnail extends LitElement {
       .inner {
         aspect-ratio: 1;
       }
+
+      .overlay {
+        opacity: 0.3;
+        transition: opacity 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+      }
+
+      :host(:hover) .overlay {
+        opacity: 1;
+      }
     `,
   ];
 
@@ -34,7 +43,7 @@ export class Thumbnail extends LitElement {
     let content = html`
       <slot></slot>
       <div
-        class="position-absolute bottom-0 p-2 start-0 end-0 d-flex flex-row justify-content-between align-items-center"
+        class="overlay position-absolute bottom-0 p-2 start-0 end-0 d-flex flex-row justify-content-between align-items-center"
       >
         <ui-rating rating=${this.rating}></ui-rating>
         <ui-icon icon="image"></ui-icon>
