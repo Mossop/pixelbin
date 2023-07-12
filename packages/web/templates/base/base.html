@@ -24,34 +24,7 @@
   </ui-appbar>
   {%- if !catalogs.is_empty() %}
     <div class="flex-grow-1 flex-shrink-1 d-flex flex-row overflow-hidden">
-      <nav class="overflow-y-auto flex-shrink-0  text-body-secondary bg-body-secondary border-end p-3">
-        <ui-iconlist>
-          {%- for catalog in catalogs %}
-            <ui-iconlistitem icon="file-earmark-richtext" href="/catalog/{{catalog.catalog.id}}" label="{{catalog.catalog.name}}">
-              <ui-iconlist>
-                {%- if !catalog.searches.is_empty() %}
-                  <ui-iconlistitem icon="search" label="Saved Searches">
-                    <ui-iconlist>
-                      {%- for search in catalog.searches %}
-                        <ui-iconlistitem icon="search" href="/search/{{search.search.id}}" count="{{search.media}}" label="{{search.search.name}}"></ui-iconlistitem>
-                      {%- endfor %}
-                    </ui-iconlist>
-                  </ui-iconlistitem>
-                {%- endif %}
-                {%- if !catalog.albums.is_empty() %}
-                  <ui-iconlistitem icon="images" label="Albums">
-                    <ui-iconlist>
-                      {%- for album in catalog.albums %}
-                        {{ album|safe }}
-                      {%- endfor %}
-                    </ui-iconlistitem>
-                  </ui-iconlistitem>
-                {%- endif %}
-              </ui-iconlist>
-            </ui-iconlistitem>
-          {%- endfor %}
-        </ui-iconlist>
-      </nav>
+    {% include "includes/sidebar.html" %}
   {%- endif %}
   {%- block content %}{% endblock -%}
   {%- if !catalogs.is_empty() %}

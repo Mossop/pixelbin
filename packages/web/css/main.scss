@@ -15,6 +15,19 @@ html, body {
   z-index: 1;
 }
 
-.text-body-secondary {
+nav {
   font-size: 0.9rem;
+}
+
+:root {
+  --list-depth: -1;
+  --list-item-depth: -1;
+}
+
+ui-iconlist {
+  --list-depth: calc(var(--list-item-depth) + 1);
+}
+
+ui-iconlistitem {
+  --list-item-depth: var(--list-depth);
 }

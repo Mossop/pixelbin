@@ -14,7 +14,7 @@ use pixelbin_store::{DbQueries, Store};
 use pixelbin_tasks::{rebuild_searches, verify_local_storage, verify_online_storage};
 use tracing::Level;
 use tracing_subscriber::{
-    fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+    layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 
 const LOG_DEFAULTS: [(&str, Level); 5] = [
@@ -132,7 +132,6 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
 
     let formatter = tracing_subscriber::fmt::layer()
         .with_ansi(true)
-        .with_span_events(FmtSpan::CLOSE)
         .pretty()
         .with_writer(io::stderr)
         .with_filter(filter);

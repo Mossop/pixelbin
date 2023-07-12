@@ -1,4 +1,9 @@
-<ui-iconlistitem icon="images" href="/album/{{album.id}}" count="{{media}}" label="{{album.name}}">
+<ui-iconlistitem
+  icon="images"
+  href="/album/{{album.id}}"
+  count="{{media}}"
+  label="{{album.name}}"
+>
   {%- if !children.is_empty() %}
     <ui-iconlist>
       {%- for album in children %}

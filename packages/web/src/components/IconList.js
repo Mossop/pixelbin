@@ -2,6 +2,24 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { bootstrap } from "../modules/styles";
 
+/**
+ * @param {string} target
+ * @param {string} source
+ * @returns {boolean}
+ */
+function isURLPrefix(target, source) {
+  if (target == source) {
+    return true;
+  }
+
+  if (!source.startsWith(target)) {
+    return false;
+  }
+
+  let next = source.charAt(target.length);
+  return ["/", "?", "#"].includes(next);
+}
+
 @customElement("ui-iconlist")
 export class IconList extends LitElement {
   static styles = [
@@ -32,8 +50,43 @@ export class IconListItem extends LitElement {
         text-decoration: none;
         color: inherit;
       }
+
+      ui-icon {
+        font-size: 120%;
+      }
+
+      .item-label {
+        padding-inline-start: calc(var(--list-item-depth) * 1rem + 0.25rem);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: start;
+        padding-inline-end: 0.25rem;
+        padding-top: 0.25em;
+        padding-bottom: 0.25em;
+      }
+
+      a.item-label:hover,
+      a.item-label.selected {
+        background-color: var(--bs-secondary-bg-subtle);
+      }
+
+      .label {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .count {
+        min-width: 3em;
+        text-align: right;
+      }
     `,
   ];
+
+  @property({ type: Number })
+  count = 0;
 
   @property()
   href = "";
@@ -46,12 +99,17 @@ export class IconListItem extends LitElement {
 
   render() {
     if (this.href) {
+      let target = new URL(this.href, document.documentURI).toString();
+      let selected = isURLPrefix(target, document.documentURI);
+
       return html`
         <li>
-          <a class="d-flex flex-row align-items-center pb-1" href=${this.href}
-            ><ui-icon class="pe-2" icon=${this.icon}></ui-icon>${this.label}</a
-          >
-          <div class="ps-3">
+          <a class="item-label ${selected ? "selected" : ""}" href=${this.href}>
+            <ui-icon class="pe-2" icon=${this.icon}></ui-icon>
+            <span class="label">${this.label}</span>
+            <span class="count">${this.count === 0 ? "" : this.count}</span>
+          </a>
+          <div>
             <slot></slot>
           </div>
         </li>
@@ -60,10 +118,12 @@ export class IconListItem extends LitElement {
 
     return html`
       <li>
-        <div class="d-flex flex-row align-items-center pb-1">
-          <ui-icon class="pe-2" icon=${this.icon}></ui-icon>${this.label}
+        <div class="item-label">
+          <ui-icon class="pe-2" icon=${this.icon}></ui-icon>
+          <span class="label">${this.label}</span>
+          <span class="count">${this.count === 0 ? "" : this.count}</span>
         </div>
-        <div class="ps-3">
+        <div>
           <slot></slot>
         </div>
       </li>
