@@ -157,7 +157,7 @@ pub(crate) async fn build_base_state<Q: DbQueries + Send>(
     session: &Session,
 ) -> Result<BaseTemplateState> {
     if let Some(ref email) = session.email {
-        match db.user(email).await {
+        match db.get_user(email).await {
             Ok(user) => {
                 return Ok(BaseTemplateState {
                     user: Some(user),

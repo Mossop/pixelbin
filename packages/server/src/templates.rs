@@ -165,3 +165,28 @@ pub(crate) struct Search {
     pub(crate) media_groups: Vec<MediaGroup>,
     pub(crate) thumbnails: ThumbnailConfig,
 }
+
+pub(crate) enum Collection {
+    Album(models::Album),
+    Search(models::SavedSearch),
+}
+
+impl Collection {
+    pub(crate) fn name(&self) -> &str {
+        match self {
+            Collection::Album(c) => &c.name,
+            Collection::Search(c) => &c.name,
+        }
+    }
+}
+
+#[derive(Template)]
+#[template(path = "photo.html")]
+pub(crate) struct Photo {
+    pub(crate) user: Option<models::User>,
+    pub(crate) catalogs: Vec<CatalogNav>,
+    pub(crate) collection: Collection,
+    pub(crate) collection_index: usize,
+    pub(crate) collection_count: usize,
+    pub(crate) media: models::MediaView,
+}

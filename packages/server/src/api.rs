@@ -29,7 +29,7 @@ pub(crate) struct ApiState {
 #[instrument(skip_all, err)]
 async fn build_state<Q: DbQueries + Send>(db: &mut Q, session: &Session) -> Result<ApiState> {
     if let Some(ref email) = session.email {
-        match db.user(email).await {
+        match db.get_user(email).await {
             Ok(user) => {
                 return Ok(ApiState {
                     user: Some(UserState {

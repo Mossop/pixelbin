@@ -130,13 +130,30 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn user(&mut self, email: &str) -> Result<models::User> {
+    async fn get_user(&mut self, email: &str) -> Result<models::User> {
         self.with_connection(|conn| {
             async move {
                 user::table
                     .filter(user::email.eq(email))
                     .select(user::all_columns)
                     .get_result::<models::User>(conn)
+                    .await
+                    .optional()?
+                    .ok_or_else(|| Error::NotFound)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
+    async fn get_catalog_storage(&mut self, catalog: &str) -> Result<models::Storage> {
+        self.with_connection(|conn| {
+            async move {
+                storage::table
+                    .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
+                    .filter(catalog::id.eq(catalog))
+                    .select(storage::all_columns)
+                    .get_result::<models::Storage>(conn)
                     .await
                     .optional()?
                     .ok_or_else(|| Error::NotFound)
@@ -271,7 +288,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn user_album(&mut self, email: &str, album: &str) -> Result<models::Album> {
+    async fn get_user_album(&mut self, email: &str, album: &str) -> Result<models::Album> {
         self.with_connection(|conn| {
             async move {
                 user_catalog::table
@@ -289,7 +306,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn album_media(
+    async fn list_album_media(
         &mut self,
         album: &models::Album,
         _recursive: bool,
@@ -298,7 +315,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
             .await
     }
 
-    async fn user_search(&mut self, email: &str, search: &str) -> Result<models::SavedSearch> {
+    async fn get_user_search(&mut self, email: &str, search: &str) -> Result<models::SavedSearch> {
         self.with_connection(|conn| {
             async move {
                 user_catalog::table
@@ -318,7 +335,7 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
         .await
     }
 
-    async fn search_media(
+    async fn list_search_media(
         &mut self,
         search: &models::SavedSearch,
     ) -> Result<Vec<models::MediaView>> {

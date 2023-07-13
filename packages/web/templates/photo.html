@@ -1,0 +1,16 @@
+{% extends "base/base.html" %}
+
+{% block title %}{{ collection.name() }}{% endblock %}
+
+{% block content %}
+<main class="flex-grow-1 flex-shrink-1 overflow-y-auto">
+  {%- match media.file %}
+    {%- when Some with (file) -%}
+      <picture>
+        <source type="image/webp" srcset="/media/{{media.id}}/{{file.id}}/encoding/image-webp/{{media.filename|default("unknown")|strip_extension}}.webp">
+        <img style="height: 100%; width: 100%" class="object-fit-contain" src="/media/{{media.id}}/{{file.id}}/encoding/image-jpeg/{{media.filename|default("unknown")|strip_extension}}.jpg">
+      </picture>
+    {%- else -%}
+  {%- endmatch %}
+</main>
+{% endblock %}

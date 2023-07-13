@@ -54,9 +54,9 @@ pub struct LocalAlternateFile {
 
 #[derive(Clone, Debug)]
 pub struct MediaFilePath {
-    catalog: String,
-    media_item: String,
-    media_file: String,
+    pub catalog: String,
+    pub media_item: String,
+    pub media_file: String,
 }
 
 impl MediaFilePath {

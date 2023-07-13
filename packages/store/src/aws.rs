@@ -10,7 +10,7 @@ use futures::{future, TryStreamExt};
 
 use pixelbin_shared::{Error, Result};
 
-use crate::{joinable, models::Storage};
+use crate::{joinable, models::Storage, MediaFilePath};
 
 pub(crate) struct AwsClient {
     client: Client,
@@ -208,5 +208,17 @@ impl From<&String> for RemotePath {
 impl From<String> for RemotePath {
     fn from(st: String) -> RemotePath {
         RemotePath { path: st }
+    }
+}
+
+impl From<&MediaFilePath> for RemotePath {
+    fn from(mp: &MediaFilePath) -> RemotePath {
+        mp.remote_path()
+    }
+}
+
+impl From<MediaFilePath> for RemotePath {
+    fn from(mp: MediaFilePath) -> RemotePath {
+        mp.remote_path()
     }
 }
