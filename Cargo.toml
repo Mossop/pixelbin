@@ -6,3 +6,4 @@ members = [
   "packages/cli",
   "packages/server",
 ]
+resolver = "2"
