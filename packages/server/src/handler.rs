@@ -87,20 +87,26 @@ async fn album_media_handler(
                 let album = trx.get_user_album(&email, &album_id).await?;
                 let user = trx.get_user(&email).await?;
                 let all_media = trx.list_album_media(&album, true).await?;
-                let count = all_media.len();
                 let (index, media) = all_media
-                    .into_iter()
+                    .iter()
                     .enumerate()
                     .find(|(_, m)| m.id == media_id)
                     .ok_or_else(|| Error::NotFound)?;
+
+                let next = all_media.get(index + 1).map(|mv| mv.id.clone());
+                let previous = if index > 0 {
+                    all_media.get(index - 1).map(|mv| mv.id.clone())
+                } else {
+                    None
+                };
 
                 Ok(templates::Photo {
                     catalogs: vec![],
                     user: Some(user),
                     collection: Collection::Album(album),
-                    collection_index: index,
-                    collection_count: count,
-                    media,
+                    previous,
+                    next,
+                    media: media.clone(),
                 })
             }
             .scope_boxed()
@@ -196,20 +202,26 @@ async fn search_media_handler(
                 let search = trx.get_user_search(&email, &search_id).await?;
                 let user = trx.get_user(&email).await?;
                 let all_media = trx.list_search_media(&search).await?;
-                let count = all_media.len();
                 let (index, media) = all_media
-                    .into_iter()
+                    .iter()
                     .enumerate()
                     .find(|(_, m)| m.id == media_id)
                     .ok_or_else(|| Error::NotFound)?;
+
+                let next = all_media.get(index + 1).map(|mv| mv.id.clone());
+                let previous = if index > 0 {
+                    all_media.get(index - 1).map(|mv| mv.id.clone())
+                } else {
+                    None
+                };
 
                 Ok(templates::Photo {
                     catalogs: vec![],
                     user: Some(user),
                     collection: Collection::Search(search),
-                    collection_index: index,
-                    collection_count: count,
-                    media,
+                    previous,
+                    next,
+                    media: media.clone(),
                 })
             }
             .scope_boxed()

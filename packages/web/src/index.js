@@ -1,9 +1,12 @@
 import "./components/AppBar.js";
 import "./components/Avatar.js";
+import "./components/Back.js";
 import "./components/Button.js";
 import "./components/Dialog.js";
 import "./components/Icon.js";
 import "./components/IconList.js";
+import "./components/Link.js";
+import "./components/Overlay.js";
 import "./components/Rating.js";
 import "./components/TextField.js";
 import "./components/Thumbnail.js";

@@ -31,3 +31,8 @@ ui-iconlist {
 ui-iconlistitem {
   --list-item-depth: var(--list-depth);
 }
+
+main {
+  color: var(--bs-body-color);
+  background-color: var(--bs-body-bg);
+}

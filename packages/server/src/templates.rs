@@ -140,6 +140,13 @@ pub(crate) struct Index {
 }
 
 #[derive(Template)]
+#[template(path = "test.html")]
+pub(crate) struct Test {
+    pub(crate) user: Option<models::User>,
+    pub(crate) catalogs: Vec<CatalogNav>,
+}
+
+#[derive(Template)]
 #[template(path = "notfound.html")]
 pub(crate) struct NotFound {
     pub(crate) user: Option<models::User>,
@@ -178,6 +185,13 @@ impl Collection {
             Collection::Search(c) => &c.name,
         }
     }
+
+    pub(crate) fn path(&self) -> String {
+        match self {
+            Collection::Album(c) => format!("/album/{}", &c.id),
+            Collection::Search(c) => format!("/search/{}", &c.id),
+        }
+    }
 }
 
 #[derive(Template)]
@@ -186,7 +200,7 @@ pub(crate) struct Photo {
     pub(crate) user: Option<models::User>,
     pub(crate) catalogs: Vec<CatalogNav>,
     pub(crate) collection: Collection,
-    pub(crate) collection_index: usize,
-    pub(crate) collection_count: usize,
+    pub(crate) previous: Option<String>,
+    pub(crate) next: Option<String>,
     pub(crate) media: models::MediaView,
 }
