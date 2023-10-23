@@ -80,7 +80,6 @@ function Login() {
       >
         <form className="d-flex flex-column align-items-stretch gap-3">
           <TextField
-            id="email-field"
             autofocus
             type="email"
             name="email"
@@ -90,7 +89,6 @@ function Login() {
             onChange={setEmail}
           />
           <TextField
-            id="password-field"
             type="password"
             name="password"
             autocomplete="password"

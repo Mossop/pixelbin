@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 export default function TextField({
   id,
   label,
@@ -10,7 +12,7 @@ export default function TextField({
   onChange,
   value,
 }: {
-  id: string;
+  id?: string;
   label: string;
   name?: string;
   onChange: (str: string) => void;
@@ -19,9 +21,11 @@ export default function TextField({
   autocomplete?: string;
   type?: string;
 }) {
+  let generatedId = useId();
+
   return (
     <div>
-      <label htmlFor={id} className="form-label">
+      <label htmlFor={id ?? generatedId} className="form-label">
         {label}
       </label>
       <input
@@ -32,7 +36,7 @@ export default function TextField({
         type={type}
         autoComplete={autocomplete}
         className="form-control"
-        id={id}
+        id={id ?? generatedId}
       />
     </div>
   );
