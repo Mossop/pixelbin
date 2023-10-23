@@ -1,4 +1,8 @@
 /target/
 /testing/data/
 .DS_Store
-/node_modules/
+node_modules
+
+*.tsbuildinfo
+next-env.d.ts
+.next
