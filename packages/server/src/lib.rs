@@ -1,38 +1,69 @@
 #![deny(unreachable_pub)]
-use std::time::Duration;
+use std::{fmt::Display, result, time::Duration};
 
-use actix_session::{
-    config::{CookieContentSecurity, PersistentSession, TtlExtensionPolicy},
-    storage::CookieSessionStore,
-    SessionMiddleware,
-};
 use actix_web::{
-    cookie::{time::Duration as CookieDuration, Key},
-    web, App, HttpServer,
+    body::BoxBody, http::StatusCode, web, App, HttpResponse, HttpServer, ResponseError,
 };
+use auth::Session;
 use cache::Cache;
-use pixelbin_shared::Result;
+use pixelbin_shared::{Error, Result};
 use pixelbin_store::Store;
+use serde::Serialize;
 
-mod api;
+mod auth;
 mod cache;
-mod extractor;
-mod handler;
 mod middleware;
-mod templates;
 mod util;
 
-const SESSION_LENGTH: u64 = 60 * 60 * 24 * 7;
+const SESSION_LENGTH: u64 = 60 * 60 * 24 * 30;
 
-#[derive(Clone)]
-struct Session {
-    id: String,
-    email: Option<String>,
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase", tag = "error", content = "message")]
+enum ApiErrorCode {
+    // UnknownException,
+    // BadMethod,
+    NotLoggedIn,
+    // LoginFailed,
+    // InvalidData,
+    // NotFound,
+    // TemporaryFailure,
+    // InvalidHost,
+    InternalError(String),
 }
 
-impl From<String> for Session {
-    fn from(id: String) -> Self {
-        Self { id, email: None }
+impl Display for ApiErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&serde_json::to_string_pretty(self).unwrap())
+    }
+}
+
+impl ResponseError for ApiErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            // ApiErrorCode::UnknownException => 500,
+            // ApiErrorCode::BadMethod => 405,
+            ApiErrorCode::NotLoggedIn => StatusCode::UNAUTHORIZED,
+            // ApiErrorCode::LoginFailed => 401,
+            // ApiErrorCode::InvalidData => 400,
+            // ApiErrorCode::NotFound => 404,
+            // ApiErrorCode::TemporaryFailure => 503,
+            // ApiErrorCode::InvalidHost => 403,
+            ApiErrorCode::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+
+    fn error_response(&self) -> HttpResponse<BoxBody> {
+        HttpResponse::build(self.status_code())
+            .content_type("application/json")
+            .body(serde_json::to_string_pretty(&self).unwrap())
+    }
+}
+
+type ApiResult<T> = result::Result<T, ApiErrorCode>;
+
+impl From<Error> for ApiErrorCode {
+    fn from(value: Error) -> Self {
+        ApiErrorCode::InternalError(value.to_string())
     }
 }
 
@@ -54,28 +85,10 @@ pub async fn serve(store: Store) -> Result {
     HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
-            .wrap(
-                SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
-                    .cookie_name("pxlbin".to_string())
-                    .cookie_content_security(CookieContentSecurity::Private)
-                    .session_lifecycle(
-                        PersistentSession::default()
-                            .session_ttl(CookieDuration::seconds(SESSION_LENGTH as i64))
-                            .session_ttl_extension_policy(TtlExtensionPolicy::OnEveryRequest),
-                    )
-                    .build(),
-            )
             .wrap(middleware::Logging)
-            .service(handler::index_handler)
-            .service(handler::album_media_handler)
-            .service(handler::album_handler)
-            .service(handler::search_media_handler)
-            .service(handler::search_handler)
-            .service(handler::encoding_handler)
-            .service(handler::thumbnail_handler)
-            .service(handler::static_files)
-            .service(api::login)
-            .service(api::logout)
+            .service(auth::login)
+            .service(auth::logout)
+            .service(auth::state)
     })
     .bind(("0.0.0.0", port))?
     .run()

@@ -38,6 +38,32 @@ where
 
         map.contains_key(key)
     }
+
+    pub(crate) async fn insert(&self, key: K, value: V) {
+        let mut map = self.map.lock().await;
+        map.insert(key, (Instant::now() + self.ttl, value));
+    }
+
+    pub(crate) async fn delete(&self, key: &K) {
+        let mut map = self.map.lock().await;
+        map.remove(key);
+    }
+}
+
+impl<K, V> Cache<K, V>
+where
+    K: Eq + Hash,
+    V: Clone,
+{
+    pub(crate) async fn get(&self, key: &K) -> Option<V> {
+        let mut map = self.map.lock().await;
+        flush(&mut map);
+
+        map.get_mut(key).map(|val| {
+            val.0 = Instant::now() + self.ttl;
+            val.1.clone()
+        })
+    }
 }
 
 impl<K, V> Cache<K, V>

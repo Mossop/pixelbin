@@ -6,8 +6,8 @@ export function session(): string | undefined {
   return cookies().get(COOKIE_NAME)?.value;
 }
 
-export function setSession(email: string) {
-  cookies().set({ name: COOKIE_NAME, value: email, httpOnly: true });
+export function setSession(token: string) {
+  cookies().set({ name: COOKIE_NAME, value: token, httpOnly: true });
 }
 
 export function clearSession() {

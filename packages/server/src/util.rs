@@ -7,12 +7,9 @@ use actix_web::{
 };
 use nano_id::base62;
 use pixelbin_shared::Error;
-use pixelbin_store::{models, DbQueries, MediaFilePath};
+use pixelbin_store::{models, MediaFilePath};
 use serde::Serialize;
 use time::{format_description::FormatItem, macros::format_description, Month, UtcOffset};
-use tracing::instrument;
-
-use crate::{Result, Session};
 
 const ZONE_FORMAT: &[FormatItem<'_>] =
     format_description!("UTC[offset_hour padding:none sign:mandatory]");
@@ -151,25 +148,25 @@ pub(crate) struct BaseTemplateState {
     pub(crate) searches: Vec<(models::SavedSearch, i64)>,
 }
 
-#[instrument(skip_all)]
-pub(crate) async fn build_base_state<Q: DbQueries + Send>(
-    db: &mut Q,
-    session: &Session,
-) -> Result<BaseTemplateState> {
-    if let Some(ref email) = session.email {
-        match db.get_user(email).await {
-            Ok(user) => {
-                return Ok(BaseTemplateState {
-                    user: Some(user),
-                    catalogs: db.list_user_catalogs(email).await?,
-                    albums: db.list_user_albums_with_count(email).await?,
-                    searches: db.list_user_searches_with_count(email).await?,
-                })
-            }
-            Err(Error::NotFound) => {}
-            Err(e) => return Err(e),
-        }
-    }
+// #[instrument(skip_all)]
+// pub(crate) async fn build_base_state<Q: DbQueries + Send>(
+//     db: &mut Q,
+//     session: &Session,
+// ) -> Result<BaseTemplateState> {
+//     if let Some(ref email) = session.email {
+//         match db.get_user(email).await {
+//             Ok(user) => {
+//                 return Ok(BaseTemplateState {
+//                     user: Some(user),
+//                     catalogs: db.list_user_catalogs(email).await?,
+//                     albums: db.list_user_albums_with_count(email).await?,
+//                     searches: db.list_user_searches_with_count(email).await?,
+//                 })
+//             }
+//             Err(Error::NotFound) => {}
+//             Err(e) => return Err(e),
+//         }
+//     }
 
-    Ok(BaseTemplateState::default())
-}
+//     Ok(BaseTemplateState::default())
+// }
