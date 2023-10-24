@@ -5,6 +5,7 @@ use pixelbin_store::{models, DbQueries};
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tracing::{instrument, warn};
+use typeshare::typeshare;
 
 use crate::{util::long_id, ApiErrorCode, ApiResult, AppState};
 
@@ -70,12 +71,14 @@ impl FromRequest for MaybeSession {
     }
 }
 
+#[typeshare]
 #[derive(Deserialize)]
 struct LoginRequest {
     email: String,
     password: String,
 }
 
+#[typeshare]
 #[derive(Serialize)]
 struct LoginResponse {
     token: Option<String>,
@@ -132,6 +135,7 @@ async fn logout(
     Ok(web::Json(LoginResponse { token: None }))
 }
 
+#[typeshare]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct UserState {

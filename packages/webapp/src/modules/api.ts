@@ -1,6 +1,7 @@
 "use server";
 
 import { clearSession, session, setSession } from "./session";
+import { LoginResponse, State } from "./types";
 
 const GET: RequestInit = { method: "GET" };
 const POST: RequestInit = { method: "POST" };
@@ -28,7 +29,10 @@ function json(data: object): RequestInit {
   };
 }
 
-async function call(path: string, ...options: RequestInit[]): Promise<any> {
+async function rawApiCall<T>(
+  path: string,
+  ...options: RequestInit[]
+): Promise<T> {
   let init = { ...GET };
 
   for (let option of options) {
@@ -56,40 +60,38 @@ async function call(path: string, ...options: RequestInit[]): Promise<any> {
   }
 }
 
+async function apiCall<T>(path: string, ...options: RequestInit[]): Promise<T> {
+  return rawApiCall(path, authenticated(), ...options);
+}
+
 export async function login(email: string, password: string) {
-  let response = await fetch(`${process.env.PXL_API_SERVER}/api/login`, {
-    cache: "no-store",
-    ...POST,
-    ...json({
+  let response = await rawApiCall<LoginResponse>(
+    "/api/login",
+    POST,
+    json({
       email,
       password,
     }),
-  });
+    { cache: "no-store" },
+  );
 
-  if (response.ok) {
-    let data = await response.json();
-    setSession(data.token);
-  } else {
-    try {
-      throw new Error(await response.json());
-    } catch (e) {
-      throw new Error(response.statusText);
-    }
+  if (response.token) {
+    setSession(response.token);
   }
 }
 
 export async function logout() {
   if (session()) {
-    call("/api/logout", POST, authenticated(), { cache: "no-store" });
+    apiCall("/api/logout", POST, { cache: "no-store" });
   }
 
   clearSession();
 }
 
-export async function state() {
+export async function state(): Promise<State | undefined> {
   if (session()) {
     try {
-      return await call("/api/state", authenticated());
+      return await apiCall<State>("/api/state");
     } catch (e) {
       console.error(e);
     }

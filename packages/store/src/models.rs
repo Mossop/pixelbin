@@ -7,6 +7,7 @@ use serde::Serialize;
 use serde_repr::Serialize_repr;
 use time::{OffsetDateTime, PrimitiveDateTime};
 use tracing::{instrument, trace};
+use typeshare::typeshare;
 
 use crate::{
     aws::AwsClient,
@@ -183,6 +184,7 @@ where
     }
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct User {
     pub email: String,
@@ -190,13 +192,16 @@ pub struct User {
     pub(crate) password: Option<String>,
     pub fullname: Option<String>,
     pub administrator: bool,
+    #[typeshare(serialized_as = "string")]
     #[serde(with = "serialize_datetime")]
     pub created: OffsetDateTime,
+    #[typeshare(serialized_as = "string")]
     #[serde(with = "serialize_datetime::option")]
     pub last_login: Option<OffsetDateTime>,
     pub verified: Option<bool>,
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct Storage {
     pub id: String,
@@ -225,6 +230,7 @@ impl Storage {
     }
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct Catalog {
     pub id: String,
@@ -232,6 +238,7 @@ pub struct Catalog {
     pub storage: String,
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct Person {
     pub id: String,
@@ -239,6 +246,7 @@ pub struct Person {
     pub catalog: String,
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct Tag {
     pub id: String,
@@ -247,6 +255,7 @@ pub struct Tag {
     pub catalog: String,
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct Album {
     pub id: String,
@@ -266,6 +275,7 @@ impl Album {
     }
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct SavedSearch {
     pub id: String,

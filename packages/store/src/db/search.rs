@@ -15,6 +15,7 @@ use monostate::MustBe;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_plain::derive_display_from_serialize;
+use typeshare::typeshare;
 
 use crate::schema::*;
 
@@ -238,6 +239,7 @@ impl SqlValue {
     }
 }
 
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase", tag = "operator", content = "value")]
 pub enum Operator {
@@ -252,6 +254,7 @@ pub enum Operator {
     Matches(String),
 }
 
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Modifier {
@@ -262,6 +265,7 @@ pub enum Modifier {
 
 derive_display_from_serialize!(Modifier);
 
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) enum Join {
     #[serde(rename = "&&")]
@@ -270,6 +274,7 @@ pub(crate) enum Join {
     Or,
 }
 
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum MediaField {
@@ -336,6 +341,7 @@ impl Field for MediaField {
     }
 }
 
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum TagField {
@@ -367,6 +373,7 @@ impl RelationField for TagField {
     }
 }
 
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum PersonField {
@@ -398,6 +405,7 @@ impl RelationField for PersonField {
     }
 }
 
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum AlbumField {
