@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.4.1",
+    "@vercel/otel": "^0.3.0",
     "md5": "^2.3.0",
     "next": "13.5.6",
     "react": "^18",

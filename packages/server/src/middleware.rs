@@ -50,7 +50,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let span = span!(
             Level::INFO,
-            "request",
+            "api request",
             "url.path" = req.path(),
             "http.request.method" = %req.method(),
             "http.response.status_code" = field::Empty,
