@@ -1,10 +1,10 @@
 export interface User {
   email: string;
-  fullname?: string;
+  fullname: string | null;
   administrator: boolean;
   created: string;
   last_login: string;
-  verified?: boolean;
+  verified: boolean | null;
 }
 
 export interface Storage {
@@ -12,9 +12,9 @@ export interface Storage {
   name: string;
   bucket: string;
   region: string;
-  path?: string;
-  endpoint?: string;
-  public_url?: string;
+  path: string | null;
+  endpoint: string | null;
+  public_url: string | null;
 }
 
 export interface Catalog {
@@ -31,16 +31,17 @@ export interface Person {
 
 export interface Tag {
   id: string;
-  parent?: string;
+  parent: string | null;
   name: string;
   catalog: string;
 }
 
 export interface Album {
   id: string;
-  parent?: string;
+  parent: string | null;
   name: string;
   catalog: string;
+  media: number;
 }
 
 export type FieldQuery<F> = Operator & {
@@ -82,6 +83,7 @@ export interface SavedSearch {
   shared: boolean;
   query: CompoundQueryItem;
   catalog: string;
+  media: number;
 }
 
 export interface LoginRequest {
@@ -90,7 +92,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token?: string;
+  token: string | null;
 }
 
 export type State = User & {

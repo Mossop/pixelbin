@@ -56,7 +56,7 @@ impl FromRequest for MaybeSession {
             }
 
             if parts[0] != "Bearer" {
-                warn!(header, "Invalid authorization header");
+                warn!(scheme = parts[0], "Invalid authorization header");
                 return Ok(MaybeSession(None));
             }
 
@@ -64,7 +64,7 @@ impl FromRequest for MaybeSession {
             if let Some(session) = data.sessions.get(&parts[1].to_string()).await {
                 Ok(MaybeSession(Some(session)))
             } else {
-                warn!(header, "Unknown authorization header");
+                warn!("Unknown authorization header");
                 Ok(MaybeSession(None))
             }
         })
@@ -138,15 +138,33 @@ async fn logout(
 #[typeshare]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct UserState {
+struct AlbumWithCount {
+    #[serde(flatten)]
+    album: models::Album,
+    media: i64,
+}
+
+#[typeshare]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SavedSearchWithCount {
+    #[serde(flatten)]
+    search: models::SavedSearch,
+    media: i64,
+}
+
+#[typeshare]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UserState {
     #[serde(flatten)]
     user: models::User,
     storage: Vec<models::Storage>,
     catalogs: Vec<models::Catalog>,
     people: Vec<models::Person>,
     tags: Vec<models::Tag>,
-    albums: Vec<models::Album>,
-    searches: Vec<models::SavedSearch>,
+    albums: Vec<AlbumWithCount>,
+    searches: Vec<SavedSearchWithCount>,
 }
 
 #[get("/api/state")]
@@ -163,14 +181,34 @@ async fn state(
                 let email = &session.email;
                 let user = db.get_user(email).await?;
 
+                let albums = db
+                    .list_user_albums_with_count(email)
+                    .await?
+                    .into_iter()
+                    .map(|(album, count)| AlbumWithCount {
+                        album,
+                        media: count,
+                    })
+                    .collect();
+
+                let searches = db
+                    .list_user_searches_with_count(email)
+                    .await?
+                    .into_iter()
+                    .map(|(search, count)| SavedSearchWithCount {
+                        search,
+                        media: count,
+                    })
+                    .collect();
+
                 Ok(UserState {
                     user,
                     storage: db.list_user_storage(email).await?,
                     catalogs: db.list_user_catalogs(email).await?,
                     people: db.list_user_people(email).await?,
                     tags: db.list_user_tags(email).await?,
-                    albums: db.list_user_albums(email).await?,
-                    searches: db.list_user_searches(email).await?,
+                    albums,
+                    searches,
                 })
             }
             .scope_boxed()

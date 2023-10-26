@@ -28,7 +28,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={roboto.className}>
+      <body
+        className={`d-flex flex-column align-items-stretch ${roboto.className}`}
+      >
         <AppBar />
         {children}
       </body>

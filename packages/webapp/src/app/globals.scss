@@ -62,12 +62,7 @@ $body-secondary-bg:         rgba(255, 255, 255);
 @import "bootstrap/scss/helpers";
 @import "bootstrap/scss/utilities/api";
 
-@font-face {
-  font-display: block;
-  font-family: "bootstrap-icons";
-  src: url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2") format("woff2"),
-       url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("woff");
-}
+@import "bootstrap-icons/font/bootstrap-icons.css";
 
 html, body {
   height: 100%;
@@ -86,4 +81,55 @@ nav {
 main {
   color: var(--bs-body-color);
   background-color: var(--bs-body-bg);
+}
+
+:root {
+  --list-depth: -1;
+  --list-item-depth: -1;
+}
+
+.iconlist {
+  --list-depth: calc(var(--list-item-depth) + 1);
+  list-style-type: "none";
+
+  & .item-label {
+    padding-inline-start: calc(var(--list-item-depth) * 1rem + 0.25rem);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding-inline-end: 0.25rem;
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+  }
+
+  & .item-icon {
+    font-size: 120%;
+  }
+
+  & a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  & a.item-label:hover,
+  & a.item-label.selected {
+    background-color: var(--bs-secondary-bg-subtle);
+  }
+
+  & .label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  & .count {
+    min-width: 3em;
+    text-align: right;
+  }
+
+  & .iconlistitem {
+    --list-item-depth: var(--list-depth);
+  }
 }
