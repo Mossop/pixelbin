@@ -6,12 +6,14 @@ export function IconList({ children }: { children: React.ReactNode }) {
 }
 
 export function IconListItem({
+  selected,
   href,
   label,
   icon,
   count = 0,
   children,
 }: {
+  selected?: boolean;
   href?: string;
   label: string;
   icon: string;
@@ -21,7 +23,10 @@ export function IconListItem({
   if (href) {
     return (
       <li className="iconlistitem">
-        <Link className="item-label" href={href}>
+        <Link
+          className={`item-label ${selected ? "selected" : ""}`}
+          href={href}
+        >
           <div className="pe-2 item-icon">
             <Icon icon={icon} />
           </div>

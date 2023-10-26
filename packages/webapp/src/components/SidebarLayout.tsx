@@ -57,9 +57,16 @@ function buildTree(state: State): CatalogTree[] {
   });
 }
 
-function Album({ album }: { album: AlbumTree }) {
+function Album({
+  album,
+  selectedItem,
+}: {
+  album: AlbumTree;
+  selectedItem?: string;
+}) {
   return (
     <IconListItem
+      selected={selectedItem == album.id}
       icon="images"
       href={`/album/${album.id}`}
       label={album.name}
@@ -68,7 +75,7 @@ function Album({ album }: { album: AlbumTree }) {
       {album.albums.length > 0 && (
         <IconList>
           {album.albums.map((album) => (
-            <Album key={album.id} album={album} />
+            <Album key={album.id} album={album} selectedItem={selectedItem} />
           ))}
         </IconList>
       )}
@@ -76,12 +83,19 @@ function Album({ album }: { album: AlbumTree }) {
   );
 }
 
-function Catalog({ catalog }: { catalog: CatalogTree }) {
+function Catalog({
+  catalog,
+  selectedItem,
+}: {
+  catalog: CatalogTree;
+  selectedItem?: string;
+}) {
   return (
     <IconListItem
       icon="file-earmark-richtext"
       href={`/catalog/${catalog.id}`}
       label={catalog.name}
+      selected={selectedItem == catalog.id}
     >
       <IconList>
         {catalog.searches.length > 0 && (
@@ -90,6 +104,7 @@ function Catalog({ catalog }: { catalog: CatalogTree }) {
               {catalog.searches.map((search) => (
                 <IconListItem
                   key={search.id}
+                  selected={selectedItem == search.id}
                   icon="search"
                   href={`/search/${search.id}`}
                   label={search.name}
@@ -103,7 +118,11 @@ function Catalog({ catalog }: { catalog: CatalogTree }) {
           <IconListItem icon="images" label="Albums">
             <IconList>
               {catalog.albums.map((album) => (
-                <Album key={album.id} album={album} />
+                <Album
+                  key={album.id}
+                  album={album}
+                  selectedItem={selectedItem}
+                />
               ))}
             </IconList>
           </IconListItem>
@@ -114,8 +133,10 @@ function Catalog({ catalog }: { catalog: CatalogTree }) {
 }
 
 export default async function SidebarLayout({
+  selectedItem,
   children,
 }: {
+  selectedItem?: string;
   children: React.ReactNode;
 }) {
   let serverState = await state();
@@ -128,7 +149,11 @@ export default async function SidebarLayout({
         <nav className="overflow-y-auto flex-shrink-0 text-body-secondary bg-body-tertiary border-end py-3">
           <IconList>
             {catalogs.map((catalog) => (
-              <Catalog key={catalog.id} catalog={catalog} />
+              <Catalog
+                key={catalog.id}
+                catalog={catalog}
+                selectedItem={selectedItem}
+              />
             ))}
           </IconList>
         </nav>
