@@ -12,6 +12,7 @@ use serde::Serialize;
 
 mod auth;
 mod cache;
+mod media;
 mod middleware;
 mod util;
 
@@ -25,7 +26,7 @@ enum ApiErrorCode {
     NotLoggedIn,
     // LoginFailed,
     // InvalidData,
-    // NotFound,
+    NotFound,
     // TemporaryFailure,
     // InvalidHost,
     InternalError(String),
@@ -45,7 +46,7 @@ impl ResponseError for ApiErrorCode {
             ApiErrorCode::NotLoggedIn => StatusCode::UNAUTHORIZED,
             // ApiErrorCode::LoginFailed => 401,
             // ApiErrorCode::InvalidData => 400,
-            // ApiErrorCode::NotFound => 404,
+            ApiErrorCode::NotFound => StatusCode::NOT_FOUND,
             // ApiErrorCode::TemporaryFailure => 503,
             // ApiErrorCode::InvalidHost => 403,
             ApiErrorCode::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -63,7 +64,10 @@ type ApiResult<T> = result::Result<T, ApiErrorCode>;
 
 impl From<Error> for ApiErrorCode {
     fn from(value: Error) -> Self {
-        ApiErrorCode::InternalError(value.to_string())
+        match value {
+            Error::NotFound => ApiErrorCode::NotFound,
+            v => ApiErrorCode::InternalError(v.to_string()),
+        }
     }
 }
 
@@ -89,6 +93,7 @@ pub async fn serve(store: Store) -> Result {
             .service(auth::login)
             .service(auth::logout)
             .service(auth::state)
+            .service(media::album_list)
     })
     .bind(("0.0.0.0", port))?
     .run()

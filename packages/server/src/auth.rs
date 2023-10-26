@@ -11,8 +11,8 @@ use crate::{util::long_id, ApiErrorCode, ApiResult, AppState};
 
 #[derive(Clone)]
 pub(crate) struct Session {
-    id: String,
-    email: String,
+    pub(crate) id: String,
+    pub(crate) email: String,
 }
 
 impl FromRequest for Session {
@@ -135,7 +135,6 @@ async fn logout(
     Ok(web::Json(LoginResponse { token: None }))
 }
 
-#[typeshare]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AlbumWithCount {
@@ -144,7 +143,6 @@ struct AlbumWithCount {
     media: i64,
 }
 
-#[typeshare]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SavedSearchWithCount {
@@ -153,7 +151,6 @@ struct SavedSearchWithCount {
     media: i64,
 }
 
-#[typeshare]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct UserState {

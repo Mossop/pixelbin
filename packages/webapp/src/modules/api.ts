@@ -1,7 +1,15 @@
 "use server";
 
+import { DateTime, FixedOffsetZone } from "luxon";
 import { clearSession, session, setSession } from "./session";
-import { LoginResponse, State } from "./types";
+import {
+  Album,
+  ApiMediaView,
+  LoginResponse,
+  MediaView,
+  Replace,
+  State,
+} from "./types";
 
 const GET: RequestInit = { method: "GET" };
 const POST: RequestInit = { method: "POST" };
@@ -98,4 +106,37 @@ export async function state(): Promise<State | undefined> {
   }
 
   return undefined;
+}
+
+function fixDates(media: ApiMediaView): MediaView {
+  let taken = null;
+  if (media.taken) {
+    let zone = media.takenZone
+      ? FixedOffsetZone.parseSpecifier(media.takenZone)
+      : FixedOffsetZone.utcInstance;
+
+    taken = DateTime.fromISO(media.taken).setZone(zone, {
+      keepLocalTime: true,
+    });
+  }
+
+  return {
+    ...media,
+    created: DateTime.fromISO(media.created),
+    updated: DateTime.fromISO(media.updated),
+    taken,
+  };
+}
+
+export async function listAlbum(
+  id: string,
+): Promise<Replace<Album, { media: MediaView[] }>> {
+  let album = await apiCall<Album & { media: ApiMediaView[] }>(
+    `/api/album/${id}`,
+  );
+
+  return {
+    ...album,
+    media: album.media.map(fixDates),
+  };
 }

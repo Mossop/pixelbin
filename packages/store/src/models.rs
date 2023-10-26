@@ -405,6 +405,7 @@ pub struct AlternateFile {
     pub local: bool,
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaViewFile {
@@ -421,6 +422,7 @@ pub struct MediaViewFile {
     pub file_name: String,
 }
 
+#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaView {
