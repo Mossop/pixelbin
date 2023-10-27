@@ -5,11 +5,9 @@ use std::{
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    http::header::{self, HeaderValue},
-    Error, HttpRequest, HttpResponse,
+    Error,
 };
 use futures::future::LocalBoxFuture;
-use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use tracing::{event, field, span, Level};
 
 pub(crate) struct Logging;
@@ -96,41 +94,4 @@ where
             Ok(res)
         })
     }
-}
-
-pub(crate) async fn cacheable<F>(
-    request: &HttpRequest,
-    last_modified: Option<OffsetDateTime>,
-    cb: F,
-) -> Result<HttpResponse, pixelbin_shared::Error>
-where
-    F: FnOnce() -> LocalBoxFuture<'static, Result<HttpResponse, pixelbin_shared::Error>>,
-{
-    if let Some(lm) = last_modified {
-        if let Some(ifms) = request
-            .headers()
-            .get(header::IF_MODIFIED_SINCE)
-            .and_then(|hv| hv.to_str().ok())
-            .and_then(|hv| OffsetDateTime::parse(hv, &Rfc2822).ok())
-        {
-            if lm <= ifms {
-                return Ok(HttpResponse::NotModified().into());
-            }
-        }
-    }
-
-    let mut response = cb().await?;
-
-    if let Some(lm) = last_modified
-        .and_then(|lm| lm.format(&Rfc2822).ok())
-        .and_then(|lm| HeaderValue::from_str(&lm).ok())
-    {
-        response.headers_mut().append(header::LAST_MODIFIED, lm);
-        response.headers_mut().append(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("max-age=0, must-revalidate"),
-        );
-    }
-
-    Ok(response)
 }
