@@ -238,6 +238,16 @@ pub struct Catalog {
     pub storage: String,
 }
 
+impl Catalog {
+    #[instrument(skip(self, conn), fields(catalog = self.id))]
+    pub async fn list_media(&self, conn: &mut AsyncPgConnection) -> Result<Vec<MediaView>> {
+        Ok(media_view!()
+            .filter(media_item::catalog.eq(&self.id))
+            .load::<MediaView>(conn)
+            .await?)
+    }
+}
+
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 pub struct Person {

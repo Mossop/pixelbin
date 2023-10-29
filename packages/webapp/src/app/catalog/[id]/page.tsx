@@ -1,11 +1,32 @@
+import MediaGrid from "@/components/MediaGrid";
 import SidebarLayout from "@/components/SidebarLayout";
+import { listCatalog } from "@/modules/api";
+import { Metadata } from "next";
 
-export default function Catalog({
+export async function generateMetadata({
+  params: { id },
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  id = decodeURIComponent(id);
+
+  let catalog = await listCatalog(id);
+
+  return { title: catalog.name };
+}
+
+export default async function Catalog({
   params: { id },
 }: {
   params: { id: string };
 }) {
+  id = decodeURIComponent(id);
+
+  let catalog = await listCatalog(id);
+
   return (
-    <SidebarLayout selectedItem={decodeURIComponent(id)}>Catalog</SidebarLayout>
+    <SidebarLayout selectedItem={id}>
+      <MediaGrid media={catalog.media} />
+    </SidebarLayout>
   );
 }

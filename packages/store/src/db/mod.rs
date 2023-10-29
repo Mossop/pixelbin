@@ -343,6 +343,32 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
             .await
     }
 
+    async fn get_user_catalog(&mut self, email: &str, catalog: &str) -> Result<models::Catalog> {
+        self.with_connection(|conn| {
+            async move {
+                user_catalog::table
+                    .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
+                    .filter(user_catalog::user.eq(email))
+                    .filter(catalog::id.eq(catalog))
+                    .select(catalog::all_columns)
+                    .get_result::<models::Catalog>(conn)
+                    .await
+                    .optional()?
+                    .ok_or_else(|| Error::NotFound)
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
+    async fn list_catalog_media(
+        &mut self,
+        catalog: &models::Catalog,
+    ) -> Result<Vec<models::MediaView>> {
+        self.with_connection(|conn| catalog.list_media(conn).scope_boxed())
+            .await
+    }
+
     async fn list_media_alternates(
         &mut self,
         email: Option<&str>,

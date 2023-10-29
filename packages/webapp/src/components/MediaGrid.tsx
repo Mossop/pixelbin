@@ -67,7 +67,18 @@ function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
 }
 
 function ThumbnailImage({ media }: { media: MediaView }) {
-  let file = media.file!;
+  let file = media.file;
+  if (!file) {
+    return (
+      <div
+        style={{ width: "100%", height: "100%" }}
+        className="d-flex align-items-center justify-content-center"
+      >
+        <Icon icon="hourglass" />
+      </div>
+    );
+  }
+
   let filename = media.filename;
   if (filename) {
     let pos = filename.lastIndexOf(".");
@@ -85,7 +96,9 @@ function ThumbnailImage({ media }: { media: MediaView }) {
     return THUMBNAILS.sizes
       .map(
         (size) =>
-          `/media/${media.id}/${file.id}/thumb/${size}/${urlMimetype}/${filename}.${extension} ${size}w`,
+          `/media/${media.id}/${
+            file!.id
+          }/thumb/${size}/${urlMimetype}/${filename}.${extension} ${size}w`,
       )
       .join(",");
   };
@@ -111,7 +124,8 @@ function ThumbnailImage({ media }: { media: MediaView }) {
   );
 }
 
-function Rating({ rating }: { rating: number | null }) {
+function Rating({ media }: { media: MediaView }) {
+  let { rating } = media;
   if (rating === null) {
     return <div />;
   }
@@ -136,6 +150,28 @@ function Rating({ rating }: { rating: number | null }) {
     </div>
   );
 }
+
+function FileType({ media }: { media: MediaView }) {
+  if (!media.file) {
+    return <div />;
+  }
+
+  let { mimetype } = media.file;
+  let pos = mimetype.indexOf("/");
+  if (pos >= 0) {
+    mimetype = mimetype.substring(0, pos);
+  }
+
+  switch (mimetype) {
+    case "image":
+      return <Icon icon="image" />;
+    case "video":
+      return <Icon icon="film" />;
+    default:
+      return <Icon icon="file-earmark" />;
+  }
+}
+
 export default function MediaGrid({ media }: { media: MediaView[] }) {
   let groups = groupByTaken(media);
 
@@ -153,8 +189,8 @@ export default function MediaGrid({ media }: { media: MediaView[] }) {
           >
             <ThumbnailImage media={media} />
             <div className="overlay position-absolute bottom-0 p-2 start-0 end-0 d-flex flex-row justify-content-between align-items-center">
-              <Rating rating={media.rating} />
-              <Icon icon="image" />
+              <Rating media={media} />
+              <FileType media={media} />
             </div>
           </Link>
         ))}

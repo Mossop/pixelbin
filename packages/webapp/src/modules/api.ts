@@ -5,9 +5,11 @@ import { clearSession, session, setSession } from "./session";
 import {
   Album,
   ApiMediaView,
+  Catalog,
   LoginResponse,
   MediaView,
   Replace,
+  SavedSearch,
   State,
 } from "./types";
 
@@ -138,5 +140,31 @@ export async function listAlbum(
   return {
     ...album,
     media: album.media.map(fixDates),
+  };
+}
+
+export async function listSearch(
+  id: string,
+): Promise<Replace<SavedSearch, { media: MediaView[] }>> {
+  let search = await apiCall<SavedSearch & { media: ApiMediaView[] }>(
+    `/api/search/${id}`,
+  );
+
+  return {
+    ...search,
+    media: search.media.map(fixDates),
+  };
+}
+
+export async function listCatalog(
+  id: string,
+): Promise<Replace<Catalog, { media: MediaView[] }>> {
+  let catalog = await apiCall<Catalog & { media: ApiMediaView[] }>(
+    `/api/catalog/${id}`,
+  );
+
+  return {
+    ...catalog,
+    media: catalog.media.map(fixDates),
   };
 }

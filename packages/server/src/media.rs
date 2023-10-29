@@ -121,3 +121,63 @@ async fn album_list(
 
     Ok(web::Json(response))
 }
+
+#[derive(Serialize)]
+struct SearchListResponse {
+    #[serde(flatten)]
+    search: models::SavedSearch,
+    media: Vec<models::MediaView>,
+}
+
+#[get("/api/search/{search_id}")]
+#[instrument(skip(app_state, session))]
+async fn search_list(
+    app_state: web::Data<AppState>,
+    session: Session,
+    search_id: web::Path<String>,
+) -> ApiResult<web::Json<SearchListResponse>> {
+    let response = app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let search = trx.get_user_search(&session.email, &search_id).await?;
+                let media = trx.list_search_media(&search).await?;
+
+                Ok(SearchListResponse { search, media })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
+}
+
+#[derive(Serialize)]
+struct CatalogListResponse {
+    #[serde(flatten)]
+    catalog: models::Catalog,
+    media: Vec<models::MediaView>,
+}
+
+#[get("/api/catalog/{catalog_id}")]
+#[instrument(skip(app_state, session))]
+async fn catalog_list(
+    app_state: web::Data<AppState>,
+    session: Session,
+    catalog_id: web::Path<String>,
+) -> ApiResult<web::Json<CatalogListResponse>> {
+    let response = app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let catalog = trx.get_user_catalog(&session.email, &catalog_id).await?;
+                let media = trx.list_catalog_media(&catalog).await?;
+
+                Ok(CatalogListResponse { catalog, media })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
+}
