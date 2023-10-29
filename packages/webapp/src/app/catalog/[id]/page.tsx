@@ -1,9 +1,10 @@
 import MediaGrid from "@/components/MediaGrid";
+import { safeMetadata, safePage } from "@/components/NotFound";
 import SidebarLayout from "@/components/SidebarLayout";
 import { listCatalog } from "@/modules/api";
 import { Metadata } from "next";
 
-export async function generateMetadata({
+export const generateMetadata = safeMetadata(async function generateMetadata({
   params: { id },
 }: {
   params: { id: string };
@@ -13,9 +14,9 @@ export async function generateMetadata({
   let catalog = await listCatalog(id);
 
   return { title: catalog.name };
-}
+});
 
-export default async function Catalog({
+export default safePage(async function Catalog({
   params: { id },
 }: {
   params: { id: string };
@@ -29,4 +30,4 @@ export default async function Catalog({
       <MediaGrid media={catalog.media} />
     </SidebarLayout>
   );
-}
+});
