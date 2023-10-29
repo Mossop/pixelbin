@@ -1,11 +1,84 @@
-use actix_web::{get, web};
-use pixelbin_store::{models, DbQueries};
+use actix_web::{get, http::header, web, HttpResponse, Responder};
+use pixelbin_shared::Error;
+use pixelbin_store::{
+    models::{self, AlternateFileType},
+    DbQueries,
+};
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
 use tracing::instrument;
 
-use crate::{auth::Session, ApiResult, AppState};
+use crate::{
+    auth::{MaybeSession, Session},
+    util::choose_alternate,
+    ApiResult, AppState,
+};
+
+#[derive(Debug, Deserialize)]
+struct ThumbnailPath {
+    item: String,
+    file: String,
+    size: u32,
+    mimetype: String,
+    _filename: String,
+}
+
+fn not_found() -> ApiResult<HttpResponse> {
+    Ok(HttpResponse::NotFound()
+        .content_type("text/plain")
+        .body("Not Found"))
+}
+
+#[get("/media/{item}/{file}/thumb/{size}/{mimetype}/{_filename}")]
+#[instrument(skip(app_state, session))]
+async fn thumbnail_handler(
+    app_state: web::Data<AppState>,
+    session: MaybeSession,
+    path: web::Path<ThumbnailPath>,
+) -> ApiResult<impl Responder> {
+    let email = session.session().map(|s| s.email.as_str());
+    let mimetype = path.mimetype.replace('-', "/");
+    let target_size = path.size as i32;
+
+    let alternates = match app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                trx.list_media_alternates(
+                    email,
+                    &path.item,
+                    &path.file,
+                    &mimetype,
+                    AlternateFileType::Thumbnail,
+                )
+                .await
+            }
+            .scope_boxed()
+        })
+        .await
+    {
+        Ok(alternates) => alternates,
+        Err(Error::NotFound) => return not_found(),
+        Err(e) => return Err(e.into()),
+    };
+
+    match choose_alternate(alternates, target_size) {
+        Some((alternate, _media_path, path)) => {
+            let file = File::open(&path).await?;
+            let stream = ReaderStream::new(file);
+
+            Ok(HttpResponse::Ok()
+                .content_type(alternate.mimetype.clone())
+                .append_header((header::CACHE_CONTROL, "max-age=1314000,immutable"))
+                .append_header((header::CONTENT_LENGTH, alternate.file_size))
+                .streaming(stream))
+        }
+        None => not_found(),
+    }
+}
 
 fn default_true() -> bool {
     true

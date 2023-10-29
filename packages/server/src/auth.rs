@@ -33,7 +33,13 @@ impl FromRequest for Session {
     }
 }
 
-struct MaybeSession(Option<Session>);
+pub(crate) struct MaybeSession(Option<Session>);
+
+impl MaybeSession {
+    pub(crate) fn session(&self) -> Option<&Session> {
+        self.0.as_ref()
+    }
+}
 
 impl FromRequest for MaybeSession {
     type Error = ApiErrorCode;

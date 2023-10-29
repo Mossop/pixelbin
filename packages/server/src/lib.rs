@@ -71,6 +71,12 @@ impl From<Error> for ApiErrorCode {
     }
 }
 
+impl From<tokio::io::Error> for ApiErrorCode {
+    fn from(value: tokio::io::Error) -> Self {
+        ApiErrorCode::InternalError(value.to_string())
+    }
+}
+
 struct AppState {
     store: Store,
     sessions: Cache<String, Session>,
@@ -93,6 +99,7 @@ pub async fn serve(store: Store) -> Result {
             .service(auth::login)
             .service(auth::logout)
             .service(auth::state)
+            .service(media::thumbnail_handler)
             .service(media::album_list)
     })
     .bind(("0.0.0.0", port))?

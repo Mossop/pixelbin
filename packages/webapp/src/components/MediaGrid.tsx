@@ -68,14 +68,24 @@ function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
 
 function ThumbnailImage({ media }: { media: MediaView }) {
   let file = media.file!;
+  let filename = media.filename;
+  if (filename) {
+    let pos = filename.lastIndexOf(".");
+    if (pos > 0) {
+      filename = filename.substring(0, pos);
+    }
+  } else {
+    filename = "image";
+  }
 
   let sources = (mimetype: string) => {
     let extension = mime.extension(mimetype);
+    let urlMimetype = mimetype.replace("/", "-");
 
     return THUMBNAILS.sizes
       .map(
         (size) =>
-          `/media/${media.id}/${file.id}/thumb/${size}/${mimetype}/${media.filename}.${extension} ${size}w`,
+          `/media/${media.id}/${file.id}/thumb/${size}/${urlMimetype}/${filename}.${extension} ${size}w`,
       )
       .join(",");
   };
