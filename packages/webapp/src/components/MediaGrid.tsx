@@ -4,7 +4,8 @@ import mime from "mime-types";
 import { MediaView } from "@/modules/types";
 import Icon from "./Icon";
 import Link from "next/link";
-import { DateTime, FixedOffsetZone } from "luxon";
+import { DateTime } from "luxon";
+import { url } from "@/modules/util";
 
 const THUMBNAILS = {
   alternateTypes: ["image/webp"],
@@ -96,9 +97,15 @@ function ThumbnailImage({ media }: { media: MediaView }) {
     return THUMBNAILS.sizes
       .map(
         (size) =>
-          `/media/${media.id}/${
-            file!.id
-          }/thumb/${size}/${urlMimetype}/${filename}.${extension} ${size}w`,
+          `${url([
+            "media",
+            media.id,
+            file!.id,
+            "thumb",
+            size.toString(),
+            urlMimetype,
+            `${filename}.${extension}`,
+          ])} ${size}w`,
       )
       .join(",");
   };
@@ -172,7 +179,13 @@ function FileType({ media }: { media: MediaView }) {
   }
 }
 
-export default function MediaGrid({ media }: { media: MediaView[] }) {
+export default function MediaGrid({
+  base,
+  media,
+}: {
+  base: string[];
+  media: MediaView[];
+}) {
   let groups = groupByTaken(media);
 
   return groups.map((group) => (
@@ -184,7 +197,7 @@ export default function MediaGrid({ media }: { media: MediaView[] }) {
         {group.media.map((media) => (
           <Link
             key={media.id}
-            href={`media/${media.id}`}
+            href={url([...base, "media", media.id])}
             className="inner d-block border shadow text-body bg-body rounded-1 p-2 position-relative"
           >
             <ThumbnailImage media={media} />

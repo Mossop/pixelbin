@@ -27,7 +27,7 @@ export default safePage(async function Search({
 
   return (
     <SidebarLayout selectedItem={id}>
-      <MediaGrid media={search.media} />
+      <MediaGrid base={["search", id]} media={search.media} />
     </SidebarLayout>
   );
 });

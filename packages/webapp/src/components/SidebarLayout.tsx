@@ -2,6 +2,7 @@ import { state } from "@/modules/api";
 import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { IconList, IconListItem } from "./IconList";
 import { inSpan } from "@/modules/telemetry";
+import { url } from "@/modules/util";
 
 type AlbumTree = Album & { albums: AlbumTree[] };
 
@@ -68,7 +69,7 @@ function Album({
     <IconListItem
       selected={selectedItem == album.id}
       icon="images"
-      href={`/album/${album.id}`}
+      href={url(["album", album.id])}
       label={album.name}
       count={album.media}
     >
@@ -93,7 +94,7 @@ function Catalog({
   return (
     <IconListItem
       icon="file-earmark-richtext"
-      href={`/catalog/${catalog.id}`}
+      href={url(["catalog", catalog.id])}
       label={catalog.name}
       selected={selectedItem == catalog.id}
     >
@@ -106,7 +107,7 @@ function Catalog({
                   key={search.id}
                   selected={selectedItem == search.id}
                   icon="search"
-                  href={`/search/${search.id}`}
+                  href={url(["search", search.id])}
                   label={search.name}
                   count={search.media}
                 />

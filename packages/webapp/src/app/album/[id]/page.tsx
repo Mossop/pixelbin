@@ -27,7 +27,7 @@ export default safePage(async function Album({
 
   return (
     <SidebarLayout selectedItem={id}>
-      <MediaGrid media={album.media} />
+      <MediaGrid base={["album", id]} media={album.media} />
     </SidebarLayout>
   );
 });

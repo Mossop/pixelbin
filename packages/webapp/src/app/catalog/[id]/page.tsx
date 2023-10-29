@@ -27,7 +27,7 @@ export default safePage(async function Catalog({
 
   return (
     <SidebarLayout selectedItem={id}>
-      <MediaGrid media={catalog.media} />
+      <MediaGrid base={["catalog", id]} media={catalog.media} />
     </SidebarLayout>
   );
 });
