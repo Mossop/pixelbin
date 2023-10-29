@@ -2,7 +2,7 @@ use actix_web::{get, http::header, web, HttpResponse, Responder};
 use pixelbin_shared::Error;
 use pixelbin_store::{
     models::{self, AlternateFileType},
-    DbQueries,
+    DbQueries, RemotePath,
 };
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
@@ -78,6 +78,61 @@ async fn thumbnail_handler(
         }
         None => not_found(),
     }
+}
+
+#[get("/media/{item}/{file}/encoding/{mimetype}/{_filename}")]
+#[instrument(skip(app_state, session))]
+async fn encoding_handler(
+    app_state: web::Data<AppState>,
+    session: MaybeSession,
+    path: web::Path<(String, String, String, String)>,
+) -> ApiResult<impl Responder> {
+    let (item_id, file_id, mimetype, _) = path.into_inner();
+
+    let email = session.session().map(|s| s.email.as_str());
+    let mimetype = mimetype.replace('-', "/");
+    let tx_mime = mimetype.clone();
+
+    let (remote_path, storage) = match app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let (alternate, media_path, _) = trx
+                    .list_media_alternates(
+                        email,
+                        &item_id,
+                        &file_id,
+                        &tx_mime,
+                        AlternateFileType::Reencode,
+                    )
+                    .await?
+                    .into_iter()
+                    .next()
+                    .ok_or_else(|| Error::NotFound)?;
+
+                let storage = trx.get_catalog_storage(&media_path.catalog).await?;
+                let remote_path: RemotePath = media_path.into();
+                remote_path.join(&alternate.file_name);
+
+                Ok((remote_path.join(&alternate.file_name), storage))
+            }
+            .scope_boxed()
+        })
+        .await
+    {
+        Ok(alternate) => alternate,
+        Err(Error::NotFound) => return not_found(),
+        Err(e) => return Err(e.into()),
+    };
+
+    let uri = app_state
+        .store
+        .online_uri(&storage, &remote_path, &mimetype)
+        .await?;
+
+    Ok(HttpResponse::TemporaryRedirect()
+        .append_header(("Location", uri))
+        .finish())
 }
 
 fn default_true() -> bool {

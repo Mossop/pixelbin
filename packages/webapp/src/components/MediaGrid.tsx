@@ -5,7 +5,7 @@ import { MediaView } from "@/modules/types";
 import Icon from "./Icon";
 import Link from "next/link";
 import { DateTime } from "luxon";
-import { url } from "@/modules/util";
+import { mediaDate, url } from "@/modules/util";
 
 const THUMBNAILS = {
   alternateTypes: ["image/webp"],
@@ -19,19 +19,7 @@ interface MediaGroup {
 
 function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
   let sorted = mediaList.toSorted((a, b) => {
-    if (!a.taken && !b.taken) {
-      return b.created.toMillis() - a.created.toMillis();
-    }
-
-    if (!a.taken) {
-      return 1;
-    }
-
-    if (!b.taken) {
-      return -1;
-    }
-
-    return b.taken.toMillis() - a.taken.toMillis();
+    return mediaDate(b).toMillis() - mediaDate(a).toMillis();
   });
 
   let titleFor = (dt: DateTime | null) =>
@@ -45,20 +33,20 @@ function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
     return [];
   }
 
-  let lastIndex = indexFor(media.taken);
+  let lastIndex = indexFor(mediaDate(media));
   let group: MediaGroup = {
-    title: titleFor(media.taken),
+    title: titleFor(mediaDate(media)),
     media: [media],
   };
 
   let groups = [group];
 
   while ((media = sorted.shift())) {
-    let newIndex = indexFor(media.taken);
+    let newIndex = indexFor(mediaDate(media));
     if (newIndex == lastIndex) {
       group.media.push(media);
     } else {
-      group = { title: titleFor(media.taken), media: [media] };
+      group = { title: titleFor(mediaDate(media)), media: [media] };
       groups.push(group);
       lastIndex = newIndex;
     }

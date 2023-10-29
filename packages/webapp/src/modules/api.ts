@@ -8,6 +8,7 @@ import {
   Catalog,
   LoginResponse,
   MediaView,
+  MediaViewFile,
   Replace,
   SavedSearch,
   State,
@@ -122,11 +123,20 @@ function fixDates(media: ApiMediaView): MediaView {
     });
   }
 
+  let mediaFile: MediaViewFile | null = null;
+  if (media.file) {
+    mediaFile = {
+      ...media.file,
+      uploaded: DateTime.fromISO(media.file.uploaded),
+    };
+  }
+
   return {
     ...media,
     created: DateTime.fromISO(media.created),
     updated: DateTime.fromISO(media.updated),
     taken,
+    file: mediaFile,
   };
 }
 

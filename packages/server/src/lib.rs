@@ -100,6 +100,7 @@ pub async fn serve(store: Store) -> Result {
             .service(auth::logout)
             .service(auth::state)
             .service(media::thumbnail_handler)
+            .service(media::encoding_handler)
             .service(media::album_list)
             .service(media::search_list)
             .service(media::catalog_list)

@@ -180,7 +180,7 @@ export interface MediaViewFile {
   duration: number | null;
   frameRate: number | null;
   bitRate: number | null;
-  uploaded: string;
+  uploaded: DateTime;
   fileName: string;
 }
 
@@ -233,5 +233,8 @@ export type ApiMediaView = Replace<
     created: string;
     updated: string;
     taken: string | null;
+    file: ApiMediaViewFile | null;
   }
 >;
+
+export type ApiMediaViewFile = Replace<MediaViewFile, { uploaded: string }>;

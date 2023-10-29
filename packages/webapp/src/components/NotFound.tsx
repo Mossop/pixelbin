@@ -1,9 +1,19 @@
 import { Metadata } from "next";
 import SidebarLayout from "./SidebarLayout";
 
+export class NotFoundError extends Error {
+  public constructor() {
+    super("Not Found");
+  }
+}
+
 function isNotFound(e: unknown): boolean {
   if (!(e instanceof Error)) {
     return false;
+  }
+
+  if (e instanceof NotFoundError) {
+    return true;
   }
 
   switch (e.message) {
