@@ -1,10 +1,9 @@
 import MediaGrid from "@/components/MediaGrid";
-import { safeMetadata, safePage } from "@/components/NotFound";
 import SidebarLayout from "@/components/SidebarLayout";
 import { listSearch } from "@/modules/api";
 import { Metadata } from "next";
 
-export const generateMetadata = safeMetadata(async function generateMetadata({
+export async function generateMetadata({
   params: { id },
 }: {
   params: { id: string };
@@ -14,9 +13,9 @@ export const generateMetadata = safeMetadata(async function generateMetadata({
   let search = await listSearch(id);
 
   return { title: search.name };
-});
+}
 
-export default safePage(async function Search({
+export default async function Search({
   params: { id },
 }: {
   params: { id: string };
@@ -30,4 +29,4 @@ export default safePage(async function Search({
       <MediaGrid base={["search", id]} media={search.media} />
     </SidebarLayout>
   );
-});
+}

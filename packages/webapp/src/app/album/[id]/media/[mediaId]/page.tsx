@@ -1,10 +1,10 @@
 import MediaLayout from "@/components/MediaLayout";
-import { NotFoundError, safeMetadata, safePage } from "@/components/NotFound";
 import { listAlbum } from "@/modules/api";
 import { mediaTitle } from "@/modules/util";
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-export const generateMetadata = safeMetadata(async function generateMetadata({
+export async function generateMetadata({
   params: { id, mediaId },
 }: {
   params: { id: string; mediaId: string };
@@ -16,15 +16,15 @@ export const generateMetadata = safeMetadata(async function generateMetadata({
 
   let media = album.media.find((media) => media.id == mediaId);
   if (!media) {
-    throw new NotFoundError();
+    notFound();
   }
 
   let title = mediaTitle(media);
 
   return { title: title ? `${title} - ${album.name}` : album.name };
-});
+}
 
-export default safePage(async function Media({
+export default async function Media({
   params: { id, mediaId },
 }: {
   params: { id: string; mediaId: string };
@@ -36,8 +36,8 @@ export default safePage(async function Media({
 
   let media = album.media.find((media) => media.id == mediaId);
   if (!media) {
-    throw new NotFoundError();
+    notFound();
   }
 
   return <MediaLayout media={media} />;
-});
+}

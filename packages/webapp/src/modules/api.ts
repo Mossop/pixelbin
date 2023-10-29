@@ -13,11 +13,27 @@ import {
   SavedSearch,
   State,
 } from "./types";
+import { notFound } from "next/navigation";
 
 const GET: RequestInit = { method: "GET" };
 const POST: RequestInit = { method: "POST" };
 
 const DEEP_OPTIONS = ["headers", "next"];
+
+function isNotFoundError(e: unknown): boolean {
+  if (!(e instanceof Error)) {
+    return false;
+  }
+
+  switch (e.message) {
+    case "Not yet authenticated":
+    case "Unauthorized":
+    case "Not Found":
+      return true;
+    default:
+      return false;
+  }
+}
 
 function authenticated(): RequestInit {
   let token = session();
@@ -72,7 +88,15 @@ async function rawApiCall<T>(
 }
 
 async function apiCall<T>(path: string, ...options: RequestInit[]): Promise<T> {
-  return rawApiCall(path, authenticated(), ...options);
+  try {
+    return await rawApiCall(path, authenticated(), ...options);
+  } catch (e) {
+    if (isNotFoundError(e)) {
+      notFound();
+    }
+
+    throw e;
+  }
 }
 
 export async function login(email: string, password: string) {
@@ -102,7 +126,7 @@ export async function logout() {
 export async function state(): Promise<State | undefined> {
   if (session()) {
     try {
-      return await apiCall<State>("/api/state");
+      return await rawApiCall<State>("/api/state", authenticated());
     } catch (e) {
       console.error(e);
     }

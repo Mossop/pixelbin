@@ -1,10 +1,9 @@
 import MediaGrid from "@/components/MediaGrid";
-import { safeMetadata, safePage } from "@/components/NotFound";
 import SidebarLayout from "@/components/SidebarLayout";
 import { listAlbum } from "@/modules/api";
 import { Metadata } from "next";
 
-export const generateMetadata = safeMetadata(async function generateMetadata({
+export async function generateMetadata({
   params: { id },
 }: {
   params: { id: string };
@@ -14,9 +13,9 @@ export const generateMetadata = safeMetadata(async function generateMetadata({
   let album = await listAlbum(id);
 
   return { title: album.name };
-});
+}
 
-export default safePage(async function Album({
+export default async function Album({
   params: { id },
 }: {
   params: { id: string };
@@ -30,4 +29,4 @@ export default safePage(async function Album({
       <MediaGrid base={["album", id]} media={album.media} />
     </SidebarLayout>
   );
-});
+}
