@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useCallback, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 
 export function useInitialize(callback: () => void) {
   let initialised = useRef(false);
@@ -102,35 +102,37 @@ export function useTransition(
   );
   let [triggerShowing, cancelShowing] = useTimeout(100, startShowing);
 
-  switch (state) {
-    case Visibility.Hidden:
-      if (show) {
-        setState(Visibility.Pending);
-      }
-      break;
-    case Visibility.Pending:
-      if (show) {
-        triggerShowing();
-      } else {
+  useEffect(() => {
+    switch (state) {
+      case Visibility.Hidden:
+        if (show) {
+          setState(Visibility.Pending);
+        }
+        break;
+      case Visibility.Pending:
+        if (show) {
+          triggerShowing();
+        } else {
+          cancelShowing();
+          setState(Visibility.Hidden);
+        }
+        break;
+      case Visibility.Showing:
+      case Visibility.Shown:
+        if (!show) {
+          setState(Visibility.Hiding);
+        }
+        break;
+      case Visibility.Hiding:
+        if (show) {
+          setState(Visibility.Showing);
+        }
+        break;
+      default:
         cancelShowing();
-        setState(Visibility.Hidden);
-      }
-      break;
-    case Visibility.Showing:
-    case Visibility.Shown:
-      if (!show) {
-        setState(Visibility.Hiding);
-      }
-      break;
-    case Visibility.Hiding:
-      if (show) {
-        setState(Visibility.Showing);
-      }
-      break;
-    default:
-      cancelShowing();
-      setState(show ? Visibility.Shown : Visibility.Hidden);
-  }
+        setState(show ? Visibility.Shown : Visibility.Hidden);
+    }
+  }, [state, show, cancelShowing, triggerShowing]);
 
   return { style: styleForVisibility(state), onTransitionEnd };
 }

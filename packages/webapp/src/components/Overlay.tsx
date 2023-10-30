@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 
 import { useTimeout, useTransition } from "@/modules/client-util";
 
-const TIMEOUT = 3000;
+const TIMEOUT = 4000;
 
 export default function Overlay({
   children,
