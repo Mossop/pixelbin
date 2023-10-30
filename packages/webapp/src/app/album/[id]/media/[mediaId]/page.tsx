@@ -29,11 +29,17 @@ export default async function Media({
   params: { id: string; mediaId: string };
 }) {
   let album = await listAlbum(decodeURIComponent(id));
+
+  // Note the inverse sort compared to the grid view
   let gallery = album.media.toSorted(
-    (a, b) => mediaDate(b).toMillis() - mediaDate(a).toMillis(),
+    (a, b) => mediaDate(a).toMillis() - mediaDate(b).toMillis(),
   );
 
   return (
-    <MediaLayout gallery={gallery} mediaId={decodeURIComponent(mediaId)} />
+    <MediaLayout
+      base={["album", album.id]}
+      gallery={gallery}
+      mediaId={decodeURIComponent(mediaId)}
+    />
   );
 }

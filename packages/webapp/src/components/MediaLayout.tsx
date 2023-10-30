@@ -1,4 +1,5 @@
 import mime from "mime-types";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Icon from "./Icon";
@@ -57,9 +58,11 @@ function Photo({ media }: { media: MediaView }) {
 }
 
 export default function MediaLayout({
+  base,
   gallery,
   mediaId,
 }: {
+  base: string[];
   gallery: MediaView[];
   mediaId: string;
 }) {
@@ -69,6 +72,9 @@ export default function MediaLayout({
   }
 
   let media = gallery[mediaIndex];
+
+  let previousMedia: MediaView | undefined = gallery[mediaIndex - 1];
+  let nextMedia: MediaView | undefined = gallery[mediaIndex + 1];
 
   return (
     <main
@@ -87,10 +93,21 @@ export default function MediaLayout({
           </div>
         </div>
         <div className="flex-grow-1 d-flex align-items-center justify-content-between p-3 fs-1">
-          <div>{mediaIndex > 0 && <Icon icon="arrow-left-circle-fill" />}</div>
           <div>
-            {mediaIndex < gallery.length - 1 && (
-              <Icon icon="arrow-right-circle-fill" />
+            {previousMedia && (
+              <Link
+                href={url([...base, "media", previousMedia.id])}
+                replace={true}
+              >
+                <Icon icon="arrow-left-circle-fill" />
+              </Link>
+            )}
+          </div>
+          <div>
+            {nextMedia && (
+              <Link href={url([...base, "media", nextMedia.id])} replace={true}>
+                <Icon icon="arrow-right-circle-fill" />
+              </Link>
             )}
           </div>
         </div>
