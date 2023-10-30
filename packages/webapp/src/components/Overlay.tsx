@@ -1,14 +1,11 @@
 "use client";
 
+import clsx from "clsx";
 import { useCallback, useState } from "react";
 
 import { useTimeout, useTransition } from "@/modules/client-util";
 
 const TIMEOUT = 3000;
-
-function joinClasses(...classes: (string | null | undefined)[]): string {
-  return classes.filter((c) => c).join(" ");
-}
 
 export default function Overlay({
   children,
@@ -33,11 +30,8 @@ export default function Overlay({
   }, [triggerTimeout]);
 
   return (
-    <div
-      className={joinClasses(className, "overlay")}
-      onMouseMove={onMouseMove}
-    >
-      <div className={joinClasses("inner", innerClass)} {...innerProps}>
+    <div className={clsx(className, "overlay")} onMouseMove={onMouseMove}>
+      <div className={clsx("inner", innerClass)} {...innerProps}>
         {children}
       </div>
     </div>

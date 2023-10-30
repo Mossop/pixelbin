@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import MediaLayout from "@/components/MediaLayout";
 import { listAlbum } from "@/modules/api";
-import { mediaTitle } from "@/modules/util";
+import { mediaDate, mediaTitle } from "@/modules/util";
 
 export async function generateMetadata({
   params: { id, mediaId },
@@ -28,14 +28,12 @@ export default async function Media({
 }: {
   params: { id: string; mediaId: string };
 }) {
-  let dMediaId = decodeURIComponent(mediaId);
-
   let album = await listAlbum(decodeURIComponent(id));
+  let gallery = album.media.toSorted(
+    (a, b) => mediaDate(b).toMillis() - mediaDate(a).toMillis(),
+  );
 
-  let media = album.media.find((m) => m.id == dMediaId);
-  if (!media) {
-    notFound();
-  }
-
-  return <MediaLayout media={media} />;
+  return (
+    <MediaLayout gallery={gallery} mediaId={decodeURIComponent(mediaId)} />
+  );
 }

@@ -1,9 +1,10 @@
 import mime from "mime-types";
+import { notFound } from "next/navigation";
 
 import Icon from "./Icon";
 import Overlay from "./Overlay";
 import { MediaView } from "@/modules/types";
-import { url } from "@/modules/util";
+import { mediaDate, url } from "@/modules/util";
 
 const THUMBNAILS = {
   alternateTypes: ["image/webp"],
@@ -55,7 +56,20 @@ function Photo({ media }: { media: MediaView }) {
   );
 }
 
-export default function MediaLayout({ media }: { media: MediaView }) {
+export default function MediaLayout({
+  gallery,
+  mediaId,
+}: {
+  gallery: MediaView[];
+  mediaId: string;
+}) {
+  let mediaIndex = gallery.findIndex((m) => m.id == mediaId);
+  if (mediaIndex < 0) {
+    notFound();
+  }
+
+  let media = gallery[mediaIndex];
+
   return (
     <main
       className="flex-grow-1 flex-shrink-1 overflow-hidden position-relative"
@@ -64,23 +78,23 @@ export default function MediaLayout({ media }: { media: MediaView }) {
       <Photo media={media} />
       <Overlay
         className="position-absolute top-0 start-0 end-0 bottom-0"
-        innerClass="d-flex flex-column fs-1"
+        innerClass="d-flex flex-column"
       >
         <div className="infobar d-flex align-items-center justify-content-between p-3 bg-body-secondary">
-          <div>Date</div>
-          <div>
+          <div className="fs-6">{mediaDate(media).toRelative()}</div>
+          <div className="fs-1">
             <Icon icon="x-circle-fill" />
           </div>
         </div>
-        <div className="flex-grow-1 d-flex align-items-center justify-content-between p-3">
+        <div className="flex-grow-1 d-flex align-items-center justify-content-between p-3 fs-1">
+          <div>{mediaIndex > 0 && <Icon icon="arrow-left-circle-fill" />}</div>
           <div>
-            <Icon icon="arrow-left-circle-fill" />
-          </div>
-          <div>
-            <Icon icon="arrow-right-circle-fill" />
+            {mediaIndex < gallery.length - 1 && (
+              <Icon icon="arrow-right-circle-fill" />
+            )}
           </div>
         </div>
-        <div className="infobar d-flex align-items-center justify-content-end p-3 bg-body-secondary">
+        <div className="infobar d-flex align-items-center justify-content-end p-3 bg-body-secondary fs-1">
           <div>Buttons</div>
         </div>
       </Overlay>
