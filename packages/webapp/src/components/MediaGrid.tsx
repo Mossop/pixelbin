@@ -59,10 +59,7 @@ function ThumbnailImage({ media }: { media: MediaView }) {
   let file = media.file;
   if (!file) {
     return (
-      <div
-        style={{ width: "100%", height: "100%" }}
-        className="d-flex align-items-center justify-content-center"
-      >
+      <div className="thumbnail d-flex align-items-center justify-content-center">
         <Icon icon="hourglass" />
       </div>
     );
@@ -108,12 +105,7 @@ function ThumbnailImage({ media }: { media: MediaView }) {
         decoding="async"
         sizes="150px"
         srcSet={sources("image/jpeg")}
-        className="d-block object-fit-contain"
-        style={{
-          width: "100%",
-          aspectRatio: 1,
-          objectPosition: "center center",
-        }}
+        className="thumbnail d-block object-fit-contain"
       />
     </picture>
   );

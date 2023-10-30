@@ -1,6 +1,5 @@
 import { Comfortaa } from "next/font/google";
 
-import { session } from "@/modules/session";
 import Avatar from "./Avatar";
 import { state } from "@/modules/api";
 
