@@ -1,5 +1,3 @@
-"use client";
-
 import { createPortal } from "react-dom";
 
 export default function Body({ children }: { children: React.ReactNode }) {
