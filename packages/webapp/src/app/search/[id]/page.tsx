@@ -1,16 +1,15 @@
+import { Metadata } from "next";
+
 import MediaGrid from "@/components/MediaGrid";
 import SidebarLayout from "@/components/SidebarLayout";
 import { listSearch } from "@/modules/api";
-import { Metadata } from "next";
 
 export async function generateMetadata({
   params: { id },
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  id = decodeURIComponent(id);
-
-  let search = await listSearch(id);
+  let search = await listSearch(decodeURIComponent(id));
 
   return { title: search.name };
 }
@@ -20,8 +19,6 @@ export default async function Search({
 }: {
   params: { id: string };
 }) {
-  id = decodeURIComponent(id);
-
   let search = await listSearch(id);
 
   return (

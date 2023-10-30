@@ -1,16 +1,15 @@
+import { Metadata } from "next";
+
 import MediaGrid from "@/components/MediaGrid";
 import SidebarLayout from "@/components/SidebarLayout";
 import { listAlbum } from "@/modules/api";
-import { Metadata } from "next";
 
 export async function generateMetadata({
   params: { id },
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  id = decodeURIComponent(id);
-
-  let album = await listAlbum(id);
+  let album = await listAlbum(decodeURIComponent(id));
 
   return { title: album.name };
 }
@@ -20,8 +19,6 @@ export default async function Album({
 }: {
   params: { id: string };
 }) {
-  id = decodeURIComponent(id);
-
   let album = await listAlbum(id);
 
   return (

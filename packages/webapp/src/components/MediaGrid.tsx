@@ -1,10 +1,9 @@
-/* eslint-disable jsx-a11y/alt-text */
-import mime from "mime-types";
-
-import { MediaView } from "@/modules/types";
-import Icon from "./Icon";
-import Link from "next/link";
 import { DateTime } from "luxon";
+import mime from "mime-types";
+import Link from "next/link";
+
+import Icon from "./Icon";
+import { MediaView } from "@/modules/types";
 import { mediaDate, url } from "@/modules/util";
 
 const THUMBNAILS = {
@@ -18,9 +17,9 @@ interface MediaGroup {
 }
 
 function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
-  let sorted = mediaList.toSorted((a, b) => {
-    return mediaDate(b).toMillis() - mediaDate(a).toMillis();
-  });
+  let sorted = mediaList.toSorted(
+    (a, b) => mediaDate(b).toMillis() - mediaDate(a).toMillis(),
+  );
 
   let titleFor = (dt: DateTime | null) =>
     dt ? `${dt.monthLong} ${dt.year}` : "";
@@ -41,6 +40,7 @@ function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
 
   let groups = [group];
 
+  // eslint-disable-next-line no-cond-assign
   while ((media = sorted.shift())) {
     let newIndex = indexFor(mediaDate(media));
     if (newIndex == lastIndex) {
@@ -56,7 +56,7 @@ function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
 }
 
 function ThumbnailImage({ media }: { media: MediaView }) {
-  let file = media.file;
+  let { file } = media;
   if (!file) {
     return (
       <div className="thumbnail d-flex align-items-center justify-content-center">
@@ -65,7 +65,7 @@ function ThumbnailImage({ media }: { media: MediaView }) {
     );
   }
 
-  let filename = media.filename;
+  let { filename } = media;
   if (filename) {
     let pos = filename.lastIndexOf(".");
     if (pos > 0) {
@@ -100,6 +100,7 @@ function ThumbnailImage({ media }: { media: MediaView }) {
       {THUMBNAILS.alternateTypes.map((type) => (
         <source key={type} sizes="150px" srcSet={sources(type)} type={type} />
       ))}
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img
         loading="lazy"
         decoding="async"
@@ -174,16 +175,16 @@ export default function MediaGrid({
         <h2 className="p-0 m-0 fw-normal">{group.title}</h2>
       </div>
       <div className="thumbnail-grid d-grid gap-2 px-2 pb-4">
-        {group.media.map((media) => (
+        {group.media.map((m) => (
           <Link
-            key={media.id}
-            href={url([...base, "media", media.id])}
+            key={m.id}
+            href={url([...base, "media", m.id])}
             className="inner d-block border shadow text-body bg-body rounded-1 p-2 position-relative"
           >
-            <ThumbnailImage media={media} />
+            <ThumbnailImage media={m} />
             <div className="overlay position-absolute bottom-0 p-2 start-0 end-0 d-flex flex-row justify-content-between align-items-center">
-              <Rating media={media} />
-              <FileType media={media} />
+              <Rating media={m} />
+              <FileType media={m} />
             </div>
           </Link>
         ))}

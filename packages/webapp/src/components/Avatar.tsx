@@ -1,15 +1,13 @@
-/* eslint-disable jsx-a11y/alt-text */
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import md5 from "md5";
+import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 
-import { login, logout } from "../modules/api";
 import Button from "./Button";
-import { useRouter } from "next/navigation";
 import Dialog from "./Dialog";
 import TextField from "./TextField";
+import { login, logout } from "../modules/api";
 
 function avatarSources(email: string): string[] {
   let hash = md5(email);
@@ -21,7 +19,7 @@ function avatarSources(email: string): string[] {
 }
 
 function Login() {
-  let [isPending, startTransition] = useTransition();
+  let [, startTransition] = useTransition();
   let router = useRouter();
   let [dialogHidden, setDialogHidden] = useState(true);
   let [didLogin, setDidLogin] = useState(false);
@@ -103,7 +101,7 @@ function Login() {
 }
 
 function Menu({ email }: { email: string }) {
-  let [isPending, startTransition] = useTransition();
+  let [, startTransition] = useTransition();
   let router = useRouter();
 
   let performLogout = useCallback(
@@ -122,6 +120,7 @@ function Menu({ email }: { email: string }) {
       onClick={performLogout}
       className="btn shadow-none border-0 m-0 p-0"
     >
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img
         style={{ borderRadius: "50%", height: "2.5em", width: "2.5em" }}
         src={sources[0]}

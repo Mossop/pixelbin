@@ -1,20 +1,19 @@
+import { Metadata } from "next";
+import { notFound } from "next/navigation";
+
 import MediaLayout from "@/components/MediaLayout";
 import { listAlbum } from "@/modules/api";
 import { mediaTitle } from "@/modules/util";
-import { Metadata } from "next";
-import { notFound } from "next/navigation";
 
 export async function generateMetadata({
   params: { id, mediaId },
 }: {
   params: { id: string; mediaId: string };
 }): Promise<Metadata> {
-  id = decodeURIComponent(id);
-  mediaId = decodeURIComponent(mediaId);
+  let dMediaId = decodeURIComponent(mediaId);
+  let album = await listAlbum(decodeURIComponent(id));
 
-  let album = await listAlbum(id);
-
-  let media = album.media.find((media) => media.id == mediaId);
+  let media = album.media.find((m) => m.id == dMediaId);
   if (!media) {
     notFound();
   }
@@ -29,12 +28,11 @@ export default async function Media({
 }: {
   params: { id: string; mediaId: string };
 }) {
-  id = decodeURIComponent(id);
-  mediaId = decodeURIComponent(mediaId);
+  let dMediaId = decodeURIComponent(mediaId);
 
-  let album = await listAlbum(id);
+  let album = await listAlbum(decodeURIComponent(id));
 
-  let media = album.media.find((media) => media.id == mediaId);
+  let media = album.media.find((m) => m.id == dMediaId);
   if (!media) {
     notFound();
   }

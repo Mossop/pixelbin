@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import Icon from "./Icon";
 
 export function IconList({ children }: { children: React.ReactNode }) {

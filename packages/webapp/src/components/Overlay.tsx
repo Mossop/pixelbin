@@ -1,7 +1,8 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
 import { useTimeout, useTransition } from "@/modules/client-util";
-import { useCallback, useRef, useState } from "react";
 
 const TIMEOUT = 3000;
 

@@ -1,9 +1,9 @@
-/* eslint-disable jsx-a11y/alt-text */
 import mime from "mime-types";
-import { MediaView } from "@/modules/types";
+
 import Icon from "./Icon";
-import { url } from "@/modules/util";
 import Overlay from "./Overlay";
+import { MediaView } from "@/modules/types";
+import { url } from "@/modules/util";
 
 const THUMBNAILS = {
   alternateTypes: ["image/webp"],
@@ -11,7 +11,7 @@ const THUMBNAILS = {
 };
 
 function Photo({ media }: { media: MediaView }) {
-  let file = media.file;
+  let { file } = media;
   if (!file) {
     return (
       <div className="photo d-flex align-items-center justify-content-center">
@@ -20,7 +20,7 @@ function Photo({ media }: { media: MediaView }) {
     );
   }
 
-  let filename = media.filename;
+  let { filename } = media;
   if (filename) {
     let pos = filename.lastIndexOf(".");
     if (pos > 0) {
@@ -49,6 +49,7 @@ function Photo({ media }: { media: MediaView }) {
       {THUMBNAILS.alternateTypes.map((type) => (
         <source key={type} srcSet={source(type)} type={type} />
       ))}
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img srcSet={source("image/jpeg")} className="photo object-fit-contain" />
     </picture>
   );

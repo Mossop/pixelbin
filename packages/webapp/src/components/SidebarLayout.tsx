@@ -1,7 +1,7 @@
-import { state } from "@/modules/api";
-import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { IconList, IconListItem } from "./IconList";
+import { state } from "@/modules/api";
 import { inSpan } from "@/modules/telemetry";
+import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { url } from "@/modules/util";
 
 type AlbumTree = Album & { albums: AlbumTree[] };
@@ -15,7 +15,7 @@ function byName(a: { name: string }, b: { name: string }): number {
   return a.name.localeCompare(b.name);
 }
 
-function buildTree(state: State): CatalogTree[] {
+function buildTree(userState: State): CatalogTree[] {
   return inSpan("buildTree", () => {
     let findAlbums = (
       catalog: string,
@@ -23,7 +23,7 @@ function buildTree(state: State): CatalogTree[] {
       tree: AlbumTree[],
     ) => {
       tree.push(
-        ...state.albums
+        ...userState.albums
           .filter(
             (album) => album.catalog === catalog && album.parent === parent,
           )
@@ -37,10 +37,10 @@ function buildTree(state: State): CatalogTree[] {
     };
 
     let catalogs: CatalogTree[] = [];
-    for (let catalog of state.catalogs) {
+    for (let catalog of userState.catalogs) {
       let tree = {
         ...catalog,
-        searches: state.searches.filter(
+        searches: userState.searches.filter(
           (search) => search.catalog === catalog.id,
         ),
         albums: [],
@@ -58,7 +58,7 @@ function buildTree(state: State): CatalogTree[] {
   });
 }
 
-function Album({
+function AlbumItem({
   album,
   selectedItem,
 }: {
@@ -75,8 +75,8 @@ function Album({
     >
       {album.albums.length > 0 && (
         <IconList>
-          {album.albums.map((album) => (
-            <Album key={album.id} album={album} selectedItem={selectedItem} />
+          {album.albums.map((a) => (
+            <AlbumItem key={a.id} album={a} selectedItem={selectedItem} />
           ))}
         </IconList>
       )}
@@ -84,7 +84,7 @@ function Album({
   );
 }
 
-function Catalog({
+function CatalogItem({
   catalog,
   selectedItem,
 }: {
@@ -119,7 +119,7 @@ function Catalog({
           <IconListItem icon="images" label="Albums">
             <IconList>
               {catalog.albums.map((album) => (
-                <Album
+                <AlbumItem
                   key={album.id}
                   album={album}
                   selectedItem={selectedItem}
@@ -150,7 +150,7 @@ export default async function SidebarLayout({
         <nav className="overflow-y-auto flex-shrink-0 text-body-secondary bg-body-tertiary border-end py-3">
           <IconList>
             {catalogs.map((catalog) => (
-              <Catalog
+              <CatalogItem
                 key={catalog.id}
                 catalog={catalog}
                 selectedItem={selectedItem}

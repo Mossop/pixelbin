@@ -79,20 +79,20 @@ export function useTransition(
   );
 
   let onTransitionEnd = useCallback(() => {
-    setState((state) => {
-      if (state == Visibility.Hiding) {
+    setState((currentState) => {
+      if (currentState == Visibility.Hiding) {
         if (onHidden) {
           onHidden();
         }
         return Visibility.Hidden;
       }
-      if (state == Visibility.Showing) {
+      if (currentState == Visibility.Showing) {
         if (onShown) {
           onShown();
         }
         return Visibility.Shown;
       }
-      return state;
+      return currentState;
     });
   }, [onShown, onHidden]);
 
@@ -127,6 +127,9 @@ export function useTransition(
         setState(Visibility.Showing);
       }
       break;
+    default:
+      cancelShowing();
+      setState(show ? Visibility.Shown : Visibility.Hidden);
   }
 
   return { style: styleForVisibility(state), onTransitionEnd };

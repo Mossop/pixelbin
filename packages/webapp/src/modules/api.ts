@@ -1,6 +1,8 @@
 "use server";
 
 import { DateTime, FixedOffsetZone } from "luxon";
+import { notFound } from "next/navigation";
+
 import { clearSession, session, setSession } from "./session";
 import {
   Album,
@@ -13,7 +15,6 @@ import {
   SavedSearch,
   State,
 } from "./types";
-import { notFound } from "next/navigation";
 
 const GET: RequestInit = { method: "GET" };
 const POST: RequestInit = { method: "POST" };
@@ -78,12 +79,11 @@ async function rawApiCall<T>(
 
   if (response.ok) {
     return response.json();
-  } else {
-    try {
-      throw new Error(await response.json());
-    } catch (e) {
-      throw new Error(response.statusText);
-    }
+  }
+  try {
+    throw new Error(await response.json());
+  } catch (e) {
+    throw new Error(response.statusText);
   }
 }
 

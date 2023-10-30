@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+
 import { Roboto } from "next/font/google";
 
 import AppBar from "@/components/AppBar";
