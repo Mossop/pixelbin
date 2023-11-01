@@ -76,10 +76,10 @@ impl Runnable for Serve {
 }
 
 #[derive(Args)]
-struct RebuildSearches;
+struct CheckDb;
 
 #[async_trait(?Send)]
-impl Runnable for RebuildSearches {
+impl Runnable for CheckDb {
     async fn run(self, store: Store) -> Result {
         rebuild_searches(store).await
     }
@@ -96,8 +96,8 @@ enum Command {
     VerifyLocal,
     /// Verifies that the expected online stored files are present.
     VerifyOnline,
-    /// Re-runs all saved searches to verify correctness.
-    RebuildSearches,
+    /// Applies database migrations and verifies correctness.
+    CheckDb,
 }
 
 #[async_trait(?Send)]

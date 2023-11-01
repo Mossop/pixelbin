@@ -4,14 +4,20 @@ pub(crate) mod search;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
-use diesel::{dsl::count, prelude::*};
+use diesel::{
+    dsl::count,
+    migration::{Migration, MigrationSource},
+    pg::Pg,
+    prelude::*,
+};
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     scoped_futures::ScopedFutureExt,
     AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
 };
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use time::OffsetDateTime;
-use tracing::instrument;
+use tracing::{info, instrument, trace};
 
 use crate::{joinable, models, schema::*, MediaFilePath, Result};
 use pixelbin_shared::Error;
@@ -19,8 +25,44 @@ use pixelbin_shared::Error;
 pub(crate) type DbConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<DbConnection>;
 
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
 #[instrument(err)]
 pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
+    #![allow(clippy::borrowed_box)]
+    // First connect synchronously to apply migrations.
+    let mut connection = PgConnection::establish(db_url)?;
+    let migrations =
+        connection
+            .pending_migrations(MIGRATIONS)
+            .map_err(|e| Error::DbMigrationError {
+                message: e.to_string(),
+            })?;
+    for migration in migrations.iter() {
+        let name = migration.name().to_string();
+        info!(migration = name, "Running migration");
+        connection
+            .run_migration(migration)
+            .map_err(|e| Error::DbMigrationError {
+                message: e.to_string(),
+            })?;
+    }
+
+    let last_migration = if migrations.is_empty() {
+        MIGRATIONS
+            .migrations()
+            .map_err(|e| Error::DbMigrationError {
+                message: e.to_string(),
+            })?
+            .last()
+            .map(|m: &Box<dyn Migration<Pg>>| m.name().to_string())
+    } else {
+        migrations.last().map(|m| m.name().to_string())
+    };
+
+    trace!(migration = last_migration, "Database is fully migrated");
+
+    // Now set up the async pool.
     let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url);
     let pool = Pool::builder(config).build()?;
 

@@ -2,6 +2,7 @@
 /testing/data/
 .DS_Store
 node_modules
+/.cargo/
 
 *.tsbuildinfo
 next-env.d.ts

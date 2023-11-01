@@ -1,12 +1,12 @@
 use diesel::{
-    backend, debug_query, delete, deserialize, insert_into, pg::Pg, prelude::*, serialize,
-    sql_types, AsExpression, Queryable,
+    backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, AsExpression,
+    Queryable,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
 use serde_repr::Serialize_repr;
 use time::{OffsetDateTime, PrimitiveDateTime};
-use tracing::{instrument, trace};
+use tracing::instrument;
 use typeshare::typeshare;
 
 use crate::{
@@ -324,8 +324,6 @@ impl SavedSearch {
             .filter(self.query.filter_gen(&self.catalog))
             .select(media_item::id)
             .distinct();
-
-        trace!(query = %debug_query::<Pg, _>(&select), "Running query");
 
         let matching_media = select.load::<String>(conn).await?;
 

@@ -1,11 +1,17 @@
 use std::io;
 
+use diesel::ConnectionError;
 use diesel_async::pooled_connection::deadpool::{BuildError, PoolError};
 use handlebars::RenderError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error("Database Error: {source}")]
+    DbConnectionError {
+        #[from]
+        source: ConnectionError,
+    },
     #[error("Database Error: {source}")]
     DbPoolBuildError {
         #[from]
@@ -18,6 +24,8 @@ pub enum Error {
     },
     #[error("Database Error: {source}")]
     DbQueryError { source: diesel::result::Error },
+    #[error("Database Error: {message}")]
+    DbMigrationError { message: String },
     #[error("Item requested does not exist")]
     NotFound,
     #[error("Config File Error: {message}")]
