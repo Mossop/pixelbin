@@ -3,6 +3,8 @@ use diesel::{
     Queryable,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use pixelbin_shared::serde::datetime as serialize_datetime;
+use pixelbin_shared::serde::primitive_datetime as serialize_primitive_datetime;
 use serde::Serialize;
 use serde_repr::Serialize_repr;
 use time::{OffsetDateTime, PrimitiveDateTime};
@@ -16,79 +18,6 @@ use crate::{
 };
 use crate::{db::search::CompoundQueryItem, schema::*};
 use pixelbin_shared::Result;
-
-pub(crate) mod serialize_datetime {
-    use serde::{Serialize, Serializer};
-    use time::{
-        format_description::well_known::{iso8601::Config, Iso8601},
-        OffsetDateTime,
-    };
-
-    const DATETIME_FORMAT: u128 = Config::DEFAULT.encode();
-
-    pub(crate) fn serialize<S>(dt: &OffsetDateTime, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        dt.format(&Iso8601::<DATETIME_FORMAT>)
-            .unwrap()
-            .serialize(serializer)
-    }
-
-    pub(crate) mod option {
-        use super::*;
-
-        pub(crate) fn serialize<S>(
-            dt: &Option<OffsetDateTime>,
-            serializer: S,
-        ) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            dt.map(|dt| dt.format(&Iso8601::<DATETIME_FORMAT>).unwrap())
-                .serialize(serializer)
-        }
-    }
-}
-
-pub(crate) mod serialize_primitive_datetime {
-    use serde::{Serialize, Serializer};
-    use time::{
-        format_description::well_known::{
-            iso8601::{Config, FormattedComponents},
-            Iso8601,
-        },
-        PrimitiveDateTime,
-    };
-
-    const DATETIME_FORMAT: u128 = Config::DEFAULT
-        .set_formatted_components(FormattedComponents::DateTime)
-        .encode();
-
-    // pub(crate) fn serialize<S>(dt: &PrimitiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
-    // where
-    //     S: Serializer,
-    // {
-    //     dt.format(&Iso8601::<DATETIME_FORMAT>)
-    //         .unwrap()
-    //         .serialize(serializer)
-    // }
-
-    pub(crate) mod option {
-        use super::*;
-
-        pub(crate) fn serialize<S>(
-            dt: &Option<PrimitiveDateTime>,
-            serializer: S,
-        ) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            dt.map(|dt| dt.format(&Iso8601::<DATETIME_FORMAT>).unwrap())
-                .serialize(serializer)
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy, AsExpression, deserialize::FromSqlRow)]
 #[diesel(sql_type = sql_types::VarChar)]
@@ -355,6 +284,40 @@ impl SavedSearch {
 
         Ok(())
     }
+}
+
+#[derive(Queryable, Clone, Debug)]
+pub struct MediaItem {
+    pub id: String,
+    pub deleted: bool,
+    pub created: OffsetDateTime,
+    pub updated: OffsetDateTime,
+    pub filename: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub label: Option<String>,
+    pub category: Option<String>,
+    pub location: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub country: Option<String>,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub lens: Option<String>,
+    pub photographer: Option<String>,
+    pub shutter_speed: Option<String>,
+    pub taken_zone: Option<String>,
+    pub orientation: Option<i32>,
+    pub iso: Option<i32>,
+    pub rating: Option<i32>,
+    pub longitude: Option<f32>,
+    pub latitude: Option<f32>,
+    pub altitude: Option<f32>,
+    pub aperture: Option<f32>,
+    pub focal_length: Option<f32>,
+    pub taken: Option<PrimitiveDateTime>,
+    pub catalog: String,
+    pub media_file: Option<String>,
 }
 
 #[derive(Queryable, Clone, Debug)]

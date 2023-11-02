@@ -11,7 +11,9 @@ use opentelemetry_otlp::WithExportConfig;
 use pixelbin_server::serve;
 use pixelbin_shared::{load_config, Result};
 use pixelbin_store::{DbQueries, Store};
-use pixelbin_tasks::{rebuild_searches, verify_local_storage, verify_online_storage};
+use pixelbin_tasks::{
+    rebuild_searches, reprocess_all_media, verify_local_storage, verify_online_storage,
+};
 use tracing::Level;
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
@@ -42,6 +44,16 @@ impl Runnable for Stats {
         println!("Alternate files: {}", stats.alternate_files);
 
         Ok(())
+    }
+}
+
+#[derive(Args)]
+struct Reprocess;
+
+#[async_trait(?Send)]
+impl Runnable for Reprocess {
+    async fn run(self, store: Store) -> Result {
+        reprocess_all_media(store).await
     }
 }
 
@@ -98,6 +110,8 @@ enum Command {
     VerifyOnline,
     /// Applies database migrations and verifies correctness.
     CheckDb,
+    /// Reprocesses metadata from media.
+    Reprocess,
 }
 
 #[async_trait(?Send)]

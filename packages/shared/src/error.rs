@@ -26,6 +26,11 @@ pub enum Error {
     DbQueryError { source: diesel::result::Error },
     #[error("Database Error: {message}")]
     DbMigrationError { message: String },
+    #[error("JSON Error: {source}")]
+    JsonError {
+        #[from]
+        source: serde_json::Error,
+    },
     #[error("Item requested does not exist")]
     NotFound,
     #[error("Config File Error: {message}")]

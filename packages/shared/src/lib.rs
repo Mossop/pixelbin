@@ -3,6 +3,7 @@
 
 mod config;
 mod error;
+pub mod serde;
 
 use std::path::Path;
 

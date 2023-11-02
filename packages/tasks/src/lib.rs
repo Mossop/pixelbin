@@ -1,14 +1,57 @@
 #![deny(unreachable_pub)]
 //! Maintenance tasks for the Pixelbin server.
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use scoped_futures::ScopedFutureExt;
 
 use pixelbin_shared::Result;
-use pixelbin_store::{DbQueries, RemotePath, Store};
+use pixelbin_store::{
+    models::{MediaFile, MediaItem},
+    DbQueries, RemotePath, Store,
+};
+use serde_json::from_str;
+use tokio::fs::read_to_string;
+
+use metadata::{Metadata, METADATA_FILE};
+use tracing::error;
+
+mod metadata;
 
 pub async fn prune(_store: Store, _dry_run: bool) -> Result {
+    Ok(())
+}
+
+async fn reprocess_media(
+    media_item: &MediaItem,
+    media_file: &MediaFile,
+    file_path: &Path,
+) -> Result {
+    let metadata_file = file_path.join(METADATA_FILE);
+    let metadata = from_str::<Metadata>(&read_to_string(metadata_file).await?)?;
+
+    let _ = metadata.media_file(&media_item.id, &media_file.id);
+
+    Ok(())
+}
+
+pub async fn reprocess_all_media(mut store: Store) -> Result {
+    tracing::debug!("Reprocessing media metadata");
+
+    let stores = store.list_storage().await?;
+
+    for storage in stores {
+        let all_media = store.list_all_media(&storage).await?;
+        for (media_item, media_file, file_path, _) in all_media {
+            if let Err(e) = reprocess_media(&media_item, &media_file, &file_path).await {
+                error!(media = media_item.id, error = ?e, "Failed to process media metadata");
+            }
+        }
+    }
+
     Ok(())
 }
 
