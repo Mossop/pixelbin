@@ -29,6 +29,10 @@ const EXIF_DATETIME_FORMAT: &[FormatItem<'_>] = format_description!(
     "[year]:[month]:[day] [hour]:[minute][optional [:[second][optional [.[subsecond]]]]][optional [[offset_hour]:[offset_minute]]]"
 );
 
+pub(crate) fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
+    Some(FINDER.get_tz_name(longitude, latitude).to_owned())
+}
+
 fn ignore_empty(st: Option<String>) -> Option<String> {
     st.and_then(|s| if s.is_empty() { None } else { Some(s) })
 }
@@ -40,6 +44,18 @@ fn parse_prefix(st: &str) -> Option<f32> {
             warn!(value = st, "Failed to parse numeric prefix");
             None
         }
+    }
+}
+
+#[allow(clippy::ptr_arg)]
+fn pretty_make(name: &String) -> String {
+    match name.as_str() {
+        "NIKON CORPORATION" | "NIKON" => "Nikon".to_string(),
+        "SAMSUNG" | "Samsung Techwin" => "Samsung".to_string(),
+        "OLYMPUS IMAGING CORP." => "Olympus".to_string(),
+        "EASTMAN KODAK COMPANY" => "Kodak".to_string(),
+        "SONY" => "Sony".to_string(),
+        _ => name.clone(),
     }
 }
 
@@ -356,7 +372,7 @@ impl Metadata {
                     exif.make
                         .as_ref()
                         .or(exif.android_manufacturer.as_ref())
-                        .cloned(),
+                        .map(pretty_make),
                 );
                 media_file.model =
                     ignore_empty(exif.model.as_ref().or(exif.android_model.as_ref()).cloned());
@@ -539,16 +555,7 @@ impl Exif {
 
     pub(crate) fn parse_zone(&self) -> Option<String> {
         match (self.gps_latitude, self.gps_longitude) {
-            (Some(latitude), Some(longitude)) => {
-                // NedTimezone::lookup(longitude, latitude).get(0).map(|tz| {
-                //     tz.identifier
-                //         .as_ref()
-                //         .map(|i| i.to_string())
-                //         .unwrap_or(tz.offset.to_string())
-                // })
-
-                Some(FINDER.get_tz_name(longitude, latitude).to_owned())
-            }
+            (Some(latitude), Some(longitude)) => lookup_timezone(longitude, latitude),
             _ => None,
         }
     }

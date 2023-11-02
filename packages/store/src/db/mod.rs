@@ -39,8 +39,7 @@ pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
                 message: e.to_string(),
             })?;
     for migration in migrations.iter() {
-        let name = migration.name().to_string();
-        info!(migration = name, "Running migration");
+        info!(migration = %migration.name(), "Running migration");
         connection
             .run_migration(migration)
             .map_err(|e| Error::DbMigrationError {
@@ -213,6 +212,13 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
     async fn upsert_media_files(&mut self, media_files: &[models::MediaFile]) -> Result {
         self.with_connection(|conn| {
             async move { models::MediaFile::upsert(conn, media_files).await }.scope_boxed()
+        })
+        .await
+    }
+
+    async fn upsert_media_items(&mut self, media_files: &[models::MediaItem]) -> Result {
+        self.with_connection(|conn| {
+            async move { models::MediaItem::upsert(conn, media_files).await }.scope_boxed()
         })
         .await
     }

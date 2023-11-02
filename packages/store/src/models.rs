@@ -317,7 +317,8 @@ impl SavedSearch {
     }
 }
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Insertable, Clone, Debug)]
+#[diesel(table_name = media_item)]
 pub struct MediaItem {
     pub id: String,
     pub deleted: bool,
@@ -349,6 +350,52 @@ pub struct MediaItem {
     pub taken: Option<PrimitiveDateTime>,
     pub catalog: String,
     pub media_file: Option<String>,
+}
+
+impl MediaItem {
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(conn: &mut AsyncPgConnection, media_item: &[MediaItem]) -> Result {
+        for records in batch(media_item, 500) {
+            diesel::insert_into(media_item::table)
+                .values(records)
+                .on_conflict(media_item::id)
+                .do_update()
+                .set((
+                    media_item::deleted.eq(excluded(media_item::deleted)),
+                    media_item::created.eq(excluded(media_item::created)),
+                    media_item::updated.eq(excluded(media_item::updated)),
+                    media_item::filename.eq(excluded(media_item::filename)),
+                    media_item::title.eq(excluded(media_item::title)),
+                    media_item::description.eq(excluded(media_item::description)),
+                    media_item::label.eq(excluded(media_item::label)),
+                    media_item::category.eq(excluded(media_item::category)),
+                    media_item::location.eq(excluded(media_item::location)),
+                    media_item::city.eq(excluded(media_item::city)),
+                    media_item::state.eq(excluded(media_item::state)),
+                    media_item::country.eq(excluded(media_item::country)),
+                    media_item::make.eq(excluded(media_item::make)),
+                    media_item::model.eq(excluded(media_item::model)),
+                    media_item::lens.eq(excluded(media_item::lens)),
+                    media_item::photographer.eq(excluded(media_item::photographer)),
+                    media_item::shutter_speed.eq(excluded(media_item::shutter_speed)),
+                    media_item::taken_zone.eq(excluded(media_item::taken_zone)),
+                    media_item::orientation.eq(excluded(media_item::orientation)),
+                    media_item::iso.eq(excluded(media_item::iso)),
+                    media_item::rating.eq(excluded(media_item::rating)),
+                    media_item::longitude.eq(excluded(media_item::longitude)),
+                    media_item::latitude.eq(excluded(media_item::latitude)),
+                    media_item::altitude.eq(excluded(media_item::altitude)),
+                    media_item::aperture.eq(excluded(media_item::aperture)),
+                    media_item::focal_length.eq(excluded(media_item::focal_length)),
+                    media_item::taken.eq(excluded(media_item::taken)),
+                    media_item::media_file.eq(excluded(media_item::media_file)),
+                ))
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Queryable, Insertable, Clone, Debug)]
