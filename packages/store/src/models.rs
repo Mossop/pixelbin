@@ -1,6 +1,8 @@
+use std::cmp::min;
+
 use diesel::{
-    backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, AsExpression,
-    Queryable,
+    backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, upsert::excluded,
+    AsExpression, Queryable,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use pixelbin_shared::serde::datetime as serialize_datetime;
@@ -18,6 +20,35 @@ use crate::{
 };
 use crate::{db::search::CompoundQueryItem, schema::*};
 use pixelbin_shared::Result;
+
+struct Batch<'a, T> {
+    slice: &'a [T],
+    pos: usize,
+    count: usize,
+}
+
+impl<'a, T> Iterator for Batch<'a, T> {
+    type Item = &'a [T];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos >= self.slice.len() {
+            None
+        } else {
+            let end = min(self.slice.len(), self.pos + self.count);
+            let next = &self.slice[self.pos..end];
+            self.pos = end;
+            Some(next)
+        }
+    }
+}
+
+fn batch<T>(slice: &[T], count: usize) -> Batch<T> {
+    Batch {
+        slice,
+        pos: 0,
+        count,
+    }
+}
 
 #[derive(Debug, Clone, Copy, AsExpression, deserialize::FromSqlRow)]
 #[diesel(sql_type = sql_types::VarChar)]
@@ -320,7 +351,8 @@ pub struct MediaItem {
     pub media_file: Option<String>,
 }
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Insertable, Clone, Debug)]
+#[diesel(table_name = media_file)]
 pub struct MediaFile {
     pub id: String,
     pub uploaded: OffsetDateTime,
@@ -358,6 +390,58 @@ pub struct MediaFile {
     pub focal_length: Option<f32>,
     pub taken: Option<PrimitiveDateTime>,
     pub media: String,
+}
+
+impl MediaFile {
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(conn: &mut AsyncPgConnection, media_files: &[MediaFile]) -> Result {
+        for records in batch(media_files, 500) {
+            diesel::insert_into(media_file::table)
+                .values(records)
+                .on_conflict(media_file::id)
+                .do_update()
+                .set((
+                    media_file::uploaded.eq(excluded(media_file::uploaded)),
+                    media_file::process_version.eq(excluded(media_file::process_version)),
+                    media_file::file_name.eq(excluded(media_file::file_name)),
+                    media_file::file_size.eq(excluded(media_file::file_size)),
+                    media_file::mimetype.eq(excluded(media_file::mimetype)),
+                    media_file::width.eq(excluded(media_file::width)),
+                    media_file::height.eq(excluded(media_file::height)),
+                    media_file::duration.eq(excluded(media_file::duration)),
+                    media_file::frame_rate.eq(excluded(media_file::frame_rate)),
+                    media_file::bit_rate.eq(excluded(media_file::bit_rate)),
+                    media_file::filename.eq(excluded(media_file::filename)),
+                    media_file::title.eq(excluded(media_file::title)),
+                    media_file::description.eq(excluded(media_file::description)),
+                    media_file::label.eq(excluded(media_file::label)),
+                    media_file::category.eq(excluded(media_file::category)),
+                    media_file::location.eq(excluded(media_file::location)),
+                    media_file::city.eq(excluded(media_file::city)),
+                    media_file::state.eq(excluded(media_file::state)),
+                    media_file::country.eq(excluded(media_file::country)),
+                    media_file::make.eq(excluded(media_file::make)),
+                    media_file::model.eq(excluded(media_file::model)),
+                    media_file::lens.eq(excluded(media_file::lens)),
+                    media_file::photographer.eq(excluded(media_file::photographer)),
+                    media_file::shutter_speed.eq(excluded(media_file::shutter_speed)),
+                    media_file::taken_zone.eq(excluded(media_file::taken_zone)),
+                    media_file::orientation.eq(excluded(media_file::orientation)),
+                    media_file::iso.eq(excluded(media_file::iso)),
+                    media_file::rating.eq(excluded(media_file::rating)),
+                    media_file::longitude.eq(excluded(media_file::longitude)),
+                    media_file::latitude.eq(excluded(media_file::latitude)),
+                    media_file::altitude.eq(excluded(media_file::altitude)),
+                    media_file::aperture.eq(excluded(media_file::aperture)),
+                    media_file::focal_length.eq(excluded(media_file::focal_length)),
+                    media_file::taken.eq(excluded(media_file::taken)),
+                ))
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Queryable, Clone, Debug)]

@@ -28,12 +28,6 @@ pub(crate) fn joinable(st: &str) -> &str {
     st.trim_matches('/')
 }
 
-#[derive(Clone)]
-pub struct Store {
-    config: Config,
-    pool: DbPool,
-}
-
 #[derive(Queryable, Clone, Debug)]
 pub struct LocalAlternateFile {
     pub id: String,
@@ -82,6 +76,12 @@ impl MediaFilePath {
         path.push(joinable(&self.media_file));
         path
     }
+}
+
+#[derive(Clone)]
+pub struct Store {
+    config: Config,
+    pool: DbPool,
 }
 
 impl Store {
@@ -153,35 +153,6 @@ impl Store {
                 let file_path = MediaFilePath::new(&catalog, &media_item, &alternate.media_file);
                 let remote_path = file_path.remote_path().join(&alternate.file_name);
                 (alternate, file_path, remote_path)
-            })
-            .collect())
-    }
-
-    pub async fn list_all_media(
-        &self,
-        storage: &models::Storage,
-    ) -> Result<Vec<(models::MediaItem, models::MediaFile, PathBuf, RemotePath)>> {
-        let mut conn = self.pool.get().await?;
-
-        let files = media_item::table
-            .inner_join(media_file::table.on(media_item::media_file.eq(media_file::id.nullable())))
-            .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
-            .filter(catalog::storage.eq(&storage.id))
-            .select((
-                media_item::all_columns,
-                media_file::all_columns,
-                media_item::catalog,
-            ))
-            .load::<(models::MediaItem, models::MediaFile, String)>(&mut conn)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(media_item, media_file, catalog)| {
-                let media_path = MediaFilePath::new(&catalog, &media_file.media, &media_file.id);
-                let file_path = self.config.local_storage.join(media_path.local_path());
-                let remote_path = media_path.remote_path().join(&media_file.file_name);
-                (media_item, media_file, file_path, remote_path)
             })
             .collect())
     }

@@ -19,7 +19,7 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use time::OffsetDateTime;
 use tracing::{info, instrument, trace};
 
-use crate::{joinable, models, schema::*, MediaFilePath, Result};
+use crate::{joinable, models, schema::*, MediaFilePath, RemotePath, Result};
 use pixelbin_shared::Error;
 
 pub(crate) type DbConnection = AsyncPgConnection;
@@ -168,6 +168,51 @@ pub trait DbQueries: sealed::ConnectionProvider + Sized {
                 })
             }
             .scope_boxed()
+        })
+        .await
+    }
+
+    async fn list_all_media(
+        &mut self,
+        storage: &models::Storage,
+    ) -> Result<Vec<(models::MediaItem, models::MediaFile, PathBuf, RemotePath)>> {
+        let local_storage = self.config().local_storage.clone();
+
+        self.with_connection(|conn| {
+            async move {
+                let files = media_item::table
+                    .inner_join(
+                        media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
+                    )
+                    .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
+                    .filter(catalog::storage.eq(&storage.id))
+                    .select((
+                        media_item::all_columns,
+                        media_file::all_columns,
+                        media_item::catalog,
+                    ))
+                    .load::<(models::MediaItem, models::MediaFile, String)>(conn)
+                    .await?;
+
+                Ok(files
+                    .into_iter()
+                    .map(|(media_item, media_file, catalog)| {
+                        let media_path =
+                            MediaFilePath::new(&catalog, &media_file.media, &media_file.id);
+                        let file_path = local_storage.join(media_path.local_path());
+                        let remote_path = media_path.remote_path().join(&media_file.file_name);
+                        (media_item, media_file, file_path, remote_path)
+                    })
+                    .collect())
+            }
+            .scope_boxed()
+        })
+        .await
+    }
+
+    async fn upsert_media_files(&mut self, media_files: &[models::MediaFile]) -> Result {
+        self.with_connection(|conn| {
+            async move { models::MediaFile::upsert(conn, media_files).await }.scope_boxed()
         })
         .await
     }

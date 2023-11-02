@@ -19,6 +19,8 @@ use tokio::fs::read_to_string;
 use metadata::{Metadata, METADATA_FILE};
 use tracing::error;
 
+use crate::metadata::PROCESS_VERSION;
+
 mod metadata;
 
 pub async fn prune(_store: Store, _dry_run: bool) -> Result {
@@ -29,28 +31,43 @@ async fn reprocess_media(
     media_item: &MediaItem,
     media_file: &MediaFile,
     file_path: &Path,
-) -> Result {
+) -> Result<MediaFile> {
     let metadata_file = file_path.join(METADATA_FILE);
     let metadata = from_str::<Metadata>(&read_to_string(metadata_file).await?)?;
 
-    let _ = metadata.media_file(&media_item.id, &media_file.id);
-
-    Ok(())
+    Ok(metadata.media_file(&media_item.id, &media_file.id))
 }
 
-pub async fn reprocess_all_media(mut store: Store) -> Result {
+pub async fn reprocess_all_media(store: Store) -> Result {
     tracing::debug!("Reprocessing media metadata");
 
-    let stores = store.list_storage().await?;
+    store
+        .in_transaction(|mut tx| {
+            async move {
+                let stores = tx.list_storage().await?;
+                let mut media_files = Vec::new();
 
-    for storage in stores {
-        let all_media = store.list_all_media(&storage).await?;
-        for (media_item, media_file, file_path, _) in all_media {
-            if let Err(e) = reprocess_media(&media_item, &media_file, &file_path).await {
-                error!(media = media_item.id, error = ?e, "Failed to process media metadata");
+                for storage in stores {
+                    let all_media = tx.list_all_media(&storage).await?;
+                    for (media_item, media_file, file_path, _) in all_media {
+                        if media_file.process_version != PROCESS_VERSION {
+                            match reprocess_media(&media_item, &media_file, &file_path).await {
+                                Ok(media_file) => media_files.push(media_file),
+                                Err(e) => {
+                                    error!(media = media_item.id, error = ?e, "Failed to process media metadata")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                tx.upsert_media_files(&media_files).await?;
+
+                Ok(())
             }
-        }
-    }
+            .scope_boxed()
+        })
+        .await?;
 
     Ok(())
 }
