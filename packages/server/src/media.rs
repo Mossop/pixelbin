@@ -2,7 +2,7 @@ use actix_web::{get, http::header, web, HttpResponse, Responder};
 use pixelbin_shared::Error;
 use pixelbin_store::{
     models::{self, AlternateFileType},
-    DbQueries, RemotePath,
+    RemotePath,
 };
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};

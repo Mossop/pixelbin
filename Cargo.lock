@@ -2264,6 +2264,7 @@ dependencies = [
  "pixelbin-shared",
  "pixelbin-store",
  "pixelbin-tasks",
+ "scoped-futures",
  "thiserror",
  "tokio",
  "tracing",

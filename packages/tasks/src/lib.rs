@@ -11,7 +11,7 @@ use scoped_futures::ScopedFutureExt;
 use pixelbin_shared::Result;
 use pixelbin_store::{
     models::{MediaFile, MediaItem},
-    DbQueries, RemotePath, Store,
+    RemotePath, Store,
 };
 use serde_json::from_str;
 use tokio::fs::read_to_string;
@@ -107,8 +107,8 @@ pub async fn reprocess_all_media(store: Store) -> Result {
                     }
                 }
 
-                tx.upsert_media_files(&media_files).await?;
-                tx.upsert_media_items(&media_items).await?;
+                MediaFile::upsert(&mut tx, &media_files).await?;
+                MediaItem::upsert(&mut tx, &media_items).await?;
 
                 Ok(())
             }
@@ -175,10 +175,13 @@ pub async fn verify_local_storage(store: Store) -> Result {
     Ok(())
 }
 
-pub async fn verify_online_storage(mut store: Store) -> Result {
+pub async fn verify_online_storage(store: Store) -> Result {
     tracing::debug!("Verifying online files");
 
-    let stores = store.list_storage().await?;
+    store
+        .with_connection(|mut conn| {
+            async move {
+    let stores = conn.list_storage().await?;
     let mut errors = 0;
     let mut files = 0;
     let mut prunable = 0;
@@ -187,7 +190,7 @@ pub async fn verify_online_storage(mut store: Store) -> Result {
         let mut remote_files: HashMap<RemotePath, u64> =
             storage.list_remote_files(None).await?.into_iter().collect();
 
-        let media_files = store.list_online_media_files(&storage).await?;
+        let media_files = conn.list_online_media_files(&storage).await?;
         files += media_files.len();
         for (media_file, _file_path, remote_path) in media_files {
             match remote_files.remove(&remote_path) {
@@ -204,7 +207,7 @@ pub async fn verify_online_storage(mut store: Store) -> Result {
             }
         }
 
-        let alternates = store.list_online_alternate_files(&storage).await?;
+        let alternates = conn.list_online_alternate_files(&storage).await?;
         files += alternates.len();
         for (alternate, _file_path, remote_path) in alternates {
             match remote_files.remove(&remote_path) {
@@ -232,6 +235,12 @@ pub async fn verify_online_storage(mut store: Store) -> Result {
     if prunable > 0 {
         tracing::warn!("Saw {prunable} online files that need pruning.");
     }
+
+    Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
 
     Ok(())
 }

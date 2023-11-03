@@ -1,7 +1,7 @@
 use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpRequest};
 use futures::future::LocalBoxFuture;
 use pixelbin_shared::Error;
-use pixelbin_store::{models, DbQueries};
+use pixelbin_store::models;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tracing::{instrument, warn};

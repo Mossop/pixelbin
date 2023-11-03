@@ -10,10 +10,11 @@ use opentelemetry::{
 use opentelemetry_otlp::WithExportConfig;
 use pixelbin_server::serve;
 use pixelbin_shared::{load_config, Result};
-use pixelbin_store::{DbQueries, Store};
+use pixelbin_store::Store;
 use pixelbin_tasks::{
     rebuild_searches, reprocess_all_media, verify_local_storage, verify_online_storage,
 };
+use scoped_futures::ScopedFutureExt;
 use tracing::Level;
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
@@ -32,16 +33,25 @@ struct Stats;
 
 #[async_trait(?Send)]
 impl Runnable for Stats {
-    async fn run(self, mut store: Store) -> Result {
-        let stats = store.stats().await?;
-        println!("Users:           {}", stats.users);
-        println!("Catalogs:        {}", stats.catalogs);
-        println!("Albums:          {}", stats.albums);
-        println!("Tags:            {}", stats.tags);
-        println!("People:          {}", stats.people);
-        println!("Media:           {}", stats.media);
-        println!("Files:           {}", stats.files);
-        println!("Alternate files: {}", stats.alternate_files);
+    async fn run(self, store: Store) -> Result {
+        store
+            .in_transaction(|mut conn| {
+                async move {
+                    let stats = conn.stats().await?;
+                    println!("Users:           {}", stats.users);
+                    println!("Catalogs:        {}", stats.catalogs);
+                    println!("Albums:          {}", stats.albums);
+                    println!("Tags:            {}", stats.tags);
+                    println!("People:          {}", stats.people);
+                    println!("Media:           {}", stats.media);
+                    println!("Files:           {}", stats.files);
+                    println!("Alternate files: {}", stats.alternate_files);
+
+                    Ok(())
+                }
+                .scope_boxed()
+            })
+            .await?;
 
         Ok(())
     }

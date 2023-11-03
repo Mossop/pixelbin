@@ -16,7 +16,7 @@ use typeshare::typeshare;
 use crate::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
-    RemotePath,
+    DbConnection, RemotePath,
 };
 use crate::{db::search::CompoundQueryItem, schema::*};
 use pixelbin_shared::Result;
@@ -354,8 +354,8 @@ pub struct MediaItem {
 
 impl MediaItem {
     #[instrument(skip_all)]
-    pub(crate) async fn upsert(conn: &mut AsyncPgConnection, media_item: &[MediaItem]) -> Result {
-        for records in batch(media_item, 500) {
+    pub async fn upsert(conn: &mut DbConnection<'_>, media_items: &[MediaItem]) -> Result {
+        for records in batch(media_items, 500) {
             diesel::insert_into(media_item::table)
                 .values(records)
                 .on_conflict(media_item::id)
@@ -390,7 +390,7 @@ impl MediaItem {
                     media_item::taken.eq(excluded(media_item::taken)),
                     media_item::media_file.eq(excluded(media_item::media_file)),
                 ))
-                .execute(conn)
+                .execute(conn.conn)
                 .await?;
         }
 
@@ -441,7 +441,7 @@ pub struct MediaFile {
 
 impl MediaFile {
     #[instrument(skip_all)]
-    pub(crate) async fn upsert(conn: &mut AsyncPgConnection, media_files: &[MediaFile]) -> Result {
+    pub async fn upsert(conn: &mut DbConnection<'_>, media_files: &[MediaFile]) -> Result {
         for records in batch(media_files, 500) {
             diesel::insert_into(media_file::table)
                 .values(records)
@@ -483,7 +483,7 @@ impl MediaFile {
                     media_file::focal_length.eq(excluded(media_file::focal_length)),
                     media_file::taken.eq(excluded(media_file::taken)),
                 ))
-                .execute(conn)
+                .execute(conn.conn)
                 .await?;
         }
 

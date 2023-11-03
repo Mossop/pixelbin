@@ -2,7 +2,6 @@
 //! A basic abstraction around the pixelbin data stores.
 use std::path::PathBuf;
 
-use async_trait::async_trait;
 use aws::AwsClient;
 use diesel::prelude::*;
 use diesel_async::{
@@ -17,8 +16,8 @@ pub mod models;
 mod schema;
 
 pub use aws::RemotePath;
-pub use db::DbQueries;
-use db::{connect, sealed::ConnectionProvider, DbConnection, DbPool};
+pub use db::DbConnection;
+use db::{connect, DbPool};
 use pixelbin_shared::{Config, Result};
 use schema::*;
 use tokio::fs;
@@ -97,17 +96,32 @@ impl Store {
     }
 
     #[instrument(skip_all)]
+    pub async fn with_connection<'a, R, F>(&self, cb: F) -> Result<R>
+    where
+        R: 'a + Send,
+        F: for<'b> FnOnce(DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
+    {
+        let mut conn = self.pool.get().await?;
+
+        cb(DbConnection {
+            conn: &mut conn,
+            config: self.config.clone(),
+        })
+        .await
+    }
+
+    #[instrument(skip_all)]
     pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
     where
         R: 'a + Send,
-        F: for<'b> FnOnce(Transaction<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
+        F: for<'b> FnOnce(DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
     {
         let mut conn = self.pool.get().await?;
 
         conn.transaction(|conn| {
             async move {
-                cb(Transaction {
-                    connection: conn,
+                cb(DbConnection {
+                    conn,
                     config: self.config.clone(),
                 })
                 .await
@@ -125,60 +139,6 @@ impl Store {
     ) -> Result<String> {
         let client = AwsClient::from_storage(storage).await?;
         client.file_uri(path, mimetype).await
-    }
-
-    pub async fn list_online_alternate_files(
-        &self,
-        storage: &models::Storage,
-    ) -> Result<Vec<(models::AlternateFile, MediaFilePath, RemotePath)>> {
-        let mut conn = self.pool.get().await?;
-
-        let files = alternate_file::table
-            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
-            .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
-            .filter(alternate_file::local.eq(false))
-            .filter(catalog::storage.eq(&storage.id))
-            .select((
-                alternate_file::all_columns,
-                media_item::id,
-                media_item::catalog,
-            ))
-            .load::<(models::AlternateFile, String, String)>(&mut conn)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(alternate, media_item, catalog)| {
-                let file_path = MediaFilePath::new(&catalog, &media_item, &alternate.media_file);
-                let remote_path = file_path.remote_path().join(&alternate.file_name);
-                (alternate, file_path, remote_path)
-            })
-            .collect())
-    }
-
-    pub async fn list_online_media_files(
-        &self,
-        storage: &models::Storage,
-    ) -> Result<Vec<(models::MediaFile, MediaFilePath, RemotePath)>> {
-        let mut conn = self.pool.get().await?;
-
-        let files = media_file::table
-            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
-            .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
-            .filter(catalog::storage.eq(&storage.id))
-            .select((media_file::all_columns, media_item::catalog))
-            .load::<(models::MediaFile, String)>(&mut conn)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(media_file, catalog)| {
-                let file_path = MediaFilePath::new(&catalog, &media_file.media, &media_file.id);
-                let remote_path = file_path.remote_path().join(&media_file.file_name);
-                (media_file, file_path, remote_path)
-            })
-            .collect())
     }
 
     pub async fn list_local_files(&self) -> Result<Vec<(PathBuf, u64)>> {
@@ -234,63 +194,5 @@ impl Store {
                 (alternate, file_path, local_path)
             })
             .collect())
-    }
-}
-
-#[async_trait]
-impl ConnectionProvider for Store {
-    async fn with_connection<'a, R, F>(&mut self, cb: F) -> Result<R>
-    where
-        R: 'a,
-        F: for<'b> FnOnce(&'b mut DbConnection) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
-    {
-        let mut conn = self.pool.get().await?;
-        cb(&mut conn).await
-    }
-
-    fn config(&self) -> Config {
-        self.config.clone()
-    }
-}
-
-pub struct Transaction<'a> {
-    connection: &'a mut DbConnection,
-    config: Config,
-}
-
-#[async_trait]
-impl<'t> ConnectionProvider for Transaction<'t> {
-    async fn with_connection<'a, R, F>(&mut self, cb: F) -> Result<R>
-    where
-        R: 'a,
-        F: for<'b> FnOnce(&'b mut DbConnection) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
-    {
-        cb(self.connection).await
-    }
-
-    fn config(&self) -> Config {
-        self.config.clone()
-    }
-}
-
-impl<'a> Transaction<'a> {
-    pub async fn update_searches(&mut self, catalog: &str) -> Result {
-        self.with_connection(|conn| {
-            async move {
-                let searches = saved_search::table
-                    .filter(saved_search::catalog.eq(catalog))
-                    .select(saved_search::all_columns)
-                    .load::<models::SavedSearch>(conn)
-                    .await?;
-
-                for search in searches {
-                    search.update(conn).await?;
-                }
-
-                Ok(())
-            }
-            .scope_boxed()
-        })
-        .await
     }
 }
