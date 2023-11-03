@@ -136,12 +136,17 @@ export async function state(): Promise<State | undefined> {
 }
 
 function fixDates(media: ApiMediaView): MediaView {
+  let zone = media.takenZone
+    ? FixedOffsetZone.parseSpecifier(media.takenZone)
+    : FixedOffsetZone.utcInstance;
+
+  let datetime = DateTime.fromISO(media.datetime);
+  if (zone) {
+    datetime = datetime.setZone(zone);
+  }
+
   let taken = null;
   if (media.taken) {
-    let zone = media.takenZone
-      ? FixedOffsetZone.parseSpecifier(media.takenZone)
-      : FixedOffsetZone.utcInstance;
-
     taken = DateTime.fromISO(media.taken).setZone(zone, {
       keepLocalTime: true,
     });
@@ -159,6 +164,7 @@ function fixDates(media: ApiMediaView): MediaView {
     ...media,
     created: DateTime.fromISO(media.created),
     updated: DateTime.fromISO(media.updated),
+    datetime,
     taken,
     file: mediaFile,
   };

@@ -17,17 +17,13 @@ interface MediaGroup {
 }
 
 function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
-  let sorted = mediaList.toSorted(
-    (a, b) => mediaDate(b).toMillis() - mediaDate(a).toMillis(),
-  );
-
   let titleFor = (dt: DateTime | null) =>
     dt ? `${dt.monthLong} ${dt.year}` : "";
 
   let indexFor = (dt: DateTime | null) =>
     dt ? dt.month - 1 + dt.year * 12 : null;
 
-  let media = sorted.shift();
+  let media = mediaList.shift();
   if (!media) {
     return [];
   }
@@ -41,7 +37,7 @@ function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
   let groups = [group];
 
   // eslint-disable-next-line no-cond-assign
-  while ((media = sorted.shift())) {
+  while ((media = mediaList.shift())) {
     let newIndex = indexFor(mediaDate(media));
     if (newIndex == lastIndex) {
       group.media.push(media);

@@ -204,6 +204,7 @@ macro_rules! media_view {
                     crate::schema::media_item::updated,
                     crate::schema::media_file::uploaded.nullable(),
                 ),
+                crate::schema::media_item::datetime,
                 crate::db::functions::media_field!(filename),
                 crate::db::functions::media_field!(title),
                 crate::db::functions::media_field!(description),
@@ -243,11 +244,7 @@ macro_rules! media_view {
                     .nullable(),
             ))
             .distinct()
-            .order(
-                crate::db::functions::media_field!(taken)
-                    .desc()
-                    .nulls_last(),
-            )
+            .order(crate::schema::media_item::datetime.desc())
     };
 }
 

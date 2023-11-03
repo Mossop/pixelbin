@@ -200,6 +200,7 @@ export interface MediaView {
   catalog: string;
   created: DateTime;
   updated: DateTime;
+  datetime: DateTime;
   filename: string | null;
   title: string | null;
   description: string | null;
@@ -232,6 +233,7 @@ export type ApiMediaView = Replace<
   {
     created: string;
     updated: string;
+    datetime: string;
     taken: string | null;
     file: ApiMediaViewFile | null;
   }

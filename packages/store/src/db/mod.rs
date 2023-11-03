@@ -101,7 +101,7 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
 
     if reprocess_media {
         connection
-            .transaction(|conn| {
+            .transaction::<(), Error, _>(|conn| {
                 async move {
                     let mut tx = DbConnection {
                         conn,
@@ -109,7 +109,15 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
                         is_transaction: true,
                     };
 
-                    reprocess_all_media(&mut tx).await
+                    reprocess_all_media(&mut tx).await?;
+
+                    let catalogs = tx.list_catalogs().await?;
+
+                    for catalog in catalogs {
+                        tx.update_searches(&catalog.id).await?;
+                    }
+
+                    Ok(())
                 }
                 .scope_boxed()
             })
