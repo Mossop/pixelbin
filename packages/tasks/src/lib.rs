@@ -11,12 +11,13 @@ use pixelbin_store::{
     models::MediaFile,
     RemotePath, Store,
 };
-use tracing::error;
+use tracing::{error, instrument};
 
 pub async fn prune(_store: Store, _dry_run: bool) -> Result {
     Ok(())
 }
 
+#[instrument(skip_all)]
 pub async fn reprocess_all_media(store: Store) -> Result {
     tracing::debug!("Reprocessing media metadata");
 

@@ -3,6 +3,7 @@ pub(crate) mod search;
 
 use std::path::PathBuf;
 
+use chrono::Utc;
 use diesel::{
     dsl::count,
     migration::{Migration, MigrationSource},
@@ -15,7 +16,6 @@ use diesel_async::{
     AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use time::OffsetDateTime;
 use tracing::{error, info, instrument, trace};
 
 use crate::{
@@ -60,7 +60,7 @@ async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()> {
     Ok(())
 }
 
-#[instrument(err)]
+#[instrument(err, skip_all)]
 pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     #![allow(clippy::borrowed_box)]
     let mut reprocess_media = false;
@@ -232,7 +232,7 @@ impl<'a> DbConnection<'a> {
             return Err(Error::NotFound);
         }
 
-        user.last_login = Some(OffsetDateTime::now_utc());
+        user.last_login = Some(Utc::now());
 
         diesel::update(user::table)
             .filter(user::email.eq(email))

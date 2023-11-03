@@ -1,16 +1,14 @@
 use std::{cmp::min, collections::HashMap};
 
 use crate::metadata::{lookup_timezone, media_datetime};
+use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
     backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, upsert::excluded,
     AsExpression, Queryable,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use pixelbin_shared::serde::datetime as serialize_datetime;
-use pixelbin_shared::serde::primitive_datetime as serialize_primitive_datetime;
 use serde::Serialize;
 use serde_repr::Serialize_repr;
-use time::{OffsetDateTime, PrimitiveDateTime};
 use tracing::instrument;
 use typeshare::typeshare;
 
@@ -154,11 +152,9 @@ pub struct User {
     pub fullname: Option<String>,
     pub administrator: bool,
     #[typeshare(serialized_as = "string")]
-    #[serde(with = "serialize_datetime")]
-    pub created: OffsetDateTime,
+    pub created: DateTime<Utc>,
     #[typeshare(serialized_as = "string")]
-    #[serde(with = "serialize_datetime::option")]
-    pub last_login: Option<OffsetDateTime>,
+    pub last_login: Option<DateTime<Utc>>,
     pub verified: Option<bool>,
 }
 
@@ -262,7 +258,7 @@ struct MediaSearch {
     catalog: String,
     media: String,
     search: String,
-    added: OffsetDateTime,
+    added: DateTime<Utc>,
 }
 
 impl SavedSearch {
@@ -288,7 +284,7 @@ impl SavedSearch {
 
         let matching_media = select.load::<String>(conn).await?;
 
-        let now = OffsetDateTime::now_utc();
+        let now = Utc::now();
 
         let inserts: Vec<MediaSearch> = matching_media
             .iter()
@@ -329,9 +325,9 @@ fn clear_matching<T: PartialEq>(field: &mut Option<T>, reference: &Option<T>) {
 pub struct MediaItem {
     pub id: String,
     pub deleted: bool,
-    pub created: OffsetDateTime,
-    pub updated: OffsetDateTime,
-    pub datetime: OffsetDateTime,
+    pub created: DateTime<Utc>,
+    pub updated: DateTime<Utc>,
+    pub datetime: DateTime<Utc>,
     pub filename: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -355,7 +351,7 @@ pub struct MediaItem {
     pub altitude: Option<f32>,
     pub aperture: Option<f32>,
     pub focal_length: Option<f32>,
-    pub taken: Option<PrimitiveDateTime>,
+    pub taken: Option<NaiveDateTime>,
     pub catalog: String,
     pub media_file: Option<String>,
 }
@@ -432,7 +428,7 @@ impl MediaItem {
 
         // Ignore any sub-second differences.
         if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken) {
-            if item_taken.replace_millisecond(0) == file_taken.replace_millisecond(0) {
+            if item_taken.with_nanosecond(0) == file_taken.with_nanosecond(0) {
                 self.taken = None;
             }
         }
@@ -452,7 +448,7 @@ impl MediaItem {
 #[diesel(table_name = media_file)]
 pub struct MediaFile {
     pub id: String,
-    pub uploaded: OffsetDateTime,
+    pub uploaded: DateTime<Utc>,
     pub process_version: i32,
     pub file_name: String,
     pub file_size: i32,
@@ -485,7 +481,7 @@ pub struct MediaFile {
     pub altitude: Option<f32>,
     pub aperture: Option<f32>,
     pub focal_length: Option<f32>,
-    pub taken: Option<PrimitiveDateTime>,
+    pub taken: Option<NaiveDateTime>,
     pub media: String,
 }
 
@@ -607,8 +603,7 @@ pub struct MediaViewFile {
     pub duration: Option<f32>,
     pub frame_rate: Option<f32>,
     pub bit_rate: Option<f32>,
-    #[serde(with = "serialize_datetime")]
-    pub uploaded: OffsetDateTime,
+    pub uploaded: DateTime<Utc>,
     pub file_name: String,
 }
 
@@ -618,17 +613,14 @@ pub struct MediaViewFile {
 pub struct MediaView {
     pub id: String,
     pub catalog: String,
-    #[serde(with = "serialize_datetime")]
-    pub created: OffsetDateTime,
-    #[serde(with = "serialize_datetime")]
-    pub updated: OffsetDateTime,
+    pub created: DateTime<Utc>,
+    pub updated: DateTime<Utc>,
     pub filename: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
     pub label: Option<String>,
     pub category: Option<String>,
-    #[serde(with = "serialize_primitive_datetime::option")]
-    pub taken: Option<PrimitiveDateTime>,
+    pub taken: Option<NaiveDateTime>,
     pub taken_zone: Option<String>,
     pub longitude: Option<f32>,
     pub latitude: Option<f32>,

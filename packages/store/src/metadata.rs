@@ -2,6 +2,8 @@ use crate::{
     models::{MediaFile, MediaItem},
     MediaFilePath,
 };
+use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Timelike, Utc};
+use chrono_tz::Tz;
 use lazy_static::lazy_static;
 use lexical_parse_float::FromLexical;
 use pixelbin_shared::{Config, Result};
@@ -11,11 +13,6 @@ use std::{
     cmp::{max, min},
     result,
     str::FromStr,
-};
-use time::{
-    format_description::{well_known::Iso8601, FormatItem},
-    macros::format_description,
-    OffsetDateTime, PrimitiveDateTime, UtcOffset,
 };
 use tokio::fs::read_to_string;
 use tracing::warn;
@@ -30,38 +27,39 @@ lazy_static! {
 pub const METADATA_FILE: &str = "metadata.json";
 pub const PROCESS_VERSION: i32 = 4;
 
-const EXIF_DATETIME_FORMAT: &[FormatItem<'_>] = format_description!(
-    version = 2,
-    "[year]:[month]:[day] [hour]:[minute][optional [:[second][optional [.[subsecond]]]]][optional [[offset_hour]:[offset_minute]]]"
-);
+const EXIF_FORMAT: &str = "%Y:%m:%d %H:%M:%S%.f";
+const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
 pub fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
     Some(FINDER.get_tz_name(longitude, latitude).to_owned())
 }
 
-fn time_from_taken(
-    taken: &Option<PrimitiveDateTime>,
-    zone: &Option<String>,
-) -> Option<OffsetDateTime> {
+fn time_from_taken(taken: &Option<NaiveDateTime>, zone: &Option<String>) -> Option<DateTime<Utc>> {
     if let Some(dt) = taken {
         if let Some(zone) = zone {
-            let format = format_description!("[offset_hour]:[offset_minute]");
-            match UtcOffset::parse(zone, &format) {
-                Ok(offset) => Some(dt.assume_offset(offset)),
+            match zone.parse::<Tz>() {
+                Ok(offset) => match offset.from_local_datetime(dt) {
+                    LocalResult::Single(dt) => Some(dt.with_timezone(&Utc)),
+                    LocalResult::Ambiguous(dt1, _) => {
+                        warn!(datetime = %dt, zone, "Ambiguous time found");
+                        Some(dt1.with_timezone(&Utc))
+                    }
+                    LocalResult::None => Some(dt.and_utc()),
+                },
                 Err(_) => {
                     warn!(offset = zone, "Failed to parse timezone offset");
-                    Some(dt.assume_utc())
+                    Some(dt.and_utc())
                 }
             }
         } else {
-            Some(dt.assume_utc())
+            Some(dt.and_utc())
         }
     } else {
         None
     }
 }
 
-pub fn media_datetime(media_item: &MediaItem, media_file: &MediaFile) -> OffsetDateTime {
+pub fn media_datetime(media_item: &MediaItem, media_file: &MediaFile) -> DateTime<Utc> {
     if let Some(dt) = time_from_taken(&media_item.taken, &media_item.taken_zone) {
         return dt;
     }
@@ -136,7 +134,7 @@ where
 
 pub(crate) fn deserialize_datetime<'de, D>(
     deserializer: D,
-) -> result::Result<Option<PrimitiveDateTime>, D::Error>
+) -> result::Result<Option<NaiveDateTime>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -148,12 +146,12 @@ where
         }
     };
 
-    if let Ok(dt) = PrimitiveDateTime::parse(&str, &Iso8601::DATE_TIME) {
+    if let Ok((dt, _)) = NaiveDateTime::parse_and_remainder(&str, ISO_FORMAT) {
         return Ok(Some(dt));
     }
 
-    match PrimitiveDateTime::parse(&str, EXIF_DATETIME_FORMAT) {
-        Ok(dt) => Ok(Some(dt)),
+    match NaiveDateTime::parse_and_remainder(&str, EXIF_FORMAT) {
+        Ok((dt, _)) => Ok(Some(dt)),
         Err(_) => {
             warn!(value = str, "Failed to deserialize datetime");
             Ok(None)
@@ -313,8 +311,7 @@ pub(crate) struct Metadata {
     pub(crate) file_size: i32,
     pub(crate) width: i32,
     pub(crate) height: i32,
-    #[serde(with = "pixelbin_shared::serde::datetime")]
-    pub(crate) uploaded: OffsetDateTime,
+    pub(crate) uploaded: DateTime<Utc>,
     pub(crate) mimetype: String,
     pub(crate) duration: Option<f32>,
     pub(crate) bit_rate: Option<f32>,
@@ -382,7 +379,7 @@ impl Metadata {
 
                 media_file.longitude = exif.gps_longitude.map(|n| n as f32);
                 media_file.latitude = exif.gps_latitude.map(|n| n as f32);
-                media_file.altitude = exif.gps_altitude.map(|n| n as f32);
+                media_file.altitude = exif.gps_altitude.and_then(|n| parse_prefix(&n));
 
                 media_file.location = ignore_empty(
                     exif.location
@@ -467,24 +464,24 @@ pub(crate) struct Exif {
     // Combined gives the correct time but the timezone is that of the exporting
     // device.
     // #[serde(default, deserialize_with = "deserialize_datetime")]
-    // pub(crate) create_date: Option<PrimitiveDateTime>,
+    // pub(crate) create_date: Option<NaiveDateTime>,
     // #[serde(default, deserialize_with = "deserialize_offset")]
     // pub(crate) offset_time: Option<UtcOffset>,
 
     // Correct time, wrong (or no) timezone.
     #[serde(default, deserialize_with = "deserialize_datetime")]
-    pub(crate) date_time_created: Option<PrimitiveDateTime>,
+    pub(crate) date_time_created: Option<NaiveDateTime>,
     #[serde(default, deserialize_with = "deserialize_datetime")]
-    pub(crate) date_time_original: Option<PrimitiveDateTime>,
+    pub(crate) date_time_original: Option<NaiveDateTime>,
     #[serde(default, deserialize_with = "deserialize_datetime")]
-    pub(crate) date_created: Option<PrimitiveDateTime>,
+    pub(crate) date_created: Option<NaiveDateTime>,
     // Only the time part.
     // #[serde(default, deserialize_with = "deserialize_time")]
     // pub(crate) time_created: Option<Time>,
 
     // The correct time using the timezone of the exporting device.
     // #[serde(default, deserialize_with = "deserialize_datetime")]
-    // pub(crate) digital_creation_date_time: Option<PrimitiveDateTime>,
+    // pub(crate) digital_creation_date_time: Option<NaiveDateTime>,
     // #[serde(default, deserialize_with = "deserialize_date")]
     // pub(crate) digital_creation_date: Option<Date>,
     // #[serde(default, deserialize_with = "deserialize_time")]
@@ -492,9 +489,9 @@ pub(crate) struct Exif {
 
     // The correct time using the local time of the exporting device.
     #[serde(default, deserialize_with = "deserialize_datetime")]
-    pub(crate) sub_sec_create_date: Option<PrimitiveDateTime>,
+    pub(crate) sub_sec_create_date: Option<NaiveDateTime>,
     #[serde(default, deserialize_with = "deserialize_datetime")]
-    pub(crate) sub_sec_date_time_original: Option<PrimitiveDateTime>,
+    pub(crate) sub_sec_date_time_original: Option<NaiveDateTime>,
 
     #[serde(default, deserialize_with = "deserialize_subsecs")]
     pub(crate) sub_sec_time_original: Option<f64>,
@@ -512,8 +509,8 @@ pub(crate) struct Exif {
     pub(crate) gps_latitude: Option<f64>,
     #[serde(default, rename = "GPSLongitude", deserialize_with = "deserialize_gps")]
     pub(crate) gps_longitude: Option<f64>,
-    #[serde(rename = "GPSAltitude")]
-    pub(crate) gps_altitude: Option<f64>,
+    #[serde(default, rename = "GPSAltitude", deserialize_with = "number_as_string")]
+    pub(crate) gps_altitude: Option<String>,
 
     pub(crate) title: Option<String>,
 
@@ -577,22 +574,22 @@ pub(crate) struct Exif {
 }
 
 impl Exif {
-    pub(crate) fn parse_taken(&self) -> Option<PrimitiveDateTime> {
-        let millis = self
+    pub(crate) fn parse_taken(&self) -> Option<NaiveDateTime> {
+        let nanos = self
             .sub_sec_time_original
             .or(self.sub_sec_time_digitized)
-            .map(|ss| (ss * 1000000_f64) as u32)
+            .map(|ss| (ss * 1_000_000_000_f64) as u32)
             .or_else(|| {
                 self.sub_sec_create_date
                     .or(self.sub_sec_date_time_original)
-                    .map(|dt| dt.microsecond())
+                    .map(|dt| dt.nanosecond())
             })
             .unwrap_or_default();
 
         self.date_time_created
             .or(self.date_time_original)
             .or(self.date_created)
-            .map(|dt| dt.replace_microsecond(millis).unwrap())
+            .map(|dt| dt.with_nanosecond(nanos).unwrap())
     }
 
     pub(crate) fn parse_zone(&self) -> Option<String> {
@@ -615,8 +612,8 @@ pub async fn process_media(config: &Config, file_path: &MediaFilePath) -> Result
 
 #[cfg(test)]
 mod tests {
+    use chrono::NaiveDate;
     use serde_json::from_str;
-    use time::macros::datetime;
 
     use super::Exif;
 
@@ -649,7 +646,13 @@ mod tests {
         .unwrap();
 
         let taken = exif.parse_taken().unwrap();
-        assert_eq!(taken, datetime!(2013-08-29 17:41:06.70));
+        assert_eq!(
+            taken,
+            NaiveDate::from_ymd_opt(2013, 8, 29)
+                .unwrap()
+                .and_hms_milli_opt(17, 41, 6, 700)
+                .unwrap()
+        );
         assert_eq!(exif.parse_zone().as_deref(), Some("Europe/Paris"));
 
         let exif = from_str::<Exif>(
@@ -678,7 +681,13 @@ mod tests {
         .unwrap();
 
         let taken = exif.parse_taken().unwrap();
-        assert_eq!(taken, datetime!(2013-08-29 17:42:25.60));
+        assert_eq!(
+            taken,
+            NaiveDate::from_ymd_opt(2013, 8, 29)
+                .unwrap()
+                .and_hms_milli_opt(17, 42, 25, 600)
+                .unwrap()
+        );
         assert_eq!(exif.parse_zone().as_deref(), Some("Europe/Paris"));
 
         let exif = from_str::<Exif>(
@@ -715,7 +724,13 @@ mod tests {
         .unwrap();
 
         let taken = exif.parse_taken().unwrap();
-        assert_eq!(taken, datetime!(2023-11-01 17:45:39.805));
+        assert_eq!(
+            taken,
+            NaiveDate::from_ymd_opt(2023, 11, 1)
+                .unwrap()
+                .and_hms_milli_opt(17, 45, 39, 805)
+                .unwrap()
+        );
         assert_eq!(exif.gps_longitude, Some(-1.176903));
         assert_eq!(exif.gps_latitude, Some(52.747325));
         assert_eq!(exif.parse_zone().as_deref(), Some("Europe/London"));
@@ -752,6 +767,12 @@ mod tests {
         assert_eq!(exif.parse_zone().as_deref(), Some("America/Los_Angeles"));
 
         let taken = exif.parse_taken().unwrap();
-        assert_eq!(taken, datetime!(2023-08-09 12:18:56.773958));
+        assert_eq!(
+            taken,
+            NaiveDate::from_ymd_opt(2023, 8, 9)
+                .unwrap()
+                .and_hms_micro_opt(12, 18, 56, 773958)
+                .unwrap()
+        );
     }
 }
