@@ -1,5 +1,6 @@
-use std::cmp::min;
+use std::{cmp::min, collections::HashMap};
 
+use crate::metadata::{lookup_timezone, media_datetime};
 use diesel::{
     backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, upsert::excluded,
     AsExpression, Queryable,
@@ -16,7 +17,7 @@ use typeshare::typeshare;
 use crate::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
-    DbConnection, RemotePath,
+    DbConnection, MediaFilePath, RemotePath,
 };
 use crate::{db::search::CompoundQueryItem, schema::*};
 use pixelbin_shared::Result;
@@ -317,6 +318,12 @@ impl SavedSearch {
     }
 }
 
+fn clear_matching<T: PartialEq>(field: &mut Option<T>, reference: &Option<T>) {
+    if field == reference {
+        *field = None;
+    }
+}
+
 #[derive(Queryable, Insertable, Clone, Debug)]
 #[diesel(table_name = media_item)]
 pub struct MediaItem {
@@ -324,6 +331,7 @@ pub struct MediaItem {
     pub deleted: bool,
     pub created: OffsetDateTime,
     pub updated: OffsetDateTime,
+    pub datetime: OffsetDateTime,
     pub filename: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -396,6 +404,48 @@ impl MediaItem {
 
         Ok(())
     }
+
+    fn sync_with_file(&mut self, media_file: &MediaFile) {
+        clear_matching(&mut self.filename, &media_file.filename);
+        clear_matching(&mut self.title, &media_file.title);
+        clear_matching(&mut self.description, &media_file.description);
+        clear_matching(&mut self.label, &media_file.label);
+        clear_matching(&mut self.category, &media_file.category);
+        clear_matching(&mut self.location, &media_file.location);
+        clear_matching(&mut self.city, &media_file.city);
+        clear_matching(&mut self.state, &media_file.state);
+        clear_matching(&mut self.country, &media_file.country);
+        clear_matching(&mut self.make, &media_file.make);
+        clear_matching(&mut self.model, &media_file.model);
+        clear_matching(&mut self.lens, &media_file.lens);
+        clear_matching(&mut self.photographer, &media_file.photographer);
+        clear_matching(&mut self.shutter_speed, &media_file.shutter_speed);
+        clear_matching(&mut self.taken_zone, &media_file.taken_zone);
+        clear_matching(&mut self.orientation, &media_file.orientation);
+        clear_matching(&mut self.iso, &media_file.iso);
+        clear_matching(&mut self.rating, &media_file.rating);
+        clear_matching(&mut self.longitude, &media_file.longitude);
+        clear_matching(&mut self.latitude, &media_file.latitude);
+        clear_matching(&mut self.altitude, &media_file.altitude);
+        clear_matching(&mut self.aperture, &media_file.aperture);
+        clear_matching(&mut self.focal_length, &media_file.focal_length);
+
+        // Ignore any sub-second differences.
+        if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken) {
+            if item_taken.replace_millisecond(0) == file_taken.replace_millisecond(0) {
+                self.taken = None;
+            }
+        }
+
+        match (self.longitude, self.latitude) {
+            (Some(longitude), Some(latitude)) => {
+                self.taken_zone = lookup_timezone(longitude as f64, latitude as f64)
+            }
+            _ => self.taken_zone = None,
+        }
+
+        self.datetime = media_datetime(self, media_file);
+    }
 }
 
 #[derive(Queryable, Insertable, Clone, Debug)]
@@ -441,7 +491,43 @@ pub struct MediaFile {
 
 impl MediaFile {
     #[instrument(skip_all)]
+    pub async fn list_current(
+        conn: &mut DbConnection<'_>,
+    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+        let files = media_item::table
+            .inner_join(media_file::table.on(media_item::media_file.eq(media_file::id.nullable())))
+            .select((media_file::all_columns, media_item::catalog))
+            .load::<(MediaFile, String)>(conn.conn)
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .map(|(media_file, catalog)| {
+                let media_path = MediaFilePath::new(&catalog, &media_file.media, &media_file.id);
+                (media_file, media_path)
+            })
+            .collect())
+    }
+
+    #[instrument(skip_all)]
     pub async fn upsert(conn: &mut DbConnection<'_>, media_files: &[MediaFile]) -> Result {
+        conn.assert_in_transaction();
+
+        let media_file_map: HashMap<&String, &MediaFile> =
+            media_files.iter().map(|m| (&m.id, m)).collect();
+        let media_file_ids: Vec<&&String> = media_file_map.keys().collect();
+        let mut items = media_item::table
+            .filter(media_item::media_file.eq_any(media_file_ids))
+            .select(media_item::all_columns)
+            .load::<MediaItem>(conn.conn)
+            .await?;
+
+        items.iter_mut().for_each(|item| {
+            if let Some(file) = media_file_map.get(item.media_file.as_ref().unwrap()) {
+                item.sync_with_file(file);
+            }
+        });
+
         for records in batch(media_files, 500) {
             diesel::insert_into(media_file::table)
                 .values(records)
@@ -486,6 +572,8 @@ impl MediaFile {
                 .execute(conn.conn)
                 .await?;
         }
+
+        MediaItem::upsert(conn, &items).await?;
 
         Ok(())
     }

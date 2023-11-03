@@ -1,17 +1,23 @@
+use crate::{
+    models::{MediaFile, MediaItem},
+    MediaFilePath,
+};
 use lazy_static::lazy_static;
 use lexical_parse_float::FromLexical;
-use pixelbin_store::models::MediaFile;
+use pixelbin_shared::{Config, Result};
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::Value;
+use serde_json::{from_str, Value};
 use std::{
     cmp::{max, min},
+    result,
     str::FromStr,
 };
 use time::{
     format_description::{well_known::Iso8601, FormatItem},
     macros::format_description,
-    OffsetDateTime, PrimitiveDateTime,
+    OffsetDateTime, PrimitiveDateTime, UtcOffset,
 };
+use tokio::fs::read_to_string;
 use tracing::warn;
 use tzf_rs::DefaultFinder;
 
@@ -21,16 +27,50 @@ lazy_static! {
 
 // exiftool -n -c '%+.6f' -json
 
-pub(crate) const METADATA_FILE: &str = "metadata.json";
-pub(crate) const PROCESS_VERSION: i32 = 4;
+pub const METADATA_FILE: &str = "metadata.json";
+pub const PROCESS_VERSION: i32 = 4;
 
 const EXIF_DATETIME_FORMAT: &[FormatItem<'_>] = format_description!(
     version = 2,
     "[year]:[month]:[day] [hour]:[minute][optional [:[second][optional [.[subsecond]]]]][optional [[offset_hour]:[offset_minute]]]"
 );
 
-pub(crate) fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
+pub fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
     Some(FINDER.get_tz_name(longitude, latitude).to_owned())
+}
+
+fn time_from_taken(
+    taken: &Option<PrimitiveDateTime>,
+    zone: &Option<String>,
+) -> Option<OffsetDateTime> {
+    if let Some(dt) = taken {
+        if let Some(zone) = zone {
+            let format = format_description!("[offset_hour]:[offset_minute]");
+            match UtcOffset::parse(zone, &format) {
+                Ok(offset) => Some(dt.assume_offset(offset)),
+                Err(_) => {
+                    warn!(offset = zone, "Failed to parse timezone offset");
+                    Some(dt.assume_utc())
+                }
+            }
+        } else {
+            Some(dt.assume_utc())
+        }
+    } else {
+        None
+    }
+}
+
+pub fn media_datetime(media_item: &MediaItem, media_file: &MediaFile) -> OffsetDateTime {
+    if let Some(dt) = time_from_taken(&media_item.taken, &media_item.taken_zone) {
+        return dt;
+    }
+
+    if let Some(dt) = time_from_taken(&media_file.taken, &media_file.taken_zone) {
+        return dt;
+    }
+
+    media_file.uploaded
 }
 
 fn ignore_empty(st: Option<String>) -> Option<String> {
@@ -59,7 +99,7 @@ fn pretty_make(name: &String) -> String {
     }
 }
 
-pub(crate) fn deserialize_gps<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
+pub(crate) fn deserialize_gps<'de, D>(deserializer: D) -> result::Result<Option<f64>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -96,7 +136,7 @@ where
 
 pub(crate) fn deserialize_datetime<'de, D>(
     deserializer: D,
-) -> Result<Option<PrimitiveDateTime>, D::Error>
+) -> result::Result<Option<PrimitiveDateTime>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -121,7 +161,9 @@ where
     }
 }
 
-pub(crate) fn deserialize_orientation<'de, D>(deserializer: D) -> Result<Option<i32>, D::Error>
+pub(crate) fn deserialize_orientation<'de, D>(
+    deserializer: D,
+) -> result::Result<Option<i32>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -225,7 +267,7 @@ where
 //     }
 // }
 
-pub(crate) fn deserialize_subsecs<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
+pub(crate) fn deserialize_subsecs<'de, D>(deserializer: D) -> result::Result<Option<f64>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -248,7 +290,7 @@ where
     }
 }
 
-pub(crate) fn number_as_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+pub(crate) fn number_as_string<'de, D>(deserializer: D) -> result::Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -559,6 +601,16 @@ impl Exif {
             _ => None,
         }
     }
+}
+
+pub async fn process_media(config: &Config, file_path: &MediaFilePath) -> Result<MediaFile> {
+    let metadata_file = config
+        .local_storage
+        .join(file_path.local_path())
+        .join(METADATA_FILE);
+    let metadata = from_str::<Metadata>(&read_to_string(metadata_file).await?)?;
+
+    Ok(metadata.media_file(&file_path.media_item, &file_path.media_file))
 }
 
 #[cfg(test)]

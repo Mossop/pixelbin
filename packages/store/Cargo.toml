@@ -24,3 +24,6 @@ serde_repr = "0.1.12"
 serde_plain = "1.0.1"
 typeshare = "1.0.1"
 diesel_migrations = { version = "2.1.0", features = ["postgres"] }
+tzf-rs = { version = "0.4.4", default-features = false }
+lazy_static = "1.4.0"
+lexical-parse-float = "0.8.5"

@@ -2323,6 +2323,8 @@ dependencies = [
  "diesel-derive-enum",
  "diesel_migrations",
  "futures",
+ "lazy_static",
+ "lexical-parse-float",
  "monostate",
  "pixelbin-shared",
  "serde",
@@ -2334,24 +2336,20 @@ dependencies = [
  "tokio",
  "tracing",
  "typeshare",
+ "tzf-rs",
 ]
 
 [[package]]
 name = "pixelbin-tasks"
 version = "0.1.0"
 dependencies = [
- "lazy_static",
- "lexical-parse-float",
  "pixelbin-shared",
  "pixelbin-store",
  "scoped-futures",
  "serde",
- "serde-aux",
- "serde_json",
  "time",
  "tokio",
  "tracing",
- "tzf-rs",
 ]
 
 [[package]]
@@ -2812,17 +2810,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91d3c334ca1ee894a2c6f6ad698fe8c435b76d504b13d436f0685d648d6d96f7"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde-aux"
-version = "4.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3dfe1b7eb6f9dcf011bd6fad169cdeaae75eda0d61b1a99a3f015b41b0cae39"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
 ]
 
 [[package]]

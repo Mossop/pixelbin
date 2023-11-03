@@ -96,6 +96,7 @@ diesel::table! {
         deleted -> Bool,
         created -> Timestamptz,
         updated -> Timestamptz,
+        datetime -> Timestamptz,
         filename -> Nullable<Text>,
         title -> Nullable<Text>,
         description -> Nullable<Text>,

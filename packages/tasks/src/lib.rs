@@ -1,41 +1,20 @@
 #![deny(unreachable_pub)]
 //! Maintenance tasks for the Pixelbin server.
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use scoped_futures::ScopedFutureExt;
 
 use pixelbin_shared::Result;
 use pixelbin_store::{
-    models::{MediaFile, MediaItem},
+    metadata::{process_media, PROCESS_VERSION},
+    models::MediaFile,
     RemotePath, Store,
 };
-use serde_json::from_str;
-use tokio::fs::read_to_string;
-
-use metadata::{Metadata, METADATA_FILE};
 use tracing::error;
-
-use crate::metadata::{lookup_timezone, PROCESS_VERSION};
-
-mod metadata;
 
 pub async fn prune(_store: Store, _dry_run: bool) -> Result {
     Ok(())
-}
-
-async fn reprocess_media(
-    media_item: &MediaItem,
-    media_file: &MediaFile,
-    file_path: &Path,
-) -> Result<MediaFile> {
-    let metadata_file = file_path.join(METADATA_FILE);
-    let metadata = from_str::<Metadata>(&read_to_string(metadata_file).await?)?;
-
-    Ok(metadata.media_file(&media_item.id, &media_file.id))
 }
 
 pub async fn reprocess_all_media(store: Store) -> Result {
@@ -44,21 +23,18 @@ pub async fn reprocess_all_media(store: Store) -> Result {
     store
         .in_transaction(|mut tx| {
             async move {
-                let stores = tx.list_storage().await?;
-                let mut media_items = Vec::new();
+                let list = MediaFile::list_current(&mut tx).await?;
+
                 let mut media_files = Vec::new();
 
-                for storage in stores {
-                    let all_media = tx.list_all_media(&storage).await?;
-                    for (mut media_item, media_file, file_path, _) in all_media {
-                        let media_file = if media_file.process_version != PROCESS_VERSION {
-                            match reprocess_media(&media_item, &media_file, &file_path).await {
+                for (media_file, file_path) in list {
+                    let media_file = if media_file.process_version != PROCESS_VERSION {
+                            match process_media(tx.config(), &file_path).await {
                                 Ok(media_file) => {
-                                    media_files.push(media_file.clone());
                                     media_file
                                 },
                                 Err(e) => {
-                                    error!(media = media_item.id, error = ?e, "Failed to process media metadata");
+                                    error!(media = media_file.media, error = ?e, "Failed to process media metadata");
                                     continue;
                                 }
                             }
@@ -66,49 +42,10 @@ pub async fn reprocess_all_media(store: Store) -> Result {
                             media_file
                         };
 
-                        if media_item.filename == media_file.filename { media_item.filename = None }
-                        if media_item.title == media_file.title { media_item.title = None }
-                        if media_item.description == media_file.description { media_item.description = None }
-                        if media_item.label == media_file.label { media_item.label = None }
-                        if media_item.category == media_file.category { media_item.category = None }
-                        if media_item.location == media_file.location { media_item.location = None }
-                        if media_item.city == media_file.city { media_item.city = None }
-                        if media_item.state == media_file.state { media_item.state = None }
-                        if media_item.country == media_file.country { media_item.country = None }
-                        if media_item.make == media_file.make { media_item.make = None }
-                        if media_item.model == media_file.model { media_item.model = None }
-                        if media_item.lens == media_file.lens { media_item.lens = None }
-                        if media_item.photographer == media_file.photographer { media_item.photographer = None }
-                        if media_item.shutter_speed == media_file.shutter_speed { media_item.shutter_speed = None }
-                        if media_item.taken_zone == media_file.taken_zone { media_item.taken_zone = None }
-                        if media_item.orientation == media_file.orientation { media_item.orientation = None }
-                        if media_item.iso == media_file.iso { media_item.iso = None }
-                        if media_item.rating == media_file.rating { media_item.rating = None }
-                        if media_item.longitude == media_file.longitude { media_item.longitude = None }
-                        if media_item.latitude == media_file.latitude { media_item.latitude = None }
-                        if media_item.altitude == media_file.altitude { media_item.altitude = None }
-                        if media_item.aperture == media_file.aperture { media_item.aperture = None }
-                        if media_item.focal_length == media_file.focal_length { media_item.focal_length = None }
-
-                        if let (Some(item_taken), Some(file_taken)) = (media_item.taken, media_file.taken) {
-                            if item_taken.replace_millisecond(0) == file_taken.replace_millisecond(0) {
-                                media_item.taken = None;
-                            }
-                        }
-
-                        match (media_item.longitude, media_item.latitude) {
-                            (Some(longitude), Some(latitude)) => {
-                                media_item.taken_zone = lookup_timezone(longitude as f64, latitude as f64)
-                            },
-                            _ => media_item.taken_zone = None,
-                        }
-
-                        media_items.push(media_item);
-                    }
+                        media_files.push(media_file);
                 }
 
                 MediaFile::upsert(&mut tx, &media_files).await?;
-                MediaItem::upsert(&mut tx, &media_items).await?;
 
                 Ok(())
             }

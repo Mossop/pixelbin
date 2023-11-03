@@ -11,13 +11,20 @@ use diesel::{
 };
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
-    AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
+    scoped_futures::ScopedFutureExt,
+    AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use time::OffsetDateTime;
-use tracing::{info, instrument, trace};
+use tracing::{error, info, instrument, trace};
 
-use crate::{joinable, models, schema::*, MediaFilePath, RemotePath, Result};
+use crate::{
+    joinable,
+    metadata::{process_media, PROCESS_VERSION},
+    models::{self, MediaFile},
+    schema::*,
+    MediaFilePath, RemotePath, Result,
+};
 use pixelbin_shared::{Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
@@ -25,11 +32,41 @@ pub(crate) type DbPool = Pool<BackendConnection>;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
+#[instrument(skip_all)]
+async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()> {
+    info!("Reprocessing media metadata");
+    let list = MediaFile::list_current(tx).await?;
+
+    let mut media_files = Vec::new();
+
+    for (media_file, file_path) in list {
+        let media_file = if media_file.process_version != PROCESS_VERSION {
+            match process_media(tx.config(), &file_path).await {
+                Ok(media_file) => media_file,
+                Err(e) => {
+                    error!(media = media_file.media, error = ?e, "Failed to process media metadata");
+                    continue;
+                }
+            }
+        } else {
+            media_file
+        };
+
+        media_files.push(media_file);
+    }
+
+    MediaFile::upsert(tx, &media_files).await?;
+
+    Ok(())
+}
+
 #[instrument(err)]
-pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
+pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     #![allow(clippy::borrowed_box)]
+    let mut reprocess_media = false;
+
     // First connect synchronously to apply migrations.
-    let mut connection = PgConnection::establish(db_url)?;
+    let mut connection = PgConnection::establish(&config.database_url)?;
     let migrations =
         connection
             .pending_migrations(MIGRATIONS)
@@ -37,12 +74,46 @@ pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
                 message: e.to_string(),
             })?;
     for migration in migrations.iter() {
-        info!(migration = %migration.name(), "Running migration");
+        let name = migration.name().to_string();
+
+        info!(migration = name, "Running migration");
         connection
             .run_migration(migration)
             .map_err(|e| Error::DbMigrationError {
                 message: e.to_string(),
             })?;
+
+        if name.as_str() == "2023-11-03-094027_date_cache" {
+            // Force a reprocess to re-generate the date fields.
+            reprocess_media = true;
+        }
+    }
+
+    // Now set up the async pool.
+    let pool_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&config.database_url);
+    let pool = Pool::builder(pool_config).build()?;
+
+    // Verify that we can connect.
+    let mut connection = pool.get().await?;
+    connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
+        .await?;
+
+    if reprocess_media {
+        connection
+            .transaction(|conn| {
+                async move {
+                    let mut tx = DbConnection {
+                        conn,
+                        config: config.clone(),
+                        is_transaction: true,
+                    };
+
+                    reprocess_all_media(&mut tx).await
+                }
+                .scope_boxed()
+            })
+            .await?;
     }
 
     let last_migration = if migrations.is_empty() {
@@ -58,16 +129,6 @@ pub(crate) async fn connect(db_url: &str) -> Result<DbPool> {
     };
 
     trace!(migration = last_migration, "Database is fully migrated");
-
-    // Now set up the async pool.
-    let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url);
-    let pool = Pool::builder(config).build()?;
-
-    // Verify that we can connect.
-    let mut connection = pool.get().await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
-        .await?;
 
     Ok(pool)
 }
@@ -87,9 +148,18 @@ pub struct StoreStats {
 pub struct DbConnection<'a> {
     pub(crate) conn: &'a mut BackendConnection,
     pub(crate) config: Config,
+    pub(super) is_transaction: bool,
 }
 
 impl<'a> DbConnection<'a> {
+    pub fn assert_in_transaction(&self) {
+        assert!(self.is_transaction);
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
     pub async fn list_online_alternate_files(
         &mut self,
         storage: &models::Storage,
@@ -193,35 +263,6 @@ impl<'a> DbConnection<'a> {
             files: files as u32,
             alternate_files: alternate_files as u32,
         })
-    }
-
-    pub async fn list_all_media(
-        &mut self,
-        storage: &models::Storage,
-    ) -> Result<Vec<(models::MediaItem, models::MediaFile, PathBuf, RemotePath)>> {
-        let local_storage = self.config.local_storage.clone();
-
-        let files = media_item::table
-            .inner_join(media_file::table.on(media_item::media_file.eq(media_file::id.nullable())))
-            .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
-            .filter(catalog::storage.eq(&storage.id))
-            .select((
-                media_item::all_columns,
-                media_file::all_columns,
-                media_item::catalog,
-            ))
-            .load::<(models::MediaItem, models::MediaFile, String)>(self.conn)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(media_item, media_file, catalog)| {
-                let media_path = MediaFilePath::new(&catalog, &media_file.media, &media_file.id);
-                let file_path = local_storage.join(media_path.local_path());
-                let remote_path = media_path.remote_path().join(&media_file.file_name);
-                (media_item, media_file, file_path, remote_path)
-            })
-            .collect())
     }
 
     pub async fn get_user(&mut self, email: &str) -> Result<models::User> {

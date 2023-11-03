@@ -11,6 +11,7 @@ use diesel_async::{
 
 mod aws;
 mod db;
+pub mod metadata;
 pub mod models;
 #[allow(unreachable_pub)]
 mod schema;
@@ -86,7 +87,7 @@ pub struct Store {
 impl Store {
     pub async fn new(config: Config) -> Result<Self> {
         Ok(Store {
-            pool: connect(&config.database_url).await?,
+            pool: connect(&config).await?,
             config,
         })
     }
@@ -106,6 +107,7 @@ impl Store {
         cb(DbConnection {
             conn: &mut conn,
             config: self.config.clone(),
+            is_transaction: false,
         })
         .await
     }
@@ -123,6 +125,7 @@ impl Store {
                 cb(DbConnection {
                     conn,
                     config: self.config.clone(),
+                    is_transaction: true,
                 })
                 .await
             }
