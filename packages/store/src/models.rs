@@ -197,11 +197,26 @@ pub struct Catalog {
 
 impl Catalog {
     #[instrument(skip(self, conn), fields(catalog = self.id))]
-    pub async fn list_media(&self, conn: &mut AsyncPgConnection) -> Result<Vec<MediaView>> {
-        Ok(media_view!()
-            .filter(media_item::catalog.eq(&self.id))
-            .load::<MediaView>(conn)
-            .await?)
+    pub async fn list_media(
+        &self,
+        conn: &mut AsyncPgConnection,
+        offset: Option<i64>,
+        count: Option<i64>,
+    ) -> Result<Vec<MediaView>> {
+        if let Some(count) = count {
+            Ok(media_view!()
+                .filter(media_item::catalog.eq(&self.id))
+                .offset(offset.unwrap_or_default())
+                .limit(count)
+                .load::<MediaView>(conn)
+                .await?)
+        } else {
+            Ok(media_view!()
+                .filter(media_item::catalog.eq(&self.id))
+                .offset(offset.unwrap_or_default())
+                .load::<MediaView>(conn)
+                .await?)
+        }
     }
 }
 
@@ -233,12 +248,28 @@ pub struct Album {
 
 impl Album {
     #[instrument(skip(self, conn), fields(album = self.id))]
-    pub async fn list_media(&self, conn: &mut AsyncPgConnection) -> Result<Vec<MediaView>> {
-        Ok(media_view!()
-            .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
-            .filter(media_album::album.eq(&self.id))
-            .load::<MediaView>(conn)
-            .await?)
+    pub async fn list_media(
+        &self,
+        conn: &mut AsyncPgConnection,
+        offset: Option<i64>,
+        count: Option<i64>,
+    ) -> Result<Vec<MediaView>> {
+        if let Some(count) = count {
+            Ok(media_view!()
+                .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+                .filter(media_album::album.eq(&self.id))
+                .offset(offset.unwrap_or_default())
+                .limit(count)
+                .load::<MediaView>(conn)
+                .await?)
+        } else {
+            Ok(media_view!()
+                .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+                .filter(media_album::album.eq(&self.id))
+                .offset(offset.unwrap_or_default())
+                .load::<MediaView>(conn)
+                .await?)
+        }
     }
 }
 
@@ -263,12 +294,28 @@ struct MediaSearch {
 
 impl SavedSearch {
     #[instrument(skip(self, conn), fields(search = self.id))]
-    pub async fn list_media(&self, conn: &mut AsyncPgConnection) -> Result<Vec<MediaView>> {
-        Ok(media_view!()
-            .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
-            .filter(media_search::search.eq(&self.id))
-            .load::<MediaView>(conn)
-            .await?)
+    pub async fn list_media(
+        &self,
+        conn: &mut AsyncPgConnection,
+        offset: Option<i64>,
+        count: Option<i64>,
+    ) -> Result<Vec<MediaView>> {
+        if let Some(count) = count {
+            Ok(media_view!()
+                .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
+                .filter(media_search::search.eq(&self.id))
+                .offset(offset.unwrap_or_default())
+                .limit(count)
+                .load::<MediaView>(conn)
+                .await?)
+        } else {
+            Ok(media_view!()
+                .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
+                .filter(media_search::search.eq(&self.id))
+                .offset(offset.unwrap_or_default())
+                .load::<MediaView>(conn)
+                .await?)
+        }
     }
 
     #[instrument(skip(self, conn), fields(search = self.id))]

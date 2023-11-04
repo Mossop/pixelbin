@@ -19,11 +19,9 @@ export default async function Search({
 }: {
   params: { id: string };
 }) {
-  let search = await listSearch(id);
-
   return (
-    <SidebarLayout selectedItem={id}>
-      <MediaGrid base={["search", id]} media={search.media} />
+    <SidebarLayout selectedItem={decodeURIComponent(id)}>
+      <MediaGrid />
     </SidebarLayout>
   );
 }

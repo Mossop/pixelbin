@@ -19,11 +19,9 @@ export default async function Catalog({
 }: {
   params: { id: string };
 }) {
-  let catalog = await listCatalog(id);
-
   return (
-    <SidebarLayout selectedItem={id}>
-      <MediaGrid base={["catalog", id]} media={catalog.media} />
+    <SidebarLayout selectedItem={decodeURIComponent(id)}>
+      <MediaGrid />
     </SidebarLayout>
   );
 }

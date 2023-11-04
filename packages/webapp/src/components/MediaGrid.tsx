@@ -1,8 +1,12 @@
+"use client";
+
 import { DateTime } from "luxon";
 import mime from "mime-types";
 import Link from "next/link";
+import { useMemo } from "react";
 
 import Icon from "./Icon";
+import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import { MediaView } from "@/modules/types";
 import { mediaDate, url } from "@/modules/util";
 
@@ -156,17 +160,17 @@ function FileType({ media }: { media: MediaView }) {
   }
 }
 
-export default function MediaGrid({
-  base,
-  media,
-}: {
-  base: string[];
-  media: MediaView[];
-}) {
-  let groups = groupByTaken(media);
+export default function MediaGrid() {
+  let base = useGalleryBase();
+  let media = useGalleryMedia();
+  let groups = useMemo(() => (media ? groupByTaken(media) : null), [media]);
 
-  return groups.map((group) => (
-    <section key={group.title}>
+  if (!groups) {
+    return null;
+  }
+
+  return groups.map((group, idx) => (
+    <section key={idx}>
       <div className="p-2 position-sticky top-0 mediagroup">
         <h2 className="p-0 m-0 fw-normal">{group.title}</h2>
       </div>

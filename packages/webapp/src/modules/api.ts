@@ -1,6 +1,5 @@
 "use server";
 
-import { DateTime, FixedOffsetZone } from "luxon";
 import { notFound } from "next/navigation";
 
 import { clearSession, session, setSession } from "./session";
@@ -9,9 +8,6 @@ import {
   ApiMediaView,
   Catalog,
   LoginResponse,
-  MediaView,
-  MediaViewFile,
-  Replace,
   SavedSearch,
   State,
 } from "./types";
@@ -135,76 +131,39 @@ export async function state(): Promise<State | undefined> {
   return undefined;
 }
 
-function fixDates(media: ApiMediaView): MediaView {
-  let zone = media.takenZone
-    ? FixedOffsetZone.parseSpecifier(media.takenZone)
-    : FixedOffsetZone.utcInstance;
-
-  let datetime = DateTime.fromISO(media.datetime);
-  if (zone) {
-    datetime = datetime.setZone(zone);
-  }
-
-  let taken = null;
-  if (media.taken) {
-    taken = DateTime.fromISO(media.taken).setZone(zone, {
-      keepLocalTime: true,
-    });
-  }
-
-  let mediaFile: MediaViewFile | null = null;
-  if (media.file) {
-    mediaFile = {
-      ...media.file,
-      uploaded: DateTime.fromISO(media.file.uploaded),
-    };
-  }
-
-  return {
-    ...media,
-    created: DateTime.fromISO(media.created),
-    updated: DateTime.fromISO(media.updated),
-    datetime,
-    taken,
-    file: mediaFile,
-  };
+export async function getAlbum(id: string): Promise<Album> {
+  return apiCall<Album>(`/api/album/${id}`);
 }
 
-export async function listAlbum(
-  id: string,
-): Promise<Replace<Album, { media: MediaView[] }>> {
-  let album = await apiCall<Album & { media: ApiMediaView[] }>(
-    `/api/album/${id}`,
-  );
-
-  return {
-    ...album,
-    media: album.media.map(fixDates),
-  };
+export async function listSearch(id: string): Promise<SavedSearch> {
+  return apiCall<SavedSearch>(`/api/search/${id}`);
 }
 
-export async function listSearch(
-  id: string,
-): Promise<Replace<SavedSearch, { media: MediaView[] }>> {
-  let search = await apiCall<SavedSearch & { media: ApiMediaView[] }>(
-    `/api/search/${id}`,
-  );
-
-  return {
-    ...search,
-    media: search.media.map(fixDates),
-  };
+export async function listCatalog(id: string): Promise<Catalog> {
+  return apiCall<Catalog>(`/api/catalog/${id}`);
 }
 
-export async function listCatalog(
-  id: string,
-): Promise<Replace<Catalog, { media: MediaView[] }>> {
-  let catalog = await apiCall<Catalog & { media: ApiMediaView[] }>(
-    `/api/catalog/${id}`,
-  );
+interface ListMediaResponse {
+  total: number;
+  media: ApiMediaView[];
+}
 
-  return {
-    ...catalog,
-    media: catalog.media.map(fixDates),
-  };
+const LIST_COUNT = 500;
+
+export async function* listMedia(
+  source: "album" | "catalog" | "search",
+  id: string,
+): AsyncGenerator<ApiMediaView[], void, unknown> {
+  let offset = 0;
+  while (true) {
+    let response = await apiCall<ListMediaResponse>(
+      `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
+    );
+    yield response.media;
+    offset += LIST_COUNT;
+
+    if (offset >= response.total) {
+      break;
+    }
+  }
 }

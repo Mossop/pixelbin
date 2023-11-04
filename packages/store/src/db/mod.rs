@@ -371,13 +371,19 @@ impl<'a> DbConnection<'a> {
             .await?)
     }
 
-    pub async fn get_user_album(&mut self, email: &str, album: &str) -> Result<models::Album> {
+    pub async fn get_user_album(
+        &mut self,
+        email: &str,
+        album: &str,
+    ) -> Result<(models::Album, i64)> {
         user_catalog::table
             .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+            .inner_join(media_album::table.on(album::id.eq(media_album::album)))
             .filter(user_catalog::user.eq(email))
             .filter(album::id.eq(album))
-            .select(album::all_columns)
-            .get_result::<models::Album>(self.conn)
+            .group_by(album::id)
+            .select((album::all_columns, count(media_album::media)))
+            .get_result::<(models::Album, i64)>(self.conn)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
@@ -386,22 +392,25 @@ impl<'a> DbConnection<'a> {
     pub async fn list_album_media(
         &mut self,
         album: &models::Album,
-        _recursive: bool,
+        offset: Option<i64>,
+        count: Option<i64>,
     ) -> Result<Vec<models::MediaView>> {
-        album.list_media(self.conn).await
+        album.list_media(self.conn, offset, count).await
     }
 
     pub async fn get_user_search(
         &mut self,
         email: &str,
         search: &str,
-    ) -> Result<models::SavedSearch> {
+    ) -> Result<(models::SavedSearch, i64)> {
         user_catalog::table
             .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
+            .inner_join(media_search::table.on(saved_search::id.eq(media_search::search)))
             .filter(user_catalog::user.eq(email))
             .filter(saved_search::id.eq(search))
-            .select(saved_search::all_columns)
-            .get_result::<models::SavedSearch>(self.conn)
+            .group_by(saved_search::id)
+            .select((saved_search::all_columns, count(media_search::media)))
+            .get_result::<(models::SavedSearch, i64)>(self.conn)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
@@ -410,21 +419,25 @@ impl<'a> DbConnection<'a> {
     pub async fn list_search_media(
         &mut self,
         search: &models::SavedSearch,
+        offset: Option<i64>,
+        count: Option<i64>,
     ) -> Result<Vec<models::MediaView>> {
-        search.list_media(self.conn).await
+        search.list_media(self.conn, offset, count).await
     }
 
     pub async fn get_user_catalog(
         &mut self,
         email: &str,
         catalog: &str,
-    ) -> Result<models::Catalog> {
+    ) -> Result<(models::Catalog, i64)> {
         user_catalog::table
             .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
+            .inner_join(media_item::table.on(catalog::id.eq(media_item::catalog)))
             .filter(user_catalog::user.eq(email))
             .filter(catalog::id.eq(catalog))
-            .select(catalog::all_columns)
-            .get_result::<models::Catalog>(self.conn)
+            .group_by(catalog::id)
+            .select((catalog::all_columns, count(media_item::id)))
+            .get_result::<(models::Catalog, i64)>(self.conn)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
@@ -433,8 +446,10 @@ impl<'a> DbConnection<'a> {
     pub async fn list_catalog_media(
         &mut self,
         catalog: &models::Catalog,
+        offset: Option<i64>,
+        count: Option<i64>,
     ) -> Result<Vec<models::MediaView>> {
-        catalog.list_media(self.conn).await
+        catalog.list_media(self.conn, offset, count).await
     }
 
     pub async fn list_media_alternates(

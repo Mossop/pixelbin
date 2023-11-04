@@ -147,28 +147,27 @@ struct AlbumListRequest {
 }
 
 #[derive(Serialize)]
-struct AlbumListResponse {
+struct AlbumResponse {
     #[serde(flatten)]
     album: models::Album,
-    media: Vec<models::MediaView>,
+    media: i64,
 }
 
 #[get("/api/album/{album_id}")]
 #[instrument(skip(app_state, session))]
-async fn album_list(
+async fn get_album(
     app_state: web::Data<AppState>,
     session: Session,
     album_id: web::Path<String>,
     query: web::Query<AlbumListRequest>,
-) -> ApiResult<web::Json<AlbumListResponse>> {
+) -> ApiResult<web::Json<AlbumResponse>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let album = trx.get_user_album(&session.email, &album_id).await?;
-                let media = trx.list_album_media(&album, query.recursive).await?;
+                let (album, media) = trx.get_user_album(&session.email, &album_id).await?;
 
-                Ok(AlbumListResponse { album, media })
+                Ok(AlbumResponse { album, media })
             }
             .scope_boxed()
         })
@@ -178,27 +177,26 @@ async fn album_list(
 }
 
 #[derive(Serialize)]
-struct SearchListResponse {
+struct SearchResponse {
     #[serde(flatten)]
     search: models::SavedSearch,
-    media: Vec<models::MediaView>,
+    media: i64,
 }
 
 #[get("/api/search/{search_id}")]
 #[instrument(skip(app_state, session))]
-async fn search_list(
+async fn get_search(
     app_state: web::Data<AppState>,
     session: Session,
     search_id: web::Path<String>,
-) -> ApiResult<web::Json<SearchListResponse>> {
+) -> ApiResult<web::Json<SearchResponse>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let search = trx.get_user_search(&session.email, &search_id).await?;
-                let media = trx.list_search_media(&search).await?;
+                let (search, media) = trx.get_user_search(&session.email, &search_id).await?;
 
-                Ok(SearchListResponse { search, media })
+                Ok(SearchResponse { search, media })
             }
             .scope_boxed()
         })
@@ -208,27 +206,126 @@ async fn search_list(
 }
 
 #[derive(Serialize)]
-struct CatalogListResponse {
+struct CatalogResponse {
     #[serde(flatten)]
     catalog: models::Catalog,
-    media: Vec<models::MediaView>,
+    media: i64,
 }
 
 #[get("/api/catalog/{catalog_id}")]
 #[instrument(skip(app_state, session))]
-async fn catalog_list(
+async fn get_catalog(
     app_state: web::Data<AppState>,
     session: Session,
     catalog_id: web::Path<String>,
-) -> ApiResult<web::Json<CatalogListResponse>> {
+) -> ApiResult<web::Json<CatalogResponse>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let catalog = trx.get_user_catalog(&session.email, &catalog_id).await?;
-                let media = trx.list_catalog_media(&catalog).await?;
+                let (catalog, media) = trx.get_user_catalog(&session.email, &catalog_id).await?;
 
-                Ok(CatalogListResponse { catalog, media })
+                Ok(CatalogResponse { catalog, media })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
+}
+
+#[derive(Debug, Deserialize)]
+struct GetMediaRequest {
+    offset: Option<i64>,
+    count: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+struct GetMediaResponse {
+    total: i64,
+    media: Vec<models::MediaView>,
+}
+
+#[get("/api/catalog/{catalog_id}/media")]
+#[instrument(skip(app_state, session))]
+async fn get_catalog_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    catalog_id: web::Path<String>,
+    query: web::Query<GetMediaRequest>,
+) -> ApiResult<web::Json<GetMediaResponse>> {
+    let response = app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let (catalog, media_count) =
+                    trx.get_user_catalog(&session.email, &catalog_id).await?;
+                let media = trx
+                    .list_catalog_media(&catalog, query.offset, query.count)
+                    .await?;
+
+                Ok(GetMediaResponse {
+                    total: media_count,
+                    media,
+                })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
+}
+
+#[get("/api/album/{album_id}/media")]
+#[instrument(skip(app_state, session))]
+async fn get_album_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    album_id: web::Path<String>,
+    query: web::Query<GetMediaRequest>,
+) -> ApiResult<web::Json<GetMediaResponse>> {
+    let response = app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let (album, media_count) = trx.get_user_album(&session.email, &album_id).await?;
+                let media = trx
+                    .list_album_media(&album, query.offset, query.count)
+                    .await?;
+
+                Ok(GetMediaResponse {
+                    total: media_count,
+                    media,
+                })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
+}
+
+#[get("/api/search/{search_id}/media")]
+#[instrument(skip(app_state, session))]
+async fn get_search_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    search_id: web::Path<String>,
+    query: web::Query<GetMediaRequest>,
+) -> ApiResult<web::Json<GetMediaResponse>> {
+    let response = app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let (search, media_count) = trx.get_user_search(&session.email, &search_id).await?;
+                let media = trx
+                    .list_search_media(&search, query.offset, query.count)
+                    .await?;
+
+                Ok(GetMediaResponse {
+                    total: media_count,
+                    media,
+                })
             }
             .scope_boxed()
         })
