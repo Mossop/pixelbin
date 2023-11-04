@@ -185,3 +185,9 @@ main {
     --bs-bg-opacity: 0.6;
   }
 }
+
+button {
+  appearance: none;
+  border: none;
+  background: transparent;
+}

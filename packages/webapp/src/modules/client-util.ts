@@ -15,26 +15,45 @@ export function useTimeout(
   onFire: () => void,
   initialTrigger: boolean = false,
 ): [trigger: () => void, cancel: () => void] {
-  let timerFired = useCallback(onFire, [onFire]);
+  let [target, setTarget] = useState(
+    initialTrigger ? Date.now() + timeout : null,
+  );
   let timerRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (target) {
+      if (Date.now() >= target) {
+        onFire();
+        setTarget(null);
+      } else {
+        timerRef.current = setTimeout(() => {
+          timerRef.current = undefined;
+          onFire();
+          setTarget(null);
+        }, target - Date.now());
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = undefined;
+      }
+    };
+  }, [target, onFire]);
 
   let cancel = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = undefined;
     }
+
+    setTarget(null);
   }, []);
 
   let trigger = useCallback(() => {
-    cancel();
-    timerRef.current = setTimeout(timerFired, timeout);
-  }, [cancel, timerFired, timeout]);
-
-  useInitialize(() => {
-    if (initialTrigger) {
-      trigger();
-    }
-  });
+    setTarget(Date.now() + timeout);
+  }, [timeout]);
 
   return [trigger, cancel];
 }

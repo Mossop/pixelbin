@@ -2,7 +2,7 @@
 
 import mime from "mime-types";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useCallback, useRef, useState, useEffect } from "react";
 
 import Icon from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
@@ -69,6 +69,27 @@ export default function MediaLayout({
   let base = useGalleryBase();
   let gallery = useGalleryMedia();
 
+  let mainElement = useRef<HTMLElement>(null);
+  let [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+  let onFullscreenChange = useCallback(() => {
+    setIsFullscreen(!!document.fullscreenElement);
+  }, []);
+  let enterFullscreen = useCallback(() => {
+    mainElement.current?.requestFullscreen();
+  }, []);
+  let exitFullscreen = useCallback(() => {
+    document.exitFullscreen();
+  }, []);
+
+  useEffect(() => {
+    let element = mainElement.current;
+    element?.addEventListener("fullscreenchange", onFullscreenChange);
+
+    return () => {
+      element?.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, [onFullscreenChange]);
+
   let [previousMedia, nextMedia] = useMemo((): [
     MediaView | undefined,
     MediaView | undefined,
@@ -87,6 +108,7 @@ export default function MediaLayout({
     <main
       className="flex-grow-1 flex-shrink-1 overflow-hidden position-relative"
       data-bs-theme="dark"
+      ref={mainElement}
     >
       <Photo media={media} />
       <Overlay
@@ -118,8 +140,12 @@ export default function MediaLayout({
             )}
           </div>
         </div>
-        <div className="infobar d-flex align-items-center justify-content-end p-3 bg-body-secondary fs-1">
-          <div>Buttons</div>
+        <div className="infobar d-flex align-items-center justify-content-end p-3 bg-body-secondary fs-4">
+          {isFullscreen ? (
+            <Icon onClick={exitFullscreen} icon="fullscreen-exit" />
+          ) : (
+            <Icon onClick={enterFullscreen} icon="arrows-fullscreen" />
+          )}
         </div>
       </Overlay>
     </main>

@@ -22,6 +22,7 @@ export default function Overlay({
   let [triggerTimeout] = useTimeout(
     TIMEOUT,
     useCallback(() => setShown(false), []),
+    true,
   );
 
   let onMouseMove = useCallback(() => {
