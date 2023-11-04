@@ -8,9 +8,11 @@ import {
   ApiMediaView,
   Catalog,
   LoginResponse,
+  MediaView,
   SavedSearch,
   State,
 } from "./types";
+import { deserializeMediaView } from "./util";
 
 const GET: RequestInit = { method: "GET" };
 const POST: RequestInit = { method: "POST" };
@@ -135,11 +137,11 @@ export async function getAlbum(id: string): Promise<Album> {
   return apiCall<Album>(`/api/album/${id}`);
 }
 
-export async function listSearch(id: string): Promise<SavedSearch> {
+export async function getSearch(id: string): Promise<SavedSearch> {
   return apiCall<SavedSearch>(`/api/search/${id}`);
 }
 
-export async function listCatalog(id: string): Promise<Catalog> {
+export async function getCatalog(id: string): Promise<Catalog> {
   return apiCall<Catalog>(`/api/catalog/${id}`);
 }
 
@@ -166,4 +168,14 @@ export async function* listMedia(
       break;
     }
   }
+}
+
+export async function getMedia(id: string): Promise<MediaView> {
+  let response = await apiCall<ListMediaResponse>(`/api/media/${id}`);
+
+  if (response.media.length) {
+    return deserializeMediaView(response.media[0]);
+  }
+
+  throw new Error("Not found");
 }

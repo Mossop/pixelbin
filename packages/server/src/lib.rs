@@ -107,6 +107,7 @@ pub async fn serve(store: Store) -> Result {
             .service(media::get_album)
             .service(media::get_search)
             .service(media::get_catalog)
+            .service(media::get_media)
     })
     .bind(("0.0.0.0", port))?
     .run()

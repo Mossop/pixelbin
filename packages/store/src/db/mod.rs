@@ -27,6 +27,8 @@ use crate::{
 };
 use pixelbin_shared::{Config, Error};
 
+use self::functions::media_view;
+
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;
 
@@ -441,6 +443,21 @@ impl<'a> DbConnection<'a> {
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
+    }
+
+    pub async fn get_user_media(
+        &mut self,
+        email: &str,
+        media: &[&str],
+    ) -> Result<Vec<models::MediaView>> {
+        let media = media_view!()
+            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(media_item::id.eq_any(media))
+            .load::<models::MediaView>(self.conn)
+            .await?;
+
+        Ok(media)
     }
 
     pub async fn list_catalog_media(

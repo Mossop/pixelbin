@@ -333,3 +333,25 @@ async fn get_search_media(
 
     Ok(web::Json(response))
 }
+
+#[get("/api/media/{media_id}")]
+#[instrument(skip(app_state, session))]
+async fn get_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    media_id: web::Path<String>,
+) -> ApiResult<web::Json<GetMediaResponse>> {
+    let response = app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let media = trx.get_user_media(&session.email, &[&media_id]).await?;
+
+                Ok(GetMediaResponse { total: 1, media })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
+}

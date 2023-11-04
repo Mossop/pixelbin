@@ -12,7 +12,7 @@ import {
 } from "react";
 
 import { ApiMediaView, MediaView } from "@/modules/types";
-import { fixDates } from "@/modules/util";
+import { deserializeMediaView } from "@/modules/util";
 
 export type GalleryType = "album" | "catalog" | "search";
 
@@ -54,7 +54,7 @@ function fetchMedia(
           break;
         }
 
-        let newMedia = value.map(fixDates);
+        let newMedia = value.map(deserializeMediaView);
         setMedia((currentMedia) =>
           currentMedia ? currentMedia.concat(newMedia) : newMedia,
         );

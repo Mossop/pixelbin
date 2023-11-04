@@ -1,11 +1,14 @@
+"use client";
+
 import mime from "mime-types";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useMemo } from "react";
 
 import Icon from "./Icon";
+import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
-import { MediaView } from "@/modules/types";
-import { mediaDate, url } from "@/modules/util";
+import { ApiMediaView, MediaView } from "@/modules/types";
+import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
 const THUMBNAILS = {
   alternateTypes: ["image/webp"],
@@ -58,23 +61,27 @@ function Photo({ media }: { media: MediaView }) {
 }
 
 export default function MediaLayout({
-  base,
-  gallery,
-  mediaId,
+  media: apiMedia,
 }: {
-  base: string[];
-  gallery: MediaView[];
-  mediaId: string;
+  media: ApiMediaView;
 }) {
-  let mediaIndex = gallery.findIndex((m) => m.id == mediaId);
-  if (mediaIndex < 0) {
-    notFound();
-  }
+  let media = useMemo(() => deserializeMediaView(apiMedia), [apiMedia]);
+  let base = useGalleryBase();
+  let gallery = useGalleryMedia();
 
-  let media = gallery[mediaIndex];
+  let [previousMedia, nextMedia] = useMemo((): [
+    MediaView | undefined,
+    MediaView | undefined,
+  ] => {
+    if (gallery) {
+      let index = gallery.findIndex((m) => m.id == media.id) ?? -1;
+      if (index >= 0) {
+        return [gallery[index - 1], gallery[index + 1]];
+      }
+    }
 
-  let previousMedia: MediaView | undefined = gallery[mediaIndex - 1];
-  let nextMedia: MediaView | undefined = gallery[mediaIndex + 1];
+    return [undefined, undefined];
+  }, [media.id, gallery]);
 
   return (
     <main

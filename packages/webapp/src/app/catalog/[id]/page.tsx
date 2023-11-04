@@ -2,14 +2,14 @@ import { Metadata } from "next";
 
 import MediaGrid from "@/components/MediaGrid";
 import SidebarLayout from "@/components/SidebarLayout";
-import { listCatalog } from "@/modules/api";
+import { getCatalog } from "@/modules/api";
 
 export async function generateMetadata({
   params: { id },
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  let catalog = await listCatalog(decodeURIComponent(id));
+  let catalog = await getCatalog(decodeURIComponent(id));
 
   return { title: catalog.name };
 }
