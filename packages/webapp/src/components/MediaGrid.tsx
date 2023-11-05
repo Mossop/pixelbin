@@ -1,61 +1,26 @@
+/* eslint-disable prefer-arrow-callback */
+
 "use client";
 
-import { DateTime } from "luxon";
 import mime from "mime-types";
 import Link from "next/link";
-import { useMemo } from "react";
+import { memo } from "react";
 
 import Icon from "./Icon";
-import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
+import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
 import { MediaView } from "@/modules/types";
-import { mediaDate, url } from "@/modules/util";
+import { url } from "@/modules/util";
 
 const THUMBNAILS = {
   alternateTypes: ["image/webp"],
   sizes: [150, 200, 250, 300, 350, 400, 450, 500],
 };
 
-interface MediaGroup {
-  title: string;
-  media: MediaView[];
-}
-
-function groupByTaken(mediaList: MediaView[]): MediaGroup[] {
-  let titleFor = (dt: DateTime | null) =>
-    dt ? `${dt.monthLong} ${dt.year}` : "";
-
-  let indexFor = (dt: DateTime | null) =>
-    dt ? dt.month - 1 + dt.year * 12 : null;
-
-  let media = mediaList.shift();
-  if (!media) {
-    return [];
-  }
-
-  let lastIndex = indexFor(mediaDate(media));
-  let group: MediaGroup = {
-    title: titleFor(mediaDate(media)),
-    media: [media],
-  };
-
-  let groups = [group];
-
-  // eslint-disable-next-line no-cond-assign
-  while ((media = mediaList.shift())) {
-    let newIndex = indexFor(mediaDate(media));
-    if (newIndex == lastIndex) {
-      group.media.push(media);
-    } else {
-      group = { title: titleFor(mediaDate(media)), media: [media] };
-      groups.push(group);
-      lastIndex = newIndex;
-    }
-  }
-
-  return groups;
-}
-
-function ThumbnailImage({ media }: { media: MediaView }) {
+const ThumbnailImage = memo(function ThumbnailImage({
+  media,
+}: {
+  media: MediaView;
+}) {
   let { file } = media;
   if (!file) {
     return (
@@ -110,9 +75,9 @@ function ThumbnailImage({ media }: { media: MediaView }) {
       />
     </picture>
   );
-}
+});
 
-function Rating({ media }: { media: MediaView }) {
+const Rating = memo(function Rating({ media }: { media: MediaView }) {
   let { rating } = media;
   if (rating === null) {
     return <div />;
@@ -137,9 +102,9 @@ function Rating({ media }: { media: MediaView }) {
       </div>
     </div>
   );
-}
+});
 
-function FileType({ media }: { media: MediaView }) {
+const FileType = memo(function FileType({ media }: { media: MediaView }) {
   if (!media.file) {
     return <div />;
   }
@@ -158,37 +123,60 @@ function FileType({ media }: { media: MediaView }) {
     default:
       return <Icon icon="file-earmark" />;
   }
-}
+});
 
-export default function MediaGrid() {
-  let base = useGalleryBase();
-  let media = useGalleryMedia();
-  let groups = useMemo(() => (media ? groupByTaken(media) : null), [media]);
+const MediaItem = memo(function MediaItem({
+  base,
+  media,
+}: {
+  base: string[];
+  media: MediaView;
+}) {
+  return (
+    <Link
+      key={media.id}
+      href={url([...base, "media", media.id])}
+      className="inner d-block border shadow text-body bg-body rounded-1 p-2 position-relative"
+    >
+      <ThumbnailImage media={media} />
+      <div className="overlay position-absolute bottom-0 p-2 start-0 end-0 d-flex flex-row justify-content-between align-items-center">
+        <Rating media={media} />
+        <FileType media={media} />
+      </div>
+    </Link>
+  );
+});
 
-  if (!groups) {
-    return null;
-  }
-
-  return groups.map((group, idx) => (
-    <section key={idx}>
+const MediaGroup = memo(function MediaGroup({
+  base,
+  group,
+}: {
+  base: string[];
+  group: Group;
+}) {
+  return (
+    <section>
       <div className="p-2 position-sticky top-0 mediagroup">
         <h2 className="p-0 m-0 fw-normal">{group.title}</h2>
       </div>
       <div className="thumbnail-grid d-grid gap-2 px-2 pb-4">
         {group.media.map((m) => (
-          <Link
-            key={m.id}
-            href={url([...base, "media", m.id])}
-            className="inner d-block border shadow text-body bg-body rounded-1 p-2 position-relative"
-          >
-            <ThumbnailImage media={m} />
-            <div className="overlay position-absolute bottom-0 p-2 start-0 end-0 d-flex flex-row justify-content-between align-items-center">
-              <Rating media={m} />
-              <FileType media={m} />
-            </div>
-          </Link>
+          <MediaItem key={m.id} base={base} media={m} />
         ))}
       </div>
     </section>
+  );
+});
+
+export default function MediaGrid() {
+  let base = useGalleryBase();
+  let groups = useGalleryGroups();
+
+  if (!groups) {
+    return null;
+  }
+
+  return groups.map((group) => (
+    <MediaGroup key={group.id} base={base} group={group} />
   ));
 }

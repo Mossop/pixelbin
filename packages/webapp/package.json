@@ -12,6 +12,7 @@
     "@opentelemetry/api": "^1.4.1",
     "@vercel/otel": "^0.3.0",
     "clsx": "^2.0.0",
+    "immer": "^10.0.3",
     "luxon": "^3.4.3",
     "md5": "^2.3.0",
     "mime-types": "^2.1.35",
