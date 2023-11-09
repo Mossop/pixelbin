@@ -139,9 +139,10 @@ impl Store {
         storage: &models::Storage,
         path: &RemotePath,
         mimetype: &str,
+        filename: Option<&str>,
     ) -> Result<String> {
         let client = AwsClient::from_storage(storage).await?;
-        client.file_uri(path, mimetype).await
+        client.file_uri(path, mimetype, filename).await
     }
 
     pub async fn list_local_files(&self) -> Result<Vec<(PathBuf, u64)>> {

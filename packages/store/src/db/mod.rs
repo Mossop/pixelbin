@@ -460,6 +460,28 @@ impl<'a> DbConnection<'a> {
         Ok(media)
     }
 
+    pub async fn get_user_media_file(
+        &mut self,
+        email: &str,
+        media: &str,
+        file: &str,
+    ) -> Result<(models::MediaFile, MediaFilePath)> {
+        let (media_file, catalog) = media_file::table
+            .inner_join(media_item::table.on(media_item::id.eq(media_file::media)))
+            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(media_item::id.eq(media))
+            .filter(media_file::id.eq(file))
+            .select((media_file::all_columns, media_item::catalog))
+            .get_result::<(models::MediaFile, String)>(self.conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)?;
+
+        let media_path = MediaFilePath::new(&catalog, media, file);
+        Ok((media_file, media_path))
+    }
+
     pub async fn list_catalog_media(
         &mut self,
         catalog: &models::Catalog,

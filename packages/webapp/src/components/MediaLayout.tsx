@@ -80,7 +80,7 @@ function GalleryNavigation({ media }: { media: MediaView }) {
   }, [media.id, gallery]);
 
   return (
-    <div className="flex-grow-1 d-flex align-items-center justify-content-between p-3 fs-1">
+    <div className="flex-grow-1 d-flex align-items-center justify-content-between p-4 fs-1">
       <div>
         {previousMedia && (
           <Link href={url([...base, "media", previousMedia.id])} replace={true}>
@@ -109,6 +109,14 @@ export default function MediaLayout({
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
 
+  let downloadUrl = url([
+    "media",
+    "download",
+    media.id,
+    media.file!.id,
+    media.file!.fileName,
+  ]);
+
   return (
     <main
       className="flex-grow-1 flex-shrink-1 overflow-hidden position-relative"
@@ -120,14 +128,17 @@ export default function MediaLayout({
         className="position-absolute top-0 start-0 end-0 bottom-0"
         innerClass="d-flex flex-column"
       >
-        <div className="infobar d-flex align-items-center justify-content-between p-3 bg-body-secondary">
+        <div className="infobar d-flex align-items-center justify-content-between p-4 bg-body-secondary">
           <div className="fs-6">{mediaDate(media).toRelative()}</div>
           <div className="fs-1">
             <Icon icon="x-circle-fill" />
           </div>
         </div>
         <GalleryNavigation media={media} />
-        <div className="infobar d-flex align-items-center justify-content-end p-3 bg-body-secondary fs-4">
+        <div className="infobar d-flex align-items-center justify-content-end p-4 bg-body-secondary fs-4 gap-4">
+          <a download={media.file!.fileName} href={downloadUrl}>
+            <Icon icon="download" />
+          </a>
           {isFullscreen ? (
             <Icon onClick={exitFullscreen} icon="fullscreen-exit" />
           ) : (

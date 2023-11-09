@@ -101,6 +101,7 @@ pub async fn serve(store: Store) -> Result {
             .service(auth::state)
             .service(media::thumbnail_handler)
             .service(media::encoding_handler)
+            .service(media::download_handler)
             .service(media::get_album_media)
             .service(media::get_search_media)
             .service(media::get_catalog_media)

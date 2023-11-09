@@ -17,6 +17,64 @@ use crate::{
     ApiResult, AppState,
 };
 
+fn not_found() -> ApiResult<HttpResponse> {
+    Ok(HttpResponse::NotFound()
+        .content_type("text/plain")
+        .body("Not Found"))
+}
+
+#[derive(Debug, Deserialize)]
+struct DownloadPath {
+    item: String,
+    file: String,
+    filename: String,
+}
+
+#[get("/media/download/{item}/{file}/{filename}")]
+#[instrument(skip(app_state, session))]
+async fn download_handler(
+    app_state: web::Data<AppState>,
+    session: Session,
+    path: web::Path<DownloadPath>,
+) -> ApiResult<impl Responder> {
+    let filename = path.filename.clone();
+
+    let (remote_path, storage, mimetype) = match app_state
+        .store
+        .in_transaction(|mut trx| {
+            async move {
+                let (media_file, media_path) = trx
+                    .get_user_media_file(&session.email, &path.item, &path.file)
+                    .await?;
+
+                let storage = trx.get_catalog_storage(&media_path.catalog).await?;
+                let remote_path: RemotePath = media_path.into();
+
+                Ok((
+                    remote_path.join(&media_file.file_name),
+                    storage,
+                    media_file.mimetype,
+                ))
+            }
+            .scope_boxed()
+        })
+        .await
+    {
+        Ok(result) => result,
+        Err(Error::NotFound) => return not_found(),
+        Err(e) => return Err(e.into()),
+    };
+
+    let uri = app_state
+        .store
+        .online_uri(&storage, &remote_path, &mimetype, Some(&filename))
+        .await?;
+
+    Ok(HttpResponse::TemporaryRedirect()
+        .append_header(("Location", uri))
+        .finish())
+}
+
 #[derive(Debug, Deserialize)]
 struct ThumbnailPath {
     item: String,
@@ -24,12 +82,6 @@ struct ThumbnailPath {
     size: u32,
     mimetype: String,
     _filename: String,
-}
-
-fn not_found() -> ApiResult<HttpResponse> {
-    Ok(HttpResponse::NotFound()
-        .content_type("text/plain")
-        .body("Not Found"))
 }
 
 #[get("/media/thumb/{item}/{file}/{size}/{mimetype}/{_filename}")]
@@ -80,17 +132,23 @@ async fn thumbnail_handler(
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct EncodingPath {
+    item: String,
+    file: String,
+    mimetype: String,
+    _filename: String,
+}
+
 #[get("/media/encoding/{item}/{file}/{mimetype}/{_filename}")]
 #[instrument(skip(app_state, session))]
 async fn encoding_handler(
     app_state: web::Data<AppState>,
     session: MaybeSession,
-    path: web::Path<(String, String, String, String)>,
+    path: web::Path<EncodingPath>,
 ) -> ApiResult<impl Responder> {
-    let (item_id, file_id, mimetype, _) = path.into_inner();
-
     let email = session.session().map(|s| s.email.as_str());
-    let mimetype = mimetype.replace('-', "/");
+    let mimetype = path.mimetype.replace('-', "/");
     let tx_mime = mimetype.clone();
 
     let (remote_path, storage) = match app_state
@@ -100,8 +158,8 @@ async fn encoding_handler(
                 let (alternate, media_path, _) = trx
                     .list_media_alternates(
                         email,
-                        &item_id,
-                        &file_id,
+                        &path.item,
+                        &path.file,
                         &tx_mime,
                         AlternateFileType::Reencode,
                     )
@@ -112,7 +170,6 @@ async fn encoding_handler(
 
                 let storage = trx.get_catalog_storage(&media_path.catalog).await?;
                 let remote_path: RemotePath = media_path.into();
-                remote_path.join(&alternate.file_name);
 
                 Ok((remote_path.join(&alternate.file_name), storage))
             }
@@ -127,7 +184,7 @@ async fn encoding_handler(
 
     let uri = app_state
         .store
-        .online_uri(&storage, &remote_path, &mimetype)
+        .online_uri(&storage, &remote_path, &mimetype, None)
         .await?;
 
     Ok(HttpResponse::TemporaryRedirect()

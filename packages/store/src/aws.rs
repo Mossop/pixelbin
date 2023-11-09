@@ -46,7 +46,12 @@ impl AwsClient {
         })
     }
 
-    pub(crate) async fn file_uri(&self, path: &RemotePath, mimetype: &str) -> Result<String> {
+    pub(crate) async fn file_uri(
+        &self,
+        path: &RemotePath,
+        mimetype: &str,
+        filename: Option<&str>,
+    ) -> Result<String> {
         if let Some(ref public) = self.public_url {
             Ok(format!("{}/{}", joinable(public), path,))
         } else {
@@ -55,12 +60,19 @@ impl AwsClient {
                 key = format!("{}/{}", joinable(prefix), key);
             }
 
+            let disposition = if let Some(filename) = filename {
+                format!("attachment; filename=\"{filename}\"")
+            } else {
+                "inline".to_string()
+            };
+
             let presigned = self
                 .client
                 .get_object()
                 .bucket(&self.bucket)
                 .response_cache_control("max-age=1314000,immutable")
                 .response_content_type(mimetype)
+                .response_content_disposition(disposition)
                 .key(key)
                 .presigned(PresigningConfig::expires_in(Duration::from_secs(60 * 5)).unwrap())
                 .await
