@@ -172,7 +172,7 @@ interface FullscreenProps {
 
 export function useFullscreen(): FullscreenProps {
   let [element, setElement] = useState<HTMLElement | null>(null);
-  let [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+  let [isFullscreen, setIsFullscreen] = useState(false);
 
   let onFullscreenChange = useCallback(() => {
     setIsFullscreen(!!document.fullscreenElement);
@@ -183,6 +183,10 @@ export function useFullscreen(): FullscreenProps {
   }, [element]);
   let exitFullscreen = useCallback(() => {
     document.exitFullscreen();
+  }, []);
+
+  useEffect(() => {
+    setIsFullscreen(!!document.fullscreenElement);
   }, []);
 
   useEffect(() => {
