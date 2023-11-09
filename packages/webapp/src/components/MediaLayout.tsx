@@ -42,9 +42,9 @@ function Photo({ media }: { media: MediaView }) {
 
     return url([
       "media",
+      "encoding",
       media.id,
       file!.id,
-      "encoding",
       urlMimetype,
       `${filename}.${extension}`,
     ]);

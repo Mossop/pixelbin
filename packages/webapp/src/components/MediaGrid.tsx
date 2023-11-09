@@ -49,9 +49,9 @@ const ThumbnailImage = memo(function ThumbnailImage({
         (size) =>
           `${url([
             "media",
+            "thumb",
             media.id,
             file!.id,
-            "thumb",
             size.toString(),
             urlMimetype,
             `${filename}.${extension}`,

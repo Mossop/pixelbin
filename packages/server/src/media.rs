@@ -32,7 +32,7 @@ fn not_found() -> ApiResult<HttpResponse> {
         .body("Not Found"))
 }
 
-#[get("/media/{item}/{file}/thumb/{size}/{mimetype}/{_filename}")]
+#[get("/media/thumb/{item}/{file}/{size}/{mimetype}/{_filename}")]
 #[instrument(skip(app_state, session))]
 async fn thumbnail_handler(
     app_state: web::Data<AppState>,
@@ -80,7 +80,7 @@ async fn thumbnail_handler(
     }
 }
 
-#[get("/media/{item}/{file}/encoding/{mimetype}/{_filename}")]
+#[get("/media/encoding/{item}/{file}/{mimetype}/{_filename}")]
 #[instrument(skip(app_state, session))]
 async fn encoding_handler(
     app_state: web::Data<AppState>,
