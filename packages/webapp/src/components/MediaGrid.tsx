@@ -8,6 +8,7 @@ import { memo } from "react";
 
 import Icon from "./Icon";
 import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
+import Throbber from "./Throbber";
 import { MediaView } from "@/modules/types";
 import { url } from "@/modules/util";
 
@@ -173,7 +174,7 @@ export default function MediaGrid() {
   let groups = useGalleryGroups();
 
   if (!groups) {
-    return null;
+    return <Throbber />;
   }
 
   return groups.map((group) => (

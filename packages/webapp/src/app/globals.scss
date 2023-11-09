@@ -191,3 +191,42 @@ button {
   border: none;
   background: transparent;
 }
+
+@keyframes pulse1 {
+  20% { background: rgba(var(--bs-primary-rgb), 0.8); }
+  30% { background: rgba(var(--bs-primary-rgb), 0.3); }
+}
+
+@keyframes pulse2 {
+  20% { background: rgba(var(--bs-primary-rgb), 0.8); }
+  30% { background: rgba(var(--bs-primary-rgb), 0.3); }
+}
+
+@keyframes pulse3 {
+  20% { background: rgba(var(--bs-primary-rgb), 0.8); }
+  50% { background: rgba(var(--bs-primary-rgb), 0.3); }
+}
+
+.throbber {
+  gap: 0.75rem;
+
+  & div {
+    width: 1rem;
+    height: 2.5rem;
+    background: rgba(var(--bs-primary-rgb), 0.2);
+  }
+
+  .start {
+    animation: pulse1 1.3s ease-in infinite;
+  }
+
+  .middle {
+    animation: pulse2 1.3s ease-in infinite;
+    animation-delay: 0.2s;
+  }
+
+  .end {
+    animation: pulse3 1.3s ease-in infinite;
+    animation-delay: 0.4s;
+  }
+}
