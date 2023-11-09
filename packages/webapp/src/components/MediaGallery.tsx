@@ -100,8 +100,8 @@ function fetchMedia(
 ): () => void {
   let aborter = new AbortController();
 
-  fetch(`/api/${type}/${id}/media`, { signal: aborter.signal }).then(
-    async (response) => {
+  fetch(`/api/${type}/${id}/media`, { signal: aborter.signal })
+    .then(async (response) => {
       if (!response.ok || !response.body) {
         return;
       }
@@ -121,8 +121,14 @@ function fetchMedia(
         grouper.addMedia(value.map(deserializeMediaView));
         setContext(grouper.context);
       }
-    },
-  );
+    })
+    .catch((error) => {
+      if (error instanceof DOMException && error.name == "AbortError") {
+        // Component remounted
+      } else {
+        console.error(error);
+      }
+    });
 
   return () => {
     aborter.abort();
