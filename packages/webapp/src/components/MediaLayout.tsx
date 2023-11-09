@@ -2,11 +2,12 @@
 
 import mime from "mime-types";
 import Link from "next/link";
-import { useMemo, useCallback, useRef, useState, useEffect } from "react";
+import { useMemo } from "react";
 
 import Icon from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
+import { useFullscreen } from "@/modules/client-util";
 import { ApiMediaView, MediaView } from "@/modules/types";
 import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
@@ -60,35 +61,9 @@ function Photo({ media }: { media: MediaView }) {
   );
 }
 
-export default function MediaLayout({
-  media: apiMedia,
-}: {
-  media: ApiMediaView;
-}) {
-  let media = useMemo(() => deserializeMediaView(apiMedia), [apiMedia]);
+function GalleryNavigation({ media }: { media: MediaView }) {
   let base = useGalleryBase();
   let gallery = useGalleryMedia();
-
-  let mainElement = useRef<HTMLElement>(null);
-  let [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
-  let onFullscreenChange = useCallback(() => {
-    setIsFullscreen(!!document.fullscreenElement);
-  }, []);
-  let enterFullscreen = useCallback(() => {
-    mainElement.current?.requestFullscreen();
-  }, []);
-  let exitFullscreen = useCallback(() => {
-    document.exitFullscreen();
-  }, []);
-
-  useEffect(() => {
-    let element = mainElement.current;
-    element?.addEventListener("fullscreenchange", onFullscreenChange);
-
-    return () => {
-      element?.removeEventListener("fullscreenchange", onFullscreenChange);
-    };
-  }, [onFullscreenChange]);
 
   let [previousMedia, nextMedia] = useMemo((): [
     MediaView | undefined,
@@ -105,10 +80,40 @@ export default function MediaLayout({
   }, [media.id, gallery]);
 
   return (
+    <div className="flex-grow-1 d-flex align-items-center justify-content-between p-3 fs-1">
+      <div>
+        {previousMedia && (
+          <Link href={url([...base, "media", previousMedia.id])} replace={true}>
+            <Icon icon="arrow-left-circle-fill" />
+          </Link>
+        )}
+      </div>
+      <div>
+        {nextMedia && (
+          <Link href={url([...base, "media", nextMedia.id])} replace={true}>
+            <Icon icon="arrow-right-circle-fill" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function MediaLayout({
+  media: apiMedia,
+}: {
+  media: ApiMediaView;
+}) {
+  let media = useMemo(() => deserializeMediaView(apiMedia), [apiMedia]);
+
+  let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
+    useFullscreen();
+
+  return (
     <main
       className="flex-grow-1 flex-shrink-1 overflow-hidden position-relative"
       data-bs-theme="dark"
-      ref={mainElement}
+      ref={fullscreenElement}
     >
       <Photo media={media} />
       <Overlay
@@ -121,25 +126,7 @@ export default function MediaLayout({
             <Icon icon="x-circle-fill" />
           </div>
         </div>
-        <div className="flex-grow-1 d-flex align-items-center justify-content-between p-3 fs-1">
-          <div>
-            {previousMedia && (
-              <Link
-                href={url([...base, "media", previousMedia.id])}
-                replace={true}
-              >
-                <Icon icon="arrow-left-circle-fill" />
-              </Link>
-            )}
-          </div>
-          <div>
-            {nextMedia && (
-              <Link href={url([...base, "media", nextMedia.id])} replace={true}>
-                <Icon icon="arrow-right-circle-fill" />
-              </Link>
-            )}
-          </div>
-        </div>
+        <GalleryNavigation media={media} />
         <div className="infobar d-flex align-items-center justify-content-end p-3 bg-body-secondary fs-4">
           {isFullscreen ? (
             <Icon onClick={exitFullscreen} icon="fullscreen-exit" />

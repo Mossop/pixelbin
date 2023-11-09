@@ -1,6 +1,13 @@
 "use client";
 
-import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export function useInitialize(callback: () => void) {
   let initialised = useRef(false);
@@ -154,4 +161,45 @@ export function useTransition(
   }, [state, show, cancelShowing, triggerShowing]);
 
   return { style: styleForVisibility(state), onTransitionEnd };
+}
+
+interface FullscreenProps {
+  fullscreenElement: (element: HTMLElement) => void;
+  enterFullscreen: () => void;
+  exitFullscreen: () => void;
+  isFullscreen: boolean;
+}
+
+export function useFullscreen(): FullscreenProps {
+  let [element, setElement] = useState<HTMLElement | null>(null);
+  let [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+  let onFullscreenChange = useCallback(() => {
+    setIsFullscreen(!!document.fullscreenElement);
+  }, []);
+
+  let enterFullscreen = useCallback(() => {
+    element?.requestFullscreen();
+  }, [element]);
+  let exitFullscreen = useCallback(() => {
+    document.exitFullscreen();
+  }, []);
+
+  useEffect(() => {
+    element?.addEventListener("fullscreenchange", onFullscreenChange);
+
+    return () => {
+      element?.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, [element, onFullscreenChange]);
+
+  return useMemo(
+    () => ({
+      fullscreenElement: setElement,
+      enterFullscreen,
+      exitFullscreen,
+      isFullscreen,
+    }),
+    [enterFullscreen, exitFullscreen, isFullscreen],
+  );
 }
