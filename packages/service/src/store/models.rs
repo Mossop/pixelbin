@@ -374,7 +374,6 @@ pub struct MediaItem {
     pub deleted: bool,
     pub created: DateTime<Utc>,
     pub updated: DateTime<Utc>,
-    pub datetime: DateTime<Utc>,
     pub filename: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -401,6 +400,7 @@ pub struct MediaItem {
     pub taken: Option<NaiveDateTime>,
     pub catalog: String,
     pub media_file: Option<String>,
+    pub datetime: DateTime<Utc>,
 }
 
 impl MediaItem {

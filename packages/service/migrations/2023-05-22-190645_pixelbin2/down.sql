@@ -1,5 +1,5 @@
-DROP TRIGGER IF EXISTS "refreshUserCatalogsFromCatalogs" ON "catalog";
-DROP TRIGGER IF EXISTS "refreshUserCatalogsFromSharedCatalogs" ON "shared_catalog";
+DROP TRIGGER IF EXISTS "refresh_user_catalogs_from_catalogs" ON "catalog";
+DROP TRIGGER IF EXISTS "refresh_user_catalogs_from_shared_catalogs" ON "shared_catalog";
 DROP MATERIALIZED VIEW IF EXISTS "user_catalog";
 
 DROP TABLE IF EXISTS "media_album" CASCADE;
@@ -17,5 +17,5 @@ DROP TABLE IF EXISTS "tag" CASCADE;
 DROP TABLE IF EXISTS "catalog" CASCADE;
 DROP TABLE IF EXISTS "user" CASCADE;
 
-DROP FUNCTION IF EXISTS refreshusercatalogs;
+DROP FUNCTION IF EXISTS refresh_user_catalogs;
 DROP TYPE IF EXISTS location;

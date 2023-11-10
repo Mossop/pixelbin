@@ -96,7 +96,6 @@ diesel::table! {
         deleted -> Bool,
         created -> Timestamptz,
         updated -> Timestamptz,
-        datetime -> Timestamptz,
         filename -> Nullable<Text>,
         title -> Nullable<Text>,
         description -> Nullable<Text>,
@@ -123,6 +122,7 @@ diesel::table! {
         taken -> Nullable<Timestamp>,
         catalog -> Varchar,
         media_file -> Nullable<Varchar>,
+        datetime -> Timestamptz,
     }
 }
 
@@ -225,6 +225,20 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    album_descendent (id, descendent) {
+        id -> Varchar,
+        descendent -> Varchar,
+    }
+}
+
+diesel::table! {
+    tag_descendent (id, descendent) {
+        id -> Varchar,
+        descendent -> Varchar,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     album,
     alternate_file,
@@ -239,6 +253,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     saved_search,
     shared_catalog,
     user_catalog,
+    album_descendent,
+    tag_descendent,
     storage,
     tag,
     user,
