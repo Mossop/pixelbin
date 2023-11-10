@@ -222,7 +222,9 @@ async fn get_album(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (album, media) = trx.get_user_album(&session.email, &album_id).await?;
+                let (album, media) = trx
+                    .get_user_album(&session.email, &album_id, query.recursive)
+                    .await?;
 
                 Ok(AlbumResponse { album, media })
             }
@@ -333,21 +335,31 @@ async fn get_catalog_media(
     Ok(web::Json(response))
 }
 
+#[derive(Debug, Deserialize)]
+struct GetRecursiveMediaRequest {
+    offset: Option<i64>,
+    count: Option<i64>,
+    #[serde(default = "default_true")]
+    recursive: bool,
+}
+
 #[get("/api/album/{album_id}/media")]
 #[instrument(skip(app_state, session))]
 async fn get_album_media(
     app_state: web::Data<AppState>,
     session: Session,
     album_id: web::Path<String>,
-    query: web::Query<GetMediaRequest>,
+    query: web::Query<GetRecursiveMediaRequest>,
 ) -> ApiResult<web::Json<GetMediaResponse>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (album, media_count) = trx.get_user_album(&session.email, &album_id).await?;
+                let (album, media_count) = trx
+                    .get_user_album(&session.email, &album_id, query.recursive)
+                    .await?;
                 let media = trx
-                    .list_album_media(&album, query.offset, query.count)
+                    .list_album_media(&album, query.recursive, query.offset, query.count)
                     .await?;
 
                 Ok(GetMediaResponse {

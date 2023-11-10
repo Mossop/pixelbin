@@ -378,27 +378,46 @@ impl<'a> DbConnection<'a> {
         &mut self,
         email: &str,
         album: &str,
+        recursive: bool,
     ) -> Result<(models::Album, i64)> {
-        user_catalog::table
-            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-            .inner_join(media_album::table.on(album::id.eq(media_album::album)))
-            .filter(user_catalog::user.eq(email))
-            .filter(album::id.eq(album))
-            .group_by(album::id)
-            .select((album::all_columns, count(media_album::media)))
-            .get_result::<(models::Album, i64)>(self.conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        if recursive {
+            user_catalog::table
+                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+                .inner_join(album_descendent::table.on(album::id.eq(album_descendent::id)))
+                .inner_join(
+                    media_album::table.on(album_descendent::descendent.eq(media_album::album)),
+                )
+                .filter(user_catalog::user.eq(email))
+                .filter(album::id.eq(album))
+                .group_by(album::id)
+                .select((album::all_columns, count(media_album::media)))
+                .get_result::<(models::Album, i64)>(self.conn)
+                .await
+                .optional()?
+                .ok_or_else(|| Error::NotFound)
+        } else {
+            user_catalog::table
+                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+                .inner_join(media_album::table.on(album::id.eq(media_album::album)))
+                .filter(user_catalog::user.eq(email))
+                .filter(album::id.eq(album))
+                .group_by(album::id)
+                .select((album::all_columns, count(media_album::media)))
+                .get_result::<(models::Album, i64)>(self.conn)
+                .await
+                .optional()?
+                .ok_or_else(|| Error::NotFound)
+        }
     }
 
     pub async fn list_album_media(
         &mut self,
         album: &models::Album,
+        recursive: bool,
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<models::MediaView>> {
-        album.list_media(self.conn, offset, count).await
+        album.list_media(self.conn, recursive, offset, count).await
     }
 
     pub async fn get_user_search(

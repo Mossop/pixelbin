@@ -251,10 +251,36 @@ impl Album {
     pub async fn list_media(
         &self,
         conn: &mut AsyncPgConnection,
+        recursive: bool,
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
-        if let Some(count) = count {
+        if recursive {
+            if let Some(count) = count {
+                Ok(media_view!()
+                    .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+                    .inner_join(
+                        album_descendent::table
+                            .on(album_descendent::descendent.eq(media_album::album)),
+                    )
+                    .filter(album_descendent::id.eq(&self.id))
+                    .offset(offset.unwrap_or_default())
+                    .limit(count)
+                    .load::<MediaView>(conn)
+                    .await?)
+            } else {
+                Ok(media_view!()
+                    .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+                    .inner_join(
+                        album_descendent::table
+                            .on(album_descendent::descendent.eq(media_album::album)),
+                    )
+                    .filter(album_descendent::id.eq(&self.id))
+                    .offset(offset.unwrap_or_default())
+                    .load::<MediaView>(conn)
+                    .await?)
+            }
+        } else if let Some(count) = count {
             Ok(media_view!()
                 .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
                 .filter(media_album::album.eq(&self.id))

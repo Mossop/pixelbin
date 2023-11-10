@@ -8,6 +8,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
+#[cfg(feature = "webserver")]
 use pixelbin::server::serve;
 use pixelbin::tasks::{
     rebuild_searches, reprocess_all_media, verify_local_storage, verify_online_storage,
