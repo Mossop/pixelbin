@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="-104 -841 899 899">
-  <rect x="-104" y="-841" width="899" height="899" stroke="#3f51b5" fill="#3f51b5"/>
-  <path transform="scale(1 -1)" stroke="white" fill="white" d="M139 0q-17 0 -28 11t-11 28v703q0 17 11 28t28 11h200q74 0 131 -32.5t89 -89.5t32 -132q0 -73 -32 -129.5t-89 -89t-131 -32.5h-161v-237q0 -17 -11 -28t-28 -11zM178 351h161q51 0 91 22.5t62.5 62.5t22.5 91q0 53 -22.5 93t-62.5 63t-91 23h-161v-355z" />
-</svg>
