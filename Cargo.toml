@@ -1,9 +1,5 @@
 [workspace]
 members = [
-  "packages/shared",
-  "packages/store",
-  "packages/tasks",
-  "packages/cli",
-  "packages/server",
+  "packages/service",
 ]
 resolver = "2"

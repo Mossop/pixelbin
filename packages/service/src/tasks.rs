@@ -1,21 +1,17 @@
-#![deny(unreachable_pub)]
 //! Maintenance tasks for the Pixelbin server.
 
 use std::{collections::HashMap, path::PathBuf};
 
 use scoped_futures::ScopedFutureExt;
-
-use pixelbin_shared::Result;
-use pixelbin_store::{
-    metadata::{process_media, PROCESS_VERSION},
-    models::MediaFile,
-    RemotePath, Store,
-};
 use tracing::{error, instrument};
 
-pub async fn prune(_store: Store, _dry_run: bool) -> Result {
-    Ok(())
-}
+use crate::store::{
+    aws::RemotePath,
+    metadata::{process_media, PROCESS_VERSION},
+    models::MediaFile,
+    Store,
+};
+use crate::Result;
 
 #[instrument(skip_all)]
 pub async fn reprocess_all_media(store: Store) -> Result {

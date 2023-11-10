@@ -1,0 +1,59 @@
+[package]
+name = "pixelbin"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+webserver = [
+  "dep:actix-web",
+  "dep:mime_guess",
+  "dep:nano-id",
+  "dep:serde_with",
+  "dep:mime",
+  "dep:tokio-util",
+]
+
+[dependencies]
+clap = { version = "4.3.0", features = ["derive", "env"] }
+tokio = { version = "1.28.1", features = ["full"] }
+tracing = { version = "0.1.37", features = ["attributes"] }
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+async-trait = "0.1.68"
+thiserror = "1.0.40"
+enum_dispatch = "0.3.11"
+opentelemetry = { version = "0.19.0", features = ["rt-tokio"] }
+tracing-opentelemetry = "0.19.0"
+opentelemetry-otlp = "0.12.0"
+scoped-futures = "0.1.3"
+handlebars = "4.3.7"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+diesel = { version = "2.1.0", features = [
+  "64-column-tables",
+  "chrono",
+  "serde_json",
+  "postgres",
+] }
+diesel-async = { version = "0.4.1", features = ["postgres", "deadpool"] }
+diesel-derive-enum = "2.0.1"
+aws-sdk-s3 = "0.27.0"
+aws-config = "0.55.3"
+futures = "0.3.28"
+chrono = { version = "0.4.31", features = ["clock", "serde"] }
+bcrypt = "0.14.0"
+monostate = "0.1.6"
+serde_repr = "0.1.12"
+serde_plain = "1.0.1"
+typeshare = "1.0.1"
+diesel_migrations = { version = "2.1.0", features = ["postgres"] }
+tzf-rs = { version = "0.4.4", default-features = false }
+lazy_static = "1.4.0"
+lexical-parse-float = "0.8.5"
+chrono-tz = "0.8.4"
+
+actix-web = { version = "4.3.1", optional = true }
+mime_guess = { version = "2.0.4", optional = true }
+nano-id = { version = "0.3.1", features = ["base62"], optional = true }
+serde_with = { version = "3.0.0", optional = true }
+mime = { version = "0.3.17", optional = true }
+tokio-util = { version = "0.7.8", features = ["io"], optional = true }

@@ -1,6 +1,5 @@
 use std::{cmp::min, collections::HashMap};
 
-use crate::metadata::{lookup_timezone, media_datetime};
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
     backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, upsert::excluded,
@@ -12,13 +11,14 @@ use serde_repr::Serialize_repr;
 use tracing::instrument;
 use typeshare::typeshare;
 
-use crate::{
+use super::metadata::{lookup_timezone, media_datetime};
+use super::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
     DbConnection, MediaFilePath, RemotePath,
 };
-use crate::{db::search::CompoundQueryItem, schema::*};
-use pixelbin_shared::Result;
+use super::{db::schema::*, db::search::CompoundQueryItem};
+use crate::Result;
 
 struct Batch<'a, T> {
     slice: &'a [T],

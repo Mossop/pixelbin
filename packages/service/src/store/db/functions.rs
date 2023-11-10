@@ -30,12 +30,13 @@ where
 }
 
 pub(crate) mod extract {
-    use super::*;
     use diesel::expression::{
         is_aggregate, AppearsOnTable, AsExpression, Expression, SelectableExpression, ValidGrouping,
     };
     use diesel::query_builder::{AstPass, QueryFragment, QueryId};
     use diesel::{self, QueryResult};
+
+    use super::*;
 
     #[derive(Debug, Clone, Copy, QueryId)]
     pub(crate) struct Extract<A> {
@@ -104,12 +105,13 @@ where
 }
 
 pub(crate) mod select_zone {
-    use super::*;
     use diesel::expression::{
         is_aggregate, AppearsOnTable, AsExpression, Expression, SelectableExpression, ValidGrouping,
     };
     use diesel::query_builder::{AstPass, QueryFragment, QueryId};
     use diesel::{self, QueryResult};
+
+    use super::*;
 
     #[derive(Debug, Clone, Copy, QueryId)]
     pub(crate) struct SelectZone<A, B, C> {
@@ -176,75 +178,77 @@ pub(crate) mod select_zone {
 
 macro_rules! media_field {
     (taken_zone) => {
-        crate::db::functions::select_zone(
-            crate::schema::media_item::taken,
-            crate::schema::media_item::taken_zone,
-            crate::schema::media_file::taken_zone.nullable(),
+        crate::store::db::functions::select_zone(
+            crate::store::db::schema::media_item::taken,
+            crate::store::db::schema::media_item::taken_zone,
+            crate::store::db::schema::media_file::taken_zone.nullable(),
         )
     };
     ($field:ident) => {
-        crate::db::functions::coalesce(
-            crate::schema::media_item::$field,
-            crate::schema::media_file::$field.nullable(),
+        crate::store::db::functions::coalesce(
+            crate::store::db::schema::media_item::$field,
+            crate::store::db::schema::media_file::$field.nullable(),
         )
     };
 }
 
 macro_rules! media_view {
     () => {
-        crate::schema::media_item::table
-            .left_outer_join(crate::schema::media_file::table.on(
-                crate::schema::media_item::media_file.eq(crate::schema::media_file::id.nullable()),
-            ))
+        crate::store::db::schema::media_item::table
+            .left_outer_join(
+                crate::store::db::schema::media_file::table
+                    .on(crate::store::db::schema::media_item::media_file
+                        .eq(crate::store::db::schema::media_file::id.nullable())),
+            )
             .select((
-                crate::schema::media_item::id,
-                crate::schema::media_item::catalog,
-                crate::schema::media_item::created,
-                crate::db::functions::greatest(
-                    crate::schema::media_item::updated,
-                    crate::schema::media_file::uploaded.nullable(),
+                crate::store::db::schema::media_item::id,
+                crate::store::db::schema::media_item::catalog,
+                crate::store::db::schema::media_item::created,
+                crate::store::db::functions::greatest(
+                    crate::store::db::schema::media_item::updated,
+                    crate::store::db::schema::media_file::uploaded.nullable(),
                 ),
-                crate::schema::media_item::datetime,
-                crate::db::functions::media_field!(filename),
-                crate::db::functions::media_field!(title),
-                crate::db::functions::media_field!(description),
-                crate::db::functions::media_field!(label),
-                crate::db::functions::media_field!(category),
-                crate::db::functions::media_field!(taken),
-                crate::db::functions::media_field!(taken_zone),
-                crate::db::functions::media_field!(longitude),
-                crate::db::functions::media_field!(latitude),
-                crate::db::functions::media_field!(altitude),
-                crate::db::functions::media_field!(location),
-                crate::db::functions::media_field!(city),
-                crate::db::functions::media_field!(state),
-                crate::db::functions::media_field!(country),
-                crate::db::functions::media_field!(orientation),
-                crate::db::functions::media_field!(make),
-                crate::db::functions::media_field!(model),
-                crate::db::functions::media_field!(lens),
-                crate::db::functions::media_field!(photographer),
-                crate::db::functions::media_field!(aperture),
-                crate::db::functions::media_field!(shutter_speed),
-                crate::db::functions::media_field!(iso),
-                crate::db::functions::media_field!(focal_length),
-                crate::db::functions::media_field!(rating),
+                crate::store::db::schema::media_item::datetime,
+                crate::store::db::functions::media_field!(filename),
+                crate::store::db::functions::media_field!(title),
+                crate::store::db::functions::media_field!(description),
+                crate::store::db::functions::media_field!(label),
+                crate::store::db::functions::media_field!(category),
+                crate::store::db::functions::media_field!(taken),
+                crate::store::db::functions::media_field!(taken_zone),
+                crate::store::db::functions::media_field!(longitude),
+                crate::store::db::functions::media_field!(latitude),
+                crate::store::db::functions::media_field!(altitude),
+                crate::store::db::functions::media_field!(location),
+                crate::store::db::functions::media_field!(city),
+                crate::store::db::functions::media_field!(state),
+                crate::store::db::functions::media_field!(country),
+                crate::store::db::functions::media_field!(orientation),
+                crate::store::db::functions::media_field!(make),
+                crate::store::db::functions::media_field!(model),
+                crate::store::db::functions::media_field!(lens),
+                crate::store::db::functions::media_field!(photographer),
+                crate::store::db::functions::media_field!(aperture),
+                crate::store::db::functions::media_field!(shutter_speed),
+                crate::store::db::functions::media_field!(iso),
+                crate::store::db::functions::media_field!(focal_length),
+                crate::store::db::functions::media_field!(rating),
                 (
-                    crate::schema::media_file::id,
-                    crate::schema::media_file::file_size,
-                    crate::schema::media_file::mimetype,
-                    crate::schema::media_file::width,
-                    crate::schema::media_file::height,
-                    crate::schema::media_file::duration,
-                    crate::schema::media_file::frame_rate,
-                    crate::schema::media_file::bit_rate,
-                    crate::schema::media_file::uploaded,
-                    crate::schema::media_file::file_name,
+                    crate::store::db::schema::media_file::id,
+                    crate::store::db::schema::media_file::file_size,
+                    crate::store::db::schema::media_file::mimetype,
+                    crate::store::db::schema::media_file::width,
+                    crate::store::db::schema::media_file::height,
+                    crate::store::db::schema::media_file::duration,
+                    crate::store::db::schema::media_file::frame_rate,
+                    crate::store::db::schema::media_file::bit_rate,
+                    crate::store::db::schema::media_file::uploaded,
+                    crate::store::db::schema::media_file::file_name,
                 )
                     .nullable(),
             ))
             .distinct()
-            .order(crate::schema::media_item::datetime.desc())
+            .order(crate::store::db::schema::media_item::datetime.desc())
     };
 }
 

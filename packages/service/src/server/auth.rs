@@ -1,16 +1,16 @@
 use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpRequest};
 use futures::future::LocalBoxFuture;
-use pixelbin_shared::Error;
-use pixelbin_store::models;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tracing::{instrument, warn};
 use typeshare::typeshare;
 
-use crate::{util::long_id, ApiErrorCode, ApiResult, AppState};
+use super::{util::long_id, ApiErrorCode, ApiResult, AppState};
+use crate::store::models;
+use crate::Error;
 
 #[derive(Clone)]
-pub(crate) struct Session {
+pub(super) struct Session {
     pub(crate) id: String,
     pub(crate) email: String,
 }
@@ -33,7 +33,7 @@ impl FromRequest for Session {
     }
 }
 
-pub(crate) struct MaybeSession(Option<Session>);
+pub(super) struct MaybeSession(Option<Session>);
 
 impl MaybeSession {
     pub(crate) fn session(&self) -> Option<&Session> {

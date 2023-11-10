@@ -1,22 +1,24 @@
-use crate::{
-    models::{MediaFile, MediaItem},
-    MediaFilePath,
-};
-use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Timelike, Utc};
-use chrono_tz::Tz;
-use lazy_static::lazy_static;
-use lexical_parse_float::FromLexical;
-use pixelbin_shared::{Config, Result};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{from_str, Value};
 use std::{
     cmp::{max, min},
     result,
     str::FromStr,
 };
+
+use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Timelike, Utc};
+use chrono_tz::Tz;
+use lazy_static::lazy_static;
+use lexical_parse_float::FromLexical;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::{from_str, Value};
 use tokio::fs::read_to_string;
 use tracing::warn;
 use tzf_rs::DefaultFinder;
+
+use super::{
+    models::{MediaFile, MediaItem},
+    MediaFilePath,
+};
+use crate::{Config, Result};
 
 lazy_static! {
     static ref FINDER: DefaultFinder = DefaultFinder::new();
@@ -24,13 +26,13 @@ lazy_static! {
 
 // exiftool -n -c '%+.6f' -json
 
-pub const METADATA_FILE: &str = "metadata.json";
-pub const PROCESS_VERSION: i32 = 4;
+pub(crate) const METADATA_FILE: &str = "metadata.json";
+pub(crate) const PROCESS_VERSION: i32 = 4;
 
 const EXIF_FORMAT: &str = "%Y:%m:%d %H:%M:%S%.f";
 const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
-pub fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
+pub(crate) fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
     Some(FINDER.get_tz_name(longitude, latitude).to_owned())
 }
 
@@ -59,7 +61,7 @@ fn time_from_taken(taken: &Option<NaiveDateTime>, zone: &Option<String>) -> Opti
     }
 }
 
-pub fn media_datetime(media_item: &MediaItem, media_file: &MediaFile) -> DateTime<Utc> {
+pub(crate) fn media_datetime(media_item: &MediaItem, media_file: &MediaFile) -> DateTime<Utc> {
     if let Some(dt) = time_from_taken(&media_item.taken, &media_item.taken_zone) {
         return dt;
     }
@@ -600,7 +602,7 @@ impl Exif {
     }
 }
 
-pub async fn process_media(config: &Config, file_path: &MediaFilePath) -> Result<MediaFile> {
+pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) -> Result<MediaFile> {
     let metadata_file = config
         .local_storage
         .join(file_path.local_path())

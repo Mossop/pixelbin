@@ -1,4 +1,3 @@
-#![deny(unreachable_pub)]
 //! A basic abstraction around the pixelbin data stores.
 use std::path::PathBuf;
 
@@ -9,41 +8,22 @@ use diesel_async::{
     AsyncConnection, RunQueryDsl,
 };
 
-mod aws;
-mod db;
-pub mod metadata;
-pub mod models;
-#[allow(unreachable_pub)]
-mod schema;
+pub(crate) mod aws;
+pub(crate) mod db;
+pub(crate) mod metadata;
+pub(crate) mod models;
 
-pub use aws::RemotePath;
-pub use db::DbConnection;
+use aws::RemotePath;
+use db::schema::*;
+use db::DbConnection;
 use db::{connect, DbPool};
-use pixelbin_shared::{Config, Result};
-use schema::*;
 use tokio::fs;
 use tracing::instrument;
 
+use crate::{Config, Result};
+
 pub(crate) fn joinable(st: &str) -> &str {
     st.trim_matches('/')
-}
-
-#[derive(Queryable, Clone, Debug)]
-pub struct LocalAlternateFile {
-    pub id: String,
-    pub file_type: models::AlternateFileType,
-    #[diesel(serialize_as = String, deserialize_as = String)]
-    pub path: PathBuf,
-    pub file_size: i32,
-    pub mimetype: String,
-    pub width: i32,
-    pub height: i32,
-    pub duration: Option<f32>,
-    pub frame_rate: Option<f32>,
-    pub bit_rate: Option<f32>,
-    pub media_file: String,
-    pub media_info: String,
-    pub catalog: String,
 }
 
 #[derive(Clone, Debug)]
@@ -92,7 +72,7 @@ impl Store {
         })
     }
 
-    pub fn config(&self) -> &Config {
+    pub(crate) fn config(&self) -> &Config {
         &self.config
     }
 
@@ -134,7 +114,7 @@ impl Store {
         .await
     }
 
-    pub async fn online_uri(
+    pub(crate) async fn online_uri(
         &self,
         storage: &models::Storage,
         path: &RemotePath,
@@ -145,7 +125,7 @@ impl Store {
         client.file_uri(path, mimetype, filename).await
     }
 
-    pub async fn list_local_files(&self) -> Result<Vec<(PathBuf, u64)>> {
+    pub(crate) async fn list_local_files(&self) -> Result<Vec<(PathBuf, u64)>> {
         let mut files = Vec::<(PathBuf, u64)>::new();
 
         let mut readers = vec![fs::read_dir(&self.config.local_storage).await?];
@@ -169,7 +149,7 @@ impl Store {
         Ok(files)
     }
 
-    pub async fn list_local_alternate_files(
+    pub(crate) async fn list_local_alternate_files(
         &self,
     ) -> Result<Vec<(models::AlternateFile, MediaFilePath, PathBuf)>> {
         let mut conn = self.pool.get().await?;

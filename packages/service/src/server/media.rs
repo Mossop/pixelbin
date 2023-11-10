@@ -1,9 +1,4 @@
 use actix_web::{get, http::header, web, HttpResponse, Responder};
-use pixelbin_shared::Error;
-use pixelbin_store::{
-    models::{self, AlternateFileType},
-    RemotePath,
-};
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -11,11 +6,16 @@ use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 use tracing::instrument;
 
-use crate::{
+use super::{
     auth::{MaybeSession, Session},
     util::choose_alternate,
     ApiResult, AppState,
 };
+use crate::store::{
+    aws::RemotePath,
+    models::{self, AlternateFileType},
+};
+use crate::Error;
 
 fn not_found() -> ApiResult<HttpResponse> {
     Ok(HttpResponse::NotFound()

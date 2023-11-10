@@ -1,4 +1,6 @@
 pub(crate) mod functions;
+#[allow(unreachable_pub)]
+pub(super) mod schema;
 pub(crate) mod search;
 
 use std::path::PathBuf;
@@ -16,18 +18,17 @@ use diesel_async::{
     AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use schema::*;
 use tracing::{error, info, instrument, trace};
 
-use crate::{
+use self::functions::media_view;
+use super::{
     joinable,
     metadata::{process_media, PROCESS_VERSION},
     models::{self, MediaFile},
-    schema::*,
     MediaFilePath, RemotePath, Result,
 };
-use pixelbin_shared::{Config, Error};
-
-use self::functions::media_view;
+use crate::{Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;

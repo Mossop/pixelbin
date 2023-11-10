@@ -17,9 +17,8 @@ use serde_json::Value;
 use serde_plain::derive_display_from_serialize;
 use typeshare::typeshare;
 
-use crate::schema::*;
-
 use super::functions::{char_length, extract, media_field};
+use super::schema::*;
 
 type MediaViewQS = LeftJoinQuerySource<
     media_item::table,
@@ -49,7 +48,6 @@ where
 }
 
 pub(crate) mod field_query {
-    use super::*;
     use diesel::{
         expression::{
             is_aggregate, AppearsOnTable, Expression, SelectableExpression, ValidGrouping,
@@ -57,6 +55,8 @@ pub(crate) mod field_query {
         query_builder::{AstPass, QueryFragment, QueryId},
         QueryResult,
     };
+
+    use super::*;
 
     #[derive(Debug, Clone, QueryId)]
     pub(crate) struct FieldQuery<F> {

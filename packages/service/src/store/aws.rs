@@ -8,9 +8,8 @@ use aws_sdk_s3::{
 };
 use futures::{future, TryStreamExt};
 
-use pixelbin_shared::{Error, Result};
-
-use crate::{joinable, models::Storage, MediaFilePath};
+use super::{joinable, models::Storage, MediaFilePath};
+use crate::{Error, Result};
 
 pub(crate) struct AwsClient {
     client: Client,

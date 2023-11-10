@@ -6,8 +6,9 @@ use actix_web::{
     HttpResponse, ResponseError,
 };
 use nano_id::base62;
-use pixelbin_shared::Error;
-use pixelbin_store::{models, MediaFilePath};
+
+use crate::store::{models, MediaFilePath};
+use crate::Error;
 
 pub(crate) fn long_id(prefix: &str) -> String {
     format!("{prefix}:{}", base62::<25>())

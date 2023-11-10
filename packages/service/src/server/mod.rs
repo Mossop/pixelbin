@@ -1,4 +1,3 @@
-#![deny(unreachable_pub)]
 use std::{fmt::Display, result, time::Duration};
 
 use actix_web::{
@@ -6,9 +5,10 @@ use actix_web::{
 };
 use auth::Session;
 use cache::Cache;
-use pixelbin_shared::{Error, Result};
-use pixelbin_store::Store;
 use serde::Serialize;
+
+use crate::store::Store;
+use crate::{Error, Result};
 
 mod auth;
 mod cache;

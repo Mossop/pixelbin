@@ -8,24 +8,21 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
-use pixelbin_server::serve;
-use pixelbin_shared::{load_config, Result};
-use pixelbin_store::Store;
-use pixelbin_tasks::{
+use pixelbin::server::serve;
+use pixelbin::tasks::{
     rebuild_searches, reprocess_all_media, verify_local_storage, verify_online_storage,
 };
+use pixelbin::Store;
+use pixelbin::{load_config, Result};
 use scoped_futures::ScopedFutureExt;
 use tracing::Level;
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 
-const LOG_DEFAULTS: [(&str, Level); 5] = [
-    ("pixelbin_cli", Level::DEBUG),
-    ("pixelbin_shared", Level::DEBUG),
-    ("pixelbin_tasks", Level::DEBUG),
-    ("pixelbin_store", Level::TRACE),
-    ("pixelbin_server", Level::DEBUG),
+const LOG_DEFAULTS: [(&str, Level); 2] = [
+    ("pixelbin", Level::DEBUG),
+    ("pixelbin::store", Level::TRACE),
 ];
 
 #[derive(Args)]
@@ -87,9 +84,11 @@ impl Runnable for VerifyOnline {
     }
 }
 
+#[cfg(feature = "webserver")]
 #[derive(Args)]
 struct Serve;
 
+#[cfg(feature = "webserver")]
 #[async_trait(?Send)]
 impl Runnable for Serve {
     async fn run(self, store: Store) -> Result {
@@ -111,6 +110,7 @@ impl Runnable for CheckDb {
 #[derive(Subcommand)]
 enum Command {
     /// Runs the server.
+    #[cfg(feature = "webserver")]
     Serve,
     /// List some basic stats about objects in the database.
     Stats,

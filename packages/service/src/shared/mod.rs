@@ -1,14 +1,12 @@
-#![deny(unreachable_pub)]
 //! Shared functionality for the Pixelbin server
 
-mod config;
-mod error;
-// pub mod serde;
+pub(crate) mod config;
+pub(crate) mod error;
 
 use std::path::Path;
 
-pub use config::{Config, ThumbnailConfig};
-pub use error::{Error, Result};
+use config::Config;
+use error::Result;
 
 pub fn load_config(config_file: Option<&Path>) -> Result<Config> {
     if let Some(path) = config_file {

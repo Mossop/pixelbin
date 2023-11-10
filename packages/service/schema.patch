@@ -1,7 +1,7 @@
-diff --git a/src/schema.rs b/src/schema.rs
+diff --git a/src/store/db/schema/schema.rs b/src/store/db/schema/schema.rs
 index 8bd0055..e1657cd 100644
---- a/src/schema.rs
-+++ b/src/schema.rs
+--- a/src/store/db/schema/schema.rs
++++ b/src/store/db/schema/schema.rs
 @@ -216,9 +216,13 @@ diesel::table! {
      }
  }
