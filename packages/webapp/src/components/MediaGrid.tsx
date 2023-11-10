@@ -4,7 +4,7 @@
 
 import mime from "mime-types";
 import Link from "next/link";
-import { memo } from "react";
+import { memo, useCallback, useState } from "react";
 
 import Icon from "./Icon";
 import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
@@ -22,6 +22,9 @@ const ThumbnailImage = memo(function ThumbnailImage({
 }: {
   media: MediaView;
 }) {
+  let [loaded, setLoaded] = useState(false);
+  let onLoad = useCallback(() => setLoaded(true), []);
+
   let { file } = media;
   if (!file) {
     return (
@@ -68,11 +71,14 @@ const ThumbnailImage = memo(function ThumbnailImage({
       ))}
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img
+        onLoad={onLoad}
         loading="lazy"
         decoding="async"
         sizes="150px"
         srcSet={sources("image/jpeg")}
-        className="thumbnail d-block object-fit-contain"
+        className={`thumbnail d-block object-fit-contain ${
+          loaded ? "loaded" : "loading"
+        }`}
       />
     </picture>
   );

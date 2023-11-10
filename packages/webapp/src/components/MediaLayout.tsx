@@ -2,11 +2,12 @@
 
 import mime from "mime-types";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import Icon from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
+import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import { ApiMediaView, MediaView } from "@/modules/types";
 import { deserializeMediaView, mediaDate, url } from "@/modules/util";
@@ -16,7 +17,13 @@ const THUMBNAILS = {
   sizes: [150, 200, 250, 300, 350, 400, 450, 500],
 };
 
-function Photo({ media }: { media: MediaView }) {
+function Photo({ media, onLoad }: { media: MediaView; onLoad: () => void }) {
+  let [loaded, setLoaded] = useState(false);
+  let onLoaded = useCallback(() => {
+    setLoaded(true);
+    onLoad();
+  }, [onLoad]);
+
   let { file } = media;
   if (!file) {
     return (
@@ -56,7 +63,11 @@ function Photo({ media }: { media: MediaView }) {
         <source key={type} srcSet={source(type)} type={type} />
       ))}
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
-      <img srcSet={source("image/jpeg")} className="photo object-fit-contain" />
+      <img
+        onLoad={onLoaded}
+        srcSet={source("image/jpeg")}
+        className={`photo object-fit-contain ${loaded ? "loaded" : "loading"}`}
+      />
     </picture>
   );
 }
@@ -105,6 +116,8 @@ export default function MediaLayout({
   media: ApiMediaView;
 }) {
   let media = useMemo(() => deserializeMediaView(apiMedia), [apiMedia]);
+  let [loading, setLoading] = useState(false);
+  let onLoad = useCallback(() => setLoading(true), []);
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
@@ -123,7 +136,12 @@ export default function MediaLayout({
       data-bs-theme="dark"
       ref={fullscreenElement}
     >
-      <Photo media={media} />
+      <Photo media={media} onLoad={onLoad} />
+      {!loading && (
+        <div className="position-absolute top-0 start-0 end-0 bottom-0 d-flex justify-content-center align-items-center">
+          <Throbber />
+        </div>
+      )}
       <Overlay
         className="position-absolute top-0 start-0 end-0 bottom-0"
         innerClass="d-flex flex-column"
