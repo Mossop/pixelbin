@@ -68,6 +68,8 @@ class TakenGrouper {
 
           context.groups.push(currentGroup);
         }
+
+        context.media.push(...list);
       }
     });
   }
