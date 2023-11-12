@@ -10,10 +10,8 @@ export default async function AppBar() {
   let email = serverState?.email;
 
   return (
-    <header className="navbar text-bg-primary d-flex p-3 justify-content-between">
-      <h1 className={`navbar-brand m-0 p-0 ${comfortaa.className}`}>
-        PixelBin
-      </h1>
+    <header className="c-appbar" data-theme="banner">
+      <h1 className={comfortaa.className}>PixelBin</h1>
       <div>
         <Avatar email={email} />
       </div>

@@ -1,0 +1,12 @@
+@use "theme";
+
+.c-appbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: theme.$spacing * 4;
+
+  h1 {
+    font-size: theme.$spacing * 5;
+  }
+}

@@ -1,0 +1,29 @@
+@use "sass:color";
+@use "theme";
+
+.c-modal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: theme.$spacing * 20;
+  background-color: color.adjust(theme.$fade, $alpha: 0);
+  transition: background-color theme.$transition;
+
+  &.show {
+    background-color: theme.$fade;
+  }
+
+  .modal {
+    opacity: 0;
+    transition: opacity theme.$transition;
+    border-radius: theme.$spacing * 2;
+    box-shadow: theme.$modal-shadow;
+    width: 500px;
+  }
+
+  .modal.show {
+    opacity: 1;
+  }
+}

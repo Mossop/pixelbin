@@ -48,24 +48,25 @@ function Login() {
   }, [didLogin, router]);
 
   let footer = (
-    <div className="d-flex justify-content-end align-items-center gap-3">
+    <>
       <Button
         onClick={() => setDialogHidden(true)}
-        color="outline-secondary"
+        type="secondary"
         label="Cancel"
       />
       <Button
         onClick={performLogin}
+        type="primary"
         label="Login"
         disabled={email == "" && password == ""}
       />
-    </div>
+    </>
   );
 
   return (
     <>
       <Button
-        color="light"
+        type="primary"
         onClick={() => setDialogHidden(false)}
         label="Login"
       />
@@ -76,7 +77,7 @@ function Login() {
         header={<div>Login</div>}
         footer={footer}
       >
-        <form className="d-flex flex-column align-items-stretch gap-3">
+        <form>
           <TextField
             autofocus
             type="email"
@@ -116,13 +117,10 @@ function Menu({ email }: { email: string }) {
   let sources = avatarSources(email);
 
   return (
-    <button
-      onClick={performLogout}
-      className="btn shadow-none border-0 m-0 p-0"
-    >
+    <button onClick={performLogout}>
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img
-        style={{ borderRadius: "50%", height: "2.5em", width: "2.5em" }}
+        style={{ borderRadius: "50%", height: "2.5rem", width: "2.5rem" }}
         src={sources[0]}
         srcSet={sources.join(",")}
       />
@@ -131,5 +129,7 @@ function Menu({ email }: { email: string }) {
 }
 
 export default function Avatar({ email }: { email: string | undefined }) {
-  return email ? <Menu email={email} /> : <Login />;
+  return (
+    <div className="c-avatar">{email ? <Menu email={email} /> : <Login />}</div>
+  );
 }

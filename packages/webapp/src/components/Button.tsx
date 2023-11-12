@@ -1,11 +1,11 @@
 export default function Button({
   label,
-  color = "primary",
+  type = "secondary",
   disabled,
   onClick = () => {},
 }: {
   label: string;
-  color?: string;
+  type?: "primary" | "secondary";
   disabled?: boolean;
   onClick?: () => void;
 }) {
@@ -13,7 +13,7 @@ export default function Button({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`btn btn-${color}`}
+      className={`c-button button-${type}`}
     >
       {label}
     </button>

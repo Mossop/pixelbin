@@ -3,7 +3,7 @@ import Link from "next/link";
 import Icon from "./Icon";
 
 export function IconList({ children }: { children: React.ReactNode }) {
-  return <ul className="iconlist p-0 m-0">{children}</ul>;
+  return <ul className="c-iconlist">{children}</ul>;
 }
 
 export function IconListItem({
@@ -23,12 +23,12 @@ export function IconListItem({
 }) {
   if (href) {
     return (
-      <li className="iconlistitem">
+      <li className="c-iconlistitem">
         <Link
           className={`item-label ${selected ? "selected" : ""}`}
           href={href}
         >
-          <div className="pe-2 item-icon">
+          <div className="item-icon">
             <Icon icon={icon} />
           </div>
           <span className="label">{label}</span>
@@ -40,9 +40,9 @@ export function IconListItem({
   }
 
   return (
-    <li className="iconlistitem">
+    <li className="c-iconlistitem">
       <div className="item-label">
-        <div className="pe-2 item-icon">
+        <div className="item-icon">
           <Icon icon={icon} />
         </div>
         <span className="label">{label}</span>

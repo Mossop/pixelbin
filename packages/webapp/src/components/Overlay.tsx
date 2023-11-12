@@ -1,21 +1,12 @@
 "use client";
 
-import clsx from "clsx";
 import { useCallback, useState } from "react";
 
 import { useTimeout, useTransition } from "@/modules/client-util";
 
 const TIMEOUT = 4000;
 
-export default function Overlay({
-  children,
-  className,
-  innerClass,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  innerClass?: string;
-}) {
+export default function Overlay({ children }: { children: React.ReactNode }) {
   let [shown, setShown] = useState(true);
   let innerProps = useTransition(shown);
 
@@ -31,8 +22,8 @@ export default function Overlay({
   }, [triggerTimeout]);
 
   return (
-    <div className={clsx(className, "overlay")} onMouseMove={onMouseMove}>
-      <div className={clsx("inner", innerClass)} {...innerProps}>
+    <div className="c-overlay" onMouseMove={onMouseMove}>
+      <div className="overlay-inner" {...innerProps}>
         {children}
       </div>
     </div>

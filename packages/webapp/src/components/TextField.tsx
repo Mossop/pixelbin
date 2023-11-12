@@ -1,7 +1,4 @@
-import { useId } from "react";
-
 export default function TextField({
-  id,
   label,
   autofocus,
   autocomplete = "text",
@@ -19,13 +16,9 @@ export default function TextField({
   autocomplete?: string;
   type?: string;
 }) {
-  let generatedId = useId();
-
   return (
-    <div>
-      <label htmlFor={id ?? generatedId} className="form-label">
-        {label}
-      </label>
+    <label className="c-textfield">
+      <div>{label}</div>
       <input
         autoFocus={autofocus}
         name={name}
@@ -34,8 +27,7 @@ export default function TextField({
         type={type}
         autoComplete={autocomplete}
         className="form-control"
-        id={id ?? generatedId}
       />
-    </div>
+    </label>
   );
 }

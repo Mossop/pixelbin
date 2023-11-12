@@ -146,8 +146,8 @@ export default async function SidebarLayout({
     let catalogs = buildTree(serverState);
 
     return (
-      <div className="flex-grow-1 flex-shrink-1 d-flex flex-row overflow-hidden">
-        <nav className="overflow-y-auto flex-shrink-0 text-body-secondary bg-body-tertiary border-end py-3">
+      <div className="c-sidebar-layout">
+        <nav>
           <IconList>
             {catalogs.map((catalog) => (
               <CatalogItem
@@ -158,16 +158,10 @@ export default async function SidebarLayout({
             ))}
           </IconList>
         </nav>
-        <main className="flex-grow-1 flex-shrink-1 overflow-y-auto">
-          {children}
-        </main>
+        <main>{children}</main>
       </div>
     );
   }
 
-  return (
-    <main className="flex-grow-1 flex-shrink-1 overflow-y-auto">
-      {children}
-    </main>
-  );
+  return <main className="c-sidebar-layout">{children}</main>;
 }

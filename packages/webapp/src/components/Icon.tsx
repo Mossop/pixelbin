@@ -1,3 +1,5 @@
+import clsx from "clsx";
+
 export default function Icon({
   icon,
   onClick,
@@ -7,11 +9,11 @@ export default function Icon({
 }) {
   if (onClick) {
     return (
-      <button onClick={onClick}>
-        <i className={`bi-${icon}`}></i>
+      <button className="c-icon-button" onClick={onClick}>
+        <i className={clsx("c-icon", `bi-${icon}`)}></i>
       </button>
     );
   }
 
-  return <i className={`bi-${icon}`}></i>;
+  return <i className={clsx("c-icon", `bi-${icon}`)}></i>;
 }

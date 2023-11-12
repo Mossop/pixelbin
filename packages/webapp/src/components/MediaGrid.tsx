@@ -28,7 +28,7 @@ const ThumbnailImage = memo(function ThumbnailImage({
   let { file } = media;
   if (!file) {
     return (
-      <div className="thumbnail d-flex align-items-center justify-content-center">
+      <div className="thumbnail">
         <Icon icon="hourglass" />
       </div>
     );
@@ -76,9 +76,7 @@ const ThumbnailImage = memo(function ThumbnailImage({
         decoding="async"
         sizes="150px"
         srcSet={sources("image/jpeg")}
-        className={`thumbnail d-block object-fit-contain ${
-          loaded ? "loaded" : "loading"
-        }`}
+        className={`thumbnail ${loaded ? "loaded" : "loading"}`}
       />
     </picture>
   );
@@ -91,7 +89,7 @@ const Rating = memo(function Rating({ media }: { media: MediaView }) {
   }
 
   return (
-    <div className="rating d-flex justify-content-start align-items-center gap-1">
+    <div className="rating">
       <div className={rating >= 1 ? "filled" : "unfilled"}>
         <Icon icon="star-fill" />
       </div>
@@ -143,10 +141,10 @@ const MediaItem = memo(function MediaItem({
     <Link
       key={media.id}
       href={url([...base, "media", media.id])}
-      className="inner d-block border shadow text-body bg-body rounded-1 p-2 position-relative"
+      className="media"
     >
       <ThumbnailImage media={media} />
-      <div className="overlay position-absolute bottom-0 p-2 start-0 end-0 d-flex flex-row justify-content-between align-items-center">
+      <div className="overlay">
         <Rating media={media} />
         <FileType media={media} />
       </div>
@@ -162,11 +160,11 @@ const MediaGroup = memo(function MediaGroup({
   group: Group;
 }) {
   return (
-    <section>
-      <div className="p-2 position-sticky top-0 mediagroup">
-        <h2 className="p-0 m-0 fw-normal">{group.title}</h2>
+    <section className="c-mediagroup">
+      <div className="title">
+        <h2>{group.title}</h2>
       </div>
-      <div className="thumbnail-grid d-grid gap-2 px-2 pb-4">
+      <div className="grid">
         {group.media.map((m) => (
           <MediaItem key={m.id} base={base} media={m} />
         ))}

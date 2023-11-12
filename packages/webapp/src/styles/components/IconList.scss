@@ -1,0 +1,58 @@
+@use "theme";
+
+:root {
+  --list-depth: -1;
+  --list-item-depth: -1;
+}
+
+.c-iconlist {
+  --list-depth: calc(var(--list-item-depth) + 1);
+  list-style-type: none;
+
+  .item-label {
+    padding-inline-start: calc(var(--list-item-depth) * 1rem + 0.25rem);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding-inline-end: 0.25rem;
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+  }
+
+  .item-icon {
+    font-size: 120%;
+    padding-right: theme.$spacing * 2;
+  }
+
+  a.item-label {
+    text-decoration: none;
+    color: inherit;
+
+    &.selected {
+      color: var(--selected-color);
+      background-color: var(--selected-background);
+    }
+
+    &:hover {
+      color: var(--hover-color) !important;
+      background-color: var(--hover-background) !important;
+    }
+  }
+
+  .label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .count {
+    min-width: 3em;
+    text-align: right;
+  }
+
+  .c-iconlistitem {
+    --list-item-depth: var(--list-depth);
+  }
+}

@@ -1,0 +1,102 @@
+$fade: rgba(0, 0, 0, 0.5);
+$box-shadow: 0 0.5rem 1rem var(--shadow-color);
+$modal-shadow: var(--shadow-color) 0px 8px 16px 0px;
+$spacing: 0.25rem;
+$transition: 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+
+:root {
+  --theme-color-primary: 63, 81, 181;
+  --theme-color-secondary: 141, 143, 166;
+
+  --selected-color: inherit;
+  --hover-color: inherit;
+  --shadow-color: rgba(0, 0, 0, 0.15);
+}
+
+@mixin apply-colors {
+  color: var(--color);
+  background-color: var(--background);
+}
+
+@mixin light {
+  --color: rgb(0, 0, 0);
+  --background: rgb(250, 250, 250);
+
+  --button-primary-color: rgb(255, 255, 255);
+  --button-primary-background: rgb(var(--theme-color-primary));
+  --button-primary-border: rgb(var(--theme-color-primary));
+  --button-primary-hover-color: var(--button-primary-color);
+  --button-primary-hover-background: rgb(var(--theme-color-primary));
+  --button-primary-hover-border: var(--button-primary-hover-background);
+
+  --button-secondary-color: inherit;
+  --button-secondary-background: transparent;
+  --button-secondary-border: rgb(var(--theme-color-secondary));
+  --button-secondary-hover-color: inherit;
+  --button-secondary-hover-background: rgb(var(--theme-color-secondary));
+  --button-secondary-hover-border: var(--button-secondary-hover-background);
+
+  --input-shadow: rgba(0, 0, 0, 0.075) 0px 1px 2px 0px inset;
+  --input-border: 1px solid rgb(222, 226, 230);
+  --input-focus-border: 1px solid rgb(159, 168, 218);
+
+  --selected-background: rgb(230, 230, 230);
+  --hover-background: rgb(214, 214, 214);
+}
+
+@mixin dark {
+  --color: rgb(222, 226, 230);
+  --background: rgb(33, 37, 41);
+
+  --overlay-color: 255, 255, 255;
+  --overlay-background: 66, 66, 66;
+}
+
+@mixin banner {
+  --color: rgb(255, 255, 255);
+  --background: rgb(var(--theme-color-primary));
+
+  --button-primary-color: rgb(0, 0, 0);
+  --button-primary-background: rgb(248, 249, 250);
+  --button-primary-border: var(--button-primary-background);
+  --button-primary-hover-color: var(--button-primary-color);
+  --button-primary-hover-background: rgb(211, 212, 213);
+  --button-primary-hover-border: var(--button-primary-hover-background);
+
+  --button-secondary-color: rgb(141, 143, 166);
+  --button-secondary-background: transparent;
+  --button-secondary-border: var(--button-secondary-color);
+  --button-secondary-hover-color: var(--button-secondary-color);
+  --button-secondary-hover-background: var(--button-secondary-background);
+  --button-secondary-hover-border: var(--button-secondary-hover-background);
+}
+
+:root {
+  @include light;
+
+  line-height: 1.5;
+}
+
+body,
+.body,
+.modal {
+  @include apply-colors;
+}
+
+[data-theme="banner"] {
+  @include banner;
+
+  @include apply-colors;
+}
+
+[data-theme="light"] {
+  @include light;
+
+  @include apply-colors;
+}
+
+[data-theme="dark"] {
+  @include dark;
+
+  @include apply-colors;
+}
