@@ -27,6 +27,7 @@ export default async function Media({
   return (
     <MediaLayout
       gallery={["album", decodeURIComponent(id)]}
+      fromGallery={true}
       media={serializeMediaView(media)}
     />
   );

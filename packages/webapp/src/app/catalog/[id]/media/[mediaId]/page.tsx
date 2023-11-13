@@ -18,11 +18,16 @@ export async function generateMetadata({
 }
 
 export default async function Media({
-  params: { mediaId },
+  params: { id, mediaId },
 }: {
-  params: { mediaId: string };
+  params: { id: string; mediaId: string };
 }) {
   let media = await getMedia(decodeURIComponent(mediaId));
 
-  return <MediaLayout media={serializeMediaView(media)} />;
+  return (
+    <MediaLayout
+      gallery={["catalog", decodeURIComponent(id)]}
+      media={serializeMediaView(media)}
+    />
+  );
 }

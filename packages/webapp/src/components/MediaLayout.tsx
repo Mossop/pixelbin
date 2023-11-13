@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import mime from "mime-types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
 import Icon from "./Icon";
@@ -116,7 +117,11 @@ function GalleryNavigation({ media }: { media: MediaView }) {
 
 export default function MediaLayout({
   media: apiMedia,
+  fromGallery = false,
+  gallery,
 }: {
+  fromGallery?: boolean;
+  gallery: string[];
   media: ApiMediaView;
 }) {
   let media = useMemo(() => deserializeMediaView(apiMedia), [apiMedia]);
@@ -136,6 +141,20 @@ export default function MediaLayout({
   let showInfoPanel = useCallback(() => setInfoPanelShown(true), []);
   let closeInfoPanel = useCallback(() => setInfoPanelShown(false), []);
 
+  let router = useRouter();
+  let loadGallery = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+
+      if (fromGallery) {
+        router.back();
+      } else {
+        router.replace(url(gallery));
+      }
+    },
+    [router, gallery, fromGallery],
+  );
+
   return (
     <main className="c-medialayout" data-theme="dark" ref={fullscreenElement}>
       <Photo media={media} />
@@ -143,7 +162,9 @@ export default function MediaLayout({
         <div className="infobar">
           <div>{mediaDate(media).toRelative()}</div>
           <div className="buttons">
-            <Icon icon="x-circle-fill" />
+            <a href={url(gallery)} onClick={loadGallery}>
+              <Icon icon="x-circle-fill" />
+            </a>
           </div>
         </div>
         <GalleryNavigation media={media} />
