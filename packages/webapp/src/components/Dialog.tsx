@@ -11,7 +11,7 @@ export default function Dialog({
 } & ModalProps) {
   return (
     <Modal {...modalProps}>
-      <div className="c-dialog">
+      <div className="c-dialog modal">
         <div className="header">{header}</div>
         <div className="body">{children}</div>
         <div className="footer">{footer}</div>

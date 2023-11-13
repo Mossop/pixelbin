@@ -8,28 +8,11 @@
   flex-direction: column;
   align-items: center;
   padding-top: theme.$spacing * 20;
+
   transition: background-color theme.$transition;
+  background-color: color.change(theme.$fade, $alpha: 0);
 
   &.t-on {
     background-color: theme.$fade;
-
-    .modal {
-      opacity: 1;
-    }
-  }
-
-  &.t-off {
-    background-color: color.adjust(theme.$fade, $alpha: 0);
-
-    .modal {
-      opacity: 0;
-    }
-  }
-
-  .modal {
-    transition: opacity theme.$transition;
-    border-radius: theme.$spacing * 2;
-    box-shadow: theme.$modal-shadow;
-    width: 500px;
   }
 }

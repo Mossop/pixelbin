@@ -16,7 +16,7 @@ export default function Modal({
   onClose,
   onClosed,
 }: ModalProps) {
-  let modalRef = useRef<HTMLDivElement>(null);
+  let modalRef = useRef<HTMLDivElement>();
 
   let onShown = useCallback(() => {
     modalRef.current
@@ -28,6 +28,14 @@ export default function Modal({
     onShown,
     onHidden: onClosed,
   });
+
+  let modalRefCallback = useCallback(
+    (element: HTMLDivElement) => {
+      modalRef.current = element;
+      elementRef(element);
+    },
+    [elementRef],
+  );
 
   let click = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -43,10 +51,8 @@ export default function Modal({
   return (
     renderModel && (
       <Body>
-        <div ref={elementRef} className="c-modal" onClick={click}>
-          <div className="modal" ref={modalRef}>
-            {children}
-          </div>
+        <div ref={modalRefCallback} className="c-modal" onClick={click}>
+          {children}
         </div>
       </Body>
     )

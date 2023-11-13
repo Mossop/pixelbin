@@ -1,7 +1,21 @@
 @use "theme";
 
+.c-modal {
+  &.t-on {
+    .c-dialog {
+      opacity: 1;
+    }
+  }
+}
+
 .c-dialog {
+  border-radius: theme.$spacing * 2;
+  box-shadow: theme.$modal-shadow;
+  width: 500px;
   padding-inline: theme.$spacing * 4;
+
+  transition: opacity theme.$transition;
+  opacity: 0;
 
   .header {
     font-size: theme.$spacing * 7;
