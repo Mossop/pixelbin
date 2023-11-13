@@ -12,10 +12,15 @@
 @use "components/Modal";
 @use "components/Overlay";
 @use "components/SidebarLayout";
+@use "components/SlidePanel";
 @use "components/TextField";
 @use "components/Throbber";
 
 @import "bootstrap-icons/font/bootstrap-icons.css";
+
+html {
+  overflow: hidden;
+}
 
 body {
   height: 100vh;
@@ -23,6 +28,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  overflow: hidden;
 }
 
 img.loading {

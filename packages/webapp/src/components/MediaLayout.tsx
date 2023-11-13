@@ -8,6 +8,7 @@ import { useCallback, useMemo, useState } from "react";
 import Icon from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
+import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import { ApiMediaView, MediaView } from "@/modules/types";
@@ -131,6 +132,10 @@ export default function MediaLayout({
     media.file!.fileName,
   ]);
 
+  let [infoPanelShown, setInfoPanelShown] = useState(false);
+  let showInfoPanel = useCallback(() => setInfoPanelShown(true), []);
+  let closeInfoPanel = useCallback(() => setInfoPanelShown(false), []);
+
   return (
     <main className="c-medialayout" data-theme="dark" ref={fullscreenElement}>
       <Photo media={media} />
@@ -152,9 +157,18 @@ export default function MediaLayout({
             ) : (
               <Icon onClick={enterFullscreen} icon="arrows-fullscreen" />
             )}
+            <Icon onClick={showInfoPanel} icon="info-circle" />
           </div>
         </div>
       </Overlay>
+      <SlidePanel
+        show={infoPanelShown}
+        position="right"
+        onClose={closeInfoPanel}
+        className="media-info"
+      >
+        Hello
+      </SlidePanel>
     </main>
   );
 }
