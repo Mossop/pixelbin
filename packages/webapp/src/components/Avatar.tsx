@@ -117,19 +117,13 @@ function Menu({ email }: { email: string }) {
   let sources = avatarSources(email);
 
   return (
-    <button onClick={performLogout}>
+    <button className="c-avatar" onClick={performLogout}>
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
-      <img
-        style={{ borderRadius: "50%", height: "2.5rem", width: "2.5rem" }}
-        src={sources[0]}
-        srcSet={sources.join(",")}
-      />
+      <img src={sources[0]} srcSet={sources.join(",")} />
     </button>
   );
 }
 
 export default function Avatar({ email }: { email: string | undefined }) {
-  return (
-    <div className="c-avatar">{email ? <Menu email={email} /> : <Login />}</div>
-  );
+  return <div>{email ? <Menu email={email} /> : <Login />}</div>;
 }
