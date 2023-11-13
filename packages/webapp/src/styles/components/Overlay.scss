@@ -10,5 +10,13 @@
     display: flex;
     flex-direction: column;
     transition: opacity theme.$transition;
+
+    &.t-off {
+      opacity: 0;
+    }
+
+    &.t-on {
+      opacity: 1;
+    }
   }
 }

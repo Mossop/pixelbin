@@ -1,79 +1,50 @@
-import clsx from "clsx";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 
 import Body from "./Body";
-
-enum State {
-  Hidden,
-  Rendered,
-  Shown,
-}
+import { useTransition } from "@/modules/client-util";
 
 export interface ModalProps {
-  hidden?: boolean;
+  show: boolean;
   onClose: () => void;
   onClosed?: () => void;
   children: React.ReactNode;
 }
 
 export default function Modal({
-  hidden,
+  show,
   children,
   onClose,
   onClosed,
 }: ModalProps) {
-  let [state, setState] = useState(State.Hidden);
   let modalRef = useRef<HTMLDivElement>(null);
 
-  let transitionEnd = useCallback(() => {
-    if (hidden) {
-      if (onClosed) {
-        onClosed();
-      }
-      setState(State.Hidden);
-    }
-  }, [hidden, onClosed]);
+  let onShown = useCallback(() => {
+    modalRef.current
+      ?.querySelector<HTMLInputElement>("input[autofocus]")
+      ?.focus();
+  }, []);
+
+  let [elementRef, renderModel] = useTransition(show, {
+    onShown,
+    onHidden: onClosed,
+  });
 
   let click = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      if (event.target != event.currentTarget || state !== State.Shown) {
+      if (event.target != event.currentTarget || !show) {
         return;
       }
 
       onClose();
     },
-    [state, onClose],
+    [show, onClose],
   );
 
-  if (state === State.Hidden && !hidden) {
-    setState(State.Rendered);
-  }
-
-  if (state === State.Rendered && !hidden) {
-    setTimeout(() => {
-      setState(State.Shown);
-      modalRef.current
-        ?.querySelector<HTMLInputElement>("input[autofocus]")
-        ?.focus();
-    }, 100);
-  }
-
-  if (state === State.Shown && hidden) {
-    setState(State.Rendered);
-  }
-
   return (
-    state !== State.Hidden && (
+    renderModel && (
       <Body>
-        <div
-          className={clsx("c-modal", state === State.Shown && "show")}
-          onTransitionEnd={transitionEnd}
-          onClick={click}
-        >
-          <div
-            className={clsx("modal", state === State.Shown && "show")}
-            ref={modalRef}
-          >
+        <div ref={elementRef} className="c-modal" onClick={click}>
+          <div className="modal" ref={modalRef}>
             {children}
           </div>
         </div>

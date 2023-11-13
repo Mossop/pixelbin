@@ -8,7 +8,7 @@ const TIMEOUT = 4000;
 
 export default function Overlay({ children }: { children: React.ReactNode }) {
   let [shown, setShown] = useState(true);
-  let innerProps = useTransition(shown);
+  let [overlayRef, renderOverlay] = useTransition(shown);
 
   let [triggerTimeout] = useTimeout(
     TIMEOUT,
@@ -23,9 +23,11 @@ export default function Overlay({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="c-overlay" onMouseMove={onMouseMove}>
-      <div className="overlay-inner" {...innerProps}>
-        {children}
-      </div>
+      {renderOverlay && (
+        <div className="overlay-inner" ref={overlayRef}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }

@@ -21,7 +21,7 @@ function avatarSources(email: string): string[] {
 function Login() {
   let [, startTransition] = useTransition();
   let router = useRouter();
-  let [dialogHidden, setDialogHidden] = useState(true);
+  let [dialogShown, setDialogShown] = useState(false);
   let [didLogin, setDidLogin] = useState(false);
 
   let [email, setEmail] = useState("");
@@ -43,14 +43,14 @@ function Login() {
 
     setEmail("");
     setPassword("");
-    setDialogHidden(true);
+    setDialogShown(false);
     setDidLogin(false);
   }, [didLogin, router]);
 
   let footer = (
     <>
       <Button
-        onClick={() => setDialogHidden(true)}
+        onClick={() => setDialogShown(true)}
         type="secondary"
         label="Cancel"
       />
@@ -67,12 +67,12 @@ function Login() {
     <>
       <Button
         type="primary"
-        onClick={() => setDialogHidden(false)}
+        onClick={() => setDialogShown(true)}
         label="Login"
       />
       <Dialog
-        hidden={dialogHidden || didLogin}
-        onClose={() => setDialogHidden(true)}
+        show={dialogShown || didLogin}
+        onClose={() => setDialogShown(false)}
         onClosed={closed}
         header={<div>Login</div>}
         footer={footer}

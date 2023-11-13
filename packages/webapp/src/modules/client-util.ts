@@ -1,21 +1,6 @@
 "use client";
 
-import {
-  CSSProperties,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-export function useInitialize(callback: () => void) {
-  let initialised = useRef(false);
-  if (!initialised.current) {
-    callback();
-    initialised.current = true;
-  }
-}
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export function useTimeout(
   timeout: number,
@@ -77,32 +62,26 @@ function isVisible(visibility: Visibility): boolean {
   return visibility == Visibility.Showing || visibility == Visibility.Shown;
 }
 
-function styleForVisibility(visibility: Visibility): CSSProperties {
-  if (visibility == Visibility.Hidden) {
-    return { display: "none", opacity: 0 };
-  }
-
-  return { opacity: isVisible(visibility) ? 1 : 0 };
-}
-
 export interface TransitionOptions {
-  fadeIn?: boolean;
+  skipInitialTransition?: boolean;
   onShown?: () => void;
   onHidden?: () => void;
 }
 
-export interface TransitionProps {
-  style: CSSProperties;
-  onTransitionEnd: () => void;
-}
-
 export function useTransition(
   show: boolean,
-  { fadeIn = false, onShown, onHidden }: TransitionOptions = {},
-): TransitionProps {
-  let [state, setState] = useState(
-    show && !fadeIn ? Visibility.Shown : Visibility.Pending,
+  { skipInitialTransition = false, onShown, onHidden }: TransitionOptions = {},
+): [(element: HTMLElement | null) => void, boolean] {
+  let [transitionElement, setTransitionElement] = useState<HTMLElement | null>(
+    null,
   );
+
+  let [state, setState] = useState(() => {
+    if (show) {
+      return skipInitialTransition ? Visibility.Shown : Visibility.Pending;
+    }
+    return Visibility.Hidden;
+  });
 
   let onTransitionEnd = useCallback(() => {
     setState((currentState) => {
@@ -121,6 +100,13 @@ export function useTransition(
       return currentState;
     });
   }, [onShown, onHidden]);
+
+  useEffect(() => {
+    transitionElement?.addEventListener("transitionend", onTransitionEnd);
+
+    return () =>
+      transitionElement?.removeEventListener("transitionend", onTransitionEnd);
+  }, [transitionElement, onTransitionEnd]);
 
   let startShowing = useCallback(
     () => setState((s) => (s == Visibility.Pending ? Visibility.Showing : s)),
@@ -160,7 +146,40 @@ export function useTransition(
     }
   }, [state, show, cancelShowing, triggerShowing]);
 
-  return { style: styleForVisibility(state), onTransitionEnd };
+  useEffect(() => {
+    if (transitionElement) {
+      transitionElement.classList.add("transition");
+    }
+
+    return () => {
+      if (transitionElement) {
+        transitionElement.classList.remove("transition");
+        transitionElement.classList.remove("t-none");
+        transitionElement.classList.remove("t-on");
+        transitionElement.classList.remove("t-off");
+      }
+    };
+  }, [transitionElement]);
+
+  useEffect(() => {
+    if (transitionElement) {
+      if (state == Visibility.Hidden) {
+        transitionElement.classList.add("t-none");
+        transitionElement.classList.remove("t-on");
+        transitionElement.classList.remove("t-off");
+      } else if (isVisible(state)) {
+        transitionElement.classList.remove("t-none");
+        transitionElement.classList.add("t-on");
+        transitionElement.classList.remove("t-off");
+      } else {
+        transitionElement.classList.remove("t-none");
+        transitionElement.classList.remove("t-on");
+        transitionElement.classList.add("t-off");
+      }
+    }
+  }, [transitionElement, state]);
+
+  return [setTransitionElement, state != Visibility.Hidden];
 }
 
 interface FullscreenProps {
