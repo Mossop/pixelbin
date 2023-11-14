@@ -93,6 +93,11 @@
       background-color: var(--background);
       font-size: 90%;
 
+      a {
+        display: flex;
+        align-items: center;
+      }
+
       .c-icon {
         padding-right: theme.$spacing;
       }

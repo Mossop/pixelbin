@@ -181,11 +181,23 @@ const LABELS = {
 
 function Chip({
   icon,
+  href,
   children,
 }: {
+  href?: string[];
   icon: IconName;
   children: React.ReactNode;
 }) {
+  if (href) {
+    return (
+      <li>
+        <Link href={url(href)}>
+          <Icon icon={icon} /> {children}
+        </Link>
+      </li>
+    );
+  }
+
   return (
     <li>
       <Icon icon={icon} /> {children}
@@ -341,7 +353,7 @@ function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="albums">
           <ul className="relation-list">
             {media.albums.map((r) => (
-              <Chip key={r.id} icon="album">
+              <Chip key={r.id} href={["album", r.id]} icon="album">
                 {r.name}
               </Chip>
             ))}
