@@ -53,4 +53,27 @@
 
 .media-info {
   width: 400px;
+
+  dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    padding: theme.$spacing * 4;
+    align-items: first baseline;
+    gap: theme.$spacing * 2;
+    max-width: 450px;
+  }
+
+  .metadata-label {
+    font-weight: bold;
+    text-align: right;
+
+    &.multiline {
+      grid-column: 1 / 3;
+      text-align: left;
+    }
+  }
+
+  .metadata-value.multiline {
+    grid-column: 1 / 3;
+  }
 }

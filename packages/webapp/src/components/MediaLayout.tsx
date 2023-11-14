@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { DateTime } from "luxon";
 import mime from "mime-types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -115,6 +116,113 @@ function GalleryNavigation({ media }: { media: MediaView }) {
   );
 }
 
+const LABELS = {
+  filename: "Filename:",
+  title: "Title:",
+  description: "Description:",
+  category: "Category:",
+  label: "Label:",
+  taken: "Taken at:",
+  photographer: "Taken by:",
+  albums: "In albums:",
+  location: "Location:",
+  make: "Camera make:",
+  model: "Camera model:",
+  lens: "Lens:",
+  aperture: "Aperture:",
+  shutterSpeed: "Shutter speed:",
+  iso: "ISO:",
+  focalLength: "Focal length:",
+  rating: "Rating:",
+  tags: "Tags:",
+  people: "People:",
+};
+
+function Row({
+  label,
+  children,
+  multiline = false,
+}: {
+  multiline?: boolean;
+  label: keyof typeof LABELS;
+  children: React.ReactNode;
+}) {
+  let labelClasses = clsx(
+    "metadata-label",
+    multiline && "multiline",
+    // `metadata-${id}`,
+  );
+  let contentClasses = clsx(
+    "metadata-value",
+    multiline && "multiline",
+    // `metadata-${id}`,
+  );
+
+  return (
+    <>
+      <dt className={labelClasses}>{LABELS[label]}</dt>
+      <dd className={contentClasses}>{children}</dd>
+    </>
+  );
+}
+
+function Metadata<P extends keyof MediaView & keyof typeof LABELS>({
+  media,
+  property,
+}: {
+  media: MediaView;
+  property: P;
+}) {
+  if (!media[property]) {
+    return null;
+  }
+
+  return (
+    <Row label={property}>
+      {/* @ts-ignore */}
+      {media[property]}
+    </Row>
+  );
+}
+
+function MediaInfo({ media }: { media: MediaView }) {
+  let taken = useMemo(() => {
+    if (media.taken === null) {
+      return null;
+    }
+
+    return (
+      <Row label="taken">
+        {media.taken.toLocaleString(DateTime.DATETIME_SHORT)}
+      </Row>
+    );
+  }, [media]);
+
+  return (
+    <dl>
+      <Metadata media={media} property="filename" />
+      <Metadata media={media} property="title" />
+      <Metadata media={media} property="description" />
+      <Metadata media={media} property="category" />
+      {/* Albums */}
+      <Metadata media={media} property="label" />
+      {taken}
+      {/* Rating */}
+      {/* Location */}
+      {/* Tags */}
+      {/* People */}
+      <Metadata media={media} property="photographer" />
+      {/* Shutter speed */}
+      {/* Aperture */}
+      {/* ISO */}
+      <Metadata media={media} property="make" />
+      <Metadata media={media} property="model" />
+      <Metadata media={media} property="lens" />
+      {/* Focal length */}
+    </dl>
+  );
+}
+
 export default function MediaLayout({
   media: apiMedia,
   fromGallery = false,
@@ -188,7 +296,7 @@ export default function MediaLayout({
         onClose={closeInfoPanel}
         className="media-info"
       >
-        Hello
+        <MediaInfo media={media} />
       </SlidePanel>
     </main>
   );
