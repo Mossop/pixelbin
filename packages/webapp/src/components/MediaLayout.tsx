@@ -7,14 +7,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
-import Icon, { IconButton, IconLink } from "./Icon";
+import Icon, { IconButton, IconLink, IconName } from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
 import { Rating } from "./Rating";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
-import { ApiMediaView, MediaView } from "@/modules/types";
+import { ApiMediaRelations, MediaRelations, MediaView } from "@/modules/types";
 import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
 const FRACTION = /^(\d+)\/(\d+)$/;
@@ -179,6 +179,20 @@ const LABELS = {
   people: "People:",
 };
 
+function Chip({
+  icon,
+  children,
+}: {
+  icon: IconName;
+  children: React.ReactNode;
+}) {
+  return (
+    <li>
+      <Icon icon={icon} /> {children}
+    </li>
+  );
+}
+
 function Row({
   label,
   children,
@@ -226,7 +240,7 @@ function Metadata<P extends keyof MediaView & keyof typeof LABELS>({
   );
 }
 
-function MediaInfo({ media }: { media: MediaView }) {
+function MediaInfo({ media }: { media: MediaRelations }) {
   let taken = useMemo(() => {
     if (media.taken === null) {
       return null;
@@ -323,7 +337,17 @@ function MediaInfo({ media }: { media: MediaView }) {
       <Metadata media={media} property="title" />
       <Metadata media={media} property="description" />
       <Metadata media={media} property="category" />
-      {/* Albums */}
+      {media.albums.length > 0 && (
+        <Row label="albums">
+          <ul className="relation-list">
+            {media.albums.map((r) => (
+              <Chip key={r.id} icon="album">
+                {r.name}
+              </Chip>
+            ))}
+          </ul>
+        </Row>
+      )}
       <Metadata media={media} property="label" />
       {taken}
       {media.rating !== null && (
@@ -332,8 +356,28 @@ function MediaInfo({ media }: { media: MediaView }) {
         </Row>
       )}
       {location}
-      {/* Tags */}
-      {/* People */}
+      {media.tags.length > 0 && (
+        <Row label="tags">
+          <ul className="relation-list">
+            {media.tags.map((r) => (
+              <Chip key={r.id} icon="tag">
+                {r.name}
+              </Chip>
+            ))}
+          </ul>
+        </Row>
+      )}
+      {media.people.length > 0 && (
+        <Row label="people">
+          <ul className="relation-list">
+            {media.people.map((r) => (
+              <Chip key={r.id} icon="person">
+                {r.name}
+              </Chip>
+            ))}
+          </ul>
+        </Row>
+      )}
       <Metadata media={media} property="photographer" />
       {shutterSpeed}
       {aperture}
@@ -353,7 +397,7 @@ export default function MediaLayout({
 }: {
   fromGallery?: boolean;
   gallery: string[];
-  media: ApiMediaView;
+  media: ApiMediaRelations;
 }) {
   let media = useMemo(() => deserializeMediaView(apiMedia), [apiMedia]);
 
@@ -417,6 +461,7 @@ export default function MediaLayout({
         show={infoPanelShown}
         position="right"
         onClose={closeInfoPanel}
+        theme="dark"
         className="media-info"
       >
         <MediaInfo media={media} />

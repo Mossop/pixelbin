@@ -21,6 +21,8 @@ const ICONS = {
   info: icons.mdiInformationOutline,
   "fullscreen-enter": icons.mdiFullscreen,
   "fullscreen-exit": icons.mdiFullscreenExit,
+  tag: icons.mdiTagOutline,
+  person: icons.mdiAccountOutline,
 };
 
 export type IconName = keyof typeof ICONS;
