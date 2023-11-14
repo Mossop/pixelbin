@@ -8,6 +8,7 @@ import { memo, useCallback, useState } from "react";
 
 import Icon from "./Icon";
 import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
+import { Rating } from "./Rating";
 import Throbber from "./Throbber";
 import { MediaView } from "@/modules/types";
 import { url } from "@/modules/util";
@@ -79,33 +80,6 @@ const ThumbnailImage = memo(function ThumbnailImage({
         className={`thumbnail ${loaded ? "loaded" : "loading"}`}
       />
     </picture>
-  );
-});
-
-const Rating = memo(function Rating({ media }: { media: MediaView }) {
-  let { rating } = media;
-  if (rating === null) {
-    return <div />;
-  }
-
-  return (
-    <div className="rating">
-      <div className={rating >= 1 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 2 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 3 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 4 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 5 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-    </div>
   );
 });
 

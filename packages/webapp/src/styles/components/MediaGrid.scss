@@ -45,17 +45,6 @@
       opacity: 1;
     }
 
-    .rating {
-      display: flex;
-      justify-content: flex-start;
-      align-items: center;
-      gap: theme.$spacing;
-
-      .filled {
-        color: rgb(255, 180, 0);
-      }
-    }
-
     .thumbnail {
       display: block;
       width: 100%;

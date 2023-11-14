@@ -10,16 +10,57 @@ import { useCallback, useMemo, useState } from "react";
 import Icon from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
+import { Rating } from "./Rating";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import { ApiMediaView, MediaView } from "@/modules/types";
 import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
+const FRACTION = /^(\d+)\/(\d+)$/;
+
 const THUMBNAILS = {
   alternateTypes: ["image/webp"],
   sizes: [150, 200, 250, 300, 350, 400, 450, 500],
 };
+
+function superscript(value: number): string {
+  let val = Math.ceil(value);
+
+  let result: string[] = [];
+  while (val > 0) {
+    let digit = val % 10;
+
+    switch (digit) {
+      case 1:
+        result.unshift("\u00B9");
+        break;
+      case 2:
+      case 3:
+        result.unshift(String.fromCharCode(0x00b0 + digit));
+        break;
+      default:
+        result.unshift(String.fromCharCode(0x2070 + digit));
+    }
+
+    val = (val - digit) / 10;
+  }
+
+  return result.join("");
+}
+
+function subscript(value: number): string {
+  let val = Math.ceil(value);
+
+  let result: string[] = [];
+  while (val > 0) {
+    let digit = val % 10;
+    result.unshift(String.fromCharCode(0x2080 + digit));
+    val = (val - digit) / 10;
+  }
+
+  return result.join("");
+}
 
 function Photo({ media }: { media: MediaView }) {
   let [loaded, setLoaded] = useState(false);
@@ -198,6 +239,84 @@ function MediaInfo({ media }: { media: MediaView }) {
     );
   }, [media]);
 
+  let shutterSpeed = useMemo(() => {
+    if (media.shutterSpeed === null) {
+      return null;
+    }
+    let value = media.shutterSpeed;
+    let matches = FRACTION.exec(value);
+    if (matches) {
+      value = `${superscript(parseInt(matches[1], 10))}\u2044${subscript(
+        parseInt(matches[2], 10),
+      )}`;
+    }
+    return <Row label="shutterSpeed">{value} s</Row>;
+  }, [media]);
+
+  let aperture = useMemo(() => {
+    if (media.aperture === null) {
+      return null;
+    }
+
+    return (
+      <Row label="aperture">
+        <i>f</i>
+        {` / ${media.aperture.toFixed(1)}`}
+      </Row>
+    );
+  }, [media]);
+
+  let iso = useMemo(() => {
+    if (media.iso === null) {
+      return null;
+    }
+
+    return <Row label="iso">ISO {Math.round(media.iso)}</Row>;
+  }, [media]);
+
+  let focalLength = useMemo(() => {
+    if (media.focalLength === null) {
+      return null;
+    }
+
+    return <Row label="focalLength">{media.focalLength.toFixed(1)} mm</Row>;
+  }, [media]);
+
+  let location = useMemo(() => {
+    let locationParts: string[] = [];
+
+    if (media.location) {
+      locationParts.push(media.location);
+    }
+    if (media.city) {
+      locationParts.push(media.city);
+    }
+    if (media.state) {
+      locationParts.push(media.state);
+    }
+    if (media.country) {
+      locationParts.push(media.country);
+    }
+
+    if (locationParts.length) {
+      return (
+        <Row label="location">
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href={`https://www.google.com/maps/search/${encodeURIComponent(
+              locationParts.join(", "),
+            )}`}
+            color="secondary"
+          >
+            {locationParts.join(", ")}
+          </a>
+        </Row>
+      );
+    }
+    return null;
+  }, [media]);
+
   return (
     <dl>
       <Metadata media={media} property="filename" />
@@ -207,18 +326,22 @@ function MediaInfo({ media }: { media: MediaView }) {
       {/* Albums */}
       <Metadata media={media} property="label" />
       {taken}
-      {/* Rating */}
-      {/* Location */}
+      {media.rating !== null && (
+        <Row label="rating">
+          <Rating media={media} />
+        </Row>
+      )}
+      {location}
       {/* Tags */}
       {/* People */}
       <Metadata media={media} property="photographer" />
-      {/* Shutter speed */}
-      {/* Aperture */}
-      {/* ISO */}
+      {shutterSpeed}
+      {aperture}
+      {iso}
       <Metadata media={media} property="make" />
       <Metadata media={media} property="model" />
       <Metadata media={media} property="lens" />
-      {/* Focal length */}
+      {focalLength}
     </dl>
   );
 }
