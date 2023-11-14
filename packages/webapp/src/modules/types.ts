@@ -253,7 +253,7 @@ interface Relation {
   name: string;
 }
 type PersonRelation = Relation & {
-  location: Location;
+  location: Location | null;
 };
 
 interface Relations {

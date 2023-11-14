@@ -731,7 +731,7 @@ pub struct Location {
 pub struct PersonRelation {
     pub id: String,
     pub name: String,
-    pub location: Location,
+    pub location: Option<Location>,
 }
 
 #[derive(Serialize, Clone, Debug)]
