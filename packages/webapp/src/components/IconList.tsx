@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import Icon from "./Icon";
+import Icon, { IconName } from "./Icon";
 
 export function IconList({ children }: { children: React.ReactNode }) {
   return <ul className="c-iconlist">{children}</ul>;
@@ -17,7 +17,7 @@ export function IconListItem({
   selected?: boolean;
   href?: string;
   label: string;
-  icon: string;
+  icon: IconName;
   count?: number;
   children?: React.ReactNode;
 }) {
@@ -28,9 +28,7 @@ export function IconListItem({
           className={`item-label ${selected ? "selected" : ""}`}
           href={href}
         >
-          <div className="item-icon">
-            <Icon icon={icon} />
-          </div>
+          <Icon className="item-icon" icon={icon} />
           <span className="label">{label}</span>
           <span className="count">{count === 0 ? "" : count}</span>
         </Link>

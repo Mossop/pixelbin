@@ -1,5 +1,19 @@
 @use "theme";
 
+.c-icon {
+  height: 1.2em;
+  width: 1.2em;
+}
+
+.c-icon-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .c-icon-button {
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

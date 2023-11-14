@@ -96,11 +96,11 @@ const FileType = memo(function FileType({ media }: { media: MediaView }) {
 
   switch (mimetype) {
     case "image":
-      return <Icon icon="image" />;
+      return <Icon icon="photo" />;
     case "video":
-      return <Icon icon="film" />;
+      return <Icon icon="video" />;
     default:
-      return <Icon icon="file-earmark" />;
+      return <Icon icon="file" />;
   }
 });
 

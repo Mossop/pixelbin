@@ -68,7 +68,7 @@ function AlbumItem({
   return (
     <IconListItem
       selected={selectedItem == album.id}
-      icon="images"
+      icon="album"
       href={url(["album", album.id])}
       label={album.name}
       count={album.media}
@@ -93,14 +93,14 @@ function CatalogItem({
 }) {
   return (
     <IconListItem
-      icon="file-earmark-richtext"
+      icon="catalog"
       href={url(["catalog", catalog.id])}
       label={catalog.name}
       selected={selectedItem == catalog.id}
     >
       <IconList>
         {catalog.searches.length > 0 && (
-          <IconListItem icon="search" label="Saved Searches">
+          <IconListItem icon="searches" label="Saved Searches">
             <IconList>
               {catalog.searches.map((search) => (
                 <IconListItem
@@ -116,7 +116,7 @@ function CatalogItem({
           </IconListItem>
         )}
         {catalog.albums.length > 0 && (
-          <IconListItem icon="images" label="Albums">
+          <IconListItem icon="albums" label="Albums">
             <IconList>
               {catalog.albums.map((album) => (
                 <AlbumItem

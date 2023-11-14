@@ -5,6 +5,15 @@ import { memo } from "react";
 import Icon from "./Icon";
 import { MediaView } from "@/modules/types";
 
+function RatingStar({ rating, star }: { rating: number; star: number }) {
+  return (
+    <Icon
+      className={rating >= star ? "filled" : "unfilled"}
+      icon={rating >= star ? "star-filled" : "star-unfilled"}
+    />
+  );
+}
+
 export const Rating = memo(function Rating({ media }: { media: MediaView }) {
   let { rating } = media;
   if (rating === null) {
@@ -13,21 +22,11 @@ export const Rating = memo(function Rating({ media }: { media: MediaView }) {
 
   return (
     <div className="c-rating">
-      <div className={rating >= 1 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 2 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 3 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 4 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
-      <div className={rating >= 5 ? "filled" : "unfilled"}>
-        <Icon icon="star-fill" />
-      </div>
+      <RatingStar rating={rating} star={1} />
+      <RatingStar rating={rating} star={2} />
+      <RatingStar rating={rating} star={3} />
+      <RatingStar rating={rating} star={4} />
+      <RatingStar rating={rating} star={5} />
     </div>
   );
 });

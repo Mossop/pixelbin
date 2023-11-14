@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
-import Icon from "./Icon";
+import Icon, { IconButton, IconLink } from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
 import { Rating } from "./Rating";
@@ -142,14 +142,14 @@ function GalleryNavigation({ media }: { media: MediaView }) {
       <div>
         {previousMedia && (
           <Link href={url([...base, "media", previousMedia.id])} replace={true}>
-            <Icon icon="arrow-left-circle-fill" />
+            <Icon icon="previous" />
           </Link>
         )}
       </div>
       <div>
         {nextMedia && (
           <Link href={url([...base, "media", nextMedia.id])} replace={true}>
-            <Icon icon="arrow-right-circle-fill" />
+            <Icon icon="next" />
           </Link>
         )}
       </div>
@@ -393,23 +393,23 @@ export default function MediaLayout({
         <div className="infobar">
           <div>{mediaDate(media).toRelative()}</div>
           <div className="buttons">
-            <a href={url(gallery)} onClick={loadGallery}>
-              <Icon icon="x-circle-fill" />
-            </a>
+            <IconLink href={url(gallery)} onClick={loadGallery} icon="close" />
           </div>
         </div>
         <GalleryNavigation media={media} />
         <div className="infobar">
           <div className="buttons">
-            <a download={media.file!.fileName} href={downloadUrl}>
-              <Icon icon="download" />
-            </a>
+            <IconLink
+              download={media.file!.fileName}
+              href={downloadUrl}
+              icon="download"
+            />
             {isFullscreen ? (
-              <Icon onClick={exitFullscreen} icon="fullscreen-exit" />
+              <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
             ) : (
-              <Icon onClick={enterFullscreen} icon="arrows-fullscreen" />
+              <IconButton onClick={enterFullscreen} icon="fullscreen-enter" />
             )}
-            <Icon onClick={showInfoPanel} icon="info-circle" />
+            <IconButton onClick={showInfoPanel} icon="info" />
           </div>
         </div>
       </Overlay>
