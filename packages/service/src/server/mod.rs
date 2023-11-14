@@ -1,4 +1,4 @@
-use std::{fmt::Display, result, time::Duration};
+use std::{collections::HashMap, fmt::Display, result, time::Duration};
 
 use actix_web::{
     body::BoxBody, http::StatusCode, web, App, HttpResponse, HttpServer, ResponseError,
@@ -18,8 +18,7 @@ mod util;
 
 const SESSION_LENGTH: u64 = 60 * 60 * 24 * 30;
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase", tag = "error", content = "message")]
+#[derive(Debug)]
 enum ApiErrorCode {
     // UnknownException,
     // BadMethod,
@@ -29,12 +28,40 @@ enum ApiErrorCode {
     NotFound,
     // TemporaryFailure,
     // InvalidHost,
-    InternalError(String),
+    InternalError(Error),
+}
+
+impl Serialize for ApiErrorCode {
+    fn serialize<S>(&self, serializer: S) -> result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let (error, message) = match self {
+            ApiErrorCode::NotLoggedIn => ("NotLoggedIn", None),
+            ApiErrorCode::NotFound => ("NotFound", None),
+            ApiErrorCode::InternalError(error) => ("InternalError", Some(error.to_string())),
+        };
+
+        let mut map = HashMap::new();
+        map.insert("error".to_string(), error.to_owned());
+
+        if let Some(message) = message {
+            map.insert("message".to_string(), message);
+        }
+
+        map.serialize(serializer)
+    }
 }
 
 impl Display for ApiErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&serde_json::to_string_pretty(self).unwrap())
+        match self {
+            ApiErrorCode::NotLoggedIn => f.write_str("APIError: NotLoggedIn"),
+            ApiErrorCode::NotFound => f.write_str("APIError: NotFound"),
+            ApiErrorCode::InternalError(error) => {
+                f.write_fmt(format_args!("APIError: InternalError: {}", error))
+            }
+        }
     }
 }
 
@@ -66,14 +93,14 @@ impl From<Error> for ApiErrorCode {
     fn from(value: Error) -> Self {
         match value {
             Error::NotFound => ApiErrorCode::NotFound,
-            v => ApiErrorCode::InternalError(v.to_string()),
+            v => ApiErrorCode::InternalError(v),
         }
     }
 }
 
 impl From<tokio::io::Error> for ApiErrorCode {
     fn from(value: tokio::io::Error) -> Self {
-        ApiErrorCode::InternalError(value.to_string())
+        ApiErrorCode::InternalError(Error::from(value))
     }
 }
 

@@ -1,8 +1,10 @@
 import { DateTime, FixedOffsetZone } from "luxon";
 
 import {
+  ApiMediaRelations,
   ApiMediaView,
   ApiMediaViewFile,
+  MediaRelations,
   MediaView,
   MediaViewFile,
 } from "./types";
@@ -19,6 +21,8 @@ export function mediaDate(media: MediaView): DateTime {
   return media.taken ?? media.file?.uploaded ?? media.created;
 }
 
+export function deserializeMediaView(media: ApiMediaRelations): MediaRelations;
+export function deserializeMediaView(media: ApiMediaView): MediaView;
 export function deserializeMediaView(media: ApiMediaView): MediaView {
   let zone = media.takenZone
     ? FixedOffsetZone.parseSpecifier(media.takenZone)
@@ -54,6 +58,8 @@ export function deserializeMediaView(media: ApiMediaView): MediaView {
   };
 }
 
+export function serializeMediaView(media: MediaRelations): ApiMediaRelations;
+export function serializeMediaView(media: MediaView): ApiMediaView;
 export function serializeMediaView(media: MediaView): ApiMediaView {
   let mediaFile: ApiMediaViewFile | null = null;
   if (media.file) {

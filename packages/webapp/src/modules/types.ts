@@ -240,3 +240,27 @@ export type ApiMediaView = Replace<
 >;
 
 export type ApiMediaViewFile = Replace<MediaViewFile, { uploaded: string }>;
+
+interface Location {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+interface Relation {
+  id: string;
+  name: string;
+}
+type PersonRelation = Relation & {
+  location: Location;
+};
+
+interface Relations {
+  albums: Relation[];
+  tags: Relation[];
+  people: PersonRelation[];
+}
+
+export type MediaRelations = MediaView & Relations;
+export type ApiMediaRelations = ApiMediaView & Relations;

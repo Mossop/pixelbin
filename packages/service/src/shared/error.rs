@@ -47,10 +47,8 @@ pub enum Error {
     },
     #[error("S3 Error: {message}")]
     S3Error { message: String },
-    #[error("Invalid Query: {message}")]
-    InvalidQuery { message: String },
-    #[error("Unknown error")]
-    Unknown,
+    #[error("Unknown error: {message}")]
+    Unknown { message: String },
 }
 
 impl From<diesel::result::Error> for Error {

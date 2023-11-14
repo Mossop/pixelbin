@@ -91,7 +91,7 @@ struct LoginResponse {
 }
 
 #[post("/api/login")]
-#[instrument(skip(app_state, credentials))]
+#[instrument(err, skip(app_state, credentials))]
 async fn login(
     app_state: web::Data<AppState>,
     credentials: web::Json<LoginRequest>,
@@ -129,7 +129,7 @@ async fn login(
 }
 
 #[post("/api/logout")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn logout(
     app_state: web::Data<AppState>,
     session: MaybeSession,
@@ -171,7 +171,7 @@ struct UserState {
 }
 
 #[get("/api/state")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn state(
     app_state: web::Data<AppState>,
     session: Session,

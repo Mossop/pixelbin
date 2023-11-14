@@ -5,10 +5,11 @@ import { notFound } from "next/navigation";
 import { clearSession, session, setSession } from "./session";
 import {
   Album,
+  ApiMediaRelations,
   ApiMediaView,
   Catalog,
   LoginResponse,
-  MediaView,
+  MediaRelations,
   SavedSearch,
   State,
 } from "./types";
@@ -145,9 +146,9 @@ export async function getCatalog(id: string): Promise<Catalog> {
   return apiCall<Catalog>(`/api/catalog/${id}`);
 }
 
-interface ListMediaResponse {
+interface ListMediaResponse<T> {
   total: number;
-  media: ApiMediaView[];
+  media: T[];
 }
 
 const LIST_COUNT = 500;
@@ -158,7 +159,7 @@ export async function* listMedia(
 ): AsyncGenerator<ApiMediaView[], void, unknown> {
   let offset = 0;
   while (true) {
-    let response = await apiCall<ListMediaResponse>(
+    let response = await apiCall<ListMediaResponse<ApiMediaView>>(
       `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
     );
     yield response.media;
@@ -170,8 +171,10 @@ export async function* listMedia(
   }
 }
 
-export async function getMedia(id: string): Promise<MediaView> {
-  let response = await apiCall<ListMediaResponse>(`/api/media/${id}`);
+export async function getMedia(id: string): Promise<MediaRelations> {
+  let response = await apiCall<ListMediaResponse<ApiMediaRelations>>(
+    `/api/media/${id}`,
+  );
 
   if (response.media.length) {
     return deserializeMediaView(response.media[0]);

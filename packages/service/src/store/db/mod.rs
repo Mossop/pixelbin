@@ -21,7 +21,7 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use schema::*;
 use tracing::{error, info, instrument, trace};
 
-use self::functions::media_view;
+use self::functions::{media_view, media_view_columns};
 use super::{
     joinable,
     metadata::{process_media, PROCESS_VERSION},
@@ -469,12 +469,21 @@ impl<'a> DbConnection<'a> {
         &mut self,
         email: &str,
         media: &[&str],
-    ) -> Result<Vec<models::MediaView>> {
+    ) -> Result<Vec<models::MediaRelations>> {
         let media = media_view!()
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
+            .left_join(album_relation::table.on(album_relation::media.eq(media_item::id)))
+            .left_join(tag_relation::table.on(tag_relation::media.eq(media_item::id)))
+            .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
             .filter(user_catalog::user.eq(email))
             .filter(media_item::id.eq_any(media))
-            .load::<models::MediaView>(self.conn)
+            .select((
+                media_view_columns!(),
+                album_relation::albums.nullable(),
+                tag_relation::tags.nullable(),
+                person_relation::people.nullable(),
+            ))
+            .load::<models::MediaRelations>(self.conn)
             .await?;
 
         Ok(media)

@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::HashMap};
+use std::{cmp::min, collections::HashMap, result};
 
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
@@ -6,16 +6,20 @@ use diesel::{
     AsExpression, Queryable,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::{from_value, Value};
 use serde_repr::Serialize_repr;
 use tracing::instrument;
 use typeshare::typeshare;
 
-use super::metadata::{lookup_timezone, media_datetime};
 use super::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
     DbConnection, MediaFilePath, RemotePath,
+};
+use super::{
+    db::functions::media_view_columns,
+    metadata::{lookup_timezone, media_datetime},
 };
 use super::{db::schema::*, db::search::CompoundQueryItem};
 use crate::Result;
@@ -203,20 +207,17 @@ impl Catalog {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
+        let mut query = media_view!()
+            .filter(media_item::catalog.eq(&self.id))
+            .select(media_view_columns!())
+            .offset(offset.unwrap_or_default())
+            .into_boxed();
+
         if let Some(count) = count {
-            Ok(media_view!()
-                .filter(media_item::catalog.eq(&self.id))
-                .offset(offset.unwrap_or_default())
-                .limit(count)
-                .load::<MediaView>(conn)
-                .await?)
-        } else {
-            Ok(media_view!()
-                .filter(media_item::catalog.eq(&self.id))
-                .offset(offset.unwrap_or_default())
-                .load::<MediaView>(conn)
-                .await?)
+            query = query.limit(count);
         }
+
+        Ok(query.load::<MediaView>(conn).await?)
     }
 }
 
@@ -256,45 +257,34 @@ impl Album {
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
         if recursive {
+            let mut query = media_view!()
+                .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+                .inner_join(
+                    album_descendent::table.on(album_descendent::descendent.eq(media_album::album)),
+                )
+                .filter(album_descendent::id.eq(&self.id))
+                .select(media_view_columns!())
+                .offset(offset.unwrap_or_default())
+                .into_boxed();
+
             if let Some(count) = count {
-                Ok(media_view!()
-                    .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
-                    .inner_join(
-                        album_descendent::table
-                            .on(album_descendent::descendent.eq(media_album::album)),
-                    )
-                    .filter(album_descendent::id.eq(&self.id))
-                    .offset(offset.unwrap_or_default())
-                    .limit(count)
-                    .load::<MediaView>(conn)
-                    .await?)
-            } else {
-                Ok(media_view!()
-                    .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
-                    .inner_join(
-                        album_descendent::table
-                            .on(album_descendent::descendent.eq(media_album::album)),
-                    )
-                    .filter(album_descendent::id.eq(&self.id))
-                    .offset(offset.unwrap_or_default())
-                    .load::<MediaView>(conn)
-                    .await?)
+                query = query.limit(count);
             }
-        } else if let Some(count) = count {
-            Ok(media_view!()
-                .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
-                .filter(media_album::album.eq(&self.id))
-                .offset(offset.unwrap_or_default())
-                .limit(count)
-                .load::<MediaView>(conn)
-                .await?)
+
+            Ok(query.load::<MediaView>(conn).await?)
         } else {
-            Ok(media_view!()
+            let mut query = media_view!()
                 .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
                 .filter(media_album::album.eq(&self.id))
+                .select(media_view_columns!())
                 .offset(offset.unwrap_or_default())
-                .load::<MediaView>(conn)
-                .await?)
+                .into_boxed();
+
+            if let Some(count) = count {
+                query = query.limit(count);
+            }
+
+            Ok(query.load::<MediaView>(conn).await?)
         }
     }
 }
@@ -326,22 +316,18 @@ impl SavedSearch {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
+        let mut query = media_view!()
+            .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
+            .filter(media_search::search.eq(&self.id))
+            .select(media_view_columns!())
+            .offset(offset.unwrap_or_default())
+            .into_boxed();
+
         if let Some(count) = count {
-            Ok(media_view!()
-                .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
-                .filter(media_search::search.eq(&self.id))
-                .offset(offset.unwrap_or_default())
-                .limit(count)
-                .load::<MediaView>(conn)
-                .await?)
-        } else {
-            Ok(media_view!()
-                .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
-                .filter(media_search::search.eq(&self.id))
-                .offset(offset.unwrap_or_default())
-                .load::<MediaView>(conn)
-                .await?)
+            query = query.limit(count);
         }
+
+        Ok(query.load::<MediaView>(conn).await?)
     }
 
     #[instrument(skip(self, conn), fields(search = self.id))]
@@ -715,4 +701,65 @@ pub struct MediaView {
     pub focal_length: Option<f32>,
     pub rating: Option<i32>,
     pub file: Option<MediaViewFile>,
+}
+
+#[typeshare]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AlbumRelation {
+    pub id: String,
+    pub name: String,
+}
+
+#[typeshare]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TagRelation {
+    pub id: String,
+    pub name: String,
+}
+
+#[typeshare]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Location {
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32,
+}
+
+#[typeshare]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PersonRelation {
+    pub id: String,
+    pub name: String,
+    pub location: Location,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(transparent)]
+pub struct MaybeVec<T>(Vec<T>);
+
+impl<T: DeserializeOwned> TryFrom<Option<Value>> for MaybeVec<T> {
+    type Error = serde_json::Error;
+
+    fn try_from(value: Option<Value>) -> result::Result<MaybeVec<T>, serde_json::Error> {
+        if let Some(value) = value {
+            Ok(MaybeVec(from_value(value)?))
+        } else {
+            Ok(MaybeVec(Vec::new()))
+        }
+    }
+}
+
+#[typeshare]
+#[derive(Queryable, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaRelations {
+    #[serde(flatten)]
+    pub media: MediaView,
+    #[diesel(deserialize_as = Option<Value>)]
+    pub albums: MaybeVec<AlbumRelation>,
+    #[diesel(deserialize_as = Option<Value>)]
+    pub tags: MaybeVec<TagRelation>,
+    #[diesel(deserialize_as = Option<Value>)]
+    pub people: MaybeVec<PersonRelation>,
 }

@@ -31,7 +31,7 @@ struct DownloadPath {
 }
 
 #[get("/media/download/{item}/{file}/{filename}")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn download_handler(
     app_state: web::Data<AppState>,
     session: Session,
@@ -85,7 +85,7 @@ struct ThumbnailPath {
 }
 
 #[get("/media/thumb/{item}/{file}/{size}/{mimetype}/{_filename}")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn thumbnail_handler(
     app_state: web::Data<AppState>,
     session: MaybeSession,
@@ -141,7 +141,7 @@ struct EncodingPath {
 }
 
 #[get("/media/encoding/{item}/{file}/{mimetype}/{_filename}")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn encoding_handler(
     app_state: web::Data<AppState>,
     session: MaybeSession,
@@ -211,7 +211,7 @@ struct AlbumResponse {
 }
 
 #[get("/api/album/{album_id}")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn get_album(
     app_state: web::Data<AppState>,
     session: Session,
@@ -243,7 +243,7 @@ struct SearchResponse {
 }
 
 #[get("/api/search/{search_id}")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn get_search(
     app_state: web::Data<AppState>,
     session: Session,
@@ -272,7 +272,7 @@ struct CatalogResponse {
 }
 
 #[get("/api/catalog/{catalog_id}")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn get_catalog(
     app_state: web::Data<AppState>,
     session: Session,
@@ -300,19 +300,19 @@ struct GetMediaRequest {
 }
 
 #[derive(Debug, Serialize)]
-struct GetMediaResponse {
+struct GetMediaResponse<T> {
     total: i64,
-    media: Vec<models::MediaView>,
+    media: Vec<T>,
 }
 
 #[get("/api/catalog/{catalog_id}/media")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn get_catalog_media(
     app_state: web::Data<AppState>,
     session: Session,
     catalog_id: web::Path<String>,
     query: web::Query<GetMediaRequest>,
-) -> ApiResult<web::Json<GetMediaResponse>> {
+) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
@@ -344,13 +344,13 @@ struct GetRecursiveMediaRequest {
 }
 
 #[get("/api/album/{album_id}/media")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn get_album_media(
     app_state: web::Data<AppState>,
     session: Session,
     album_id: web::Path<String>,
     query: web::Query<GetRecursiveMediaRequest>,
-) -> ApiResult<web::Json<GetMediaResponse>> {
+) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
@@ -375,13 +375,13 @@ async fn get_album_media(
 }
 
 #[get("/api/search/{search_id}/media")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn get_search_media(
     app_state: web::Data<AppState>,
     session: Session,
     search_id: web::Path<String>,
     query: web::Query<GetMediaRequest>,
-) -> ApiResult<web::Json<GetMediaResponse>> {
+) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
@@ -404,12 +404,12 @@ async fn get_search_media(
 }
 
 #[get("/api/media/{media_id}")]
-#[instrument(skip(app_state, session))]
+#[instrument(err, skip(app_state, session))]
 async fn get_media(
     app_state: web::Data<AppState>,
     session: Session,
     media_id: web::Path<String>,
-) -> ApiResult<web::Json<GetMediaResponse>> {
+) -> ApiResult<web::Json<GetMediaResponse<models::MediaRelations>>> {
     let response = app_state
         .store
         .in_transaction(|mut trx| {
