@@ -84,7 +84,6 @@ const ThumbnailImage = memo(function ThumbnailImage({
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img
         onLoad={onLoad}
-        loading="lazy"
         decoding="async"
         sizes="150px"
         srcSet={sources("image/jpeg")}
