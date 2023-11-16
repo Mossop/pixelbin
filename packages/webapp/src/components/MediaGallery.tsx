@@ -33,18 +33,16 @@ interface GroupContext {
   readonly media: readonly MediaView[];
 }
 
-class TakenGrouper {
-  public context: GroupContext = { media: [], groups: [] };
+abstract class Grouper {
+  public context: GroupContext;
 
-  protected idFor(media: MediaView): string {
-    let dt = mediaDate(media);
-    return dt ? (dt.month - 1 + dt.year * 12).toString() : "";
+  public constructor() {
+    this.context = { media: [], groups: [] };
   }
 
-  protected titleFor(media: MediaView): string {
-    let dt = mediaDate(media);
-    return dt ? `${dt.monthLong} ${dt.year}` : "";
-  }
+  protected abstract idFor(media: MediaView): string;
+
+  protected abstract titleFor(media: MediaView): string;
 
   public addMedia(list: MediaView[]) {
     if (!list.length) {
@@ -72,6 +70,18 @@ class TakenGrouper {
         context.media.push(...list);
       }
     });
+  }
+}
+
+class TakenGrouper extends Grouper {
+  protected idFor(media: MediaView): string {
+    let dt = mediaDate(media);
+    return dt ? (dt.month - 1 + dt.year * 12).toString() : "";
+  }
+
+  protected titleFor(media: MediaView): string {
+    let dt = mediaDate(media);
+    return dt ? `${dt.monthLong} ${dt.year}` : "";
   }
 }
 
