@@ -71,7 +71,7 @@ function Photo({ media }: { media: MediaView }) {
   let { file } = media;
   if (!file) {
     return (
-      <div className="photo">
+      <div className="photo missing">
         <Icon icon="hourglass" />
       </div>
     );
@@ -416,13 +416,9 @@ export default function MediaLayout({
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
 
-  let downloadUrl = url([
-    "media",
-    "download",
-    media.id,
-    media.file!.id,
-    media.file!.fileName,
-  ]);
+  let downloadUrl = media.file
+    ? url(["media", "download", media.id, media.file.id, media.file.fileName])
+    : null;
 
   let [infoPanelShown, setInfoPanelShown] = useState(false);
   let showInfoPanel = useCallback(() => setInfoPanelShown(true), []);
@@ -455,11 +451,13 @@ export default function MediaLayout({
         <GalleryNavigation media={media} />
         <div className="infobar">
           <div className="buttons">
-            <IconLink
-              download={media.file!.fileName}
-              href={downloadUrl}
-              icon="download"
-            />
+            {downloadUrl && (
+              <IconLink
+                download={media.file!.fileName}
+                href={downloadUrl}
+                icon="download"
+              />
+            )}
             {isFullscreen ? (
               <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
             ) : (
