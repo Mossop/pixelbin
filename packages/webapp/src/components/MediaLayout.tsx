@@ -452,16 +452,21 @@ export default function MediaLayout({
         <div className="infobar">
           <div className="buttons">
             {downloadUrl && (
-              <IconLink
-                download={media.file!.fileName}
-                href={downloadUrl}
-                icon="download"
-              />
-            )}
-            {isFullscreen ? (
-              <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
-            ) : (
-              <IconButton onClick={enterFullscreen} icon="fullscreen-enter" />
+              <>
+                <IconLink
+                  download={media.file!.fileName}
+                  href={downloadUrl}
+                  icon="download"
+                />
+                {isFullscreen ? (
+                  <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
+                ) : (
+                  <IconButton
+                    onClick={enterFullscreen}
+                    icon="fullscreen-enter"
+                  />
+                )}
+              </>
             )}
             <IconButton onClick={showInfoPanel} icon="info" />
           </div>
