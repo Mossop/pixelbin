@@ -18,14 +18,19 @@
     grid-template-columns: repeat(auto-fill, minmax(calc(150px + 1rem), 1fr));
   }
 
+  .media-wrapper {
+    aspect-ratio: 1;
+  }
+
   .media {
+    height: 100%;
+    width: 100%;
     display: block;
     border-radius: theme.$spacing;
     position: relative;
     padding: theme.$spacing * 2;
     border: 1px solid var(--shadow-color);
     box-shadow: theme.$box-shadow;
-    aspect-ratio: 1;
     color: inherit;
 
     .overlay {

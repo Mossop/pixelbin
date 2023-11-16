@@ -4,7 +4,15 @@
 
 import mime from "mime-types";
 import Link from "next/link";
-import { memo, useCallback, useState } from "react";
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import Icon from "./Icon";
 import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
@@ -17,6 +25,9 @@ const THUMBNAILS = {
   alternateTypes: ["image/webp"],
   sizes: [150, 200, 250, 300, 350, 400, 450, 500],
 };
+
+// @ts-ignore
+const VisibilityContext = createContext<VisibilityObserver>(null);
 
 const ThumbnailImage = memo(function ThumbnailImage({
   media,
@@ -111,18 +122,37 @@ const MediaItem = memo(function MediaItem({
   base: string[];
   media: MediaView;
 }) {
+  let element = useRef(null);
+  let [visible, setVisible] = useState(false);
+
+  let observer = useContext(VisibilityContext);
+
+  useEffect(() => {
+    let el = element.current;
+
+    if (el) {
+      observer.observe(el, setVisible);
+    }
+
+    return () => {
+      if (el) {
+        observer.unobserve(el);
+      }
+    };
+  }, [observer]);
+
   return (
-    <Link
-      key={media.id}
-      href={url([...base, "media", media.id])}
-      className="media"
-    >
-      <ThumbnailImage media={media} />
-      <div className="overlay">
-        <Rating media={media} />
-        <FileType media={media} />
-      </div>
-    </Link>
+    <div ref={element} className="media-wrapper">
+      {visible && (
+        <Link href={url([...base, "media", media.id])} className="media">
+          <ThumbnailImage media={media} />
+          <div className="overlay">
+            <Rating media={media} />
+            <FileType media={media} />
+          </div>
+        </Link>
+      )}
+    </div>
   );
 });
 
@@ -147,6 +177,41 @@ const MediaGroup = memo(function MediaGroup({
   );
 });
 
+class VisibilityObserver {
+  elements: WeakMap<Element, (visible: boolean) => void>;
+
+  observer: IntersectionObserver;
+
+  constructor() {
+    this.elements = new WeakMap();
+    this.observer = new IntersectionObserver(
+      (entries) => this.processEntries(entries),
+      {
+        rootMargin: "50px",
+      },
+    );
+  }
+
+  processEntries(entries: IntersectionObserverEntry[]) {
+    for (let entry of entries) {
+      let cb = this.elements.get(entry.target);
+      if (cb) {
+        cb(entry.isIntersecting);
+      }
+    }
+  }
+
+  observe(element: Element, cb: (visible: boolean) => void) {
+    this.elements.set(element, cb);
+    this.observer.observe(element);
+  }
+
+  unobserve(element: Element) {
+    this.elements.delete(element);
+    this.observer.unobserve(element);
+  }
+}
+
 export default function MediaGrid() {
   let base = useGalleryBase();
   let groups = useGalleryGroups();
@@ -155,7 +220,13 @@ export default function MediaGrid() {
     return <Throbber />;
   }
 
-  return groups.map((group) => (
-    <MediaGroup key={group.id} base={base} group={group} />
-  ));
+  let observer = new VisibilityObserver();
+
+  return (
+    <VisibilityContext.Provider value={observer}>
+      {groups.map((group) => (
+        <MediaGroup key={group.id} base={base} group={group} />
+      ))}
+    </VisibilityContext.Provider>
+  );
 }
