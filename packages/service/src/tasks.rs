@@ -3,14 +3,9 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use scoped_futures::ScopedFutureExt;
-use tracing::{error, instrument};
+use tracing::instrument;
 
-use crate::store::{
-    aws::RemotePath,
-    metadata::{process_media, PROCESS_VERSION},
-    models::MediaFile,
-    Store,
-};
+use crate::store::{aws::RemotePath, metadata, Store};
 use crate::Result;
 
 #[instrument(skip_all)]
@@ -19,34 +14,7 @@ pub async fn reprocess_all_media(store: Store) -> Result {
 
     store
         .in_transaction(|mut tx| {
-            async move {
-                let list = MediaFile::list_current(&mut tx).await?;
-
-                let mut media_files = Vec::new();
-
-                for (media_file, file_path) in list {
-                    let media_file = if media_file.process_version != PROCESS_VERSION {
-                            match process_media(tx.config(), &file_path).await {
-                                Ok(media_file) => {
-                                    media_file
-                                },
-                                Err(e) => {
-                                    error!(media = media_file.media, error = ?e, "Failed to process media metadata");
-                                    continue;
-                                }
-                            }
-                        } else {
-                            media_file
-                        };
-
-                        media_files.push(media_file);
-                }
-
-                MediaFile::upsert(&mut tx, &media_files).await?;
-
-                Ok(())
-            }
-            .scope_boxed()
+            async move { metadata::reprocess_all_media(&mut tx).await }.scope_boxed()
         })
         .await?;
 

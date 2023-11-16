@@ -461,39 +461,53 @@ impl MediaItem {
         Ok(())
     }
 
-    fn sync_with_file(&mut self, media_file: &MediaFile) {
-        clear_matching(&mut self.filename, &media_file.filename);
-        clear_matching(&mut self.title, &media_file.title);
-        clear_matching(&mut self.description, &media_file.description);
-        clear_matching(&mut self.label, &media_file.label);
-        clear_matching(&mut self.category, &media_file.category);
-        clear_matching(&mut self.location, &media_file.location);
-        clear_matching(&mut self.city, &media_file.city);
-        clear_matching(&mut self.state, &media_file.state);
-        clear_matching(&mut self.country, &media_file.country);
-        clear_matching(&mut self.make, &media_file.make);
-        clear_matching(&mut self.model, &media_file.model);
-        clear_matching(&mut self.lens, &media_file.lens);
-        clear_matching(&mut self.photographer, &media_file.photographer);
-        clear_matching(&mut self.shutter_speed, &media_file.shutter_speed);
-        clear_matching(&mut self.taken_zone, &media_file.taken_zone);
-        clear_matching(&mut self.orientation, &media_file.orientation);
-        clear_matching(&mut self.iso, &media_file.iso);
-        clear_matching(&mut self.rating, &media_file.rating);
-        clear_matching(&mut self.longitude, &media_file.longitude);
-        clear_matching(&mut self.latitude, &media_file.latitude);
-        clear_matching(&mut self.altitude, &media_file.altitude);
-        clear_matching(&mut self.aperture, &media_file.aperture);
-        clear_matching(&mut self.focal_length, &media_file.focal_length);
+    pub async fn list_unprocessed(conn: &mut DbConnection<'_>) -> Result<Vec<MediaItem>> {
+        let items = media_item::table
+            .filter(media_item::media_file.is_null())
+            .select(media_item::all_columns)
+            .load::<MediaItem>(conn.conn)
+            .await?;
 
-        // Ignore any sub-second differences.
-        if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken) {
-            if item_taken.with_nanosecond(0) == file_taken.with_nanosecond(0) {
-                self.taken = None;
+        Ok(items)
+    }
+
+    pub fn sync_with_file(&mut self, media_file: Option<&MediaFile>) {
+        if let Some(media_file) = media_file {
+            clear_matching(&mut self.filename, &media_file.filename);
+            clear_matching(&mut self.title, &media_file.title);
+            clear_matching(&mut self.description, &media_file.description);
+            clear_matching(&mut self.label, &media_file.label);
+            clear_matching(&mut self.category, &media_file.category);
+            clear_matching(&mut self.location, &media_file.location);
+            clear_matching(&mut self.city, &media_file.city);
+            clear_matching(&mut self.state, &media_file.state);
+            clear_matching(&mut self.country, &media_file.country);
+            clear_matching(&mut self.make, &media_file.make);
+            clear_matching(&mut self.model, &media_file.model);
+            clear_matching(&mut self.lens, &media_file.lens);
+            clear_matching(&mut self.photographer, &media_file.photographer);
+            clear_matching(&mut self.shutter_speed, &media_file.shutter_speed);
+            clear_matching(&mut self.orientation, &media_file.orientation);
+            clear_matching(&mut self.iso, &media_file.iso);
+            clear_matching(&mut self.rating, &media_file.rating);
+            clear_matching(&mut self.longitude, &media_file.longitude);
+            clear_matching(&mut self.latitude, &media_file.latitude);
+            clear_matching(&mut self.altitude, &media_file.altitude);
+            clear_matching(&mut self.aperture, &media_file.aperture);
+            clear_matching(&mut self.focal_length, &media_file.focal_length);
+
+            // Ignore any sub-second differences.
+            if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken) {
+                if item_taken.with_nanosecond(0) == file_taken.with_nanosecond(0) {
+                    self.taken = None;
+                }
             }
         }
 
-        match (self.longitude, self.latitude) {
+        match (
+            self.longitude.or(media_file.and_then(|f| f.longitude)),
+            self.latitude.or(media_file.and_then(|f| f.latitude)),
+        ) {
             (Some(longitude), Some(latitude)) => {
                 self.taken_zone = lookup_timezone(longitude as f64, latitude as f64)
             }
@@ -532,7 +546,6 @@ pub struct MediaFile {
     pub lens: Option<String>,
     pub photographer: Option<String>,
     pub shutter_speed: Option<String>,
-    pub taken_zone: Option<String>,
     pub orientation: Option<i32>,
     pub iso: Option<i32>,
     pub rating: Option<i32>,
@@ -580,7 +593,7 @@ impl MediaFile {
 
         items.iter_mut().for_each(|item| {
             if let Some(file) = media_file_map.get(item.media_file.as_ref().unwrap()) {
-                item.sync_with_file(file);
+                item.sync_with_file(Some(file));
             }
         });
 
@@ -614,7 +627,6 @@ impl MediaFile {
                     media_file::lens.eq(excluded(media_file::lens)),
                     media_file::photographer.eq(excluded(media_file::photographer)),
                     media_file::shutter_speed.eq(excluded(media_file::shutter_speed)),
-                    media_file::taken_zone.eq(excluded(media_file::taken_zone)),
                     media_file::orientation.eq(excluded(media_file::orientation)),
                     media_file::iso.eq(excluded(media_file::iso)),
                     media_file::rating.eq(excluded(media_file::rating)),

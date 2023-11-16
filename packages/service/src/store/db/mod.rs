@@ -19,49 +19,16 @@ use diesel_async::{
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use schema::*;
-use tracing::{error, info, instrument, trace};
+use tracing::{info, instrument, trace};
 
 use self::functions::{media_view, media_view_columns};
-use super::{
-    joinable,
-    metadata::{process_media, PROCESS_VERSION},
-    models::{self, MediaFile},
-    MediaFilePath, RemotePath, Result,
-};
-use crate::{Config, Error};
+use super::{joinable, models, MediaFilePath, RemotePath, Result};
+use crate::{store::metadata::reprocess_all_media, Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
-
-#[instrument(skip_all)]
-async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()> {
-    info!("Reprocessing media metadata");
-    let list = MediaFile::list_current(tx).await?;
-
-    let mut media_files = Vec::new();
-
-    for (media_file, file_path) in list {
-        let media_file = if media_file.process_version != PROCESS_VERSION {
-            match process_media(tx.config(), &file_path).await {
-                Ok(media_file) => media_file,
-                Err(e) => {
-                    error!(media = media_file.media, error = ?e, "Failed to process media metadata");
-                    continue;
-                }
-            }
-        } else {
-            media_file
-        };
-
-        media_files.push(media_file);
-    }
-
-    MediaFile::upsert(tx, &media_files).await?;
-
-    Ok(())
-}
 
 #[instrument(err, skip_all)]
 pub(crate) async fn connect(config: &Config) -> Result<DbPool> {

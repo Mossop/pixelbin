@@ -336,7 +336,7 @@ impl Field for MediaField {
 
             MediaField::Taken => TypedField::Date(Box::new(media_field!(taken))),
 
-            MediaField::TakenZone => TypedField::Text(Box::new(media_field!(taken_zone))),
+            MediaField::TakenZone => TypedField::Text(Box::new(media_item::taken_zone)),
         }
     }
 }

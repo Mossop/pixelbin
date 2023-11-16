@@ -11,10 +11,11 @@ use lexical_parse_float::FromLexical;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{from_str, Value};
 use tokio::fs::read_to_string;
-use tracing::warn;
+use tracing::{error, info, instrument, warn};
 use tzf_rs::DefaultFinder;
 
 use super::{
+    db::DbConnection,
     models::{MediaFile, MediaItem},
     MediaFilePath,
 };
@@ -36,11 +37,11 @@ pub(crate) fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
     Some(FINDER.get_tz_name(longitude, latitude).to_owned())
 }
 
-fn time_from_taken(taken: &Option<NaiveDateTime>, zone: &Option<String>) -> Option<DateTime<Utc>> {
+fn time_from_taken(taken: Option<NaiveDateTime>, zone: &Option<String>) -> Option<DateTime<Utc>> {
     if let Some(dt) = taken {
         if let Some(zone) = zone {
             match zone.parse::<Tz>() {
-                Ok(offset) => match offset.from_local_datetime(dt) {
+                Ok(offset) => match offset.from_local_datetime(&dt) {
                     LocalResult::Single(dt) => Some(dt.with_timezone(&Utc)),
                     LocalResult::Ambiguous(dt1, _) => {
                         warn!(datetime = %dt, zone, "Ambiguous time found");
@@ -61,16 +62,17 @@ fn time_from_taken(taken: &Option<NaiveDateTime>, zone: &Option<String>) -> Opti
     }
 }
 
-pub(crate) fn media_datetime(media_item: &MediaItem, media_file: &MediaFile) -> DateTime<Utc> {
-    if let Some(dt) = time_from_taken(&media_item.taken, &media_item.taken_zone) {
-        return dt;
+pub(crate) fn media_datetime(
+    media_item: &MediaItem,
+    media_file: Option<&MediaFile>,
+) -> DateTime<Utc> {
+    let taken = media_item.taken.or(media_file.and_then(|f| f.taken));
+    let taken_zone = &media_item.taken_zone;
+    if let Some(dt) = time_from_taken(taken, taken_zone) {
+        dt
+    } else {
+        media_item.created
     }
-
-    if let Some(dt) = time_from_taken(&media_file.taken, &media_file.taken_zone) {
-        return dt;
-    }
-
-    media_file.uploaded
 }
 
 fn ignore_empty(st: Option<String>) -> Option<String> {
@@ -348,7 +350,6 @@ impl Metadata {
             lens: None,
             photographer: None,
             shutter_speed: None,
-            taken_zone: None,
             orientation: None,
             iso: None,
             rating: None,
@@ -377,7 +378,6 @@ impl Metadata {
                 media_file.category = ignore_empty(exif.category.clone());
 
                 media_file.taken = exif.parse_taken();
-                media_file.taken_zone = exif.parse_zone();
 
                 media_file.longitude = exif.gps_longitude.map(|n| n as f32);
                 media_file.latitude = exif.gps_latitude.map(|n| n as f32);
@@ -593,13 +593,6 @@ impl Exif {
             .or(self.date_created)
             .map(|dt| dt.with_nanosecond(nanos).unwrap())
     }
-
-    pub(crate) fn parse_zone(&self) -> Option<String> {
-        match (self.gps_latitude, self.gps_longitude) {
-            (Some(latitude), Some(longitude)) => lookup_timezone(longitude, latitude),
-            _ => None,
-        }
-    }
 }
 
 pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) -> Result<MediaFile> {
@@ -612,12 +605,49 @@ pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) ->
     Ok(metadata.media_file(&file_path.media_item, &file_path.media_file))
 }
 
+#[instrument(skip_all)]
+pub(crate) async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()> {
+    info!("Reprocessing media metadata");
+
+    let current_files = MediaFile::list_current(tx).await?;
+
+    let mut media_files = Vec::new();
+
+    for (media_file, file_path) in current_files {
+        let media_file = if media_file.process_version != PROCESS_VERSION {
+            match process_media(tx.config(), &file_path).await {
+                Ok(media_file) => media_file,
+                Err(e) => {
+                    error!(media = media_file.media, error = ?e, "Failed to process media metadata");
+                    continue;
+                }
+            }
+        } else {
+            media_file
+        };
+
+        media_files.push(media_file);
+    }
+
+    MediaFile::upsert(tx, &media_files).await?;
+
+    let mut media_items = MediaItem::list_unprocessed(tx).await?;
+    for item in media_items.iter_mut() {
+        item.sync_with_file(None);
+    }
+
+    MediaItem::upsert(tx, &media_items).await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
     use serde_json::from_str;
 
     use super::Exif;
+    use crate::store::metadata::lookup_timezone;
 
     #[test]
     fn parse_exif() {
@@ -655,7 +685,10 @@ mod tests {
                 .and_hms_milli_opt(17, 41, 6, 700)
                 .unwrap()
         );
-        assert_eq!(exif.parse_zone().as_deref(), Some("Europe/Paris"));
+        assert_eq!(
+            lookup_timezone(exif.gps_longitude.unwrap(), exif.gps_latitude.unwrap()).as_deref(),
+            Some("Europe/Paris")
+        );
 
         let exif = from_str::<Exif>(
             r#"{
@@ -690,7 +723,10 @@ mod tests {
                 .and_hms_milli_opt(17, 42, 25, 600)
                 .unwrap()
         );
-        assert_eq!(exif.parse_zone().as_deref(), Some("Europe/Paris"));
+        assert_eq!(
+            lookup_timezone(exif.gps_longitude.unwrap(), exif.gps_latitude.unwrap()).as_deref(),
+            Some("Europe/Paris")
+        );
 
         let exif = from_str::<Exif>(
             r#"{
@@ -735,7 +771,10 @@ mod tests {
         );
         assert_eq!(exif.gps_longitude, Some(-1.176903));
         assert_eq!(exif.gps_latitude, Some(52.747325));
-        assert_eq!(exif.parse_zone().as_deref(), Some("Europe/London"));
+        assert_eq!(
+            lookup_timezone(exif.gps_longitude.unwrap(), exif.gps_latitude.unwrap()).as_deref(),
+            Some("Europe/London")
+        );
 
         let exif = from_str::<Exif>(
             r#"{
@@ -766,7 +805,10 @@ mod tests {
             }"#,
         )
         .unwrap();
-        assert_eq!(exif.parse_zone().as_deref(), Some("America/Los_Angeles"));
+        assert_eq!(
+            lookup_timezone(exif.gps_longitude.unwrap(), exif.gps_latitude.unwrap()).as_deref(),
+            Some("America/Los_Angeles")
+        );
 
         let taken = exif.parse_taken().unwrap();
         assert_eq!(

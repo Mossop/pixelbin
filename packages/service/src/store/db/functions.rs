@@ -91,99 +91,7 @@ pub(crate) mod extract {
     }
 }
 
-pub(crate) fn select_zone<A, B, C>(a: A, b: B, c: C) -> select_zone::HelperType<A, B, C>
-where
-    A: AsExpression<Nullable<Timestamp>>,
-    B: AsExpression<Nullable<Text>>,
-    C: AsExpression<Nullable<Text>>,
-{
-    select_zone::SelectZone {
-        a: a.as_expression(),
-        b: b.as_expression(),
-        c: c.as_expression(),
-    }
-}
-
-pub(crate) mod select_zone {
-    use diesel::expression::{
-        is_aggregate, AppearsOnTable, AsExpression, Expression, SelectableExpression, ValidGrouping,
-    };
-    use diesel::query_builder::{AstPass, QueryFragment, QueryId};
-    use diesel::{self, QueryResult};
-
-    use super::*;
-
-    #[derive(Debug, Clone, Copy, QueryId)]
-    pub(crate) struct SelectZone<A, B, C> {
-        pub(super) a: A,
-        pub(super) b: B,
-        pub(super) c: C,
-    }
-
-    impl<A, B, C, GroupByClause> ValidGrouping<GroupByClause> for SelectZone<A, B, C> {
-        type IsAggregate = is_aggregate::Never;
-    }
-
-    pub(crate) type HelperType<A, B, C> = SelectZone<
-        <A as AsExpression<Nullable<Timestamp>>>::Expression,
-        <B as AsExpression<Nullable<Text>>>::Expression,
-        <C as AsExpression<Nullable<Text>>>::Expression,
-    >;
-
-    impl<A, B, C> Expression for SelectZone<A, B, C>
-    where
-        (A, B, C): Expression,
-    {
-        type SqlType = Nullable<Text>;
-    }
-
-    impl<A, B, C, QS> SelectableExpression<QS> for SelectZone<A, B, C>
-    where
-        A: SelectableExpression<QS>,
-        B: SelectableExpression<QS>,
-        C: SelectableExpression<QS>,
-        Self: AppearsOnTable<QS>,
-    {
-    }
-
-    impl<A, B, C, QS> AppearsOnTable<QS> for SelectZone<A, B, C>
-    where
-        A: AppearsOnTable<QS>,
-        B: AppearsOnTable<QS>,
-        C: AppearsOnTable<QS>,
-        Self: Expression,
-    {
-    }
-
-    impl<A, B, C, QS> QueryFragment<QS> for SelectZone<A, B, C>
-    where
-        QS: diesel::backend::Backend,
-        A: QueryFragment<QS>,
-        B: QueryFragment<QS>,
-        C: QueryFragment<QS>,
-    {
-        #[allow(unused_assignments)]
-        fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, QS>) -> QueryResult<()> {
-            out.push_sql("CASE WHEN ");
-            self.a.walk_ast(out.reborrow())?;
-            out.push_sql(" IS NULL THEN ");
-            self.b.walk_ast(out.reborrow())?;
-            out.push_sql(" ELSE ");
-            self.c.walk_ast(out.reborrow())?;
-            out.push_sql(" END");
-            Ok(())
-        }
-    }
-}
-
 macro_rules! media_field {
-    (taken_zone) => {
-        crate::store::db::functions::select_zone(
-            crate::store::db::schema::media_item::taken,
-            crate::store::db::schema::media_item::taken_zone,
-            crate::store::db::schema::media_file::taken_zone.nullable(),
-        )
-    };
     ($field:ident) => {
         crate::store::db::functions::coalesce(
             crate::store::db::schema::media_item::$field,
@@ -209,7 +117,7 @@ macro_rules! media_view_columns {
             crate::store::db::functions::media_field!(label),
             crate::store::db::functions::media_field!(category),
             crate::store::db::functions::media_field!(taken),
-            crate::store::db::functions::media_field!(taken_zone),
+            crate::store::db::schema::media_item::taken_zone,
             crate::store::db::functions::media_field!(longitude),
             crate::store::db::functions::media_field!(latitude),
             crate::store::db::functions::media_field!(altitude),
