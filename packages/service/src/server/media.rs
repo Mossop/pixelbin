@@ -44,7 +44,7 @@ async fn download_handler(
         .in_transaction(|mut trx| {
             async move {
                 let (media_file, media_path) = trx
-                    .get_user_media_file(&session.email, &path.item, &path.file)
+                    .get_user_media_file(&session.user.email, &path.item, &path.file)
                     .await?;
 
                 let storage = trx.get_catalog_storage(&media_path.catalog).await?;
@@ -91,7 +91,7 @@ async fn thumbnail_handler(
     session: MaybeSession,
     path: web::Path<ThumbnailPath>,
 ) -> ApiResult<impl Responder> {
-    let email = session.session().map(|s| s.email.as_str());
+    let email = session.session().map(|s| s.user.email.as_str());
     let mimetype = path.mimetype.replace('-', "/");
     let target_size = path.size as i32;
 
@@ -147,7 +147,7 @@ async fn encoding_handler(
     session: MaybeSession,
     path: web::Path<EncodingPath>,
 ) -> ApiResult<impl Responder> {
-    let email = session.session().map(|s| s.email.as_str());
+    let email = session.session().map(|s| s.user.email.as_str());
     let mimetype = path.mimetype.replace('-', "/");
     let tx_mime = mimetype.clone();
 
@@ -223,7 +223,7 @@ async fn get_album(
         .in_transaction(|mut trx| {
             async move {
                 let (album, media) = trx
-                    .get_user_album(&session.email, &album_id, query.recursive)
+                    .get_user_album(&session.user.email, &album_id, query.recursive)
                     .await?;
 
                 Ok(AlbumResponse { album, media })
@@ -253,7 +253,7 @@ async fn get_search(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (search, media) = trx.get_user_search(&session.email, &search_id).await?;
+                let (search, media) = trx.get_user_search(&session.user.email, &search_id).await?;
 
                 Ok(SearchResponse { search, media })
             }
@@ -282,7 +282,9 @@ async fn get_catalog(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (catalog, media) = trx.get_user_catalog(&session.email, &catalog_id).await?;
+                let (catalog, media) = trx
+                    .get_user_catalog(&session.user.email, &catalog_id)
+                    .await?;
 
                 Ok(CatalogResponse { catalog, media })
             }
@@ -317,8 +319,9 @@ async fn get_catalog_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (catalog, media_count) =
-                    trx.get_user_catalog(&session.email, &catalog_id).await?;
+                let (catalog, media_count) = trx
+                    .get_user_catalog(&session.user.email, &catalog_id)
+                    .await?;
                 let media = trx
                     .list_catalog_media(&catalog, query.offset, query.count)
                     .await?;
@@ -356,7 +359,7 @@ async fn get_album_media(
         .in_transaction(|mut trx| {
             async move {
                 let (album, media_count) = trx
-                    .get_user_album(&session.email, &album_id, query.recursive)
+                    .get_user_album(&session.user.email, &album_id, query.recursive)
                     .await?;
                 let media = trx
                     .list_album_media(&album, query.recursive, query.offset, query.count)
@@ -386,7 +389,8 @@ async fn get_search_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (search, media_count) = trx.get_user_search(&session.email, &search_id).await?;
+                let (search, media_count) =
+                    trx.get_user_search(&session.user.email, &search_id).await?;
                 let media = trx
                     .list_search_media(&search, query.offset, query.count)
                     .await?;
@@ -414,7 +418,9 @@ async fn get_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let media = trx.get_user_media(&session.email, &[&media_id]).await?;
+                let media = trx
+                    .get_user_media(&session.user.email, &[&media_id])
+                    .await?;
 
                 Ok(GetMediaResponse { total: 1, media })
             }

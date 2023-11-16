@@ -5,14 +5,13 @@ use serde::{Deserialize, Serialize};
 use tracing::{instrument, warn};
 use typeshare::typeshare;
 
-use super::{util::long_id, ApiErrorCode, ApiResult, AppState};
+use super::{ApiErrorCode, ApiResult, AppState};
 use crate::store::models;
 use crate::Error;
 
 #[derive(Clone)]
 pub(super) struct Session {
-    pub(crate) id: String,
-    pub(crate) email: String,
+    pub(crate) user: models::User,
 }
 
 impl FromRequest for Session {
@@ -33,6 +32,38 @@ impl FromRequest for Session {
     }
 }
 
+struct AuthToken(Option<String>);
+
+impl FromRequest for AuthToken {
+    type Error = ApiErrorCode;
+    type Future = LocalBoxFuture<'static, ApiResult<Self>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        let req = req.clone();
+
+        Box::pin(async move {
+            let header = if let Some(header) = req.headers().get(header::AUTHORIZATION) {
+                header.to_str().unwrap()
+            } else {
+                return Ok(AuthToken(None));
+            };
+
+            let parts: Vec<&str> = header.split_ascii_whitespace().collect();
+            if parts.len() != 2 {
+                warn!(header, "Invalid authorization header");
+                return Ok(AuthToken(None));
+            }
+
+            if parts[0] != "Bearer" {
+                warn!(scheme = parts[0], "Invalid authorization header");
+                return Ok(AuthToken(None));
+            }
+
+            Ok(AuthToken(Some(parts[1].to_owned())))
+        })
+    }
+}
+
 pub(super) struct MaybeSession(Option<Session>);
 
 impl MaybeSession {
@@ -49,30 +80,22 @@ impl FromRequest for MaybeSession {
         let req = req.clone();
 
         Box::pin(async move {
-            let header = if let Some(header) = req.headers().get(header::AUTHORIZATION) {
-                header.to_str().unwrap()
+            let token = if let Some(token) = AuthToken::extract(&req).await?.0 {
+                token
             } else {
                 return Ok(MaybeSession(None));
             };
 
-            let parts: Vec<&str> = header.split_ascii_whitespace().collect();
-            if parts.len() != 2 {
-                warn!(header, "Invalid authorization header");
-                return Ok(MaybeSession(None));
-            }
-
-            if parts[0] != "Bearer" {
-                warn!(scheme = parts[0], "Invalid authorization header");
-                return Ok(MaybeSession(None));
-            }
-
+            let otoken = token.clone();
             let data = web::Data::<AppState>::extract(&req).await.unwrap();
-            if let Some(session) = data.sessions.get(&parts[1].to_string()).await {
-                Ok(MaybeSession(Some(session)))
-            } else {
-                warn!("Unknown authorization header");
-                Ok(MaybeSession(None))
-            }
+            let user = data
+                .store
+                .with_connection(|mut conn| {
+                    async move { conn.verify_token(&otoken).await }.scope_boxed()
+                })
+                .await?;
+
+            Ok(MaybeSession(Some(Session { user })))
         })
     }
 }
@@ -98,7 +121,6 @@ async fn login(
 ) -> ApiResult<web::Json<LoginResponse>> {
     match app_state
         .store
-        .clone()
         .in_transaction(|mut trx| {
             async move {
                 trx.verify_credentials(&credentials.email, &credentials.password)
@@ -108,34 +130,23 @@ async fn login(
         })
         .await
     {
-        Ok(user) => {
-            let token = long_id("T");
-            app_state
-                .sessions
-                .insert(
-                    token.clone(),
-                    Session {
-                        id: token.clone(),
-                        email: user.email.clone(),
-                    },
-                )
-                .await;
-
-            Ok(web::Json(LoginResponse { token: Some(token) }))
-        }
+        Ok((_, token)) => Ok(web::Json(LoginResponse { token: Some(token) })),
         Err(Error::NotFound) => Err(ApiErrorCode::NotLoggedIn),
         Err(e) => Err(e.into()),
     }
 }
 
 #[post("/api/logout")]
-#[instrument(err, skip(app_state, session))]
+#[instrument(err, skip(app_state, token))]
 async fn logout(
     app_state: web::Data<AppState>,
-    session: MaybeSession,
+    token: AuthToken,
 ) -> ApiResult<web::Json<LoginResponse>> {
-    if let Some(session) = session.0 {
-        app_state.sessions.delete(&session.id).await;
+    if let Some(token) = token.0 {
+        app_state
+            .store
+            .in_transaction(|mut trx| async move { trx.delete_token(&token).await }.scope_boxed())
+            .await?;
     }
 
     Ok(web::Json(LoginResponse { token: None }))
@@ -181,7 +192,7 @@ async fn state(
         .clone()
         .in_transaction(|mut db| {
             async move {
-                let email = &session.email;
+                let email = &session.user.email;
                 let user = db.get_user(email).await?;
 
                 let albums = db

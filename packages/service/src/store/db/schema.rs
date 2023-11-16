@@ -34,6 +34,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    auth_token (email) {
+        email -> Text,
+        token -> Varchar,
+        expiry -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     catalog (id) {
         id -> Varchar,
         name -> Text,
@@ -331,6 +339,7 @@ diesel::allow_columns_to_appear_in_same_group_by_clause!(
 diesel::allow_tables_to_appear_in_same_query!(
     album,
     alternate_file,
+    auth_token,
     catalog,
     media_album,
     media_file,

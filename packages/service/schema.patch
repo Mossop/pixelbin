@@ -2,7 +2,7 @@ diff --git a/src/store/db/schema.rs b/src/store/db/schema.rs
 index 79df3db..6cb3c71 100644
 --- a/src/store/db/schema.rs
 +++ b/src/store/db/schema.rs
-@@ -217,9 +217,118 @@ diesel::table! {
+@@ -217,9 +217,117 @@ diesel::table! {
      }
  }
 
@@ -109,7 +109,6 @@ index 79df3db..6cb3c71 100644
 +    media_file::lens,
 +    media_file::photographer,
 +    media_file::shutter_speed,
-+    media_file::taken_zone,
 +    media_file::orientation,
 +    media_file::iso,
 +    media_file::rating,
@@ -124,7 +123,7 @@ index 79df3db..6cb3c71 100644
 
  diesel::allow_tables_to_appear_in_same_query!(
      album,
-@@ -234,6 +343,12 @@ diesel::allow_tables_to_appear_in_same_query!(
+@@ -234,6 +342,12 @@ diesel::allow_tables_to_appear_in_same_query!(
      person,
      saved_search,
      shared_catalog,

@@ -5,9 +5,9 @@ pub(crate) mod search;
 
 use std::path::PathBuf;
 
-use chrono::Utc;
+use chrono::{Duration, Utc};
 use diesel::{
-    dsl::count,
+    dsl::{count, now},
     migration::{Migration, MigrationSource},
     pg::Pg,
     prelude::*,
@@ -23,10 +23,12 @@ use tracing::{info, instrument, trace};
 
 use self::functions::{media_view, media_view_columns};
 use super::{joinable, models, MediaFilePath, RemotePath, Result};
-use crate::{store::metadata::reprocess_all_media, Config, Error};
+use crate::{shared::long_id, store::metadata::reprocess_all_media, Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;
+
+const TOKEN_EXPIRY_DAYS: i64 = 90;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
@@ -63,10 +65,30 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     let pool_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&config.database_url);
     let pool = Pool::builder(pool_config).build()?;
 
-    // Verify that we can connect.
+    // Verify that we can connect and update cached views.
     let mut connection = pool.get().await?;
     connection
         .batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
+        .await?;
+    connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"album_descendent\";")
+        .await?;
+    connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"tag_descendent\";")
+        .await?;
+    connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"tag_relation\";")
+        .await?;
+    connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"album_relation\";")
+        .await?;
+    connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"person_relation\";")
+        .await?;
+
+    // Clear expired auth tokens.
+    diesel::delete(auth_token::table.filter(auth_token::expiry.le(now)))
+        .execute(&mut connection)
         .await?;
 
     if reprocess_media {
@@ -192,7 +214,7 @@ impl<'a> DbConnection<'a> {
         &mut self,
         email: &str,
         password: &str,
-    ) -> Result<models::User> {
+    ) -> Result<(models::User, String)> {
         let mut user: models::User = user::table
             .filter(user::email.eq(email))
             .select(user::all_columns)
@@ -210,6 +232,18 @@ impl<'a> DbConnection<'a> {
             return Err(Error::NotFound);
         }
 
+        let token = long_id("T");
+        let auth_token = models::AuthToken {
+            email: email.to_owned(),
+            token: token.clone(),
+            expiry: Some(Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS)),
+        };
+
+        diesel::insert_into(auth_token::table)
+            .values(&auth_token)
+            .execute(self.conn)
+            .await?;
+
         user.last_login = Some(Utc::now());
 
         diesel::update(user::table)
@@ -218,7 +252,44 @@ impl<'a> DbConnection<'a> {
             .execute(self.conn)
             .await?;
 
+        Ok((user, token))
+    }
+
+    pub async fn verify_token(&mut self, token: &str) -> Result<models::User> {
+        let mut user: models::User = auth_token::table
+            .inner_join(user::table.on(user::email.eq(auth_token::email)))
+            .filter(auth_token::token.eq(token))
+            .filter(auth_token::expiry.is_null().or(auth_token::expiry.gt(now)))
+            .select(user::all_columns)
+            .get_result::<models::User>(self.conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)?;
+
+        user.last_login = Some(Utc::now());
+
+        diesel::update(user::table)
+            .filter(user::email.eq(&user.email))
+            .set(user::last_login.eq(&user.last_login))
+            .execute(self.conn)
+            .await?;
+
+        let expiry = Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS);
+        diesel::update(auth_token::table)
+            .filter(auth_token::email.eq(&user.email))
+            .set(auth_token::expiry.eq(expiry))
+            .execute(self.conn)
+            .await?;
+
         Ok(user)
+    }
+
+    pub async fn delete_token(&mut self, token: &str) -> Result {
+        diesel::delete(auth_token::table.filter(auth_token::token.eq(token)))
+            .execute(self.conn)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn stats(&mut self) -> Result<StoreStats> {

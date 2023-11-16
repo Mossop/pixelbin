@@ -775,3 +775,11 @@ pub struct MediaRelations {
     #[diesel(deserialize_as = Option<Value>)]
     pub people: MaybeVec<PersonRelation>,
 }
+
+#[derive(Insertable, Clone, Debug)]
+#[diesel(table_name = auth_token)]
+pub struct AuthToken {
+    pub email: String,
+    pub token: String,
+    pub expiry: Option<DateTime<Utc>>,
+}

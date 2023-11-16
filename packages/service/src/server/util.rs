@@ -5,18 +5,9 @@ use actix_web::{
     http::header::{self, TryIntoHeaderValue},
     HttpResponse, ResponseError,
 };
-use nano_id::base62;
 
 use crate::store::{models, MediaFilePath};
 use crate::Error;
-
-pub(crate) fn long_id(prefix: &str) -> String {
-    format!("{prefix}:{}", base62::<25>())
-}
-
-// pub(crate) fn short_id(prefix: &str) -> String {
-//     format!("{prefix}:{}", base62::<10>())
-// }
 
 #[derive(Debug)]
 pub(crate) struct InternalError {

@@ -1,22 +1,17 @@
-use std::{collections::HashMap, fmt::Display, result, time::Duration};
+use std::{collections::HashMap, fmt::Display, result};
 
 use actix_web::{
     body::BoxBody, http::StatusCode, web, App, HttpResponse, HttpServer, ResponseError,
 };
-use auth::Session;
-use cache::Cache;
 use serde::Serialize;
 
 use crate::store::Store;
 use crate::{Error, Result};
 
 mod auth;
-mod cache;
 mod media;
 mod middleware;
 mod util;
-
-const SESSION_LENGTH: u64 = 60 * 60 * 24 * 30;
 
 #[derive(Debug)]
 enum ApiErrorCode {
@@ -106,16 +101,12 @@ impl From<tokio::io::Error> for ApiErrorCode {
 
 struct AppState {
     store: Store,
-    sessions: Cache<String, Session>,
 }
 
 pub async fn serve(store: Store) -> Result {
     let port = store.config().port.unwrap_or(80);
 
-    let state = AppState {
-        store,
-        sessions: Cache::new(Duration::from_secs(SESSION_LENGTH)),
-    };
+    let state = AppState { store };
 
     let app_data = web::Data::new(state);
 
