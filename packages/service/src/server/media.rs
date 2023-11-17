@@ -1,7 +1,8 @@
-use actix_web::{get, http::header, web, HttpResponse, Responder};
+use actix_web::{get, http::header, post, web, HttpResponse, Responder};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
+use serde_with::{serde_as, OneOrMany};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 use tracing::instrument;
@@ -13,9 +14,14 @@ use super::{
 };
 use crate::store::{
     aws::RemotePath,
-    models::{self, AlternateFileType},
+    models::{self, AlternateFileType, Location},
 };
 use crate::Error;
+
+#[derive(Serialize)]
+struct ApiResponse {
+    message: String,
+}
 
 fn not_found() -> ApiResult<HttpResponse> {
     Ok(HttpResponse::NotFound()
@@ -412,21 +418,107 @@ async fn get_search_media(
 async fn get_media(
     app_state: web::Data<AppState>,
     session: Session,
-    media_id: web::Path<String>,
+    media_ids: web::Path<String>,
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaRelations>>> {
+    let ids: Vec<&str> = media_ids.split(',').to_owned().collect::<Vec<&str>>();
+
     let response = app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let media = trx
-                    .get_user_media(&session.user.email, &[&media_id])
-                    .await?;
+                let media = trx.get_user_media(&session.user.email, &ids).await?;
 
-                Ok(GetMediaResponse { total: 1, media })
+                Ok(GetMediaResponse {
+                    total: media.len() as i64,
+                    media,
+                })
             }
             .scope_boxed()
         })
         .await?;
 
     Ok(web::Json(response))
+}
+
+#[post("/api/media/delete")]
+#[instrument(err, skip(app_state, session, media_ids))]
+async fn delete_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    media_ids: web::Json<Vec<String>>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    eprintln!("{media_ids:#?}");
+    todo!();
+}
+
+#[derive(Deserialize, Clone, Debug)]
+struct MediaMetadata {
+    filename: Option<String>,
+    title: Option<String>,
+    description: Option<String>,
+    label: Option<String>,
+    category: Option<String>,
+    location: Option<String>,
+    city: Option<String>,
+    state: Option<String>,
+    country: Option<String>,
+    make: Option<String>,
+    model: Option<String>,
+    lens: Option<String>,
+    photographer: Option<String>,
+    shutter_speed: Option<String>,
+    orientation: Option<i32>,
+    iso: Option<i32>,
+    rating: Option<i32>,
+    longitude: Option<f32>,
+    latitude: Option<f32>,
+    altitude: Option<f32>,
+    aperture: Option<f32>,
+    focal_length: Option<f32>,
+    taken: Option<NaiveDateTime>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+struct MediaPerson {
+    name: String,
+    location: Option<Location>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+struct MediaCreate {
+    catalog: String,
+    media: Option<MediaMetadata>,
+    tags: Option<Vec<String>>,
+    people: Option<Vec<MediaPerson>>,
+}
+
+#[post("/api/media/create")]
+#[instrument(err, skip(app_state, session, media))]
+async fn create_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    media: web::Json<MediaCreate>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    eprintln!("{media:#?}");
+    todo!();
+}
+
+#[serde_as]
+#[derive(Deserialize, Clone, Debug)]
+struct MediaUpdate {
+    id: String,
+    media: Option<MediaMetadata>,
+    tags: Option<Vec<String>>,
+    people: Option<Vec<MediaPerson>>,
+}
+
+#[post("/api/media/edit")]
+#[instrument(err, skip(app_state, session, media))]
+async fn edit_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    media: web::Json<MediaUpdate>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    eprintln!("{media:#?}");
+    todo!();
 }

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS "auth_token" (
 );
 
 ALTER TABLE "auth_token"
-    ADD CONSTRAINT "auth_token_pkey" PRIMARY KEY (email);
+    ADD CONSTRAINT "auth_token_pkey" PRIMARY KEY (token);
 
 ALTER TABLE "auth_token"
     ADD CONSTRAINT "foreign_user" FOREIGN KEY (email) REFERENCES "user"(email) ON UPDATE CASCADE ON DELETE CASCADE;

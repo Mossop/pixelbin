@@ -34,7 +34,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    auth_token (email) {
+    auth_token (token) {
         email -> Text,
         token -> Varchar,
         expiry -> Nullable<Timestamptz>,

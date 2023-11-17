@@ -10,6 +10,7 @@ use crate::{Error, Result};
 
 mod auth;
 mod media;
+mod metadata;
 mod middleware;
 mod util;
 
@@ -127,6 +128,13 @@ pub async fn serve(store: Store) -> Result {
             .service(media::get_search)
             .service(media::get_catalog)
             .service(media::get_media)
+            .service(media::create_media)
+            .service(media::edit_media)
+            .service(media::delete_media)
+            .service(metadata::create_album)
+            .service(metadata::edit_album)
+            .service(metadata::delete_album)
+            .service(metadata::update_relations)
     })
     .bind(("0.0.0.0", port))?
     .run()
