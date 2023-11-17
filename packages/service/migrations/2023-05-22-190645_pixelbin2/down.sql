@@ -1,0 +1,21 @@
+DROP TRIGGER IF EXISTS "refresh_user_catalogs_from_catalogs" ON "catalog";
+DROP TRIGGER IF EXISTS "refresh_user_catalogs_from_shared_catalogs" ON "shared_catalog";
+DROP MATERIALIZED VIEW IF EXISTS "user_catalog";
+
+DROP TABLE IF EXISTS "media_album" CASCADE;
+DROP TABLE IF EXISTS "media_person" CASCADE;
+DROP TABLE IF EXISTS "media_tag" CASCADE;
+DROP TABLE IF EXISTS "shared_catalog" CASCADE;
+DROP TABLE IF EXISTS "album" CASCADE;
+DROP TABLE IF EXISTS "alternate_file" CASCADE;
+DROP TABLE IF EXISTS "media_info" CASCADE;
+DROP TABLE IF EXISTS "media_file" CASCADE;
+DROP TABLE IF EXISTS "person" CASCADE;
+DROP TABLE IF EXISTS "saved_search" CASCADE;
+DROP TABLE IF EXISTS "storage" CASCADE;
+DROP TABLE IF EXISTS "tag" CASCADE;
+DROP TABLE IF EXISTS "catalog" CASCADE;
+DROP TABLE IF EXISTS "user" CASCADE;
+
+DROP FUNCTION IF EXISTS refresh_user_catalogs;
+DROP TYPE IF EXISTS location;
