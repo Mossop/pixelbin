@@ -2,9 +2,9 @@ return {
   LrSdkVersion = 7.0,
   LrSdkMinimumVersion = 7.0,
 
-  LrToolkitIdentifier = "org.pixelbin.lrpixelbin",
+  LrToolkitIdentifier = "org.pixelbin.lrpixelbin-dev",
 
-  LrPluginName = LOC "$$$/LrPixelBin/PluginName=LrPixelBin",
+  LrPluginName = LOC "$$$/LrPixelBin/PluginName=LrPixelBin-Dev",
   LrPluginInfoUrl = "https://pixelbin.org",
 
   LrInitPlugin = "Init.lua",

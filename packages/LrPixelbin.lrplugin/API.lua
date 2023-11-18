@@ -9,8 +9,6 @@ local Utils = require "Utils"
 
 local API = { }
 
-local CSRF_HEADER = "X-CSRFToken";
-
 local CHARACTER_MAP = {
   [0x2070] = "0",
   [0xB9] = "1",
@@ -37,14 +35,6 @@ local CHARACTER_MAP = {
   [0x215E] = "7/8",
   [0x215F] = "1/",
 }
-
-local function getCsrfToken(info)
-  for _, header in ipairs(info) do
-    if string.lower(header.field) == string.lower(CSRF_HEADER) then
-      return header.value
-    end
-  end
-end
 
 function API:parseHTTPResult(response, info)
   if not response then
@@ -159,7 +149,7 @@ function API:MULTIPART(path, content)
 
   return self:callServer(function ()
     return LrHttp.postMultipart(url, content, {
-      { field = CSRF_HEADER, value = self.apiCsrfToken },
+      { field = "Authorization", value = "Bearer " .. self.apiToken },
     })
   end)
 end
@@ -186,7 +176,7 @@ function API:POST(path, content)
   return self:callServer(function ()
     return LrHttp.post(url, body, {
       { field = "Content-Type", value = "application/json" },
-      { field = CSRF_HEADER, value = self.csrfToken },
+      { field = "Authorization", value = "Bearer " .. self.apiToken },
     })
   end)
 end
@@ -201,7 +191,7 @@ function API:GET(path)
 
   return self:callServer(function ()
     return LrHttp.get(url, {
-      { field = CSRF_HEADER, value = self.csrfToken },
+      { field = "Authorization", value = "Bearer " .. self.apiToken },
     })
   end)
 end
@@ -248,28 +238,10 @@ function API:login()
   if success then
     self.loggedIn = true
     self.errorState = nil
-    self.catalogs = result.user.catalogs
-    self.albums = result.user.albums
-    self.csrfToken = getCsrfToken(info)
     self.apiUrl = self.siteUrl
-    self.apiCsrfToken = self.csrfToken
+    self.apiToken = result.token
 
-    if result.apiHost then
-      local apiUrl = string.sub(self.siteUrl, string.find(self.siteUrl, "^%a+://")) .. result.apiHost .. "/"
-      response, info = LrHttp.post(apiUrl .. "api/login", data, requestHeaders)
-      success, result = self:parseHTTPResult(response, info)
-      if success then
-        self.apiUrl = apiUrl
-        self.apiCsrfToken = getCsrfToken(info)
-      end
-    end
-
-    if not self.csrfToken then
-      return false, {
-        code = "noCsrfToken",
-        name = LOC "$$$/LrPixelBin/API/BadHeaders=Np CSRF token was provided by the server."
-      }
-    end
+    self:refreshState()
 
     return true, nil
   end
@@ -673,9 +645,16 @@ function API:upload(photo, publishSettings, filePath, remoteId)
   return self:MULTIPART(path, params)
 end
 
-function API:refresh()
-  self.loggedIn = false
-  self:login()
+function API:refreshState()
+  if self.loggedIn then
+    local success, result = self:GET("state")
+    if success then
+      self.catalogs = result.catalogs
+      self.albums = result.albums
+    end
+  else
+    self:login()
+  end
 end
 
 function API:logout()
@@ -744,8 +723,7 @@ local function get(settings)
     apiUrl = settings.siteUrl,
     email = settings.email,
     password = settings.password,
-    csrfToken = nil,
-    apiCsrfToken = nil,
+    apiToken = nil,
     loggedIn = false,
     errorState = nil,
     catalogs = {},
