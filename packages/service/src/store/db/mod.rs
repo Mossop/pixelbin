@@ -22,7 +22,11 @@ use schema::*;
 use tracing::{info, instrument, trace};
 
 use self::functions::{media_view, media_view_columns};
-use super::{joinable, models, MediaFilePath, RemotePath, Result};
+use super::{
+    models,
+    path::{FilePath, PathLike},
+    Result,
+};
 use crate::{shared::long_id, store::metadata::reprocess_all_media, Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
@@ -163,7 +167,7 @@ impl<'a> DbConnection<'a> {
     pub async fn list_online_alternate_files(
         &mut self,
         storage: &models::Storage,
-    ) -> Result<Vec<(models::AlternateFile, MediaFilePath, RemotePath)>> {
+    ) -> Result<Vec<(models::AlternateFile, FilePath)>> {
         let files = alternate_file::table
             .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
             .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
@@ -181,9 +185,13 @@ impl<'a> DbConnection<'a> {
         Ok(files
             .into_iter()
             .map(|(alternate, media_item, catalog)| {
-                let file_path = MediaFilePath::new(&catalog, &media_item, &alternate.media_file);
-                let remote_path = file_path.remote_path().join(&alternate.file_name);
-                (alternate, file_path, remote_path)
+                let file_path = FilePath {
+                    catalog,
+                    item: media_item,
+                    file: alternate.media_file.clone(),
+                    file_name: alternate.file_name.clone(),
+                };
+                (alternate, file_path)
             })
             .collect())
     }
@@ -191,7 +199,7 @@ impl<'a> DbConnection<'a> {
     pub async fn list_online_media_files(
         &mut self,
         storage: &models::Storage,
-    ) -> Result<Vec<(models::MediaFile, MediaFilePath, RemotePath)>> {
+    ) -> Result<Vec<(models::MediaFile, FilePath)>> {
         let files = media_file::table
             .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
             .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
@@ -203,9 +211,13 @@ impl<'a> DbConnection<'a> {
         Ok(files
             .into_iter()
             .map(|(media_file, catalog)| {
-                let file_path = MediaFilePath::new(&catalog, &media_file.media, &media_file.id);
-                let remote_path = file_path.remote_path().join(&media_file.file_name);
-                (media_file, file_path, remote_path)
+                let file_path = FilePath {
+                    catalog,
+                    item: media_file.media.clone(),
+                    file: media_file.id.clone(),
+                    file_name: media_file.file_name.clone(),
+                };
+                (media_file, file_path)
             })
             .collect())
     }
@@ -532,7 +544,7 @@ impl<'a> DbConnection<'a> {
         email: &str,
         media: &str,
         file: &str,
-    ) -> Result<(models::MediaFile, MediaFilePath)> {
+    ) -> Result<(models::MediaFile, FilePath)> {
         let (media_file, catalog) = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media)))
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
@@ -545,8 +557,13 @@ impl<'a> DbConnection<'a> {
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
 
-        let media_path = MediaFilePath::new(&catalog, media, file);
-        Ok((media_file, media_path))
+        let file_path = FilePath {
+            catalog,
+            item: media.to_owned(),
+            file: file.to_owned(),
+            file_name: media_file.file_name.clone(),
+        };
+        Ok((media_file, file_path))
     }
 
     pub async fn list_catalog_media(
@@ -565,7 +582,7 @@ impl<'a> DbConnection<'a> {
         file: &str,
         mimetype: &str,
         alternate_type: models::AlternateFileType,
-    ) -> Result<Vec<(models::AlternateFile, MediaFilePath, PathBuf)>> {
+    ) -> Result<Vec<(models::AlternateFile, FilePath, PathBuf)>> {
         if let Some(email) = email {
             let files = user_catalog::table
                 .filter(user_catalog::user.eq(email))
@@ -590,16 +607,16 @@ impl<'a> DbConnection<'a> {
                 return Ok(files
                     .into_iter()
                     .map(|(alternate, media_item, catalog)| {
-                        let file_path =
-                            MediaFilePath::new(&catalog, &media_item, &alternate.media_file);
-                        let local_path = self
-                            .config
-                            .local_storage
-                            .join(file_path.local_path())
-                            .join(joinable(&alternate.file_name));
+                        let file_path = FilePath {
+                            catalog,
+                            item: media_item,
+                            file: alternate.media_file.clone(),
+                            file_name: alternate.file_name.clone(),
+                        };
+                        let local_path = self.config.local_storage.join(file_path.local_path());
                         (alternate, file_path, local_path)
                     })
-                    .collect::<Vec<(models::AlternateFile, MediaFilePath, PathBuf)>>());
+                    .collect::<Vec<(models::AlternateFile, FilePath, PathBuf)>>());
             }
         }
 

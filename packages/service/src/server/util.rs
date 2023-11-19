@@ -6,7 +6,7 @@ use actix_web::{
     HttpResponse, ResponseError,
 };
 
-use crate::store::{models, MediaFilePath};
+use crate::store::{models, path::FilePath};
 use crate::Error;
 
 #[derive(Debug)]
@@ -48,14 +48,14 @@ impl ResponseError for InternalError {
     }
 }
 
-fn alt_size(alt: &(models::AlternateFile, MediaFilePath, PathBuf)) -> i32 {
+fn alt_size(alt: &(models::AlternateFile, FilePath, PathBuf)) -> i32 {
     max(alt.0.width, alt.0.height)
 }
 
 pub(crate) fn choose_alternate(
-    mut alternates: Vec<(models::AlternateFile, MediaFilePath, PathBuf)>,
+    mut alternates: Vec<(models::AlternateFile, FilePath, PathBuf)>,
     size: i32,
-) -> Option<(models::AlternateFile, MediaFilePath, PathBuf)> {
+) -> Option<(models::AlternateFile, FilePath, PathBuf)> {
     if alternates.is_empty() {
         return None;
     }

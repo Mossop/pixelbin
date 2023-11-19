@@ -1,4 +1,4 @@
-use std::{fmt, str::from_utf8, time::Duration};
+use std::time::Duration;
 
 use aws_config::AppName;
 use aws_sdk_s3::{
@@ -8,8 +8,15 @@ use aws_sdk_s3::{
 };
 use futures::{future, TryStreamExt};
 
-use super::{joinable, models::Storage, MediaFilePath};
+use super::{
+    models::Storage,
+    path::{FilePath, PathLike, ResourcePath},
+};
 use crate::{Error, Result};
+
+pub(crate) fn joinable(st: &str) -> &str {
+    st.trim_matches('/')
+}
 
 pub(crate) struct AwsClient {
     client: Client,
@@ -19,6 +26,14 @@ pub(crate) struct AwsClient {
 }
 
 impl AwsClient {
+    fn strip_prefix<'a>(&self, remote: &'a str) -> &'a str {
+        if let Some(path) = &self.path {
+            remote.trim_start_matches(path).trim_start_matches('/')
+        } else {
+            remote
+        }
+    }
+
     pub(crate) async fn from_storage(storage: &Storage) -> Result<Self> {
         let mut config_loader = aws_config::from_env()
             .region(Region::new(storage.region.clone()))
@@ -47,14 +62,14 @@ impl AwsClient {
 
     pub(crate) async fn file_uri(
         &self,
-        path: &RemotePath,
+        path: &FilePath,
         mimetype: &str,
         filename: Option<&str>,
     ) -> Result<String> {
         if let Some(ref public) = self.public_url {
-            Ok(format!("{}/{}", joinable(public), path,))
+            Ok(format!("{}/{}", joinable(public), path.remote_path(),))
         } else {
-            let mut key = path.to_string();
+            let mut key = path.remote_path();
             if let Some(ref prefix) = self.path {
                 key = format!("{}/{}", joinable(prefix), key);
             }
@@ -85,34 +100,26 @@ impl AwsClient {
 
     pub(crate) async fn list_files(
         &self,
-        prefix: Option<RemotePath>,
-    ) -> Result<Vec<(RemotePath, u64)>> {
+        prefix: Option<ResourcePath>,
+    ) -> Result<Vec<(ResourcePath, u64)>> {
         let mut request = self.client.list_objects_v2().bucket(&self.bucket);
 
-        let base_path = if let Some(ref path) = self.path {
-            RemotePath::from(path)
-        } else {
-            RemotePath::new()
-        };
-
-        let mut key_prefix = base_path.clone();
-        if let Some(p) = prefix {
-            key_prefix.push(p);
-        }
-
-        if !key_prefix.is_empty() {
-            request = request.prefix(format!("{key_prefix}/"));
+        match (&self.path, prefix) {
+            (Some(path), Some(prefix)) => {
+                request = request.prefix(format!("{path}/{}/", prefix.remote_path()))
+            }
+            (Some(path), None) => request = request.prefix(format!("{path}/")),
+            (None, Some(prefix)) => request = request.prefix(format!("{}/", prefix.remote_path())),
+            _ => {}
         }
 
         let stream = request.into_paginator().send();
         let files = stream
-            .try_fold(Vec::<(RemotePath, u64)>::new(), |mut files, output| {
+            .try_fold(Vec::<(ResourcePath, u64)>::new(), |mut files, output| {
                 if let Some(objects) = output.contents() {
                     files.extend(objects.iter().map(|o| {
                         (
-                            RemotePath::from(o.key().unwrap())
-                                .relative_to(&base_path)
-                                .unwrap(),
+                            ResourcePath::from_remote(self.strip_prefix(o.key().unwrap())).unwrap(),
                             o.size() as u64,
                         )
                     }));
@@ -126,110 +133,5 @@ impl AwsClient {
             })?;
 
         Ok(files)
-    }
-}
-
-#[derive(Default, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct RemotePath {
-    path: String,
-}
-
-impl RemotePath {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.path.is_empty()
-    }
-
-    pub fn push<S: AsRef<str>>(&mut self, s: S) {
-        let str = s.as_ref();
-
-        match (self.path.is_empty(), str.is_empty()) {
-            (false, false) => self.path = format!("{}/{}", self.path, str),
-            (true, false) => self.path = str.to_owned(),
-            _ => {}
-        };
-    }
-
-    pub fn join<S: AsRef<str>>(&self, s: S) -> Self {
-        let str = s.as_ref();
-
-        let path = match (self.path.is_empty(), str.is_empty()) {
-            (false, false) => format!("{}/{}", self.path, str),
-            (true, false) => str.to_owned(),
-            _ => self.path.clone(),
-        };
-
-        Self { path }
-    }
-
-    pub fn relative_to<S: AsRef<str>>(&self, base: S) -> Option<Self> {
-        let st_base = format!("{}/", joinable(base.as_ref()));
-
-        if st_base.len() == 1 {
-            Some(self.clone())
-        } else if self.path.starts_with(&st_base) {
-            Some(Self {
-                path: from_utf8(&self.path.as_bytes()[st_base.len()..])
-                    .unwrap()
-                    .to_owned(),
-            })
-        } else {
-            None
-        }
-    }
-}
-
-impl fmt::Display for RemotePath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.path)
-    }
-}
-
-impl AsRef<str> for RemotePath {
-    fn as_ref(&self) -> &str {
-        &self.path
-    }
-}
-
-impl From<RemotePath> for String {
-    fn from(path: RemotePath) -> String {
-        path.to_string()
-    }
-}
-
-impl From<&str> for RemotePath {
-    fn from(st: &str) -> RemotePath {
-        RemotePath {
-            path: st.to_owned(),
-        }
-    }
-}
-
-impl From<&String> for RemotePath {
-    fn from(st: &String) -> RemotePath {
-        RemotePath {
-            path: st.to_owned(),
-        }
-    }
-}
-
-impl From<String> for RemotePath {
-    fn from(st: String) -> RemotePath {
-        RemotePath { path: st }
-    }
-}
-
-impl From<&MediaFilePath> for RemotePath {
-    fn from(mp: &MediaFilePath) -> RemotePath {
-        mp.remote_path()
-    }
-}
-
-impl From<MediaFilePath> for RemotePath {
-    fn from(mp: MediaFilePath) -> RemotePath {
-        mp.remote_path()
     }
 }

@@ -1,8 +1,7 @@
 use actix_web::{get, http::header, post, web, HttpResponse, Responder};
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, OneOrMany};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 use tracing::instrument;
@@ -12,10 +11,7 @@ use super::{
     util::choose_alternate,
     ApiResult, AppState,
 };
-use crate::store::{
-    aws::RemotePath,
-    models::{self, AlternateFileType, Location},
-};
+use crate::store::models::{self, AlternateFileType, Location};
 use crate::Error;
 
 #[derive(Serialize)]
@@ -45,22 +41,17 @@ async fn download_handler(
 ) -> ApiResult<impl Responder> {
     let filename = path.filename.clone();
 
-    let (remote_path, storage, mimetype) = match app_state
+    let (file_path, storage, mimetype) = match app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (media_file, media_path) = trx
+                let (media_file, file_path) = trx
                     .get_user_media_file(&session.user.email, &path.item, &path.file)
                     .await?;
 
-                let storage = trx.get_catalog_storage(&media_path.catalog).await?;
-                let remote_path: RemotePath = media_path.into();
+                let storage = trx.get_catalog_storage(&file_path.catalog).await?;
 
-                Ok((
-                    remote_path.join(&media_file.file_name),
-                    storage,
-                    media_file.mimetype,
-                ))
+                Ok((file_path, storage, media_file.mimetype))
             }
             .scope_boxed()
         })
@@ -73,7 +64,7 @@ async fn download_handler(
 
     let uri = app_state
         .store
-        .online_uri(&storage, &remote_path, &mimetype, Some(&filename))
+        .online_uri(&storage, &file_path, &mimetype, Some(&filename))
         .await?;
 
     Ok(HttpResponse::TemporaryRedirect()
@@ -157,11 +148,11 @@ async fn encoding_handler(
     let mimetype = path.mimetype.replace('-', "/");
     let tx_mime = mimetype.clone();
 
-    let (remote_path, storage) = match app_state
+    let (file_path, storage) = match app_state
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (alternate, media_path, _) = trx
+                let (_, file_path, _) = trx
                     .list_media_alternates(
                         email,
                         &path.item,
@@ -174,10 +165,9 @@ async fn encoding_handler(
                     .next()
                     .ok_or_else(|| Error::NotFound)?;
 
-                let storage = trx.get_catalog_storage(&media_path.catalog).await?;
-                let remote_path: RemotePath = media_path.into();
+                let storage = trx.get_catalog_storage(&file_path.catalog).await?;
 
-                Ok((remote_path.join(&alternate.file_name), storage))
+                Ok((file_path, storage))
             }
             .scope_boxed()
         })
@@ -190,7 +180,7 @@ async fn encoding_handler(
 
     let uri = app_state
         .store
-        .online_uri(&storage, &remote_path, &mimetype, None)
+        .online_uri(&storage, &file_path, &mimetype, None)
         .await?;
 
     Ok(HttpResponse::TemporaryRedirect()
@@ -202,7 +192,6 @@ fn default_true() -> bool {
     true
 }
 
-#[serde_as]
 #[derive(Debug, Deserialize)]
 struct AlbumListRequest {
     #[serde(default = "default_true")]
@@ -503,7 +492,6 @@ async fn create_media(
     todo!();
 }
 
-#[serde_as]
 #[derive(Deserialize, Clone, Debug)]
 struct MediaUpdate {
     id: String,

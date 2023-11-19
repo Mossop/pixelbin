@@ -12,8 +12,8 @@ pub(crate) mod aws;
 pub(crate) mod db;
 pub(crate) mod metadata;
 pub(crate) mod models;
+pub(crate) mod path;
 
-use aws::RemotePath;
 use db::schema::*;
 use db::DbConnection;
 use db::{connect, DbPool};
@@ -22,41 +22,7 @@ use tracing::instrument;
 
 use crate::{Config, Result};
 
-pub(crate) fn joinable(st: &str) -> &str {
-    st.trim_matches('/')
-}
-
-#[derive(Clone, Debug)]
-pub struct MediaFilePath {
-    pub catalog: String,
-    pub media_item: String,
-    pub media_file: String,
-}
-
-impl MediaFilePath {
-    fn new(catalog: &str, media_item: &str, media_file: &str) -> Self {
-        Self {
-            catalog: catalog.to_owned(),
-            media_item: media_item.to_owned(),
-            media_file: media_file.to_owned(),
-        }
-    }
-
-    fn local_path(&self) -> PathBuf {
-        PathBuf::new()
-            .join(joinable(&self.catalog))
-            .join(joinable(&self.media_item))
-            .join(joinable(&self.media_file))
-    }
-
-    fn remote_path(&self) -> RemotePath {
-        let mut path = RemotePath::new();
-        path.push(joinable(&self.catalog));
-        path.push(joinable(&self.media_item));
-        path.push(joinable(&self.media_file));
-        path
-    }
-}
+use self::path::{FilePath, PathLike};
 
 #[derive(Clone)]
 pub struct Store {
@@ -117,7 +83,7 @@ impl Store {
     pub(crate) async fn online_uri(
         &self,
         storage: &models::Storage,
-        path: &RemotePath,
+        path: &FilePath,
         mimetype: &str,
         filename: Option<&str>,
     ) -> Result<String> {
@@ -151,7 +117,7 @@ impl Store {
 
     pub(crate) async fn list_local_alternate_files(
         &self,
-    ) -> Result<Vec<(models::AlternateFile, MediaFilePath, PathBuf)>> {
+    ) -> Result<Vec<(models::AlternateFile, FilePath, PathBuf)>> {
         let mut conn = self.pool.get().await?;
 
         let files = alternate_file::table
@@ -169,12 +135,13 @@ impl Store {
         Ok(files
             .into_iter()
             .map(|(alternate, media_item, catalog)| {
-                let file_path = MediaFilePath::new(&catalog, &media_item, &alternate.media_file);
-                let local_path = self
-                    .config
-                    .local_storage
-                    .join(file_path.local_path())
-                    .join(joinable(&alternate.file_name));
+                let file_path = FilePath {
+                    catalog: catalog.clone(),
+                    item: media_item,
+                    file: alternate.media_file.clone(),
+                    file_name: alternate.file_name.clone(),
+                };
+                let local_path = self.config.local_storage.join(file_path.local_path());
                 (alternate, file_path, local_path)
             })
             .collect())

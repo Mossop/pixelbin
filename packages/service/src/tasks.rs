@@ -5,7 +5,7 @@ use std::{collections::HashMap, path::PathBuf};
 use scoped_futures::ScopedFutureExt;
 use tracing::instrument;
 
-use crate::store::{aws::RemotePath, metadata, Store};
+use crate::store::{metadata, path::ResourcePath, Store};
 use crate::Result;
 
 #[instrument(skip_all)]
@@ -89,21 +89,22 @@ pub async fn verify_online_storage(store: Store) -> Result {
     let mut prunable = 0;
 
     for storage in stores {
-        let mut remote_files: HashMap<RemotePath, u64> =
+        let mut remote_files: HashMap<ResourcePath, u64> =
             storage.list_remote_files(None).await?.into_iter().collect();
 
         let media_files = conn.list_online_media_files(&storage).await?;
         files += media_files.len();
-        for (media_file, _file_path, remote_path) in media_files {
-            match remote_files.remove(&remote_path) {
+        for (media_file, file_path) in media_files {
+            let resource_path: ResourcePath = file_path.into();
+            match remote_files.remove(&resource_path) {
                 Some(remote_size) => {
                     if remote_size != (media_file.file_size as u64) {
-                        tracing::error!("Stored file {remote_path} was expected to be {} bytes but is actually {remote_size} bytes", media_file.file_size);
+                        tracing::error!("Stored file {resource_path} was expected to be {} bytes but is actually {remote_size} bytes", media_file.file_size);
                         errors += 1;
                     }
                 }
                 None => {
-                    tracing::error!("Stored file {remote_path} was not found");
+                    tracing::error!("Stored file {resource_path} was not found");
                     errors += 1;
                 }
             }
@@ -111,16 +112,17 @@ pub async fn verify_online_storage(store: Store) -> Result {
 
         let alternates = conn.list_online_alternate_files(&storage).await?;
         files += alternates.len();
-        for (alternate, _file_path, remote_path) in alternates {
-            match remote_files.remove(&remote_path) {
+        for (alternate, file_path) in alternates {
+            let resource_path: ResourcePath = file_path.into();
+            match remote_files.remove(&resource_path) {
                 Some(remote_size) => {
                     if remote_size != (alternate.file_size as u64) {
-                        tracing::error!("Stored file {remote_path} was expected to be {} bytes but is actually {remote_size} bytes", alternate.file_size);
+                        tracing::error!("Stored alternate file {resource_path} was expected to be {} bytes but is actually {remote_size} bytes", alternate.file_size);
                         errors += 1;
                     }
                 }
                 None => {
-                    tracing::error!("Stored file {remote_path} was not found");
+                    tracing::error!("Stored file {resource_path} was not found");
                     errors += 1;
                 }
             }

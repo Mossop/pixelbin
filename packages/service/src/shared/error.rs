@@ -47,6 +47,8 @@ pub enum Error {
     },
     #[error("S3 Error: {message}")]
     S3Error { message: String },
+    #[error("Unexpected path")]
+    UnexpectedPath { path: String },
     #[error("Unknown error: {message}")]
     Unknown { message: String },
 }

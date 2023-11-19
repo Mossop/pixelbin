@@ -15,7 +15,8 @@ use typeshare::typeshare;
 use super::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
-    DbConnection, MediaFilePath, RemotePath,
+    path::{MediaFilePath, ResourcePath},
+    DbConnection,
 };
 use super::{
     db::functions::media_view_columns,
@@ -183,8 +184,8 @@ pub struct Storage {
 impl Storage {
     pub async fn list_remote_files(
         &self,
-        prefix: Option<RemotePath>,
-    ) -> Result<Vec<(RemotePath, u64)>> {
+        prefix: Option<ResourcePath>,
+    ) -> Result<Vec<(ResourcePath, u64)>> {
         let client = AwsClient::from_storage(self).await?;
 
         client.list_files(prefix).await
@@ -572,7 +573,11 @@ impl MediaFile {
         Ok(files
             .into_iter()
             .map(|(media_file, catalog)| {
-                let media_path = MediaFilePath::new(&catalog, &media_file.media, &media_file.id);
+                let media_path = MediaFilePath {
+                    catalog,
+                    item: media_file.media.clone(),
+                    file: media_file.id.clone(),
+                };
                 (media_file, media_path)
             })
             .collect())
