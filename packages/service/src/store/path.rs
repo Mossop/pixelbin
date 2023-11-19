@@ -1,25 +1,12 @@
-use std::{fmt, path::PathBuf};
+use std::fmt;
 
 use enum_dispatch::enum_dispatch;
 
 use crate::Error;
 
 #[enum_dispatch]
-pub(crate) trait PathLike {
+pub trait PathLike {
     fn path_parts(&self) -> Vec<&str>;
-
-    fn local_path(&self) -> PathBuf {
-        let mut path = PathBuf::new();
-        for part in self.path_parts() {
-            path.push(part);
-        }
-
-        path
-    }
-
-    fn remote_path(&self) -> String {
-        self.path_parts().join("/")
-    }
 }
 
 #[enum_dispatch(PathLike)]
@@ -32,46 +19,61 @@ pub enum ResourcePath {
 }
 
 impl ResourcePath {
-    pub(crate) fn from_remote(remote: &str) -> Result<Self, Error> {
-        let parts: Vec<&str> = remote.split('/').collect();
+    pub(crate) fn try_from<'a, I: IntoIterator<Item = &'a str>>(v: I) -> Result<Self, Error> {
+        let mut iter = v.into_iter();
 
-        let resource = match parts.len() {
-            1 => CatalogPath {
-                catalog: parts[0].to_owned(),
-            }
-            .into(),
-            2 => MediaItemPath {
-                catalog: parts[0].to_owned(),
-                item: parts[1].to_owned(),
-            }
-            .into(),
-            3 => MediaFilePath {
-                catalog: parts[0].to_owned(),
-                item: parts[1].to_owned(),
-                file: parts[2].to_owned(),
-            }
-            .into(),
-            4 => FilePath {
-                catalog: parts[0].to_owned(),
-                item: parts[1].to_owned(),
-                file: parts[2].to_owned(),
-                file_name: parts[3].to_owned(),
-            }
-            .into(),
-            _ => {
-                return Err(Error::UnexpectedPath {
-                    path: remote.to_owned(),
-                })
-            }
+        let catalog = if let Some(c) = iter.next() {
+            c.to_owned()
+        } else {
+            return Err(Error::UnexpectedPath {
+                path: "".to_string(),
+            });
         };
 
-        Ok(resource)
+        let item = if let Some(i) = iter.next() {
+            i.to_owned()
+        } else {
+            return Ok(CatalogPath { catalog }.into());
+        };
+
+        let file = if let Some(f) = iter.next() {
+            f.to_owned()
+        } else {
+            return Ok(MediaItemPath { catalog, item }.into());
+        };
+
+        let file_name = if let Some(f) = iter.next() {
+            f.to_owned()
+        } else {
+            return Ok(MediaFilePath {
+                catalog,
+                item,
+                file,
+            }
+            .into());
+        };
+
+        if let Some(trailing) = iter.next() {
+            let mut rest = vec![trailing];
+            rest.extend(iter);
+
+            let path = format!("{catalog}/{item}/{file}/{file_name}/{}", rest.join("/"));
+            Err(Error::UnexpectedPath { path })
+        } else {
+            Ok(FilePath {
+                catalog,
+                item,
+                file,
+                file_name,
+            }
+            .into())
+        }
     }
 }
 
 impl fmt::Display for ResourcePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.remote_path())
+        f.write_str(&self.path_parts().join("/"))
     }
 }
 
@@ -88,7 +90,7 @@ impl PathLike for CatalogPath {
 
 impl fmt::Display for CatalogPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.remote_path())
+        f.write_str(&self.path_parts().join("/"))
     }
 }
 
@@ -96,6 +98,14 @@ impl fmt::Display for CatalogPath {
 pub struct MediaItemPath {
     pub(crate) catalog: String,
     pub(crate) item: String,
+}
+
+impl FilePath {
+    pub fn catalog_path(&self) -> CatalogPath {
+        CatalogPath {
+            catalog: self.catalog.clone(),
+        }
+    }
 }
 
 impl PathLike for MediaItemPath {
@@ -106,7 +116,7 @@ impl PathLike for MediaItemPath {
 
 impl fmt::Display for MediaItemPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.remote_path())
+        f.write_str(&self.path_parts().join("/"))
     }
 }
 
@@ -117,6 +127,15 @@ pub struct MediaFilePath {
     pub(crate) file: String,
 }
 
+impl FilePath {
+    pub fn media_item_path(&self) -> MediaItemPath {
+        MediaItemPath {
+            catalog: self.catalog.clone(),
+            item: self.item.clone(),
+        }
+    }
+}
+
 impl PathLike for MediaFilePath {
     fn path_parts(&self) -> Vec<&str> {
         vec![&self.catalog, &self.item, &self.file]
@@ -125,7 +144,7 @@ impl PathLike for MediaFilePath {
 
 impl fmt::Display for MediaFilePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.remote_path())
+        f.write_str(&self.path_parts().join("/"))
     }
 }
 
@@ -137,6 +156,16 @@ pub struct FilePath {
     pub(crate) file_name: String,
 }
 
+impl FilePath {
+    pub fn media_file_path(&self) -> MediaFilePath {
+        MediaFilePath {
+            catalog: self.catalog.clone(),
+            item: self.item.clone(),
+            file: self.file.clone(),
+        }
+    }
+}
+
 impl PathLike for FilePath {
     fn path_parts(&self) -> Vec<&str> {
         vec![&self.catalog, &self.item, &self.file, &self.file_name]
@@ -145,6 +174,24 @@ impl PathLike for FilePath {
 
 impl fmt::Display for FilePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.remote_path())
+        f.write_str(&self.path_parts().join("/"))
     }
 }
+
+// #[derive(Debug, Clone)]
+// pub struct CatalogTree {
+//     pub(crate) path: CatalogPath,
+//     pub(crate) items: HashMap<String, MediaItemTree>,
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct MediaItemTree {
+//     pub(crate) path: MediaItemPath,
+//     pub(crate) files: HashMap<String, MediaFileTree>,
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct MediaFileTree {
+//     pub(crate) path: MediaFilePath,
+//     pub(crate) files: HashMap<String, FilePath>,
+// }

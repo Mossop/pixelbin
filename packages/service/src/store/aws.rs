@@ -18,6 +18,10 @@ pub(crate) fn joinable(st: &str) -> &str {
     st.trim_matches('/')
 }
 
+fn remote_path<P: PathLike>(path: &P) -> String {
+    path.path_parts().join("/")
+}
+
 pub(crate) struct AwsClient {
     client: Client,
     bucket: String,
@@ -67,9 +71,9 @@ impl AwsClient {
         filename: Option<&str>,
     ) -> Result<String> {
         if let Some(ref public) = self.public_url {
-            Ok(format!("{}/{}", joinable(public), path.remote_path(),))
+            Ok(format!("{}/{}", joinable(public), remote_path(path),))
         } else {
-            let mut key = path.remote_path();
+            let mut key = remote_path(path);
             if let Some(ref prefix) = self.path {
                 key = format!("{}/{}", joinable(prefix), key);
             }
@@ -106,10 +110,10 @@ impl AwsClient {
 
         match (&self.path, prefix) {
             (Some(path), Some(prefix)) => {
-                request = request.prefix(format!("{path}/{}/", prefix.remote_path()))
+                request = request.prefix(format!("{path}/{}/", remote_path(&prefix)))
             }
             (Some(path), None) => request = request.prefix(format!("{path}/")),
-            (None, Some(prefix)) => request = request.prefix(format!("{}/", prefix.remote_path())),
+            (None, Some(prefix)) => request = request.prefix(format!("{}/", remote_path(&prefix))),
             _ => {}
         }
 
@@ -119,7 +123,8 @@ impl AwsClient {
                 if let Some(objects) = output.contents() {
                     files.extend(objects.iter().map(|o| {
                         (
-                            ResourcePath::from_remote(self.strip_prefix(o.key().unwrap())).unwrap(),
+                            ResourcePath::try_from(self.strip_prefix(o.key().unwrap()).split('/'))
+                                .unwrap(),
                             o.size() as u64,
                         )
                     }));

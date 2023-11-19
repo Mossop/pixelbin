@@ -22,11 +22,7 @@ use schema::*;
 use tracing::{info, instrument, trace};
 
 use self::functions::{media_view, media_view_columns};
-use super::{
-    models,
-    path::{FilePath, PathLike},
-    Result,
-};
+use super::{models, path::FilePath, Result};
 use crate::{shared::long_id, store::metadata::reprocess_all_media, Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
@@ -613,7 +609,7 @@ impl<'a> DbConnection<'a> {
                             file: alternate.media_file.clone(),
                             file_name: alternate.file_name.clone(),
                         };
-                        let local_path = self.config.local_storage.join(file_path.local_path());
+                        let local_path = self.config.local_path(&file_path);
                         (alternate, file_path, local_path)
                     })
                     .collect::<Vec<(models::AlternateFile, FilePath, PathBuf)>>());

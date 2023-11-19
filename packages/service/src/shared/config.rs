@@ -6,7 +6,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, Result};
+use crate::{store::path::PathLike, Error, Result};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -105,5 +105,14 @@ impl Config {
         resolve(&root, &mut config.temp_storage)?;
 
         Ok(config)
+    }
+
+    pub fn local_path<P: PathLike>(&self, path: &P) -> PathBuf {
+        let mut local_path = self.local_storage.clone();
+        for part in path.path_parts() {
+            local_path.push(part);
+        }
+
+        local_path
     }
 }

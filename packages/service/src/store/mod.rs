@@ -22,7 +22,7 @@ use tracing::instrument;
 
 use crate::{Config, Result};
 
-use self::path::{FilePath, PathLike};
+use self::path::FilePath;
 
 #[derive(Clone)]
 pub struct Store {
@@ -141,7 +141,7 @@ impl Store {
                     file: alternate.media_file.clone(),
                     file_name: alternate.file_name.clone(),
                 };
-                let local_path = self.config.local_storage.join(file_path.local_path());
+                let local_path = self.config.local_path(&file_path);
                 (alternate, file_path, local_path)
             })
             .collect())
