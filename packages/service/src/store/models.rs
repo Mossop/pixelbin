@@ -5,7 +5,7 @@ use diesel::{
     backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, upsert::excluded,
     AsExpression, Queryable,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use serde_repr::Serialize_repr;
@@ -201,7 +201,7 @@ impl Catalog {
     #[instrument(skip(self, conn), fields(catalog = self.id))]
     pub async fn list_media(
         &self,
-        conn: &mut AsyncPgConnection,
+        conn: &mut DbConnection<'_>,
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
@@ -249,7 +249,7 @@ impl Album {
     #[instrument(skip(self, conn), fields(album = self.id))]
     pub async fn list_media(
         &self,
-        conn: &mut AsyncPgConnection,
+        conn: &mut DbConnection<'_>,
         recursive: bool,
         offset: Option<i64>,
         count: Option<i64>,
@@ -310,7 +310,7 @@ impl SavedSearch {
     #[instrument(skip(self, conn), fields(search = self.id))]
     pub async fn list_media(
         &self,
-        conn: &mut AsyncPgConnection,
+        conn: &mut DbConnection<'_>,
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
@@ -329,7 +329,7 @@ impl SavedSearch {
     }
 
     #[instrument(skip(self, conn), fields(search = self.id))]
-    pub(crate) async fn update(&self, conn: &mut AsyncPgConnection) -> Result {
+    pub(crate) async fn update(&self, conn: &mut DbConnection<'_>) -> Result {
         let select = media_item::table
             .left_outer_join(
                 media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
@@ -452,7 +452,7 @@ impl MediaItem {
                     media_item::taken.eq(excluded(media_item::taken)),
                     media_item::media_file.eq(excluded(media_item::media_file)),
                 ))
-                .execute(conn.conn)
+                .execute(conn)
                 .await?;
         }
 
@@ -463,7 +463,7 @@ impl MediaItem {
         let items = media_item::table
             .filter(media_item::media_file.is_null())
             .select(media_item::all_columns)
-            .load::<MediaItem>(conn.conn)
+            .load::<MediaItem>(conn)
             .await?;
 
         Ok(items)
@@ -564,7 +564,7 @@ impl MediaFile {
         let files = media_item::table
             .inner_join(media_file::table.on(media_item::media_file.eq(media_file::id.nullable())))
             .select((media_file::all_columns, media_item::catalog))
-            .load::<(MediaFile, String)>(conn.conn)
+            .load::<(MediaFile, String)>(conn)
             .await?;
 
         Ok(files
@@ -590,7 +590,7 @@ impl MediaFile {
         let mut items = media_item::table
             .filter(media_item::media_file.eq_any(media_file_ids))
             .select(media_item::all_columns)
-            .load::<MediaItem>(conn.conn)
+            .load::<MediaItem>(conn)
             .await?;
 
         items.iter_mut().for_each(|item| {
@@ -639,7 +639,7 @@ impl MediaFile {
                     media_file::focal_length.eq(excluded(media_file::focal_length)),
                     media_file::taken.eq(excluded(media_file::taken)),
                 ))
-                .execute(conn.conn)
+                .execute(conn)
                 .await?;
         }
 

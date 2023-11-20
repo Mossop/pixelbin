@@ -125,12 +125,7 @@ impl Store {
     {
         let mut conn = self.pool.get().await?;
 
-        cb(DbConnection {
-            conn: &mut conn,
-            config: self.config.clone(),
-            is_transaction: false,
-        })
-        .await
+        cb(DbConnection::from_connection(&mut conn, &self.config)).await
     }
 
     #[instrument(skip_all)]
@@ -142,15 +137,8 @@ impl Store {
         let mut conn = self.pool.get().await?;
 
         conn.transaction(|conn| {
-            async move {
-                cb(DbConnection {
-                    conn,
-                    config: self.config.clone(),
-                    is_transaction: true,
-                })
-                .await
-            }
-            .scope_boxed()
+            async move { cb(DbConnection::from_transaction(conn, &self.config)).await }
+                .scope_boxed()
         })
         .await
     }

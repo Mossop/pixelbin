@@ -3,7 +3,7 @@ pub(crate) mod functions;
 pub(super) mod schema;
 pub(crate) mod search;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, pin::Pin};
 
 use chrono::{Duration, Utc};
 use diesel::{
@@ -11,13 +11,15 @@ use diesel::{
     migration::{Migration, MigrationSource},
     pg::Pg,
     prelude::*,
+    query_builder::{AsQuery, QueryFragment, QueryId},
 };
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     scoped_futures::ScopedFutureExt,
-    AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
+    AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection, TransactionManager,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use futures::Future;
 use schema::*;
 use tracing::{info, instrument, trace};
 
@@ -62,7 +64,7 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     }
 
     // Now set up the async pool.
-    let pool_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&config.database_url);
+    let pool_config = AsyncDieselConnectionManager::<BackendConnection>::new(&config.database_url);
     let pool = Pool::builder(pool_config).build()?;
 
     // Verify that we can connect and update cached views.
@@ -146,12 +148,97 @@ pub struct StoreStats {
 }
 
 pub struct DbConnection<'a> {
-    pub(crate) conn: &'a mut BackendConnection,
-    pub(crate) config: Config,
-    pub(super) is_transaction: bool,
+    conn: &'a mut BackendConnection,
+    config: Config,
+    is_transaction: bool,
+}
+
+impl<'a> SimpleAsyncConnection for DbConnection<'a> {
+    fn batch_execute<'life0, 'life1, 'async_trait>(
+        &'life0 mut self,
+        query: &'life1 str,
+    ) -> Pin<Box<dyn Future<Output = QueryResult<()>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        self.conn.batch_execute(query)
+    }
+}
+
+impl<'a> AsyncConnection for DbConnection<'a> {
+    type ExecuteFuture<'conn, 'query> = <BackendConnection as AsyncConnection>::ExecuteFuture<'conn, 'query>
+    where
+        Self: 'conn;
+
+    type LoadFuture<'conn, 'query> = <BackendConnection as AsyncConnection>::LoadFuture<'conn, 'query>
+    where
+        Self: 'conn;
+
+    type Stream<'conn, 'query> = <BackendConnection as AsyncConnection>::Stream<'conn, 'query>
+    where
+        Self: 'conn;
+
+    type Row<'conn, 'query> = <BackendConnection as AsyncConnection>::Row<'conn, 'query>
+    where
+        Self: 'conn;
+
+    type Backend = <BackendConnection as AsyncConnection>::Backend;
+    type TransactionManager = <BackendConnection as AsyncConnection>::TransactionManager;
+
+    fn establish<'life0, 'async_trait>(
+        _database_url: &'life0 str,
+    ) -> Pin<Box<dyn Future<Output = ConnectionResult<Self>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        Self: 'async_trait,
+    {
+        todo!();
+    }
+
+    fn load<'conn, 'query, T>(&'conn mut self, source: T) -> Self::LoadFuture<'conn, 'query>
+    where
+        T: AsQuery + 'query,
+        T::Query: QueryFragment<Self::Backend> + QueryId + 'query,
+    {
+        AsyncConnection::load(&mut self.conn, source)
+    }
+
+    fn execute_returning_count<'conn, 'query, T>(
+        &'conn mut self,
+        source: T,
+    ) -> Self::ExecuteFuture<'conn, 'query>
+    where
+        T: QueryFragment<Self::Backend> + QueryId + 'query,
+    {
+        AsyncConnection::execute_returning_count(self.conn, source)
+    }
+
+    fn transaction_state(
+        &mut self,
+    ) -> &mut <Self::TransactionManager as TransactionManager<Self>>::TransactionStateData {
+        AsyncConnection::transaction_state(self.conn)
+    }
 }
 
 impl<'a> DbConnection<'a> {
+    pub(crate) fn from_transaction(conn: &'a mut BackendConnection, config: &Config) -> Self {
+        Self {
+            conn,
+            config: config.clone(),
+            is_transaction: true,
+        }
+    }
+
+    pub(crate) fn from_connection(conn: &'a mut BackendConnection, config: &Config) -> Self {
+        Self {
+            conn,
+            config: config.clone(),
+            is_transaction: false,
+        }
+    }
+
     pub fn assert_in_transaction(&self) {
         assert!(self.is_transaction);
     }
@@ -168,7 +255,7 @@ impl<'a> DbConnection<'a> {
             .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(media_item::catalog.eq(&catalog))
             .select(media_file::all_columns)
-            .load::<models::MediaFile>(self.conn)
+            .load::<models::MediaFile>(self)
             .await?;
 
         Ok(files
@@ -194,7 +281,7 @@ impl<'a> DbConnection<'a> {
             .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(media_item::catalog.eq(&catalog))
             .select((alternate_file::all_columns, media_item::id))
-            .load::<(models::AlternateFile, String)>(self.conn)
+            .load::<(models::AlternateFile, String)>(self)
             .await?;
 
         Ok(files
@@ -226,7 +313,7 @@ impl<'a> DbConnection<'a> {
                 media_item::id,
                 media_item::catalog,
             ))
-            .load::<(models::AlternateFile, String, String)>(self.conn)
+            .load::<(models::AlternateFile, String, String)>(self)
             .await?;
 
         Ok(files
@@ -252,7 +339,7 @@ impl<'a> DbConnection<'a> {
             .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
             .filter(catalog::storage.eq(&storage.id))
             .select((media_file::all_columns, media_item::catalog))
-            .load::<(models::MediaFile, String)>(self.conn)
+            .load::<(models::MediaFile, String)>(self)
             .await?;
 
         Ok(files
@@ -277,7 +364,7 @@ impl<'a> DbConnection<'a> {
         let mut user: models::User = user::table
             .filter(user::email.eq(email))
             .select(user::all_columns)
-            .get_result::<models::User>(self.conn)
+            .get_result::<models::User>(self)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
@@ -300,7 +387,7 @@ impl<'a> DbConnection<'a> {
 
         diesel::insert_into(auth_token::table)
             .values(&auth_token)
-            .execute(self.conn)
+            .execute(self)
             .await?;
 
         user.last_login = Some(Utc::now());
@@ -308,7 +395,7 @@ impl<'a> DbConnection<'a> {
         diesel::update(user::table)
             .filter(user::email.eq(email))
             .set(user::last_login.eq(&user.last_login))
-            .execute(self.conn)
+            .execute(self)
             .await?;
 
         Ok((user, token))
@@ -320,7 +407,7 @@ impl<'a> DbConnection<'a> {
             .filter(auth_token::token.eq(token))
             .filter(auth_token::expiry.is_null().or(auth_token::expiry.gt(now)))
             .select(user::all_columns)
-            .get_result::<models::User>(self.conn)
+            .get_result::<models::User>(self)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
@@ -330,14 +417,14 @@ impl<'a> DbConnection<'a> {
         diesel::update(user::table)
             .filter(user::email.eq(&user.email))
             .set(user::last_login.eq(&user.last_login))
-            .execute(self.conn)
+            .execute(self)
             .await?;
 
         let expiry = Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS);
         diesel::update(auth_token::table)
             .filter(auth_token::email.eq(&user.email))
             .set(auth_token::expiry.eq(expiry))
-            .execute(self.conn)
+            .execute(self)
             .await?;
 
         Ok(user)
@@ -345,21 +432,21 @@ impl<'a> DbConnection<'a> {
 
     pub async fn delete_token(&mut self, token: &str) -> Result {
         diesel::delete(auth_token::table.filter(auth_token::token.eq(token)))
-            .execute(self.conn)
+            .execute(self)
             .await?;
 
         Ok(())
     }
 
     pub async fn stats(&mut self) -> Result<StoreStats> {
-        let users: i64 = user::table.count().get_result(self.conn).await?;
-        let catalogs: i64 = catalog::table.count().get_result(self.conn).await?;
-        let albums: i64 = album::table.count().get_result(self.conn).await?;
-        let tags: i64 = tag::table.count().get_result(self.conn).await?;
-        let people: i64 = person::table.count().get_result(self.conn).await?;
-        let media: i64 = media_item::table.count().get_result(self.conn).await?;
-        let files: i64 = media_file::table.count().get_result(self.conn).await?;
-        let alternate_files: i64 = alternate_file::table.count().get_result(self.conn).await?;
+        let users: i64 = user::table.count().get_result(self).await?;
+        let catalogs: i64 = catalog::table.count().get_result(self).await?;
+        let albums: i64 = album::table.count().get_result(self).await?;
+        let tags: i64 = tag::table.count().get_result(self).await?;
+        let people: i64 = person::table.count().get_result(self).await?;
+        let media: i64 = media_item::table.count().get_result(self).await?;
+        let files: i64 = media_file::table.count().get_result(self).await?;
+        let alternate_files: i64 = alternate_file::table.count().get_result(self).await?;
 
         Ok(StoreStats {
             users: users as u32,
@@ -377,7 +464,7 @@ impl<'a> DbConnection<'a> {
         user::table
             .filter(user::email.eq(email))
             .select(user::all_columns)
-            .get_result::<models::User>(self.conn)
+            .get_result::<models::User>(self)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
@@ -388,7 +475,7 @@ impl<'a> DbConnection<'a> {
             .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
             .filter(catalog::id.eq(catalog))
             .select(storage::all_columns)
-            .get_result::<models::Storage>(self.conn)
+            .get_result::<models::Storage>(self)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
@@ -397,14 +484,14 @@ impl<'a> DbConnection<'a> {
     pub async fn list_storage(&mut self) -> Result<Vec<models::Storage>> {
         Ok(storage::table
             .select(storage::all_columns)
-            .load::<models::Storage>(self.conn)
+            .load::<models::Storage>(self)
             .await?)
     }
 
     pub async fn list_catalogs(&mut self) -> Result<Vec<models::Catalog>> {
         Ok(catalog::table
             .select(catalog::all_columns)
-            .load::<models::Catalog>(self.conn)
+            .load::<models::Catalog>(self)
             .await?)
     }
 
@@ -412,7 +499,7 @@ impl<'a> DbConnection<'a> {
         Ok(storage::table
             .filter(storage::owner.eq(email))
             .select(storage::all_columns)
-            .load::<models::Storage>(self.conn)
+            .load::<models::Storage>(self)
             .await?)
     }
 
@@ -422,7 +509,7 @@ impl<'a> DbConnection<'a> {
             .filter(user_catalog::user.eq(email))
             .select(catalog::all_columns)
             .order(catalog::name.asc())
-            .load::<models::Catalog>(self.conn)
+            .load::<models::Catalog>(self)
             .await?)
     }
 
@@ -432,7 +519,7 @@ impl<'a> DbConnection<'a> {
             .filter(user_catalog::user.eq(email))
             .select(person::all_columns)
             .order(person::name.asc())
-            .load::<models::Person>(self.conn)
+            .load::<models::Person>(self)
             .await?)
     }
 
@@ -442,7 +529,7 @@ impl<'a> DbConnection<'a> {
             .filter(user_catalog::user.eq(email))
             .select(tag::all_columns)
             .order(tag::name.asc())
-            .load::<models::Tag>(self.conn)
+            .load::<models::Tag>(self)
             .await?)
     }
 
@@ -452,7 +539,7 @@ impl<'a> DbConnection<'a> {
             .filter(user_catalog::user.eq(email))
             .select(album::all_columns)
             .order(album::name.asc())
-            .load::<models::Album>(self.conn)
+            .load::<models::Album>(self)
             .await?)
     }
 
@@ -467,7 +554,7 @@ impl<'a> DbConnection<'a> {
             .group_by(album::id)
             .select((album::all_columns, count(media_album::media.nullable())))
             .order(album::name.asc())
-            .load::<(models::Album, i64)>(self.conn)
+            .load::<(models::Album, i64)>(self)
             .await?)
     }
 
@@ -488,7 +575,7 @@ impl<'a> DbConnection<'a> {
                 .filter(album::id.eq(album))
                 .group_by(album::id)
                 .select((album::all_columns, count(media_album::media)))
-                .get_result::<(models::Album, i64)>(self.conn)
+                .get_result::<(models::Album, i64)>(self)
                 .await
                 .optional()?
                 .ok_or_else(|| Error::NotFound)
@@ -500,7 +587,7 @@ impl<'a> DbConnection<'a> {
                 .filter(album::id.eq(album))
                 .group_by(album::id)
                 .select((album::all_columns, count(media_album::media)))
-                .get_result::<(models::Album, i64)>(self.conn)
+                .get_result::<(models::Album, i64)>(self)
                 .await
                 .optional()?
                 .ok_or_else(|| Error::NotFound)
@@ -514,7 +601,7 @@ impl<'a> DbConnection<'a> {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<models::MediaView>> {
-        album.list_media(self.conn, recursive, offset, count).await
+        album.list_media(self, recursive, offset, count).await
     }
 
     pub async fn get_user_search(
@@ -529,7 +616,7 @@ impl<'a> DbConnection<'a> {
             .filter(saved_search::id.eq(search))
             .group_by(saved_search::id)
             .select((saved_search::all_columns, count(media_search::media)))
-            .get_result::<(models::SavedSearch, i64)>(self.conn)
+            .get_result::<(models::SavedSearch, i64)>(self)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
@@ -541,7 +628,7 @@ impl<'a> DbConnection<'a> {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<models::MediaView>> {
-        search.list_media(self.conn, offset, count).await
+        search.list_media(self, offset, count).await
     }
 
     pub async fn get_user_catalog(
@@ -556,7 +643,7 @@ impl<'a> DbConnection<'a> {
             .filter(catalog::id.eq(catalog))
             .group_by(catalog::id)
             .select((catalog::all_columns, count(media_item::id)))
-            .get_result::<(models::Catalog, i64)>(self.conn)
+            .get_result::<(models::Catalog, i64)>(self)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)
@@ -580,7 +667,7 @@ impl<'a> DbConnection<'a> {
                 tag_relation::tags.nullable(),
                 person_relation::people.nullable(),
             ))
-            .load::<models::MediaRelations>(self.conn)
+            .load::<models::MediaRelations>(self)
             .await?;
 
         Ok(media)
@@ -599,7 +686,7 @@ impl<'a> DbConnection<'a> {
             .filter(media_item::id.eq(media))
             .filter(media_file::id.eq(file))
             .select((media_file::all_columns, media_item::catalog))
-            .get_result::<(models::MediaFile, String)>(self.conn)
+            .get_result::<(models::MediaFile, String)>(self)
             .await
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
@@ -619,7 +706,7 @@ impl<'a> DbConnection<'a> {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<models::MediaView>> {
-        catalog.list_media(self.conn, offset, count).await
+        catalog.list_media(self, offset, count).await
     }
 
     pub async fn list_media_alternates(
@@ -647,7 +734,7 @@ impl<'a> DbConnection<'a> {
                     media_item::id,
                     media_item::catalog,
                 ))
-                .load::<(models::AlternateFile, String, String)>(self.conn)
+                .load::<(models::AlternateFile, String, String)>(self)
                 .await?;
 
             if !files.is_empty() {
@@ -676,7 +763,7 @@ impl<'a> DbConnection<'a> {
             .filter(user_catalog::user.eq(email))
             .select(saved_search::all_columns)
             .order(saved_search::name.asc())
-            .load::<models::SavedSearch>(self.conn)
+            .load::<models::SavedSearch>(self)
             .await?)
     }
 
@@ -694,7 +781,7 @@ impl<'a> DbConnection<'a> {
                 count(media_search::media.nullable()),
             ))
             .order(saved_search::name.asc())
-            .load::<(models::SavedSearch, i64)>(self.conn)
+            .load::<(models::SavedSearch, i64)>(self)
             .await?)
     }
 
@@ -702,11 +789,11 @@ impl<'a> DbConnection<'a> {
         let searches = saved_search::table
             .filter(saved_search::catalog.eq(catalog))
             .select(saved_search::all_columns)
-            .load::<models::SavedSearch>(self.conn)
+            .load::<models::SavedSearch>(self)
             .await?;
 
         for search in searches {
-            search.update(self.conn).await?;
+            search.update(self).await?;
         }
 
         Ok(())
