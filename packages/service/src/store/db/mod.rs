@@ -165,7 +165,7 @@ impl<'a> DbConnection<'a> {
         catalog: &str,
     ) -> Result<Vec<(models::MediaFile, FilePath)>> {
         let files = media_file::table
-            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(media_item::catalog.eq(&catalog))
             .select(media_file::all_columns)
             .load::<models::MediaFile>(self.conn)
@@ -176,7 +176,7 @@ impl<'a> DbConnection<'a> {
             .map(|media_file| {
                 let file_path = FilePath {
                     catalog: catalog.to_owned(),
-                    item: media_file.media.clone(),
+                    item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                     file_name: media_file.file_name.clone(),
                 };
@@ -191,7 +191,7 @@ impl<'a> DbConnection<'a> {
     ) -> Result<Vec<(models::AlternateFile, FilePath)>> {
         let files = alternate_file::table
             .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(media_item::catalog.eq(&catalog))
             .select((alternate_file::all_columns, media_item::id))
             .load::<(models::AlternateFile, String)>(self.conn)
@@ -217,7 +217,7 @@ impl<'a> DbConnection<'a> {
     ) -> Result<Vec<(models::AlternateFile, FilePath)>> {
         let files = alternate_file::table
             .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
             .filter(alternate_file::local.eq(false))
             .filter(catalog::storage.eq(&storage.id))
@@ -248,7 +248,7 @@ impl<'a> DbConnection<'a> {
         storage: &models::Storage,
     ) -> Result<Vec<(models::MediaFile, FilePath)>> {
         let files = media_file::table
-            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
             .filter(catalog::storage.eq(&storage.id))
             .select((media_file::all_columns, media_item::catalog))
@@ -260,7 +260,7 @@ impl<'a> DbConnection<'a> {
             .map(|(media_file, catalog)| {
                 let file_path = FilePath {
                     catalog,
-                    item: media_file.media.clone(),
+                    item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                     file_name: media_file.file_name.clone(),
                 };
@@ -593,7 +593,7 @@ impl<'a> DbConnection<'a> {
         file: &str,
     ) -> Result<(models::MediaFile, FilePath)> {
         let (media_file, catalog) = media_file::table
-            .inner_join(media_item::table.on(media_item::id.eq(media_file::media)))
+            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
             .filter(user_catalog::user.eq(email))
             .filter(media_item::id.eq(media))

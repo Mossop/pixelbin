@@ -359,7 +359,7 @@ impl Metadata {
             aperture: None,
             focal_length: None,
             taken: None,
-            media: media_item.to_owned(),
+            media_item: media_item.to_owned(),
         };
 
         // serde_aux doesn't work with converting directly from a Value so roundtrip
@@ -615,7 +615,7 @@ pub(crate) async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()>
             match process_media(tx.config(), &file_path).await {
                 Ok(media_file) => media_file,
                 Err(e) => {
-                    error!(media = media_file.media, error = ?e, "Failed to process media metadata");
+                    error!(media = media_file.media_item, error = ?e, "Failed to process media metadata");
                     continue;
                 }
             }

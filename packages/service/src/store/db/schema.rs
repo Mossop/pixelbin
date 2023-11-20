@@ -93,7 +93,7 @@ diesel::table! {
         aperture -> Nullable<Float4>,
         focal_length -> Nullable<Float4>,
         taken -> Nullable<Timestamp>,
-        media -> Varchar,
+        media_item -> Varchar,
     }
 }
 
@@ -333,7 +333,7 @@ diesel::allow_columns_to_appear_in_same_group_by_clause!(
     media_file::aperture,
     media_file::focal_length,
     media_file::taken,
-    media_file::media
+    media_file::media_item
 );
 
 diesel::allow_tables_to_appear_in_same_query!(

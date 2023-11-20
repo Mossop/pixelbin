@@ -3,7 +3,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use scoped_futures::ScopedFutureExt;
-use tracing::{error, instrument, warn};
+use tracing::{error, info, instrument, warn};
 
 use crate::{
     store::path::{CatalogPath, FilePath},
@@ -76,22 +76,22 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
             async move {
                 let storage = tx.get_catalog_storage(catalog).await?;
                 let remote_store = storage.file_store().await?;
-                let remote_files = list_files(&remote_store, catalog).await?;
+                let mut remote_files = list_files(&remote_store, catalog).await?;
 
-                let local_files: HashMap<FilePath, u64> =
+                let mut local_files: HashMap<FilePath, u64> =
                     list_files(&tx.config().local_store(), catalog).await?;
 
                 let alternate_files = tx.list_alternate_files(catalog).await?;
 
                 for (alternate, path) in alternate_files {
                     let fileset = if alternate.local {
-                        &local_files
+                        &mut local_files
                     } else {
-                        &remote_files
+                        &mut remote_files
                     };
 
-                    if let Some(size) = fileset.get(&path) {
-                        if size != &(alternate.file_size as u64) {
+                    if let Some(size) = fileset.remove(&path) {
+                        if size != alternate.file_size as u64 {
                             warn!(
                                 path=%path,
                                 database = alternate.file_size,
@@ -106,8 +106,8 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
 
                 let media_files = tx.list_media_files(catalog).await?;
                 for (media_file, path) in media_files {
-                    if let Some(size) = remote_files.get(&path) {
-                        if size != &(media_file.file_size as u64) {
+                    if let Some(size) = remote_files.remove(&path) {
+                        if size != media_file.file_size as u64 {
                             warn!(
                                 path=%path,
                                 database = media_file.file_size,
@@ -119,6 +119,9 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                         warn!(path=%path, "Missing media file");
                     }
                 }
+
+                info!(count = remote_files.len(), "Remaining remote files");
+                info!(count = local_files.len(), "Remaining local files");
 
                 // 1. List all remote files
                 // 2. List all alternate_file

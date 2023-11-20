@@ -72,6 +72,7 @@ ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "bitRate" TO "bit_rate";
 ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "shutterSpeed" TO "shutter_speed";
 ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "takenZone" TO "taken_zone";
 ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "focalLength" TO "focal_length";
+ALTER TABLE IF EXISTS "MediaFile" RENAME COLUMN "media" TO "media_item";
 ALTER TABLE IF EXISTS "MediaFile" RENAME TO "media_file";
 CREATE TABLE IF NOT EXISTS "media_file" (
     id character varying(30) NOT NULL,
@@ -109,7 +110,7 @@ CREATE TABLE IF NOT EXISTS "media_file" (
     aperture real,
     focal_length real,
     taken timestamp without time zone,
-    media character varying(30) NOT NULL
+    media_item character varying(30) NOT NULL
 );
 
 ALTER TABLE IF EXISTS "MediaInfo" RENAME COLUMN "shutterSpeed" TO "shutter_speed";
@@ -397,8 +398,8 @@ ALTER TABLE "media_item"
 ALTER INDEX IF EXISTS "idx_AlternateFile_mediaFile_type" RENAME TO "alternate_file_idx_media_file_type";
 CREATE INDEX IF NOT EXISTS "alternate_file_idx_media_file_type" ON "alternate_file" USING btree ("media_file", type);
 
-ALTER INDEX IF EXISTS "idx_MediaFile_media" RENAME TO "media_file_idx_media";
-CREATE INDEX IF NOT EXISTS "media_file_idx_media" ON "media_file" USING btree (media);
+ALTER INDEX IF EXISTS "idx_MediaFile_media" RENAME TO "media_file_idx_media_item";
+CREATE INDEX IF NOT EXISTS "media_file_idx_media_item" ON "media_file" USING btree (media_item);
 
 ALTER INDEX IF EXISTS "idx_MediaInfo_catalog" RENAME TO "media_item_idx_catalog";
 CREATE INDEX IF NOT EXISTS "media_item_idx_catalog" ON "media_item" USING btree (catalog);
@@ -459,7 +460,7 @@ ALTER TABLE "media_item"
     ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("media_file") REFERENCES "media_file"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE "media_file"
-    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (media) REFERENCES "media_item"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (media_item) REFERENCES "media_item"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "media_album"
     ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (catalog, media) REFERENCES "media_item"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;

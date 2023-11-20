@@ -197,7 +197,7 @@ impl Store {
 
         let files = alternate_file::table
             .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(alternate_file::local.eq(true))
             .select((
                 alternate_file::all_columns,

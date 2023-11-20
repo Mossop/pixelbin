@@ -553,7 +553,7 @@ pub struct MediaFile {
     pub aperture: Option<f32>,
     pub focal_length: Option<f32>,
     pub taken: Option<NaiveDateTime>,
-    pub media: String,
+    pub media_item: String,
 }
 
 impl MediaFile {
@@ -572,7 +572,7 @@ impl MediaFile {
             .map(|(media_file, catalog)| {
                 let media_path = MediaFilePath {
                     catalog,
-                    item: media_file.media.clone(),
+                    item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                 };
                 (media_file, media_path)
