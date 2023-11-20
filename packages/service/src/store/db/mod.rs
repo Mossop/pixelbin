@@ -160,6 +160,57 @@ impl<'a> DbConnection<'a> {
         &self.config
     }
 
+    pub async fn list_media_files(
+        &mut self,
+        catalog: &str,
+    ) -> Result<Vec<(models::MediaFile, FilePath)>> {
+        let files = media_file::table
+            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
+            .filter(media_item::catalog.eq(&catalog))
+            .select(media_file::all_columns)
+            .load::<models::MediaFile>(self.conn)
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .map(|media_file| {
+                let file_path = FilePath {
+                    catalog: catalog.to_owned(),
+                    item: media_file.media.clone(),
+                    file: media_file.id.clone(),
+                    file_name: media_file.file_name.clone(),
+                };
+                (media_file, file_path)
+            })
+            .collect())
+    }
+
+    pub async fn list_alternate_files(
+        &mut self,
+        catalog: &str,
+    ) -> Result<Vec<(models::AlternateFile, FilePath)>> {
+        let files = alternate_file::table
+            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
+            .inner_join(media_item::table.on(media_file::media.eq(media_item::id)))
+            .filter(media_item::catalog.eq(&catalog))
+            .select((alternate_file::all_columns, media_item::id))
+            .load::<(models::AlternateFile, String)>(self.conn)
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .map(|(alternate, media_item)| {
+                let file_path = FilePath {
+                    catalog: catalog.to_owned(),
+                    item: media_item,
+                    file: alternate.media_file.clone(),
+                    file_name: alternate.file_name.clone(),
+                };
+                (alternate, file_path)
+            })
+            .collect())
+    }
+
     pub async fn list_online_alternate_files(
         &mut self,
         storage: &models::Storage,

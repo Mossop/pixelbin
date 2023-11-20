@@ -3,9 +3,12 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use scoped_futures::ScopedFutureExt;
-use tracing::instrument;
+use tracing::{error, instrument, warn};
 
-use crate::Result;
+use crate::{
+    store::path::{CatalogPath, FilePath},
+    Result,
+};
 use crate::{
     store::{metadata, path::ResourcePath, Store},
     FileStore,
@@ -44,10 +47,79 @@ pub async fn rebuild_searches(store: Store) -> Result {
     Ok(())
 }
 
-pub async fn sanity_check_catalog(store: Store, catalog: String) -> Result {
+pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
+    async fn list_files<F: FileStore>(
+        file_store: &F,
+        catalog: &str,
+    ) -> Result<HashMap<FilePath, u64>> {
+        Ok(file_store
+            .list_files(Some(
+                CatalogPath {
+                    catalog: catalog.to_owned(),
+                }
+                .into(),
+            ))
+            .await?
+            .into_iter()
+            .filter_map(|(p, s)| {
+                if let Ok(file) = TryInto::<FilePath>::try_into(p) {
+                    Some((file, s))
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
     store
         .in_transaction(|mut tx| {
             async move {
+                let storage = tx.get_catalog_storage(catalog).await?;
+                let remote_store = storage.file_store().await?;
+                let remote_files = list_files(&remote_store, catalog).await?;
+
+                let local_files: HashMap<FilePath, u64> =
+                    list_files(&tx.config().local_store(), catalog).await?;
+
+                let alternate_files = tx.list_alternate_files(catalog).await?;
+
+                for (alternate, path) in alternate_files {
+                    let fileset = if alternate.local {
+                        &local_files
+                    } else {
+                        &remote_files
+                    };
+
+                    if let Some(size) = fileset.get(&path) {
+                        if size != &(alternate.file_size as u64) {
+                            warn!(
+                                path=%path,
+                                database = alternate.file_size,
+                                actual = size,
+                                "Alternate file size mismatch"
+                            );
+                        }
+                    } else {
+                        warn!(path=%path, "Missing alternate file");
+                    }
+                }
+
+                let media_files = tx.list_media_files(catalog).await?;
+                for (media_file, path) in media_files {
+                    if let Some(size) = remote_files.get(&path) {
+                        if size != &(media_file.file_size as u64) {
+                            warn!(
+                                path=%path,
+                                database = media_file.file_size,
+                                actual = size,
+                                "Media file size mismatch"
+                            );
+                        }
+                    } else {
+                        warn!(path=%path, "Missing media file");
+                    }
+                }
+
                 // 1. List all remote files
                 // 2. List all alternate_file
                 // 3. Delete any not present in storage from DB (we will rebuild later)
@@ -63,6 +135,20 @@ pub async fn sanity_check_catalog(store: Store, catalog: String) -> Result {
             .scope_boxed()
         })
         .await
+}
+
+pub async fn sanity_check_catalogs(store: Store) -> Result {
+    let catalogs = store
+        .with_connection(|mut conn| async move { conn.list_catalogs().await }.scope_boxed())
+        .await?;
+
+    for catalog in catalogs {
+        if let Err(e) = sanity_check_catalog(&store, &catalog.id).await {
+            error!(error=?e, catalog=catalog.id, "Failed checking catalog");
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn verify_local_storage(store: Store) -> Result {

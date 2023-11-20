@@ -11,7 +11,8 @@ use opentelemetry_otlp::WithExportConfig;
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
 use pixelbin::tasks::{
-    rebuild_searches, reprocess_all_media, verify_local_storage, verify_online_storage,
+    rebuild_searches, reprocess_all_media, sanity_check_catalogs, verify_local_storage,
+    verify_online_storage,
 };
 use pixelbin::Store;
 use pixelbin::{load_config, Result};
@@ -85,6 +86,16 @@ impl Runnable for VerifyOnline {
     }
 }
 
+#[derive(Args)]
+struct Verify;
+
+#[async_trait(?Send)]
+impl Runnable for Verify {
+    async fn run(self, store: Store) -> Result {
+        sanity_check_catalogs(store).await
+    }
+}
+
 #[cfg(feature = "webserver")]
 #[derive(Args)]
 struct Serve;
@@ -123,6 +134,8 @@ enum Command {
     CheckDb,
     /// Reprocesses metadata from media.
     Reprocess,
+    /// Verifies database and storage consistency.
+    Verify,
 }
 
 #[async_trait(?Send)]
