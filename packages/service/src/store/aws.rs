@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use async_trait::async_trait;
 use aws_config::AppName;
 use aws_sdk_s3::{
     config::{Credentials, Region},
@@ -12,7 +13,7 @@ use super::{
     models::Storage,
     path::{FilePath, PathLike, ResourcePath},
 };
-use crate::{Error, Result};
+use crate::{Error, FileStore, Result};
 
 pub(crate) fn joinable(st: &str) -> &str {
     st.trim_matches('/')
@@ -101,11 +102,11 @@ impl AwsClient {
             Ok(presigned.uri().to_string())
         }
     }
+}
 
-    pub(crate) async fn list_files(
-        &self,
-        prefix: Option<ResourcePath>,
-    ) -> Result<Vec<(ResourcePath, u64)>> {
+#[async_trait]
+impl FileStore for AwsClient {
+    async fn list_files(&self, prefix: Option<ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut request = self.client.list_objects_v2().bucket(&self.bucket);
 
         match (&self.path, prefix) {

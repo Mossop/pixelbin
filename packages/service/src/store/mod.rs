@@ -1,6 +1,7 @@
 //! A basic abstraction around the pixelbin data stores.
-use std::path::PathBuf;
+use std::{iter::once, path::PathBuf};
 
+use async_trait::async_trait;
 use aws::AwsClient;
 use diesel::prelude::*;
 use diesel_async::{
@@ -20,9 +21,83 @@ use db::{connect, DbPool};
 use tokio::fs;
 use tracing::instrument;
 
+use self::path::{FilePath, PathLike, ResourcePath};
 use crate::{Config, Result};
 
-use self::path::FilePath;
+#[async_trait]
+pub trait FileStore {
+    async fn list_files(&self, prefix: Option<ResourcePath>) -> Result<Vec<(ResourcePath, u64)>>;
+}
+
+pub(crate) struct DiskStore {
+    pub(crate) root: PathBuf,
+}
+
+impl DiskStore {
+    fn local_path<P: PathLike>(&self, path: &P) -> PathBuf {
+        let mut local_path = self.root.clone();
+        for part in path.path_parts() {
+            local_path.push(part);
+        }
+
+        local_path
+    }
+}
+
+#[async_trait]
+impl FileStore for DiskStore {
+    async fn list_files(&self, prefix: Option<ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
+        let mut files = Vec::<(ResourcePath, u64)>::new();
+
+        let root = if let Some(prefix) = prefix {
+            self.local_path(&prefix)
+        } else {
+            self.root.clone()
+        };
+
+        let mut path_parts: Vec<String> = root
+            .strip_prefix(&self.root)
+            .unwrap()
+            .components()
+            .map(|c| c.as_os_str().to_str().unwrap().to_owned())
+            .collect();
+
+        let mut readers = vec![fs::read_dir(root).await?];
+        while !readers.is_empty() {
+            let reader = readers.last_mut().unwrap();
+            match reader.next_entry().await? {
+                Some(entry) => {
+                    let name = if let Ok(name) = entry.file_name().into_string() {
+                        name
+                    } else {
+                        continue;
+                    };
+
+                    let stats = entry.metadata().await?;
+                    if stats.is_dir() {
+                        readers.push(fs::read_dir(entry.path()).await?);
+                        path_parts.push(name);
+                    } else if stats.is_file() {
+                        let all_parts = path_parts
+                            .iter()
+                            .map(|s| s.as_str())
+                            .chain(once(name.as_str()));
+
+                        if let Ok(path) = ResourcePath::try_from(all_parts) {
+                            files.push((path, stats.len()));
+                        }
+                    }
+                }
+                None => {
+                    readers.pop();
+                    path_parts.pop();
+                }
+            }
+        }
+
+        Ok(files)
+    }
+}
 
 #[derive(Clone)]
 pub struct Store {

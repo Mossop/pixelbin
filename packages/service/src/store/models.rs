@@ -15,7 +15,7 @@ use typeshare::typeshare;
 use super::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
-    path::{MediaFilePath, ResourcePath},
+    path::MediaFilePath,
     DbConnection,
 };
 use super::{
@@ -23,7 +23,7 @@ use super::{
     metadata::{lookup_timezone, media_datetime},
 };
 use super::{db::schema::*, db::search::CompoundQueryItem};
-use crate::Result;
+use crate::{FileStore, Result};
 
 struct Batch<'a, T> {
     slice: &'a [T],
@@ -182,13 +182,10 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub async fn list_remote_files(
-        &self,
-        prefix: Option<ResourcePath>,
-    ) -> Result<Vec<(ResourcePath, u64)>> {
+    pub async fn file_store(&self) -> Result<impl FileStore> {
         let client = AwsClient::from_storage(self).await?;
 
-        client.list_files(prefix).await
+        Ok(client)
     }
 }
 

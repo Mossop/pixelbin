@@ -6,7 +6,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{store::path::PathLike, Error, Result};
+use crate::{
+    store::{path::PathLike, DiskStore},
+    Error, FileStore, Result,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -105,6 +108,18 @@ impl Config {
         resolve(&root, &mut config.temp_storage)?;
 
         Ok(config)
+    }
+
+    pub fn local_store(&self) -> impl FileStore {
+        DiskStore {
+            root: self.local_storage.clone(),
+        }
+    }
+
+    pub fn temp_store(&self) -> impl FileStore {
+        DiskStore {
+            root: self.temp_storage.clone(),
+        }
     }
 
     pub fn local_path<P: PathLike>(&self, path: &P) -> PathBuf {

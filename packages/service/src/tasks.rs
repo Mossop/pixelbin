@@ -5,8 +5,11 @@ use std::{collections::HashMap, path::PathBuf};
 use scoped_futures::ScopedFutureExt;
 use tracing::instrument;
 
-use crate::store::{metadata, path::ResourcePath, Store};
 use crate::Result;
+use crate::{
+    store::{metadata, path::ResourcePath, Store},
+    FileStore,
+};
 
 #[instrument(skip_all)]
 pub async fn reprocess_all_media(store: Store) -> Result {
@@ -110,8 +113,9 @@ pub async fn verify_online_storage(store: Store) -> Result {
     let mut prunable = 0;
 
     for storage in stores {
+        let remote_store = storage.file_store().await?;
         let mut remote_files: HashMap<ResourcePath, u64> =
-            storage.list_remote_files(None).await?.into_iter().collect();
+            remote_store.list_files(None).await?.into_iter().collect();
 
         let media_files = conn.list_online_media_files(&storage).await?;
         files += media_files.len();
