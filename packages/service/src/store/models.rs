@@ -2,8 +2,8 @@ use std::{cmp::min, collections::HashMap, result};
 
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
-    backend, delete, deserialize, insert_into, prelude::*, serialize, sql_types, upsert::excluded,
-    AsExpression, Queryable,
+    backend, delete, deserialize, dsl::count, insert_into, prelude::*, serialize, sql_types,
+    upsert::excluded, AsExpression, Queryable,
 };
 use diesel_async::RunQueryDsl;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -15,7 +15,7 @@ use typeshare::typeshare;
 use super::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
-    path::MediaFilePath,
+    path::{FilePath, MediaFilePath},
     DbConnection,
 };
 use super::{
@@ -23,7 +23,7 @@ use super::{
     metadata::{lookup_timezone, media_datetime},
 };
 use super::{db::schema::*, db::search::CompoundQueryItem};
-use crate::{FileStore, Result};
+use crate::{Error, FileStore, Result};
 
 struct Batch<'a, T> {
     slice: &'a [T],
@@ -150,56 +150,103 @@ where
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
-pub struct User {
-    pub email: String,
+pub(crate) struct User {
+    pub(crate) email: String,
     #[serde(skip)]
     pub(crate) password: Option<String>,
-    pub fullname: Option<String>,
-    pub administrator: bool,
+    pub(crate) fullname: Option<String>,
+    pub(crate) administrator: bool,
     #[typeshare(serialized_as = "string")]
-    pub created: DateTime<Utc>,
+    pub(crate) created: DateTime<Utc>,
     #[typeshare(serialized_as = "string")]
-    pub last_login: Option<DateTime<Utc>>,
-    pub verified: Option<bool>,
+    pub(crate) last_login: Option<DateTime<Utc>>,
+    pub(crate) verified: Option<bool>,
 }
 
-#[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
-pub struct Storage {
-    pub id: String,
-    pub name: String,
-    #[serde(skip)]
-    pub(crate) access_key_id: String,
-    #[serde(skip)]
-    pub(crate) secret_access_key: String,
-    pub bucket: String,
-    pub region: String,
-    pub path: Option<String>,
-    pub endpoint: Option<String>,
-    pub public_url: Option<String>,
-    #[serde(skip)]
-    pub owner: String,
-}
-
-impl Storage {
-    pub async fn file_store(&self) -> Result<impl FileStore> {
-        let client = AwsClient::from_storage(self).await?;
-
-        Ok(client)
+impl User {
+    pub(crate) async fn get(conn: &mut DbConnection<'_>, email: &str) -> Result<User> {
+        user::table
+            .filter(user::email.eq(email))
+            .select(user::all_columns)
+            .get_result::<User>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
     }
 }
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
-pub struct Catalog {
-    pub id: String,
-    pub name: String,
-    pub storage: String,
+pub(crate) struct Storage {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    #[serde(skip)]
+    pub(crate) access_key_id: String,
+    #[serde(skip)]
+    pub(crate) secret_access_key: String,
+    pub(crate) bucket: String,
+    pub(crate) region: String,
+    pub(crate) path: Option<String>,
+    pub(crate) endpoint: Option<String>,
+    pub(crate) public_url: Option<String>,
+    #[serde(skip)]
+    pub(crate) _owner: String,
+}
+
+impl Storage {
+    pub(crate) async fn file_store(&self) -> Result<impl FileStore> {
+        let client = AwsClient::from_storage(self).await?;
+
+        Ok(client)
+    }
+
+    pub(crate) async fn online_uri(
+        &self,
+        path: &FilePath,
+        mimetype: &str,
+        filename: Option<&str>,
+    ) -> Result<String> {
+        let client = AwsClient::from_storage(self).await?;
+        client.file_uri(path, mimetype, filename).await
+    }
+
+    pub(crate) async fn get_for_catalog(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Storage> {
+        storage::table
+            .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
+            .filter(catalog::id.eq(catalog))
+            .select(storage::all_columns)
+            .get_result::<Storage>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
+
+    pub(crate) async fn list_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+    ) -> Result<Vec<Storage>> {
+        Ok(storage::table
+            .filter(storage::owner.eq(email))
+            .select(storage::all_columns)
+            .load::<Storage>(conn)
+            .await?)
+    }
+}
+
+#[typeshare]
+#[derive(Queryable, Serialize, Clone, Debug)]
+pub(crate) struct Catalog {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) storage: String,
 }
 
 impl Catalog {
     #[instrument(skip(self, conn), fields(catalog = self.id))]
-    pub async fn list_media(
+    pub(crate) async fn list_media(
         &self,
         conn: &mut DbConnection<'_>,
         offset: Option<i64>,
@@ -217,37 +264,105 @@ impl Catalog {
 
         Ok(query.load::<MediaView>(conn).await?)
     }
+
+    pub(crate) async fn list(conn: &mut DbConnection<'_>) -> Result<Vec<Catalog>> {
+        Ok(catalog::table
+            .select(catalog::all_columns)
+            .load::<Catalog>(conn)
+            .await?)
+    }
+
+    pub(crate) async fn list_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+    ) -> Result<Vec<Catalog>> {
+        Ok(catalog::table
+            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(catalog::id)))
+            .filter(user_catalog::user.eq(email))
+            .select(catalog::all_columns)
+            .order(catalog::name.asc())
+            .load::<Catalog>(conn)
+            .await?)
+    }
+
+    pub(crate) async fn get_for_user_with_count(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        catalog: &str,
+    ) -> Result<(Catalog, i64)> {
+        user_catalog::table
+            .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
+            .inner_join(media_item::table.on(catalog::id.eq(media_item::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(catalog::id.eq(catalog))
+            .group_by(catalog::id)
+            .select((catalog::all_columns, count(media_item::id)))
+            .get_result::<(Catalog, i64)>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
 }
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
-pub struct Person {
-    pub id: String,
-    pub name: String,
-    pub catalog: String,
+pub(crate) struct Person {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) catalog: String,
+}
+
+impl Person {
+    pub(crate) async fn list_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+    ) -> Result<Vec<Person>> {
+        Ok(user_catalog::table
+            .inner_join(person::table.on(person::catalog.eq(user_catalog::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .select(person::all_columns)
+            .order(person::name.asc())
+            .load::<Person>(conn)
+            .await?)
+    }
 }
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
-pub struct Tag {
-    pub id: String,
-    pub parent: Option<String>,
-    pub name: String,
-    pub catalog: String,
+pub(crate) struct Tag {
+    pub(crate) id: String,
+    pub(crate) parent: Option<String>,
+    pub(crate) name: String,
+    pub(crate) catalog: String,
+}
+
+impl Tag {
+    pub(crate) async fn list_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+    ) -> Result<Vec<Tag>> {
+        Ok(user_catalog::table
+            .inner_join(tag::table.on(tag::catalog.eq(user_catalog::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .select(tag::all_columns)
+            .order(tag::name.asc())
+            .load::<Tag>(conn)
+            .await?)
+    }
 }
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
-pub struct Album {
-    pub id: String,
-    pub parent: Option<String>,
-    pub name: String,
-    pub catalog: String,
+pub(crate) struct Album {
+    pub(crate) id: String,
+    pub(crate) parent: Option<String>,
+    pub(crate) name: String,
+    pub(crate) catalog: String,
 }
 
 impl Album {
     #[instrument(skip(self, conn), fields(album = self.id))]
-    pub async fn list_media(
+    pub(crate) async fn list_media(
         &self,
         conn: &mut DbConnection<'_>,
         recursive: bool,
@@ -285,16 +400,67 @@ impl Album {
             Ok(query.load::<MediaView>(conn).await?)
         }
     }
+
+    pub(crate) async fn list_for_user_with_count(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+    ) -> Result<Vec<(Album, i64)>> {
+        Ok(user_catalog::table
+            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+            .left_join(media_album::table.on(media_album::album.eq(album::id)))
+            .filter(user_catalog::user.eq(email))
+            .group_by(album::id)
+            .select((album::all_columns, count(media_album::media.nullable())))
+            .order(album::name.asc())
+            .load::<(Album, i64)>(conn)
+            .await?)
+    }
+
+    pub(crate) async fn get_for_user_with_count(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        album: &str,
+        recursive: bool,
+    ) -> Result<(Album, i64)> {
+        if recursive {
+            user_catalog::table
+                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+                .inner_join(album_descendent::table.on(album::id.eq(album_descendent::id)))
+                .inner_join(
+                    media_album::table.on(album_descendent::descendent.eq(media_album::album)),
+                )
+                .filter(user_catalog::user.eq(email))
+                .filter(album::id.eq(album))
+                .group_by(album::id)
+                .select((album::all_columns, count(media_album::media)))
+                .get_result::<(Album, i64)>(conn)
+                .await
+                .optional()?
+                .ok_or_else(|| Error::NotFound)
+        } else {
+            user_catalog::table
+                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+                .inner_join(media_album::table.on(album::id.eq(media_album::album)))
+                .filter(user_catalog::user.eq(email))
+                .filter(album::id.eq(album))
+                .group_by(album::id)
+                .select((album::all_columns, count(media_album::media)))
+                .get_result::<(Album, i64)>(conn)
+                .await
+                .optional()?
+                .ok_or_else(|| Error::NotFound)
+        }
+    }
 }
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
-pub struct SavedSearch {
-    pub id: String,
-    pub name: String,
-    pub shared: bool,
-    pub query: CompoundQueryItem,
-    pub catalog: String,
+pub(crate) struct SavedSearch {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) shared: bool,
+    pub(crate) query: CompoundQueryItem,
+    pub(crate) catalog: String,
 }
 
 #[derive(Insertable)]
@@ -308,7 +474,7 @@ struct MediaSearch {
 
 impl SavedSearch {
     #[instrument(skip(self, conn), fields(search = self.id))]
-    pub async fn list_media(
+    pub(crate) async fn list_media(
         &self,
         conn: &mut DbConnection<'_>,
         offset: Option<i64>,
@@ -369,6 +535,56 @@ impl SavedSearch {
 
         Ok(())
     }
+
+    pub(crate) async fn update_for_catalog(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
+        let searches = saved_search::table
+            .filter(saved_search::catalog.eq(catalog))
+            .select(saved_search::all_columns)
+            .load::<SavedSearch>(conn)
+            .await?;
+
+        for search in searches {
+            search.update(conn).await?;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) async fn get_for_user_with_count(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        search: &str,
+    ) -> Result<(SavedSearch, i64)> {
+        user_catalog::table
+            .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
+            .inner_join(media_search::table.on(saved_search::id.eq(media_search::search)))
+            .filter(user_catalog::user.eq(email))
+            .filter(saved_search::id.eq(search))
+            .group_by(saved_search::id)
+            .select((saved_search::all_columns, count(media_search::media)))
+            .get_result::<(SavedSearch, i64)>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
+
+    pub(crate) async fn list_for_user_with_count(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+    ) -> Result<Vec<(SavedSearch, i64)>> {
+        Ok(user_catalog::table
+            .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
+            .left_join(media_search::table.on(media_search::search.eq(saved_search::id)))
+            .filter(user_catalog::user.eq(email))
+            .group_by(saved_search::id)
+            .select((
+                saved_search::all_columns,
+                count(media_search::media.nullable()),
+            ))
+            .order(saved_search::name.asc())
+            .load::<(SavedSearch, i64)>(conn)
+            .await?)
+    }
 }
 
 fn clear_matching<T: PartialEq>(field: &mut Option<T>, reference: &Option<T>) {
@@ -415,7 +631,7 @@ pub struct MediaItem {
 
 impl MediaItem {
     #[instrument(skip_all)]
-    pub async fn upsert(conn: &mut DbConnection<'_>, media_items: &[MediaItem]) -> Result {
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_items: &[MediaItem]) -> Result {
         for records in batch(media_items, 500) {
             diesel::insert_into(media_item::table)
                 .values(records)
@@ -459,7 +675,7 @@ impl MediaItem {
         Ok(())
     }
 
-    pub async fn list_unprocessed(conn: &mut DbConnection<'_>) -> Result<Vec<MediaItem>> {
+    pub(crate) async fn list_unprocessed(conn: &mut DbConnection<'_>) -> Result<Vec<MediaItem>> {
         let items = media_item::table
             .filter(media_item::media_file.is_null())
             .select(media_item::all_columns)
@@ -469,7 +685,7 @@ impl MediaItem {
         Ok(items)
     }
 
-    pub fn sync_with_file(&mut self, media_file: Option<&MediaFile>) {
+    pub(crate) fn sync_with_file(&mut self, media_file: Option<&MediaFile>) {
         if let Some(media_file) = media_file {
             clear_matching(&mut self.filename, &media_file.filename);
             clear_matching(&mut self.title, &media_file.title);
@@ -558,7 +774,7 @@ pub struct MediaFile {
 
 impl MediaFile {
     #[instrument(skip_all)]
-    pub async fn list_current(
+    pub(crate) async fn list_current(
         conn: &mut DbConnection<'_>,
     ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
         let files = media_item::table
@@ -580,8 +796,60 @@ impl MediaFile {
             .collect())
     }
 
+    pub(crate) async fn list_for_catalog(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Vec<(MediaFile, FilePath)>> {
+        let files = media_file::table
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
+            .filter(media_item::catalog.eq(&catalog))
+            .select(media_file::all_columns)
+            .load::<MediaFile>(conn)
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .map(|media_file| {
+                let file_path = FilePath {
+                    catalog: catalog.to_owned(),
+                    item: media_file.media_item.clone(),
+                    file: media_file.id.clone(),
+                    file_name: media_file.file_name.clone(),
+                };
+                (media_file, file_path)
+            })
+            .collect())
+    }
+
+    pub(crate) async fn get_for_user_media(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        media: &str,
+        file: &str,
+    ) -> Result<(MediaFile, FilePath)> {
+        let (media_file, catalog) = media_file::table
+            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(media_item::id.eq(media))
+            .filter(media_file::id.eq(file))
+            .select((media_file::all_columns, media_item::catalog))
+            .get_result::<(MediaFile, String)>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)?;
+
+        let file_path = FilePath {
+            catalog,
+            item: media.to_owned(),
+            file: file.to_owned(),
+            file_name: media_file.file_name.clone(),
+        };
+        Ok((media_file, file_path))
+    }
+
     #[instrument(skip_all)]
-    pub async fn upsert(conn: &mut DbConnection<'_>, media_files: &[MediaFile]) -> Result {
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: &[MediaFile]) -> Result {
         conn.assert_in_transaction();
 
         let media_file_map: HashMap<&String, &MediaFile> =
@@ -650,107 +918,182 @@ impl MediaFile {
 }
 
 #[derive(Queryable, Clone, Debug)]
-pub struct AlternateFile {
-    pub id: String,
-    pub file_type: AlternateFileType,
-    pub file_name: String,
-    pub file_size: i32,
-    pub mimetype: String,
-    pub width: i32,
-    pub height: i32,
-    pub duration: Option<f32>,
-    pub frame_rate: Option<f32>,
-    pub bit_rate: Option<f32>,
-    pub media_file: String,
-    pub local: bool,
+pub(crate) struct AlternateFile {
+    pub(crate) _id: String,
+    pub(crate) _file_type: AlternateFileType,
+    pub(crate) file_name: String,
+    pub(crate) file_size: i32,
+    pub(crate) mimetype: String,
+    pub(crate) width: i32,
+    pub(crate) height: i32,
+    pub(crate) _duration: Option<f32>,
+    pub(crate) _frame_rate: Option<f32>,
+    pub(crate) _bit_rate: Option<f32>,
+    pub(crate) media_file: String,
+    pub(crate) local: bool,
+}
+
+impl AlternateFile {
+    pub(crate) async fn list_for_catalog(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Vec<(AlternateFile, FilePath)>> {
+        let files = alternate_file::table
+            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
+            .filter(media_item::catalog.eq(&catalog))
+            .select((alternate_file::all_columns, media_item::id))
+            .load::<(AlternateFile, String)>(conn)
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .map(|(alternate, media_item)| {
+                let file_path = FilePath {
+                    catalog: catalog.to_owned(),
+                    item: media_item,
+                    file: alternate.media_file.clone(),
+                    file_name: alternate.file_name.clone(),
+                };
+                (alternate, file_path)
+            })
+            .collect())
+    }
+
+    pub(crate) async fn list_for_media(
+        conn: &mut DbConnection<'_>,
+        email: Option<&str>,
+        item: &str,
+        file: &str,
+        mimetype: &str,
+        alternate_type: AlternateFileType,
+    ) -> Result<Vec<(AlternateFile, FilePath)>> {
+        if let Some(email) = email {
+            let files = user_catalog::table
+                .filter(user_catalog::user.eq(email))
+                .inner_join(media_item::table.on(media_item::catalog.eq(user_catalog::catalog)))
+                .filter(media_item::id.eq(item))
+                .filter(media_item::media_file.eq(file))
+                .inner_join(
+                    alternate_file::table
+                        .on(media_item::media_file.eq(alternate_file::media_file.nullable())),
+                )
+                .filter(alternate_file::mimetype.eq(mimetype))
+                .filter(alternate_file::type_.eq(alternate_type))
+                .select((
+                    alternate_file::all_columns,
+                    media_item::id,
+                    media_item::catalog,
+                ))
+                .load::<(AlternateFile, String, String)>(conn)
+                .await?;
+
+            if !files.is_empty() {
+                return Ok(files
+                    .into_iter()
+                    .map(|(alternate, media_item, catalog)| {
+                        let file_path = FilePath {
+                            catalog,
+                            item: media_item,
+                            file: alternate.media_file.clone(),
+                            file_name: alternate.file_name.clone(),
+                        };
+                        (alternate, file_path)
+                    })
+                    .collect::<Vec<(AlternateFile, FilePath)>>());
+            }
+        }
+
+        Ok(vec![])
+    }
 }
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaViewFile {
-    pub id: String,
-    pub file_size: i32,
-    pub mimetype: String,
-    pub width: i32,
-    pub height: i32,
-    pub duration: Option<f32>,
-    pub frame_rate: Option<f32>,
-    pub bit_rate: Option<f32>,
-    pub uploaded: DateTime<Utc>,
-    pub file_name: String,
+pub(crate) struct MediaViewFile {
+    pub(crate) id: String,
+    pub(crate) file_size: i32,
+    pub(crate) mimetype: String,
+    pub(crate) width: i32,
+    pub(crate) height: i32,
+    pub(crate) duration: Option<f32>,
+    pub(crate) frame_rate: Option<f32>,
+    pub(crate) bit_rate: Option<f32>,
+    pub(crate) uploaded: DateTime<Utc>,
+    pub(crate) file_name: String,
 }
 
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaView {
-    pub id: String,
-    pub catalog: String,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
-    pub datetime: DateTime<Utc>,
-    pub filename: Option<String>,
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub label: Option<String>,
-    pub category: Option<String>,
-    pub taken: Option<NaiveDateTime>,
-    pub taken_zone: Option<String>,
-    pub longitude: Option<f32>,
-    pub latitude: Option<f32>,
-    pub altitude: Option<f32>,
-    pub location: Option<String>,
-    pub city: Option<String>,
-    pub state: Option<String>,
-    pub country: Option<String>,
-    pub orientation: Option<Orientation>,
-    pub make: Option<String>,
-    pub model: Option<String>,
-    pub lens: Option<String>,
-    pub photographer: Option<String>,
-    pub aperture: Option<f32>,
-    pub shutter_speed: Option<String>,
-    pub iso: Option<i32>,
-    pub focal_length: Option<f32>,
-    pub rating: Option<i32>,
-    pub file: Option<MediaViewFile>,
+pub(crate) struct MediaView {
+    pub(crate) id: String,
+    pub(crate) catalog: String,
+    pub(crate) created: DateTime<Utc>,
+    pub(crate) updated: DateTime<Utc>,
+    pub(crate) datetime: DateTime<Utc>,
+    pub(crate) filename: Option<String>,
+    pub(crate) title: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) label: Option<String>,
+    pub(crate) category: Option<String>,
+    pub(crate) taken: Option<NaiveDateTime>,
+    pub(crate) taken_zone: Option<String>,
+    pub(crate) longitude: Option<f32>,
+    pub(crate) latitude: Option<f32>,
+    pub(crate) altitude: Option<f32>,
+    pub(crate) location: Option<String>,
+    pub(crate) city: Option<String>,
+    pub(crate) state: Option<String>,
+    pub(crate) country: Option<String>,
+    pub(crate) orientation: Option<Orientation>,
+    pub(crate) make: Option<String>,
+    pub(crate) model: Option<String>,
+    pub(crate) lens: Option<String>,
+    pub(crate) photographer: Option<String>,
+    pub(crate) aperture: Option<f32>,
+    pub(crate) shutter_speed: Option<String>,
+    pub(crate) iso: Option<i32>,
+    pub(crate) focal_length: Option<f32>,
+    pub(crate) rating: Option<i32>,
+    pub(crate) file: Option<MediaViewFile>,
 }
 
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AlbumRelation {
-    pub id: String,
-    pub name: String,
+pub(crate) struct AlbumRelation {
+    pub(crate) id: String,
+    pub(crate) name: String,
 }
 
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TagRelation {
-    pub id: String,
-    pub name: String,
+pub(crate) struct TagRelation {
+    pub(crate) id: String,
+    pub(crate) name: String,
 }
 
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Location {
-    pub left: f32,
-    pub right: f32,
-    pub top: f32,
-    pub bottom: f32,
+pub(crate) struct Location {
+    pub(crate) left: f32,
+    pub(crate) right: f32,
+    pub(crate) top: f32,
+    pub(crate) bottom: f32,
 }
 
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct PersonRelation {
-    pub id: String,
-    pub name: String,
-    pub location: Option<Location>,
+pub(crate) struct PersonRelation {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) location: Option<Location>,
 }
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(transparent)]
-pub struct MaybeVec<T>(Vec<T>);
+pub(crate) struct MaybeVec<T>(Vec<T>);
 
 impl<T: DeserializeOwned> TryFrom<Option<Value>> for MaybeVec<T> {
     type Error = serde_json::Error;
@@ -767,15 +1110,41 @@ impl<T: DeserializeOwned> TryFrom<Option<Value>> for MaybeVec<T> {
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaRelations {
+pub(crate) struct MediaRelations {
     #[serde(flatten)]
-    pub media: MediaView,
+    pub(crate) media: MediaView,
     #[diesel(deserialize_as = Option<Value>)]
-    pub albums: MaybeVec<AlbumRelation>,
+    pub(crate) albums: MaybeVec<AlbumRelation>,
     #[diesel(deserialize_as = Option<Value>)]
-    pub tags: MaybeVec<TagRelation>,
+    pub(crate) tags: MaybeVec<TagRelation>,
     #[diesel(deserialize_as = Option<Value>)]
-    pub people: MaybeVec<PersonRelation>,
+    pub(crate) people: MaybeVec<PersonRelation>,
+}
+
+impl MediaRelations {
+    pub(crate) async fn get_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        media: &[&str],
+    ) -> Result<Vec<MediaRelations>> {
+        let media = media_view!()
+            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
+            .left_join(album_relation::table.on(album_relation::media.eq(media_item::id)))
+            .left_join(tag_relation::table.on(tag_relation::media.eq(media_item::id)))
+            .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
+            .filter(user_catalog::user.eq(email))
+            .filter(media_item::id.eq_any(media))
+            .select((
+                media_view_columns!(),
+                album_relation::albums.nullable(),
+                tag_relation::tags.nullable(),
+                person_relation::people.nullable(),
+            ))
+            .load::<MediaRelations>(conn)
+            .await?;
+
+        Ok(media)
+    }
 }
 
 #[derive(Insertable, Clone, Debug)]

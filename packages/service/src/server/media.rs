@@ -45,11 +45,16 @@ async fn download_handler(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (media_file, file_path) = trx
-                    .get_user_media_file(&session.user.email, &path.item, &path.file)
-                    .await?;
+                let (media_file, file_path) = models::MediaFile::get_for_user_media(
+                    &mut trx,
+                    &session.user.email,
+                    &path.item,
+                    &path.file,
+                )
+                .await?;
 
-                let storage = trx.get_catalog_storage(&file_path.catalog).await?;
+                let storage =
+                    models::Storage::get_for_catalog(&mut trx, &file_path.catalog).await?;
 
                 Ok((file_path, storage, media_file.mimetype))
             }
@@ -62,9 +67,8 @@ async fn download_handler(
         Err(e) => return Err(e.into()),
     };
 
-    let uri = app_state
-        .store
-        .online_uri(&storage, &file_path, &mimetype, Some(&filename))
+    let uri = storage
+        .online_uri(&file_path, &mimetype, Some(&filename))
         .await?;
 
     Ok(HttpResponse::TemporaryRedirect()
@@ -96,7 +100,8 @@ async fn thumbnail_handler(
         .store
         .in_transaction(|mut trx| {
             async move {
-                trx.list_media_alternates(
+                models::AlternateFile::list_for_media(
+                    &mut trx,
                     email,
                     &path.item,
                     &path.file,
@@ -115,7 +120,12 @@ async fn thumbnail_handler(
     };
 
     match choose_alternate(alternates, target_size) {
-        Some((alternate, _media_path, path)) => {
+        Some((alternate, media_path)) => {
+            let path = app_state
+                .store
+                .config()
+                .local_store()
+                .local_path(&media_path);
             let file = File::open(&path).await?;
             let stream = ReaderStream::new(file);
 
@@ -152,20 +162,21 @@ async fn encoding_handler(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (_, file_path, _) = trx
-                    .list_media_alternates(
-                        email,
-                        &path.item,
-                        &path.file,
-                        &tx_mime,
-                        AlternateFileType::Reencode,
-                    )
-                    .await?
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| Error::NotFound)?;
+                let (_, file_path) = models::AlternateFile::list_for_media(
+                    &mut trx,
+                    email,
+                    &path.item,
+                    &path.file,
+                    &tx_mime,
+                    AlternateFileType::Reencode,
+                )
+                .await?
+                .into_iter()
+                .next()
+                .ok_or_else(|| Error::NotFound)?;
 
-                let storage = trx.get_catalog_storage(&file_path.catalog).await?;
+                let storage =
+                    models::Storage::get_for_catalog(&mut trx, &file_path.catalog).await?;
 
                 Ok((file_path, storage))
             }
@@ -178,10 +189,7 @@ async fn encoding_handler(
         Err(e) => return Err(e.into()),
     };
 
-    let uri = app_state
-        .store
-        .online_uri(&storage, &file_path, &mimetype, None)
-        .await?;
+    let uri = storage.online_uri(&file_path, &mimetype, None).await?;
 
     Ok(HttpResponse::TemporaryRedirect()
         .append_header(("Location", uri))
@@ -217,9 +225,13 @@ async fn get_album(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (album, media) = trx
-                    .get_user_album(&session.user.email, &album_id, query.recursive)
-                    .await?;
+                let (album, media) = models::Album::get_for_user_with_count(
+                    &mut trx,
+                    &session.user.email,
+                    &album_id,
+                    query.recursive,
+                )
+                .await?;
 
                 Ok(AlbumResponse { album, media })
             }
@@ -248,7 +260,12 @@ async fn get_search(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (search, media) = trx.get_user_search(&session.user.email, &search_id).await?;
+                let (search, media) = models::SavedSearch::get_for_user_with_count(
+                    &mut trx,
+                    &session.user.email,
+                    &search_id,
+                )
+                .await?;
 
                 Ok(SearchResponse { search, media })
             }
@@ -277,9 +294,12 @@ async fn get_catalog(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (catalog, media) = trx
-                    .get_user_catalog(&session.user.email, &catalog_id)
-                    .await?;
+                let (catalog, media) = models::Catalog::get_for_user_with_count(
+                    &mut trx,
+                    &session.user.email,
+                    &catalog_id,
+                )
+                .await?;
 
                 Ok(CatalogResponse { catalog, media })
             }
@@ -314,11 +334,14 @@ async fn get_catalog_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (catalog, media_count) = trx
-                    .get_user_catalog(&session.user.email, &catalog_id)
-                    .await?;
-                let media = trx
-                    .list_catalog_media(&catalog, query.offset, query.count)
+                let (catalog, media_count) = models::Catalog::get_for_user_with_count(
+                    &mut trx,
+                    &session.user.email,
+                    &catalog_id,
+                )
+                .await?;
+                let media = catalog
+                    .list_media(&mut trx, query.offset, query.count)
                     .await?;
 
                 Ok(GetMediaResponse {
@@ -353,11 +376,15 @@ async fn get_album_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (album, media_count) = trx
-                    .get_user_album(&session.user.email, &album_id, query.recursive)
-                    .await?;
-                let media = trx
-                    .list_album_media(&album, query.recursive, query.offset, query.count)
+                let (album, media_count) = models::Album::get_for_user_with_count(
+                    &mut trx,
+                    &session.user.email,
+                    &album_id,
+                    query.recursive,
+                )
+                .await?;
+                let media = album
+                    .list_media(&mut trx, query.recursive, query.offset, query.count)
                     .await?;
 
                 Ok(GetMediaResponse {
@@ -384,10 +411,14 @@ async fn get_search_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (search, media_count) =
-                    trx.get_user_search(&session.user.email, &search_id).await?;
-                let media = trx
-                    .list_search_media(&search, query.offset, query.count)
+                let (search, media_count) = models::SavedSearch::get_for_user_with_count(
+                    &mut trx,
+                    &session.user.email,
+                    &search_id,
+                )
+                .await?;
+                let media = search
+                    .list_media(&mut trx, query.offset, query.count)
                     .await?;
 
                 Ok(GetMediaResponse {
@@ -415,7 +446,9 @@ async fn get_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let media = trx.get_user_media(&session.user.email, &ids).await?;
+                let media =
+                    models::MediaRelations::get_for_user(&mut trx, &session.user.email, &ids)
+                        .await?;
 
                 Ok(GetMediaResponse {
                     total: media.len() as i64,

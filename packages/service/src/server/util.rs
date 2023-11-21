@@ -1,4 +1,4 @@
-use std::{cmp::max, fmt, io, path::PathBuf};
+use std::{cmp::max, fmt, io};
 
 use actix_web::{
     body::BoxBody,
@@ -48,14 +48,14 @@ impl ResponseError for InternalError {
     }
 }
 
-fn alt_size(alt: &(models::AlternateFile, FilePath, PathBuf)) -> i32 {
+fn alt_size(alt: &(models::AlternateFile, FilePath)) -> i32 {
     max(alt.0.width, alt.0.height)
 }
 
 pub(crate) fn choose_alternate(
-    mut alternates: Vec<(models::AlternateFile, FilePath, PathBuf)>,
+    mut alternates: Vec<(models::AlternateFile, FilePath)>,
     size: i32,
-) -> Option<(models::AlternateFile, FilePath, PathBuf)> {
+) -> Option<(models::AlternateFile, FilePath)> {
     if alternates.is_empty() {
         return None;
     }

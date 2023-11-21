@@ -10,10 +10,7 @@ use opentelemetry::{
 use opentelemetry_otlp::WithExportConfig;
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
-use pixelbin::tasks::{
-    rebuild_searches, reprocess_all_media, sanity_check_catalogs, verify_local_storage,
-    verify_online_storage,
-};
+use pixelbin::tasks::{rebuild_searches, reprocess_all_media, sanity_check_catalogs};
 use pixelbin::Store;
 use pixelbin::{load_config, Result};
 use scoped_futures::ScopedFutureExt;
@@ -67,26 +64,6 @@ impl Runnable for Reprocess {
 }
 
 #[derive(Args)]
-struct VerifyLocal;
-
-#[async_trait(?Send)]
-impl Runnable for VerifyLocal {
-    async fn run(self, store: Store) -> Result {
-        verify_local_storage(store).await
-    }
-}
-
-#[derive(Args)]
-struct VerifyOnline;
-
-#[async_trait(?Send)]
-impl Runnable for VerifyOnline {
-    async fn run(self, store: Store) -> Result {
-        verify_online_storage(store).await
-    }
-}
-
-#[derive(Args)]
 struct Verify;
 
 #[async_trait(?Send)]
@@ -126,10 +103,6 @@ enum Command {
     Serve,
     /// List some basic stats about objects in the database.
     Stats,
-    /// Verifies that the expected locally stored files are present.
-    VerifyLocal,
-    /// Verifies that the expected online stored files are present.
-    VerifyOnline,
     /// Applies database migrations and verifies correctness.
     CheckDb,
     /// Reprocesses metadata from media.

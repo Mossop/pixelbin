@@ -2,11 +2,9 @@
 use std::{iter::once, path::PathBuf};
 
 use async_trait::async_trait;
-use aws::AwsClient;
-use diesel::prelude::*;
 use diesel_async::{
     scoped_futures::{ScopedBoxFuture, ScopedFutureExt},
-    AsyncConnection, RunQueryDsl,
+    AsyncConnection,
 };
 
 pub(crate) mod aws;
@@ -15,13 +13,12 @@ pub(crate) mod metadata;
 pub(crate) mod models;
 pub(crate) mod path;
 
-use db::schema::*;
 use db::DbConnection;
 use db::{connect, DbPool};
 use tokio::fs;
 use tracing::instrument;
 
-use self::path::{FilePath, PathLike, ResourcePath};
+use self::path::{PathLike, ResourcePath};
 use crate::{Config, Result};
 
 #[async_trait]
@@ -34,7 +31,7 @@ pub(crate) struct DiskStore {
 }
 
 impl DiskStore {
-    fn local_path<P: PathLike>(&self, path: &P) -> PathBuf {
+    pub(crate) fn local_path<P: PathLike>(&self, path: &P) -> PathBuf {
         let mut local_path = self.root.clone();
         for part in path.path_parts() {
             local_path.push(part);
@@ -141,72 +138,5 @@ impl Store {
                 .scope_boxed()
         })
         .await
-    }
-
-    pub(crate) async fn online_uri(
-        &self,
-        storage: &models::Storage,
-        path: &FilePath,
-        mimetype: &str,
-        filename: Option<&str>,
-    ) -> Result<String> {
-        let client = AwsClient::from_storage(storage).await?;
-        client.file_uri(path, mimetype, filename).await
-    }
-
-    pub(crate) async fn list_local_files(&self) -> Result<Vec<(PathBuf, u64)>> {
-        let mut files = Vec::<(PathBuf, u64)>::new();
-
-        let mut readers = vec![fs::read_dir(&self.config.local_storage).await?];
-        while !readers.is_empty() {
-            let reader = readers.last_mut().unwrap();
-            match reader.next_entry().await? {
-                Some(entry) => {
-                    let stats = entry.metadata().await?;
-                    if stats.is_dir() {
-                        readers.push(fs::read_dir(entry.path()).await?)
-                    } else if stats.is_file() {
-                        files.push((entry.path(), stats.len()))
-                    }
-                }
-                None => {
-                    readers.pop();
-                }
-            }
-        }
-
-        Ok(files)
-    }
-
-    pub(crate) async fn list_local_alternate_files(
-        &self,
-    ) -> Result<Vec<(models::AlternateFile, FilePath, PathBuf)>> {
-        let mut conn = self.pool.get().await?;
-
-        let files = alternate_file::table
-            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .filter(alternate_file::local.eq(true))
-            .select((
-                alternate_file::all_columns,
-                media_item::id,
-                media_item::catalog,
-            ))
-            .load::<(models::AlternateFile, String, String)>(&mut conn)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(alternate, media_item, catalog)| {
-                let file_path = FilePath {
-                    catalog: catalog.clone(),
-                    item: media_item,
-                    file: alternate.media_file.clone(),
-                    file_name: alternate.file_name.clone(),
-                };
-                let local_path = self.config.local_path(&file_path);
-                (alternate, file_path, local_path)
-            })
-            .collect())
     }
 }

@@ -193,10 +193,9 @@ async fn state(
         .in_transaction(|mut db| {
             async move {
                 let email = &session.user.email;
-                let user = db.get_user(email).await?;
+                let user = models::User::get(&mut db, email).await?;
 
-                let albums = db
-                    .list_user_albums_with_count(email)
+                let albums = models::Album::list_for_user_with_count(&mut db, email)
                     .await?
                     .into_iter()
                     .map(|(album, count)| AlbumWithCount {
@@ -205,8 +204,7 @@ async fn state(
                     })
                     .collect();
 
-                let searches = db
-                    .list_user_searches_with_count(email)
+                let searches = models::SavedSearch::list_for_user_with_count(&mut db, email)
                     .await?
                     .into_iter()
                     .map(|(search, count)| SavedSearchWithCount {
@@ -217,10 +215,10 @@ async fn state(
 
                 Ok(UserState {
                     user,
-                    storage: db.list_user_storage(email).await?,
-                    catalogs: db.list_user_catalogs(email).await?,
-                    people: db.list_user_people(email).await?,
-                    tags: db.list_user_tags(email).await?,
+                    storage: models::Storage::list_for_user(&mut db, email).await?,
+                    catalogs: models::Catalog::list_for_user(&mut db, email).await?,
+                    people: models::Person::list_for_user(&mut db, email).await?,
+                    tags: models::Tag::list_for_user(&mut db, email).await?,
                     albums,
                     searches,
                 })

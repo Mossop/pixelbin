@@ -596,7 +596,10 @@ impl Exif {
 }
 
 pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) -> Result<MediaFile> {
-    let metadata_file = config.local_path(file_path).join(METADATA_FILE);
+    let metadata_file = config
+        .local_store()
+        .local_path(file_path)
+        .join(METADATA_FILE);
     let metadata = from_str::<Metadata>(&read_to_string(metadata_file).await?)?;
 
     Ok(metadata.media_file(&file_path.item, &file_path.file))

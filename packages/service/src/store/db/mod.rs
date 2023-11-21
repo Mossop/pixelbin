@@ -3,11 +3,11 @@ pub(crate) mod functions;
 pub(super) mod schema;
 pub(crate) mod search;
 
-use std::{path::PathBuf, pin::Pin};
+use std::pin::Pin;
 
 use chrono::{Duration, Utc};
 use diesel::{
-    dsl::{count, now},
+    dsl::now,
     migration::{Migration, MigrationSource},
     pg::Pg,
     prelude::*,
@@ -23,8 +23,7 @@ use futures::Future;
 use schema::*;
 use tracing::{info, instrument, trace};
 
-use self::functions::{media_view, media_view_columns};
-use super::{models, path::FilePath, Result};
+use super::{models, Result};
 use crate::{shared::long_id, store::metadata::reprocess_all_media, Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
@@ -97,18 +96,14 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
         connection
             .transaction::<(), Error, _>(|conn| {
                 async move {
-                    let mut tx = DbConnection {
-                        conn,
-                        config: config.clone(),
-                        is_transaction: true,
-                    };
+                    let mut tx = DbConnection::from_transaction(conn, config);
 
                     reprocess_all_media(&mut tx).await?;
 
-                    let catalogs = tx.list_catalogs().await?;
+                    let catalogs = models::Catalog::list(&mut tx).await?;
 
                     for catalog in catalogs {
-                        tx.update_searches(&catalog.id).await?;
+                        models::SavedSearch::update_for_catalog(&mut tx, &catalog.id).await?;
                     }
 
                     Ok(())
@@ -247,116 +242,7 @@ impl<'a> DbConnection<'a> {
         &self.config
     }
 
-    pub async fn list_media_files(
-        &mut self,
-        catalog: &str,
-    ) -> Result<Vec<(models::MediaFile, FilePath)>> {
-        let files = media_file::table
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .filter(media_item::catalog.eq(&catalog))
-            .select(media_file::all_columns)
-            .load::<models::MediaFile>(self)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|media_file| {
-                let file_path = FilePath {
-                    catalog: catalog.to_owned(),
-                    item: media_file.media_item.clone(),
-                    file: media_file.id.clone(),
-                    file_name: media_file.file_name.clone(),
-                };
-                (media_file, file_path)
-            })
-            .collect())
-    }
-
-    pub async fn list_alternate_files(
-        &mut self,
-        catalog: &str,
-    ) -> Result<Vec<(models::AlternateFile, FilePath)>> {
-        let files = alternate_file::table
-            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .filter(media_item::catalog.eq(&catalog))
-            .select((alternate_file::all_columns, media_item::id))
-            .load::<(models::AlternateFile, String)>(self)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(alternate, media_item)| {
-                let file_path = FilePath {
-                    catalog: catalog.to_owned(),
-                    item: media_item,
-                    file: alternate.media_file.clone(),
-                    file_name: alternate.file_name.clone(),
-                };
-                (alternate, file_path)
-            })
-            .collect())
-    }
-
-    pub async fn list_online_alternate_files(
-        &mut self,
-        storage: &models::Storage,
-    ) -> Result<Vec<(models::AlternateFile, FilePath)>> {
-        let files = alternate_file::table
-            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
-            .filter(alternate_file::local.eq(false))
-            .filter(catalog::storage.eq(&storage.id))
-            .select((
-                alternate_file::all_columns,
-                media_item::id,
-                media_item::catalog,
-            ))
-            .load::<(models::AlternateFile, String, String)>(self)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(alternate, media_item, catalog)| {
-                let file_path = FilePath {
-                    catalog,
-                    item: media_item,
-                    file: alternate.media_file.clone(),
-                    file_name: alternate.file_name.clone(),
-                };
-                (alternate, file_path)
-            })
-            .collect())
-    }
-
-    pub async fn list_online_media_files(
-        &mut self,
-        storage: &models::Storage,
-    ) -> Result<Vec<(models::MediaFile, FilePath)>> {
-        let files = media_file::table
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .inner_join(catalog::table.on(media_item::catalog.eq(catalog::id)))
-            .filter(catalog::storage.eq(&storage.id))
-            .select((media_file::all_columns, media_item::catalog))
-            .load::<(models::MediaFile, String)>(self)
-            .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(media_file, catalog)| {
-                let file_path = FilePath {
-                    catalog,
-                    item: media_file.media_item.clone(),
-                    file: media_file.id.clone(),
-                    file_name: media_file.file_name.clone(),
-                };
-                (media_file, file_path)
-            })
-            .collect())
-    }
-
-    pub async fn verify_credentials(
+    pub(crate) async fn verify_credentials(
         &mut self,
         email: &str,
         password: &str,
@@ -401,7 +287,7 @@ impl<'a> DbConnection<'a> {
         Ok((user, token))
     }
 
-    pub async fn verify_token(&mut self, token: &str) -> Result<models::User> {
+    pub(crate) async fn verify_token(&mut self, token: &str) -> Result<models::User> {
         let mut user: models::User = auth_token::table
             .inner_join(user::table.on(user::email.eq(auth_token::email)))
             .filter(auth_token::token.eq(token))
@@ -430,7 +316,7 @@ impl<'a> DbConnection<'a> {
         Ok(user)
     }
 
-    pub async fn delete_token(&mut self, token: &str) -> Result {
+    pub(crate) async fn delete_token(&mut self, token: &str) -> Result {
         diesel::delete(auth_token::table.filter(auth_token::token.eq(token)))
             .execute(self)
             .await?;
@@ -458,344 +344,5 @@ impl<'a> DbConnection<'a> {
             files: files as u32,
             alternate_files: alternate_files as u32,
         })
-    }
-
-    pub async fn get_user(&mut self, email: &str) -> Result<models::User> {
-        user::table
-            .filter(user::email.eq(email))
-            .select(user::all_columns)
-            .get_result::<models::User>(self)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
-    }
-
-    pub async fn get_catalog_storage(&mut self, catalog: &str) -> Result<models::Storage> {
-        storage::table
-            .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
-            .filter(catalog::id.eq(catalog))
-            .select(storage::all_columns)
-            .get_result::<models::Storage>(self)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
-    }
-
-    pub async fn list_storage(&mut self) -> Result<Vec<models::Storage>> {
-        Ok(storage::table
-            .select(storage::all_columns)
-            .load::<models::Storage>(self)
-            .await?)
-    }
-
-    pub async fn list_catalogs(&mut self) -> Result<Vec<models::Catalog>> {
-        Ok(catalog::table
-            .select(catalog::all_columns)
-            .load::<models::Catalog>(self)
-            .await?)
-    }
-
-    pub async fn list_user_storage(&mut self, email: &str) -> Result<Vec<models::Storage>> {
-        Ok(storage::table
-            .filter(storage::owner.eq(email))
-            .select(storage::all_columns)
-            .load::<models::Storage>(self)
-            .await?)
-    }
-
-    pub async fn list_user_catalogs(&mut self, email: &str) -> Result<Vec<models::Catalog>> {
-        Ok(catalog::table
-            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(catalog::id)))
-            .filter(user_catalog::user.eq(email))
-            .select(catalog::all_columns)
-            .order(catalog::name.asc())
-            .load::<models::Catalog>(self)
-            .await?)
-    }
-
-    pub async fn list_user_people(&mut self, email: &str) -> Result<Vec<models::Person>> {
-        Ok(user_catalog::table
-            .inner_join(person::table.on(person::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .select(person::all_columns)
-            .order(person::name.asc())
-            .load::<models::Person>(self)
-            .await?)
-    }
-
-    pub async fn list_user_tags(&mut self, email: &str) -> Result<Vec<models::Tag>> {
-        Ok(user_catalog::table
-            .inner_join(tag::table.on(tag::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .select(tag::all_columns)
-            .order(tag::name.asc())
-            .load::<models::Tag>(self)
-            .await?)
-    }
-
-    pub async fn list_user_albums(&mut self, email: &str) -> Result<Vec<models::Album>> {
-        Ok(user_catalog::table
-            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .select(album::all_columns)
-            .order(album::name.asc())
-            .load::<models::Album>(self)
-            .await?)
-    }
-
-    pub async fn list_user_albums_with_count(
-        &mut self,
-        email: &str,
-    ) -> Result<Vec<(models::Album, i64)>> {
-        Ok(user_catalog::table
-            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-            .left_join(media_album::table.on(media_album::album.eq(album::id)))
-            .filter(user_catalog::user.eq(email))
-            .group_by(album::id)
-            .select((album::all_columns, count(media_album::media.nullable())))
-            .order(album::name.asc())
-            .load::<(models::Album, i64)>(self)
-            .await?)
-    }
-
-    pub async fn get_user_album(
-        &mut self,
-        email: &str,
-        album: &str,
-        recursive: bool,
-    ) -> Result<(models::Album, i64)> {
-        if recursive {
-            user_catalog::table
-                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-                .inner_join(album_descendent::table.on(album::id.eq(album_descendent::id)))
-                .inner_join(
-                    media_album::table.on(album_descendent::descendent.eq(media_album::album)),
-                )
-                .filter(user_catalog::user.eq(email))
-                .filter(album::id.eq(album))
-                .group_by(album::id)
-                .select((album::all_columns, count(media_album::media)))
-                .get_result::<(models::Album, i64)>(self)
-                .await
-                .optional()?
-                .ok_or_else(|| Error::NotFound)
-        } else {
-            user_catalog::table
-                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-                .inner_join(media_album::table.on(album::id.eq(media_album::album)))
-                .filter(user_catalog::user.eq(email))
-                .filter(album::id.eq(album))
-                .group_by(album::id)
-                .select((album::all_columns, count(media_album::media)))
-                .get_result::<(models::Album, i64)>(self)
-                .await
-                .optional()?
-                .ok_or_else(|| Error::NotFound)
-        }
-    }
-
-    pub async fn list_album_media(
-        &mut self,
-        album: &models::Album,
-        recursive: bool,
-        offset: Option<i64>,
-        count: Option<i64>,
-    ) -> Result<Vec<models::MediaView>> {
-        album.list_media(self, recursive, offset, count).await
-    }
-
-    pub async fn get_user_search(
-        &mut self,
-        email: &str,
-        search: &str,
-    ) -> Result<(models::SavedSearch, i64)> {
-        user_catalog::table
-            .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
-            .inner_join(media_search::table.on(saved_search::id.eq(media_search::search)))
-            .filter(user_catalog::user.eq(email))
-            .filter(saved_search::id.eq(search))
-            .group_by(saved_search::id)
-            .select((saved_search::all_columns, count(media_search::media)))
-            .get_result::<(models::SavedSearch, i64)>(self)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
-    }
-
-    pub async fn list_search_media(
-        &mut self,
-        search: &models::SavedSearch,
-        offset: Option<i64>,
-        count: Option<i64>,
-    ) -> Result<Vec<models::MediaView>> {
-        search.list_media(self, offset, count).await
-    }
-
-    pub async fn get_user_catalog(
-        &mut self,
-        email: &str,
-        catalog: &str,
-    ) -> Result<(models::Catalog, i64)> {
-        user_catalog::table
-            .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
-            .inner_join(media_item::table.on(catalog::id.eq(media_item::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .filter(catalog::id.eq(catalog))
-            .group_by(catalog::id)
-            .select((catalog::all_columns, count(media_item::id)))
-            .get_result::<(models::Catalog, i64)>(self)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
-    }
-
-    pub async fn get_user_media(
-        &mut self,
-        email: &str,
-        media: &[&str],
-    ) -> Result<Vec<models::MediaRelations>> {
-        let media = media_view!()
-            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
-            .left_join(album_relation::table.on(album_relation::media.eq(media_item::id)))
-            .left_join(tag_relation::table.on(tag_relation::media.eq(media_item::id)))
-            .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
-            .filter(user_catalog::user.eq(email))
-            .filter(media_item::id.eq_any(media))
-            .select((
-                media_view_columns!(),
-                album_relation::albums.nullable(),
-                tag_relation::tags.nullable(),
-                person_relation::people.nullable(),
-            ))
-            .load::<models::MediaRelations>(self)
-            .await?;
-
-        Ok(media)
-    }
-
-    pub async fn get_user_media_file(
-        &mut self,
-        email: &str,
-        media: &str,
-        file: &str,
-    ) -> Result<(models::MediaFile, FilePath)> {
-        let (media_file, catalog) = media_file::table
-            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .filter(media_item::id.eq(media))
-            .filter(media_file::id.eq(file))
-            .select((media_file::all_columns, media_item::catalog))
-            .get_result::<(models::MediaFile, String)>(self)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)?;
-
-        let file_path = FilePath {
-            catalog,
-            item: media.to_owned(),
-            file: file.to_owned(),
-            file_name: media_file.file_name.clone(),
-        };
-        Ok((media_file, file_path))
-    }
-
-    pub async fn list_catalog_media(
-        &mut self,
-        catalog: &models::Catalog,
-        offset: Option<i64>,
-        count: Option<i64>,
-    ) -> Result<Vec<models::MediaView>> {
-        catalog.list_media(self, offset, count).await
-    }
-
-    pub async fn list_media_alternates(
-        &mut self,
-        email: Option<&str>,
-        item: &str,
-        file: &str,
-        mimetype: &str,
-        alternate_type: models::AlternateFileType,
-    ) -> Result<Vec<(models::AlternateFile, FilePath, PathBuf)>> {
-        if let Some(email) = email {
-            let files = user_catalog::table
-                .filter(user_catalog::user.eq(email))
-                .inner_join(media_item::table.on(media_item::catalog.eq(user_catalog::catalog)))
-                .filter(media_item::id.eq(item))
-                .filter(media_item::media_file.eq(file))
-                .inner_join(
-                    alternate_file::table
-                        .on(media_item::media_file.eq(alternate_file::media_file.nullable())),
-                )
-                .filter(alternate_file::mimetype.eq(mimetype))
-                .filter(alternate_file::type_.eq(alternate_type))
-                .select((
-                    alternate_file::all_columns,
-                    media_item::id,
-                    media_item::catalog,
-                ))
-                .load::<(models::AlternateFile, String, String)>(self)
-                .await?;
-
-            if !files.is_empty() {
-                return Ok(files
-                    .into_iter()
-                    .map(|(alternate, media_item, catalog)| {
-                        let file_path = FilePath {
-                            catalog,
-                            item: media_item,
-                            file: alternate.media_file.clone(),
-                            file_name: alternate.file_name.clone(),
-                        };
-                        let local_path = self.config.local_path(&file_path);
-                        (alternate, file_path, local_path)
-                    })
-                    .collect::<Vec<(models::AlternateFile, FilePath, PathBuf)>>());
-            }
-        }
-
-        Ok(vec![])
-    }
-
-    pub async fn list_user_searches(&mut self, email: &str) -> Result<Vec<models::SavedSearch>> {
-        Ok(user_catalog::table
-            .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .select(saved_search::all_columns)
-            .order(saved_search::name.asc())
-            .load::<models::SavedSearch>(self)
-            .await?)
-    }
-
-    pub async fn list_user_searches_with_count(
-        &mut self,
-        email: &str,
-    ) -> Result<Vec<(models::SavedSearch, i64)>> {
-        Ok(user_catalog::table
-            .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
-            .left_join(media_search::table.on(media_search::search.eq(saved_search::id)))
-            .filter(user_catalog::user.eq(email))
-            .group_by(saved_search::id)
-            .select((
-                saved_search::all_columns,
-                count(media_search::media.nullable()),
-            ))
-            .order(saved_search::name.asc())
-            .load::<(models::SavedSearch, i64)>(self)
-            .await?)
-    }
-
-    pub async fn update_searches(&mut self, catalog: &str) -> Result {
-        let searches = saved_search::table
-            .filter(saved_search::catalog.eq(catalog))
-            .select(saved_search::all_columns)
-            .load::<models::SavedSearch>(self)
-            .await?;
-
-        for search in searches {
-            search.update(self).await?;
-        }
-
-        Ok(())
     }
 }
