@@ -2,16 +2,25 @@
 
 use std::collections::HashMap;
 
+use chrono::Timelike;
 use scoped_futures::ScopedFutureExt;
-use tracing::{error, info, instrument, warn};
+use tracing::{error, instrument, trace, warn};
 
 use crate::{
-    store::path::{CatalogPath, FilePath},
-    Result,
+    store::{
+        metadata::{self, METADATA_FILE},
+        models,
+        path::MediaItemPath,
+        DiskStore, Store,
+    },
+    FileStore,
 };
 use crate::{
-    store::{metadata, models, Store},
-    FileStore,
+    store::{
+        metadata::{parse_metadata, Metadata},
+        path::{CatalogPath, FilePath, MediaFilePath},
+    },
+    Result,
 };
 
 #[instrument(skip_all)]
@@ -47,12 +56,15 @@ pub async fn rebuild_searches(store: Store) -> Result {
     Ok(())
 }
 
+type FileSets = (HashMap<String, u64>, HashMap<String, u64>);
 pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
-    async fn list_files<F: FileStore>(
+    async fn append_files<F: FileStore>(
         file_store: &F,
         catalog: &str,
-    ) -> Result<HashMap<FilePath, u64>> {
-        Ok(file_store
+        is_local: bool,
+        file_set: &mut HashMap<MediaFilePath, FileSets>,
+    ) -> Result {
+        for (path, size) in file_store
             .list_files(Some(
                 &CatalogPath {
                     catalog: catalog.to_owned(),
@@ -60,15 +72,33 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                 .into(),
             ))
             .await?
-            .into_iter()
-            .filter_map(|(p, s)| {
-                if let Ok(file) = TryInto::<FilePath>::try_into(p) {
-                    Some((file, s))
+        {
+            if let Ok(file) = TryInto::<FilePath>::try_into(path) {
+                let (ref mut local_files, ref mut remote_files) =
+                    file_set.entry(file.media_file_path()).or_default();
+                if is_local {
+                    local_files.insert(file.file_name, size);
                 } else {
-                    None
+                    remote_files.insert(file.file_name, size);
                 }
-            })
-            .collect())
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn delete_media_file<S: FileStore>(
+        path: &MediaFilePath,
+        local_store: &DiskStore,
+        remote_store: &S,
+    ) {
+        if let Err(e) = local_store.delete(&path.clone().into()).await {
+            warn!(error=?e, path=%path, "Failed to delete local media files");
+        }
+
+        if let Err(e) = remote_store.delete(&path.clone().into()).await {
+            warn!(error=?e, path=%path, "Failed to delete remote media files");
+        }
     }
 
     store
@@ -76,65 +106,146 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
             async move {
                 let storage = models::Storage::get_for_catalog(&mut tx, catalog).await?;
                 let remote_store = storage.file_store().await?;
-                let mut remote_files = list_files(&remote_store, catalog).await?;
+
+                let mut file_set = HashMap::new();
+                append_files(&remote_store, catalog, false, &mut file_set).await?;
 
                 let local_store = tx.config().local_store();
-                let mut local_files: HashMap<FilePath, u64> =
-                    list_files(&local_store, catalog).await?;
+                append_files(&local_store, catalog, true, &mut file_set).await?;
+
+                let mut valid_media_files: Vec<MediaFilePath> = Vec::new();
+                let media_files = models::MediaFile::list_for_catalog(&mut tx, catalog).await?;
+                for (media_file, path) in media_files {
+                    let media_file_path = path.media_file_path();
+
+                    if let Some((_, ref remote_files)) = file_set.get(&media_file_path) {
+                        if let Some(size) = remote_files.get(&media_file.file_name) {
+                            if size != &(media_file.file_size as u64) {
+                                warn!(
+                                    path=%path,
+                                    database = media_file.file_size,
+                                    actual = size,
+                                    "Media file size mismatch"
+                                );
+                            }
+
+                            valid_media_files.push(media_file_path);
+                            continue;
+                        }
+                    }
+
+                    // This media file is gone, delete it.
+                    if let Err(e) = media_file.delete(&mut tx, &storage, &path).await {
+                        error!(error=?e, "Failed deleting media file");
+                    }
+                    file_set.remove(&media_file_path);
+                }
 
                 let alternate_files =
                     models::AlternateFile::list_for_catalog(&mut tx, catalog).await?;
 
                 for (alternate, path) in alternate_files {
-                    let fileset = if alternate.local {
-                        &mut local_files
-                    } else {
-                        &mut remote_files
-                    };
+                    if let Some((ref mut local_files, ref mut remote_files)) =
+                        file_set.get_mut(&path.media_file_path())
+                    {
+                        let files = if alternate.local {
+                            local_files
+                        } else {
+                            remote_files
+                        };
 
-                    if let Some(size) = fileset.remove(&path) {
-                        if size != alternate.file_size as u64 {
-                            warn!(
-                                path=%path,
-                                database = alternate.file_size,
-                                actual = size,
-                                "Alternate file size mismatch"
-                            );
+                        if let Some(size) = files.get(&alternate.file_name) {
+                            if size != &(alternate.file_size as u64) {
+                                warn!(
+                                    path=%path,
+                                    database = alternate.file_size,
+                                    actual = size,
+                                    "Alternate file size mismatch"
+                                );
+                            }
+
+                            continue;
                         }
-                    } else if let Err(e) = alternate.delete(&mut tx, &storage, &path).await {
+                    }
+
+                    // This alternate file is gone, delete it.
+                    if let Err(e) = alternate.delete(&mut tx, &storage, &path).await {
                         error!(error=?e, "Failed deleting alternate file");
                     }
                 }
 
-                let media_files = models::MediaFile::list_for_catalog(&mut tx, catalog).await?;
-                for (media_file, path) in media_files {
-                    if let Some(size) = remote_files.remove(&path) {
-                        if size != media_file.file_size as u64 {
-                            warn!(
-                                path=%path,
-                                database = media_file.file_size,
-                                actual = size,
-                                "Media file size mismatch"
-                            );
+                for valid_media_file in valid_media_files {
+                    file_set.remove(&valid_media_file);
+                }
+
+                models::MediaItem::update_media_files(&mut tx).await?;
+
+                // Everything left in fileset is not in the database. Find anything
+                // that is recoverable
+                let mut recoverable: HashMap<MediaItemPath, (MediaFilePath, Metadata)> = HashMap::new();
+
+                for (media_file_path, (local_files, remote_files)) in file_set.into_iter() {
+                    if local_files.contains_key(METADATA_FILE) {
+                        let metadata_file = local_store.local_path(&media_file_path.file(METADATA_FILE.to_owned()));
+                        let metadata = match parse_metadata(&metadata_file).await {
+                            Ok(m) => m,
+                            Err(e) => {
+                                warn!(path=%media_file_path, error=?e, "Failed to parse metadata file");
+                                continue;
+                            }
+                        };
+
+                        if let Some(size) = remote_files.get(&metadata.file_name) {
+                            if size == &(metadata.file_size as u64) {
+                                if let Some((existing_path, existing_metadata)) = recoverable.get_mut(&media_file_path.media_item()) {
+                                    if existing_metadata.uploaded.with_nanosecond(0) < metadata.uploaded.with_nanosecond(0) {
+                                        delete_media_file(existing_path, &local_store, &remote_store).await;
+
+                                        *existing_metadata = metadata;
+                                        *existing_path = media_file_path;
+                                    }
+                                } else {
+                                    recoverable.insert(media_file_path.media_item(), (media_file_path, metadata));
+                                }
+                            }
+
+                            continue;
                         }
-                    } else if let Err(e) = media_file.delete(&mut tx, &storage, &path).await {
-                        error!(error=?e, "Failed deleting media file");
+                    }
+
+                    trace!(path=%media_file_path, "Deleting orphan media files");
+
+                    delete_media_file(&media_file_path, &local_store, &remote_store).await;
+                }
+
+                let items: Vec<String> = recoverable.keys().map(|p| p.item.clone()).collect();
+                let ids: Vec<&str> = items.iter().map(String::as_ref).collect();
+
+                let views: HashMap<String, models::MediaView> = models::MediaView::get(&mut tx, &ids).await?.into_iter().map(|v| (v.id.clone(), v)).collect();
+
+                for (media_file_path, metadata) in recoverable.values() {
+                    if let Some(view) = views.get(&media_file_path.item) {
+                        if let Some(ref file) = view.file {
+                            if file.uploaded.with_nanosecond(0).unwrap() >= metadata.uploaded.with_nanosecond(0).unwrap() {
+                                // Already have a more recent media file present.
+                                delete_media_file(media_file_path, &local_store, &remote_store).await;
+
+                                continue;
+                            }
+                        }
+
+                        let mut media_file = metadata.media_file(&media_file_path.item, &media_file_path.file);
+                        // Explicitely flag this as needing re-processing.
+                        media_file.process_version = 0;
+
+                        if let Err(e) = models::MediaFile::upsert(&mut tx, &[media_file]).await {
+                            error!(error=?e, "Failed to recover media file");
+                        }
+                    } else {
+                        delete_media_file(media_file_path, &local_store, &remote_store).await;
                     }
                 }
 
-                info!(count = remote_files.len(), "Remaining remote files");
-                info!(count = local_files.len(), "Remaining local files");
-
-                // 1. List all remote files
-                // 2. List all alternate_file
-                // 3. Delete any not present in storage from DB (we will rebuild later)
-                // 4. List all media_file
-                // 5. Delete any not present in storage from DB (no file means nothing we can do anyway)
-                // 6. Look at any remote files not part of a known media_file, do any look like original media files?
-                //   6.1. If so does the media_item exist and does it have no media_file?
-                //   6.2. If so create a new media_file and reprocess it (using local metadata.json if it exists)
-                // 7. Any other remote files can be deleted.
-                // 8. Any other local files can be deleted.
                 Ok(())
             }
             .scope_boxed()

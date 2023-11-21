@@ -42,16 +42,17 @@ impl ResourcePath {
             return Ok(MediaItemPath { catalog, item }.into());
         };
 
-        let file_name = if let Some(f) = iter.next() {
-            f.to_owned()
-        } else {
-            return Ok(MediaFilePath {
-                catalog,
-                item,
-                file,
-            }
-            .into());
-        };
+        let file_name =
+            if let Some(f) = iter.next() {
+                f.to_owned()
+            } else {
+                return Ok(MediaFilePath {
+                    catalog,
+                    item,
+                    file,
+                }
+                .into());
+            };
 
         if let Some(trailing) = iter.next() {
             let mut rest = vec![trailing];
@@ -125,6 +126,24 @@ pub struct MediaFilePath {
     pub(crate) catalog: String,
     pub(crate) item: String,
     pub(crate) file: String,
+}
+
+impl MediaFilePath {
+    pub(crate) fn media_item(&self) -> MediaItemPath {
+        MediaItemPath {
+            catalog: self.catalog.clone(),
+            item: self.item.clone(),
+        }
+    }
+
+    pub(crate) fn file(&self, file_name: String) -> FilePath {
+        FilePath {
+            catalog: self.catalog.clone(),
+            item: self.item.clone(),
+            file: self.file.clone(),
+            file_name,
+        }
+    }
 }
 
 impl FilePath {

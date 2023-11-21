@@ -370,12 +370,15 @@ impl Album {
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
         if recursive {
-            let mut query = media_view!()
-                .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+            let valid_ids = media_album::table
                 .inner_join(
                     album_descendent::table.on(album_descendent::descendent.eq(media_album::album)),
                 )
                 .filter(album_descendent::id.eq(&self.id))
+                .select(media_album::media);
+
+            let mut query = media_view!()
+                .filter(media_item::id.eq_any(valid_ids))
                 .select(media_view_columns!())
                 .offset(offset.unwrap_or_default())
                 .into_boxed();
@@ -386,9 +389,12 @@ impl Album {
 
             Ok(query.load::<MediaView>(conn).await?)
         } else {
-            let mut query = media_view!()
-                .inner_join(media_album::table.on(media_item::id.eq(media_album::media)))
+            let valid_ids = media_album::table
                 .filter(media_album::album.eq(&self.id))
+                .select(media_album::media);
+
+            let mut query = media_view!()
+                .filter(media_item::id.eq_any(valid_ids))
                 .select(media_view_columns!())
                 .offset(offset.unwrap_or_default())
                 .into_boxed();
@@ -480,9 +486,12 @@ impl SavedSearch {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
-        let mut query = media_view!()
-            .inner_join(media_search::table.on(media_item::id.eq(media_search::media)))
+        let valid_ids = media_search::table
             .filter(media_search::search.eq(&self.id))
+            .select(media_search::media);
+
+        let mut query = media_view!()
+            .filter(media_item::id.eq_any(valid_ids))
             .select(media_view_columns!())
             .offset(offset.unwrap_or_default())
             .into_boxed();
@@ -630,6 +639,27 @@ pub struct MediaItem {
 }
 
 impl MediaItem {
+    pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>) -> Result {
+        let items = media_item::table
+            .left_outer_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
+            .filter(media_file::process_version.gt(0))
+            .order_by((media_item::id, media_file::uploaded.desc()))
+            .distinct_on(media_item::id)
+            .select((media_item::all_columns, media_file::id.nullable()))
+            .load::<(MediaItem, Option<String>)>(conn)
+            .await?;
+
+        let updated: Vec<MediaItem> = items
+            .into_iter()
+            .map(|(mut i, f)| {
+                i.media_file = f;
+                i
+            })
+            .collect();
+
+        Self::upsert(conn, &updated).await
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_items: &[MediaItem]) -> Result {
         for records in batch(media_items, 500) {
@@ -938,7 +968,16 @@ impl MediaFile {
             .delete(&media_file_path.clone().into())
             .await
         {
-            warn!(error=?e, path=%media_file_path, "Failed to delete media file");
+            warn!(error=?e, path=%media_file_path, "Failed to delete remote media file data");
+        }
+
+        if let Err(e) = conn
+            .config()
+            .local_store()
+            .delete(&media_file_path.clone().into())
+            .await
+        {
+            warn!(error=?e, path=%media_file_path, "Failed to delete local media file data");
         }
 
         diesel::delete(media_file::table.filter(media_file::id.eq(&self.id)))
@@ -1066,6 +1105,12 @@ impl AlternateFile {
             .execute(conn)
             .await?;
 
+        // We flag the media file as requiring re-processing here.
+        diesel::update(media_file::table.filter(media_file::id.eq(&self.media_file)))
+            .set(media_file::process_version.eq(0))
+            .execute(conn)
+            .await?;
+
         Ok(())
     }
 }
@@ -1120,6 +1165,18 @@ pub(crate) struct MediaView {
     pub(crate) focal_length: Option<f32>,
     pub(crate) rating: Option<i32>,
     pub(crate) file: Option<MediaViewFile>,
+}
+
+impl MediaView {
+    pub(crate) async fn get(conn: &mut DbConnection<'_>, media: &[&str]) -> Result<Vec<MediaView>> {
+        let media = media_view!()
+            .filter(media_item::id.eq_any(media))
+            .select(media_view_columns!())
+            .load::<MediaView>(conn)
+            .await?;
+
+        Ok(media)
+    }
 }
 
 #[typeshare]

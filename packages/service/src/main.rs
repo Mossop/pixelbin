@@ -150,19 +150,19 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
     let registry = Registry::default().with(formatter);
 
     if let Some(telemetry_host) = telemetry {
-        let tracer =
-            opentelemetry_otlp::new_pipeline()
-                .tracing()
-                .with_exporter(
-                    opentelemetry_otlp::new_exporter()
-                        .tonic()
-                        .with_endpoint(telemetry_host)
-                        .with_timeout(Duration::from_secs(3)),
-                )
-                .with_trace_config(trace::config().with_resource(Resource::new(vec![
-                    KeyValue::new("service.name", "pixelbin"),
-                ])))
-                .install_batch(opentelemetry::runtime::Tokio)?;
+        let tracer = opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_exporter(
+                opentelemetry_otlp::new_exporter()
+                    .tonic()
+                    .with_endpoint(telemetry_host)
+                    .with_timeout(Duration::from_secs(3)),
+            )
+            .with_trace_config(
+                trace::config()
+                    .with_resource(Resource::new(vec![KeyValue::new("service.name", "pixelbin")])),
+            )
+            .install_batch(opentelemetry::runtime::Tokio)?;
 
         let mut filter = EnvFilter::new("warn");
 

@@ -90,9 +90,9 @@ impl FromRequest for MaybeSession {
             let data = web::Data::<AppState>::extract(&req).await.unwrap();
             let user = data
                 .store
-                .with_connection(|mut conn| {
-                    async move { conn.verify_token(&otoken).await }.scope_boxed()
-                })
+                .with_connection(
+                    |mut conn| async move { conn.verify_token(&otoken).await }.scope_boxed()
+                )
                 .await?;
 
             Ok(MaybeSession(Some(Session { user })))
@@ -204,14 +204,15 @@ async fn state(
                     })
                     .collect();
 
-                let searches = models::SavedSearch::list_for_user_with_count(&mut db, email)
-                    .await?
-                    .into_iter()
-                    .map(|(search, count)| SavedSearchWithCount {
-                        search,
-                        media: count,
-                    })
-                    .collect();
+                let searches =
+                    models::SavedSearch::list_for_user_with_count(&mut db, email)
+                        .await?
+                        .into_iter()
+                        .map(|(search, count)| SavedSearchWithCount {
+                            search,
+                            media: count,
+                        })
+                        .collect();
 
                 Ok(UserState {
                     user,

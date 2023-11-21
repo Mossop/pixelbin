@@ -1,5 +1,5 @@
 //! A basic abstraction around the pixelbin data stores.
-use std::{iter::once, path::PathBuf};
+use std::{io::ErrorKind, iter::once, path::PathBuf};
 
 use async_trait::async_trait;
 use diesel_async::{
@@ -48,11 +48,12 @@ impl FileStore for DiskStore {
     async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut files = Vec::<(ResourcePath, u64)>::new();
 
-        let root = if let Some(prefix) = prefix {
-            self.local_path(prefix)
-        } else {
-            self.root.clone()
-        };
+        let root =
+            if let Some(prefix) = prefix {
+                self.local_path(prefix)
+            } else {
+                self.root.clone()
+            };
 
         let mut path_parts: Vec<String> = root
             .strip_prefix(&self.root)
@@ -100,7 +101,17 @@ impl FileStore for DiskStore {
     async fn delete(&self, path: &ResourcePath) -> Result {
         let local = self.local_path(path);
 
-        let stats = fs::metadata(&local).await?;
+        let stats = match fs::metadata(&local).await {
+            Ok(s) => s,
+            Err(e) => {
+                if e.kind() == ErrorKind::NotFound {
+                    return Ok(());
+                }
+
+                return Err(e.into());
+            }
+        };
+
         if stats.is_dir() {
             fs::remove_dir_all(&local).await?;
         } else {

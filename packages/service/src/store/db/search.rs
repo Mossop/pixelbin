@@ -457,11 +457,9 @@ where
     fn filter_gen(&self, _catalog: &str) -> Boxed<QS> {
         match self.field.field() {
             TypedField::Text(f) => match self.modifier {
-                Some(Modifier::Length) => Box::new(field_query(
-                    char_length(f),
-                    self.operator.clone(),
-                    self.invert,
-                )),
+                Some(Modifier::Length) => {
+                    Box::new(field_query(char_length(f), self.operator.clone(), self.invert))
+                }
                 Some(ref m) => panic!("Unexpected modifier {m} for text"),
                 None => Box::new(field_query(f, self.operator.clone(), self.invert)),
             },
@@ -478,16 +476,20 @@ where
                 Box::new(field_query(f, self.operator.clone(), self.invert))
             }
             TypedField::Date(f) => match self.modifier {
-                Some(Modifier::Month) => Box::new(field_query(
-                    extract(f, super::functions::DateComponent::Month),
-                    self.operator.clone(),
-                    self.invert,
-                )),
-                Some(Modifier::Year) => Box::new(field_query(
-                    extract(f, super::functions::DateComponent::Year),
-                    self.operator.clone(),
-                    self.invert,
-                )),
+                Some(Modifier::Month) => {
+                    Box::new(field_query(
+                        extract(f, super::functions::DateComponent::Month),
+                        self.operator.clone(),
+                        self.invert,
+                    ))
+                }
+                Some(Modifier::Year) => {
+                    Box::new(field_query(
+                        extract(f, super::functions::DateComponent::Year),
+                        self.operator.clone(),
+                        self.invert,
+                    ))
+                }
                 Some(ref m) => panic!("Unexpected modifier {m} for date"),
                 None => Box::new(field_query(f, self.operator.clone(), self.invert)),
             },

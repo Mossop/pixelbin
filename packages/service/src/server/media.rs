@@ -260,12 +260,13 @@ async fn get_search(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (search, media) = models::SavedSearch::get_for_user_with_count(
-                    &mut trx,
-                    &session.user.email,
-                    &search_id,
-                )
-                .await?;
+                let (search, media) =
+                    models::SavedSearch::get_for_user_with_count(
+                        &mut trx,
+                        &session.user.email,
+                        &search_id,
+                    )
+                    .await?;
 
                 Ok(SearchResponse { search, media })
             }
@@ -294,12 +295,13 @@ async fn get_catalog(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (catalog, media) = models::Catalog::get_for_user_with_count(
-                    &mut trx,
-                    &session.user.email,
-                    &catalog_id,
-                )
-                .await?;
+                let (catalog, media) =
+                    models::Catalog::get_for_user_with_count(
+                        &mut trx,
+                        &session.user.email,
+                        &catalog_id,
+                    )
+                    .await?;
 
                 Ok(CatalogResponse { catalog, media })
             }
@@ -334,12 +336,13 @@ async fn get_catalog_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (catalog, media_count) = models::Catalog::get_for_user_with_count(
-                    &mut trx,
-                    &session.user.email,
-                    &catalog_id,
-                )
-                .await?;
+                let (catalog, media_count) =
+                    models::Catalog::get_for_user_with_count(
+                        &mut trx,
+                        &session.user.email,
+                        &catalog_id,
+                    )
+                    .await?;
                 let media = catalog
                     .list_media(&mut trx, query.offset, query.count)
                     .await?;
@@ -411,12 +414,13 @@ async fn get_search_media(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (search, media_count) = models::SavedSearch::get_for_user_with_count(
-                    &mut trx,
-                    &session.user.email,
-                    &search_id,
-                )
-                .await?;
+                let (search, media_count) =
+                    models::SavedSearch::get_for_user_with_count(
+                        &mut trx,
+                        &session.user.email,
+                        &search_id,
+                    )
+                    .await?;
                 let media = search
                     .list_media(&mut trx, query.offset, query.count)
                     .await?;

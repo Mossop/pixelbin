@@ -160,14 +160,7 @@ macro_rules! media_view {
                     .on(crate::store::db::schema::media_item::media_file
                         .eq(crate::store::db::schema::media_file::id.nullable())),
             )
-            .distinct_on((
-                crate::store::db::schema::media_item::datetime,
-                crate::store::db::schema::media_item::id,
-            ))
-            .order((
-                crate::store::db::schema::media_item::datetime.desc(),
-                crate::store::db::schema::media_item::id,
-            ))
+            .order(crate::store::db::schema::media_item::datetime.desc())
     };
 }
 

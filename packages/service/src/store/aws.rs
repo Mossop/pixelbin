@@ -8,7 +8,6 @@ use aws_sdk_s3::{
     Client,
 };
 use futures::{future, TryStreamExt};
-use tracing::info;
 
 use super::{
     models::Storage,
@@ -142,9 +141,7 @@ impl FileStore for AwsClient {
         Ok(files)
     }
 
-    async fn delete(&self, path: &ResourcePath) -> Result {
-        info!(path=%path, "Refusing to delete remote file");
-
+    async fn delete(&self, _path: &ResourcePath) -> Result {
         Ok(())
     }
 }
