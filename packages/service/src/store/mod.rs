@@ -23,7 +23,9 @@ use crate::{Config, Result};
 
 #[async_trait]
 pub trait FileStore {
-    async fn list_files(&self, prefix: Option<ResourcePath>) -> Result<Vec<(ResourcePath, u64)>>;
+    async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>>;
+
+    async fn delete(&self, path: &ResourcePath) -> Result;
 }
 
 pub(crate) struct DiskStore {
@@ -43,11 +45,11 @@ impl DiskStore {
 
 #[async_trait]
 impl FileStore for DiskStore {
-    async fn list_files(&self, prefix: Option<ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
+    async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut files = Vec::<(ResourcePath, u64)>::new();
 
         let root = if let Some(prefix) = prefix {
-            self.local_path(&prefix)
+            self.local_path(prefix)
         } else {
             self.root.clone()
         };
@@ -93,6 +95,19 @@ impl FileStore for DiskStore {
         }
 
         Ok(files)
+    }
+
+    async fn delete(&self, path: &ResourcePath) -> Result {
+        let local = self.local_path(path);
+
+        let stats = fs::metadata(&local).await?;
+        if stats.is_dir() {
+            fs::remove_dir_all(&local).await?;
+        } else {
+            fs::remove_file(&local).await?;
+        }
+
+        Ok(())
     }
 }
 

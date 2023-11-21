@@ -9,7 +9,7 @@ use diesel_async::RunQueryDsl;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use serde_repr::Serialize_repr;
-use tracing::instrument;
+use tracing::{instrument, warn};
 use typeshare::typeshare;
 
 use super::{
@@ -915,11 +915,43 @@ impl MediaFile {
 
         Ok(())
     }
+
+    pub(crate) async fn delete(
+        &self,
+        conn: &mut DbConnection<'_>,
+        storage: &Storage,
+        path: &FilePath,
+    ) -> Result {
+        diesel::delete(alternate_file::table.filter(alternate_file::media_file.eq(&self.id)))
+            .execute(conn)
+            .await?;
+
+        let media_file_path = MediaFilePath {
+            catalog: path.catalog.clone(),
+            item: self.media_item.clone(),
+            file: self.id.clone(),
+        };
+
+        if let Err(e) = storage
+            .file_store()
+            .await?
+            .delete(&media_file_path.clone().into())
+            .await
+        {
+            warn!(error=?e, path=%media_file_path, "Failed to delete media file");
+        }
+
+        diesel::delete(media_file::table.filter(media_file::id.eq(&self.id)))
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[derive(Queryable, Clone, Debug)]
 pub(crate) struct AlternateFile {
-    pub(crate) _id: String,
+    pub(crate) id: String,
     pub(crate) _file_type: AlternateFileType,
     pub(crate) file_name: String,
     pub(crate) file_size: i32,
@@ -960,7 +992,7 @@ impl AlternateFile {
             .collect())
     }
 
-    pub(crate) async fn list_for_media(
+    pub(crate) async fn list_for_user_media(
         conn: &mut DbConnection<'_>,
         email: Option<&str>,
         item: &str,
@@ -1005,6 +1037,36 @@ impl AlternateFile {
         }
 
         Ok(vec![])
+    }
+
+    pub(crate) async fn delete(
+        &self,
+        conn: &mut DbConnection<'_>,
+        storage: &Storage,
+        path: &FilePath,
+    ) -> Result {
+        let result = if self.local {
+            conn.config()
+                .local_store()
+                .delete(&path.clone().into())
+                .await
+        } else {
+            storage
+                .file_store()
+                .await?
+                .delete(&path.clone().into())
+                .await
+        };
+
+        if let Err(e) = result {
+            warn!(error=?e, path=%path, "Failed to delete alternate file");
+        }
+
+        diesel::delete(alternate_file::table.filter(alternate_file::id.eq(&self.id)))
+            .execute(conn)
+            .await?;
+
+        Ok(())
     }
 }
 

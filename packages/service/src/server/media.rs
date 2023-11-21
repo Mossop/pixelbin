@@ -100,7 +100,7 @@ async fn thumbnail_handler(
         .store
         .in_transaction(|mut trx| {
             async move {
-                models::AlternateFile::list_for_media(
+                models::AlternateFile::list_for_user_media(
                     &mut trx,
                     email,
                     &path.item,
@@ -162,7 +162,7 @@ async fn encoding_handler(
         .store
         .in_transaction(|mut trx| {
             async move {
-                let (_, file_path) = models::AlternateFile::list_for_media(
+                let (_, file_path) = models::AlternateFile::list_for_user_media(
                     &mut trx,
                     email,
                     &path.item,

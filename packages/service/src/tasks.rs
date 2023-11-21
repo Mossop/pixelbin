@@ -54,7 +54,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
     ) -> Result<HashMap<FilePath, u64>> {
         Ok(file_store
             .list_files(Some(
-                CatalogPath {
+                &CatalogPath {
                     catalog: catalog.to_owned(),
                 }
                 .into(),
@@ -78,8 +78,9 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                 let remote_store = storage.file_store().await?;
                 let mut remote_files = list_files(&remote_store, catalog).await?;
 
+                let local_store = tx.config().local_store();
                 let mut local_files: HashMap<FilePath, u64> =
-                    list_files(&tx.config().local_store(), catalog).await?;
+                    list_files(&local_store, catalog).await?;
 
                 let alternate_files =
                     models::AlternateFile::list_for_catalog(&mut tx, catalog).await?;
@@ -100,8 +101,8 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                                 "Alternate file size mismatch"
                             );
                         }
-                    } else {
-                        warn!(path=%path, "Missing alternate file");
+                    } else if let Err(e) = alternate.delete(&mut tx, &storage, &path).await {
+                        error!(error=?e, "Failed deleting alternate file");
                     }
                 }
 
@@ -116,8 +117,8 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                                 "Media file size mismatch"
                             );
                         }
-                    } else {
-                        warn!(path=%path, "Missing media file");
+                    } else if let Err(e) = media_file.delete(&mut tx, &storage, &path).await {
+                        error!(error=?e, "Failed deleting media file");
                     }
                 }
 

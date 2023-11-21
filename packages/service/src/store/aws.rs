@@ -8,6 +8,7 @@ use aws_sdk_s3::{
     Client,
 };
 use futures::{future, TryStreamExt};
+use tracing::info;
 
 use super::{
     models::Storage,
@@ -106,15 +107,15 @@ impl AwsClient {
 
 #[async_trait]
 impl FileStore for AwsClient {
-    async fn list_files(&self, prefix: Option<ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
+    async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut request = self.client.list_objects_v2().bucket(&self.bucket);
 
         match (&self.path, prefix) {
             (Some(path), Some(prefix)) => {
-                request = request.prefix(format!("{path}/{}/", remote_path(&prefix)))
+                request = request.prefix(format!("{path}/{}/", remote_path(prefix)))
             }
             (Some(path), None) => request = request.prefix(format!("{path}/")),
-            (None, Some(prefix)) => request = request.prefix(format!("{}/", remote_path(&prefix))),
+            (None, Some(prefix)) => request = request.prefix(format!("{}/", remote_path(prefix))),
             _ => {}
         }
 
@@ -139,5 +140,11 @@ impl FileStore for AwsClient {
             })?;
 
         Ok(files)
+    }
+
+    async fn delete(&self, path: &ResourcePath) -> Result {
+        info!(path=%path, "Refusing to delete remote file");
+
+        Ok(())
     }
 }
