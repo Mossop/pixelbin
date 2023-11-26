@@ -645,15 +645,19 @@ impl MediaItem {
             .filter(media_file::process_version.gt(0))
             .order_by((media_item::id, media_file::uploaded.desc()))
             .distinct_on(media_item::id)
-            .select((media_item::all_columns, media_file::id.nullable()))
-            .load::<(MediaItem, Option<String>)>(conn)
+            .select((media_item::all_columns, media_file::all_columns.nullable()))
+            .load::<(MediaItem, Option<MediaFile>)>(conn)
             .await?;
 
         let updated: Vec<MediaItem> = items
             .into_iter()
-            .map(|(mut i, f)| {
-                i.media_file = f;
-                i
+            .filter_map(|(mut item, file)| {
+                if item.media_file.as_ref() == file.as_ref().map(|f| &f.id) {
+                    None
+                } else {
+                    item.sync_with_file(file.as_ref());
+                    Some(item)
+                }
             })
             .collect();
 
@@ -717,6 +721,7 @@ impl MediaItem {
 
     pub(crate) fn sync_with_file(&mut self, media_file: Option<&MediaFile>) {
         if let Some(media_file) = media_file {
+            self.media_file = Some(media_file.id.clone());
             clear_matching(&mut self.filename, &media_file.filename);
             clear_matching(&mut self.title, &media_file.title);
             clear_matching(&mut self.description, &media_file.description);
@@ -746,6 +751,8 @@ impl MediaItem {
                     self.taken = None;
                 }
             }
+        } else {
+            self.media_file = None;
         }
 
         match (
