@@ -25,6 +25,7 @@ export function IconListItem({
     return (
       <li className="c-iconlistitem">
         <Link
+          prefetch={false}
           className={`item-label ${selected ? "selected" : ""}`}
           href={href}
         >

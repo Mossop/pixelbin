@@ -143,7 +143,11 @@ const MediaItem = memo(function MediaItem({
   return (
     <div ref={element} className="media-wrapper">
       {visible && (
-        <Link href={url([...base, "media", media.id])} className="media">
+        <Link
+          prefetch={false}
+          href={url([...base, "media", media.id])}
+          className="media"
+        >
           <ThumbnailImage media={media} />
           <div className="overlay">
             <Rating media={media} />

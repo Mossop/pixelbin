@@ -141,14 +141,22 @@ function GalleryNavigation({ media }: { media: MediaView }) {
     <div className="navbar">
       <div>
         {previousMedia && (
-          <Link href={url([...base, "media", previousMedia.id])} replace={true}>
+          <Link
+            prefetch={false}
+            href={url([...base, "media", previousMedia.id])}
+            replace={true}
+          >
             <Icon icon="previous" />
           </Link>
         )}
       </div>
       <div>
         {nextMedia && (
-          <Link href={url([...base, "media", nextMedia.id])} replace={true}>
+          <Link
+            prefetch={false}
+            href={url([...base, "media", nextMedia.id])}
+            replace={true}
+          >
             <Icon icon="next" />
           </Link>
         )}
@@ -191,7 +199,7 @@ function Chip({
   if (href) {
     return (
       <li>
-        <Link href={url(href)}>
+        <Link prefetch={false} href={url(href)}>
           <Icon icon={icon} /> {children}
         </Link>
       </li>
