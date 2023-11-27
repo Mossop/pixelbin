@@ -17,7 +17,7 @@ use tzf_rs::DefaultFinder;
 
 use super::{
     db::DbConnection,
-    models::{MediaFile, MediaItem},
+    models::{AlternateFileType, MediaFile, MediaItem},
     path::MediaFilePath,
 };
 use crate::{Config, Result};
@@ -33,6 +33,39 @@ pub(crate) const PROCESS_VERSION: i32 = 4;
 
 const EXIF_FORMAT: &str = "%Y:%m:%d %H:%M:%S%.f";
 const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
+
+pub(crate) fn alternates_for_mimetype(
+    config: &Config,
+    mimetype: &str,
+) -> Vec<(AlternateFileType, String, Option<i32>)> {
+    let mut alternates = Vec::new();
+
+    for size in config.thumbnails.sizes.iter() {
+        alternates.push((
+            AlternateFileType::Thumbnail,
+            "image/jpeg".to_string(),
+            Some(*size as i32),
+        ));
+
+        for alternate_mime in config.thumbnails.alternate_types.iter() {
+            alternates.push((
+                AlternateFileType::Thumbnail,
+                alternate_mime.clone(),
+                Some(*size as i32),
+            ));
+        }
+    }
+
+    for alternate_mime in config.thumbnails.alternate_types.iter() {
+        alternates.push((AlternateFileType::Reencode, alternate_mime.clone(), None));
+    }
+
+    if mimetype.starts_with("video/") {
+        alternates.push((AlternateFileType::Reencode, "video/mp4".to_string(), None))
+    }
+
+    alternates
+}
 
 pub(crate) fn lookup_timezone(longitude: f64, latitude: f64) -> Option<String> {
     Some(FINDER.get_tz_name(longitude, latitude).to_owned())
@@ -106,14 +139,13 @@ pub(crate) fn deserialize_gps<'de, D>(deserializer: D) -> result::Result<Option<
 where
     D: Deserializer<'de>,
 {
-    let value =
-        match Value::deserialize(deserializer) {
-            Ok(v) => v,
-            Err(e) => {
-                warn!(error=?e, "Failed to deserialize gps value");
-                return Ok(None);
-            }
-        };
+    let value = match Value::deserialize(deserializer) {
+        Ok(v) => v,
+        Err(e) => {
+            warn!(error=?e, "Failed to deserialize gps value");
+            return Ok(None);
+        }
+    };
 
     match value {
         Value::Number(n) => Ok(n.as_f64()),
@@ -144,14 +176,13 @@ pub(crate) fn deserialize_datetime<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    let str =
-        match String::deserialize(deserializer) {
-            Ok(s) => s,
-            Err(e) => {
-                warn!(error=?e, "Failed to deserialize datetime");
-                return Ok(None);
-            }
-        };
+    let str = match String::deserialize(deserializer) {
+        Ok(s) => s,
+        Err(e) => {
+            warn!(error=?e, "Failed to deserialize datetime");
+            return Ok(None);
+        }
+    };
 
     if let Ok((dt, _)) = NaiveDateTime::parse_and_remainder(&str, ISO_FORMAT) {
         return Ok(Some(dt));
@@ -172,14 +203,13 @@ pub(crate) fn deserialize_orientation<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    let value =
-        match Value::deserialize(deserializer) {
-            Ok(v) => v,
-            Err(e) => {
-                warn!(error=?e, "Failed to deserialize orientation");
-                return Ok(None);
-            }
-        };
+    let value = match Value::deserialize(deserializer) {
+        Ok(v) => v,
+        Err(e) => {
+            warn!(error=?e, "Failed to deserialize orientation");
+            return Ok(None);
+        }
+    };
 
     match value {
         Value::Number(n) => match n.as_i64() {
@@ -278,15 +308,14 @@ where
     D: Deserializer<'de>,
 {
     let value = Value::deserialize(deserializer)?;
-    let str =
-        match value {
-            Value::Number(n) => format!("0.{n}"),
-            Value::String(s) => format!("0.{s}"),
-            _ => {
-                warn!(value=?value, "Failed to deserialize subsecs");
-                return Ok(None);
-            }
-        };
+    let str = match value {
+        Value::Number(n) => format!("0.{n}"),
+        Value::String(s) => format!("0.{s}"),
+        _ => {
+            warn!(value=?value, "Failed to deserialize subsecs");
+            return Ok(None);
+        }
+    };
 
     match f64::from_str(&str) {
         Ok(v) => Ok(Some(v)),
@@ -329,44 +358,43 @@ pub(crate) struct Metadata {
 
 impl Metadata {
     pub(crate) fn media_file(&self, media_item: &str, id: &str) -> MediaFile {
-        let mut media_file =
-            MediaFile {
-                id: id.to_owned(),
-                uploaded: self.uploaded,
-                process_version: PROCESS_VERSION,
-                file_name: self.file_name.clone(),
-                file_size: self.file_size,
-                mimetype: self.mimetype.clone(),
-                width: self.width,
-                height: self.height,
-                duration: self.duration,
-                frame_rate: self.frame_rate,
-                bit_rate: self.bit_rate,
-                filename: Some(self.file_name.clone()),
-                title: None,
-                description: None,
-                label: None,
-                category: None,
-                location: None,
-                city: None,
-                state: None,
-                country: None,
-                make: None,
-                model: None,
-                lens: None,
-                photographer: None,
-                shutter_speed: None,
-                orientation: None,
-                iso: None,
-                rating: None,
-                longitude: None,
-                latitude: None,
-                altitude: None,
-                aperture: None,
-                focal_length: None,
-                taken: None,
-                media_item: media_item.to_owned(),
-            };
+        let mut media_file = MediaFile {
+            id: id.to_owned(),
+            uploaded: self.uploaded,
+            process_version: PROCESS_VERSION,
+            file_name: self.file_name.clone(),
+            file_size: self.file_size,
+            mimetype: self.mimetype.clone(),
+            width: self.width,
+            height: self.height,
+            duration: self.duration,
+            frame_rate: self.frame_rate,
+            bit_rate: self.bit_rate,
+            filename: Some(self.file_name.clone()),
+            title: None,
+            description: None,
+            label: None,
+            category: None,
+            location: None,
+            city: None,
+            state: None,
+            country: None,
+            make: None,
+            model: None,
+            lens: None,
+            photographer: None,
+            shutter_speed: None,
+            orientation: None,
+            iso: None,
+            rating: None,
+            longitude: None,
+            latitude: None,
+            altitude: None,
+            aperture: None,
+            focal_length: None,
+            taken: None,
+            media_item: media_item.to_owned(),
+        };
 
         // serde_aux doesn't work with converting directly from a Value so roundtrip
         // through a serialized string.
@@ -389,21 +417,19 @@ impl Metadata {
                 media_file.latitude = exif.gps_latitude.map(|n| n as f32);
                 media_file.altitude = exif.gps_altitude.and_then(|n| parse_prefix(&n));
 
-                media_file.location =
-                    ignore_empty(
-                        exif.location
-                            .as_ref()
-                            .or(exif.sub_location.as_ref())
-                            .cloned(),
-                    );
+                media_file.location = ignore_empty(
+                    exif.location
+                        .as_ref()
+                        .or(exif.sub_location.as_ref())
+                        .cloned(),
+                );
                 media_file.city = ignore_empty(exif.city.clone());
-                media_file.state =
-                    ignore_empty(
-                        exif.state
-                            .as_ref()
-                            .or(exif.province_state.as_ref())
-                            .cloned(),
-                    );
+                media_file.state = ignore_empty(
+                    exif.state
+                        .as_ref()
+                        .or(exif.province_state.as_ref())
+                        .cloned(),
+                );
                 media_file.country = ignore_empty(
                     exif.country
                         .as_ref()

@@ -1,14 +1,15 @@
 //! Maintenance tasks for the Pixelbin server.
 
-use std::collections::HashMap;
+use std::{cmp, collections::HashMap, str::FromStr};
 
 use chrono::Timelike;
+use mime::Mime;
 use scoped_futures::ScopedFutureExt;
-use tracing::{error, instrument, trace, warn};
+use tracing::{debug, error, instrument, trace, warn};
 
 use crate::{
     store::{
-        metadata::{self, METADATA_FILE},
+        metadata::{self, alternates_for_mimetype, METADATA_FILE},
         models,
         path::MediaItemPath,
         DiskStore, Store,
@@ -54,6 +55,31 @@ pub async fn rebuild_searches(store: Store) -> Result {
         .await?;
 
     Ok(())
+}
+
+fn check_alternate(
+    alternates: &[(models::AlternateFile, FilePath)],
+    file_type: models::AlternateFileType,
+    mime_type: &str,
+    size: Option<i32>,
+) -> bool {
+    alternates.iter().any(|(alt, _)| {
+        if alt.file_type != file_type {
+            return false;
+        }
+
+        if let Some(size) = size {
+            if cmp::max(alt.width, alt.height) != size {
+                return false;
+            }
+        }
+
+        if let Ok(mime) = Mime::from_str(&alt.mimetype) {
+            mime.essence_str() == mime_type
+        } else {
+            false
+        }
+    })
 }
 
 type FileSets = (HashMap<String, u64>, HashMap<String, u64>);
@@ -114,8 +140,16 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                 append_files(&local_store, catalog, true, &mut file_set).await?;
 
                 let mut valid_media_files: Vec<MediaFilePath> = Vec::new();
+                let mut media_files_to_reprocess: Vec<models::MediaFile> = Vec::new();
                 let media_files = models::MediaFile::list_for_catalog(&mut tx, catalog).await?;
-                for (media_file, path) in media_files {
+
+                let mut alternate_files: HashMap<MediaFilePath, Vec<(models::AlternateFile, FilePath)>> = HashMap::new();
+
+                models::AlternateFile::list_for_catalog(&mut tx, catalog).await?.into_iter().for_each(|(alternate, path)| {
+                    alternate_files.entry(path.media_file_path()).or_default().push((alternate, path));
+                });
+
+                for (mut media_file, path) in media_files {
                     let media_file_path = path.media_file_path();
 
                     if let Some((_, ref remote_files)) = file_set.get(&media_file_path) {
@@ -129,7 +163,23 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                                 );
                             }
 
+                            if let Some(alternates) = alternate_files.get(&media_file_path) {
+                                let expected = alternates_for_mimetype(tx.config(), &media_file.mimetype);
+
+                                if !expected.iter().all(|(file_type, mime_type, size)| check_alternate(alternates, *file_type, mime_type, *size)) {
+                                    debug!(path=%media_file_path, "Media file was missing some alternate files");
+                                    media_file.process_version = 0;
+                                    media_files_to_reprocess.push(media_file);
+                                }
+                            } else {
+                                // All alternates are missing!
+                                debug!(path=%media_file_path, "Media file was missing some alternate files");
+                                media_file.process_version = 0;
+                                media_files_to_reprocess.push(media_file);
+                            }
+
                             valid_media_files.push(media_file_path);
+
                             continue;
                         }
                     }
@@ -138,13 +188,13 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     if let Err(e) = media_file.delete(&mut tx, &storage, &path).await {
                         error!(error=?e, "Failed deleting media file");
                     }
+
                     file_set.remove(&media_file_path);
                 }
 
-                let alternate_files =
-                    models::AlternateFile::list_for_catalog(&mut tx, catalog).await?;
+                models::MediaFile::upsert(&mut tx, &media_files_to_reprocess).await?;
 
-                for (alternate, path) in alternate_files {
+                for (alternate, path) in alternate_files.into_values().flatten() {
                     if let Some((ref mut local_files, ref mut remote_files)) =
                         file_set.get_mut(&path.media_file_path())
                     {

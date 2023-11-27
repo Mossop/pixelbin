@@ -54,7 +54,7 @@ fn batch<T>(slice: &[T], count: usize) -> Batch<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, AsExpression, deserialize::FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AsExpression, deserialize::FromSqlRow)]
 #[diesel(sql_type = sql_types::VarChar)]
 pub enum AlternateFileType {
     Thumbnail,
@@ -998,7 +998,7 @@ impl MediaFile {
 #[derive(Queryable, Clone, Debug)]
 pub(crate) struct AlternateFile {
     pub(crate) id: String,
-    pub(crate) _file_type: AlternateFileType,
+    pub(crate) file_type: AlternateFileType,
     pub(crate) file_name: String,
     pub(crate) file_size: i32,
     pub(crate) mimetype: String,

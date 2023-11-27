@@ -8,6 +8,7 @@ use aws_sdk_s3::{
     Client,
 };
 use futures::{future, TryStreamExt};
+use tracing::trace;
 
 use super::{
     models::Storage,
@@ -141,7 +142,8 @@ impl FileStore for AwsClient {
         Ok(files)
     }
 
-    async fn delete(&self, _path: &ResourcePath) -> Result {
+    async fn delete(&self, path: &ResourcePath) -> Result {
+        trace!("Skipping deletion of {path}");
         Ok(())
     }
 }
