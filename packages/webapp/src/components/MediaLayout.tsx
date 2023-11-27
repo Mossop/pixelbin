@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
+import { useConfig } from "./Config";
 import Icon, { IconButton, IconLink, IconName } from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
@@ -18,11 +19,6 @@ import { ApiMediaRelations, MediaRelations, MediaView } from "@/modules/types";
 import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
 const FRACTION = /^(\d+)\/(\d+)$/;
-
-const THUMBNAILS = {
-  alternateTypes: ["image/webp"],
-  sizes: [150, 200, 250, 300, 350, 400, 450, 500],
-};
 
 function superscript(value: number): string {
   let val = Math.ceil(value);
@@ -68,6 +64,8 @@ function Photo({ media }: { media: MediaView }) {
     setLoaded(true);
   }, []);
 
+  let thumbnailConfig = useConfig().thumbnails;
+
   let { file } = media;
   if (!file) {
     return (
@@ -105,7 +103,7 @@ function Photo({ media }: { media: MediaView }) {
     <>
       {!loaded && <Throbber />}
       <picture>
-        {THUMBNAILS.alternateTypes.map((type) => (
+        {thumbnailConfig.alternateTypes.map((type) => (
           <source key={type} srcSet={source(type)} type={type} />
         ))}
         {/* eslint-disable-next-line jsx-a11y/alt-text */}

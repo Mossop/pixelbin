@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { Roboto } from "next/font/google";
 
 import AppBar from "@/components/AppBar";
+import ConfigProvider from "@/components/Config";
+import { config } from "@/modules/api";
 
 import "./globals.scss";
 
@@ -23,7 +25,7 @@ export const viewport: Viewport = {
   height: "device-height",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -31,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={roboto.className}>
-        <AppBar />
-        {children}
+        <ConfigProvider config={await config()}>
+          <AppBar />
+          {children}
+        </ConfigProvider>
       </body>
     </html>
   );

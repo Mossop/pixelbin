@@ -1,11 +1,15 @@
 use std::{collections::HashMap, fmt::Display, result};
 
 use actix_web::{
-    body::BoxBody, http::StatusCode, web, App, HttpResponse, HttpServer, ResponseError,
+    body::BoxBody,
+    get,
+    http::{StatusCode, Uri},
+    web, App, HttpResponse, HttpServer, ResponseError,
 };
 use serde::Serialize;
+use tracing::instrument;
 
-use crate::store::Store;
+use crate::{shared::config::ThumbnailConfig, store::Store};
 use crate::{Error, Result};
 
 mod auth;
@@ -104,6 +108,35 @@ struct AppState {
     store: Store,
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ApiConfig {
+    api_url: String,
+    thumbnails: ThumbnailConfig,
+}
+
+#[get("/api/config")]
+#[instrument(err, skip(app_state))]
+async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json<ApiConfig>> {
+    let config = app_state.store.config();
+
+    let api_url = config.api_url.clone().unwrap_or_else(|| {
+        let path = uri.path();
+        let end = path.len() - 10;
+
+        format!(
+            "http://localhost:{}{}",
+            config.port.unwrap_or(80),
+            &path[0..end]
+        )
+    });
+
+    Ok(web::Json(ApiConfig {
+        api_url,
+        thumbnails: config.thumbnails.clone(),
+    }))
+}
+
 pub async fn serve(store: Store) -> Result {
     let port = store.config().port.unwrap_or(80);
 
@@ -115,6 +148,7 @@ pub async fn serve(store: Store) -> Result {
         App::new()
             .app_data(app_data.clone())
             .wrap(middleware::Logging)
+            .service(config)
             .service(auth::login)
             .service(auth::logout)
             .service(auth::state)

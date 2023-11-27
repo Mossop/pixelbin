@@ -14,17 +14,13 @@ import {
   useState,
 } from "react";
 
+import { useConfig } from "./Config";
 import Icon from "./Icon";
 import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
 import { Rating } from "./Rating";
 import Throbber from "./Throbber";
 import { MediaView } from "@/modules/types";
 import { url } from "@/modules/util";
-
-const THUMBNAILS = {
-  alternateTypes: ["image/webp"],
-  sizes: [150, 200, 250, 300, 350, 400, 450, 500],
-};
 
 // @ts-ignore
 const VisibilityContext = createContext<VisibilityObserver>(null);
@@ -36,6 +32,8 @@ const ThumbnailImage = memo(function ThumbnailImage({
 }) {
   let [loaded, setLoaded] = useState(false);
   let onLoad = useCallback(() => setLoaded(true), []);
+
+  let thumbnailConfig = useConfig().thumbnails;
 
   let { file } = media;
   if (!file) {
@@ -60,7 +58,7 @@ const ThumbnailImage = memo(function ThumbnailImage({
     let extension = mime.extension(mimetype);
     let urlMimetype = mimetype.replace("/", "-");
 
-    return THUMBNAILS.sizes
+    return thumbnailConfig.sizes
       .map(
         (size) =>
           `${url([
@@ -78,7 +76,7 @@ const ThumbnailImage = memo(function ThumbnailImage({
 
   return (
     <picture>
-      {THUMBNAILS.alternateTypes.map((type) => (
+      {thumbnailConfig.alternateTypes.map((type) => (
         <source key={type} sizes="150px" srcSet={sources(type)} type={type} />
       ))}
       {/* eslint-disable-next-line jsx-a11y/alt-text */}

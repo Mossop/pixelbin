@@ -98,6 +98,20 @@ async function apiCall<T>(path: string, ...options: RequestInit[]): Promise<T> {
   }
 }
 
+export interface ThumbnailConfig {
+  alternateTypes: string[];
+  sizes: number[];
+}
+
+export interface ApiConfig {
+  apiUrl: string;
+  thumbnails: ThumbnailConfig;
+}
+
+export async function config(): Promise<ApiConfig> {
+  return rawApiCall<ApiConfig>("/api/config");
+}
+
 export async function login(email: string, password: string) {
   let response = await rawApiCall<LoginResponse>(
     "/api/login",

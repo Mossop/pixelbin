@@ -45,6 +45,9 @@ pub struct Config {
     /// The port to run the webserver on.
     pub port: Option<u16>,
 
+    /// The canonical API host url.
+    pub api_url: Option<String>,
+
     #[serde(default)]
     pub thumbnails: ThumbnailConfig,
 }
