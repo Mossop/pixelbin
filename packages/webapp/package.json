@@ -11,7 +11,7 @@
   "dependencies": {
     "@mdi/js": "^7.3.67",
     "@mdi/react": "^1.6.1",
-    "@opentelemetry/api": "^1.4.1",
+    "@opentelemetry/api": "^1.7.0",
     "@vercel/otel": "^0.3.0",
     "clsx": "^2.0.0",
     "immer": "^10.0.3",

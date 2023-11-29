@@ -3,10 +3,9 @@ use std::{env, error::Error, io, path::PathBuf, result, time::Duration};
 use async_trait::async_trait;
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
-use opentelemetry::{
-    sdk::{trace, Resource},
-    KeyValue,
-};
+use opentelemetry::KeyValue;
+use opentelemetry_sdk::{trace, Resource};
+
 use opentelemetry_otlp::WithExportConfig;
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
@@ -150,19 +149,19 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
     let registry = Registry::default().with(formatter);
 
     if let Some(telemetry_host) = telemetry {
-        let tracer = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .tonic()
-                    .with_endpoint(telemetry_host)
-                    .with_timeout(Duration::from_secs(3)),
-            )
-            .with_trace_config(
-                trace::config()
-                    .with_resource(Resource::new(vec![KeyValue::new("service.name", "pixelbin")])),
-            )
-            .install_batch(opentelemetry::runtime::Tokio)?;
+        let tracer =
+            opentelemetry_otlp::new_pipeline()
+                .tracing()
+                .with_exporter(
+                    opentelemetry_otlp::new_exporter()
+                        .tonic()
+                        .with_endpoint(telemetry_host)
+                        .with_timeout(Duration::from_secs(3)),
+                )
+                .with_trace_config(trace::config().with_resource(Resource::new(vec![
+                    KeyValue::new("service.name", "pixelbin"),
+                ])))
+                .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
         let mut filter = EnvFilter::new("warn");
 
@@ -171,7 +170,7 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
         }
 
         let telemetry = tracing_opentelemetry::layer()
-            .with_exception_fields(true)
+            .with_error_fields_to_exceptions(true)
             .with_tracked_inactivity(true)
             .with_tracer(tracer)
             .with_filter(filter);

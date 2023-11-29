@@ -1,13 +1,12 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
-use aws_config::AppName;
+use aws_config::{AppName, BehaviorVersion};
 use aws_sdk_s3::{
     config::{Credentials, Region},
     presigning::PresigningConfig,
     Client,
 };
-use futures::{future, TryStreamExt};
 use tracing::trace;
 
 use super::{
@@ -41,7 +40,7 @@ impl AwsClient {
     }
 
     pub(crate) async fn from_storage(storage: &Storage) -> Result<Self> {
-        let mut config_loader = aws_config::from_env()
+        let mut config_loader = aws_config::defaults(BehaviorVersion::latest())
             .region(Region::new(storage.region.clone()))
             .app_name(AppName::new("pixelbin").unwrap())
             .credentials_provider(Credentials::new(
@@ -121,23 +120,23 @@ impl FileStore for AwsClient {
 
         let stream = request.into_paginator().send();
         let files = stream
-            .try_fold(Vec::<(ResourcePath, u64)>::new(), |mut files, output| {
-                if let Some(objects) = output.contents() {
-                    files.extend(objects.iter().map(|o| {
-                        (
-                            ResourcePath::try_from(self.strip_prefix(o.key().unwrap()).split('/'))
-                                .unwrap(),
-                            o.size() as u64,
-                        )
-                    }));
-                }
-
-                future::ok(files)
-            })
+            .try_collect()
             .await
             .map_err(|e| Error::S3Error {
                 message: format!("{e}"),
-            })?;
+            })?
+            .into_iter()
+            .fold(Vec::<(ResourcePath, u64)>::new(), |mut files, output| {
+                files.extend(output.contents().iter().map(|o| {
+                    (
+                        ResourcePath::try_from(self.strip_prefix(o.key().unwrap()).split('/'))
+                            .unwrap(),
+                        o.size().unwrap() as u64,
+                    )
+                }));
+
+                files
+            });
 
         Ok(files)
     }
