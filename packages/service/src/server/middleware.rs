@@ -49,6 +49,8 @@ where
         let span = span!(
             Level::INFO,
             "api request",
+            "otel.name" = format!("{} {}", req.method(), req.path()),
+            "otel.kind" = "Server",
             "url.path" = req.path(),
             "http.request.method" = %req.method(),
             "http.response.status_code" = field::Empty,
