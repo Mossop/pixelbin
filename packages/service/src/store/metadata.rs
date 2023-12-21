@@ -648,7 +648,7 @@ pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) ->
 pub(crate) async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()> {
     info!("Reprocessing media metadata");
 
-    let current_files = MediaFile::list_current(tx).await?;
+    let current_files = MediaFile::list_newest(tx).await?;
 
     let mut media_files = Vec::new();
 
@@ -669,6 +669,8 @@ pub(crate) async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()>
     }
 
     MediaFile::upsert(tx, &media_files).await?;
+
+    MediaItem::update_media_files(tx).await?;
 
     let mut media_items = MediaItem::list_unprocessed(tx).await?;
     for item in media_items.iter_mut() {

@@ -149,14 +149,12 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     alternate_files.entry(path.media_file_path()).or_default().push((alternate, path));
                 });
 
-                for (mut media_file, path) in media_files {
-                    let media_file_path = path.media_file_path();
-
+                for (mut media_file, media_file_path) in media_files {
                     if let Some((_, ref remote_files)) = file_set.get(&media_file_path) {
                         if let Some(size) = remote_files.get(&media_file.file_name) {
                             if size != &(media_file.file_size as u64) {
                                 warn!(
-                                    path=%path,
+                                    path=%media_file_path,
                                     database = media_file.file_size,
                                     actual = size,
                                     "Media file size mismatch"
@@ -185,7 +183,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     }
 
                     // This media file is gone, delete it.
-                    if let Err(e) = media_file.delete(&mut tx, &storage, &path).await {
+                    if let Err(e) = media_file.delete(&mut tx, &storage, &media_file_path).await {
                         error!(error=?e, "Failed deleting media file");
                     }
 
@@ -273,6 +271,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
 
                 let views: HashMap<String, models::MediaView> = models::MediaView::get(&mut tx, &ids).await?.into_iter().map(|v| (v.id.clone(), v)).collect();
 
+                let mut recoverable_media_files = Vec::new();
                 for (media_file_path, metadata) in recoverable.values() {
                     if let Some(view) = views.get(&media_file_path.item) {
                         if let Some(ref file) = view.file {
@@ -285,15 +284,16 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                         }
 
                         let mut media_file = metadata.media_file(&media_file_path.item, &media_file_path.file);
-                        // Explicitely flag this as needing re-processing.
+                        // Explicitly flag this as needing re-processing.
                         media_file.process_version = 0;
-
-                        if let Err(e) = models::MediaFile::upsert(&mut tx, &[media_file]).await {
-                            error!(error=?e, "Failed to recover media file");
-                        }
+                        recoverable_media_files.push(media_file);
                     } else {
                         delete_media_file(media_file_path, &local_store, &remote_store).await;
                     }
+                }
+
+                if let Err(e) = models::MediaFile::upsert(&mut tx, &recoverable_media_files).await {
+                    error!(error=?e, "Failed to recover media files");
                 }
 
                 Ok(())
@@ -313,6 +313,42 @@ pub async fn sanity_check_catalogs(store: Store) -> Result {
     for catalog in catalogs {
         if let Err(e) = sanity_check_catalog(&store, &catalog.id).await {
             error!(error=?e, catalog=catalog.id, "Failed checking catalog");
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn prune_catalog(store: &Store, catalog: &str) -> Result {
+    store
+        .in_transaction(|mut tx| {
+            async move {
+                models::MediaItem::update_media_files(&mut tx).await?;
+
+                let storage = models::Storage::get_for_catalog(&mut tx, catalog).await?;
+
+                let files = models::MediaFile::list_prunable(&mut tx).await?;
+                for (file, path) in files {
+                    file.delete(&mut tx, &storage, &path).await?;
+                }
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
+}
+
+pub async fn prune_catalogs(store: Store) -> Result {
+    let catalogs = store
+        .with_connection(|mut conn| {
+            async move { models::Catalog::list(&mut conn).await }.scope_boxed()
+        })
+        .await?;
+
+    for catalog in catalogs {
+        if let Err(e) = prune_catalog(&store, &catalog.id).await {
+            error!(error=?e, catalog=catalog.id, "Failed pruning catalog");
         }
     }
 

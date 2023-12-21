@@ -109,21 +109,21 @@ impl FileStore for AwsClient {
     async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut request = self.client.list_objects_v2().bucket(&self.bucket);
 
-        match (&self.path, prefix) {
+        request = match (&self.path, prefix) {
             (Some(path), Some(prefix)) => {
-                request = request.prefix(format!("{path}/{}/", remote_path(prefix)))
+                request.prefix(format!("{path}/{}/", remote_path(prefix)))
             }
-            (Some(path), None) => request = request.prefix(format!("{path}/")),
-            (None, Some(prefix)) => request = request.prefix(format!("{}/", remote_path(prefix))),
-            _ => {}
-        }
+            (Some(path), None) => request.prefix(format!("{path}/")),
+            (None, Some(prefix)) => request.prefix(format!("{}/", remote_path(prefix))),
+            _ => request,
+        };
 
         let stream = request.into_paginator().send();
         let files = stream
             .try_collect()
             .await
             .map_err(|e| Error::S3Error {
-                message: format!("{e}"),
+                message: format!("Failed to list files: {e}"),
             })?
             .into_iter()
             .fold(Vec::<(ResourcePath, u64)>::new(), |mut files, output| {

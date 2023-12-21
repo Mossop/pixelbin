@@ -811,11 +811,39 @@ pub struct MediaFile {
 
 impl MediaFile {
     #[instrument(skip_all)]
-    pub(crate) async fn list_current(
+    pub(crate) async fn list_newest(
         conn: &mut DbConnection<'_>,
     ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
-        let files = media_item::table
-            .inner_join(media_file::table.on(media_item::media_file.eq(media_file::id.nullable())))
+        let files = media_file::table
+            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .order_by((media_file::media_item, media_file::uploaded.desc()))
+            .distinct_on(media_file::media_item)
+            .select((media_file::all_columns, media_item::catalog))
+            .load::<(MediaFile, String)>(conn)
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .map(|(media_file, catalog)| {
+                let media_path = MediaFilePath {
+                    catalog,
+                    item: media_file.media_item.clone(),
+                    file: media_file.id.clone(),
+                };
+                (media_file, media_path)
+            })
+            .collect())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn list_prunable(
+        conn: &mut DbConnection<'_>,
+    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+        let files = media_file::table
+            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .filter(media_item::media_file.is_not_null())
+            .filter(media_item::media_file.ne(media_file::id.nullable()))
+            .filter(media_file::process_version.gt(0))
             .select((media_file::all_columns, media_item::catalog))
             .load::<(MediaFile, String)>(conn)
             .await?;
@@ -836,7 +864,7 @@ impl MediaFile {
     pub(crate) async fn list_for_catalog(
         conn: &mut DbConnection<'_>,
         catalog: &str,
-    ) -> Result<Vec<(MediaFile, FilePath)>> {
+    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
         let files = media_file::table
             .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(media_item::catalog.eq(&catalog))
@@ -847,11 +875,10 @@ impl MediaFile {
         Ok(files
             .into_iter()
             .map(|media_file| {
-                let file_path = FilePath {
+                let file_path = MediaFilePath {
                     catalog: catalog.to_owned(),
                     item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
-                    file_name: media_file.file_name.clone(),
                 };
                 (media_file, file_path)
             })
@@ -863,7 +890,7 @@ impl MediaFile {
         email: &str,
         media: &str,
         file: &str,
-    ) -> Result<(MediaFile, FilePath)> {
+    ) -> Result<(MediaFile, MediaFilePath)> {
         let (media_file, catalog) = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
@@ -876,11 +903,10 @@ impl MediaFile {
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
 
-        let file_path = FilePath {
+        let file_path = MediaFilePath {
             catalog,
             item: media.to_owned(),
             file: file.to_owned(),
-            file_name: media_file.file_name.clone(),
         };
         Ok((media_file, file_path))
     }
@@ -899,7 +925,7 @@ impl MediaFile {
             .await?;
 
         items.iter_mut().for_each(|item| {
-            if let Some(file) = media_file_map.get(item.media_file.as_ref().unwrap()) {
+            if let Some(file) = item.media_file.as_ref().and_then(|f| media_file_map.get(f)) {
                 item.sync_with_file(Some(file));
             }
         });
@@ -957,17 +983,21 @@ impl MediaFile {
         &self,
         conn: &mut DbConnection<'_>,
         storage: &Storage,
-        path: &FilePath,
+        media_file_path: &MediaFilePath,
     ) -> Result {
-        diesel::delete(alternate_file::table.filter(alternate_file::media_file.eq(&self.id)))
-            .execute(conn)
+        conn.assert_in_transaction();
+
+        let alternates = alternate_file::table
+            .filter(alternate_file::media_file.eq(&self.id))
+            .select(alternate_file::all_columns)
+            .load::<AlternateFile>(conn)
             .await?;
 
-        let media_file_path = MediaFilePath {
-            catalog: path.catalog.clone(),
-            item: self.media_item.clone(),
-            file: self.id.clone(),
-        };
+        for alternate in alternates {
+            let alternate_path = media_file_path.file(alternate.file_name.clone());
+
+            alternate.delete(conn, storage, &alternate_path).await?;
+        }
 
         if let Err(e) = storage
             .file_store()

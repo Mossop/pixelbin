@@ -9,7 +9,9 @@ use opentelemetry_sdk::{trace, Resource};
 use opentelemetry_otlp::WithExportConfig;
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
-use pixelbin::tasks::{rebuild_searches, reprocess_all_media, sanity_check_catalogs};
+use pixelbin::tasks::{
+    prune_catalogs, rebuild_searches, reprocess_all_media, sanity_check_catalogs,
+};
 use pixelbin::Store;
 use pixelbin::{load_config, Result};
 use scoped_futures::ScopedFutureExt;
@@ -63,6 +65,16 @@ impl Runnable for Reprocess {
 }
 
 #[derive(Args)]
+struct Prune;
+
+#[async_trait(?Send)]
+impl Runnable for Prune {
+    async fn run(self, store: Store) -> Result {
+        prune_catalogs(store).await
+    }
+}
+
+#[derive(Args)]
 struct Verify;
 
 #[async_trait(?Send)]
@@ -108,6 +120,8 @@ enum Command {
     Reprocess,
     /// Verifies database and storage consistency.
     Verify,
+    /// Prunes old versions of media.
+    Prune,
 }
 
 #[async_trait(?Send)]
