@@ -1,6 +1,10 @@
 //! Maintenance tasks for the Pixelbin server.
 
-use std::{cmp, collections::HashMap, str::FromStr};
+use std::{
+    cmp,
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 use chrono::Timelike;
 use mime::Mime;
@@ -171,7 +175,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                                 }
                             } else {
                                 // All alternates are missing!
-                                debug!(path=%media_file_path, "Media file was missing some alternate files");
+                                debug!(path=%media_file_path, "Media file was missing all alternate files");
                                 media_file.process_version = 0;
                                 media_files_to_reprocess.push(media_file);
                             }
@@ -232,7 +236,14 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                 // that is recoverable
                 let mut recoverable: HashMap<MediaItemPath, (MediaFilePath, Metadata)> = HashMap::new();
 
+                let item_ids: Vec<&str> = file_set.keys().map(|media_file_path | media_file_path.item.as_str()).collect();
+                let views: HashMap<String, models::MediaView> = models::MediaView::get(&mut tx, &item_ids).await?.into_iter().map(|v| (v.id.clone(), v)).collect();
+
+                let mut to_prune: HashSet<MediaFilePath> = HashSet::new();
+
                 for (media_file_path, (local_files, remote_files)) in file_set.into_iter() {
+                    to_prune.insert(media_file_path.clone());
+
                     if local_files.contains_key(METADATA_FILE) {
                         let metadata_file = local_store.local_path(&media_file_path.file(METADATA_FILE.to_owned()));
                         let metadata = match parse_metadata(&metadata_file).await {
@@ -243,56 +254,54 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                             }
                         };
 
+                        if let Some(view) = views.get(&media_file_path.item) {
+                            if let Some(file) = &view.file {
+                                // Skip files that are older than already known files
+                                if file.uploaded.with_nanosecond(0) >= metadata.uploaded.with_nanosecond(0) {
+                                    continue;
+                                }
+                            }
+                        } else {
+                            // Skip files that are for unknown items.
+                            continue;
+                        }
+
                         if let Some(size) = remote_files.get(&metadata.file_name) {
                             if size == &(metadata.file_size as u64) {
                                 if let Some((existing_path, existing_metadata)) = recoverable.get_mut(&media_file_path.media_item()) {
                                     if existing_metadata.uploaded.with_nanosecond(0) < metadata.uploaded.with_nanosecond(0) {
-                                        delete_media_file(existing_path, &local_store, &remote_store).await;
+                                        to_prune.insert(existing_path.clone());
 
                                         *existing_metadata = metadata;
                                         *existing_path = media_file_path;
                                     }
                                 } else {
+                                    to_prune.remove(&media_file_path);
                                     recoverable.insert(media_file_path.media_item(), (media_file_path, metadata));
                                 }
+                            } else {
+                                // Size mismatch, prune???
                             }
-
-                            continue;
                         }
                     }
+                }
 
+                for media_file_path in to_prune {
                     trace!(path=%media_file_path, "Deleting orphan media files");
 
                     delete_media_file(&media_file_path, &local_store, &remote_store).await;
                 }
 
-                let items: Vec<String> = recoverable.keys().map(|p| p.item.clone()).collect();
-                let ids: Vec<&str> = items.iter().map(String::as_ref).collect();
-
-                let views: HashMap<String, models::MediaView> = models::MediaView::get(&mut tx, &ids).await?.into_iter().map(|v| (v.id.clone(), v)).collect();
-
-                let mut recoverable_media_files = Vec::new();
+                let mut recovered_media_files = Vec::new();
                 for (media_file_path, metadata) in recoverable.values() {
-                    if let Some(view) = views.get(&media_file_path.item) {
-                        if let Some(ref file) = view.file {
-                            if file.uploaded.with_nanosecond(0).unwrap() >= metadata.uploaded.with_nanosecond(0).unwrap() {
-                                // Already have a more recent media file present.
-                                delete_media_file(media_file_path, &local_store, &remote_store).await;
-
-                                continue;
-                            }
-                        }
-
-                        let mut media_file = metadata.media_file(&media_file_path.item, &media_file_path.file);
-                        // Explicitly flag this as needing re-processing.
-                        media_file.process_version = 0;
-                        recoverable_media_files.push(media_file);
-                    } else {
-                        delete_media_file(media_file_path, &local_store, &remote_store).await;
-                    }
+                    let mut media_file = metadata.media_file(&media_file_path.item, &media_file_path.file);
+                    // Explicitly flag this as needing re-processing.
+                    media_file.process_version = 0;
+                    recovered_media_files.push(media_file);
+                    debug!(path=%media_file_path, "Recovered media file");
                 }
 
-                if let Err(e) = models::MediaFile::upsert(&mut tx, &recoverable_media_files).await {
+                if let Err(e) = models::MediaFile::upsert(&mut tx, &recovered_media_files).await {
                     error!(error=?e, "Failed to recover media files");
                 }
 
