@@ -408,13 +408,19 @@ pub(crate) struct Metadata {
 
 impl Metadata {
     pub(crate) fn media_file(&self, media_item: &str, id: &str) -> MediaFile {
+        let mimetype = if let Ok(mime) = Mime::from_str(&self.mimetype) {
+            mime.essence_str().to_owned()
+        } else {
+            self.mimetype.clone()
+        };
+
         let mut media_file = MediaFile {
             id: id.to_owned(),
             uploaded: self.uploaded,
             process_version: 0,
             file_name: self.file_name.clone(),
             file_size: self.file_size,
-            mimetype: self.mimetype.clone(),
+            mimetype,
             width: self.width,
             height: self.height,
             duration: self.duration,
