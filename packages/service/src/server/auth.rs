@@ -90,9 +90,9 @@ impl FromRequest for MaybeSession {
             let data = web::Data::<AppState>::extract(&req).await.unwrap();
             let user = data
                 .store
-                .with_connection(
-                    |mut conn| async move { conn.verify_token(&otoken).await }.scope_boxed()
-                )
+                .with_connection(|conn| {
+                    async move { conn.verify_token(&otoken).await }.scope_boxed()
+                })
                 .await?;
 
             Ok(MaybeSession(Some(Session { user })))
@@ -121,9 +121,9 @@ async fn login(
 ) -> ApiResult<web::Json<LoginResponse>> {
     match app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
-                trx.verify_credentials(&credentials.email, &credentials.password)
+                conn.verify_credentials(&credentials.email, &credentials.password)
                     .await
             }
             .scope_boxed()
@@ -145,7 +145,7 @@ async fn logout(
     if let Some(token) = token.0 {
         app_state
             .store
-            .in_transaction(|mut trx| async move { trx.delete_token(&token).await }.scope_boxed())
+            .in_transaction(|conn| async move { conn.delete_token(&token).await }.scope_boxed())
             .await?;
     }
 
@@ -190,12 +190,12 @@ async fn state(
     let state = app_state
         .store
         .clone()
-        .in_transaction(|mut db| {
+        .in_transaction(|conn| {
             async move {
                 let email = &session.user.email;
-                let user = models::User::get(&mut db, email).await?;
+                let user = models::User::get(conn, email).await?;
 
-                let albums = models::Album::list_for_user_with_count(&mut db, email)
+                let albums = models::Album::list_for_user_with_count(conn, email)
                     .await?
                     .into_iter()
                     .map(|(album, count)| AlbumWithCount {
@@ -204,22 +204,21 @@ async fn state(
                     })
                     .collect();
 
-                let searches =
-                    models::SavedSearch::list_for_user_with_count(&mut db, email)
-                        .await?
-                        .into_iter()
-                        .map(|(search, count)| SavedSearchWithCount {
-                            search,
-                            media: count,
-                        })
-                        .collect();
+                let searches = models::SavedSearch::list_for_user_with_count(conn, email)
+                    .await?
+                    .into_iter()
+                    .map(|(search, count)| SavedSearchWithCount {
+                        search,
+                        media: count,
+                    })
+                    .collect();
 
                 Ok(UserState {
                     user,
-                    storage: models::Storage::list_for_user(&mut db, email).await?,
-                    catalogs: models::Catalog::list_for_user(&mut db, email).await?,
-                    people: models::Person::list_for_user(&mut db, email).await?,
-                    tags: models::Tag::list_for_user(&mut db, email).await?,
+                    storage: models::Storage::list_for_user(conn, email).await?,
+                    catalogs: models::Catalog::list_for_user(conn, email).await?,
+                    people: models::Person::list_for_user(conn, email).await?,
+                    tags: models::Tag::list_for_user(conn, email).await?,
                     albums,
                     searches,
                 })

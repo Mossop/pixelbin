@@ -48,12 +48,11 @@ impl FileStore for DiskStore {
     async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut files = Vec::<(ResourcePath, u64)>::new();
 
-        let root =
-            if let Some(prefix) = prefix {
-                self.local_path(prefix)
-            } else {
-                self.root.clone()
-            };
+        let root = if let Some(prefix) = prefix {
+            self.local_path(prefix)
+        } else {
+            self.root.clone()
+        };
 
         let mut path_parts: Vec<String> = root
             .strip_prefix(&self.root)
@@ -144,24 +143,32 @@ impl Store {
     pub async fn with_connection<'a, R, F>(&self, cb: F) -> Result<R>
     where
         R: 'a + Send,
-        F: for<'b> FnOnce(DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
+        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
+            + Send
+            + 'a,
     {
         let mut conn = self.pool.get().await?;
 
-        cb(DbConnection::from_connection(&mut conn, &self.config)).await
+        let mut db_conn = DbConnection::from_connection(&mut conn, &self.config);
+        cb(&mut db_conn).await
     }
 
     #[instrument(skip_all)]
     pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
     where
         R: 'a + Send,
-        F: for<'b> FnOnce(DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>> + Send + 'a,
+        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
+            + Send
+            + 'a,
     {
         let mut conn = self.pool.get().await?;
 
         conn.transaction(|conn| {
-            async move { cb(DbConnection::from_transaction(conn, &self.config)).await }
-                .scope_boxed()
+            async move {
+                let mut db_conn = DbConnection::from_transaction(conn, &self.config);
+                cb(&mut db_conn).await
+            }
+            .scope_boxed()
         })
         .await
     }

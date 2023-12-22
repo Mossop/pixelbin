@@ -32,7 +32,7 @@ struct Stats;
 impl Runnable for Stats {
     async fn run(self, store: Store) -> Result {
         store
-            .in_transaction(|mut conn| {
+            .in_transaction(|conn| {
                 async move {
                     let stats = conn.stats().await?;
                     println!("Users:           {}", stats.users);

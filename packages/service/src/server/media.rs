@@ -43,18 +43,17 @@ async fn download_handler(
 
     let (media_file_path, storage, mimetype, file_name) = match app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (media_file, file_path) = models::MediaFile::get_for_user_media(
-                    &mut trx,
+                    conn,
                     &session.user.email,
                     &path.item,
                     &path.file,
                 )
                 .await?;
 
-                let storage =
-                    models::Storage::get_for_catalog(&mut trx, &file_path.catalog).await?;
+                let storage = models::Storage::get_for_catalog(conn, &file_path.catalog).await?;
 
                 Ok((
                     file_path,
@@ -104,10 +103,10 @@ async fn thumbnail_handler(
 
     let alternates = match app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 models::AlternateFile::list_for_user_media(
-                    &mut trx,
+                    conn,
                     email,
                     &path.item,
                     &path.file,
@@ -166,10 +165,10 @@ async fn encoding_handler(
 
     let (file_path, storage) = match app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (_, file_path) = models::AlternateFile::list_for_user_media(
-                    &mut trx,
+                    conn,
                     email,
                     &path.item,
                     &path.file,
@@ -181,8 +180,7 @@ async fn encoding_handler(
                 .next()
                 .ok_or_else(|| Error::NotFound)?;
 
-                let storage =
-                    models::Storage::get_for_catalog(&mut trx, &file_path.catalog).await?;
+                let storage = models::Storage::get_for_catalog(conn, &file_path.catalog).await?;
 
                 Ok((file_path, storage))
             }
@@ -229,10 +227,10 @@ async fn get_album(
 ) -> ApiResult<web::Json<AlbumResponse>> {
     let response = app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (album, media) = models::Album::get_for_user_with_count(
-                    &mut trx,
+                    conn,
                     &session.user.email,
                     &album_id,
                     query.recursive,
@@ -264,10 +262,10 @@ async fn get_search(
 ) -> ApiResult<web::Json<SearchResponse>> {
     let response = app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (search, media) = models::SavedSearch::get_for_user_with_count(
-                    &mut trx,
+                    conn,
                     &session.user.email,
                     &search_id,
                 )
@@ -298,10 +296,10 @@ async fn get_catalog(
 ) -> ApiResult<web::Json<CatalogResponse>> {
     let response = app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (catalog, media) = models::Catalog::get_for_user_with_count(
-                    &mut trx,
+                    conn,
                     &session.user.email,
                     &catalog_id,
                 )
@@ -338,17 +336,15 @@ async fn get_catalog_media(
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (catalog, media_count) = models::Catalog::get_for_user_with_count(
-                    &mut trx,
+                    conn,
                     &session.user.email,
                     &catalog_id,
                 )
                 .await?;
-                let media = catalog
-                    .list_media(&mut trx, query.offset, query.count)
-                    .await?;
+                let media = catalog.list_media(conn, query.offset, query.count).await?;
 
                 Ok(GetMediaResponse {
                     total: media_count,
@@ -380,17 +376,17 @@ async fn get_album_media(
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (album, media_count) = models::Album::get_for_user_with_count(
-                    &mut trx,
+                    conn,
                     &session.user.email,
                     &album_id,
                     query.recursive,
                 )
                 .await?;
                 let media = album
-                    .list_media(&mut trx, query.recursive, query.offset, query.count)
+                    .list_media(conn, query.recursive, query.offset, query.count)
                     .await?;
 
                 Ok(GetMediaResponse {
@@ -415,17 +411,15 @@ async fn get_search_media(
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let (search, media_count) = models::SavedSearch::get_for_user_with_count(
-                    &mut trx,
+                    conn,
                     &session.user.email,
                     &search_id,
                 )
                 .await?;
-                let media = search
-                    .list_media(&mut trx, query.offset, query.count)
-                    .await?;
+                let media = search.list_media(conn, query.offset, query.count).await?;
 
                 Ok(GetMediaResponse {
                     total: media_count,
@@ -450,11 +444,10 @@ async fn get_media(
 
     let response = app_state
         .store
-        .in_transaction(|mut trx| {
+        .in_transaction(|conn| {
             async move {
                 let media =
-                    models::MediaRelations::get_for_user(&mut trx, &session.user.email, &ids)
-                        .await?;
+                    models::MediaRelations::get_for_user(conn, &session.user.email, &ids).await?;
 
                 Ok(GetMediaResponse {
                     total: media.len() as i64,

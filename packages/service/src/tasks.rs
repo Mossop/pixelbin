@@ -33,8 +33,8 @@ pub async fn reprocess_all_media(store: Store) -> Result {
     tracing::debug!("Reprocessing media metadata");
 
     store
-        .in_transaction(|mut tx| {
-            async move { metadata::reprocess_all_media(&mut tx).await }.scope_boxed()
+        .in_transaction(|conn| {
+            async move { metadata::reprocess_all_media(conn).await }.scope_boxed()
         })
         .await?;
 
@@ -45,12 +45,12 @@ pub async fn rebuild_searches(store: Store) -> Result {
     tracing::debug!("Rebuilding searches");
 
     store
-        .in_transaction(|mut tx| {
+        .in_transaction(|conn| {
             async move {
-                let catalogs = models::Catalog::list(&mut tx).await?;
+                let catalogs = models::Catalog::list(conn).await?;
 
                 for catalog in catalogs {
-                    models::SavedSearch::update_for_catalog(&mut tx, &catalog.id).await?;
+                    models::SavedSearch::update_for_catalog(conn, &catalog.id).await?;
                 }
                 Ok(())
             }
@@ -132,24 +132,24 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
     }
 
     store
-        .in_transaction(|mut tx| {
+        .in_transaction(|conn| {
             async move {
-                let storage = models::Storage::get_for_catalog(&mut tx, catalog).await?;
+                let storage = models::Storage::get_for_catalog(conn, catalog).await?;
                 let remote_store = storage.file_store().await?;
 
                 let mut file_set = HashMap::new();
                 append_files(&remote_store, catalog, false, &mut file_set).await?;
 
-                let local_store = tx.config().local_store();
+                let local_store = conn.config().local_store();
                 append_files(&local_store, catalog, true, &mut file_set).await?;
 
                 let mut valid_media_files: Vec<MediaFilePath> = Vec::new();
                 let mut media_files_to_reprocess: Vec<models::MediaFile> = Vec::new();
-                let media_files = models::MediaFile::list_for_catalog(&mut tx, catalog).await?;
+                let media_files = models::MediaFile::list_for_catalog(conn, catalog).await?;
 
                 let mut alternate_files: HashMap<MediaFilePath, Vec<(models::AlternateFile, FilePath)>> = HashMap::new();
 
-                models::AlternateFile::list_for_catalog(&mut tx, catalog).await?.into_iter().for_each(|(alternate, path)| {
+                models::AlternateFile::list_for_catalog(conn, catalog).await?.into_iter().for_each(|(alternate, path)| {
                     alternate_files.entry(path.media_file_path()).or_default().push((alternate, path));
                 });
 
@@ -166,7 +166,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                             }
 
                             if let Some(alternates) = alternate_files.get(&media_file_path) {
-                                let expected = alternates_for_mimetype(tx.config(), &media_file.mimetype);
+                                let expected = alternates_for_mimetype(conn.config(), &media_file.mimetype);
 
                                 if !expected.iter().all(|(file_type, mime_type, size)| check_alternate(alternates, *file_type, mime_type, *size)) {
                                     debug!(path=%media_file_path, "Media file was missing some alternate files");
@@ -187,14 +187,14 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     }
 
                     // This media file is gone, delete it.
-                    if let Err(e) = media_file.delete(&mut tx, &storage, &media_file_path).await {
+                    if let Err(e) = media_file.delete(conn, &storage, &media_file_path).await {
                         error!(error=?e, "Failed deleting media file");
                     }
 
                     file_set.remove(&media_file_path);
                 }
 
-                models::MediaFile::upsert(&mut tx, &media_files_to_reprocess).await?;
+                models::MediaFile::upsert(conn, &media_files_to_reprocess).await?;
 
                 for (alternate, path) in alternate_files.into_values().flatten() {
                     if let Some((ref mut local_files, ref mut remote_files)) =
@@ -221,7 +221,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     }
 
                     // This alternate file is gone, delete it.
-                    if let Err(e) = alternate.delete(&mut tx, &storage, &path).await {
+                    if let Err(e) = alternate.delete(conn, &storage, &path).await {
                         error!(error=?e, "Failed deleting alternate file");
                     }
                 }
@@ -230,14 +230,14 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     file_set.remove(&valid_media_file);
                 }
 
-                models::MediaItem::update_media_files(&mut tx).await?;
+                models::MediaItem::update_media_files(conn).await?;
 
                 // Everything left in fileset is not in the database. Find anything
                 // that is recoverable
                 let mut recoverable: HashMap<MediaItemPath, (MediaFilePath, Metadata)> = HashMap::new();
 
                 let item_ids: Vec<&str> = file_set.keys().map(|media_file_path | media_file_path.item.as_str()).collect();
-                let views: HashMap<String, models::MediaView> = models::MediaView::get(&mut tx, &item_ids).await?.into_iter().map(|v| (v.id.clone(), v)).collect();
+                let views: HashMap<String, models::MediaView> = models::MediaView::get(conn, &item_ids).await?.into_iter().map(|v| (v.id.clone(), v)).collect();
 
                 let mut to_prune: HashSet<MediaFilePath> = HashSet::new();
 
@@ -301,7 +301,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     debug!(path=%media_file_path, "Recovered media file");
                 }
 
-                if let Err(e) = models::MediaFile::upsert(&mut tx, &recovered_media_files).await {
+                if let Err(e) = models::MediaFile::upsert(conn, &recovered_media_files).await {
                     error!(error=?e, "Failed to recover media files");
                 }
 
@@ -314,9 +314,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
 
 pub async fn sanity_check_catalogs(store: Store) -> Result {
     let catalogs = store
-        .with_connection(|mut conn| {
-            async move { models::Catalog::list(&mut conn).await }.scope_boxed()
-        })
+        .with_connection(|conn| async move { models::Catalog::list(conn).await }.scope_boxed())
         .await?;
 
     for catalog in catalogs {
@@ -330,15 +328,15 @@ pub async fn sanity_check_catalogs(store: Store) -> Result {
 
 pub async fn prune_catalog(store: &Store, catalog: &str) -> Result {
     store
-        .in_transaction(|mut tx| {
+        .in_transaction(|conn| {
             async move {
-                models::MediaItem::update_media_files(&mut tx).await?;
+                models::MediaItem::update_media_files(conn).await?;
 
-                let storage = models::Storage::get_for_catalog(&mut tx, catalog).await?;
+                let storage = models::Storage::get_for_catalog(conn, catalog).await?;
 
-                let files = models::MediaFile::list_prunable(&mut tx).await?;
+                let files = models::MediaFile::list_prunable(conn).await?;
                 for (file, path) in files {
-                    file.delete(&mut tx, &storage, &path).await?;
+                    file.delete(conn, &storage, &path).await?;
                 }
 
                 Ok(())
@@ -350,9 +348,7 @@ pub async fn prune_catalog(store: &Store, catalog: &str) -> Result {
 
 pub async fn prune_catalogs(store: Store) -> Result {
     let catalogs = store
-        .with_connection(|mut conn| {
-            async move { models::Catalog::list(&mut conn).await }.scope_boxed()
-        })
+        .with_connection(|conn| async move { models::Catalog::list(conn).await }.scope_boxed())
         .await?;
 
     for catalog in catalogs {
