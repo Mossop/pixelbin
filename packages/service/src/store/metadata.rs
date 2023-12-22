@@ -1,5 +1,7 @@
 use std::{
-    cmp::{max, min},
+    cmp::{self, max, min},
+    collections::HashMap,
+    io::ErrorKind,
     path::Path,
     result,
     str::FromStr,
@@ -9,18 +11,22 @@ use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Timelike, Utc};
 use chrono_tz::Tz;
 use lazy_static::lazy_static;
 use lexical_parse_float::FromLexical;
+use mime::Mime;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{from_str, Value};
-use tokio::fs::read_to_string;
+use tokio::fs::{metadata, read_to_string};
 use tracing::{error, info, instrument, warn};
 use tzf_rs::DefaultFinder;
 
 use super::{
     db::DbConnection,
     models::{AlternateFileType, MediaFile, MediaItem},
-    path::MediaFilePath,
+    path::{MediaFilePath, ResourcePath},
 };
-use crate::{Config, Result};
+use crate::{
+    store::models::{AlternateFile, Storage},
+    Config, Error, FileStore, Result,
+};
 
 lazy_static! {
     static ref FINDER: DefaultFinder = DefaultFinder::new();
@@ -34,34 +40,78 @@ pub(crate) const PROCESS_VERSION: i32 = 4;
 const EXIF_FORMAT: &str = "%Y:%m:%d %H:%M:%S%.f";
 const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
-pub(crate) fn alternates_for_mimetype(
-    config: &Config,
-    mimetype: &str,
-) -> Vec<(AlternateFileType, String, Option<i32>)> {
+pub(crate) struct Alternate {
+    alt_type: AlternateFileType,
+    mimetype: String,
+    size: Option<i32>,
+}
+
+impl Alternate {
+    pub(crate) fn matches(&self, alt: &AlternateFile) -> bool {
+        if alt.file_type != self.alt_type {
+            return false;
+        }
+
+        if let Some(size) = self.size {
+            if cmp::max(alt.width, alt.height) != size {
+                return false;
+            }
+        }
+
+        if let Ok(mime) = Mime::from_str(&alt.mimetype) {
+            mime.essence_str() == self.mimetype
+        } else {
+            false
+        }
+    }
+
+    pub(crate) async fn build<F: FileStore>(
+        &self,
+        conn: &mut DbConnection<'_>,
+        media_file: &MediaFile,
+        media_file_path: &MediaFilePath,
+        remote_store: &F,
+        temp_path: &Path,
+    ) -> Result<AlternateFile> {
+        Err(Error::Unknown {
+            message: "Not implemented".to_string(),
+        })
+    }
+}
+
+pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &str) -> Vec<Alternate> {
     let mut alternates = Vec::new();
 
     for size in config.thumbnails.sizes.iter() {
-        alternates.push((
-            AlternateFileType::Thumbnail,
-            "image/jpeg".to_string(),
-            Some(*size as i32),
-        ));
+        alternates.push(Alternate {
+            alt_type: AlternateFileType::Thumbnail,
+            mimetype: "image/jpeg".to_string(),
+            size: Some(*size as i32),
+        });
 
         for alternate_mime in config.thumbnails.alternate_types.iter() {
-            alternates.push((
-                AlternateFileType::Thumbnail,
-                alternate_mime.clone(),
-                Some(*size as i32),
-            ));
+            alternates.push(Alternate {
+                alt_type: AlternateFileType::Thumbnail,
+                mimetype: alternate_mime.clone(),
+                size: Some(*size as i32),
+            });
         }
     }
 
     for alternate_mime in config.thumbnails.alternate_types.iter() {
-        alternates.push((AlternateFileType::Reencode, alternate_mime.clone(), None));
+        alternates.push(Alternate {
+            alt_type: AlternateFileType::Reencode,
+            mimetype: alternate_mime.clone(),
+            size: None,
+        });
     }
 
     if mimetype.starts_with("video/") {
-        alternates.push((AlternateFileType::Reencode, "video/mp4".to_string(), None))
+        alternates.push(Alternate {
+            alt_type: AlternateFileType::Reencode,
+            mimetype: "video/mp4".to_string(),
+            size: None,
+        })
     }
 
     alternates
@@ -361,7 +411,7 @@ impl Metadata {
         let mut media_file = MediaFile {
             id: id.to_owned(),
             uploaded: self.uploaded,
-            process_version: PROCESS_VERSION,
+            process_version: 0,
             file_name: self.file_name.clone(),
             file_size: self.file_size,
             mimetype: self.mimetype.clone(),
@@ -644,23 +694,115 @@ pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) ->
     Ok(metadata.media_file(&file_path.item, &file_path.file))
 }
 
+async fn build_alternate_files<F: FileStore>(
+    conn: &mut DbConnection<'_>,
+    media_file: &MediaFile,
+    media_file_path: &MediaFilePath,
+    remote_store: &F,
+    alternates: &[Alternate],
+) -> Result {
+    let temp_store = conn.config().temp_store();
+    let file_path = media_file_path.file(media_file.file_name.clone());
+    let temp_path = temp_store.local_path(&file_path);
+
+    match metadata(&temp_path).await {
+        Ok(m) => {
+            if !m.is_file() {
+                return Err(Error::UnexpectedPath {
+                    path: file_path.to_string(),
+                });
+            }
+        }
+        Err(e) => {
+            if e.kind() != ErrorKind::NotFound {
+                return Err(Error::from(e));
+            }
+
+            remote_store.copy(&file_path, &temp_path).await?;
+        }
+    };
+
+    let mut alternate_files = Vec::new();
+    for alternate in alternates {
+        alternate_files.push(
+            alternate
+                .build(conn, media_file, media_file_path, remote_store, &temp_path)
+                .await?,
+        );
+    }
+
+    AlternateFile::upsert(conn, &alternate_files).await?;
+
+    temp_store
+        .delete(&ResourcePath::MediaFile(media_file_path.clone()))
+        .await?;
+
+    Ok(())
+}
+
 #[instrument(skip_all)]
 pub(crate) async fn reprocess_catalog_media(
     tx: &mut DbConnection<'_>,
     catalog: &str,
+    build_alternates: bool,
 ) -> Result<()> {
     info!("Reprocessing media metadata");
+    tx.assert_in_transaction();
+
+    let mut alternate_files: HashMap<String, Vec<AlternateFile>> = HashMap::new();
+
+    AlternateFile::list_for_catalog(tx, catalog)
+        .await?
+        .into_iter()
+        .for_each(|(alternate, _)| {
+            alternate_files
+                .entry(alternate.media_file.clone())
+                .or_default()
+                .push(alternate);
+        });
 
     let current_files = MediaFile::list_newest(tx, catalog).await?;
 
     let mut media_files = Vec::new();
+    let storage = Storage::get_for_catalog(tx, catalog).await?;
 
-    for (media_file, file_path) in current_files {
+    let remote_store = storage.file_store().await?;
+
+    for (media_file, media_file_path) in current_files {
         let media_file = if media_file.process_version != PROCESS_VERSION {
-            match process_media(tx.config(), &file_path).await {
-                Ok(media_file) => media_file,
+            match process_media(tx.config(), &media_file_path).await {
+                Ok(mut media_file) => {
+                    let mut expected_alternates =
+                        alternates_for_mimetype(tx.config(), &media_file.mimetype);
+
+                    if let Some(alternates) = alternate_files.remove(&media_file.id) {
+                        expected_alternates.retain(|alternate| {
+                            !alternates.iter().any(|alt| alternate.matches(alt))
+                        });
+                    }
+
+                    if expected_alternates.is_empty() {
+                        media_file.process_version = PROCESS_VERSION;
+                    } else if build_alternates {
+                        if let Err(e) = build_alternate_files(
+                            tx,
+                            &media_file,
+                            &media_file_path,
+                            &remote_store,
+                            &expected_alternates,
+                        )
+                        .await
+                        {
+                            error!(path = %media_file_path, error = ?e, "Failed to build alternate files");
+                        } else {
+                            media_file.process_version = PROCESS_VERSION;
+                        }
+                    }
+
+                    media_file
+                }
                 Err(e) => {
-                    error!(media = media_file.media_item, error = ?e, "Failed to process media metadata");
+                    error!(path = %media_file_path, error = ?e, "Failed to process media metadata");
                     continue;
                 }
             }

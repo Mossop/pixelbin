@@ -1034,18 +1034,20 @@ impl MediaFile {
     }
 }
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Insertable, Clone, Debug)]
+#[diesel(table_name = alternate_file)]
 pub(crate) struct AlternateFile {
     pub(crate) id: String,
+    #[diesel(column_name = type_)]
     pub(crate) file_type: AlternateFileType,
     pub(crate) file_name: String,
     pub(crate) file_size: i32,
     pub(crate) mimetype: String,
     pub(crate) width: i32,
     pub(crate) height: i32,
-    pub(crate) _duration: Option<f32>,
-    pub(crate) _frame_rate: Option<f32>,
-    pub(crate) _bit_rate: Option<f32>,
+    pub(crate) duration: Option<f32>,
+    pub(crate) frame_rate: Option<f32>,
+    pub(crate) bit_rate: Option<f32>,
     pub(crate) media_file: String,
     pub(crate) local: bool,
 }
@@ -1122,6 +1124,36 @@ impl AlternateFile {
         }
 
         Ok(vec![])
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(
+        conn: &mut DbConnection<'_>,
+        alternate_files: &[AlternateFile],
+    ) -> Result {
+        for records in batch(alternate_files, 500) {
+            diesel::insert_into(alternate_file::table)
+                .values(records)
+                .on_conflict(alternate_file::id)
+                .do_update()
+                .set((
+                    alternate_file::type_.eq(excluded(alternate_file::type_)),
+                    alternate_file::file_name.eq(excluded(alternate_file::file_name)),
+                    alternate_file::file_size.eq(excluded(alternate_file::file_size)),
+                    alternate_file::mimetype.eq(excluded(alternate_file::mimetype)),
+                    alternate_file::width.eq(excluded(alternate_file::width)),
+                    alternate_file::height.eq(excluded(alternate_file::height)),
+                    alternate_file::duration.eq(excluded(alternate_file::duration)),
+                    alternate_file::frame_rate.eq(excluded(alternate_file::frame_rate)),
+                    alternate_file::bit_rate.eq(excluded(alternate_file::bit_rate)),
+                    alternate_file::media_file.eq(excluded(alternate_file::media_file)),
+                    alternate_file::local.eq(excluded(alternate_file::local)),
+                ))
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
     }
 
     pub(crate) async fn delete(

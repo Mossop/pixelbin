@@ -1,19 +1,14 @@
 //! Maintenance tasks for the Pixelbin server.
 
-use std::{
-    cmp,
-    collections::{HashMap, HashSet},
-    str::FromStr,
-};
+use std::collections::{HashMap, HashSet};
 
 use chrono::Timelike;
-use mime::Mime;
 use scoped_futures::ScopedFutureExt;
 use tracing::{debug, error, instrument, trace, warn};
 
 use crate::{
     store::{
-        metadata::{self, alternates_for_mimetype, METADATA_FILE},
+        metadata::{self, alternates_for_mimetype, Alternate, METADATA_FILE},
         models,
         path::MediaItemPath,
         DiskStore, Store,
@@ -38,7 +33,7 @@ pub async fn reprocess_all_media(store: Store) -> Result {
                 let catalogs = models::Catalog::list(conn).await?;
 
                 for catalog in catalogs {
-                    metadata::reprocess_catalog_media(conn, &catalog.id).await?
+                    metadata::reprocess_catalog_media(conn, &catalog.id, true).await?
                 }
 
                 Ok(())
@@ -72,27 +67,11 @@ pub async fn rebuild_searches(store: Store) -> Result {
 
 fn check_alternate(
     alternates: &[(models::AlternateFile, FilePath)],
-    file_type: models::AlternateFileType,
-    mime_type: &str,
-    size: Option<i32>,
+    expected_alternate: &Alternate,
 ) -> bool {
-    alternates.iter().any(|(alt, _)| {
-        if alt.file_type != file_type {
-            return false;
-        }
-
-        if let Some(size) = size {
-            if cmp::max(alt.width, alt.height) != size {
-                return false;
-            }
-        }
-
-        if let Ok(mime) = Mime::from_str(&alt.mimetype) {
-            mime.essence_str() == mime_type
-        } else {
-            false
-        }
-    })
+    alternates
+        .iter()
+        .any(|(alt, _)| expected_alternate.matches(alt))
 }
 
 type FileSets = (HashMap<String, u64>, HashMap<String, u64>);
@@ -177,7 +156,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                             if let Some(alternates) = alternate_files.get(&media_file_path) {
                                 let expected = alternates_for_mimetype(conn.config(), &media_file.mimetype);
 
-                                if !expected.iter().all(|(file_type, mime_type, size)| check_alternate(alternates, *file_type, mime_type, *size)) {
+                                if !expected.iter().all(|expected| check_alternate(alternates, expected)) {
                                     debug!(path=%media_file_path, "Media file was missing some alternate files");
                                     media_file.process_version = 0;
                                     media_files_to_reprocess.push(media_file);
@@ -303,10 +282,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
 
                 let mut recovered_media_files = Vec::new();
                 for (media_file_path, metadata) in recoverable.values() {
-                    let mut media_file = metadata.media_file(&media_file_path.item, &media_file_path.file);
-                    // Explicitly flag this as needing re-processing.
-                    media_file.process_version = 0;
-                    recovered_media_files.push(media_file);
+                    recovered_media_files.push(metadata.media_file(&media_file_path.item, &media_file_path.file));
                     debug!(path=%media_file_path, "Recovered media file");
                 }
 

@@ -100,7 +100,7 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
                     let catalogs = models::Catalog::list(&mut tx).await?;
 
                     for catalog in catalogs {
-                        reprocess_catalog_media(&mut tx, &catalog.id).await?;
+                        reprocess_catalog_media(&mut tx, &catalog.id, false).await?;
 
                         models::SavedSearch::update_for_catalog(&mut tx, &catalog.id).await?;
                     }

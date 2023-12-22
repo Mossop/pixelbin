@@ -1,5 +1,9 @@
 //! A basic abstraction around the pixelbin data stores.
-use std::{io::ErrorKind, iter::once, path::PathBuf};
+use std::{
+    io::ErrorKind,
+    iter::once,
+    path::{Path, PathBuf},
+};
 
 use async_trait::async_trait;
 use diesel_async::{
@@ -18,7 +22,7 @@ use db::{connect, DbPool};
 use tokio::fs;
 use tracing::instrument;
 
-use self::path::{PathLike, ResourcePath};
+use self::path::{FilePath, PathLike, ResourcePath};
 use crate::{Config, Result};
 
 #[async_trait]
@@ -26,6 +30,8 @@ pub trait FileStore {
     async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>>;
 
     async fn delete(&self, path: &ResourcePath) -> Result;
+
+    async fn copy(&self, path: &FilePath, target: &Path) -> Result;
 }
 
 pub(crate) struct DiskStore {
@@ -116,6 +122,18 @@ impl FileStore for DiskStore {
         } else {
             fs::remove_file(&local).await?;
         }
+
+        Ok(())
+    }
+
+    async fn copy(&self, path: &FilePath, target: &Path) -> Result {
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).await?;
+        }
+
+        let local = self.local_path(path);
+
+        fs::copy(&local, target).await?;
 
         Ok(())
     }

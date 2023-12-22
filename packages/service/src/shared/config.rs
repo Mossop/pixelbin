@@ -115,4 +115,10 @@ impl Config {
             root: self.local_storage.clone(),
         }
     }
+
+    pub(crate) fn temp_store(&self) -> DiskStore {
+        DiskStore {
+            root: self.temp_storage.clone(),
+        }
+    }
 }

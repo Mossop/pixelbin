@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 use async_trait::async_trait;
 use aws_config::{AppName, BehaviorVersion};
@@ -7,6 +7,7 @@ use aws_sdk_s3::{
     presigning::PresigningConfig,
     Client,
 };
+use tokio::{fs, io};
 use tracing::trace;
 
 use super::{
@@ -142,7 +143,39 @@ impl FileStore for AwsClient {
     }
 
     async fn delete(&self, path: &ResourcePath) -> Result {
-        trace!("Skipping deletion of {path}");
+        trace!(path=%path, "Skipping deletion");
+        Ok(())
+    }
+
+    async fn copy(&self, path: &FilePath, target: &Path) -> Result {
+        trace!(path=%path, "Downloading object");
+
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).await?;
+        }
+
+        let key = match &self.path {
+            Some(p) => format!("{p}/{}", remote_path(path)),
+            None => remote_path(path),
+        };
+
+        let mut file = fs::File::create(target).await?;
+
+        let response = self
+            .client
+            .get_object()
+            .bucket(&self.bucket)
+            .key(&key)
+            .send()
+            .await
+            .map_err(|e| Error::S3Error {
+                message: format!("Failed to get object: {e}"),
+            })?;
+
+        let mut reader = response.body.into_async_read();
+
+        io::copy(&mut reader, &mut file).await?;
+
         Ok(())
     }
 }
