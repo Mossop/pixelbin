@@ -24,7 +24,7 @@ use schema::*;
 use tracing::{info, instrument, trace};
 
 use super::{models, Result};
-use crate::{shared::long_id, store::metadata::reprocess_all_media, Config, Error};
+use crate::{shared::long_id, store::metadata::reprocess_catalog_media, Config, Error};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;
@@ -97,12 +97,11 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
             .transaction::<(), Error, _>(|conn| {
                 async move {
                     let mut tx = DbConnection::from_transaction(conn, config);
-
-                    reprocess_all_media(&mut tx).await?;
-
                     let catalogs = models::Catalog::list(&mut tx).await?;
 
                     for catalog in catalogs {
+                        reprocess_catalog_media(&mut tx, &catalog.id).await?;
+
                         models::SavedSearch::update_for_catalog(&mut tx, &catalog.id).await?;
                     }
 

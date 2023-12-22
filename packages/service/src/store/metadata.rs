@@ -645,10 +645,13 @@ pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) ->
 }
 
 #[instrument(skip_all)]
-pub(crate) async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()> {
+pub(crate) async fn reprocess_catalog_media(
+    tx: &mut DbConnection<'_>,
+    catalog: &str,
+) -> Result<()> {
     info!("Reprocessing media metadata");
 
-    let current_files = MediaFile::list_newest(tx).await?;
+    let current_files = MediaFile::list_newest(tx, catalog).await?;
 
     let mut media_files = Vec::new();
 
@@ -670,9 +673,9 @@ pub(crate) async fn reprocess_all_media(tx: &mut DbConnection<'_>) -> Result<()>
 
     MediaFile::upsert(tx, &media_files).await?;
 
-    MediaItem::update_media_files(tx).await?;
+    MediaItem::update_media_files(tx, catalog).await?;
 
-    let mut media_items = MediaItem::list_unprocessed(tx).await?;
+    let mut media_items = MediaItem::list_unprocessed(tx, catalog).await?;
     for item in media_items.iter_mut() {
         item.sync_with_file(None);
     }

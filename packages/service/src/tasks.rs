@@ -34,7 +34,16 @@ pub async fn reprocess_all_media(store: Store) -> Result {
 
     store
         .in_transaction(|conn| {
-            async move { metadata::reprocess_all_media(conn).await }.scope_boxed()
+            async move {
+                let catalogs = models::Catalog::list(conn).await?;
+
+                for catalog in catalogs {
+                    metadata::reprocess_catalog_media(conn, &catalog.id).await?
+                }
+
+                Ok(())
+            }
+            .scope_boxed()
         })
         .await?;
 
@@ -230,7 +239,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     file_set.remove(&valid_media_file);
                 }
 
-                models::MediaItem::update_media_files(conn).await?;
+                models::MediaItem::update_media_files(conn, catalog).await?;
 
                 // Everything left in fileset is not in the database. Find anything
                 // that is recoverable
@@ -330,11 +339,11 @@ pub async fn prune_catalog(store: &Store, catalog: &str) -> Result {
     store
         .in_transaction(|conn| {
             async move {
-                models::MediaItem::update_media_files(conn).await?;
+                models::MediaItem::update_media_files(conn, catalog).await?;
 
                 let storage = models::Storage::get_for_catalog(conn, catalog).await?;
 
-                let files = models::MediaFile::list_prunable(conn).await?;
+                let files = models::MediaFile::list_prunable(conn, catalog).await?;
                 for (file, path) in files {
                     file.delete(conn, &storage, &path).await?;
                 }

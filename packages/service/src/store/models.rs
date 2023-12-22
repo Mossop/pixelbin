@@ -639,10 +639,11 @@ pub struct MediaItem {
 }
 
 impl MediaItem {
-    pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>) -> Result {
+    pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
         let items = media_item::table
             .left_outer_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
             .filter(media_file::process_version.gt(0))
+            .filter(media_item::catalog.eq(catalog))
             .order_by((media_item::id, media_file::uploaded.desc()))
             .distinct_on(media_item::id)
             .select((media_item::all_columns, media_file::all_columns.nullable()))
@@ -709,9 +710,13 @@ impl MediaItem {
         Ok(())
     }
 
-    pub(crate) async fn list_unprocessed(conn: &mut DbConnection<'_>) -> Result<Vec<MediaItem>> {
+    pub(crate) async fn list_unprocessed(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Vec<MediaItem>> {
         let items = media_item::table
             .filter(media_item::media_file.is_null())
+            .filter(media_item::catalog.eq(catalog))
             .select(media_item::all_columns)
             .load::<MediaItem>(conn)
             .await?;
@@ -813,9 +818,11 @@ impl MediaFile {
     #[instrument(skip_all)]
     pub(crate) async fn list_newest(
         conn: &mut DbConnection<'_>,
+        catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
         let files = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .filter(media_item::catalog.eq(catalog))
             .order_by((media_file::media_item, media_file::uploaded.desc()))
             .distinct_on(media_file::media_item)
             .select((media_file::all_columns, media_item::catalog))
@@ -838,9 +845,11 @@ impl MediaFile {
     #[instrument(skip_all)]
     pub(crate) async fn list_prunable(
         conn: &mut DbConnection<'_>,
+        catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
         let files = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .filter(media_item::catalog.eq(catalog))
             .filter(media_item::media_file.is_not_null())
             .filter(media_item::media_file.ne(media_file::id.nullable()))
             .filter(media_file::process_version.gt(0))
