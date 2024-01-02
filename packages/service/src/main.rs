@@ -4,9 +4,8 @@ use async_trait::async_trait;
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
 use opentelemetry::KeyValue;
-use opentelemetry_sdk::{trace, Resource};
-
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::{trace, Resource};
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
 use pixelbin::tasks::{

@@ -42,17 +42,16 @@ impl ResourcePath {
             return Ok(MediaItemPath { catalog, item }.into());
         };
 
-        let file_name =
-            if let Some(f) = iter.next() {
-                f.to_owned()
-            } else {
-                return Ok(MediaFilePath {
-                    catalog,
-                    item,
-                    file,
-                }
-                .into());
-            };
+        let file_name = if let Some(f) = iter.next() {
+            f.to_owned()
+        } else {
+            return Ok(MediaFilePath {
+                catalog,
+                item,
+                file,
+            }
+            .into());
+        };
 
         if let Some(trailing) = iter.next() {
             let mut rest = vec![trailing];
