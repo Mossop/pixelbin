@@ -1,6 +1,5 @@
 use std::{env, error::Error, io, path::PathBuf, result, time::Duration};
 
-use async_trait::async_trait;
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
 use opentelemetry::KeyValue;
@@ -27,7 +26,6 @@ const LOG_DEFAULTS: [(&str, Level); 2] = [
 #[derive(Args)]
 struct Stats;
 
-#[async_trait(?Send)]
 impl Runnable for Stats {
     async fn run(self, store: Store) -> Result {
         store
@@ -56,7 +54,6 @@ impl Runnable for Stats {
 #[derive(Args)]
 struct Reprocess;
 
-#[async_trait(?Send)]
 impl Runnable for Reprocess {
     async fn run(self, store: Store) -> Result {
         reprocess_all_media(store).await
@@ -66,7 +63,6 @@ impl Runnable for Reprocess {
 #[derive(Args)]
 struct Prune;
 
-#[async_trait(?Send)]
 impl Runnable for Prune {
     async fn run(self, store: Store) -> Result {
         prune_catalogs(store).await
@@ -76,7 +72,6 @@ impl Runnable for Prune {
 #[derive(Args)]
 struct Verify;
 
-#[async_trait(?Send)]
 impl Runnable for Verify {
     async fn run(self, store: Store) -> Result {
         sanity_check_catalogs(store).await
@@ -88,7 +83,6 @@ impl Runnable for Verify {
 struct Serve;
 
 #[cfg(feature = "webserver")]
-#[async_trait(?Send)]
 impl Runnable for Serve {
     async fn run(self, store: Store) -> Result {
         serve(store).await
@@ -98,7 +92,6 @@ impl Runnable for Serve {
 #[derive(Args)]
 struct CheckDb;
 
-#[async_trait(?Send)]
 impl Runnable for CheckDb {
     async fn run(self, store: Store) -> Result {
         rebuild_searches(store).await
@@ -123,9 +116,8 @@ enum Command {
     Prune,
 }
 
-#[async_trait(?Send)]
 #[enum_dispatch(Command)]
-pub trait Runnable {
+trait Runnable {
     async fn run(self, store: Store) -> Result;
 }
 
