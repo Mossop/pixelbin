@@ -292,11 +292,11 @@ impl Catalog {
     ) -> Result<(Catalog, i64)> {
         user_catalog::table
             .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
-            .inner_join(media_item::table.on(catalog::id.eq(media_item::catalog)))
+            .left_join(media_item::table.on(catalog::id.eq(media_item::catalog)))
             .filter(user_catalog::user.eq(email))
             .filter(catalog::id.eq(catalog))
             .group_by(catalog::id)
-            .select((catalog::all_columns, count(media_item::id)))
+            .select((catalog::all_columns, count(media_item::id.nullable())))
             .get_result::<(Catalog, i64)>(conn)
             .await
             .optional()?
@@ -432,13 +432,13 @@ impl Album {
             user_catalog::table
                 .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
                 .inner_join(album_descendent::table.on(album::id.eq(album_descendent::id)))
-                .inner_join(
+                .left_join(
                     media_album::table.on(album_descendent::descendent.eq(media_album::album)),
                 )
                 .filter(user_catalog::user.eq(email))
                 .filter(album::id.eq(album))
                 .group_by(album::id)
-                .select((album::all_columns, count(media_album::media)))
+                .select((album::all_columns, count(media_album::media.nullable())))
                 .get_result::<(Album, i64)>(conn)
                 .await
                 .optional()?
@@ -446,11 +446,11 @@ impl Album {
         } else {
             user_catalog::table
                 .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-                .inner_join(media_album::table.on(album::id.eq(media_album::album)))
+                .left_join(media_album::table.on(album::id.eq(media_album::album)))
                 .filter(user_catalog::user.eq(email))
                 .filter(album::id.eq(album))
                 .group_by(album::id)
-                .select((album::all_columns, count(media_album::media)))
+                .select((album::all_columns, count(media_album::media.nullable())))
                 .get_result::<(Album, i64)>(conn)
                 .await
                 .optional()?
@@ -566,11 +566,14 @@ impl SavedSearch {
     ) -> Result<(SavedSearch, i64)> {
         user_catalog::table
             .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
-            .inner_join(media_search::table.on(saved_search::id.eq(media_search::search)))
+            .left_join(media_search::table.on(saved_search::id.eq(media_search::search)))
             .filter(user_catalog::user.eq(email))
             .filter(saved_search::id.eq(search))
             .group_by(saved_search::id)
-            .select((saved_search::all_columns, count(media_search::media)))
+            .select((
+                saved_search::all_columns,
+                count(media_search::media.nullable()),
+            ))
             .get_result::<(SavedSearch, i64)>(conn)
             .await
             .optional()?
