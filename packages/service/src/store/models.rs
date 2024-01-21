@@ -778,6 +778,20 @@ impl MediaItem {
         }
     }
 
+    pub(crate) async fn get_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        ids: &[String],
+    ) -> Result<Vec<Self>> {
+        Ok(media_item::table
+            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(media_item::id.eq_any(ids))
+            .select(media_item::all_columns)
+            .load::<Self>(conn)
+            .await?)
+    }
+
     pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
         let items = media_item::table
             .left_outer_join(media_file::table.on(media_item::id.eq(media_file::media_item)))

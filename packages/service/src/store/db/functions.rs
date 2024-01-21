@@ -165,6 +165,7 @@ macro_rules! media_view {
                     .on(crate::store::db::schema::media_item::media_file
                         .eq(crate::store::db::schema::media_file::id.nullable())),
             )
+            .filter(crate::store::db::schema::media_item::deleted.eq(false))
             .order(crate::store::db::schema::media_item::datetime.desc())
     };
 }

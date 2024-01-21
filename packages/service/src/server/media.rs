@@ -5,7 +5,7 @@ use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
-use tracing::{instrument, trace, warn};
+use tracing::{instrument, warn};
 
 use super::{
     auth::{MaybeSession, Session},
@@ -251,8 +251,26 @@ async fn delete_media(
     session: Session,
     media_ids: web::Json<Vec<String>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    eprintln!("{media_ids:#?}");
-    return Err(ApiErrorCode::NotImplemented);
+    app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                let mut media =
+                    models::MediaItem::get_for_user(conn, &session.user.email, &media_ids).await?;
+
+                media.iter_mut().for_each(|mi| mi.deleted = true);
+
+                models::MediaItem::upsert(conn, &media).await?;
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(ApiResponse {
+        message: "Ok".to_string(),
+    }))
 }
 
 #[derive(Default, Clone, Debug, Deserialize)]
