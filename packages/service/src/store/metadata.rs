@@ -708,7 +708,7 @@ async fn build_alternate_files<F: FileStore>(
     alternates: &[Alternate],
 ) -> Result {
     let temp_store = conn.config().temp_store();
-    let file_path = media_file_path.file(media_file.file_name.clone());
+    let file_path = media_file_path.file(&media_file.file_name);
     let temp_path = temp_store.local_path(&file_path);
 
     match metadata(&temp_path).await {
@@ -724,7 +724,7 @@ async fn build_alternate_files<F: FileStore>(
                 return Err(Error::from(e));
             }
 
-            remote_store.copy(&file_path, &temp_path).await?;
+            remote_store.pull(&file_path, &temp_path).await?;
         }
     };
 

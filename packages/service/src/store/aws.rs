@@ -147,7 +147,7 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
-    async fn copy(&self, path: &FilePath, target: &Path) -> Result {
+    async fn pull(&self, path: &FilePath, target: &Path) -> Result {
         trace!(path=%path, "Downloading object");
 
         if let Some(parent) = target.parent() {
@@ -177,5 +177,9 @@ impl FileStore for AwsClient {
         io::copy(&mut reader, &mut file).await?;
 
         Ok(())
+    }
+
+    async fn push(&self, source: &Path, path: &FilePath) -> Result {
+        todo!();
     }
 }

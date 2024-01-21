@@ -19,6 +19,7 @@ pub(crate) mod path;
 
 use db::DbConnection;
 use db::{connect, DbPool};
+use tempfile::NamedTempFile;
 use tokio::fs;
 use tracing::instrument;
 
@@ -31,7 +32,9 @@ pub trait FileStore {
 
     async fn delete(&self, path: &ResourcePath) -> Result;
 
-    async fn copy(&self, path: &FilePath, target: &Path) -> Result;
+    async fn pull(&self, path: &FilePath, target: &Path) -> Result;
+
+    async fn push(&self, source: &Path, path: &FilePath) -> Result;
 }
 
 pub(crate) struct DiskStore {
@@ -46,6 +49,22 @@ impl DiskStore {
         }
 
         local_path
+    }
+
+    pub(crate) async fn copy_from_temp(&self, temp_file: NamedTempFile, path: &FilePath) -> Result {
+        let target = self.local_path(path);
+
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).await?;
+        }
+
+        temp_file
+            .persist(target)
+            .map_err(|e| crate::Error::Unknown {
+                message: e.to_string(),
+            })?;
+
+        Ok(())
     }
 }
 
@@ -126,7 +145,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
-    async fn copy(&self, path: &FilePath, target: &Path) -> Result {
+    async fn pull(&self, path: &FilePath, target: &Path) -> Result {
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).await?;
         }
@@ -136,6 +155,16 @@ impl FileStore for DiskStore {
         fs::copy(&local, target).await?;
 
         Ok(())
+    }
+
+    async fn push(&self, source: &Path, path: &FilePath) -> Result {
+        let target = self.local_path(path);
+
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).await?;
+        }
+
+        todo!();
     }
 }
 

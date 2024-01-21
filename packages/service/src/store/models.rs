@@ -15,7 +15,7 @@ use typeshare::typeshare;
 use super::{
     aws::AwsClient,
     db::{functions::media_view, search::FilterGen},
-    path::{FilePath, MediaFilePath},
+    path::{FilePath, MediaFilePath, MediaItemPath},
     DbConnection,
 };
 use super::{
@@ -944,6 +944,13 @@ impl MediaItem {
 
         self.datetime = media_datetime(self, media_file);
     }
+
+    pub(crate) fn path(&self) -> MediaItemPath {
+        MediaItemPath {
+            catalog: self.catalog.clone(),
+            item: self.id.clone(),
+        }
+    }
 }
 
 #[derive(Queryable, Insertable, Clone, Debug)]
@@ -1175,7 +1182,7 @@ impl MediaFile {
             .await?;
 
         for alternate in alternates {
-            let alternate_path = media_file_path.file(alternate.file_name.clone());
+            let alternate_path = media_file_path.file(&alternate.file_name);
 
             alternate.delete(conn, storage, &alternate_path).await?;
         }

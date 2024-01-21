@@ -12,11 +12,14 @@ use super::{
     util::choose_alternate,
     ApiErrorCode, ApiResult, AppState,
 };
-use crate::store::{
-    metadata::ISO_FORMAT,
-    models::{self, AlternateFileType, Location},
-};
 use crate::Error;
+use crate::{
+    shared::short_id,
+    store::{
+        metadata::ISO_FORMAT,
+        models::{self, AlternateFileType, Location},
+    },
+};
 
 #[derive(Serialize)]
 struct ApiResponse {
@@ -75,7 +78,7 @@ async fn download_handler(
         Err(e) => return Err(e.into()),
     };
 
-    let file_path = media_file_path.file(file_name);
+    let file_path = media_file_path.file(&file_name);
     let uri = storage
         .online_uri(&file_path, &mimetype, Some(&filename))
         .await?;
@@ -451,6 +454,14 @@ async fn create_media(
                 }
 
                 media_item.add_tags(conn, &tags).await?;
+
+                let file_id = short_id("I");
+                let path = media_item.path().media_file_path(&file_id).file("original");
+
+                conn.config()
+                    .temp_store()
+                    .copy_from_temp(data.file.file, &path)
+                    .await?;
 
                 Ok(MediaCreateResponse { id })
             }

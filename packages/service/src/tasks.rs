@@ -233,7 +233,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     to_prune.insert(media_file_path.clone());
 
                     if local_files.contains_key(METADATA_FILE) {
-                        let metadata_file = local_store.local_path(&media_file_path.file(METADATA_FILE.to_owned()));
+                        let metadata_file = local_store.local_path(&media_file_path.file(METADATA_FILE));
                         let metadata = match parse_metadata(&metadata_file).await {
                             Ok(m) => m,
                             Err(e) => {

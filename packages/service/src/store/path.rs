@@ -100,10 +100,12 @@ pub struct MediaItemPath {
     pub(crate) item: String,
 }
 
-impl FilePath {
-    pub fn catalog_path(&self) -> CatalogPath {
-        CatalogPath {
+impl MediaItemPath {
+    pub(crate) fn media_file_path(&self, media_file: &str) -> MediaFilePath {
+        MediaFilePath {
             catalog: self.catalog.clone(),
+            item: self.item.clone(),
+            file: media_file.to_owned(),
         }
     }
 }
@@ -135,21 +137,12 @@ impl MediaFilePath {
         }
     }
 
-    pub(crate) fn file(&self, file_name: String) -> FilePath {
+    pub(crate) fn file(&self, file_name: &str) -> FilePath {
         FilePath {
             catalog: self.catalog.clone(),
             item: self.item.clone(),
             file: self.file.clone(),
-            file_name,
-        }
-    }
-}
-
-impl FilePath {
-    pub fn media_item_path(&self) -> MediaItemPath {
-        MediaItemPath {
-            catalog: self.catalog.clone(),
-            item: self.item.clone(),
+            file_name: file_name.to_owned(),
         }
     }
 }
@@ -175,6 +168,19 @@ pub struct FilePath {
 }
 
 impl FilePath {
+    pub fn catalog_path(&self) -> CatalogPath {
+        CatalogPath {
+            catalog: self.catalog.clone(),
+        }
+    }
+
+    pub fn media_item_path(&self) -> MediaItemPath {
+        MediaItemPath {
+            catalog: self.catalog.clone(),
+            item: self.item.clone(),
+        }
+    }
+
     pub fn media_file_path(&self) -> MediaFilePath {
         MediaFilePath {
             catalog: self.catalog.clone(),
