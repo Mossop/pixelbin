@@ -1,12 +1,11 @@
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
 use actix_web::{get, http::header, post, web, HttpResponse, Responder};
 use chrono::NaiveDateTime;
-use futures::StreamExt;
 use scoped_futures::ScopedFutureExt;
-use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
-use tracing::{instrument, trace, warn};
+use tracing::{instrument, warn};
 
 use super::{
     auth::{MaybeSession, Session},
@@ -14,7 +13,7 @@ use super::{
     ApiErrorCode, ApiResult, AppState,
 };
 use crate::store::{
-    metadata::{deserialize_datetime, ISO_FORMAT},
+    metadata::ISO_FORMAT,
     models::{self, AlternateFileType, Location},
 };
 use crate::Error;
@@ -382,8 +381,10 @@ struct MediaPerson {
 struct MediaCreate {
     catalog: String,
     media: Option<MediaMetadata>,
-    tags: Option<Vec<Vec<String>>>,
-    people: Option<Vec<MediaPerson>>,
+    #[serde(default)]
+    tags: Vec<Vec<String>>,
+    #[serde(default)]
+    people: Vec<MediaPerson>,
 }
 
 #[derive(MultipartForm)]
@@ -424,7 +425,14 @@ async fn create_media(
 
                 let id = media_item.id.clone();
 
-                models::MediaItem::upsert(conn, &[media_item]).await?;
+                models::MediaItem::upsert(conn, &[media_item.clone()]).await?;
+
+                let mut tags = Vec::new();
+                for tag_name in &data.json.tags {
+                    tags.push(models::Tag::get_or_create(conn, &catalog.id, tag_name).await?);
+                }
+
+                media_item.add_tags(conn, &tags).await?;
 
                 Ok(MediaCreateResponse { id })
             }

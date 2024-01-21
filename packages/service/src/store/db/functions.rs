@@ -13,6 +13,11 @@ sql_function!(
     fn coalesce<T: SingleValue>(a: Nullable<T>, b: Nullable<T>) -> Nullable<T>
 );
 
+sql_function!(
+    #[sql_name = "LOWER"]
+    fn lower(a: Text) -> Text
+);
+
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum DateComponent {
     Year,

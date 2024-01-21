@@ -23,7 +23,11 @@ use super::{
     metadata::{lookup_timezone, media_datetime},
 };
 use super::{db::schema::*, db::search::CompoundQueryItem};
-use crate::{shared::long_id, Error, FileStore, Result};
+use crate::{
+    shared::{long_id, short_id},
+    store::db::functions::lower,
+    Error, FileStore, Result,
+};
 
 struct Batch<'a, T> {
     slice: &'a [T],
@@ -344,7 +348,8 @@ impl Person {
 }
 
 #[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
+#[diesel(table_name = tag)]
 pub(crate) struct Tag {
     pub(crate) id: String,
     pub(crate) parent: Option<String>,
@@ -364,6 +369,74 @@ impl Tag {
             .order(tag::name.asc())
             .load::<Tag>(conn)
             .await?)
+    }
+
+    pub(crate) async fn get_or_create(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+        hierarchy: &[String],
+    ) -> Result<Tag> {
+        conn.assert_in_transaction();
+
+        assert!(!hierarchy.is_empty());
+
+        let mut current_tag = match tag::table
+            .filter(tag::catalog.eq(catalog))
+            .filter(lower(tag::name).eq(&hierarchy[0].to_lowercase()))
+            .select(tag::all_columns)
+            .get_result::<Tag>(conn)
+            .await
+            .optional()?
+        {
+            Some(t) => t,
+            None => {
+                let new_tag = Tag {
+                    id: short_id("T"),
+                    parent: None,
+                    name: hierarchy[0].clone(),
+                    catalog: catalog.to_owned(),
+                };
+
+                insert_into(tag::table)
+                    .values(&new_tag)
+                    .execute(conn)
+                    .await?;
+
+                new_tag
+            }
+        };
+
+        let i = 1;
+        while i < hierarchy.len() {
+            current_tag = match tag::table
+                .filter(tag::catalog.eq(catalog))
+                .filter(tag::parent.eq(&current_tag.id))
+                .filter(lower(tag::name).eq(&hierarchy[i].to_lowercase()))
+                .select(tag::all_columns)
+                .get_result::<Tag>(conn)
+                .await
+                .optional()?
+            {
+                Some(t) => t,
+                None => {
+                    let new_tag = Tag {
+                        id: short_id("T"),
+                        parent: Some(current_tag.id.clone()),
+                        name: hierarchy[i].clone(),
+                        catalog: catalog.to_owned(),
+                    };
+
+                    insert_into(tag::table)
+                        .values(&new_tag)
+                        .execute(conn)
+                        .await?;
+
+                    new_tag
+                }
+            }
+        }
+
+        Ok(current_tag)
     }
 }
 
@@ -621,6 +694,14 @@ fn clear_matching<T: PartialEq>(field: &mut Option<T>, reference: &Option<T>) {
     }
 }
 
+#[derive(Insertable, Clone, Debug)]
+#[diesel(table_name = media_tag)]
+struct MediaTag {
+    catalog: String,
+    media: String,
+    tag: String,
+}
+
 #[derive(Queryable, Insertable, Clone, Debug)]
 #[diesel(table_name = media_item)]
 pub struct MediaItem {
@@ -763,6 +844,25 @@ impl MediaItem {
                 .execute(conn)
                 .await?;
         }
+
+        Ok(())
+    }
+
+    pub(crate) async fn add_tags(&self, conn: &mut DbConnection<'_>, tags: &[Tag]) -> Result {
+        let records: Vec<MediaTag> = tags
+            .iter()
+            .map(|tag| MediaTag {
+                catalog: self.catalog.clone(),
+                media: self.id.clone(),
+                tag: tag.id.clone(),
+            })
+            .collect();
+
+        diesel::insert_into(media_tag::table)
+            .values(records)
+            .on_conflict_do_nothing()
+            .execute(conn)
+            .await?;
 
         Ok(())
     }
