@@ -264,7 +264,7 @@ function API:getMedia(ids)
       return
     end
 
-    local success, result = self:GET("media/get?id=" .. idlist)
+    local success, result = self:GET("media/" .. idlist)
     if not success then
       resultCount = resultCount + count
       return
