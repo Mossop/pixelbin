@@ -38,7 +38,7 @@ pub(crate) const METADATA_FILE: &str = "metadata.json";
 pub(crate) const PROCESS_VERSION: i32 = 4;
 
 const EXIF_FORMAT: &str = "%Y:%m:%d %H:%M:%S%.f";
-const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
+pub(crate) const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
 pub(crate) struct Alternate {
     alt_type: AlternateFileType,

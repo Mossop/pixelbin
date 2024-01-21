@@ -638,7 +638,7 @@ function API:upload(photo, publishSettings, filePath, remoteId)
   end
 
   local params = {
-    { name = "json", value = data },
+    { name = "json", value = data, contentType = "application/json" },
     { name = "file", fileName = photo:getFormattedMetadata("fileName"), filePath = filePath }
   }
 

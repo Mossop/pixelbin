@@ -6,7 +6,10 @@ use tracing::instrument;
 
 use super::{auth::Session, ApiResult, AppState};
 use crate::{
-    server::media::{GetMediaRequest, GetMediaResponse},
+    server::{
+        media::{GetMediaRequest, GetMediaResponse},
+        ApiErrorCode,
+    },
     store::models,
 };
 
@@ -30,7 +33,7 @@ async fn create_album(
     request: web::Json<CreateAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
     eprintln!("{request:#?}");
-    todo!();
+    return Err(ApiErrorCode::NotImplemented);
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -47,7 +50,7 @@ async fn edit_album(
     request: web::Json<EditAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
     eprintln!("{request:#?}");
-    todo!();
+    return Err(ApiErrorCode::NotImplemented);
 }
 
 #[post("/api/album/delete")]
@@ -58,7 +61,7 @@ async fn delete_album(
     albums: web::Json<Vec<String>>,
 ) -> ApiResult<web::Json<models::Album>> {
     eprintln!("{albums:#?}");
-    todo!();
+    return Err(ApiErrorCode::NotImplemented);
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -96,7 +99,7 @@ async fn update_relations(
     updates: web::Json<Vec<RelationChange>>,
 ) -> ApiResult<web::Json<models::Album>> {
     eprintln!("{updates:#?}");
-    todo!();
+    return Err(ApiErrorCode::NotImplemented);
 }
 
 fn default_true() -> bool {

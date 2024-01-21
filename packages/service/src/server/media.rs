@@ -1,17 +1,22 @@
+use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
 use actix_web::{get, http::header, post, web, HttpResponse, Responder};
 use chrono::NaiveDateTime;
+use futures::StreamExt;
 use scoped_futures::ScopedFutureExt;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
-use tracing::instrument;
+use tracing::{instrument, trace, warn};
 
 use super::{
     auth::{MaybeSession, Session},
     util::choose_alternate,
-    ApiResult, AppState,
+    ApiErrorCode, ApiResult, AppState,
 };
-use crate::store::models::{self, AlternateFileType, Location};
+use crate::store::{
+    metadata::{deserialize_datetime, ISO_FORMAT},
+    models::{self, AlternateFileType, Location},
+};
 use crate::Error;
 
 #[derive(Serialize)]
@@ -241,41 +246,130 @@ async fn get_media(
 }
 
 #[post("/api/media/delete")]
-#[instrument(err, skip(app_state, session, media_ids))]
+#[instrument(err, skip(app_state, session))]
 async fn delete_media(
     app_state: web::Data<AppState>,
     session: Session,
     media_ids: web::Json<Vec<String>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
     eprintln!("{media_ids:#?}");
-    todo!();
+    return Err(ApiErrorCode::NotImplemented);
+}
+
+#[derive(Default, Clone, Debug, Deserialize)]
+#[serde(from = "Option<T>")]
+enum MetadataValue<T> {
+    #[default]
+    Undefined,
+    Null,
+    Value(T),
+}
+
+impl<T> From<Option<T>> for MetadataValue<T> {
+    fn from(opt: Option<T>) -> Self {
+        match opt {
+            Some(v) => Self::Value(v),
+            None => Self::Null,
+        }
+    }
 }
 
 #[derive(Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 struct MediaMetadata {
-    filename: Option<String>,
-    title: Option<String>,
-    description: Option<String>,
-    label: Option<String>,
-    category: Option<String>,
-    location: Option<String>,
-    city: Option<String>,
-    state: Option<String>,
-    country: Option<String>,
-    make: Option<String>,
-    model: Option<String>,
-    lens: Option<String>,
-    photographer: Option<String>,
-    shutter_speed: Option<String>,
-    orientation: Option<i32>,
-    iso: Option<i32>,
-    rating: Option<i32>,
-    longitude: Option<f32>,
-    latitude: Option<f32>,
-    altitude: Option<f32>,
-    aperture: Option<f32>,
-    focal_length: Option<f32>,
-    taken: Option<NaiveDateTime>,
+    #[serde(default)]
+    filename: MetadataValue<String>,
+    #[serde(default)]
+    title: MetadataValue<String>,
+    #[serde(default)]
+    description: MetadataValue<String>,
+    #[serde(default)]
+    label: MetadataValue<String>,
+    #[serde(default)]
+    category: MetadataValue<String>,
+    #[serde(default)]
+    location: MetadataValue<String>,
+    #[serde(default)]
+    city: MetadataValue<String>,
+    #[serde(default)]
+    state: MetadataValue<String>,
+    #[serde(default)]
+    country: MetadataValue<String>,
+    #[serde(default)]
+    make: MetadataValue<String>,
+    #[serde(default)]
+    model: MetadataValue<String>,
+    #[serde(default)]
+    lens: MetadataValue<String>,
+    #[serde(default)]
+    photographer: MetadataValue<String>,
+    #[serde(default)]
+    shutter_speed: MetadataValue<String>,
+    #[serde(default)]
+    orientation: MetadataValue<i32>,
+    #[serde(default)]
+    iso: MetadataValue<i32>,
+    #[serde(default)]
+    rating: MetadataValue<i32>,
+    #[serde(default)]
+    longitude: MetadataValue<f32>,
+    #[serde(default)]
+    latitude: MetadataValue<f32>,
+    #[serde(default)]
+    altitude: MetadataValue<f32>,
+    #[serde(default)]
+    aperture: MetadataValue<f32>,
+    #[serde(default)]
+    focal_length: MetadataValue<f32>,
+    #[serde(default)]
+    taken: MetadataValue<String>,
+}
+
+macro_rules! apply_metadata {
+    ($source:ident, $target:ident, $field:ident) => {
+        match $source.$field {
+            MetadataValue::Undefined => (),
+            MetadataValue::Null => $target.$field = None,
+            MetadataValue::Value(ref v) => $target.$field = Some(v.clone()),
+        }
+    };
+}
+
+impl MediaMetadata {
+    fn apply(&self, media_item: &mut models::MediaItem) {
+        apply_metadata!(self, media_item, filename);
+        apply_metadata!(self, media_item, title);
+        apply_metadata!(self, media_item, description);
+        apply_metadata!(self, media_item, label);
+        apply_metadata!(self, media_item, category);
+        apply_metadata!(self, media_item, location);
+        apply_metadata!(self, media_item, city);
+        apply_metadata!(self, media_item, state);
+        apply_metadata!(self, media_item, country);
+        apply_metadata!(self, media_item, make);
+        apply_metadata!(self, media_item, model);
+        apply_metadata!(self, media_item, lens);
+        apply_metadata!(self, media_item, photographer);
+        apply_metadata!(self, media_item, shutter_speed);
+        apply_metadata!(self, media_item, orientation);
+        apply_metadata!(self, media_item, iso);
+        apply_metadata!(self, media_item, rating);
+        apply_metadata!(self, media_item, longitude);
+        apply_metadata!(self, media_item, latitude);
+        apply_metadata!(self, media_item, altitude);
+        apply_metadata!(self, media_item, aperture);
+        apply_metadata!(self, media_item, focal_length);
+
+        match self.taken {
+            MetadataValue::Undefined => (),
+            MetadataValue::Null => media_item.taken = None,
+            MetadataValue::Value(ref v) => match NaiveDateTime::parse_and_remainder(&v, ISO_FORMAT)
+            {
+                Ok((dt, _)) => media_item.taken = Some(dt),
+                Err(e) => warn!(date = v, "Invalid date format"),
+            },
+        }
+    }
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -288,36 +382,74 @@ struct MediaPerson {
 struct MediaCreate {
     catalog: String,
     media: Option<MediaMetadata>,
-    tags: Option<Vec<String>>,
+    tags: Option<Vec<Vec<String>>>,
     people: Option<Vec<MediaPerson>>,
 }
 
+#[derive(MultipartForm)]
+struct MediaUpload {
+    json: MultipartJson<MediaCreate>,
+    file: TempFile,
+}
+
+#[derive(Serialize, Clone, Debug)]
+struct MediaCreateResponse {
+    id: String,
+}
+
 #[post("/api/media/create")]
-#[instrument(err, skip(app_state, session, media))]
+#[instrument(err, skip_all)]
 async fn create_media(
     app_state: web::Data<AppState>,
     session: Session,
-    media: web::Json<MediaCreate>,
-) -> ApiResult<web::Json<ApiResponse>> {
-    eprintln!("{media:#?}");
-    todo!();
+    data: MultipartForm<MediaUpload>,
+) -> ApiResult<web::Json<MediaCreateResponse>> {
+    let data = data.into_inner();
+
+    let response = app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                let catalog =
+                    models::Catalog::get_for_user(conn, &session.user.email, &data.json.catalog)
+                        .await?;
+
+                let mut media_item = models::MediaItem::new(&catalog.id);
+
+                if let Some(ref metadata) = data.json.media {
+                    metadata.apply(&mut media_item);
+                }
+
+                media_item.sync_with_file(None);
+
+                let id = media_item.id.clone();
+
+                models::MediaItem::upsert(conn, &[media_item]).await?;
+
+                Ok(MediaCreateResponse { id })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
 }
 
 #[derive(Deserialize, Clone, Debug)]
 struct MediaUpdate {
     id: String,
     media: Option<MediaMetadata>,
-    tags: Option<Vec<String>>,
+    tags: Option<Vec<Vec<String>>>,
     people: Option<Vec<MediaPerson>>,
 }
 
 #[post("/api/media/edit")]
-#[instrument(err, skip(app_state, session, media))]
+#[instrument(err, skip_all)]
 async fn edit_media(
     app_state: web::Data<AppState>,
     session: Session,
     media: web::Json<MediaUpdate>,
 ) -> ApiResult<web::Json<ApiResponse>> {
     eprintln!("{media:#?}");
-    todo!();
+    return Err(ApiErrorCode::NotImplemented);
 }

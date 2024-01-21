@@ -1,54 +1,53 @@
 use std::io;
 
+#[cfg(feature = "webserver")]
+use actix_multipart::MultipartError;
 use diesel::ConnectionError;
 use diesel_async::pooled_connection::deadpool::{BuildError, PoolError};
-use handlebars::RenderError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Database Error: {source}")]
+    #[error("Database error: {source}")]
     DbConnectionError {
         #[from]
         source: ConnectionError,
     },
-    #[error("Database Error: {source}")]
+    #[error("Database error: {source}")]
     DbPoolBuildError {
         #[from]
         source: BuildError,
     },
-    #[error("Database Error: {source}")]
+    #[error("Database error: {source}")]
     DbPoolError {
         #[from]
         source: PoolError,
     },
-    #[error("Database Error: {source}")]
+    #[error("Database error: {source}")]
     DbQueryError { source: diesel::result::Error },
-    #[error("Database Error: {message}")]
+    #[error("Database error: {message}")]
     DbMigrationError { message: String },
-    #[error("JSON Error: {source}")]
+    #[error("JSON error: {source}")]
     JsonError {
         #[from]
         source: serde_json::Error,
     },
     #[error("Item requested does not exist")]
     NotFound,
-    #[error("Config File Error: {message}")]
+    #[error("Config file error: {message}")]
     ConfigError { message: String },
-    #[error("IO Error: {source}")]
+    #[error("IO error: {source}")]
     IoError {
         #[from]
         source: io::Error,
     },
-    #[error("Template Error: {source}")]
-    RenderError {
-        #[from]
-        source: RenderError,
-    },
-    #[error("S3 Error: {message}")]
+    #[error("S3 error: {message}")]
     S3Error { message: String },
     #[error("Unexpected path")]
     UnexpectedPath { path: String },
+    #[cfg(feature = "webserver")]
+    #[error("Invalid client data: {message}")]
+    InvalidData { message: String },
     #[error("Unknown error: {message}")]
     Unknown { message: String },
 }
@@ -64,3 +63,21 @@ impl From<diesel::result::Error> for Error {
 }
 
 pub type Result<T = ()> = std::result::Result<T, Error>;
+
+#[cfg(feature = "webserver")]
+impl From<MultipartError> for Error {
+    fn from(value: MultipartError) -> Self {
+        Error::InvalidData {
+            message: value.to_string(),
+        }
+    }
+}
+
+#[cfg(feature = "webserver")]
+impl From<actix_web::Error> for Error {
+    fn from(value: actix_web::Error) -> Self {
+        Error::InvalidData {
+            message: value.to_string(),
+        }
+    }
+}

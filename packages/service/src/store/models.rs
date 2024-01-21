@@ -23,7 +23,7 @@ use super::{
     metadata::{lookup_timezone, media_datetime},
 };
 use super::{db::schema::*, db::search::CompoundQueryItem};
-use crate::{Error, FileStore, Result};
+use crate::{shared::long_id, Error, FileStore, Result};
 
 struct Batch<'a, T> {
     slice: &'a [T],
@@ -283,6 +283,22 @@ impl Catalog {
             .order(catalog::name.asc())
             .load::<Catalog>(conn)
             .await?)
+    }
+
+    pub(crate) async fn get_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        catalog: &str,
+    ) -> Result<Catalog> {
+        user_catalog::table
+            .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(catalog::id.eq(catalog))
+            .select(catalog::all_columns)
+            .get_result::<Catalog>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
     }
 
     pub(crate) async fn get_for_user_with_count(
@@ -642,6 +658,44 @@ pub struct MediaItem {
 }
 
 impl MediaItem {
+    pub fn new(catalog: &str) -> Self {
+        let now = Utc::now();
+
+        Self {
+            id: long_id("M"),
+            deleted: false,
+            created: now,
+            updated: now,
+            filename: None,
+            title: None,
+            description: None,
+            label: None,
+            category: None,
+            location: None,
+            city: None,
+            state: None,
+            country: None,
+            make: None,
+            model: None,
+            lens: None,
+            photographer: None,
+            shutter_speed: None,
+            taken_zone: None,
+            orientation: None,
+            iso: None,
+            rating: None,
+            longitude: None,
+            latitude: None,
+            altitude: None,
+            aperture: None,
+            focal_length: None,
+            taken: None,
+            catalog: catalog.to_owned(),
+            media_file: None,
+            datetime: now,
+        }
+    }
+
     pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
         let items = media_item::table
             .left_outer_join(media_file::table.on(media_item::id.eq(media_file::media_item)))

@@ -26,7 +26,7 @@ enum ApiErrorCode {
     // LoginFailed,
     // InvalidData,
     NotFound,
-    // TemporaryFailure,
+    NotImplemented,
     // InvalidHost,
     InternalError(Error),
 }
@@ -39,6 +39,7 @@ impl Serialize for ApiErrorCode {
         let (error, message) = match self {
             ApiErrorCode::NotLoggedIn => ("NotLoggedIn", None),
             ApiErrorCode::NotFound => ("NotFound", None),
+            ApiErrorCode::NotImplemented => ("NotImplemented", None),
             ApiErrorCode::InternalError(error) => ("InternalError", Some(error.to_string())),
         };
 
@@ -58,6 +59,7 @@ impl Display for ApiErrorCode {
         match self {
             ApiErrorCode::NotLoggedIn => f.write_str("APIError: NotLoggedIn"),
             ApiErrorCode::NotFound => f.write_str("APIError: NotFound"),
+            ApiErrorCode::NotImplemented => f.write_str("APIError: NotImplemented"),
             ApiErrorCode::InternalError(error) => {
                 f.write_fmt(format_args!("APIError: InternalError: {}", error))
             }
@@ -74,7 +76,7 @@ impl ResponseError for ApiErrorCode {
             // ApiErrorCode::LoginFailed => 401,
             // ApiErrorCode::InvalidData => 400,
             ApiErrorCode::NotFound => StatusCode::NOT_FOUND,
-            // ApiErrorCode::TemporaryFailure => 503,
+            ApiErrorCode::NotImplemented => StatusCode::NOT_IMPLEMENTED,
             // ApiErrorCode::InvalidHost => 403,
             ApiErrorCode::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -89,18 +91,16 @@ impl ResponseError for ApiErrorCode {
 
 type ApiResult<T> = result::Result<T, ApiErrorCode>;
 
-impl From<Error> for ApiErrorCode {
-    fn from(value: Error) -> Self {
-        match value {
+impl<T> From<T> for ApiErrorCode
+where
+    T: Into<Error>,
+{
+    fn from(value: T) -> Self {
+        let error: Error = value.into();
+        match error {
             Error::NotFound => ApiErrorCode::NotFound,
             v => ApiErrorCode::InternalError(v),
         }
-    }
-}
-
-impl From<tokio::io::Error> for ApiErrorCode {
-    fn from(value: tokio::io::Error) -> Self {
-        ApiErrorCode::InternalError(Error::from(value))
     }
 }
 
