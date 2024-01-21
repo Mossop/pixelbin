@@ -286,8 +286,8 @@ impl<'a> DbConnection<'a> {
         Ok((user, token))
     }
 
-    pub(crate) async fn verify_token(&mut self, token: &str) -> Result<models::User> {
-        let mut user: models::User = auth_token::table
+    pub(crate) async fn verify_token(&mut self, token: &str) -> Result<Option<models::User>> {
+        let mut user: models::User = match auth_token::table
             .inner_join(user::table.on(user::email.eq(auth_token::email)))
             .filter(auth_token::token.eq(token))
             .filter(auth_token::expiry.is_null().or(auth_token::expiry.gt(now)))
@@ -295,7 +295,10 @@ impl<'a> DbConnection<'a> {
             .get_result::<models::User>(self)
             .await
             .optional()?
-            .ok_or_else(|| Error::NotFound)?;
+        {
+            Some(u) => u,
+            None => return Ok(None),
+        };
 
         user.last_login = Some(Utc::now());
 
@@ -312,7 +315,7 @@ impl<'a> DbConnection<'a> {
             .execute(self)
             .await?;
 
-        Ok(user)
+        Ok(Some(user))
     }
 
     pub(crate) async fn delete_token(&mut self, token: &str) -> Result {

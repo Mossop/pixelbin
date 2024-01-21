@@ -5,7 +5,7 @@ use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
-use tracing::{instrument, warn};
+use tracing::{instrument, trace, warn};
 
 use super::{
     auth::{MaybeSession, Session},

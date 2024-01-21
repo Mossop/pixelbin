@@ -95,7 +95,7 @@ impl FromRequest for MaybeSession {
                 })
                 .await?;
 
-            Ok(MaybeSession(Some(Session { user })))
+            Ok(MaybeSession(user.map(|user| Session { user })))
         })
     }
 }

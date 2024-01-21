@@ -371,6 +371,7 @@ impl Tag {
             .await?)
     }
 
+    #[instrument(skip(conn))]
     pub(crate) async fn get_or_create(
         conn: &mut DbConnection<'_>,
         catalog: &str,

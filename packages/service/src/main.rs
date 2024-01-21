@@ -139,7 +139,7 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
 
             filter
         }
-        Ok(s) => EnvFilter::from_env(s),
+        Ok(_) => EnvFilter::from_env("RUST_LOG"),
     };
 
     let formatter = tracing_subscriber::fmt::layer()
