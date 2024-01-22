@@ -18,7 +18,11 @@ use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 
+#[cfg(debug_assertions)]
 const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::TRACE)];
+
+#[cfg(not(debug_assertions))]
+const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::INFO)];
 
 #[derive(Args)]
 struct Stats;
