@@ -13,14 +13,11 @@ use super::{
     util::choose_alternate,
     ApiErrorCode, ApiResult, AppState,
 };
-use crate::Error;
-use crate::{
-    shared::short_id,
-    store::{
-        metadata::ISO_FORMAT,
-        models::{self, AlternateFileType, Location},
-    },
+use crate::store::{
+    metadata::ISO_FORMAT,
+    models::{self, AlternateFileType, Location},
 };
+use crate::Error;
 
 #[derive(Serialize)]
 struct ApiResponse {
@@ -456,8 +453,6 @@ async fn create_media(
 
                 media_item.add_tags(conn, &tags).await?;
 
-                let file_id = short_id("I");
-
                 let base_name = if let Some(ref name) = data.file.file_name {
                     if let Some((name, _)) = name.rsplit_once('.') {
                         name
@@ -471,12 +466,24 @@ async fn create_media(
                 let format = FileFormat::from_reader(data.file.file.as_file())?;
                 let file_name = format!("{base_name}.{}", format.extension());
 
-                let path = media_item.path().media_file_path(&file_id).file(&file_name);
+                let media_file = models::MediaFile::new(
+                    &id,
+                    &file_name,
+                    data.file.size as i32,
+                    format.media_type(),
+                );
+
+                let path = media_item
+                    .path()
+                    .media_file_path(&media_file.id)
+                    .file(&file_name);
 
                 conn.config()
                     .temp_store()
                     .copy_from_temp(data.file.file, &path)
                     .await?;
+
+                models::MediaFile::upsert(conn, &[media_file]).await?;
 
                 Ok(MediaCreateResponse { id })
             }

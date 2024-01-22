@@ -994,6 +994,46 @@ pub struct MediaFile {
 }
 
 impl MediaFile {
+    pub(crate) fn new(media_item: &str, file_name: &str, file_size: i32, mimetype: &str) -> Self {
+        Self {
+            id: short_id("I"),
+            uploaded: Utc::now(),
+            process_version: 0,
+            file_name: file_name.to_owned(),
+            file_size,
+            mimetype: mimetype.to_owned(),
+            width: 0,
+            height: 0,
+            duration: None,
+            frame_rate: None,
+            bit_rate: None,
+            filename: Some(file_name.to_owned()),
+            title: None,
+            description: None,
+            label: None,
+            category: None,
+            location: None,
+            city: None,
+            state: None,
+            country: None,
+            make: None,
+            model: None,
+            lens: None,
+            photographer: None,
+            shutter_speed: None,
+            orientation: None,
+            iso: None,
+            rating: None,
+            longitude: None,
+            latitude: None,
+            altitude: None,
+            aperture: None,
+            focal_length: None,
+            taken: None,
+            media_item: media_item.to_owned(),
+        }
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn list_newest(
         conn: &mut DbConnection<'_>,
@@ -1256,6 +1296,17 @@ impl AlternateFile {
                 (alternate, file_path)
             })
             .collect())
+    }
+
+    pub(crate) async fn list_for_media_file(
+        conn: &mut DbConnection<'_>,
+        media_file: &str,
+    ) -> Result<Vec<AlternateFile>> {
+        Ok(alternate_file::table
+            .filter(alternate_file::media_file.eq(media_file))
+            .select(alternate_file::all_columns)
+            .load::<AlternateFile>(conn)
+            .await?)
     }
 
     pub(crate) async fn list_for_user_media(

@@ -4,6 +4,7 @@ use std::io;
 use actix_multipart::MultipartError;
 use diesel::ConnectionError;
 use diesel_async::pooled_connection::deadpool::{BuildError, PoolError};
+use image::ImageError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -48,6 +49,11 @@ pub enum Error {
     #[cfg(feature = "webserver")]
     #[error("Invalid client data: {message}")]
     InvalidData { message: String },
+    #[error("Image error: {source}")]
+    ImageError {
+        #[from]
+        source: ImageError,
+    },
     #[error("Unknown error: {message}")]
     Unknown { message: String },
 }

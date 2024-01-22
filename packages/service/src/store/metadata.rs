@@ -1,6 +1,5 @@
 use std::{
     cmp::{self, max, min},
-    collections::HashMap,
     io::ErrorKind,
     path::Path,
     result,
@@ -9,12 +8,16 @@ use std::{
 
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Timelike, Utc};
 use chrono_tz::Tz;
+use image::io::Reader;
 use lazy_static::lazy_static;
 use lexical_parse_float::FromLexical;
 use mime::Mime;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{from_str, Value};
-use tokio::fs::{metadata, read_to_string};
+use serde_json::{from_slice, from_str, Value};
+use tokio::{
+    fs::{self, metadata, read_to_string},
+    process::Command,
+};
 use tracing::{error, info, instrument, warn};
 use tzf_rs::DefaultFinder;
 
@@ -24,7 +27,10 @@ use super::{
     path::{MediaFilePath, ResourcePath},
 };
 use crate::{
-    store::models::{AlternateFile, Storage},
+    store::{
+        models::{AlternateFile, Storage},
+        path::FilePath,
+    },
     Config, Error, FileStore, Result,
 };
 
@@ -163,13 +169,28 @@ fn ignore_empty(st: Option<String>) -> Option<String> {
     st.and_then(|s| if s.is_empty() { None } else { Some(s) })
 }
 
-fn parse_prefix(st: &str) -> Option<f32> {
-    match f32::from_lexical_partial(st.as_bytes()) {
-        Ok((val, _)) => Some(val),
-        Err(_) => {
-            warn!(value = st, "Failed to parse numeric prefix");
-            None
-        }
+fn deserialize_prefixed_float<'de, D>(deserializer: D) -> result::Result<Option<f32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum FloatOrString {
+        Float(f32),
+        String(String),
+    }
+
+    let f_or_s = FloatOrString::deserialize(deserializer)?;
+
+    match f_or_s {
+        FloatOrString::Float(float) => Ok(Some(float)),
+        FloatOrString::String(str) => match f32::from_lexical_partial(str.as_bytes()) {
+            Ok((val, _)) => Ok(Some(val)),
+            Err(_) => {
+                warn!(value = str, "Failed to parse numeric prefix");
+                Ok(None)
+            }
+        },
     }
 }
 
@@ -407,50 +428,39 @@ pub(crate) struct Metadata {
 }
 
 impl Metadata {
-    pub(crate) fn media_file(&self, media_item: &str, id: &str) -> MediaFile {
+    pub(crate) fn recover_media_file(&self, media_item: &str, id: &str) -> MediaFile {
         let mimetype = if let Ok(mime) = Mime::from_str(&self.mimetype) {
             mime.essence_str().to_owned()
         } else {
             self.mimetype.clone()
         };
 
-        let mut media_file = MediaFile {
-            id: id.to_owned(),
-            uploaded: self.uploaded,
-            process_version: 0,
-            file_name: self.file_name.clone(),
-            file_size: self.file_size,
-            mimetype,
-            width: self.width,
-            height: self.height,
-            duration: self.duration,
-            frame_rate: self.frame_rate,
-            bit_rate: self.bit_rate,
-            filename: Some(self.file_name.clone()),
-            title: None,
-            description: None,
-            label: None,
-            category: None,
-            location: None,
-            city: None,
-            state: None,
-            country: None,
-            make: None,
-            model: None,
-            lens: None,
-            photographer: None,
-            shutter_speed: None,
-            orientation: None,
-            iso: None,
-            rating: None,
-            longitude: None,
-            latitude: None,
-            altitude: None,
-            aperture: None,
-            focal_length: None,
-            taken: None,
-            media_item: media_item.to_owned(),
+        let mut media_file = MediaFile::new(media_item, &self.file_name, self.file_size, &mimetype);
+        media_file.id = id.to_owned();
+
+        self.apply_to_media_file(&mut media_file);
+
+        media_file
+    }
+
+    pub(crate) fn apply_to_media_file(&self, media_file: &mut MediaFile) {
+        media_file.uploaded = self.uploaded;
+        media_file.process_version = 0;
+        media_file.file_name = self.file_name.clone();
+        media_file.file_size = self.file_size;
+
+        media_file.mimetype = if let Ok(mime) = Mime::from_str(&self.mimetype) {
+            mime.essence_str().to_owned()
+        } else {
+            self.mimetype.clone()
         };
+
+        media_file.width = self.width;
+        media_file.height = self.height;
+        media_file.duration = self.duration;
+        media_file.frame_rate = self.frame_rate;
+        media_file.bit_rate = self.bit_rate;
+        media_file.filename = Some(self.file_name.clone());
 
         // serde_aux doesn't work with converting directly from a Value so roundtrip
         // through a serialized string.
@@ -471,7 +481,7 @@ impl Metadata {
 
                 media_file.longitude = exif.gps_longitude.map(|n| n as f32);
                 media_file.latitude = exif.gps_latitude.map(|n| n as f32);
-                media_file.altitude = exif.gps_altitude.and_then(|n| parse_prefix(&n));
+                media_file.altitude = exif.gps_altitude;
 
                 media_file.location = ignore_empty(
                     exif.location
@@ -534,7 +544,7 @@ impl Metadata {
                         .cloned(),
                 );
                 media_file.iso = exif.iso;
-                media_file.focal_length = exif.focal_length.as_deref().and_then(parse_prefix);
+                media_file.focal_length = exif.focal_length;
 
                 media_file.rating = exif
                     .rating_percent
@@ -542,11 +552,9 @@ impl Metadata {
                     .or(exif.rating.map(|r| max(0, min(5, r))))
             }
             Err(e) => {
-                warn!(media_item=media_item, media_file=id, error=?e, "Failed to parse EXIF data")
+                warn!(media_item=media_file.media_item, media_file=media_file.id, error=?e, "Failed to parse EXIF data")
             }
         }
-
-        media_file
     }
 }
 
@@ -601,8 +609,12 @@ pub(crate) struct Exif {
     pub(crate) gps_latitude: Option<f64>,
     #[serde(default, rename = "GPSLongitude", deserialize_with = "deserialize_gps")]
     pub(crate) gps_longitude: Option<f64>,
-    #[serde(default, rename = "GPSAltitude", deserialize_with = "number_as_string")]
-    pub(crate) gps_altitude: Option<String>,
+    #[serde(
+        default,
+        rename = "GPSAltitude",
+        deserialize_with = "deserialize_prefixed_float"
+    )]
+    pub(crate) gps_altitude: Option<f32>,
 
     pub(crate) title: Option<String>,
 
@@ -659,7 +671,8 @@ pub(crate) struct Exif {
     #[serde(rename = "ISO")]
     pub(crate) iso: Option<i32>,
 
-    pub(crate) focal_length: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_prefixed_float")]
+    pub(crate) focal_length: Option<f32>,
 
     pub(crate) rating_percent: Option<f32>,
     pub(crate) rating: Option<i32>,
@@ -685,65 +698,170 @@ impl Exif {
     }
 }
 
+pub(crate) async fn extract_exif_data(local_file: &Path) -> Result<Value> {
+    let output = Command::new("exiftool")
+        .arg("-n")
+        .arg("-struct")
+        .arg("-c")
+        .arg("%+.6f")
+        .arg("-json")
+        .arg(local_file)
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Err(Error::Unknown {
+            message: "Failed to execute exiftool".to_string(),
+        });
+    }
+
+    let mut results: Vec<Value> = from_slice(&output.stdout)?;
+    if results.len() == 1 {
+        Ok(results.remove(0))
+    } else {
+        Err(Error::Unknown {
+            message: format!("exiftool returned {} results", results.len()),
+        })
+    }
+}
+
 pub(crate) async fn parse_metadata(metadata_file: &Path) -> Result<Metadata> {
     let str = read_to_string(metadata_file).await?;
     Ok(from_str::<Metadata>(&str)?)
 }
 
-pub(crate) async fn process_media(config: &Config, file_path: &MediaFilePath) -> Result<MediaFile> {
-    let metadata_file = config
-        .local_store()
-        .local_path(file_path)
-        .join(METADATA_FILE);
-    let metadata = parse_metadata(&metadata_file).await?;
-
-    Ok(metadata.media_file(&file_path.item, &file_path.file))
-}
-
-async fn build_alternate_files<F: FileStore>(
-    conn: &mut DbConnection<'_>,
-    media_file: &MediaFile,
-    media_file_path: &MediaFilePath,
-    remote_store: &F,
-    alternates: &[Alternate],
-) -> Result {
-    let temp_store = conn.config().temp_store();
-    let file_path = media_file_path.file(&media_file.file_name);
-    let temp_path = temp_store.local_path(&file_path);
-
-    match metadata(&temp_path).await {
+async fn file_exists(path: &Path) -> Result<bool> {
+    match metadata(path).await {
         Ok(m) => {
             if !m.is_file() {
                 return Err(Error::UnexpectedPath {
-                    path: file_path.to_string(),
+                    path: path.display().to_string(),
                 });
             }
+
+            Ok(true)
         }
         Err(e) => {
             if e.kind() != ErrorKind::NotFound {
                 return Err(Error::from(e));
             }
 
-            remote_store.pull(&file_path, &temp_path).await?;
+            Ok(false)
         }
-    };
+    }
+}
 
-    let mut alternate_files = Vec::new();
-    for alternate in alternates {
-        alternate_files.push(
-            alternate
-                .build(conn, media_file, media_file_path, remote_store, &temp_path)
-                .await?,
-        );
+async fn ensure_local_copy<S: FileStore>(
+    file_path: &FilePath,
+    temp_path: &Path,
+    remote_store: &S,
+) -> Result {
+    if !file_exists(temp_path).await? {
+        remote_store.pull(file_path, temp_path).await?;
     }
 
-    AlternateFile::upsert(conn, &alternate_files).await?;
+    Ok(())
+}
+
+#[instrument(skip(conn, media_file, remote_store))]
+pub(crate) async fn reprocess_media_file<S: FileStore>(
+    conn: &mut DbConnection<'_>,
+    media_file: &mut MediaFile,
+    media_file_path: &MediaFilePath,
+    remote_store: &S,
+    build_alternates: bool,
+) -> Result<bool> {
+    let local_store = conn.config().local_store();
+    let temp_store = conn.config().temp_store();
+    let file_path = media_file_path.file(&media_file.file_name);
+    let temp_path = temp_store.local_path(&file_path);
+
+    let mut updated = false;
+
+    if media_file.process_version != PROCESS_VERSION {
+        let metadata_path = local_store.local_path(&media_file_path.file(METADATA_FILE));
+
+        let metadata = if file_exists(&metadata_path).await? {
+            parse_metadata(&metadata_path).await?
+        } else {
+            ensure_local_copy(&file_path, &temp_path, remote_store).await?;
+
+            let exif = extract_exif_data(&temp_path).await?;
+            let img_reader = Reader::open(&temp_path)?.with_guessed_format()?;
+
+            let mimetype = if let Some(format) = img_reader.format() {
+                format.to_mime_type().to_owned()
+            } else {
+                return Err(Error::Unknown {
+                    message: "Unknown image format".to_string(),
+                });
+            };
+
+            let (width, height) = img_reader.into_dimensions()?;
+
+            let stats = metadata(&temp_path).await?;
+
+            let metadata = Metadata {
+                exif,
+                file_name: media_file.file_name.clone(),
+                file_size: stats.len() as i32,
+                width: width as i32,
+                height: height as i32,
+                uploaded: media_file.uploaded,
+                mimetype,
+                duration: None,
+                bit_rate: None,
+                frame_rate: None,
+            };
+
+            if let Some(parent) = metadata_path.parent() {
+                fs::create_dir_all(parent).await?;
+            }
+            fs::write(&metadata_path, serde_json::to_string_pretty(&metadata)?).await?;
+
+            metadata
+        };
+
+        metadata.apply_to_media_file(media_file);
+        updated = true;
+    }
+
+    let alternates = AlternateFile::list_for_media_file(conn, &media_file.id).await?;
+    let mut expected_alternates = alternates_for_mimetype(conn.config(), &media_file.mimetype);
+    expected_alternates.retain(|alternate| !alternates.iter().any(|alt| alternate.matches(alt)));
+
+    if !expected_alternates.is_empty() {
+        media_file.process_version = 0;
+        updated = true;
+
+        if build_alternates {
+            ensure_local_copy(&file_path, &temp_path, remote_store).await?;
+
+            let mut alternate_files = Vec::new();
+            for alternate in expected_alternates {
+                alternate_files.push(
+                    alternate
+                        .build(conn, media_file, media_file_path, remote_store, &temp_path)
+                        .await?,
+                );
+            }
+
+            AlternateFile::upsert(conn, &alternate_files).await?;
+
+            media_file.process_version = PROCESS_VERSION;
+        } else {
+            // Leave temp files for the next reprocess.
+            return Ok(true);
+        }
+    } else {
+        media_file.process_version = PROCESS_VERSION;
+    }
 
     temp_store
         .delete(&ResourcePath::MediaFile(media_file_path.clone()))
         .await?;
 
-    Ok(())
+    Ok(updated)
 }
 
 #[instrument(skip_all)]
@@ -755,18 +873,6 @@ pub(crate) async fn reprocess_catalog_media(
     info!("Reprocessing media metadata");
     tx.assert_in_transaction();
 
-    let mut alternate_files: HashMap<String, Vec<AlternateFile>> = HashMap::new();
-
-    AlternateFile::list_for_catalog(tx, catalog)
-        .await?
-        .into_iter()
-        .for_each(|(alternate, _)| {
-            alternate_files
-                .entry(alternate.media_file.clone())
-                .or_default()
-                .push(alternate);
-        });
-
     let current_files = MediaFile::list_newest(tx, catalog).await?;
 
     let mut media_files = Vec::new();
@@ -774,49 +880,17 @@ pub(crate) async fn reprocess_catalog_media(
 
     let remote_store = storage.file_store().await?;
 
-    for (media_file, media_file_path) in current_files {
-        let media_file = if media_file.process_version != PROCESS_VERSION {
-            match process_media(tx.config(), &media_file_path).await {
-                Ok(mut media_file) => {
-                    let mut expected_alternates =
-                        alternates_for_mimetype(tx.config(), &media_file.mimetype);
-
-                    if let Some(alternates) = alternate_files.remove(&media_file.id) {
-                        expected_alternates.retain(|alternate| {
-                            !alternates.iter().any(|alt| alternate.matches(alt))
-                        });
-                    }
-
-                    if expected_alternates.is_empty() {
-                        media_file.process_version = PROCESS_VERSION;
-                    } else if build_alternates {
-                        if let Err(e) = build_alternate_files(
-                            tx,
-                            &media_file,
-                            &media_file_path,
-                            &remote_store,
-                            &expected_alternates,
-                        )
-                        .await
-                        {
-                            error!(path = %media_file_path, error = ?e, "Failed to build alternate files");
-                        } else {
-                            media_file.process_version = PROCESS_VERSION;
-                        }
-                    }
-
-                    media_file
-                }
-                Err(e) => {
-                    error!(path = %media_file_path, error = ?e, "Failed to process media metadata");
-                    continue;
-                }
+    for (mut media_file, media_file_path) in current_files {
+        match reprocess_media_file(tx, &mut media_file, &media_file_path, &remote_store, false)
+            .await
+        {
+            Ok(true) => media_files.push(media_file),
+            Ok(false) => {}
+            Err(e) => {
+                error!(path = %media_file_path, error = ?e, "Failed to process media metadata");
+                media_files.push(media_file);
             }
-        } else {
-            media_file
-        };
-
-        media_files.push(media_file);
+        }
     }
 
     MediaFile::upsert(tx, &media_files).await?;

@@ -54,6 +54,7 @@ lazy_static = "1.4.0"
 lexical-parse-float = "0.8.5"
 chrono-tz = "0.8.4"
 tempfile = "^3.4"
+image = { version = "0.24.8", features = ["webp-encoder"] }
 
 actix-web = { version = "4.3.1", optional = true }
 actix-multipart = { version = "0.6.1", optional = true }

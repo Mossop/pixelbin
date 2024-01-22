@@ -152,7 +152,7 @@ impl FileStore for DiskStore {
 
         let local = self.local_path(path);
 
-        fs::copy(&local, target).await?;
+        fs::copy(local, target).await?;
 
         Ok(())
     }
@@ -164,7 +164,9 @@ impl FileStore for DiskStore {
             fs::create_dir_all(parent).await?;
         }
 
-        todo!();
+        fs::copy(source, target).await?;
+
+        Ok(())
     }
 }
 

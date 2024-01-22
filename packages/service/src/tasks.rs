@@ -282,7 +282,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
 
                 let mut recovered_media_files = Vec::new();
                 for (media_file_path, metadata) in recoverable.values() {
-                    recovered_media_files.push(metadata.media_file(&media_file_path.item, &media_file_path.file));
+                    recovered_media_files.push(metadata.recover_media_file(&media_file_path.item, &media_file_path.file));
                     debug!(path=%media_file_path, "Recovered media file");
                 }
 
