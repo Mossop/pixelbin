@@ -1,6 +1,7 @@
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
 use actix_web::{get, http::header, post, web, HttpResponse, Responder};
 use chrono::NaiveDateTime;
+use file_format::FileFormat;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tokio::fs::File;
@@ -456,7 +457,21 @@ async fn create_media(
                 media_item.add_tags(conn, &tags).await?;
 
                 let file_id = short_id("I");
-                let path = media_item.path().media_file_path(&file_id).file("original");
+
+                let base_name = if let Some(ref name) = data.file.file_name {
+                    if let Some((name, _)) = name.rsplit_once('.') {
+                        name
+                    } else {
+                        name
+                    }
+                } else {
+                    "original"
+                };
+
+                let format = FileFormat::from_reader(data.file.file.as_file())?;
+                let file_name = format!("{base_name}.{}", format.extension());
+
+                let path = media_item.path().media_file_path(&file_id).file(&file_name);
 
                 conn.config()
                     .temp_store()
