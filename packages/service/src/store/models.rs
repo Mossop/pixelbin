@@ -2,8 +2,8 @@ use std::{cmp::min, collections::HashMap, result};
 
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
-    backend, delete, deserialize, dsl::count, insert_into, prelude::*, serialize, sql_types,
-    upsert::excluded, AsExpression, Queryable,
+    backend, delete, deserialize, dsl::count, insert_into, pg::Pg, prelude::*, serialize,
+    sql_types, upsert::excluded, AsExpression, Queryable,
 };
 use diesel_async::RunQueryDsl;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -14,7 +14,10 @@ use typeshare::typeshare;
 
 use super::{
     aws::AwsClient,
-    db::{functions::media_view, search::FilterGen},
+    db::{
+        functions::{media_file_columns, media_item_columns, media_view},
+        search::FilterGen,
+    },
     path::{FilePath, MediaFilePath, MediaItemPath},
     DbConnection,
 };
@@ -703,13 +706,9 @@ struct MediaTag {
     tag: String,
 }
 
-#[derive(Queryable, Insertable, Clone, Debug)]
-#[diesel(table_name = media_item)]
-pub struct MediaItem {
-    pub id: String,
-    pub deleted: bool,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+#[derive(Insertable, Serialize, Default, Clone, Debug)]
+#[diesel(table_name = media_item, table_name = media_file)]
+pub struct MediaMetadata {
     pub filename: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -724,7 +723,6 @@ pub struct MediaItem {
     pub lens: Option<String>,
     pub photographer: Option<String>,
     pub shutter_speed: Option<String>,
-    pub taken_zone: Option<String>,
     pub orientation: Option<i32>,
     pub iso: Option<i32>,
     pub rating: Option<i32>,
@@ -734,6 +732,134 @@ pub struct MediaItem {
     pub aperture: Option<f32>,
     pub focal_length: Option<f32>,
     pub taken: Option<NaiveDateTime>,
+}
+
+impl MediaMetadata {
+    fn clear_matching(&mut self, media_file: &MediaMetadata) {
+        clear_matching(&mut self.filename, &media_file.filename);
+        clear_matching(&mut self.title, &media_file.title);
+        clear_matching(&mut self.description, &media_file.description);
+        clear_matching(&mut self.label, &media_file.label);
+        clear_matching(&mut self.category, &media_file.category);
+        clear_matching(&mut self.location, &media_file.location);
+        clear_matching(&mut self.city, &media_file.city);
+        clear_matching(&mut self.state, &media_file.state);
+        clear_matching(&mut self.country, &media_file.country);
+        clear_matching(&mut self.make, &media_file.make);
+        clear_matching(&mut self.model, &media_file.model);
+        clear_matching(&mut self.lens, &media_file.lens);
+        clear_matching(&mut self.photographer, &media_file.photographer);
+        clear_matching(&mut self.shutter_speed, &media_file.shutter_speed);
+        clear_matching(&mut self.orientation, &media_file.orientation);
+        clear_matching(&mut self.iso, &media_file.iso);
+        clear_matching(&mut self.rating, &media_file.rating);
+        clear_matching(&mut self.longitude, &media_file.longitude);
+        clear_matching(&mut self.latitude, &media_file.latitude);
+        clear_matching(&mut self.altitude, &media_file.altitude);
+        clear_matching(&mut self.aperture, &media_file.aperture);
+        clear_matching(&mut self.focal_length, &media_file.focal_length);
+
+        // Ignore any sub-second differences.
+        if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken) {
+            if item_taken.with_nanosecond(0) == file_taken.with_nanosecond(0) {
+                self.taken = None;
+            }
+        }
+    }
+}
+
+type MediaMetadataRow = (
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Integer>,
+    sql_types::Nullable<sql_types::Integer>,
+    sql_types::Nullable<sql_types::Integer>,
+    sql_types::Nullable<sql_types::Float>,
+    sql_types::Nullable<sql_types::Float>,
+    sql_types::Nullable<sql_types::Float>,
+    sql_types::Nullable<sql_types::Float>,
+    sql_types::Nullable<sql_types::Float>,
+    sql_types::Nullable<sql_types::Timestamp>,
+);
+
+impl Queryable<MediaMetadataRow, Pg> for MediaMetadata {
+    type Row = (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<i32>,
+        Option<i32>,
+        Option<i32>,
+        Option<f32>,
+        Option<f32>,
+        Option<f32>,
+        Option<f32>,
+        Option<f32>,
+        Option<NaiveDateTime>,
+    );
+
+    fn build(row: Self::Row) -> deserialize::Result<Self> {
+        Ok(MediaMetadata {
+            filename: row.0,
+            title: row.1,
+            description: row.2,
+            label: row.3,
+            category: row.4,
+            location: row.5,
+            city: row.6,
+            state: row.7,
+            country: row.8,
+            make: row.9,
+            model: row.10,
+            lens: row.11,
+            photographer: row.12,
+            shutter_speed: row.13,
+            orientation: row.14,
+            iso: row.15,
+            rating: row.16,
+            longitude: row.17,
+            latitude: row.18,
+            altitude: row.19,
+            aperture: row.20,
+            focal_length: row.21,
+            taken: row.22,
+        })
+    }
+}
+
+#[derive(Queryable, Insertable, Clone, Debug)]
+#[diesel(table_name = media_item)]
+pub struct MediaItem {
+    pub id: String,
+    pub deleted: bool,
+    pub created: DateTime<Utc>,
+    pub updated: DateTime<Utc>,
+    #[diesel(embed)]
+    pub metadata: MediaMetadata,
+    pub taken_zone: Option<String>,
     pub catalog: String,
     pub media_file: Option<String>,
     pub datetime: DateTime<Utc>,
@@ -748,30 +874,8 @@ impl MediaItem {
             deleted: false,
             created: now,
             updated: now,
-            filename: None,
-            title: None,
-            description: None,
-            label: None,
-            category: None,
-            location: None,
-            city: None,
-            state: None,
-            country: None,
-            make: None,
-            model: None,
-            lens: None,
-            photographer: None,
-            shutter_speed: None,
+            metadata: MediaMetadata::default(),
             taken_zone: None,
-            orientation: None,
-            iso: None,
-            rating: None,
-            longitude: None,
-            latitude: None,
-            altitude: None,
-            aperture: None,
-            focal_length: None,
-            taken: None,
             catalog: catalog.to_owned(),
             media_file: None,
             datetime: now,
@@ -787,7 +891,7 @@ impl MediaItem {
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
             .filter(user_catalog::user.eq(email))
             .filter(media_item::id.eq_any(ids))
-            .select(media_item::all_columns)
+            .select(media_item_columns!())
             .load::<Self>(conn)
             .await?)
     }
@@ -799,7 +903,7 @@ impl MediaItem {
             .filter(media_item::catalog.eq(catalog))
             .order_by((media_item::id, media_file::uploaded.desc()))
             .distinct_on(media_item::id)
-            .select((media_item::all_columns, media_file::all_columns.nullable()))
+            .select((media_item_columns!(), media_file_columns!().nullable()))
             .load::<(MediaItem, Option<MediaFile>)>(conn)
             .await?;
 
@@ -889,7 +993,7 @@ impl MediaItem {
         let items = media_item::table
             .filter(media_item::media_file.is_null())
             .filter(media_item::catalog.eq(catalog))
-            .select(media_item::all_columns)
+            .select(media_item_columns!())
             .load::<MediaItem>(conn)
             .await?;
 
@@ -899,42 +1003,18 @@ impl MediaItem {
     pub(crate) fn sync_with_file(&mut self, media_file: Option<&MediaFile>) {
         if let Some(media_file) = media_file {
             self.media_file = Some(media_file.id.clone());
-            clear_matching(&mut self.filename, &media_file.filename);
-            clear_matching(&mut self.title, &media_file.title);
-            clear_matching(&mut self.description, &media_file.description);
-            clear_matching(&mut self.label, &media_file.label);
-            clear_matching(&mut self.category, &media_file.category);
-            clear_matching(&mut self.location, &media_file.location);
-            clear_matching(&mut self.city, &media_file.city);
-            clear_matching(&mut self.state, &media_file.state);
-            clear_matching(&mut self.country, &media_file.country);
-            clear_matching(&mut self.make, &media_file.make);
-            clear_matching(&mut self.model, &media_file.model);
-            clear_matching(&mut self.lens, &media_file.lens);
-            clear_matching(&mut self.photographer, &media_file.photographer);
-            clear_matching(&mut self.shutter_speed, &media_file.shutter_speed);
-            clear_matching(&mut self.orientation, &media_file.orientation);
-            clear_matching(&mut self.iso, &media_file.iso);
-            clear_matching(&mut self.rating, &media_file.rating);
-            clear_matching(&mut self.longitude, &media_file.longitude);
-            clear_matching(&mut self.latitude, &media_file.latitude);
-            clear_matching(&mut self.altitude, &media_file.altitude);
-            clear_matching(&mut self.aperture, &media_file.aperture);
-            clear_matching(&mut self.focal_length, &media_file.focal_length);
-
-            // Ignore any sub-second differences.
-            if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken) {
-                if item_taken.with_nanosecond(0) == file_taken.with_nanosecond(0) {
-                    self.taken = None;
-                }
-            }
+            self.metadata.clear_matching(&media_file.metadata);
         } else {
             self.media_file = None;
         }
 
         match (
-            self.longitude.or(media_file.and_then(|f| f.longitude)),
-            self.latitude.or(media_file.and_then(|f| f.latitude)),
+            self.metadata
+                .longitude
+                .or(media_file.and_then(|f| f.metadata.longitude)),
+            self.metadata
+                .latitude
+                .or(media_file.and_then(|f| f.metadata.latitude)),
         ) {
             (Some(longitude), Some(latitude)) => {
                 self.taken_zone = lookup_timezone(longitude as f64, latitude as f64)
@@ -967,29 +1047,8 @@ pub struct MediaFile {
     pub duration: Option<f32>,
     pub frame_rate: Option<f32>,
     pub bit_rate: Option<f32>,
-    pub filename: Option<String>,
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub label: Option<String>,
-    pub category: Option<String>,
-    pub location: Option<String>,
-    pub city: Option<String>,
-    pub state: Option<String>,
-    pub country: Option<String>,
-    pub make: Option<String>,
-    pub model: Option<String>,
-    pub lens: Option<String>,
-    pub photographer: Option<String>,
-    pub shutter_speed: Option<String>,
-    pub orientation: Option<i32>,
-    pub iso: Option<i32>,
-    pub rating: Option<i32>,
-    pub longitude: Option<f32>,
-    pub latitude: Option<f32>,
-    pub altitude: Option<f32>,
-    pub aperture: Option<f32>,
-    pub focal_length: Option<f32>,
-    pub taken: Option<NaiveDateTime>,
+    #[diesel(embed)]
+    pub metadata: MediaMetadata,
     pub media_item: String,
 }
 
@@ -1007,29 +1066,10 @@ impl MediaFile {
             duration: None,
             frame_rate: None,
             bit_rate: None,
-            filename: Some(file_name.to_owned()),
-            title: None,
-            description: None,
-            label: None,
-            category: None,
-            location: None,
-            city: None,
-            state: None,
-            country: None,
-            make: None,
-            model: None,
-            lens: None,
-            photographer: None,
-            shutter_speed: None,
-            orientation: None,
-            iso: None,
-            rating: None,
-            longitude: None,
-            latitude: None,
-            altitude: None,
-            aperture: None,
-            focal_length: None,
-            taken: None,
+            metadata: MediaMetadata {
+                filename: Some(file_name.to_owned()),
+                ..Default::default()
+            },
             media_item: media_item.to_owned(),
         }
     }
@@ -1044,7 +1084,7 @@ impl MediaFile {
             .filter(media_item::catalog.eq(catalog))
             .order_by((media_file::media_item, media_file::uploaded.desc()))
             .distinct_on(media_file::media_item)
-            .select((media_file::all_columns, media_item::catalog))
+            .select((media_file_columns!(), media_item::catalog))
             .load::<(MediaFile, String)>(conn)
             .await?;
 
@@ -1072,7 +1112,7 @@ impl MediaFile {
             .filter(media_item::media_file.is_not_null())
             .filter(media_item::media_file.ne(media_file::id.nullable()))
             .filter(media_file::process_version.gt(0))
-            .select((media_file::all_columns, media_item::catalog))
+            .select((media_file_columns!(), media_item::catalog))
             .load::<(MediaFile, String)>(conn)
             .await?;
 
@@ -1096,7 +1136,7 @@ impl MediaFile {
         let files = media_file::table
             .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(media_item::catalog.eq(&catalog))
-            .select(media_file::all_columns)
+            .select(media_file_columns!())
             .load::<MediaFile>(conn)
             .await?;
 
@@ -1125,7 +1165,7 @@ impl MediaFile {
             .filter(user_catalog::user.eq(email))
             .filter(media_item::id.eq(media))
             .filter(media_file::id.eq(file))
-            .select((media_file::all_columns, media_item::catalog))
+            .select((media_file_columns!(), media_item::catalog))
             .get_result::<(MediaFile, String)>(conn)
             .await
             .optional()?
@@ -1148,7 +1188,7 @@ impl MediaFile {
         let media_file_ids: Vec<&&String> = media_file_map.keys().collect();
         let mut items = media_item::table
             .filter(media_item::media_file.eq_any(media_file_ids))
-            .select(media_item::all_columns)
+            .select(media_item_columns!())
             .load::<MediaItem>(conn)
             .await?;
 
@@ -1448,30 +1488,9 @@ pub(crate) struct MediaView {
     pub(crate) created: DateTime<Utc>,
     pub(crate) updated: DateTime<Utc>,
     pub(crate) datetime: DateTime<Utc>,
-    pub(crate) filename: Option<String>,
-    pub(crate) title: Option<String>,
-    pub(crate) description: Option<String>,
-    pub(crate) label: Option<String>,
-    pub(crate) category: Option<String>,
-    pub(crate) taken: Option<NaiveDateTime>,
+    #[serde(flatten)]
+    pub(crate) metadata: MediaMetadata,
     pub(crate) taken_zone: Option<String>,
-    pub(crate) longitude: Option<f32>,
-    pub(crate) latitude: Option<f32>,
-    pub(crate) altitude: Option<f32>,
-    pub(crate) location: Option<String>,
-    pub(crate) city: Option<String>,
-    pub(crate) state: Option<String>,
-    pub(crate) country: Option<String>,
-    pub(crate) orientation: Option<Orientation>,
-    pub(crate) make: Option<String>,
-    pub(crate) model: Option<String>,
-    pub(crate) lens: Option<String>,
-    pub(crate) photographer: Option<String>,
-    pub(crate) aperture: Option<f32>,
-    pub(crate) shutter_speed: Option<String>,
-    pub(crate) iso: Option<i32>,
-    pub(crate) focal_length: Option<f32>,
-    pub(crate) rating: Option<i32>,
     pub(crate) file: Option<MediaViewFile>,
 }
 

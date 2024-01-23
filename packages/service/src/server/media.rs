@@ -347,8 +347,8 @@ macro_rules! apply_metadata {
     ($source:ident, $target:ident, $field:ident) => {
         match $source.$field {
             MetadataValue::Undefined => (),
-            MetadataValue::Null => $target.$field = None,
-            MetadataValue::Value(ref v) => $target.$field = Some(v.clone()),
+            MetadataValue::Null => $target.metadata.$field = None,
+            MetadataValue::Value(ref v) => $target.metadata.$field = Some(v.clone()),
         }
     };
 }
@@ -380,11 +380,11 @@ impl MediaMetadata {
 
         match self.taken {
             MetadataValue::Undefined => (),
-            MetadataValue::Null => media_item.taken = None,
+            MetadataValue::Null => media_item.metadata.taken = None,
             MetadataValue::Value(ref v) => match NaiveDateTime::parse_and_remainder(&v, ISO_FORMAT)
             {
-                Ok((dt, _)) => media_item.taken = Some(dt),
-                Err(e) => warn!(date = v, "Invalid date format"),
+                Ok((dt, _)) => media_item.metadata.taken = Some(dt),
+                Err(e) => warn!(date = v, error = ?e, "Invalid date format"),
             },
         }
     }

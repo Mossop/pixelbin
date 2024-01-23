@@ -96,6 +96,72 @@ pub(crate) mod extract {
     }
 }
 
+macro_rules! media_metadata_columns {
+    ($table:ident) => {
+        (
+            crate::store::db::schema::$table::filename,
+            crate::store::db::schema::$table::title,
+            crate::store::db::schema::$table::description,
+            crate::store::db::schema::$table::label,
+            crate::store::db::schema::$table::category,
+            crate::store::db::schema::$table::location,
+            crate::store::db::schema::$table::city,
+            crate::store::db::schema::$table::state,
+            crate::store::db::schema::$table::country,
+            crate::store::db::schema::$table::make,
+            crate::store::db::schema::$table::model,
+            crate::store::db::schema::$table::lens,
+            crate::store::db::schema::$table::photographer,
+            crate::store::db::schema::$table::shutter_speed,
+            crate::store::db::schema::$table::orientation,
+            crate::store::db::schema::$table::iso,
+            crate::store::db::schema::$table::rating,
+            crate::store::db::schema::$table::longitude,
+            crate::store::db::schema::$table::latitude,
+            crate::store::db::schema::$table::altitude,
+            crate::store::db::schema::$table::aperture,
+            crate::store::db::schema::$table::focal_length,
+            crate::store::db::schema::$table::taken,
+        )
+    };
+}
+
+macro_rules! media_item_columns {
+    () => {
+        (
+            crate::store::db::schema::media_item::id,
+            crate::store::db::schema::media_item::deleted,
+            crate::store::db::schema::media_item::created,
+            crate::store::db::schema::media_item::updated,
+            crate::store::db::functions::media_metadata_columns!(media_item),
+            crate::store::db::schema::media_item::taken_zone,
+            crate::store::db::schema::media_item::catalog,
+            crate::store::db::schema::media_item::media_file,
+            crate::store::db::schema::media_item::datetime,
+        )
+    };
+}
+
+macro_rules! media_file_columns {
+    () => {
+        (
+            crate::store::db::schema::media_file::id,
+            crate::store::db::schema::media_file::uploaded,
+            crate::store::db::schema::media_file::process_version,
+            crate::store::db::schema::media_file::file_name,
+            crate::store::db::schema::media_file::file_size,
+            crate::store::db::schema::media_file::mimetype,
+            crate::store::db::schema::media_file::width,
+            crate::store::db::schema::media_file::height,
+            crate::store::db::schema::media_file::duration,
+            crate::store::db::schema::media_file::frame_rate,
+            crate::store::db::schema::media_file::bit_rate,
+            crate::store::db::functions::media_metadata_columns!(media_file),
+            crate::store::db::schema::media_file::media_item,
+        )
+    };
+}
+
 macro_rules! media_field {
     ($field:ident) => {
         crate::store::db::functions::coalesce(
@@ -116,30 +182,32 @@ macro_rules! media_view_columns {
                 crate::store::db::schema::media_file::uploaded.nullable(),
             ),
             crate::store::db::schema::media_item::datetime,
-            crate::store::db::functions::media_field!(filename),
-            crate::store::db::functions::media_field!(title),
-            crate::store::db::functions::media_field!(description),
-            crate::store::db::functions::media_field!(label),
-            crate::store::db::functions::media_field!(category),
-            crate::store::db::functions::media_field!(taken),
+            (
+                crate::store::db::functions::media_field!(filename),
+                crate::store::db::functions::media_field!(title),
+                crate::store::db::functions::media_field!(description),
+                crate::store::db::functions::media_field!(label),
+                crate::store::db::functions::media_field!(category),
+                crate::store::db::functions::media_field!(location),
+                crate::store::db::functions::media_field!(city),
+                crate::store::db::functions::media_field!(state),
+                crate::store::db::functions::media_field!(country),
+                crate::store::db::functions::media_field!(make),
+                crate::store::db::functions::media_field!(model),
+                crate::store::db::functions::media_field!(lens),
+                crate::store::db::functions::media_field!(photographer),
+                crate::store::db::functions::media_field!(shutter_speed),
+                crate::store::db::functions::media_field!(orientation),
+                crate::store::db::functions::media_field!(iso),
+                crate::store::db::functions::media_field!(rating),
+                crate::store::db::functions::media_field!(longitude),
+                crate::store::db::functions::media_field!(latitude),
+                crate::store::db::functions::media_field!(altitude),
+                crate::store::db::functions::media_field!(aperture),
+                crate::store::db::functions::media_field!(focal_length),
+                crate::store::db::functions::media_field!(taken),
+            ),
             crate::store::db::schema::media_item::taken_zone,
-            crate::store::db::functions::media_field!(longitude),
-            crate::store::db::functions::media_field!(latitude),
-            crate::store::db::functions::media_field!(altitude),
-            crate::store::db::functions::media_field!(location),
-            crate::store::db::functions::media_field!(city),
-            crate::store::db::functions::media_field!(state),
-            crate::store::db::functions::media_field!(country),
-            crate::store::db::functions::media_field!(orientation),
-            crate::store::db::functions::media_field!(make),
-            crate::store::db::functions::media_field!(model),
-            crate::store::db::functions::media_field!(lens),
-            crate::store::db::functions::media_field!(photographer),
-            crate::store::db::functions::media_field!(aperture),
-            crate::store::db::functions::media_field!(shutter_speed),
-            crate::store::db::functions::media_field!(iso),
-            crate::store::db::functions::media_field!(focal_length),
-            crate::store::db::functions::media_field!(rating),
             (
                 crate::store::db::schema::media_file::id,
                 crate::store::db::schema::media_file::file_size,
@@ -171,5 +239,8 @@ macro_rules! media_view {
 }
 
 pub(crate) use media_field;
+pub(crate) use media_file_columns;
+pub(crate) use media_item_columns;
+pub(crate) use media_metadata_columns;
 pub(crate) use media_view;
 pub(crate) use media_view_columns;

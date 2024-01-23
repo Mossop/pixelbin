@@ -156,7 +156,10 @@ pub(crate) fn media_datetime(
     media_item: &MediaItem,
     media_file: Option<&MediaFile>,
 ) -> DateTime<Utc> {
-    let taken = media_item.taken.or(media_file.and_then(|f| f.taken));
+    let taken = media_item
+        .metadata
+        .taken
+        .or(media_file.and_then(|f| f.metadata.taken));
     let taken_zone = &media_item.taken_zone;
     if let Some(dt) = time_from_taken(taken, taken_zone) {
         dt
@@ -460,67 +463,67 @@ impl Metadata {
         media_file.duration = self.duration;
         media_file.frame_rate = self.frame_rate;
         media_file.bit_rate = self.bit_rate;
-        media_file.filename = Some(self.file_name.clone());
+        media_file.metadata.filename = Some(self.file_name.clone());
 
         // serde_aux doesn't work with converting directly from a Value so roundtrip
         // through a serialized string.
         match serde_json::from_str::<Exif>(&self.exif.to_string()) {
             Ok(exif) => {
-                media_file.title = ignore_empty(exif.title.clone());
-                media_file.description = ignore_empty(
+                media_file.metadata.title = ignore_empty(exif.title.clone());
+                media_file.metadata.description = ignore_empty(
                     exif.description
                         .as_ref()
                         .or(exif.image_description.as_ref())
                         .or(exif.caption_abstract.as_ref())
                         .cloned(),
                 );
-                media_file.label = ignore_empty(exif.label.clone());
-                media_file.category = ignore_empty(exif.category.clone());
+                media_file.metadata.label = ignore_empty(exif.label.clone());
+                media_file.metadata.category = ignore_empty(exif.category.clone());
 
-                media_file.taken = exif.parse_taken();
+                media_file.metadata.taken = exif.parse_taken();
 
-                media_file.longitude = exif.gps_longitude.map(|n| n as f32);
-                media_file.latitude = exif.gps_latitude.map(|n| n as f32);
-                media_file.altitude = exif.gps_altitude;
+                media_file.metadata.longitude = exif.gps_longitude.map(|n| n as f32);
+                media_file.metadata.latitude = exif.gps_latitude.map(|n| n as f32);
+                media_file.metadata.altitude = exif.gps_altitude;
 
-                media_file.location = ignore_empty(
+                media_file.metadata.location = ignore_empty(
                     exif.location
                         .as_ref()
                         .or(exif.sub_location.as_ref())
                         .cloned(),
                 );
-                media_file.city = ignore_empty(exif.city.clone());
-                media_file.state = ignore_empty(
+                media_file.metadata.city = ignore_empty(exif.city.clone());
+                media_file.metadata.state = ignore_empty(
                     exif.state
                         .as_ref()
                         .or(exif.province_state.as_ref())
                         .cloned(),
                 );
-                media_file.country = ignore_empty(
+                media_file.metadata.country = ignore_empty(
                     exif.country
                         .as_ref()
                         .or(exif.country_location.as_ref())
                         .cloned(),
                 );
 
-                media_file.orientation = if self.mimetype.starts_with("image/") {
+                media_file.metadata.orientation = if self.mimetype.starts_with("image/") {
                     exif.orientation
                 } else {
                     Some(1)
                 };
 
-                media_file.make = ignore_empty(
+                media_file.metadata.make = ignore_empty(
                     exif.make
                         .as_ref()
                         .or(exif.android_manufacturer.as_ref())
                         .map(pretty_make),
                 );
-                media_file.model =
+                media_file.metadata.model =
                     ignore_empty(exif.model.as_ref().or(exif.android_model.as_ref()).cloned());
-                media_file.lens =
+                media_file.metadata.lens =
                     ignore_empty(exif.lens.as_ref().or(exif.lens_model.as_ref()).cloned());
 
-                media_file.photographer = ignore_empty(
+                media_file.metadata.photographer = ignore_empty(
                     exif.creator
                         .and_then(|c| {
                             if c.is_empty() {
@@ -535,18 +538,18 @@ impl Metadata {
                         .cloned(),
                 );
 
-                media_file.aperture = exif.f_number.or(exif.aperture_value);
-                media_file.shutter_speed = ignore_empty(
+                media_file.metadata.aperture = exif.f_number.or(exif.aperture_value);
+                media_file.metadata.shutter_speed = ignore_empty(
                     exif.exposure_time
                         .as_ref()
                         .or(exif.shutter_speed.as_ref())
                         .or(exif.shutter_speed_value.as_ref())
                         .cloned(),
                 );
-                media_file.iso = exif.iso;
-                media_file.focal_length = exif.focal_length;
+                media_file.metadata.iso = exif.iso;
+                media_file.metadata.focal_length = exif.focal_length;
 
-                media_file.rating = exif
+                media_file.metadata.rating = exif
                     .rating_percent
                     .map(|p| (5.0 * p / 100.0).round() as i32)
                     .or(exif.rating.map(|r| max(0, min(5, r))))
