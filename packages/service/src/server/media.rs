@@ -8,16 +8,16 @@ use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 use tracing::{instrument, warn};
 
-use super::{
-    auth::{MaybeSession, Session},
-    util::choose_alternate,
-    ApiErrorCode, ApiResult, AppState,
-};
-use crate::store::{
+use crate::{
     metadata::ISO_FORMAT,
-    models::{self, AlternateFileType, Location},
+    server::{
+        auth::{MaybeSession, Session},
+        util::choose_alternate,
+        ApiErrorCode, ApiResult, AppState,
+    },
+    store::models::{self, AlternateFileType, Location},
+    Error,
 };
-use crate::Error;
 
 #[derive(Serialize)]
 struct ApiResponse {

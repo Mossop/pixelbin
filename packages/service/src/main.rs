@@ -7,11 +7,11 @@ use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{trace, Resource};
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
-use pixelbin::tasks::{
-    prune_catalogs, rebuild_searches, reprocess_all_media, sanity_check_catalogs,
+use pixelbin::{
+    load_config,
+    tasks::{prune_catalogs, rebuild_searches, reprocess_all_media, sanity_check_catalogs},
+    Result, Store,
 };
-use pixelbin::Store;
-use pixelbin::{load_config, Result};
 use scoped_futures::ScopedFutureExt;
 use tracing::Level;
 use tracing_subscriber::{

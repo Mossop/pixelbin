@@ -13,12 +13,10 @@ use diesel_async::{
 
 pub(crate) mod aws;
 pub(crate) mod db;
-pub(crate) mod metadata;
-pub(crate) mod models;
 pub(crate) mod path;
 
-use db::DbConnection;
-use db::{connect, DbPool};
+pub(crate) use db::models;
+use db::{connect, DbConnection, DbPool};
 use tempfile::NamedTempFile;
 use tokio::fs;
 use tracing::instrument;

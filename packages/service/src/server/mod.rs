@@ -9,8 +9,7 @@ use actix_web::{
 use serde::Serialize;
 use tracing::instrument;
 
-use crate::{shared::config::ThumbnailConfig, store::Store};
-use crate::{Error, Result};
+use crate::{shared::config::ThumbnailConfig, store::Store, Error, Result};
 
 mod auth;
 mod media;

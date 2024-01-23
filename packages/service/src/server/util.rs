@@ -6,8 +6,10 @@ use actix_web::{
     HttpResponse, ResponseError,
 };
 
-use crate::store::{models, path::FilePath};
-use crate::Error;
+use crate::{
+    store::{models, path::FilePath},
+    Error,
+};
 
 #[derive(Debug)]
 pub(crate) struct InternalError {

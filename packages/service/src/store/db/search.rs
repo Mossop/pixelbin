@@ -17,8 +17,10 @@ use serde_json::Value;
 use serde_plain::derive_display_from_serialize;
 use typeshare::typeshare;
 
-use super::functions::{char_length, extract, media_field};
-use super::schema::*;
+use crate::store::db::{
+    functions::{char_length, extract, media_field},
+    schema::*,
+};
 
 type MediaViewQS = LeftJoinQuerySource<
     media_item::table,

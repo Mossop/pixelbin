@@ -21,15 +21,11 @@ use tokio::{
 use tracing::{error, info, instrument, warn};
 use tzf_rs::DefaultFinder;
 
-use super::{
-    db::DbConnection,
-    models::{AlternateFileType, MediaFile, MediaItem},
-    path::{MediaFilePath, ResourcePath},
-};
 use crate::{
     store::{
-        models::{AlternateFile, Storage},
-        path::FilePath,
+        db::DbConnection,
+        models::{AlternateFile, AlternateFileType, MediaFile, MediaItem, Storage},
+        path::{FilePath, MediaFilePath, ResourcePath},
     },
     Config, Error, FileStore, Result,
 };
@@ -37,8 +33,6 @@ use crate::{
 lazy_static! {
     static ref FINDER: DefaultFinder = DefaultFinder::new();
 }
-
-// exiftool -n -c '%+.6f' -json
 
 pub(crate) const METADATA_FILE: &str = "metadata.json";
 pub(crate) const PROCESS_VERSION: i32 = 4;
@@ -916,7 +910,7 @@ mod tests {
     use serde_json::from_str;
 
     use super::Exif;
-    use crate::store::metadata::lookup_timezone;
+    use crate::metadata::lookup_timezone;
 
     #[test]
     fn parse_exif() {

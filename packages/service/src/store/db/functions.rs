@@ -35,11 +35,15 @@ where
 }
 
 pub(crate) mod extract {
-    use diesel::expression::{
-        is_aggregate, AppearsOnTable, AsExpression, Expression, SelectableExpression, ValidGrouping,
+    use diesel::{
+        self,
+        expression::{
+            is_aggregate, AppearsOnTable, AsExpression, Expression, SelectableExpression,
+            ValidGrouping,
+        },
+        query_builder::{AstPass, QueryFragment, QueryId},
+        QueryResult,
     };
-    use diesel::query_builder::{AstPass, QueryFragment, QueryId};
-    use diesel::{self, QueryResult};
 
     use super::*;
 

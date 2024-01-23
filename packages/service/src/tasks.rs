@@ -7,20 +7,13 @@ use scoped_futures::ScopedFutureExt;
 use tracing::{debug, error, instrument, trace, warn};
 
 use crate::{
+    metadata::{self, alternates_for_mimetype, parse_metadata, Alternate, Metadata, METADATA_FILE},
     store::{
-        metadata::{self, alternates_for_mimetype, Alternate, METADATA_FILE},
         models,
-        path::MediaItemPath,
+        path::{CatalogPath, FilePath, MediaFilePath, MediaItemPath},
         DiskStore, Store,
     },
-    FileStore,
-};
-use crate::{
-    store::{
-        metadata::{parse_metadata, Metadata},
-        path::{CatalogPath, FilePath, MediaFilePath},
-    },
-    Result,
+    FileStore, Result,
 };
 
 #[instrument(skip_all)]

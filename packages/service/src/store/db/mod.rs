@@ -1,4 +1,5 @@
 pub(crate) mod functions;
+pub(crate) mod models;
 #[allow(unreachable_pub)]
 pub(super) mod schema;
 pub(crate) mod search;
@@ -23,8 +24,7 @@ use futures::Future;
 use schema::*;
 use tracing::{info, instrument, trace};
 
-use super::{models, Result};
-use crate::{shared::long_id, store::metadata::reprocess_catalog_media, Config, Error};
+use crate::{metadata::reprocess_catalog_media, shared::long_id, Config, Error, Result};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;

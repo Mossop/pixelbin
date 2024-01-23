@@ -10,11 +10,13 @@ use aws_sdk_s3::{
 use tokio::{fs, io};
 use tracing::trace;
 
-use super::{
-    models::Storage,
-    path::{FilePath, PathLike, ResourcePath},
+use crate::{
+    store::{
+        models::Storage,
+        path::{FilePath, PathLike, ResourcePath},
+    },
+    Error, FileStore, Result,
 };
-use crate::{Error, FileStore, Result};
 
 pub(crate) fn joinable(st: &str) -> &str {
     st.trim_matches('/')
