@@ -10,9 +10,10 @@ use pixelbin::server::serve;
 use pixelbin::{
     load_config,
     tasks::{prune_catalogs, rebuild_searches, reprocess_all_media, sanity_check_catalogs},
-    Result, Store,
+    test_metadata_parsing, Result, Store,
 };
 use scoped_futures::ScopedFutureExt;
+use tokio::fs;
 use tracing::Level;
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
@@ -99,6 +100,26 @@ impl Runnable for CheckDb {
     }
 }
 
+#[derive(Args)]
+struct TestExif {
+    filelist: PathBuf,
+}
+
+impl Runnable for TestExif {
+    async fn run(self, store: Store) -> Result {
+        for file in fs::read_to_string(&self.filelist).await?.split('\n') {
+            if file.is_empty() {
+                continue;
+            }
+
+            let path = self.filelist.parent().unwrap().join(&file[2..]);
+            test_metadata_parsing(&path).await?;
+        }
+
+        Ok(())
+    }
+}
+
 #[enum_dispatch]
 #[derive(Subcommand)]
 enum Command {
@@ -115,6 +136,8 @@ enum Command {
     Verify,
     /// Prunes old versions of media.
     Prune,
+    /// Test EXIF parsing.
+    TestExif,
 }
 
 #[enum_dispatch(Command)]

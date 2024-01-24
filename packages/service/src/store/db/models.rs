@@ -704,7 +704,7 @@ struct MediaTag {
     tag: String,
 }
 
-#[derive(Insertable, Serialize, Default, Clone, Debug)]
+#[derive(Insertable, Serialize, PartialEq, Default, Clone, Debug)]
 #[diesel(table_name = media_item, table_name = media_file)]
 pub struct MediaMetadata {
     pub filename: Option<String>,
@@ -1015,7 +1015,7 @@ impl MediaItem {
                 .or(media_file.and_then(|f| f.metadata.latitude)),
         ) {
             (Some(longitude), Some(latitude)) => {
-                self.taken_zone = lookup_timezone(longitude as f64, latitude as f64)
+                self.taken_zone = lookup_timezone(longitude, latitude)
             }
             _ => self.taken_zone = None,
         }

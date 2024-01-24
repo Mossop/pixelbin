@@ -7,7 +7,9 @@ use scoped_futures::ScopedFutureExt;
 use tracing::{debug, error, instrument, trace, warn};
 
 use crate::{
-    metadata::{self, alternates_for_mimetype, parse_metadata, Alternate, Metadata, METADATA_FILE},
+    metadata::{
+        self, alternates_for_mimetype, parse_metadata, Alternate, FileMetadata, METADATA_FILE,
+    },
     store::{
         models,
         path::{CatalogPath, FilePath, MediaFilePath, MediaItemPath},
@@ -215,7 +217,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
 
                 // Everything left in fileset is not in the database. Find anything
                 // that is recoverable
-                let mut recoverable: HashMap<MediaItemPath, (MediaFilePath, Metadata)> = HashMap::new();
+                let mut recoverable: HashMap<MediaItemPath, (MediaFilePath, FileMetadata)> = HashMap::new();
 
                 let item_ids: Vec<&str> = file_set.keys().map(|media_file_path | media_file_path.item.as_str()).collect();
                 let views: HashMap<String, models::MediaView> = models::MediaView::get(conn, &item_ids).await?.into_iter().map(|v| (v.id.clone(), v)).collect();
