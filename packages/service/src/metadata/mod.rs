@@ -6,11 +6,8 @@ use image::io::Reader;
 use lazy_static::lazy_static;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_slice, from_str, Map, Value};
-use tokio::{
-    fs::{self, metadata, read_to_string},
-    process::Command,
-};
+use serde_json::from_str;
+use tokio::fs::{self, metadata, read_to_string};
 use tracing::{error, info, instrument, warn};
 use tzf_rs::DefaultFinder;
 
@@ -23,9 +20,9 @@ use crate::{
     Config, Error, FileStore, Result,
 };
 
-use exif::ExifVersion;
+use exif::ExifData;
 
-mod exif;
+pub(crate) mod exif;
 
 lazy_static! {
     static ref FINDER: DefaultFinder = DefaultFinder::new();
@@ -35,8 +32,6 @@ pub(crate) const METADATA_FILE: &str = "metadata.json";
 pub(crate) const PROCESS_VERSION: i32 = 4;
 
 pub(crate) const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
-
-type Object = Map<String, Value>;
 
 pub(crate) struct Alternate {
     alt_type: AlternateFileType,
@@ -167,7 +162,7 @@ pub(crate) fn media_datetime(
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct FileMetadata {
-    pub(crate) exif: Object,
+    pub(crate) exif: ExifData,
     pub(crate) file_name: String,
     pub(crate) file_size: i32,
     pub(crate) width: i32,
@@ -216,39 +211,10 @@ impl FileMetadata {
     }
 
     pub(crate) fn media_metadata(&self) -> models::MediaMetadata {
-        let exif = ExifVersion::from(self.exif.clone());
-
-        let mut media_metadata = exif.media_metadata(&self.mimetype);
+        let mut media_metadata = self.exif.media_metadata(&self.mimetype);
         media_metadata.filename = Some(self.file_name.clone());
 
         media_metadata
-    }
-}
-
-pub(crate) async fn extract_exif_data(local_file: &Path) -> Result<Object> {
-    let output = Command::new("exiftool")
-        .arg("-n")
-        .arg("-struct")
-        .arg("-c")
-        .arg("%+.6f")
-        .arg("-json")
-        .arg(local_file)
-        .output()
-        .await?;
-
-    if !output.status.success() {
-        return Err(Error::Unknown {
-            message: "Failed to execute exiftool".to_string(),
-        });
-    }
-
-    let mut results: Vec<Object> = from_slice(&output.stdout)?;
-    if results.len() == 1 {
-        Ok(results.remove(0))
-    } else {
-        Err(Error::Unknown {
-            message: format!("exiftool returned {} results", results.len()),
-        })
     }
 }
 
@@ -313,7 +279,7 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
         } else {
             ensure_local_copy(&file_path, &temp_path, remote_store).await?;
 
-            let exif = extract_exif_data(&temp_path).await?;
+            let exif = ExifData::parse_media(&temp_path).await?;
             let img_reader = Reader::open(&temp_path)?.with_guessed_format()?;
 
             let mimetype = if let Some(format) = img_reader.format() {
@@ -408,8 +374,14 @@ pub(crate) async fn reprocess_catalog_media(
     let remote_store = storage.file_store().await?;
 
     for (mut media_file, media_file_path) in current_files {
-        match reprocess_media_file(tx, &mut media_file, &media_file_path, &remote_store, false)
-            .await
+        match reprocess_media_file(
+            tx,
+            &mut media_file,
+            &media_file_path,
+            &remote_store,
+            build_alternates,
+        )
+        .await
         {
             Ok(true) => media_files.push(media_file),
             Ok(false) => {}

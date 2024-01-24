@@ -381,11 +381,12 @@ impl MediaMetadata {
         match self.taken {
             MetadataValue::Undefined => (),
             MetadataValue::Null => media_item.metadata.taken = None,
-            MetadataValue::Value(ref v) => match NaiveDateTime::parse_and_remainder(&v, ISO_FORMAT)
-            {
-                Ok((dt, _)) => media_item.metadata.taken = Some(dt),
-                Err(e) => warn!(date = v, error = ?e, "Invalid date format"),
-            },
+            MetadataValue::Value(ref v) => {
+                match NaiveDateTime::parse_and_remainder(v, ISO_FORMAT) {
+                    Ok((dt, _)) => media_item.metadata.taken = Some(dt),
+                    Err(e) => warn!(date = v, error = ?e, "Invalid date format"),
+                }
+            }
         }
     }
 }

@@ -1,11 +1,16 @@
-use std::cmp::{max, min};
+use std::{
+    cmp::{max, min},
+    path::Path,
+};
 
 use chrono::{NaiveDateTime, Timelike};
 use lexical_parse_float::FromLexical;
-use serde_json::{Map, Value};
-use tracing::warn;
+use serde::{Deserialize, Serialize};
+use serde_json::{from_slice, Map, Number, Value};
+use tokio::process::Command;
+use tracing::{debug, warn};
 
-use crate::store::models;
+use crate::{store::models, Error, Result};
 
 use super::ISO_FORMAT;
 
@@ -15,6 +20,8 @@ const TYPE_NUMBER: &str = "number";
 const TYPE_STRING: &str = "string";
 const TYPE_ARRAY: &str = "array";
 const TYPE_OBJECT: &str = "object";
+
+const PARSE_VERSION_KEY: &str = "ParseVersion";
 
 const EXIF_FORMAT: &str = "%Y:%m:%d %H:%M:%S%.f";
 
@@ -31,22 +38,24 @@ fn type_of(value: &Value) -> &'static str {
     }
 }
 
-pub(super) enum ExifVersion {
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(from = "Object", untagged)]
+pub(crate) enum ExifData {
     V1(Object),
     V2(Object),
-    Unknown,
+    Unknown(Object),
 }
 
-impl From<Object> for ExifVersion {
-    fn from(object: Object) -> ExifVersion {
-        match object.get("ParseVersion") {
+impl From<Object> for ExifData {
+    fn from(object: Object) -> ExifData {
+        match object.get(PARSE_VERSION_KEY) {
             Some(Value::Number(version)) => {
                 if let Some(version) = version.as_u64() {
                     match version {
-                        2 => ExifVersion::V2(object),
+                        2 => ExifData::V2(object),
                         o => {
                             warn!("Unexpected parse version: {}", o);
-                            ExifVersion::Unknown
+                            ExifData::Unknown(object)
                         }
                     }
                 } else {
@@ -54,7 +63,7 @@ impl From<Object> for ExifVersion {
                         "Expected parse version to be an integer got but {}",
                         version
                     );
-                    ExifVersion::Unknown
+                    ExifData::Unknown(object)
                 }
             }
             Some(val) => {
@@ -62,11 +71,54 @@ impl From<Object> for ExifVersion {
                     "Expected parse version to be a number got but {}",
                     type_of(val)
                 );
-                ExifVersion::Unknown
+                ExifData::Unknown(object)
             }
-            None => ExifVersion::V1(object),
+            None => ExifData::V1(object),
         }
     }
+}
+
+impl ExifData {
+    pub(crate) async fn parse_media(local_file: &Path) -> Result<Self> {
+        let output = Command::new("exiftool")
+            .arg("-n")
+            .arg("-g")
+            .arg("-struct")
+            .arg("-c")
+            .arg("%.6f")
+            .arg("-json")
+            .arg(local_file)
+            .output()
+            .await?;
+
+        if !output.status.success() {
+            return Err(Error::Unknown {
+                message: format!(
+                    "Failed to execute exiftool: {}",
+                    std::str::from_utf8(&output.stderr).unwrap()
+                ),
+            });
+        }
+
+        let (mut object,): (Object,) = from_slice(&output.stdout)?;
+        object.insert(
+            PARSE_VERSION_KEY.to_owned(),
+            Value::Number(Number::from_f64(2.0).unwrap()),
+        );
+        Ok(ExifData::V2(object))
+    }
+}
+
+fn expect_object(val: &Value) -> Option<&Object> {
+    if let Value::Object(obj) = val {
+        Some(obj)
+    } else {
+        None
+    }
+}
+
+fn expect_prop<'a, 'b>(prop: &'a str) -> impl FnOnce(&'b Object) -> Option<&'b Value> + 'a {
+    |obj: &Object| obj.get(prop)
 }
 
 fn expect_string(val: &Value) -> Option<String> {
@@ -159,6 +211,16 @@ fn expect_gps_coord(val: &Value) -> Option<f32> {
     }
 }
 
+fn fix_gps_sign(coord: f32, coord_ref: String) -> f32 {
+    let result = match coord_ref[0..1].to_ascii_lowercase().as_str() {
+        "s" | "w" => -coord,
+        _ => coord,
+    };
+
+    debug!(coord, coord_ref, result, "Fixing GPS coordinate");
+    result
+}
+
 fn expect_orientation(val: &Value) -> Option<i32> {
     match val {
         Value::Number(n) => n.as_i64().map(|i| i as i32),
@@ -210,16 +272,25 @@ fn expect_int(val: &Value) -> Option<i32> {
     }
 }
 
+fn parse_exposure(val: f32) -> Option<String> {
+    Some(if val > 0.5 {
+        val.to_string()
+    } else {
+        let denom = 1.0 / val;
+        format!("1/{}", denom.round())
+    })
+}
+
 #[allow(clippy::ptr_arg)]
-fn pretty_make(name: String) -> String {
-    match name.as_str() {
+fn pretty_make(name: String) -> Option<String> {
+    Some(match name.as_str() {
         "NIKON CORPORATION" | "NIKON" => "Nikon".to_string(),
         "SAMSUNG" | "Samsung Techwin" => "Samsung".to_string(),
         "OLYMPUS IMAGING CORP." => "Olympus".to_string(),
         "EASTMAN KODAK COMPANY" => "Kodak".to_string(),
         "SONY" => "Sony".to_string(),
-        _ => name.clone(),
-    }
+        _ => name,
+    })
 }
 
 macro_rules! map {
@@ -230,11 +301,11 @@ macro_rules! map {
 
 macro_rules! first_of {
     ($first:expr, $($others:expr),+ $(,)*) => {
-        $first$(.or($others))+
+        $first$(.or_else(|| $others))+
     }
 }
 
-impl ExifVersion {
+impl ExifData {
     #[allow(clippy::field_reassign_with_default)]
     fn parse_exif_v1(exif: &Object, mimetype: &str) -> models::MediaMetadata {
         macro_rules! prop {
@@ -271,9 +342,9 @@ impl ExifVersion {
         .unwrap_or_default();
 
         metadata.taken = first_of!(
-            map!(prop!("DateTimeCreated"), expect_datetime),
             map!(prop!("DateTimeOriginal"), expect_datetime),
             map!(prop!("DateCreated"), expect_datetime),
+            map!(prop!("DateTimeCreated"), expect_datetime),
         )
         .map(|dt| dt.with_nanosecond(nanos).unwrap());
 
@@ -302,10 +373,9 @@ impl ExifVersion {
         };
 
         metadata.make = first_of!(
-            map!(prop!("Make"), expect_string),
-            map!(prop!("AndroidManufacturer"), expect_string),
-        )
-        .map(pretty_make);
+            map!(prop!("Make"), expect_string, pretty_make),
+            map!(prop!("AndroidManufacturer"), expect_string, pretty_make),
+        );
         metadata.model = first_of!(
             map!(prop!("Model"), expect_string),
             map!(prop!("AndroidModel"), expect_string),
@@ -341,15 +411,149 @@ impl ExifVersion {
         metadata
     }
 
+    #[allow(clippy::field_reassign_with_default)]
     fn parse_exif_v2(exif: &Object, mimetype: &str) -> models::MediaMetadata {
-        Default::default()
+        macro_rules! prop {
+            ($prop:expr) => {
+                exif.get($prop)
+            };
+            ($prop:expr, $($props:expr),+ $(,)*) => {
+                exif.get($prop)
+                    $(.and_then(expect_object).and_then(expect_prop($props)))+
+            };
+        }
+
+        let mut metadata = models::MediaMetadata::default();
+
+        metadata.title = map!(prop!("XMP", "Title"), expect_string);
+
+        metadata.description = first_of!(
+            map!(prop!("XMP", "Description"), expect_string),
+            map!(prop!("EXIF", "ImageDescription"), expect_string),
+            map!(prop!("IPTC", "Caption-Abstract"), expect_string),
+        );
+
+        metadata.label = map!(prop!("XMP", "Label"), expect_string);
+        metadata.category = map!(prop!("XMP", "Category"), expect_string);
+
+        let nanos = first_of!(
+            map!(prop!("EXIF", "SubSecTimeOriginal"), expect_subsecs),
+            map!(prop!("EXIF", "SubSecTimeDigitized"), expect_subsecs),
+        )
+        .map(|ss| (ss * 1_000_000_000_f64) as u32)
+        .or_else(|| {
+            first_of!(
+                map!(prop!("EXIF", "SubSecCreateDate"), expect_datetime),
+                map!(prop!("EXIF", "SubSecDateTimeOriginal"), expect_datetime),
+            )
+            .map(|dt| dt.nanosecond())
+        });
+
+        metadata.taken = first_of!(
+            map!(prop!("EXIF", "DateTimeOriginal"), expect_datetime),
+            map!(prop!("XMP", "DateCreated"), expect_datetime),
+            map!(prop!("Composite", "DateTimeCreated"), expect_datetime),
+        )
+        .map(|dt| {
+            if let Some(nanos) = nanos {
+                dt.with_nanosecond(nanos).unwrap_or(dt)
+            } else {
+                dt
+            }
+        });
+
+        metadata.latitude = first_of!(
+            map!(prop!("Composite", "GPSLatitude"), expect_gps_coord),
+            map!(prop!("EXIF", "GPSLatitude"), expect_gps_coord).map(|coord| {
+                fix_gps_sign(
+                    coord,
+                    map!(prop!("EXIF", "GPSLatitudeRef"), expect_string).unwrap_or_default(),
+                )
+            })
+        );
+        metadata.longitude = first_of!(
+            map!(prop!("Composite", "GPSLongitude"), expect_gps_coord),
+            map!(prop!("EXIF", "GPSLongitude"), expect_gps_coord).map(|coord| {
+                fix_gps_sign(
+                    coord,
+                    map!(prop!("EXIF", "GPSLongitudeRef"), expect_string).unwrap_or_default(),
+                )
+            })
+        );
+        metadata.altitude = first_of!(
+            map!(prop!("Composite", "GPSAltitude"), expect_gps_coord),
+            map!(prop!("EXIF", "GPSAltitude"), expect_prefixed_float)
+        );
+
+        metadata.location = first_of!(
+            map!(prop!("XMP", "Location"), expect_string),
+            map!(prop!("IPTC", "Sub-location"), expect_string),
+        );
+        metadata.city = first_of!(
+            map!(prop!("XMP", "City"), expect_string),
+            map!(prop!("IPTC", "City"), expect_string),
+        );
+        metadata.state = first_of!(
+            map!(prop!("XMP", "State"), expect_string),
+            map!(prop!("IPTC", "Province-State"), expect_string),
+        );
+        metadata.country = first_of!(
+            map!(prop!("XMP", "Country"), expect_string),
+            map!(prop!("IPTC", "Country-PrimaryLocationName"), expect_string),
+        );
+
+        metadata.orientation = if mimetype.starts_with("image/") {
+            map!(prop!("XMP", "Orientation"), expect_orientation)
+        } else {
+            Some(1)
+        };
+
+        metadata.make = map!(prop!("EXIF", "Make"), expect_string, pretty_make);
+        metadata.model = map!(prop!("EXIF", "Model"), expect_string);
+        metadata.lens = first_of!(
+            map!(prop!("XMP", "Lens"), expect_string),
+            map!(prop!("EXIF", "LensModel"), expect_string),
+        );
+
+        metadata.photographer = first_of!(
+            map!(prop!("XMP", "Creator"), expect_string_array),
+            map!(prop!("EXIF", "Artist"), expect_string),
+            map!(prop!("IPTC", "By-line"), expect_string),
+        );
+
+        metadata.aperture = first_of!(
+            map!(prop!("EXIF", "FNumber"), expect_float),
+            map!(prop!("EXIF", "ApertureValue"), expect_float),
+        );
+        metadata.shutter_speed = first_of!(
+            map!(prop!("EXIF", "ExposureTime"), expect_float, parse_exposure),
+            map!(
+                prop!("Composite", "ShutterSpeed"),
+                expect_float,
+                parse_exposure
+            ),
+            map!(
+                prop!("EXIF", "ShutterSpeedValue"),
+                expect_float,
+                parse_exposure
+            ),
+        );
+        metadata.iso = map!(prop!("EXIF", "ISO"), expect_int);
+        metadata.focal_length = map!(prop!("EXIF", "FocalLength"), expect_float);
+
+        metadata.rating = first_of!(
+            map!(prop!("XMP", "Rating"), expect_int).map(|r| max(0, min(5, r))),
+            map!(prop!("EXIF", "RatingPercent"), expect_float)
+                .map(|p| (5.0 * p / 100.0).round() as i32),
+        );
+        metadata
     }
 
-    pub(super) fn media_metadata(&self, mimetype: &str) -> models::MediaMetadata {
+    pub(crate) fn media_metadata(&self, mimetype: &str) -> models::MediaMetadata {
         match self {
-            ExifVersion::V1(ref obj) => ExifVersion::parse_exif_v1(obj, mimetype),
-            ExifVersion::V2(ref obj) => ExifVersion::parse_exif_v2(obj, mimetype),
-            ExifVersion::Unknown => Default::default(),
+            ExifData::V1(ref obj) => ExifData::parse_exif_v1(obj, mimetype),
+            ExifData::V2(ref obj) => ExifData::parse_exif_v2(obj, mimetype),
+            ExifData::Unknown(_) => Default::default(),
         }
     }
 }
@@ -359,14 +563,13 @@ mod tests {
     use chrono::NaiveDate;
     use serde_json::from_str;
 
-    use super::{ExifVersion, Object};
+    use super::ExifData;
     use crate::metadata::lookup_timezone;
 
     #[test]
     fn parse_exif() {
-        let exif = ExifVersion::from(
-            from_str::<Object>(
-                r#"{
+        let exif = from_str::<ExifData>(
+            r#"{
                 "ModifyDate": "2020:11:27 08:25:18",
                 "DateTimeOriginal": "2013:08:29 17:41:06",
                 "CreateDate": "2013:08:29 08:41:06",
@@ -388,9 +591,8 @@ mod tests {
                 "DigitalCreationDateTime": "2013:08:29 08:41:06",
                 "GPSPosition": "48.8608032616667 2.33539117333333"
             }"#,
-            )
-            .unwrap(),
-        );
+        )
+        .unwrap();
 
         let metadata = exif.media_metadata("image/jpeg");
         assert_eq!(
@@ -407,9 +609,8 @@ mod tests {
             Some("Europe/Paris")
         );
 
-        let exif = ExifVersion::from(
-            from_str::<Object>(
-                r#"{
+        let exif = from_str::<ExifData>(
+            r#"{
                 "GPSVersionID": "2 2 0 0",
                 "GPSLatitudeRef": "N",
                 "GPSLongitudeRef": "E",
@@ -430,9 +631,8 @@ mod tests {
                 "DateTimeCreated": "2013-08-29T17:42:25.000-08:00",
                 "DigitalCreationDateTime": "2013-08-29T08:42:25.000-08:00"
             }"#,
-            )
-            .unwrap(),
-        );
+        )
+        .unwrap();
 
         let metadata = exif.media_metadata("image/jpeg");
         assert_eq!(
@@ -449,9 +649,8 @@ mod tests {
             Some("Europe/Paris")
         );
 
-        let exif = ExifVersion::from(
-            from_str::<Object>(
-                r#"{
+        let exif = from_str::<ExifData>(
+            r#"{
                 "ModifyDate": "2023:11:01 17:45:39",
                 "DateTimeOriginal": "2023:11:01 17:45:39",
                 "CreateDate": "2023:11:01 17:45:39",
@@ -480,9 +679,8 @@ mod tests {
                 "GPSLongitude": -1.176903,
                 "GPSPosition": "+52.747325, -1.176903"
             }"#,
-            )
-            .unwrap(),
-        );
+        )
+        .unwrap();
 
         let metadata = exif.media_metadata("image/jpeg");
         assert_eq!(
@@ -501,9 +699,8 @@ mod tests {
             Some("Europe/London")
         );
 
-        let exif = ExifVersion::from(
-            from_str::<Object>(
-                r#"{
+        let exif = from_str::<ExifData>(
+            r#"{
                 "ModifyDate": "2023:08:09 12:18:56",
                 "DateTimeOriginal": "2023:08:09 12:18:56",
                 "CreateDate": "2023:08:09 12:18:56",
@@ -529,9 +726,8 @@ mod tests {
                 "GPSLatitude": "+34.209665",
                 "GPSLongitude": -119.078521
             }"#,
-            )
-            .unwrap(),
-        );
+        )
+        .unwrap();
 
         let metadata = exif.media_metadata("image/jpeg");
         assert_eq!(
