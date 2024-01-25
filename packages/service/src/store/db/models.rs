@@ -1056,7 +1056,7 @@ impl MediaFile {
         Self {
             id: short_id("I"),
             uploaded: Utc::now(),
-            process_version: 0,
+            process_version: -1,
             file_name: file_name.to_owned(),
             file_size,
             mimetype: mimetype.to_owned(),

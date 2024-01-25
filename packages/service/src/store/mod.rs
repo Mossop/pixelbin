@@ -32,7 +32,7 @@ pub trait FileStore {
 
     async fn pull(&self, path: &FilePath, target: &Path) -> Result;
 
-    async fn push(&self, source: &Path, path: &FilePath) -> Result;
+    async fn push(&self, source: &Path, path: &FilePath, mimetype: &str) -> Result;
 }
 
 pub(crate) struct DiskStore {
@@ -155,7 +155,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
-    async fn push(&self, source: &Path, path: &FilePath) -> Result {
+    async fn push(&self, source: &Path, path: &FilePath, _mimetype: &str) -> Result {
         let target = self.local_path(path);
 
         if let Some(parent) = target.parent() {

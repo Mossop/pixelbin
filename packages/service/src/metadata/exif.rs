@@ -321,6 +321,8 @@ impl ExifData {
 
         let mut metadata = models::MediaMetadata::default();
 
+        metadata.filename = map!(prop!("RawFileName"), expect_string);
+
         metadata.title = map!(prop!("Title"), expect_string);
 
         metadata.description = first_of!(
@@ -429,6 +431,8 @@ impl ExifData {
         }
 
         let mut metadata = models::MediaMetadata::default();
+
+        metadata.filename = map!(prop!("XMP", "RawFileName"), expect_string);
 
         metadata.title = map!(prop!("XMP", "Title"), expect_string);
 

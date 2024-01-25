@@ -14,7 +14,7 @@ use tzf_rs::DefaultFinder;
 use crate::{
     store::{
         db::DbConnection,
-        models::{self, AlternateFile, AlternateFileType, MediaFile, MediaItem, Storage},
+        models::{AlternateFile, AlternateFileType, MediaFile, MediaItem, Storage},
         path::{FilePath, MediaFilePath, ResourcePath},
     },
     Config, Error, FileStore, Result,
@@ -184,6 +184,7 @@ impl FileMetadata {
 
         let mut media_file = MediaFile::new(media_item, &self.file_name, self.file_size, &mimetype);
         media_file.id = id.to_owned();
+        media_file.process_version = 0;
 
         self.apply_to_media_file(&mut media_file);
 
@@ -207,14 +208,7 @@ impl FileMetadata {
         media_file.duration = self.duration;
         media_file.frame_rate = self.frame_rate;
         media_file.bit_rate = self.bit_rate;
-        media_file.metadata = self.media_metadata();
-    }
-
-    pub(crate) fn media_metadata(&self) -> models::MediaMetadata {
-        let mut media_metadata = self.exif.media_metadata(&self.mimetype);
-        media_metadata.filename = Some(self.file_name.clone());
-
-        media_metadata
+        media_file.metadata = self.exif.media_metadata(&self.mimetype);
     }
 }
 
@@ -272,6 +266,13 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
     let mut updated = false;
 
     if media_file.process_version != PROCESS_VERSION {
+        if media_file.process_version == -1 {
+            remote_store
+                .push(&temp_path, &file_path, &media_file.mimetype)
+                .await?;
+            media_file.process_version = 0;
+        }
+
         let metadata_path = local_store.local_path(&media_file_path.file(METADATA_FILE));
 
         let metadata = if file_exists(&metadata_path).await? {

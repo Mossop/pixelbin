@@ -5,6 +5,7 @@ use aws_config::{AppName, BehaviorVersion};
 use aws_sdk_s3::{
     config::{Credentials, Region},
     presigning::PresigningConfig,
+    primitives::ByteStream,
     Client,
 };
 use tokio::{fs, io};
@@ -181,7 +182,31 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
-    async fn push(&self, source: &Path, path: &FilePath) -> Result {
-        todo!();
+    async fn push(&self, source: &Path, path: &FilePath, mimetype: &str) -> Result {
+        let key = match &self.path {
+            Some(p) => format!("{p}/{}", remote_path(path)),
+            None => remote_path(path),
+        };
+
+        let body = ByteStream::from_path(source)
+            .await
+            .map_err(|e| Error::S3Error {
+                message: format!("Failed to read file: {e}"),
+            })?;
+
+        self.client
+            .put_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .cache_control("max-age=1314000, immutable")
+            .content_type(mimetype)
+            .body(body)
+            .send()
+            .await
+            .map_err(|e| Error::S3Error {
+                message: format!("Failed to put object: {e}"),
+            })?;
+
+        Ok(())
     }
 }
