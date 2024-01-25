@@ -1,17 +1,33 @@
-use std::{cmp, io::ErrorKind, path::Path, str::FromStr};
+use std::{
+    cmp,
+    io::{BufWriter, ErrorKind},
+    os::unix::fs::MetadataExt,
+    path::Path,
+    str::FromStr,
+};
 
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
-use image::io::Reader;
+use image::{
+    codecs::{
+        jpeg::JpegEncoder,
+        webp::{WebPEncoder, WebPQuality},
+    },
+    imageops::FilterType,
+    io::Reader,
+    DynamicImage,
+};
 use lazy_static::lazy_static;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
+use tempfile::NamedTempFile;
 use tokio::fs::{self, metadata, read_to_string};
 use tracing::{error, info, instrument, warn};
 use tzf_rs::DefaultFinder;
 
 use crate::{
+    shared::short_id,
     store::{
         db::DbConnection,
         models::{AlternateFile, AlternateFileType, MediaFile, MediaItem, Storage},
@@ -32,6 +48,17 @@ pub(crate) const METADATA_FILE: &str = "metadata.json";
 pub(crate) const PROCESS_VERSION: i32 = 4;
 
 pub(crate) const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
+
+pub(crate) const JPEG_EXTENSION: &str = "jpg";
+pub(crate) const WEBP_EXTENSION: &str = "webp";
+
+fn mime_extension(mimetype: &str) -> &'static str {
+    match mimetype {
+        "image/jpeg" => JPEG_EXTENSION,
+        "image/webp" => WEBP_EXTENSION,
+        _ => todo!(),
+    }
+}
 
 pub(crate) struct Alternate {
     alt_type: AlternateFileType,
@@ -61,13 +88,77 @@ impl Alternate {
     pub(crate) async fn build<F: FileStore>(
         &self,
         conn: &mut DbConnection<'_>,
-        media_file: &MediaFile,
         media_file_path: &MediaFilePath,
         remote_store: &F,
-        temp_path: &Path,
+        source_image: &DynamicImage,
     ) -> Result<AlternateFile> {
-        Err(Error::Unknown {
-            message: "Not implemented".to_string(),
+        let temp = NamedTempFile::new()?;
+        let mut name = match self.alt_type {
+            AlternateFileType::Thumbnail => "thumb".to_string(),
+            AlternateFileType::Reencode => "reencode".to_string(),
+        };
+
+        let (width, height) = {
+            let buffered = BufWriter::new(temp.reopen()?);
+
+            if self.mimetype.starts_with("image/") {
+                let image = if let Some(size) = self.size {
+                    name = format!("{name}-{size}");
+                    source_image.resize(size as u32, size as u32, FilterType::Lanczos3)
+                } else {
+                    source_image.clone()
+                };
+
+                match self.mimetype.as_str() {
+                    "image/jpeg" => {
+                        let encoder = JpegEncoder::new_with_quality(buffered, 90);
+                        image.write_with_encoder(encoder)?;
+                    }
+                    "image/webp" => {
+                        let encoder =
+                            WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
+                        image.write_with_encoder(encoder)?;
+                    }
+                    _ => todo!(),
+                }
+
+                (image.width(), image.height())
+            } else {
+                todo!();
+            }
+
+            // Buffered file should close here.
+        };
+
+        let target_name = format!("{name}.{}", mime_extension(&self.mimetype));
+        let stats = metadata(temp.path()).await?;
+
+        let target = media_file_path.file(&target_name);
+        match self.alt_type {
+            AlternateFileType::Reencode => {
+                remote_store
+                    .push(temp.path(), &target, &self.mimetype)
+                    .await?;
+            }
+            AlternateFileType::Thumbnail => {
+                let local_store = conn.config().local_store();
+                local_store.copy_from_temp(temp, &target).await?;
+            }
+        }
+
+        Ok(AlternateFile {
+            id: short_id("F"),
+            file_type: self.alt_type,
+            file_name: target_name,
+            file_size: stats.size() as i32,
+            mimetype: self.mimetype.clone(),
+            width: width as i32,
+            height: height as i32,
+            duration: None,
+            frame_rate: None,
+            bit_rate: None,
+            media_file: media_file_path.file.clone(),
+            local: self.alt_type == AlternateFileType::Thumbnail,
         })
     }
 }
@@ -90,6 +181,12 @@ pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &str) -> Vec<Al
             });
         }
     }
+
+    alternates.push(Alternate {
+        alt_type: AlternateFileType::Reencode,
+        mimetype: "image/jpeg".to_string(),
+        size: None,
+    });
 
     for alternate_mime in config.thumbnails.alternate_types.iter() {
         alternates.push(Alternate {
@@ -250,6 +347,11 @@ async fn ensure_local_copy<S: FileStore>(
     Ok(())
 }
 
+fn load_image(path: &Path) -> Result<DynamicImage> {
+    let reader = Reader::open(path)?.with_guessed_format()?;
+    Ok(reader.decode()?)
+}
+
 #[instrument(skip(conn, media_file, remote_store))]
 pub(crate) async fn reprocess_media_file<S: FileStore>(
     conn: &mut DbConnection<'_>,
@@ -330,12 +432,13 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
 
         if build_alternates {
             ensure_local_copy(&file_path, &temp_path, remote_store).await?;
+            let source_image = load_image(&temp_path)?;
 
             let mut alternate_files = Vec::new();
             for alternate in expected_alternates {
                 alternate_files.push(
                     alternate
-                        .build(conn, media_file, media_file_path, remote_store, &temp_path)
+                        .build(conn, media_file_path, remote_store, &source_image)
                         .await?,
                 );
             }

@@ -50,8 +50,8 @@ impl From<Object> for ExifData {
     fn from(object: Object) -> ExifData {
         match object.get(PARSE_VERSION_KEY) {
             Some(Value::Number(version)) => {
-                if let Some(version) = version.as_u64() {
-                    match version {
+                if let Some(version) = version.as_f64() {
+                    match version.round() as u32 {
                         2 => ExifData::V2(object),
                         o => {
                             warn!("Unexpected parse version: {}", o);

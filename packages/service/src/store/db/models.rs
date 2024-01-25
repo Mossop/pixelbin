@@ -1065,10 +1065,7 @@ impl MediaFile {
             duration: None,
             frame_rate: None,
             bit_rate: None,
-            metadata: MediaMetadata {
-                filename: Some(file_name.to_owned()),
-                ..Default::default()
-            },
+            metadata: Default::default(),
             media_item: media_item.to_owned(),
         }
     }
