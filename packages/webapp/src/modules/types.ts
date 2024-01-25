@@ -221,7 +221,7 @@ export interface MediaView {
   lens: string | null;
   photographer: string | null;
   aperture: number | null;
-  shutterSpeed: string | null;
+  shutterSpeed: number | null;
   iso: number | null;
   focalLength: number | null;
   rating: number | null;

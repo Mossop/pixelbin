@@ -322,7 +322,7 @@ struct MediaMetadata {
     #[serde(default)]
     photographer: MetadataValue<String>,
     #[serde(default)]
-    shutter_speed: MetadataValue<String>,
+    shutter_speed: MetadataValue<f32>,
     #[serde(default)]
     orientation: MetadataValue<i32>,
     #[serde(default)]

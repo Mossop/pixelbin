@@ -9,33 +9,6 @@ local Utils = require "Utils"
 
 local API = { }
 
-local CHARACTER_MAP = {
-  [0x2070] = "0",
-  [0xB9] = "1",
-  [0xB2] = "2",
-  [0xB3] = "3",
-  [0xBC] = "1/4",
-  [0xBD] = "1/2",
-  [0xBE] = "3/4",
-  [0x2044] = "/",
-  [0x2150] = "1/7",
-  [0x2151] = "1/9",
-  [0x2152] = "1/10",
-  [0x2153] = "1/3",
-  [0x2154] = "2/3",
-  [0x2155] = "1/5",
-  [0x2156] = "2/5",
-  [0x2157] = "3/5",
-  [0x2158] = "4/5",
-  [0x2159] = "1/6",
-  [0x215A] = "5/6",
-  [0x215B] = "1/8",
-  [0x215C] = "3/8",
-  [0x215D] = "5/8",
-  [0x215E] = "7/8",
-  [0x215F] = "1/",
-}
-
 function API:parseHTTPResult(response, info)
   if not response then
     logger:error("Connection to server failed", info.error.errorCode, info.error.name)
@@ -490,6 +463,7 @@ function API:extractMetadata(photo, publishSettings)
   addRawMetadata("iso", "isoSpeedRating")
   addRawMetadata("aperture", "aperture")
   addRawMetadata("focalLength", "focalLength")
+  addRawMetadata("shutterSpeed", "shutterSpeed")
   addRawMetadata("altitude", "gpsAltitude")
   addRawMetadata("rating", "rating")
 
@@ -502,43 +476,6 @@ function API:extractMetadata(photo, publishSettings)
   if gps then
     addMetadata("longitude", gps.longitude)
     addMetadata("latitude", gps.latitude)
-  end
-
-  local function decodeCharacter(val)
-    if val >= 0x2074 and val <= 0x2079 then
-      return tostring(val - 0x2070)
-    end
-
-    if val >= 0x2080 and val <= 0x2089 then
-      return tostring(val - 0x2080)
-    end
-
-    if CHARACTER_MAP[val] then
-      return CHARACTER_MAP[val]
-    end
-
-    return string.char(val)
-  end
-
-  local function convertShutterSpeed(shutterSpeed)
-    local decoded = ""
-    local ch = 1
-    local val
-
-    while ch <= string.len(shutterSpeed) do
-      ch, val = utf8.next(shutterSpeed, ch)
-      if val == 0x20 then
-        return decoded
-      end
-      decoded = decoded .. decodeCharacter(val)
-    end
-
-    return decoded
-  end
-
-  local shutterSpeed = photo:getFormattedMetadata("shutterSpeed")
-  if shutterSpeed ~= nil then
-    metadata.media.shutterSpeed = convertShutterSpeed(shutterSpeed)
   end
 
   if photo:getRawMetadata("fileFormat") == "VIDEO" then

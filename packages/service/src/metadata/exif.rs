@@ -272,13 +272,18 @@ fn expect_int(val: &Value) -> Option<i32> {
     }
 }
 
-fn parse_exposure(val: f32) -> Option<String> {
-    Some(if val > 0.5 {
-        val.to_string()
-    } else {
-        let denom = 1.0 / val;
-        format!("1/{}", denom.round())
-    })
+fn expect_shutter_speed(val: &Value) -> Option<f32> {
+    match val {
+        Value::Number(num) => num.as_f64().map(|f| f as f32),
+        Value::String(str) => {
+            if let Some(denominator) = str.strip_prefix("1/") {
+                denominator.parse::<f32>().ok().map(|f| 1.0 / f)
+            } else {
+                str.parse::<f32>().ok()
+            }
+        }
+        _ => None,
+    }
 }
 
 #[allow(clippy::ptr_arg)]
@@ -396,9 +401,9 @@ impl ExifData {
             map!(prop!("ApertureValue"), expect_float),
         );
         metadata.shutter_speed = first_of!(
-            map!(prop!("ExposureTime"), expect_string),
-            map!(prop!("ShutterSpeed"), expect_string),
-            map!(prop!("ShutterSpeedValue"), expect_string),
+            map!(prop!("ExposureTime"), expect_shutter_speed),
+            map!(prop!("ShutterSpeed"), expect_shutter_speed),
+            map!(prop!("ShutterSpeedValue"), expect_shutter_speed),
         );
         metadata.iso = map!(prop!("ISO"), expect_int);
         metadata.focal_length = map!(prop!("FocalLength"), expect_prefixed_float);
@@ -526,17 +531,9 @@ impl ExifData {
             map!(prop!("EXIF", "ApertureValue"), expect_float),
         );
         metadata.shutter_speed = first_of!(
-            map!(prop!("EXIF", "ExposureTime"), expect_float, parse_exposure),
-            map!(
-                prop!("Composite", "ShutterSpeed"),
-                expect_float,
-                parse_exposure
-            ),
-            map!(
-                prop!("EXIF", "ShutterSpeedValue"),
-                expect_float,
-                parse_exposure
-            ),
+            map!(prop!("EXIF", "ExposureTime"), expect_float),
+            map!(prop!("Composite", "ShutterSpeed"), expect_float),
+            map!(prop!("EXIF", "ShutterSpeedValue"), expect_float),
         );
         metadata.iso = map!(prop!("EXIF", "ISO"), expect_int);
         metadata.focal_length = map!(prop!("EXIF", "FocalLength"), expect_float);

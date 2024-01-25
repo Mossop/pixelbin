@@ -324,7 +324,7 @@ impl Field for MediaField {
             MediaField::Model => TypedField::Text(Box::new(media_field!(model))),
             MediaField::Lens => TypedField::Text(Box::new(media_field!(lens))),
             MediaField::Photographer => TypedField::Text(Box::new(media_field!(photographer))),
-            MediaField::ShutterSpeed => TypedField::Text(Box::new(media_field!(shutter_speed))),
+            MediaField::ShutterSpeed => TypedField::Float(Box::new(media_field!(shutter_speed))),
 
             MediaField::Longitude => TypedField::Float(Box::new(media_field!(longitude))),
             MediaField::Latitude => TypedField::Float(Box::new(media_field!(latitude))),

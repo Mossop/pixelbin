@@ -706,6 +706,7 @@ struct MediaTag {
 
 #[derive(Insertable, Serialize, PartialEq, Default, Clone, Debug)]
 #[diesel(table_name = media_item, table_name = media_file)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaMetadata {
     pub filename: Option<String>,
     pub title: Option<String>,
@@ -720,7 +721,7 @@ pub struct MediaMetadata {
     pub model: Option<String>,
     pub lens: Option<String>,
     pub photographer: Option<String>,
-    pub shutter_speed: Option<String>,
+    pub shutter_speed: Option<f32>,
     pub orientation: Option<i32>,
     pub iso: Option<i32>,
     pub rating: Option<i32>,
@@ -780,7 +781,7 @@ type MediaMetadataRow = (
     sql_types::Nullable<sql_types::Text>,
     sql_types::Nullable<sql_types::Text>,
     sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
+    sql_types::Nullable<sql_types::Float>,
     sql_types::Nullable<sql_types::Integer>,
     sql_types::Nullable<sql_types::Integer>,
     sql_types::Nullable<sql_types::Integer>,
@@ -807,7 +808,7 @@ impl Queryable<MediaMetadataRow, Pg> for MediaMetadata {
         Option<String>,
         Option<String>,
         Option<String>,
-        Option<String>,
+        Option<f32>,
         Option<i32>,
         Option<i32>,
         Option<i32>,

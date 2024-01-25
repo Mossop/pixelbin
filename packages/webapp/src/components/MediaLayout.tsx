@@ -18,8 +18,6 @@ import { useFullscreen } from "@/modules/client-util";
 import { ApiMediaRelations, MediaRelations, MediaView } from "@/modules/types";
 import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
-const FRACTION = /^(\d+)\/(\d+)$/;
-
 function superscript(value: number): string {
   let val = Math.ceil(value);
 
@@ -275,13 +273,15 @@ function MediaInfo({ media }: { media: MediaRelations }) {
     if (media.shutterSpeed === null) {
       return null;
     }
-    let value = media.shutterSpeed;
-    let matches = FRACTION.exec(value);
-    if (matches) {
-      value = `${superscript(parseInt(matches[1], 10))}\u2044${subscript(
-        parseInt(matches[2], 10),
-      )}`;
+
+    let value = media.shutterSpeed.toString();
+
+    if (media.shutterSpeed < 0.5) {
+      let denominator = Math.round(1 / media.shutterSpeed);
+
+      value = `${superscript(1)}\u2044${subscript(denominator)}`;
     }
+
     return <Row label="shutterSpeed">{value} s</Row>;
   }, [media]);
 
