@@ -5,6 +5,7 @@ use std::{
 
 use chrono::{NaiveDateTime, Timelike};
 use lexical_parse_float::FromLexical;
+use mime::Mime;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_slice, Map, Number, Value};
 use tokio::process::Command;
@@ -312,7 +313,7 @@ macro_rules! first_of {
 
 impl ExifData {
     #[allow(clippy::field_reassign_with_default)]
-    fn parse_exif_v1(exif: &Object, mimetype: &str) -> models::MediaMetadata {
+    fn parse_exif_v1(exif: &Object, mimetype: &Mime) -> models::MediaMetadata {
         macro_rules! prop {
             ($prop:expr) => {
                 exif.get($prop)
@@ -373,7 +374,7 @@ impl ExifData {
             map!(prop!("Country-PrimaryLocationName"), expect_string),
         );
 
-        metadata.orientation = if mimetype.starts_with("image/") {
+        metadata.orientation = if mimetype.type_() == "image" {
             map!(prop!("Orientation"), expect_orientation)
         } else {
             Some(1)
@@ -419,7 +420,7 @@ impl ExifData {
     }
 
     #[allow(clippy::field_reassign_with_default)]
-    fn parse_exif_v2(exif: &Object, mimetype: &str) -> models::MediaMetadata {
+    fn parse_exif_v2(exif: &Object, mimetype: &Mime) -> models::MediaMetadata {
         macro_rules! prop {
             ($prop:expr) => {
                 exif.get($prop)
@@ -511,7 +512,7 @@ impl ExifData {
             map!(prop!("IPTC", "Country-PrimaryLocationName"), expect_string),
         );
 
-        metadata.orientation = if mimetype.starts_with("image/") {
+        metadata.orientation = if mimetype.type_() == "image" {
             map!(prop!("XMP", "Orientation"), expect_orientation)
         } else {
             Some(1)
@@ -550,7 +551,7 @@ impl ExifData {
         metadata
     }
 
-    pub(crate) fn media_metadata(&self, mimetype: &str) -> models::MediaMetadata {
+    pub(crate) fn media_metadata(&self, mimetype: &Mime) -> models::MediaMetadata {
         match self {
             ExifData::V1(ref obj) => ExifData::parse_exif_v1(obj, mimetype),
             ExifData::V2(ref obj) => ExifData::parse_exif_v2(obj, mimetype),
@@ -595,7 +596,7 @@ mod tests {
         )
         .unwrap();
 
-        let metadata = exif.media_metadata("image/jpeg");
+        let metadata = exif.media_metadata(&mime::IMAGE_JPEG);
         assert_eq!(
             metadata.taken,
             Some(
@@ -635,7 +636,7 @@ mod tests {
         )
         .unwrap();
 
-        let metadata = exif.media_metadata("image/jpeg");
+        let metadata = exif.media_metadata(&mime::IMAGE_JPEG);
         assert_eq!(
             metadata.taken,
             Some(
@@ -683,7 +684,7 @@ mod tests {
         )
         .unwrap();
 
-        let metadata = exif.media_metadata("image/jpeg");
+        let metadata = exif.media_metadata(&mime::IMAGE_JPEG);
         assert_eq!(
             metadata.taken,
             Some(
@@ -730,7 +731,7 @@ mod tests {
         )
         .unwrap();
 
-        let metadata = exif.media_metadata("image/jpeg");
+        let metadata = exif.media_metadata(&mime::IMAGE_JPEG);
         assert_eq!(
             metadata.taken,
             Some(

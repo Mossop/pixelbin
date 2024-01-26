@@ -8,6 +8,7 @@ use aws_sdk_s3::{
     primitives::ByteStream,
     Client,
 };
+use mime::Mime;
 use tokio::{fs, io};
 use tracing::trace;
 
@@ -72,7 +73,7 @@ impl AwsClient {
     pub(crate) async fn file_uri(
         &self,
         path: &FilePath,
-        mimetype: &str,
+        mimetype: &Mime,
         filename: Option<&str>,
     ) -> Result<String> {
         if let Some(ref public) = self.public_url {
@@ -94,7 +95,7 @@ impl AwsClient {
                 .get_object()
                 .bucket(&self.bucket)
                 .response_cache_control("max-age=1314000,immutable")
-                .response_content_type(mimetype)
+                .response_content_type(mimetype.as_ref())
                 .response_content_disposition(disposition)
                 .key(key)
                 .presigned(PresigningConfig::expires_in(Duration::from_secs(60 * 5)).unwrap())
@@ -182,7 +183,7 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
-    async fn push(&self, source: &Path, path: &FilePath, mimetype: &str) -> Result {
+    async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result {
         let key = match &self.path {
             Some(p) => format!("{p}/{}", remote_path(path)),
             None => remote_path(path),
@@ -199,7 +200,7 @@ impl FileStore for AwsClient {
             .bucket(&self.bucket)
             .key(key)
             .cache_control("max-age=1314000, immutable")
-            .content_type(mimetype)
+            .content_type(mimetype.as_ref())
             .body(body)
             .send()
             .await

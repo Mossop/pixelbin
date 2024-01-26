@@ -2,23 +2,60 @@ use std::{
     env,
     fs::{self, File},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
+use mime::Mime;
 use serde::{Deserialize, Serialize};
 
 use crate::{store::DiskStore, Error, Result};
 
+mod mimes {
+    use std::str::FromStr;
+
+    use mime::Mime;
+    use serde::{de::Error, de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
+
+    pub(crate) fn serialize<S>(mimes: &[Mime], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        mimes
+            .iter()
+            .map(AsRef::as_ref)
+            .collect::<Vec<&str>>()
+            .serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Mime>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let list = Vec::<&str>::deserialize(deserializer)?;
+
+        list.into_iter()
+            .try_fold(Vec::<Mime>::new(), |mut list, st| {
+                let mime = Mime::from_str(st).map_err(|_| {
+                    D::Error::invalid_value(Unexpected::Str(st), &"a valid mime type")
+                })?;
+                list.push(mime);
+                Ok(list)
+            })
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ThumbnailConfig {
-    pub alternate_types: Vec<String>,
+    #[serde(with = "mimes")]
+    pub alternate_types: Vec<Mime>,
     pub sizes: Vec<u32>,
 }
 
 impl Default for ThumbnailConfig {
     fn default() -> Self {
         ThumbnailConfig {
-            alternate_types: vec!["image/webp".to_string()],
+            alternate_types: vec![Mime::from_str("image/webp").unwrap()],
             sizes: vec![150, 200, 250, 300, 350, 400, 450, 500],
         }
     }

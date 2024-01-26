@@ -52,8 +52,8 @@ pub(crate) const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 pub(crate) const JPEG_EXTENSION: &str = "jpg";
 pub(crate) const WEBP_EXTENSION: &str = "webp";
 
-fn mime_extension(mimetype: &str) -> &'static str {
-    match mimetype {
+fn mime_extension(mimetype: &Mime) -> &'static str {
+    match mimetype.essence_str() {
         "image/jpeg" => JPEG_EXTENSION,
         "image/webp" => WEBP_EXTENSION,
         _ => todo!(),
@@ -62,7 +62,7 @@ fn mime_extension(mimetype: &str) -> &'static str {
 
 pub(crate) struct Alternate {
     alt_type: AlternateFileType,
-    mimetype: String,
+    mimetype: Mime,
     size: Option<i32>,
 }
 
@@ -78,11 +78,7 @@ impl Alternate {
             }
         }
 
-        if let Ok(mime) = Mime::from_str(&alt.mimetype) {
-            mime.essence_str() == self.mimetype
-        } else {
-            false
-        }
+        self.mimetype == alt.mimetype
     }
 
     pub(crate) async fn build<F: FileStore>(
@@ -101,7 +97,7 @@ impl Alternate {
         let (width, height) = {
             let buffered = BufWriter::new(temp.reopen()?);
 
-            if self.mimetype.starts_with("image/") {
+            if self.mimetype.type_() == "image" {
                 let image = if let Some(size) = self.size {
                     name = format!("{name}-{size}");
                     source_image.resize(size as u32, size as u32, FilterType::Lanczos3)
@@ -109,12 +105,12 @@ impl Alternate {
                     source_image.clone()
                 };
 
-                match self.mimetype.as_str() {
-                    "image/jpeg" => {
+                match self.mimetype.subtype().as_str() {
+                    "jpeg" => {
                         let encoder = JpegEncoder::new_with_quality(buffered, 90);
                         image.write_with_encoder(encoder)?;
                     }
-                    "image/webp" => {
+                    "webp" => {
                         let encoder =
                             WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
                         image.write_with_encoder(encoder)?;
@@ -163,13 +159,13 @@ impl Alternate {
     }
 }
 
-pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &str) -> Vec<Alternate> {
+pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &Mime) -> Vec<Alternate> {
     let mut alternates = Vec::new();
 
     for size in config.thumbnails.sizes.iter() {
         alternates.push(Alternate {
             alt_type: AlternateFileType::Thumbnail,
-            mimetype: "image/jpeg".to_string(),
+            mimetype: mime::IMAGE_JPEG,
             size: Some(*size as i32),
         });
 
@@ -184,7 +180,7 @@ pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &str) -> Vec<Al
 
     alternates.push(Alternate {
         alt_type: AlternateFileType::Reencode,
-        mimetype: "image/jpeg".to_string(),
+        mimetype: mime::IMAGE_JPEG,
         size: None,
     });
 
@@ -196,10 +192,10 @@ pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &str) -> Vec<Al
         });
     }
 
-    if mimetype.starts_with("video/") {
+    if mimetype.type_() == "video" {
         alternates.push(Alternate {
             alt_type: AlternateFileType::Reencode,
-            mimetype: "video/mp4".to_string(),
+            mimetype: Mime::from_str("video/mp4").unwrap(),
             size: None,
         })
     }
@@ -265,7 +261,8 @@ pub(crate) struct FileMetadata {
     pub(crate) width: i32,
     pub(crate) height: i32,
     pub(crate) uploaded: DateTime<Utc>,
-    pub(crate) mimetype: String,
+    #[serde(with = "crate::shared::mime")]
+    pub(crate) mimetype: Mime,
     pub(crate) duration: Option<f32>,
     pub(crate) bit_rate: Option<f32>,
     pub(crate) frame_rate: Option<f32>,
@@ -273,13 +270,8 @@ pub(crate) struct FileMetadata {
 
 impl FileMetadata {
     pub(crate) fn recover_media_file(&self, media_item: &str, id: &str) -> MediaFile {
-        let mimetype = if let Ok(mime) = Mime::from_str(&self.mimetype) {
-            mime.essence_str().to_owned()
-        } else {
-            self.mimetype.clone()
-        };
-
-        let mut media_file = MediaFile::new(media_item, &self.file_name, self.file_size, &mimetype);
+        let mut media_file =
+            MediaFile::new(media_item, &self.file_name, self.file_size, &self.mimetype);
         media_file.id = id.to_owned();
         media_file.process_version = 0;
 
@@ -293,12 +285,7 @@ impl FileMetadata {
         media_file.process_version = 0;
         media_file.file_name = self.file_name.clone();
         media_file.file_size = self.file_size;
-
-        media_file.mimetype = if let Ok(mime) = Mime::from_str(&self.mimetype) {
-            mime.essence_str().to_owned()
-        } else {
-            self.mimetype.clone()
-        };
+        media_file.mimetype = self.mimetype.clone();
 
         media_file.width = self.width;
         media_file.height = self.height;
@@ -386,7 +373,7 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
             let img_reader = Reader::open(&temp_path)?.with_guessed_format()?;
 
             let mimetype = if let Some(format) = img_reader.format() {
-                format.to_mime_type().to_owned()
+                Mime::from_str(format.to_mime_type())?
             } else {
                 return Err(Error::Unknown {
                     message: "Unknown image format".to_string(),
@@ -443,7 +430,7 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
                 );
             }
 
-            AlternateFile::upsert(conn, &alternate_files).await?;
+            AlternateFile::upsert(conn, alternate_files).await?;
 
             media_file.process_version = PROCESS_VERSION;
         } else {
@@ -496,7 +483,7 @@ pub(crate) async fn reprocess_catalog_media(
         }
     }
 
-    MediaFile::upsert(tx, &media_files).await?;
+    MediaFile::upsert(tx, media_files).await?;
 
     MediaItem::update_media_files(tx, catalog).await?;
 

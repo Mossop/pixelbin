@@ -17,6 +17,7 @@ pub(crate) mod path;
 
 pub(crate) use db::models;
 use db::{connect, DbConnection, DbPool};
+use mime::Mime;
 use tempfile::NamedTempFile;
 use tokio::fs;
 use tracing::instrument;
@@ -32,7 +33,7 @@ pub trait FileStore {
 
     async fn pull(&self, path: &FilePath, target: &Path) -> Result;
 
-    async fn push(&self, source: &Path, path: &FilePath, mimetype: &str) -> Result;
+    async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result;
 }
 
 pub(crate) struct DiskStore {
@@ -155,7 +156,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
-    async fn push(&self, source: &Path, path: &FilePath, _mimetype: &str) -> Result {
+    async fn push(&self, source: &Path, path: &FilePath, _mimetype: &Mime) -> Result {
         let target = self.local_path(path);
 
         if let Some(parent) = target.parent() {

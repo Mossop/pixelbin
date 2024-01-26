@@ -177,7 +177,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     file_set.remove(&media_file_path);
                 }
 
-                models::MediaFile::upsert(conn, &media_files_to_reprocess).await?;
+                models::MediaFile::upsert(conn, media_files_to_reprocess).await?;
 
                 for (alternate, path) in alternate_files.into_values().flatten() {
                     if let Some((ref mut local_files, ref mut remote_files)) =
@@ -281,7 +281,7 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
                     debug!(path=%media_file_path, "Recovered media file");
                 }
 
-                if let Err(e) = models::MediaFile::upsert(conn, &recovered_media_files).await {
+                if let Err(e) = models::MediaFile::upsert(conn, recovered_media_files).await {
                     error!(error=?e, "Failed to recover media files");
                 }
 

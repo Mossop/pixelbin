@@ -1,7 +1,10 @@
+use std::str::FromStr;
+
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
 use actix_web::{get, http::header, post, web, HttpResponse, Responder};
 use chrono::NaiveDateTime;
 use file_format::FileFormat;
+use mime::Mime;
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tokio::fs::File;
@@ -103,7 +106,7 @@ async fn thumbnail_handler(
     path: web::Path<ThumbnailPath>,
 ) -> ApiResult<impl Responder> {
     let email = session.session().map(|s| s.user.email.as_str());
-    let mimetype = path.mimetype.replace('-', "/");
+    let mimetype = Mime::from_str(&path.mimetype.replace('-', "/"))?;
     let target_size = path.size as i32;
 
     let alternates = match app_state
@@ -165,7 +168,7 @@ async fn encoding_handler(
     path: web::Path<EncodingPath>,
 ) -> ApiResult<impl Responder> {
     let email = session.session().map(|s| s.user.email.as_str());
-    let mimetype = path.mimetype.replace('-', "/");
+    let mimetype = Mime::from_str(&path.mimetype.replace('-', "/"))?;
     let tx_mime = mimetype.clone();
 
     let (file_path, storage) = match app_state
@@ -471,7 +474,7 @@ async fn create_media(
                     &id,
                     &file_name,
                     data.file.size as i32,
-                    format.media_type(),
+                    &Mime::from_str(format.media_type())?,
                 );
 
                 let path = media_item
@@ -484,7 +487,7 @@ async fn create_media(
                     .copy_from_temp(data.file.file, &path)
                     .await?;
 
-                models::MediaFile::upsert(conn, &[media_file]).await?;
+                models::MediaFile::upsert(conn, vec![media_file]).await?;
 
                 Ok(MediaCreateResponse { id })
             }

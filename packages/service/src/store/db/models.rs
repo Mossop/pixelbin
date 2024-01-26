@@ -6,6 +6,7 @@ use diesel::{
     sql_types, upsert::excluded, AsExpression, Queryable,
 };
 use diesel_async::RunQueryDsl;
+use mime::Mime;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use serde_repr::Serialize_repr;
@@ -14,7 +15,7 @@ use typeshare::typeshare;
 
 use crate::{
     metadata::{lookup_timezone, media_datetime},
-    shared::{long_id, short_id},
+    shared::{long_id, mime::MimeField, short_id},
     store::{
         aws::AwsClient,
         db::{
@@ -55,6 +56,34 @@ fn batch<T>(slice: &[T], count: usize) -> Batch<T> {
     Batch {
         slice,
         pos: 0,
+        count,
+    }
+}
+
+struct OwnedBatch<T> {
+    collection: Option<Vec<T>>,
+    count: usize,
+}
+
+impl<T> Iterator for OwnedBatch<T> {
+    type Item = Vec<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(mut collection) = self.collection.take() {
+            if collection.len() > self.count {
+                self.collection = Some(collection.split_off(self.count));
+            }
+
+            Some(collection)
+        } else {
+            None
+        }
+    }
+}
+
+fn owned_batch<T>(collection: Vec<T>, count: usize) -> OwnedBatch<T> {
+    OwnedBatch {
+        collection: Some(collection),
         count,
     }
 }
@@ -208,7 +237,7 @@ impl Storage {
     pub(crate) async fn online_uri(
         &self,
         path: &FilePath,
-        mimetype: &str,
+        mimetype: &Mime,
         filename: Option<&str>,
     ) -> Result<String> {
         let client = AwsClient::from_storage(self).await?;
@@ -1034,25 +1063,26 @@ impl MediaItem {
 
 #[derive(Queryable, Insertable, Clone, Debug)]
 #[diesel(table_name = media_file)]
-pub struct MediaFile {
-    pub id: String,
-    pub uploaded: DateTime<Utc>,
-    pub process_version: i32,
-    pub file_name: String,
-    pub file_size: i32,
-    pub mimetype: String,
-    pub width: i32,
-    pub height: i32,
-    pub duration: Option<f32>,
-    pub frame_rate: Option<f32>,
-    pub bit_rate: Option<f32>,
+pub(crate) struct MediaFile {
+    pub(crate) id: String,
+    pub(crate) uploaded: DateTime<Utc>,
+    pub(crate) process_version: i32,
+    pub(crate) file_name: String,
+    pub(crate) file_size: i32,
+    #[diesel(deserialize_as = MimeField, serialize_as = MimeField)]
+    pub(crate) mimetype: Mime,
+    pub(crate) width: i32,
+    pub(crate) height: i32,
+    pub(crate) duration: Option<f32>,
+    pub(crate) frame_rate: Option<f32>,
+    pub(crate) bit_rate: Option<f32>,
     #[diesel(embed)]
-    pub metadata: MediaMetadata,
-    pub media_item: String,
+    pub(crate) metadata: MediaMetadata,
+    pub(crate) media_item: String,
 }
 
 impl MediaFile {
-    pub(crate) fn new(media_item: &str, file_name: &str, file_size: i32, mimetype: &str) -> Self {
+    pub(crate) fn new(media_item: &str, file_name: &str, file_size: i32, mimetype: &Mime) -> Self {
         Self {
             id: short_id("I"),
             uploaded: Utc::now(),
@@ -1176,7 +1206,7 @@ impl MediaFile {
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: &[MediaFile]) -> Result {
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: Vec<MediaFile>) -> Result {
         conn.assert_in_transaction();
 
         let media_file_map: HashMap<&String, &MediaFile> =
@@ -1194,7 +1224,7 @@ impl MediaFile {
             }
         });
 
-        for records in batch(media_files, 500) {
+        for records in owned_batch(media_files, 500) {
             diesel::insert_into(media_file::table)
                 .values(records)
                 .on_conflict(media_file::id)
@@ -1297,7 +1327,8 @@ pub(crate) struct AlternateFile {
     pub(crate) file_type: AlternateFileType,
     pub(crate) file_name: String,
     pub(crate) file_size: i32,
-    pub(crate) mimetype: String,
+    #[diesel(deserialize_as = MimeField, serialize_as = MimeField)]
+    pub(crate) mimetype: Mime,
     pub(crate) width: i32,
     pub(crate) height: i32,
     pub(crate) duration: Option<f32>,
@@ -1350,7 +1381,7 @@ impl AlternateFile {
         email: Option<&str>,
         item: &str,
         file: &str,
-        mimetype: &str,
+        mimetype: &Mime,
         alternate_type: AlternateFileType,
     ) -> Result<Vec<(AlternateFile, FilePath)>> {
         if let Some(email) = email {
@@ -1363,7 +1394,7 @@ impl AlternateFile {
                     alternate_file::table
                         .on(media_item::media_file.eq(alternate_file::media_file.nullable())),
                 )
-                .filter(alternate_file::mimetype.eq(mimetype))
+                .filter(alternate_file::mimetype.eq(mimetype.as_ref()))
                 .filter(alternate_file::type_.eq(alternate_type))
                 .select((
                     alternate_file::all_columns,
@@ -1395,9 +1426,9 @@ impl AlternateFile {
     #[instrument(skip_all)]
     pub(crate) async fn upsert(
         conn: &mut DbConnection<'_>,
-        alternate_files: &[AlternateFile],
+        alternate_files: Vec<AlternateFile>,
     ) -> Result {
-        for records in batch(alternate_files, 500) {
+        for records in owned_batch(alternate_files, 500) {
             diesel::insert_into(alternate_file::table)
                 .values(records)
                 .on_conflict(alternate_file::id)
@@ -1465,7 +1496,9 @@ impl AlternateFile {
 pub(crate) struct MediaViewFile {
     pub(crate) id: String,
     pub(crate) file_size: i32,
-    pub(crate) mimetype: String,
+    #[diesel(deserialize_as = MimeField)]
+    #[serde(with = "crate::shared::mime")]
+    pub(crate) mimetype: Mime,
     pub(crate) width: i32,
     pub(crate) height: i32,
     pub(crate) duration: Option<f32>,

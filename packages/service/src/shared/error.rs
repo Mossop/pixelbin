@@ -5,6 +5,7 @@ use actix_multipart::MultipartError;
 use diesel::ConnectionError;
 use diesel_async::pooled_connection::deadpool::{BuildError, PoolError};
 use image::ImageError;
+use mime::FromStrError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -53,6 +54,11 @@ pub enum Error {
     ImageError {
         #[from]
         source: ImageError,
+    },
+    #[error("Invalid mime type: {source}")]
+    MimeError {
+        #[from]
+        source: FromStrError,
     },
     #[error("Unknown error: {message}")]
     Unknown { message: String },
