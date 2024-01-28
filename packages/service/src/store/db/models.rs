@@ -19,6 +19,7 @@ use crate::{
     store::{
         aws::AwsClient,
         db::{
+            self,
             functions::{
                 lower, media_file_columns, media_item_columns, media_view, media_view_columns,
             },
@@ -355,7 +356,8 @@ impl Catalog {
 }
 
 #[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
+#[diesel(table_name = person)]
 pub(crate) struct Person {
     pub(crate) id: String,
     pub(crate) name: String,
@@ -374,6 +376,68 @@ impl Person {
             .order(person::name.asc())
             .load::<Person>(conn)
             .await?)
+    }
+
+    #[instrument(skip(conn))]
+    pub(crate) async fn get_or_create(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+        name: &str,
+    ) -> Result<Person> {
+        conn.assert_in_transaction();
+
+        let person = match person::table
+            .filter(person::catalog.eq(catalog))
+            .filter(lower(person::name).eq(name))
+            .select(person::all_columns)
+            .get_result::<Person>(conn)
+            .await
+            .optional()?
+        {
+            Some(p) => p,
+            None => {
+                let new_person = Person {
+                    id: short_id("P"),
+                    name: name.to_owned(),
+                    catalog: catalog.to_owned(),
+                };
+
+                insert_into(person::table)
+                    .values(&new_person)
+                    .execute(conn)
+                    .await?;
+
+                new_person
+            }
+        };
+
+        Ok(person)
+    }
+}
+
+#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
+#[diesel(table_name = media_person)]
+pub(crate) struct MediaPerson {
+    pub(crate) catalog: String,
+    pub(crate) media: String,
+    pub(crate) person: String,
+    pub(crate) location: Option<Location>,
+}
+
+impl MediaPerson {
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, people: &[MediaPerson]) -> Result {
+        for records in batch(people, 500) {
+            diesel::insert_into(media_person::table)
+                .values(records)
+                .on_conflict((media_person::media, media_person::person))
+                .do_update()
+                .set((media_person::location.eq(excluded(media_person::location)),))
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
     }
 }
 
@@ -1550,12 +1614,27 @@ pub(crate) struct TagRelation {
 }
 
 #[typeshare]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, deserialize::FromSqlRow, AsExpression)]
+#[diesel(sql_type = db::schema::sql_types::Location)]
 pub(crate) struct Location {
     pub(crate) left: f32,
     pub(crate) right: f32,
     pub(crate) top: f32,
     pub(crate) bottom: f32,
+}
+
+impl serialize::ToSql<db::schema::sql_types::Location, Pg> for Location {
+    fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, Pg>) -> serialize::Result {
+        serialize::WriteTuple::<(
+            sql_types::Float,
+            sql_types::Float,
+            sql_types::Float,
+            sql_types::Float,
+        )>::write_tuple(
+            &(self.left, self.right, self.top, self.bottom),
+            &mut out.reborrow(),
+        )
+    }
 }
 
 #[typeshare]

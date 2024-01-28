@@ -395,7 +395,7 @@ impl MediaMetadata {
 }
 
 #[derive(Deserialize, Clone, Debug)]
-struct MediaPerson {
+struct PersonInfo {
     name: String,
     location: Option<Location>,
 }
@@ -407,7 +407,7 @@ struct MediaCreate {
     #[serde(default)]
     tags: Vec<Vec<String>>,
     #[serde(default)]
-    people: Vec<MediaPerson>,
+    people: Vec<PersonInfo>,
 }
 
 #[derive(MultipartForm)]
@@ -457,6 +457,20 @@ async fn create_media(
 
                 media_item.add_tags(conn, &tags).await?;
 
+                let mut people: Vec<models::MediaPerson> = Vec::new();
+                for person_info in &data.json.people {
+                    let person =
+                        models::Person::get_or_create(conn, &catalog.id, &person_info.name).await?;
+                    people.push(models::MediaPerson {
+                        catalog: catalog.id.clone(),
+                        media: media_item.id.clone(),
+                        person: person.id.clone(),
+                        location: person_info.location.clone(),
+                    });
+                }
+
+                models::MediaPerson::upsert(conn, &people).await?;
+
                 let base_name = if let Some(ref name) = data.file.file_name {
                     if let Some((name, _)) = name.rsplit_once('.') {
                         name
@@ -503,7 +517,7 @@ struct MediaUpdate {
     id: String,
     media: Option<MediaMetadata>,
     tags: Option<Vec<Vec<String>>>,
-    people: Option<Vec<MediaPerson>>,
+    people: Option<Vec<PersonInfo>>,
 }
 
 #[post("/api/media/edit")]
