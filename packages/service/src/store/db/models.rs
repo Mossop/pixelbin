@@ -974,6 +974,28 @@ impl MediaItem {
         }
     }
 
+    pub(crate) async fn get(
+        conn: &mut DbConnection<'_>,
+        media: &[String],
+    ) -> Result<Vec<MediaItem>> {
+        let media = media_item::table
+            .filter(media_item::id.eq_any(media))
+            .select(media_item_columns!())
+            .load::<MediaItem>(conn)
+            .await?;
+
+        Ok(media)
+    }
+
+    pub(crate) async fn delete(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
+        diesel::delete(media_item::table)
+            .filter(media_item::id.eq_any(media))
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
     pub(crate) async fn get_for_user(
         conn: &mut DbConnection<'_>,
         email: &str,

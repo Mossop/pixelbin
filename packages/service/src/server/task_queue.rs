@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_channel::{unbounded, Receiver, Sender};
 use futures::StreamExt;
 use scoped_futures::ScopedFutureExt;
@@ -5,12 +7,13 @@ use tracing::{error, instrument, Level};
 
 use crate::{
     metadata::reprocess_media_file,
-    store::{db::DbConnection, models},
-    Result, Store,
+    store::{db::DbConnection, models, path::ResourcePath},
+    FileStore, Result, Store,
 };
 
 pub(super) enum Task {
     ProcessMediaFile { media_file: String },
+    DeleteMedia { media: Vec<String> },
 }
 
 #[instrument(skip(conn), err(level = Level::ERROR))]
@@ -29,10 +32,39 @@ async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Re
     Ok(())
 }
 
+#[instrument(skip(conn), err(level = Level::ERROR))]
+async fn delete_media(conn: &mut DbConnection<'_>, ids: Vec<String>) -> Result {
+    let media = models::MediaItem::get(conn, &ids).await?;
+
+    let mut mapped: HashMap<String, Vec<models::MediaItem>> = HashMap::new();
+    for m in media {
+        mapped.entry(m.catalog.clone()).or_default().push(m);
+    }
+
+    let local_store = conn.config().local_store();
+    let temp_store = conn.config().local_store();
+
+    for (catalog, media) in mapped {
+        let storage = models::Storage::get_for_catalog(conn, &catalog).await?;
+        let remote_store = storage.file_store().await?;
+
+        for media in media {
+            let path = ResourcePath::MediaItem(media.path());
+
+            remote_store.delete(&path).await?;
+            local_store.delete(&path).await?;
+            temp_store.delete(&path).await?;
+        }
+    }
+
+    models::MediaItem::delete(conn, &ids).await
+}
+
 impl Task {
     async fn run(self, conn: &mut DbConnection<'_>) -> Result {
         match self {
             Task::ProcessMediaFile { media_file } => process_media_file(conn, &media_file).await,
+            Task::DeleteMedia { media } => delete_media(conn, media).await,
         }
     }
 }

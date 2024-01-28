@@ -256,7 +256,7 @@ async fn delete_media(
     session: Session,
     media_ids: web::Json<Vec<String>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    app_state
+    let media_ids = app_state
         .store
         .in_transaction(|conn| {
             async move {
@@ -267,11 +267,18 @@ async fn delete_media(
 
                 models::MediaItem::upsert(conn, &media).await?;
 
-                Ok(())
+                Ok(media_ids)
             }
             .scope_boxed()
         })
         .await?;
+
+    app_state
+        .task_queue
+        .queue_task(Task::DeleteMedia {
+            media: media_ids.into_inner(),
+        })
+        .await;
 
     Ok(web::Json(ApiResponse {
         message: "Ok".to_string(),
