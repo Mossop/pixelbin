@@ -987,6 +987,16 @@ impl MediaItem {
         Ok(media)
     }
 
+    pub(crate) async fn list_deleted(conn: &mut DbConnection<'_>) -> Result<Vec<MediaItem>> {
+        let media = media_item::table
+            .filter(media_item::deleted.eq(true))
+            .select(media_item_columns!())
+            .load::<MediaItem>(conn)
+            .await?;
+
+        Ok(media)
+    }
+
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
         diesel::delete(media_item::table)
             .filter(media_item::id.eq_any(media))

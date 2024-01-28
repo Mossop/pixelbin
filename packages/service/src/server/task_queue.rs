@@ -12,6 +12,7 @@ use crate::{
 };
 
 pub(super) enum Task {
+    Startup,
     ProcessMediaFile { media_file: String },
     DeleteMedia { media: Vec<String> },
 }
@@ -33,8 +34,8 @@ async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Re
 }
 
 #[instrument(skip(conn), err(level = Level::ERROR))]
-async fn delete_media(conn: &mut DbConnection<'_>, ids: Vec<String>) -> Result {
-    let media = models::MediaItem::get(conn, &ids).await?;
+async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::MediaItem>) -> Result {
+    let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
 
     let mut mapped: HashMap<String, Vec<models::MediaItem>> = HashMap::new();
     for m in media {
@@ -57,14 +58,27 @@ async fn delete_media(conn: &mut DbConnection<'_>, ids: Vec<String>) -> Result {
         }
     }
 
-    models::MediaItem::delete(conn, &ids).await
+    models::MediaItem::delete(conn, &media_ids).await
+}
+
+#[instrument(skip(conn), err(level = Level::ERROR))]
+async fn delete_media_ids(conn: &mut DbConnection<'_>, ids: Vec<String>) -> Result {
+    let media = models::MediaItem::get(conn, &ids).await?;
+    delete_media_items(conn, media).await
+}
+
+#[instrument(skip(conn), err(level = Level::ERROR))]
+async fn startup_tasks(conn: &mut DbConnection<'_>) -> Result {
+    let media = models::MediaItem::list_deleted(conn).await?;
+    delete_media_items(conn, media).await
 }
 
 impl Task {
     async fn run(self, conn: &mut DbConnection<'_>) -> Result {
         match self {
+            Task::Startup => startup_tasks(conn).await,
             Task::ProcessMediaFile { media_file } => process_media_file(conn, &media_file).await,
-            Task::DeleteMedia { media } => delete_media(conn, media).await,
+            Task::DeleteMedia { media } => delete_media_ids(conn, media).await,
         }
     }
 }
