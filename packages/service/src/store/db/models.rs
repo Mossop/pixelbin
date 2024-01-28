@@ -1269,6 +1269,28 @@ impl MediaFile {
         Ok((media_file, file_path))
     }
 
+    pub(crate) async fn get(
+        conn: &mut DbConnection<'_>,
+        id: &str,
+    ) -> Result<(MediaFile, MediaFilePath)> {
+        let (media_file, catalog) = media_file::table
+            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .filter(media_file::id.eq(id))
+            .select((media_file_columns!(), media_item::catalog))
+            .get_result::<(MediaFile, String)>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)?;
+
+        let file_path = MediaFilePath {
+            catalog,
+            item: media_file.media_item.clone(),
+            file: media_file.id.clone(),
+        };
+
+        Ok((media_file, file_path))
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: Vec<MediaFile>) -> Result {
         conn.assert_in_transaction();

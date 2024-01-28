@@ -15,6 +15,7 @@ use crate::{
     metadata::ISO_FORMAT,
     server::{
         auth::{MaybeSession, Session},
+        task_queue::Task,
         util::choose_alternate,
         ApiErrorCode, ApiResult, AppState,
     },
@@ -430,7 +431,7 @@ async fn create_media(
 ) -> ApiResult<web::Json<MediaCreateResponse>> {
     let data = data.into_inner();
 
-    let response = app_state
+    let (media_item_id, media_file_id) = app_state
         .store
         .in_transaction(|conn| {
             async move {
@@ -445,8 +446,6 @@ async fn create_media(
                 }
 
                 media_item.sync_with_file(None);
-
-                let id = media_item.id.clone();
 
                 models::MediaItem::upsert(conn, &[media_item.clone()]).await?;
 
@@ -485,7 +484,7 @@ async fn create_media(
                 let file_name = format!("{base_name}.{}", format.extension());
 
                 let media_file = models::MediaFile::new(
-                    &id,
+                    &media_item.id,
                     &file_name,
                     data.file.size as i32,
                     &Mime::from_str(format.media_type())?,
@@ -501,15 +500,25 @@ async fn create_media(
                     .copy_from_temp(data.file.file, &path)
                     .await?;
 
+                let media_file_id = media_file.id.clone();
                 models::MediaFile::upsert(conn, vec![media_file]).await?;
 
-                Ok(MediaCreateResponse { id })
+                Ok((media_item.id.clone(), media_file_id))
             }
             .scope_boxed()
         })
         .await?;
 
-    Ok(web::Json(response))
+    app_state
+        .task_queue
+        .queue_task(Task::ProcessMediaFile {
+            media_file: media_file_id,
+        })
+        .await;
+
+    Ok(web::Json(MediaCreateResponse {
+        id: media_item_id.clone(),
+    }))
 }
 
 #[derive(Deserialize, Clone, Debug)]

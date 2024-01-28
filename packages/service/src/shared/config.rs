@@ -14,7 +14,10 @@ mod mimes {
     use std::str::FromStr;
 
     use mime::Mime;
-    use serde::{de::Error, de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{
+        de::{Error, Unexpected},
+        Deserialize, Deserializer, Serialize, Serializer,
+    };
 
     pub(crate) fn serialize<S>(mimes: &[Mime], serializer: S) -> Result<S::Ok, S::Error>
     where

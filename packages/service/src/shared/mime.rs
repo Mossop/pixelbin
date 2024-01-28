@@ -8,7 +8,10 @@ use diesel::{
     sql_types, Queryable,
 };
 use mime::{FromStrError, Mime};
-use serde::{de::Error, de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{Error, Unexpected},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
 pub(crate) fn serialize<S>(mime: &Mime, serializer: S) -> Result<S::Ok, S::Error>
 where

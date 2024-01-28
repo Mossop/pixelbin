@@ -8,6 +8,7 @@ use std::{
 
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
+use exif::ExifData;
 use image::{
     codecs::{
         jpeg::JpegEncoder,
@@ -35,8 +36,6 @@ use crate::{
     },
     Config, Error, FileStore, Result,
 };
-
-use exif::ExifData;
 
 pub(crate) mod exif;
 
