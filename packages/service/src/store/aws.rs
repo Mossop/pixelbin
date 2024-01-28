@@ -6,6 +6,7 @@ use aws_sdk_s3::{
     config::{Credentials, Region},
     presigning::PresigningConfig,
     primitives::ByteStream,
+    types::{Delete, ObjectIdentifier},
     Client,
 };
 use mime::Mime;
@@ -36,6 +37,13 @@ pub(crate) struct AwsClient {
 }
 
 impl AwsClient {
+    fn key(&self, resource: &ResourcePath) -> String {
+        match &self.path {
+            Some(path) => format!("{path}/{}", remote_path(resource)),
+            None => remote_path(resource),
+        }
+    }
+
     fn strip_prefix<'a>(&self, remote: &'a str) -> &'a str {
         if let Some(path) = &self.path {
             remote.trim_start_matches(path).trim_start_matches('/')
@@ -147,7 +155,41 @@ impl FileStore for AwsClient {
     }
 
     async fn delete(&self, path: &ResourcePath) -> Result {
-        trace!(path=%path, "Skipping deletion");
+        let files = self.list_files(Some(path)).await?;
+
+        let mut paths: Vec<String> = Vec::new();
+        let mut objects: Vec<ObjectIdentifier> = Vec::new();
+
+        for (path, _) in files {
+            let object = ObjectIdentifier::builder()
+                .key(self.key(&path))
+                .build()
+                .map_err(|e| Error::S3Error {
+                    message: format!("Failed to prepare delete request: {e}"),
+                })?;
+            objects.push(object);
+            paths.push(path.to_string());
+        }
+
+        let delete_list = Delete::builder()
+            .set_objects(Some(objects))
+            .build()
+            .map_err(|e| Error::S3Error {
+                message: format!("Failed to prepare delete request: {e}"),
+            })?;
+
+        trace!(paths=%paths.join(","), "Deleting objects");
+
+        self.client
+            .delete_objects()
+            .bucket(&self.bucket)
+            .delete(delete_list)
+            .send()
+            .await
+            .map_err(|e| Error::S3Error {
+                message: format!("Failed to delete objects: {e}"),
+            })?;
+
         Ok(())
     }
 
