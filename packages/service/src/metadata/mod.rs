@@ -97,11 +97,16 @@ impl Alternate {
             let buffered = BufWriter::new(temp.reopen()?);
 
             if self.mimetype.type_() == "image" {
+                let source_image = source_image.clone();
                 let image = if let Some(size) = self.size {
                     name = format!("{name}-{size}");
-                    source_image.resize(size as u32, size as u32, FilterType::Lanczos3)
+                    tokio::task::spawn_blocking(move || {
+                        source_image.resize(size as u32, size as u32, FilterType::Lanczos3)
+                    })
+                    .await
+                    .unwrap()
                 } else {
-                    source_image.clone()
+                    source_image
                 };
 
                 match self.mimetype.subtype().as_str() {
@@ -369,6 +374,7 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
             ensure_local_copy(&file_path, &temp_path, remote_store).await?;
 
             let exif = ExifData::parse_media(&temp_path).await?;
+
             let img_reader = Reader::open(&temp_path)?.with_guessed_format()?;
 
             let mimetype = if let Some(format) = img_reader.format() {
