@@ -24,11 +24,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use tempfile::NamedTempFile;
 use tokio::fs::{self, metadata, read_to_string};
-use tracing::{error, info, instrument, warn};
+use tracing::{error, field, info, instrument, span, warn, Level, Span};
 use tzf_rs::DefaultFinder;
 
 use crate::{
-    shared::short_id,
+    shared::{short_id, spawn_blocking},
     store::{
         db::DbConnection,
         models::{AlternateFile, AlternateFileType, MediaFile, MediaItem, Storage},
@@ -59,6 +59,7 @@ fn mime_extension(mimetype: &Mime) -> &'static str {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Alternate {
     alt_type: AlternateFileType,
     mimetype: Mime,
@@ -80,6 +81,7 @@ impl Alternate {
         self.mimetype == alt.mimetype
     }
 
+    #[instrument(skip(conn, remote_store, source_image), err)]
     pub(crate) async fn build<F: FileStore>(
         &self,
         conn: &mut DbConnection<'_>,
@@ -100,29 +102,52 @@ impl Alternate {
                 let source_image = source_image.clone();
                 let image = if let Some(size) = self.size {
                     name = format!("{name}-{size}");
-                    tokio::task::spawn_blocking(move || {
-                        source_image.resize(size as u32, size as u32, FilterType::Lanczos3)
-                    })
+                    spawn_blocking(
+                        span!(
+                            Level::INFO,
+                            "image resize",
+                            "otel.name" = format!(
+                                "image resize ({}x{} -> {size})",
+                                source_image.width(),
+                                source_image.height()
+                            )
+                        ),
+                        move || source_image.resize(size as u32, size as u32, FilterType::Lanczos3),
+                    )
                     .await
-                    .unwrap()
                 } else {
                     source_image
                 };
 
-                match self.mimetype.subtype().as_str() {
-                    "jpeg" => {
-                        let encoder = JpegEncoder::new_with_quality(buffered, 90);
-                        image.write_with_encoder(encoder)?;
-                    }
-                    "webp" => {
-                        let encoder =
-                            WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
-                        image.write_with_encoder(encoder)?;
-                    }
-                    _ => todo!(),
-                }
+                let dimensions = (image.width(), image.height());
 
-                (image.width(), image.height())
+                let mimetype = self.mimetype.clone();
+                spawn_blocking(
+                    span!(
+                        Level::INFO,
+                        "image encode",
+                        "otel.name" = format!("image encode ({})", mimetype.as_ref())
+                    ),
+                    move || -> Result {
+                        match mimetype.subtype().as_str() {
+                            "jpeg" => {
+                                let encoder = JpegEncoder::new_with_quality(buffered, 90);
+                                image.write_with_encoder(encoder)?;
+                            }
+                            "webp" => {
+                                let encoder =
+                                    WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
+                                image.write_with_encoder(encoder)?;
+                            }
+                            _ => todo!(),
+                        }
+
+                        Ok(())
+                    },
+                )
+                .await?;
+
+                dimensions
             } else {
                 todo!();
             }
@@ -300,6 +325,7 @@ impl FileMetadata {
     }
 }
 
+#[instrument]
 pub(crate) async fn parse_metadata(metadata_file: &Path) -> Result<FileMetadata> {
     let str = read_to_string(metadata_file).await?;
     Ok(from_str::<FileMetadata>(&str)?)
@@ -338,11 +364,6 @@ async fn ensure_local_copy<S: FileStore>(
     Ok(())
 }
 
-fn load_image(path: &Path) -> Result<DynamicImage> {
-    let reader = Reader::open(path)?.with_guessed_format()?;
-    Ok(reader.decode()?)
-}
-
 #[instrument(skip(conn, media_file, remote_store))]
 pub(crate) async fn reprocess_media_file<S: FileStore>(
     conn: &mut DbConnection<'_>,
@@ -373,19 +394,34 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
         } else {
             ensure_local_copy(&file_path, &temp_path, remote_store).await?;
 
-            let exif = ExifData::parse_media(&temp_path).await?;
+            let exif = ExifData::extract_exif_data(&temp_path).await?;
 
-            let img_reader = Reader::open(&temp_path)?.with_guessed_format()?;
+            let image_path = temp_path.clone();
+            let (mimetype, (width, height)) = spawn_blocking(
+                span!(
+                    Level::INFO,
+                    "image decode",
+                    "otel.name" = field::Empty,
+                    "mimetype" = field::Empty,
+                ),
+                move || {
+                    let img_reader = Reader::open(image_path)?.with_guessed_format()?;
 
-            let mimetype = if let Some(format) = img_reader.format() {
-                Mime::from_str(format.to_mime_type())?
-            } else {
-                return Err(Error::Unknown {
-                    message: "Unknown image format".to_string(),
-                });
-            };
+                    let mimetype = if let Some(format) = img_reader.format() {
+                        Mime::from_str(format.to_mime_type())?
+                    } else {
+                        return Err(Error::Unknown {
+                            message: "Unknown image format".to_string(),
+                        });
+                    };
 
-            let (width, height) = img_reader.into_dimensions()?;
+                    Span::current().record("otel.name", format!("image decode {mimetype}"));
+                    Span::current().record("mimetype", mimetype.as_ref());
+
+                    Ok((mimetype, img_reader.into_dimensions()?))
+                },
+            )
+            .await?;
 
             let stats = metadata(&temp_path).await?;
 
@@ -424,7 +460,32 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
 
         if build_alternates {
             ensure_local_copy(&file_path, &temp_path, remote_store).await?;
-            let source_image = load_image(&temp_path)?;
+            let image_path = temp_path.clone();
+            let source_image = spawn_blocking(
+                span!(
+                    Level::INFO,
+                    "load image",
+                    "otel.name" = field::Empty,
+                    "mimetype" = field::Empty,
+                ),
+                move || -> Result<DynamicImage> {
+                    let reader = Reader::open(image_path)?.with_guessed_format()?;
+
+                    let mimetype = if let Some(format) = reader.format() {
+                        Mime::from_str(format.to_mime_type())?
+                    } else {
+                        return Err(Error::Unknown {
+                            message: "Unknown image format".to_string(),
+                        });
+                    };
+
+                    Span::current().record("otel.name", format!("load image {mimetype}"));
+                    Span::current().record("mimetype", mimetype.as_ref());
+
+                    Ok(reader.decode()?)
+                },
+            )
+            .await?;
 
             let mut alternate_files = Vec::new();
             for alternate in expected_alternates {

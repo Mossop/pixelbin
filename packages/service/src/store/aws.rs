@@ -11,7 +11,7 @@ use aws_sdk_s3::{
 };
 use mime::Mime;
 use tokio::{fs, io};
-use tracing::trace;
+use tracing::{instrument, trace};
 
 use crate::{
     store::{
@@ -119,6 +119,7 @@ impl AwsClient {
 
 #[async_trait]
 impl FileStore for AwsClient {
+    #[instrument(skip(self), err)]
     async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut request = self.client.list_objects_v2().bucket(&self.bucket);
 
@@ -154,6 +155,7 @@ impl FileStore for AwsClient {
         Ok(files)
     }
 
+    #[instrument(skip(self), err)]
     async fn delete(&self, path: &ResourcePath) -> Result {
         let files = self.list_files(Some(path)).await?;
 
@@ -193,6 +195,7 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
+    #[instrument(skip(self), err)]
     async fn pull(&self, path: &FilePath, target: &Path) -> Result {
         trace!(path=%path, "Downloading object");
 
@@ -225,6 +228,7 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
+    #[instrument(skip(self), err)]
     async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result {
         let key = match &self.path {
             Some(p) => format!("{p}/{}", remote_path(path)),

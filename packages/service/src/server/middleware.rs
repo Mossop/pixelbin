@@ -8,7 +8,7 @@ use actix_web::{
     Error,
 };
 use futures::future::LocalBoxFuture;
-use tracing::{event, field, span, Level};
+use tracing::{event, field, span, Instrument, Level};
 
 pub(crate) struct Logging;
 
@@ -62,7 +62,7 @@ where
         let fut = self.service.call(req);
 
         Box::pin(async move {
-            let res = fut.await?;
+            let res = fut.in_current_span().await?;
 
             let duration = Instant::now().duration_since(start).as_millis();
             let status = res.status();
@@ -87,11 +87,11 @@ where
                 span.record("otel.status_code", "Error");
             } else if duration >= 250 {
                 event!(Level::WARN, duration = duration, "Slow response");
+                span.record("otel.status_code", "Ok");
             } else {
                 event!(Level::TRACE, duration = duration, status = status.as_str());
+                span.record("otel.status_code", "Ok");
             };
-
-            span.exit();
 
             Ok(res)
         })

@@ -3,13 +3,17 @@ use std::collections::HashMap;
 use async_channel::{unbounded, Receiver, Sender};
 use futures::StreamExt;
 use scoped_futures::ScopedFutureExt;
-use tracing::{error, instrument, Level};
+use tracing::{instrument, Level, Span};
 
 use crate::{
     metadata::reprocess_media_file,
     store::{db::DbConnection, models, path::ResourcePath},
     FileStore, Result, Store,
 };
+
+const TASK_STARTUP: &str = "startup";
+const TASK_PROCESS_MEDIA_FILE: &str = "process_media_file";
+const TASK_DELETE_MEDIA: &str = "delete_media";
 
 pub(super) enum Task {
     Startup,
@@ -33,7 +37,7 @@ async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Re
     Ok(())
 }
 
-#[instrument(skip(conn), err(level = Level::ERROR))]
+#[instrument(skip(conn, media), err(level = Level::ERROR))]
 async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::MediaItem>) -> Result {
     let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
 
@@ -74,6 +78,14 @@ async fn startup_tasks(conn: &mut DbConnection<'_>) -> Result {
 }
 
 impl Task {
+    fn name(&self) -> &'static str {
+        match self {
+            Task::Startup => TASK_STARTUP,
+            Task::ProcessMediaFile { media_file: _ } => TASK_PROCESS_MEDIA_FILE,
+            Task::DeleteMedia { media: _ } => TASK_DELETE_MEDIA,
+        }
+    }
+
     async fn run(self, conn: &mut DbConnection<'_>) -> Result {
         match self {
             Task::Startup => startup_tasks(conn).await,
@@ -104,16 +116,26 @@ impl TaskQueue {
         self.sender.send(task).await.unwrap();
     }
 
+    #[instrument(skip_all, fields(otel.name, otel.status_code))]
+    async fn run_task(store: &Store, task: Task) {
+        Span::current().record("otel.name", task.name());
+
+        if store
+            .in_transaction(|conn| async move { task.run(conn).await }.scope_boxed())
+            .await
+            .is_ok()
+        {
+            Span::current().record("otel.status_code", "Ok");
+        } else {
+            Span::current().record("otel.status_code", "Error");
+        }
+    }
+
     async fn task_loop(store: Store, receiver: Receiver<Task>) {
         let mut receiver = Box::pin(receiver);
 
         while let Some(task) = receiver.next().await {
-            if let Err(e) = store
-                .in_transaction(|conn| async move { task.run(conn).await }.scope_boxed())
-                .await
-            {
-                error!(error=?e, "Task threw an error");
-            }
+            TaskQueue::run_task(&store, task).await;
         }
     }
 }

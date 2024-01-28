@@ -9,6 +9,7 @@ use std::path::Path;
 use config::Config;
 use error::Result;
 use nano_id::base62;
+use tracing::{Instrument, Span};
 
 pub fn load_config(config_file: Option<&Path>) -> Result<Config> {
     if let Some(path) = config_file {
@@ -25,4 +26,18 @@ pub(crate) fn long_id(prefix: &str) -> String {
 
 pub(crate) fn short_id(prefix: &str) -> String {
     format!("{prefix}:{}", base62::<10>())
+}
+
+pub(crate) async fn spawn_blocking<F, R>(span: Span, f: F) -> R
+where
+    F: FnOnce() -> R + Send + 'static,
+    R: Send + 'static,
+{
+    tokio::task::spawn_blocking(move || {
+        let _guard = span.enter();
+        f()
+    })
+    .in_current_span()
+    .await
+    .unwrap()
 }

@@ -9,7 +9,7 @@ use mime::Mime;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_slice, Map, Number, Value};
 use tokio::process::Command;
-use tracing::{debug, warn};
+use tracing::{debug, instrument, warn};
 
 use super::ISO_FORMAT;
 use crate::{store::models, Error, Result};
@@ -79,7 +79,8 @@ impl From<Object> for ExifData {
 }
 
 impl ExifData {
-    pub(crate) async fn parse_media(local_file: &Path) -> Result<Self> {
+    #[instrument]
+    pub(crate) async fn extract_exif_data(local_file: &Path) -> Result<Self> {
         let output = Command::new("exiftool")
             .arg("-n")
             .arg("-g")
@@ -312,6 +313,7 @@ macro_rules! first_of {
 
 impl ExifData {
     #[allow(clippy::field_reassign_with_default)]
+    #[instrument(skip_all)]
     fn parse_exif_v1(exif: &Object, mimetype: &Mime) -> models::MediaMetadata {
         macro_rules! prop {
             ($prop:expr) => {
@@ -419,6 +421,7 @@ impl ExifData {
     }
 
     #[allow(clippy::field_reassign_with_default)]
+    #[instrument(skip_all)]
     fn parse_exif_v2(exif: &Object, mimetype: &Mime) -> models::MediaMetadata {
         macro_rules! prop {
             ($prop:expr) => {

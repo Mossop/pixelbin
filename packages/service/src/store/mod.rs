@@ -50,6 +50,7 @@ impl DiskStore {
         local_path
     }
 
+    #[instrument(skip(self, temp_file), err)]
     pub(crate) async fn copy_from_temp(&self, temp_file: NamedTempFile, path: &FilePath) -> Result {
         let target = self.local_path(path);
 
@@ -69,6 +70,7 @@ impl DiskStore {
 
 #[async_trait]
 impl FileStore for DiskStore {
+    #[instrument(skip(self), err)]
     async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
         let mut files = Vec::<(ResourcePath, u64)>::new();
 
@@ -121,6 +123,7 @@ impl FileStore for DiskStore {
         Ok(files)
     }
 
+    #[instrument(skip(self), err)]
     async fn delete(&self, path: &ResourcePath) -> Result {
         let local = self.local_path(path);
 
@@ -144,6 +147,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
+    #[instrument(skip(self), err)]
     async fn pull(&self, path: &FilePath, target: &Path) -> Result {
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).await?;
@@ -156,6 +160,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
+    #[instrument(skip(self), err)]
     async fn push(&self, source: &Path, path: &FilePath, _mimetype: &Mime) -> Result {
         let target = self.local_path(path);
 
