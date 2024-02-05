@@ -25,7 +25,7 @@ enum ApiErrorCode {
     // BadMethod,
     NotLoggedIn,
     // LoginFailed,
-    // InvalidData,
+    InvalidData(String),
     NotFound,
     NotImplemented,
     // InvalidHost,
@@ -39,6 +39,7 @@ impl Serialize for ApiErrorCode {
     {
         let (error, message) = match self {
             ApiErrorCode::NotLoggedIn => ("NotLoggedIn", None),
+            ApiErrorCode::InvalidData(message) => ("InvalidData", Some(message.clone())),
             ApiErrorCode::NotFound => ("NotFound", None),
             ApiErrorCode::NotImplemented => ("NotImplemented", None),
             ApiErrorCode::InternalError(error) => ("InternalError", Some(error.to_string())),
@@ -59,6 +60,9 @@ impl Display for ApiErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ApiErrorCode::NotLoggedIn => f.write_str("APIError: NotLoggedIn"),
+            ApiErrorCode::InvalidData(message) => {
+                f.write_fmt(format_args!("APIError: InternalError: {}", message))
+            }
             ApiErrorCode::NotFound => f.write_str("APIError: NotFound"),
             ApiErrorCode::NotImplemented => f.write_str("APIError: NotImplemented"),
             ApiErrorCode::InternalError(error) => {
@@ -75,7 +79,7 @@ impl ResponseError for ApiErrorCode {
             // ApiErrorCode::BadMethod => 405,
             ApiErrorCode::NotLoggedIn => StatusCode::UNAUTHORIZED,
             // ApiErrorCode::LoginFailed => 401,
-            // ApiErrorCode::InvalidData => 400,
+            ApiErrorCode::InvalidData(_) => StatusCode::NOT_ACCEPTABLE,
             ApiErrorCode::NotFound => StatusCode::NOT_FOUND,
             ApiErrorCode::NotImplemented => StatusCode::NOT_IMPLEMENTED,
             // ApiErrorCode::InvalidHost => 403,
@@ -100,6 +104,7 @@ where
         let error: Error = value.into();
         match error {
             Error::NotFound => ApiErrorCode::NotFound,
+            Error::InvalidData { message } => ApiErrorCode::InvalidData(message),
             v => ApiErrorCode::InternalError(v),
         }
     }
@@ -167,8 +172,7 @@ pub async fn serve(store: Store) -> Result {
             .service(relations::get_search)
             .service(relations::get_catalog)
             .service(media::get_media)
-            .service(media::create_media)
-            .service(media::edit_media)
+            .service(media::upload_media)
             .service(media::delete_media)
             .service(relations::create_album)
             .service(relations::edit_album)

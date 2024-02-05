@@ -426,6 +426,16 @@ pub(crate) struct MediaPerson {
 
 impl MediaPerson {
     #[instrument(skip_all)]
+    pub(crate) async fn remove_for_media(conn: &mut DbConnection<'_>, media: &str) -> Result {
+        diesel::delete(media_person::table)
+            .filter(media_person::media.eq(media))
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, people: &[MediaPerson]) -> Result {
         for records in batch(people, 500) {
             diesel::insert_into(media_person::table)
@@ -1104,6 +1114,20 @@ impl MediaItem {
         diesel::insert_into(media_tag::table)
             .values(records)
             .on_conflict_do_nothing()
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
+    pub(crate) async fn replace_tags(&self, conn: &mut DbConnection<'_>, tags: &[Tag]) -> Result {
+        self.add_tags(conn, tags).await?;
+
+        let ids: Vec<&str> = tags.iter().map(|tag| tag.id.as_str()).collect();
+
+        diesel::delete(media_tag::table)
+            .filter(media_tag::media.eq(&self.id))
+            .filter(media_tag::tag.ne_all(&ids))
             .execute(conn)
             .await?;
 

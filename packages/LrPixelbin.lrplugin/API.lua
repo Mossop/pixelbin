@@ -27,7 +27,7 @@ function API:parseHTTPResult(response, info)
   end
 
   if info.status == 401 then
-    self.loggedIn = false
+    self.apiToken = nil
     return false, {
       code = "notLoggedIn",
       name = LOC "$$$/LrPixelBin/API/NotLoggedIn=Not logged in.",
@@ -175,14 +175,14 @@ function API:setPassword(password)
   end
 
   self.password = password
-  self.loggedIn = false
+  self.apiToken = nil
   self.errorState = nil
   self.catalogs = {}
   self.albums = {}
 end
 
 function API:login()
-  if self.loggedIn then
+  if self.apiToken ~= nil then
     return true, nil
   end
 
@@ -209,7 +209,6 @@ function API:login()
   end
 
   if success then
-    self.loggedIn = true
     self.errorState = nil
     self.apiUrl = self.siteUrl
     self.apiToken = result.token
@@ -220,7 +219,7 @@ function API:login()
   end
 
   logger:error("Login failed", result.code, result.name)
-  self.loggedIn = false
+  self.apiToken = nil
   self.errorState = result
   self.catalogs = nil
   self.albums = nil
@@ -245,7 +244,7 @@ function API:getMedia(ids)
 
     local index = 1
     while index <= count do
-      results[resultCount + index] = result[index]
+      results[resultCount + index] = result.media[index]
       index = index + 1
     end
 
@@ -495,8 +494,6 @@ end
 function API:upload(photo, publishSettings, filePath, remoteId)
   local mediaInfo = self:extractMetadata(photo, publishSettings)
 
-  local path
-
   local exiftool = _PLUGIN.path .. "/Image-ExifTool/" .. "exiftool"
   local target = os.tmpname()
 
@@ -563,10 +560,8 @@ function API:upload(photo, publishSettings, filePath, remoteId)
 
   if remoteId then
     mediaInfo.id = remoteId
-    path = "media/edit"
   else
     mediaInfo.catalog = publishSettings.catalog
-    path = "media/create"
   end
 
   success, data = Utils.jsonEncode(logger, mediaInfo)
@@ -579,11 +574,11 @@ function API:upload(photo, publishSettings, filePath, remoteId)
     { name = "file", fileName = photo:getFormattedMetadata("fileName"), filePath = filePath }
   }
 
-  return self:MULTIPART(path, params)
+  return self:MULTIPART("media/upload", params)
 end
 
 function API:refreshState()
-  if self.loggedIn then
+  if self.apiToken then
     local success, result = self:GET("state")
     if success then
       self.catalogs = result.catalogs
