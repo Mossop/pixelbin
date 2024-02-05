@@ -34,12 +34,21 @@ async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Re
 
     models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
 
+    models::SavedSearch::update_for_catalog(conn, &media_file_path.catalog).await?;
+
+    let files = models::MediaFile::list_prunable(conn, &media_file_path.catalog).await?;
+    for (file, path) in files {
+        file.delete(conn, &storage, &path).await?;
+    }
+
     Ok(())
 }
 
 #[instrument(skip(conn, media), err(level = Level::ERROR))]
 async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::MediaItem>) -> Result {
     let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
+
+    models::MediaItem::delete(conn, &media_ids).await?;
 
     let mut mapped: HashMap<String, Vec<models::MediaItem>> = HashMap::new();
     for m in media {
@@ -49,8 +58,8 @@ async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::Medi
     let local_store = conn.config().local_store();
     let temp_store = conn.config().local_store();
 
-    for (catalog, media) in mapped {
-        let storage = models::Storage::get_for_catalog(conn, &catalog).await?;
+    for (catalog, media) in mapped.iter() {
+        let storage = models::Storage::get_for_catalog(conn, catalog).await?;
         let remote_store = storage.file_store().await?;
 
         for media in media {
@@ -62,7 +71,11 @@ async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::Medi
         }
     }
 
-    models::MediaItem::delete(conn, &media_ids).await
+    for catalog in mapped.keys() {
+        models::SavedSearch::update_for_catalog(conn, catalog).await?;
+    }
+
+    Ok(())
 }
 
 #[instrument(skip(conn), err(level = Level::ERROR))]

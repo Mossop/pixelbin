@@ -31,7 +31,7 @@ use crate::{
     shared::{short_id, spawn_blocking},
     store::{
         db::DbConnection,
-        models::{AlternateFile, AlternateFileType, MediaFile, MediaItem, Storage},
+        models::{AlternateFile, AlternateFileType, MediaFile, MediaItem, SavedSearch, Storage},
         path::{FilePath, MediaFilePath, ResourcePath},
     },
     Config, Error, FileStore, Result,
@@ -559,6 +559,8 @@ pub(crate) async fn reprocess_catalog_media(
     }
 
     MediaItem::upsert(tx, &media_items).await?;
+
+    SavedSearch::update_for_catalog(tx, catalog).await?;
 
     Ok(())
 }

@@ -1421,19 +1421,9 @@ impl MediaFile {
         storage: &Storage,
         media_file_path: &MediaFilePath,
     ) -> Result {
-        conn.assert_in_transaction();
-
-        let alternates = alternate_file::table
-            .filter(alternate_file::media_file.eq(&self.id))
-            .select(alternate_file::all_columns)
-            .load::<AlternateFile>(conn)
+        diesel::delete(media_file::table.filter(media_file::id.eq(&self.id)))
+            .execute(conn)
             .await?;
-
-        for alternate in alternates {
-            let alternate_path = media_file_path.file(&alternate.file_name);
-
-            alternate.delete(conn, storage, &alternate_path).await?;
-        }
 
         if let Err(e) = storage
             .file_store()
@@ -1452,10 +1442,6 @@ impl MediaFile {
         {
             warn!(error=?e, path=%media_file_path, "Failed to delete local media file data");
         }
-
-        diesel::delete(media_file::table.filter(media_file::id.eq(&self.id)))
-            .execute(conn)
-            .await?;
 
         Ok(())
     }
@@ -1601,6 +1587,16 @@ impl AlternateFile {
         storage: &Storage,
         path: &FilePath,
     ) -> Result {
+        diesel::delete(alternate_file::table.filter(alternate_file::id.eq(&self.id)))
+            .execute(conn)
+            .await?;
+
+        // We flag the media file as requiring re-processing here.
+        diesel::update(media_file::table.filter(media_file::id.eq(&self.media_file)))
+            .set(media_file::process_version.eq(0))
+            .execute(conn)
+            .await?;
+
         let result = if self.local {
             conn.config()
                 .local_store()
@@ -1617,16 +1613,6 @@ impl AlternateFile {
         if let Err(e) = result {
             warn!(error=?e, path=%path, "Failed to delete alternate file");
         }
-
-        diesel::delete(alternate_file::table.filter(alternate_file::id.eq(&self.id)))
-            .execute(conn)
-            .await?;
-
-        // We flag the media file as requiring re-processing here.
-        diesel::update(media_file::table.filter(media_file::id.eq(&self.media_file)))
-            .set(media_file::process_version.eq(0))
-            .execute(conn)
-            .await?;
 
         Ok(())
     }
