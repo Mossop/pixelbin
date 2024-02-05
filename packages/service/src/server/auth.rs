@@ -115,7 +115,7 @@ struct LoginResponse {
     token: Option<String>,
 }
 
-#[post("/api/login")]
+#[post("/login")]
 #[instrument(err, skip(app_state, credentials))]
 async fn login(
     app_state: web::Data<AppState>,
@@ -138,7 +138,7 @@ async fn login(
     }
 }
 
-#[post("/api/logout")]
+#[post("/logout")]
 #[instrument(err, skip(app_state, token))]
 async fn logout(
     app_state: web::Data<AppState>,
@@ -183,7 +183,7 @@ struct UserState {
     searches: Vec<SavedSearchWithCount>,
 }
 
-#[get("/api/state")]
+#[get("/state")]
 #[instrument(err, skip(app_state, session))]
 async fn state(
     app_state: web::Data<AppState>,

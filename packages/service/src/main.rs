@@ -13,7 +13,7 @@ use pixelbin::{
     Result, Store,
 };
 use scoped_futures::ScopedFutureExt;
-use tracing::Level;
+use tracing::{instrument, Level};
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
@@ -28,6 +28,7 @@ const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::INFO)];
 struct Stats;
 
 impl Runnable for Stats {
+    #[instrument(name = "stats", skip_all)]
     async fn run(self, store: Store) -> Result {
         store
             .in_transaction(|conn| {
@@ -56,6 +57,7 @@ impl Runnable for Stats {
 struct Reprocess;
 
 impl Runnable for Reprocess {
+    #[instrument(name = "reprocess", skip_all)]
     async fn run(self, store: Store) -> Result {
         reprocess_all_media(store).await
     }
@@ -65,6 +67,7 @@ impl Runnable for Reprocess {
 struct Prune;
 
 impl Runnable for Prune {
+    #[instrument(name = "prune", skip_all)]
     async fn run(self, store: Store) -> Result {
         prune_catalogs(store).await
     }
@@ -74,6 +77,7 @@ impl Runnable for Prune {
 struct Verify;
 
 impl Runnable for Verify {
+    #[instrument(name = "verify", skip_all)]
     async fn run(self, store: Store) -> Result {
         sanity_check_catalogs(store).await
     }
@@ -85,6 +89,7 @@ struct Serve;
 
 #[cfg(feature = "webserver")]
 impl Runnable for Serve {
+    #[instrument(name = "serve", skip_all)]
     async fn run(self, store: Store) -> Result {
         serve(store).await
     }
@@ -94,6 +99,7 @@ impl Runnable for Serve {
 struct CheckDb;
 
 impl Runnable for CheckDb {
+    #[instrument(name = "check-db", skip_all)]
     async fn run(self, store: Store) -> Result {
         rebuild_searches(store).await
     }

@@ -118,7 +118,7 @@ function API:MULTIPART(path, content)
     return success, result
   end
 
-  local url = self.apiUrl .. "api/" .. path
+  local url = self.apiUrl .. path
 
   return self:callServer(function ()
     return LrHttp.postMultipart(url, content, {
@@ -133,7 +133,7 @@ function API:POST(path, content)
     return success, result
   end
 
-  local url = self.siteUrl .. "api/" .. path
+  local url = self.apiUrl .. path
   local requestHeaders = {
     { field = "Content-Type", value = "application/json" },
   }
@@ -160,7 +160,7 @@ function API:GET(path)
     return success, result
   end
 
-  local url = self.siteUrl .. "api/" .. path
+  local url = self.apiUrl .. path
 
   return self:callServer(function ()
     return LrHttp.get(url, {
@@ -190,6 +190,14 @@ function API:login()
     { field = "Content-Type", value = "application/json" },
   }
 
+  local response, info = LrHttp.get(self.siteUrl .. "api/config", requestHeaders)
+  local success, result = self:parseHTTPResult(response, info)
+  if not success then
+    return success, result
+  end
+
+  self.apiUrl = result.apiUrl .. "api/"
+
   local success, data = Utils.jsonEncode(logger, {
     email = self.email,
     password = self.password,
@@ -198,7 +206,7 @@ function API:login()
     return success, data
   end
 
-  local response, info = LrHttp.post(self.siteUrl .. "api/login", data, requestHeaders)
+  local response, info = LrHttp.post(self.apiUrl .. "login", data, requestHeaders)
   local success, result = self:parseHTTPResult(response, info)
 
   if not success and result.code == "notLoggedIn" then
@@ -210,7 +218,6 @@ function API:login()
 
   if success then
     self.errorState = nil
-    self.apiUrl = self.siteUrl
     self.apiToken = result.token
 
     self:refreshState()
@@ -652,7 +659,7 @@ local function get(settings)
     instanceKey = key,
     cacheCount = 0,
     siteUrl = settings.siteUrl,
-    apiUrl = settings.siteUrl,
+    apiUrl = settings.siteUrl .. "api/",
     email = settings.email,
     password = settings.password,
     apiToken = nil,

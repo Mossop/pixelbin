@@ -25,7 +25,7 @@ struct CreateAlbumRequest {
     album: AlbumDetail,
 }
 
-#[post("/api/album/create")]
+#[post("/album/create")]
 #[instrument(err, skip(app_state, session, request))]
 async fn create_album(
     app_state: web::Data<AppState>,
@@ -42,7 +42,7 @@ struct EditAlbumRequest {
     album: AlbumDetail,
 }
 
-#[post("/api/album/edit")]
+#[post("/album/edit")]
 #[instrument(err, skip(app_state, session, request))]
 async fn edit_album(
     app_state: web::Data<AppState>,
@@ -53,7 +53,7 @@ async fn edit_album(
     return Err(ApiErrorCode::NotImplemented);
 }
 
-#[post("/api/album/delete")]
+#[post("/album/delete")]
 #[instrument(err, skip(app_state, session, albums))]
 async fn delete_album(
     app_state: web::Data<AppState>,
@@ -91,7 +91,7 @@ struct RelationChange {
     items: Vec<String>,
 }
 
-#[post("/api/media/relations")]
+#[post("/media/relations")]
 #[instrument(err, skip(app_state, session, updates))]
 async fn update_relations(
     app_state: web::Data<AppState>,
@@ -119,7 +119,7 @@ struct AlbumResponse {
     media: i64,
 }
 
-#[get("/api/album/{album_id}")]
+#[get("/album/{album_id}")]
 #[instrument(err, skip(app_state, session))]
 async fn get_album(
     app_state: web::Data<AppState>,
@@ -155,7 +155,7 @@ struct SearchResponse {
     media: i64,
 }
 
-#[get("/api/search/{search_id}")]
+#[get("/search/{search_id}")]
 #[instrument(err, skip(app_state, session))]
 async fn get_search(
     app_state: web::Data<AppState>,
@@ -189,7 +189,7 @@ struct CatalogResponse {
     media: i64,
 }
 
-#[get("/api/catalog/{catalog_id}")]
+#[get("/catalog/{catalog_id}")]
 #[instrument(err, skip(app_state, session))]
 async fn get_catalog(
     app_state: web::Data<AppState>,
@@ -216,7 +216,7 @@ async fn get_catalog(
     Ok(web::Json(response))
 }
 
-#[get("/api/catalog/{catalog_id}/media")]
+#[get("/catalog/{catalog_id}/media")]
 #[instrument(err, skip(app_state, session))]
 async fn get_catalog_media(
     app_state: web::Data<AppState>,
@@ -256,7 +256,7 @@ struct GetRecursiveMediaRequest {
     recursive: bool,
 }
 
-#[get("/api/album/{album_id}/media")]
+#[get("/album/{album_id}/media")]
 #[instrument(err, skip(app_state, session))]
 async fn get_album_media(
     app_state: web::Data<AppState>,
@@ -291,7 +291,7 @@ async fn get_album_media(
     Ok(web::Json(response))
 }
 
-#[get("/api/search/{search_id}/media")]
+#[get("/search/{search_id}/media")]
 #[instrument(err, skip(app_state, session))]
 async fn get_search_media(
     app_state: web::Data<AppState>,

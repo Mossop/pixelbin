@@ -221,7 +221,7 @@ pub(crate) struct GetMediaResponse<T> {
     pub(crate) media: Vec<T>,
 }
 
-#[get("/api/media/{media_ids}")]
+#[get("/media/{media_ids}")]
 #[instrument(err, skip(app_state, session), fields(media))]
 async fn get_media(
     app_state: web::Data<AppState>,
@@ -250,7 +250,7 @@ async fn get_media(
     Ok(web::Json(response))
 }
 
-#[post("/api/media/delete")]
+#[post("/media/delete")]
 #[instrument(err, skip(app_state, session))]
 async fn delete_media(
     app_state: web::Data<AppState>,
@@ -429,7 +429,7 @@ struct MediaUploadResponse {
     id: String,
 }
 
-#[post("/api/media/upload")]
+#[post("/media/upload")]
 #[instrument(err, skip_all, fields(id, catalog))]
 async fn upload_media(
     app_state: web::Data<AppState>,

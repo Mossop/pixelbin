@@ -122,7 +122,7 @@ struct ApiConfig {
     thumbnails: ThumbnailConfig,
 }
 
-#[get("/api/config")]
+#[get("/config")]
 #[instrument(err, skip(app_state))]
 async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json<ApiConfig>> {
     let config = app_state.store.config();
@@ -158,26 +158,29 @@ pub async fn serve(store: Store) -> Result {
         App::new()
             .app_data(app_data.clone())
             .wrap(middleware::Logging)
-            .service(config)
-            .service(auth::login)
-            .service(auth::logout)
-            .service(auth::state)
+            .service(
+                web::scope("/api")
+                    .service(config)
+                    .service(auth::login)
+                    .service(auth::logout)
+                    .service(auth::state)
+                    .service(relations::get_album_media)
+                    .service(relations::get_search_media)
+                    .service(relations::get_catalog_media)
+                    .service(relations::get_album)
+                    .service(relations::get_search)
+                    .service(relations::get_catalog)
+                    .service(media::get_media)
+                    .service(media::upload_media)
+                    .service(media::delete_media)
+                    .service(relations::create_album)
+                    .service(relations::edit_album)
+                    .service(relations::delete_album)
+                    .service(relations::update_relations),
+            )
             .service(media::thumbnail_handler)
             .service(media::encoding_handler)
             .service(media::download_handler)
-            .service(relations::get_album_media)
-            .service(relations::get_search_media)
-            .service(relations::get_catalog_media)
-            .service(relations::get_album)
-            .service(relations::get_search)
-            .service(relations::get_catalog)
-            .service(media::get_media)
-            .service(media::upload_media)
-            .service(media::delete_media)
-            .service(relations::create_album)
-            .service(relations::edit_album)
-            .service(relations::delete_album)
-            .service(relations::update_relations)
     })
     .bind(("0.0.0.0", port))?
     .run()
