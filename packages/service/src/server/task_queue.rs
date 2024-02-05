@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Instant};
 
 use async_channel::{unbounded, Receiver, Sender};
 use futures::StreamExt;
 use scoped_futures::ScopedFutureExt;
-use tracing::{instrument, Level, Span};
+use tracing::{instrument, trace, Level, Span};
 
 use crate::{
     metadata::reprocess_media_file,
@@ -131,6 +131,7 @@ impl TaskQueue {
 
     #[instrument(skip_all, fields(otel.name, otel.status_code))]
     async fn run_task(store: &Store, task: Task) {
+        let start = Instant::now();
         Span::current().record("otel.name", task.name());
 
         if store
@@ -142,6 +143,9 @@ impl TaskQueue {
         } else {
             Span::current().record("otel.status_code", "Error");
         }
+
+        let duration = Instant::now().duration_since(start).as_millis();
+        trace!(duration, "Task complete");
     }
 
     async fn task_loop(store: Store, receiver: Receiver<Task>) {
