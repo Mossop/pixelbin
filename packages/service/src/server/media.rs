@@ -19,8 +19,11 @@ use crate::{
         util::choose_alternate,
         ApiResponse, ApiResult, AppState,
     },
-    store::models::{self, AlternateFileType, Location},
-    Error,
+    store::{
+        db::DbConnection,
+        models::{self, AlternateFileType, Location},
+    },
+    Error, Result,
 };
 
 fn not_found() -> ApiResult<HttpResponse> {
@@ -422,6 +425,59 @@ struct MediaUploadResponse {
     id: String,
 }
 
+async fn update_media_item(
+    conn: &mut DbConnection<'_>,
+    media_item: &mut models::MediaItem,
+    data: &MediaUploadMetadata,
+) -> Result {
+    if let Some(ref metadata) = data.media {
+        metadata.apply(media_item);
+    }
+
+    let media_file = if let Some(ref media_file) = media_item.media_file {
+        let (media_file, _) = models::MediaFile::get(conn, media_file).await?;
+        Some(media_file)
+    } else {
+        None
+    };
+
+    media_item.sync_with_file(media_file.as_ref());
+
+    models::MediaItem::upsert(conn, &[media_item.clone()]).await?;
+
+    if let Some(ref tag_list) = data.tags {
+        let mut tags = Vec::new();
+        for tag_name in tag_list {
+            let tag = models::Tag::get_or_create(conn, &media_item.catalog, tag_name).await?;
+            tags.push(models::MediaTag {
+                catalog: media_item.catalog.clone(),
+                tag: tag.id,
+                media: media_item.id.clone(),
+            });
+        }
+
+        models::MediaTag::replace_for_media(conn, &media_item.id, &tags).await?;
+    }
+
+    if let Some(ref person_list) = data.people {
+        let mut people: Vec<models::MediaPerson> = Vec::new();
+        for person_info in person_list {
+            let person =
+                models::Person::get_or_create(conn, &media_item.catalog, &person_info.name).await?;
+            people.push(models::MediaPerson {
+                catalog: media_item.catalog.clone(),
+                media: media_item.id.clone(),
+                person: person.id.clone(),
+                location: person_info.location.clone(),
+            });
+        }
+
+        models::MediaPerson::replace_for_media(conn, &media_item.id, &people).await?;
+    }
+
+    Ok(())
+}
+
 #[post("/media/upload")]
 #[instrument(err, skip_all, fields(id, catalog))]
 async fn upload_media(
@@ -466,48 +522,7 @@ async fn upload_media(
                     }
                 };
 
-                if let Some(ref metadata) = data.json.media {
-                    metadata.apply(&mut media_item);
-                }
-
-                media_item.sync_with_file(None);
-
-                models::MediaItem::upsert(conn, &[media_item.clone()]).await?;
-
-                if let Some(ref tag_list) = data.json.tags {
-                    let mut tags = Vec::new();
-                    for tag_name in tag_list {
-                        let tag =
-                            models::Tag::get_or_create(conn, &media_item.catalog, tag_name).await?;
-                        tags.push(models::MediaTag {
-                            catalog: media_item.catalog.clone(),
-                            tag: tag.id,
-                            media: media_item.id.clone(),
-                        });
-                    }
-
-                    models::MediaTag::replace_for_media(conn, &media_item.id, &tags).await?;
-                }
-
-                if let Some(ref person_list) = data.json.people {
-                    let mut people: Vec<models::MediaPerson> = Vec::new();
-                    for person_info in person_list {
-                        let person = models::Person::get_or_create(
-                            conn,
-                            &media_item.catalog,
-                            &person_info.name,
-                        )
-                        .await?;
-                        people.push(models::MediaPerson {
-                            catalog: media_item.catalog.clone(),
-                            media: media_item.id.clone(),
-                            person: person.id.clone(),
-                            location: person_info.location.clone(),
-                        });
-                    }
-
-                    models::MediaPerson::replace_for_media(conn, &media_item.id, &people).await?;
-                }
+                update_media_item(conn, &mut media_item, &data.json).await?;
 
                 let base_name = if let Some(ref name) = data.file.file_name {
                     if let Some((name, _)) = name.rsplit_once('.') {
@@ -558,4 +573,46 @@ async fn upload_media(
     Ok(web::Json(MediaUploadResponse {
         id: media_item_id.clone(),
     }))
+}
+
+#[post("/media/edit")]
+#[instrument(err, skip_all, fields(id))]
+async fn edit_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    data: web::Json<MediaUploadMetadata>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    let id = data.id.clone().ok_or_else(|| Error::InvalidData {
+        message: "Must pass an id".to_string(),
+    })?;
+
+    tracing::Span::current().record("id", &id);
+
+    let catalog = app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                let mut media =
+                    models::MediaItem::get_for_user(conn, &session.user.email, &[id]).await?;
+
+                if media.is_empty() {
+                    return Err(Error::NotFound);
+                }
+
+                let mut media_item = media.remove(0);
+
+                update_media_item(conn, &mut media_item, &data).await?;
+
+                Ok(media_item.catalog)
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    app_state
+        .task_queue
+        .queue_task(Task::UpdateSearches { catalog })
+        .await;
+
+    Ok(web::Json(Default::default()))
 }

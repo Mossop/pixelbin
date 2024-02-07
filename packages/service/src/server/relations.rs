@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use actix_web::{get, post, web};
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
@@ -8,6 +10,7 @@ use crate::{
     server::{
         auth::Session,
         media::{GetMediaRequest, GetMediaResponse},
+        task_queue::Task,
         ApiResponse, ApiResult, AppState,
     },
     shared::short_id,
@@ -72,7 +75,7 @@ async fn edit_album(
     session: Session,
     request: web::Json<EditAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
-    let response = app_state
+    let album = app_state
         .store
         .in_transaction(|conn| {
             async move {
@@ -90,7 +93,14 @@ async fn edit_album(
         })
         .await?;
 
-    Ok(web::Json(response))
+    app_state
+        .task_queue
+        .queue_task(Task::UpdateSearches {
+            catalog: album.catalog.clone(),
+        })
+        .await;
+
+    Ok(web::Json(album))
 }
 
 #[post("/album/delete")]
@@ -100,24 +110,33 @@ async fn delete_album(
     session: Session,
     albums: web::Json<Vec<String>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    app_state
+    let catalogs = app_state
         .store
         .in_transaction(|conn| {
             async move {
                 let mut ids: Vec<String> = Vec::new();
+                let mut catalogs: HashSet<String> = HashSet::new();
 
                 for id in albums.iter() {
                     let album = models::Album::get_for_user(conn, &session.user.email, id).await?;
+                    catalogs.insert(album.catalog);
                     ids.push(album.id);
                 }
 
                 models::Album::delete(conn, &ids).await?;
 
-                Ok(())
+                Ok(catalogs)
             }
             .scope_boxed()
         })
         .await?;
+
+    for catalog in catalogs {
+        app_state
+            .task_queue
+            .queue_task(Task::UpdateSearches { catalog })
+            .await;
+    }
 
     Ok(web::Json(Default::default()))
 }
@@ -145,14 +164,18 @@ async fn album_media_change(
     session: Session,
     updates: web::Json<Vec<AlbumMediaChange>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    app_state
+    let catalogs = app_state
         .store
         .in_transaction(|conn| {
             async move {
+                let mut catalogs: HashSet<String> = HashSet::new();
+
                 for update in updates.into_inner() {
                     let album =
                         models::Album::get_for_user(conn, &session.user.email, &update.album)
                             .await?;
+
+                    catalogs.insert(album.catalog.clone());
 
                     match update.operation {
                         RelationOperation::Add => {
@@ -175,11 +198,18 @@ async fn album_media_change(
                     }
                 }
 
-                Ok(())
+                Ok(catalogs)
             }
             .scope_boxed()
         })
         .await?;
+
+    for catalog in catalogs {
+        app_state
+            .task_queue
+            .queue_task(Task::UpdateSearches { catalog })
+            .await;
+    }
 
     return Ok(web::Json(ApiResponse::default()));
 }

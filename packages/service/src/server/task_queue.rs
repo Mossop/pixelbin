@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Instant};
 use async_channel::{unbounded, Receiver, Sender};
 use futures::StreamExt;
 use scoped_futures::ScopedFutureExt;
-use tracing::{instrument, trace, Level, Span};
+use tracing::{error, instrument, trace, Span};
 
 use crate::{
     metadata::reprocess_media_file,
@@ -14,14 +14,15 @@ use crate::{
 const TASK_STARTUP: &str = "startup";
 const TASK_PROCESS_MEDIA_FILE: &str = "process_media_file";
 const TASK_DELETE_MEDIA: &str = "delete_media";
+const TASK_UPDATE_SEARCHES: &str = "update_searches";
 
 pub(super) enum Task {
     Startup,
     ProcessMediaFile { media_file: String },
     DeleteMedia { media: Vec<String> },
+    UpdateSearches { catalog: String },
 }
 
-#[instrument(skip(conn), err(level = Level::ERROR))]
 async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
     let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
     let storage = models::Storage::get_for_catalog(conn, &media_file_path.catalog).await?;
@@ -44,7 +45,6 @@ async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Re
     Ok(())
 }
 
-#[instrument(skip(conn, media), err(level = Level::ERROR))]
 async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::MediaItem>) -> Result {
     let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
 
@@ -78,13 +78,11 @@ async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::Medi
     Ok(())
 }
 
-#[instrument(skip(conn), err(level = Level::ERROR))]
 async fn delete_media_ids(conn: &mut DbConnection<'_>, ids: Vec<String>) -> Result {
     let media = models::MediaItem::get(conn, &ids).await?;
     delete_media_items(conn, media).await
 }
 
-#[instrument(skip(conn), err(level = Level::ERROR))]
 async fn startup_tasks(conn: &mut DbConnection<'_>) -> Result {
     let media = models::MediaItem::list_deleted(conn).await?;
     delete_media_items(conn, media).await
@@ -96,6 +94,7 @@ impl Task {
             Task::Startup => TASK_STARTUP,
             Task::ProcessMediaFile { media_file: _ } => TASK_PROCESS_MEDIA_FILE,
             Task::DeleteMedia { media: _ } => TASK_DELETE_MEDIA,
+            Task::UpdateSearches { catalog: _ } => TASK_UPDATE_SEARCHES,
         }
     }
 
@@ -104,6 +103,9 @@ impl Task {
             Task::Startup => startup_tasks(conn).await,
             Task::ProcessMediaFile { media_file } => process_media_file(conn, &media_file).await,
             Task::DeleteMedia { media } => delete_media_ids(conn, media).await,
+            Task::UpdateSearches { catalog } => {
+                models::SavedSearch::update_for_catalog(conn, &catalog).await
+            }
         }
     }
 }
@@ -129,23 +131,28 @@ impl TaskQueue {
         self.sender.send(task).await.unwrap();
     }
 
-    #[instrument(skip_all, fields(otel.name, otel.status_code))]
+    #[instrument(skip_all, fields(otel.name, otel.status_code, duration))]
     async fn run_task(store: &Store, task: Task) {
         let start = Instant::now();
         Span::current().record("otel.name", task.name());
 
-        if store
+        let result = store
             .in_transaction(|conn| async move { task.run(conn).await }.scope_boxed())
-            .await
-            .is_ok()
-        {
-            Span::current().record("otel.status_code", "Ok");
-        } else {
-            Span::current().record("otel.status_code", "Error");
-        }
+            .await;
 
         let duration = Instant::now().duration_since(start).as_millis();
-        trace!(duration, "Task complete");
+        Span::current().record("duration", duration);
+
+        match result {
+            Ok(()) => {
+                Span::current().record("otel.status_code", "Ok");
+                trace!("Task complete");
+            }
+            Err(e) => {
+                Span::current().record("otel.status_code", "Error");
+                error!(error = %e, "Task failed");
+            }
+        }
     }
 
     async fn task_loop(store: Store, receiver: Receiver<Task>) {
