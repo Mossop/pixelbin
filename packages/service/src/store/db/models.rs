@@ -426,9 +426,18 @@ pub(crate) struct MediaPerson {
 
 impl MediaPerson {
     #[instrument(skip_all)]
-    pub(crate) async fn remove_for_media(conn: &mut DbConnection<'_>, media: &str) -> Result {
+    pub(crate) async fn replace_for_media(
+        conn: &mut DbConnection<'_>,
+        media: &str,
+        people: &[MediaPerson],
+    ) -> Result {
+        MediaPerson::upsert(conn, people).await?;
+
+        let people_ids: Vec<&String> = people.iter().map(|p| &p.person).collect();
+
         diesel::delete(media_person::table)
             .filter(media_person::media.eq(media))
+            .filter(media_person::person.ne_all(people_ids))
             .execute(conn)
             .await?;
 
@@ -545,8 +554,66 @@ impl Tag {
     }
 }
 
+#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
+#[diesel(table_name = media_album)]
+pub(crate) struct MediaAlbum {
+    pub(crate) catalog: String,
+    pub(crate) media: String,
+    pub(crate) album: String,
+}
+
+impl MediaAlbum {
+    #[instrument(skip_all)]
+    pub(crate) async fn remove_media(
+        conn: &mut DbConnection<'_>,
+        album: &str,
+        media: &[String],
+    ) -> Result {
+        diesel::delete(media_album::table)
+            .filter(media_album::album.eq(album))
+            .filter(media_album::media.eq_any(media))
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn replace_for_media(
+        conn: &mut DbConnection<'_>,
+        media: &str,
+        albums: &[MediaAlbum],
+    ) -> Result {
+        MediaAlbum::upsert(conn, albums).await?;
+
+        let album_ids: Vec<&String> = albums.iter().map(|a| &a.album).collect();
+
+        diesel::delete(media_album::table)
+            .filter(media_album::media.eq(media))
+            .filter(media_album::album.ne_all(album_ids))
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, albums: &[MediaAlbum]) -> Result {
+        for records in batch(albums, 500) {
+            diesel::insert_into(media_album::table)
+                .values(records)
+                .on_conflict_do_nothing()
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
+    }
+}
+
 #[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
+#[diesel(table_name = album)]
 pub(crate) struct Album {
     pub(crate) id: String,
     pub(crate) parent: Option<String>,
@@ -616,6 +683,22 @@ impl Album {
             .await?)
     }
 
+    pub(crate) async fn get_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        id: &str,
+    ) -> Result<Album> {
+        user_catalog::table
+            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(album::id.eq(id))
+            .select(album::all_columns)
+            .get_result::<Album>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
+
     pub(crate) async fn get_for_user_with_count(
         conn: &mut DbConnection<'_>,
         email: &str,
@@ -650,6 +733,34 @@ impl Album {
                 .optional()?
                 .ok_or_else(|| Error::NotFound)
         }
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, albums: &[Album]) -> Result {
+        for records in batch(albums, 500) {
+            diesel::insert_into(album::table)
+                .values(records)
+                .on_conflict(album::id)
+                .do_update()
+                .set((
+                    album::name.eq(excluded(album::name)),
+                    album::parent.eq(excluded(album::parent)),
+                ))
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn delete(conn: &mut DbConnection<'_>, albums: &[String]) -> Result {
+        diesel::delete(album::table)
+            .filter(album::id.eq_any(albums))
+            .execute(conn)
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -801,10 +912,44 @@ fn clear_matching<T: PartialEq>(field: &mut Option<T>, reference: &Option<T>) {
 
 #[derive(Insertable, Clone, Debug)]
 #[diesel(table_name = media_tag)]
-struct MediaTag {
-    catalog: String,
-    media: String,
-    tag: String,
+pub(crate) struct MediaTag {
+    pub(crate) catalog: String,
+    pub(crate) media: String,
+    pub(crate) tag: String,
+}
+
+impl MediaTag {
+    #[instrument(skip_all)]
+    pub(crate) async fn replace_for_media(
+        conn: &mut DbConnection<'_>,
+        media: &str,
+        tags: &[MediaTag],
+    ) -> Result {
+        MediaTag::upsert(conn, tags).await?;
+
+        let tag_ids: Vec<&String> = tags.iter().map(|t| &t.tag).collect();
+
+        diesel::delete(media_tag::table)
+            .filter(media_tag::media.eq(media))
+            .filter(media_tag::tag.ne_all(tag_ids))
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, tags: &[MediaTag]) -> Result {
+        for records in batch(tags, 500) {
+            diesel::insert_into(media_tag::table)
+                .values(records)
+                .on_conflict_do_nothing()
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Insertable, Serialize, PartialEq, Default, Clone, Debug)]
@@ -1097,39 +1242,6 @@ impl MediaItem {
                 .execute(conn)
                 .await?;
         }
-
-        Ok(())
-    }
-
-    pub(crate) async fn add_tags(&self, conn: &mut DbConnection<'_>, tags: &[Tag]) -> Result {
-        let records: Vec<MediaTag> = tags
-            .iter()
-            .map(|tag| MediaTag {
-                catalog: self.catalog.clone(),
-                media: self.id.clone(),
-                tag: tag.id.clone(),
-            })
-            .collect();
-
-        diesel::insert_into(media_tag::table)
-            .values(records)
-            .on_conflict_do_nothing()
-            .execute(conn)
-            .await?;
-
-        Ok(())
-    }
-
-    pub(crate) async fn replace_tags(&self, conn: &mut DbConnection<'_>, tags: &[Tag]) -> Result {
-        self.add_tags(conn, tags).await?;
-
-        let ids: Vec<&str> = tags.iter().map(|tag| tag.id.as_str()).collect();
-
-        diesel::delete(media_tag::table)
-            .filter(media_tag::media.eq(&self.id))
-            .filter(media_tag::tag.ne_all(&ids))
-            .execute(conn)
-            .await?;
 
         Ok(())
     }

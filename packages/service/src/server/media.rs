@@ -17,16 +17,11 @@ use crate::{
         auth::{MaybeSession, Session},
         task_queue::Task,
         util::choose_alternate,
-        ApiResult, AppState,
+        ApiResponse, ApiResult, AppState,
     },
     store::models::{self, AlternateFileType, Location},
     Error,
 };
-
-#[derive(Serialize)]
-struct ApiResponse {
-    message: String,
-}
 
 fn not_found() -> ApiResult<HttpResponse> {
     Ok(HttpResponse::NotFound()
@@ -281,9 +276,7 @@ async fn delete_media(
         })
         .await;
 
-    Ok(web::Json(ApiResponse {
-        message: "Ok".to_string(),
-    }))
+    Ok(web::Json(ApiResponse::default()))
 }
 
 #[derive(Default, Clone, Debug, Deserialize)]
@@ -484,12 +477,16 @@ async fn upload_media(
                 if let Some(ref tag_list) = data.json.tags {
                     let mut tags = Vec::new();
                     for tag_name in tag_list {
-                        tags.push(
-                            models::Tag::get_or_create(conn, &media_item.catalog, tag_name).await?,
-                        );
+                        let tag =
+                            models::Tag::get_or_create(conn, &media_item.catalog, tag_name).await?;
+                        tags.push(models::MediaTag {
+                            catalog: media_item.catalog.clone(),
+                            tag: tag.id,
+                            media: media_item.id.clone(),
+                        });
                     }
 
-                    media_item.replace_tags(conn, &tags).await?;
+                    models::MediaTag::replace_for_media(conn, &media_item.id, &tags).await?;
                 }
 
                 if let Some(ref person_list) = data.json.people {
@@ -509,8 +506,7 @@ async fn upload_media(
                         });
                     }
 
-                    models::MediaPerson::remove_for_media(conn, &media_item.id).await?;
-                    models::MediaPerson::upsert(conn, &people).await?;
+                    models::MediaPerson::replace_for_media(conn, &media_item.id, &people).await?;
                 }
 
                 let base_name = if let Some(ref name) = data.file.file_name {

@@ -347,23 +347,21 @@ function API:deleteAlbum(album)
 end
 
 function API:addMediaToAlbum(album, media)
-  return self:POST("media/relations", {
+  return self:POST("album/media", {
     {
       operation = "add",
-      type = "album",
       media = media,
-      items = { album },
+      album = album,
     },
   })
 end
 
 function API:removeMediaFromAlbum(album, media)
-  return self:POST("media/relations", {
+  return self:POST("album/media", {
     {
       operation = "delete",
-      type = "album",
       media = media,
-      items = { album },
+      album = album,
     },
   })
 end
@@ -663,7 +661,6 @@ local function get(settings)
     email = settings.email,
     password = settings.password,
     apiToken = nil,
-    loggedIn = false,
     errorState = nil,
     catalogs = {},
     albums = {},

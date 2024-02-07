@@ -27,9 +27,21 @@ enum ApiErrorCode {
     // LoginFailed,
     InvalidData(String),
     NotFound,
-    NotImplemented,
     // InvalidHost,
     InternalError(Error),
+}
+
+#[derive(Serialize)]
+struct ApiResponse {
+    message: String,
+}
+
+impl Default for ApiResponse {
+    fn default() -> Self {
+        ApiResponse {
+            message: "Ok".to_string(),
+        }
+    }
 }
 
 impl Serialize for ApiErrorCode {
@@ -41,7 +53,6 @@ impl Serialize for ApiErrorCode {
             ApiErrorCode::NotLoggedIn => ("NotLoggedIn", None),
             ApiErrorCode::InvalidData(message) => ("InvalidData", Some(message.clone())),
             ApiErrorCode::NotFound => ("NotFound", None),
-            ApiErrorCode::NotImplemented => ("NotImplemented", None),
             ApiErrorCode::InternalError(error) => ("InternalError", Some(error.to_string())),
         };
 
@@ -64,7 +75,6 @@ impl Display for ApiErrorCode {
                 f.write_fmt(format_args!("APIError: InternalError: {}", message))
             }
             ApiErrorCode::NotFound => f.write_str("APIError: NotFound"),
-            ApiErrorCode::NotImplemented => f.write_str("APIError: NotImplemented"),
             ApiErrorCode::InternalError(error) => {
                 f.write_fmt(format_args!("APIError: InternalError: {}", error))
             }
@@ -81,7 +91,6 @@ impl ResponseError for ApiErrorCode {
             // ApiErrorCode::LoginFailed => 401,
             ApiErrorCode::InvalidData(_) => StatusCode::NOT_ACCEPTABLE,
             ApiErrorCode::NotFound => StatusCode::NOT_FOUND,
-            ApiErrorCode::NotImplemented => StatusCode::NOT_IMPLEMENTED,
             // ApiErrorCode::InvalidHost => 403,
             ApiErrorCode::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -176,7 +185,7 @@ pub async fn serve(store: Store) -> Result {
                     .service(relations::create_album)
                     .service(relations::edit_album)
                     .service(relations::delete_album)
-                    .service(relations::update_relations),
+                    .service(relations::album_media_change),
             )
             .service(media::thumbnail_handler)
             .service(media::encoding_handler)

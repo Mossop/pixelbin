@@ -703,7 +703,7 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
 
   local api = API(publishSettings)
 
-  if not api.loggedIn then
+  if not api.apiToken then
     info.collectionSettings.LR_canSaveCollection = false
 
     return f:group_box {

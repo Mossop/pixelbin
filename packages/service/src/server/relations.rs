@@ -8,8 +8,9 @@ use crate::{
     server::{
         auth::Session,
         media::{GetMediaRequest, GetMediaResponse},
-        ApiErrorCode, ApiResult, AppState,
+        ApiResponse, ApiResult, AppState,
     },
+    shared::short_id,
     store::models,
 };
 
@@ -32,8 +33,30 @@ async fn create_album(
     session: Session,
     request: web::Json<CreateAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
-    eprintln!("{request:#?}");
-    return Err(ApiErrorCode::NotImplemented);
+    let response = app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                let catalog =
+                    models::Catalog::get_for_user(conn, &session.user.email, &request.catalog)
+                        .await?;
+
+                let album = models::Album {
+                    id: short_id("A"),
+                    catalog: catalog.id.clone(),
+                    name: request.album.name.clone(),
+                    parent: request.album.parent.clone(),
+                };
+
+                models::Album::upsert(conn, &[album.clone()]).await?;
+
+                Ok(album)
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -49,8 +72,25 @@ async fn edit_album(
     session: Session,
     request: web::Json<EditAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
-    eprintln!("{request:#?}");
-    return Err(ApiErrorCode::NotImplemented);
+    let response = app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                let mut album =
+                    models::Album::get_for_user(conn, &session.user.email, &request.id).await?;
+
+                album.name = request.album.name.clone();
+                album.parent = request.album.parent.clone();
+
+                models::Album::upsert(conn, &[album.clone()]).await?;
+
+                Ok(album)
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
 }
 
 #[post("/album/delete")]
@@ -59,9 +99,27 @@ async fn delete_album(
     app_state: web::Data<AppState>,
     session: Session,
     albums: web::Json<Vec<String>>,
-) -> ApiResult<web::Json<models::Album>> {
-    eprintln!("{albums:#?}");
-    return Err(ApiErrorCode::NotImplemented);
+) -> ApiResult<web::Json<ApiResponse>> {
+    app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                let mut ids: Vec<String> = Vec::new();
+
+                for id in albums.iter() {
+                    let album = models::Album::get_for_user(conn, &session.user.email, id).await?;
+                    ids.push(album.id);
+                }
+
+                models::Album::delete(conn, &ids).await?;
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(Default::default()))
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -71,35 +129,59 @@ enum RelationOperation {
     Delete,
 }
 
-#[derive(Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-enum RelationType {
-    Album,
-    Tag,
-    Person,
-}
-
 #[serde_as]
 #[derive(Deserialize, Clone, Debug)]
-struct RelationChange {
+struct AlbumMediaChange {
     operation: RelationOperation,
-    #[serde(rename = "type")]
-    relation: RelationType,
     #[serde_as(deserialize_as = "OneOrMany<_>")]
     media: Vec<String>,
-    #[serde_as(deserialize_as = "OneOrMany<_>")]
-    items: Vec<String>,
+    album: String,
 }
 
-#[post("/media/relations")]
+#[post("/album/media")]
 #[instrument(err, skip(app_state, session, updates))]
-async fn update_relations(
+async fn album_media_change(
     app_state: web::Data<AppState>,
     session: Session,
-    updates: web::Json<Vec<RelationChange>>,
-) -> ApiResult<web::Json<models::Album>> {
-    eprintln!("{updates:#?}");
-    return Err(ApiErrorCode::NotImplemented);
+    updates: web::Json<Vec<AlbumMediaChange>>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                for update in updates.into_inner() {
+                    let album =
+                        models::Album::get_for_user(conn, &session.user.email, &update.album)
+                            .await?;
+
+                    match update.operation {
+                        RelationOperation::Add => {
+                            let media_albums: Vec<models::MediaAlbum> = update
+                                .media
+                                .into_iter()
+                                .map(|m| models::MediaAlbum {
+                                    catalog: album.catalog.clone(),
+                                    album: album.id.clone(),
+                                    media: m,
+                                })
+                                .collect();
+
+                            models::MediaAlbum::upsert(conn, &media_albums).await?;
+                        }
+                        RelationOperation::Delete => {
+                            models::MediaAlbum::remove_media(conn, &album.id, &update.media)
+                                .await?;
+                        }
+                    }
+                }
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    return Ok(web::Json(ApiResponse::default()));
 }
 
 fn default_true() -> bool {
