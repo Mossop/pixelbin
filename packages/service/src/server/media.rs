@@ -535,6 +535,11 @@ async fn upload_media(
                 };
 
                 let format = FileFormat::from_reader(data.file.file.as_file())?;
+                let media_type: Mime = format.media_type().parse()?;
+                if !matches!(media_type.type_(), mime::IMAGE | mime::VIDEO) {
+                    return Err(Error::UnsupportedMedia { mime: media_type });
+                }
+
                 let file_name = format!("{base_name}.{}", format.extension());
 
                 let media_file = models::MediaFile::new(
@@ -551,7 +556,7 @@ async fn upload_media(
 
                 conn.config()
                     .temp_store()
-                    .copy_from_temp(data.file.file, &path)
+                    .copy_from_temp(data.file.file.into_temp_path(), &path)
                     .await?;
 
                 let media_file_id = media_file.id.clone();

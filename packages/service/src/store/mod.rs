@@ -18,7 +18,7 @@ pub(crate) mod path;
 pub(crate) use db::models;
 use db::{connect, DbConnection, DbPool};
 use mime::Mime;
-use tempfile::NamedTempFile;
+use tempfile::TempPath;
 use tokio::fs;
 use tracing::instrument;
 
@@ -51,7 +51,7 @@ impl DiskStore {
     }
 
     #[instrument(skip(self, temp_file), err)]
-    pub(crate) async fn copy_from_temp(&self, temp_file: NamedTempFile, path: &FilePath) -> Result {
+    pub(crate) async fn copy_from_temp(&self, temp_file: TempPath, path: &FilePath) -> Result {
         let target = self.local_path(path);
 
         if let Some(parent) = target.parent() {

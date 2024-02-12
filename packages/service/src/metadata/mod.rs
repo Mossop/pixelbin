@@ -1,34 +1,20 @@
-use std::{
-    cmp,
-    io::{BufWriter, ErrorKind},
-    os::unix::fs::MetadataExt,
-    path::Path,
-    str::FromStr,
-};
+use std::{cmp, io::ErrorKind, os::unix::fs::MetadataExt, path::Path, str::FromStr};
 
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
 use exif::ExifData;
-use image::{
-    codecs::{
-        jpeg::JpegEncoder,
-        webp::{WebPEncoder, WebPQuality},
-    },
-    imageops::FilterType,
-    io::Reader,
-    DynamicImage,
-};
+use image::DynamicImage;
 use lazy_static::lazy_static;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use tempfile::NamedTempFile;
 use tokio::fs::{self, metadata, read_to_string};
-use tracing::{error, field, info, instrument, span, warn, Level, Span};
+use tracing::{error, info, instrument, warn};
 use tzf_rs::DefaultFinder;
 
 use crate::{
-    shared::{short_id, spawn_blocking},
+    shared::short_id,
     store::{
         db::DbConnection,
         models::{AlternateFile, AlternateFileType, MediaFile, MediaItem, SavedSearch, Storage},
@@ -38,6 +24,7 @@ use crate::{
 };
 
 pub(crate) mod exif;
+mod media;
 
 lazy_static! {
     static ref FINDER: DefaultFinder = DefaultFinder::new();
@@ -89,81 +76,24 @@ impl Alternate {
         remote_store: &F,
         source_image: &DynamicImage,
     ) -> Result<AlternateFile> {
-        let temp = NamedTempFile::new()?;
-        let mut name = match self.alt_type {
-            AlternateFileType::Thumbnail => "thumb".to_string(),
-            AlternateFileType::Reencode => "reencode".to_string(),
+        let temp = NamedTempFile::new()?.into_temp_path();
+        let extension = mime_extension(&self.mimetype);
+        let name = match (self.alt_type, self.size) {
+            (AlternateFileType::Thumbnail, None) => format!("thumb.{extension}"),
+            (AlternateFileType::Thumbnail, Some(size)) => format!("thumb-{size}.{extension}"),
+            (AlternateFileType::Reencode, None) => format!("reencode.{extension}"),
+            (AlternateFileType::Reencode, Some(size)) => format!("reencode-{size}.{extension}"),
         };
 
-        let (width, height) = {
-            let buffered = BufWriter::new(temp.reopen()?);
+        let (mimetype, width, height, duration, frame_rate, bit_rate) =
+            media::encode_alternate(source_image, &self.mimetype, self.size, &temp).await?;
 
-            if self.mimetype.type_() == "image" {
-                let source_image = source_image.clone();
-                let image = if let Some(size) = self.size {
-                    name = format!("{name}-{size}");
-                    spawn_blocking(
-                        span!(
-                            Level::INFO,
-                            "image resize",
-                            "otel.name" = format!(
-                                "image resize ({}x{} -> {size})",
-                                source_image.width(),
-                                source_image.height()
-                            )
-                        ),
-                        move || source_image.resize(size as u32, size as u32, FilterType::Lanczos3),
-                    )
-                    .await
-                } else {
-                    source_image
-                };
+        let stats = metadata(&temp).await?;
 
-                let dimensions = (image.width(), image.height());
-
-                let mimetype = self.mimetype.clone();
-                spawn_blocking(
-                    span!(
-                        Level::INFO,
-                        "image encode",
-                        "otel.name" = format!("image encode ({})", mimetype.as_ref())
-                    ),
-                    move || -> Result {
-                        match mimetype.subtype().as_str() {
-                            "jpeg" => {
-                                let encoder = JpegEncoder::new_with_quality(buffered, 90);
-                                image.write_with_encoder(encoder)?;
-                            }
-                            "webp" => {
-                                let encoder =
-                                    WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
-                                image.write_with_encoder(encoder)?;
-                            }
-                            _ => todo!(),
-                        }
-
-                        Ok(())
-                    },
-                )
-                .await?;
-
-                dimensions
-            } else {
-                todo!();
-            }
-
-            // Buffered file should close here.
-        };
-
-        let target_name = format!("{name}.{}", mime_extension(&self.mimetype));
-        let stats = metadata(temp.path()).await?;
-
-        let target = media_file_path.file(&target_name);
+        let target = media_file_path.file(&name);
         match self.alt_type {
             AlternateFileType::Reencode => {
-                remote_store
-                    .push(temp.path(), &target, &self.mimetype)
-                    .await?;
+                remote_store.push(&temp, &target, &self.mimetype).await?;
             }
             AlternateFileType::Thumbnail => {
                 let local_store = conn.config().local_store();
@@ -174,14 +104,14 @@ impl Alternate {
         Ok(AlternateFile {
             id: short_id("F"),
             file_type: self.alt_type,
-            file_name: target_name,
+            file_name: name,
             file_size: stats.size() as i32,
-            mimetype: self.mimetype.clone(),
-            width: width as i32,
-            height: height as i32,
-            duration: None,
-            frame_rate: None,
-            bit_rate: None,
+            mimetype,
+            width,
+            height,
+            duration,
+            frame_rate,
+            bit_rate,
             media_file: media_file_path.file.clone(),
             local: self.alt_type == AlternateFileType::Thumbnail,
         })
@@ -396,46 +326,22 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
 
             let exif = ExifData::extract_exif_data(&temp_path).await?;
 
-            let image_path = temp_path.clone();
-            let (mimetype, (width, height)) = spawn_blocking(
-                span!(
-                    Level::INFO,
-                    "image decode",
-                    "otel.name" = field::Empty,
-                    "mimetype" = field::Empty,
-                ),
-                move || {
-                    let img_reader = Reader::open(image_path)?.with_guessed_format()?;
-
-                    let mimetype = if let Some(format) = img_reader.format() {
-                        Mime::from_str(format.to_mime_type())?
-                    } else {
-                        return Err(Error::Unknown {
-                            message: "Unknown image format".to_string(),
-                        });
-                    };
-
-                    Span::current().record("otel.name", format!("image decode {mimetype}"));
-                    Span::current().record("mimetype", mimetype.as_ref());
-
-                    Ok((mimetype, img_reader.into_dimensions()?))
-                },
-            )
-            .await?;
-
             let stats = metadata(&temp_path).await?;
+
+            let (mimetype, width, height, duration, bit_rate, frame_rate) =
+                media::load_data(&temp_path).await?;
 
             let metadata = FileMetadata {
                 exif,
                 file_name: media_file.file_name.clone(),
                 file_size: stats.len() as i32,
-                width: width as i32,
-                height: height as i32,
+                width,
+                height,
                 uploaded: media_file.uploaded,
                 mimetype,
-                duration: None,
-                bit_rate: None,
-                frame_rate: None,
+                duration,
+                bit_rate,
+                frame_rate,
             };
 
             if let Some(parent) = metadata_path.parent() {
@@ -460,32 +366,7 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
 
         if build_alternates {
             ensure_local_copy(&file_path, &temp_path, remote_store).await?;
-            let image_path = temp_path.clone();
-            let source_image = spawn_blocking(
-                span!(
-                    Level::INFO,
-                    "load image",
-                    "otel.name" = field::Empty,
-                    "mimetype" = field::Empty,
-                ),
-                move || -> Result<DynamicImage> {
-                    let reader = Reader::open(image_path)?.with_guessed_format()?;
-
-                    let mimetype = if let Some(format) = reader.format() {
-                        Mime::from_str(format.to_mime_type())?
-                    } else {
-                        return Err(Error::Unknown {
-                            message: "Unknown image format".to_string(),
-                        });
-                    };
-
-                    Span::current().record("otel.name", format!("load image {mimetype}"));
-                    Span::current().record("mimetype", mimetype.as_ref());
-
-                    Ok(reader.decode()?)
-                },
-            )
-            .await?;
+            let source_image = media::load_source_image(&temp_path).await?;
 
             let mut alternate_files = Vec::new();
             for alternate in expected_alternates {

@@ -5,7 +5,7 @@ use actix_multipart::MultipartError;
 use diesel::ConnectionError;
 use diesel_async::pooled_connection::deadpool::{BuildError, PoolError};
 use image::ImageError;
-use mime::FromStrError;
+use mime::{FromStrError, Mime};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -50,6 +50,8 @@ pub enum Error {
     #[cfg(feature = "webserver")]
     #[error("Invalid client data: {message}")]
     InvalidData { message: String },
+    #[error("Unsupported media type: {mime}")]
+    UnsupportedMedia { mime: Mime },
     #[error("Image error: {source}")]
     ImageError {
         #[from]
