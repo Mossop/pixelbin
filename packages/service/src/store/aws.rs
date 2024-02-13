@@ -10,7 +10,10 @@ use aws_sdk_s3::{
     Client,
 };
 use mime::Mime;
-use tokio::{fs, io};
+use tokio::{
+    fs::{self, metadata},
+    io,
+};
 use tracing::{instrument, trace};
 
 use crate::{
@@ -228,8 +231,11 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
-    #[instrument(skip(self), err)]
+    #[instrument(skip(self), fields(size), err)]
     async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result {
+        let stats = metadata(source).await?;
+        tracing::Span::current().record("size", stats.len());
+
         let key = match &self.path {
             Some(p) => format!("{p}/{}", remote_path(path)),
             None => remote_path(path),

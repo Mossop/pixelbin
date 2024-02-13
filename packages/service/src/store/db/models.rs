@@ -388,7 +388,7 @@ impl Person {
 
         let person = match person::table
             .filter(person::catalog.eq(catalog))
-            .filter(lower(person::name).eq(name))
+            .filter(lower(person::name).eq(&name.to_lowercase()))
             .select(person::all_columns)
             .get_result::<Person>(conn)
             .await
