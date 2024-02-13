@@ -315,6 +315,8 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
                 .push(&temp_path, &file_path, &media_file.mimetype)
                 .await?;
             media_file.process_version = 0;
+
+            MediaFile::upsert(conn, vec![media_file.clone()]).await?;
         }
 
         let metadata_path = local_store.local_path(&media_file_path.file(METADATA_FILE));

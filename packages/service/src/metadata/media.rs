@@ -56,7 +56,7 @@ fn encode_image(
                 let encoder = WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
                 source_image.write_with_encoder(encoder)?;
             }
-            _ => todo!(),
+            _ => return Err(Error::UnsupportedMedia { mime: mime.clone() }),
         }
     }
 
@@ -68,7 +68,7 @@ async fn encode_video(
     size: Option<i32>,
     target_path: &Path,
 ) -> Result<(Mime, i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
-    todo!();
+    return Err(Error::UnsupportedMedia { mime: mime.clone() });
 
     load_video_data(target_path).await
 }
@@ -119,7 +119,9 @@ fn load_image(file_path: &Path) -> Result<DynamicImage> {
 }
 
 async fn load_video(file_path: &Path) -> Result<DynamicImage> {
-    todo!();
+    Err(Error::UnsupportedMedia {
+        mime: mime::APPLICATION_OCTET_STREAM,
+    })
 }
 
 pub(super) async fn load_source_image(file_path: &Path) -> Result<DynamicImage> {
@@ -162,7 +164,9 @@ fn load_image_data(image_path: &Path) -> Result<(u32, u32)> {
 async fn load_video_data(
     video_path: &Path,
 ) -> Result<(Mime, i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
-    todo!();
+    Err(Error::UnsupportedMedia {
+        mime: mime::APPLICATION_OCTET_STREAM,
+    })
 }
 
 pub(super) async fn load_data(
