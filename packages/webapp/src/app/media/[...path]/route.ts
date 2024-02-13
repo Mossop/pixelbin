@@ -1,10 +1,11 @@
 import { session } from "@/modules/session";
+import { ApiRequest, apiFetch } from "@/modules/telemetry";
 
 export async function GET(
   request: Request,
   { params: { path } }: { params: { path: string[] } },
 ) {
-  let init: RequestInit = {
+  let init: ApiRequest = {
     method: "GET",
     redirect: "manual",
   };
@@ -16,5 +17,5 @@ export async function GET(
     };
   }
 
-  return fetch(`${process.env.PXL_API_SERVER}/media/${path.join("/")}`, init);
+  return apiFetch(`/media/${path.join("/")}`, init);
 }

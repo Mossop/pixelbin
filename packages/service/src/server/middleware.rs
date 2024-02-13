@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     future::{ready, Ready},
     time::Instant,
 };
@@ -8,7 +9,9 @@ use actix_web::{
     Error,
 };
 use futures::future::LocalBoxFuture;
+use opentelemetry::global;
 use tracing::{event, field, span, Instrument, Level};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 pub(crate) struct Logging;
 
@@ -46,17 +49,31 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let mut trace_headers = HashMap::new();
+        let headers = req.request().headers();
+        if let Some(Ok(value)) = headers.get("traceparent").map(|v| v.to_str()) {
+            trace_headers.insert("traceparent".to_string(), value.to_owned());
+        }
+        if let Some(Ok(value)) = headers.get("tracestate").map(|v| v.to_str()) {
+            trace_headers.insert("tracestate".to_string(), value.to_owned());
+        }
+
+        let parent_context =
+            global::get_text_map_propagator(|propagator| propagator.extract(&trace_headers));
+
         let span = span!(
             Level::INFO,
             "api request",
             "otel.name" = format!("{} {}", req.method(), req.path()),
-            "otel.kind" = "Server",
+            "otel.kind" = "server",
             "url.path" = req.path(),
             "http.request.method" = %req.method(),
             "http.response.status_code" = field::Empty,
             "otel.status_code" = field::Empty,
         )
         .entered();
+        span.set_parent(parent_context);
+
         let start = Instant::now();
 
         let fut = self.service.call(req);

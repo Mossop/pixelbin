@@ -2,9 +2,9 @@ use std::{env, error::Error, io, path::PathBuf, result, time::Duration};
 
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
-use opentelemetry::KeyValue;
+use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{trace, Resource};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace, Resource};
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
 use pixelbin::{
@@ -161,6 +161,8 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
     let registry = Registry::default().with(formatter);
 
     if let Some(telemetry_host) = telemetry {
+        global::set_text_map_propagator(TraceContextPropagator::new());
+
         let tracer =
             opentelemetry_otlp::new_pipeline()
                 .tracing()
@@ -171,7 +173,7 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
                         .with_timeout(Duration::from_secs(3)),
                 )
                 .with_trace_config(trace::config().with_resource(Resource::new(vec![
-                    KeyValue::new("service.name", "pixelbin"),
+                    KeyValue::new("service.name", "pixelbin-api"),
                 ])))
                 .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 

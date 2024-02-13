@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 
 import { clearSession, session, setSession } from "./session";
+import { ApiRequest, apiFetch } from "./telemetry";
 import {
   Album,
   ApiMediaRelations,
@@ -15,8 +16,8 @@ import {
 } from "./types";
 import { deserializeMediaView } from "./util";
 
-const GET: RequestInit = { method: "GET" };
-const POST: RequestInit = { method: "POST" };
+const GET: ApiRequest = { method: "GET" };
+const POST: ApiRequest = { method: "POST" };
 
 const DEEP_OPTIONS = ["headers", "next"];
 
@@ -35,7 +36,7 @@ function isNotFoundError(e: unknown): boolean {
   }
 }
 
-function authenticated(): RequestInit {
+function authenticated(): ApiRequest {
   let token = session();
 
   if (!token) {
@@ -49,7 +50,7 @@ function authenticated(): RequestInit {
   };
 }
 
-function json(data: object): RequestInit {
+function json(data: object): ApiRequest {
   return {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -58,7 +59,7 @@ function json(data: object): RequestInit {
 
 async function rawApiCall<T>(
   path: string,
-  ...options: RequestInit[]
+  ...options: ApiRequest[]
 ): Promise<T> {
   let init = { ...GET };
 
@@ -74,7 +75,7 @@ async function rawApiCall<T>(
     }
   }
 
-  let response = await fetch(`${process.env.PXL_API_SERVER}${path}`, init);
+  let response = await apiFetch(path, init);
 
   if (response.ok) {
     return response.json();
@@ -86,7 +87,7 @@ async function rawApiCall<T>(
   }
 }
 
-async function apiCall<T>(path: string, ...options: RequestInit[]): Promise<T> {
+async function apiCall<T>(path: string, ...options: ApiRequest[]): Promise<T> {
   try {
     return await rawApiCall(path, authenticated(), ...options);
   } catch (e) {

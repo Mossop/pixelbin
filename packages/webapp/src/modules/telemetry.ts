@@ -1,4 +1,5 @@
-import { Span, trace } from "@opentelemetry/api";
+import { Span, SpanStatusCode, trace, context } from "@opentelemetry/api";
+import { W3CTraceContextPropagator } from "@opentelemetry/core";
 
 export function inSpan<F extends (span: Span) => unknown>(
   name: string,
@@ -7,15 +8,79 @@ export function inSpan<F extends (span: Span) => unknown>(
   return trace
     .getTracer("nextjs-example")
     .startActiveSpan<(span: Span) => ReturnType<F>>(name, (span) => {
-      let result = task(span) as ReturnType<F>;
+      try {
+        let result = task(span) as ReturnType<F>;
 
-      if (result && typeof result == "object" && "finally" in result) {
-        // @ts-ignore
-        result = result.finally(() => span.end());
-      } else {
+        if (
+          result &&
+          typeof result == "object" &&
+          "catch" in result &&
+          "finally" in result
+        ) {
+          // @ts-ignore
+          result = result
+            .catch((e: unknown) => {
+              span.setStatus({
+                code: SpanStatusCode.ERROR,
+              });
+
+              throw e;
+            })
+            .finally(() => span.end());
+        } else {
+          span.end();
+        }
+
+        return result;
+      } catch (e) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+        });
         span.end();
-      }
 
-      return result;
+        throw e;
+      }
     });
+}
+
+export type ApiRequest = Omit<RequestInit, "headers"> & {
+  headers?: Record<string, string>;
+};
+
+export function apiFetch(path: string, init: ApiRequest): Promise<Response> {
+  let method = init.method ?? "GET";
+
+  return inSpan(`API ${method} ${path}`, async (span) => {
+    span.setAttributes({
+      "http.method": method,
+      "url.path": path,
+      "span.kind": "client",
+    });
+
+    let realInit = {
+      ...init,
+      headers: init.headers ?? {},
+    };
+
+    let propagator = new W3CTraceContextPropagator();
+    propagator.inject(context.active(), realInit.headers, {
+      set(headers: Record<string, string>, key: string, value: string) {
+        // eslint-disable-next-line no-param-reassign
+        headers[key] = value;
+      },
+    });
+
+    let response = await fetch(
+      `${process.env.PXL_API_SERVER}${path}`,
+      realInit,
+    );
+
+    span.setAttribute("http.response.status_code", response.status);
+
+    if (!response.ok) {
+      span.setStatus({ code: SpanStatusCode.ERROR });
+    }
+
+    return response;
+  });
 }
