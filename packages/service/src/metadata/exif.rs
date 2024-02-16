@@ -7,36 +7,23 @@ use chrono::{NaiveDateTime, Timelike};
 use lexical_parse_float::FromLexical;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_slice, Map, Number, Value};
+use serde_json::{from_slice, Number, Value};
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
 
 use super::ISO_FORMAT;
-use crate::{store::models, Error, Result};
-
-const TYPE_NULL: &str = "null";
-const TYPE_BOOL: &str = "boolean";
-const TYPE_NUMBER: &str = "number";
-const TYPE_STRING: &str = "string";
-const TYPE_ARRAY: &str = "array";
-const TYPE_OBJECT: &str = "object";
+use crate::{
+    metadata::json::{
+        expect_float, expect_int, expect_object, expect_prop, expect_string, expect_string_list,
+        first_of, map, type_of, Object,
+    },
+    store::models,
+    Error, Result,
+};
 
 const PARSE_VERSION_KEY: &str = "ParseVersion";
 
 const EXIF_FORMAT: &str = "%Y:%m:%d %H:%M:%S%.f";
-
-type Object = Map<String, Value>;
-
-fn type_of(value: &Value) -> &'static str {
-    match value {
-        Value::Null => TYPE_NULL,
-        Value::Bool(_) => TYPE_BOOL,
-        Value::Number(_) => TYPE_NUMBER,
-        Value::String(_) => TYPE_STRING,
-        Value::Array(_) => TYPE_ARRAY,
-        Value::Object(_) => TYPE_OBJECT,
-    }
-}
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(from = "Object", untagged)]
@@ -107,58 +94,6 @@ impl ExifData {
             Value::Number(Number::from_f64(2.0).unwrap()),
         );
         Ok(ExifData::V2(object))
-    }
-}
-
-fn expect_object(val: &Value) -> Option<&Object> {
-    if let Value::Object(obj) = val {
-        Some(obj)
-    } else {
-        None
-    }
-}
-
-fn expect_prop<'a, 'b>(prop: &'a str) -> impl FnOnce(&'b Object) -> Option<&'b Value> + 'a {
-    |obj: &Object| obj.get(prop)
-}
-
-fn expect_string(val: &Value) -> Option<String> {
-    match val {
-        Value::String(ref str) => {
-            if str.is_empty() {
-                None
-            } else {
-                Some(str.clone())
-            }
-        }
-        Value::Number(ref num) => Some(num.to_string()),
-        _ => None,
-    }
-}
-
-fn expect_string_array(val: &Value) -> Option<String> {
-    match val {
-        Value::Array(ref array) => {
-            let strings = array
-                .iter()
-                .filter_map(expect_string)
-                .collect::<Vec<String>>();
-
-            if strings.is_empty() {
-                None
-            } else {
-                Some(strings.join(", "))
-            }
-        }
-        Value::String(ref str) => {
-            if str.is_empty() {
-                None
-            } else {
-                Some(str.clone())
-            }
-        }
-        Value::Number(ref num) => Some(num.to_string()),
-        _ => None,
     }
 }
 
@@ -251,28 +186,6 @@ fn expect_prefixed_float(val: &Value) -> Option<f32> {
     }
 }
 
-fn expect_float(val: &Value) -> Option<f32> {
-    match val {
-        Value::String(ref str) => match str.parse::<f32>() {
-            Ok(val) => Some(val),
-            Err(_) => None,
-        },
-        Value::Number(ref num) => num.as_f64().map(|f| f as f32),
-        _ => None,
-    }
-}
-
-fn expect_int(val: &Value) -> Option<i32> {
-    match val {
-        Value::String(ref str) => match str.parse::<i32>() {
-            Ok(val) => Some(val),
-            Err(_) => None,
-        },
-        Value::Number(ref num) => num.as_i64().map(|f| f as i32),
-        _ => None,
-    }
-}
-
 fn expect_shutter_speed(val: &Value) -> Option<f32> {
     match val {
         Value::Number(num) => num.as_f64().map(|f| f as f32),
@@ -297,18 +210,6 @@ fn pretty_make(name: String) -> Option<String> {
         "SONY" => "Sony".to_string(),
         _ => name,
     })
-}
-
-macro_rules! map {
-    ($first:expr, $($others:expr),+ $(,)*) => {
-        $first$(.and_then($others))+
-    }
-}
-
-macro_rules! first_of {
-    ($first:expr, $($others:expr),+ $(,)*) => {
-        $first$(.or_else(|| $others))+
-    }
 }
 
 impl ExifData {
@@ -395,7 +296,7 @@ impl ExifData {
         );
 
         metadata.photographer = first_of!(
-            map!(prop!("Creator"), expect_string_array),
+            map!(prop!("Creator"), expect_string_list),
             map!(prop!("Artist"), expect_string),
             map!(prop!("By-line"), expect_string),
         );
@@ -528,7 +429,7 @@ impl ExifData {
         );
 
         metadata.photographer = first_of!(
-            map!(prop!("XMP", "Creator"), expect_string_array),
+            map!(prop!("XMP", "Creator"), expect_string_list),
             map!(prop!("EXIF", "Artist"), expect_string),
             map!(prop!("IPTC", "By-line"), expect_string),
         );

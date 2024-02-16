@@ -24,6 +24,8 @@ use crate::{
 };
 
 pub(crate) mod exif;
+mod ffmpeg;
+mod json;
 mod media;
 
 lazy_static! {

@@ -13,7 +13,7 @@ use image::{
 use mime::Mime;
 use tracing::{span, Instrument, Level};
 
-use crate::{shared::spawn_blocking, Error, Result};
+use crate::{metadata::ffmpeg::VideoData, shared::spawn_blocking, Error, Result};
 
 fn encode_image(
     mut source_image: DynamicImage,
@@ -68,9 +68,12 @@ async fn encode_video(
     size: Option<i32>,
     target_path: &Path,
 ) -> Result<(Mime, i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
-    return Err(Error::UnsupportedMedia { mime: mime.clone() });
+    // TODO
 
-    load_video_data(target_path).await
+    let format = FileFormat::from_file(target_path)?;
+    let mime = Mime::from_str(format.media_type())?;
+    let (width, height, duration, bit_rate, frame_rate) = load_video_data(target_path).await?;
+    Ok((mime, width, height, duration, bit_rate, frame_rate))
 }
 
 pub(super) async fn encode_alternate(
@@ -163,10 +166,16 @@ fn load_image_data(image_path: &Path) -> Result<(u32, u32)> {
 
 async fn load_video_data(
     video_path: &Path,
-) -> Result<(Mime, i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
-    Err(Error::UnsupportedMedia {
-        mime: mime::APPLICATION_OCTET_STREAM,
-    })
+) -> Result<(i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
+    let video_data = VideoData::extract_video_data(video_path).await?;
+
+    Ok((
+        video_data.width,
+        video_data.height,
+        video_data.duration,
+        video_data.bit_rate,
+        video_data.frame_rate,
+    ))
 }
 
 pub(super) async fn load_data(
@@ -191,14 +200,16 @@ pub(super) async fn load_data(
             Ok((mime, width as i32, height as i32, None, None, None))
         }
         mime::VIDEO => {
-            load_video_data(file_path)
+            let (width, height, duration, bit_rate, frame_rate) = load_video_data(file_path)
                 .instrument(span!(
                     Level::INFO,
                     "video decode",
                     "otel.name" = format!("video decode {mime}"),
                     "mimetype" = mime.as_ref(),
                 ))
-                .await
+                .await?;
+
+            Ok((mime, width, height, duration, bit_rate, frame_rate))
         }
         _ => Err(Error::UnsupportedMedia { mime: mime.clone() }),
     }
