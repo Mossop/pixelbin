@@ -13,16 +13,35 @@ use image::{
 use mime::Mime;
 use tracing::{span, Instrument, Level};
 
-use crate::{metadata::ffmpeg::VideoData, shared::spawn_blocking, Error, Result};
+use crate::{
+    metadata::ffmpeg::{extract_video_frame, VideoData},
+    shared::spawn_blocking,
+    Error, Result,
+};
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Container {
+    Mp4,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum VideoCodec {
+    H264(u32),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum AudioCodec {
+    Aac(u32),
+}
 
 fn encode_image(
     mut source_image: DynamicImage,
-    mime: &Mime,
+    target_mime: &Mime,
     size: Option<i32>,
     temp: &Path,
 ) -> Result<(u32, u32)> {
     if let Some(size) = size {
-        let _span = span!(
+        source_image = span!(
             Level::INFO,
             "image resize",
             "otel.name" = format!(
@@ -31,44 +50,54 @@ fn encode_image(
                 source_image.height()
             )
         )
-        .entered();
-
-        source_image = source_image.resize(size as u32, size as u32, FilterType::Lanczos3);
+        .in_scope(|| source_image.resize(size as u32, size as u32, FilterType::Lanczos3));
     }
 
-    {
-        let buffered = BufWriter::new(File::open(temp)?);
+    let (width, height) = (source_image.width(), source_image.height());
 
-        let _span = span!(
-            Level::INFO,
-            "image encode",
-            "otel.name" = format!("image encode ({mime})")
-        )
-        .entered();
+    let buffered = BufWriter::new(File::create(temp)?);
 
-        match mime.subtype().as_str() {
-            "jpeg" => {
-                let encoder = JpegEncoder::new_with_quality(buffered, 90);
-                source_image.write_with_encoder(encoder)?;
-            }
-            "webp" => {
-                #[allow(deprecated)]
-                let encoder = WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
-                source_image.write_with_encoder(encoder)?;
-            }
-            _ => return Err(Error::UnsupportedMedia { mime: mime.clone() }),
+    span!(
+        Level::INFO,
+        "image encode",
+        "otel.name" = format!("image encode ({target_mime})")
+    )
+    .in_scope(move || match target_mime.subtype().as_str() {
+        "jpeg" => {
+            let encoder = JpegEncoder::new_with_quality(buffered, 90);
+            source_image.write_with_encoder(encoder)?;
+            Ok(())
         }
-    }
+        "webp" => {
+            #[allow(deprecated)]
+            let encoder = WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
+            source_image.write_with_encoder(encoder)?;
+            Ok(())
+        }
+        _ => Err(Error::UnsupportedMedia {
+            mime: target_mime.clone(),
+        }),
+    })?;
 
-    Ok((source_image.width(), source_image.height()))
+    Ok((width, height))
 }
 
 async fn encode_video(
-    mime: &Mime,
-    size: Option<i32>,
+    source_path: &Path,
+    target_mime: &Mime,
+    _size: Option<i32>,
     target_path: &Path,
 ) -> Result<(Mime, i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
-    // TODO
+    let (container, video, audio) = match target_mime.essence_str() {
+        "video/mp4" => (Container::Mp4, VideoCodec::H264(26), AudioCodec::Aac(160)),
+        st => {
+            return Err(Error::InvalidData {
+                message: format!("Unknown video codec: {st}"),
+            })
+        }
+    };
+
+    super::ffmpeg::encode_video(source_path, container, video, audio, target_path).await?;
 
     let format = FileFormat::from_file(target_path)?;
     let mime = Mime::from_str(format.media_type())?;
@@ -77,6 +106,7 @@ async fn encode_video(
 }
 
 pub(super) async fn encode_alternate(
+    source_path: &Path,
     source_image: &DynamicImage,
     mime: &Mime,
     size: Option<i32>,
@@ -102,7 +132,7 @@ pub(super) async fn encode_alternate(
             Ok((mime.clone(), width as i32, height as i32, None, None, None))
         }
         mime::VIDEO => {
-            encode_video(mime, size, target_path)
+            encode_video(source_path, mime, size, target_path)
                 .instrument(span!(
                     Level::INFO,
                     "encode video",
@@ -122,9 +152,23 @@ fn load_image(file_path: &Path) -> Result<DynamicImage> {
 }
 
 async fn load_video(file_path: &Path) -> Result<DynamicImage> {
-    Err(Error::UnsupportedMedia {
-        mime: mime::APPLICATION_OCTET_STREAM,
-    })
+    let mut temp_path = file_path.to_owned();
+    temp_path.set_extension("jpg");
+    extract_video_frame(file_path, &temp_path).await?;
+
+    let format = FileFormat::from_file(file_path)?;
+    let mime = Mime::from_str(format.media_type())?;
+
+    spawn_blocking(
+        span!(
+            Level::INFO,
+            "load image",
+            "otel.name" = format!("load image {mime}"),
+            "mimetype" = mime.as_ref(),
+        ),
+        move || load_image(&temp_path),
+    )
+    .await
 }
 
 pub(super) async fn load_source_image(file_path: &Path) -> Result<DynamicImage> {

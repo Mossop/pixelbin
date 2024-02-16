@@ -39,12 +39,14 @@ pub(crate) const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
 pub(crate) const JPEG_EXTENSION: &str = "jpg";
 pub(crate) const WEBP_EXTENSION: &str = "webp";
+pub(crate) const MP4_EXTENSION: &str = "mp4";
 
 fn mime_extension(mimetype: &Mime) -> &'static str {
     match mimetype.essence_str() {
         "image/jpeg" => JPEG_EXTENSION,
         "image/webp" => WEBP_EXTENSION,
-        _ => todo!(),
+        "video/mp4" => MP4_EXTENSION,
+        st => panic!("Unexpected mimetype {st}"),
     }
 }
 
@@ -70,12 +72,13 @@ impl Alternate {
         self.mimetype == alt.mimetype
     }
 
-    #[instrument(skip(conn, remote_store, source_image), err)]
+    #[instrument(skip(conn, remote_store, source_path, source_image), err)]
     pub(crate) async fn build<F: FileStore>(
         &self,
         conn: &mut DbConnection<'_>,
         media_file_path: &MediaFilePath,
         remote_store: &F,
+        source_path: &Path,
         source_image: &DynamicImage,
     ) -> Result<AlternateFile> {
         let temp = NamedTempFile::new()?.into_temp_path();
@@ -88,7 +91,8 @@ impl Alternate {
         };
 
         let (mimetype, width, height, duration, frame_rate, bit_rate) =
-            media::encode_alternate(source_image, &self.mimetype, self.size, &temp).await?;
+            media::encode_alternate(source_path, source_image, &self.mimetype, self.size, &temp)
+                .await?;
 
         let stats = metadata(&temp).await?;
 
@@ -376,7 +380,13 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
             for alternate in expected_alternates {
                 alternate_files.push(
                     alternate
-                        .build(conn, media_file_path, remote_store, &source_image)
+                        .build(
+                            conn,
+                            media_file_path,
+                            remote_store,
+                            &temp_path,
+                            &source_image,
+                        )
                         .await?,
                 );
             }

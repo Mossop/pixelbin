@@ -6,11 +6,108 @@ use tokio::process::Command;
 use tracing::instrument;
 
 use crate::{
-    metadata::json::{
-        expect_float, expect_int, expect_object_array, expect_string, first, map, prop, Object,
+    metadata::{
+        json::{
+            expect_float, expect_int, expect_object_array, expect_string, first, map, prop, Object,
+        },
+        media::{AudioCodec, Container, VideoCodec},
     },
     Error, Result,
 };
+
+trait ApplyArgs {
+    fn add_video_args(&mut self, codec: VideoCodec) -> &mut Self;
+    fn add_audio_args(&mut self, codec: AudioCodec) -> &mut Self;
+    fn add_container_args(&mut self, container: Container) -> &mut Self;
+}
+
+impl ApplyArgs for Command {
+    fn add_video_args(&mut self, codec: VideoCodec) -> &mut Self {
+        match codec {
+            VideoCodec::H264(crf) => self
+                .arg("-c:v")
+                .arg("libx264")
+                .arg("-crf")
+                .arg(crf.to_string()),
+        }
+    }
+
+    fn add_audio_args(&mut self, codec: AudioCodec) -> &mut Self {
+        match codec {
+            AudioCodec::Aac(bitrate) => self
+                .arg("-c:a")
+                .arg("aac")
+                .arg("-b:a")
+                .arg(format!("{bitrate}k")),
+        }
+    }
+
+    fn add_container_args(&mut self, container: Container) -> &mut Self {
+        match container {
+            Container::Mp4 => self.arg("-f").arg("mp4").arg("-movflags").arg("+faststart"),
+        }
+    }
+}
+
+pub(crate) async fn encode_video(
+    local_file: &Path,
+    container: Container,
+    video_codec: VideoCodec,
+    audio_codec: AudioCodec,
+    target: &Path,
+) -> Result {
+    let output = Command::new("ffmpeg")
+        .arg("-y")
+        .arg("-loglevel")
+        .arg("warning")
+        .arg("-i")
+        .arg(local_file)
+        .add_video_args(video_codec)
+        .add_audio_args(audio_codec)
+        .add_container_args(container)
+        .arg(target)
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Err(Error::Unknown {
+            message: format!(
+                "Failed to execute ffmpeg: {}",
+                std::str::from_utf8(&output.stderr).unwrap()
+            ),
+        });
+    }
+
+    Ok(())
+}
+
+#[instrument(skip_all)]
+pub(crate) async fn extract_video_frame(local_file: &Path, target: &Path) -> Result {
+    let output = Command::new("ffmpeg")
+        .arg("-y")
+        .arg("-loglevel")
+        .arg("warning")
+        .arg("-i")
+        .arg(local_file)
+        .arg("-frames:v")
+        .arg("1")
+        .arg("-q:v")
+        .arg("3")
+        .arg(target)
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Err(Error::Unknown {
+            message: format!(
+                "Failed to execute ffmpeg: {}",
+                std::str::from_utf8(&output.stderr).unwrap()
+            ),
+        });
+    }
+
+    Ok(())
+}
 
 pub(super) fn expect_frame_rate(val: &Value) -> Option<f32> {
     match val {
@@ -74,7 +171,7 @@ impl VideoData {
         })
     }
 
-    #[instrument]
+    #[instrument(skip_all)]
     pub(crate) async fn extract_video_data(local_file: &Path) -> Result<Self> {
         let output = Command::new("ffprobe")
             .arg("-hide_banner")

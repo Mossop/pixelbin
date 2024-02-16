@@ -33,11 +33,8 @@ where
     F: FnOnce() -> R + Send + 'static,
     R: Send + 'static,
 {
-    tokio::task::spawn_blocking(move || {
-        let _guard = span.enter();
-        f()
-    })
-    .in_current_span()
-    .await
-    .unwrap()
+    tokio::task::spawn_blocking(move || span.in_scope(f))
+        .in_current_span()
+        .await
+        .unwrap()
 }
