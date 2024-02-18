@@ -1,11 +1,18 @@
 "use client";
 
 import clsx from "clsx";
-import { DateTime } from "luxon";
+import { DateTime, Duration } from "luxon";
 import mime from "mime-types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import {
+  Dispatch,
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useConfig } from "./Config";
 import Icon, { IconButton, IconLink, IconName } from "./Icon";
@@ -15,7 +22,12 @@ import { Rating } from "./Rating";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
-import { ApiMediaRelations, MediaRelations, MediaView } from "@/modules/types";
+import {
+  ApiMediaRelations,
+  MediaRelations,
+  MediaView,
+  MediaViewFile,
+} from "@/modules/types";
 import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
 function superscript(value: number): string {
@@ -56,22 +68,13 @@ function subscript(value: number): string {
   return result.join("");
 }
 
-function Photo({ media }: { media: MediaView }) {
+function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
   let [loaded, setLoaded] = useState(false);
   let onLoaded = useCallback(() => {
     setLoaded(true);
   }, []);
 
   let thumbnailConfig = useConfig().thumbnails;
-
-  let { file } = media;
-  if (!file) {
-    return (
-      <div className="photo missing">
-        <Icon icon="hourglass" />
-      </div>
-    );
-  }
 
   let { filename } = media;
   if (filename) {
@@ -115,7 +118,130 @@ function Photo({ media }: { media: MediaView }) {
   );
 }
 
-function GalleryNavigation({ media }: { media: MediaView }) {
+interface VideoState {
+  media: string;
+  playing: boolean;
+  currentTime: number;
+  duration: number;
+}
+
+function Video({
+  media,
+  file,
+  setVideoState,
+  setPlayer,
+}: {
+  media: MediaView;
+  file: MediaViewFile;
+  setVideoState: Dispatch<VideoState>;
+  setPlayer: Dispatch<HTMLVideoElement | null>;
+}) {
+  let [loaded, setLoaded] = useState(false);
+
+  let updateState = useCallback(
+    (event: SyntheticEvent<HTMLVideoElement>) => {
+      let video = event.currentTarget;
+
+      setVideoState({
+        media: media.id,
+        playing: !video.paused && !video.ended,
+        currentTime: video.currentTime,
+        duration: video.duration,
+      });
+    },
+    [media, setVideoState],
+  );
+
+  let onLoaded = useCallback(
+    (event: SyntheticEvent<HTMLVideoElement>) => {
+      setLoaded(true);
+      updateState(event);
+    },
+    [updateState],
+  );
+
+  let { filename } = media;
+  if (filename) {
+    let pos = filename.lastIndexOf(".");
+    if (pos > 0) {
+      filename = filename.substring(0, pos);
+    }
+  } else {
+    filename = "image";
+  }
+
+  let source = (mimetype: string) => {
+    let extension = mime.extension(mimetype);
+    let urlMimetype = mimetype.replace("/", "-");
+
+    return url([
+      "media",
+      "encoding",
+      media.id,
+      file!.id,
+      urlMimetype,
+      `${filename}.${extension}`,
+    ]);
+  };
+
+  return (
+    <>
+      {!loaded && <Throbber />}
+      <video
+        ref={setPlayer}
+        poster={source("image/jpeg")}
+        controls={false}
+        onLoadedData={onLoaded}
+        onPlay={updateState}
+        onPause={updateState}
+        onProgress={updateState}
+        onTimeUpdate={updateState}
+        className={clsx("video", loaded ? "loaded" : "loading")}
+      >
+        <source src={source("video/mp4")} type="video/mp4" />
+      </video>
+    </>
+  );
+}
+
+function Media({
+  media,
+  setVideoState,
+  setPlayer,
+}: {
+  media: MediaView;
+  setVideoState: Dispatch<VideoState>;
+  setPlayer: Dispatch<HTMLVideoElement | null>;
+}) {
+  let { file } = media;
+  if (!file) {
+    return (
+      <div className="media missing">
+        <Icon icon="hourglass" />
+      </div>
+    );
+  }
+
+  if (file.mimetype.startsWith("video/")) {
+    return (
+      <Video
+        media={media}
+        file={file}
+        setVideoState={setVideoState}
+        setPlayer={setPlayer}
+      />
+    );
+  }
+  return <Photo media={media} file={file} />;
+}
+
+function GalleryNavigation({
+  media,
+  children,
+}: {
+  media: MediaView;
+  children: React.ReactNode;
+}) {
   let base = useGalleryBase();
   let gallery = useGalleryMedia();
 
@@ -146,6 +272,7 @@ function GalleryNavigation({ media }: { media: MediaView }) {
           </Link>
         )}
       </div>
+      <div className="center">{children}</div>
       <div>
         {nextMedia && (
           <Link
@@ -408,6 +535,52 @@ function MediaInfo({ media }: { media: MediaRelations }) {
   );
 }
 
+function formatTime(seconds: number): string {
+  if (Number.isNaN(seconds)) {
+    return "-:--";
+  }
+
+  let duration = Duration.fromMillis(seconds * 1000);
+
+  return duration.toFormat("m:ss");
+}
+
+function VideoInfo({
+  videoState,
+  player,
+}: {
+  videoState: VideoState;
+  player: HTMLVideoElement;
+}) {
+  let play = useCallback(() => player.play(), [player]);
+  let pause = useCallback(() => player.pause(), [player]);
+
+  let percentPlayed = Math.floor(
+    (100 * videoState.currentTime) / videoState.duration,
+  );
+
+  let currentTime = formatTime(videoState.currentTime);
+  let duration = formatTime(videoState.duration);
+
+  return (
+    <div className="video-info">
+      <div className="buttons">
+        {videoState.playing ? (
+          <IconButton onClick={pause} icon="pause" />
+        ) : (
+          <IconButton onClick={play} icon="play" />
+        )}
+      </div>
+      <div className="scrubber">
+        <div className="played" style={{ width: `${percentPlayed}%` }}></div>
+      </div>
+      <div>
+        {currentTime} / {duration}
+      </div>
+    </div>
+  );
+}
+
 export default function MediaLayout({
   media: apiMedia,
   fromGallery = false,
@@ -418,6 +591,8 @@ export default function MediaLayout({
   media: ApiMediaRelations;
 }) {
   let media = useMemo(() => deserializeMediaView(apiMedia), [apiMedia]);
+  let [videoState, setVideoState] = useState<VideoState | null>(null);
+  let [player, setPlayer] = useState<HTMLVideoElement | null>(null);
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
@@ -444,18 +619,49 @@ export default function MediaLayout({
     [router, gallery, fromGallery],
   );
 
+  let play = useMemo(() => {
+    if (videoState && !videoState.playing && player) {
+      return () => player!.play();
+    }
+
+    return null;
+  }, [videoState, player]);
+
+  let togglePlayback = useCallback(() => {
+    if (player) {
+      if (player.paused || player.ended) {
+        player.play();
+      } else {
+        player.pause();
+      }
+    }
+  }, [player]);
+
+  useEffect(() => {
+    setVideoState((vs) => (vs?.media != media.id ? null : vs));
+  }, [media]);
+
   return (
     <main className="c-medialayout" data-theme="dark" ref={fullscreenElement}>
-      <Photo media={media} />
-      <Overlay>
+      <Media
+        media={media}
+        setPlayer={setPlayer}
+        setVideoState={setVideoState}
+      />
+      <Overlay onClick={togglePlayback}>
         <div className="infobar">
           <div>{mediaDate(media).toRelative()}</div>
           <div className="buttons">
             <IconLink href={url(gallery)} onClick={loadGallery} icon="close" />
           </div>
         </div>
-        <GalleryNavigation media={media} />
+        <GalleryNavigation media={media}>
+          {play && <IconButton onClick={play} icon="play" />}
+        </GalleryNavigation>
         <div className="infobar">
+          {videoState && player && (
+            <VideoInfo videoState={videoState} player={player} />
+          )}
           <div className="buttons">
             {downloadUrl && (
               <>

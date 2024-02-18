@@ -71,7 +71,7 @@ export interface TransitionOptions {
 export function useTransition(
   show: boolean,
   { skipInitialTransition = false, onShown, onHidden }: TransitionOptions = {},
-): [(element: HTMLElement | null) => void, boolean] {
+): [elementRef: (element: HTMLElement | null) => void, renderElement: boolean] {
   let [transitionElement, setTransitionElement] = useState<HTMLElement | null>(
     null,
   );
