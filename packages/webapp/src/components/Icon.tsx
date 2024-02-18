@@ -26,6 +26,7 @@ const ICONS = {
   person: icons.mdiAccountOutline,
   play: icons.mdiPlay,
   pause: icons.mdiPause,
+  menu: icons.mdiMenu,
 };
 
 export type IconName = keyof typeof ICONS;

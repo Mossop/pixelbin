@@ -10,3 +10,21 @@
     font-size: theme.$spacing * 5;
   }
 }
+
+.c-navigator {
+  width: 100vw;
+
+  .viewport {
+    height: 100vh;
+    width: 100vw;
+    overflow-y: auto;
+    padding: theme.$spacing * 4;
+  }
+
+  .buttons {
+    font-size: 200%;
+    position: absolute;
+    top: theme.$spacing * 4;
+    right: theme.$spacing * 4;
+  }
+}

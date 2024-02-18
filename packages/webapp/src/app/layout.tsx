@@ -4,7 +4,7 @@ import { Roboto } from "next/font/google";
 
 import AppBar from "@/components/AppBar";
 import ConfigProvider from "@/components/Config";
-import { config } from "@/modules/api";
+import { config, state } from "@/modules/api";
 
 import "./globals.scss";
 
@@ -33,7 +33,12 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={roboto.className}>
-        <ConfigProvider config={await config()}>
+        <ConfigProvider
+          config={{
+            config: await config(),
+            state: await state(),
+          }}
+        >
           <AppBar />
           {children}
         </ConfigProvider>

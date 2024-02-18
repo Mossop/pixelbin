@@ -41,5 +41,6 @@
     width: 100%;
     color: rgb(var(--overlay-color));
     background: rgb(var(--overlay-background));
+    z-index: 10;
   }
 }

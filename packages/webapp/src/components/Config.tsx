@@ -3,18 +3,28 @@
 import { createContext, useContext } from "react";
 
 import { ApiConfig } from "@/modules/api";
+import { State } from "@/modules/types";
 
-const ConfigContext = createContext<ApiConfig | null>(null);
+interface IConfigContext {
+  config: ApiConfig;
+  state: State | undefined;
+}
+
+const ConfigContext = createContext<IConfigContext | null>(null);
 
 export function useConfig(): ApiConfig {
-  return useContext(ConfigContext)!;
+  return useContext(ConfigContext)!.config;
+}
+
+export function useAppState(): State | undefined {
+  return useContext(ConfigContext)?.state;
 }
 
 export default function ConfigProvider({
   config,
   children,
 }: {
-  config: ApiConfig;
+  config: IConfigContext;
   children: React.ReactNode;
 }) {
   return (

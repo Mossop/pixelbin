@@ -1,5 +1,7 @@
+"use client";
+
+import { useAppState } from "./Config";
 import { IconList, IconListItem } from "./IconList";
-import { state } from "@/modules/api";
 import { inSpan } from "@/modules/telemetry";
 import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { url } from "@/modules/util";
@@ -133,31 +135,43 @@ function CatalogItem({
   );
 }
 
-export default async function SidebarLayout({
+export function CatalogNav({
+  serverState,
+  selectedItem,
+}: {
+  serverState: State;
+  selectedItem?: string;
+}) {
+  let catalogs = buildTree(serverState);
+
+  return (
+    <nav>
+      <IconList>
+        {catalogs.map((catalog) => (
+          <CatalogItem
+            key={catalog.id}
+            catalog={catalog}
+            selectedItem={selectedItem}
+          />
+        ))}
+      </IconList>
+    </nav>
+  );
+}
+
+export default function SidebarLayout({
   selectedItem,
   children,
 }: {
   selectedItem?: string;
   children: React.ReactNode;
 }) {
-  let serverState = await state();
+  let serverState = useAppState();
 
   if (serverState && serverState.catalogs.length) {
-    let catalogs = buildTree(serverState);
-
     return (
       <div className="c-sidebar-layout">
-        <nav>
-          <IconList>
-            {catalogs.map((catalog) => (
-              <CatalogItem
-                key={catalog.id}
-                catalog={catalog}
-                selectedItem={selectedItem}
-              />
-            ))}
-          </IconList>
-        </nav>
+        <CatalogNav serverState={serverState} selectedItem={selectedItem} />
         <main>{children}</main>
       </div>
     );
