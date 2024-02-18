@@ -24,10 +24,10 @@ pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Mime, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let st: &str = Deserialize::deserialize(deserializer)?;
+    let st: String = Deserialize::deserialize(deserializer)?;
 
-    Mime::from_str(st)
-        .map_err(|_| D::Error::invalid_value(Unexpected::Str(st), &"a valid mime type"))
+    Mime::from_str(&st)
+        .map_err(|_| D::Error::invalid_value(Unexpected::Str(&st), &"a valid mime type"))
 }
 
 #[derive(Debug, AsExpression)]
