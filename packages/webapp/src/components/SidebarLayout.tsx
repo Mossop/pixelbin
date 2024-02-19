@@ -1,7 +1,5 @@
-"use client";
-
-import { useAppState } from "./Config";
 import { IconList, IconListItem } from "./IconList";
+import { state } from "@/modules/api";
 import { inSpan } from "@/modules/telemetry";
 import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { url } from "@/modules/util";
@@ -159,14 +157,14 @@ export function CatalogNav({
   );
 }
 
-export default function SidebarLayout({
+export default async function SidebarLayout({
   selectedItem,
   children,
 }: {
   selectedItem?: string;
   children: React.ReactNode;
 }) {
-  let serverState = useAppState();
+  let serverState = await state();
 
   if (serverState && serverState.catalogs.length) {
     return (

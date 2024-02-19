@@ -1,5 +1,11 @@
 @use "theme";
 
+@media (max-width: theme.$breakpoint) {
+  .c-sidebar-layout nav {
+    display: none;
+  }
+}
+
 .c-sidebar-layout {
   display: flex;
   flex: 1;
