@@ -260,7 +260,8 @@ async fn delete_media(
         .in_transaction(|conn| {
             async move {
                 let mut media =
-                    models::MediaItem::get_for_user(conn, &session.user.email, &media_ids).await?;
+                    models::MediaItem::get_for_user(conn, &session.user.email, &media_ids, true)
+                        .await?;
 
                 media.iter_mut().for_each(|mi| mi.deleted = true);
 
@@ -500,6 +501,7 @@ async fn upload_media(
                             conn,
                             &session.user.email,
                             &[id.clone()],
+                            true,
                         )
                         .await?;
 
@@ -510,9 +512,13 @@ async fn upload_media(
                         media_items.remove(0)
                     }
                     (None, Some(catalog_id)) => {
-                        let catalog =
-                            models::Catalog::get_for_user(conn, &session.user.email, catalog_id)
-                                .await?;
+                        let catalog = models::Catalog::get_for_user(
+                            conn,
+                            &session.user.email,
+                            catalog_id,
+                            true,
+                        )
+                        .await?;
                         models::MediaItem::new(&catalog.id)
                     }
                     _ => {
@@ -598,7 +604,7 @@ async fn edit_media(
         .in_transaction(|conn| {
             async move {
                 let mut media =
-                    models::MediaItem::get_for_user(conn, &session.user.email, &[id]).await?;
+                    models::MediaItem::get_for_user(conn, &session.user.email, &[id], true).await?;
 
                 if media.is_empty() {
                     return Err(Error::NotFound);

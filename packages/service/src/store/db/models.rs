@@ -2,8 +2,15 @@ use std::{cmp::min, collections::HashMap, result};
 
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
-    backend, delete, deserialize, dsl::count, insert_into, pg::Pg, prelude::*, serialize,
-    sql_types, upsert::excluded, AsExpression, Queryable,
+    backend, delete, deserialize,
+    dsl::{count, sql},
+    expression::SqlLiteral,
+    insert_into,
+    pg::Pg,
+    prelude::*,
+    serialize, sql_types,
+    upsert::excluded,
+    AsExpression, Queryable,
 };
 use diesel_async::RunQueryDsl;
 use mime::Mime;
@@ -31,6 +38,14 @@ use crate::{
     },
     Error, FileStore, Result,
 };
+
+fn sql_bool(b: bool) -> SqlLiteral<sql_types::Bool> {
+    if b {
+        sql("TRUE")
+    } else {
+        sql("FALSE")
+    }
+}
 
 struct Batch<'a, T> {
     slice: &'a [T],
@@ -327,11 +342,13 @@ impl Catalog {
         conn: &mut DbConnection<'_>,
         email: &str,
         catalog: &str,
+        want_writable: bool,
     ) -> Result<Catalog> {
         user_catalog::table
             .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
             .filter(user_catalog::user.eq(email))
             .filter(catalog::id.eq(catalog))
+            .filter(user_catalog::writable.or(sql_bool(!want_writable)))
             .select(catalog::all_columns)
             .get_result::<Catalog>(conn)
             .await
@@ -690,10 +707,12 @@ impl Album {
         conn: &mut DbConnection<'_>,
         email: &str,
         id: &str,
+        want_writable: bool,
     ) -> Result<Album> {
         user_catalog::table
             .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
             .filter(user_catalog::user.eq(email))
+            .filter(user_catalog::writable.or(sql_bool(!want_writable)))
             .filter(album::id.eq(id))
             .select(album::all_columns)
             .get_result::<Album>(conn)
@@ -1168,10 +1187,12 @@ impl MediaItem {
         conn: &mut DbConnection<'_>,
         email: &str,
         ids: &[String],
+        want_writable: bool,
     ) -> Result<Vec<Self>> {
         Ok(media_item::table
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
             .filter(user_catalog::user.eq(email))
+            .filter(user_catalog::writable.or(sql_bool(!want_writable)))
             .filter(media_item::id.eq_any(ids))
             .select(media_item_columns!())
             .load::<Self>(conn)

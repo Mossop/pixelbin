@@ -40,9 +40,13 @@ async fn create_album(
         .store
         .in_transaction(|conn| {
             async move {
-                let catalog =
-                    models::Catalog::get_for_user(conn, &session.user.email, &request.catalog)
-                        .await?;
+                let catalog = models::Catalog::get_for_user(
+                    conn,
+                    &session.user.email,
+                    &request.catalog,
+                    true,
+                )
+                .await?;
 
                 let album = models::Album {
                     id: short_id("A"),
@@ -80,7 +84,8 @@ async fn edit_album(
         .in_transaction(|conn| {
             async move {
                 let mut album =
-                    models::Album::get_for_user(conn, &session.user.email, &request.id).await?;
+                    models::Album::get_for_user(conn, &session.user.email, &request.id, true)
+                        .await?;
 
                 album.name = request.album.name.clone();
                 album.parent = request.album.parent.clone();
@@ -118,7 +123,8 @@ async fn delete_album(
                 let mut catalogs: HashSet<String> = HashSet::new();
 
                 for id in albums.iter() {
-                    let album = models::Album::get_for_user(conn, &session.user.email, id).await?;
+                    let album =
+                        models::Album::get_for_user(conn, &session.user.email, id, true).await?;
                     catalogs.insert(album.catalog);
                     ids.push(album.id);
                 }
@@ -172,7 +178,7 @@ async fn album_media_change(
 
                 for update in updates.into_inner() {
                     let album =
-                        models::Album::get_for_user(conn, &session.user.email, &update.album)
+                        models::Album::get_for_user(conn, &session.user.email, &update.album, true)
                             .await?;
 
                     catalogs.insert(album.catalog.clone());
