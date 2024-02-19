@@ -83,7 +83,6 @@ diesel::table! {
         model -> Nullable<Text>,
         lens -> Nullable<Text>,
         photographer -> Nullable<Text>,
-        shutter_speed -> Nullable<Float4>,
         orientation -> Nullable<Int4>,
         iso -> Nullable<Int4>,
         rating -> Nullable<Int4>,
@@ -94,6 +93,7 @@ diesel::table! {
         focal_length -> Nullable<Float4>,
         taken -> Nullable<Timestamp>,
         media_item -> Varchar,
+        shutter_speed -> Nullable<Float4>,
     }
 }
 
@@ -116,7 +116,6 @@ diesel::table! {
         model -> Nullable<Text>,
         lens -> Nullable<Text>,
         photographer -> Nullable<Text>,
-        shutter_speed -> Nullable<Float4>,
         taken_zone -> Nullable<Text>,
         orientation -> Nullable<Int4>,
         iso -> Nullable<Int4>,
@@ -130,6 +129,7 @@ diesel::table! {
         catalog -> Varchar,
         media_file -> Nullable<Varchar>,
         datetime -> Timestamptz,
+        shutter_speed -> Nullable<Float4>,
     }
 }
 
@@ -267,6 +267,13 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    media_file_alternates (media_file) {
+        media_file -> Varchar,
+        alternates -> Json
+    }
+}
+
 diesel::allow_columns_to_appear_in_same_group_by_clause!(
     media_item::id,
     media_item::deleted,
@@ -343,6 +350,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     catalog,
     media_album,
     media_file,
+    media_file_alternates,
     media_item,
     media_person,
     media_search,

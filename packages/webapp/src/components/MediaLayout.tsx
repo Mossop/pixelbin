@@ -14,7 +14,6 @@ import {
   useState,
 } from "react";
 
-import { useConfig } from "./Config";
 import Icon, { IconButton, IconLink, IconName } from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
 import Overlay from "./Overlay";
@@ -23,6 +22,7 @@ import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import {
+  AlternateFileType,
   ApiMediaRelations,
   MediaRelations,
   MediaView,
@@ -74,8 +74,6 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
     setLoaded(true);
   }, []);
 
-  let thumbnailConfig = useConfig().thumbnails;
-
   let { filename } = media;
   if (filename) {
     let pos = filename.lastIndexOf(".");
@@ -85,6 +83,20 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
   } else {
     filename = "image";
   }
+
+  let alternateTypes = useMemo(
+    () =>
+      new Set(
+        file.alternates
+          .filter(
+            (a) =>
+              a.type == AlternateFileType.Reencode &&
+              a.mimetype != "image/jpeg",
+          )
+          .map((a) => a.mimetype),
+      ),
+    [file],
+  );
 
   let source = (mimetype: string) => {
     let extension = mime.extension(mimetype);
@@ -104,7 +116,7 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
     <>
       {!loaded && <Throbber />}
       <picture>
-        {thumbnailConfig.alternateTypes.map((type) => (
+        {Array.from(alternateTypes, (type) => (
           <source key={type} srcSet={source(type)} type={type} />
         ))}
         {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -170,6 +182,20 @@ function Video({
     filename = "image";
   }
 
+  let videoTypes = useMemo(
+    () =>
+      new Set(
+        file.alternates
+          .filter(
+            (a) =>
+              a.type == AlternateFileType.Reencode &&
+              a.mimetype.startsWith("video/"),
+          )
+          .map((a) => a.mimetype),
+      ),
+    [file],
+  );
+
   let source = (mimetype: string) => {
     let extension = mime.extension(mimetype);
     let urlMimetype = mimetype.replace("/", "-");
@@ -198,7 +224,9 @@ function Video({
         onTimeUpdate={updateState}
         className={clsx("video", loaded ? "loaded" : "loading")}
       >
-        <source src={source("video/mp4")} type="video/mp4" />
+        {Array.from(videoTypes, (type) => (
+          <source key={type} src={source(type)} type={type} />
+        ))}
       </video>
     </>
   );

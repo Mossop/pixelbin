@@ -10,16 +10,16 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
-import { useConfig } from "./Config";
 import Icon from "./Icon";
 import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
 import { Rating } from "./Rating";
 import Throbber from "./Throbber";
-import { MediaView } from "@/modules/types";
+import { AlternateFileType, MediaView, MediaViewFile } from "@/modules/types";
 import { url } from "@/modules/util";
 
 // @ts-ignore
@@ -27,22 +27,13 @@ const VisibilityContext = createContext<VisibilityObserver>(null);
 
 const ThumbnailImage = memo(function ThumbnailImage({
   media,
+  file,
 }: {
   media: MediaView;
+  file: MediaViewFile;
 }) {
   let [loaded, setLoaded] = useState(false);
   let onLoad = useCallback(() => setLoaded(true), []);
-
-  let thumbnailConfig = useConfig().thumbnails;
-
-  let { file } = media;
-  if (!file) {
-    return (
-      <div className="thumbnail">
-        <Icon icon="hourglass" />
-      </div>
-    );
-  }
 
   let { filename } = media;
   if (filename) {
@@ -54,40 +45,62 @@ const ThumbnailImage = memo(function ThumbnailImage({
     filename = "image";
   }
 
+  let thumbnails = useMemo(
+    () => file.alternates.filter((a) => a.type == AlternateFileType.Thumbnail),
+    [file],
+  );
+  let alternateTypes = useMemo(
+    () =>
+      new Set(
+        thumbnails
+          .filter((a) => a.mimetype != "image/jpeg")
+          .map((a) => a.mimetype),
+      ),
+    [thumbnails],
+  );
+
   let sources = (mimetype: string) => {
     let extension = mime.extension(mimetype);
     let urlMimetype = mimetype.replace("/", "-");
 
-    return thumbnailConfig.sizes
+    return thumbnails
+      .filter((t) => t.mimetype == mimetype)
       .map(
-        (size) =>
+        (t) =>
           `${url([
             "media",
             "thumb",
             media.id,
             file!.id,
-            size.toString(),
+            Math.max(t.width, t.height).toString(),
             urlMimetype,
             `${filename}.${extension}`,
-          ])} ${size}w`,
+          ])} ${t.width}w`,
       )
-      .join(",");
+      .join(", ");
   };
 
   return (
     <picture>
-      {thumbnailConfig.alternateTypes.map((type) => (
+      {Array.from(alternateTypes, (type) => (
         <source key={type} sizes="150px" srcSet={sources(type)} type={type} />
       ))}
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img
         onLoad={onLoad}
         decoding="async"
-        sizes="150px"
         srcSet={sources("image/jpeg")}
         className={`thumbnail ${loaded ? "loaded" : "loading"}`}
       />
     </picture>
+  );
+});
+
+const MissingThumbnail = memo(function MissingThumbnail() {
+  return (
+    <div className="thumbnail">
+      <Icon icon="hourglass" />
+    </div>
   );
 });
 
@@ -146,7 +159,11 @@ const MediaItem = memo(function MediaItem({
           href={url([...base, "media", media.id])}
           className="media"
         >
-          <ThumbnailImage media={media} />
+          {media.file ? (
+            <ThumbnailImage media={media} file={media.file} />
+          ) : (
+            <MissingThumbnail />
+          )}
           <div className="overlay">
             <Rating media={media} />
             <FileType media={media} />

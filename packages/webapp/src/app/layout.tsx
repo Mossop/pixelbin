@@ -3,8 +3,6 @@ import type { Metadata, Viewport } from "next";
 import { Roboto } from "next/font/google";
 
 import AppBar from "@/components/AppBar";
-import ConfigProvider from "@/components/Config";
-import { config } from "@/modules/api";
 
 import "./globals.scss";
 
@@ -33,10 +31,8 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={roboto.className}>
-        <ConfigProvider config={await config()}>
-          <AppBar />
-          {children}
-        </ConfigProvider>
+        <AppBar />
+        {children}
       </body>
     </html>
   );

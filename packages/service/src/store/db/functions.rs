@@ -223,6 +223,7 @@ macro_rules! media_view_columns {
                 crate::store::db::schema::media_file::bit_rate,
                 crate::store::db::schema::media_file::uploaded,
                 crate::store::db::schema::media_file::file_name,
+                crate::store::db::schema::media_file_alternates::alternates.nullable(),
             )
                 .nullable(),
         )
@@ -236,6 +237,12 @@ macro_rules! media_view {
                 crate::store::db::schema::media_file::table
                     .on(crate::store::db::schema::media_item::media_file
                         .eq(crate::store::db::schema::media_file::id.nullable())),
+            )
+            .left_outer_join(
+                crate::store::db::schema::media_file_alternates::table.on(
+                    crate::store::db::schema::media_item::media_file
+                        .eq(crate::store::db::schema::media_file_alternates::media_file.nullable()),
+                ),
             )
             .filter(crate::store::db::schema::media_item::deleted.eq(false))
             .order(crate::store::db::schema::media_item::datetime.desc())

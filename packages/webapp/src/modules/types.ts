@@ -171,6 +171,18 @@ export enum AlbumField {
   Name = "name",
 }
 
+export enum AlternateFileType {
+  Thumbnail = "thumbnail",
+  Reencode = "reencode",
+}
+
+export interface MediaViewFileAlternate {
+  type: AlternateFileType;
+  mimetype: string;
+  width: number;
+  height: number;
+}
+
 export interface MediaViewFile {
   id: string;
   fileSize: number;
@@ -182,6 +194,7 @@ export interface MediaViewFile {
   bitRate: number | null;
   uploaded: DateTime;
   fileName: string;
+  alternates: MediaViewFileAlternate[];
 }
 
 export enum Orientation {

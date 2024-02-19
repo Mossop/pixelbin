@@ -89,8 +89,11 @@ fn owned_batch<T>(collection: Vec<T>, count: usize) -> OwnedBatch<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AsExpression, deserialize::FromSqlRow)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, AsExpression, deserialize::FromSqlRow, Deserialize, Serialize,
+)]
 #[diesel(sql_type = sql_types::VarChar)]
+#[serde(rename_all = "camelCase")]
 pub enum AlternateFileType {
     Thumbnail,
     Reencode,
@@ -1730,6 +1733,16 @@ impl AlternateFile {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub(crate) struct MediaViewFileAlternate {
+    #[serde(rename = "type")]
+    pub(crate) type_: AlternateFileType,
+    #[serde(with = "crate::shared::mime")]
+    pub(crate) mimetype: Mime,
+    pub(crate) width: i32,
+    pub(crate) height: i32,
+}
+
 #[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -1746,6 +1759,8 @@ pub(crate) struct MediaViewFile {
     pub(crate) bit_rate: Option<f32>,
     pub(crate) uploaded: DateTime<Utc>,
     pub(crate) file_name: String,
+    #[diesel(deserialize_as = Option<Value>)]
+    pub(crate) alternates: MaybeVec<MediaViewFileAlternate>,
 }
 
 #[typeshare]
