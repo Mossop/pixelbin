@@ -1,10 +1,10 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
-import MediaLayout from "@/components/MediaLayout";
+import MediaLayout, { pageTitle } from "@/components/MediaLayout";
 import { getMedia } from "@/modules/api";
 import { getSession } from "@/modules/session";
-import { deserializeMediaView, mediaTitle } from "@/modules/util";
+import { deserializeMediaView } from "@/modules/util";
 
 export async function loader({
   request,
@@ -22,23 +22,12 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   let parentTitle = matches.at(-2)?.data?.title as unknown as
     | string
     | undefined;
-  let title = mediaTitle(media!);
 
-  if (title && parentTitle) {
-    return [{ title: `${title} - ${parentTitle}` }];
-  }
-  if (title) {
-    return [{ title }];
-  }
-  if (parentTitle) {
-    return [{ title: parentTitle }];
-  }
+  let title = pageTitle(media, parentTitle);
 
-  return [];
+  return title ? [{ title }] : [];
 };
 
 export default function Media() {
-  let media = deserializeMediaView(useLoaderData<typeof loader>());
-
-  return <MediaLayout media={media} />;
+  return <MediaLayout media={useLoaderData<typeof loader>()} />;
 }

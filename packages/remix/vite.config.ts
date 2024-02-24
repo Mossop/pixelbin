@@ -13,9 +13,17 @@ export default defineConfig({
       routes(defineRoutes) {
         return defineRoutes((route) => {
           route("/", "routes/index.tsx", { index: true });
-          route("/search/:search", "routes/search/layout.tsx", () => {
+          route("/catalog/:id", "routes/catalog/layout.tsx", () => {
+            route("", "routes/catalog/index.tsx", { index: true });
+            route("media/:media", "routes/catalog/media.tsx", { index: true });
+          });
+          route("/album/:id", "routes/album/layout.tsx", () => {
+            route("", "routes/album/index.tsx", { index: true });
+            route("media/:media", "routes/album/media.tsx", { index: true });
+          });
+          route("/search/:id", "routes/search/layout.tsx", () => {
             route("", "routes/search/index.tsx", { index: true });
-            route("media/:media", "routes/media.tsx", { index: true });
+            route("media/:media", "routes/search/media.tsx", { index: true });
           });
           route("/api/:type/:id/media", "api/gallery.ts");
           route("/media/*", "api/media.ts");

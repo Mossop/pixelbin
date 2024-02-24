@@ -22,11 +22,30 @@ import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import {
   AlternateFileType,
+  ApiMediaRelations,
   MediaRelations,
   MediaView,
   MediaViewFile,
 } from "@/modules/types";
-import { mediaDate, url } from "@/modules/util";
+import {
+  deserializeMediaView,
+  mediaDate,
+  mediaTitle,
+  url,
+} from "@/modules/util";
+
+export function pageTitle(
+  media: MediaRelations,
+  parentTitle: string | undefined,
+): string | undefined {
+  let title = mediaTitle(media!);
+
+  if (title && parentTitle) {
+    return `${title} - ${parentTitle}`;
+  }
+
+  return title ?? parentTitle;
+}
 
 function superscript(value: number): string {
   let val = Math.ceil(value);
@@ -598,7 +617,12 @@ function VideoInfo({
   );
 }
 
-export default function MediaLayout({ media }: { media: MediaRelations }) {
+export default function MediaLayout({
+  media: apiMedia,
+}: {
+  media: ApiMediaRelations;
+}) {
+  let media = deserializeMediaView(apiMedia);
   let [videoState, setVideoState] = useState<VideoState | null>(null);
   let [player, setPlayer] = useState<HTMLVideoElement | null>(null);
 

@@ -2,14 +2,14 @@ import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { Outlet, useLoaderData } from "@remix-run/react";
 
 import MediaGallery from "@/components/MediaGallery";
-import { getSearch } from "@/modules/api";
+import { getCatalog } from "@/modules/api";
 import { getSession } from "@/modules/session";
 
 export async function loader({ request, params: { id } }: LoaderFunctionArgs) {
   let session = await getSession(request);
-  let search = await getSearch(session, id!);
+  let catalog = await getCatalog(session, id!);
 
-  return json({ title: search.name, search });
+  return json({ title: catalog.name, catalog });
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -19,11 +19,11 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   return [];
 };
 
-export default function SearchLayout() {
-  let { search } = useLoaderData<typeof loader>();
+export default function CatalogLayout() {
+  let { catalog } = useLoaderData<typeof loader>();
 
   return (
-    <MediaGallery type={"search"} id={search.id}>
+    <MediaGallery type={"catalog"} id={catalog.id}>
       <Outlet />
     </MediaGallery>
   );
