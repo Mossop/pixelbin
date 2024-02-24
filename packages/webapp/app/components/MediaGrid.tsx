@@ -153,7 +153,11 @@ const MediaItem = memo(function MediaItem({
   return (
     <div ref={element} className="media-wrapper">
       {visible && (
-        <Link to={url([...base, "media", media.id])} className="media">
+        <Link
+          to={url([...base, "media", media.id])}
+          className="media"
+          state={{ fromGallery: true }}
+        >
           {media.file ? (
             <ThumbnailImage media={media} file={media.file} />
           ) : (

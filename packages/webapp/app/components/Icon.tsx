@@ -1,4 +1,6 @@
 import * as icons from "@mdi/js";
+import { Link } from "@remix-run/react";
+import { RemixLinkProps } from "@remix-run/react/dist/components";
 import clsx from "clsx";
 import { useCallback } from "react";
 
@@ -49,8 +51,8 @@ export function IconLink({
   ...props
 }: {
   icon: IconName;
-  className?: string;
-} & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+} & RemixLinkProps &
+  React.RefAttributes<HTMLAnchorElement>) {
   let clicked = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       event.stopPropagation();
@@ -62,9 +64,9 @@ export function IconLink({
   );
 
   return (
-    <a className="c-icon-link" onClick={clicked} {...props}>
+    <Link className="c-icon-link" onClick={clicked} {...props}>
       <WrappedIcon icon={icon} className={className} />
-    </a>
+    </Link>
   );
 }
 

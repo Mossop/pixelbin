@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "@remix-run/react";
+import { Link, useLocation, useNavigate } from "@remix-run/react";
 import clsx from "clsx";
 import { DateTime, Duration } from "luxon";
 import mime from "mime-types";
@@ -288,6 +288,7 @@ function GalleryNavigation({
 }) {
   let base = useGalleryBase();
   let gallery = useGalleryMedia();
+  let fromGallery = !!useLocation().state?.fromGallery;
 
   let [previousMedia, nextMedia] = useMemo((): [
     MediaView | undefined,
@@ -307,17 +308,23 @@ function GalleryNavigation({
     <div className="navbar">
       <div>
         {previousMedia && (
-          <Link to={url([...base, "media", previousMedia.id])} replace={true}>
-            <Icon icon="previous" />
-          </Link>
+          <IconLink
+            icon="previous"
+            to={url([...base, "media", previousMedia.id])}
+            replace={true}
+            state={{ fromGallery }}
+          />
         )}
       </div>
       <div className="center">{children}</div>
       <div>
         {nextMedia && (
-          <Link to={url([...base, "media", nextMedia.id])} replace={true}>
-            <Icon icon="next" />
-          </Link>
+          <IconLink
+            icon="next"
+            to={url([...base, "media", nextMedia.id])}
+            replace={true}
+            state={{ fromGallery }}
+          />
         )}
       </div>
     </div>
@@ -625,6 +632,8 @@ export default function MediaLayout({
   let media = deserializeMediaView(apiMedia);
   let [videoState, setVideoState] = useState<VideoState | null>(null);
   let [player, setPlayer] = useState<HTMLVideoElement | null>(null);
+  let gallery = useGalleryBase();
+  let fromGallery = !!useLocation().state?.fromGallery;
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
@@ -636,6 +645,20 @@ export default function MediaLayout({
   let [infoPanelShown, setInfoPanelShown] = useState(false);
   let showInfoPanel = useCallback(() => setInfoPanelShown(true), []);
   let closeInfoPanel = useCallback(() => setInfoPanelShown(false), []);
+
+  let navigate = useNavigate();
+  let loadGallery = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+
+      if (fromGallery) {
+        navigate(-1);
+      } else {
+        navigate(url(gallery), { replace: true });
+      }
+    },
+    [navigate, fromGallery],
+  );
 
   let play = useMemo(() => {
     if (videoState && !videoState.playing && player) {
@@ -670,7 +693,7 @@ export default function MediaLayout({
         <div className="infobar">
           <div>{mediaDate(media).toRelative()}</div>
           <div className="buttons">
-            {/* <IconLink href={url(gallery)} icon="close" /> */}
+            <IconLink to={url(gallery)} onClick={loadGallery} icon="close" />
           </div>
         </div>
         <GalleryNavigation media={media}>
@@ -685,7 +708,7 @@ export default function MediaLayout({
               <>
                 <IconLink
                   download={media.file!.fileName}
-                  href={downloadUrl}
+                  to={downloadUrl}
                   icon="download"
                 />
                 {isFullscreen ? (
