@@ -92,7 +92,11 @@ async function apiCall<T>(
     return await rawApiCall(path, authenticated(session), ...options);
   } catch (e) {
     if (isNotFoundError(e)) {
-      // TODO
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw new Response(null, {
+        status: 404,
+        statusText: "Not Found",
+      });
     }
 
     throw e;
@@ -121,7 +125,7 @@ export async function login(session: Session, email: string, password: string) {
       email,
       password,
     }),
-    { cache: "no-store" }
+    { cache: "no-store" },
   );
 
   if (response.token) {
@@ -153,14 +157,14 @@ export async function getAlbum(session: Session, id: string): Promise<Album> {
 
 export async function getSearch(
   session: Session,
-  id: string
+  id: string,
 ): Promise<SavedSearch> {
   return apiCall<SavedSearch>(session, `/api/search/${id}`);
 }
 
 export async function getCatalog(
   session: Session,
-  id: string
+  id: string,
 ): Promise<Catalog> {
   return apiCall<Catalog>(session, `/api/catalog/${id}`);
 }
@@ -175,13 +179,13 @@ const LIST_COUNT = 500;
 export async function* listMedia(
   session: Session,
   source: "album" | "catalog" | "search",
-  id: string
+  id: string,
 ): AsyncGenerator<ApiMediaView[], void, unknown> {
   let offset = 0;
   while (true) {
     const response = await apiCall<ListMediaResponse<ApiMediaView>>(
       session,
-      `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`
+      `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
     );
     yield response.media;
     offset += LIST_COUNT;
@@ -194,11 +198,11 @@ export async function* listMedia(
 
 export async function getMedia(
   session: Session,
-  id: string
+  id: string,
 ): Promise<MediaRelations> {
   const response = await apiCall<ListMediaResponse<ApiMediaRelations>>(
     session,
-    `/api/media/${id}`
+    `/api/media/${id}`,
   );
 
   if (response.media.length) {
