@@ -1,7 +1,8 @@
 import * as icons from "@mdi/js";
-import MDIcon from "@mdi/react";
 import clsx from "clsx";
 import { useCallback } from "react";
+
+import MDIcon from "./MaterialIcon";
 
 const ICONS = {
   catalog: icons.mdiDatabaseOutline,
@@ -31,8 +32,13 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
-function Icon({ icon, className }: { icon: IconName; className?: string }) {
-  console.log("Icon", JSON.stringify(icon), JSON.stringify(className));
+function WrappedIcon({
+  icon,
+  className,
+}: {
+  icon: IconName;
+  className?: string;
+}) {
   return <MDIcon className={clsx("c-icon", className)} path={ICONS[icon]} />;
 }
 
@@ -57,7 +63,7 @@ export function IconLink({
 
   return (
     <a className="c-icon-link" onClick={clicked} {...props}>
-      <Icon icon={icon} className={className} />
+      <WrappedIcon icon={icon} className={className} />
     </a>
   );
 }
@@ -82,9 +88,9 @@ export function IconButton({
 
   return (
     <button className="c-icon-button" onClick={clicked}>
-      <Icon icon={icon} className={className} />
+      <WrappedIcon icon={icon} className={className} />
     </button>
   );
 }
 
-export default Icon;
+export default WrappedIcon;

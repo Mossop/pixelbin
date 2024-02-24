@@ -25,7 +25,9 @@ export function IconListItem({
     return (
       <li className="c-iconlistitem">
         <Link className={`item-label ${selected ? "selected" : ""}`} to={href}>
-          <div className="item-icon">{/* <Icon icon={icon} /> */}</div>
+          <div className="item-icon">
+            <Icon icon={icon} />
+          </div>
           <span className="label">{label}</span>
           <span className="count">{count === 0 ? "" : count}</span>
         </Link>
@@ -37,7 +39,9 @@ export function IconListItem({
   return (
     <li className="c-iconlistitem">
       <div className="item-label">
-        <div className="item-icon">{/* <Icon icon={icon} /> */}</div>
+        <div className="item-icon">
+          <Icon icon={icon} />
+        </div>
         <span className="label">{label}</span>
         <span className="count">{count === 0 ? "" : count}</span>
       </div>
