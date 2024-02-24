@@ -1,11 +1,24 @@
 {
-  "extends": "@mossop/config/next-ts/tsconfig.base.json",
+  "include": ["env.d.ts", "**/*.ts", "**/*.tsx"],
   "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "target": "ES2022",
+    "strict": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
+      "@/*": ["./app/*"]
+    },
 
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+    // Vite takes care of building everything, not tsc.
+    "noEmit": true
+  }
 }
