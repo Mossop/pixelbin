@@ -1,0 +1,67 @@
+@use "theme";
+
+.c-mediagroup {
+  .title {
+    position: sticky;
+    top: 0;
+    padding: theme.$spacing * 2;
+    font-size: 200%;
+    background-color: var(--background);
+    z-index: 1;
+  }
+
+  .grid {
+    display: grid;
+    gap: theme.$spacing * 2;
+    padding-inline: theme.$spacing * 2;
+    padding-bottom: theme.$spacing * 4;
+    grid-template-columns: repeat(auto-fill, minmax(calc(150px + 1rem), 1fr));
+  }
+
+  .media-wrapper {
+    aspect-ratio: 1;
+  }
+
+  .media {
+    height: 100%;
+    width: 100%;
+    display: block;
+    border-radius: theme.$spacing;
+    position: relative;
+    padding: theme.$spacing * 2;
+    border: 1px solid var(--shadow-color);
+    box-shadow: theme.$box-shadow;
+    color: inherit;
+
+    .overlay {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: theme.$spacing * 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      opacity: 0.3;
+      transition: opacity theme.$transition;
+    }
+
+    &:hover .overlay {
+      opacity: 1;
+    }
+
+    .thumbnail {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      object-position: center center;
+    }
+
+    div.thumbnail {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}

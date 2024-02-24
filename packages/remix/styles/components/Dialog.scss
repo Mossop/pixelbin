@@ -1,0 +1,47 @@
+@use "theme";
+
+.c-modal {
+  &.t-on {
+    .c-dialog {
+      opacity: 1;
+    }
+  }
+}
+
+.c-dialog {
+  border-radius: theme.$spacing * 2;
+  box-shadow: theme.$modal-shadow;
+  width: 500px;
+  padding-inline: theme.$spacing * 4;
+
+  transition: opacity theme.$transition;
+  opacity: 0;
+
+  .header {
+    font-size: theme.$spacing * 7;
+    padding-block: theme.$spacing;
+  }
+
+  .body {
+    padding-block: theme.$spacing * 4;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: theme.$spacing * 4;
+
+    & > form {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: theme.$spacing * 4;
+    }
+  }
+
+  .footer {
+    padding-block: theme.$spacing * 3;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: theme.$spacing * 3;
+  }
+}

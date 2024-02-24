@@ -1,0 +1,46 @@
+@use "theme";
+
+.c-modal {
+  &.t-on .c-slidepanel.slidepanel-right .slidepanel-inner {
+    right: 0;
+  }
+
+  &.t-on .c-slidepanel.slidepanel-left .slidepanel-inner {
+    left: 0;
+  }
+}
+
+.c-slidepanel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+
+  &.slidepanel-right {
+    right: 0;
+
+    .slidepanel-inner {
+      transition: right theme.$transition;
+      right: -100%;
+    }
+  }
+
+  &.slidepanel-left {
+    left: 0;
+
+    .slidepanel-inner {
+      transition: left theme.$transition;
+      left: -100%;
+    }
+  }
+
+  .slidepanel-inner {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+    color: rgb(var(--overlay-color));
+    background: rgb(var(--overlay-background));
+    z-index: 10;
+  }
+}

@@ -1,0 +1,30 @@
+@use "theme";
+
+@media (max-width: theme.$breakpoint) {
+  .c-sidebar-layout nav {
+    display: none;
+  }
+}
+
+.c-sidebar-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+
+  nav {
+    border-right: 1px solid rgb(222, 226, 230);
+    padding-block: theme.$spacing * 2;
+    font-size: 0.9rem;
+    overflow-y: auto;
+  }
+
+  & > main {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+div.c-sidebar-layout {
+  flex-direction: row;
+  overflow: hidden;
+}
