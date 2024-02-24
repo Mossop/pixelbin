@@ -199,15 +199,19 @@ export async function* listMedia(
 export async function getMedia(
   session: Session,
   id: string,
-): Promise<MediaRelations> {
+): Promise<ApiMediaRelations> {
   const response = await apiCall<ListMediaResponse<ApiMediaRelations>>(
     session,
     `/api/media/${id}`,
   );
 
   if (response.media.length) {
-    return deserializeMediaView(response.media[0]);
+    return response.media[0];
   }
 
-  throw new Error("Not found");
+  // eslint-disable-next-line @typescript-eslint/no-throw-literal
+  throw new Response(null, {
+    status: 404,
+    statusText: "Not Found",
+  });
 }

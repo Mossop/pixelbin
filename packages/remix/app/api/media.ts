@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
+import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 
 import { getSession } from "@/modules/session";
 import { ApiRequest, apiFetch } from "@/modules/telemetry";
@@ -17,5 +17,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     };
   }
 
-  return apiFetch(`/media/${params["*"]}`, init);
+  let response = await apiFetch(`/media/${params["*"]}`, init);
+
+  if (response.status >= 300 && response.status < 400) {
+    let location = response.headers.get("location");
+    if (location) {
+      return redirect(location);
+    }
+  }
+
+  return response;
 }
