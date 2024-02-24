@@ -1,4 +1,5 @@
 import Avatar from "./Avatar";
+import NavMenu from "./NavMenu";
 import { useServerState } from "@/modules/client-util";
 
 export default function AppBar() {
@@ -8,6 +9,7 @@ export default function AppBar() {
   return (
     <header className="c-appbar" data-theme="banner">
       <div className="site">
+        {serverState && <NavMenu serverState={serverState} />}
         <h1>PixelBin</h1>
       </div>
       <div>
