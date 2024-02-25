@@ -17,13 +17,13 @@ $breakpoint: 1000px;
 }
 
 @mixin apply-colors {
-  color: var(--color);
-  background-color: var(--background);
+  color: rgb(var(--color));
+  background-color: rgb(var(--background));
 }
 
 @mixin light {
-  --color: rgb(0, 0, 0);
-  --background: rgb(250, 250, 250);
+  --color: 0, 0, 0;
+  --background: 250, 250, 250;
 
   --overlay-color: 0, 0, 0;
   --overlay-background: 250, 250, 250;
@@ -51,16 +51,16 @@ $breakpoint: 1000px;
 }
 
 @mixin dark {
-  --color: rgb(222, 226, 230);
-  --background: rgb(33, 37, 41);
+  --color: 222, 226, 230;
+  --background: 33, 37, 41;
 
   --overlay-color: 255, 255, 255;
   --overlay-background: 66, 66, 66;
 }
 
 @mixin banner {
-  --color: rgb(255, 255, 255);
-  --background: rgb(var(--theme-color-primary));
+  --color: 255, 255, 255;
+  --background: var(--theme-color-primary);
 
   --button-primary-color: rgb(0, 0, 0);
   --button-primary-background: rgb(248, 249, 250);

@@ -1,8 +1,7 @@
 "use client";
 
-import { Link, useLocation, useNavigate } from "@remix-run/react";
-import clsx from "clsx";
-import { DateTime, Duration } from "luxon";
+import { useLocation, useNavigate } from "@remix-run/react";
+import { Duration } from "luxon";
 import mime from "mime-types";
 import {
   Dispatch,
@@ -13,83 +12,26 @@ import {
   useState,
 } from "react";
 
-import Icon, { IconButton, IconLink, IconName } from "./Icon";
+import Icon, { IconButton, IconLink } from "./Icon";
 import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
+import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
-import { Rating } from "./Rating";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import {
   AlternateFileType,
   ApiMediaRelations,
-  MediaRelations,
   MediaView,
   MediaViewFile,
 } from "@/modules/types";
-import {
-  deserializeMediaView,
-  mediaDate,
-  mediaTitle,
-  url,
-} from "@/modules/util";
-
-export function pageTitle(
-  media: MediaRelations,
-  parentTitle: string | undefined,
-): string | undefined {
-  let title = mediaTitle(media!);
-
-  if (title && parentTitle) {
-    return `${title} - ${parentTitle}`;
-  }
-
-  return title ?? parentTitle;
-}
-
-function superscript(value: number): string {
-  let val = Math.ceil(value);
-
-  let result: string[] = [];
-  while (val > 0) {
-    let digit = val % 10;
-
-    switch (digit) {
-      case 1:
-        result.unshift("\u00B9");
-        break;
-      case 2:
-      case 3:
-        result.unshift(String.fromCharCode(0x00b0 + digit));
-        break;
-      default:
-        result.unshift(String.fromCharCode(0x2070 + digit));
-    }
-
-    val = (val - digit) / 10;
-  }
-
-  return result.join("");
-}
-
-function subscript(value: number): string {
-  let val = Math.ceil(value);
-
-  let result: string[] = [];
-  while (val > 0) {
-    let digit = val % 10;
-    result.unshift(String.fromCharCode(0x2080 + digit));
-    val = (val - digit) / 10;
-  }
-
-  return result.join("");
-}
+import { deserializeMediaView, mediaDate, url } from "@/modules/util";
 
 function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
-  let [loaded, setLoaded] = useState(false);
+  let [loaded, setLoaded] = useState<string | null>(null);
   let onLoaded = useCallback(() => {
-    setLoaded(true);
-  }, []);
+    setLoaded(media.id);
+  }, [media]);
 
   let { filename } = media;
   if (filename) {
@@ -131,7 +73,6 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
 
   return (
     <>
-      {!loaded && <Throbber />}
       <picture>
         {Array.from(alternateTypes, (type) => (
           <source key={type} srcSet={source(type)} type={type} />
@@ -139,9 +80,14 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
         <img
           onLoad={onLoaded}
           srcSet={source("image/jpeg")}
-          className={clsx("photo", loaded ? "loaded" : "loading")}
+          className="photo"
         />
       </picture>
+      {loaded !== media.id && (
+        <div className="loading-throbber">
+          <Throbber />
+        </div>
+      )}
     </>
   );
 }
@@ -164,7 +110,7 @@ function Video({
   setVideoState: Dispatch<VideoState>;
   setPlayer: Dispatch<HTMLVideoElement | null>;
 }) {
-  let [loaded, setLoaded] = useState(false);
+  let [loaded, setLoaded] = useState<string | null>(null);
 
   let updateState = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -182,10 +128,10 @@ function Video({
 
   let onLoaded = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
-      setLoaded(true);
+      setLoaded(media.id);
       updateState(event);
     },
-    [updateState],
+    [media, updateState],
   );
 
   let { filename } = media;
@@ -228,7 +174,6 @@ function Video({
 
   return (
     <>
-      {!loaded && <Throbber />}
       <video
         ref={setPlayer}
         poster={source("image/jpeg")}
@@ -238,12 +183,13 @@ function Video({
         onPause={updateState}
         onProgress={updateState}
         onTimeUpdate={updateState}
-        className={clsx("video", loaded ? "loaded" : "loading")}
+        className="video"
       >
         {Array.from(videoTypes, (type) => (
           <source key={type} src={source(type)} type={type} />
         ))}
       </video>
+      {loaded !== media.id && <Throbber />}
     </>
   );
 }
@@ -328,253 +274,6 @@ function GalleryNavigation({
         )}
       </div>
     </div>
-  );
-}
-
-const LABELS = {
-  filename: "Filename:",
-  title: "Title:",
-  description: "Description:",
-  category: "Category:",
-  label: "Label:",
-  taken: "Taken at:",
-  photographer: "Taken by:",
-  albums: "In albums:",
-  location: "Location:",
-  make: "Camera make:",
-  model: "Camera model:",
-  lens: "Lens:",
-  aperture: "Aperture:",
-  shutterSpeed: "Shutter speed:",
-  iso: "ISO:",
-  focalLength: "Focal length:",
-  rating: "Rating:",
-  tags: "Tags:",
-  people: "People:",
-};
-
-function Chip({
-  icon,
-  href,
-  children,
-}: {
-  href?: string[];
-  icon: IconName;
-  children: React.ReactNode;
-}) {
-  if (href) {
-    return (
-      <li>
-        <Link to={url(href)}>
-          <Icon icon={icon} /> {children}
-        </Link>
-      </li>
-    );
-  }
-
-  return (
-    <li>
-      <Icon icon={icon} /> {children}
-    </li>
-  );
-}
-
-function Row({
-  label,
-  children,
-  multiline = false,
-}: {
-  multiline?: boolean;
-  label: keyof typeof LABELS;
-  children: React.ReactNode;
-}) {
-  let labelClasses = clsx(
-    "metadata-label",
-    multiline && "multiline",
-    // `metadata-${id}`,
-  );
-  let contentClasses = clsx(
-    "metadata-value",
-    multiline && "multiline",
-    // `metadata-${id}`,
-  );
-
-  return (
-    <>
-      <dt className={labelClasses}>{LABELS[label]}</dt>
-      <dd className={contentClasses}>{children}</dd>
-    </>
-  );
-}
-
-function Metadata<P extends keyof MediaView & keyof typeof LABELS>({
-  media,
-  property,
-}: {
-  media: MediaView;
-  property: P;
-}) {
-  if (!media[property]) {
-    return null;
-  }
-
-  return (
-    <Row label={property}>
-      {/* @ts-ignore */}
-      {media[property]}
-    </Row>
-  );
-}
-
-function MediaInfo({ media }: { media: MediaRelations }) {
-  let taken = useMemo(() => {
-    if (media.taken === null) {
-      return null;
-    }
-
-    return (
-      <Row label="taken">
-        {media.taken.toLocaleString(DateTime.DATETIME_SHORT)}
-      </Row>
-    );
-  }, [media]);
-
-  let shutterSpeed = useMemo(() => {
-    if (media.shutterSpeed === null) {
-      return null;
-    }
-
-    let value = media.shutterSpeed.toString();
-
-    if (media.shutterSpeed < 0.5) {
-      let denominator = Math.round(1 / media.shutterSpeed);
-
-      value = `${superscript(1)}\u2044${subscript(denominator)}`;
-    }
-
-    return <Row label="shutterSpeed">{value} s</Row>;
-  }, [media]);
-
-  let aperture = useMemo(() => {
-    if (media.aperture === null) {
-      return null;
-    }
-
-    return (
-      <Row label="aperture">
-        <i>f</i>
-        {` / ${media.aperture.toFixed(1)}`}
-      </Row>
-    );
-  }, [media]);
-
-  let iso = useMemo(() => {
-    if (media.iso === null) {
-      return null;
-    }
-
-    return <Row label="iso">ISO {Math.round(media.iso)}</Row>;
-  }, [media]);
-
-  let focalLength = useMemo(() => {
-    if (media.focalLength === null) {
-      return null;
-    }
-
-    return <Row label="focalLength">{media.focalLength.toFixed(1)} mm</Row>;
-  }, [media]);
-
-  let location = useMemo(() => {
-    let locationParts: string[] = [];
-
-    if (media.location) {
-      locationParts.push(media.location);
-    }
-    if (media.city) {
-      locationParts.push(media.city);
-    }
-    if (media.state) {
-      locationParts.push(media.state);
-    }
-    if (media.country) {
-      locationParts.push(media.country);
-    }
-
-    if (locationParts.length) {
-      return (
-        <Row label="location">
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href={`https://www.google.com/maps/search/${encodeURIComponent(
-              locationParts.join(", "),
-            )}`}
-            color="secondary"
-          >
-            {locationParts.join(", ")}
-          </a>
-        </Row>
-      );
-    }
-    return null;
-  }, [media]);
-
-  return (
-    <dl>
-      <Metadata media={media} property="filename" />
-      <Metadata media={media} property="title" />
-      <Metadata media={media} property="description" />
-      <Metadata media={media} property="category" />
-      {media.albums.length > 0 && (
-        <Row label="albums">
-          <ul className="relation-list">
-            {media.albums.map((r) => (
-              <Chip key={r.id} href={["album", r.id]} icon="album">
-                {r.name}
-              </Chip>
-            ))}
-          </ul>
-        </Row>
-      )}
-      <Metadata media={media} property="label" />
-      {taken}
-      {media.rating !== null && (
-        <Row label="rating">
-          <Rating media={media} />
-        </Row>
-      )}
-      {location}
-      {media.tags.length > 0 && (
-        <Row label="tags">
-          <ul className="relation-list">
-            {media.tags.map((r) => (
-              <Chip key={r.id} icon="tag">
-                {r.name}
-              </Chip>
-            ))}
-          </ul>
-        </Row>
-      )}
-      {media.people.length > 0 && (
-        <Row label="people">
-          <ul className="relation-list">
-            {media.people.map((r) => (
-              <Chip key={r.id} icon="person">
-                {r.name}
-              </Chip>
-            ))}
-          </ul>
-        </Row>
-      )}
-      <Metadata media={media} property="photographer" />
-      {shutterSpeed}
-      {aperture}
-      {iso}
-      <Metadata media={media} property="make" />
-      <Metadata media={media} property="model" />
-      <Metadata media={media} property="lens" />
-      {focalLength}
-    </dl>
   );
 }
 

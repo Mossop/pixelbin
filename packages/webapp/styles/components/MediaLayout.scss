@@ -9,10 +9,12 @@
   .video {
     height: 100%;
     width: 100%;
+  }
 
-    &.loading {
-      height: 0;
-    }
+  .loading-throbber {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--background), 0.5);
   }
 
   img.photo {
@@ -56,11 +58,11 @@
 
       .scrubber {
         flex: 1;
-        background-color: var(--background);
+        background-color: rgb(var(--background));
         height: theme.$spacing * 2;
 
         .played {
-          background-color: var(--color);
+          background-color: rgb(var(--color));
           height: 100%;
         }
       }
@@ -115,7 +117,7 @@
       padding-inline: theme.$spacing * 2 theme.$spacing * 3;
       display: flex;
       align-items: center;
-      background-color: var(--background);
+      background-color: rgb(var(--background));
       font-size: 90%;
 
       a {

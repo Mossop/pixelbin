@@ -1,29 +1,11 @@
 @use "theme";
 
-@keyframes pulse1 {
+@keyframes pulse {
   20% {
-    background: rgba(var(--theme-color-primary), 0.8);
-  }
-  30% {
-    background: rgba(var(--theme-color-primary), 0.3);
-  }
-}
-
-@keyframes pulse2 {
-  20% {
-    background: rgba(var(--theme-color-primary), 0.8);
-  }
-  30% {
-    background: rgba(var(--theme-color-primary), 0.3);
-  }
-}
-
-@keyframes pulse3 {
-  20% {
-    background: rgba(var(--theme-color-primary), 0.8);
+    background: rgba(var(--theme-color-primary), 1);
   }
   50% {
-    background: rgba(var(--theme-color-primary), 0.3);
+    background: rgba(var(--theme-color-primary), 0.4);
   }
 }
 
@@ -47,16 +29,16 @@
     }
 
     .start {
-      animation: pulse1 1.3s ease-in infinite;
+      animation: pulse 1.3s ease-in infinite;
     }
 
     .middle {
-      animation: pulse2 1.3s ease-in infinite;
+      animation: pulse 1.3s ease-in infinite;
       animation-delay: 0.2s;
     }
 
     .end {
-      animation: pulse3 1.3s ease-in infinite;
+      animation: pulse 1.3s ease-in infinite;
       animation-delay: 0.4s;
     }
   }
