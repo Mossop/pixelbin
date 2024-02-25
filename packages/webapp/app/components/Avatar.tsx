@@ -1,5 +1,3 @@
-"use client";
-
 import { useFetcher } from "@remix-run/react";
 import md5 from "md5";
 import { useCallback, useState } from "react";
@@ -32,7 +30,7 @@ function Login() {
         action: "/login",
         method: "POST",
         navigate: false,
-      }
+      },
     );
   }, [fetcher, email, password]);
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { useLocation, useNavigate } from "@remix-run/react";
 import { Duration } from "luxon";
 import mime from "mime-types";

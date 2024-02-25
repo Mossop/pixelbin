@@ -1,5 +1,3 @@
-"use server";
-
 import { Session } from "./session";
 import { ApiRequest, apiFetch } from "./telemetry";
 import {
@@ -8,11 +6,9 @@ import {
   ApiMediaView,
   Catalog,
   LoginResponse,
-  MediaRelations,
   SavedSearch,
   State,
 } from "./types";
-import { deserializeMediaView } from "./util";
 
 const GET: ApiRequest = { method: "GET" };
 const POST: ApiRequest = { method: "POST" };

@@ -17,6 +17,9 @@ function galleryRoutes(route: DefineRouteFunction, type: string) {
 }
 
 export default defineConfig({
+  server: {
+    port: 3000,
+  },
   plugins: [
     remix({
       future: {
@@ -31,6 +34,7 @@ export default defineConfig({
           galleryRoutes(route, "album");
           galleryRoutes(route, "search");
           route("/api/:type/:id/media", "api/gallery.ts");
+          route("/api/config", "api/config.ts");
           route("/media/*", "api/media.ts");
           route("/login", "actions/login.ts");
           route("/logout", "actions/logout.ts");

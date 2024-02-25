@@ -1,7 +1,5 @@
 /* eslint-disable prefer-arrow-callback */
 
-"use client";
-
 import { Link } from "@remix-run/react";
 import mime from "mime-types";
 import {

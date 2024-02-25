@@ -1,6 +1,6 @@
 export function inSpan<F extends (/* span: Span */) => unknown>(
   name: string,
-  task: F
+  task: F,
 ): ReturnType<F> {
   // @ts-expect-error Duck typed
   return task();
@@ -69,7 +69,7 @@ export function apiFetch(path: string, init: ApiRequest): Promise<Response> {
     //   },
     // });
 
-    const response = await fetch(`http://localhost:8283${path}`, realInit);
+    const response = await fetch(`${process.env.PXL_API_URL}${path}`, realInit);
 
     // span.setAttribute("http.response.status_code", response.status);
 
