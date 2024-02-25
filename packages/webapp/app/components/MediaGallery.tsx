@@ -23,6 +23,7 @@ export interface Group {
 }
 
 interface Context {
+  readonly id: string;
   readonly base: string[];
   readonly groups: readonly Group[] | null;
   readonly media: readonly MediaView[] | null;
@@ -86,10 +87,15 @@ class TakenGrouper extends Grouper {
 }
 
 const GalleryContext = createContext<Context>({
+  id: "",
   base: [],
   groups: null,
   media: null,
 });
+
+export function useGalleryId(): string {
+  return useContext(GalleryContext).id;
+}
 
 export function useGalleryMedia(): MediaView[] | null {
   let { media } = useContext(GalleryContext);
@@ -156,14 +162,14 @@ export default function MediaGallery({
   type: GalleryType;
   id: string;
 }) {
-  let [context, setContext] = useState<Omit<Context, "base">>({
+  let [context, setContext] = useState<Omit<Context, "id" | "base">>({
     media: null,
     groups: null,
   });
   useEffect(() => fetchMedia(type, id, setContext), [type, id]);
 
   let gallery = useMemo(
-    () => ({ base: [type, id], ...context }),
+    () => ({ id, base: [type, id], ...context }),
     [type, id, context],
   );
 

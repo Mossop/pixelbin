@@ -1,6 +1,20 @@
 import { vitePlugin as remix } from "@remix-run/dev";
+import { DefineRouteFunction } from "@remix-run/dev/dist/config/routes";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+
+function galleryRoutes(route: DefineRouteFunction, type: string) {
+  route(`/${type}/:id`, `routes/${type}/layout.tsx`, () => {
+    route("", "routes/gallery.tsx", {
+      index: true,
+      id: `routes/${type}/gallery`,
+    });
+    route("media/:media", "routes/media.tsx", {
+      index: true,
+      id: `routes/${type}/media`,
+    });
+  });
+}
 
 export default defineConfig({
   plugins: [
@@ -13,18 +27,9 @@ export default defineConfig({
       routes(defineRoutes) {
         return defineRoutes((route) => {
           route("/", "routes/index.tsx", { index: true });
-          route("/catalog/:id", "routes/catalog/layout.tsx", () => {
-            route("", "routes/catalog/index.tsx", { index: true });
-            route("media/:media", "routes/catalog/media.tsx", { index: true });
-          });
-          route("/album/:id", "routes/album/layout.tsx", () => {
-            route("", "routes/album/index.tsx", { index: true });
-            route("media/:media", "routes/album/media.tsx", { index: true });
-          });
-          route("/search/:id", "routes/search/layout.tsx", () => {
-            route("", "routes/search/index.tsx", { index: true });
-            route("media/:media", "routes/search/media.tsx", { index: true });
-          });
+          galleryRoutes(route, "catalog");
+          galleryRoutes(route, "album");
+          galleryRoutes(route, "search");
           route("/api/:type/:id/media", "api/gallery.ts");
           route("/media/*", "api/media.ts");
           route("/login", "actions/login.ts");
