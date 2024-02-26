@@ -21,7 +21,6 @@ export interface Group {
 }
 
 interface Context {
-  readonly id: string;
   readonly base: string[];
   readonly groups: readonly Group[] | null;
   readonly media: readonly MediaView[] | null;
@@ -85,15 +84,10 @@ class TakenGrouper extends Grouper {
 }
 
 const GalleryContext = createContext<Context>({
-  id: "",
   base: [],
   groups: null,
   media: null,
 });
-
-export function useGalleryId(): string {
-  return useContext(GalleryContext).id;
-}
 
 export function useGalleryMedia(): MediaView[] | null {
   let { media } = useContext(GalleryContext);
@@ -110,13 +104,12 @@ export function useGalleryBase(): string[] {
 }
 
 function fetchMedia(
-  type: string,
-  id: string,
+  requestStream: (signal: AbortSignal) => Promise<Response>,
   setContext: Dispatch<GroupContext>,
 ): () => void {
   let aborter = new AbortController();
 
-  fetch(`/api/${type}/${id}/media`, { signal: aborter.signal })
+  requestStream(aborter.signal)
     .then(async (response) => {
       if (!response.ok || !response.body) {
         return;
@@ -153,23 +146,20 @@ function fetchMedia(
 
 export default function MediaGallery({
   children,
-  type,
-  id,
+  requestStream,
+  base,
 }: {
   children: React.ReactNode;
-  type: GalleryType;
-  id: string;
+  requestStream: (signal: AbortSignal) => Promise<Response>;
+  base: string[];
 }) {
   let [context, setContext] = useState<Omit<Context, "id" | "base">>({
     media: null,
     groups: null,
   });
-  useEffect(() => fetchMedia(type, id, setContext), [type, id]);
+  useEffect(() => fetchMedia(requestStream, setContext), [requestStream]);
 
-  let gallery = useMemo(
-    () => ({ id, base: [type, id], ...context }),
-    [type, id, context],
-  );
+  let gallery = useMemo(() => ({ base, ...context }), [base, context]);
 
   return (
     <GalleryContext.Provider value={gallery}>

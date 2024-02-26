@@ -1,5 +1,6 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { Outlet, useLoaderData } from "@remix-run/react";
+import { useCallback } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
 import { getSearch } from "@/modules/api";
@@ -22,8 +23,14 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 export default function SearchLayout() {
   let { search } = useLoaderData<typeof loader>();
 
+  let requestStream = useCallback(
+    (signal: AbortSignal) =>
+      fetch(`/api/search/${search.id}/media`, { signal }),
+    [search],
+  );
+
   return (
-    <MediaGallery type={"search"} id={search.id}>
+    <MediaGallery base={["search", search.id]} requestStream={requestStream}>
       <Outlet />
     </MediaGallery>
   );

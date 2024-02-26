@@ -1,5 +1,6 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { Outlet, useLoaderData } from "@remix-run/react";
+import { useCallback } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
 import { getAlbum } from "@/modules/api";
@@ -22,8 +23,13 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 export default function AlbumLayout() {
   let { album } = useLoaderData<typeof loader>();
 
+  let requestStream = useCallback(
+    (signal: AbortSignal) => fetch(`/api/album/${album.id}/media`, { signal }),
+    [album],
+  );
+
   return (
-    <MediaGallery type={"album"} id={album.id}>
+    <MediaGallery base={["album", album.id]} requestStream={requestStream}>
       <Outlet />
     </MediaGallery>
   );

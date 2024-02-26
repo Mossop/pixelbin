@@ -1,3 +1,5 @@
+import { Location, useLocation } from "@remix-run/react";
+
 import { IconList, IconListItem } from "./IconList";
 import { useServerState } from "@/modules/client-util";
 import { inSpan } from "@/modules/telemetry";
@@ -10,6 +12,11 @@ type CatalogTree = Catalog & {
   searches: SavedSearch[];
   albums: AlbumTree[];
 };
+
+function isSelected(location: Location, base: string[]): boolean {
+  let path = url(base);
+  return location.pathname == path || location.pathname.startsWith(`${path}/`);
+}
 
 function byName(a: { name: string }, b: { name: string }): number {
   return a.name.localeCompare(b.name);
@@ -58,16 +65,12 @@ function buildTree(userState: State): CatalogTree[] {
   });
 }
 
-function AlbumItem({
-  album,
-  selectedItem,
-}: {
-  album: AlbumTree;
-  selectedItem?: string;
-}) {
+function AlbumItem({ album }: { album: AlbumTree }) {
+  let location = useLocation();
+
   return (
     <IconListItem
-      selected={selectedItem == album.id}
+      selected={isSelected(location, ["album", album.id])}
       icon="album"
       href={url(["album", album.id])}
       label={album.name}
@@ -76,7 +79,7 @@ function AlbumItem({
       {album.albums.length > 0 && (
         <IconList>
           {album.albums.map((a) => (
-            <AlbumItem key={a.id} album={a} selectedItem={selectedItem} />
+            <AlbumItem key={a.id} album={a} />
           ))}
         </IconList>
       )}
@@ -84,19 +87,15 @@ function AlbumItem({
   );
 }
 
-function CatalogItem({
-  catalog,
-  selectedItem,
-}: {
-  catalog: CatalogTree;
-  selectedItem?: string;
-}) {
+function CatalogItem({ catalog }: { catalog: CatalogTree }) {
+  let location = useLocation();
+
   return (
     <IconListItem
       icon="catalog"
       href={url(["catalog", catalog.id])}
       label={catalog.name}
-      selected={selectedItem == catalog.id}
+      selected={isSelected(location, ["catalog", catalog.id])}
     >
       <IconList>
         {catalog.searches.length > 0 && (
@@ -105,7 +104,7 @@ function CatalogItem({
               {catalog.searches.map((search) => (
                 <IconListItem
                   key={search.id}
-                  selected={selectedItem == search.id}
+                  selected={isSelected(location, ["search", search.id])}
                   icon="search"
                   href={url(["search", search.id])}
                   label={search.name}
@@ -119,11 +118,7 @@ function CatalogItem({
           <IconListItem icon="albums" label="Albums">
             <IconList>
               {catalog.albums.map((album) => (
-                <AlbumItem
-                  key={album.id}
-                  album={album}
-                  selectedItem={selectedItem}
-                />
+                <AlbumItem key={album.id} album={album} />
               ))}
             </IconList>
           </IconListItem>
@@ -133,24 +128,14 @@ function CatalogItem({
   );
 }
 
-export function CatalogNav({
-  serverState,
-  selectedItem,
-}: {
-  serverState: State;
-  selectedItem?: string;
-}) {
+export function CatalogNav({ serverState }: { serverState: State }) {
   let catalogs = buildTree(serverState);
 
   return (
     <nav>
       <IconList>
         {catalogs.map((catalog) => (
-          <CatalogItem
-            key={catalog.id}
-            catalog={catalog}
-            selectedItem={selectedItem}
-          />
+          <CatalogItem key={catalog.id} catalog={catalog} />
         ))}
       </IconList>
     </nav>
@@ -158,10 +143,8 @@ export function CatalogNav({
 }
 
 export default function SidebarLayout({
-  selectedItem,
   children,
 }: {
-  selectedItem?: string;
   children: React.ReactNode;
 }) {
   let serverState = useServerState();
@@ -169,7 +152,7 @@ export default function SidebarLayout({
   if (serverState && serverState.catalogs.length) {
     return (
       <div className="c-sidebar-layout">
-        <CatalogNav serverState={serverState} selectedItem={selectedItem} />
+        <CatalogNav serverState={serverState} />
         <main>{children}</main>
       </div>
     );
