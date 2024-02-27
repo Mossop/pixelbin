@@ -13,7 +13,7 @@ use tracing::{debug, instrument, warn};
 
 use super::ISO_FORMAT;
 use crate::{
-    metadata::json::{
+    shared::json::{
         expect_float, expect_int, expect_object, expect_prop, expect_string, expect_string_list,
         first_of, map, type_of, Object,
     },

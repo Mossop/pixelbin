@@ -11,15 +11,18 @@ use diesel::{
         self, Bool, Double, Float, Integer, Nullable, SingleValue, SqlType, Text, Timestamp,
     },
 };
-use monostate::MustBe;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{from_value, Value};
 use serde_plain::derive_display_from_serialize;
 use typeshare::typeshare;
 
-use crate::store::db::{
-    functions::{char_length, extract, media_field},
-    schema::*,
+use crate::{
+    shared::json::{expect_string, map, prop, Object},
+    store::db::{
+        functions::{char_length, extract, media_field},
+        schema::*,
+    },
+    Result,
 };
 
 type MediaViewQS = LeftJoinQuerySource<
@@ -29,8 +32,12 @@ type MediaViewQS = LeftJoinQuerySource<
 >;
 type Boxed<QS, T = Bool> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
 
-pub(crate) trait FilterGen<QS> {
-    fn filter_gen(&self, catalog: &str) -> Boxed<QS>;
+pub(crate) type SearchQuery = CompoundQuery<CompoundItem>;
+
+pub(crate) trait Filterable {
+    type QuerySource;
+
+    fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource>;
 }
 
 pub(crate) fn field_query<F, FT>(
@@ -218,12 +225,16 @@ pub(crate) trait Field {
 }
 
 pub(crate) trait RelationField: Field {
-    fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS>;
+    fn build_media_filter(
+        catalog: &str,
+        recursive: bool,
+        filter: Boxed<Self::QuerySource>,
+    ) -> Boxed<MediaViewQS>;
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
-pub enum SqlValue {
+pub(crate) enum SqlValue {
     String(String),
     Bool(bool),
     Integer(i32),
@@ -244,7 +255,7 @@ impl SqlValue {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase", tag = "operator", content = "value")]
-pub enum Operator {
+pub(crate) enum Operator {
     Empty,
     Equal(SqlValue),
     LessThan(SqlValue),
@@ -259,7 +270,7 @@ pub enum Operator {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
-pub enum Modifier {
+pub(crate) enum Modifier {
     Length,
     Year,
     Month,
@@ -268,8 +279,9 @@ pub enum Modifier {
 derive_display_from_serialize!(Modifier);
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub(crate) enum Join {
+    #[default]
     #[serde(rename = "&&")]
     And,
     #[serde(rename = "||")]
@@ -279,7 +291,7 @@ pub(crate) enum Join {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum MediaField {
+pub(crate) enum MediaField {
     Title,
     Filename,
     Description,
@@ -363,15 +375,31 @@ impl Field for TagField {
 }
 
 impl RelationField for TagField {
-    fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS> {
-        let select = tag::table
-            .filter(tag::catalog.eq(catalog.to_owned()))
-            .filter(filter)
-            .into_boxed()
-            .inner_join(media_tag::table.on(media_tag::tag.eq(tag::id)))
-            .select(media_tag::media);
+    fn build_media_filter(
+        catalog: &str,
+        recursive: bool,
+        filter: Boxed<Self::QuerySource>,
+    ) -> Boxed<MediaViewQS> {
+        if recursive {
+            let select = tag::table
+                .filter(tag::catalog.eq(catalog.to_owned()))
+                .filter(filter)
+                .into_boxed()
+                .inner_join(tag_descendent::table.on(tag_descendent::id.eq(tag::id)))
+                .inner_join(media_tag::table.on(media_tag::tag.eq(tag_descendent::descendent)))
+                .select(media_tag::media);
 
-        Box::new(media_item::id.eq_any(select))
+            Box::new(media_item::id.eq_any(select))
+        } else {
+            let select = tag::table
+                .filter(tag::catalog.eq(catalog.to_owned()))
+                .filter(filter)
+                .into_boxed()
+                .inner_join(media_tag::table.on(media_tag::tag.eq(tag::id)))
+                .select(media_tag::media);
+
+            Box::new(media_item::id.eq_any(select))
+        }
     }
 }
 
@@ -395,7 +423,11 @@ impl Field for PersonField {
 }
 
 impl RelationField for PersonField {
-    fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS> {
+    fn build_media_filter(
+        catalog: &str,
+        _recursive: bool,
+        filter: Boxed<Self::QuerySource>,
+    ) -> Boxed<MediaViewQS> {
         let select = person::table
             .filter(person::catalog.eq(catalog.to_owned()))
             .filter(filter)
@@ -427,36 +459,53 @@ impl Field for AlbumField {
 }
 
 impl RelationField for AlbumField {
-    fn media_filter(catalog: &str, filter: Boxed<Self::QuerySource>) -> Boxed<MediaViewQS> {
-        let select = album::table
-            .filter(album::catalog.eq(catalog.to_owned()))
-            .filter(filter)
-            .into_boxed()
-            .inner_join(media_album::table.on(media_album::album.eq(album::id)))
-            .select(media_album::media);
+    fn build_media_filter(
+        catalog: &str,
+        recursive: bool,
+        filter: Boxed<Self::QuerySource>,
+    ) -> Boxed<MediaViewQS> {
+        if recursive {
+            let select = album::table
+                .filter(album::catalog.eq(catalog.to_owned()))
+                .filter(filter)
+                .into_boxed()
+                .inner_join(album_descendent::table.on(album_descendent::id.eq(album::id)))
+                .inner_join(
+                    media_album::table.on(media_album::album.eq(album_descendent::descendent)),
+                )
+                .select(media_album::media);
 
-        Box::new(media_item::id.eq_any(select))
+            Box::new(media_item::id.eq_any(select))
+        } else {
+            let select = album::table
+                .filter(album::catalog.eq(catalog.to_owned()))
+                .filter(filter)
+                .into_boxed()
+                .inner_join(media_album::table.on(media_album::album.eq(album::id)))
+                .select(media_album::media);
+
+            Box::new(media_item::id.eq_any(select))
+        }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct FieldQuery<F> {
-    #[serde(rename = "type")]
-    _type: String,
-    pub invert: bool,
-    pub field: F,
-    pub modifier: Option<Modifier>,
+pub(crate) struct FieldQuery<F> {
+    pub(crate) invert: bool,
+    pub(crate) field: F,
+    pub(crate) modifier: Option<Modifier>,
     #[serde(flatten)]
-    pub operator: Operator,
+    pub(crate) operator: Operator,
 }
 
-impl<F, QS> FilterGen<QS> for FieldQuery<F>
+impl<F> Filterable for FieldQuery<F>
 where
-    QS: 'static,
-    F: Field<QuerySource = QS>,
+    F: Field,
 {
-    fn filter_gen(&self, _catalog: &str) -> Boxed<QS> {
+    type QuerySource = F::QuerySource;
+
+    fn build_filter(&self, _catalog: &str) -> Boxed<Self::QuerySource> {
         match self.field.field() {
             TypedField::Text(f) => match self.modifier {
                 Some(Modifier::Length) => Box::new(field_query(
@@ -498,142 +547,101 @@ where
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(untagged)]
-pub(crate) enum RelationQueryItem<R, F> {
+#[serde(tag = "type", rename_all = "lowercase")]
+pub(crate) enum RelationCompoundItem<F>
+where
+    F: Field,
+{
     Field(FieldQuery<F>),
-    Compound(R),
+    Compound(CompoundQuery<Self>),
 }
 
-impl<R, F, QS> FilterGen<QS> for RelationQueryItem<R, F>
+impl<F> Filterable for RelationCompoundItem<F>
 where
-    R: FilterGen<QS>,
-    FieldQuery<F>: FilterGen<QS>,
+    F: Field,
 {
-    fn filter_gen(&self, catalog: &str) -> Boxed<QS> {
+    type QuerySource = <F as Field>::QuerySource;
+
+    fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource> {
         match self {
-            RelationQueryItem::Field(f) => f.filter_gen(catalog),
-            RelationQueryItem::Compound(f) => f.filter_gen(catalog),
+            RelationCompoundItem::Field(f) => f.build_filter(catalog),
+            RelationCompoundItem::Compound(f) => f.build_filter(catalog),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct TagRelation {
-    #[serde(rename = "type")]
-    _type: MustBe!("compound"),
-    #[serde(flatten)]
-    joined: JoinedQueries<RelationQueryItem<TagRelation, TagField>>,
-    #[serde(rename = "relation")]
-    _relation: MustBe!("tag"),
-}
-
-impl FilterGen<tag::table> for TagRelation {
-    fn filter_gen(&self, catalog: &str) -> Boxed<tag::table> {
-        self.joined.filter_gen(catalog)
-    }
-}
-
-impl FilterGen<MediaViewQS> for TagRelation {
-    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        TagField::media_filter(
-            catalog,
-            <Self as FilterGen<tag::table>>::filter_gen(self, catalog),
-        )
-    }
+fn skip_false(recursive: &bool) -> bool {
+    !recursive
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AlbumRelation {
-    #[serde(rename = "type")]
-    _type: MustBe!("compound"),
+pub(crate) struct RelationQuery<F>
+where
+    F: RelationField,
+{
+    #[serde(default, skip_serializing_if = "skip_false")]
+    recursive: bool,
     #[serde(flatten)]
-    joined: JoinedQueries<RelationQueryItem<AlbumRelation, AlbumField>>,
-    #[serde(rename = "relation")]
-    _relation: MustBe!("album"),
+    query: CompoundQuery<RelationCompoundItem<F>>,
 }
 
-impl FilterGen<album::table> for AlbumRelation {
-    fn filter_gen(&self, catalog: &str) -> Boxed<album::table> {
-        self.joined.filter_gen(catalog)
-    }
-}
+impl<F> Filterable for RelationQuery<F>
+where
+    F: RelationField,
+{
+    type QuerySource = MediaViewQS;
 
-impl FilterGen<MediaViewQS> for AlbumRelation {
-    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        AlbumField::media_filter(
-            catalog,
-            <Self as FilterGen<album::table>>::filter_gen(self, catalog),
-        )
+    fn build_filter(&self, catalog: &str) -> Boxed<MediaViewQS> {
+        F::build_media_filter(catalog, self.recursive, self.query.build_filter(catalog))
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PersonRelation {
-    #[serde(rename = "type")]
-    _type: MustBe!("compound"),
-    #[serde(flatten)]
-    joined: JoinedQueries<RelationQueryItem<PersonRelation, PersonField>>,
-    #[serde(rename = "relation")]
-    _relation: MustBe!("person"),
+#[serde(tag = "type", rename_all = "lowercase")]
+pub(crate) enum CompoundItem {
+    Field(FieldQuery<MediaField>),
+    Tag(RelationQuery<TagField>),
+    Person(RelationQuery<PersonField>),
+    Album(RelationQuery<AlbumField>),
+    Compound(CompoundQuery<Self>),
 }
 
-impl FilterGen<person::table> for PersonRelation {
-    fn filter_gen(&self, catalog: &str) -> Boxed<person::table> {
-        self.joined.filter_gen(catalog)
-    }
-}
+impl Filterable for CompoundItem {
+    type QuerySource = MediaViewQS;
 
-impl FilterGen<MediaViewQS> for PersonRelation {
-    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        PersonField::media_filter(
-            catalog,
-            <Self as FilterGen<person::table>>::filter_gen(self, catalog),
-        )
+    fn build_filter(&self, catalog: &str) -> Boxed<MediaViewQS> {
+        match self {
+            CompoundItem::Field(f) => f.build_filter(catalog),
+            CompoundItem::Tag(f) => f.build_filter(catalog),
+            CompoundItem::Person(f) => f.build_filter(catalog),
+            CompoundItem::Album(f) => f.build_filter(catalog),
+            CompoundItem::Compound(f) => f.build_filter(catalog),
+        }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, AsExpression, deserialize::FromSqlRow)]
 #[diesel(sql_type = sql_types::Json)]
-#[serde(untagged)]
-pub enum CompoundQueryItem {
-    Field(FieldQuery<MediaField>),
-    Tag(TagRelation),
-    Person(PersonRelation),
-    Album(AlbumRelation),
-    Compound(CompoundQuery),
-}
-
-impl FilterGen<MediaViewQS> for CompoundQueryItem {
-    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        match self {
-            CompoundQueryItem::Field(f) => f.filter_gen(catalog),
-            CompoundQueryItem::Tag(f) => f.filter_gen(catalog),
-            CompoundQueryItem::Person(f) => f.filter_gen(catalog),
-            CompoundQueryItem::Album(f) => f.filter_gen(catalog),
-            CompoundQueryItem::Compound(f) => f.filter_gen(catalog),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct JoinedQueries<Q> {
+pub(crate) struct CompoundQuery<Q> {
     pub(crate) invert: bool,
     pub(crate) join: Join,
     pub(crate) queries: Vec<Q>,
 }
 
-impl<Q, QS> FilterGen<QS> for JoinedQueries<Q>
+impl<Q> Filterable for CompoundQuery<Q>
 where
-    QS: 'static,
-    Q: FilterGen<QS>,
+    Q: Filterable,
+    Q::QuerySource: 'static,
 {
-    fn filter_gen(&self, catalog: &str) -> Boxed<QS> {
-        let mut filter: Boxed<QS> = self.queries[0].filter_gen(catalog);
+    type QuerySource = Q::QuerySource;
+
+    fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource> {
+        let mut filter: Boxed<Self::QuerySource> = self.queries[0].build_filter(catalog);
 
         for query in self.queries.iter().skip(1) {
             filter = match self.join {
-                Join::And => Box::new(filter.and(query.filter_gen(catalog))),
-                Join::Or => Box::new(filter.or(query.filter_gen(catalog))),
+                Join::And => Box::new(filter.and(query.build_filter(catalog))),
+                Join::Or => Box::new(filter.or(query.build_filter(catalog))),
             };
         }
 
@@ -645,21 +653,71 @@ where
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CompoundQuery {
-    #[serde(rename = "type")]
-    _type: MustBe!("compound"),
-    #[serde(flatten)]
-    joined: JoinedQueries<CompoundQueryItem>,
-}
-
-impl FilterGen<MediaViewQS> for CompoundQuery {
-    fn filter_gen(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        self.joined.filter_gen(catalog)
+fn upgrade_compound(obj: &mut Object) {
+    if let Some(val) = obj.remove("relation") {
+        obj.insert("type".to_string(), val);
+    } else if let Some(Value::Array(list)) = obj.get_mut("queries") {
+        for val in list {
+            if let Value::Object(ref mut obj) = val {
+                if matches!(
+                    map!(prop!(obj, "type"), expect_string).as_deref(),
+                    Some("compound")
+                ) {
+                    upgrade_compound(obj);
+                }
+            }
+        }
     }
 }
 
-impl<DB> deserialize::FromSql<sql_types::Json, DB> for CompoundQueryItem
+pub(crate) fn upgrade_query(query: Value) -> Result<SearchQuery> {
+    if let Value::Object(mut obj) = query {
+        match map!(prop!(obj, "type"), expect_string).as_deref() {
+            Some("compound") => {
+                upgrade_compound(&mut obj);
+
+                if !matches!(
+                    map!(prop!(obj, "type"), expect_string).as_deref(),
+                    Some("compound"),
+                ) {
+                    // We must wrap this in a new compound query.
+                    let inner_query: CompoundItem = from_value(Value::Object(obj))?;
+
+                    let query = SearchQuery {
+                        invert: false,
+                        join: Join::default(),
+                        queries: vec![inner_query],
+                    };
+
+                    Ok(query)
+                } else {
+                    Ok(from_value(Value::Object(obj))?)
+                }
+            }
+            Some("field") => {
+                // We must wrap this in a new compound query.
+                let inner_query: CompoundItem = from_value(Value::Object(obj))?;
+
+                let query = SearchQuery {
+                    invert: false,
+                    join: Join::default(),
+                    queries: vec![inner_query],
+                };
+
+                Ok(query)
+            }
+            _ => {
+                // This is unexpected. Just try to parse it.
+                Ok(from_value(Value::Object(obj))?)
+            }
+        }
+    } else {
+        // This is unexpected. Just try to parse it.
+        Ok(from_value(query)?)
+    }
+}
+
+impl<DB> deserialize::FromSql<sql_types::Json, DB> for SearchQuery
 where
     DB: backend::Backend,
     Value: deserialize::FromSql<sql_types::Json, DB>,
@@ -670,7 +728,7 @@ where
     }
 }
 
-impl serialize::ToSql<sql_types::Json, diesel::pg::Pg> for CompoundQueryItem
+impl serialize::ToSql<sql_types::Json, diesel::pg::Pg> for SearchQuery
 where
     Value: serialize::ToSql<sql_types::Json, diesel::pg::Pg>,
 {
@@ -688,10 +746,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::CompoundQueryItem;
+    use super::CompoundItem;
 
     fn attempt_parse(json: &str) {
-        serde_json::from_str::<CompoundQueryItem>(json).unwrap();
+        serde_json::from_str::<CompoundItem>(json).unwrap();
     }
 
     #[test]
@@ -699,28 +757,255 @@ mod tests {
         attempt_parse(r#"{"invert":false,"type":"compound","join":"&&","queries":[]}"#);
         attempt_parse(r#"{"invert":true,"type":"compound","join":"||","queries":[]}"#);
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"compound","join":"||","queries":[{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:JDkiNRe5vR"},{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:i9hZrZVwPP"}],"relation":"person","recursive":false}]}"#,
+            r#"{
+                "invert": false,
+                "type": "compound",
+                "join": "&&",
+                "queries": [
+                    {
+                    "invert": false,
+                    "type": "person",
+                    "join": "||",
+                    "queries": [
+                        {
+                            "invert": false,
+                            "type": "field",
+                            "field": "id",
+                            "modifier": null,
+                            "operator": "equal",
+                            "value": "P:JDkiNRe5vR"
+                        },
+                        {
+                            "invert": false,
+                            "type": "field",
+                            "field": "id",
+                            "modifier": null,
+                            "operator": "equal",
+                            "value": "P:i9hZrZVwPP"
+                        }
+                    ],
+                    "recursive": false
+                    }
+                ]
+            }"#,
         );
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"compound","join":"||","queries":[{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:JDkiNRe5vR"},{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:i9hZrZVwPP"},{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:74GYRgwkjS"},{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:JUUyyvwyBN"}],"relation":"person","recursive":true}]}"#,
+            r#"{
+                "invert": false,
+                "type": "compound",
+                "join": "&&",
+                "queries": [
+                    {
+                    "invert": false,
+                    "type": "person",
+                    "join": "||",
+                    "queries": [
+                        {
+                            "invert": false,
+                            "type": "field",
+                            "field": "id",
+                            "modifier": null,
+                            "operator": "equal",
+                            "value": "P:JDkiNRe5vR"
+                        },
+                        {
+                            "invert": false,
+                            "type": "field",
+                            "field": "id",
+                            "modifier": null,
+                            "operator": "equal",
+                            "value": "P:i9hZrZVwPP"
+                        },
+                        {
+                            "invert": false,
+                            "type": "field",
+                            "field": "id",
+                            "modifier": null,
+                            "operator": "equal",
+                            "value": "P:74GYRgwkjS"
+                        },
+                        {
+                            "invert": false,
+                            "type": "field",
+                            "field": "id",
+                            "modifier": null,
+                            "operator": "equal",
+                            "value": "P:JUUyyvwyBN"
+                        }
+                    ],
+                    "recursive": true
+                    }
+                ]
+            }"#,
         );
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:JUUyyvwyBN"}],"relation":"person","recursive":false}"#,
+            r#"{
+                "invert": false,
+                "type": "person",
+                "join": "&&",
+                "queries": [
+                    {
+                        "invert": false,
+                        "type": "field",
+                        "field": "id",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "P:JUUyyvwyBN"
+                    }
+                ],
+                "recursive": false
+            }"#,
         );
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"compound","join":"||","queries":[{"invert":false,"type":"field","field":"name","modifier":null,"operator":"equal","value":"Loki"},{"invert":false,"type":"field","field":"name","modifier":null,"operator":"equal","value":"Ripley"},{"invert":false,"type":"field","field":"name","modifier":null,"operator":"equal","value":"Sheriff"},{"invert":false,"type":"field","field":"name","modifier":null,"operator":"equal","value":"Bandit"},{"invert":false,"type":"field","field":"name","modifier":null,"operator":"equal","value":"Astrid"},{"invert":false,"type":"field","field":"name","modifier":null,"operator":"equal","value":"Roxy"}],"relation":"tag","recursive":true}]}"#,
+            r#"{
+                "invert": false,
+                "type": "compound",
+                "join": "&&",
+                "queries": [
+                    {
+                    "invert": false,
+                    "type": "tag",
+                    "join": "||",
+                    "queries": [
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "name",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "Loki"
+                        },
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "name",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "Ripley"
+                        },
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "name",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "Sheriff"
+                        },
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "name",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "Bandit"
+                        },
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "name",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "Astrid"
+                        },
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "name",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "Roxy"
+                        }
+                    ],
+                    "recursive": true
+                    }
+                ]
+            }"#,
         );
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:i9hZrZVwPP"}],"relation":"person","recursive":false}"#,
+            r#"{
+                "invert": false,
+                "type": "person",
+                "join": "&&",
+                "queries": [
+                    {
+                        "invert": false,
+                        "type": "field",
+                        "field": "id",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "P:i9hZrZVwPP"
+                    }
+                ],
+                "recursive": false
+            }"#,
         );
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"P:JDkiNRe5vR"}],"relation":"person","recursive":false}"#,
+            r#"{
+                "invert": false,
+                "type": "person",
+                "join": "&&",
+                "queries": [
+                    {
+                        "invert": false,
+                        "type": "field",
+                        "field": "id",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "P:JDkiNRe5vR"
+                    }
+                ],
+                "recursive": false
+            }"#,
         );
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"compound","join":"||","queries":[{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"T:R2BlPpCZ2m"},{"invert":false,"type":"field","field":"id","modifier":null,"operator":"equal","value":"T:I35GY5cUF9"}],"relation":"tag","recursive":false}]}"#,
+            r#"{
+                "invert": false,
+                "type": "compound",
+                "join": "&&",
+                "queries": [
+                    {
+                    "invert": false,
+                    "type": "tag",
+                    "join": "||",
+                    "queries": [
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "id",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "T:R2BlPpCZ2m"
+                        },
+                        {
+                        "invert": false,
+                        "type": "field",
+                        "field": "id",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": "T:I35GY5cUF9"
+                        }
+                    ],
+                    "recursive": false
+                    }
+                ]
+            }"#,
         );
         attempt_parse(
-            r#"{"invert":false,"type":"compound","join":"&&","queries":[{"invert":false,"type":"field","field":"rating","modifier":null,"operator":"equal","value":5}]}"#,
+            r#"{
+                "invert": false,
+                "type": "compound",
+                "join": "&&",
+                "queries": [
+                    {
+                        "invert": false,
+                        "type": "field",
+                        "field": "rating",
+                        "modifier": null,
+                        "operator": "equal",
+                        "value": 5
+                    }
+                ]
+            }"#,
         );
     }
 }

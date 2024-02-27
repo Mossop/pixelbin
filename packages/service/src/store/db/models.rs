@@ -31,7 +31,7 @@ use crate::{
                 lower, media_file_columns, media_item_columns, media_view, media_view_columns,
             },
             schema::*,
-            search::{CompoundQueryItem, FilterGen},
+            search::{upgrade_query, Filterable, SearchQuery},
         },
         path::{FilePath, MediaFilePath, MediaItemPath},
         DbConnection,
@@ -787,12 +787,13 @@ impl Album {
 }
 
 #[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Queryable, Serialize, Insertable, Clone, Debug)]
+#[diesel(table_name = saved_search)]
 pub(crate) struct SavedSearch {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) shared: bool,
-    pub(crate) query: CompoundQueryItem,
+    pub(crate) query: SearchQuery,
     pub(crate) catalog: String,
 }
 
@@ -830,6 +831,57 @@ impl SavedSearch {
         Ok(query.load::<MediaView>(conn).await?)
     }
 
+    #[instrument(skip_all, err)]
+    pub(crate) async fn upgrade_queries(conn: &mut DbConnection<'_>) -> Result {
+        let search_data = saved_search::table
+            .select(saved_search::all_columns)
+            .load::<(String, String, bool, Value, String)>(conn)
+            .await?;
+
+        let mut searches = Vec::<SavedSearch>::new();
+
+        for (id, name, shared, query_data, catalog) in search_data {
+            let query = upgrade_query(query_data)?;
+
+            let search = SavedSearch {
+                id,
+                name,
+                shared,
+                query,
+                catalog,
+            };
+
+            searches.push(search);
+        }
+
+        Self::upsert(conn, &searches).await?;
+
+        for search in searches {
+            search.update(conn).await?;
+        }
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, searches: &[SavedSearch]) -> Result {
+        for records in batch(searches, 500) {
+            diesel::insert_into(saved_search::table)
+                .values(records)
+                .on_conflict(saved_search::id)
+                .do_update()
+                .set((
+                    saved_search::name.eq(excluded(saved_search::name)),
+                    saved_search::shared.eq(excluded(saved_search::shared)),
+                    saved_search::query.eq(excluded(saved_search::query)),
+                ))
+                .execute(conn)
+                .await?;
+        }
+
+        Ok(())
+    }
+
     #[instrument(skip(self, conn), fields(search = self.id))]
     pub(crate) async fn update(&self, conn: &mut DbConnection<'_>) -> Result {
         let select = media_item::table
@@ -837,7 +889,7 @@ impl SavedSearch {
                 media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
             )
             .filter(media_item::catalog.eq(&self.catalog))
-            .filter(self.query.filter_gen(&self.catalog))
+            .filter(self.query.build_filter(&self.catalog))
             .select(media_item::id)
             .distinct();
 

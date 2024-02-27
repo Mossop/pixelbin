@@ -6,11 +6,9 @@ use tokio::process::Command;
 use tracing::instrument;
 
 use crate::{
-    metadata::{
-        json::{
-            expect_float, expect_int, expect_object_array, expect_string, first, map, prop, Object,
-        },
-        media::{AudioCodec, Container, VideoCodec},
+    metadata::media::{AudioCodec, Container, VideoCodec},
+    shared::json::{
+        expect_float, expect_int, expect_object_array, expect_string, first, map, prop, Object,
     },
     Error, Result,
 };
@@ -201,7 +199,7 @@ impl VideoData {
 mod tests {
     use serde_json::from_str;
 
-    use crate::metadata::json::Object;
+    use crate::shared::json::Object;
 
     use super::VideoData;
 

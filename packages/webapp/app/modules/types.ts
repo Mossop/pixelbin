@@ -49,23 +49,28 @@ export interface Album {
 }
 
 export type FieldQuery<F> = Operator & {
-  type: string;
+  type: "field";
   invert: boolean;
   field: F;
   modifier: Modifier | null;
 };
 
-export type RelationQueryItem<R extends string, F> =
-  | FieldQuery<F>
-  | RelationCompoundQuery<R, F>;
+export type RelationQueryItem<F> = FieldQuery<F> | RelationCompoundQuery<F>;
 
-export type RelationCompoundQuery<R extends string, F> = {
+export type RelationCompoundQuery<F> = {
   type: "compound";
-  relation: R;
   invert: boolean;
   join: Join;
-  queries: RelationQueryItem<R, F>[];
+  queries: RelationQueryItem<F>[];
 };
+
+export type RelationQuery<R extends "tag" | "person" | "album", F> = Replace<
+  RelationCompoundQuery<F>,
+  {
+    type: R;
+    recursive?: boolean;
+  }
+>;
 
 export interface CompoundQuery {
   type: "compound";
@@ -76,9 +81,9 @@ export interface CompoundQuery {
 
 export type CompoundQueryItem =
   | FieldQuery<MediaField>
-  | RelationCompoundQuery<"tag", TagField>
-  | RelationCompoundQuery<"person", PersonField>
-  | RelationCompoundQuery<"album", AlbumField>
+  | RelationQuery<"tag", TagField>
+  | RelationQuery<"person", PersonField>
+  | RelationQuery<"album", AlbumField>
   | CompoundQuery;
 
 export interface SavedSearch {

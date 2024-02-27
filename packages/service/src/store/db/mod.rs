@@ -37,6 +37,7 @@ const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     #![allow(clippy::borrowed_box)]
     let mut reprocess_media = false;
+    let mut update_search_queries = false;
 
     // First connect synchronously to apply migrations.
     let mut connection = PgConnection::establish(&config.database_url)?;
@@ -60,6 +61,10 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
             // Force a reprocess to re-generate the date fields.
             reprocess_media = true;
         }
+
+        if name.as_str() == "2024-02-19-120807_alternates_lookup" {
+            update_search_queries = true;
+        }
     }
 
     // Now set up the async pool.
@@ -75,16 +80,19 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
         .batch_execute("REFRESH MATERIALIZED VIEW \"album_descendent\";")
         .await?;
     connection
+        .batch_execute("REFRESH MATERIALIZED VIEW \"album_relation\";")
+        .await?;
+    connection
         .batch_execute("REFRESH MATERIALIZED VIEW \"tag_descendent\";")
         .await?;
     connection
         .batch_execute("REFRESH MATERIALIZED VIEW \"tag_relation\";")
         .await?;
     connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"album_relation\";")
+        .batch_execute("REFRESH MATERIALIZED VIEW \"person_relation\";")
         .await?;
     connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"person_relation\";")
+        .batch_execute("REFRESH MATERIALIZED VIEW \"media_file_alternates\";")
         .await?;
 
     // Clear expired auth tokens.
@@ -102,6 +110,20 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
                     for catalog in catalogs {
                         reprocess_catalog_media(&mut tx, &catalog.id, false).await?;
                     }
+
+                    Ok(())
+                }
+                .scope_boxed()
+            })
+            .await?;
+    }
+
+    if update_search_queries {
+        connection
+            .transaction::<(), Error, _>(|conn| {
+                async move {
+                    let mut tx = DbConnection::from_transaction(conn, config);
+                    models::SavedSearch::upgrade_queries(&mut tx).await?;
 
                     Ok(())
                 }

@@ -7,9 +7,9 @@ const TYPE_STRING: &str = "string";
 const TYPE_ARRAY: &str = "array";
 const TYPE_OBJECT: &str = "object";
 
-pub(super) type Object = Map<String, Value>;
+pub(crate) type Object = Map<String, Value>;
 
-pub(super) fn type_of(value: &Value) -> &'static str {
+pub(crate) fn type_of(value: &Value) -> &'static str {
     match value {
         Value::Null => TYPE_NULL,
         Value::Bool(_) => TYPE_BOOL,
@@ -20,7 +20,7 @@ pub(super) fn type_of(value: &Value) -> &'static str {
     }
 }
 
-pub(super) fn expect_object(val: &Value) -> Option<&Object> {
+pub(crate) fn expect_object(val: &Value) -> Option<&Object> {
     if let Value::Object(obj) = val {
         Some(obj)
     } else {
@@ -28,13 +28,13 @@ pub(super) fn expect_object(val: &Value) -> Option<&Object> {
     }
 }
 
-pub(super) fn expect_prop<'a, 'b>(
+pub(crate) fn expect_prop<'a, 'b>(
     prop: &'a str,
 ) -> impl FnOnce(&'b Object) -> Option<&'b Value> + 'a {
     |obj: &Object| obj.get(prop)
 }
 
-pub(super) fn expect_string(val: &Value) -> Option<String> {
+pub(crate) fn expect_string(val: &Value) -> Option<String> {
     match val {
         Value::String(ref str) => {
             if str.is_empty() {
@@ -48,7 +48,7 @@ pub(super) fn expect_string(val: &Value) -> Option<String> {
     }
 }
 
-pub(super) fn expect_string_list(val: &Value) -> Option<String> {
+pub(crate) fn expect_string_list(val: &Value) -> Option<String> {
     match val {
         Value::Array(ref array) => {
             let strings = array
@@ -74,7 +74,7 @@ pub(super) fn expect_string_list(val: &Value) -> Option<String> {
     }
 }
 
-pub(super) fn expect_object_array(val: &Value) -> Option<Vec<&Object>> {
+pub(crate) fn expect_object_array(val: &Value) -> Option<Vec<&Object>> {
     match val {
         Value::Array(ref array) => {
             let objs = array
@@ -92,7 +92,7 @@ pub(super) fn expect_object_array(val: &Value) -> Option<Vec<&Object>> {
     }
 }
 
-pub(super) fn expect_float(val: &Value) -> Option<f32> {
+pub(crate) fn expect_float(val: &Value) -> Option<f32> {
     match val {
         Value::String(ref str) => str.parse::<f32>().ok(),
         Value::Number(ref num) => num.as_f64().map(|f| f as f32),
@@ -100,7 +100,7 @@ pub(super) fn expect_float(val: &Value) -> Option<f32> {
     }
 }
 
-pub(super) fn expect_int(val: &Value) -> Option<i32> {
+pub(crate) fn expect_int(val: &Value) -> Option<i32> {
     match val {
         Value::String(ref str) => str.parse::<i32>().ok(),
         Value::Number(ref num) => num.as_i64().map(|f| f as i32),
@@ -108,7 +108,7 @@ pub(super) fn expect_int(val: &Value) -> Option<i32> {
     }
 }
 
-pub(super) fn first<F>(list: Vec<&Object>, cb: F) -> Option<&Object>
+pub(crate) fn first<F>(list: Vec<&Object>, cb: F) -> Option<&Object>
 where
     F: FnMut(&&Object) -> bool,
 {
@@ -133,10 +133,10 @@ macro_rules! prop {
     };
     ($obj:expr, $prop:expr, $($props:expr),+ $(,)*) => {
         $obj.get($prop)
-            $(.and_then(crate::metadata::json::expect_object).and_then(crate::metadata::json::expect_prop($props)))+
+            $(.and_then(crate::shared::json::expect_object).and_then(crate::shared::json::expect_prop($props)))+
     };
 }
 
-pub(super) use first_of;
-pub(super) use map;
-pub(super) use prop;
+pub(crate) use first_of;
+pub(crate) use map;
+pub(crate) use prop;
