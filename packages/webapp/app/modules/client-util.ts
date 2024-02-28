@@ -8,7 +8,7 @@ export function useTimeout(
   onFire: () => void,
   initialTrigger: boolean = false,
 ): [trigger: () => void, cancel: () => void] {
-  let [target, setTarget] = useState(
+  let [target, setTarget] = useState(() =>
     initialTrigger ? Date.now() + timeout : null,
   );
   let timerRef = useRef<NodeJS.Timeout>();

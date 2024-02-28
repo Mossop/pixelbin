@@ -16,7 +16,9 @@ export default function Overlay({
   ...props
 }: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>) {
   let [shown, setShown] = useState(true);
-  let [overlayRef, renderOverlay] = useTransition(shown);
+  let [overlayRef, renderOverlay] = useTransition(shown, {
+    skipInitialTransition: true,
+  });
 
   let [triggerTimeout] = useTimeout(
     TIMEOUT,
