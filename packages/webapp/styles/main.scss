@@ -34,15 +34,6 @@ body {
   font-family: "Roboto", sans-serif;
 }
 
-img.loading {
-  opacity: 0;
-}
-
-img.loading,
-img.loaded {
-  transition: opacity theme.$transition;
-}
-
 .transition.t-none {
   display: none;
 }

@@ -80,7 +80,7 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
         <img
           onLoad={onLoaded}
           srcSet={source("image/jpeg")}
-          className={clsx("photo", isLoaded ? "loaded" : "loading")}
+          className={clsx("media", "photo", isLoaded ? "loaded" : "loading")}
         />
       </picture>
       {loaded !== media.id && (
@@ -184,7 +184,7 @@ function Video({
         onPause={updateState}
         onProgress={updateState}
         onTimeUpdate={updateState}
-        className={clsx("video", isLoaded ? "loaded" : "loading")}
+        className={clsx("media", "video", isLoaded ? "loaded" : "loading")}
       >
         {Array.from(videoTypes, (type) => (
           <source key={type} src={source(type)} type={type} />

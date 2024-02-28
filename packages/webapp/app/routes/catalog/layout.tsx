@@ -4,7 +4,6 @@ import { useCallback } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
-import SidebarLayout from "@/components/SidebarLayout";
 import { getCatalog } from "@/modules/api";
 import { getSession } from "@/modules/session";
 
@@ -33,9 +32,8 @@ export default function CatalogLayout() {
 
   return (
     <MediaGallery base={["catalog", catalog.id]} requestStream={requestStream}>
-      <SidebarLayout overlay={<Outlet />}>
-        <MediaGrid />
-      </SidebarLayout>
+      <MediaGrid />
+      <Outlet />
     </MediaGallery>
   );
 }

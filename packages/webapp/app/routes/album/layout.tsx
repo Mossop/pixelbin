@@ -4,7 +4,6 @@ import { useCallback } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
-import SidebarLayout from "@/components/SidebarLayout";
 import { getAlbum } from "@/modules/api";
 import { getSession } from "@/modules/session";
 
@@ -32,9 +31,8 @@ export default function AlbumLayout() {
 
   return (
     <MediaGallery base={["album", album.id]} requestStream={requestStream}>
-      <SidebarLayout overlay={<Outlet />}>
-        <MediaGrid />
-      </SidebarLayout>
+      <MediaGrid />
+      <Outlet />
     </MediaGallery>
   );
 }

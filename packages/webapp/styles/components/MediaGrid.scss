@@ -56,6 +56,11 @@
       aspect-ratio: 1;
       object-fit: contain;
       object-position: center center;
+      transition: opacity theme.$transition;
+
+      &.loading {
+        opacity: 0;
+      }
     }
 
     div.thumbnail {

@@ -8,6 +8,7 @@ import {
 } from "@remix-run/react";
 
 import AppBar from "./components/AppBar";
+import SidebarLayout from "./components/SidebarLayout";
 import { state } from "./modules/api";
 import { getSession } from "./modules/session";
 
@@ -49,7 +50,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <AppBar />
-        {children}
+        <SidebarLayout>{children}</SidebarLayout>
         <ScrollRestoration />
         <Scripts />
       </body>

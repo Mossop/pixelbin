@@ -4,22 +4,23 @@
   position: absolute;
   inset: 0;
   z-index: 10;
-  overflow: hidden;
 
-  .photo,
-  .video {
+  .media {
     height: 100%;
     width: 100%;
+    object-fit: contain;
+    position: relative;
+    transition: opacity theme.$transition;
+
+    &.loading {
+      opacity: 0;
+    }
   }
 
   .loading-throbber {
     position: absolute;
     inset: 0;
     background: rgba(var(--background), 0.5);
-  }
-
-  img.photo {
-    object-fit: contain;
   }
 
   div.photo {
