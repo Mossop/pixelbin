@@ -144,7 +144,9 @@ export function CatalogNav({ serverState }: { serverState: State }) {
 
 export default function SidebarLayout({
   children,
+  overlay,
 }: {
+  overlay?: React.ReactNode;
   children: React.ReactNode;
 }) {
   let serverState = useServerState();
@@ -154,9 +156,15 @@ export default function SidebarLayout({
       <div className="c-sidebar-layout">
         <CatalogNav serverState={serverState} />
         <main>{children}</main>
+        {overlay}
       </div>
     );
   }
 
-  return <main className="c-sidebar-layout">{children}</main>;
+  return (
+    <main className="c-sidebar-layout">
+      {children}
+      {overlay}
+    </main>
+  );
 }

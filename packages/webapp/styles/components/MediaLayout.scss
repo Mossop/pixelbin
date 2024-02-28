@@ -1,9 +1,10 @@
 @use "theme";
 
 .c-medialayout {
-  flex: 1;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
   overflow: hidden;
-  position: relative;
 
   .photo,
   .video {

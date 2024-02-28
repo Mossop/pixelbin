@@ -3,6 +3,8 @@ import { Outlet, useLoaderData } from "@remix-run/react";
 import { useCallback } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
+import MediaGrid from "@/components/MediaGrid";
+import SidebarLayout from "@/components/SidebarLayout";
 import { getSearch } from "@/modules/api";
 import { getSession } from "@/modules/session";
 
@@ -31,7 +33,9 @@ export default function SearchLayout() {
 
   return (
     <MediaGallery base={["search", search.id]} requestStream={requestStream}>
-      <Outlet />
+      <SidebarLayout overlay={<Outlet />}>
+        <MediaGrid />
+      </SidebarLayout>
     </MediaGallery>
   );
 }

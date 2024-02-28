@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "@remix-run/react";
+import clsx from "clsx";
 import { Duration } from "luxon";
 import mime from "mime-types";
 import {
@@ -30,6 +31,7 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
   let onLoaded = useCallback(() => {
     setLoaded(media.id);
   }, [media]);
+  let isLoaded = loaded === media.id;
 
   let { filename } = media;
   if (filename) {
@@ -78,7 +80,7 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
         <img
           onLoad={onLoaded}
           srcSet={source("image/jpeg")}
-          className="photo"
+          className={clsx("photo", isLoaded ? "loaded" : "loading")}
         />
       </picture>
       {loaded !== media.id && (
@@ -109,6 +111,7 @@ function Video({
   setPlayer: Dispatch<HTMLVideoElement | null>;
 }) {
   let [loaded, setLoaded] = useState<string | null>(null);
+  let isLoaded = loaded == media.id;
 
   let updateState = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -181,13 +184,13 @@ function Video({
         onPause={updateState}
         onProgress={updateState}
         onTimeUpdate={updateState}
-        className="video"
+        className={clsx("video", isLoaded ? "loaded" : "loading")}
       >
         {Array.from(videoTypes, (type) => (
           <source key={type} src={source(type)} type={type} />
         ))}
       </video>
-      {loaded !== media.id && <Throbber />}
+      {!isLoaded && <Throbber />}
     </>
   );
 }
@@ -380,7 +383,7 @@ export default function MediaLayout({
   }, [media]);
 
   return (
-    <main className="c-medialayout" data-theme="dark" ref={fullscreenElement}>
+    <div className="c-medialayout" data-theme="dark" ref={fullscreenElement}>
       <Media
         media={media}
         setPlayer={setPlayer}
@@ -431,6 +434,6 @@ export default function MediaLayout({
       >
         <MediaInfo media={media} />
       </SlidePanel>
-    </main>
+    </div>
   );
 }

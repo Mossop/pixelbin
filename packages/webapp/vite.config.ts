@@ -5,10 +5,10 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 function galleryRoutes(route: DefineRouteFunction, type: string) {
   route(`/${type}/:id`, `routes/${type}/layout.tsx`, () => {
-    route("", "routes/gallery.tsx", {
-      index: true,
-      id: `routes/${type}/gallery`,
-    });
+    // route("", "routes/gallery.tsx", {
+    //   index: true,
+    //   id: `routes/${type}/gallery`,
+    // });
     route("media/:media", "routes/media.tsx", {
       index: true,
       id: `routes/${type}/media`,

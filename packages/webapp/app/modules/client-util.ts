@@ -184,7 +184,7 @@ export function useTransition(
 }
 
 interface FullscreenProps {
-  fullscreenElement: (element: HTMLElement) => void;
+  fullscreenElement: (element: HTMLElement | null) => void;
   enterFullscreen: () => void;
   exitFullscreen: () => void;
   isFullscreen: boolean;
