@@ -183,6 +183,7 @@ pub async fn serve(store: Store) -> Result {
                     .service(media::upload_media)
                     .service(media::edit_media)
                     .service(media::delete_media)
+                    .service(media::search_media)
                     .service(relations::create_album)
                     .service(relations::edit_album)
                     .service(relations::delete_album)

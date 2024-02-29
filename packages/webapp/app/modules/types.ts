@@ -50,17 +50,17 @@ export interface Album {
 
 export type FieldQuery<F> = Operator & {
   type: "field";
-  invert: boolean;
+  invert?: boolean;
   field: F;
-  modifier: Modifier | null;
+  modifier?: Modifier;
 };
 
 export type RelationQueryItem<F> = FieldQuery<F> | RelationCompoundQuery<F>;
 
 export type RelationCompoundQuery<F> = {
   type: "compound";
-  invert: boolean;
-  join: Join;
+  invert?: boolean;
+  join?: Join;
   queries: RelationQueryItem<F>[];
 };
 
@@ -74,10 +74,12 @@ export type RelationQuery<R extends "tag" | "person" | "album", F> = Replace<
 
 export interface CompoundQuery {
   type: "compound";
-  invert: boolean;
-  join: Join;
+  invert?: boolean;
+  join?: Join;
   queries: CompoundQueryItem[];
 }
+
+export type SearchQuery = Omit<CompoundQuery, "type">;
 
 export type CompoundQueryItem =
   | FieldQuery<MediaField>
@@ -266,11 +268,12 @@ interface Location {
   bottom: number;
 }
 
-interface Relation {
+export interface Relation {
   id: string;
   name: string;
 }
-type PersonRelation = Relation & {
+
+export type PersonRelation = Relation & {
   location: Location | null;
 };
 

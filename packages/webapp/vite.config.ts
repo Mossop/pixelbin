@@ -4,11 +4,7 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 function galleryRoutes(route: DefineRouteFunction, type: string) {
-  route(`/${type}/:id`, `routes/${type}/layout.tsx`, () => {
-    // route("", "routes/gallery.tsx", {
-    //   index: true,
-    //   id: `routes/${type}/gallery`,
-    // });
+  route(`/${type}/:id`, `routes/galleries/${type}.tsx`, () => {
     route("media/:media", "routes/media.tsx", {
       index: true,
       id: `routes/${type}/media`,
@@ -30,10 +26,11 @@ export default defineConfig({
       routes(defineRoutes) {
         return defineRoutes((route) => {
           route("/", "routes/index.tsx", { index: true });
+          route("/catalog/:id/search", "routes/search.tsx", { index: true });
           galleryRoutes(route, "catalog");
           galleryRoutes(route, "album");
           galleryRoutes(route, "search");
-          route("/api/:type/:id/media", "api/gallery.ts");
+          route("/api/:container/:id/:type", "api/gallery.ts");
           route("/api/config", "api/config.ts");
           route("/media/*", "api/media.ts");
           route("/login", "actions/login.ts");

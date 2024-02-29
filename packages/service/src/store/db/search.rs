@@ -11,6 +11,7 @@ use diesel::{
         self, Bool, Double, Float, Integer, Nullable, SingleValue, SqlType, Text, Timestamp,
     },
 };
+use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use serde_plain::derive_display_from_serialize;
@@ -18,17 +19,28 @@ use typeshare::typeshare;
 
 use crate::{
     shared::json::{expect_string, map, prop, Object},
-    store::db::{
-        functions::{char_length, extract, media_field},
-        schema::*,
+    store::{
+        db::{
+            functions::{
+                char_length, extract, media_field, media_view, media_view_columns,
+                media_view_tables,
+            },
+            schema::*,
+            DbConnection,
+        },
+        models,
     },
     Result,
 };
 
 type MediaViewQS = LeftJoinQuerySource<
-    media_item::table,
-    media_file::table,
-    dsl::Eq<media_item::media_file, dsl::Nullable<media_file::id>>,
+    LeftJoinQuerySource<
+        media_item::table,
+        media_file::table,
+        dsl::Eq<media_item::media_file, dsl::Nullable<media_file::id>>,
+    >,
+    media_file_alternates::table,
+    dsl::Eq<media_item::media_file, dsl::Nullable<media_file_alternates::media_file>>,
 >;
 type Boxed<QS, T = Bool> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
 
@@ -492,8 +504,10 @@ impl RelationField for AlbumField {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct FieldQuery<F> {
+    #[serde(default, skip_serializing_if = "is_false")]
     pub(crate) invert: bool,
     pub(crate) field: F,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) modifier: Option<Modifier>,
     #[serde(flatten)]
     pub(crate) operator: Operator,
@@ -570,8 +584,12 @@ where
     }
 }
 
-fn skip_false(recursive: &bool) -> bool {
-    !recursive
+fn is_false(val: &bool) -> bool {
+    !val
+}
+
+fn is_and(join: &Join) -> bool {
+    matches!(join, Join::And)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -579,7 +597,7 @@ pub(crate) struct RelationQuery<F>
 where
     F: RelationField,
 {
-    #[serde(default, skip_serializing_if = "skip_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     recursive: bool,
     #[serde(flatten)]
     query: CompoundQuery<RelationCompoundItem<F>>,
@@ -623,9 +641,46 @@ impl Filterable for CompoundItem {
 #[derive(Debug, Serialize, Deserialize, Clone, AsExpression, deserialize::FromSqlRow)]
 #[diesel(sql_type = sql_types::Json)]
 pub(crate) struct CompoundQuery<Q> {
+    #[serde(default, skip_serializing_if = "is_false")]
     pub(crate) invert: bool,
+    #[serde(default, skip_serializing_if = "is_and")]
     pub(crate) join: Join,
     pub(crate) queries: Vec<Q>,
+}
+
+impl CompoundQuery<CompoundItem> {
+    pub(crate) async fn count(&self, conn: &mut DbConnection<'_>, catalog: &str) -> Result<i64> {
+        let count = media_view_tables!()
+            .filter(media_item::deleted.eq(false))
+            .filter(media_item::catalog.eq(catalog))
+            .filter(self.build_filter(catalog))
+            .count()
+            .get_result::<i64>(conn)
+            .await?;
+
+        Ok(count)
+    }
+
+    pub(crate) async fn list(
+        &self,
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+        offset: Option<i64>,
+        count: Option<i64>,
+    ) -> Result<Vec<models::MediaView>> {
+        let mut query = media_view!()
+            .filter(media_item::catalog.eq(catalog))
+            .filter(self.build_filter(catalog))
+            .select(media_view_columns!())
+            .offset(offset.unwrap_or_default())
+            .into_boxed();
+
+        if let Some(count) = count {
+            query = query.limit(count);
+        }
+
+        Ok(query.load::<models::MediaView>(conn).await?)
+    }
 }
 
 impl<Q> Filterable for CompoundQuery<Q>

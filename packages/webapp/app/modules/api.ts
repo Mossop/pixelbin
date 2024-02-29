@@ -7,6 +7,7 @@ import {
   Catalog,
   LoginResponse,
   SavedSearch,
+  SearchQuery,
   State,
 } from "./types";
 
@@ -182,6 +183,33 @@ export async function* listMedia(
     const response = await apiCall<ListMediaResponse<ApiMediaView>>(
       session,
       `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
+    );
+    yield response.media;
+    offset += LIST_COUNT;
+
+    if (offset >= response.total) {
+      break;
+    }
+  }
+}
+
+export async function* searchMedia(
+  session: Session,
+  catalog: string,
+  query: SearchQuery,
+): AsyncGenerator<ApiMediaView[], void, unknown> {
+  let offset = 0;
+  while (true) {
+    const response = await apiCall<ListMediaResponse<ApiMediaView>>(
+      session,
+      `/api/search`,
+      POST,
+      json({
+        catalog,
+        offset,
+        count: LIST_COUNT,
+        query,
+      }),
     );
     yield response.media;
     offset += LIST_COUNT;

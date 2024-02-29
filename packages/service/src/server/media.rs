@@ -20,7 +20,7 @@ use crate::{
         ApiResponse, ApiResult, AppState,
     },
     store::{
-        db::DbConnection,
+        db::{search::SearchQuery, DbConnection},
         models::{self, AlternateFileType, Location},
     },
     Error, Result,
@@ -626,4 +626,47 @@ async fn edit_media(
         .await;
 
     Ok(web::Json(Default::default()))
+}
+
+#[derive(Deserialize, Debug)]
+struct SearchRequest {
+    catalog: String,
+    #[serde(flatten)]
+    pagination: GetMediaRequest,
+    query: SearchQuery,
+}
+
+#[post("/search")]
+#[instrument(err, skip_all)]
+async fn search_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    data: web::Json<SearchRequest>,
+) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
+    let response = app_state
+        .store
+        .in_transaction(|conn| {
+            async move {
+                let catalog =
+                    models::Catalog::get_for_user(conn, &session.user.email, &data.catalog, false)
+                        .await?;
+
+                let total = data.query.count(conn, &catalog.id).await?;
+                let media = data
+                    .query
+                    .list(
+                        conn,
+                        &data.catalog,
+                        data.pagination.offset,
+                        data.pagination.count,
+                    )
+                    .await?;
+
+                Ok(GetMediaResponse { total, media })
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(response))
 }

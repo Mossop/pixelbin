@@ -884,10 +884,7 @@ impl SavedSearch {
 
     #[instrument(skip(self, conn), fields(search = self.id))]
     pub(crate) async fn update(&self, conn: &mut DbConnection<'_>) -> Result {
-        let select = media_item::table
-            .left_outer_join(
-                media_file::table.on(media_item::media_file.eq(media_file::id.nullable())),
-            )
+        let select = media_view!()
             .filter(media_item::catalog.eq(&self.catalog))
             .filter(self.query.build_filter(&self.catalog))
             .select(media_item::id)

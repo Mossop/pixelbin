@@ -5,7 +5,15 @@ import { useMemo } from "react";
 
 import Icon, { IconName } from "./Icon";
 import { Rating } from "./Rating";
-import { MediaRelations, MediaView } from "@/modules/types";
+import {
+  MediaRelations,
+  MediaView,
+  PersonField,
+  PersonRelation,
+  Relation,
+  SearchQuery,
+  TagField,
+} from "@/modules/types";
 import { url } from "@/modules/util";
 
 const LABELS = {
@@ -68,19 +76,64 @@ function subscript(value: number): string {
   return result.join("");
 }
 
+function queryUrl(catalog: string, query: SearchQuery): string {
+  let params = new URLSearchParams({ q: JSON.stringify(query) });
+  return `${url(["catalog", catalog, "search"])}?${params}`;
+}
+
+function personUrl(catalog: string, person: PersonRelation): string {
+  let query: SearchQuery = {
+    queries: [
+      {
+        type: "person",
+        queries: [
+          {
+            type: "field",
+            field: PersonField.Id,
+            operator: "equal",
+            value: person.id,
+          },
+        ],
+      },
+    ],
+  };
+
+  return queryUrl(catalog, query);
+}
+
+function tagUrl(catalog: string, tag: Relation): string {
+  let query: SearchQuery = {
+    queries: [
+      {
+        type: "tag",
+        queries: [
+          {
+            type: "field",
+            field: TagField.Id,
+            operator: "equal",
+            value: tag.id,
+          },
+        ],
+      },
+    ],
+  };
+
+  return queryUrl(catalog, query);
+}
+
 function Chip({
   icon,
   href,
   children,
 }: {
-  href?: string[];
+  href?: string;
   icon: IconName;
   children: React.ReactNode;
 }) {
   if (href) {
     return (
       <li>
-        <Link to={url(href)}>
+        <Link to={href}>
           <Icon icon={icon} /> {children}
         </Link>
       </li>
@@ -244,7 +297,7 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="albums">
           <ul className="relation-list">
             {media.albums.map((r) => (
-              <Chip key={r.id} href={["album", r.id]} icon="album">
+              <Chip key={r.id} href={url(["album", r.id])} icon="album">
                 {r.name}
               </Chip>
             ))}
@@ -262,9 +315,9 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
       {media.tags.length > 0 && (
         <Row label="tags">
           <ul className="relation-list">
-            {media.tags.map((r) => (
-              <Chip key={r.id} icon="tag">
-                {r.name}
+            {media.tags.map((t) => (
+              <Chip key={t.id} href={tagUrl(media.catalog, t)} icon="tag">
+                {t.name}
               </Chip>
             ))}
           </ul>
@@ -273,9 +326,9 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
       {media.people.length > 0 && (
         <Row label="people">
           <ul className="relation-list">
-            {media.people.map((r) => (
-              <Chip key={r.id} icon="person">
-                {r.name}
+            {media.people.map((p) => (
+              <Chip key={p.id} href={personUrl(media.catalog, p)} icon="person">
+                {p.name}
               </Chip>
             ))}
           </ul>

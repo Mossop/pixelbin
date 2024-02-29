@@ -230,7 +230,7 @@ macro_rules! media_view_columns {
     };
 }
 
-macro_rules! media_view {
+macro_rules! media_view_tables {
     () => {
         crate::store::db::schema::media_item::table
             .left_outer_join(
@@ -244,6 +244,12 @@ macro_rules! media_view {
                         .eq(crate::store::db::schema::media_file_alternates::media_file.nullable()),
                 ),
             )
+    };
+}
+
+macro_rules! media_view {
+    () => {
+        crate::store::db::functions::media_view_tables!()
             .filter(crate::store::db::schema::media_item::deleted.eq(false))
             .order(crate::store::db::schema::media_item::datetime.desc())
     };
@@ -255,3 +261,4 @@ pub(crate) use media_item_columns;
 pub(crate) use media_metadata_columns;
 pub(crate) use media_view;
 pub(crate) use media_view_columns;
+pub(crate) use media_view_tables;

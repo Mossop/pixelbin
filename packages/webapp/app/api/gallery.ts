@@ -1,6 +1,6 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 
-import { listMedia } from "@/modules/api";
+import { listMedia, searchMedia } from "@/modules/api";
 import { getSession } from "@/modules/session";
 import { ApiMediaView } from "@/modules/types";
 
@@ -12,20 +12,35 @@ function encodeMediaViews(media: ApiMediaView[]): Uint8Array {
 
 export async function loader({
   request,
-  params: { type, id },
+  params: { container, id, type },
 }: LoaderFunctionArgs) {
-  if (!["catalog", "album", "search"].includes(type!)) {
-    throw new Error("Unknown type");
+  if (!["catalog", "album", "search"].includes(container!)) {
+    throw new Error(`Unknown container: ${container}`);
   }
 
   let session = await getSession(request);
 
-  let mediaViewIterator = listMedia(
-    session,
-    // @ts-ignore
-    type!,
-    id!,
-  );
+  let mediaViewIterator: AsyncGenerator<ApiMediaView[], void, unknown>;
+
+  if (type == "media") {
+    mediaViewIterator = listMedia(
+      session,
+      // @ts-ignore
+      container!,
+      id!,
+    );
+  } else if (type == "search") {
+    let url = new URL(request.url);
+    let param = url.searchParams.get("q");
+    if (!param) {
+      throw new Error("No search query specified");
+    }
+
+    let query = JSON.parse(param);
+    mediaViewIterator = searchMedia(session, id!, query);
+  } else {
+    throw new Error(`Unknown lookup type: ${type}`);
+  }
 
   let stream = new ReadableStream({
     async pull(controller) {
