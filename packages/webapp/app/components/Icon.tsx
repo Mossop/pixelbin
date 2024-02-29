@@ -30,6 +30,8 @@ const ICONS = {
   play: icons.mdiPlay,
   pause: icons.mdiPause,
   menu: icons.mdiMenu,
+  expand: icons.mdiArrowDownDropCircleOutline,
+  collapse: icons.mdiArrowUpDropCircleOutline,
 };
 
 export type IconName = keyof typeof ICONS;

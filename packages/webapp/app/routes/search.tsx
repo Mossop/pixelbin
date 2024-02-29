@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
+import SearchBar from "@/components/SearchBar";
 import { getCatalog } from "@/modules/api";
 import { getSession } from "@/modules/session";
 import { SearchQuery } from "@/modules/types";
@@ -27,7 +28,9 @@ export default function Search() {
   let { catalog } = useLoaderData<typeof loader>();
   let [searchParams] = useSearchParams();
 
-  let [, queryParams] = useMemo<[SearchQuery, URLSearchParams]>(() => {
+  let [searchQuery, queryParams] = useMemo<
+    [SearchQuery, URLSearchParams]
+  >(() => {
     let param = searchParams.get("q");
     if (!param) {
       let query: SearchQuery = { queries: [] };
@@ -56,7 +59,12 @@ export default function Search() {
       requestStream={requestStream}
       getMediaUrl={getMediaUrl}
     >
-      <MediaGrid />
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <SearchBar searchQuery={searchQuery} />
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <MediaGrid />
+        </div>
+      </div>
       <Outlet />
     </MediaGallery>
   );

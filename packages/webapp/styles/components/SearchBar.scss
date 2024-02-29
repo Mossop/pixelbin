@@ -1,0 +1,32 @@
+@use "theme";
+
+.c-searchbar {
+  overflow: hidden;
+  background: var(--selected-background);
+  padding: theme.$spacing * 2;
+  gap: theme.$spacing * 2;
+
+  .header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    .description {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: theme.$spacing * 2;
+    }
+
+    .expander {
+      font-size: 150%;
+    }
+  }
+
+  .query {
+    &.collapsed {
+      display: none;
+    }
+  }
+}

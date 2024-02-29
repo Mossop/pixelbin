@@ -55,37 +55,37 @@ export type FieldQuery<F> = Operator & {
   modifier?: Modifier;
 };
 
-export type RelationQueryItem<F> = FieldQuery<F> | RelationCompoundQuery<F>;
+export type RelationQueryItem<F> =
+  | FieldQuery<F>
+  | CompoundQuery<RelationQueryItem<F>>;
 
-export type RelationCompoundQuery<F> = {
+export interface CompoundQuery<I = CompoundQueryItem> {
   type: "compound";
   invert?: boolean;
   join?: Join;
-  queries: RelationQueryItem<F>[];
-};
+  queries: I[];
+}
 
-export type RelationQuery<R extends "tag" | "person" | "album", F> = Replace<
-  RelationCompoundQuery<F>,
+export type RelationCompoundQuery<R extends keyof RelationFields> =
+  CompoundQuery<RelationQueryItem<RelationFields[R]>>;
+
+export type RelationQuery<
+  R extends keyof RelationFields = keyof RelationFields,
+> = Replace<
+  RelationCompoundQuery<R>,
   {
     type: R;
     recursive?: boolean;
   }
 >;
 
-export interface CompoundQuery {
-  type: "compound";
-  invert?: boolean;
-  join?: Join;
-  queries: CompoundQueryItem[];
-}
-
 export type SearchQuery = Omit<CompoundQuery, "type">;
 
 export type CompoundQueryItem =
   | FieldQuery<MediaField>
-  | RelationQuery<"tag", TagField>
-  | RelationQuery<"person", PersonField>
-  | RelationQuery<"album", AlbumField>
+  | RelationQuery<"tag">
+  | RelationQuery<"person">
+  | RelationQuery<"album">
   | CompoundQuery;
 
 export interface SavedSearch {
@@ -176,6 +176,12 @@ export enum PersonField {
 export enum AlbumField {
   Id = "id",
   Name = "name",
+}
+
+export interface RelationFields {
+  album: AlbumField;
+  tag: TagField;
+  person: PersonField;
 }
 
 export enum AlternateFileType {
