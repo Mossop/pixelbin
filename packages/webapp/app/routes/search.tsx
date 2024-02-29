@@ -7,6 +7,7 @@ import MediaGrid from "@/components/MediaGrid";
 import { getCatalog } from "@/modules/api";
 import { getSession } from "@/modules/session";
 import { SearchQuery } from "@/modules/types";
+import { url } from "@/modules/util";
 
 export async function loader({ request, params: { id } }: LoaderFunctionArgs) {
   let session = await getSession(request);
@@ -26,25 +27,35 @@ export default function Search() {
   let { catalog } = useLoaderData<typeof loader>();
   let [searchParams] = useSearchParams();
 
-  let [searchQuery, queryParam] = useMemo<[SearchQuery, string]>(() => {
+  let [, queryParams] = useMemo<[SearchQuery, URLSearchParams]>(() => {
     let param = searchParams.get("q");
     if (!param) {
       let query: SearchQuery = { queries: [] };
-      return [query, JSON.stringify(query)];
+      return [query, new URLSearchParams({ q: JSON.stringify(query) })];
     }
-    return [JSON.parse(param), param];
+    return [JSON.parse(param), new URLSearchParams({ q: param })];
   }, [searchParams]);
 
   let requestStream = useCallback(
-    (signal: AbortSignal) => {
-      let params = new URLSearchParams({ q: queryParam });
-      return fetch(`/api/catalog/${catalog.id}/search?${params}`, { signal });
-    },
-    [catalog, queryParam],
+    (signal: AbortSignal) =>
+      fetch(`/api/catalog/${catalog.id}/search?${queryParams}`, { signal }),
+    [catalog, queryParams],
   );
 
+  let getMediaUrl = useCallback(
+    (id: string) =>
+      `${url(["catalog", catalog.id, "search", "media", id])}?${queryParams}`,
+    [queryParams],
+  );
+
+  let galleryUrl = `${url(["catalog", catalog.id, "search"])}?${queryParams}`;
+
   return (
-    <MediaGallery base={["catalog", catalog.id]} requestStream={requestStream}>
+    <MediaGallery
+      url={galleryUrl}
+      requestStream={requestStream}
+      getMediaUrl={getMediaUrl}
+    >
       <MediaGrid />
       <Outlet />
     </MediaGallery>

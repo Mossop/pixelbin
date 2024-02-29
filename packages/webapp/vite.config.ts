@@ -26,7 +26,12 @@ export default defineConfig({
       routes(defineRoutes) {
         return defineRoutes((route) => {
           route("/", "routes/index.tsx", { index: true });
-          route("/catalog/:id/search", "routes/search.tsx", { index: true });
+          route("/catalog/:id/search", "routes/search.tsx", () => {
+            route("media/:media", "routes/media.tsx", {
+              index: true,
+              id: `routes/customsearch/media`,
+            });
+          });
           galleryRoutes(route, "catalog");
           galleryRoutes(route, "album");
           galleryRoutes(route, "search");

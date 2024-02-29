@@ -12,7 +12,7 @@ import {
 } from "react";
 
 import Icon, { IconButton, IconLink } from "./Icon";
-import { useGalleryBase, useGalleryMedia } from "./MediaGallery";
+import { useGalleryMedia, useGetMediaUrl, useGalleryUrl } from "./MediaGallery";
 import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
@@ -233,18 +233,24 @@ function GalleryNavigation({
   media: MediaView;
   children: React.ReactNode;
 }) {
-  let base = useGalleryBase();
   let gallery = useGalleryMedia();
   let fromGallery = !!useLocation().state?.fromGallery;
+  let getMediaUrl = useGetMediaUrl();
+
+  let mediaUrl = useCallback(
+    (newMedia: MediaView | undefined) =>
+      newMedia ? getMediaUrl(newMedia.id) : undefined,
+    [getMediaUrl],
+  );
 
   let [previousMedia, nextMedia] = useMemo((): [
-    MediaView | undefined,
-    MediaView | undefined,
+    string | undefined,
+    string | undefined,
   ] => {
     if (gallery) {
       let index = gallery.findIndex((m) => m.id == media.id) ?? -1;
       if (index >= 0) {
-        return [gallery[index - 1], gallery[index + 1]];
+        return [mediaUrl(gallery[index - 1]), mediaUrl(gallery[index + 1])];
       }
     }
 
@@ -257,7 +263,7 @@ function GalleryNavigation({
         {previousMedia && (
           <IconLink
             icon="previous"
-            to={url([...base, "media", previousMedia.id])}
+            to={previousMedia}
             replace={true}
             state={{ fromGallery }}
           />
@@ -268,7 +274,7 @@ function GalleryNavigation({
         {nextMedia && (
           <IconLink
             icon="next"
-            to={url([...base, "media", nextMedia.id])}
+            to={nextMedia}
             replace={true}
             state={{ fromGallery }}
           />
@@ -332,7 +338,7 @@ export default function MediaLayout({
   let media = deserializeMediaView(apiMedia);
   let [videoState, setVideoState] = useState<VideoState | null>(null);
   let [player, setPlayer] = useState<HTMLVideoElement | null>(null);
-  let gallery = useGalleryBase();
+  let gallery = useGalleryUrl();
   let fromGallery = !!useLocation().state?.fromGallery;
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
@@ -354,7 +360,7 @@ export default function MediaLayout({
       if (fromGallery) {
         navigate(-1);
       } else {
-        navigate(url(gallery), { replace: true });
+        navigate(gallery, { replace: true });
       }
     },
     [navigate, fromGallery],
@@ -393,7 +399,7 @@ export default function MediaLayout({
         <div className="infobar">
           <div>{mediaDate(media).toRelative()}</div>
           <div className="buttons">
-            <IconLink to={url(gallery)} onClick={loadGallery} icon="close" />
+            <IconLink to={gallery} onClick={loadGallery} icon="close" />
           </div>
         </div>
         <GalleryNavigation media={media}>

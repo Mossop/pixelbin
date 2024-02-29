@@ -14,7 +14,7 @@ import {
 } from "react";
 
 import Icon from "./Icon";
-import { Group, useGalleryBase, useGalleryGroups } from "./MediaGallery";
+import { Group, useGalleryGroups, useGetMediaUrl } from "./MediaGallery";
 import { Rating } from "./Rating";
 import Throbber from "./Throbber";
 import { AlternateFileType, MediaView, MediaViewFile } from "@/modules/types";
@@ -122,13 +122,7 @@ const FileType = memo(function FileType({ media }: { media: MediaView }) {
   }
 });
 
-const MediaItem = memo(function MediaItem({
-  base,
-  media,
-}: {
-  base: string[];
-  media: MediaView;
-}) {
+const MediaItem = memo(function MediaItem({ media }: { media: MediaView }) {
   let element = useRef(null);
   let [visible, setVisible] = useState(false);
 
@@ -148,14 +142,12 @@ const MediaItem = memo(function MediaItem({
     };
   }, [observer]);
 
+  let mediaUrl = useGetMediaUrl()(media.id);
+
   return (
     <div ref={element} className="media-wrapper">
       {visible && (
-        <Link
-          to={url([...base, "media", media.id])}
-          className="media"
-          state={{ fromGallery: true }}
-        >
+        <Link to={mediaUrl} className="media" state={{ fromGallery: true }}>
           {media.file ? (
             <ThumbnailImage media={media} file={media.file} />
           ) : (
@@ -171,13 +163,7 @@ const MediaItem = memo(function MediaItem({
   );
 });
 
-const MediaGroup = memo(function MediaGroup({
-  base,
-  group,
-}: {
-  base: string[];
-  group: Group;
-}) {
+const MediaGroup = memo(function MediaGroup({ group }: { group: Group }) {
   return (
     <section className="c-mediagroup">
       <div className="title">
@@ -185,7 +171,7 @@ const MediaGroup = memo(function MediaGroup({
       </div>
       <div className="grid">
         {group.media.map((m) => (
-          <MediaItem key={m.id} base={base} media={m} />
+          <MediaItem key={m.id} media={m} />
         ))}
       </div>
     </section>
@@ -228,7 +214,6 @@ class VisibilityObserver {
 }
 
 export default function MediaGrid() {
-  let base = useGalleryBase();
   let groups = useGalleryGroups();
 
   if (!groups) {
@@ -240,7 +225,7 @@ export default function MediaGrid() {
   return (
     <VisibilityContext.Provider value={observer}>
       {groups.map((group) => (
-        <MediaGroup key={group.id} base={base} group={group} />
+        <MediaGroup key={group.id} group={group} />
       ))}
     </VisibilityContext.Provider>
   );

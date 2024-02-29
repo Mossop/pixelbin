@@ -3,6 +3,7 @@ import { NdjsonStream } from "ndjson-stream";
 import {
   Dispatch,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -21,9 +22,10 @@ export interface Group {
 }
 
 interface Context {
-  readonly base: string[];
+  readonly url: string;
   readonly groups: readonly Group[] | null;
   readonly media: readonly MediaView[] | null;
+  readonly getMediaUrl?: (id: string) => string;
 }
 
 interface GroupContext {
@@ -84,9 +86,10 @@ class TakenGrouper extends Grouper {
 }
 
 const GalleryContext = createContext<Context>({
-  base: [],
+  url: "",
   groups: null,
   media: null,
+  getMediaUrl: undefined,
 });
 
 export function useGalleryMedia(): MediaView[] | null {
@@ -99,8 +102,23 @@ export function useGalleryGroups(): Group[] | null {
   return groups?.slice() ?? null;
 }
 
-export function useGalleryBase(): string[] {
-  return useContext(GalleryContext).base;
+export function useGalleryUrl(): string {
+  return useContext(GalleryContext).url;
+}
+
+export function useGetMediaUrl(): (id: string) => string {
+  let context = useContext(GalleryContext);
+
+  return useCallback(
+    (mediaId: string) => {
+      if (context.getMediaUrl) {
+        return context.getMediaUrl(mediaId);
+      }
+
+      return `${context.url}/media/${mediaId}`;
+    },
+    [context],
+  );
 }
 
 function fetchMedia(
@@ -147,19 +165,26 @@ function fetchMedia(
 export default function MediaGallery({
   children,
   requestStream,
-  base,
+  url,
+  getMediaUrl,
 }: {
   children: React.ReactNode;
   requestStream: (signal: AbortSignal) => Promise<Response>;
-  base: string[];
+  url: string;
+  getMediaUrl?: (id: string) => string;
 }) {
-  let [context, setContext] = useState<Omit<Context, "id" | "base">>({
+  let [context, setContext] = useState<
+    Omit<Context, "id" | "url" | "getMediaUrl">
+  >({
     media: null,
     groups: null,
   });
   useEffect(() => fetchMedia(requestStream, setContext), [requestStream]);
 
-  let gallery = useMemo(() => ({ base, ...context }), [base, context]);
+  let gallery = useMemo(
+    () => ({ url, getMediaUrl, ...context }),
+    [url, getMediaUrl, context],
+  );
 
   return (
     <GalleryContext.Provider value={gallery}>

@@ -6,6 +6,7 @@ import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
 import { getAlbum } from "@/modules/api";
 import { getSession } from "@/modules/session";
+import { url } from "@/modules/util";
 
 export async function loader({ request, params: { id } }: LoaderFunctionArgs) {
   let session = await getSession(request);
@@ -30,7 +31,7 @@ export default function AlbumLayout() {
   );
 
   return (
-    <MediaGallery base={["album", album.id]} requestStream={requestStream}>
+    <MediaGallery url={url(["album", album.id])} requestStream={requestStream}>
       <MediaGrid />
       <Outlet />
     </MediaGallery>
