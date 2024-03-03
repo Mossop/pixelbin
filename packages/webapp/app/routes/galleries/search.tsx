@@ -1,11 +1,13 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import { Outlet, useLoaderData } from "@remix-run/react";
+import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
 import { useCallback } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
+import SearchBar from "@/components/SearchBar";
 import { getSearch } from "@/modules/api";
 import { getSession } from "@/modules/session";
+import { SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
 export async function loader({ request, params: { id } }: LoaderFunctionArgs) {
@@ -24,6 +26,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 
 export default function SearchLayout() {
   let { search } = useLoaderData<typeof loader>();
+  let navigate = useNavigate();
 
   let requestStream = useCallback(
     (signal: AbortSignal) =>
@@ -31,12 +34,25 @@ export default function SearchLayout() {
     [search],
   );
 
+  let setQuery = useCallback(
+    (query: SearchQuery) => {
+      let params = new URLSearchParams({ q: JSON.stringify(query) });
+      navigate(`${url(["catalog", search.catalog, "search"])}?${params}`);
+    },
+    [navigate],
+  );
+
   return (
     <MediaGallery
       url={url(["search", search.id])}
       requestStream={requestStream}
     >
-      <MediaGrid />
+      <div className="search-gallery">
+        <SearchBar searchQuery={search.query} setQuery={setQuery} />
+        <div className="grid">
+          <MediaGrid />
+        </div>
+      </div>
       <Outlet />
     </MediaGallery>
   );

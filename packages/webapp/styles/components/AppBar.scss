@@ -16,4 +16,17 @@
     font-family: "Comfortaa", sans-serif;
     font-size: theme.$spacing * 5;
   }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing * 4;
+  }
+
+  .buttons {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing * 4;
+    font-size: 150%;
+  }
 }

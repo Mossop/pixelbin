@@ -5,28 +5,25 @@
   background: var(--selected-background);
   padding: theme.$spacing * 2;
   gap: theme.$spacing * 2;
+  display: flex;
+  flex-direction: row;
 
-  .header {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-
-    .description {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: theme.$spacing * 2;
-    }
-
-    .expander {
-      font-size: 150%;
-    }
+  .expander {
+    font-size: 150%;
   }
 
   .query {
-    &.collapsed {
-      display: none;
+    flex: 1;
+  }
+
+  .compound {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing * 2;
+
+    ul {
+      display: flex;
+      flex-direction: column;
     }
   }
 }

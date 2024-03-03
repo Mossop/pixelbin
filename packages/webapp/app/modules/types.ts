@@ -92,7 +92,7 @@ export interface SavedSearch {
   id: string;
   name: string;
   shared: boolean;
-  query: CompoundQueryItem;
+  query: SearchQuery;
   catalog: string;
   media: number;
 }

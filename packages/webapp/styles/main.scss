@@ -39,3 +39,14 @@ body {
 .transition.t-none {
   display: none;
 }
+
+.search-gallery {
+  height: "100%";
+  display: "flex";
+  flex-direction: "column";
+
+  .grid {
+    flex: 1;
+    overflow-y: auto;
+  }
+}

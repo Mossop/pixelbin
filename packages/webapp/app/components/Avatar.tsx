@@ -116,5 +116,5 @@ function Menu({ email }: { email: string }) {
 }
 
 export default function Avatar({ email }: { email: string | undefined }) {
-  return <div>{email ? <Menu email={email} /> : <Login />}</div>;
+  return email ? <Menu email={email} /> : <Login />;
 }

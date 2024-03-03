@@ -1,6 +1,6 @@
 use diesel::{
     backend, deserialize,
-    dsl::{self, not},
+    dsl::{self, not, sql},
     expression::AsExpression,
     helper_types::LeftJoinQuerySource,
     pg::Pg,
@@ -291,7 +291,7 @@ pub(crate) enum Modifier {
 derive_display_from_serialize!(Modifier);
 
 #[typeshare]
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
 pub(crate) enum Join {
     #[default]
     #[serde(rename = "&&")]
@@ -691,6 +691,17 @@ where
     type QuerySource = Q::QuerySource;
 
     fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource> {
+        if self.queries.is_empty() {
+            if matches!(
+                (self.invert, self.join),
+                (false, Join::And) | (true, Join::Or)
+            ) {
+                return Box::new(sql::<Bool>("TRUE"));
+            } else {
+                return Box::new(sql::<Bool>("FALSE"));
+            }
+        }
+
         let mut filter: Boxed<Self::QuerySource> = self.queries[0].build_filter(catalog);
 
         for query in self.queries.iter().skip(1) {

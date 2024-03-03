@@ -9,8 +9,9 @@ import {
   MediaViewFile,
 } from "./types";
 
-export function url(parts: string[]): string {
-  return `/${parts.map((p) => encodeURIComponent(p)).join("/")}`;
+export function url(parts: string[], params?: URLSearchParams): string {
+  let pstr = params ? `?${params}` : "";
+  return `/${parts.map((p) => encodeURIComponent(p)).join("/")}${pstr}`;
 }
 
 export function mediaTitle(media: MediaView): string | null {
