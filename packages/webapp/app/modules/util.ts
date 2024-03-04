@@ -1,4 +1,4 @@
-import { DateTime, FixedOffsetZone } from "luxon";
+import { DateTime, Duration, FixedOffsetZone } from "luxon";
 
 import {
   ApiMediaRelations,
@@ -78,4 +78,14 @@ export function serializeMediaView(media: MediaView): ApiMediaView {
     taken: media.taken?.toISO() || null,
     file: mediaFile,
   };
+}
+
+export function formatTime(seconds: number): string {
+  if (Number.isNaN(seconds)) {
+    return "-:--";
+  }
+
+  let duration = Duration.fromMillis(seconds * 1000);
+
+  return duration.toFormat("m:ss");
 }
