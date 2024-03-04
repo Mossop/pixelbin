@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
-use actix_web::{get, http::header, post, web, HttpResponse, Responder};
+use actix_web::{get, http::header, post, web, Either, HttpRequest, HttpResponse, Responder};
 use chrono::NaiveDateTime;
 use file_format::FileFormat;
 use mime::Mime;
@@ -9,7 +9,7 @@ use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
-use tracing::{instrument, warn};
+use tracing::{debug, instrument, warn};
 
 use crate::{
     metadata::ISO_FORMAT,
@@ -159,13 +159,19 @@ struct EncodingPath {
     _filename: String,
 }
 
+#[derive(Serialize)]
+struct EncodingResponse {
+    url: String,
+}
+
 #[get("/media/encoding/{item}/{file}/{mimetype}/{_filename}")]
 #[instrument(err, skip(app_state, session))]
 async fn encoding_handler(
     app_state: web::Data<AppState>,
     session: MaybeSession,
+    request: HttpRequest,
     path: web::Path<EncodingPath>,
-) -> ApiResult<impl Responder> {
+) -> ApiResult<Either<HttpResponse, web::Json<EncodingResponse>>> {
     let email = session.session().map(|s| s.user.email.as_str());
     let mimetype = Mime::from_str(&path.mimetype.replace('-', "/"))?;
     let tx_mime = mimetype.clone();
@@ -196,15 +202,24 @@ async fn encoding_handler(
         .await
     {
         Ok(alternate) => alternate,
-        Err(Error::NotFound) => return not_found(),
+        Err(Error::NotFound) => return Ok(Either::Left(not_found().unwrap())),
         Err(e) => return Err(e.into()),
     };
 
-    let uri = storage.online_uri(&file_path, &mimetype, None).await?;
+    let url = storage.online_uri(&file_path, &mimetype, None).await?;
 
-    Ok(HttpResponse::TemporaryRedirect()
-        .append_header(("Location", uri))
-        .finish())
+    if let Some(val) = request.headers().get("Accept") {
+        debug!(accept = val.to_str().unwrap(), "Saw accept header");
+        if val == "application/json" {
+            return Ok(Either::Right(web::Json(EncodingResponse { url })));
+        }
+    }
+
+    Ok(Either::Left(
+        HttpResponse::TemporaryRedirect()
+            .append_header(("Location", url))
+            .finish(),
+    ))
 }
 
 #[derive(Debug, Deserialize)]

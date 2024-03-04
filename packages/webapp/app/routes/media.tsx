@@ -35,5 +35,7 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 };
 
 export default function Media() {
-  return <MediaLayout media={useLoaderData<typeof loader>()} />;
+  return (
+    <MediaLayout media={deserializeMediaView(useLoaderData<typeof loader>())} />
+  );
 }

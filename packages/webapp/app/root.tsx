@@ -8,6 +8,7 @@ import {
 } from "@remix-run/react";
 
 import AppBar from "./components/AppBar";
+import CastManager from "./components/CastManager";
 import SidebarLayout from "./components/SidebarLayout";
 import { state } from "./modules/api";
 import { getSession } from "./modules/session";
@@ -45,12 +46,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           name="viewport"
           content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1"
         />
+        <script src="/cast.js"></script>
+        <script src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
         <Meta />
         <Links />
       </head>
       <body>
-        <AppBar />
-        <SidebarLayout>{children}</SidebarLayout>
+        <CastManager>
+          <AppBar />
+          <SidebarLayout>{children}</SidebarLayout>
+        </CastManager>
         <ScrollRestoration />
         <Scripts />
       </body>

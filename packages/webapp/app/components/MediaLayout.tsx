@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 
+import { useCastManager } from "./CastManager";
 import Icon, { IconButton, IconLink } from "./Icon";
 import { useGalleryMedia, useGetMediaUrl, useGalleryUrl } from "./MediaGallery";
 import MediaInfo from "./MediaInfo";
@@ -20,11 +21,11 @@ import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import {
   AlternateFileType,
-  ApiMediaRelations,
+  MediaRelations,
   MediaView,
   MediaViewFile,
 } from "@/modules/types";
-import { deserializeMediaView, mediaDate, url } from "@/modules/util";
+import { mediaDate, url } from "@/modules/util";
 
 function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
   let [loaded, setLoaded] = useState<string | null>(null);
@@ -142,7 +143,7 @@ function Video({
       filename = filename.substring(0, pos);
     }
   } else {
-    filename = "image";
+    filename = "video";
   }
 
   let videoTypes = useMemo(
@@ -223,6 +224,7 @@ function Media({
       />
     );
   }
+
   return <Photo media={media} file={file} />;
 }
 
@@ -330,12 +332,7 @@ function VideoInfo({
   );
 }
 
-export default function MediaLayout({
-  media: apiMedia,
-}: {
-  media: ApiMediaRelations;
-}) {
-  let media = deserializeMediaView(apiMedia);
+export default function MediaLayout({ media }: { media: MediaRelations }) {
   let [videoState, setVideoState] = useState<VideoState | null>(null);
   let [player, setPlayer] = useState<HTMLVideoElement | null>(null);
   let gallery = useGalleryUrl();
@@ -384,8 +381,13 @@ export default function MediaLayout({
     }
   }, [player]);
 
+  let castManager = useCastManager();
+
   useEffect(() => {
     setVideoState((vs) => (vs?.media != media.id ? null : vs));
+    castManager.castMedia(media);
+
+    return () => castManager.castMedia(null);
   }, [media]);
 
   return (

@@ -7,14 +7,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   let init: ApiRequest = {
     method: "GET",
     redirect: "manual",
+    headers: {},
   };
+
+  let accept = request.headers.get("Accept");
+  if (accept) {
+    init.headers!.Accept = accept;
+  }
 
   let session = await getSession(request);
   let token = session.get("token");
   if (token) {
-    init.headers = {
-      Authorization: `Bearer ${token}`,
-    };
+    init.headers!.Authorization = `Bearer ${token}`;
   }
 
   let response = await apiFetch(`/media/${params["*"]}`, init);

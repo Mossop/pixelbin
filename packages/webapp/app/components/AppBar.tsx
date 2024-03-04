@@ -2,6 +2,7 @@ import { UIMatch, useMatches } from "@remix-run/react";
 
 import Avatar from "./Avatar";
 import NavMenu from "./NavMenu";
+import { CastButton } from "@/components/CastManager";
 import { useServerState } from "@/modules/client-util";
 
 type ButtonProvider = UIMatch<
@@ -39,6 +40,7 @@ export default function AppBar() {
             <HeaderButton key={p.id} provider={p} />
           ))}
         </div>
+        <CastButton />
         <Avatar email={email} />
       </div>
     </header>
