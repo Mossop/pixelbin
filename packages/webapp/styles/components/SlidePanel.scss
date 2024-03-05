@@ -41,6 +41,13 @@
     width: 100%;
     color: rgb(var(--overlay-color));
     background: rgb(var(--overlay-background));
-    z-index: 10;
+    z-index: 110;
+
+    .buttons {
+      position: absolute;
+      top: theme.$spacing * 2;
+      right: theme.$spacing * 2;
+      font-size: 150%;
+    }
   }
 }

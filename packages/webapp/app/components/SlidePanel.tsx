@@ -1,5 +1,6 @@
 import clsx from "clsx";
 
+import { IconButton } from "./Icon";
 import Modal, { ModalProps } from "./Modal";
 
 export default function SlidePanel({
@@ -7,6 +8,7 @@ export default function SlidePanel({
   theme = "match",
   className,
   position,
+  onClose,
   ...modalProps
 }: {
   position: "left" | "right";
@@ -15,11 +17,14 @@ export default function SlidePanel({
   children: React.ReactNode;
 } & ModalProps) {
   return (
-    <Modal {...modalProps}>
+    <Modal onClose={onClose} {...modalProps}>
       <div
         className={clsx("c-slidepanel", `slidepanel-${position}`, className)}
       >
         <div className="slidepanel-inner" data-theme={theme}>
+          <div className="buttons">
+            <IconButton icon="close" onClick={onClose} />
+          </div>
           {children}
         </div>
       </div>
