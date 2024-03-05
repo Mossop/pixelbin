@@ -2,14 +2,16 @@
 
 .c-searchbar {
   overflow: hidden;
-  background: var(--selected-background);
+  background: rgb(var(--selected-background));
   padding: theme.$spacing * 2;
   gap: theme.$spacing * 2;
   display: flex;
   flex-direction: row;
+  align-items: flex-start;
+  --background: var(--selected-background);
 
-  .expander {
-    font-size: 150%;
+  &.collapsed {
+    align-items: center;
   }
 
   .query {
@@ -21,9 +23,52 @@
     flex-direction: column;
     gap: theme.$spacing * 2;
 
-    ul {
+    .header {
+      display: flex;
+      flex-direction: row;
+      gap: theme.$spacing;
+      align-items: center;
+      justify-content: space-between;
+
+      .toggles {
+        display: flex;
+        flex-direction: row;
+        gap: theme.$spacing;
+        align-items: stretch;
+      }
+
+      .toggle {
+        border: 1px solid rgb(var(--color));
+        padding: theme.$spacing * 2;
+
+        &.selected {
+          background-color: rgb(var(--color));
+          color: rgb(var(--background));
+        }
+      }
+
+      input {
+        display: none;
+      }
+    }
+
+    .queries {
       display: flex;
       flex-direction: column;
+      align-items: stretch;
+      gap: theme.$spacing;
     }
+
+    .compound {
+      margin-left: theme.$spacing * 4;
+
+      .queries {
+        margin-right: 2em;
+      }
+    }
+  }
+
+  .c-icon {
+    font-size: 150%;
   }
 }

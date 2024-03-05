@@ -32,6 +32,7 @@ const ICONS = {
   menu: icons.mdiMenu,
   expand: icons.mdiArrowDownDropCircleOutline,
   collapse: icons.mdiArrowUpDropCircleOutline,
+  delete: icons.mdiDelete,
 };
 
 export type IconName = keyof typeof ICONS;

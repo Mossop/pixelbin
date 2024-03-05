@@ -30,12 +30,12 @@
 
     &.selected {
       color: var(--selected-color);
-      background-color: var(--selected-background);
+      background-color: rgb(var(--selected-background));
     }
 
     &:hover {
       color: var(--hover-color) !important;
-      background-color: var(--hover-background) !important;
+      background-color: rgb(var(--hover-background)) !important;
     }
   }
 

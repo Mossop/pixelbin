@@ -5,4 +5,8 @@ module.exports = {
     tsconfigRootDir: __dirname,
     project: ["./tsconfig.json"],
   },
+
+  rules: {
+    "jsx-a11y/label-has-associated-control": "off",
+  },
 };
