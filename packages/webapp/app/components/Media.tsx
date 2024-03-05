@@ -1,7 +1,6 @@
 import clsx from "clsx";
 import mime from "mime-types";
 import {
-  Dispatch,
   SyntheticEvent,
   useCallback,
   useEffect,
@@ -9,18 +8,22 @@ import {
   useState,
 } from "react";
 
+import { useCastManager } from "./CastManager";
 import Icon from "./Icon";
-import { AlternateFileType, MediaView, MediaViewFile } from "@/modules/types";
+import { PlayState, useCurrentMedia, useMediaContext } from "./MediaContext";
+import {
+  AlternateFileType,
+  MediaRelations,
+  MediaViewFile,
+} from "@/modules/types";
 import { url } from "@/modules/util";
 
 function Photo({
   media,
   file,
-  onLoad,
 }: {
-  media: MediaView;
+  media: MediaRelations;
   file: MediaViewFile;
-  onLoad?: () => void;
 }) {
   let { filename } = media;
   if (filename) {
@@ -60,60 +63,62 @@ function Photo({
     ]);
   };
 
+  let mediaContext = useMediaContext();
+  let onLoad = useCallback(() => {
+    mediaContext.setMedia(media);
+  }, [mediaContext, media]);
+
   return (
     <picture>
       {Array.from(alternateTypes, (type) => (
         <source key={type} srcSet={source(type)} type={type} />
       ))}
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img onLoad={onLoad} srcSet={source("image/jpeg")} className="photo" />
     </picture>
   );
 }
 
-export interface VideoState {
-  media: string;
-  playing: boolean;
-  currentTime: number;
-  duration: number;
-}
-
 function Video({
   media,
   file,
-  setVideoState,
-  setPlayer,
-  onLoad,
 }: {
-  media: MediaView;
+  media: MediaRelations;
   file: MediaViewFile;
-  setVideoState?: Dispatch<VideoState>;
-  setPlayer?: Dispatch<HTMLVideoElement | null>;
-  onLoad?: () => void;
 }) {
+  let mediaContext = useMediaContext();
+
   let updateState = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
       let video = event.currentTarget;
+      let playState: PlayState;
+      if (video.paused) {
+        playState = PlayState.Paused;
+      } else if (video.ended) {
+        playState = PlayState.Ended;
+      } else {
+        playState = PlayState.Playing;
+      }
 
-      if (setVideoState) {
-        setVideoState({
-          media: media.id,
-          playing: !video.paused && !video.ended,
+      mediaContext.updateVideoState(
+        media,
+        {
+          playState,
           currentTime: video.currentTime,
           duration: video.duration,
-        });
-      }
+        },
+        video,
+      );
     },
-    [media, setVideoState],
+    [media, mediaContext],
   );
 
-  let onLoaded = useCallback(
+  let onLoad = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
-      if (onLoad) {
-        onLoad();
-      }
+      mediaContext.setMedia(media);
       updateState(event);
     },
-    [onLoad, updateState],
+    [mediaContext, media, updateState],
   );
 
   let { filename } = media;
@@ -154,16 +159,21 @@ function Video({
     ]);
   };
 
+  let startPlaying = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
+    event.currentTarget.play();
+  }, []);
+
   return (
+    // eslint-disable-next-line jsx-a11y/media-has-caption
     <video
-      ref={setPlayer}
       poster={source("image/jpeg")}
       controls={false}
-      onLoadedData={onLoaded}
+      onLoadedData={onLoad}
       onPlay={updateState}
       onPause={updateState}
       onProgress={updateState}
       onTimeUpdate={updateState}
+      onCanPlayThrough={startPlaying}
       className="video"
     >
       {Array.from(videoTypes, (type) => (
@@ -173,22 +183,14 @@ function Video({
   );
 }
 
-export function RenderMedia({
-  media,
-  setVideoState,
-  setPlayer,
-  onLoad,
-}: {
-  media: MediaView;
-  setVideoState?: Dispatch<VideoState>;
-  setPlayer?: Dispatch<HTMLVideoElement | null>;
-  onLoad?: () => void;
-}) {
+export function RenderMedia({ media }: { media: MediaRelations }) {
+  let mediaContext = useMediaContext();
+
   useEffect(() => {
-    if (!media.file && onLoad) {
-      onLoad();
+    if (!media.file) {
+      mediaContext.setMedia(media);
     }
-  }, [media, onLoad]);
+  }, [mediaContext, media]);
 
   let { file } = media;
   if (!file) {
@@ -200,33 +202,22 @@ export function RenderMedia({
   }
 
   if (file.mimetype.startsWith("video/")) {
-    return (
-      <Video
-        media={media}
-        file={file}
-        setVideoState={setVideoState}
-        setPlayer={setPlayer}
-        onLoad={onLoad}
-      />
-    );
+    return <Video media={media} file={file} />;
   }
 
-  return <Photo media={media} file={file} onLoad={onLoad} />;
+  return <Photo media={media} file={file} />;
 }
 
 export default function Media({
   media,
-  setVideoState,
-  setPlayer,
   onLoad,
 }: {
-  media: MediaView;
-  setVideoState: Dispatch<VideoState>;
-  setPlayer: Dispatch<HTMLVideoElement | null>;
+  media: MediaRelations;
   onLoad?: () => void;
 }) {
-  let [loadedMedia, setLoadedMedia] = useState<MediaView | null>(null);
-  let [renderedMedia, setRenderedMedia] = useState<MediaView | null>(null);
+  let [loadedMedia, setLoadedMedia] = useState<MediaRelations | null>(null);
+  let currentMedia = useCurrentMedia();
+  let mediaContext = useMediaContext();
 
   let onLoadComplete = useCallback(() => {
     setLoadedMedia(media);
@@ -236,21 +227,22 @@ export default function Media({
     }
   }, [media, onLoad]);
 
-  let onLoaded = useCallback(() => {
-    setRenderedMedia(media);
-  }, [media]);
-
   let loadingMedia = media.id !== loadedMedia?.id ? media : null;
+
+  useEffect(() => {
+    mediaContext.setMedia(null);
+  }, [mediaContext]);
+
+  let castManager = useCastManager();
+  useEffect(() => {
+    castManager.castMedia(media);
+  }, [media, castManager]);
 
   return (
     <div className="c-media">
       {loadedMedia && (
         <div key={loadedMedia.id} className="media">
-          <RenderMedia
-            media={loadedMedia}
-            setVideoState={setVideoState}
-            setPlayer={setPlayer}
-          />
+          <RenderMedia media={loadedMedia} />
         </div>
       )}
       {loadingMedia && (
@@ -258,11 +250,11 @@ export default function Media({
           key={loadingMedia.id}
           className={clsx(
             "media",
-            renderedMedia?.id !== loadingMedia.id && "loading",
+            currentMedia?.id !== loadingMedia.id && "loading",
           )}
           onTransitionEnd={onLoadComplete}
         >
-          <RenderMedia media={loadingMedia} onLoad={onLoaded} />
+          <RenderMedia media={loadingMedia} />
         </div>
       )}
     </div>

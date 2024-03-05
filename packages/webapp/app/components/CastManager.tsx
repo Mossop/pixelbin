@@ -4,10 +4,10 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
 } from "react";
 
 import { MediaView, MediaViewFile, Replace } from "../modules/types";
+import { BaseContext, contextPropertyHook } from "@/modules/client-util";
 import { url } from "@/modules/util";
 
 type SessionStateEventData = cast.framework.SessionStateEventData;
@@ -19,7 +19,7 @@ function isCastable(media: MediaView | null): media is CastableMediaView {
   return media?.file !== null;
 }
 
-class CastManager extends EventTarget {
+class CastManager extends BaseContext {
   castAvailable = false;
 
   castSession: CastSession | null = null;
@@ -140,10 +140,6 @@ class CastManager extends EventTarget {
       }
     }
   }
-
-  changed() {
-    this.dispatchEvent(new CustomEvent("change"));
-  }
 }
 
 const ManagerContext = createContext(new CastManager());
@@ -152,28 +148,10 @@ export function useCastManager(): CastManager {
   return useContext(ManagerContext);
 }
 
-function useCastManagerProperty<R>(cb: (manager: CastManager) => R): R {
-  let castManager = useCastManager();
-
-  let [property, setProperty] = useState(cb(castManager));
-
-  let updater = useCallback(
-    () => setProperty(cb(castManager)),
-    [castManager, cb],
-  );
-
-  useEffect(() => {
-    castManager.addEventListener("change", updater);
-
-    return () => castManager.removeEventListener("change", updater);
-  }, [castManager, updater]);
-
-  return property;
-}
-
-export function useCastAvailable(): boolean {
-  return useCastManagerProperty((cm) => cm.castAvailable);
-}
+export const useCastAvailable = contextPropertyHook(
+  useCastManager,
+  "castAvailable",
+);
 
 export function CastButton() {
   let castAvailable = useCastAvailable();

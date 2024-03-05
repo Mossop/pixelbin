@@ -1,9 +1,15 @@
 import { useLocation, useNavigate } from "@remix-run/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { useCastManager } from "./CastManager";
-import { IconButton, IconLink } from "./Icon";
-import Media, { VideoState } from "./Media";
+import { IconButton, IconLink, IconName } from "./Icon";
+import Media from "./Media";
+import {
+  PlayState,
+  VideoState,
+  useCurrentMedia,
+  useMediaContext,
+  useVideoState,
+} from "./MediaContext";
 import { useGalleryMedia, useGetMediaUrl, useGalleryUrl } from "./MediaGallery";
 import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
@@ -71,15 +77,13 @@ function GalleryNavigation({
   );
 }
 
-function VideoInfo({
-  videoState,
-  player,
-}: {
-  videoState: VideoState;
-  player: HTMLVideoElement;
-}) {
-  let play = useCallback(() => player.play(), [player]);
-  let pause = useCallback(() => player.pause(), [player]);
+function VideoInfo({ videoState }: { videoState: VideoState }) {
+  let mediaContext = useMediaContext();
+
+  let togglePlayback = useCallback(
+    () => mediaContext.togglePlayback(),
+    [mediaContext],
+  );
 
   let percentPlayed = Math.floor(
     (100 * videoState.currentTime) / videoState.duration,
@@ -88,14 +92,13 @@ function VideoInfo({
   let currentTime = formatTime(videoState.currentTime);
   let duration = formatTime(videoState.duration);
 
+  let icon: IconName =
+    videoState.playState === PlayState.Playing ? "pause" : "play";
+
   return (
     <div className="video-info">
       <div className="buttons">
-        {videoState.playing ? (
-          <IconButton onClick={pause} icon="pause" />
-        ) : (
-          <IconButton onClick={play} icon="play" />
-        )}
+        <IconButton onClick={togglePlayback} icon={icon} />
       </div>
       <div className="scrubber">
         <div className="played" style={{ width: `${percentPlayed}%` }} />
@@ -108,19 +111,24 @@ function VideoInfo({
 }
 
 export default function MediaLayout({ media }: { media: MediaRelations }) {
-  let [videoState, setVideoState] = useState<VideoState | null>(null);
-  let [player, setPlayer] = useState<HTMLVideoElement | null>(null);
   let [loading, setLoading] = useState<MediaView | null>(null);
   let gallery = useGalleryUrl();
   let fromGallery = !!useLocation().state?.fromGallery;
+  let currentMedia = useCurrentMedia();
 
   let onLoad = useCallback(() => setLoading(media), [media]);
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
 
-  let downloadUrl = media.file
-    ? url(["media", "download", media.id, media.file.id, media.file.fileName])
+  let downloadUrl = currentMedia?.file
+    ? url([
+        "media",
+        "download",
+        currentMedia.id,
+        currentMedia.file.id,
+        currentMedia.file.fileName,
+      ])
     : null;
 
   let [infoPanelShown, setInfoPanelShown] = useState(false);
@@ -141,41 +149,17 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
     [navigate, gallery, fromGallery],
   );
 
-  let play = useMemo(() => {
-    if (videoState && !videoState.playing && player) {
-      return () => player!.play();
-    }
+  let mediaContext = useMediaContext();
+  let videoState = useVideoState();
 
-    return null;
-  }, [videoState, player]);
-
-  let togglePlayback = useCallback(() => {
-    if (player) {
-      if (player.paused || player.ended) {
-        player.play();
-      } else {
-        player.pause();
-      }
-    }
-  }, [player]);
-
-  let castManager = useCastManager();
-
-  useEffect(() => {
-    setVideoState((vs) => (vs?.media != media.id ? null : vs));
-    castManager.castMedia(media);
-
-    return () => castManager.castMedia(null);
-  }, [media, castManager]);
+  let togglePlayback = useCallback(
+    () => mediaContext.togglePlayback(),
+    [mediaContext],
+  );
 
   return (
     <div className="c-medialayout" data-theme="dark" ref={fullscreenElement}>
-      <Media
-        media={media}
-        setPlayer={setPlayer}
-        setVideoState={setVideoState}
-        onLoad={onLoad}
-      />
+      <Media media={media} onLoad={onLoad} />
       {loading !== media && (
         <div className="loading-throbber">
           <Throbber />
@@ -188,18 +172,18 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
             <IconLink to={gallery} onClick={loadGallery} icon="close" />
           </div>
         </div>
-        <GalleryNavigation media={media}>
-          {play && <IconButton onClick={play} icon="play" />}
+        <GalleryNavigation media={currentMedia ?? media}>
+          {videoState && videoState.playState != PlayState.Playing && (
+            <IconButton onClick={togglePlayback} icon="play" />
+          )}
         </GalleryNavigation>
         <div className="infobar">
-          {videoState && player && (
-            <VideoInfo videoState={videoState} player={player} />
-          )}
+          {videoState && <VideoInfo videoState={videoState} />}
           <div className="buttons">
             {downloadUrl && (
               <>
                 <IconLink
-                  download={media.file!.fileName}
+                  download={currentMedia?.file!.fileName}
                   to={downloadUrl}
                   icon="download"
                 />
@@ -217,15 +201,17 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
           </div>
         </div>
       </Overlay>
-      <SlidePanel
-        show={infoPanelShown}
-        position="right"
-        onClose={closeInfoPanel}
-        theme="dark"
-        className="media-info"
-      >
-        <MediaInfo media={media} />
-      </SlidePanel>
+      {currentMedia && (
+        <SlidePanel
+          show={infoPanelShown}
+          position="right"
+          onClose={closeInfoPanel}
+          theme="dark"
+          className="media-info"
+        >
+          <MediaInfo media={currentMedia} />
+        </SlidePanel>
+      )}
     </div>
   );
 }
