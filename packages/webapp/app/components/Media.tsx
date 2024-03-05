@@ -229,9 +229,7 @@ export default function Media({
 
   let loadingMedia = media.id !== loadedMedia?.id ? media : null;
 
-  useEffect(() => {
-    mediaContext.setMedia(null);
-  }, [mediaContext]);
+  useEffect(() => () => mediaContext.setMedia(null), [mediaContext]);
 
   let castManager = useCastManager();
   useEffect(() => {
