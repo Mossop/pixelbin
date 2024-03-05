@@ -20,8 +20,7 @@ import Throbber from "./Throbber";
 import { AlternateFileType, MediaView, MediaViewFile } from "@/modules/types";
 import { url } from "@/modules/util";
 
-// @ts-ignore
-const VisibilityContext = createContext<VisibilityObserver>(null);
+const VisibilityContext = createContext<VisibilityObserver | null>(null);
 
 const ThumbnailImage = memo(function ThumbnailImage({
   media,
@@ -132,12 +131,12 @@ const MediaItem = memo(function MediaItem({ media }: { media: MediaView }) {
     let el = element.current;
 
     if (el) {
-      observer.observe(el, setVisible);
+      observer?.observe(el, setVisible);
     }
 
     return () => {
       if (el) {
-        observer.unobserve(el);
+        observer?.unobserve(el);
       }
     };
   }, [observer]);
@@ -215,8 +214,11 @@ class VisibilityObserver {
 
 export default function MediaGrid() {
   let groups = useGalleryGroups();
+  let [observer, setObserver] = useState<VisibilityObserver | null>(null);
 
-  let observer = useMemo(() => new VisibilityObserver(), []);
+  useEffect(() => {
+    setObserver(new VisibilityObserver());
+  }, []);
 
   if (!groups) {
     return <Throbber />;
