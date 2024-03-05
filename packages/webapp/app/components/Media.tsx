@@ -4,22 +4,24 @@ import {
   Dispatch,
   SyntheticEvent,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
 
 import Icon from "./Icon";
-import Throbber from "./Throbber";
 import { AlternateFileType, MediaView, MediaViewFile } from "@/modules/types";
 import { url } from "@/modules/util";
 
-function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
-  let [loaded, setLoaded] = useState<string | null>(null);
-  let onLoaded = useCallback(() => {
-    setLoaded(media.id);
-  }, [media]);
-  let isLoaded = loaded === media.id;
-
+function Photo({
+  media,
+  file,
+  onLoad,
+}: {
+  media: MediaView;
+  file: MediaViewFile;
+  onLoad?: () => void;
+}) {
   let { filename } = media;
   if (filename) {
     let pos = filename.lastIndexOf(".");
@@ -64,17 +66,8 @@ function Photo({ media, file }: { media: MediaView; file: MediaViewFile }) {
         {Array.from(alternateTypes, (type) => (
           <source key={type} srcSet={source(type)} type={type} />
         ))}
-        <img
-          onLoad={onLoaded}
-          srcSet={source("image/jpeg")}
-          className={clsx("c-media", "photo", isLoaded ? "loaded" : "loading")}
-        />
+        <img onLoad={onLoad} srcSet={source("image/jpeg")} className="photo" />
       </picture>
-      {loaded !== media.id && (
-        <div className="loading-throbber">
-          <Throbber />
-        </div>
-      )}
     </>
   );
 }
@@ -91,35 +84,38 @@ function Video({
   file,
   setVideoState,
   setPlayer,
+  onLoad,
 }: {
   media: MediaView;
   file: MediaViewFile;
-  setVideoState: Dispatch<VideoState>;
-  setPlayer: Dispatch<HTMLVideoElement | null>;
+  setVideoState?: Dispatch<VideoState>;
+  setPlayer?: Dispatch<HTMLVideoElement | null>;
+  onLoad?: () => void;
 }) {
-  let [loaded, setLoaded] = useState<string | null>(null);
-  let isLoaded = loaded == media.id;
-
   let updateState = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
       let video = event.currentTarget;
 
-      setVideoState({
-        media: media.id,
-        playing: !video.paused && !video.ended,
-        currentTime: video.currentTime,
-        duration: video.duration,
-      });
+      if (setVideoState) {
+        setVideoState({
+          media: media.id,
+          playing: !video.paused && !video.ended,
+          currentTime: video.currentTime,
+          duration: video.duration,
+        });
+      }
     },
     [media, setVideoState],
   );
 
   let onLoaded = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
-      setLoaded(media.id);
+      if (onLoad) {
+        onLoad();
+      }
       updateState(event);
     },
-    [media, updateState],
+    [onLoad, updateState],
   );
 
   let { filename } = media;
@@ -171,26 +167,33 @@ function Video({
         onPause={updateState}
         onProgress={updateState}
         onTimeUpdate={updateState}
-        className={clsx("c-media", "video", isLoaded ? "loaded" : "loading")}
+        className="video"
       >
         {Array.from(videoTypes, (type) => (
           <source key={type} src={source(type)} type={type} />
         ))}
       </video>
-      {!isLoaded && <Throbber />}
     </>
   );
 }
 
-export default function Media({
+export function RenderMedia({
   media,
   setVideoState,
   setPlayer,
+  onLoad,
 }: {
   media: MediaView;
-  setVideoState: Dispatch<VideoState>;
-  setPlayer: Dispatch<HTMLVideoElement | null>;
+  setVideoState?: Dispatch<VideoState>;
+  setPlayer?: Dispatch<HTMLVideoElement | null>;
+  onLoad?: () => void;
 }) {
+  useEffect(() => {
+    if (!media.file && onLoad) {
+      onLoad();
+    }
+  }, [media, onLoad]);
+
   let { file } = media;
   if (!file) {
     return (
@@ -207,9 +210,65 @@ export default function Media({
         file={file}
         setVideoState={setVideoState}
         setPlayer={setPlayer}
+        onLoad={onLoad}
       />
     );
   }
 
-  return <Photo media={media} file={file} />;
+  return <Photo media={media} file={file} onLoad={onLoad} />;
+}
+
+export default function Media({
+  media,
+  setVideoState,
+  setPlayer,
+  onLoad,
+}: {
+  media: MediaView;
+  setVideoState: Dispatch<VideoState>;
+  setPlayer: Dispatch<HTMLVideoElement | null>;
+  onLoad?: () => void;
+}) {
+  let [loadedMedia, setLoadedMedia] = useState<MediaView | null>(null);
+  let [renderedMedia, setRenderedMedia] = useState<MediaView | null>(null);
+
+  let onLoadComplete = useCallback(() => {
+    setLoadedMedia(media);
+
+    if (onLoad) {
+      onLoad();
+    }
+  }, [media]);
+
+  let onLoaded = useCallback(() => {
+    setRenderedMedia(media);
+  }, [media]);
+
+  let loadingMedia = media.id !== loadedMedia?.id ? media : null;
+
+  return (
+    <div className="c-media">
+      {loadedMedia && (
+        <div key={loadedMedia.id} className="media">
+          <RenderMedia
+            media={loadedMedia}
+            setVideoState={setVideoState}
+            setPlayer={setPlayer}
+          />
+        </div>
+      )}
+      {loadingMedia && (
+        <div
+          key={loadingMedia.id}
+          className={clsx(
+            "media",
+            renderedMedia?.id !== loadingMedia.id && "loading",
+          )}
+          onTransitionEnd={onLoadComplete}
+        >
+          <RenderMedia media={loadingMedia} onLoad={onLoaded} />
+        </div>
+      )}
+    </div>
+  );
 }

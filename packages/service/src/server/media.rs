@@ -209,7 +209,6 @@ async fn encoding_handler(
     let url = storage.online_uri(&file_path, &mimetype, None).await?;
 
     if let Some(val) = request.headers().get("Accept") {
-        debug!(accept = val.to_str().unwrap(), "Saw accept header");
         if val == "application/json" {
             return Ok(Either::Right(web::Json(EncodingResponse { url })));
         }

@@ -8,6 +8,7 @@ import { useGalleryMedia, useGetMediaUrl, useGalleryUrl } from "./MediaGallery";
 import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
+import Throbber from "./Throbber";
 import { useFullscreen } from "@/modules/client-util";
 import { MediaRelations, MediaView } from "@/modules/types";
 import { formatTime, mediaDate, url } from "@/modules/util";
@@ -109,8 +110,11 @@ function VideoInfo({
 export default function MediaLayout({ media }: { media: MediaRelations }) {
   let [videoState, setVideoState] = useState<VideoState | null>(null);
   let [player, setPlayer] = useState<HTMLVideoElement | null>(null);
+  let [loading, setLoading] = useState<MediaView | null>(null);
   let gallery = useGalleryUrl();
   let fromGallery = !!useLocation().state?.fromGallery;
+
+  let onLoad = useCallback(() => setLoading(media), [media]);
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
@@ -170,7 +174,13 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
         media={media}
         setPlayer={setPlayer}
         setVideoState={setVideoState}
+        onLoad={onLoad}
       />
+      {loading !== media && (
+        <div className="loading-throbber">
+          <Throbber />
+        </div>
+      )}
       <Overlay onClick={togglePlayback}>
         <div className="infobar">
           <div>{mediaDate(media).toRelative()}</div>
