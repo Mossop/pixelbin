@@ -91,7 +91,7 @@ export function IconButton({
   );
 
   return (
-    <button className="c-icon-button" onClick={clicked}>
+    <button className="c-icon-button" onClick={clicked} type="button">
       <WrappedIcon icon={icon} className={className} />
     </button>
   );

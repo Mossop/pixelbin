@@ -48,14 +48,17 @@ export default function Search() {
   let getMediaUrl = useCallback(
     (id: string) =>
       `${url(["catalog", catalog.id, "search", "media", id])}?${queryParams}`,
-    [queryParams],
+    [catalog, queryParams],
   );
 
   let galleryUrl = `${url(["catalog", catalog.id, "search"])}?${queryParams}`;
 
-  let setQuery = useCallback((query: SearchQuery) => {
-    setSearchParams({ q: JSON.stringify(query) });
-  }, []);
+  let setQuery = useCallback(
+    (query: SearchQuery) => {
+      setSearchParams({ q: JSON.stringify(query) });
+    },
+    [setSearchParams],
+  );
 
   return (
     <MediaGallery

@@ -109,7 +109,7 @@ function Menu({ email }: { email: string }) {
   let sources = avatarSources(email);
 
   return (
-    <button className="c-avatar" onClick={performLogout}>
+    <button className="c-avatar" onClick={performLogout} type="button">
       <img src={sources[0]} srcSet={sources.join(",")} />
     </button>
   );

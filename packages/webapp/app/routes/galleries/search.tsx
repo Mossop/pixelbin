@@ -39,7 +39,7 @@ export default function SearchLayout() {
       let params = new URLSearchParams({ q: JSON.stringify(query) });
       navigate(`${url(["catalog", search.catalog, "search"])}?${params}`);
     },
-    [navigate],
+    [navigate, search],
   );
 
   return (

@@ -14,6 +14,7 @@ export default function Button({
       onClick={onClick}
       disabled={disabled}
       className={`c-button button-${type}`}
+      type="button"
     >
       {label}
     </button>

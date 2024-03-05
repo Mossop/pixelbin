@@ -166,7 +166,7 @@ function useCastManagerProperty<R>(cb: (manager: CastManager) => R): R {
     castManager.addEventListener("change", updater);
 
     return () => castManager.removeEventListener("change", updater);
-  }, [castManager]);
+  }, [castManager, updater]);
 
   return property;
 }
@@ -184,7 +184,7 @@ export function CastButton() {
   return (
     <div className="c-cast-button">
       {/* @ts-ignore */}
-      <google-cast-launcher></google-cast-launcher>
+      <google-cast-launcher />
     </div>
   );
 }
@@ -209,7 +209,7 @@ export default function Provider({ children }: { children: React.ReactNode }) {
     document.addEventListener("cast-available", init, { once: true });
 
     return () => document.removeEventListener("cast-available", init);
-  }, [init]);
+  }, [init, castManager]);
 
   return (
     <ManagerContext.Provider value={castManager}>

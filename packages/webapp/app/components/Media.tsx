@@ -61,14 +61,12 @@ function Photo({
   };
 
   return (
-    <>
-      <picture>
-        {Array.from(alternateTypes, (type) => (
-          <source key={type} srcSet={source(type)} type={type} />
-        ))}
-        <img onLoad={onLoad} srcSet={source("image/jpeg")} className="photo" />
-      </picture>
-    </>
+    <picture>
+      {Array.from(alternateTypes, (type) => (
+        <source key={type} srcSet={source(type)} type={type} />
+      ))}
+      <img onLoad={onLoad} srcSet={source("image/jpeg")} className="photo" />
+    </picture>
   );
 }
 
@@ -157,23 +155,21 @@ function Video({
   };
 
   return (
-    <>
-      <video
-        ref={setPlayer}
-        poster={source("image/jpeg")}
-        controls={false}
-        onLoadedData={onLoaded}
-        onPlay={updateState}
-        onPause={updateState}
-        onProgress={updateState}
-        onTimeUpdate={updateState}
-        className="video"
-      >
-        {Array.from(videoTypes, (type) => (
-          <source key={type} src={source(type)} type={type} />
-        ))}
-      </video>
-    </>
+    <video
+      ref={setPlayer}
+      poster={source("image/jpeg")}
+      controls={false}
+      onLoadedData={onLoaded}
+      onPlay={updateState}
+      onPause={updateState}
+      onProgress={updateState}
+      onTimeUpdate={updateState}
+      className="video"
+    >
+      {Array.from(videoTypes, (type) => (
+        <source key={type} src={source(type)} type={type} />
+      ))}
+    </video>
   );
 }
 
@@ -238,7 +234,7 @@ export default function Media({
     if (onLoad) {
       onLoad();
     }
-  }, [media]);
+  }, [media, onLoad]);
 
   let onLoaded = useCallback(() => {
     setRenderedMedia(media);

@@ -42,7 +42,7 @@ function GalleryNavigation({
     }
 
     return [undefined, undefined];
-  }, [media.id, gallery]);
+  }, [media.id, mediaUrl, gallery]);
 
   return (
     <div className="navbar">
@@ -51,7 +51,7 @@ function GalleryNavigation({
           <IconLink
             icon="previous"
             to={previousMedia}
-            replace={true}
+            replace
             state={{ fromGallery }}
           />
         )}
@@ -62,7 +62,7 @@ function GalleryNavigation({
           <IconLink
             icon="next"
             to={nextMedia}
-            replace={true}
+            replace
             state={{ fromGallery }}
           />
         )}
@@ -98,7 +98,7 @@ function VideoInfo({
         )}
       </div>
       <div className="scrubber">
-        <div className="played" style={{ width: `${percentPlayed}%` }}></div>
+        <div className="played" style={{ width: `${percentPlayed}%` }} />
       </div>
       <div>
         {currentTime} / {duration}
@@ -138,7 +138,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
         navigate(gallery, { replace: true });
       }
     },
-    [navigate, fromGallery],
+    [navigate, gallery, fromGallery],
   );
 
   let play = useMemo(() => {
@@ -166,7 +166,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
     castManager.castMedia(media);
 
     return () => castManager.castMedia(null);
-  }, [media]);
+  }, [media, castManager]);
 
   return (
     <div className="c-medialayout" data-theme="dark" ref={fullscreenElement}>

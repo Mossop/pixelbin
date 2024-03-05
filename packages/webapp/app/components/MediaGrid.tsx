@@ -216,11 +216,11 @@ class VisibilityObserver {
 export default function MediaGrid() {
   let groups = useGalleryGroups();
 
+  let observer = useMemo(() => new VisibilityObserver(), []);
+
   if (!groups) {
     return <Throbber />;
   }
-
-  let observer = new VisibilityObserver();
 
   return (
     <VisibilityContext.Provider value={observer}>
