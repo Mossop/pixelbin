@@ -46,10 +46,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           name="viewport"
           content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1"
         />
-        <script src="/cast.js" />
-        <script src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1" />
         <Meta />
         <Links />
+        <script src="/cast.js" />
+        <script src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1" />
       </head>
       <body>
         <CastManager>
