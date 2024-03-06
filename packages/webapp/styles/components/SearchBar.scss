@@ -9,75 +9,83 @@
   flex-direction: row;
   align-items: flex-start;
 
+  --field-highlight-background: 167, 180, 250;
+  --field-highlight-color: var(--theme-color-primary);
+  --field-border: 1px solid rgb(var(--field-highlight-background));
+
+  color: rgb(var(--field-highlight-color));
+
   &.collapsed {
     align-items: center;
   }
 
-  .query {
+  .c-search-description {
     flex: 1;
   }
 
-  .compound {
-    display: flex;
-    flex-direction: column;
-    gap: theme.$spacing * 2;
+  .expanded {
+    flex: 1;
 
-    .header {
+    .compound {
       display: flex;
-      flex-direction: row;
-      gap: theme.$spacing;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: theme.$spacing * 2;
 
-      .toggles {
+      .header {
         display: flex;
         flex-direction: row;
         gap: theme.$spacing;
-        align-items: stretch;
-      }
+        align-items: center;
+        justify-content: space-between;
 
-      .toggle {
-        border: 1px solid rgb(var(--color));
-        padding: theme.$spacing * 2;
+        .toggles {
+          display: flex;
+          flex-direction: row;
+          gap: theme.$spacing;
+          align-items: stretch;
+        }
 
-        &.selected {
-          background-color: rgb(var(--color));
-          color: rgb(var(--background));
+        .toggle {
+          border: var(--field-border);
+          border-radius: theme.$spacing * 2;
+          padding: theme.$spacing * 2;
+          color: rgb(var(--field-highlight-color));
+
+          &.selected {
+            background-color: rgb(var(--field-highlight-background));
+            color: rgb(var(--field-highlight-color));
+          }
+        }
+
+        input {
+          display: none;
         }
       }
 
-      input {
-        display: none;
+      .queries {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: theme.$spacing;
+        margin-left: theme.$spacing * 2;
       }
-    }
 
-    .queries {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: theme.$spacing;
-    }
-
-    .query {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-
-      .parts {
+      .query {
         display: flex;
         flex-direction: row;
         align-items: center;
-        gap: theme.$spacing * 2;
+        justify-content: space-between;
       }
-    }
 
-    .compound {
-      margin-left: theme.$spacing * 4;
-      flex: 1;
+      .compound {
+        border: var(--field-border);
+        border-radius: theme.$spacing * 2;
+        padding: theme.$spacing * 2;
+        flex: 1;
 
-      .queries {
-        margin-right: 2em;
+        .queries {
+          margin-right: 2em;
+        }
       }
     }
   }

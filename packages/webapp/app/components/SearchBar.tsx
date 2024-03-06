@@ -8,8 +8,8 @@ import {
   RenderPeopleChoices,
   RenderTagChoices,
 } from "./QueryFields";
+import { SearchDescription } from "@/components/SearchDescription";
 import { useServerState, useTimeout } from "@/modules/client-util";
-import { useSearchDescription } from "@/modules/search";
 import {
   AlbumField,
   CompoundQuery,
@@ -402,7 +402,6 @@ export default function SearchBar({
   initiallyExpanded?: boolean;
 }) {
   let serverState = useServerState();
-  let description = useSearchDescription(searchQuery);
   let [expanded, setExpanded] = useState(initiallyExpanded);
 
   let [currentQuery, setCurrentQuery] = useState(searchQuery);
@@ -440,7 +439,7 @@ export default function SearchBar({
     return (
       <div className="c-searchbar collapsed">
         <Icon icon="search" />
-        <p className="query">{description}</p>
+        <SearchDescription query={searchQuery} serverState={serverState} />
         <IconButton icon="expand" onClick={expand} />
       </div>
     );
@@ -449,7 +448,7 @@ export default function SearchBar({
   return (
     <div className="c-searchbar">
       <Icon icon="search" />
-      <div className="query">
+      <div className="expanded">
         <Compound
           query={currentQuery}
           setQuery={updateCurrentQuery}

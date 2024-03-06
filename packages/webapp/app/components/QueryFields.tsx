@@ -63,7 +63,7 @@ function StringValue<F>({
 
   return (
     <input
-      className="c-query-value"
+      className="value"
       type="text"
       onChange={onChange}
       value={field.value}
@@ -103,7 +103,7 @@ export function RenderPeopleChoices({
   let { value } = field;
 
   return (
-    <select onChange={onChange} value={value}>
+    <select className="value" onChange={onChange} value={value}>
       {people.map((p) => (
         <option key={p.id} value={p.id}>
           {p.name}
@@ -146,7 +146,7 @@ export function RenderAlbumChoices({
   let { value } = field;
 
   return (
-    <select onChange={onChange} value={value}>
+    <select className="value" onChange={onChange} value={value}>
       {albums.map((a) => (
         <option key={a.id} value={a.id}>
           {a.name}
@@ -189,7 +189,7 @@ export function RenderTagChoices({
   let { value } = field;
 
   return (
-    <select onChange={onChange} value={value}>
+    <select className="value" onChange={onChange} value={value}>
       {tags.map((t) => (
         <option key={t.id} value={t.id}>
           {t.name}
@@ -252,9 +252,15 @@ export function RelationQueryField<F>({
 
   return (
     <>
-      <div className="parts">
-        <span>{label}</span>
-        <select onChange={onOperatorChange} value={currentOperator}>
+      <div className="c-query-field">
+        <div className="label">
+          <span>{label}</span>
+        </div>
+        <select
+          className="operator"
+          onChange={onOperatorChange}
+          value={currentOperator}
+        >
           <option value="equal">is</option>
           <option value="not-equal">is not</option>
           <option value="startswith">starts with</option>
