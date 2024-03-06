@@ -16,13 +16,13 @@ export function useTimeout(
   useEffect(() => {
     if (target) {
       if (Date.now() >= target) {
-        onFire();
         setTarget(null);
+        onFire();
       } else {
         timerRef.current = setTimeout(() => {
           timerRef.current = undefined;
-          onFire();
           setTarget(null);
+          onFire();
         }, target - Date.now());
       }
     }

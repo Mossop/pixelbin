@@ -8,7 +8,6 @@
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  --background: var(--selected-background);
 
   &.collapsed {
     align-items: center;
@@ -59,8 +58,23 @@
       gap: theme.$spacing;
     }
 
+    .query {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+
+      .parts {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: theme.$spacing * 2;
+      }
+    }
+
     .compound {
       margin-left: theme.$spacing * 4;
+      flex: 1;
 
       .queries {
         margin-right: 2em;

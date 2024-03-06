@@ -26,7 +26,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 
 export default function Search() {
   let { catalog } = useLoaderData<typeof loader>();
-  let [searchParams] = useSearchParams();
+  let [searchParams, setSearchParams] = useSearchParams();
 
   let [searchQuery, queryParams] = useMemo<
     [SearchQuery, URLSearchParams]
@@ -53,12 +53,12 @@ export default function Search() {
 
   let galleryUrl = `${url(["catalog", catalog.id, "search"])}?${queryParams}`;
 
-  // let setQuery = useCallback(
-  //   (query: SearchQuery) => {
-  //     setSearchParams({ q: JSON.stringify(query) });
-  //   },
-  //   [setSearchParams],
-  // );
+  let setQuery = useCallback(
+    (query: SearchQuery) => {
+      setSearchParams({ q: JSON.stringify(query) });
+    },
+    [setSearchParams],
+  );
 
   return (
     <MediaGallery
@@ -67,7 +67,11 @@ export default function Search() {
       getMediaUrl={getMediaUrl}
     >
       <div className="search-gallery">
-        <SearchBar searchQuery={searchQuery} />
+        <SearchBar
+          catalog={catalog.id}
+          searchQuery={searchQuery}
+          setQuery={setQuery}
+        />
         <div className="grid">
           <MediaGrid />
         </div>
