@@ -77,7 +77,7 @@ export default function Search() {
           catalog={catalog.id}
           searchQuery={searchQuery}
           setQuery={setQuery}
-          initiallyExpanded={state.expandSearchBar}
+          initiallyExpanded={state?.expandSearchBar}
         />
         <div className="grid">
           <MediaGrid />

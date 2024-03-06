@@ -9,6 +9,36 @@ import {
   TagField,
 } from "@/modules/types";
 
+interface Option {
+  id: string;
+  name: string;
+}
+
+function optionList<T extends Option>(options: T[]): Option[] {
+  let result = [...options];
+  result.sort((o1, o2) => o1.name.localeCompare(o2.name));
+  return result;
+}
+
+function hierarchicalList<T extends Option & { parent: string | null }>(
+  options: T[],
+): Option[] {
+  let map = new Map(options.map((o) => [o.id, o]));
+  let nameFor = (id: string): string => {
+    let option = map.get(id)!;
+
+    if (!option.parent) {
+      return option.name;
+    }
+
+    return `${nameFor(option.parent)} > ${option.name}`;
+  };
+
+  let result = Array.from(map.keys(), (id) => ({ id, name: nameFor(id) }));
+  result.sort((o1, o2) => o1.name.localeCompare(o2.name));
+  return result;
+}
+
 function StringValue<F>({
   field,
   setField,
@@ -52,11 +82,10 @@ export function RenderPeopleChoices({
   catalog: string;
   serverState: State;
 }) {
-  let people = useMemo(() => {
-    let forCatalog = serverState.people.filter((p) => p.catalog == catalog);
-    forCatalog.sort((p1, p2) => p1.name.localeCompare(p2.name));
-    return forCatalog;
-  }, [catalog, serverState]);
+  let people = useMemo(
+    () => optionList(serverState.people.filter((p) => p.catalog == catalog)),
+    [catalog, serverState],
+  );
 
   let onChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
@@ -95,11 +124,11 @@ export function RenderAlbumChoices({
   catalog: string;
   serverState: State;
 }) {
-  let albums = useMemo(() => {
-    let forCatalog = serverState.albums.filter((a) => a.catalog == catalog);
-    forCatalog.sort((a1, a2) => a1.name.localeCompare(a2.name));
-    return forCatalog;
-  }, [catalog, serverState]);
+  let albums = useMemo(
+    () =>
+      hierarchicalList(serverState.albums.filter((a) => a.catalog == catalog)),
+    [catalog, serverState],
+  );
 
   let onChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
@@ -138,11 +167,11 @@ export function RenderTagChoices({
   catalog: string;
   serverState: State;
 }) {
-  let tags = useMemo(() => {
-    let forCatalog = serverState.tags.filter((t) => t.catalog == catalog);
-    forCatalog.sort((t1, t2) => t1.name.localeCompare(t2.name));
-    return forCatalog;
-  }, [catalog, serverState]);
+  let tags = useMemo(
+    () =>
+      hierarchicalList(serverState.tags.filter((t) => t.catalog == catalog)),
+    [catalog, serverState],
+  );
 
   let onChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
