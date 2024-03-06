@@ -95,9 +95,9 @@ export function RenderAlbumChoices({
   catalog: string;
   serverState: State;
 }) {
-  let people = useMemo(() => {
-    let forCatalog = serverState.people.filter((p) => p.catalog == catalog);
-    forCatalog.sort((p1, p2) => p1.name.localeCompare(p2.name));
+  let albums = useMemo(() => {
+    let forCatalog = serverState.albums.filter((a) => a.catalog == catalog);
+    forCatalog.sort((a1, a2) => a1.name.localeCompare(a2.name));
     return forCatalog;
   }, [catalog, serverState]);
 
@@ -118,9 +118,9 @@ export function RenderAlbumChoices({
 
   return (
     <select onChange={onChange} value={value}>
-      {people.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.name}
+      {albums.map((a) => (
+        <option key={a.id} value={a.id}>
+          {a.name}
         </option>
       ))}
     </select>
@@ -138,9 +138,9 @@ export function RenderTagChoices({
   catalog: string;
   serverState: State;
 }) {
-  let people = useMemo(() => {
-    let forCatalog = serverState.people.filter((p) => p.catalog == catalog);
-    forCatalog.sort((p1, p2) => p1.name.localeCompare(p2.name));
+  let tags = useMemo(() => {
+    let forCatalog = serverState.tags.filter((t) => t.catalog == catalog);
+    forCatalog.sort((t1, t2) => t1.name.localeCompare(t2.name));
     return forCatalog;
   }, [catalog, serverState]);
 
@@ -161,9 +161,9 @@ export function RenderTagChoices({
 
   return (
     <select onChange={onChange} value={value}>
-      {people.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.name}
+      {tags.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.name}
         </option>
       ))}
     </select>

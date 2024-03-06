@@ -1,5 +1,10 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import { Outlet, useLoaderData, useSearchParams } from "@remix-run/react";
+import {
+  Outlet,
+  useLoaderData,
+  useLocation,
+  useSearchParams,
+} from "@remix-run/react";
 import { useCallback, useMemo } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
@@ -27,6 +32,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 export default function Search() {
   let { catalog } = useLoaderData<typeof loader>();
   let [searchParams, setSearchParams] = useSearchParams();
+  let { state } = useLocation();
 
   let [searchQuery, queryParams] = useMemo<
     [SearchQuery, URLSearchParams]
@@ -55,7 +61,7 @@ export default function Search() {
 
   let setQuery = useCallback(
     (query: SearchQuery) => {
-      setSearchParams({ q: JSON.stringify(query) });
+      setSearchParams({ q: JSON.stringify(query) }, { replace: true });
     },
     [setSearchParams],
   );
@@ -71,6 +77,7 @@ export default function Search() {
           catalog={catalog.id}
           searchQuery={searchQuery}
           setQuery={setQuery}
+          initiallyExpanded={state.expandSearchBar}
         />
         <div className="grid">
           <MediaGrid />

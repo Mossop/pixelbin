@@ -394,14 +394,16 @@ export default function SearchBar({
   searchQuery,
   setQuery,
   catalog,
+  initiallyExpanded,
 }: {
   searchQuery: SearchQuery;
   setQuery: Dispatch<SearchQuery>;
   catalog: string;
+  initiallyExpanded?: boolean;
 }) {
   let serverState = useServerState();
   let description = useSearchDescription(searchQuery);
-  let [expanded, setExpanded] = useState(false);
+  let [expanded, setExpanded] = useState(initiallyExpanded);
 
   let [currentQuery, setCurrentQuery] = useState(searchQuery);
 
