@@ -3,6 +3,8 @@ import { useCallback, useRef } from "react";
 import Body from "./Body";
 import { useTransition } from "@/modules/client-util";
 
+import "styles/components/Modal.scss";
+
 export interface ModalProps {
   show: boolean;
   onClose: () => void;
@@ -34,7 +36,7 @@ export default function Modal({
       modalRef.current = element;
       elementRef(element);
     },
-    [elementRef]
+    [elementRef],
   );
 
   let click = useCallback(
@@ -45,7 +47,7 @@ export default function Modal({
 
       onClose();
     },
-    [show, onClose]
+    [show, onClose],
   );
 
   return (

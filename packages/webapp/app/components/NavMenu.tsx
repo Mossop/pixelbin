@@ -6,6 +6,8 @@ import { CatalogNav } from "./SidebarLayout";
 import SlidePanel from "./SlidePanel";
 import { State } from "@/modules/types";
 
+import "styles/components/NavMenu.scss";
+
 export default function NavMenu({ serverState }: { serverState: State }) {
   let [showNavigator, setShowNavigator] = useState(false);
   let openNavigator = useCallback(() => setShowNavigator(true), []);

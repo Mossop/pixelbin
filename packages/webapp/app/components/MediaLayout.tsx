@@ -19,6 +19,8 @@ import { useFullscreen } from "@/modules/client-util";
 import { MediaRelations, MediaView } from "@/modules/types";
 import { formatTime, mediaDate, url } from "@/modules/util";
 
+import "styles/components/MediaLayout.scss";
+
 function GalleryNavigation({
   media,
   children,

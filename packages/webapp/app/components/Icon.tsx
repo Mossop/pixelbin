@@ -6,6 +6,8 @@ import { useCallback } from "react";
 
 import MDIcon from "./MaterialIcon";
 
+import "styles/components/Icon.scss";
+
 const ICONS = {
   catalog: icons.mdiDatabaseOutline,
   albums: icons.mdiImageMultipleOutline,

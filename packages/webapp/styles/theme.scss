@@ -5,17 +5,6 @@ $spacing: 0.25rem;
 $transition: 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
 $breakpoint: 1000px;
 
-:root {
-  --theme-color-primary: 63, 81, 181;
-  --theme-color-secondary: 141, 143, 166;
-
-  --selected-color: inherit;
-  --hover-color: inherit;
-  --shadow-color: rgba(0, 0, 0, 0.15);
-
-  --breakpoint: $breakpoint;
-}
-
 @mixin apply-colors {
   color: rgb(var(--color));
   background-color: rgb(var(--background));
@@ -75,37 +64,4 @@ $breakpoint: 1000px;
   --button-secondary-hover-color: var(--button-secondary-color);
   --button-secondary-hover-background: var(--button-secondary-background);
   --button-secondary-hover-border: var(--button-secondary-hover-background);
-}
-
-:root {
-  @include light;
-
-  line-height: 1.5;
-}
-
-body,
-.modal {
-  @include apply-colors;
-}
-
-[data-theme="banner"] {
-  @include banner;
-
-  @include apply-colors;
-}
-
-[data-theme="light"] {
-  @include light;
-
-  @include apply-colors;
-}
-
-[data-theme="dark"] {
-  @include dark;
-
-  @include apply-colors;
-}
-
-[data-theme="match"] {
-  @include apply-colors;
 }

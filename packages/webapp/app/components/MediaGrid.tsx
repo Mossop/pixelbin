@@ -20,6 +20,8 @@ import Throbber from "./Throbber";
 import { AlternateFileType, MediaView, MediaViewFile } from "@/modules/types";
 import { url } from "@/modules/util";
 
+import "styles/components/MediaGrid.scss";
+
 const VisibilityContext = createContext<VisibilityObserver | null>(null);
 
 const ThumbnailImage = memo(function ThumbnailImage({

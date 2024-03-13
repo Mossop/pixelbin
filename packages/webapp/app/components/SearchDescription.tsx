@@ -19,6 +19,8 @@ import {
   TagField,
 } from "../modules/types";
 
+import "styles/components/SearchDescription.scss";
+
 function isRelation(str: string): str is keyof RelationFields {
   return str == "tag" || str == "person" || str == "tag";
 }

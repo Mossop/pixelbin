@@ -18,6 +18,8 @@ import {
 } from "@/modules/types";
 import { url } from "@/modules/util";
 
+import "styles/components/Media.scss";
+
 function Photo({
   media,
   file,

@@ -1,3 +1,5 @@
+import "styles/components/Button.scss";
+
 export default function Button({
   label,
   type = "secondary",

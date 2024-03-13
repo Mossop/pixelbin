@@ -16,6 +16,9 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  css: {
+    devSourcemap: true,
+  },
   plugins: [
     remix({
       future: {

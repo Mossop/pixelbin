@@ -13,6 +13,8 @@ import SidebarLayout from "./components/SidebarLayout";
 import { state } from "./modules/api";
 import { getSession } from "./modules/session";
 
+import "styles/main.scss";
+
 export const links: LinksFunction = () => [
   {
     rel: "shortcut icon",
@@ -23,11 +25,6 @@ export const links: LinksFunction = () => [
     rel: "shortcut icon",
     href: "/icon.svg",
     type: "image/svg",
-  },
-  {
-    rel: "stylesheet",
-    href: "/styles.css",
-    type: "text/css",
   },
 ];
 

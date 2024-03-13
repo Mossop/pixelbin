@@ -6,6 +6,8 @@ import { inSpan } from "@/modules/telemetry";
 import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { url } from "@/modules/util";
 
+import "styles/components/SidebarLayout.scss";
+
 type AlbumTree = Album & { albums: AlbumTree[] };
 
 type CatalogTree = Catalog & {

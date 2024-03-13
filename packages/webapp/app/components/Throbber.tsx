@@ -1,3 +1,5 @@
+import "styles/components/Throbber.scss";
+
 export default function Throbber() {
   return (
     <div className="c-throbber">

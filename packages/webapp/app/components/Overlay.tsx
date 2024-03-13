@@ -8,6 +8,8 @@ import {
 
 import { useTimeout, useTransition } from "@/modules/client-util";
 
+import "styles/components/Overlay.scss";
+
 const TIMEOUT = 4000;
 
 export default function Overlay({

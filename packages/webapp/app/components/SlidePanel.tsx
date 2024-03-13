@@ -3,6 +3,8 @@ import clsx from "clsx";
 import { IconButton } from "./Icon";
 import Modal, { ModalProps } from "./Modal";
 
+import "styles/components/SlidePanel.scss";
+
 export default function SlidePanel({
   children,
   theme = "match",

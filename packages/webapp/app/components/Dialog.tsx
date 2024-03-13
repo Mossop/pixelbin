@@ -1,5 +1,7 @@
 import Modal, { ModalProps } from "./Modal";
 
+import "styles/components/Dialog.scss";
+
 export default function Dialog({
   header,
   footer,

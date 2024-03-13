@@ -6,6 +6,8 @@ import Button from "./Button";
 import Dialog from "./Dialog";
 import TextField from "./TextField";
 
+import "styles/components/Avatar.scss";
+
 function avatarSources(email: string): string[] {
   let hash = md5(email);
   return [

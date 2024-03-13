@@ -9,6 +9,8 @@ import {
   TagField,
 } from "@/modules/types";
 
+import "styles/components/QueryFields.scss";
+
 interface Option {
   id: string;
   name: string;

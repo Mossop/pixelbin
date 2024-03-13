@@ -5,6 +5,8 @@ import NavMenu from "./NavMenu";
 import { CastButton } from "@/components/CastManager";
 import { useServerState } from "@/modules/client-util";
 
+import "styles/components/AppBar.scss";
+
 type ButtonProvider = UIMatch<
   any,
   { headerButtons(data: any): React.ReactNode }

@@ -5,6 +5,8 @@ import { memo } from "react";
 import Icon from "./Icon";
 import { MediaView } from "@/modules/types";
 
+import "styles/components/Rating.scss";
+
 function RatingStar({ rating, star }: { rating: number; star: number }) {
   return (
     <Icon

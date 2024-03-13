@@ -22,6 +22,8 @@ import {
   TagField,
 } from "@/modules/types";
 
+import "styles/components/SearchBar.scss";
+
 type ItemRenderer<I> = (props: {
   item: I;
   setItem: Dispatch<I>;

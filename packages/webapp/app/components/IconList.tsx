@@ -2,6 +2,8 @@ import { Link } from "@remix-run/react";
 
 import Icon, { IconName } from "./Icon";
 
+import "styles/components/IconList.scss";
+
 export function IconList({ children }: { children: React.ReactNode }) {
   return <ul className="c-iconlist">{children}</ul>;
 }

@@ -16,6 +16,8 @@ import {
 } from "@/modules/types";
 import { url } from "@/modules/util";
 
+import "styles/components/MediaInfo.scss";
+
 const LABELS = {
   filename: "Filename:",
   title: "Title:",
