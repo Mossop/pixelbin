@@ -1,5 +1,3 @@
-@use "../theme";
-
 .c-modal {
   &.t-on .c-slidepanel.slidepanel-right .slidepanel-inner {
     right: 0;
@@ -19,7 +17,7 @@
     right: 0;
 
     .slidepanel-inner {
-      transition: right theme.$transition;
+      transition: right var(--transition);
       right: -100%;
     }
   }
@@ -28,7 +26,7 @@
     left: 0;
 
     .slidepanel-inner {
-      transition: left theme.$transition;
+      transition: left var(--transition);
       left: -100%;
     }
   }
@@ -45,8 +43,8 @@
 
     .buttons {
       position: absolute;
-      top: theme.$spacing * 2;
-      right: theme.$spacing * 2;
+      top: calc(var(--spacing) * 2);
+      right: calc(var(--spacing) * 2);
       font-size: 150%;
     }
   }

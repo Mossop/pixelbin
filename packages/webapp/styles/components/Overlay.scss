@@ -1,5 +1,3 @@
-@use "../theme";
-
 .c-overlay {
   position: absolute;
   inset: 0;
@@ -10,7 +8,7 @@
     display: flex;
     flex-direction: column;
 
-    transition: opacity theme.$transition;
+    transition: opacity var(--transition);
     opacity: 0;
 
     &.t-on {

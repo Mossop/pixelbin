@@ -11,39 +11,39 @@
 .c-dialog {
   @include theme.apply-colors;
 
-  border-radius: theme.$spacing * 2;
-  box-shadow: theme.$modal-shadow;
+  border-radius: calc(var(--spacing) * 2);
+  box-shadow: var(--modal-shadow);
   width: 500px;
-  padding-inline: theme.$spacing * 4;
+  padding-inline: calc(var(--spacing) * 4);
 
-  transition: opacity theme.$transition;
+  transition: opacity var(--transition);
   opacity: 0;
 
   .header {
-    font-size: theme.$spacing * 7;
-    padding-block: theme.$spacing;
+    font-size: calc(var(--spacing) * 7);
+    padding-block: var(--spacing);
   }
 
   .body {
-    padding-block: theme.$spacing * 4;
+    padding-block: calc(var(--spacing) * 4);
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: theme.$spacing * 4;
+    gap: calc(var(--spacing) * 4);
 
     & > form {
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      gap: theme.$spacing * 4;
+      gap: calc(var(--spacing) * 4);
     }
   }
 
   .footer {
-    padding-block: theme.$spacing * 3;
+    padding-block: calc(var(--spacing) * 3);
     display: flex;
     align-items: stretch;
     justify-content: flex-end;
-    gap: theme.$spacing * 3;
+    gap: calc(var(--spacing) * 3);
   }
 }

@@ -1,5 +1,3 @@
-@use "../theme";
-
 :root {
   --list-depth: -1;
   --list-item-depth: -1;
@@ -21,7 +19,7 @@
   }
 
   .item-icon {
-    margin-right: theme.$spacing * 2;
+    margin-right: calc(var(--spacing) * 2);
   }
 
   a.item-label {

@@ -1,24 +1,22 @@
-@use "../theme";
-
 .c-search-description {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: theme.$spacing * 2;
+  gap: calc(var(--spacing) * 2);
 
   .compound {
     display: flex;
     flex-direction: row;
     align-items: stretch;
-    gap: theme.$spacing * 2;
+    gap: calc(var(--spacing) * 2);
     border: var(--field-border);
-    border-radius: theme.$spacing * 2;
+    border-radius: calc(var(--spacing) * 2);
 
     .modifier {
       display: flex;
       flex-direction: row;
       align-items: center;
-      padding-left: theme.$spacing;
+      padding-left: var(--spacing);
     }
 
     .icon {
@@ -30,7 +28,7 @@
 
   .field {
     border: var(--field-border);
-    border-radius: theme.$spacing * 2;
-    padding: theme.$spacing;
+    border-radius: calc(var(--spacing) * 2);
+    padding: var(--spacing);
   }
 }

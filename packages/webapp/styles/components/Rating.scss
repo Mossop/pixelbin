@@ -1,10 +1,8 @@
-@use "../theme";
-
 .c-rating {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: theme.$spacing;
+  gap: var(--spacing);
 
   .filled {
     color: rgb(255, 180, 0);

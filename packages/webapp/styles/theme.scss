@@ -1,13 +1,23 @@
-$fade: rgba(0, 0, 0, 0.5);
-$box-shadow: 0 0.5rem 1rem var(--shadow-color);
-$modal-shadow: var(--shadow-color) 0px 8px 16px 0px;
-$spacing: 0.25rem;
-$transition: 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
 $breakpoint: 1000px;
 
 @mixin apply-colors {
   color: rgb(var(--color));
   background-color: rgb(var(--background));
+}
+
+@mixin vars {
+  --theme-color-primary: 63, 81, 181;
+  --theme-color-secondary: 141, 143, 166;
+
+  --selected-color: inherit;
+  --hover-color: inherit;
+  --shadow-color: rgba(0, 0, 0, 0.15);
+  --box-shadow: 0 0.5rem 1rem var(--shadow-color);
+  --modal-shadow: var(--shadow-color) 0px 8px 16px 0px;
+
+  --breakpoint: $breakpoint;
+  --transition: 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  --spacing: 0.25rem;
 }
 
 @mixin light {
@@ -17,18 +27,18 @@ $breakpoint: 1000px;
   --overlay-color: 0, 0, 0;
   --overlay-background: 250, 250, 250;
 
-  --button-primary-color: rgb(255, 255, 255);
-  --button-primary-background: rgb(var(--theme-color-primary));
-  --button-primary-border: rgb(var(--theme-color-primary));
+  --button-primary-color: 255, 255, 255;
+  --button-primary-background: var(--theme-color-primary);
+  --button-primary-border: var(--theme-color-primary);
   --button-primary-hover-color: var(--button-primary-color);
-  --button-primary-hover-background: rgb(var(--theme-color-primary));
+  --button-primary-hover-background: var(--theme-color-primary);
   --button-primary-hover-border: var(--button-primary-hover-background);
 
-  --button-secondary-color: inherit;
-  --button-secondary-background: transparent;
-  --button-secondary-border: rgb(var(--theme-color-secondary));
-  --button-secondary-hover-color: inherit;
-  --button-secondary-hover-background: rgb(var(--theme-color-secondary));
+  --button-secondary-color: var(--color);
+  --button-secondary-background: var(--background);
+  --button-secondary-border: var(--theme-color-secondary);
+  --button-secondary-hover-color: var(--color);
+  --button-secondary-hover-background: var(--theme-color-secondary);
   --button-secondary-hover-border: var(--button-secondary-hover-background);
 
   --input-shadow: rgba(0, 0, 0, 0.075) 0px 1px 2px 0px inset;
@@ -51,15 +61,15 @@ $breakpoint: 1000px;
   --color: 255, 255, 255;
   --background: var(--theme-color-primary);
 
-  --button-primary-color: rgb(0, 0, 0);
-  --button-primary-background: rgb(248, 249, 250);
+  --button-primary-color: 0, 0, 0;
+  --button-primary-background: 248, 249, 250;
   --button-primary-border: var(--button-primary-background);
   --button-primary-hover-color: var(--button-primary-color);
-  --button-primary-hover-background: rgb(211, 212, 213);
+  --button-primary-hover-background: 211, 212, 213;
   --button-primary-hover-border: var(--button-primary-hover-background);
 
-  --button-secondary-color: rgb(141, 143, 166);
-  --button-secondary-background: transparent;
+  --button-secondary-color: 141, 143, 166;
+  --button-secondary-background: var(--background);
   --button-secondary-border: var(--button-secondary-color);
   --button-secondary-hover-color: var(--button-secondary-color);
   --button-secondary-hover-background: var(--button-secondary-background);
