@@ -1,4 +1,10 @@
+@use "../theme";
+
 .c-appbar {
+  --color: 255, 255, 255;
+  --background: 63, 81, 181;
+  @include theme.apply-colors;
+
   display: flex;
   align-items: center;
   justify-content: space-between;

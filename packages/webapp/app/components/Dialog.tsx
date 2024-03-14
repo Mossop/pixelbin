@@ -1,23 +1,31 @@
-import Modal, { ModalProps } from "./Modal";
+import { SlDialog } from "shoelace-react";
 
 import "styles/components/Dialog.scss";
 
 export default function Dialog({
-  header,
+  label,
   footer,
+  show,
+  onClosed,
   children,
-  ...modalProps
 }: {
-  header?: React.ReactNode;
+  label: string;
   footer?: React.ReactNode;
-} & ModalProps) {
+  show: boolean;
+  onClosed?: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <Modal {...modalProps}>
-      <div className="c-dialog modal">
-        <div className="header">{header}</div>
-        <div className="body">{children}</div>
-        <div className="footer">{footer}</div>
+    <SlDialog
+      label={label}
+      open={show}
+      className="sl-theme-light"
+      onSlAfterHide={onClosed}
+    >
+      {children}
+      <div className="footer" slot="footer">
+        {footer}
       </div>
-    </Modal>
+    </SlDialog>
   );
 }

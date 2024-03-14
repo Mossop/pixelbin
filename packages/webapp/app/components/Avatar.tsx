@@ -1,6 +1,6 @@
 import { useFetcher } from "@remix-run/react";
 import md5 from "md5";
-import { useCallback, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 
 import Button from "./Button";
 import Dialog from "./Dialog";
@@ -20,12 +20,15 @@ function avatarSources(email: string): string[] {
 function Login() {
   let fetcher = useFetcher();
   let [dialogShown, setDialogShown] = useState(false);
-  let [didLogin, setDidLogin] = useState(false);
 
   let [email, setEmail] = useState("");
   let [password, setPassword] = useState("");
 
   let performLogin = useCallback(() => {
+    if (email == "") {
+      return;
+    }
+
     fetcher.submit(
       { email, password },
       {
@@ -40,21 +43,24 @@ function Login() {
     setEmail("");
     setPassword("");
     setDialogShown(false);
-    setDidLogin(false);
   }, []);
+
+  let formSubmit = useCallback(
+    (event: FormEvent) => {
+      event.preventDefault();
+      performLogin();
+    },
+    [performLogin],
+  );
 
   let footer = (
     <>
-      <Button
-        onClick={() => setDialogShown(true)}
-        type="secondary"
-        label="Cancel"
-      />
+      <Button onClick={() => setDialogShown(false)} label="Cancel" />
       <Button
         onClick={performLogin}
         type="primary"
         label="Login"
-        disabled={email == "" && password == ""}
+        disabled={email == ""}
       />
     </>
   );
@@ -67,13 +73,12 @@ function Login() {
         label="Login"
       />
       <Dialog
-        show={dialogShown || didLogin}
-        onClose={() => setDialogShown(false)}
+        show={dialogShown}
         onClosed={closed}
-        header={<div>Login</div>}
+        label="Login"
         footer={footer}
       >
-        <form>
+        <form onSubmit={formSubmit}>
           <TextField
             autofocus
             type="email"

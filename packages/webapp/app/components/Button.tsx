@@ -1,24 +1,19 @@
-import "styles/components/Button.scss";
+import { SlButton, SlButtonProps } from "shoelace-react";
 
 export default function Button({
   label,
-  type = "secondary",
+  type = "default",
   disabled,
   onClick = () => {},
 }: {
   label: string;
-  type?: "primary" | "secondary";
+  type?: SlButtonProps["variant"];
   disabled?: boolean;
   onClick?: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`c-button button-${type}`}
-      type="button"
-    >
+    <SlButton onClick={onClick} disabled={disabled} variant={type}>
       {label}
-    </button>
+    </SlButton>
   );
 }

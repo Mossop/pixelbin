@@ -1,4 +1,4 @@
-import "styles/components/TextField.scss";
+import { SlInput, SlInputProps } from "shoelace-react";
 
 export default function TextField({
   label,
@@ -9,27 +9,23 @@ export default function TextField({
   onChange,
   value,
 }: {
-  id?: string;
   label: string;
   name?: string;
   onChange: (str: string) => void;
   value: string;
   autofocus?: boolean;
   autocomplete?: string;
-  type?: string;
+  type?: SlInputProps["type"];
 }) {
   return (
-    <label className="c-textfield">
-      <div>{label}</div>
-      <input
-        autoFocus={autofocus}
-        name={name}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        type={type}
-        autoComplete={autocomplete}
-        className="form-control"
-      />
-    </label>
+    <SlInput
+      label={label}
+      type={type}
+      autofocus={autofocus}
+      autocomplete={autocomplete}
+      name={name}
+      value={value}
+      onSlInput={(event) => onChange(event.target.value)}
+    />
   );
 }

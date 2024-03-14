@@ -1,49 +1,13 @@
 @use "../theme";
 
-.c-modal {
-  &.t-on {
-    .c-dialog {
-      opacity: 1;
-    }
-  }
+sl-dialog {
+  @include theme.light;
+  @include theme.apply-colors;
 }
 
-.c-dialog {
-  @include theme.apply-colors;
-
-  border-radius: calc(var(--spacing) * 2);
-  box-shadow: var(--modal-shadow);
-  width: 500px;
-  padding-inline: calc(var(--spacing) * 4);
-
-  transition: opacity var(--transition);
-  opacity: 0;
-
-  .header {
-    font-size: calc(var(--spacing) * 7);
-    padding-block: var(--spacing);
-  }
-
-  .body {
-    padding-block: calc(var(--spacing) * 4);
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: calc(var(--spacing) * 4);
-
-    & > form {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: calc(var(--spacing) * 4);
-    }
-  }
-
-  .footer {
-    padding-block: calc(var(--spacing) * 3);
-    display: flex;
-    align-items: stretch;
-    justify-content: flex-end;
-    gap: calc(var(--spacing) * 3);
-  }
+sl-dialog .footer {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: calc(var(--spacing) * 3);
 }

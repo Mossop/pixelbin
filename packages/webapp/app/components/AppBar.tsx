@@ -31,7 +31,7 @@ export default function AppBar() {
   let matches = useMatches();
 
   return (
-    <header className="c-appbar" data-theme="banner">
+    <header className="c-appbar">
       <div className="site">
         {serverState && <NavMenu serverState={serverState} />}
         <h1>PixelBin</h1>
