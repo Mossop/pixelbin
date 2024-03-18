@@ -160,7 +160,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
   );
 
   return (
-    <div className="c-medialayout" data-theme="dark" ref={fullscreenElement}>
+    <div className="c-medialayout sl-theme-dark" ref={fullscreenElement}>
       <Media media={media} onLoad={onLoad} />
       {loading !== media && (
         <div className="loading-throbber">

@@ -37,8 +37,8 @@
     bottom: 0;
     height: 100%;
     width: 100%;
-    color: rgb(var(--overlay-color));
-    background: rgb(var(--overlay-background));
+    color: var(--sl-color-neutral-900);
+    background: var(--sl-color-neutral-200);
     z-index: 110;
 
     .buttons {

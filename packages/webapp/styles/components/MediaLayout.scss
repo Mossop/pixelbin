@@ -24,8 +24,11 @@
     justify-content: flex-end;
     padding: calc(var(--spacing) * 4);
     gap: calc(var(--spacing) * 6);
-    color: rgb(var(--overlay-color));
-    background: rgba(var(--overlay-background), 0.7);
+    background: color-mix(
+      in srgb,
+      var(--sl-color-neutral-200) 70%,
+      rgba(0, 0, 0, 0)
+    );
 
     .video-info {
       flex: 1;

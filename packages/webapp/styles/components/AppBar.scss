@@ -1,10 +1,10 @@
 @use "../theme";
 
-.c-appbar {
-  --color: 255, 255, 255;
-  --background: 63, 81, 181;
-  @include theme.apply-colors;
+.c-appbar.sl-theme-dark {
+  --background: rgb(var(--theme-color-primary));
+}
 
+.c-appbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
