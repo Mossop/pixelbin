@@ -1,40 +1,38 @@
-import * as icons from "@mdi/js";
 import { Link } from "@remix-run/react";
 import { RemixLinkProps } from "@remix-run/react/dist/components";
 import clsx from "clsx";
 import { useCallback } from "react";
-
-import MDIcon from "./MaterialIcon";
+import { SlIcon, SlIconButton } from "shoelace-react";
 
 import "styles/components/Icon.scss";
 
 const ICONS = {
-  catalog: icons.mdiDatabaseOutline,
-  albums: icons.mdiImageMultipleOutline,
-  album: icons.mdiImageMultipleOutline,
-  searches: icons.mdiFolderSearchOutline,
-  search: icons.mdiImageSearchOutline,
-  "star-filled": icons.mdiStar,
-  "star-unfilled": icons.mdiStarOutline,
-  photo: icons.mdiImage,
-  video: icons.mdiVideoBox,
-  file: icons.mdiFile,
-  hourglass: icons.mdiTimerSandEmpty,
-  previous: icons.mdiArrowLeftCircle,
-  next: icons.mdiArrowRightCircle,
-  close: icons.mdiCloseCircle,
-  download: icons.mdiDownload,
-  info: icons.mdiInformation,
-  "fullscreen-enter": icons.mdiFullscreen,
-  "fullscreen-exit": icons.mdiFullscreenExit,
-  tag: icons.mdiTagOutline,
-  person: icons.mdiAccountOutline,
-  play: icons.mdiPlay,
-  pause: icons.mdiPause,
-  menu: icons.mdiMenu,
-  expand: icons.mdiArrowDownDropCircleOutline,
-  collapse: icons.mdiArrowUpDropCircleOutline,
-  delete: icons.mdiDelete,
+  catalog: "database-outline",
+  albums: "image-multiple-outline",
+  album: "image-multiple-outline",
+  searches: "folder-search-outline",
+  search: "image-search-outline",
+  "star-filled": "star",
+  "star-unfilled": "star-outline",
+  photo: "image",
+  video: "video-box",
+  file: "file",
+  hourglass: "timer-sand-ampty",
+  previous: "arrow-left-circle",
+  next: "arrow-right-circle",
+  close: "close-circle",
+  download: "download",
+  info: "information",
+  "fullscreen-enter": "fullscreen",
+  "fullscreen-exit": "fullscreen-exit",
+  tag: "tag-outline",
+  person: "account-outline",
+  play: "play",
+  pause: "pause",
+  menu: "menu",
+  expand: "arrow-down-drop-circle-outline",
+  collapse: "arrow-up-drop-circle-outline",
+  delete: "delete",
 };
 
 export type IconName = keyof typeof ICONS;
@@ -46,7 +44,13 @@ function WrappedIcon({
   icon: IconName;
   className?: string;
 }) {
-  return <MDIcon className={clsx("c-icon", className)} path={ICONS[icon]} />;
+  return (
+    <SlIcon
+      className={clsx("c-icon", className)}
+      library="material"
+      name={ICONS[icon]}
+    />
+  );
 }
 
 export function IconLink({
@@ -94,9 +98,12 @@ export function IconButton({
   );
 
   return (
-    <button className="c-icon-button" onClick={clicked} type="button">
-      <WrappedIcon icon={icon} className={className} />
-    </button>
+    <SlIconButton
+      className={clsx("c-icon-button", className)}
+      library="material"
+      name={icon}
+      onClick={clicked}
+    />
   );
 }
 

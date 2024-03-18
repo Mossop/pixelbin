@@ -46,11 +46,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <link
           rel="stylesheet"
           type="text/css"
-          href="https://cdn.jsdelivr.net/npm/shoelace-react@0.8.0/cdn/themes/light.css"
+          href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.14.0/cdn/themes/light.css"
         />
         <Meta />
         <Links />
-        <script src="https://cdn.jsdelivr.net/npm/shoelace-react@0.8.0/cdn/shoelace.js" />
         <script src="/cast.js" />
         <script src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1" />
       </head>
