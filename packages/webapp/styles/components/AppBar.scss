@@ -1,6 +1,7 @@
 @use "../theme";
 
 .c-appbar.sl-theme-dark {
+  --color: var(--sl-color-neutral-1000);
   --background: rgb(var(--theme-color-primary));
 }
 
