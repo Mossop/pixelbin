@@ -11,7 +11,7 @@ function RatingStar({ rating, star }: { rating: number; star: number }) {
   return (
     <Icon
       className={rating >= star ? "filled" : "unfilled"}
-      icon={rating >= star ? "star-filled" : "star-unfilled"}
+      icon="star-filled"
     />
   );
 }

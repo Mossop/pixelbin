@@ -2,9 +2,13 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: var(--spacing);
+  gap: calc(var(--spacing) / 2);
 
   .filled {
-    color: rgb(255, 180, 0);
+    color: var(--sl-color-amber-500);
+  }
+
+  .unfilled {
+    color: var(--sl-color-neutral-300);
   }
 }
