@@ -13,10 +13,8 @@ import "@shoelace-style/shoelace/dist/components/dialog/dialog.js";
 setBasePath("https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.14.0/cdn");
 
 registerIconLibrary("material", {
-  resolver: (name) => {
-    console.log("Resolving", name);
-    return `https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/${name}.svg`;
-  },
+  resolver: (name) =>
+    `https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/${name}.svg`,
   mutator: (svg) => svg.setAttribute("fill", "currentColor"),
 });
 

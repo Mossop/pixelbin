@@ -1,5 +1,4 @@
-import { Link } from "@remix-run/react";
-import { RemixLinkProps } from "@remix-run/react/dist/components";
+import { useNavigate } from "@remix-run/react";
 import clsx from "clsx";
 import { useCallback } from "react";
 import { SlIcon, SlIconButton } from "shoelace-react";
@@ -55,27 +54,55 @@ function WrappedIcon({
 
 export function IconLink({
   icon,
+  to,
+  replace = false,
+  state,
   className,
+  download,
   onClick,
-  ...props
 }: {
   icon: IconName;
-} & RemixLinkProps &
-  React.RefAttributes<HTMLAnchorElement>) {
+  to: string;
+  className?: string;
+  download?: string;
+  replace?: boolean;
+  state?: any;
+  onClick?: (event: React.MouseEvent) => void;
+}) {
+  let navigate = useNavigate();
+
   let clicked = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
+    (event: React.MouseEvent) => {
       event.stopPropagation();
       if (onClick) {
         onClick(event);
       }
+
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      if (state || replace) {
+        event.preventDefault();
+
+        navigate(to, {
+          replace,
+          state,
+        });
+      }
     },
-    [onClick],
+    [onClick, to, state, replace, navigate],
   );
 
   return (
-    <Link className="c-icon-link" onClick={clicked} {...props}>
-      <WrappedIcon icon={icon} className={className} />
-    </Link>
+    <SlIconButton
+      className={clsx("c-icon-button", className)}
+      library="material"
+      name={ICONS[icon]}
+      onClick={clicked}
+      href={to}
+      download={download}
+    />
   );
 }
 
@@ -101,7 +128,7 @@ export function IconButton({
     <SlIconButton
       className={clsx("c-icon-button", className)}
       library="material"
-      name={icon}
+      name={ICONS[icon]}
       onClick={clicked}
     />
   );
