@@ -1,35 +1,29 @@
-import clsx from "clsx";
-
-import { IconButton } from "./Icon";
-import Modal, { ModalProps } from "./Modal";
-
-import "styles/components/SlidePanel.scss";
+import { SlDrawer } from "shoelace-react";
 
 export default function SlidePanel({
   children,
-  theme = "match",
-  className,
+  show,
+  label,
+  theme,
   position,
-  onClose,
-  ...modalProps
+  onClosed,
 }: {
   position: "left" | "right";
-  theme?: "light" | "dark" | "match";
-  className?: string;
+  label: string;
+  show: boolean;
+  theme?: "light" | "dark";
+  onClosed?: () => void;
   children: React.ReactNode;
-} & ModalProps) {
+}) {
   return (
-    <Modal onClose={onClose} {...modalProps}>
-      <div
-        className={clsx("c-slidepanel", `slidepanel-${position}`, className)}
-      >
-        <div className="slidepanel-inner" data-theme={theme}>
-          <div className="buttons">
-            <IconButton icon="close" onClick={onClose} />
-          </div>
-          {children}
-        </div>
-      </div>
-    </Modal>
+    <SlDrawer
+      label={label}
+      open={show}
+      placement={position == "left" ? "start" : "end"}
+      onSlAfterHide={onClosed}
+      className={theme ? `sl-theme-${theme}` : undefined}
+    >
+      {children}
+    </SlDrawer>
   );
 }

@@ -36,6 +36,10 @@ body {
   line-height: var(--sl-line-height-normal);
 }
 
+body.sl-scroll-lock {
+  scrollbar-gutter: auto !important;
+}
+
 .transition.t-none {
   display: none;
 }

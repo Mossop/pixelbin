@@ -22,6 +22,19 @@
     font-size: calc(var(--spacing) * 5);
   }
 
+  sl-icon-button::part(base) {
+    color: var(--sl-color-neutral-800);
+  }
+
+  sl-icon-button::part(base):hover,
+  sl-icon-button::part(base):focus {
+    color: var(--sl-color-neutral-1000);
+  }
+
+  sl-icon-button::part(base):active {
+    color: var(--sl-color-neutral-1000);
+  }
+
   .actions {
     display: flex;
     align-items: center;

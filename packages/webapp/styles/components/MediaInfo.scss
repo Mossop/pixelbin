@@ -1,17 +1,12 @@
-.media-info {
-  width: 400px;
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: first baseline;
+  gap: calc(var(--spacing) * 2);
+  max-width: 450px;
 
   i {
     font-style: italic;
-  }
-
-  dl {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    padding: calc(var(--spacing) * 4);
-    align-items: first baseline;
-    gap: calc(var(--spacing) * 2);
-    max-width: 450px;
   }
 
   .metadata-label {

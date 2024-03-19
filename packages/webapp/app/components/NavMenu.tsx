@@ -28,14 +28,13 @@ export default function NavMenu({ serverState }: { serverState: State }) {
     <div className="c-navmenu">
       <IconButton icon="menu" onClick={openNavigator} />
       <SlidePanel
+        label="Catalogs"
         show={showNavigator}
         position="left"
-        onClose={hideNavigator}
-        className="c-navigator"
+        theme="light"
+        onClosed={hideNavigator}
       >
-        <div className="viewport">
-          <CatalogNav serverState={serverState} />
-        </div>
+        <CatalogNav serverState={serverState} />
       </SlidePanel>
     </div>
   );

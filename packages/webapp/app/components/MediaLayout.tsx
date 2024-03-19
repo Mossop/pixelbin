@@ -205,11 +205,10 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       </Overlay>
       {currentMedia && (
         <SlidePanel
+          label="Metadata"
           show={infoPanelShown}
           position="right"
-          onClose={closeInfoPanel}
-          theme="dark"
-          className="media-info"
+          onClosed={closeInfoPanel}
         >
           <MediaInfo media={currentMedia} />
         </SlidePanel>

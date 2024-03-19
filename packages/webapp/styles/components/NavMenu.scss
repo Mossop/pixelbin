@@ -6,22 +6,6 @@
   }
 }
 
-.c-navigator {
-  width: 100vw;
-
-  .viewport {
-    height: 100vh;
-    width: 100vw;
-    overflow-y: auto;
-    padding: calc(var(--spacing) * 2);
-  }
-
-  .buttons {
-    font-size: 150%;
-    position: sticky;
-    top: 0;
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: calc(var(--spacing) * 2);
-  }
+.c-navmenu sl-drawer {
+  --size: 100%;
 }

@@ -290,7 +290,7 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
   }, [media]);
 
   return (
-    <dl>
+    <dl className="c-media-info">
       <Metadata media={media} property="filename" />
       <Metadata media={media} property="title" />
       <Metadata media={media} property="description" />
