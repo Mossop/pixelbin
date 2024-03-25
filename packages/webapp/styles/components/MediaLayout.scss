@@ -14,7 +14,7 @@
     flex: 1;
     align-items: center;
     justify-content: space-between;
-    padding: calc(var(--spacing) * 4);
+    padding: var(--sl-spacing-medium);
     font-size: 300%;
   }
 
@@ -22,8 +22,8 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: calc(var(--spacing) * 4);
-    gap: calc(var(--spacing) * 6);
+    padding: var(--sl-spacing-medium);
+    gap: var(--sl-spacing-x-large);
     background: color-mix(
       in srgb,
       var(--sl-color-neutral-200) 70%,
@@ -34,7 +34,7 @@
       flex: 1;
       display: flex;
       align-items: center;
-      gap: calc(var(--spacing) * 6);
+      gap: var(--sl-spacing-x-large);
 
       .buttons {
         font-size: 200%;
@@ -43,7 +43,7 @@
       .scrubber {
         flex: 1;
         background-color: rgb(var(--background));
-        height: calc(var(--spacing) * 2);
+        height: var(--sl-spacing-x-small);
 
         .played {
           background-color: rgb(var(--color));
@@ -56,7 +56,7 @@
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: calc(var(--spacing) * 6);
+      gap: var(--sl-spacing-x-large);
       font-size: 200%;
     }
   }

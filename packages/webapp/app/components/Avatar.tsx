@@ -68,7 +68,7 @@ function Login() {
   return (
     <>
       <Button
-        type="primary"
+        className="sl-theme-light"
         onClick={() => setDialogShown(true)}
         label="Login"
       />

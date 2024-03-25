@@ -19,7 +19,7 @@
   }
 
   .item-icon {
-    margin-right: calc(var(--spacing) * 2);
+    margin-right: var(--sl-spacing-x-small);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -30,13 +30,11 @@
     color: inherit;
 
     &.selected {
-      color: var(--selected-color);
-      background-color: rgb(var(--selected-background));
+      background-color: var(--sl-color-neutral-200);
     }
 
     &:hover {
-      color: var(--hover-color) !important;
-      background-color: rgb(var(--hover-background)) !important;
+      background-color: var(--sl-color-neutral-300) !important;
     }
   }
 

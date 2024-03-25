@@ -14,7 +14,7 @@
 
   nav {
     border-right: 1px solid rgb(222, 226, 230);
-    padding-block: calc(var(--spacing) * 2);
+    padding-block: var(--sl-spacing-x-small);
     font-size: 0.9rem;
     overflow-y: auto;
   }

@@ -38,7 +38,7 @@ export default function Dialog({
     <SlDialog
       label={label}
       open={show}
-      className="sl-theme-light"
+      className="sl-theme-light apply-theme"
       onSlAfterHide={onClosed}
     >
       {children}

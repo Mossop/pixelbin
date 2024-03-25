@@ -21,7 +21,7 @@ export default function SlidePanel({
       open={show}
       placement={position == "left" ? "start" : "end"}
       onSlAfterHide={onClosed}
-      className={theme ? `sl-theme-${theme}` : undefined}
+      className={theme ? `sl-theme-${theme} apply-theme` : undefined}
     >
       {children}
     </SlDrawer>

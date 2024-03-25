@@ -31,7 +31,7 @@ export default function AppBar() {
   let matches = useMatches();
 
   return (
-    <header className="c-appbar sl-theme-dark">
+    <header className="c-appbar sl-theme-dark apply-theme">
       <div className="site">
         {serverState && <NavMenu serverState={serverState} />}
         <h1>PixelBin</h1>

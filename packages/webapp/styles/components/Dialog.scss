@@ -1,13 +1,6 @@
-@use "../theme";
-
-sl-dialog {
-  @include theme.light;
-  @include theme.apply-colors;
-}
-
 sl-dialog .footer {
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-  gap: calc(var(--spacing) * 3);
+  gap: var(--sl-spacing-small);
 }

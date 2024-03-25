@@ -2,7 +2,7 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: calc(var(--spacing) / 2);
+  gap: var(--sl-spacing-3x-small);
 
   .filled {
     color: var(--sl-color-amber-500);

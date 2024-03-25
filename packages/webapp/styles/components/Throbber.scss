@@ -18,11 +18,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: calc(var(--spacing) * 3);
+    gap: var(--sl-spacing-small);
 
     div {
-      width: calc(var(--spacing) * 4);
-      height: calc(var(--spacing) * 10);
+      width: var(--sl-spacing-medium);
+      height: var(--sl-spacing-3x-large);
       background: rgba(var(--theme-color-primary), 0.2);
     }
 

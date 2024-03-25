@@ -2,7 +2,7 @@ dl {
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: first baseline;
-  gap: calc(var(--spacing) * 2);
+  gap: var(--sl-spacing-x-small);
   max-width: 450px;
 
   i {
@@ -26,11 +26,11 @@ dl {
   .relation-list {
     display: flex;
     flex-wrap: wrap;
-    gap: calc(var(--spacing) * 2);
+    gap: var(--sl-spacing-x-small);
 
     li {
       border-radius: 0.5lh;
-      padding-inline: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+      padding-inline: var(--sl-spacing-x-small) var(--sl-spacing-small);
       display: flex;
       align-items: center;
       background-color: rgb(var(--background));
@@ -42,7 +42,7 @@ dl {
       }
 
       .c-icon {
-        padding-right: var(--spacing);
+        padding-right: var(--sl-spacing-2x-small);
       }
     }
   }

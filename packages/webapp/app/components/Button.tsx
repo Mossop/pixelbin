@@ -4,15 +4,22 @@ export default function Button({
   label,
   type = "default",
   disabled,
+  className,
   onClick = () => {},
 }: {
   label: string;
   type?: SlButtonProps["variant"];
   disabled?: boolean;
+  className?: string;
   onClick?: () => void;
 }) {
   return (
-    <SlButton onClick={onClick} disabled={disabled} variant={type}>
+    <SlButton
+      className={className}
+      onClick={onClick}
+      disabled={disabled}
+      variant={type}
+    >
       {label}
     </SlButton>
   );
