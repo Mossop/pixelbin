@@ -5,7 +5,7 @@ import { SlIcon, SlIconButton } from "shoelace-react";
 
 import "styles/components/Icon.scss";
 
-const ICONS = {
+export const ICONS = {
   catalog: "database-outline",
   albums: "image-multiple-outline",
   album: "image-multiple-outline",

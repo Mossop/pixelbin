@@ -9,6 +9,7 @@ $breakpoint: 1000px;
   --theme-color-primary: 63, 81, 181;
 
   --transition: var(--sl-transition-medium) cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  --slow-transition: var(--sl-transition-slow) cubic-bezier(0.4, 0, 0.2, 1) 0ms;
 }
 
 @mixin light {

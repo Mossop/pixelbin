@@ -1,9 +1,8 @@
-import { Link } from "@remix-run/react";
 import clsx from "clsx";
 import { DateTime } from "luxon";
 import { useMemo } from "react";
 
-import Icon, { IconName } from "./Icon";
+import Chip from "./Chip";
 import { Rating } from "./Rating";
 import {
   MediaRelations,
@@ -121,32 +120,6 @@ function tagUrl(catalog: string, tag: Relation): string {
   };
 
   return queryUrl(catalog, query);
-}
-
-function Chip({
-  icon,
-  href,
-  children,
-}: {
-  href?: string;
-  icon: IconName;
-  children: React.ReactNode;
-}) {
-  if (href) {
-    return (
-      <li>
-        <Link to={href}>
-          <Icon icon={icon} /> {children}
-        </Link>
-      </li>
-    );
-  }
-
-  return (
-    <li>
-      <Icon icon={icon} /> {children}
-    </li>
-  );
 }
 
 function Row({
@@ -299,7 +272,7 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="albums">
           <ul className="relation-list">
             {media.albums.map((r) => (
-              <Chip key={r.id} href={url(["album", r.id])} icon="album">
+              <Chip key={r.id} to={url(["album", r.id])} icon="album">
                 {r.name}
               </Chip>
             ))}
@@ -318,7 +291,7 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="tags">
           <ul className="relation-list">
             {media.tags.map((t) => (
-              <Chip key={t.id} href={tagUrl(media.catalog, t)} icon="tag">
+              <Chip key={t.id} to={tagUrl(media.catalog, t)} icon="tag">
                 {t.name}
               </Chip>
             ))}
@@ -329,7 +302,7 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="people">
           <ul className="relation-list">
             {media.people.map((p) => (
-              <Chip key={p.id} href={personUrl(media.catalog, p)} icon="person">
+              <Chip key={p.id} to={personUrl(media.catalog, p)} icon="person">
                 {p.name}
               </Chip>
             ))}

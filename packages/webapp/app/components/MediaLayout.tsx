@@ -113,23 +113,21 @@ function VideoInfo({ videoState }: { videoState: VideoState }) {
 }
 
 export default function MediaLayout({ media }: { media: MediaRelations }) {
-  let [loading, setLoading] = useState<MediaView | null>(null);
   let gallery = useGalleryUrl();
   let fromGallery = !!useLocation().state?.fromGallery;
   let currentMedia = useCurrentMedia();
-
-  let onLoad = useCallback(() => setLoading(media), [media]);
+  let displayingMedia = currentMedia ?? media;
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
 
-  let downloadUrl = currentMedia?.file
+  let downloadUrl = displayingMedia.file
     ? url([
         "media",
         "download",
-        currentMedia.id,
-        currentMedia.file.id,
-        currentMedia.file.fileName,
+        displayingMedia.id,
+        displayingMedia.file.id,
+        displayingMedia.file.fileName,
       ])
     : null;
 
@@ -164,8 +162,8 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       className="c-medialayout sl-theme-dark apply-theme"
       ref={fullscreenElement}
     >
-      <Media media={media} onLoad={onLoad} />
-      {loading !== media && (
+      <Media media={media} />
+      {currentMedia !== media && (
         <div className="loading-throbber">
           <Throbber />
         </div>
@@ -201,16 +199,14 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
           </div>
         </div>
       </Overlay>
-      {currentMedia && (
-        <SlidePanel
-          label="Metadata"
-          show={infoPanelShown}
-          position="right"
-          onClosed={closeInfoPanel}
-        >
-          <MediaInfo media={currentMedia} />
-        </SlidePanel>
-      )}
+      <SlidePanel
+        label="Metadata"
+        show={infoPanelShown}
+        position="right"
+        onClosed={closeInfoPanel}
+      >
+        <MediaInfo media={displayingMedia} />
+      </SlidePanel>
     </div>
   );
 }

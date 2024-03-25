@@ -210,24 +210,14 @@ export function RenderMedia({ media }: { media: MediaRelations }) {
   return <Photo media={media} file={file} />;
 }
 
-export default function Media({
-  media,
-  onLoad,
-}: {
-  media: MediaRelations;
-  onLoad?: () => void;
-}) {
+export default function Media({ media }: { media: MediaRelations }) {
   let [loadedMedia, setLoadedMedia] = useState<MediaRelations | null>(null);
   let currentMedia = useCurrentMedia();
   let mediaContext = useMediaContext();
 
   let onLoadComplete = useCallback(() => {
     setLoadedMedia(media);
-
-    if (onLoad) {
-      onLoad();
-    }
-  }, [media, onLoad]);
+  }, [media]);
 
   let loadingMedia = media.id !== loadedMedia?.id ? media : null;
 

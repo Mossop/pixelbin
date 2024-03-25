@@ -27,23 +27,5 @@ dl {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sl-spacing-x-small);
-
-    li {
-      border-radius: 0.5lh;
-      padding-inline: var(--sl-spacing-x-small) var(--sl-spacing-small);
-      display: flex;
-      align-items: center;
-      background-color: rgb(var(--background));
-      font-size: 90%;
-
-      a {
-        display: flex;
-        align-items: center;
-      }
-
-      .c-icon {
-        padding-right: var(--sl-spacing-2x-small);
-      }
-    }
   }
 }
