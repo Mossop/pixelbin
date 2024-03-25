@@ -272,9 +272,11 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="albums">
           <ul className="relation-list">
             {media.albums.map((r) => (
-              <Chip key={r.id} to={url(["album", r.id])} icon="album">
-                {r.name}
-              </Chip>
+              <li>
+                <Chip key={r.id} to={url(["album", r.id])} icon="album">
+                  {r.name}
+                </Chip>
+              </li>
             ))}
           </ul>
         </Row>
@@ -291,9 +293,11 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="tags">
           <ul className="relation-list">
             {media.tags.map((t) => (
-              <Chip key={t.id} to={tagUrl(media.catalog, t)} icon="tag">
-                {t.name}
-              </Chip>
+              <li>
+                <Chip key={t.id} to={tagUrl(media.catalog, t)} icon="tag">
+                  {t.name}
+                </Chip>
+              </li>
             ))}
           </ul>
         </Row>
@@ -302,9 +306,11 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="people">
           <ul className="relation-list">
             {media.people.map((p) => (
-              <Chip key={p.id} to={personUrl(media.catalog, p)} icon="person">
-                {p.name}
-              </Chip>
+              <li>
+                <Chip key={p.id} to={personUrl(media.catalog, p)} icon="person">
+                  {p.name}
+                </Chip>
+              </li>
             ))}
           </ul>
         </Row>
