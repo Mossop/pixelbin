@@ -1,4 +1,5 @@
 import { Link } from "@remix-run/react";
+import { SlBadge } from "shoelace-react";
 
 import Icon, { IconName } from "./Icon";
 
@@ -31,7 +32,15 @@ export function IconListItem({
             <Icon icon={icon} />
           </div>
           <span className="label">{label}</span>
-          <span className="count">{count === 0 ? "" : count}</span>
+          <span className="count">
+            {count === 0 ? (
+              ""
+            ) : (
+              <SlBadge variant="neutral" pill>
+                {count}
+              </SlBadge>
+            )}
+          </span>
         </Link>
         <div>{children}</div>
       </li>
