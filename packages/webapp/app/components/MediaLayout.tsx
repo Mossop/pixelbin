@@ -186,21 +186,16 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
           {videoState && <VideoInfo videoState={videoState} />}
           <div className="buttons">
             {downloadUrl && (
-              <>
-                <IconLink
-                  download={currentMedia?.file!.fileName}
-                  to={downloadUrl}
-                  icon="download"
-                />
-                {isFullscreen ? (
-                  <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
-                ) : (
-                  <IconButton
-                    onClick={enterFullscreen}
-                    icon="fullscreen-enter"
-                  />
-                )}
-              </>
+              <IconLink
+                download={currentMedia?.file!.fileName}
+                to={downloadUrl}
+                icon="download"
+              />
+            )}
+            {isFullscreen ? (
+              <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
+            ) : (
+              <IconButton onClick={enterFullscreen} icon="fullscreen-enter" />
             )}
             <IconButton onClick={showInfoPanel} icon="info" />
           </div>
