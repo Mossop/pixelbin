@@ -1,11 +1,10 @@
 import { Dispatch, useCallback, useMemo } from "react";
 import {
-  SlChangeEvent,
   SlInput,
-  SlInputElement,
+  SlInputChangeEvent,
   SlOption,
   SlSelect,
-  SlSelectElement,
+  SlSelectChangeEvent,
 } from "shoelace-react";
 
 import {
@@ -57,7 +56,7 @@ function StringValue<F>({
   setField: Dispatch<FieldQuery<F>>;
 }) {
   let onChange = useCallback(
-    (event: SlChangeEvent<SlInputElement>) => {
+    (event: SlInputChangeEvent) => {
       setField({
         ...field,
         // @ts-ignore
@@ -98,7 +97,7 @@ export function RenderPeopleChoices({
   );
 
   let onChange = useCallback(
-    (event: SlChangeEvent<SlSelectElement>) => {
+    (event: SlSelectChangeEvent) => {
       setField({
         ...field,
         // @ts-ignore
@@ -140,7 +139,7 @@ export function RenderAlbumChoices({
   );
 
   let onChange = useCallback(
-    (event: SlChangeEvent<SlSelectElement>) => {
+    (event: SlSelectChangeEvent) => {
       setField({
         ...field,
         // @ts-ignore
@@ -182,7 +181,7 @@ export function RenderTagChoices({
   );
 
   let onChange = useCallback(
-    (event: SlChangeEvent<SlSelectElement>) => {
+    (event: SlSelectChangeEvent) => {
       setField({
         ...field,
         // @ts-ignore
@@ -222,7 +221,7 @@ export function RelationQueryField<F>({
   choices: React.ReactNode;
 }) {
   let onOperatorChange = useCallback(
-    (event: SlChangeEvent<SlSelectElement>) => {
+    (event: SlSelectChangeEvent) => {
       let newField = { ...field };
       let value = event.target.value as string;
 
@@ -295,7 +294,7 @@ export function QueryField({
   setField: Dispatch<FieldQuery<MediaField>>;
 }) {
   let onOperatorChange = useCallback(
-    (event: SlChangeEvent<SlSelectElement>) => {
+    (event: SlSelectChangeEvent) => {
       let newField = { ...field };
       let value = event.target.value as string;
 

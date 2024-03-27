@@ -33,7 +33,7 @@
     "opentelemetry-instrumentation-remix": "^0.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "shoelace-react": "^1.2.0"
+    "shoelace-react": "^1.3.0"
   },
   "devDependencies": {
     "@mossop/config": "^1.4.1",

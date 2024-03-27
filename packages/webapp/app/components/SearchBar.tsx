@@ -3,8 +3,7 @@ import {
   SlCard,
   SlRadioButton,
   SlRadioGroup,
-  SlChangeEvent,
-  SlRadioGroupElement,
+  SlRadioGroupChangeEvent,
 } from "shoelace-react";
 
 import { IconButton } from "./Icon";
@@ -82,7 +81,7 @@ function CompoundHeader<I, T extends Omit<CompoundQuery<I>, "type">>({
   );
 
   let joinChanged = useCallback(
-    (event: SlChangeEvent<SlRadioGroupElement>) => {
+    (event: SlRadioGroupChangeEvent) => {
       setCompoundType(event.target.value as CompoundType);
     },
     [setCompoundType],
