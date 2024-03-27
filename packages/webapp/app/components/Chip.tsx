@@ -1,5 +1,5 @@
 import { Link } from "@remix-run/react";
-import { SlTag } from "shoelace-react";
+import { SlTag, SlTagProps } from "shoelace-react";
 
 import Icon, { IconName } from "./Icon";
 
@@ -7,12 +7,14 @@ import "styles/components/Chip.scss";
 
 export default function Chip({
   icon,
+  variant,
   to,
   replace,
   state,
   children,
 }: {
-  icon: IconName;
+  icon?: IconName;
+  variant?: SlTagProps["variant"];
   to?: string;
   replace?: boolean;
   state?: any;
@@ -21,8 +23,8 @@ export default function Chip({
   if (to) {
     return (
       <Link to={to} replace={replace} state={state}>
-        <SlTag pill size="small" className="c-chip">
-          <Icon icon={icon} />
+        <SlTag pill variant={variant} size="small" className="c-chip">
+          {icon && <Icon icon={icon} />}
           {children}
         </SlTag>
       </Link>
@@ -30,8 +32,8 @@ export default function Chip({
   }
 
   return (
-    <SlTag pill size="small" className="c-chip">
-      <Icon icon={icon} />
+    <SlTag pill variant={variant} size="small" className="c-chip">
+      {icon && <Icon icon={icon} />}
       {children}
     </SlTag>
   );

@@ -1,34 +1,16 @@
 .c-search-description {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: var(--sl-spacing-x-small);
+  sl-tag {
+    display: block;
+  }
 
   .compound {
     display: flex;
     flex-direction: row;
-    align-items: stretch;
-    gap: var(--sl-spacing-x-small);
-    border: var(--field-border);
-    border-radius: var(--sl-spacing-x-small);
-
-    .modifier {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      padding-left: var(--sl-spacing-2x-small);
-    }
-
-    .icon {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-    }
+    align-items: center;
+    gap: var(--sl-spacing-2x-small);
   }
 
-  .field {
-    border: var(--field-border);
-    border-radius: var(--sl-spacing-x-small);
-    padding: var(--sl-spacing-2x-small);
+  .innerCompound {
+    padding-block: var(--sl-spacing-2x-small);
   }
 }

@@ -1,51 +1,6 @@
 .c-query-field {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
+  align-items: center;
   gap: var(--sl-spacing-x-small);
-
-  .label {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    color: rgb(var(--field-highlight-color));
-  }
-
-  .operator {
-    border: var(--field-border);
-    border-radius: var(--sl-spacing-x-small);
-    padding-inline: var(--sl-spacing-small);
-    padding-block: var(--sl-spacing-small);
-    background-color: rgb(var(--background));
-    color: rgb(var(--field-highlight-color));
-
-    &:focus {
-      border: var(--input-focus-border);
-      outline: 0;
-      box-shadow:
-        var(--input-shadow),
-        0 0 0 0.25rem rgba(63, 81, 181, 0.25);
-    }
-  }
-
-  .value {
-    border: var(--field-border);
-    border-radius: var(--sl-spacing-x-small);
-    padding-inline: var(--sl-spacing-small);
-    padding-block: var(--sl-spacing-small);
-    background-color: rgb(var(--background));
-    color: rgb(var(--field-highlight-color));
-
-    &:focus {
-      border: var(--input-focus-border);
-      outline: 0;
-      box-shadow:
-        var(--input-shadow),
-        0 0 0 0.25rem rgba(63, 81, 181, 0.25);
-    }
-  }
-
-  input.value {
-    appearance: none;
-  }
 }

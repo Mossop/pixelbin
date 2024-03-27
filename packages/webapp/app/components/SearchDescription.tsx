@@ -1,28 +1,50 @@
 import { useCallback } from "react";
 
-import Icon, { IconName } from "./Icon";
+import Chip from "./Chip";
 import {
   AlbumField,
   CompoundQuery,
   CompoundQueryItem,
   FieldQuery,
+  Join,
   MediaField,
   Modifier,
   Operator,
   PersonField,
   RelationCompoundQuery,
   RelationFields,
-  RelationQuery,
   RelationQueryItem,
   SearchQuery,
   State,
   TagField,
 } from "../modules/types";
+import { keyFor } from "@/modules/client-util";
 
 import "styles/components/SearchDescription.scss";
 
 function isRelation(str: string): str is keyof RelationFields {
   return str == "tag" || str == "person" || str == "tag";
+}
+
+function joined(
+  nodes: React.ReactNode[],
+  join: Join | null | undefined,
+): React.ReactNode[] {
+  if (!nodes.length) {
+    return nodes;
+  }
+
+  let results = [nodes[0]];
+
+  for (let i = 1; i < nodes.length; i++) {
+    let key = keyFor({});
+    results.push(
+      join == Join.Or ? <span key={key}>or</span> : <span key={key}>and</span>,
+    );
+    results.push(nodes[i]);
+  }
+
+  return results;
 }
 
 function withModifier(name: string, modifier: Modifier | undefined): string {
@@ -145,43 +167,6 @@ function AlbumFieldDescription({
   );
 }
 
-function CompoundOuter({
-  query,
-  icon,
-  children,
-}: {
-  query:
-    | Omit<CompoundQuery, "type" | "queries">
-    | Omit<RelationQuery, "type" | "queries">;
-  icon?: IconName;
-  children: React.ReactNode;
-}): React.ReactNode {
-  if (query.invert) {
-    return (
-      <div className="compound">
-        {icon && (
-          <div className="icon">
-            <Icon icon={icon} />
-          </div>
-        )}{" "}
-        <div className="modifier">not</div>
-        {children}
-      </div>
-    );
-  }
-
-  return (
-    <div className="compound">
-      {icon && (
-        <div className="icon">
-          <Icon icon={icon} />
-        </div>
-      )}{" "}
-      {children}
-    </div>
-  );
-}
-
 function RelationCompoundDescription<R extends keyof RelationFields>({
   relation,
   query,
@@ -198,6 +183,7 @@ function RelationCompoundDescription<R extends keyof RelationFields>({
           case "person":
             return (
               <PersonFieldDescription
+                key={keyFor(fieldQuery)}
                 // @ts-ignore
                 query={fieldQuery}
                 serverState={serverState}
@@ -206,6 +192,7 @@ function RelationCompoundDescription<R extends keyof RelationFields>({
           case "album":
             return (
               <AlbumFieldDescription
+                key={keyFor(fieldQuery)}
                 // @ts-ignore
                 query={fieldQuery}
                 serverState={serverState}
@@ -214,6 +201,7 @@ function RelationCompoundDescription<R extends keyof RelationFields>({
           case "tag":
             return (
               <TagFieldDescription
+                key={keyFor(fieldQuery)}
                 // @ts-ignore
                 query={fieldQuery}
                 serverState={serverState}
@@ -225,24 +213,43 @@ function RelationCompoundDescription<R extends keyof RelationFields>({
       }
 
       if (fieldQuery.type == "compound") {
+        if (
+          fieldQuery.invert == query.invert &&
+          fieldQuery.join == query.join
+        ) {
+          return (
+            <RelationCompoundDescription
+              key={keyFor(fieldQuery)}
+              relation={relation}
+              query={fieldQuery}
+              serverState={serverState}
+            />
+          );
+        }
+
         return (
-          <RelationCompoundDescription
-            relation={relation}
-            query={fieldQuery}
-            serverState={serverState}
-          />
+          <Chip
+            key={keyFor(fieldQuery)}
+            variant={fieldQuery.invert ? "danger" : "success"}
+          >
+            <RelationCompoundDescription
+              relation={relation}
+              query={fieldQuery}
+              serverState={serverState}
+            />
+          </Chip>
         );
       }
 
       return null;
     },
-    [relation, serverState],
+    [relation, serverState, query],
   );
 
   return (
-    <CompoundOuter icon={relation} query={query}>
-      {query.queries.map(renderQuery)}
-    </CompoundOuter>
+    <div className="compound">
+      {joined(query.queries.map(renderQuery), query.join)}
+    </div>
   );
 }
 
@@ -256,34 +263,61 @@ function CompoundDescription({
   let renderQuery = useCallback(
     (fieldQuery: CompoundQueryItem) => {
       if (fieldQuery.type == "field") {
-        return <FieldDescription query={fieldQuery} />;
+        return <FieldDescription key={keyFor(fieldQuery)} query={fieldQuery} />;
       }
 
       if (fieldQuery.type == "compound") {
+        if (
+          fieldQuery.invert == query.invert &&
+          fieldQuery.join == query.join
+        ) {
+          return (
+            <CompoundDescription
+              key={keyFor(fieldQuery)}
+              query={fieldQuery}
+              serverState={serverState}
+            />
+          );
+        }
+
         return (
-          <CompoundDescription query={fieldQuery} serverState={serverState} />
+          <div key={keyFor(fieldQuery)} className="innerCompound">
+            <Chip variant={fieldQuery.invert ? "danger" : "success"}>
+              <CompoundDescription
+                query={fieldQuery}
+                serverState={serverState}
+              />
+            </Chip>
+          </div>
         );
       }
 
       if (isRelation(fieldQuery.type)) {
         return (
-          <RelationCompoundDescription
-            relation={fieldQuery.type}
-            query={fieldQuery}
-            serverState={serverState}
-          />
+          <div key={keyFor(fieldQuery)} className="innerCompound">
+            <Chip
+              icon={fieldQuery.type}
+              variant={fieldQuery.invert ? "danger" : "success"}
+            >
+              <RelationCompoundDescription
+                relation={fieldQuery.type}
+                query={fieldQuery}
+                serverState={serverState}
+              />
+            </Chip>
+          </div>
         );
       }
 
       return null;
     },
-    [serverState],
+    [serverState, query],
   );
 
   return (
-    <CompoundOuter query={query}>
-      {query.queries.map(renderQuery)}
-    </CompoundOuter>
+    <div className="compound">
+      {joined(query.queries.map(renderQuery), query.join)}
+    </div>
   );
 }
 
@@ -296,7 +330,9 @@ export function SearchDescription({
 }) {
   return (
     <div className="c-search-description">
-      <CompoundDescription query={query} serverState={serverState} />
+      <Chip icon="search" variant={query.invert ? "danger" : "success"}>
+        <CompoundDescription query={query} serverState={serverState} />
+      </Chip>
     </div>
   );
 }

@@ -15,10 +15,6 @@ $breakpoint: 1000px;
 @mixin light {
   --color: var(--sl-color-neutral-900);
   --background: var(--sl-color-neutral-50);
-
-  --input-shadow: rgba(0, 0, 0, 0.075) 0px 1px 2px 0px inset;
-  --input-border: 1px solid rgb(222, 226, 230);
-  --input-focus-border: 1px solid rgb(159, 168, 218);
 }
 
 @mixin dark {

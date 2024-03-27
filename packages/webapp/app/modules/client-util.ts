@@ -273,3 +273,16 @@ export function contextPropertyHook<C extends BaseContext, P extends keyof C>(
   return () =>
     useContextProperty(contextGetter(), (context: C): C[P] => context[prop]);
 }
+
+const KEY_SYMBOL = Symbol("key");
+let keyId = 0;
+export function keyFor(obj: object): string {
+  if (!(KEY_SYMBOL in obj)) {
+    // @ts-expect-error
+    // eslint-disable-next-line no-param-reassign
+    obj[KEY_SYMBOL] = `obj${keyId++}`;
+  }
+
+  // @ts-expect-error
+  return obj[KEY_SYMBOL];
+}

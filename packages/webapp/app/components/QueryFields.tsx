@@ -1,9 +1,17 @@
-import { ChangeEvent, Dispatch, useCallback, useMemo } from "react";
+import { Dispatch, useCallback, useMemo } from "react";
+import {
+  SlChangeEvent,
+  SlInput,
+  SlInputElement,
+  SlOption,
+  SlSelect,
+  SlSelectElement,
+} from "shoelace-react";
 
-import { IconButton } from "./Icon";
 import {
   AlbumField,
   FieldQuery,
+  MediaField,
   PersonField,
   State,
   TagField,
@@ -49,7 +57,7 @@ function StringValue<F>({
   setField: Dispatch<FieldQuery<F>>;
 }) {
   let onChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (event: SlChangeEvent<SlInputElement>) => {
       setField({
         ...field,
         // @ts-ignore
@@ -64,11 +72,11 @@ function StringValue<F>({
   }
 
   return (
-    <input
+    <SlInput
       className="value"
       type="text"
-      onChange={onChange}
-      value={field.value}
+      onSlChange={onChange}
+      value={`${field.value}`}
     />
   );
 }
@@ -90,12 +98,11 @@ export function RenderPeopleChoices({
   );
 
   let onChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      let option = event.target.options[event.target.selectedIndex];
+    (event: SlChangeEvent<SlSelectElement>) => {
       setField({
         ...field,
         // @ts-ignore
-        value: option.value,
+        value: event.currentTarget.value,
       });
     },
     [field, setField],
@@ -105,13 +112,13 @@ export function RenderPeopleChoices({
   let { value } = field;
 
   return (
-    <select className="value" onChange={onChange} value={value}>
+    <SlSelect className="value" hoist onSlChange={onChange} value={value}>
       {people.map((p) => (
-        <option key={p.id} value={p.id}>
+        <SlOption key={p.id} value={p.id}>
           {p.name}
-        </option>
+        </SlOption>
       ))}
-    </select>
+    </SlSelect>
   );
 }
 
@@ -133,12 +140,11 @@ export function RenderAlbumChoices({
   );
 
   let onChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      let option = event.target.options[event.target.selectedIndex];
+    (event: SlChangeEvent<SlSelectElement>) => {
       setField({
         ...field,
         // @ts-ignore
-        value: option.value,
+        value: event.currentTarget.value,
       });
     },
     [field, setField],
@@ -148,13 +154,13 @@ export function RenderAlbumChoices({
   let { value } = field;
 
   return (
-    <select className="value" onChange={onChange} value={value}>
+    <SlSelect className="value" hoist onSlChange={onChange} value={value}>
       {albums.map((a) => (
-        <option key={a.id} value={a.id}>
+        <SlOption key={a.id} value={a.id}>
           {a.name}
-        </option>
+        </SlOption>
       ))}
-    </select>
+    </SlSelect>
   );
 }
 
@@ -176,12 +182,11 @@ export function RenderTagChoices({
   );
 
   let onChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      let option = event.target.options[event.target.selectedIndex];
+    (event: SlChangeEvent<SlSelectElement>) => {
       setField({
         ...field,
         // @ts-ignore
-        value: option.value,
+        value: event.currentTarget.value,
       });
     },
     [field, setField],
@@ -191,13 +196,13 @@ export function RenderTagChoices({
   let { value } = field;
 
   return (
-    <select className="value" onChange={onChange} value={value}>
+    <SlSelect className="value" hoist onSlChange={onChange} value={value}>
       {tags.map((t) => (
-        <option key={t.id} value={t.id}>
+        <SlOption key={t.id} value={t.id}>
           {t.name}
-        </option>
+        </SlOption>
       ))}
-    </select>
+    </SlSelect>
   );
 }
 
@@ -207,7 +212,6 @@ export function RelationQueryField<F>({
   name,
   field,
   setField,
-  deleteField,
   choices,
 }: {
   label: string;
@@ -215,22 +219,23 @@ export function RelationQueryField<F>({
   name: F;
   field: FieldQuery<F>;
   setField: Dispatch<FieldQuery<F>>;
-  deleteField?: () => void;
   choices: React.ReactNode;
 }) {
   let onOperatorChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
+    (event: SlChangeEvent<SlSelectElement>) => {
       let newField = { ...field };
-      let option = event.target.options[event.target.selectedIndex];
+      let value = event.target.value as string;
 
-      newField.invert = false;
-      if (option.value.startsWith("not-")) {
+      if (value.startsWith("not-")) {
         newField.invert = true;
         // @ts-ignore
-        newField.operator = option.value.substring(4);
+        newField.operator = value.substring(4);
       } else {
+        if (newField.invert) {
+          newField.invert = undefined;
+        }
         // @ts-ignore
-        newField.operator = option.value;
+        newField.operator = value;
       }
 
       newField.field = newField.operator == "equal" ? id : name;
@@ -253,34 +258,86 @@ export function RelationQueryField<F>({
   }, [id, field]);
 
   return (
-    <>
-      <div className="c-query-field">
-        <div className="label">
-          <span>{label}</span>
-        </div>
-        <select
-          className="operator"
-          onChange={onOperatorChange}
-          value={currentOperator}
-        >
-          <option value="equal">is</option>
-          <option value="not-equal">is not</option>
-          <option value="startswith">starts with</option>
-          <option value="not-startswith">doesn&apos;t start with</option>
-          <option value="endswith">ends with</option>
-          <option value="not-endswith">doesn&apos;t end with</option>
-          <option value="contains">contains</option>
-          <option value="not-contains">doesn&apos;t contain</option>
-          <option value="matches">matches</option>
-          <option value="not-matches">doesn&apos;t match</option>
-        </select>
-        {field.field === id ? (
-          choices
-        ) : (
-          <StringValue field={field} setField={setField} />
-        )}
-      </div>
-      {deleteField && <IconButton icon="delete" onClick={deleteField} />}
-    </>
+    <div className="c-query-field">
+      <div className="label">{label}</div>
+      <SlSelect
+        className="operator"
+        onSlChange={onOperatorChange}
+        value={currentOperator}
+        placement="bottom"
+        hoist
+      >
+        <SlOption value="equal">is</SlOption>
+        <SlOption value="not-equal">is not</SlOption>
+        <SlOption value="startswith">starts with</SlOption>
+        <SlOption value="not-startswith">doesn&apos;t start with</SlOption>
+        <SlOption value="endswith">ends with</SlOption>
+        <SlOption value="not-endswith">doesn&apos;t end with</SlOption>
+        <SlOption value="contains">contains</SlOption>
+        <SlOption value="not-contains">doesn&apos;t contain</SlOption>
+        <SlOption value="matches">matches</SlOption>
+        <SlOption value="not-matches">doesn&apos;t match</SlOption>
+      </SlSelect>
+      {field.field === id ? (
+        choices
+      ) : (
+        <StringValue field={field} setField={setField} />
+      )}
+    </div>
+  );
+}
+
+export function QueryField({
+  field,
+  setField,
+}: {
+  field: FieldQuery<MediaField>;
+  setField: Dispatch<FieldQuery<MediaField>>;
+}) {
+  let onOperatorChange = useCallback(
+    (event: SlChangeEvent<SlSelectElement>) => {
+      let newField = { ...field };
+      let value = event.target.value as string;
+
+      if (value.startsWith("not-")) {
+        newField.invert = true;
+        // @ts-ignore
+        newField.operator = value.substring(4);
+      } else {
+        if (newField.invert) {
+          newField.invert = undefined;
+        }
+        // @ts-ignore
+        newField.operator = value;
+      }
+
+      setField(newField);
+    },
+    [setField, field],
+  );
+
+  return (
+    <div className="c-query-field">
+      <div className="label">{field.field}</div>
+      <SlSelect
+        className="operator"
+        onSlChange={onOperatorChange}
+        value={field.operator}
+        placement="bottom"
+        hoist
+      >
+        <SlOption value="equal">is</SlOption>
+        <SlOption value="not-equal">is not</SlOption>
+        <SlOption value="startswith">starts with</SlOption>
+        <SlOption value="not-startswith">doesn&apos;t start with</SlOption>
+        <SlOption value="endswith">ends with</SlOption>
+        <SlOption value="not-endswith">doesn&apos;t end with</SlOption>
+        <SlOption value="contains">contains</SlOption>
+        <SlOption value="not-contains">doesn&apos;t contain</SlOption>
+        <SlOption value="matches">matches</SlOption>
+        <SlOption value="not-matches">doesn&apos;t match</SlOption>
+      </SlSelect>
+      <StringValue field={field} setField={setField} />
+    </div>
   );
 }

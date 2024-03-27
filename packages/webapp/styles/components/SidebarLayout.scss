@@ -15,8 +15,10 @@
   nav {
     border-right: 1px solid rgb(222, 226, 230);
     padding-block: var(--sl-spacing-x-small);
+    padding-inline-end: var(--sl-spacing-small);
     font-size: 0.9rem;
     overflow-y: auto;
+    scrollbar-gutter: stable;
   }
 
   & > main {

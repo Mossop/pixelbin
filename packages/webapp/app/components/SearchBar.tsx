@@ -1,15 +1,22 @@
-import clsx from "clsx";
-import { Dispatch, useCallback, useEffect, useState } from "react";
-
-import Icon, { IconButton } from "./Icon";
+import { Dispatch, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  SlCard,
+  SlRadioButton,
+  SlRadioGroup,
+  SlChangeEvent,
+  SlRadioGroupElement,
+} from "shoelace-react";
+
+import { IconButton } from "./Icon";
+import {
+  QueryField,
   RelationQueryField,
   RenderAlbumChoices,
   RenderPeopleChoices,
   RenderTagChoices,
 } from "./QueryFields";
 import { SearchDescription } from "@/components/SearchDescription";
-import { useServerState, useTimeout } from "@/modules/client-util";
+import { keyFor, useServerState, useTimeout } from "@/modules/client-util";
 import {
   AlbumField,
   CompoundQuery,
@@ -32,6 +39,13 @@ type ItemRenderer<I> = (props: {
   catalog: string;
 }) => React.ReactNode;
 
+enum CompoundType {
+  And = "and",
+  Nand = "nand",
+  Or = "or",
+  Nor = "nor",
+}
+
 function CompoundHeader<I, T extends Omit<CompoundQuery<I>, "type">>({
   query,
   setQuery,
@@ -39,57 +53,48 @@ function CompoundHeader<I, T extends Omit<CompoundQuery<I>, "type">>({
   query: T;
   setQuery: (query: T) => void;
 }) {
-  let toggleInverted = useCallback(() => {
-    setQuery({
-      ...query,
-      invert: !query.invert,
-    });
-  }, [setQuery, query]);
+  let compoundType = useMemo(() => {
+    if (query.join == Join.Or) {
+      return query.invert ? CompoundType.Nor : CompoundType.Or;
+    }
+    return query.invert ? CompoundType.Nand : CompoundType.And;
+  }, [query]);
 
-  let selectAnd = useCallback(() => {
-    setQuery({
-      ...query,
-      join: Join.And,
-    });
-  }, [setQuery, query]);
+  let setCompoundType = useCallback(
+    (newType: CompoundType) => {
+      let newQuery = { ...query };
 
-  let selectOr = useCallback(() => {
-    setQuery({
-      ...query,
-      join: Join.Or,
-    });
-  }, [setQuery, query]);
+      if (newType == CompoundType.Nand || newType == CompoundType.Nor) {
+        newQuery.invert = true;
+      } else if (newQuery.invert) {
+        newQuery.invert = undefined;
+      }
+
+      if (newType == CompoundType.Nor || newType == CompoundType.Or) {
+        newQuery.join = Join.Or;
+      } else if (newQuery.join == Join.Or) {
+        newQuery.join = undefined;
+      }
+
+      setQuery(newQuery);
+    },
+    [setQuery, query],
+  );
+
+  let joinChanged = useCallback(
+    (event: SlChangeEvent<SlRadioGroupElement>) => {
+      setCompoundType(event.target.value as CompoundType);
+    },
+    [setCompoundType],
+  );
 
   return (
-    <div className="toggles">
-      <button
-        type="button"
-        className={clsx("toggle", "invert", query.invert && "selected")}
-        onClick={toggleInverted}
-      >
-        NOT
-      </button>
-      <label className={clsx("toggle", query.join != Join.Or && "selected")}>
-        <input
-          type="radio"
-          name="join"
-          value="and"
-          checked={query.join != Join.Or}
-          onChange={selectAnd}
-        />
-        AND
-      </label>
-      <label className={clsx("toggle", query.join == Join.Or && "selected")}>
-        <input
-          type="radio"
-          name="join"
-          value="or"
-          checked={query.join == Join.Or}
-          onChange={selectOr}
-        />
-        OR
-      </label>
-    </div>
+    <SlRadioGroup value={compoundType} onSlChange={joinChanged}>
+      <SlRadioButton value={CompoundType.And}>All of</SlRadioButton>
+      <SlRadioButton value={CompoundType.Or}>Any of</SlRadioButton>
+      <SlRadioButton value={CompoundType.Nor}>None of</SlRadioButton>
+      <SlRadioButton value={CompoundType.Nand}>Not all of</SlRadioButton>
+    </SlRadioGroup>
   );
 }
 
@@ -141,36 +146,33 @@ function QueryItem<I, T extends Omit<CompoundQuery<I>, "type">>({
         serverState,
         catalog,
       })}
+      <IconButton icon="delete" onClick={deleteItem} />
     </li>
   );
 }
 
-function Compound<I, T extends Omit<CompoundQuery<I>, "type">>({
+function Compound<I extends object, T extends Omit<CompoundQuery<I>, "type">>({
   query,
   setQuery,
-  deleteItem,
   serverState,
   catalog,
   renderer,
 }: {
   query: T;
   setQuery: (query: T) => void;
-  deleteItem?: () => void;
   serverState: State;
   catalog: string;
   renderer: ItemRenderer<I>;
 }) {
   return (
-    <div className="compound">
+    <SlCard className="compound">
       <div className="header">
         <CompoundHeader query={query} setQuery={setQuery} />
-        {deleteItem && <IconButton icon="delete" onClick={deleteItem} />}
       </div>
       <ul className="queries">
         {query.queries.map((item, index) => (
           <QueryItem
-            // eslint-disable-next-line react/no-array-index-key
-            key={index}
+            key={keyFor(item)}
             compound={query}
             setCompound={setQuery}
             item={index}
@@ -180,20 +182,18 @@ function Compound<I, T extends Omit<CompoundQuery<I>, "type">>({
           />
         ))}
       </ul>
-    </div>
+    </SlCard>
   );
 }
 
 function RenderTagItem({
   item,
   setItem,
-  deleteItem,
   serverState,
   catalog,
 }: {
   item: RelationQueryItem<TagField>;
   setItem: Dispatch<RelationQueryItem<TagField>>;
-  deleteItem?: () => void;
   serverState: State;
   catalog: string;
 }) {
@@ -204,7 +204,6 @@ function RenderTagItem({
         <Compound
           query={item}
           setQuery={setItem}
-          deleteItem={deleteItem}
           renderer={RenderTagItem}
           serverState={serverState}
           catalog={catalog}
@@ -218,7 +217,6 @@ function RenderTagItem({
           name={TagField.Name}
           field={item}
           setField={setItem}
-          deleteField={deleteItem}
           choices={
             <RenderTagChoices
               field={item}
@@ -235,13 +233,11 @@ function RenderTagItem({
 function RenderAlbumItem({
   item,
   setItem,
-  deleteItem,
   serverState,
   catalog,
 }: {
   item: RelationQueryItem<AlbumField>;
   setItem: Dispatch<RelationQueryItem<AlbumField>>;
-  deleteItem?: () => void;
   serverState: State;
   catalog: string;
 }) {
@@ -252,7 +248,6 @@ function RenderAlbumItem({
         <Compound
           query={item}
           setQuery={setItem}
-          deleteItem={deleteItem}
           renderer={RenderAlbumItem}
           serverState={serverState}
           catalog={catalog}
@@ -266,7 +261,6 @@ function RenderAlbumItem({
           name={AlbumField.Name}
           field={item}
           setField={setItem}
-          deleteField={deleteItem}
           choices={
             <RenderAlbumChoices
               field={item}
@@ -283,13 +277,11 @@ function RenderAlbumItem({
 function RenderPersonItem({
   item,
   setItem,
-  deleteItem,
   serverState,
   catalog,
 }: {
   item: RelationQueryItem<PersonField>;
   setItem: Dispatch<RelationQueryItem<PersonField>>;
-  deleteItem?: () => void;
   serverState: State;
   catalog: string;
 }) {
@@ -300,7 +292,6 @@ function RenderPersonItem({
         <Compound
           query={item}
           setQuery={setItem}
-          deleteItem={deleteItem}
           renderer={RenderPersonItem}
           serverState={serverState}
           catalog={catalog}
@@ -314,7 +305,6 @@ function RenderPersonItem({
           name={PersonField.Name}
           field={item}
           setField={setItem}
-          deleteField={deleteItem}
           choices={
             <RenderPeopleChoices
               field={item}
@@ -331,13 +321,11 @@ function RenderPersonItem({
 function RenderCompoundQueryItem({
   item,
   setItem,
-  deleteItem,
   serverState,
   catalog,
 }: {
   item: CompoundQueryItem;
   setItem: Dispatch<CompoundQueryItem>;
-  deleteItem?: () => void;
   serverState: State;
   catalog: string;
 }) {
@@ -349,7 +337,6 @@ function RenderCompoundQueryItem({
           query={item}
           setQuery={setItem}
           renderer={RenderCompoundQueryItem}
-          deleteItem={deleteItem}
           serverState={serverState}
           catalog={catalog}
         />
@@ -360,7 +347,6 @@ function RenderCompoundQueryItem({
           query={item}
           setQuery={setItem}
           renderer={RenderAlbumItem}
-          deleteItem={deleteItem}
           serverState={serverState}
           catalog={catalog}
         />
@@ -371,7 +357,6 @@ function RenderCompoundQueryItem({
           query={item}
           setQuery={setItem}
           renderer={RenderPersonItem}
-          deleteItem={deleteItem}
           serverState={serverState}
           catalog={catalog}
         />
@@ -382,13 +367,12 @@ function RenderCompoundQueryItem({
           query={item}
           setQuery={setItem}
           renderer={RenderTagItem}
-          deleteItem={deleteItem}
           serverState={serverState}
           catalog={catalog}
         />
       );
     default:
-      return null;
+      return <QueryField field={item} setField={setItem} />;
   }
 }
 
@@ -440,7 +424,6 @@ export default function SearchBar({
   if (!expanded) {
     return (
       <div className="c-searchbar collapsed">
-        <Icon icon="search" />
         <SearchDescription query={searchQuery} serverState={serverState} />
         <IconButton icon="expand" onClick={expand} />
       </div>
@@ -449,7 +432,6 @@ export default function SearchBar({
 
   return (
     <div className="c-searchbar">
-      <Icon icon="search" />
       <div className="expanded">
         <Compound
           query={currentQuery}

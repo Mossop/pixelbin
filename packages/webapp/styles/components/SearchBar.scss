@@ -1,28 +1,24 @@
 .c-searchbar {
   overflow: hidden;
-  background: var(--sl-color-neutral-200);
+  background: var(--sl-color-neutral-100);
+  box-shadow: var(--sl-shadow-small);
   padding: var(--sl-spacing-x-small);
   gap: var(--sl-spacing-x-small);
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-
-  --field-highlight-background: 167, 180, 250;
-  --field-highlight-color: var(--theme-color-primary);
-  --field-border: 1px solid rgb(var(--field-highlight-background));
-
-  color: rgb(var(--field-highlight-color));
+  justify-content: space-between;
 
   &.collapsed {
     align-items: center;
   }
 
-  .c-search-description {
-    flex: 1;
-  }
-
   .expanded {
     flex: 1;
+
+    sl-card {
+      --padding: var(--sl-spacing-x-small);
+    }
 
     .compound {
       display: flex;
@@ -35,29 +31,7 @@
         gap: var(--sl-spacing-2x-small);
         align-items: center;
         justify-content: space-between;
-
-        .toggles {
-          display: flex;
-          flex-direction: row;
-          gap: var(--sl-spacing-2x-small);
-          align-items: stretch;
-        }
-
-        .toggle {
-          border: var(--field-border);
-          border-radius: var(--sl-spacing-x-small);
-          padding: var(--sl-spacing-x-small);
-          color: rgb(var(--field-highlight-color));
-
-          &.selected {
-            background-color: rgb(var(--field-highlight-background));
-            color: rgb(var(--field-highlight-color));
-          }
-        }
-
-        input {
-          display: none;
-        }
+        padding-block-end: var(--sl-spacing-x-small);
       }
 
       .queries {
@@ -65,25 +39,17 @@
         flex-direction: column;
         align-items: stretch;
         gap: var(--sl-spacing-2x-small);
-        margin-left: var(--sl-spacing-x-small);
       }
 
       .query {
         display: flex;
         flex-direction: row;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
       }
 
       .compound {
-        border: var(--field-border);
-        border-radius: var(--sl-spacing-x-small);
-        padding: var(--sl-spacing-x-small);
         flex: 1;
-
-        .queries {
-          margin-right: 2em;
-        }
       }
     }
   }
