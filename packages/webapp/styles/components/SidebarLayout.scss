@@ -7,7 +7,6 @@
 }
 
 .c-sidebar-layout {
-  display: flex;
   flex: 1;
   overflow: hidden;
   position: relative;
@@ -28,6 +27,7 @@
 }
 
 div.c-sidebar-layout {
+  display: flex;
   flex-direction: row;
   overflow: hidden;
 }

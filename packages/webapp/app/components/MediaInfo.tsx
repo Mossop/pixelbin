@@ -82,7 +82,14 @@ function queryUrl(catalog: string, query: SearchQuery): string {
   return `${url(["catalog", catalog, "search"])}?${params}`;
 }
 
-function personUrl(catalog: string, person: PersonRelation): string {
+function personUrl(
+  catalog: string,
+  person: PersonRelation,
+): string | undefined {
+  if (!person.id) {
+    return undefined;
+  }
+
   let query: SearchQuery = {
     queries: [
       {
@@ -102,7 +109,11 @@ function personUrl(catalog: string, person: PersonRelation): string {
   return queryUrl(catalog, query);
 }
 
-function tagUrl(catalog: string, tag: Relation): string {
+function tagUrl(catalog: string, tag: Relation): string | undefined {
+  if (!tag.id) {
+    return undefined;
+  }
+
   let query: SearchQuery = {
     queries: [
       {
@@ -272,8 +283,8 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="albums">
           <ul className="relation-list">
             {media.albums.map((r) => (
-              <li>
-                <Chip key={r.id} to={url(["album", r.id])} icon="album">
+              <li key={r.id ?? r.name}>
+                <Chip to={r.id ? url(["album", r.id]) : undefined} icon="album">
                   {r.name}
                 </Chip>
               </li>
@@ -293,8 +304,8 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="tags">
           <ul className="relation-list">
             {media.tags.map((t) => (
-              <li>
-                <Chip key={t.id} to={tagUrl(media.catalog, t)} icon="tag">
+              <li key={t.id ?? t.name}>
+                <Chip to={tagUrl(media.catalog, t)} icon="tag">
                   {t.name}
                 </Chip>
               </li>
@@ -306,8 +317,8 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         <Row label="people">
           <ul className="relation-list">
             {media.people.map((p) => (
-              <li>
-                <Chip key={p.id} to={personUrl(media.catalog, p)} icon="person">
+              <li key={p.id ?? p.name}>
+                <Chip to={personUrl(media.catalog, p)} icon="person">
                   {p.name}
                 </Chip>
               </li>

@@ -189,9 +189,18 @@ pub async fn serve(store: Store) -> Result {
                     .service(relations::delete_album)
                     .service(relations::album_media_change),
             )
-            .service(media::thumbnail_handler)
-            .service(media::encoding_handler)
-            .service(media::download_handler)
+            .service(
+                web::scope("/media")
+                    .service(
+                        web::scope("/search/{search}")
+                            .service(media::thumbnail_handler)
+                            .service(media::encoding_handler)
+                            .service(media::download_handler),
+                    )
+                    .service(media::thumbnail_handler)
+                    .service(media::encoding_handler)
+                    .service(media::download_handler),
+            )
     })
     .bind(("0.0.0.0", port))?
     .run()

@@ -34,31 +34,29 @@ fn not_found() -> ApiResult<HttpResponse> {
 
 #[derive(Debug, Deserialize)]
 struct DownloadPath {
+    search: Option<String>,
     item: String,
     file: String,
     filename: String,
 }
 
-#[get("/media/download/{item}/{file}/{filename}")]
+#[get("/download/{item}/{file}/{filename}")]
 #[instrument(err, skip(app_state, session))]
 async fn download_handler(
     app_state: web::Data<AppState>,
-    session: Session,
+    session: MaybeSession,
     path: web::Path<DownloadPath>,
 ) -> ApiResult<impl Responder> {
+    let email = session.session().map(|s| s.user.email.as_str());
     let filename = path.filename.clone();
 
     let (media_file_path, storage, mimetype, file_name) = match app_state
         .store
         .in_transaction(|conn| {
             async move {
-                let (media_file, file_path) = models::MediaFile::get_for_user_media(
-                    conn,
-                    &session.user.email,
-                    &path.item,
-                    &path.file,
-                )
-                .await?;
+                let (media_file, file_path) =
+                    models::MediaFile::get_for_user_media(conn, email, &path.item, &path.file)
+                        .await?;
 
                 let storage = models::Storage::get_for_catalog(conn, &file_path.catalog).await?;
 
@@ -90,6 +88,7 @@ async fn download_handler(
 
 #[derive(Debug, Deserialize)]
 struct ThumbnailPath {
+    search: Option<String>,
     item: String,
     file: String,
     size: u32,
@@ -97,7 +96,7 @@ struct ThumbnailPath {
     _filename: String,
 }
 
-#[get("/media/thumb/{item}/{file}/{size}/{mimetype}/{_filename}")]
+#[get("/thumb/{item}/{file}/{size}/{mimetype}/{_filename}")]
 #[instrument(err, skip(app_state, session))]
 async fn thumbnail_handler(
     app_state: web::Data<AppState>,
@@ -153,6 +152,7 @@ async fn thumbnail_handler(
 
 #[derive(Debug, Deserialize)]
 struct EncodingPath {
+    search: Option<String>,
     item: String,
     file: String,
     mimetype: String,
@@ -164,7 +164,7 @@ struct EncodingResponse {
     url: String,
 }
 
-#[get("/media/encoding/{item}/{file}/{mimetype}/{_filename}")]
+#[get("/encoding/{item}/{file}/{mimetype}/{_filename}")]
 #[instrument(err, skip(app_state, session))]
 async fn encoding_handler(
     app_state: web::Data<AppState>,
@@ -237,18 +237,18 @@ pub(crate) struct GetMediaResponse<T> {
 #[instrument(err, skip(app_state, session), fields(media))]
 async fn get_media(
     app_state: web::Data<AppState>,
-    session: Session,
+    session: MaybeSession,
     media_ids: web::Path<String>,
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaRelations>>> {
     tracing::Span::current().record("media", media_ids.as_str());
     let ids: Vec<&str> = media_ids.split(',').to_owned().collect::<Vec<&str>>();
+    let email = session.session().map(|s| s.user.email.as_str());
 
     let response = app_state
         .store
         .in_transaction(|conn| {
             async move {
-                let media =
-                    models::MediaRelations::get_for_user(conn, &session.user.email, &ids).await?;
+                let media = models::MediaRelations::get_for_user(conn, email, &ids).await?;
 
                 Ok(GetMediaResponse {
                     total: media.len() as i64,

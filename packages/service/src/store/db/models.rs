@@ -937,14 +937,23 @@ impl SavedSearch {
 
     pub(crate) async fn get_for_user_with_count(
         conn: &mut DbConnection<'_>,
-        email: &str,
+        email: Option<&str>,
         search: &str,
     ) -> Result<(SavedSearch, i64)> {
-        user_catalog::table
-            .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
+        let email = email.unwrap_or_default().to_owned();
+
+        saved_search::table
             .left_join(media_search::table.on(saved_search::id.eq(media_search::search)))
-            .filter(user_catalog::user.eq(email))
             .filter(saved_search::id.eq(search))
+            .filter(
+                saved_search::shared
+                    .eq(true)
+                    .or(saved_search::catalog.eq_any(
+                        user_catalog::table
+                            .filter(user_catalog::user.eq(email))
+                            .select(user_catalog::catalog),
+                    )),
+            )
             .group_by(saved_search::id)
             .select((
                 saved_search::all_columns,
@@ -1486,14 +1495,30 @@ impl MediaFile {
 
     pub(crate) async fn get_for_user_media(
         conn: &mut DbConnection<'_>,
-        email: &str,
+        email: Option<&str>,
         media: &str,
         file: &str,
     ) -> Result<(MediaFile, MediaFilePath)> {
+        let email = email.unwrap_or_default().to_owned();
+
         let (media_file, catalog) = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
-            .filter(user_catalog::user.eq(email))
+            .filter(
+                media_item::id
+                    .eq_any(
+                        saved_search::table
+                            .inner_join(
+                                media_search::table.on(media_search::search.eq(saved_search::id)),
+                            )
+                            .filter(saved_search::shared.eq(true))
+                            .select(media_search::media),
+                    )
+                    .or(media_item::catalog.eq_any(
+                        user_catalog::table
+                            .filter(user_catalog::user.eq(email))
+                            .select(user_catalog::catalog),
+                    )),
+            )
             .filter(media_item::id.eq(media))
             .filter(media_file::id.eq(file))
             .select((media_file_columns!(), media_item::catalog))
@@ -1697,40 +1722,52 @@ impl AlternateFile {
         mimetype: &Mime,
         alternate_type: AlternateFileType,
     ) -> Result<Vec<(AlternateFile, FilePath)>> {
-        if let Some(email) = email {
-            let files = user_catalog::table
-                .filter(user_catalog::user.eq(email))
-                .inner_join(media_item::table.on(media_item::catalog.eq(user_catalog::catalog)))
-                .filter(media_item::id.eq(item))
-                .filter(media_item::media_file.eq(file))
-                .inner_join(
-                    alternate_file::table
-                        .on(media_item::media_file.eq(alternate_file::media_file.nullable())),
-                )
-                .filter(alternate_file::mimetype.eq(mimetype.as_ref()))
-                .filter(alternate_file::type_.eq(alternate_type))
-                .select((
-                    alternate_file::all_columns,
-                    media_item::id,
-                    media_item::catalog,
-                ))
-                .load::<(AlternateFile, String, String)>(conn)
-                .await?;
+        let email = email.unwrap_or_default().to_owned();
 
-            if !files.is_empty() {
-                return Ok(files
-                    .into_iter()
-                    .map(|(alternate, media_item, catalog)| {
-                        let file_path = FilePath {
-                            catalog,
-                            item: media_item,
-                            file: alternate.media_file.clone(),
-                            file_name: alternate.file_name.clone(),
-                        };
-                        (alternate, file_path)
-                    })
-                    .collect::<Vec<(AlternateFile, FilePath)>>());
-            }
+        let files = media_item::table
+            .left_join(media_search::table.on(media_search::media.eq(media_item::id)))
+            .filter(media_item::id.eq(item))
+            .filter(media_item::media_file.eq(file))
+            .filter(
+                media_search::search
+                    .eq_any(
+                        saved_search::table
+                            .filter(saved_search::shared.eq(true))
+                            .select(saved_search::id),
+                    )
+                    .or(media_item::catalog.eq_any(
+                        user_catalog::table
+                            .filter(user_catalog::user.eq(email))
+                            .select(user_catalog::catalog),
+                    )),
+            )
+            .inner_join(
+                alternate_file::table
+                    .on(media_item::media_file.eq(alternate_file::media_file.nullable())),
+            )
+            .filter(alternate_file::mimetype.eq(mimetype.as_ref()))
+            .filter(alternate_file::type_.eq(alternate_type))
+            .select((
+                alternate_file::all_columns,
+                media_item::id,
+                media_item::catalog,
+            ))
+            .load::<(AlternateFile, String, String)>(conn)
+            .await?;
+
+        if !files.is_empty() {
+            return Ok(files
+                .into_iter()
+                .map(|(alternate, media_item, catalog)| {
+                    let file_path = FilePath {
+                        catalog,
+                        item: media_item,
+                        file: alternate.media_file.clone(),
+                        file_name: alternate.file_name.clone(),
+                    };
+                    (alternate, file_path)
+                })
+                .collect::<Vec<(AlternateFile, FilePath)>>());
         }
 
         Ok(vec![])
@@ -1863,14 +1900,16 @@ impl MediaView {
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct AlbumRelation {
-    pub(crate) id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) id: Option<String>,
     pub(crate) name: String,
 }
 
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct TagRelation {
-    pub(crate) id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) id: Option<String>,
     pub(crate) name: String,
 }
 
@@ -1901,7 +1940,8 @@ impl serialize::ToSql<db::schema::sql_types::Location, Pg> for Location {
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct PersonRelation {
-    pub(crate) id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) id: Option<String>,
     pub(crate) name: String,
     pub(crate) location: Option<Location>,
 }
@@ -1939,26 +1979,55 @@ pub(crate) struct MediaRelations {
 impl MediaRelations {
     pub(crate) async fn get_for_user(
         conn: &mut DbConnection<'_>,
-        email: &str,
+        email: Option<&str>,
         media: &[&str],
     ) -> Result<Vec<MediaRelations>> {
+        let email = email.unwrap_or_default().to_owned();
+
         let media = media_view!()
-            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
+            .left_join(
+                user_catalog::table.on(user_catalog::catalog
+                    .eq(media_item::catalog)
+                    .and(user_catalog::user.eq(email))),
+            )
             .left_join(album_relation::table.on(album_relation::media.eq(media_item::id)))
             .left_join(tag_relation::table.on(tag_relation::media.eq(media_item::id)))
             .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
-            .filter(user_catalog::user.eq(email))
+            .left_join(media_search::table.on(media_search::media.eq(media_item::id)))
             .filter(media_item::id.eq_any(media))
+            .filter(
+                user_catalog::user
+                    .is_not_null()
+                    .or(media_search::search.eq_any(
+                        saved_search::table
+                            .filter(saved_search::shared.eq(true))
+                            .select(saved_search::id),
+                    )),
+            )
             .select((
-                media_view_columns!(),
-                album_relation::albums.nullable(),
-                tag_relation::tags.nullable(),
-                person_relation::people.nullable(),
+                (
+                    media_view_columns!(),
+                    album_relation::albums.nullable(),
+                    tag_relation::tags.nullable(),
+                    person_relation::people.nullable(),
+                ),
+                user_catalog::user.nullable(),
             ))
-            .load::<MediaRelations>(conn)
+            .load::<(MediaRelations, Option<String>)>(conn)
             .await?;
 
-        Ok(media)
+        Ok(media
+            .into_iter()
+            .map(|(mut item, user)| {
+                if user.is_none() {
+                    item.albums.0 = vec![];
+                    item.tags.0.iter_mut().for_each(|r| r.id = None);
+                    item.people.0.iter_mut().for_each(|r| r.id = None);
+                }
+
+                item
+            })
+            .collect())
     }
 }
 

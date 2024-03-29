@@ -31,11 +31,13 @@ function isNotFoundError(e: unknown): boolean {
   }
 }
 
-function authenticated(session: Session): ApiRequest {
+function assertAuthenticated(session: Session) {
   if (!session.get("token")) {
     throw new Error("Not yet authenticated");
   }
+}
 
+function authenticated(session: Session): ApiRequest {
   return {
     headers: {
       Authorization: `Bearer ${session.get("token")}`,
@@ -149,6 +151,8 @@ export async function state(session: Session): Promise<State | undefined> {
 }
 
 export async function getAlbum(session: Session, id: string): Promise<Album> {
+  assertAuthenticated(session);
+
   return apiCall<Album>(session, `/api/album/${id}`);
 }
 
@@ -163,6 +167,8 @@ export async function getCatalog(
   session: Session,
   id: string,
 ): Promise<Catalog> {
+  assertAuthenticated(session);
+
   return apiCall<Catalog>(session, `/api/catalog/${id}`);
 }
 
@@ -178,6 +184,10 @@ export async function* listMedia(
   source: "album" | "catalog" | "search",
   id: string,
 ): AsyncGenerator<ApiMediaView[], void, unknown> {
+  if (source != "search") {
+    assertAuthenticated(session);
+  }
+
   let offset = 0;
   while (true) {
     const response = await apiCall<ListMediaResponse<ApiMediaView>>(
@@ -198,6 +208,8 @@ export async function* searchMedia(
   catalog: string,
   query: SearchQuery,
 ): AsyncGenerator<ApiMediaView[], void, unknown> {
+  assertAuthenticated(session);
+
   let offset = 0;
   while (true) {
     const response = await apiCall<ListMediaResponse<ApiMediaView>>(

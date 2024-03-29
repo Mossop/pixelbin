@@ -8,7 +8,7 @@ use tracing::instrument;
 
 use crate::{
     server::{
-        auth::Session,
+        auth::{MaybeSession, Session},
         media::{GetMediaRequest, GetMediaResponse},
         task_queue::Task,
         ApiResponse, ApiResult, AppState,
@@ -277,19 +277,17 @@ struct SearchResponse {
 #[instrument(err, skip(app_state, session))]
 async fn get_search(
     app_state: web::Data<AppState>,
-    session: Session,
+    session: MaybeSession,
     search_id: web::Path<String>,
 ) -> ApiResult<web::Json<SearchResponse>> {
+    let email = session.session().map(|s| s.user.email.as_str());
+
     let response = app_state
         .store
         .in_transaction(|conn| {
             async move {
-                let (search, media) = models::SavedSearch::get_for_user_with_count(
-                    conn,
-                    &session.user.email,
-                    &search_id,
-                )
-                .await?;
+                let (search, media) =
+                    models::SavedSearch::get_for_user_with_count(conn, email, &search_id).await?;
 
                 Ok(SearchResponse { search, media })
             }
@@ -413,20 +411,18 @@ async fn get_album_media(
 #[instrument(err, skip(app_state, session))]
 async fn get_search_media(
     app_state: web::Data<AppState>,
-    session: Session,
+    session: MaybeSession,
     search_id: web::Path<String>,
     query: web::Query<GetMediaRequest>,
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
+    let email = session.session().map(|s| s.user.email.as_str());
+
     let response = app_state
         .store
         .in_transaction(|conn| {
             async move {
-                let (search, media_count) = models::SavedSearch::get_for_user_with_count(
-                    conn,
-                    &session.user.email,
-                    &search_id,
-                )
-                .await?;
+                let (search, media_count) =
+                    models::SavedSearch::get_for_user_with_count(conn, email, &search_id).await?;
                 let media = search.list_media(conn, query.offset, query.count).await?;
 
                 Ok(GetMediaResponse {

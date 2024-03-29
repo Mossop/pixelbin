@@ -275,7 +275,7 @@ interface Location {
 }
 
 export interface Relation {
-  id: string;
+  id?: string | null;
   name: string;
 }
 
