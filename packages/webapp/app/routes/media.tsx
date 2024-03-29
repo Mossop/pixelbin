@@ -1,10 +1,10 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { MetaDescriptor, useLoaderData } from "@remix-run/react";
 
 import MediaLayout from "@/components/MediaLayout";
 import { getMedia } from "@/modules/api";
 import { getSession } from "@/modules/session";
-import { deserializeMediaView, mediaTitle } from "@/modules/util";
+import { deserializeMediaView, mediaTitle, url } from "@/modules/util";
 
 export async function loader({
   request,
@@ -31,7 +31,47 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
     title = parentTitle;
   }
 
-  return title ? [{ title }] : [];
+  let metas: MetaDescriptor[] = [];
+
+  if (title) {
+    metas.push(
+      { title },
+      {
+        property: "og:title",
+        content: title,
+      },
+    );
+  }
+
+  if (media.description) {
+    metas.push({ property: "og:description", content: media.description });
+  }
+
+  if (media.file) {
+    let { filename } = media;
+    if (filename) {
+      let pos = filename.lastIndexOf(".");
+      if (pos > 0) {
+        filename = filename.substring(0, pos);
+      }
+    } else {
+      filename = "image";
+    }
+
+    metas.push({
+      property: "og:image",
+      content: `${process.env.PXL_API_URL}${url([
+        "media",
+        "encoding",
+        media.id,
+        media.file.id,
+        "image-jpeg",
+        `${filename}.jpg`,
+      ])}`,
+    });
+  }
+
+  return metas;
 };
 
 export default function Media() {
