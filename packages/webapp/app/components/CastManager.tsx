@@ -110,10 +110,6 @@ class CastManager extends BaseContext {
     }
   }
 
-  async stopMedia() {
-    // TODO
-  }
-
   updateSession(session: CastSession | null) {
     if (this.castSession === session) {
       return;
@@ -129,6 +125,10 @@ class CastManager extends BaseContext {
 
   castMedia(media: MediaView | null) {
     if (media && isCastable(media)) {
+      if (this.currentMedia?.id == media.id) {
+        return;
+      }
+
       this.currentMedia = media;
 
       if (this.castSession) {
@@ -136,10 +136,6 @@ class CastManager extends BaseContext {
       }
     } else {
       this.currentMedia = null;
-
-      if (this.castSession) {
-        this.stopMedia();
-      }
     }
   }
 }

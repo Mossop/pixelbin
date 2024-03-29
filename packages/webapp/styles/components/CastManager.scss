@@ -1,3 +1,10 @@
 .c-cast-button {
   height: 30px;
+  --connected-color: #ffffff;
+  --disconnected-color: var(--sl-color-neutral-600);
+}
+
+.c-cast-button:hover {
+  --connected-color: var(--sl-color-primary-600);
+  --disconnected-color: var(--sl-color-primary-600);
 }

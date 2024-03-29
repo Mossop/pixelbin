@@ -36,13 +36,13 @@
   .actions {
     display: flex;
     align-items: center;
-    gap: var(--sl-spacing-medium);
+    gap: var(--sl-spacing-large);
   }
 
   .buttons {
     display: flex;
     align-items: center;
-    gap: var(--sl-spacing-medium);
+    gap: var(--sl-spacing-large);
     font-size: 150%;
   }
 }
