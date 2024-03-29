@@ -9,6 +9,10 @@
 }
 
 @media (max-height: 500px) {
+  .c-medialayout {
+    position: fixed !important;
+  }
+
   .c-medialayout .navbar .inner {
     font-size: 200% !important;
   }
