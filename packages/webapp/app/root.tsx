@@ -5,10 +5,13 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  isRouteErrorResponse,
+  useRouteError,
 } from "@remix-run/react";
 
 import AppBar from "./components/AppBar";
 import CastManager from "./components/CastManager";
+import NotFound from "./components/NotFound";
 import SidebarLayout from "./components/SidebarLayout";
 import { state } from "./modules/api";
 import { getSession } from "./modules/session";
@@ -59,6 +62,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   );
+}
+
+export function ErrorBoundary() {
+  let error = useRouteError();
+
+  if (isRouteErrorResponse(error)) {
+    if (error.status == 404) {
+      return <NotFound />;
+    }
+
+    return `${error.status} ${error.statusText}`;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return `Unknown Error: ${error}`;
 }
 
 export default function App() {

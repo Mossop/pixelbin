@@ -230,7 +230,7 @@ export function useFullscreen(): FullscreenProps {
 
 export function useServerState(): State | undefined {
   // @ts-ignore
-  return useRouteLoaderData("root").serverState;
+  return useRouteLoaderData("root")?.serverState;
 }
 
 export abstract class BaseContext extends EventTarget {
