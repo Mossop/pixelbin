@@ -15,7 +15,7 @@ import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
-import { useFullscreen } from "@/modules/client-util";
+import { useFullscreen } from "@/modules/hooks";
 import { MediaRelations, MediaView } from "@/modules/types";
 import { formatTime, mediaDate, url } from "@/modules/util";
 

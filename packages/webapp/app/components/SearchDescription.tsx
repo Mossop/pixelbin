@@ -18,7 +18,7 @@ import {
   State,
   TagField,
 } from "../modules/types";
-import { keyFor } from "@/modules/client-util";
+import { keyFor } from "@/modules/util";
 
 import "styles/components/SearchDescription.scss";
 

@@ -3,7 +3,7 @@ import { UIMatch, useMatches } from "@remix-run/react";
 import Avatar from "./Avatar";
 import NavMenu from "./NavMenu";
 import { CastButton } from "@/components/CastManager";
-import { useServerState } from "@/modules/client-util";
+import { useServerState } from "@/modules/hooks";
 
 import "styles/components/AppBar.scss";
 

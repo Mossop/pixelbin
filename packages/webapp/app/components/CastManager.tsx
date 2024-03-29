@@ -7,7 +7,7 @@ import {
 } from "react";
 
 import { MediaView, MediaViewFile, Replace } from "../modules/types";
-import { BaseContext, contextPropertyHook } from "@/modules/client-util";
+import { BaseContext, contextPropertyHook } from "@/modules/hooks";
 import { url } from "@/modules/util";
 
 import "styles/components/CastManager.scss";

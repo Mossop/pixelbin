@@ -1,7 +1,7 @@
 import { Location, useLocation } from "@remix-run/react";
 
 import { IconList, IconListItem } from "./IconList";
-import { useServerState } from "@/modules/client-util";
+import { useServerState } from "@/modules/hooks";
 import { inSpan } from "@/modules/telemetry";
 import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { url } from "@/modules/util";

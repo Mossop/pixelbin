@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 
-import { useTimeout, useTransition } from "@/modules/client-util";
+import { useTimeout, useTransition } from "@/modules/hooks";
 
 import "styles/components/Overlay.scss";
 

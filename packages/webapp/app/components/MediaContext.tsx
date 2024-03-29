@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from "react";
 
-import { BaseContext, contextPropertyHook } from "@/modules/client-util";
+import { BaseContext, contextPropertyHook } from "@/modules/hooks";
 import { MediaRelations, MediaView } from "@/modules/types";
 
 export enum MediaType {

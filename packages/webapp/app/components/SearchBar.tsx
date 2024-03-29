@@ -15,7 +15,7 @@ import {
   RenderTagChoices,
 } from "./QueryFields";
 import { SearchDescription } from "@/components/SearchDescription";
-import { keyFor, useServerState, useTimeout } from "@/modules/client-util";
+import { useServerState, useTimeout } from "@/modules/hooks";
 import {
   AlbumField,
   CompoundQuery,
@@ -27,6 +27,7 @@ import {
   State,
   TagField,
 } from "@/modules/types";
+import { keyFor } from "@/modules/util";
 
 import "styles/components/SearchBar.scss";
 
