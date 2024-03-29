@@ -1,4 +1,3 @@
-import { produce } from "immer";
 import { NdjsonStream } from "ndjson-stream";
 import {
   Dispatch,
@@ -29,8 +28,8 @@ interface Context {
 }
 
 interface GroupContext {
-  readonly groups: readonly Group[];
-  readonly media: readonly MediaView[];
+  readonly groups: Group[];
+  readonly media: MediaView[];
 }
 
 abstract class Grouper {
@@ -49,27 +48,50 @@ abstract class Grouper {
       return;
     }
 
-    this.context = produce(this.context, (context) => {
-      let currentGroup = context.groups[context.groups.length - 1];
+    console.log(`Adding ${list.length} media`);
 
-      for (let media of list) {
-        let groupId = this.idFor(media);
+    let { media, groups } = this.context;
 
-        if (currentGroup?.id === groupId) {
-          currentGroup.media.push(media);
-        } else {
-          currentGroup = {
-            id: groupId,
-            title: this.titleFor(media),
-            media: [media],
-          };
+    let currentChanged = false;
+    let currentGroup = groups.pop();
 
-          context.groups.push(currentGroup);
-        }
-
-        context.media.push(...list);
+    let pushCurrent = () => {
+      if (!currentGroup) {
+        return;
       }
-    });
+
+      if (currentChanged) {
+        groups.push({
+          ...currentGroup,
+        });
+      } else {
+        groups.push(currentGroup);
+      }
+
+      currentGroup = undefined;
+    };
+
+    for (let item of list) {
+      let groupId = this.idFor(item);
+
+      if (currentGroup?.id === groupId) {
+        currentGroup.media.push(item);
+        currentChanged = true;
+      } else {
+        pushCurrent();
+
+        currentGroup = {
+          id: groupId,
+          title: this.titleFor(item),
+          media: [item],
+        };
+        currentChanged = false;
+      }
+    }
+
+    pushCurrent();
+
+    this.context = { media: [...media, ...list], groups: [...groups] };
   }
 }
 
