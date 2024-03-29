@@ -7,7 +7,7 @@ export function useTimeout(
   timeout: number,
   onFire: () => void,
   initialTrigger: boolean = false,
-): [trigger: () => void, cancel: () => void] {
+): [trigger: (timeout?: number) => void, cancel: () => void] {
   let [target, setTarget] = useState(() =>
     initialTrigger ? Date.now() + timeout : null,
   );
@@ -44,9 +44,14 @@ export function useTimeout(
     setTarget(null);
   }, []);
 
-  let trigger = useCallback(() => {
-    setTarget(Date.now() + timeout);
-  }, [timeout]);
+  let trigger = useCallback(
+    (customTimeout?: number) => {
+      setTarget((currentTarget) =>
+        Math.max(currentTarget ?? 0, Date.now() + (customTimeout ?? timeout)),
+      );
+    },
+    [timeout],
+  );
 
   return [trigger, cancel];
 }

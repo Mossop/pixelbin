@@ -54,26 +54,28 @@ function GalleryNavigation({
 
   return (
     <div className="navbar">
-      <div>
-        {previousMedia && (
-          <IconLink
-            icon="previous"
-            to={previousMedia}
-            replace
-            state={{ fromGallery }}
-          />
-        )}
-      </div>
-      <div className="center">{children}</div>
-      <div>
-        {nextMedia && (
-          <IconLink
-            icon="next"
-            to={nextMedia}
-            replace
-            state={{ fromGallery }}
-          />
-        )}
+      <div className="inner">
+        <div>
+          {previousMedia && (
+            <IconLink
+              icon="previous"
+              to={previousMedia}
+              replace
+              state={{ fromGallery }}
+            />
+          )}
+        </div>
+        <div className="center">{children}</div>
+        <div>
+          {nextMedia && (
+            <IconLink
+              icon="next"
+              to={nextMedia}
+              replace
+              state={{ fromGallery }}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -169,10 +171,30 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
         </div>
       )}
       <Overlay onClick={togglePlayback}>
-        <div className="infobar">
-          <div>{mediaDate(media).toRelative()}</div>
-          <div className="buttons">
-            <IconLink to={gallery} onClick={loadGallery} icon="close" />
+        <div className="infobars">
+          <div className="infobar">
+            <div>{mediaDate(media).toRelative()}</div>
+            <div className="buttons">
+              <IconLink to={gallery} onClick={loadGallery} icon="close" />
+            </div>
+          </div>
+          <div className="infobar">
+            {videoState && <VideoInfo videoState={videoState} />}
+            <div className="buttons">
+              {downloadUrl && (
+                <IconLink
+                  download={currentMedia?.file!.fileName}
+                  to={downloadUrl}
+                  icon="download"
+                />
+              )}
+              {isFullscreen ? (
+                <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
+              ) : (
+                <IconButton onClick={enterFullscreen} icon="fullscreen-enter" />
+              )}
+              <IconButton onClick={showInfoPanel} icon="info" />
+            </div>
           </div>
         </div>
         <GalleryNavigation media={currentMedia ?? media}>
@@ -180,24 +202,6 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
             <IconButton onClick={togglePlayback} icon="play" />
           )}
         </GalleryNavigation>
-        <div className="infobar">
-          {videoState && <VideoInfo videoState={videoState} />}
-          <div className="buttons">
-            {downloadUrl && (
-              <IconLink
-                download={currentMedia?.file!.fileName}
-                to={downloadUrl}
-                icon="download"
-              />
-            )}
-            {isFullscreen ? (
-              <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
-            ) : (
-              <IconButton onClick={enterFullscreen} icon="fullscreen-enter" />
-            )}
-            <IconButton onClick={showInfoPanel} icon="info" />
-          </div>
-        </div>
       </Overlay>
       <SlidePanel
         label="Metadata"

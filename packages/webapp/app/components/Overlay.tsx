@@ -22,19 +22,37 @@ export default function Overlay({
     skipInitialTransition: true,
   });
 
-  let [triggerTimeout] = useTimeout(
+  let [triggerTimeout, cancel] = useTimeout(
     TIMEOUT,
-    useCallback(() => setShown(false), []),
+    useCallback(() => setShown(true), []),
     true,
   );
 
-  let onMouseMove = useCallback(() => {
-    setShown(true);
-    triggerTimeout();
-  }, [triggerTimeout]);
+  let onPointerMove = useCallback(
+    (event: React.PointerEvent) => {
+      if (event.pointerType == "mouse") {
+        setShown(true);
+        triggerTimeout();
+      }
+    },
+    [triggerTimeout],
+  );
+
+  let onTouchStart = useCallback(() => {
+    setShown(!shown);
+    if (!shown) {
+      triggerTimeout(TIMEOUT * 2);
+    } else {
+      cancel();
+    }
+  }, [shown, triggerTimeout, cancel]);
 
   return (
-    <div className="c-overlay" onMouseMove={onMouseMove}>
+    <div
+      className="c-overlay"
+      onPointerMove={onPointerMove}
+      onTouchStart={onTouchStart}
+    >
       <div
         className={clsx("overlay-inner", className)}
         ref={overlayRef}

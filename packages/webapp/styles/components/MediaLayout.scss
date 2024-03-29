@@ -1,3 +1,19 @@
+@use "../theme";
+
+@media (max-width: theme.$breakpoint) {
+  .c-medialayout {
+    sl-drawer {
+      --size: 100%;
+    }
+  }
+}
+
+@media (max-height: 500px) {
+  .c-medialayout .navbar .inner {
+    font-size: 200% !important;
+  }
+}
+
 .c-medialayout {
   position: absolute;
   inset: 0;
@@ -10,54 +26,73 @@
   }
 
   .navbar {
+    position: absolute;
+    inset: 0;
     display: flex;
-    flex: 1;
+    flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--sl-spacing-medium);
-    font-size: 300%;
-  }
+    justify-content: stretch;
+    pointer-events: none;
 
-  .infobar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: var(--sl-spacing-medium);
-    gap: var(--sl-spacing-x-large);
-    background: color-mix(
-      in srgb,
-      var(--sl-color-neutral-200) 70%,
-      rgba(0, 0, 0, 0)
-    );
-
-    .video-info {
-      flex: 1;
+    .inner {
+      pointer-events: auto;
+      width: 100%;
       display: flex;
       align-items: center;
-      gap: var(--sl-spacing-x-large);
-
-      .buttons {
-        font-size: 200%;
-      }
-
-      .scrubber {
-        flex: 1;
-        background-color: rgb(var(--background));
-        height: var(--sl-spacing-x-small);
-
-        .played {
-          background-color: rgb(var(--color));
-          height: 100%;
-        }
-      }
+      justify-content: space-between;
+      font-size: 300%;
     }
+  }
 
-    .buttons {
+  .infobars {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+
+    .infobar {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: var(--sl-spacing-x-large);
-      font-size: 200%;
+      padding-inline: var(--sl-spacing-small);
+      padding-block: var(--sl-spacing-x-small);
+      gap: var(--sl-spacing-medium);
+      background: color-mix(
+        in srgb,
+        var(--sl-color-neutral-200) 70%,
+        rgba(0, 0, 0, 0)
+      );
+
+      .video-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: var(--sl-spacing-x-large);
+
+        .buttons {
+          font-size: 200%;
+        }
+
+        .scrubber {
+          flex: 1;
+          background-color: rgb(var(--background));
+          height: var(--sl-spacing-x-small);
+
+          .played {
+            background-color: rgb(var(--color));
+            height: 100%;
+          }
+        }
+      }
+
+      .buttons {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        font-size: 200%;
+        gap: var(--sl-spacing-x-small);
+      }
     }
   }
 }
