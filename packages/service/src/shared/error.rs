@@ -4,6 +4,7 @@ use std::io;
 use actix_multipart::MultipartError;
 use diesel::ConnectionError;
 use diesel_async::pooled_connection::deadpool::{BuildError, PoolError};
+use figment::Error as FigmentError;
 use image::ImageError;
 use mime::{FromStrError, Mime};
 use thiserror::Error;
@@ -38,6 +39,11 @@ pub enum Error {
     NotFound,
     #[error("Config file error: {message}")]
     ConfigError { message: String },
+    #[error("Config file error: {source}")]
+    ConfigParseError {
+        #[from]
+        source: FigmentError,
+    },
     #[error("IO error: {source}")]
     IoError {
         #[from]

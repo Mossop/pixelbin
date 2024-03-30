@@ -1,4 +1,4 @@
-use std::{env, error::Error, io, path::PathBuf, result, time::Duration};
+use std::{env, error::Error, io, result, time::Duration};
 
 use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
@@ -132,7 +132,7 @@ trait Runnable {
 #[clap(author, version)]
 struct CliArgs {
     #[clap(short, long)]
-    config: Option<PathBuf>,
+    config: Option<String>,
 
     #[clap(subcommand)]
     command: Command,

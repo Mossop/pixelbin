@@ -1,10 +1,13 @@
-use std::{
-    env,
-    fs::{self, File},
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{env, fs, path::PathBuf, str::FromStr};
 
+use figment::{
+    providers::{Env, Format, Json},
+    value::{
+        magic::{Either, RelativePathBuf},
+        Uncased, UncasedStr,
+    },
+    Figment,
+};
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 
@@ -64,19 +67,15 @@ impl Default for ThumbnailConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Default)]
 pub struct Config {
-    #[serde(default)]
-    storage: PathBuf,
-
+    /// The url of the opentelemetry endpoint to use.
     pub telemetry: Option<String>,
 
-    #[serde(default)]
     /// The location of locally stored alternate files.
     pub local_storage: PathBuf,
+
     /// The location of temporary files.
-    #[serde(default)]
     pub temp_storage: PathBuf,
 
     /// The database connection url.
@@ -88,66 +87,97 @@ pub struct Config {
     /// The canonical API host url.
     pub api_url: Option<String>,
 
-    #[serde(default)]
     pub thumbnails: ThumbnailConfig,
 }
 
-fn resolve(root: &Path, path: &mut PathBuf) -> Result {
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoragePaths {
+    local: RelativePathBuf,
+    temp: RelativePathBuf,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ParsedConfig {
+    telemetry: Option<String>,
+    storage: Option<Either<RelativePathBuf, StoragePaths>>,
+    database_url: String,
+    port: Option<u16>,
+    api_url: Option<String>,
+    thumbnails: Option<ThumbnailConfig>,
+}
+
+fn resolve(mut path: PathBuf) -> Result<PathBuf> {
     if !path.is_absolute() {
-        *path = root.join(&path);
+        path = env::current_dir().unwrap().join(&path);
     }
 
     fs::create_dir_all(&path).map_err(|e| Error::ConfigError {
         message: format!("Failed to create directory '{}': {}", path.display(), e),
     })?;
 
-    *path = path.canonicalize().map_err(|e| Error::ConfigError {
+    path = path.canonicalize().map_err(|e| Error::ConfigError {
         message: format!("Failed to resolve directory '{}': {}", path.display(), e),
     })?;
 
-    Ok(())
+    Ok(path)
+}
+
+fn map_env(key: &UncasedStr) -> Uncased<'_> {
+    key.as_str()
+        .split('_')
+        .enumerate()
+        .fold(String::new(), |mut key, (idx, part)| {
+            if idx == 0 {
+                key.push_str(&part.to_lowercase());
+            } else {
+                key.push_str(&part[0..1].to_uppercase());
+                key.push_str(&part[1..].to_lowercase());
+            }
+
+            key
+        })
+        .into()
 }
 
 impl Config {
-    pub fn load(config_file: &Path) -> Result<Self> {
-        tracing::debug!("Loading config from {}", config_file.display());
-        let root = env::current_dir()
-            .unwrap()
-            .join(config_file.parent().unwrap());
+    pub fn load(config_file: Option<&str>) -> Result<Self> {
+        let file_provider = if let Some(path) = config_file {
+            Json::file_exact(path)
+        } else {
+            Json::file("pixelbin.json")
+        };
 
-        let reader = File::open(config_file).map_err(|e| Error::ConfigError {
-            message: format!(
-                "Failed to open config file '{}': {}",
-                config_file.display(),
-                e
+        let parsed: ParsedConfig = Figment::new()
+            .join(Env::prefixed("PIXELBIN_").map(map_env).lowercase(false))
+            .join(file_provider)
+            .extract()?;
+
+        let (local, temp) = match parsed.storage {
+            Some(Either::Left(storage)) => {
+                let storage_path = resolve(storage.relative())?;
+                (storage_path.join("local"), storage_path.join("temp"))
+            }
+            Some(Either::Right(paths)) => (
+                resolve(paths.local.relative())?,
+                resolve(paths.temp.relative())?,
             ),
-        })?;
+            None => {
+                let storage_path = env::current_dir().unwrap();
+                (storage_path.join("local"), storage_path.join("temp"))
+            }
+        };
 
-        let mut config: Config =
-            serde_json::from_reader(reader).map_err(|e| Error::ConfigError {
-                message: format!(
-                    "Failed to parse config file '{}': {}",
-                    config_file.display(),
-                    e
-                ),
-            })?;
-
-        if config.storage.as_os_str().is_empty() {
-            config.storage = root.clone();
-        }
-        resolve(&root, &mut config.storage)?;
-
-        if config.local_storage.as_os_str().is_empty() {
-            config.local_storage = config.storage.join("local");
-        }
-        resolve(&root, &mut config.local_storage)?;
-
-        if config.temp_storage.as_os_str().is_empty() {
-            config.temp_storage = config.storage.join("temp");
-        }
-        resolve(&root, &mut config.temp_storage)?;
-
-        Ok(config)
+        Ok(Config {
+            telemetry: parsed.telemetry,
+            local_storage: resolve(local)?,
+            temp_storage: resolve(temp)?,
+            database_url: parsed.database_url,
+            port: parsed.port,
+            api_url: parsed.api_url,
+            thumbnails: parsed.thumbnails.unwrap_or_default(),
+        })
     }
 
     pub(crate) fn local_store(&self) -> DiskStore {

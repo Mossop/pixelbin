@@ -5,20 +5,13 @@ pub(crate) mod error;
 pub(crate) mod json;
 pub(crate) mod mime;
 
-use std::path::Path;
-
 use config::Config;
 use error::Result;
 use nano_id::base62;
 use tracing::{Instrument, Span};
 
-pub fn load_config(config_file: Option<&Path>) -> Result<Config> {
-    if let Some(path) = config_file {
-        Config::load(path)
-    } else {
-        let path = std::env::current_dir()?;
-        Config::load(&path.join("pixelbin.json"))
-    }
+pub fn load_config(config_file: Option<&str>) -> Result<Config> {
+    Config::load(config_file)
 }
 
 pub(crate) fn long_id(prefix: &str) -> String {

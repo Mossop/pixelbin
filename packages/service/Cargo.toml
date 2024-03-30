@@ -55,6 +55,8 @@ lexical-parse-float = "0.8.5"
 chrono-tz = "0.8.4"
 tempfile = "^3.4"
 image = { version = "0.24.8", features = ["webp-encoder"] }
+async-channel = "2.1.1"
+figment = { version = "0.10.15", features = ["json", "env"] }
 
 actix-web = { version = "4.3.1", optional = true }
 actix-multipart = { version = "0.6.1", optional = true }
@@ -64,4 +66,3 @@ serde_with = { version = "3.0.0", optional = true }
 mime = { version = "0.3.17", optional = true }
 tokio-util = { version = "0.7.8", features = ["io"], optional = true }
 file-format = { version = "0.23.0", features = ["reader-mp4"], optional = true }
-async-channel = "2.1.1"
