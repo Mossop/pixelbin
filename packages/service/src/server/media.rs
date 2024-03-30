@@ -34,7 +34,6 @@ fn not_found() -> ApiResult<HttpResponse> {
 
 #[derive(Debug, Deserialize)]
 struct DownloadPath {
-    search: Option<String>,
     item: String,
     file: String,
     filename: String,
@@ -88,7 +87,6 @@ async fn download_handler(
 
 #[derive(Debug, Deserialize)]
 struct ThumbnailPath {
-    search: Option<String>,
     item: String,
     file: String,
     size: u32,
@@ -152,7 +150,6 @@ async fn thumbnail_handler(
 
 #[derive(Debug, Deserialize)]
 struct EncodingPath {
-    search: Option<String>,
     item: String,
     file: String,
     mimetype: String,

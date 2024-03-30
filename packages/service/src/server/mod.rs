@@ -191,12 +191,6 @@ pub async fn serve(store: Store) -> Result {
             )
             .service(
                 web::scope("/media")
-                    .service(
-                        web::scope("/search/{search}")
-                            .service(media::thumbnail_handler)
-                            .service(media::encoding_handler)
-                            .service(media::download_handler),
-                    )
                     .service(media::thumbnail_handler)
                     .service(media::encoding_handler)
                     .service(media::download_handler),
