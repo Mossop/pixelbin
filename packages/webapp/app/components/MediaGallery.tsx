@@ -48,25 +48,21 @@ abstract class Grouper {
       return;
     }
 
-    console.log(`Adding ${list.length} media`);
-
     let { media, groups } = this.context;
 
-    let currentChanged = false;
+    let wasLast = true;
     let currentGroup = groups.pop();
 
     let pushCurrent = () => {
+      wasLast = false;
+
       if (!currentGroup) {
         return;
       }
 
-      if (currentChanged) {
-        groups.push({
-          ...currentGroup,
-        });
-      } else {
-        groups.push(currentGroup);
-      }
+      groups.push({
+        ...currentGroup,
+      });
 
       currentGroup = undefined;
     };
@@ -75,8 +71,16 @@ abstract class Grouper {
       let groupId = this.idFor(item);
 
       if (currentGroup?.id === groupId) {
-        currentGroup.media.push(item);
-        currentChanged = true;
+        if (wasLast) {
+          currentGroup = {
+            ...currentGroup,
+            media: [...currentGroup.media, item],
+          };
+
+          wasLast = false;
+        } else {
+          currentGroup.media.push(item);
+        }
       } else {
         pushCurrent();
 
@@ -85,7 +89,6 @@ abstract class Grouper {
           title: this.titleFor(item),
           media: [item],
         };
-        currentChanged = false;
       }
     }
 
