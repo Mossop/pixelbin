@@ -70,7 +70,7 @@ impl Default for ThumbnailConfig {
 #[derive(Clone, Debug, Default)]
 pub struct Config {
     /// The url of the opentelemetry endpoint to use.
-    pub telemetry: Option<String>,
+    pub telemetry_url: Option<String>,
 
     /// The location of locally stored alternate files.
     pub local_storage: PathBuf,
@@ -100,7 +100,7 @@ struct StoragePaths {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ParsedConfig {
-    telemetry: Option<String>,
+    telemetry_url: Option<String>,
     storage: Option<Either<RelativePathBuf, StoragePaths>>,
     database_url: String,
     port: Option<u16>,
@@ -170,7 +170,7 @@ impl Config {
         };
 
         Ok(Config {
-            telemetry: parsed.telemetry,
+            telemetry_url: parsed.telemetry_url,
             local_storage: resolve(local)?,
             temp_storage: resolve(temp)?,
             database_url: parsed.database_url,

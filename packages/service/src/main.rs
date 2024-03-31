@@ -201,7 +201,7 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let args = CliArgs::parse();
     let config = load_config(args.config.as_deref())?;
 
-    if let Err(e) = init_logging(config.telemetry.as_deref()) {
+    if let Err(e) = init_logging(config.telemetry_url.as_deref()) {
         eprintln!("Failed to initialise logging: {e}");
     }
 
