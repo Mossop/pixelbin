@@ -60,7 +60,7 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 
     metas.push({
       property: "og:image",
-      content: `${process.env.PXL_API_URL}${url([
+      content: `${process.env.PIXELBIN_API_URL}${url([
         "media",
         "encoding",
         media.id,

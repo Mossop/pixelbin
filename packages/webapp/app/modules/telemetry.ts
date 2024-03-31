@@ -70,7 +70,10 @@ export function apiFetch(path: string, init: ApiRequest): Promise<Response> {
       },
     });
 
-    const response = await fetch(`${process.env.PXL_API_URL}${path}`, realInit);
+    const response = await fetch(
+      `${process.env.PIXELBIN_API_URL}${path}`,
+      realInit,
+    );
 
     span.setAttribute("http.response.status_code", response.status);
 

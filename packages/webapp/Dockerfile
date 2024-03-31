@@ -14,6 +14,6 @@ RUN \
 
 EXPOSE 3000
 
-ENV PXL_API_URL="http://pixelbin-server:8283"
+ENV PIXELBIN_API_URL="http://pixelbin-server:8283"
 
 ENTRYPOINT ["npm", "start"]
