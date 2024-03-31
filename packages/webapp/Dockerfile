@@ -8,6 +8,7 @@ WORKDIR /app
 COPY packages/webapp /app
 
 RUN \
+  npm i g @rollup/rollup-linux-`node -p "process.arch"`-musl && \
   npm install && \
   npm run build
 

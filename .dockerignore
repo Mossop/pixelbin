@@ -3,7 +3,6 @@
 .github
 .vscode
 packages/LrPixelbin.lrplugin
-packages/webapp/package-lock.json
 packages/webapp/build
 packages/webapp/node_modules
 target
