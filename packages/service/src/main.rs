@@ -169,7 +169,7 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
                 .with_exporter(
                     opentelemetry_otlp::new_exporter()
                         .tonic()
-                        .with_endpoint(telemetry_host)
+                        .with_endpoint(format!("http://{telemetry_host}:4317"))
                         .with_timeout(Duration::from_secs(3)),
                 )
                 .with_trace_config(trace::config().with_resource(Resource::new(vec![
@@ -201,7 +201,7 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let args = CliArgs::parse();
     let config = load_config(args.config.as_deref())?;
 
-    if let Err(e) = init_logging(config.telemetry_url.as_deref()) {
+    if let Err(e) = init_logging(config.telemetry_host.as_deref()) {
         eprintln!("Failed to initialise logging: {e}");
     }
 

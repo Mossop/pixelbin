@@ -5,10 +5,10 @@ import { RemixInstrumentation } from "opentelemetry-instrumentation-remix";
 import { SEMRESATTRS_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { Resource } from "@opentelemetry/resources";
 
-if ("PIXELBIN_TELEMETRY_URL" in process.env) {
+if ("PIXELBIN_TELEMETRY_HOST" in process.env) {
   const sdk = new NodeSDK({
     traceExporter: new OTLPTraceExporter({
-      url: process.env.PIXELBIN_TELEMETRY_URL,
+      url: `http://${process.env.PIXELBIN_TELEMETRY_HOST}:4318/v1/traces`,
     }),
     instrumentations: [
       new ExpressInstrumentation(),
