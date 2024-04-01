@@ -22,9 +22,13 @@ use diesel_async::{
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use futures::Future;
 use schema::*;
-use tracing::{info, instrument, trace};
+use tracing::{info, instrument, span, trace, Level};
 
-use crate::{metadata::reprocess_catalog_media, shared::long_id, Config, Error, Result};
+use crate::{
+    metadata::reprocess_catalog_media,
+    shared::{long_id, spawn_blocking},
+    Config, Error, Result,
+};
 
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;
@@ -274,8 +278,13 @@ impl<'a> DbConnection<'a> {
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
 
-        if let Some(ref password_hash) = user.password {
-            match bcrypt::verify(password, password_hash) {
+        if let Some(password_hash) = user.password.clone() {
+            let password = password.to_owned();
+            match spawn_blocking(span!(Level::INFO, "verify password",), move || {
+                bcrypt::verify(password, &password_hash)
+            })
+            .await
+            {
                 Ok(true) => (),
                 _ => return Err(Error::NotFound),
             }
