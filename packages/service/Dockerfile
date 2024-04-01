@@ -1,14 +1,18 @@
 FROM rust:alpine3.19 AS builder
 
-RUN \
-  mkdir -p /build/packages
+RUN mkdir -p /build/packages/service/src
 
 WORKDIR /build
 
-COPY Cargo.toml Cargo.lock /build
-COPY packages/service /build/packages/service
-
 RUN apk add musl-dev libpq-dev postgresql16-dev openssl-libs-static
+COPY Cargo.toml Cargo.lock /build
+COPY packages/service/Cargo.toml /build/packages/service
+RUN \
+  echo "fn main() {}" > /build/packages/service/src/main.rs && \
+  RUSTFLAGS="-L/usr/lib/postgresql16 -lpgcommon -lpgport -lcrypto -lssl" cargo build --release && \
+  rm -rf /build/packages/service
+
+COPY packages/service /build/packages/service
 RUN RUSTFLAGS="-L/usr/lib/postgresql16 -lpgcommon -lpgport -lcrypto -lssl" cargo build --release
 
 FROM alpine:3.19
