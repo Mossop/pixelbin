@@ -1,4 +1,4 @@
-name: Build server
+name: Build webapp
 
 on:
   workflow_dispatch: {}
@@ -7,7 +7,7 @@ on:
       - 'v*'
 
 jobs:
-  build-server:
+  build-webapp:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +18,7 @@ jobs:
         id: docker_meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/mossop/pixelbin-server
+          images: ghcr.io/mossop/pixelbin-webapp
 
       - name: Setup buildx
         uses: docker/setup-buildx-action@v3
@@ -34,7 +34,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./packages/service/Dockerfile
+          file: ./packages/webapp/Dockerfile
           platforms: linux/amd64
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
