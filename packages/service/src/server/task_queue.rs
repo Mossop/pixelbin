@@ -1,8 +1,13 @@
-use std::{collections::HashMap, time::Instant};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 use async_channel::{unbounded, Receiver, Sender};
+use chrono::{Local, Timelike};
 use futures::StreamExt;
 use scoped_futures::ScopedFutureExt;
+use tokio::time::sleep;
 use tracing::{error, instrument, trace, Span};
 
 use crate::{
@@ -110,6 +115,13 @@ impl Task {
     }
 }
 
+fn next_tick() -> Duration {
+    let now = Local::now();
+    let seconds = 60 - now.second();
+
+    Duration::from_secs(seconds as u64)
+}
+
 #[derive(Clone)]
 pub(super) struct TaskQueue {
     sender: Sender<Task>,
@@ -124,7 +136,11 @@ impl TaskQueue {
         }
         tokio::spawn(TaskQueue::task_loop(store.clone(), receiver));
 
-        Self { sender }
+        let queue = Self { sender };
+
+        tokio::spawn(TaskQueue::cron_loop(queue.clone()));
+
+        queue
     }
 
     pub(super) async fn queue_task(&self, task: Task) {
@@ -152,6 +168,16 @@ impl TaskQueue {
                 Span::current().record("otel.status_code", "Error");
                 error!(error = %e, "Task failed");
             }
+        }
+    }
+
+    async fn cron_loop(self) {
+        loop {
+            sleep(next_tick()).await;
+
+            let now = Local::now();
+            let _hours = now.hour();
+            let _minutes = now.minute();
         }
     }
 

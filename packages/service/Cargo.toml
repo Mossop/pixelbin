@@ -42,7 +42,7 @@ diesel-derive-enum = "2.0.1"
 aws-sdk-s3 = "1.4.0"
 aws-config = "1.0.1"
 futures = "0.3.28"
-chrono = { version = "0.4.31", features = ["clock", "serde"] }
+chrono = { version = "0.4.31", features = ["clock", "serde", "clock"] }
 bcrypt = "0.15.0"
 monostate = "0.1.6"
 serde_repr = "0.1.12"
