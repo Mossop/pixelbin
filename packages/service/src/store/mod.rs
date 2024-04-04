@@ -6,10 +6,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use diesel_async::{
-    scoped_futures::{ScopedBoxFuture, ScopedFutureExt},
-    AsyncConnection,
-};
+use diesel_async::scoped_futures::{ScopedBoxFuture, ScopedFutureExt};
 
 pub(crate) mod aws;
 pub(crate) mod db;
@@ -174,6 +171,14 @@ impl FileStore for DiskStore {
     }
 }
 
+#[derive(Default, Clone, Copy)]
+pub enum Isolation {
+    #[default]
+    Committed,
+    Repeatable,
+    ReadOnly,
+}
+
 #[derive(Clone)]
 pub struct Store {
     config: Config,
@@ -207,7 +212,7 @@ impl Store {
     }
 
     #[instrument(skip_all)]
-    pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
+    pub async fn isolated<'a, R, F>(&self, level: Isolation, cb: F) -> Result<R>
     where
         R: 'a + Send,
         F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
@@ -216,13 +221,32 @@ impl Store {
     {
         let mut conn = self.pool.get().await?;
 
-        conn.transaction(|conn| {
-            async move {
-                let mut db_conn = DbConnection::from_transaction(conn, &self.config);
-                cb(&mut db_conn).await
-            }
-            .scope_boxed()
-        })
-        .await
+        let mut builder = conn.build_transaction();
+        builder = match level {
+            Isolation::Committed => builder.read_committed(),
+            Isolation::Repeatable => builder.repeatable_read(),
+            Isolation::ReadOnly => builder.repeatable_read().read_only(),
+        };
+
+        builder
+            .run(|conn| {
+                async move {
+                    let mut db_conn = DbConnection::from_transaction(conn, &self.config);
+                    cb(&mut db_conn).await
+                }
+                .scope_boxed()
+            })
+            .await
+    }
+
+    #[instrument(skip_all)]
+    pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
+    where
+        R: 'a + Send,
+        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
+            + Send
+            + 'a,
+    {
+        self.isolated(Default::default(), cb).await
     }
 }

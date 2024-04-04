@@ -703,18 +703,18 @@ impl Album {
             .await?)
     }
 
-    pub(crate) async fn get_for_user(
+    pub(crate) async fn get_for_user_for_update(
         conn: &mut DbConnection<'_>,
         email: &str,
         id: &str,
-        want_writable: bool,
     ) -> Result<Album> {
         user_catalog::table
             .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
             .filter(user_catalog::user.eq(email))
-            .filter(user_catalog::writable.or(sql_bool(!want_writable)))
+            .filter(user_catalog::writable)
             .filter(album::id.eq(id))
             .select(album::all_columns)
+            .for_update()
             .get_result::<Album>(conn)
             .await
             .optional()?
@@ -835,6 +835,7 @@ impl SavedSearch {
     pub(crate) async fn upgrade_queries(conn: &mut DbConnection<'_>) -> Result {
         let search_data = saved_search::table
             .select(saved_search::all_columns)
+            .for_update()
             .load::<(String, String, bool, Value, String)>(conn)
             .await?;
 
@@ -1241,18 +1242,18 @@ impl MediaItem {
         Ok(())
     }
 
-    pub(crate) async fn get_for_user(
+    pub(crate) async fn get_for_user_for_update(
         conn: &mut DbConnection<'_>,
         email: &str,
         ids: &[String],
-        want_writable: bool,
     ) -> Result<Vec<Self>> {
         Ok(media_item::table
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
             .filter(user_catalog::user.eq(email))
-            .filter(user_catalog::writable.or(sql_bool(!want_writable)))
+            .filter(user_catalog::writable)
             .filter(media_item::id.eq_any(ids))
             .select(media_item_columns!())
+            .for_update()
             .load::<Self>(conn)
             .await?)
     }

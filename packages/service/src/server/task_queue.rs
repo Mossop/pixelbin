@@ -12,7 +12,7 @@ use tracing::{error, instrument, trace, Span};
 
 use crate::{
     metadata::reprocess_media_file,
-    store::{db::DbConnection, models, path::ResourcePath},
+    store::{db::DbConnection, models, path::ResourcePath, Isolation},
     FileStore, Result, Store,
 };
 
@@ -153,7 +153,9 @@ impl TaskQueue {
         Span::current().record("otel.name", task.name());
 
         let result = store
-            .in_transaction(|conn| async move { task.run(conn).await }.scope_boxed())
+            .isolated(Isolation::Repeatable, |conn| {
+                async move { task.run(conn).await }.scope_boxed()
+            })
             .await;
 
         let duration = Instant::now().duration_since(start).as_millis();

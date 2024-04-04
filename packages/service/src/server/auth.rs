@@ -147,7 +147,7 @@ async fn logout(
     if let Some(token) = token.0 {
         app_state
             .store
-            .in_transaction(|conn| async move { conn.delete_token(&token).await }.scope_boxed())
+            .with_connection(|conn| async move { conn.delete_token(&token).await }.scope_boxed())
             .await?;
     }
 
@@ -192,7 +192,7 @@ async fn state(
     let state = app_state
         .store
         .clone()
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let email = &session.user.email;
                 let user = models::User::get(conn, email).await?;

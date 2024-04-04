@@ -14,7 +14,7 @@ use crate::{
         ApiResponse, ApiResult, AppState,
     },
     shared::short_id,
-    store::models,
+    store::{models, Isolation},
 };
 
 #[derive(Deserialize, Clone, Debug)]
@@ -38,7 +38,7 @@ async fn create_album(
 ) -> ApiResult<web::Json<models::Album>> {
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let catalog = models::Catalog::get_for_user(
                     conn,
@@ -84,7 +84,7 @@ async fn edit_album(
         .in_transaction(|conn| {
             async move {
                 let mut album =
-                    models::Album::get_for_user(conn, &session.user.email, &request.id, true)
+                    models::Album::get_for_user_for_update(conn, &session.user.email, &request.id)
                         .await?;
 
                 album.name = request.album.name.clone();
@@ -124,7 +124,8 @@ async fn delete_album(
 
                 for id in albums.iter() {
                     let album =
-                        models::Album::get_for_user(conn, &session.user.email, id, true).await?;
+                        models::Album::get_for_user_for_update(conn, &session.user.email, id)
+                            .await?;
                     catalogs.insert(album.catalog);
                     ids.push(album.id);
                 }
@@ -177,9 +178,12 @@ async fn album_media_change(
                 let mut catalogs: HashSet<String> = HashSet::new();
 
                 for update in updates.into_inner() {
-                    let album =
-                        models::Album::get_for_user(conn, &session.user.email, &update.album, true)
-                            .await?;
+                    let album = models::Album::get_for_user_for_update(
+                        conn,
+                        &session.user.email,
+                        &update.album,
+                    )
+                    .await?;
 
                     catalogs.insert(album.catalog.clone());
 
@@ -247,7 +251,7 @@ async fn get_album(
 ) -> ApiResult<web::Json<AlbumResponse>> {
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let (album, media) = models::Album::get_for_user_with_count(
                     conn,
@@ -284,7 +288,7 @@ async fn get_search(
 
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let (search, media) =
                     models::SavedSearch::get_for_user_with_count(conn, email, &search_id).await?;
@@ -314,7 +318,7 @@ async fn get_catalog(
 ) -> ApiResult<web::Json<CatalogResponse>> {
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let (catalog, media) = models::Catalog::get_for_user_with_count(
                     conn,
@@ -342,7 +346,7 @@ async fn get_catalog_media(
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::ReadOnly, |conn| {
             async move {
                 let (catalog, media_count) = models::Catalog::get_for_user_with_count(
                     conn,
@@ -382,7 +386,7 @@ async fn get_album_media(
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::ReadOnly, |conn| {
             async move {
                 let (album, media_count) = models::Album::get_for_user_with_count(
                     conn,
@@ -419,7 +423,7 @@ async fn get_search_media(
 
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::ReadOnly, |conn| {
             async move {
                 let (search, media_count) =
                     models::SavedSearch::get_for_user_with_count(conn, email, &search_id).await?;

@@ -22,6 +22,7 @@ use crate::{
     store::{
         db::{search::SearchQuery, DbConnection},
         models::{self, AlternateFileType, Location},
+        Isolation,
     },
     Error, Result,
 };
@@ -51,7 +52,7 @@ async fn download_handler(
 
     let (media_file_path, storage, mimetype, file_name) = match app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let (media_file, file_path) =
                     models::MediaFile::get_for_user_media(conn, email, &path.item, &path.file)
@@ -107,7 +108,7 @@ async fn thumbnail_handler(
 
     let alternates = match app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 models::AlternateFile::list_for_user_media(
                     conn,
@@ -175,7 +176,7 @@ async fn encoding_handler(
 
     let (file_path, storage) = match app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let (_, file_path) = models::AlternateFile::list_for_user_media(
                     conn,
@@ -243,7 +244,7 @@ async fn get_media(
 
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .with_connection(|conn| {
             async move {
                 let media = models::MediaRelations::get_for_user(conn, email, &ids).await?;
 
@@ -270,9 +271,12 @@ async fn delete_media(
         .store
         .in_transaction(|conn| {
             async move {
-                let mut media =
-                    models::MediaItem::get_for_user(conn, &session.user.email, &media_ids, true)
-                        .await?;
+                let mut media = models::MediaItem::get_for_user_for_update(
+                    conn,
+                    &session.user.email,
+                    &media_ids,
+                )
+                .await?;
 
                 media.iter_mut().for_each(|mi| mi.deleted = true);
 
@@ -508,11 +512,10 @@ async fn upload_media(
             async move {
                 let mut media_item = match (&data.json.id, &data.json.catalog) {
                     (Some(id), None) => {
-                        let mut media_items = models::MediaItem::get_for_user(
+                        let mut media_items = models::MediaItem::get_for_user_for_update(
                             conn,
                             &session.user.email,
                             &[id.clone()],
-                            true,
                         )
                         .await?;
 
@@ -615,7 +618,8 @@ async fn edit_media(
         .in_transaction(|conn| {
             async move {
                 let mut media =
-                    models::MediaItem::get_for_user(conn, &session.user.email, &[id], true).await?;
+                    models::MediaItem::get_for_user_for_update(conn, &session.user.email, &[id])
+                        .await?;
 
                 if media.is_empty() {
                     return Err(Error::NotFound);
@@ -656,7 +660,7 @@ async fn search_media(
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
     let response = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::ReadOnly, |conn| {
             async move {
                 let catalog =
                     models::Catalog::get_for_user(conn, &session.user.email, &data.catalog, false)

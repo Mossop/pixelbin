@@ -31,7 +31,7 @@ impl Runnable for Stats {
     #[instrument(name = "stats", skip_all)]
     async fn run(self, store: Store) -> Result {
         store
-            .in_transaction(|conn| {
+            .with_connection(|conn| {
                 async move {
                     let stats = conn.stats().await?;
                     println!("Users:           {}", stats.users);

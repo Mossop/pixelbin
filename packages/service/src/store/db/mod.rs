@@ -273,6 +273,7 @@ impl<'a> DbConnection<'a> {
         let mut user: models::User = user::table
             .filter(user::email.eq(email))
             .select(user::all_columns)
+            .for_update()
             .get_result::<models::User>(self)
             .await
             .optional()?
