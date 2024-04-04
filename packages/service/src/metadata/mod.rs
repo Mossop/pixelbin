@@ -32,7 +32,6 @@ lazy_static! {
 }
 
 pub(crate) const METADATA_FILE: &str = "metadata.json";
-pub(crate) const PROCESS_VERSION: i32 = 4;
 
 pub(crate) const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
@@ -119,6 +118,7 @@ impl Alternate {
             bit_rate,
             media_file: media_file_path.file.clone(),
             local: self.alt_type == AlternateFileType::Thumbnail,
+            stored: Some(Utc::now()),
         })
     }
 }
@@ -237,7 +237,7 @@ impl FileMetadata {
         let mut media_file =
             MediaFile::new(media_item, &self.file_name, self.file_size, &self.mimetype);
         media_file.id = id.to_owned();
-        media_file.process_version = 0;
+        media_file.needs_metadata = true;
 
         self.apply_to_media_file(&mut media_file);
 
@@ -246,7 +246,7 @@ impl FileMetadata {
 
     pub(crate) fn apply_to_media_file(&self, media_file: &mut MediaFile) {
         media_file.uploaded = self.uploaded;
-        media_file.process_version = 0;
+        media_file.needs_metadata = true;
         media_file.file_name = self.file_name.clone();
         media_file.file_size = self.file_size;
         media_file.mimetype = self.mimetype.clone();
@@ -314,12 +314,12 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
 
     let mut updated = false;
 
-    if media_file.process_version != PROCESS_VERSION {
-        if media_file.process_version == -1 {
+    if media_file.needs_metadata {
+        if media_file.stored.is_none() {
             remote_store
                 .push(&temp_path, &file_path, &media_file.mimetype)
                 .await?;
-            media_file.process_version = 0;
+            media_file.stored = Some(Utc::now());
 
             MediaFile::upsert(conn, vec![media_file.clone()]).await?;
         }
@@ -368,7 +368,7 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
     expected_alternates.retain(|alternate| !alternates.iter().any(|alt| alternate.matches(alt)));
 
     if !expected_alternates.is_empty() {
-        media_file.process_version = 0;
+        media_file.needs_metadata = true;
         updated = true;
 
         if build_alternates {
@@ -392,13 +392,13 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
 
             AlternateFile::upsert(conn, alternate_files).await?;
 
-            media_file.process_version = PROCESS_VERSION;
+            media_file.needs_metadata = false;
         } else {
             // Leave temp files for the next reprocess.
             return Ok(true);
         }
     } else {
-        media_file.process_version = PROCESS_VERSION;
+        media_file.needs_metadata = false;
     }
 
     temp_store

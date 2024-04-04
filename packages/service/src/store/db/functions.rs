@@ -151,7 +151,6 @@ macro_rules! media_file_columns {
         (
             crate::store::db::schema::media_file::id,
             crate::store::db::schema::media_file::uploaded,
-            crate::store::db::schema::media_file::process_version,
             crate::store::db::schema::media_file::file_name,
             crate::store::db::schema::media_file::file_size,
             crate::store::db::schema::media_file::mimetype,
@@ -162,6 +161,8 @@ macro_rules! media_file_columns {
             crate::store::db::schema::media_file::bit_rate,
             crate::store::db::functions::media_metadata_columns!(media_file),
             crate::store::db::schema::media_file::media_item,
+            crate::store::db::schema::media_file::needs_metadata,
+            crate::store::db::schema::media_file::stored,
         )
     };
 }

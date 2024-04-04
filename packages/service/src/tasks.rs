@@ -153,13 +153,13 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
 
                                 if !expected.iter().all(|expected| check_alternate(alternates, expected)) {
                                     debug!(path=%media_file_path, "Media file was missing some alternate files");
-                                    media_file.process_version = 0;
+                                    media_file.needs_metadata = true;
                                     media_files_to_reprocess.push(media_file);
                                 }
                             } else {
                                 // All alternates are missing!
                                 debug!(path=%media_file_path, "Media file was missing all alternate files");
-                                media_file.process_version = 0;
+                                media_file.needs_metadata = true;
                                 media_files_to_reprocess.push(media_file);
                             }
 

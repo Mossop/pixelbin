@@ -1,5 +1,3 @@
-SELECT media_file, json_agg(json_build_object('type', "type", 'mimetype', mimetype, 'width', width, 'height', height)) AS alternates FROM alternate_file GROUP BY media_file;
-
 CREATE MATERIALIZED VIEW IF NOT EXISTS "media_file_alternates" AS
   SELECT
     media_file, json_agg(alternate_file.*) AS alternates

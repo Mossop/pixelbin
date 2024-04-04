@@ -30,6 +30,7 @@ diesel::table! {
         bit_rate -> Nullable<Float4>,
         media_file -> Varchar,
         local -> Bool,
+        stored -> Nullable<Timestamptz>,
     }
 }
 
@@ -61,7 +62,6 @@ diesel::table! {
     media_file (id) {
         id -> Varchar,
         uploaded -> Timestamptz,
-        process_version -> Int4,
         file_name -> Text,
         file_size -> Int4,
         mimetype -> Text,
@@ -94,6 +94,8 @@ diesel::table! {
         taken -> Nullable<Timestamp>,
         media_item -> Varchar,
         shutter_speed -> Nullable<Float4>,
+        needs_metadata -> Bool,
+        stored -> Nullable<Timestamptz>,
     }
 }
 
@@ -308,7 +310,6 @@ diesel::allow_columns_to_appear_in_same_group_by_clause!(
     media_item::datetime,
     media_file::id,
     media_file::uploaded,
-    media_file::process_version,
     media_file::file_name,
     media_file::file_size,
     media_file::mimetype,

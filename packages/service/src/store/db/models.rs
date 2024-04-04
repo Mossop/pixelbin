@@ -1261,7 +1261,7 @@ impl MediaItem {
     pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
         let items = media_item::table
             .left_outer_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
-            .filter(media_file::process_version.gt(0))
+            .filter(media_file::stored.is_not_null())
             .filter(media_item::catalog.eq(catalog))
             .order_by((media_item::id, media_file::uploaded.desc()))
             .distinct_on(media_item::id)
@@ -1381,7 +1381,6 @@ impl MediaItem {
 pub(crate) struct MediaFile {
     pub(crate) id: String,
     pub(crate) uploaded: DateTime<Utc>,
-    pub(crate) process_version: i32,
     pub(crate) file_name: String,
     pub(crate) file_size: i32,
     #[diesel(deserialize_as = MimeField, serialize_as = MimeField)]
@@ -1394,6 +1393,8 @@ pub(crate) struct MediaFile {
     #[diesel(embed)]
     pub(crate) metadata: MediaMetadata,
     pub(crate) media_item: String,
+    pub(crate) needs_metadata: bool,
+    pub(crate) stored: Option<DateTime<Utc>>,
 }
 
 impl MediaFile {
@@ -1401,7 +1402,8 @@ impl MediaFile {
         Self {
             id: short_id("I"),
             uploaded: Utc::now(),
-            process_version: -1,
+            needs_metadata: true,
+            stored: None,
             file_name: file_name.to_owned(),
             file_size,
             mimetype: mimetype.to_owned(),
@@ -1452,7 +1454,7 @@ impl MediaFile {
             .filter(media_item::catalog.eq(catalog))
             .filter(media_item::media_file.is_not_null())
             .filter(media_item::media_file.ne(media_file::id.nullable()))
-            .filter(media_file::process_version.gt(0))
+            .filter(media_file::stored.is_not_null())
             .select((media_file_columns!(), media_item::catalog))
             .load::<(MediaFile, String)>(conn)
             .await?;
@@ -1584,7 +1586,8 @@ impl MediaFile {
                 .do_update()
                 .set((
                     media_file::uploaded.eq(excluded(media_file::uploaded)),
-                    media_file::process_version.eq(excluded(media_file::process_version)),
+                    media_file::needs_metadata.eq(excluded(media_file::needs_metadata)),
+                    media_file::stored.eq(excluded(media_file::stored)),
                     media_file::file_name.eq(excluded(media_file::file_name)),
                     media_file::file_size.eq(excluded(media_file::file_size)),
                     media_file::mimetype.eq(excluded(media_file::mimetype)),
@@ -1675,6 +1678,7 @@ pub(crate) struct AlternateFile {
     pub(crate) bit_rate: Option<f32>,
     pub(crate) media_file: String,
     pub(crate) local: bool,
+    pub(crate) stored: Option<DateTime<Utc>>,
 }
 
 impl AlternateFile {
@@ -1816,7 +1820,7 @@ impl AlternateFile {
 
         // We flag the media file as requiring re-processing here.
         diesel::update(media_file::table.filter(media_file::id.eq(&self.media_file)))
-            .set(media_file::process_version.eq(0))
+            .set(media_file::needs_metadata.eq(true))
             .execute(conn)
             .await?;
 

@@ -1,11 +1,11 @@
-diff --git a/src/store/db/schema.rs b/src/store/db/schema.rs
-index 79df3db..6cb3c71 100644
---- a/src/store/db/schema.rs
-+++ b/src/store/db/schema.rs
-@@ -217,9 +217,117 @@ diesel::table! {
+diff --git b/packages/service/src/store/db/schema.rs a/packages/service/src/store/db/schema.rs
+index 22138b9..a5cb155 100644
+--- b/packages/service/src/store/db/schema.rs
++++ a/packages/service/src/store/db/schema.rs
+@@ -226,9 +226,123 @@ diesel::table! {
      }
  }
-
+ 
 -diesel::joinable!(catalog -> storage (storage));
 -diesel::joinable!(media_person -> person (catalog));
 -diesel::joinable!(media_search -> saved_search (catalog));
@@ -52,6 +52,13 @@ index 79df3db..6cb3c71 100644
 +    }
 +}
 +
++diesel::table! {
++    media_file_alternates (media_file) {
++        media_file -> Varchar,
++        alternates -> Json
++    }
++}
++
 +diesel::allow_columns_to_appear_in_same_group_by_clause!(
 +    media_item::id,
 +    media_item::deleted,
@@ -86,7 +93,6 @@ index 79df3db..6cb3c71 100644
 +    media_item::datetime,
 +    media_file::id,
 +    media_file::uploaded,
-+    media_file::process_version,
 +    media_file::file_name,
 +    media_file::file_size,
 +    media_file::mimetype,
@@ -118,12 +124,20 @@ index 79df3db..6cb3c71 100644
 +    media_file::aperture,
 +    media_file::focal_length,
 +    media_file::taken,
-+    media_file::media
++    media_file::media_item
 +);
-
+ 
  diesel::allow_tables_to_appear_in_same_query!(
      album,
-@@ -234,6 +342,12 @@ diesel::allow_tables_to_appear_in_same_query!(
+@@ -237,6 +351,7 @@ diesel::allow_tables_to_appear_in_same_query!(
+     catalog,
+     media_album,
+     media_file,
++    media_file_alternates,
+     media_item,
+     media_person,
+     media_search,
+@@ -244,6 +359,12 @@ diesel::allow_tables_to_appear_in_same_query!(
      person,
      saved_search,
      shared_catalog,

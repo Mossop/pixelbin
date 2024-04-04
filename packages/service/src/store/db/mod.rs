@@ -26,7 +26,6 @@ use scoped_futures::ScopedBoxFuture;
 use tracing::{info, instrument, span, trace, Level};
 
 use crate::{
-    metadata::reprocess_catalog_media,
     shared::{long_id, spawn_blocking},
     store::Isolation,
     Config, Error, Result,
@@ -43,7 +42,6 @@ const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 #[instrument(err, skip_all)]
 pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     #![allow(clippy::borrowed_box)]
-    let mut reprocess_media = false;
     let mut update_search_queries = false;
 
     // First connect synchronously to apply migrations.
@@ -63,11 +61,6 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
             .map_err(|e| Error::DbMigrationError {
                 message: e.to_string(),
             })?;
-
-        if name.as_str() == "2023-11-03-094027_date_cache" {
-            // Force a reprocess to re-generate the date fields.
-            reprocess_media = true;
-        }
 
         if name.as_str() == "2024-02-19-120807_alternates_lookup" {
             update_search_queries = true;
@@ -101,22 +94,6 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     diesel::delete(auth_token::table.filter(auth_token::expiry.le(now)))
         .execute(&mut conn)
         .await?;
-
-    if reprocess_media {
-        conn.isolated(Isolation::Committed, |conn| {
-            async move {
-                let catalogs = models::Catalog::list(conn).await?;
-
-                for catalog in catalogs {
-                    reprocess_catalog_media(conn, &catalog.id, false).await?;
-                }
-
-                Ok(())
-            }
-            .scope_boxed()
-        })
-        .await?;
-    }
 
     if update_search_queries {
         conn.isolated(Isolation::Committed, |conn| {
