@@ -6,7 +6,6 @@ use diesel::{
     dsl::{count, sql},
     expression::SqlLiteral,
     insert_into,
-    pg::Pg,
     prelude::*,
     serialize, sql_types,
     upsert::excluded,
@@ -32,6 +31,7 @@ use crate::{
             },
             schema::*,
             search::{upgrade_query, Filterable, SearchQuery},
+            Backend,
         },
         path::{FilePath, MediaFilePath, MediaItemPath},
         DbConnection,
@@ -1122,7 +1122,7 @@ type MediaMetadataRow = (
     sql_types::Nullable<sql_types::Timestamp>,
 );
 
-impl Queryable<MediaMetadataRow, Pg> for MediaMetadata {
+impl Queryable<MediaMetadataRow, Backend> for MediaMetadata {
     type Row = (
         Option<String>,
         Option<String>,
@@ -1924,8 +1924,8 @@ pub(crate) struct Location {
     pub(crate) bottom: f32,
 }
 
-impl serialize::ToSql<db::schema::sql_types::Location, Pg> for Location {
-    fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, Pg>) -> serialize::Result {
+impl serialize::ToSql<db::schema::sql_types::Location, Backend> for Location {
+    fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, Backend>) -> serialize::Result {
         serialize::WriteTuple::<(
             sql_types::Float,
             sql_types::Float,

@@ -3,7 +3,6 @@ use diesel::{
     dsl::{self, not, sql},
     expression::AsExpression,
     helper_types::LeftJoinQuerySource,
-    pg::Pg,
     prelude::*,
     query_builder::AstPass,
     serialize,
@@ -26,7 +25,7 @@ use crate::{
                 media_view_tables,
             },
             schema::*,
-            DbConnection,
+            Backend, DbConnection,
         },
         models,
     },
@@ -42,7 +41,7 @@ type MediaViewQS = LeftJoinQuerySource<
     media_file_alternates::table,
     dsl::Eq<media_item::media_file, dsl::Nullable<media_file_alternates::media_file>>,
 >;
-type Boxed<QS, T = Bool> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
+type Boxed<QS, T = Bool> = Box<dyn BoxableExpression<QS, Backend, SqlType = T>>;
 
 pub(crate) type SearchQuery = CompoundQuery<CompoundItem>;
 
@@ -113,12 +112,12 @@ pub(crate) mod field_query {
     {
     }
 
-    impl<F> QueryFragment<Pg> for FieldQuery<F>
+    impl<F> QueryFragment<Backend> for FieldQuery<F>
     where
-        F: QueryFragment<Pg>,
+        F: QueryFragment<Backend>,
     {
         #[allow(unused_assignments)]
-        fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, Pg>) -> QueryResult<()> {
+        fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, Backend>) -> QueryResult<()> {
             match (&self.operator, self.invert) {
                 (Operator::Empty, false) => {
                     self.field.walk_ast(out.reborrow())?;
@@ -254,7 +253,7 @@ pub(crate) enum SqlValue {
 }
 
 impl SqlValue {
-    fn bind_value<'__b>(&'__b self, out: &mut AstPass<'_, '__b, Pg>) -> QueryResult<()> {
+    fn bind_value<'__b>(&'__b self, out: &mut AstPass<'_, '__b, Backend>) -> QueryResult<()> {
         match self {
             SqlValue::String(f) => out.push_bind_param::<Text, _>(f),
             SqlValue::Bool(f) => out.push_bind_param::<Bool, _>(f),

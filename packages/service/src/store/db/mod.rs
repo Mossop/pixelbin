@@ -22,14 +22,17 @@ use diesel_async::{
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use futures::Future;
 use schema::*;
+use scoped_futures::ScopedBoxFuture;
 use tracing::{info, instrument, span, trace, Level};
 
 use crate::{
     metadata::reprocess_catalog_media,
     shared::{long_id, spawn_blocking},
+    store::Isolation,
     Config, Error, Result,
 };
 
+pub(crate) type Backend = Pg;
 pub(crate) type BackendConnection = AsyncPgConnection;
 pub(crate) type DbPool = Pool<BackendConnection>;
 
@@ -77,63 +80,54 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
 
     // Verify that we can connect and update cached views.
     let mut connection = pool.get().await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
+    let mut conn = DbConnection::new(&mut connection, config);
+
+    conn.batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
         .await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"album_descendent\";")
+    conn.batch_execute("REFRESH MATERIALIZED VIEW \"album_descendent\";")
         .await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"album_relation\";")
+    conn.batch_execute("REFRESH MATERIALIZED VIEW \"album_relation\";")
         .await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"tag_descendent\";")
+    conn.batch_execute("REFRESH MATERIALIZED VIEW \"tag_descendent\";")
         .await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"tag_relation\";")
+    conn.batch_execute("REFRESH MATERIALIZED VIEW \"tag_relation\";")
         .await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"person_relation\";")
+    conn.batch_execute("REFRESH MATERIALIZED VIEW \"person_relation\";")
         .await?;
-    connection
-        .batch_execute("REFRESH MATERIALIZED VIEW \"media_file_alternates\";")
+    conn.batch_execute("REFRESH MATERIALIZED VIEW \"media_file_alternates\";")
         .await?;
 
     // Clear expired auth tokens.
     diesel::delete(auth_token::table.filter(auth_token::expiry.le(now)))
-        .execute(&mut connection)
+        .execute(&mut conn)
         .await?;
 
     if reprocess_media {
-        connection
-            .transaction::<(), Error, _>(|conn| {
-                async move {
-                    let mut tx = DbConnection::from_transaction(conn, config);
-                    let catalogs = models::Catalog::list(&mut tx).await?;
+        conn.isolated(Isolation::Committed, |conn| {
+            async move {
+                let catalogs = models::Catalog::list(conn).await?;
 
-                    for catalog in catalogs {
-                        reprocess_catalog_media(&mut tx, &catalog.id, false).await?;
-                    }
-
-                    Ok(())
+                for catalog in catalogs {
+                    reprocess_catalog_media(conn, &catalog.id, false).await?;
                 }
-                .scope_boxed()
-            })
-            .await?;
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
     }
 
     if update_search_queries {
-        connection
-            .transaction::<(), Error, _>(|conn| {
-                async move {
-                    let mut tx = DbConnection::from_transaction(conn, config);
-                    models::SavedSearch::upgrade_queries(&mut tx).await?;
+        conn.isolated(Isolation::Committed, |conn| {
+            async move {
+                models::SavedSearch::upgrade_queries(conn).await?;
 
-                    Ok(())
-                }
-                .scope_boxed()
-            })
-            .await?;
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
     }
 
     let last_migration = if migrations.is_empty() {
@@ -143,7 +137,7 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
                 message: e.to_string(),
             })?
             .last()
-            .map(|m: &Box<dyn Migration<Pg>>| m.name().to_string())
+            .map(|m: &Box<dyn Migration<Backend>>| m.name().to_string())
     } else {
         migrations.last().map(|m| m.name().to_string())
     };
@@ -165,10 +159,10 @@ pub struct StoreStats {
     pub alternate_files: u32,
 }
 
-pub struct DbConnection<'a> {
-    conn: &'a mut BackendConnection,
+pub struct DbConnection<'conn> {
+    conn: &'conn mut BackendConnection,
     config: Config,
-    is_transaction: bool,
+    isolation: Option<Isolation>,
 }
 
 impl<'a> SimpleAsyncConnection for DbConnection<'a> {
@@ -240,25 +234,60 @@ impl<'a> AsyncConnection for DbConnection<'a> {
     }
 }
 
-impl<'a> DbConnection<'a> {
-    pub(crate) fn from_transaction(conn: &'a mut BackendConnection, config: &Config) -> Self {
+impl<'conn> DbConnection<'conn> {
+    pub(crate) fn new(conn: &'conn mut BackendConnection, config: &Config) -> Self {
         Self {
             conn,
             config: config.clone(),
-            is_transaction: true,
+            isolation: None,
         }
     }
 
-    pub(crate) fn from_connection(conn: &'a mut BackendConnection, config: &Config) -> Self {
-        Self {
-            conn,
-            config: config.clone(),
-            is_transaction: false,
+    #[instrument(skip_all)]
+    pub async fn isolated<'a, R, F>(&'a mut self, level: Isolation, cb: F) -> Result<R>
+    where
+        R: 'a + Send,
+        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
+            + Send
+            + 'a,
+    {
+        let config = self.config.clone();
+
+        if let Some(l) = self.isolation {
+            assert_eq!(l, level);
+
+            let mut db_conn = DbConnection {
+                conn: self.conn,
+                config,
+                isolation: Some(level),
+            };
+            return cb(&mut db_conn).await;
         }
+
+        let mut builder = self.conn.build_transaction();
+        builder = match level {
+            Isolation::Committed => builder.read_committed(),
+            Isolation::Repeatable => builder.repeatable_read(),
+            Isolation::ReadOnly => builder.repeatable_read().read_only(),
+        };
+
+        builder
+            .run(|conn| {
+                async move {
+                    let mut db_conn = DbConnection {
+                        conn,
+                        config,
+                        isolation: Some(level),
+                    };
+                    cb(&mut db_conn).await
+                }
+                .scope_boxed()
+            })
+            .await
     }
 
     pub fn assert_in_transaction(&self) {
-        assert!(self.is_transaction);
+        assert!(self.isolation.is_some());
     }
 
     pub fn config(&self) -> &Config {

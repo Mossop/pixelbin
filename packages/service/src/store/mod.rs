@@ -6,7 +6,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use diesel_async::scoped_futures::{ScopedBoxFuture, ScopedFutureExt};
+use diesel_async::scoped_futures::ScopedBoxFuture;
 
 pub(crate) mod aws;
 pub(crate) mod db;
@@ -15,6 +15,7 @@ pub(crate) mod path;
 pub(crate) use db::models;
 use db::{connect, DbConnection, DbPool};
 use mime::Mime;
+use scoped_futures::ScopedFutureExt;
 use tempfile::TempPath;
 use tokio::fs;
 use tracing::instrument;
@@ -171,7 +172,7 @@ impl FileStore for DiskStore {
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum Isolation {
     #[default]
     Committed,
@@ -207,7 +208,7 @@ impl Store {
     {
         let mut conn = self.pool.get().await?;
 
-        let mut db_conn = DbConnection::from_connection(&mut conn, &self.config);
+        let mut db_conn = DbConnection::new(&mut conn, &self.config);
         cb(&mut db_conn).await
     }
 
@@ -221,21 +222,9 @@ impl Store {
     {
         let mut conn = self.pool.get().await?;
 
-        let mut builder = conn.build_transaction();
-        builder = match level {
-            Isolation::Committed => builder.read_committed(),
-            Isolation::Repeatable => builder.repeatable_read(),
-            Isolation::ReadOnly => builder.repeatable_read().read_only(),
-        };
-
-        builder
-            .run(|conn| {
-                async move {
-                    let mut db_conn = DbConnection::from_transaction(conn, &self.config);
-                    cb(&mut db_conn).await
-                }
-                .scope_boxed()
-            })
+        let mut db_conn = DbConnection::new(&mut conn, &self.config);
+        db_conn
+            .isolated(level, |conn| async move { cb(conn).await }.scope_boxed())
             .await
     }
 
