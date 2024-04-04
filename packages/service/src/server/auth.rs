@@ -7,7 +7,7 @@ use typeshare::typeshare;
 
 use crate::{
     server::{ApiErrorCode, ApiResult, AppState},
-    store::models,
+    store::{models, Isolation},
     Error,
 };
 
@@ -123,7 +123,7 @@ async fn login(
 ) -> ApiResult<web::Json<LoginResponse>> {
     match app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::Committed, |conn| {
             async move {
                 conn.verify_credentials(&credentials.email, &credentials.password)
                     .await

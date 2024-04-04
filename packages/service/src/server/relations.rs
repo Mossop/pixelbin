@@ -81,7 +81,7 @@ async fn edit_album(
 ) -> ApiResult<web::Json<models::Album>> {
     let album = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut album =
                     models::Album::get_for_user_for_update(conn, &session.user.email, &request.id)
@@ -117,7 +117,7 @@ async fn delete_album(
 ) -> ApiResult<web::Json<ApiResponse>> {
     let catalogs = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut ids: Vec<String> = Vec::new();
                 let mut catalogs: HashSet<String> = HashSet::new();
@@ -173,7 +173,7 @@ async fn album_media_change(
 ) -> ApiResult<web::Json<ApiResponse>> {
     let catalogs = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut catalogs: HashSet<String> = HashSet::new();
 

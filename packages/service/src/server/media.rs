@@ -269,7 +269,7 @@ async fn delete_media(
 ) -> ApiResult<web::Json<ApiResponse>> {
     let media_ids = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut media = models::MediaItem::get_for_user_for_update(
                     conn,
@@ -508,7 +508,7 @@ async fn upload_media(
 
     let (media_item_id, media_file_id) = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut media_item = match (&data.json.id, &data.json.catalog) {
                     (Some(id), None) => {
@@ -615,7 +615,7 @@ async fn edit_media(
 
     let catalog = app_state
         .store
-        .in_transaction(|conn| {
+        .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut media =
                     models::MediaItem::get_for_user_for_update(conn, &session.user.email, &[id])
