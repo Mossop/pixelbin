@@ -1259,10 +1259,15 @@ impl MediaItem {
     }
 
     pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
+        let missing_alternates = alternate_file::table
+            .filter(alternate_file::stored.is_null())
+            .select(alternate_file::media_file);
+
         let items = media_item::table
             .left_outer_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
             .filter(media_file::stored.is_not_null())
             .filter(media_item::catalog.eq(catalog))
+            .filter(media_file::id.ne_all(missing_alternates))
             .order_by((media_item::id, media_file::uploaded.desc()))
             .distinct_on(media_item::id)
             .select((media_item_columns!(), media_file_columns!().nullable()))
@@ -1454,7 +1459,6 @@ impl MediaFile {
             .filter(media_item::catalog.eq(catalog))
             .filter(media_item::media_file.is_not_null())
             .filter(media_item::media_file.ne(media_file::id.nullable()))
-            .filter(media_file::stored.is_not_null())
             .select((media_file_columns!(), media_item::catalog))
             .load::<(MediaFile, String)>(conn)
             .await?;
