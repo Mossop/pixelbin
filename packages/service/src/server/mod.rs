@@ -154,7 +154,7 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
 
 pub async fn serve(store: Store) -> Result {
     let port = store.config().port.unwrap_or(80);
-    let task_queue = TaskQueue::new(&store, 5);
+    let task_queue = TaskQueue::new(&store, 1, 3);
 
     task_queue.queue_task(Task::ServerStartup).await;
 

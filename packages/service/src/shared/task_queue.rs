@@ -113,6 +113,15 @@ impl Task {
             }
         }
     }
+
+    fn is_expensive(&self) -> bool {
+        match self {
+            Task::ServerStartup => false,
+            Task::ProcessMediaFile { media_file: _ } => true,
+            Task::DeleteMedia { media: _ } => false,
+            Task::UpdateSearches { catalog: _ } => false,
+        }
+    }
 }
 
 fn next_tick() -> Duration {
@@ -125,18 +134,33 @@ fn next_tick() -> Duration {
 #[derive(Clone)]
 pub(crate) struct TaskQueue {
     sender: Sender<Task>,
+    expensive_sender: Sender<Task>,
 }
 
 impl TaskQueue {
-    pub(crate) fn new(store: &Store, workers: usize) -> Self {
+    pub(crate) fn new(store: &Store, expensive_workers: usize, workers: usize) -> Self {
         let (sender, receiver) = unbounded();
+        let (expensive_sender, expensive_receiver) = unbounded();
+        assert!(expensive_workers > 0);
+        assert!(workers > 0);
 
         for _ in 0..(workers - 1) {
             tokio::spawn(TaskQueue::task_loop(store.clone(), receiver.clone()));
         }
         tokio::spawn(TaskQueue::task_loop(store.clone(), receiver));
 
-        let queue = Self { sender };
+        for _ in 0..(expensive_workers - 1) {
+            tokio::spawn(TaskQueue::task_loop(
+                store.clone(),
+                expensive_receiver.clone(),
+            ));
+        }
+        tokio::spawn(TaskQueue::task_loop(store.clone(), expensive_receiver));
+
+        let queue = Self {
+            sender,
+            expensive_sender,
+        };
 
         tokio::spawn(TaskQueue::cron_loop(queue.clone()));
 
@@ -144,7 +168,11 @@ impl TaskQueue {
     }
 
     pub(crate) async fn queue_task(&self, task: Task) {
-        self.sender.send(task).await.unwrap();
+        if task.is_expensive() {
+            self.expensive_sender.send(task).await.unwrap();
+        } else {
+            self.sender.send(task).await.unwrap();
+        }
     }
 
     #[instrument(skip_all, fields(otel.name, otel.status_code, duration))]
