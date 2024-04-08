@@ -9,8 +9,7 @@ use actix_web::{
 use serde::Serialize;
 use tracing::instrument;
 
-use crate::shared::task_queue::{Task, TaskQueue};
-use crate::{shared::config::ThumbnailConfig, store::Store, Error, Result};
+use crate::{shared::config::ThumbnailConfig, store::Store, Error, Result, Task};
 
 mod auth;
 mod media;
@@ -120,7 +119,6 @@ where
 
 struct AppState {
     store: Store,
-    task_queue: TaskQueue,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -154,11 +152,10 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
 
 pub async fn serve(store: Store) -> Result {
     let port = store.config().port.unwrap_or(80);
-    let task_queue = TaskQueue::new(&store, 1, 3);
 
-    task_queue.queue_task(Task::ServerStartup).await;
+    store.task_queue.queue_task(Task::ServerStartup).await;
 
-    let state = AppState { store, task_queue };
+    let state = AppState { store };
 
     let app_data = web::Data::new(state);
 

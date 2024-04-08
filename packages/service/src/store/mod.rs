@@ -21,7 +21,7 @@ use tokio::fs;
 use tracing::instrument;
 
 use self::path::{FilePath, PathLike, ResourcePath};
-use crate::{Config, Result};
+use crate::{Config, Result, TaskQueue};
 
 #[async_trait]
 pub trait FileStore {
@@ -184,13 +184,17 @@ pub enum Isolation {
 pub struct Store {
     config: Config,
     pool: DbPool,
+    pub(crate) task_queue: TaskQueue,
 }
 
 impl Store {
     pub async fn new(config: Config) -> Result<Self> {
+        let pool = connect(&config).await?;
+
         Ok(Store {
-            pool: connect(&config).await?,
+            task_queue: TaskQueue::new(pool.clone(), &config),
             config,
+            pool,
         })
     }
 

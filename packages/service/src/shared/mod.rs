@@ -4,7 +4,6 @@ pub(crate) mod config;
 pub(crate) mod error;
 pub(crate) mod json;
 pub(crate) mod mime;
-pub(crate) mod task_queue;
 
 use config::Config;
 use error::Result;

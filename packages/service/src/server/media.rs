@@ -18,13 +18,12 @@ use crate::{
         util::choose_alternate,
         ApiResponse, ApiResult, AppState,
     },
-    shared::task_queue::Task,
     store::{
         db::{search::SearchQuery, DbConnection},
         models::{self, AlternateFileType, Location},
         Isolation,
     },
-    Error, Result,
+    Error, Result, Task,
 };
 
 fn not_found() -> ApiResult<HttpResponse> {
@@ -289,6 +288,7 @@ async fn delete_media(
         .await?;
 
     app_state
+        .store
         .task_queue
         .queue_task(Task::DeleteMedia {
             media: media_ids.into_inner(),
@@ -589,6 +589,7 @@ async fn upload_media(
         .await?;
 
     app_state
+        .store
         .task_queue
         .queue_task(Task::ProcessMediaFile {
             media_file: media_file_id,
@@ -636,6 +637,7 @@ async fn edit_media(
         .await?;
 
     app_state
+        .store
         .task_queue
         .queue_task(Task::UpdateSearches { catalog })
         .await;

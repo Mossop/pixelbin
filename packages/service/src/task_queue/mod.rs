@@ -6,14 +6,17 @@ use std::{
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Local, Timelike};
 use futures::StreamExt;
-use scoped_futures::ScopedFutureExt;
 use tokio::time::sleep;
 use tracing::{error, instrument, trace, Span};
 
 use crate::{
     metadata::reprocess_media_file,
-    store::{db::DbConnection, models, path::ResourcePath},
-    FileStore, Result, Store,
+    store::{
+        db::{DbConnection, DbPool},
+        models,
+        path::ResourcePath,
+    },
+    Config, Error, FileStore, Result,
 };
 
 const TASK_STARTUP: &str = "startup";
@@ -138,24 +141,28 @@ pub(crate) struct TaskQueue {
 }
 
 impl TaskQueue {
-    pub(crate) fn new(store: &Store, expensive_workers: usize, workers: usize) -> Self {
+    pub(crate) fn new(pool: DbPool, config: &Config) -> Self {
         let (sender, receiver) = unbounded();
         let (expensive_sender, expensive_receiver) = unbounded();
-        assert!(expensive_workers > 0);
-        assert!(workers > 0);
 
-        for _ in 0..(workers - 1) {
-            tokio::spawn(TaskQueue::task_loop(store.clone(), receiver.clone()));
-        }
-        tokio::spawn(TaskQueue::task_loop(store.clone(), receiver));
+        let expensive_workers = 1;
+        let workers = 3;
 
-        for _ in 0..(expensive_workers - 1) {
+        for _ in 0..workers {
             tokio::spawn(TaskQueue::task_loop(
-                store.clone(),
+                pool.clone(),
+                config.clone(),
+                receiver.clone(),
+            ));
+        }
+
+        for _ in 0..expensive_workers {
+            tokio::spawn(TaskQueue::task_loop(
+                pool.clone(),
+                config.clone(),
                 expensive_receiver.clone(),
             ));
         }
-        tokio::spawn(TaskQueue::task_loop(store.clone(), expensive_receiver));
 
         let queue = Self {
             sender,
@@ -176,13 +183,17 @@ impl TaskQueue {
     }
 
     #[instrument(skip_all, fields(otel.name, otel.status_code, duration))]
-    async fn run_task(store: &Store, task: Task) {
+    async fn run_task(pool: &DbPool, config: &Config, task: Task) {
         let start = Instant::now();
         Span::current().record("otel.name", task.name());
 
-        let result = store
-            .in_transaction(|conn| async move { task.run(conn).await }.scope_boxed())
-            .await;
+        let result = match pool.get().await {
+            Ok(mut conn) => {
+                let mut db_conn = DbConnection::new(&mut conn, config);
+                task.run(&mut db_conn).await
+            }
+            Err(e) => Err(Error::from(e)),
+        };
 
         let duration = Instant::now().duration_since(start).as_millis();
         Span::current().record("duration", duration);
@@ -209,11 +220,11 @@ impl TaskQueue {
         }
     }
 
-    async fn task_loop(store: Store, receiver: Receiver<Task>) {
+    async fn task_loop(pool: DbPool, config: Config, receiver: Receiver<Task>) {
         let mut receiver = Box::pin(receiver);
 
         while let Some(task) = receiver.next().await {
-            TaskQueue::run_task(&store, task).await;
+            TaskQueue::run_task(&pool, &config, task).await;
         }
     }
 }

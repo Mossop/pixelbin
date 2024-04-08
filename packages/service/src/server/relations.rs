@@ -12,8 +12,9 @@ use crate::{
         media::{GetMediaRequest, GetMediaResponse},
         ApiResponse, ApiResult, AppState,
     },
-    shared::{short_id, task_queue::Task},
+    shared::short_id,
     store::{models, Isolation},
+    Task,
 };
 
 #[derive(Deserialize, Clone, Debug)]
@@ -98,6 +99,7 @@ async fn edit_album(
         .await?;
 
     app_state
+        .store
         .task_queue
         .queue_task(Task::UpdateSearches {
             catalog: album.catalog.clone(),
@@ -139,6 +141,7 @@ async fn delete_album(
 
     for catalog in catalogs {
         app_state
+            .store
             .task_queue
             .queue_task(Task::UpdateSearches { catalog })
             .await;
@@ -215,6 +218,7 @@ async fn album_media_change(
 
     for catalog in catalogs {
         app_state
+            .store
             .task_queue
             .queue_task(Task::UpdateSearches { catalog })
             .await;

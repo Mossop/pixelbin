@@ -5,6 +5,7 @@ mod metadata;
 pub mod server;
 mod shared;
 mod store;
+mod task_queue;
 pub mod tasks;
 
 pub use shared::{
@@ -13,3 +14,4 @@ pub use shared::{
     load_config,
 };
 pub use store::{FileStore, Store};
+pub(crate) use task_queue::{Task, TaskQueue};

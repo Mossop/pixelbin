@@ -1,5 +1,4 @@
-use std::path::Path;
-use std::str::FromStr;
+use std::{path::Path, str::FromStr};
 
 use serde_json::{from_slice, Value};
 use tokio::process::Command;
@@ -199,9 +198,8 @@ impl VideoData {
 mod tests {
     use serde_json::from_str;
 
-    use crate::shared::json::Object;
-
     use super::VideoData;
+    use crate::shared::json::Object;
 
     #[test]
     fn parse_data() {
