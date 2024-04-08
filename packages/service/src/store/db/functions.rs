@@ -100,6 +100,95 @@ pub(crate) mod extract {
     }
 }
 
+pub(crate) fn media_file_path<A, B, C>(a: A, b: B, c: C) -> media_file_path::HelperType<A, B, C>
+where
+    A: AsExpression<Text>,
+    B: AsExpression<Text>,
+    C: AsExpression<Text>,
+{
+    media_file_path::MediaFilePath {
+        a: a.as_expression(),
+        b: b.as_expression(),
+        c: c.as_expression(),
+    }
+}
+
+pub(crate) mod media_file_path {
+    use diesel::{
+        self,
+        expression::{
+            is_aggregate, AppearsOnTable, AsExpression, Expression, SelectableExpression,
+            ValidGrouping,
+        },
+        query_builder::{AstPass, QueryFragment, QueryId},
+        QueryResult,
+    };
+
+    use super::*;
+
+    #[derive(Debug, Clone, Copy, QueryId)]
+    pub(crate) struct MediaFilePath<A, B, C> {
+        pub(super) a: A,
+        pub(super) b: B,
+        pub(super) c: C,
+    }
+
+    impl<A, B, C, GroupByClause> ValidGrouping<GroupByClause> for MediaFilePath<A, B, C> {
+        type IsAggregate = is_aggregate::Never;
+    }
+
+    pub(crate) type HelperType<A, B, C> = MediaFilePath<
+        <A as AsExpression<Text>>::Expression,
+        <B as AsExpression<Text>>::Expression,
+        <C as AsExpression<Text>>::Expression,
+    >;
+
+    impl<A, B, C> Expression for MediaFilePath<A, B, C>
+    where
+        A: Expression,
+        B: Expression,
+        C: Expression,
+    {
+        type SqlType = Text;
+    }
+
+    impl<A, B, C, QS> SelectableExpression<QS> for MediaFilePath<A, B, C>
+    where
+        A: SelectableExpression<QS>,
+        B: SelectableExpression<QS>,
+        C: SelectableExpression<QS>,
+        Self: AppearsOnTable<QS>,
+    {
+    }
+
+    impl<A, B, C, QS> AppearsOnTable<QS> for MediaFilePath<A, B, C>
+    where
+        A: AppearsOnTable<QS>,
+        B: AppearsOnTable<QS>,
+        C: AppearsOnTable<QS>,
+        Self: Expression,
+    {
+    }
+
+    impl<A, B, C, QS> QueryFragment<QS> for MediaFilePath<A, B, C>
+    where
+        QS: diesel::backend::Backend,
+        A: QueryFragment<QS>,
+        B: QueryFragment<QS>,
+        C: QueryFragment<QS>,
+    {
+        #[allow(unused_assignments)]
+        fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, QS>) -> QueryResult<()> {
+            self.a.walk_ast(out.reborrow())?;
+            out.push_sql(" || ");
+            self.b.walk_ast(out.reborrow())?;
+            out.push_sql(" || ");
+            self.c.walk_ast(out.reborrow())?;
+            Ok(())
+        }
+    }
+}
+
 macro_rules! media_metadata_columns {
     ($table:ident) => {
         (

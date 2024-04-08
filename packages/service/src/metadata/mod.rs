@@ -50,12 +50,22 @@ fn mime_extension(mimetype: &Mime) -> &'static str {
 
 #[derive(Debug)]
 pub(crate) struct Alternate {
-    alt_type: AlternateFileType,
-    mimetype: Mime,
-    size: Option<i32>,
+    pub(crate) alt_type: AlternateFileType,
+    pub(crate) mimetype: Mime,
+    pub(crate) size: Option<i32>,
 }
 
 impl Alternate {
+    pub(crate) fn file_name(&self) -> String {
+        let extension = mime_extension(&self.mimetype);
+        match (self.alt_type, self.size) {
+            (AlternateFileType::Thumbnail, None) => format!("thumb.{extension}"),
+            (AlternateFileType::Thumbnail, Some(size)) => format!("thumb-{size}.{extension}"),
+            (AlternateFileType::Reencode, None) => format!("reencode.{extension}"),
+            (AlternateFileType::Reencode, Some(size)) => format!("reencode-{size}.{extension}"),
+        }
+    }
+
     pub(crate) fn matches(&self, alt: &AlternateFile) -> bool {
         if alt.file_type != self.alt_type {
             return false;

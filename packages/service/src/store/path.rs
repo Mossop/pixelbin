@@ -5,7 +5,7 @@ use enum_dispatch::enum_dispatch;
 use crate::Error;
 
 #[enum_dispatch]
-pub(crate) trait PathLike {
+pub trait PathLike {
     fn path_parts(&self) -> Vec<&str>;
 }
 

@@ -100,7 +100,6 @@ async fn edit_album(
 
     app_state
         .store
-        .task_queue
         .queue_task(Task::UpdateSearches {
             catalog: album.catalog.clone(),
         })
@@ -142,7 +141,6 @@ async fn delete_album(
     for catalog in catalogs {
         app_state
             .store
-            .task_queue
             .queue_task(Task::UpdateSearches { catalog })
             .await;
     }
@@ -219,7 +217,6 @@ async fn album_media_change(
     for catalog in catalogs {
         app_state
             .store
-            .task_queue
             .queue_task(Task::UpdateSearches { catalog })
             .await;
     }

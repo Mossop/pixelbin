@@ -12,7 +12,7 @@ use tokio_util::io::ReaderStream;
 use tracing::{instrument, warn};
 
 use crate::{
-    metadata::ISO_FORMAT,
+    metadata::{alternates_for_mimetype, ISO_FORMAT},
     server::{
         auth::{MaybeSession, Session},
         util::choose_alternate,
@@ -20,7 +20,7 @@ use crate::{
     },
     store::{
         db::{search::SearchQuery, DbConnection},
-        models::{self, AlternateFileType, Location},
+        models::{self, AlternateFile, AlternateFileType, Location},
         Isolation,
     },
     Error, Result, Task,
@@ -289,7 +289,6 @@ async fn delete_media(
 
     app_state
         .store
-        .task_queue
         .queue_task(Task::DeleteMedia {
             media: media_ids.into_inner(),
         })
@@ -506,7 +505,7 @@ async fn upload_media(
     tracing::Span::current().record("id", data.json.id.as_deref().unwrap_or_default());
     tracing::Span::current().record("catalog", data.json.catalog.as_deref().unwrap_or_default());
 
-    let (media_item_id, media_file_id) = app_state
+    let (media_item_id, tasks) = app_state
         .store
         .isolated(Isolation::Committed, |conn| {
             async move {
@@ -579,22 +578,38 @@ async fn upload_media(
                     .copy_from_temp(data.file.file.into_temp_path(), &path)
                     .await?;
 
-                let media_file_id = media_file.id.clone();
-                models::MediaFile::upsert(conn, vec![media_file]).await?;
+                let mut tasks = vec![
+                    Task::ExtractMetadata {
+                        media_file: media_file.id.clone(),
+                    },
+                    Task::UploadMediaFile {
+                        media_file: media_file.id.clone(),
+                    },
+                ];
 
-                Ok((media_item.id.clone(), media_file_id))
+                let alternate_files: Vec<AlternateFile> =
+                    alternates_for_mimetype(conn.config(), &media_file.mimetype)
+                        .into_iter()
+                        .map(|a| AlternateFile::new(&media_file.id, a))
+                        .collect();
+
+                tasks.extend(alternate_files.iter().map(|a| Task::BuildAlternate {
+                    alternate: a.id.clone(),
+                    mimetype: a.mimetype.clone(),
+                }));
+
+                models::MediaFile::upsert(conn, vec![media_file]).await?;
+                models::AlternateFile::upsert(conn, alternate_files).await?;
+
+                Ok((media_item.id.clone(), tasks))
             }
             .scope_boxed()
         })
         .await?;
 
-    app_state
-        .store
-        .task_queue
-        .queue_task(Task::ProcessMediaFile {
-            media_file: media_file_id,
-        })
-        .await;
+    for task in tasks.into_iter() {
+        app_state.store.queue_task(task).await;
+    }
 
     Ok(web::Json(MediaUploadResponse {
         id: media_item_id.clone(),
@@ -638,7 +653,6 @@ async fn edit_media(
 
     app_state
         .store
-        .task_queue
         .queue_task(Task::UpdateSearches { catalog })
         .await;
 

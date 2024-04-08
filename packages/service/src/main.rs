@@ -4,16 +4,16 @@ use clap::{Args, Parser, Subcommand};
 use enum_dispatch::enum_dispatch;
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace, Resource};
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
+    trace::{self, Tracer},
+    Resource,
+};
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
-use pixelbin::{
-    load_config,
-    tasks::{prune_catalogs, rebuild_searches, reprocess_all_media, sanity_check_catalogs},
-    Result, Store,
-};
+use pixelbin::{load_config, Config, Result, Store, Task};
 use scoped_futures::ScopedFutureExt;
-use tracing::{instrument, Level};
+use tracing::{span, Instrument, Level, Span};
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
@@ -24,12 +24,21 @@ const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::TRACE)];
 #[cfg(not(debug_assertions))]
 const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::INFO)];
 
+async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
+    store
+        .with_connection(|conn| conn.list_catalogs().scope_boxed())
+        .await
+}
+
 #[derive(Args)]
 struct Stats;
 
 impl Runnable for Stats {
-    #[instrument(name = "stats", skip_all)]
-    async fn run(self, store: Store) -> Result {
+    fn span(&self) -> Span {
+        span!(Level::INFO, "stats")
+    }
+
+    async fn run(self, store: &Store) -> Result {
         store
             .with_connection(|conn| {
                 async move {
@@ -57,19 +66,18 @@ impl Runnable for Stats {
 struct Reprocess;
 
 impl Runnable for Reprocess {
-    #[instrument(name = "reprocess", skip_all)]
-    async fn run(self, store: Store) -> Result {
-        reprocess_all_media(store).await
+    fn span(&self) -> Span {
+        span!(Level::INFO, "reprocess")
     }
-}
 
-#[derive(Args)]
-struct Prune;
+    async fn run(self, store: &Store) -> Result {
+        let catalogs = list_catalogs(store).await?;
 
-impl Runnable for Prune {
-    #[instrument(name = "prune", skip_all)]
-    async fn run(self, store: Store) -> Result {
-        prune_catalogs(store).await
+        for catalog in catalogs {
+            store.queue_task(Task::ProcessMedia { catalog }).await;
+        }
+
+        Ok(())
     }
 }
 
@@ -77,9 +85,42 @@ impl Runnable for Prune {
 struct Verify;
 
 impl Runnable for Verify {
-    #[instrument(name = "verify", skip_all)]
-    async fn run(self, store: Store) -> Result {
-        sanity_check_catalogs(store).await
+    fn span(&self) -> Span {
+        span!(Level::INFO, "verify")
+    }
+
+    async fn run(self, store: &Store) -> Result {
+        let catalogs = list_catalogs(store).await?;
+
+        for catalog in catalogs.iter() {
+            store
+                .queue_task(Task::VerifyStorage {
+                    catalog: catalog.clone(),
+                })
+                .await;
+        }
+
+        store.finish_tasks().await;
+
+        // for catalog in catalogs.iter() {
+        //     store
+        //         .queue_task(Task::PruneMediaFiles {
+        //             catalog: catalog.clone(),
+        //         })
+        //         .await;
+        // }
+
+        // store.finish_tasks().await;
+
+        // for catalog in catalogs.iter() {
+        //     store
+        //         .queue_task(Task::UpdateSearches {
+        //             catalog: catalog.clone(),
+        //         })
+        //         .await;
+        // }
+
+        Ok(())
     }
 }
 
@@ -89,19 +130,16 @@ struct Serve;
 
 #[cfg(feature = "webserver")]
 impl Runnable for Serve {
-    #[instrument(name = "serve", skip_all)]
-    async fn run(self, store: Store) -> Result {
-        serve(store).await
+    fn span(&self) -> Span {
+        span!(Level::INFO, "serve")
     }
-}
 
-#[derive(Args)]
-struct CheckDb;
+    async fn init_store(&self, config: Config) -> Result<Store> {
+        Store::new(config, None).await
+    }
 
-impl Runnable for CheckDb {
-    #[instrument(name = "check-db", skip_all)]
-    async fn run(self, store: Store) -> Result {
-        rebuild_searches(store).await
+    async fn run(self, store: &Store) -> Result {
+        serve(store).await
     }
 }
 
@@ -113,19 +151,22 @@ enum Command {
     Serve,
     /// List some basic stats about objects in the database.
     Stats,
-    /// Applies database migrations and verifies correctness.
-    CheckDb,
-    /// Reprocesses metadata from media.
+    /// Reprocesses media where necessary.
     Reprocess,
     /// Verifies database and storage consistency.
     Verify,
-    /// Prunes old versions of media.
-    Prune,
 }
 
 #[enum_dispatch(Command)]
 trait Runnable {
-    async fn run(self, store: Store) -> Result;
+    fn span(&self) -> Span;
+
+    async fn init_store(&self, config: Config) -> Result<Store> {
+        let span = Span::current();
+        Store::new(config, span.id()).await
+    }
+
+    async fn run(self, store: &Store) -> Result;
 }
 
 #[derive(Parser)]
@@ -138,7 +179,7 @@ struct CliArgs {
     command: Command,
 }
 
-fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
+fn init_logging(telemetry: Option<&str>) -> result::Result<Option<Tracer>, Box<dyn Error>> {
     let filter = match env::var("RUST_LOG").as_deref() {
         Ok("") | Err(_) => {
             let mut filter = EnvFilter::new("warn");
@@ -186,13 +227,24 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<(), Box<dyn Error>> {
         let telemetry = tracing_opentelemetry::layer()
             .with_error_fields_to_exceptions(true)
             .with_tracked_inactivity(true)
-            .with_tracer(tracer)
+            .with_tracer(tracer.clone())
             .with_filter(filter);
 
         registry.with(telemetry).init();
+
+        Ok(Some(tracer))
     } else {
         registry.init();
+
+        Ok(None)
     }
+}
+
+async fn run_command(command: Command, config: Config) -> Result<()> {
+    let store = command.init_store(config).await?;
+    command.run(&store).await?;
+
+    store.finish_tasks().await;
 
     Ok(())
 }
@@ -201,13 +253,22 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let args = CliArgs::parse();
     let config = load_config(args.config.as_deref())?;
 
-    if let Err(e) = init_logging(config.telemetry_host.as_deref()) {
-        eprintln!("Failed to initialise logging: {e}");
+    let tracer = match init_logging(config.telemetry_host.as_deref()) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Failed to initialise logging: {e}");
+            None
+        }
+    };
+
+    {
+        let span = args.command.span();
+        run_command(args.command, config).instrument(span).await?;
     }
 
-    let store = Store::new(config).await?;
-
-    args.command.run(store).await?;
+    if let Some(provider) = tracer.and_then(|t| t.provider()) {
+        provider.force_flush();
+    }
 
     Ok(())
 }

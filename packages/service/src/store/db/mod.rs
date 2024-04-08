@@ -23,12 +23,12 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use futures::Future;
 use schema::*;
 use scoped_futures::ScopedBoxFuture;
-use tracing::{info, instrument, span, trace, Level};
+use tracing::{info, instrument, span, span::Id, trace, Level};
 
 use crate::{
     shared::{long_id, spawn_blocking},
     store::Isolation,
-    Config, Error, Result,
+    Config, Error, Result, Task, TaskQueue,
 };
 
 pub(crate) type Backend = Pg;
@@ -40,7 +40,7 @@ const TOKEN_EXPIRY_DAYS: i64 = 90;
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 #[instrument(err, skip_all)]
-pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
+pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(DbPool, TaskQueue)> {
     #![allow(clippy::borrowed_box)]
     let mut update_search_queries = false;
 
@@ -70,10 +70,11 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
     // Now set up the async pool.
     let pool_config = AsyncDieselConnectionManager::<BackendConnection>::new(&config.database_url);
     let pool = Pool::builder(pool_config).build()?;
+    let task_queue = TaskQueue::new(pool.clone(), config.clone(), task_span);
 
     // Verify that we can connect and update cached views.
     let mut connection = pool.get().await?;
-    let mut conn = DbConnection::new(&mut connection, config);
+    let mut conn = DbConnection::new(&mut connection, config, &task_queue);
 
     conn.batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
         .await?;
@@ -121,7 +122,7 @@ pub(crate) async fn connect(config: &Config) -> Result<DbPool> {
 
     trace!(migration = last_migration, "Database is fully migrated");
 
-    Ok(pool)
+    Ok((pool, task_queue))
 }
 
 #[derive(Clone, Debug)]
@@ -140,6 +141,7 @@ pub struct DbConnection<'conn> {
     conn: &'conn mut BackendConnection,
     config: Config,
     isolation: Option<Isolation>,
+    task_queue: TaskQueue,
 }
 
 impl<'a> SimpleAsyncConnection for DbConnection<'a> {
@@ -212,12 +214,21 @@ impl<'a> AsyncConnection for DbConnection<'a> {
 }
 
 impl<'conn> DbConnection<'conn> {
-    pub(crate) fn new(conn: &'conn mut BackendConnection, config: &Config) -> Self {
+    pub(crate) fn new(
+        conn: &'conn mut BackendConnection,
+        config: &Config,
+        task_queue: &TaskQueue,
+    ) -> Self {
         Self {
             conn,
             config: config.clone(),
             isolation: None,
+            task_queue: task_queue.clone(),
         }
+    }
+
+    pub async fn queue_task(&self, task: Task) {
+        self.task_queue.queue_task(task).await;
     }
 
     #[instrument(skip_all)]
@@ -229,6 +240,7 @@ impl<'conn> DbConnection<'conn> {
             + 'a,
     {
         let config = self.config.clone();
+        let task_queue = self.task_queue.clone();
 
         if let Some(l) = self.isolation {
             assert_eq!(l, level);
@@ -237,6 +249,7 @@ impl<'conn> DbConnection<'conn> {
                 conn: self.conn,
                 config,
                 isolation: Some(level),
+                task_queue,
             };
             return cb(&mut db_conn).await;
         }
@@ -255,6 +268,7 @@ impl<'conn> DbConnection<'conn> {
                         conn,
                         config,
                         isolation: Some(level),
+                        task_queue,
                     };
                     cb(&mut db_conn).await
                 }
@@ -382,5 +396,10 @@ impl<'conn> DbConnection<'conn> {
             files: files as u32,
             alternate_files: alternate_files as u32,
         })
+    }
+
+    pub async fn list_catalogs(&mut self) -> Result<Vec<String>> {
+        let catalogs = models::Catalog::list(self).await?;
+        Ok(catalogs.into_iter().map(|c| c.id).collect())
     }
 }

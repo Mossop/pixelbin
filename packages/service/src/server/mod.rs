@@ -150,12 +150,14 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
     }))
 }
 
-pub async fn serve(store: Store) -> Result {
+pub async fn serve(store: &Store) -> Result {
     let port = store.config().port.unwrap_or(80);
 
-    store.task_queue.queue_task(Task::ServerStartup).await;
+    store.queue_task(Task::ServerStartup).await;
 
-    let state = AppState { store };
+    let state = AppState {
+        store: store.clone(),
+    };
 
     let app_data = web::Data::new(state);
 

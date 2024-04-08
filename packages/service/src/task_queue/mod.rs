@@ -1,57 +1,69 @@
 use std::{
     collections::HashMap,
-    time::{Duration, Instant},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
 
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Local, Timelike};
-use futures::StreamExt;
-use tokio::time::sleep;
-use tracing::{error, instrument, trace, Span};
+use mime::Mime;
+use tokio::{sync::Notify, time::sleep};
+use tracing::{error, field, span, span::Id, Instrument, Level, Span};
 
 use crate::{
-    metadata::reprocess_media_file,
     store::{
         db::{DbConnection, DbPool},
         models,
         path::ResourcePath,
     },
-    Config, Error, FileStore, Result,
+    task_queue::{
+        maintenance::{prune_media_files, trigger_media_tasks, update_searches, verify_storage},
+        media::{build_alternate, delete_media_file, extract_metadata, upload_media_file},
+    },
+    Config, FileStore, Result,
 };
 
-const TASK_STARTUP: &str = "startup";
-const TASK_PROCESS_MEDIA_FILE: &str = "process_media_file";
-const TASK_DELETE_MEDIA: &str = "delete_media";
-const TASK_UPDATE_SEARCHES: &str = "update_searches";
+mod maintenance;
+mod media;
 
-pub(crate) enum Task {
+#[derive(Debug)]
+pub enum Task {
     ServerStartup,
-    ProcessMediaFile { media_file: String },
     DeleteMedia { media: Vec<String> },
     UpdateSearches { catalog: String },
+    VerifyStorage { catalog: String },
+    PruneMediaFiles { catalog: String },
+    ProcessMedia { catalog: String },
+    ExtractMetadata { media_file: String },
+    UploadMediaFile { media_file: String },
+    DeleteMediaFile { media_file: String },
+    BuildAlternate { alternate: String, mimetype: Mime },
 }
 
-async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
-    let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
-    let storage = models::Storage::get_for_catalog(conn, &media_file_path.catalog).await?;
+// async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
+//     let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
+//     let storage = models::Storage::get_for_catalog(conn, &media_file_path.catalog).await?;
 
-    let remote_store = storage.file_store().await?;
+//     let remote_store = storage.file_store().await?;
 
-    reprocess_media_file(conn, &mut media_file, &media_file_path, &remote_store, true).await?;
+//     reprocess_media_file(conn, &mut media_file, &media_file_path, &remote_store, true).await?;
 
-    models::MediaFile::upsert(conn, vec![media_file]).await?;
+//     models::MediaFile::upsert(conn, vec![media_file]).await?;
 
-    models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
+//     models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
 
-    models::SavedSearch::update_for_catalog(conn, &media_file_path.catalog).await?;
+//     models::SavedSearch::update_for_catalog(conn, &media_file_path.catalog).await?;
 
-    let files = models::MediaFile::list_prunable(conn, &media_file_path.catalog).await?;
-    for (file, path) in files {
-        file.delete(conn, &storage, &path).await?;
-    }
+//     let files = models::MediaFile::list_prunable(conn, &media_file_path.catalog).await?;
+//     for (file, path) in files {
+//         file.delete(conn, &storage, &path).await?;
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::MediaItem>) -> Result {
     let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
@@ -86,8 +98,8 @@ async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::Medi
     Ok(())
 }
 
-async fn delete_media_ids(conn: &mut DbConnection<'_>, ids: Vec<String>) -> Result {
-    let media = models::MediaItem::get(conn, &ids).await?;
+async fn delete_media_ids(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
+    let media = models::MediaItem::get(conn, ids).await?;
     delete_media_items(conn, media).await
 }
 
@@ -97,32 +109,39 @@ async fn server_startup_tasks(conn: &mut DbConnection<'_>) -> Result {
 }
 
 impl Task {
-    fn name(&self) -> &'static str {
-        match self {
-            Task::ServerStartup => TASK_STARTUP,
-            Task::ProcessMediaFile { media_file: _ } => TASK_PROCESS_MEDIA_FILE,
-            Task::DeleteMedia { media: _ } => TASK_DELETE_MEDIA,
-            Task::UpdateSearches { catalog: _ } => TASK_UPDATE_SEARCHES,
-        }
-    }
-
-    async fn run(self, conn: &mut DbConnection<'_>) -> Result {
+    async fn run(&self, conn: &mut DbConnection<'_>) -> Result {
         match self {
             Task::ServerStartup => server_startup_tasks(conn).await,
-            Task::ProcessMediaFile { media_file } => process_media_file(conn, &media_file).await,
             Task::DeleteMedia { media } => delete_media_ids(conn, media).await,
-            Task::UpdateSearches { catalog } => {
-                models::SavedSearch::update_for_catalog(conn, &catalog).await
-            }
+            Task::UpdateSearches { catalog } => update_searches(conn, catalog).await,
+            Task::VerifyStorage { catalog } => verify_storage(conn, catalog).await,
+            Task::PruneMediaFiles { catalog } => prune_media_files(conn, catalog).await,
+            Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
+            Task::ExtractMetadata { media_file } => extract_metadata(conn, media_file).await,
+            Task::UploadMediaFile { media_file } => upload_media_file(conn, media_file).await,
+            Task::DeleteMediaFile { media_file } => delete_media_file(conn, media_file).await,
+            Task::BuildAlternate {
+                alternate,
+                mimetype: _,
+            } => build_alternate(conn, alternate).await,
         }
     }
 
     fn is_expensive(&self) -> bool {
         match self {
             Task::ServerStartup => false,
-            Task::ProcessMediaFile { media_file: _ } => true,
             Task::DeleteMedia { media: _ } => false,
             Task::UpdateSearches { catalog: _ } => false,
+            Task::VerifyStorage { catalog: _ } => false,
+            Task::PruneMediaFiles { catalog: _ } => false,
+            Task::ProcessMedia { catalog: _ } => false,
+            Task::ExtractMetadata { media_file: _ } => false,
+            Task::UploadMediaFile { media_file: _ } => false,
+            Task::DeleteMediaFile { media_file: _ } => false,
+            Task::BuildAlternate {
+                alternate: _,
+                mimetype,
+            } => mimetype.type_() == mime::VIDEO,
         }
     }
 }
@@ -136,78 +155,86 @@ fn next_tick() -> Duration {
 
 #[derive(Clone)]
 pub(crate) struct TaskQueue {
-    sender: Sender<Task>,
-    expensive_sender: Sender<Task>,
+    pool: DbPool,
+    config: Config,
+    notify: Arc<Notify>,
+    pending: Arc<AtomicUsize>,
+    sender: Sender<(Task, Option<Id>)>,
+    expensive_sender: Sender<(Task, Option<Id>)>,
 }
 
 impl TaskQueue {
-    pub(crate) fn new(pool: DbPool, config: &Config) -> Self {
+    pub(crate) fn new(pool: DbPool, config: Config, parent_span: Option<Id>) -> Self {
         let (sender, receiver) = unbounded();
         let (expensive_sender, expensive_receiver) = unbounded();
+
+        let queue = Self {
+            pool,
+            config: config.clone(),
+            notify: Arc::new(Notify::new()),
+            pending: Arc::new(AtomicUsize::new(0)),
+            sender,
+            expensive_sender,
+        };
 
         let expensive_workers = 1;
         let workers = 3;
 
         for _ in 0..workers {
             tokio::spawn(TaskQueue::task_loop(
-                pool.clone(),
-                config.clone(),
+                queue.clone(),
                 receiver.clone(),
+                parent_span.clone(),
             ));
         }
 
         for _ in 0..expensive_workers {
             tokio::spawn(TaskQueue::task_loop(
-                pool.clone(),
-                config.clone(),
+                queue.clone(),
                 expensive_receiver.clone(),
+                parent_span.clone(),
             ));
         }
-
-        let queue = Self {
-            sender,
-            expensive_sender,
-        };
 
         tokio::spawn(TaskQueue::cron_loop(queue.clone()));
 
         queue
     }
 
+    pub(crate) async fn finish_tasks(&self) {
+        let count = self.pending.load(Ordering::Acquire);
+        if count > 0 {
+            self.notify.notified().await;
+        }
+
+        self.sender.close();
+    }
+
     pub(crate) async fn queue_task(&self, task: Task) {
+        self.pending.fetch_add(1, Ordering::AcqRel);
+        let follows_from = Span::current().id();
+
         if task.is_expensive() {
-            self.expensive_sender.send(task).await.unwrap();
+            self.expensive_sender
+                .send((task, follows_from))
+                .await
+                .unwrap();
         } else {
-            self.sender.send(task).await.unwrap();
+            self.sender.send((task, follows_from)).await.unwrap();
         }
     }
 
-    #[instrument(skip_all, fields(otel.name, otel.status_code, duration))]
-    async fn run_task(pool: &DbPool, config: &Config, task: Task) {
-        let start = Instant::now();
-        Span::current().record("otel.name", task.name());
+    async fn run_task(&self, task: &Task) -> Result {
+        let mut conn = self.pool.get().await?;
+        let mut db_conn = DbConnection::new(&mut conn, &self.config, self);
+        let result = task.run(&mut db_conn).await;
 
-        let result = match pool.get().await {
-            Ok(mut conn) => {
-                let mut db_conn = DbConnection::new(&mut conn, config);
-                task.run(&mut db_conn).await
-            }
-            Err(e) => Err(Error::from(e)),
-        };
-
-        let duration = Instant::now().duration_since(start).as_millis();
-        Span::current().record("duration", duration);
-
-        match result {
-            Ok(()) => {
-                Span::current().record("otel.status_code", "Ok");
-                trace!("Task complete");
-            }
-            Err(e) => {
-                Span::current().record("otel.status_code", "Error");
-                error!(error = %e, "Task failed");
-            }
+        let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
+        if count == 0 {
+            self.notify.notify_waiters();
         }
+
+        result
     }
 
     async fn cron_loop(self) {
@@ -220,11 +247,24 @@ impl TaskQueue {
         }
     }
 
-    async fn task_loop(pool: DbPool, config: Config, receiver: Receiver<Task>) {
-        let mut receiver = Box::pin(receiver);
+    async fn task_loop(
+        queue: TaskQueue,
+        receiver: Receiver<(Task, Option<Id>)>,
+        parent_span: Option<Id>,
+    ) {
+        while let Ok((task, follows_from)) = receiver.recv().await {
+            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.status_code" = field::Empty);
+            span.follows_from(follows_from);
 
-        while let Some(task) = receiver.next().await {
-            TaskQueue::run_task(&pool, &config, task).await;
+            match queue.run_task(&task).instrument(span.clone()).await {
+                Ok(()) => {
+                    span.record("otel.status_code", "Ok");
+                }
+                Err(e) => {
+                    error!(error = %e, task = ?task, "Task failed");
+                    span.record("otel.status_code", "Error");
+                }
+            }
         }
     }
 }

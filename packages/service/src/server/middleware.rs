@@ -70,8 +70,7 @@ where
             "http.request.method" = %req.method(),
             "http.response.status_code" = field::Empty,
             "otel.status_code" = field::Empty,
-        )
-        .entered();
+        );
         span.set_parent(parent_context);
 
         let start = Instant::now();
@@ -79,7 +78,7 @@ where
         let fut = self.service.call(req);
 
         Box::pin(async move {
-            let res = fut.in_current_span().await?;
+            let res = fut.instrument(span.clone()).await?;
 
             let duration = Instant::now().duration_since(start).as_millis();
             let status = res.status();

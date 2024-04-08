@@ -1,4 +1,4 @@
-use std::{path::Path, time::Duration};
+use std::{fmt, path::Path, time::Duration};
 
 use async_trait::async_trait;
 use aws_config::{AppName, BehaviorVersion};
@@ -122,8 +122,15 @@ impl AwsClient {
 
 #[async_trait]
 impl FileStore for AwsClient {
+    async fn exists(&self, _path: &FilePath) -> Result<bool> {
+        todo!();
+    }
+
     #[instrument(skip(self), err)]
-    async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
+    where
+        P: PathLike + Send + Sync + fmt::Debug,
+    {
         let mut request = self.client.list_objects_v2().bucket(&self.bucket);
 
         request = match (&self.path, prefix) {

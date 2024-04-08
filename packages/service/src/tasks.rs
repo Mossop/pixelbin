@@ -78,12 +78,9 @@ pub async fn sanity_check_catalog(store: &Store, catalog: &str) -> Result {
         file_set: &mut HashMap<MediaFilePath, FileSets>,
     ) -> Result {
         for (path, size) in file_store
-            .list_files(Some(
-                &CatalogPath {
-                    catalog: catalog.to_owned(),
-                }
-                .into(),
-            ))
+            .list_files(Some(&CatalogPath {
+                catalog: catalog.to_owned(),
+            }))
             .await?
         {
             if let Ok(file) = TryInto::<FilePath>::try_into(path) {
@@ -300,40 +297,6 @@ pub async fn sanity_check_catalogs(store: Store) -> Result {
     for catalog in catalogs {
         if let Err(e) = sanity_check_catalog(&store, &catalog.id).await {
             error!(error=?e, catalog=catalog.id, "Failed checking catalog");
-        }
-    }
-
-    Ok(())
-}
-
-pub async fn prune_catalog(store: &Store, catalog: &str) -> Result {
-    store
-        .in_transaction(|conn| {
-            async move {
-                models::MediaItem::update_media_files(conn, catalog).await?;
-
-                let storage = models::Storage::get_for_catalog(conn, catalog).await?;
-
-                let files = models::MediaFile::list_prunable(conn, catalog).await?;
-                for (file, path) in files {
-                    file.delete(conn, &storage, &path).await?;
-                }
-
-                Ok(())
-            }
-            .scope_boxed()
-        })
-        .await
-}
-
-pub async fn prune_catalogs(store: Store) -> Result {
-    let catalogs = store
-        .with_connection(|conn| async move { models::Catalog::list(conn).await }.scope_boxed())
-        .await?;
-
-    for catalog in catalogs {
-        if let Err(e) = prune_catalog(&store, &catalog.id).await {
-            error!(error=?e, catalog=catalog.id, "Failed pruning catalog");
         }
     }
 

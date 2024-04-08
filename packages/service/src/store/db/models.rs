@@ -20,7 +20,7 @@ use tracing::{instrument, warn};
 use typeshare::typeshare;
 
 use crate::{
-    metadata::{lookup_timezone, media_datetime},
+    metadata::{lookup_timezone, media_datetime, Alternate},
     shared::{long_id, mime::MimeField, short_id},
     store::{
         aws::AwsClient,
@@ -271,6 +271,23 @@ impl Storage {
             .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
             .filter(catalog::id.eq(catalog))
             .select(storage::all_columns)
+            .get_result::<Storage>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
+
+    pub(crate) async fn lock_for_catalog(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Storage> {
+        conn.assert_in_transaction();
+
+        storage::table
+            .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
+            .filter(catalog::id.eq(catalog))
+            .select(storage::all_columns)
+            .for_update()
             .get_result::<Storage>(conn)
             .await
             .optional()?
@@ -889,6 +906,7 @@ impl SavedSearch {
             .filter(media_item::catalog.eq(&self.catalog))
             .filter(self.query.build_filter(&self.catalog))
             .select(media_item::id)
+            .order_by(media_item::id)
             .distinct();
 
         let matching_media = select.load::<String>(conn).await?;
@@ -1633,32 +1651,11 @@ impl MediaFile {
         Ok(())
     }
 
-    pub(crate) async fn delete(
-        &self,
-        conn: &mut DbConnection<'_>,
-        storage: &Storage,
-        media_file_path: &MediaFilePath,
-    ) -> Result {
-        diesel::delete(media_file::table.filter(media_file::id.eq(&self.id)))
-            .execute(conn)
-            .await?;
-
-        if let Err(e) = storage
-            .file_store()
-            .await?
-            .delete(&media_file_path.clone().into())
-            .await
-        {
-            warn!(error=?e, path=%media_file_path, "Failed to delete remote media file data");
-        }
-
-        if let Err(e) = conn
-            .config()
-            .local_store()
-            .delete(&media_file_path.clone().into())
-            .await
-        {
-            warn!(error=?e, path=%media_file_path, "Failed to delete local media file data");
+    pub(crate) async fn delete(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
+        for records in batch(ids, 500) {
+            diesel::delete(media_file::table.filter(media_file::id.eq_any(records)))
+                .execute(conn)
+                .await?;
         }
 
         Ok(())
@@ -1686,6 +1683,24 @@ pub(crate) struct AlternateFile {
 }
 
 impl AlternateFile {
+    pub(crate) fn new(media_file: &str, alternate: Alternate) -> Self {
+        Self {
+            id: short_id("F"),
+            file_type: alternate.alt_type,
+            file_name: alternate.file_name(),
+            file_size: 0,
+            mimetype: alternate.mimetype,
+            width: 0,
+            height: 0,
+            duration: None,
+            frame_rate: None,
+            bit_rate: None,
+            media_file: media_file.to_owned(),
+            local: alternate.alt_type == AlternateFileType::Thumbnail,
+            stored: None,
+        }
+    }
+
     pub(crate) async fn list_for_catalog(
         conn: &mut DbConnection<'_>,
         catalog: &str,

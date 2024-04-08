@@ -1,5 +1,7 @@
 //! A basic abstraction around the pixelbin data stores.
 use std::{
+    collections::HashMap,
+    fmt,
     io::ErrorKind,
     iter::once,
     path::{Path, PathBuf},
@@ -18,14 +20,25 @@ use mime::Mime;
 use scoped_futures::ScopedFutureExt;
 use tempfile::TempPath;
 use tokio::fs;
-use tracing::instrument;
+use tracing::{instrument, span::Id};
 
 use self::path::{FilePath, PathLike, ResourcePath};
-use crate::{Config, Result, TaskQueue};
+use crate::{Config, Result, Task, TaskQueue};
 
 #[async_trait]
 pub trait FileStore {
-    async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>>;
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
+    where
+        P: PathLike + Send + Sync + fmt::Debug;
+
+    async fn list_file_sizes<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
+    where
+        P: PathLike + Send + Sync + fmt::Debug,
+    {
+        Ok(self.list_files(prefix).await?.into_iter().collect())
+    }
+
+    async fn exists(&self, path: &FilePath) -> Result<bool>;
 
     async fn delete(&self, path: &ResourcePath) -> Result;
 
@@ -68,8 +81,15 @@ impl DiskStore {
 
 #[async_trait]
 impl FileStore for DiskStore {
+    async fn exists(&self, path: &FilePath) -> Result<bool> {
+        Ok(fs::try_exists(self.local_path(path)).await?)
+    }
+
     #[instrument(skip(self), err)]
-    async fn list_files(&self, prefix: Option<&ResourcePath>) -> Result<Vec<(ResourcePath, u64)>> {
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
+    where
+        P: PathLike + Send + Sync + fmt::Debug,
+    {
         let mut files = Vec::<(ResourcePath, u64)>::new();
 
         let root = if let Some(prefix) = prefix {
@@ -184,18 +204,26 @@ pub enum Isolation {
 pub struct Store {
     config: Config,
     pool: DbPool,
-    pub(crate) task_queue: TaskQueue,
+    task_queue: TaskQueue,
 }
 
 impl Store {
-    pub async fn new(config: Config) -> Result<Self> {
-        let pool = connect(&config).await?;
+    pub async fn new(config: Config, task_span: Option<Id>) -> Result<Self> {
+        let (pool, task_queue) = connect(&config, task_span).await?;
 
         Ok(Store {
-            task_queue: TaskQueue::new(pool.clone(), &config),
+            task_queue,
             config,
             pool,
         })
+    }
+
+    pub async fn queue_task(&self, task: Task) {
+        self.task_queue.queue_task(task).await;
+    }
+
+    pub async fn finish_tasks(&self) {
+        self.task_queue.finish_tasks().await;
     }
 
     pub(crate) fn config(&self) -> &Config {
@@ -212,7 +240,7 @@ impl Store {
     {
         let mut conn = self.pool.get().await?;
 
-        let mut db_conn = DbConnection::new(&mut conn, &self.config);
+        let mut db_conn = DbConnection::new(&mut conn, &self.config, &self.task_queue);
         cb(&mut db_conn).await
     }
 
@@ -226,7 +254,7 @@ impl Store {
     {
         let mut conn = self.pool.get().await?;
 
-        let mut db_conn = DbConnection::new(&mut conn, &self.config);
+        let mut db_conn = DbConnection::new(&mut conn, &self.config, &self.task_queue);
         db_conn
             .isolated(level, |conn| async move { cb(conn).await }.scope_boxed())
             .await

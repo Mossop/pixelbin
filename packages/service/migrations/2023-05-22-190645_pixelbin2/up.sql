@@ -445,7 +445,7 @@ ALTER TABLE "album"
     ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "media_item"
-    ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 ALTER TABLE "saved_search"
     ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE CASCADE ON DELETE CASCADE;
@@ -454,13 +454,13 @@ ALTER TABLE "shared_catalog"
     ADD CONSTRAINT "foreign_catalog" FOREIGN KEY (catalog) REFERENCES "catalog"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "alternate_file"
-    ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("media_file") REFERENCES "media_file"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("media_file") REFERENCES "media_file"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 ALTER TABLE "media_item"
     ADD CONSTRAINT "foreign_media_file" FOREIGN KEY ("media_file") REFERENCES "media_file"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE "media_file"
-    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (media_item) REFERENCES "media_item"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (media_item) REFERENCES "media_item"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 ALTER TABLE "media_album"
     ADD CONSTRAINT "foreign_media_item" FOREIGN KEY (catalog, media) REFERENCES "media_item"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
@@ -475,7 +475,7 @@ ALTER TABLE "media_person"
     ADD CONSTRAINT "foreign_person" FOREIGN KEY (catalog, person) REFERENCES "person"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "catalog"
-    ADD CONSTRAINT "foreign_storage" FOREIGN KEY (storage) REFERENCES "storage"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "foreign_storage" FOREIGN KEY (storage) REFERENCES "storage"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "tag"
     ADD CONSTRAINT "foreign_tag" FOREIGN KEY (catalog, parent) REFERENCES "tag"(catalog, id) ON UPDATE CASCADE ON DELETE CASCADE;
