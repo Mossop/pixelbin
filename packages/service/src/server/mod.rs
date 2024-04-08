@@ -9,14 +9,13 @@ use actix_web::{
 use serde::Serialize;
 use tracing::instrument;
 
-use self::task_queue::{Task, TaskQueue};
+use crate::shared::task_queue::{Task, TaskQueue};
 use crate::{shared::config::ThumbnailConfig, store::Store, Error, Result};
 
 mod auth;
 mod media;
 mod middleware;
 mod relations;
-mod task_queue;
 mod util;
 
 #[derive(Debug)]
@@ -157,7 +156,7 @@ pub async fn serve(store: Store) -> Result {
     let port = store.config().port.unwrap_or(80);
     let task_queue = TaskQueue::new(&store, 5);
 
-    task_queue.queue_task(Task::Startup).await;
+    task_queue.queue_task(Task::ServerStartup).await;
 
     let state = AppState { store, task_queue };
 

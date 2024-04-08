@@ -21,8 +21,8 @@ const TASK_PROCESS_MEDIA_FILE: &str = "process_media_file";
 const TASK_DELETE_MEDIA: &str = "delete_media";
 const TASK_UPDATE_SEARCHES: &str = "update_searches";
 
-pub(super) enum Task {
-    Startup,
+pub(crate) enum Task {
+    ServerStartup,
     ProcessMediaFile { media_file: String },
     DeleteMedia { media: Vec<String> },
     UpdateSearches { catalog: String },
@@ -88,7 +88,7 @@ async fn delete_media_ids(conn: &mut DbConnection<'_>, ids: Vec<String>) -> Resu
     delete_media_items(conn, media).await
 }
 
-async fn startup_tasks(conn: &mut DbConnection<'_>) -> Result {
+async fn server_startup_tasks(conn: &mut DbConnection<'_>) -> Result {
     let media = models::MediaItem::list_deleted(conn).await?;
     delete_media_items(conn, media).await
 }
@@ -96,7 +96,7 @@ async fn startup_tasks(conn: &mut DbConnection<'_>) -> Result {
 impl Task {
     fn name(&self) -> &'static str {
         match self {
-            Task::Startup => TASK_STARTUP,
+            Task::ServerStartup => TASK_STARTUP,
             Task::ProcessMediaFile { media_file: _ } => TASK_PROCESS_MEDIA_FILE,
             Task::DeleteMedia { media: _ } => TASK_DELETE_MEDIA,
             Task::UpdateSearches { catalog: _ } => TASK_UPDATE_SEARCHES,
@@ -105,7 +105,7 @@ impl Task {
 
     async fn run(self, conn: &mut DbConnection<'_>) -> Result {
         match self {
-            Task::Startup => startup_tasks(conn).await,
+            Task::ServerStartup => server_startup_tasks(conn).await,
             Task::ProcessMediaFile { media_file } => process_media_file(conn, &media_file).await,
             Task::DeleteMedia { media } => delete_media_ids(conn, media).await,
             Task::UpdateSearches { catalog } => {
@@ -123,12 +123,12 @@ fn next_tick() -> Duration {
 }
 
 #[derive(Clone)]
-pub(super) struct TaskQueue {
+pub(crate) struct TaskQueue {
     sender: Sender<Task>,
 }
 
 impl TaskQueue {
-    pub(super) fn new(store: &Store, workers: usize) -> Self {
+    pub(crate) fn new(store: &Store, workers: usize) -> Self {
         let (sender, receiver) = unbounded();
 
         for _ in 0..(workers - 1) {
@@ -143,7 +143,7 @@ impl TaskQueue {
         queue
     }
 
-    pub(super) async fn queue_task(&self, task: Task) {
+    pub(crate) async fn queue_task(&self, task: Task) {
         self.sender.send(task).await.unwrap();
     }
 

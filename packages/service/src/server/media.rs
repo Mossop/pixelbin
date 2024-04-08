@@ -15,10 +15,10 @@ use crate::{
     metadata::ISO_FORMAT,
     server::{
         auth::{MaybeSession, Session},
-        task_queue::Task,
         util::choose_alternate,
         ApiResponse, ApiResult, AppState,
     },
+    shared::task_queue::Task,
     store::{
         db::{search::SearchQuery, DbConnection},
         models::{self, AlternateFileType, Location},
