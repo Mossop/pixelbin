@@ -21,7 +21,7 @@ diesel::table! {
         #[sql_name = "type"]
         type_ -> Varchar,
         file_name -> Text,
-        file_size -> Int4,
+        file_size -> Int8,
         mimetype -> Text,
         width -> Int4,
         height -> Int4,
@@ -63,7 +63,7 @@ diesel::table! {
         id -> Varchar,
         uploaded -> Timestamptz,
         file_name -> Text,
-        file_size -> Int4,
+        file_size -> Int8,
         mimetype -> Text,
         width -> Int4,
         height -> Int4,

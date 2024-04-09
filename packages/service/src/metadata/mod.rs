@@ -119,7 +119,7 @@ impl Alternate {
             id: short_id("F"),
             file_type: self.alt_type,
             file_name: name,
-            file_size: stats.size() as i32,
+            file_size: stats.size() as i64,
             mimetype,
             width,
             height,
@@ -231,7 +231,7 @@ pub(crate) fn media_datetime(
 pub(crate) struct FileMetadata {
     pub(crate) exif: ExifData,
     pub(crate) file_name: String,
-    pub(crate) file_size: i32,
+    pub(crate) file_size: i64,
     pub(crate) width: i32,
     pub(crate) height: i32,
     pub(crate) uploaded: DateTime<Utc>,
@@ -351,7 +351,7 @@ pub(crate) async fn reprocess_media_file<S: FileStore>(
             let metadata = FileMetadata {
                 exif,
                 file_name: media_file.file_name.clone(),
-                file_size: stats.len() as i32,
+                file_size: stats.len() as i64,
                 width,
                 height,
                 uploaded: media_file.uploaded,

@@ -173,4 +173,7 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
 #[instrument(skip(conn), err)]
 pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
     todo!();
+
+    // Find all the newest MediaFiles and their AlternateFiles
+    // Trigger tasks as appropriate
 }

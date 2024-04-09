@@ -1405,7 +1405,7 @@ pub(crate) struct MediaFile {
     pub(crate) id: String,
     pub(crate) uploaded: DateTime<Utc>,
     pub(crate) file_name: String,
-    pub(crate) file_size: i32,
+    pub(crate) file_size: i64,
     #[diesel(deserialize_as = MimeField, serialize_as = MimeField)]
     pub(crate) mimetype: Mime,
     pub(crate) width: i32,
@@ -1421,7 +1421,7 @@ pub(crate) struct MediaFile {
 }
 
 impl MediaFile {
-    pub(crate) fn new(media_item: &str, file_name: &str, file_size: i32, mimetype: &Mime) -> Self {
+    pub(crate) fn new(media_item: &str, file_name: &str, file_size: i64, mimetype: &Mime) -> Self {
         Self {
             id: short_id("I"),
             uploaded: Utc::now(),
@@ -1669,7 +1669,7 @@ pub(crate) struct AlternateFile {
     #[diesel(column_name = type_)]
     pub(crate) file_type: AlternateFileType,
     pub(crate) file_name: String,
-    pub(crate) file_size: i32,
+    pub(crate) file_size: i64,
     #[diesel(deserialize_as = MimeField, serialize_as = MimeField)]
     pub(crate) mimetype: Mime,
     pub(crate) width: i32,
@@ -1879,7 +1879,7 @@ pub(crate) struct MediaViewFileAlternate {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MediaViewFile {
     pub(crate) id: String,
-    pub(crate) file_size: i32,
+    pub(crate) file_size: i64,
     #[diesel(deserialize_as = MimeField)]
     #[serde(with = "crate::shared::mime")]
     pub(crate) mimetype: Mime,

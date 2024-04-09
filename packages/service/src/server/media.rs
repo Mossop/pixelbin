@@ -564,7 +564,7 @@ async fn upload_media(
                 let media_file = models::MediaFile::new(
                     &media_item.id,
                     &file_name,
-                    data.file.size as i32,
+                    data.file.size as i64,
                     &Mime::from_str(format.media_type())?,
                 );
 
