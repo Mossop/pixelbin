@@ -2,7 +2,7 @@ use std::{cmp::min, collections::HashMap, result};
 
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
-    backend, delete, deserialize,
+    alias, backend, delete, deserialize,
     dsl::{count, sql},
     expression::SqlLiteral,
     insert_into,
@@ -1472,11 +1472,19 @@ impl MediaFile {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+        // Lists the files that are older than the current valid media file.
+        let current_file = alias!(media_file as current_file);
         let files = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .inner_join(
+                current_file.on(current_file
+                    .field(media_file::id)
+                    .nullable()
+                    .eq(media_item::media_file)),
+            )
             .filter(media_item::catalog.eq(catalog))
-            .filter(media_item::media_file.is_not_null())
-            .filter(media_item::media_file.ne(media_file::id.nullable()))
+            .filter(media_file::id.ne(current_file.field(media_file::id)))
+            .filter(media_file::uploaded.lt(current_file.field(media_file::uploaded)))
             .select((media_file_columns!(), media_item::catalog))
             .load::<(MediaFile, String)>(conn)
             .await?;

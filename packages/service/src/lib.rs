@@ -7,6 +7,7 @@ mod shared;
 mod store;
 mod task_queue;
 
+use shared::error::Ignorable;
 pub use shared::{
     config::Config,
     error::{Error, Result},

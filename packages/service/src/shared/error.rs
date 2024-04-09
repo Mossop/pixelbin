@@ -8,6 +8,7 @@ use figment::Error as FigmentError;
 use image::ImageError;
 use mime::{FromStrError, Mime};
 use thiserror::Error;
+use tracing::{error, warn};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -53,7 +54,6 @@ pub enum Error {
     S3Error { message: String },
     #[error("Unexpected path")]
     UnexpectedPath { path: String },
-    #[cfg(feature = "webserver")]
     #[error("Invalid client data: {message}")]
     InvalidData { message: String },
     #[error("Unsupported media type: {mime}")]
@@ -70,6 +70,28 @@ pub enum Error {
     },
     #[error("Unknown error: {message}")]
     Unknown { message: String },
+}
+
+pub(crate) trait Ignorable {
+    fn warn(self);
+    fn error(self);
+}
+
+impl<R, E> Ignorable for std::result::Result<R, E>
+where
+    E: std::fmt::Debug,
+{
+    fn warn(self) {
+        if let Err(e) = self {
+            warn!(error=?e);
+        }
+    }
+
+    fn error(self) {
+        if let Err(e) = self {
+            error!(error=?e);
+        }
+    }
 }
 
 impl From<diesel::result::Error> for Error {

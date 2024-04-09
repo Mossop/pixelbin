@@ -10,7 +10,7 @@ use crate::{
         path::{CatalogPath, ResourcePath},
         FileStore, Isolation,
     },
-    Result, Task,
+    Ignorable, Result, Task,
 };
 
 #[instrument(skip(conn), err)]
@@ -138,12 +138,12 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
             for path in remote_files.keys() {
                 debug!(file=%path, "Unexpected remote file");
-                // remote_store.delete(path).await?;
+                // remote_store.delete(path).await.warn();
             }
 
             for path in local_files.keys() {
                 debug!(file=%path, "Unexpected local file");
-                local_store.delete(path).await?;
+                local_store.delete(path).await.warn();
             }
 
             Ok(())
@@ -151,23 +151,36 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
         .scope_boxed()
     })
     .await
-
-    // Lock storage
-
-    // Get list of local files
-
-    // Download list of remote files
-
-    // Delete files that don't match MediaFiles or AlternateFiles
-
-    // Clear stored for MediaFiles and AlternateFiles with no matching files.
-
-    // Check MediaItems
 }
 
 #[instrument(skip(conn), err)]
 pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    todo!();
+    conn.isolated(Isolation::Committed, |conn| {
+        async move {
+            let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
+            let remote_store = storage.file_store().await?;
+            let local_store = conn.config().local_store();
+            let temp_store = conn.config().temp_store();
+
+            models::MediaItem::update_media_files(conn, catalog).await?;
+            let prunable = models::MediaFile::list_prunable(conn, catalog).await?;
+
+            let ids: Vec<String> = prunable.iter().map(|(mf, _)| mf.id.clone()).collect();
+            models::MediaFile::delete(conn, &ids).await?;
+
+            for (_, media_file_path) in prunable {
+                let resource: ResourcePath = media_file_path.into();
+
+                remote_store.delete(&resource).await.warn();
+                local_store.delete(&resource).await.warn();
+                temp_store.delete(&resource).await.warn();
+            }
+
+            Ok(())
+        }
+        .scope_boxed()
+    })
+    .await
 }
 
 #[instrument(skip(conn), err)]
