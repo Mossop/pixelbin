@@ -73,6 +73,7 @@ pub enum Error {
 }
 
 pub(crate) trait Ignorable {
+    fn ignore(self);
     fn warn(self);
     fn error(self);
 }
@@ -81,6 +82,8 @@ impl<R, E> Ignorable for std::result::Result<R, E>
 where
     E: std::fmt::Debug,
 {
+    fn ignore(self) {}
+
     fn warn(self) {
         if let Err(e) = self {
             warn!(error=?e);

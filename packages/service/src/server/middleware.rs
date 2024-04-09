@@ -10,7 +10,7 @@ use actix_web::{
 };
 use futures::future::LocalBoxFuture;
 use opentelemetry::global;
-use tracing::{event, field, span, Instrument, Level};
+use tracing::{error, field, span, warn, Instrument, Level};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 pub(crate) struct Logging;
@@ -77,39 +77,40 @@ where
 
         let fut = self.service.call(req);
 
-        Box::pin(async move {
-            let res = fut.instrument(span.clone()).await?;
+        let outer_span = span.clone();
+        Box::pin(
+            async move {
+                let res = fut.await?;
 
-            let duration = Instant::now().duration_since(start).as_millis();
-            let status = res.status();
+                let duration = Instant::now().duration_since(start).as_millis();
+                let status = res.status();
 
-            span.record("http.response.status_code", status.as_u16());
+                span.record("http.response.status_code", status.as_u16());
 
-            if status.is_server_error() {
-                event!(
-                    Level::ERROR,
-                    duration = duration,
-                    status = status.as_str(),
-                    "Server error"
-                );
-                span.record("otel.status_code", "Error");
-            } else if status.is_client_error() {
-                event!(
-                    Level::WARN,
-                    duration = duration,
-                    status = status.as_str(),
-                    "Client error"
-                );
-                span.record("otel.status_code", "Error");
-            } else if duration >= 250 {
-                event!(Level::WARN, duration = duration, "Slow response");
-                span.record("otel.status_code", "Ok");
-            } else {
-                event!(Level::TRACE, duration = duration, status = status.as_str());
-                span.record("otel.status_code", "Ok");
-            };
+                if status.is_server_error() {
+                    error!(
+                        duration = duration,
+                        status = status.as_str(),
+                        "Server error"
+                    );
+                    span.record("otel.status_code", "Error");
+                } else if status.is_client_error() {
+                    warn!(
+                        duration = duration,
+                        status = status.as_str(),
+                        "Client error"
+                    );
+                    span.record("otel.status_code", "Error");
+                } else if duration >= 250 {
+                    warn!(duration = duration, "Slow response");
+                    span.record("otel.status_code", "Ok");
+                } else {
+                    span.record("otel.status_code", "Ok");
+                };
 
-            Ok(res)
-        })
+                Ok(res)
+            }
+            .instrument(outer_span),
+        )
     }
 }

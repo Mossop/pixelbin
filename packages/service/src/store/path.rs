@@ -130,13 +130,6 @@ pub struct MediaFilePath {
 }
 
 impl MediaFilePath {
-    pub(crate) fn media_item(&self) -> MediaItemPath {
-        MediaItemPath {
-            catalog: self.catalog.clone(),
-            item: self.item.clone(),
-        }
-    }
-
     pub(crate) fn file(&self, file_name: &str) -> FilePath {
         FilePath {
             catalog: self.catalog.clone(),

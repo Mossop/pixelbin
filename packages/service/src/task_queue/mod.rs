@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -14,16 +13,14 @@ use tokio::{sync::Notify, time::sleep};
 use tracing::{error, field, span, span::Id, Instrument, Level, Span};
 
 use crate::{
-    store::{
-        db::{DbConnection, DbPool},
-        models,
-        path::ResourcePath,
-    },
+    store::db::{DbConnection, DbPool},
     task_queue::{
-        maintenance::{prune_media_files, trigger_media_tasks, update_searches, verify_storage},
-        media::{build_alternate, delete_media_file, extract_metadata, upload_media_file},
+        maintenance::{
+            prune_media_files, server_startup, trigger_media_tasks, update_searches, verify_storage,
+        },
+        media::{build_alternate, delete_media, extract_metadata, upload_media_file},
     },
-    Config, FileStore, Result,
+    Config, Result,
 };
 
 mod maintenance;
@@ -39,87 +36,37 @@ pub enum Task {
     ProcessMedia { catalog: String },
     ExtractMetadata { media_file: String },
     UploadMediaFile { media_file: String },
-    DeleteMediaFile { media_file: String },
     BuildAlternate { alternate: String, mimetype: Mime },
 }
 
-// async fn process_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
-//     let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
-//     let storage = models::Storage::get_for_catalog(conn, &media_file_path.catalog).await?;
-
-//     let remote_store = storage.file_store().await?;
-
-//     reprocess_media_file(conn, &mut media_file, &media_file_path, &remote_store, true).await?;
-
-//     models::MediaFile::upsert(conn, vec![media_file]).await?;
-
-//     models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
-
-//     models::SavedSearch::update_for_catalog(conn, &media_file_path.catalog).await?;
-
-//     let files = models::MediaFile::list_prunable(conn, &media_file_path.catalog).await?;
-//     for (file, path) in files {
-//         file.delete(conn, &storage, &path).await?;
-//     }
-
-//     Ok(())
-// }
-
-async fn delete_media_items(conn: &mut DbConnection<'_>, media: Vec<models::MediaItem>) -> Result {
-    let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
-
-    models::MediaItem::delete(conn, &media_ids).await?;
-
-    let mut mapped: HashMap<String, Vec<models::MediaItem>> = HashMap::new();
-    for m in media {
-        mapped.entry(m.catalog.clone()).or_default().push(m);
-    }
-
-    let local_store = conn.config().local_store();
-    let temp_store = conn.config().local_store();
-
-    for (catalog, media) in mapped.iter() {
-        let storage = models::Storage::get_for_catalog(conn, catalog).await?;
-        let remote_store = storage.file_store().await?;
-
-        for media in media {
-            let path = ResourcePath::MediaItem(media.path());
-
-            remote_store.delete(&path).await?;
-            local_store.delete(&path).await?;
-            temp_store.delete(&path).await?;
+impl Task {
+    fn task_name(&self) -> String {
+        match self {
+            Task::ServerStartup => "ServerStartup".to_string(),
+            Task::DeleteMedia { media: _ } => "DeleteMedia".to_string(),
+            Task::UpdateSearches { catalog: _ } => "UpdateSearches".to_string(),
+            Task::VerifyStorage { catalog: _ } => "VerifyStorage".to_string(),
+            Task::PruneMediaFiles { catalog: _ } => "PruneMediaFiles".to_string(),
+            Task::ProcessMedia { catalog: _ } => "ProcessMedia".to_string(),
+            Task::ExtractMetadata { media_file: _ } => "ExtractMetadata".to_string(),
+            Task::UploadMediaFile { media_file: _ } => "UploadMediaFile".to_string(),
+            Task::BuildAlternate {
+                alternate: _,
+                mimetype: _,
+            } => "BuildAlternate".to_string(),
         }
     }
 
-    for catalog in mapped.keys() {
-        models::SavedSearch::update_for_catalog(conn, catalog).await?;
-    }
-
-    Ok(())
-}
-
-async fn delete_media_ids(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
-    let media = models::MediaItem::get(conn, ids).await?;
-    delete_media_items(conn, media).await
-}
-
-async fn server_startup_tasks(conn: &mut DbConnection<'_>) -> Result {
-    let media = models::MediaItem::list_deleted(conn).await?;
-    delete_media_items(conn, media).await
-}
-
-impl Task {
     async fn run(&self, conn: &mut DbConnection<'_>) -> Result {
         match self {
-            Task::ServerStartup => server_startup_tasks(conn).await,
-            Task::DeleteMedia { media } => delete_media_ids(conn, media).await,
+            Task::ServerStartup => server_startup(conn).await,
+            Task::DeleteMedia { media } => delete_media(conn, media).await,
             Task::UpdateSearches { catalog } => update_searches(conn, catalog).await,
             Task::VerifyStorage { catalog } => verify_storage(conn, catalog).await,
             Task::PruneMediaFiles { catalog } => prune_media_files(conn, catalog).await,
             Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
             Task::ExtractMetadata { media_file } => extract_metadata(conn, media_file).await,
             Task::UploadMediaFile { media_file } => upload_media_file(conn, media_file).await,
-            Task::DeleteMediaFile { media_file } => delete_media_file(conn, media_file).await,
             Task::BuildAlternate {
                 alternate,
                 mimetype: _,
@@ -137,7 +84,6 @@ impl Task {
             Task::ProcessMedia { catalog: _ } => false,
             Task::ExtractMetadata { media_file: _ } => false,
             Task::UploadMediaFile { media_file: _ } => false,
-            Task::DeleteMediaFile { media_file: _ } => false,
             Task::BuildAlternate {
                 alternate: _,
                 mimetype,
@@ -253,7 +199,7 @@ impl TaskQueue {
         parent_span: Option<Id>,
     ) {
         while let Ok((task, follows_from)) = receiver.recv().await {
-            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.status_code" = field::Empty);
+            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task.task_name(), "otel.status_code" = field::Empty);
             span.follows_from(follows_from);
 
             match queue.run_task(&task).instrument(span.clone()).await {

@@ -15,6 +15,11 @@ use crate::{
 
 #[instrument(skip(conn), err)]
 pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
+    let media = models::MediaItem::list_deleted(conn).await?;
+    let media_ids = media.into_iter().map(|m| m.id).collect();
+    conn.queue_task(Task::DeleteMedia { media: media_ids })
+        .await;
+
     let catalogs = conn.list_catalogs().await?;
 
     for catalog in catalogs {
@@ -23,7 +28,12 @@ pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
         })
         .await;
 
-        conn.queue_task(Task::ProcessMedia { catalog }).await;
+        conn.queue_task(Task::ProcessMedia {
+            catalog: catalog.clone(),
+        })
+        .await;
+
+        conn.queue_task(Task::PruneMediaFiles { catalog }).await;
     }
 
     Ok(())
@@ -136,6 +146,8 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
             models::MediaItem::update_media_files(conn, catalog).await?;
 
+            // TODO check unused metadata.json for MediaFiles to recover?
+
             for path in remote_files.keys() {
                 debug!(file=%path, "Unexpected remote file");
                 // remote_store.delete(path).await.warn();
@@ -171,7 +183,7 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
             for (_, media_file_path) in prunable {
                 let resource: ResourcePath = media_file_path.into();
 
-                remote_store.delete(&resource).await.warn();
+                // remote_store.delete(&resource).await.warn();
                 local_store.delete(&resource).await.warn();
                 temp_store.delete(&resource).await.warn();
             }
@@ -185,8 +197,35 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
 
 #[instrument(skip(conn), err)]
 pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    todo!();
+    for (media_file, _) in models::MediaFile::list_newest(conn, catalog).await? {
+        if media_file.stored.is_none() {
+            conn.queue_task(Task::UploadMediaFile {
+                media_file: media_file.id.clone(),
+            })
+            .await;
+        }
 
-    // Find all the newest MediaFiles and their AlternateFiles
-    // Trigger tasks as appropriate
+        if media_file.needs_metadata {
+            conn.queue_task(Task::ExtractMetadata {
+                media_file: media_file.id.clone(),
+            })
+            .await;
+        }
+
+        for alternate_file in
+            models::AlternateFile::list_for_media_file(conn, &media_file.id).await?
+        {
+            // TODO Verify the right alternate files are present
+
+            if alternate_file.stored.is_none() {
+                conn.queue_task(Task::BuildAlternate {
+                    alternate: alternate_file.id.clone(),
+                    mimetype: alternate_file.mimetype.clone(),
+                })
+                .await;
+            }
+        }
+    }
+
+    Ok(())
 }

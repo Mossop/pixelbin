@@ -232,7 +232,6 @@ impl<'conn> DbConnection<'conn> {
         self.task_queue.queue_task(task).await;
     }
 
-    #[instrument(skip_all)]
     pub async fn isolated<'a, R, F>(&'a mut self, level: Isolation, cb: F) -> Result<R>
     where
         R: 'a + Send,

@@ -522,7 +522,13 @@ async fn upload_media(
                             return Err(Error::NotFound);
                         }
 
-                        media_items.remove(0)
+                        let media_item = media_items.remove(0);
+
+                        if media_item.deleted {
+                            return Err(Error::NotFound);
+                        }
+
+                        media_item
                     }
                     (None, Some(catalog_id)) => {
                         let catalog = models::Catalog::get_for_user(
@@ -642,6 +648,9 @@ async fn edit_media(
                 }
 
                 let mut media_item = media.remove(0);
+                if media_item.deleted {
+                    return Err(Error::NotFound);
+                }
 
                 update_media_item(conn, &mut media_item, &data).await?;
 

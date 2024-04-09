@@ -230,7 +230,6 @@ impl Store {
         &self.config
     }
 
-    #[instrument(skip_all)]
     pub async fn with_connection<'a, R, F>(&self, cb: F) -> Result<R>
     where
         R: 'a + Send,
@@ -244,7 +243,6 @@ impl Store {
         cb(&mut db_conn).await
     }
 
-    #[instrument(skip_all)]
     pub async fn isolated<'a, R, F>(&self, level: Isolation, cb: F) -> Result<R>
     where
         R: 'a + Send,
@@ -260,7 +258,6 @@ impl Store {
             .await
     }
 
-    #[instrument(skip_all)]
     pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
     where
         R: 'a + Send,

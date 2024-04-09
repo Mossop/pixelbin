@@ -17,6 +17,8 @@ mod middleware;
 mod relations;
 mod util;
 
+const DEFAULT_PORT: u16 = 8283;
+
 #[derive(Debug)]
 enum ApiErrorCode {
     // UnknownException,
@@ -139,7 +141,7 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
 
         format!(
             "http://localhost:{}{}",
-            config.port.unwrap_or(80),
+            config.port.unwrap_or(DEFAULT_PORT),
             &path[0..end]
         )
     });
@@ -151,7 +153,7 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
 }
 
 pub async fn serve(store: &Store) -> Result {
-    let port = store.config().port.unwrap_or(80);
+    let port = store.config().port.unwrap_or(DEFAULT_PORT);
 
     store.queue_task(Task::ServerStartup).await;
 

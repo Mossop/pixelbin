@@ -16,7 +16,7 @@ use mime::Mime;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use serde_repr::Serialize_repr;
-use tracing::{instrument, warn};
+use tracing::instrument;
 use typeshare::typeshare;
 
 use crate::{
@@ -421,8 +421,6 @@ impl Person {
         catalog: &str,
         name: &str,
     ) -> Result<Person> {
-        conn.assert_in_transaction();
-
         let person = match person::table
             .filter(person::catalog.eq(catalog))
             .filter(lower(person::name).eq(&name.to_lowercase()))
@@ -527,8 +525,6 @@ impl Tag {
         catalog: &str,
         hierarchy: &[String],
     ) -> Result<Tag> {
-        conn.assert_in_transaction();
-
         assert!(!hierarchy.is_empty());
 
         let mut current_tag = match tag::table
@@ -1298,7 +1294,12 @@ impl MediaItem {
             })
             .collect();
 
-        Self::upsert(conn, &updated).await
+        if !updated.is_empty() {
+            Self::upsert(conn, &updated).await?;
+            SavedSearch::update_for_catalog(conn, catalog).await?;
+        }
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -1344,20 +1345,6 @@ impl MediaItem {
         }
 
         Ok(())
-    }
-
-    pub(crate) async fn list_unprocessed(
-        conn: &mut DbConnection<'_>,
-        catalog: &str,
-    ) -> Result<Vec<MediaItem>> {
-        let items = media_item::table
-            .filter(media_item::media_file.is_null())
-            .filter(media_item::catalog.eq(catalog))
-            .select(media_item_columns!())
-            .load::<MediaItem>(conn)
-            .await?;
-
-        Ok(items)
     }
 
     pub(crate) fn sync_with_file(&mut self, media_file: Option<&MediaFile>) {
@@ -1442,6 +1429,7 @@ impl MediaFile {
         let files = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
             .filter(media_item::catalog.eq(catalog))
+            .filter(media_item::deleted.eq(false))
             .order_by((media_file::media_item, media_file::uploaded.desc()))
             .distinct_on(media_file::media_item)
             .select((media_file_columns!(), media_item::catalog))
@@ -1546,6 +1534,7 @@ impl MediaFile {
                             .select(user_catalog::catalog),
                     )),
             )
+            .filter(media_item::deleted.eq(false))
             .filter(media_item::id.eq(media))
             .filter(media_file::id.eq(file))
             .select((media_file_columns!(), media_item::catalog))
@@ -1586,8 +1575,6 @@ impl MediaFile {
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: Vec<MediaFile>) -> Result {
-        conn.assert_in_transaction();
-
         let media_file_map: HashMap<&String, &MediaFile> =
             media_files.iter().map(|m| (&m.id, m)).collect();
         let media_file_ids: Vec<&&String> = media_file_map.keys().collect();
@@ -1729,6 +1716,34 @@ impl AlternateFile {
             .collect())
     }
 
+    pub(crate) async fn get(
+        conn: &mut DbConnection<'_>,
+        alternate: &str,
+    ) -> Result<(AlternateFile, FilePath)> {
+        let (alternate_file, catalog, media_item) = alternate_file::table
+            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
+            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
+            .filter(alternate_file::id.eq(alternate))
+            .select((
+                alternate_file::all_columns,
+                media_item::catalog,
+                media_item::id,
+            ))
+            .get_result::<(AlternateFile, String, String)>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)?;
+
+        let file_path = FilePath {
+            catalog,
+            item: media_item,
+            file: alternate_file.media_file.clone(),
+            file_name: alternate_file.file_name.clone(),
+        };
+
+        Ok((alternate_file, file_path))
+    }
+
     pub(crate) async fn list_for_media_file(
         conn: &mut DbConnection<'_>,
         media_file: &str,
@@ -1828,42 +1843,6 @@ impl AlternateFile {
 
         Ok(())
     }
-
-    pub(crate) async fn delete(
-        &self,
-        conn: &mut DbConnection<'_>,
-        storage: &Storage,
-        path: &FilePath,
-    ) -> Result {
-        diesel::delete(alternate_file::table.filter(alternate_file::id.eq(&self.id)))
-            .execute(conn)
-            .await?;
-
-        // We flag the media file as requiring re-processing here.
-        diesel::update(media_file::table.filter(media_file::id.eq(&self.media_file)))
-            .set(media_file::needs_metadata.eq(true))
-            .execute(conn)
-            .await?;
-
-        let result = if self.local {
-            conn.config()
-                .local_store()
-                .delete(&path.clone().into())
-                .await
-        } else {
-            storage
-                .file_store()
-                .await?
-                .delete(&path.clone().into())
-                .await
-        };
-
-        if let Err(e) = result {
-            warn!(error=?e, path=%path, "Failed to delete alternate file");
-        }
-
-        Ok(())
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -1909,18 +1888,6 @@ pub(crate) struct MediaView {
     pub(crate) metadata: MediaMetadata,
     pub(crate) taken_zone: Option<String>,
     pub(crate) file: Option<MediaViewFile>,
-}
-
-impl MediaView {
-    pub(crate) async fn get(conn: &mut DbConnection<'_>, media: &[&str]) -> Result<Vec<MediaView>> {
-        let media = media_view!()
-            .filter(media_item::id.eq_any(media))
-            .select(media_view_columns!())
-            .load::<MediaView>(conn)
-            .await?;
-
-        Ok(media)
-    }
 }
 
 #[typeshare]
