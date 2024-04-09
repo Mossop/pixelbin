@@ -1,6 +1,6 @@
 use futures::join;
 use scoped_futures::ScopedFutureExt;
-use tracing::{debug, error, instrument, warn};
+use tracing::{debug, error, instrument};
 
 use crate::{
     metadata::METADATA_FILE,
@@ -62,53 +62,40 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                 let metadata_file: ResourcePath = media_file_path.file(METADATA_FILE).into();
                 let metadata_exists = local_files.contains_key(&metadata_file);
 
-                if !metadata_exists {
-                    media_file.needs_metadata = true;
-                }
-
                 let file_path = media_file_path.file(&media_file.file_name);
 
                 let temp_exists = temp_store.exists(&file_path).await?;
 
                 let expected_resource: ResourcePath = file_path.into();
 
-                if media_file.stored.is_some() {
-                    if let Some(size) = remote_files.get(&expected_resource) {
-                        if *size as i32 == media_file.file_size {
-                            // All good!
-                            remote_files.remove(&expected_resource);
-                            local_files.remove(&metadata_file);
-
-                            if !metadata_exists {
-                                modified_media_files.push(media_file);
-                            }
-                            continue;
-                        }
-                        warn!(file=%expected_resource, "Remote file size incorrect");
-                    } else {
-                        warn!(file=%expected_resource, "Remote file missing");
-                    }
-
-                    if temp_exists {
-                        // We can re-upload this.
-                        media_file.stored = None;
-                        modified_media_files.push(media_file);
-                        local_files.remove(&metadata_file);
-
-                        continue;
-                    }
-                }
-
-                if !temp_exists {
-                    // This media file is bad.
-                    error!(file=%expected_resource, "Missing temp media file");
-                    bad_media_files.push(media_file.id.clone());
-                } else {
+                if media_file.stored.is_some()
+                    && remote_files.get(&expected_resource) == Some(&(media_file.file_size as u64))
+                {
+                    // Media file is correctly uploaded.
+                    remote_files.remove(&expected_resource);
                     local_files.remove(&metadata_file);
 
-                    if !metadata_exists {
+                    if !metadata_exists && !media_file.needs_metadata {
+                        media_file.needs_metadata = true;
                         modified_media_files.push(media_file);
                     }
+                } else if temp_exists {
+                    // We can re-upload this.
+                    remote_files.remove(&expected_resource);
+                    local_files.remove(&metadata_file);
+
+                    let needs_change = media_file.stored.is_some()
+                        || (!metadata_exists && !media_file.needs_metadata);
+                    media_file.stored = None;
+                    media_file.needs_metadata = !metadata_exists;
+
+                    if needs_change {
+                        modified_media_files.push(media_file);
+                    }
+                } else {
+                    // This media file is bad
+                    error!(file=%expected_resource, "Missing temp media file");
+                    bad_media_files.push(media_file.id.clone());
                 }
             }
 
@@ -132,20 +119,17 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                     &mut remote_files
                 };
 
-                if let Some(size) = stored_files.get(&expected_resource) {
-                    if *size as i32 == alternate_file.file_size {
-                        // All good!
-                        stored_files.remove(&expected_resource);
-                        continue;
-                    }
-                    warn!(file=%expected_resource, "Remote file size incorrect");
+                if alternate_file.stored.is_some()
+                    && stored_files.get(&expected_resource)
+                        == Some(&(alternate_file.file_size as u64))
+                {
+                    // All good!
+                    stored_files.remove(&expected_resource);
                 } else {
-                    warn!(file=%expected_resource, "Remote file missing");
+                    // We can re-upload this.
+                    alternate_file.stored = None;
+                    modified_alternate_files.push(alternate_file);
                 }
-
-                // We can re-upload this.
-                alternate_file.stored = None;
-                modified_alternate_files.push(alternate_file);
             }
 
             models::AlternateFile::upsert(conn, modified_alternate_files).await?;
