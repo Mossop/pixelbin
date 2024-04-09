@@ -62,8 +62,8 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                 catalog: catalog.to_owned(),
             };
             let (remote_files, local_files) = join!(
-                remote_store.list_file_sizes(Some(&resource)),
-                local_store.list_file_sizes(Some(&resource))
+                remote_store.list_files(Some(&resource)),
+                local_store.list_files(Some(&resource))
             );
             let mut remote_files = remote_files?;
             let mut local_files = local_files?;
@@ -162,10 +162,9 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                 local_store.delete(path).await.warn();
             }
 
-            let catalog_resource: ResourcePath = CatalogPath {
+            let catalog_resource = CatalogPath {
                 catalog: catalog.to_owned(),
-            }
-            .into();
+            };
 
             local_store.prune(&catalog_resource).await?;
             temp_store.prune(&catalog_resource).await?;
@@ -193,11 +192,9 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
             models::MediaFile::delete(conn, &ids).await?;
 
             for (_, media_file_path) in prunable {
-                let resource: ResourcePath = media_file_path.into();
-
-                remote_store.delete(&resource).await.warn();
-                local_store.delete(&resource).await.warn();
-                temp_store.delete(&resource).await.warn();
+                remote_store.delete(&media_file_path).await.warn();
+                local_store.delete(&media_file_path).await.warn();
+                temp_store.delete(&media_file_path).await.warn();
             }
 
             Ok(())

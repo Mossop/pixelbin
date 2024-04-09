@@ -27,22 +27,19 @@ use crate::{shared::error::Ignorable, Config, Result, Task, TaskQueue};
 
 #[async_trait]
 pub trait FileStore {
-    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
     where
         P: PathLike + Send + Sync + fmt::Debug;
 
-    async fn list_file_sizes<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
-    where
-        P: PathLike + Send + Sync + fmt::Debug,
-    {
-        Ok(self.list_files(prefix).await?.into_iter().collect())
-    }
-
     async fn exists(&self, path: &FilePath) -> Result<bool>;
 
-    async fn prune(&self, path: &ResourcePath) -> Result;
+    async fn prune<P>(&self, path: &P) -> Result
+    where
+        P: PathLike + Send + Sync + fmt::Debug;
 
-    async fn delete(&self, path: &ResourcePath) -> Result;
+    async fn delete<P>(&self, path: &P) -> Result
+    where
+        P: PathLike + Send + Sync + fmt::Debug;
 
     async fn pull(&self, path: &FilePath, target: &Path) -> Result;
 
@@ -111,11 +108,11 @@ impl FileStore for DiskStore {
 
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
-    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
-        let mut files = Vec::<(ResourcePath, u64)>::new();
+        let mut files = HashMap::<ResourcePath, u64>::new();
 
         let root = if let Some(prefix) = prefix {
             self.local_path(prefix)
@@ -152,7 +149,7 @@ impl FileStore for DiskStore {
                             .chain(once(name.as_str()));
 
                         if let Ok(path) = ResourcePath::try_from(all_parts) {
-                            files.push((path, stats.len()));
+                            files.insert(path, stats.len());
                         }
                     }
                 }
@@ -168,7 +165,10 @@ impl FileStore for DiskStore {
 
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
-    async fn prune(&self, path: &ResourcePath) -> Result {
+    async fn prune<P>(&self, path: &P) -> Result
+    where
+        P: PathLike + Send + Sync + fmt::Debug,
+    {
         Self::prune_path(&self.local_path(path)).await?;
 
         Ok(())
@@ -176,7 +176,10 @@ impl FileStore for DiskStore {
 
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
-    async fn delete(&self, path: &ResourcePath) -> Result {
+    async fn delete<P>(&self, path: &P) -> Result
+    where
+        P: PathLike + Send + Sync + fmt::Debug,
+    {
         let local = self.local_path(path);
 
         let stats = match fs::metadata(&local).await {

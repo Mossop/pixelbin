@@ -9,7 +9,7 @@ use crate::{
     shared::{error::Ignorable, file_exists},
     store::{
         db::models,
-        path::{FilePath, MediaFilePath, ResourcePath},
+        path::{FilePath, MediaFilePath},
         FileStore, Isolation,
     },
     task_queue::DbConnection,
@@ -203,7 +203,7 @@ pub(super) async fn delete_media(conn: &mut DbConnection<'_>, ids: &[String]) ->
         let remote_store = storage.file_store().await?;
 
         for media in media {
-            let path = ResourcePath::MediaItem(media.path());
+            let path = media.path();
 
             remote_store.delete(&path).await?;
             local_store.delete(&path).await?;

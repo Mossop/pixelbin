@@ -1,4 +1,4 @@
-use std::{fmt, path::Path, time::Duration};
+use std::{collections::HashMap, fmt, path::Path, time::Duration};
 
 use async_trait::async_trait;
 use aws_config::{AppName, BehaviorVersion};
@@ -128,7 +128,7 @@ impl FileStore for AwsClient {
 
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
-    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
@@ -151,7 +151,7 @@ impl FileStore for AwsClient {
                 message: format!("Failed to list files: {e}"),
             })?
             .into_iter()
-            .fold(Vec::<(ResourcePath, u64)>::new(), |mut files, output| {
+            .fold(HashMap::<ResourcePath, u64>::new(), |mut files, output| {
                 files.extend(output.contents().iter().map(|o| {
                     (
                         ResourcePath::try_from(self.strip_prefix(o.key().unwrap()).split('/'))
@@ -166,13 +166,19 @@ impl FileStore for AwsClient {
         Ok(files)
     }
 
-    async fn prune(&self, _path: &ResourcePath) -> Result {
+    async fn prune<P>(&self, _path: &P) -> Result
+    where
+        P: PathLike + Send + Sync + fmt::Debug,
+    {
         Ok(())
     }
 
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
-    async fn delete(&self, path: &ResourcePath) -> Result {
+    async fn delete<P>(&self, path: &P) -> Result
+    where
+        P: PathLike + Send + Sync + fmt::Debug,
+    {
         let files = self.list_files(Some(path)).await?;
 
         let mut paths: Vec<String> = Vec::new();
