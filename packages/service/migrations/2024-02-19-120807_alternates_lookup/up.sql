@@ -2,6 +2,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS "media_file_alternates" AS
   SELECT
     media_file, json_agg(alternate_file.*) AS alternates
   FROM alternate_file
+  WHERE stored IS NOT NULL
   GROUP BY media_file;
 
 CREATE INDEX IF NOT EXISTS "media_file_alternates_idx_media_file" ON "media_file_alternates" USING btree (media_file);
