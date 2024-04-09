@@ -10,7 +10,7 @@ use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Local, Timelike};
 use mime::Mime;
 use tokio::{sync::Notify, time::sleep};
-use tracing::{error, field, span, span::Id, Instrument, Level, Span};
+use tracing::{error, field, span, span::Id, Instrument, Level};
 
 use crate::{
     store::db::{DbConnection, DbPool},
@@ -105,8 +105,8 @@ pub(crate) struct TaskQueue {
     config: Config,
     notify: Arc<Notify>,
     pending: Arc<AtomicUsize>,
-    sender: Sender<(Task, Option<Id>)>,
-    expensive_sender: Sender<(Task, Option<Id>)>,
+    sender: Sender<Task>,
+    expensive_sender: Sender<Task>,
 }
 
 impl TaskQueue {
@@ -158,15 +158,11 @@ impl TaskQueue {
 
     pub(crate) async fn queue_task(&self, task: Task) {
         self.pending.fetch_add(1, Ordering::AcqRel);
-        let follows_from = Span::current().id();
 
         if task.is_expensive() {
-            self.expensive_sender
-                .send((task, follows_from))
-                .await
-                .unwrap();
+            self.expensive_sender.send(task).await.unwrap();
         } else {
-            self.sender.send((task, follows_from)).await.unwrap();
+            self.sender.send(task).await.unwrap();
         }
     }
 
@@ -193,14 +189,9 @@ impl TaskQueue {
         }
     }
 
-    async fn task_loop(
-        queue: TaskQueue,
-        receiver: Receiver<(Task, Option<Id>)>,
-        parent_span: Option<Id>,
-    ) {
-        while let Ok((task, follows_from)) = receiver.recv().await {
+    async fn task_loop(queue: TaskQueue, receiver: Receiver<Task>, parent_span: Option<Id>) {
+        while let Ok(task) = receiver.recv().await {
             let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task.task_name(), "otel.status_code" = field::Empty);
-            span.follows_from(follows_from);
 
             match queue.run_task(&task).instrument(span.clone()).await {
                 Ok(()) => {
