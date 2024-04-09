@@ -109,6 +109,7 @@ impl FileStore for DiskStore {
         Ok(fs::try_exists(self.local_path(path)).await?)
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
     where
@@ -165,6 +166,7 @@ impl FileStore for DiskStore {
         Ok(files)
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn prune(&self, path: &ResourcePath) -> Result {
         Self::prune_path(&self.local_path(path)).await?;
@@ -172,6 +174,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn delete(&self, path: &ResourcePath) -> Result {
         let local = self.local_path(path);
@@ -196,6 +199,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn pull(&self, path: &FilePath, target: &Path) -> Result {
         if let Some(parent) = target.parent() {
@@ -209,6 +213,7 @@ impl FileStore for DiskStore {
         Ok(())
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn push(&self, source: &Path, path: &FilePath, _mimetype: &Mime) -> Result {
         let target = self.local_path(path);

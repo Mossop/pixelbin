@@ -126,6 +126,7 @@ impl FileStore for AwsClient {
         todo!();
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn list_files<P>(&self, prefix: Option<&P>) -> Result<Vec<(ResourcePath, u64)>>
     where
@@ -169,6 +170,7 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn delete(&self, path: &ResourcePath) -> Result {
         let files = self.list_files(Some(path)).await?;
@@ -209,6 +211,7 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn pull(&self, path: &FilePath, target: &Path) -> Result {
         trace!(path=%path, "Downloading object");
@@ -242,6 +245,7 @@ impl FileStore for AwsClient {
         Ok(())
     }
 
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), fields(size), err)]
     async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result {
         let stats = metadata(source).await?;
