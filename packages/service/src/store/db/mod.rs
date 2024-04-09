@@ -3,6 +3,7 @@ pub(crate) mod models;
 #[allow(unreachable_pub)]
 pub(super) mod schema;
 pub(crate) mod search;
+pub(super) mod views;
 
 use std::pin::Pin;
 

@@ -1,5 +1,7 @@
 // @generated automatically by Diesel CLI.
 
+pub use super::views::*;
+
 pub mod sql_types {
     #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "location"))]
@@ -226,132 +228,25 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    user_catalog (user, catalog) {
-        user -> Varchar,
-        catalog -> Varchar,
-        writable -> Bool,
-    }
-}
-
-diesel::table! {
-    album_descendent (id, descendent) {
-        id -> Varchar,
-        descendent -> Varchar,
-    }
-}
-
-diesel::table! {
-    tag_descendent (id, descendent) {
-        id -> Varchar,
-        descendent -> Varchar,
-    }
-}
-
-diesel::table! {
-    album_relation (media) {
-        media -> Varchar,
-        albums -> Json
-    }
-}
-
-diesel::table! {
-    tag_relation (media) {
-        media -> Varchar,
-        tags -> Json
-    }
-}
-
-diesel::table! {
-    person_relation (media) {
-        media -> Varchar,
-        people -> Json
-    }
-}
-
-diesel::table! {
-    media_file_alternates (media_file) {
-        media_file -> Varchar,
-        alternates -> Json
-    }
-}
-
-diesel::allow_columns_to_appear_in_same_group_by_clause!(
-    media_item::id,
-    media_item::deleted,
-    media_item::created,
-    media_item::updated,
-    media_item::filename,
-    media_item::title,
-    media_item::description,
-    media_item::label,
-    media_item::category,
-    media_item::location,
-    media_item::city,
-    media_item::state,
-    media_item::country,
-    media_item::make,
-    media_item::model,
-    media_item::lens,
-    media_item::photographer,
-    media_item::shutter_speed,
-    media_item::taken_zone,
-    media_item::orientation,
-    media_item::iso,
-    media_item::rating,
-    media_item::longitude,
-    media_item::latitude,
-    media_item::altitude,
-    media_item::aperture,
-    media_item::focal_length,
-    media_item::taken,
-    media_item::catalog,
-    media_item::media_file,
-    media_item::datetime,
-    media_file::id,
-    media_file::uploaded,
-    media_file::file_name,
-    media_file::file_size,
-    media_file::mimetype,
-    media_file::width,
-    media_file::height,
-    media_file::duration,
-    media_file::frame_rate,
-    media_file::bit_rate,
-    media_file::filename,
-    media_file::title,
-    media_file::description,
-    media_file::label,
-    media_file::category,
-    media_file::location,
-    media_file::city,
-    media_file::state,
-    media_file::country,
-    media_file::make,
-    media_file::model,
-    media_file::lens,
-    media_file::photographer,
-    media_file::shutter_speed,
-    media_file::orientation,
-    media_file::iso,
-    media_file::rating,
-    media_file::longitude,
-    media_file::latitude,
-    media_file::altitude,
-    media_file::aperture,
-    media_file::focal_length,
-    media_file::taken,
-    media_file::media_item
-);
+diesel::joinable!(catalog -> storage (storage));
+diesel::joinable!(media_person -> person (catalog));
+diesel::joinable!(media_search -> saved_search (catalog));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    album_descendent,
+    album_relation,
+    latest_media_file,
+    media_file_alternates,
+    person_relation,
+    tag_descendent,
+    tag_relation,
+    user_catalog,
     album,
     alternate_file,
     auth_token,
     catalog,
     media_album,
     media_file,
-    media_file_alternates,
     media_item,
     media_person,
     media_search,
@@ -359,12 +254,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     person,
     saved_search,
     shared_catalog,
-    user_catalog,
-    album_descendent,
-    tag_descendent,
-    album_relation,
-    tag_relation,
-    person_relation,
     storage,
     tag,
     user,

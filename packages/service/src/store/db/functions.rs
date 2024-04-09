@@ -236,23 +236,26 @@ macro_rules! media_item_columns {
 }
 
 macro_rules! media_file_columns {
-    () => {
+    ($table:ident) => {
         (
-            crate::store::db::schema::media_file::id,
-            crate::store::db::schema::media_file::uploaded,
-            crate::store::db::schema::media_file::file_name,
-            crate::store::db::schema::media_file::file_size,
-            crate::store::db::schema::media_file::mimetype,
-            crate::store::db::schema::media_file::width,
-            crate::store::db::schema::media_file::height,
-            crate::store::db::schema::media_file::duration,
-            crate::store::db::schema::media_file::frame_rate,
-            crate::store::db::schema::media_file::bit_rate,
-            crate::store::db::functions::media_metadata_columns!(media_file),
-            crate::store::db::schema::media_file::media_item,
-            crate::store::db::schema::media_file::needs_metadata,
-            crate::store::db::schema::media_file::stored,
+            crate::store::db::schema::$table::id,
+            crate::store::db::schema::$table::uploaded,
+            crate::store::db::schema::$table::file_name,
+            crate::store::db::schema::$table::file_size,
+            crate::store::db::schema::$table::mimetype,
+            crate::store::db::schema::$table::width,
+            crate::store::db::schema::$table::height,
+            crate::store::db::schema::$table::duration,
+            crate::store::db::schema::$table::frame_rate,
+            crate::store::db::schema::$table::bit_rate,
+            crate::store::db::functions::media_metadata_columns!($table),
+            crate::store::db::schema::$table::media_item,
+            crate::store::db::schema::$table::needs_metadata,
+            crate::store::db::schema::$table::stored,
         )
+    };
+    () => {
+        crate::store::db::functions::media_file_columns!(media_file)
     };
 }
 
