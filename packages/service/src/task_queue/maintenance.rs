@@ -158,6 +158,14 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                 local_store.delete(path).await.warn();
             }
 
+            let catalog_resource: ResourcePath = CatalogPath {
+                catalog: catalog.to_owned(),
+            }
+            .into();
+
+            local_store.prune(&catalog_resource).await?;
+            temp_store.prune(&catalog_resource).await?;
+
             Ok(())
         }
         .scope_boxed()

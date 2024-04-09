@@ -236,7 +236,6 @@ end
 
 function API:getMedia(ids)
   local results = {}
-  local resultCount = 0
 
   local function lookup(idlist, count)
     if count == 0 then
@@ -245,17 +244,12 @@ function API:getMedia(ids)
 
     local success, result = self:GET("media/" .. idlist)
     if not success then
-      resultCount = resultCount + count
       return
     end
 
-    local index = 1
-    while index <= count do
-      results[resultCount + index] = result.media[index]
-      index = index + 1
+    for _, mediaItem in result.media(ids) do
+      results[mediaItem.id] = mediaItem
     end
-
-    resultCount = resultCount + count
   end
 
   local idlist = ""

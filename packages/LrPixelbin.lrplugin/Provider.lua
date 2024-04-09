@@ -266,7 +266,7 @@ function Provider.processRenderedPhotos(context, exportContext)
   for index, remoteId in ipairs(knownIds) do
     local info = renditionsById[remoteId]
 
-    if not knownMedia[index] then
+    if not knownMedia[remoteId] then
       info.remoteId = nil
       info.inAlbum = false
       info.needsUpload = true

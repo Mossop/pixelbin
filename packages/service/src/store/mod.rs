@@ -23,7 +23,7 @@ use tokio::fs;
 use tracing::{instrument, span::Id};
 
 use self::path::{FilePath, PathLike, ResourcePath};
-use crate::{Config, Result, Task, TaskQueue};
+use crate::{shared::error::Ignorable, Config, Result, Task, TaskQueue};
 
 #[async_trait]
 pub trait FileStore {
@@ -39,6 +39,8 @@ pub trait FileStore {
     }
 
     async fn exists(&self, path: &FilePath) -> Result<bool>;
+
+    async fn prune(&self, path: &ResourcePath) -> Result;
 
     async fn delete(&self, path: &ResourcePath) -> Result;
 
@@ -76,6 +78,28 @@ impl DiskStore {
             })?;
 
         Ok(())
+    }
+
+    async fn prune_path(path: &Path) -> Result<bool> {
+        let mut reader = fs::read_dir(path).await?;
+        let mut can_prune = true;
+
+        while let Some(entry) = reader.next_entry().await? {
+            let stats = entry.metadata().await?;
+            if stats.is_dir() {
+                if !Box::pin(Self::prune_path(&entry.path())).await? {
+                    can_prune = false;
+                }
+            } else {
+                can_prune = false;
+            }
+        }
+
+        if can_prune {
+            fs::remove_dir(path).await.ignore();
+        }
+
+        Ok(can_prune)
     }
 }
 
@@ -139,6 +163,13 @@ impl FileStore for DiskStore {
         }
 
         Ok(files)
+    }
+
+    #[instrument(skip(self), err)]
+    async fn prune(&self, path: &ResourcePath) -> Result {
+        Self::prune_path(&self.local_path(path)).await?;
+
+        Ok(())
     }
 
     #[instrument(skip(self), err)]

@@ -43,12 +43,12 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
       local api = API(settings)
       local media = api:getMedia(photoIds)
       for index, id in ipairs(photoIds) do
-        if not media[index] then
+        if not media[id] then
           logger:error("Found photo with missing remote media.")
           goodPhotos = goodPhotos - 1
           badPhotos = badPhotos + 1
           table.insert(needsEdit, publishedPhotos[id])
-        elseif not media[index].file then
+        elseif not media[id].file then
           logger:error("Found unprocessed photo.")
           goodPhotos = goodPhotos - 1
           badPhotos = badPhotos + 1

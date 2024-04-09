@@ -165,6 +165,10 @@ impl FileStore for AwsClient {
         Ok(files)
     }
 
+    async fn prune(&self, _path: &ResourcePath) -> Result {
+        Ok(())
+    }
+
     #[instrument(skip(self), err)]
     async fn delete(&self, path: &ResourcePath) -> Result {
         let files = self.list_files(Some(path)).await?;
