@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use futures::join;
 use scoped_futures::ScopedFutureExt;
 use tracing::{debug, error, instrument};
@@ -23,6 +25,8 @@ pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
     let catalogs = conn.list_catalogs().await?;
 
     for catalog in catalogs {
+        models::MediaItem::update_media_files(conn, &catalog).await?;
+
         conn.queue_task(Task::UpdateSearches {
             catalog: catalog.clone(),
         })
@@ -150,7 +154,7 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
             for path in remote_files.keys() {
                 debug!(file=%path, "Unexpected remote file");
-                // remote_store.delete(path).await.warn();
+                remote_store.delete(path).await.warn();
             }
 
             for path in local_files.keys() {
@@ -191,7 +195,7 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
             for (_, media_file_path) in prunable {
                 let resource: ResourcePath = media_file_path.into();
 
-                // remote_store.delete(&resource).await.warn();
+                remote_store.delete(&resource).await.warn();
                 local_store.delete(&resource).await.warn();
                 temp_store.delete(&resource).await.warn();
             }
@@ -220,18 +224,23 @@ pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &s
             .await;
         }
 
+        let mut alternate_types = HashSet::new();
         for alternate_file in
             models::AlternateFile::list_for_media_file(conn, &media_file.id).await?
         {
             // TODO Verify the right alternate files are present
 
             if alternate_file.stored.is_none() {
-                conn.queue_task(Task::BuildAlternate {
-                    alternate: alternate_file.id.clone(),
-                    mimetype: alternate_file.mimetype.clone(),
-                })
-                .await;
+                alternate_types.insert(alternate_file.mimetype.type_().to_string());
             }
+        }
+
+        for typ in alternate_types {
+            conn.queue_task(Task::BuildAlternates {
+                media_file: media_file.id.clone(),
+                typ,
+            })
+            .await;
         }
     }
 

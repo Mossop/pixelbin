@@ -8,7 +8,6 @@ use std::{
 
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Local, Timelike};
-use mime::Mime;
 use tokio::{sync::Notify, time::sleep};
 use tracing::{error, field, span, span::Id, Instrument, Level};
 
@@ -18,7 +17,7 @@ use crate::{
         maintenance::{
             prune_media_files, server_startup, trigger_media_tasks, update_searches, verify_storage,
         },
-        media::{build_alternate, delete_media, extract_metadata, upload_media_file},
+        media::{build_alternates, delete_media, extract_metadata, upload_media_file},
     },
     Config, Result,
 };
@@ -36,7 +35,7 @@ pub enum Task {
     ProcessMedia { catalog: String },
     ExtractMetadata { media_file: String },
     UploadMediaFile { media_file: String },
-    BuildAlternate { alternate: String, mimetype: Mime },
+    BuildAlternates { media_file: String, typ: String },
 }
 
 impl Task {
@@ -50,10 +49,7 @@ impl Task {
             Task::ProcessMedia { catalog: _ } => "ProcessMedia".to_string(),
             Task::ExtractMetadata { media_file: _ } => "ExtractMetadata".to_string(),
             Task::UploadMediaFile { media_file: _ } => "UploadMediaFile".to_string(),
-            Task::BuildAlternate {
-                alternate: _,
-                mimetype: _,
-            } => "BuildAlternate".to_string(),
+            Task::BuildAlternates { media_file: _, typ } => format!("BuildAlternates {typ}"),
         }
     }
 
@@ -67,10 +63,9 @@ impl Task {
             Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
             Task::ExtractMetadata { media_file } => extract_metadata(conn, media_file).await,
             Task::UploadMediaFile { media_file } => upload_media_file(conn, media_file).await,
-            Task::BuildAlternate {
-                alternate,
-                mimetype: _,
-            } => build_alternate(conn, alternate).await,
+            Task::BuildAlternates { media_file, typ } => {
+                build_alternates(conn, media_file, typ).await
+            }
         }
     }
 
@@ -84,10 +79,7 @@ impl Task {
             Task::ProcessMedia { catalog: _ } => false,
             Task::ExtractMetadata { media_file: _ } => false,
             Task::UploadMediaFile { media_file: _ } => false,
-            Task::BuildAlternate {
-                alternate: _,
-                mimetype,
-            } => mimetype.type_() == mime::VIDEO,
+            Task::BuildAlternates { media_file: _, typ } => typ.as_str() == mime::VIDEO,
         }
     }
 }

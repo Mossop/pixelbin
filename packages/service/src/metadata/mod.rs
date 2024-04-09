@@ -3,6 +3,7 @@ use std::{cmp, os::unix::fs::MetadataExt, path::Path, str::FromStr};
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
 use exif::ExifData;
+use image::DynamicImage;
 use lazy_static::lazy_static;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
@@ -78,10 +79,9 @@ impl Alternate {
 pub(crate) async fn encode_alternate(
     source_path: &Path,
     alternate_file: &mut AlternateFile,
+    source_image: &mut Option<DynamicImage>,
 ) -> Result<TempPath> {
     let temp = NamedTempFile::new()?.into_temp_path();
-
-    let source_image = media::load_source_image(source_path).await?;
 
     let size = if alternate_file.file_type == AlternateFileType::Thumbnail {
         Some(cmp::max(alternate_file.width, alternate_file.height))
@@ -91,7 +91,7 @@ pub(crate) async fn encode_alternate(
 
     let (mimetype, width, height, duration, frame_rate, bit_rate) = media::encode_alternate(
         source_path,
-        &source_image,
+        source_image,
         &alternate_file.mimetype,
         size,
         &temp,

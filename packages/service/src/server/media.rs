@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashSet, str::FromStr};
 
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
 use actix_web::{get, http::header, post, web, Either, HttpRequest, HttpResponse, Responder};
@@ -270,16 +270,12 @@ async fn delete_media(
         .store
         .isolated(Isolation::Committed, |conn| {
             async move {
-                let mut media = models::MediaItem::get_for_user_for_update(
-                    conn,
-                    &session.user.email,
-                    &media_ids,
-                )
-                .await?;
+                let media =
+                    models::MediaItem::get_for_user(conn, &session.user.email, &media_ids).await?;
 
-                media.iter_mut().for_each(|mi| mi.deleted = true);
+                let media_ids: Vec<String> = media.into_iter().map(|m| m.id).collect();
 
-                models::MediaItem::upsert(conn, &media).await?;
+                models::MediaItem::mark_deleted(conn, &media_ids).await?;
 
                 Ok(media_ids)
             }
@@ -289,9 +285,7 @@ async fn delete_media(
 
     app_state
         .store
-        .queue_task(Task::DeleteMedia {
-            media: media_ids.into_inner(),
-        })
+        .queue_task(Task::DeleteMedia { media: media_ids })
         .await;
 
     Ok(web::Json(ApiResponse::default()))
@@ -511,7 +505,7 @@ async fn upload_media(
             async move {
                 let mut media_item = match (&data.json.id, &data.json.catalog) {
                     (Some(id), None) => {
-                        let mut media_items = models::MediaItem::get_for_user_for_update(
+                        let mut media_items = models::MediaItem::get_for_user(
                             conn,
                             &session.user.email,
                             &[id.clone()],
@@ -599,9 +593,14 @@ async fn upload_media(
                         .map(|a| AlternateFile::new(&media_file.id, a))
                         .collect();
 
-                tasks.extend(alternate_files.iter().map(|a| Task::BuildAlternate {
-                    alternate: a.id.clone(),
-                    mimetype: a.mimetype.clone(),
+                let alternate_mimes: HashSet<String> = alternate_files
+                    .iter()
+                    .map(|a| a.mimetype.type_().to_string())
+                    .collect();
+
+                tasks.extend(alternate_mimes.into_iter().map(|m| Task::BuildAlternates {
+                    media_file: media_file.id.clone(),
+                    typ: m,
                 }));
 
                 models::MediaFile::upsert(conn, vec![media_file]).await?;
@@ -640,8 +639,7 @@ async fn edit_media(
         .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut media =
-                    models::MediaItem::get_for_user_for_update(conn, &session.user.email, &[id])
-                        .await?;
+                    models::MediaItem::get_for_user(conn, &session.user.email, &[id]).await?;
 
                 if media.is_empty() {
                     return Err(Error::NotFound);

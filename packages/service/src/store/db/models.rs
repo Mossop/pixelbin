@@ -1247,6 +1247,16 @@ impl MediaItem {
         Ok(media)
     }
 
+    pub(crate) async fn mark_deleted(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
+        diesel::update(media_item::table)
+            .filter(media_item::id.eq_any(media))
+            .set(media_item::deleted.eq(true))
+            .execute(conn)
+            .await?;
+
+        Ok(())
+    }
+
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
         diesel::delete(media_item::table)
             .filter(media_item::id.eq_any(media))
@@ -1256,7 +1266,7 @@ impl MediaItem {
         Ok(())
     }
 
-    pub(crate) async fn get_for_user_for_update(
+    pub(crate) async fn get_for_user(
         conn: &mut DbConnection<'_>,
         email: &str,
         ids: &[String],
@@ -1267,7 +1277,6 @@ impl MediaItem {
             .filter(user_catalog::writable)
             .filter(media_item::id.eq_any(ids))
             .select(media_item_columns!())
-            .for_update()
             .load::<Self>(conn)
             .await?)
     }
@@ -1278,7 +1287,7 @@ impl MediaItem {
                 latest_media_file::table.on(media_item::id.eq(latest_media_file::media_item)),
             )
             .filter(media_item::catalog.eq(catalog))
-            .filter(media_item::media_file.ne(latest_media_file::id.nullable()))
+            .filter(media_item::media_file.is_distinct_from(latest_media_file::id.nullable()))
             .select((
                 media_item_columns!(),
                 media_file_columns!(latest_media_file).nullable(),
@@ -1419,6 +1428,19 @@ impl MediaFile {
             metadata: Default::default(),
             media_item: media_item.to_owned(),
         }
+    }
+
+    pub(crate) async fn mark_stored(&mut self, conn: &mut DbConnection<'_>) -> Result {
+        self.stored = Some(Utc::now());
+
+        *self = diesel::update(media_file::table)
+            .filter(media_file::id.eq(&self.id))
+            .set(media_file::stored.eq(self.stored))
+            .returning(media_file_columns!())
+            .get_result::<MediaFile>(conn)
+            .await?;
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -1573,6 +1595,17 @@ impl MediaFile {
         Ok((media_file, file_path))
     }
 
+    pub(crate) async fn get_for_update(conn: &mut DbConnection<'_>, id: &str) -> Result<MediaFile> {
+        media_file::table
+            .filter(media_file::id.eq(id))
+            .select(media_file_columns!())
+            .for_update()
+            .get_result::<MediaFile>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: Vec<MediaFile>) -> Result {
         let media_file_map: HashMap<&String, &MediaFile> =
@@ -1679,8 +1712,8 @@ impl AlternateFile {
             file_name: alternate.file_name(),
             file_size: 0,
             mimetype: alternate.mimetype,
-            width: 0,
-            height: 0,
+            width: alternate.size.unwrap_or_default(),
+            height: alternate.size.unwrap_or_default(),
             duration: None,
             frame_rate: None,
             bit_rate: None,
@@ -1714,34 +1747,6 @@ impl AlternateFile {
                 (alternate, file_path)
             })
             .collect())
-    }
-
-    pub(crate) async fn get(
-        conn: &mut DbConnection<'_>,
-        alternate: &str,
-    ) -> Result<(AlternateFile, FilePath)> {
-        let (alternate_file, catalog, media_item) = alternate_file::table
-            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .filter(alternate_file::id.eq(alternate))
-            .select((
-                alternate_file::all_columns,
-                media_item::catalog,
-                media_item::id,
-            ))
-            .get_result::<(AlternateFile, String, String)>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)?;
-
-        let file_path = FilePath {
-            catalog,
-            item: media_item,
-            file: alternate_file.media_file.clone(),
-            file_name: alternate_file.file_name.clone(),
-        };
-
-        Ok((alternate_file, file_path))
     }
 
     pub(crate) async fn list_for_media_file(
@@ -1814,6 +1819,18 @@ impl AlternateFile {
         Ok(vec![])
     }
 
+    pub(crate) async fn mark_stored(&mut self, conn: &mut DbConnection<'_>) -> Result {
+        self.stored = Some(Utc::now());
+
+        *self = diesel::update(alternate_file::table)
+            .filter(alternate_file::id.eq(&self.id))
+            .set(alternate_file::stored.eq(self.stored))
+            .get_result::<AlternateFile>(conn)
+            .await?;
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn upsert(
         conn: &mut DbConnection<'_>,
@@ -1836,6 +1853,7 @@ impl AlternateFile {
                     alternate_file::bit_rate.eq(excluded(alternate_file::bit_rate)),
                     alternate_file::media_file.eq(excluded(alternate_file::media_file)),
                     alternate_file::local.eq(excluded(alternate_file::local)),
+                    alternate_file::stored.eq(excluded(alternate_file::stored)),
                 ))
                 .execute(conn)
                 .await?;

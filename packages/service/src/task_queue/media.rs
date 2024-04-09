@@ -1,6 +1,5 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use chrono::Utc;
 use scoped_futures::ScopedFutureExt;
 use tokio::fs;
 use tracing::instrument;
@@ -43,11 +42,9 @@ async fn download_media_file(conn: &mut DbConnection<'_>, file_path: &FilePath) 
     .await
 }
 
-async fn check_media_file(
-    conn: &mut DbConnection<'_>,
-    media_file: models::MediaFile,
-    media_file_path: MediaFilePath,
-) -> Result {
+async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: MediaFilePath) -> Result {
+    let (media_file, _) = models::MediaFile::get(conn, &media_file_path.file).await?;
+
     if media_file.stored.is_none() || media_file.needs_metadata {
         return Ok(());
     }
@@ -70,7 +67,7 @@ async fn check_media_file(
 
 #[instrument(skip(conn), err)]
 pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
-    let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
+    let (media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
     let local_store = conn.config().local_store();
 
     let metadata_path = local_store.local_path(&media_file_path.file(METADATA_FILE));
@@ -92,11 +89,17 @@ pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file: &s
         metadata
     };
 
-    metadata.apply_to_media_file(&mut media_file);
+    conn.isolated(Isolation::Committed, |conn| {
+        async move {
+            let mut media_file = models::MediaFile::get_for_update(conn, &media_file.id).await?;
+            metadata.apply_to_media_file(&mut media_file);
+            models::MediaFile::upsert(conn, vec![media_file.clone()]).await
+        }
+        .scope_boxed()
+    })
+    .await?;
 
-    models::MediaFile::upsert(conn, vec![media_file.clone()]).await?;
-
-    check_media_file(conn, media_file, media_file_path).await
+    check_media_file(conn, media_file_path).await
 }
 
 #[instrument(skip(conn), err)]
@@ -113,57 +116,70 @@ pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file: &
     }
 
     let catalog = media_file_path.catalog.clone();
-    let media_file = conn
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let storage = models::Storage::lock_for_catalog(conn, &catalog).await?;
-                let remote_store = storage.file_store().await?;
-
-                // remote_store
-                //     .push(&temp_file, &file_path, &media_file.mimetype)
-                //     .await?;
-
-                // media_file.stored = Some(Utc::now());
-
-                models::MediaFile::upsert(conn, vec![media_file.clone()]).await?;
-
-                Ok(media_file)
-            }
-            .scope_boxed()
-        })
-        .await?;
-
-    check_media_file(conn, media_file, media_file_path).await
-}
-
-#[instrument(skip(conn), err)]
-pub(super) async fn build_alternate(conn: &mut DbConnection<'_>, alternate: &str) -> Result {
-    let (mut alternate_file, file_path) = models::AlternateFile::get(conn, alternate).await?;
-    let (media_file, media_file_path) = models::MediaFile::get(conn, &file_path.file).await?;
-
-    let temp_file = download_media_file(conn, &media_file_path.file(&media_file.file_name)).await?;
-    let built_file = encode_alternate(&temp_file, &mut alternate_file).await?;
-
     conn.isolated(Isolation::Committed, |conn| {
         async move {
-            let storage = models::Storage::lock_for_catalog(conn, &file_path.catalog).await?;
+            let storage = models::Storage::lock_for_catalog(conn, &catalog).await?;
             let remote_store = storage.file_store().await?;
 
-            // remote_store
-            //     .push(&built_file, &file_path, &alternate_file.mimetype)
-            //     .await?;
+            remote_store
+                .push(&temp_file, &file_path, &media_file.mimetype)
+                .await?;
 
-            // alternate_file.stored = Some(Utc::now());
-
-            models::AlternateFile::upsert(conn, vec![alternate_file]).await?;
-
-            Ok(())
+            media_file.mark_stored(conn).await
         }
         .scope_boxed()
     })
     .await?;
 
-    check_media_file(conn, media_file, media_file_path).await
+    check_media_file(conn, media_file_path).await
+}
+
+#[instrument(skip(conn), err)]
+pub(super) async fn build_alternates(
+    conn: &mut DbConnection<'_>,
+    media_file: &str,
+    typ: &str,
+) -> Result {
+    let (media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
+    let temp_file = download_media_file(conn, &media_file_path.file(&media_file.file_name)).await?;
+    let mut source_image = None;
+
+    for mut alternate_file in
+        models::AlternateFile::list_for_media_file(conn, &media_file.id).await?
+    {
+        if alternate_file.mimetype.type_() != typ {
+            continue;
+        }
+
+        let file_path = media_file_path.file(&alternate_file.file_name);
+        let built_file =
+            encode_alternate(&temp_file, &mut alternate_file, &mut source_image).await?;
+
+        conn.isolated(Isolation::Committed, |conn| {
+            async move {
+                let storage = models::Storage::lock_for_catalog(conn, &file_path.catalog).await?;
+                if alternate_file.local {
+                    let store = conn.config().local_store();
+                    store
+                        .push(&built_file, &file_path, &alternate_file.mimetype)
+                        .await?;
+                } else {
+                    let store = storage.file_store().await?;
+                    store
+                        .push(&built_file, &file_path, &alternate_file.mimetype)
+                        .await?;
+                }
+
+                alternate_file.mark_stored(conn).await?;
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
+    }
+
+    check_media_file(conn, media_file_path).await
 }
 
 #[instrument(skip_all, err)]
@@ -189,7 +205,7 @@ pub(super) async fn delete_media(conn: &mut DbConnection<'_>, ids: &[String]) ->
         for media in media {
             let path = ResourcePath::MediaItem(media.path());
 
-            //remote_store.delete(&path).await?;
+            remote_store.delete(&path).await?;
             local_store.delete(&path).await?;
             temp_store.delete(&path).await?;
         }

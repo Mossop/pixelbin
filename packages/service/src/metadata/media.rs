@@ -107,14 +107,21 @@ async fn encode_video(
 
 pub(super) async fn encode_alternate(
     source_path: &Path,
-    source_image: &DynamicImage,
+    source_image: &mut Option<DynamicImage>,
     mime: &Mime,
     size: Option<i32>,
     target_path: &Path,
 ) -> Result<(Mime, i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
     match mime.type_() {
         mime::IMAGE => {
-            let source_image = source_image.clone();
+            let source_image = if let Some(ref image) = source_image {
+                image.clone()
+            } else {
+                let image = load_source_image(source_path).await?;
+                *source_image = Some(image.clone());
+                image
+            };
+
             let image_path = target_path.to_owned();
             let image_mime = mime.clone();
 
