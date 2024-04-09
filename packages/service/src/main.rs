@@ -1,6 +1,7 @@
 use std::{env, error::Error, io, result, time::Duration};
 
 use clap::{Args, Parser, Subcommand};
+use dotenvy::dotenv;
 use enum_dispatch::enum_dispatch;
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
@@ -275,6 +276,8 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
 
 #[tokio::main]
 async fn main() {
+    let _ = dotenv();
+
     if let Err(e) = inner_main().await {
         eprintln!("{e}");
     }

@@ -66,3 +66,4 @@ serde_with = { version = "3.0.0", optional = true }
 mime = { version = "0.3.17", optional = true }
 tokio-util = { version = "0.7.8", features = ["io"], optional = true }
 file-format = { version = "0.23.0", features = ["reader-mp4"], optional = true }
+dotenvy = "0.15.7"
