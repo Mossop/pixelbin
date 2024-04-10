@@ -1,6 +1,7 @@
 import { useRouteLoaderData } from "@remix-run/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { ApiConfig } from "./api";
 import { State } from "./types";
 
 export function useTimeout(
@@ -236,6 +237,11 @@ export function useFullscreen(): FullscreenProps {
 export function useServerState(): State | undefined {
   // @ts-ignore
   return useRouteLoaderData("root")?.serverState;
+}
+
+export function useServerConfig(): ApiConfig {
+  // @ts-ignore
+  return useRouteLoaderData("root")!.serverConfig;
 }
 
 export abstract class BaseContext extends EventTarget {

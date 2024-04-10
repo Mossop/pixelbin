@@ -2,7 +2,7 @@ import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { MetaDescriptor, useLoaderData } from "@remix-run/react";
 
 import MediaLayout from "@/components/MediaLayout";
-import { getMedia } from "@/modules/api";
+import { ApiConfig, getMedia } from "@/modules/api";
 import { getSession } from "@/modules/session";
 import { deserializeMediaView, mediaTitle, url } from "@/modules/util";
 
@@ -22,6 +22,10 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   let parentTitle = matches.at(-2)?.data?.title as unknown as
     | string
     | undefined;
+
+  let serverConfig: ApiConfig;
+  // @ts-ignore
+  serverConfig = matches.find((m) => m.id == "root").data.serverConfig;
 
   let title: string | null | undefined = mediaTitle(media!);
 
@@ -60,7 +64,7 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 
     metas.push({
       property: "og:image",
-      content: `${process.env.PIXELBIN_API_URL}${url([
+      content: `${serverConfig.apiUrl.slice(0, -1)}${url([
         "media",
         "encoding",
         media.id,
