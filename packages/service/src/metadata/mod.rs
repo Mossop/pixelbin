@@ -1,4 +1,4 @@
-use std::{cmp, os::unix::fs::MetadataExt, path::Path, str::FromStr};
+use std::{os::unix::fs::MetadataExt, path::Path, str::FromStr};
 
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
@@ -17,6 +17,7 @@ use crate::{
     store::models::{AlternateFile, AlternateFileType, MediaFile, MediaItem},
     Config, Error, Result,
 };
+pub(crate) use media::{load_source_image, resize_image};
 
 pub(crate) mod exif;
 mod ffmpeg;
@@ -76,27 +77,34 @@ impl Alternate {
     // }
 }
 
-pub(crate) async fn encode_alternate(
-    source_path: &Path,
+pub(crate) async fn encode_alternate_image(
     alternate_file: &mut AlternateFile,
-    source_image: &mut Option<DynamicImage>,
+    source_image: &DynamicImage,
 ) -> Result<TempPath> {
     let temp = NamedTempFile::new()?.into_temp_path();
 
-    let size = if alternate_file.file_type == AlternateFileType::Thumbnail {
-        Some(cmp::max(alternate_file.width, alternate_file.height))
-    } else {
-        None
-    };
+    media::encode_alternate_image(source_image.clone(), &alternate_file.mimetype, &temp).await?;
 
-    let (mimetype, width, height, duration, frame_rate, bit_rate) = media::encode_alternate(
-        source_path,
-        source_image,
-        &alternate_file.mimetype,
-        size,
-        &temp,
-    )
-    .await?;
+    let stats = metadata(&temp).await?;
+
+    alternate_file.file_size = stats.size() as i64;
+    alternate_file.width = source_image.width() as i32;
+    alternate_file.height = source_image.height() as i32;
+    alternate_file.duration = None;
+    alternate_file.frame_rate = None;
+    alternate_file.bit_rate = None;
+
+    Ok(temp)
+}
+
+pub(crate) async fn encode_alternate_video(
+    source_path: &Path,
+    alternate_file: &mut AlternateFile,
+) -> Result<TempPath> {
+    let temp = NamedTempFile::new()?.into_temp_path();
+
+    let (mimetype, width, height, duration, frame_rate, bit_rate) =
+        media::encode_alternate_video(source_path, &alternate_file.mimetype, &temp).await?;
 
     let stats = metadata(&temp).await?;
 

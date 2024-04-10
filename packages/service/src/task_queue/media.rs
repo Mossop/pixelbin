@@ -1,14 +1,18 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{cmp, collections::HashMap, path::PathBuf};
 
 use scoped_futures::ScopedFutureExt;
 use tokio::fs;
 use tracing::instrument;
 
 use crate::{
-    metadata::{encode_alternate, parse_media, parse_metadata, FileMetadata, METADATA_FILE},
+    metadata::{
+        encode_alternate_image, encode_alternate_video, load_source_image, parse_media,
+        parse_metadata, resize_image, FileMetadata, METADATA_FILE,
+    },
     shared::{error::Ignorable, file_exists},
     store::{
         db::models,
+        models::AlternateFileType,
         path::{FilePath, MediaFilePath},
         FileStore, Isolation,
     },
@@ -142,18 +146,74 @@ pub(super) async fn build_alternates(
 ) -> Result {
     let (media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
     let temp_file = download_media_file(conn, &media_file_path.file(&media_file.file_name)).await?;
-    let mut source_image = None;
 
-    for mut alternate_file in
-        models::AlternateFile::list_for_media_file(conn, &media_file.id).await?
-    {
-        if alternate_file.mimetype.type_() != typ {
+    let mut images: HashMap<Option<i32>, Vec<models::AlternateFile>> = HashMap::new();
+    let mut videos: Vec<models::AlternateFile> = Vec::new();
+
+    for alternate_file in models::AlternateFile::list_for_media_file(conn, &media_file.id).await? {
+        if alternate_file.mimetype.type_() != typ || alternate_file.stored.is_some() {
             continue;
         }
 
+        if alternate_file.mimetype.type_() == mime::IMAGE {
+            let size = if alternate_file.file_type == AlternateFileType::Thumbnail {
+                Some(cmp::max(alternate_file.width, alternate_file.height))
+            } else {
+                None
+            };
+
+            images.entry(size).or_default().push(alternate_file);
+        } else if alternate_file.mimetype.type_() == mime::VIDEO {
+            videos.push(alternate_file);
+        } else {
+            panic!("Unexpected mimetype {}", alternate_file.mimetype);
+        }
+    }
+
+    if !images.is_empty() {
+        let source_image = load_source_image(&temp_file).await?;
+
+        for (size, alternates) in images {
+            let source_image = if let Some(size) = size {
+                resize_image(source_image.clone(), size).await
+            } else {
+                source_image.clone()
+            };
+
+            for mut alternate_file in alternates {
+                let file_path = media_file_path.file(&alternate_file.file_name);
+                let built_file = encode_alternate_image(&mut alternate_file, &source_image).await?;
+
+                conn.isolated(Isolation::Committed, |conn| {
+                    async move {
+                        let storage =
+                            models::Storage::lock_for_catalog(conn, &file_path.catalog).await?;
+                        if alternate_file.local {
+                            let store = conn.config().local_store();
+                            store
+                                .push(&built_file, &file_path, &alternate_file.mimetype)
+                                .await?;
+                        } else {
+                            let store = storage.file_store().await?;
+                            store
+                                .push(&built_file, &file_path, &alternate_file.mimetype)
+                                .await?;
+                        }
+
+                        alternate_file.mark_stored(conn).await?;
+
+                        Ok(())
+                    }
+                    .scope_boxed()
+                })
+                .await?;
+            }
+        }
+    }
+
+    for mut alternate_file in videos {
         let file_path = media_file_path.file(&alternate_file.file_name);
-        let built_file =
-            encode_alternate(&temp_file, &mut alternate_file, &mut source_image).await?;
+        let built_file = encode_alternate_video(&temp_file, &mut alternate_file).await?;
 
         conn.isolated(Isolation::Committed, |conn| {
             async move {
