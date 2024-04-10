@@ -5,6 +5,10 @@ import { RemixInstrumentation } from "opentelemetry-instrumentation-remix";
 import { SEMRESATTRS_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { Resource } from "@opentelemetry/resources";
 
+import dotenv from "dotenv";
+
+dotenv.config();
+
 if ("PIXELBIN_TELEMETRY_HOST" in process.env) {
   const sdk = new NodeSDK({
     traceExporter: new OTLPTraceExporter({

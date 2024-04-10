@@ -24,6 +24,7 @@
     "@shoelace-style/shoelace": "^2.14.0",
     "@types/luxon": "^3.4.2",
     "clsx": "^2.1.0",
+    "dotenv": "^16.4.5",
     "isbot": "^5.1.2",
     "luxon": "^3.4.4",
     "md5": "^2.3.0",
