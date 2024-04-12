@@ -247,7 +247,7 @@ function API:getMedia(ids)
       return
     end
 
-    for _, mediaItem in result.media(ids) do
+    for _, mediaItem in ipairs(result.media) do
       results[mediaItem.id] = mediaItem
     end
   end
