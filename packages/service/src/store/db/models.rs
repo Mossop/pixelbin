@@ -1438,6 +1438,12 @@ impl MediaFile {
             .set((
                 media_file::stored.eq(self.stored),
                 media_file::file_size.eq(self.file_size),
+                media_file::width.eq(self.width),
+                media_file::height.eq(self.height),
+                media_file::mimetype.eq(self.mimetype.to_string()),
+                media_file::duration.eq(self.duration),
+                media_file::frame_rate.eq(self.frame_rate),
+                media_file::bit_rate.eq(self.bit_rate),
             ))
             .returning(media_file_columns!())
             .get_result::<MediaFile>(conn)
@@ -1830,6 +1836,12 @@ impl AlternateFile {
             .set((
                 alternate_file::stored.eq(self.stored),
                 alternate_file::file_size.eq(self.file_size),
+                alternate_file::width.eq(self.width),
+                alternate_file::height.eq(self.height),
+                alternate_file::mimetype.eq(self.mimetype.to_string()),
+                alternate_file::duration.eq(self.duration),
+                alternate_file::frame_rate.eq(self.frame_rate),
+                alternate_file::bit_rate.eq(self.bit_rate),
             ))
             .get_result::<AlternateFile>(conn)
             .await?;

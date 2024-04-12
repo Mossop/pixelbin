@@ -83,7 +83,10 @@ impl Runnable for Reprocess {
 }
 
 #[derive(Args)]
-struct Verify;
+struct Verify {
+    #[clap(long)]
+    no_delete: bool,
+}
 
 impl Runnable for Verify {
     fn span(&self) -> Span {
@@ -97,6 +100,7 @@ impl Runnable for Verify {
             store
                 .queue_task(Task::VerifyStorage {
                     catalog: catalog.clone(),
+                    delete_files: !self.no_delete,
                 })
                 .await;
         }

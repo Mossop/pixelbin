@@ -1,11 +1,11 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use futures::join;
 use scoped_futures::ScopedFutureExt;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 use crate::{
-    metadata::METADATA_FILE,
+    metadata::{alternates_for_mimetype, Alternate, METADATA_FILE},
     store::{
         db::DbConnection,
         models,
@@ -46,11 +46,15 @@ pub(super) async fn update_searches(conn: &mut DbConnection<'_>, catalog: &str) 
     models::SavedSearch::update_for_catalog(conn, catalog).await
 }
 
-pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
+pub(super) async fn verify_storage(
+    conn: &mut DbConnection<'_>,
+    catalog: &str,
+    delete_files: bool,
+) -> Result {
     let mut requires_metadata: u32 = 0;
     let mut requires_upload: u32 = 0;
-    let mut pruned_local: u32 = 0;
-    let mut pruned_remote: u32 = 0;
+    let mut unexpected_local: u32 = 0;
+    let mut unexpected_remote: u32 = 0;
     let mut missing_alternates: u32 = 0;
 
     conn.isolated(Isolation::Committed, |conn| {
@@ -75,6 +79,8 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
             let mut modified_media_files = Vec::new();
             let mut bad_media_files = Vec::new();
 
+            let mut required_alternates: HashMap<String, Vec<Alternate>> = HashMap::new();
+
             for (mut media_file, media_file_path) in media_files {
                 let metadata_file: ResourcePath = media_file_path.file(METADATA_FILE).into();
                 let metadata_exists = local_files.contains_key(&metadata_file);
@@ -85,47 +91,50 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
                 let expected_resource: ResourcePath = file_path.into();
 
-                if media_file.stored.is_some()
+                let needs_change = if media_file.stored.is_some()
                     && remote_files.get(&expected_resource) == Some(&(media_file.file_size as u64))
                 {
                     // Media file is correctly uploaded.
-                    remote_files.remove(&expected_resource);
-                    local_files.remove(&metadata_file);
-
-                    if !metadata_exists || media_file.needs_metadata {
-                        requires_metadata += 1;
-                    }
-
                     if !metadata_exists && !media_file.needs_metadata {
                         media_file.needs_metadata = true;
-                        modified_media_files.push(media_file);
+                        true
+                    } else {
+                        false
                     }
                 } else if temp_exists {
                     // We can re-upload this.
-                    remote_files.remove(&expected_resource);
-                    local_files.remove(&metadata_file);
-
-                    if !metadata_exists {
-                        media_file.needs_metadata = true;
-                    }
-
-                    let needs_change = media_file.stored.is_some()
-                        || (!metadata_exists && !media_file.needs_metadata);
+                    let needs_change = media_file.stored.is_some();
                     media_file.stored = None;
-                    media_file.needs_metadata = !metadata_exists;
-
                     requires_upload += 1;
-                    if media_file.needs_metadata {
-                        requires_metadata += 1;
-                    }
 
-                    if needs_change {
-                        modified_media_files.push(media_file);
+                    if !metadata_exists && !media_file.needs_metadata {
+                        media_file.needs_metadata = true;
+                        true
+                    } else {
+                        needs_change
                     }
                 } else {
                     // This media file is bad
                     error!(file=%expected_resource, "Missing temp media file");
                     bad_media_files.push(media_file.id.clone());
+
+                    continue;
+                };
+
+                remote_files.remove(&expected_resource);
+                local_files.remove(&metadata_file);
+
+                if media_file.needs_metadata {
+                    requires_metadata += 1;
+                }
+
+                required_alternates.insert(
+                    media_file.id.clone(),
+                    alternates_for_mimetype(conn.config(), &media_file.mimetype),
+                );
+
+                if needs_change {
+                    modified_media_files.push(media_file);
                 }
             }
 
@@ -137,6 +146,12 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
             for (mut alternate_file, media_file_path) in alternate_files {
                 let expected_resource: ResourcePath = media_file_path.into();
+
+                if let Some(required_alternates) =
+                    required_alternates.get_mut(&alternate_file.media_file)
+                {
+                    required_alternates.retain(|alt| !alt.matches(&alternate_file));
+                }
 
                 // Waiting to be uploaded.
                 if alternate_file.stored.is_none() {
@@ -164,6 +179,14 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                 }
             }
 
+            for (media_file, alternates) in required_alternates.into_iter() {
+                for alternate in alternates {
+                    missing_alternates += 1;
+                    modified_alternate_files
+                        .push(models::AlternateFile::new(&media_file, alternate));
+                }
+            }
+
             models::AlternateFile::upsert(conn, modified_alternate_files).await?;
 
             models::MediaItem::update_media_files(conn, catalog).await?;
@@ -171,23 +194,27 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
             // TODO check unused metadata.json for MediaFiles to recover?
 
             for path in remote_files.keys() {
-                debug!(file=%path, "Unexpected remote file");
-                pruned_remote += 1;
-                remote_store.delete(path).await.warn();
+                unexpected_remote += 1;
+                if delete_files {
+                    remote_store.delete(path).await.warn();
+                }
             }
 
             for path in local_files.keys() {
-                debug!(file=%path, "Unexpected local file");
-                pruned_local += 1;
-                local_store.delete(path).await.warn();
+                unexpected_local += 1;
+                if delete_files {
+                    local_store.delete(path).await.warn();
+                }
             }
 
             let catalog_resource = CatalogPath {
                 catalog: catalog.to_owned(),
             };
 
-            local_store.prune(&catalog_resource).await?;
-            temp_store.prune(&catalog_resource).await?;
+            if delete_files {
+                local_store.prune(&catalog_resource).await?;
+                temp_store.prune(&catalog_resource).await?;
+            }
 
             info!(
                 catalog = catalog,
@@ -195,8 +222,8 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                 requires_metadata,
                 requires_upload,
                 missing_alternates,
-                pruned_local,
-                pruned_remote,
+                unexpected_local,
+                unexpected_remote,
                 "Verify complete"
             );
 
@@ -254,8 +281,6 @@ pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &s
         for alternate_file in
             models::AlternateFile::list_for_media_file(conn, &media_file.id).await?
         {
-            // TODO Verify the right alternate files are present
-
             if alternate_file.stored.is_none() {
                 alternate_types.insert(alternate_file.mimetype.type_().to_string());
             }

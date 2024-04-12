@@ -1,4 +1,4 @@
-use std::{os::unix::fs::MetadataExt, path::Path, str::FromStr};
+use std::{cmp, os::unix::fs::MetadataExt, path::Path, str::FromStr};
 
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
@@ -62,19 +62,19 @@ impl Alternate {
         }
     }
 
-    // pub(crate) fn matches(&self, alt: &AlternateFile) -> bool {
-    //     if alt.file_type != self.alt_type {
-    //         return false;
-    //     }
+    pub(crate) fn matches(&self, alt: &AlternateFile) -> bool {
+        if alt.file_type != self.alt_type {
+            return false;
+        }
 
-    //     if let Some(size) = self.size {
-    //         if cmp::max(alt.width, alt.height) != size {
-    //             return false;
-    //         }
-    //     }
+        if let Some(size) = self.size {
+            if cmp::max(alt.width, alt.height) != size {
+                return false;
+            }
+        }
 
-    //     self.mimetype == alt.mimetype
-    // }
+        self.mimetype == alt.mimetype
+    }
 }
 
 pub(crate) async fn encode_alternate_image(
