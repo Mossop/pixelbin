@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use futures::join;
 use scoped_futures::ScopedFutureExt;
-use tracing::{debug, error, instrument};
+use tracing::{debug, error};
 
 use crate::{
     metadata::METADATA_FILE,
@@ -15,7 +15,6 @@ use crate::{
     Ignorable, Result, Task,
 };
 
-#[instrument(skip(conn), err)]
 pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
     let media = models::MediaItem::list_deleted(conn).await?;
     let media_ids = media.into_iter().map(|m| m.id).collect();
@@ -43,12 +42,10 @@ pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
     Ok(())
 }
 
-#[instrument(skip(conn), err)]
 pub(super) async fn update_searches(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
     models::SavedSearch::update_for_catalog(conn, catalog).await
 }
 
-#[instrument(skip(conn), err)]
 pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
     conn.isolated(Isolation::Committed, |conn| {
         async move {
@@ -176,7 +173,6 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
     .await
 }
 
-#[instrument(skip(conn), err)]
 pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
     conn.isolated(Isolation::Committed, |conn| {
         async move {
@@ -204,7 +200,6 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
     .await
 }
 
-#[instrument(skip(conn), err)]
 pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
     for (media_file, _) in models::MediaFile::list_newest(conn, catalog).await? {
         if media_file.stored.is_none() {

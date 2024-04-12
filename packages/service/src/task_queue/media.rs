@@ -20,6 +20,7 @@ use crate::{
     Error, Result,
 };
 
+#[instrument(skip(conn), err)]
 async fn download_media_file(conn: &mut DbConnection<'_>, file_path: &FilePath) -> Result<PathBuf> {
     conn.isolated(Isolation::Committed, |conn| {
         async move {
@@ -46,6 +47,7 @@ async fn download_media_file(conn: &mut DbConnection<'_>, file_path: &FilePath) 
     .await
 }
 
+#[instrument(skip(conn), err)]
 async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: MediaFilePath) -> Result {
     let (media_file, _) = models::MediaFile::get(conn, &media_file_path.file).await?;
 
@@ -69,7 +71,6 @@ async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: MediaFil
     Ok(())
 }
 
-#[instrument(skip(conn), err)]
 pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
     let (media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
     let local_store = conn.config().local_store();
@@ -106,7 +107,6 @@ pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file: &s
     check_media_file(conn, media_file_path).await
 }
 
-#[instrument(skip(conn), err)]
 pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
     let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
     let temp_store = conn.config().temp_store();
@@ -138,7 +138,6 @@ pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file: &
     check_media_file(conn, media_file_path).await
 }
 
-#[instrument(skip(conn), err)]
 pub(super) async fn build_alternates(
     conn: &mut DbConnection<'_>,
     media_file: &str,
@@ -242,7 +241,6 @@ pub(super) async fn build_alternates(
     check_media_file(conn, media_file_path).await
 }
 
-#[instrument(skip_all, err)]
 pub(super) async fn delete_media(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
     let media = models::MediaItem::get(conn, ids).await?;
 

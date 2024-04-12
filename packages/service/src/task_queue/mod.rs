@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -8,8 +9,10 @@ use std::{
 
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Local, Timelike};
+use opentelemetry::{global, trace::TraceContextExt};
 use tokio::{sync::Notify, time::sleep};
-use tracing::{error, field, span, span::Id, Instrument, Level};
+use tracing::{error, field, span, span::Id, Instrument, Level, Span};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
     store::db::{DbConnection, DbPool},
@@ -91,14 +94,16 @@ fn next_tick() -> Duration {
     Duration::from_secs(seconds as u64)
 }
 
+type TaskMessage = (Task, HashMap<String, String>);
+
 #[derive(Clone)]
 pub(crate) struct TaskQueue {
     pool: DbPool,
     config: Config,
     notify: Arc<Notify>,
     pending: Arc<AtomicUsize>,
-    sender: Sender<Task>,
-    expensive_sender: Sender<Task>,
+    sender: Sender<TaskMessage>,
+    expensive_sender: Sender<TaskMessage>,
 }
 
 impl TaskQueue {
@@ -151,10 +156,19 @@ impl TaskQueue {
     pub(crate) async fn queue_task(&self, task: Task) {
         self.pending.fetch_add(1, Ordering::AcqRel);
 
+        let mut context_data = HashMap::new();
+        let context = Span::current().context();
+        global::get_text_map_propagator(|propagator| {
+            propagator.inject_context(&context, &mut context_data)
+        });
+
         if task.is_expensive() {
-            self.expensive_sender.send(task).await.unwrap();
+            self.expensive_sender
+                .send((task, context_data))
+                .await
+                .unwrap();
         } else {
-            self.sender.send(task).await.unwrap();
+            self.sender.send((task, context_data)).await.unwrap();
         }
     }
 
@@ -181,9 +195,14 @@ impl TaskQueue {
         }
     }
 
-    async fn task_loop(queue: TaskQueue, receiver: Receiver<Task>, parent_span: Option<Id>) {
-        while let Ok(task) = receiver.recv().await {
+    async fn task_loop(queue: TaskQueue, receiver: Receiver<TaskMessage>, parent_span: Option<Id>) {
+        while let Ok((task, context_data)) = receiver.recv().await {
+            let linked_context =
+                global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
+            let linked_span = linked_context.span().span_context().clone();
+
             let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task.task_name(), "otel.status_code" = field::Empty);
+            span.add_link(linked_span);
 
             match queue.run_task(&task).instrument(span.clone()).await {
                 Ok(()) => {

@@ -39,7 +39,7 @@ impl Runnable for Stats {
         span!(Level::INFO, "stats")
     }
 
-    async fn run(self, store: &Store) -> Result {
+    async fn run(&self, store: &Store) -> Result {
         store
             .with_connection(|conn| {
                 async move {
@@ -71,7 +71,7 @@ impl Runnable for Reprocess {
         span!(Level::INFO, "reprocess")
     }
 
-    async fn run(self, store: &Store) -> Result {
+    async fn run(&self, store: &Store) -> Result {
         let catalogs = list_catalogs(store).await?;
 
         for catalog in catalogs {
@@ -90,7 +90,7 @@ impl Runnable for Verify {
         span!(Level::INFO, "verify")
     }
 
-    async fn run(self, store: &Store) -> Result {
+    async fn run(&self, store: &Store) -> Result {
         let catalogs = list_catalogs(store).await?;
 
         for catalog in catalogs.iter() {
@@ -132,15 +132,27 @@ struct Serve;
 #[cfg(feature = "webserver")]
 impl Runnable for Serve {
     fn span(&self) -> Span {
-        span!(Level::INFO, "serve")
+        span!(Level::INFO, "service startup")
     }
 
-    async fn init_store(&self, config: Config) -> Result<Store> {
-        Store::new(config, None).await
-    }
-
-    async fn run(self, store: &Store) -> Result {
+    async fn run(&self, store: &Store) -> Result {
         serve(store).await
+    }
+
+    async fn exec(&self, config: Config) -> Result {
+        let span = self.span();
+        let store = async move {
+            let store = Store::new(config, None).await?;
+            store.queue_task(Task::ServerStartup).await;
+
+            Result::<Store>::Ok(store)
+        }
+        .instrument(span)
+        .await?;
+
+        let result = self.run(&store).await;
+        store.finish_tasks().await;
+        result
     }
 }
 
@@ -162,12 +174,21 @@ enum Command {
 trait Runnable {
     fn span(&self) -> Span;
 
-    async fn init_store(&self, config: Config) -> Result<Store> {
-        let span = Span::current();
-        Store::new(config, span.id()).await
-    }
+    async fn run(&self, store: &Store) -> Result;
 
-    async fn run(self, store: &Store) -> Result;
+    async fn exec(&self, config: Config) -> Result {
+        let span = self.span();
+
+        let span_id = span.id();
+        async move {
+            let store = Store::new(config, span_id).await?;
+            let result = self.run(&store).await;
+            store.finish_tasks().await;
+            result
+        }
+        .instrument(span)
+        .await
+    }
 }
 
 #[derive(Parser)]
@@ -241,15 +262,6 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<Tracer>, Box<d
     }
 }
 
-async fn run_command(command: Command, config: Config) -> Result<()> {
-    let store = command.init_store(config).await?;
-    command.run(&store).await?;
-
-    store.finish_tasks().await;
-
-    Ok(())
-}
-
 async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let args = CliArgs::parse();
     let config = load_config(args.config.as_deref())?;
@@ -262,16 +274,13 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
         }
     };
 
-    {
-        let span = args.command.span();
-        run_command(args.command, config).instrument(span).await?;
-    }
+    let result = args.command.exec(config).await;
 
     if let Some(provider) = tracer.and_then(|t| t.provider()) {
         provider.force_flush();
     }
 
-    Ok(())
+    Ok(result?)
 }
 
 #[tokio::main]

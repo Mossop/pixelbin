@@ -9,7 +9,7 @@ use actix_web::{
 use serde::Serialize;
 use tracing::instrument;
 
-use crate::{shared::config::ThumbnailConfig, store::Store, Error, Result, Task};
+use crate::{shared::config::ThumbnailConfig, store::Store, Error, Result};
 
 mod auth;
 mod media;
@@ -154,8 +154,6 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
 
 pub async fn serve(store: &Store) -> Result {
     let port = store.config().port.unwrap_or(DEFAULT_PORT);
-
-    store.queue_task(Task::ServerStartup).await;
 
     let state = AppState {
         store: store.clone(),
