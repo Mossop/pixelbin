@@ -4,7 +4,7 @@ RUN mkdir -p /build/packages/service/src
 
 WORKDIR /build
 
-RUN apk add musl-dev libpq-dev postgresql16-dev openssl-libs-static
+RUN apk add musl-dev libpq-dev postgresql16-dev openssl-libs-static nasm
 COPY Cargo.toml Cargo.lock /build
 COPY packages/service/Cargo.toml /build/packages/service
 RUN \
