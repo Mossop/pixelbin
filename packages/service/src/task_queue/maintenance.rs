@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use futures::join;
 use scoped_futures::ScopedFutureExt;
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use crate::{
     metadata::METADATA_FILE,
@@ -47,6 +47,12 @@ pub(super) async fn update_searches(conn: &mut DbConnection<'_>, catalog: &str) 
 }
 
 pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
+    let mut requires_metadata: u32 = 0;
+    let mut requires_upload: u32 = 0;
+    let mut pruned_local: u32 = 0;
+    let mut pruned_remote: u32 = 0;
+    let mut missing_alternates: u32 = 0;
+
     conn.isolated(Isolation::Committed, |conn| {
         async move {
             let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
@@ -86,6 +92,10 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                     remote_files.remove(&expected_resource);
                     local_files.remove(&metadata_file);
 
+                    if !metadata_exists || media_file.needs_metadata {
+                        requires_metadata += 1;
+                    }
+
                     if !metadata_exists && !media_file.needs_metadata {
                         media_file.needs_metadata = true;
                         modified_media_files.push(media_file);
@@ -95,10 +105,19 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                     remote_files.remove(&expected_resource);
                     local_files.remove(&metadata_file);
 
+                    if !metadata_exists {
+                        media_file.needs_metadata = true;
+                    }
+
                     let needs_change = media_file.stored.is_some()
                         || (!metadata_exists && !media_file.needs_metadata);
                     media_file.stored = None;
                     media_file.needs_metadata = !metadata_exists;
+
+                    requires_upload += 1;
+                    if media_file.needs_metadata {
+                        requires_metadata += 1;
+                    }
 
                     if needs_change {
                         modified_media_files.push(media_file);
@@ -121,6 +140,7 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
                 // Waiting to be uploaded.
                 if alternate_file.stored.is_none() {
+                    missing_alternates += 1;
                     continue;
                 }
 
@@ -140,6 +160,7 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
                     // We can re-upload this.
                     alternate_file.stored = None;
                     modified_alternate_files.push(alternate_file);
+                    missing_alternates += 1;
                 }
             }
 
@@ -151,11 +172,13 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
             for path in remote_files.keys() {
                 debug!(file=%path, "Unexpected remote file");
+                pruned_remote += 1;
                 remote_store.delete(path).await.warn();
             }
 
             for path in local_files.keys() {
                 debug!(file=%path, "Unexpected local file");
+                pruned_local += 1;
                 local_store.delete(path).await.warn();
             }
 
@@ -165,6 +188,17 @@ pub(super) async fn verify_storage(conn: &mut DbConnection<'_>, catalog: &str) -
 
             local_store.prune(&catalog_resource).await?;
             temp_store.prune(&catalog_resource).await?;
+
+            info!(
+                catalog = catalog,
+                bad_media = bad_media_files.len(),
+                requires_metadata,
+                requires_upload,
+                missing_alternates,
+                pruned_local,
+                pruned_remote,
+                "Verify complete"
+            );
 
             Ok(())
         }

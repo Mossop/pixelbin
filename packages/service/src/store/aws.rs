@@ -40,7 +40,7 @@ pub(crate) struct AwsClient {
 }
 
 impl AwsClient {
-    fn key(&self, resource: &ResourcePath) -> String {
+    fn key<P: PathLike>(&self, resource: &P) -> String {
         match &self.path {
             Some(path) => format!("{path}/{}", remote_path(resource)),
             None => remote_path(resource),
@@ -179,20 +179,35 @@ impl FileStore for AwsClient {
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
-        let files = self.list_files(Some(path)).await?;
-
-        let mut paths: Vec<String> = Vec::new();
         let mut objects: Vec<ObjectIdentifier> = Vec::new();
+        let mut paths: Vec<String> = Vec::new();
 
-        for (path, _) in files {
+        if path.is_file() {
             let object = ObjectIdentifier::builder()
-                .key(self.key(&path))
+                .key(self.key(path))
                 .build()
                 .map_err(|e| Error::S3Error {
                     message: format!("Failed to prepare delete request: {e}"),
                 })?;
             objects.push(object);
-            paths.push(path.to_string());
+            paths.push(self.key(path));
+        } else {
+            let files = self.list_files(Some(path)).await?;
+
+            for (path, _) in files {
+                let object = ObjectIdentifier::builder()
+                    .key(self.key(&path))
+                    .build()
+                    .map_err(|e| Error::S3Error {
+                        message: format!("Failed to prepare delete request: {e}"),
+                    })?;
+                objects.push(object);
+                paths.push(self.key(&path));
+            }
+        }
+
+        if objects.is_empty() {
+            return Ok(());
         }
 
         let delete_list = Delete::builder()

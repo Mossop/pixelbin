@@ -6,6 +6,10 @@ use crate::Error;
 
 #[enum_dispatch]
 pub trait PathLike {
+    fn is_file(&self) -> bool {
+        false
+    }
+
     fn path_parts(&self) -> Vec<&str>;
 }
 
@@ -184,6 +188,10 @@ impl FilePath {
 }
 
 impl PathLike for FilePath {
+    fn is_file(&self) -> bool {
+        true
+    }
+
     fn path_parts(&self) -> Vec<&str> {
         vec![&self.catalog, &self.item, &self.file, &self.file_name]
     }

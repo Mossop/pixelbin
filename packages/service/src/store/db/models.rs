@@ -1435,7 +1435,10 @@ impl MediaFile {
 
         *self = diesel::update(media_file::table)
             .filter(media_file::id.eq(&self.id))
-            .set(media_file::stored.eq(self.stored))
+            .set((
+                media_file::stored.eq(self.stored),
+                media_file::file_size.eq(self.file_size),
+            ))
             .returning(media_file_columns!())
             .get_result::<MediaFile>(conn)
             .await?;
@@ -1824,7 +1827,10 @@ impl AlternateFile {
 
         *self = diesel::update(alternate_file::table)
             .filter(alternate_file::id.eq(&self.id))
-            .set(alternate_file::stored.eq(self.stored))
+            .set((
+                alternate_file::stored.eq(self.stored),
+                alternate_file::file_size.eq(self.file_size),
+            ))
             .get_result::<AlternateFile>(conn)
             .await?;
 
