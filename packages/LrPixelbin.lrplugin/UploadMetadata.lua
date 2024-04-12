@@ -35,7 +35,7 @@ Utils.runAsync(logger, "UploadMetadata", function(context)
   scope:setPortionComplete(count, totalPhotos)
 
   for _, source in ipairs(LrApplication.activeCatalog():getActiveSources()) do
-    if source:type() == "LrPublishedCollection" then
+    if type(source) ~= "string" and source:type() == "LrPublishedCollection" then
       local service = source:getService()
       if service:getPluginId() == _PLUGIN.id then
         local settings = service:getPublishSettings()
@@ -58,7 +58,11 @@ Utils.runAsync(logger, "UploadMetadata", function(context)
             scope:setPortionComplete(count, totalPhotos)
           end
         end
+      else
+        LrDialogs.message("Can only re-upload metadata from a published collection for this service.", nil, "warning")
       end
+    else
+      LrDialogs.message("Can only re-upload metadata from a published collection for this service.", nil, "warning")
     end
   end
 
