@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -23,10 +24,14 @@ import "styles/components/Media.scss";
 function Photo({
   media,
   file,
+  onLoaded,
 }: {
   media: MediaRelations;
   file: MediaViewFile;
+  onLoaded: () => void;
 }) {
+  let imageElement = useRef<HTMLImageElement>(null);
+
   let { filename } = media;
   if (filename) {
     let pos = filename.lastIndexOf(".");
@@ -65,10 +70,11 @@ function Photo({
     ]);
   };
 
-  let mediaContext = useMediaContext();
-  let onLoad = useCallback(() => {
-    mediaContext.setMedia(media);
-  }, [mediaContext, media]);
+  useEffect(() => {
+    if (imageElement.current?.complete) {
+      onLoaded();
+    }
+  }, [onLoaded]);
 
   return (
     <picture>
@@ -76,7 +82,12 @@ function Photo({
         <source key={type} srcSet={source(type)} type={type} />
       ))}
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
-      <img onLoad={onLoad} srcSet={source("image/jpeg")} className="photo" />
+      <img
+        ref={imageElement}
+        onLoad={onLoaded}
+        srcSet={source("image/jpeg")}
+        className="photo"
+      />
     </picture>
   );
 }
@@ -84,15 +95,17 @@ function Photo({
 function Video({
   media,
   file,
+  onLoaded,
 }: {
   media: MediaRelations;
   file: MediaViewFile;
+  onLoaded: () => void;
 }) {
   let mediaContext = useMediaContext();
+  let videoElement = useRef<HTMLVideoElement>(null);
 
-  let updateState = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
-      let video = event.currentTarget;
+  let updateVideoState = useCallback(
+    (video: HTMLVideoElement) => {
       let playState: PlayState;
       if (video.paused) {
         playState = PlayState.Paused;
@@ -100,6 +113,10 @@ function Video({
         playState = PlayState.Ended;
       } else {
         playState = PlayState.Playing;
+      }
+
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        onLoaded();
       }
 
       mediaContext.updateVideoState(
@@ -112,16 +129,28 @@ function Video({
         video,
       );
     },
-    [media, mediaContext],
+    [onLoaded, media, mediaContext],
+  );
+
+  let updateState = useCallback(
+    (event: SyntheticEvent<HTMLVideoElement>) => {
+      updateVideoState(event.currentTarget);
+    },
+    [updateVideoState],
   );
 
   let onLoad = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
-      mediaContext.setMedia(media);
+      onLoaded();
       updateState(event);
     },
-    [mediaContext, media, updateState],
+    [onLoaded, updateState],
   );
+
+  useEffect(() => {
+    console.log(videoElement.current!.readyState);
+    updateVideoState(videoElement.current!);
+  }, [updateVideoState]);
 
   let { filename } = media;
   if (filename) {
@@ -168,6 +197,7 @@ function Video({
   return (
     // eslint-disable-next-line jsx-a11y/media-has-caption
     <video
+      ref={videoElement}
       poster={source("image/jpeg")}
       controls={false}
       onLoadedData={onLoad}
@@ -185,7 +215,13 @@ function Video({
   );
 }
 
-export function RenderMedia({ media }: { media: MediaRelations }) {
+export function RenderMedia({
+  media,
+  isCurrent,
+}: {
+  media: MediaRelations;
+  isCurrent: boolean;
+}) {
   let mediaContext = useMediaContext();
 
   useEffect(() => {
@@ -193,6 +229,12 @@ export function RenderMedia({ media }: { media: MediaRelations }) {
       mediaContext.setMedia(media);
     }
   }, [mediaContext, media]);
+
+  let onLoaded = useCallback(() => {
+    if (isCurrent) {
+      mediaContext.setMedia(media);
+    }
+  }, [isCurrent, mediaContext, media]);
 
   let { file } = media;
   if (!file) {
@@ -204,10 +246,10 @@ export function RenderMedia({ media }: { media: MediaRelations }) {
   }
 
   if (file.mimetype.startsWith("video/")) {
-    return <Video media={media} file={file} />;
+    return <Video media={media} file={file} onLoaded={onLoaded} />;
   }
 
-  return <Photo media={media} file={file} />;
+  return <Photo media={media} file={file} onLoaded={onLoaded} />;
 }
 
 export default function Media({ media }: { media: MediaRelations }) {
@@ -232,7 +274,7 @@ export default function Media({ media }: { media: MediaRelations }) {
     <div className="c-media">
       {loadedMedia && (
         <div key={loadedMedia.id} className="media">
-          <RenderMedia media={loadedMedia} />
+          <RenderMedia media={loadedMedia} isCurrent={!loadingMedia} />
         </div>
       )}
       {loadingMedia && (
@@ -244,7 +286,7 @@ export default function Media({ media }: { media: MediaRelations }) {
           )}
           onTransitionEnd={onLoadComplete}
         >
-          <RenderMedia media={loadingMedia} />
+          <RenderMedia media={loadingMedia} isCurrent />
         </div>
       )}
     </div>
