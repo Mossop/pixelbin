@@ -1,8 +1,24 @@
-use std::{env, error::Error, io, result, time::Duration};
+use std::{
+    env,
+    error::Error,
+    fs::File,
+    io::{self, BufWriter, Write},
+    result,
+    time::{Duration, Instant},
+};
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use dotenvy::dotenv;
 use enum_dispatch::enum_dispatch;
+use image::{
+    codecs::{
+        avif::{AvifEncoder, ColorSpace},
+        jpeg::JpegEncoder,
+    },
+    imageops::FilterType,
+    io::Reader,
+    RgbImage,
+};
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
@@ -14,10 +30,11 @@ use opentelemetry_sdk::{
 use pixelbin::server::serve;
 use pixelbin::{load_config, Config, Result, Store, Task};
 use scoped_futures::ScopedFutureExt;
-use tracing::{span, Instrument, Level, Span};
+use tracing::{info, span, Instrument, Level, Span};
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
+use webp::PixelLayout;
 
 #[cfg(debug_assertions)]
 const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::TRACE)];
@@ -58,6 +75,81 @@ impl Runnable for Stats {
                 .scope_boxed()
             })
             .await?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, ValueEnum)]
+enum EncodeFormat {
+    Avif,
+    Webp,
+    Jpeg,
+}
+
+#[derive(Args)]
+struct Encode {
+    #[clap(long)]
+    quality: u8,
+
+    #[clap(long, value_enum)]
+    format: EncodeFormat,
+
+    #[clap(long)]
+    size: Option<u32>,
+
+    file: String,
+
+    target: String,
+}
+
+impl Runnable for Encode {
+    fn span(&self) -> Span {
+        span!(Level::INFO, "encode")
+    }
+
+    async fn run(&self, _store: &Store) -> Result {
+        let reader = Reader::open(&self.file)?.with_guessed_format()?;
+        let mut source_image = reader.decode()?;
+        let mut buffered = BufWriter::new(File::create(&self.target)?);
+
+        if let Some(size) = self.size {
+            source_image = source_image.resize(size, size, FilterType::Lanczos3);
+        }
+
+        let start = Instant::now();
+
+        match self.format {
+            EncodeFormat::Jpeg => {
+                let encoder = JpegEncoder::new_with_quality(buffered, self.quality);
+                source_image.write_with_encoder(encoder)?;
+            }
+            EncodeFormat::Webp => {
+                let image: RgbImage = source_image.into();
+                let encoder = webp::Encoder::new(
+                    image.as_ref(),
+                    PixelLayout::Rgb,
+                    image.width(),
+                    image.height(),
+                );
+                let buffer = encoder.encode(self.quality.into());
+                buffered.write_all(&buffer)?;
+            }
+            EncodeFormat::Avif => {
+                let encoder = AvifEncoder::new_with_speed_quality(buffered, 5, self.quality)
+                    .with_colorspace(ColorSpace::Srgb);
+                source_image.write_with_encoder(encoder)?;
+            }
+        }
+
+        let secs = Instant::now().duration_since(start).as_secs();
+
+        info!(
+            format = ?self.format,
+            quality = self.quality,
+            seconds = secs,
+            "Encoding complete.",
+        );
 
         Ok(())
     }
@@ -172,6 +264,8 @@ enum Command {
     Reprocess,
     /// Verifies database and storage consistency.
     Verify,
+    /// Tests image encoding.
+    Encode,
 }
 
 #[enum_dispatch(Command)]

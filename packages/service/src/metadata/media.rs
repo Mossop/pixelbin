@@ -1,18 +1,23 @@
-use std::{fs::File, io::BufWriter, path::Path, str::FromStr};
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+    path::Path,
+    str::FromStr,
+};
 
 use file_format::FileFormat;
 use image::{
     codecs::{
         avif::{AvifEncoder, ColorSpace},
         jpeg::JpegEncoder,
-        webp::{WebPEncoder, WebPQuality},
     },
     imageops::FilterType,
     io::Reader,
-    DynamicImage,
+    DynamicImage, RgbImage,
 };
 use mime::Mime;
 use tracing::{span, Instrument, Level};
+use webp::PixelLayout;
 
 use crate::{
     metadata::ffmpeg::{extract_video_frame, VideoData},
@@ -58,21 +63,34 @@ fn encode_image(
     file_type: AlternateFileType,
     temp: &Path,
 ) -> Result {
-    let buffered = BufWriter::new(File::create(temp)?);
+    let mut buffered = BufWriter::new(File::create(temp)?);
 
     match target_mime.subtype().as_str() {
         "jpeg" => {
-            let quality = match file_type {
-                AlternateFileType::Thumbnail => 80,
-                _ => 90,
-            };
-            let encoder = JpegEncoder::new_with_quality(buffered, quality);
+            let encoder = JpegEncoder::new_with_quality(buffered, 90);
             source_image.write_with_encoder(encoder)?;
         }
         "webp" => {
-            #[allow(deprecated)]
-            let encoder = WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
-            source_image.write_with_encoder(encoder)?;
+            let buffer = if let DynamicImage::ImageRgb8(image) = source_image {
+                let encoder = webp::Encoder::new(
+                    image.as_ref(),
+                    PixelLayout::Rgb,
+                    image.width(),
+                    image.height(),
+                );
+                encoder.encode(80.0)
+            } else {
+                let image: RgbImage = source_image.clone().into();
+                let encoder = webp::Encoder::new(
+                    image.as_ref(),
+                    PixelLayout::Rgb,
+                    image.width(),
+                    image.height(),
+                );
+                encoder.encode(80.0)
+            };
+
+            buffered.write_all(&buffer)?;
         }
         "avif" => {
             let (speed, quality) = match file_type {

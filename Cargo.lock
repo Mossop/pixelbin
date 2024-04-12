@@ -2104,7 +2104,17 @@ dependencies = [
  "ravif",
  "rgb",
  "tiff",
- "webp",
+]
+
+[[package]]
+name = "image"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd54d660e773627692c524beaad361aca785a4f9f5730ce91f42aabe5bce3d11"
+dependencies = [
+ "bytemuck",
+ "byteorder",
+ "num-traits",
 ]
 
 [[package]]
@@ -2908,7 +2918,7 @@ dependencies = [
  "figment",
  "file-format",
  "futures",
- "image",
+ "image 0.24.9",
  "lazy_static",
  "lexical-parse-float",
  "mime",
@@ -2933,6 +2943,7 @@ dependencies = [
  "tracing-subscriber",
  "typeshare",
  "tzf-rs",
+ "webp",
 ]
 
 [[package]]
@@ -4512,6 +4523,7 @@ version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e03e4341d1b5381a50737fa39ef1c98272a9f2d92d3a9f8ab249cc2370c0827"
 dependencies = [
+ "image 0.25.1",
  "libwebp-sys",
 ]
 
