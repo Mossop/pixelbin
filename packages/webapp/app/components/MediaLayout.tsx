@@ -89,9 +89,7 @@ function VideoInfo({ videoState }: { videoState: VideoState }) {
     [mediaContext],
   );
 
-  let percentPlayed = Math.floor(
-    (100 * videoState.currentTime) / videoState.duration,
-  );
+  let percentPlayed = (100 * videoState.currentTime) / videoState.duration;
 
   let currentTime = formatTime(videoState.currentTime);
   let duration = formatTime(videoState.duration);

@@ -62,6 +62,7 @@
       padding-inline: var(--sl-spacing-small);
       padding-block: var(--sl-spacing-x-small);
       gap: var(--sl-spacing-medium);
+      color: var(--sl-color-neutral-600);
       background: color-mix(
         in srgb,
         var(--sl-color-neutral-200) 70%,
@@ -80,11 +81,11 @@
 
         .scrubber {
           flex: 1;
-          background-color: rgb(var(--background));
+          background-color: var(--background);
           height: var(--sl-spacing-x-small);
 
           .played {
-            background-color: rgb(var(--color));
+            background-color: var(--sl-color-neutral-600);
             height: 100%;
           }
         }
