@@ -163,7 +163,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       ref={fullscreenElement}
     >
       <Media media={media} />
-      {currentMedia?.id !== media?.id && (
+      {currentMedia?.id !== media.id && (
         <div className="loading-throbber">
           <Throbber />
         </div>

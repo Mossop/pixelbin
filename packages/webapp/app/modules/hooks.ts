@@ -254,7 +254,7 @@ export function useContextProperty<C extends BaseContext, R>(
   context: C,
   cb: (context: C, previous: R | undefined) => R,
 ): R {
-  let [property, setProperty] = useState(cb(context, undefined));
+  let [property, setProperty] = useState(() => cb(context, undefined));
 
   let updater = useCallback(
     () => setProperty((previous) => cb(context, previous)),
@@ -263,6 +263,7 @@ export function useContextProperty<C extends BaseContext, R>(
 
   useEffect(() => {
     context.addEventListener("change", updater);
+    updater();
 
     return () => context.removeEventListener("change", updater);
   }, [context, updater]);

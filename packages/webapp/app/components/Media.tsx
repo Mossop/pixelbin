@@ -8,9 +8,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { SlSpinner } from "shoelace-react";
 
 import { useCastManager } from "./CastManager";
-import Icon from "./Icon";
 import { PlayState, useCurrentMedia, useMediaContext } from "./MediaContext";
 import {
   AlternateFileType,
@@ -224,23 +224,23 @@ export function RenderMedia({
 }) {
   let mediaContext = useMediaContext();
 
-  useEffect(() => {
-    if (!media.file) {
-      mediaContext.setMedia(media);
-    }
-  }, [mediaContext, media]);
-
   let onLoaded = useCallback(() => {
     if (isCurrent) {
       mediaContext.setMedia(media);
     }
   }, [isCurrent, mediaContext, media]);
 
+  useEffect(() => {
+    if (!media.file) {
+      onLoaded();
+    }
+  }, [media, onLoaded]);
+
   let { file } = media;
   if (!file) {
     return (
-      <div className="media missing">
-        <Icon icon="hourglass" />
+      <div className="missing">
+        <SlSpinner />
       </div>
     );
   }

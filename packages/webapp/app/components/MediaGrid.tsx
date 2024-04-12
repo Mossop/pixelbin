@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { SlSpinner } from "shoelace-react";
 
 import Icon from "./Icon";
 import { Group, useGalleryGroups, useGetMediaUrl } from "./MediaGallery";
@@ -97,7 +98,7 @@ const ThumbnailImage = memo(function ThumbnailImage({
 const MissingThumbnail = memo(function MissingThumbnail() {
   return (
     <div className="thumbnail">
-      <Icon icon="hourglass" />
+      <SlSpinner />
     </div>
   );
 });
