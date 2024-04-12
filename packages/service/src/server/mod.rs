@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, result};
+use std::{collections::HashMap, env, fmt::Display, result};
 
 use actix_web::{
     body::BoxBody,
@@ -126,6 +126,8 @@ struct AppState {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ApiConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    service_changeset: Option<String>,
     api_url: String,
     thumbnails: ThumbnailConfig,
 }
@@ -147,6 +149,7 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
     });
 
     Ok(web::Json(ApiConfig {
+        service_changeset: env::var("SOURCE_CHANGESET").ok(),
         api_url,
         thumbnails: config.thumbnails.clone(),
     }))

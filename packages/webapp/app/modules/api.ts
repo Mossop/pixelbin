@@ -108,6 +108,8 @@ export interface ThumbnailConfig {
 }
 
 export interface ApiConfig {
+  serviceChangeset?: string;
+  webappChangeset?: string;
   apiUrl: string;
   thumbnails: ThumbnailConfig;
 }

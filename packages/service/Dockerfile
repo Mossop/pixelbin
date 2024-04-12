@@ -32,3 +32,6 @@ ENV PIXELBIN_DATABASE_URL="postgres://pixelbin:pixelbin@postgres/pixelbin"
 EXPOSE 8283
 
 ENTRYPOINT ["/app/pixelbin", "serve"]
+
+ARG SOURCE_CHANGESET
+ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}

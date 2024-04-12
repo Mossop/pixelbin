@@ -5,17 +5,12 @@ on:
   push:
     tags:
       - 'v*'
-    paths:
-      - 'packages/webapp/**'
 
 jobs:
   build-webapp:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v5
@@ -23,6 +18,10 @@ jobs:
           images: ghcr.io/mossop/pixelbin-webapp
           tags: |
             type=semver,pattern={{version}}
+            type=ref,event=branch
+          labels: |
+            org.opencontainers.image.title=Pixelbin Webapp
+            org.opencontainers.image.description=A Remix webapp to access Pixelbin
 
       - name: Setup buildx
         uses: docker/setup-buildx-action@v3
@@ -37,11 +36,12 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./packages/webapp/Dockerfile
+          file: packages/webapp/Dockerfile
           platforms: linux/amd64
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
+          build-args: |
+            SOURCE_CHANGESET=${{ github.sha }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
