@@ -33,12 +33,14 @@ pub(crate) const ISO_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
 pub(crate) const JPEG_EXTENSION: &str = "jpg";
 pub(crate) const WEBP_EXTENSION: &str = "webp";
+pub(crate) const AVIF_EXTENSION: &str = "avif";
 pub(crate) const MP4_EXTENSION: &str = "mp4";
 
 fn mime_extension(mimetype: &Mime) -> &'static str {
     match mimetype.essence_str() {
         "image/jpeg" => JPEG_EXTENSION,
         "image/webp" => WEBP_EXTENSION,
+        "image/avif" => AVIF_EXTENSION,
         "video/mp4" => MP4_EXTENSION,
         st => panic!("Unexpected mimetype {st}"),
     }
@@ -83,7 +85,13 @@ pub(crate) async fn encode_alternate_image(
 ) -> Result<TempPath> {
     let temp = NamedTempFile::new()?.into_temp_path();
 
-    media::encode_alternate_image(source_image.clone(), &alternate_file.mimetype, &temp).await?;
+    media::encode_alternate_image(
+        source_image.clone(),
+        &alternate_file.mimetype,
+        alternate_file.file_type,
+        &temp,
+    )
+    .await?;
 
     let stats = metadata(&temp).await?;
 

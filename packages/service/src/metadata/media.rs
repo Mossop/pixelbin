@@ -3,6 +3,7 @@ use std::{fs::File, io::BufWriter, path::Path, str::FromStr};
 use file_format::FileFormat;
 use image::{
     codecs::{
+        avif::{AvifEncoder, ColorSpace},
         jpeg::JpegEncoder,
         webp::{WebPEncoder, WebPQuality},
     },
@@ -16,6 +17,7 @@ use tracing::{span, Instrument, Level};
 use crate::{
     metadata::ffmpeg::{extract_video_frame, VideoData},
     shared::spawn_blocking,
+    store::models::AlternateFileType,
     Error, Result,
 };
 
@@ -50,17 +52,35 @@ pub(crate) async fn resize_image(source_image: DynamicImage, size: i32) -> Dynam
     .await
 }
 
-fn encode_image(source_image: &DynamicImage, target_mime: &Mime, temp: &Path) -> Result {
+fn encode_image(
+    source_image: &DynamicImage,
+    target_mime: &Mime,
+    file_type: AlternateFileType,
+    temp: &Path,
+) -> Result {
     let buffered = BufWriter::new(File::create(temp)?);
 
     match target_mime.subtype().as_str() {
         "jpeg" => {
-            let encoder = JpegEncoder::new_with_quality(buffered, 90);
+            let quality = match file_type {
+                AlternateFileType::Thumbnail => 80,
+                _ => 90,
+            };
+            let encoder = JpegEncoder::new_with_quality(buffered, quality);
             source_image.write_with_encoder(encoder)?;
         }
         "webp" => {
             #[allow(deprecated)]
             let encoder = WebPEncoder::new_with_quality(buffered, WebPQuality::lossy(80));
+            source_image.write_with_encoder(encoder)?;
+        }
+        "avif" => {
+            let (speed, quality) = match file_type {
+                AlternateFileType::Thumbnail => (4, 80),
+                _ => (4, 90),
+            };
+            let encoder = AvifEncoder::new_with_speed_quality(buffered, speed, quality)
+                .with_colorspace(ColorSpace::Srgb);
             source_image.write_with_encoder(encoder)?;
         }
         _ => {
@@ -98,19 +118,24 @@ async fn encode_video(
 pub(super) async fn encode_alternate_image(
     source_image: DynamicImage,
     mime: &Mime,
+    file_type: AlternateFileType,
     target_path: &Path,
 ) -> Result {
     let image_path = target_path.to_owned();
     let image_mime = mime.clone();
+    let width = source_image.width();
+    let height = source_image.height();
 
     spawn_blocking(
         span!(
             Level::INFO,
             "encode image",
-            "otel.name" = format!("encode image {mime}"),
+            "otel.name" = format!("encode image {mime} ({width}x{height})"),
             "mimetype" = mime.as_ref(),
+            "width" = width,
+            "height" = height,
         ),
-        move || encode_image(&source_image, &image_mime, &image_path),
+        move || encode_image(&source_image, &image_mime, file_type, &image_path),
     )
     .await?;
 

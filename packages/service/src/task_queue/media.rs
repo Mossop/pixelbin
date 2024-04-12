@@ -31,11 +31,17 @@ async fn download_media_file(conn: &mut DbConnection<'_>, file_path: &FilePath) 
                 return Ok(temp_path);
             }
 
+            let storage = models::Storage::lock_for_catalog(conn, &file_path.catalog).await?;
+
+            // Check again after locking
+            if file_exists(&temp_path).await? {
+                return Ok(temp_path);
+            }
+
             if let Some(parent) = temp_path.parent() {
                 fs::create_dir_all(parent).await?;
             }
 
-            let storage = models::Storage::lock_for_catalog(conn, &file_path.catalog).await?;
             let remote_store = storage.file_store().await?;
 
             remote_store.pull(file_path, &temp_path).await?;
@@ -109,6 +115,10 @@ pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file: &s
 
 pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
     let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
+    if media_file.stored.is_some() {
+        return check_media_file(conn, media_file_path).await;
+    }
+
     let temp_store = conn.config().temp_store();
     let file_path = media_file_path.file(&media_file.file_name);
     let temp_file = temp_store.local_path(&file_path);

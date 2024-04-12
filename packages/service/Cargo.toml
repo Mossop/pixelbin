@@ -54,7 +54,7 @@ lazy_static = "1.4.0"
 lexical-parse-float = "0.8.5"
 chrono-tz = "0.8.4"
 tempfile = "^3.4"
-image = { version = "0.24.8", features = ["webp-encoder"] }
+image = { version = "0.24.8", features = ["webp-encoder", "avif"] }
 async-channel = "2.1.1"
 figment = { version = "0.10.15", features = ["json", "env"] }
 dotenvy = "0.15.7"
