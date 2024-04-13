@@ -25,13 +25,15 @@ COPY --from=builder /build/target/release/pixelbin /app
 
 WORKDIR /config
 
+ENV PATH="${PATH}:/app"
 ENV PIXELBIN_STORAGE="/data"
 ENV PIXELBIN_PORT=8283
 ENV PIXELBIN_DATABASE_URL="postgres://pixelbin:pixelbin@postgres/pixelbin"
 
 EXPOSE 8283
 
-ENTRYPOINT ["/app/pixelbin", "serve"]
+ENTRYPOINT ["/app/pixelbin"]
+CMD ["serve"]
 
 ARG SOURCE_CHANGESET
 ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}
