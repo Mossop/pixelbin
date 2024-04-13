@@ -54,7 +54,9 @@ pub(super) async fn verify_storage(
     let mut requires_metadata: u32 = 0;
     let mut requires_upload: u32 = 0;
     let mut unexpected_local: u32 = 0;
+    let mut local_size: u64 = 0;
     let mut unexpected_remote: u32 = 0;
+    let mut remote_size: u64 = 0;
     let mut missing_alternates: u32 = 0;
 
     conn.isolated(Isolation::Committed, |conn| {
@@ -193,17 +195,20 @@ pub(super) async fn verify_storage(
 
             // TODO check unused metadata.json for MediaFiles to recover?
 
-            for path in remote_files.keys() {
+            for (path, size) in remote_files {
                 unexpected_remote += 1;
+                remote_size += size;
+                println!("Unexpected remote file: {path}");
                 if delete_files {
-                    remote_store.delete(path).await.warn();
+                    remote_store.delete(&path).await.warn();
                 }
             }
 
-            for path in local_files.keys() {
+            for (path, size) in local_files {
                 unexpected_local += 1;
+                local_size += size;
                 if delete_files {
-                    local_store.delete(path).await.warn();
+                    local_store.delete(&path).await.warn();
                 }
             }
 
@@ -212,6 +217,7 @@ pub(super) async fn verify_storage(
             };
 
             if delete_files {
+                remote_store.prune(&catalog_resource).await?;
                 local_store.prune(&catalog_resource).await?;
                 temp_store.prune(&catalog_resource).await?;
             }
@@ -223,7 +229,9 @@ pub(super) async fn verify_storage(
                 requires_upload,
                 missing_alternates,
                 unexpected_local,
+                local_size,
                 unexpected_remote,
+                remote_size,
                 "Verify complete"
             );
 

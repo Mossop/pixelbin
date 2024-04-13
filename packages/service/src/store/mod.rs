@@ -120,6 +120,25 @@ impl FileStore for DiskStore {
             self.root.clone()
         };
 
+        match fs::metadata(&root).await {
+            Ok(metadata) => {
+                if metadata.is_file() {
+                    if let Some(prefix) = prefix {
+                        if let Ok(path) = ResourcePath::try_from(prefix.path_parts()) {
+                            files.insert(path, metadata.len());
+                        }
+                    }
+                    return Ok(files);
+                }
+            }
+            Err(err) => {
+                if err.kind() == ErrorKind::NotFound {
+                    return Ok(files);
+                }
+                return Err(err.into());
+            }
+        }
+
         let mut path_parts: Vec<String> = root
             .strip_prefix(&self.root)
             .unwrap()

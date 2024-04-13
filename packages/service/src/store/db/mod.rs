@@ -63,7 +63,7 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
                 message: e.to_string(),
             })?;
 
-        if name.as_str() == "2024-02-19-120807_alternates_lookup" {
+        if name.as_str() == "2024-04-05-120807_alternates_lookup" {
             update_search_queries = true;
         }
     }

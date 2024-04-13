@@ -10,6 +10,7 @@ use std::{
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Local, Timelike};
 use opentelemetry::{global, trace::TraceContextExt};
+use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
 use tracing::{error, field, span, span::Id, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -28,7 +29,7 @@ use crate::{
 mod maintenance;
 mod media;
 
-#[derive(Debug)]
+#[derive(Debug, IntoStaticStr)]
 pub enum Task {
     ServerStartup,
     DeleteMedia { media: Vec<String> },
@@ -42,23 +43,6 @@ pub enum Task {
 }
 
 impl Task {
-    fn task_name(&self) -> String {
-        match self {
-            Task::ServerStartup => "ServerStartup".to_string(),
-            Task::DeleteMedia { media: _ } => "DeleteMedia".to_string(),
-            Task::UpdateSearches { catalog: _ } => "UpdateSearches".to_string(),
-            Task::VerifyStorage {
-                catalog: _,
-                delete_files: _,
-            } => "VerifyStorage".to_string(),
-            Task::PruneMediaFiles { catalog: _ } => "PruneMediaFiles".to_string(),
-            Task::ProcessMedia { catalog: _ } => "ProcessMedia".to_string(),
-            Task::ExtractMetadata { media_file: _ } => "ExtractMetadata".to_string(),
-            Task::UploadMediaFile { media_file: _ } => "UploadMediaFile".to_string(),
-            Task::BuildAlternates { media_file: _, typ } => format!("BuildAlternates {typ}"),
-        }
-    }
-
     async fn run(&self, conn: &mut DbConnection<'_>) -> Result {
         match self {
             Task::ServerStartup => server_startup(conn).await,
@@ -80,18 +64,8 @@ impl Task {
 
     fn is_expensive(&self) -> bool {
         match self {
-            Task::ServerStartup => false,
-            Task::DeleteMedia { media: _ } => false,
-            Task::UpdateSearches { catalog: _ } => false,
-            Task::VerifyStorage {
-                catalog: _,
-                delete_files: _,
-            } => false,
-            Task::PruneMediaFiles { catalog: _ } => false,
-            Task::ProcessMedia { catalog: _ } => false,
-            Task::ExtractMetadata { media_file: _ } => false,
-            Task::UploadMediaFile { media_file: _ } => false,
             Task::BuildAlternates { media_file: _, typ } => typ.as_str() == mime::VIDEO,
+            _ => false,
         }
     }
 }
@@ -210,7 +184,8 @@ impl TaskQueue {
                 global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
             let linked_span = linked_context.span().span_context().clone();
 
-            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task.task_name(), "otel.status_code" = field::Empty);
+            let task_name: &'static str = (&task).into();
+            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task_name, "otel.status_code" = field::Empty);
             span.add_link(linked_span);
 
             match queue.run_task(&task).instrument(span.clone()).await {
