@@ -12,7 +12,7 @@ use tokio_util::io::ReaderStream;
 use tracing::{instrument, warn};
 
 use crate::{
-    metadata::{alternates_for_mimetype, ISO_FORMAT},
+    metadata::{alternates_for_media_file, ISO_FORMAT},
     server::{
         auth::{MaybeSession, Session},
         util::choose_alternate,
@@ -588,7 +588,7 @@ async fn upload_media(
                 ];
 
                 let alternate_files: Vec<AlternateFile> =
-                    alternates_for_mimetype(conn.config(), &media_file.mimetype)
+                    alternates_for_media_file(conn.config(), &media_file)
                         .into_iter()
                         .map(|a| AlternateFile::new(&media_file.id, a))
                         .collect();

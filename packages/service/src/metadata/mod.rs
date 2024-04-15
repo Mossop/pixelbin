@@ -48,22 +48,13 @@ fn mime_extension(mimetype: &Mime) -> &'static str {
 
 #[derive(Debug)]
 pub(crate) struct Alternate {
+    pub(crate) file_name: String,
     pub(crate) alt_type: AlternateFileType,
     pub(crate) mimetype: Mime,
     pub(crate) size: Option<i32>,
 }
 
 impl Alternate {
-    pub(crate) fn file_name(&self) -> String {
-        let extension = mime_extension(&self.mimetype);
-        match (self.alt_type, self.size) {
-            (AlternateFileType::Thumbnail, None) => format!("thumb.{extension}"),
-            (AlternateFileType::Thumbnail, Some(size)) => format!("thumb-{size}.{extension}"),
-            (AlternateFileType::Reencode, None) => format!("reencode.{extension}"),
-            (AlternateFileType::Reencode, Some(size)) => format!("reencode-{size}.{extension}"),
-        }
-    }
-
     pub(crate) fn matches(&self, alt: &AlternateFile) -> bool {
         if alt.file_type != self.alt_type {
             return false;
@@ -127,11 +118,20 @@ pub(crate) async fn encode_alternate_video(
     Ok(temp)
 }
 
-pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &Mime) -> Vec<Alternate> {
+pub(crate) fn alternates_for_media_file(config: &Config, media_file: &MediaFile) -> Vec<Alternate> {
+    let base_name = if let Some(idx) = media_file.file_name.rfind('.') {
+        media_file.file_name[0..idx].to_owned()
+    } else {
+        media_file.file_name.clone()
+    };
+
     let mut alternates = Vec::new();
+
+    let jpg_extension = mime_extension(&mime::IMAGE_JPEG);
 
     for size in config.thumbnails.sizes.iter() {
         alternates.push(Alternate {
+            file_name: format!("{base_name}-{size}.{jpg_extension}"),
             alt_type: AlternateFileType::Thumbnail,
             mimetype: mime::IMAGE_JPEG,
             size: Some(*size as i32),
@@ -139,6 +139,7 @@ pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &Mime) -> Vec<A
 
         for alternate_mime in config.thumbnails.alternate_types.iter() {
             alternates.push(Alternate {
+                file_name: format!("{base_name}-{size}.{}", mime_extension(alternate_mime)),
                 alt_type: AlternateFileType::Thumbnail,
                 mimetype: alternate_mime.clone(),
                 size: Some(*size as i32),
@@ -147,23 +148,29 @@ pub(crate) fn alternates_for_mimetype(config: &Config, mimetype: &Mime) -> Vec<A
     }
 
     alternates.push(Alternate {
+        file_name: format!("{base_name}-{jpg_extension}.{jpg_extension}"),
         alt_type: AlternateFileType::Reencode,
         mimetype: mime::IMAGE_JPEG,
         size: None,
     });
 
     for alternate_mime in config.thumbnails.alternate_types.iter() {
+        let extension = mime_extension(alternate_mime);
         alternates.push(Alternate {
+            file_name: format!("{base_name}-{extension}.{extension}"),
             alt_type: AlternateFileType::Reencode,
             mimetype: alternate_mime.clone(),
             size: None,
         });
     }
 
-    if mimetype.type_() == "video" {
+    if media_file.mimetype.type_() == "video" {
+        let mimetype = Mime::from_str("video/mp4").unwrap();
+        let extension = mime_extension(&mimetype);
         alternates.push(Alternate {
+            file_name: format!("{base_name}-h264.{extension}"),
             alt_type: AlternateFileType::Reencode,
-            mimetype: Mime::from_str("video/mp4").unwrap(),
+            mimetype,
             size: None,
         })
     }

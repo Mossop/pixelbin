@@ -5,7 +5,7 @@ use scoped_futures::ScopedFutureExt;
 use tracing::{error, info};
 
 use crate::{
-    metadata::{alternates_for_mimetype, Alternate, METADATA_FILE},
+    metadata::{alternates_for_media_file, Alternate, METADATA_FILE},
     store::{
         db::DbConnection,
         models,
@@ -132,7 +132,7 @@ pub(super) async fn verify_storage(
 
                 required_alternates.insert(
                     media_file.id.clone(),
-                    alternates_for_mimetype(conn.config(), &media_file.mimetype),
+                    alternates_for_media_file(conn.config(), &media_file),
                 );
 
                 if needs_change {

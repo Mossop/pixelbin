@@ -1718,7 +1718,7 @@ impl AlternateFile {
         Self {
             id: short_id("F"),
             file_type: alternate.alt_type,
-            file_name: alternate.file_name(),
+            file_name: alternate.file_name.clone(),
             file_size: 0,
             mimetype: alternate.mimetype,
             width: alternate.size.unwrap_or_default(),
