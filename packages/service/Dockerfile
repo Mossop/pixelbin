@@ -35,5 +35,7 @@ EXPOSE 8283
 ENTRYPOINT ["/app/pixelbin"]
 CMD ["serve"]
 
+HEALTHCHECK --interval=10s CMD wget -qO- http://localhost:8283/api/config || exit 1
+
 ARG SOURCE_CHANGESET
 ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}
