@@ -7,7 +7,7 @@ export async function loader() {
 
   let response = await apiFetch("/api/config", init);
 
-  if (response.status <= 200 || response.status >= 300) {
+  if (response.status < 200 || response.status >= 300) {
     return response;
   }
 
