@@ -78,7 +78,7 @@ pub(crate) async fn encode_video(
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(level = "trace", err, skip_all)]
 pub(crate) async fn extract_video_frame(local_file: &Path, target: &Path) -> Result {
     let output = Command::new("ffmpeg")
         .arg("-y")
@@ -168,7 +168,7 @@ impl VideoData {
         })
     }
 
-    #[instrument(skip_all)]
+    #[instrument(level = "trace", err, skip_all)]
     pub(crate) async fn extract_video_data(local_file: &Path) -> Result<Self> {
         let output = Command::new("ffprobe")
             .arg("-hide_banner")

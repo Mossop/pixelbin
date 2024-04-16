@@ -132,8 +132,6 @@ impl TaskQueue {
         if count > 0 {
             self.notify.notified().await;
         }
-
-        self.sender.close();
     }
 
     pub(crate) async fn queue_task(&self, task: Task) {

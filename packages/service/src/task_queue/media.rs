@@ -53,7 +53,7 @@ async fn download_media_file(conn: &mut DbConnection<'_>, file_path: &FilePath) 
     .await
 }
 
-#[instrument(skip(conn), err)]
+#[instrument(level = "trace", skip(conn), err)]
 async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: MediaFilePath) -> Result {
     let (media_file, _) = models::MediaFile::get(conn, &media_file_path.file).await?;
 

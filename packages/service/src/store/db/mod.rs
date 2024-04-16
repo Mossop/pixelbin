@@ -14,6 +14,7 @@ use diesel::{
     pg::Pg,
     prelude::*,
     query_builder::{AsQuery, QueryFragment, QueryId},
+    sql_query,
 };
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
@@ -27,8 +28,9 @@ use scoped_futures::ScopedBoxFuture;
 use tracing::{info, instrument, span, span::Id, trace, Level};
 
 use crate::{
-    shared::{long_id, spawn_blocking},
-    store::Isolation,
+    metadata::{parse_metadata, METADATA_FILE},
+    shared::{file_exists, long_id, spawn_blocking},
+    store::{db::functions::media_file_columns, path::MediaFilePath, Isolation},
     Config, Error, Result, Task, TaskQueue,
 };
 
@@ -41,9 +43,58 @@ const TOKEN_EXPIRY_DAYS: i64 = 90;
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 #[instrument(err, skip_all)]
+async fn reprocess_all_media(conn: &mut DbConnection<'_>) -> Result {
+    let files = media_file::table
+        .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+        .filter(media_item::deleted.eq(false))
+        .select((media_file_columns!(), media_item::catalog))
+        .for_update()
+        .load::<(models::MediaFile, String)>(conn)
+        .await?;
+
+    let local_store = conn.config().local_store();
+    let mut media_files = Vec::new();
+
+    for (mut media_file, catalog) in files.into_iter() {
+        let media_file_path = MediaFilePath {
+            catalog,
+            item: media_file.media_item.clone(),
+            file: media_file.id.clone(),
+        };
+
+        let metadata_path = local_store.local_path(&media_file_path.file(METADATA_FILE));
+        if file_exists(&metadata_path).await? {
+            let metadata = parse_metadata(&metadata_path).await?;
+            metadata.apply_to_media_file(&mut media_file);
+        }
+
+        media_files.push(media_file);
+    }
+
+    models::MediaFile::upsert(conn, media_files).await?;
+
+    Ok(())
+}
+
+#[instrument(err, skip_all)]
+async fn update_search_dates(conn: &mut DbConnection<'_>) -> Result {
+    sql_query(
+        r#"UPDATE "media_search" SET "added" = "media_file"."uploaded"
+            FROM "media_item" JOIN "media_file" ON "media_item"."media_file"="media_file"."id"
+            WHERE "media_item"."id" = "media_search"."media";"#,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+#[instrument(err, skip_all)]
 pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(DbPool, TaskQueue)> {
     #![allow(clippy::borrowed_box)]
     let mut update_search_queries = false;
+    let mut reprocess_media: bool = false;
+    let mut update_search_date: bool = false;
 
     // First connect synchronously to apply migrations.
     let mut connection = PgConnection::establish(&config.database_url)?;
@@ -63,8 +114,13 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
                 message: e.to_string(),
             })?;
 
-        if name.as_str() == "2024-04-05-120807_alternates_lookup" {
-            update_search_queries = true;
+        match name.as_str() {
+            "2023-07-03-132731_search_cache" => update_search_date = true,
+            "2024-04-05-120807_alternates_lookup" => {
+                update_search_queries = true;
+                reprocess_media = true;
+            }
+            _ => {}
         }
     }
 
@@ -97,16 +153,22 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
         .execute(&mut conn)
         .await?;
 
-    if update_search_queries {
+    if reprocess_media {
         conn.isolated(Isolation::Committed, |conn| {
-            async move {
-                models::SavedSearch::upgrade_queries(conn).await?;
-
-                Ok(())
-            }
-            .scope_boxed()
+            reprocess_all_media(conn).scope_boxed()
         })
         .await?;
+    }
+
+    if update_search_queries {
+        conn.isolated(Isolation::Committed, |conn| {
+            models::SavedSearch::upgrade_queries(conn).scope_boxed()
+        })
+        .await?;
+    }
+
+    if update_search_date {
+        update_search_dates(&mut conn).await?;
     }
 
     let last_migration = if migrations.is_empty() {

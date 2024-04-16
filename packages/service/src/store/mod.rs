@@ -60,7 +60,7 @@ impl DiskStore {
         local_path
     }
 
-    #[instrument(skip(self, temp_file), err)]
+    #[instrument(level = "trace", skip(self, temp_file), err)]
     pub(crate) async fn copy_from_temp(&self, temp_file: TempPath, path: &FilePath) -> Result {
         let target = self.local_path(path);
 

@@ -66,7 +66,7 @@ impl From<Object> for ExifData {
 }
 
 impl ExifData {
-    #[instrument]
+    #[instrument(level = "trace", err)]
     pub(crate) async fn extract_exif_data(local_file: &Path) -> Result<Self> {
         let output = Command::new("exiftool")
             .arg("-n")
@@ -214,7 +214,7 @@ fn pretty_make(name: String) -> Option<String> {
 
 impl ExifData {
     #[allow(clippy::field_reassign_with_default)]
-    #[instrument(skip_all)]
+    #[instrument(level = "trace", skip_all)]
     fn parse_exif_v1(exif: &Object, mimetype: &Mime) -> models::MediaMetadata {
         macro_rules! prop {
             ($prop:expr) => {
@@ -322,7 +322,7 @@ impl ExifData {
     }
 
     #[allow(clippy::field_reassign_with_default)]
-    #[instrument(skip_all)]
+    #[instrument(level = "trace", skip_all)]
     fn parse_exif_v2(exif: &Object, mimetype: &Mime) -> models::MediaMetadata {
         macro_rules! prop {
             ($prop:expr) => {

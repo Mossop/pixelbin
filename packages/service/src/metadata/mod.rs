@@ -271,13 +271,13 @@ impl FileMetadata {
     }
 }
 
-#[instrument]
+#[instrument(level = "trace")]
 pub(crate) async fn parse_metadata(metadata_file: &Path) -> Result<FileMetadata> {
     let str = read_to_string(metadata_file).await?;
     Ok(from_str::<FileMetadata>(&str)?)
 }
 
-#[instrument]
+#[instrument(level = "trace")]
 pub(crate) async fn parse_media(media_file: &Path) -> Result<FileMetadata> {
     let exif = ExifData::extract_exif_data(media_file).await?;
 

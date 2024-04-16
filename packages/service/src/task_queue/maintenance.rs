@@ -198,7 +198,6 @@ pub(super) async fn verify_storage(
             for (path, size) in remote_files {
                 unexpected_remote += 1;
                 remote_size += size;
-                println!("Unexpected remote file: {path}");
                 if delete_files {
                     remote_store.delete(&path).await.warn();
                 }

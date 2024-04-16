@@ -199,23 +199,23 @@ impl Runnable for Verify {
 
         store.finish_tasks().await;
 
-        // for catalog in catalogs.iter() {
-        //     store
-        //         .queue_task(Task::PruneMediaFiles {
-        //             catalog: catalog.clone(),
-        //         })
-        //         .await;
-        // }
+        for catalog in catalogs.iter() {
+            store
+                .queue_task(Task::PruneMediaFiles {
+                    catalog: catalog.clone(),
+                })
+                .await;
+        }
 
-        // store.finish_tasks().await;
+        store.finish_tasks().await;
 
-        // for catalog in catalogs.iter() {
-        //     store
-        //         .queue_task(Task::UpdateSearches {
-        //             catalog: catalog.clone(),
-        //         })
-        //         .await;
-        // }
+        for catalog in catalogs.iter() {
+            store
+                .queue_task(Task::UpdateSearches {
+                    catalog: catalog.clone(),
+                })
+                .await;
+        }
 
         Ok(())
     }
