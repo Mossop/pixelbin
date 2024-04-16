@@ -1,0 +1,27 @@
+name: Build plugin
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-plugin:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          node build_plugin.mjs ${{ github.ref_name }}
+          cd build && zip -r9 ../LrPixelbin.zip *
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            LrPixelbin.zip
