@@ -17,7 +17,9 @@ jobs:
         with:
           images: ghcr.io/mossop/pixelbin-server
           tags: |
-            type=semver,pattern={{version}}
+            type=semver,pattern=v{{major}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
             type=ref,event=branch
           labels: |
             org.opencontainers.image.title=Pixelbin Server
