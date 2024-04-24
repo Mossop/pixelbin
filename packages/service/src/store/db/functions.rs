@@ -28,7 +28,7 @@ pub(crate) enum DateComponent {
 
 pub(crate) fn extract<A>(a: A, c: DateComponent) -> extract::HelperType<A>
 where
-    A: AsExpression<Nullable<Timestamp>>,
+    A: AsExpression<Nullable<Timestamptz>>,
 {
     extract::Extract {
         a: a.as_expression(),
@@ -59,7 +59,7 @@ pub(crate) mod extract {
         type IsAggregate = is_aggregate::Never;
     }
 
-    pub(crate) type HelperType<A> = Extract<<A as AsExpression<Nullable<Timestamp>>>::Expression>;
+    pub(crate) type HelperType<A> = Extract<<A as AsExpression<Nullable<Timestamptz>>>::Expression>;
 
     impl<A> Expression for Extract<A>
     where

@@ -33,6 +33,7 @@ const MediaFields: Record<string, [MediaField, string | null][]> = {
     [MediaField.Label, "Label"],
     [MediaField.Filename, "Filename"],
     [MediaField.Rating, "Rating"],
+    [MediaField.Taken, "Taken"],
   ],
   kit: [
     [MediaField.Make, "Camera make"],
@@ -150,6 +151,55 @@ function NumberValue<F>({
       type="number"
       onSlChange={onChange}
       value={`${field.value}`}
+    />
+  );
+}
+
+function DateValue<F>({
+  field,
+  setField,
+}: {
+  field: FieldQuery<F>;
+  setField: SetField<F>;
+}) {
+  let onChange = useCallback(
+    (event: SlInputChangeEvent) => {
+      setField((previous) => {
+        let newField: FieldQuery<F> = {
+          ...previous,
+          // @ts-ignore
+          value: event.target.valueAsDate.toISOString(),
+        };
+
+        return newField;
+      });
+    },
+    [setField],
+  );
+
+  let datePart = useMemo(() => {
+    if (field.operator == "empty") {
+      return "";
+    }
+
+    let fullDate = field.value.toString();
+    let split = fullDate.indexOf("T");
+    if (split > 0) {
+      return fullDate.substring(0, split);
+    }
+    return fullDate;
+  }, [field]);
+
+  if (field.operator == "empty") {
+    return undefined;
+  }
+
+  return (
+    <SlInput
+      className="value"
+      type="date"
+      onSlChange={onChange}
+      value={datePart}
     />
   );
 }
@@ -349,6 +399,8 @@ export function FieldValue<F>({
       );
     case ValueType.Number:
       return <NumberValue field={field} setField={setField} />;
+    case ValueType.Date:
+      return <DateValue field={field} setField={setField} />;
     default:
       return <StringValue field={field} setField={setField} />;
   }
@@ -477,8 +529,8 @@ function FieldOperator({
 }) {
   switch (operatorType) {
     case ValueType.Number:
-      return <NumberOperator field={field} setField={setField} />;
     case ValueType.Date:
+      return <NumberOperator field={field} setField={setField} />;
     default:
       return <StringOperator field={field} setField={setField} />;
   }

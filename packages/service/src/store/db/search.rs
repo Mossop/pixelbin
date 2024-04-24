@@ -4,10 +4,9 @@ use diesel::{
     expression::AsExpression,
     helper_types::LeftJoinQuerySource,
     prelude::*,
-    query_builder::AstPass,
     serialize,
     sql_types::{
-        self, Bool, Double, Float, Integer, Nullable, SingleValue, SqlType, Text, Timestamp,
+        self, Bool, Double, Float, Integer, Nullable, SingleValue, SqlType, Text, Timestamptz,
     },
 };
 use diesel_async::RunQueryDsl;
@@ -51,8 +50,16 @@ pub(crate) trait Filterable {
     fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource>;
 }
 
-pub(crate) fn field_query<F, FT>(
+#[derive(Debug, Clone)]
+enum FieldType {
+    Text,
+    Number,
+    Date,
+}
+
+fn field_query<F, FT>(
     field: F,
+    field_type: FieldType,
     operator: Operator,
     invert: bool,
 ) -> field_query::HelperType<F, FT>
@@ -62,6 +69,7 @@ where
 {
     field_query::FieldQuery {
         field: field.as_expression(),
+        field_type,
         operator,
         invert,
     }
@@ -81,8 +89,47 @@ pub(crate) mod field_query {
     #[derive(Debug, Clone, QueryId)]
     pub(crate) struct FieldQuery<F> {
         pub(super) field: F,
+        pub(super) field_type: FieldType,
         pub(super) operator: Operator,
         pub(super) invert: bool,
+    }
+
+    impl<F> FieldQuery<F>
+    where
+        F: QueryFragment<Backend>,
+    {
+        fn walk_field<'__b>(&'__b self, mut out: AstPass<'_, '__b, Backend>) -> QueryResult<()> {
+            if matches!(self.field_type, FieldType::Text) {
+                out.push_sql("COALESCE(");
+                self.field.walk_ast(out.reborrow())?;
+                out.push_sql(", ");
+                out.push_bind_param::<Text, _>("")?;
+                out.push_sql(")");
+            } else {
+                self.field.walk_ast(out.reborrow())?;
+            }
+
+            Ok(())
+        }
+
+        fn bind_value<'__b>(
+            &'__b self,
+            value: &'__b SqlValue,
+            out: &mut AstPass<'_, '__b, Backend>,
+        ) -> QueryResult<()> {
+            match value {
+                SqlValue::String(f) => {
+                    out.push_bind_param::<Text, _>(f)?;
+                    if matches!(self.field_type, FieldType::Date) {
+                        out.push_sql("::timestamptz");
+                    }
+                    Ok(())
+                }
+                SqlValue::Bool(f) => out.push_bind_param::<Bool, _>(f),
+                SqlValue::Integer(f) => out.push_bind_param::<Integer, _>(f),
+                SqlValue::Double(f) => out.push_bind_param::<Double, _>(f),
+            }
+        }
     }
 
     impl<F, GroupByClause> ValidGrouping<GroupByClause> for FieldQuery<F> {
@@ -127,51 +174,35 @@ pub(crate) mod field_query {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NOT NULL");
                 }
-                (Operator::Equal(SqlValue::String(v)), false) => {
-                    out.push_sql("COALESCE(");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(", ");
-                    out.push_bind_param::<Text, _>("")?;
-                    out.push_sql(") IS NOT DISTINCT FROM ");
-                    out.push_bind_param::<Text, _>(v)?;
-                }
-                (Operator::Equal(SqlValue::String(v)), true) => {
-                    out.push_sql("COALESCE(");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(", ");
-                    out.push_bind_param::<Text, _>("")?;
-                    out.push_sql(") IS DISTINCT FROM ");
-                    out.push_bind_param::<Text, _>(v)?;
-                }
                 (Operator::Equal(v), false) => {
-                    self.field.walk_ast(out.reborrow())?;
+                    self.walk_field(out.reborrow())?;
                     out.push_sql(" IS NOT DISTINCT FROM ");
-                    v.bind_value(&mut out)?;
+                    self.bind_value(v, &mut out)?;
                 }
                 (Operator::Equal(v), true) => {
-                    self.field.walk_ast(out.reborrow())?;
+                    self.walk_field(out.reborrow())?;
                     out.push_sql(" IS DISTINCT FROM ");
-                    v.bind_value(&mut out)?;
+                    self.bind_value(v, &mut out)?;
                 }
                 (Operator::LessThan(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" < ");
-                    v.bind_value(&mut out)?;
+                    self.bind_value(v, &mut out)?;
                 }
                 (Operator::LessThan(v), true) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" >= ");
-                    v.bind_value(&mut out)?;
+                    self.bind_value(v, &mut out)?;
                 }
                 (Operator::LessThanOrEqual(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" <= ");
-                    v.bind_value(&mut out)?;
+                    self.bind_value(v, &mut out)?;
                 }
                 (Operator::LessThanOrEqual(v), true) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" > ");
-                    v.bind_value(&mut out)?;
+                    self.bind_value(v, &mut out)?;
                 }
                 (Operator::Contains(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
@@ -242,7 +273,7 @@ pub(crate) enum TypedField<QS> {
     Text(Boxed<QS, Nullable<Text>>),
     Float(Boxed<QS, Nullable<Float>>),
     Integer(Boxed<QS, Nullable<Integer>>),
-    Date(Boxed<QS, Nullable<Timestamp>>),
+    Date(Boxed<QS, Nullable<Timestamptz>>),
 }
 
 pub(crate) trait Field {
@@ -266,17 +297,6 @@ pub(crate) enum SqlValue {
     Bool(bool),
     Integer(i32),
     Double(f64),
-}
-
-impl SqlValue {
-    fn bind_value<'__b>(&'__b self, out: &mut AstPass<'_, '__b, Backend>) -> QueryResult<()> {
-        match self {
-            SqlValue::String(f) => out.push_bind_param::<Text, _>(f),
-            SqlValue::Bool(f) => out.push_bind_param::<Bool, _>(f),
-            SqlValue::Integer(f) => out.push_bind_param::<Integer, _>(f),
-            SqlValue::Double(f) => out.push_bind_param::<Double, _>(f),
-        }
-    }
 }
 
 #[typeshare]
@@ -377,7 +397,7 @@ impl Field for MediaField {
             MediaField::Iso => TypedField::Integer(Box::new(media_field!(iso))),
             MediaField::Rating => TypedField::Integer(Box::new(media_field!(rating))),
 
-            MediaField::Taken => TypedField::Date(Box::new(media_field!(taken))),
+            MediaField::Taken => TypedField::Date(Box::new(media_item::datetime.nullable())),
 
             MediaField::TakenZone => TypedField::Text(Box::new(media_item::taken_zone)),
         }
@@ -541,47 +561,72 @@ where
             TypedField::Text(f) => match self.modifier {
                 Some(Modifier::Length) => Box::new(field_query(
                     char_length(f),
+                    FieldType::Number,
                     self.operator.clone(),
                     self.invert,
                 )),
                 Some(ref m) => panic!("Unexpected modifier {m} for text"),
-                None => Box::new(field_query(f, self.operator.clone(), self.invert)),
+                None => Box::new(field_query(
+                    f,
+                    FieldType::Text,
+                    self.operator.clone(),
+                    self.invert,
+                )),
             },
             TypedField::Float(f) => {
                 if let Some(ref m) = self.modifier {
                     panic!("Unexpected modifier {m} for float");
                 }
-                Box::new(field_query(f, self.operator.clone(), self.invert))
+                Box::new(field_query(
+                    f,
+                    FieldType::Number,
+                    self.operator.clone(),
+                    self.invert,
+                ))
             }
             TypedField::Integer(f) => {
                 if let Some(ref m) = self.modifier {
                     panic!("Unexpected modifier {m} for integer");
                 }
-                Box::new(field_query(f, self.operator.clone(), self.invert))
+                Box::new(field_query(
+                    f,
+                    FieldType::Number,
+                    self.operator.clone(),
+                    self.invert,
+                ))
             }
             TypedField::Date(f) => match self.modifier {
                 Some(Modifier::DayOfWeek) => Box::new(field_query(
                     extract(f, super::functions::DateComponent::DoW),
+                    FieldType::Number,
                     self.operator.clone(),
                     self.invert,
                 )),
                 Some(Modifier::Day) => Box::new(field_query(
                     extract(f, super::functions::DateComponent::Day),
+                    FieldType::Number,
                     self.operator.clone(),
                     self.invert,
                 )),
                 Some(Modifier::Month) => Box::new(field_query(
                     extract(f, super::functions::DateComponent::Month),
+                    FieldType::Number,
                     self.operator.clone(),
                     self.invert,
                 )),
                 Some(Modifier::Year) => Box::new(field_query(
                     extract(f, super::functions::DateComponent::Year),
+                    FieldType::Number,
                     self.operator.clone(),
                     self.invert,
                 )),
                 Some(ref m) => panic!("Unexpected modifier {m} for date"),
-                None => Box::new(field_query(f, self.operator.clone(), self.invert)),
+                None => Box::new(field_query(
+                    f,
+                    FieldType::Date,
+                    self.operator.clone(),
+                    self.invert,
+                )),
             },
         }
     }
