@@ -1,4 +1,5 @@
 import { DateTime, Duration, FixedOffsetZone } from "luxon";
+import { SetStateAction } from "react";
 
 import {
   ApiMediaRelations,
@@ -8,6 +9,11 @@ import {
   MediaView,
   MediaViewFile,
 } from "./types";
+
+export function applySSA<T>(previous: T, ssa: SetStateAction<T>): T {
+  // @ts-ignore
+  return typeof ssa == "function" ? ssa(previous) : ssa;
+}
 
 export function url(parts: string[], params?: URLSearchParams): string {
   let pstr = params ? `?${params}` : "";

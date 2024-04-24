@@ -1,6 +1,8 @@
 import { DateTime } from "luxon";
+import { Dispatch, SetStateAction } from "react";
 
 export type Replace<A, B> = Omit<A, keyof B> & B;
+export type DispatchSSA<T> = Dispatch<SetStateAction<T>>;
 
 export interface User {
   email: string;
@@ -162,6 +164,33 @@ export enum MediaField {
   Taken = "taken",
   TakenZone = "takenZone",
 }
+
+export const MediaFields: Record<MediaField, string | null> = {
+  [MediaField.Title]: "Title",
+  [MediaField.Filename]: "Filename",
+  [MediaField.Description]: "Description",
+  [MediaField.Category]: "Category",
+  [MediaField.Label]: "Label",
+  [MediaField.Location]: "Location",
+  [MediaField.City]: "City",
+  [MediaField.State]: "State",
+  [MediaField.Country]: "Country",
+  [MediaField.Make]: "Make",
+  [MediaField.Model]: "Model",
+  [MediaField.Lens]: "Lens",
+  [MediaField.Photographer]: "Photographer",
+  [MediaField.ShutterSpeed]: "ShutterSpeed",
+  [MediaField.Longitude]: "Longitude",
+  [MediaField.Latitude]: "Latitude",
+  [MediaField.Altitude]: "Altitude",
+  [MediaField.Orientation]: "Orientation",
+  [MediaField.Aperture]: "Aperture",
+  [MediaField.Iso]: "ISO",
+  [MediaField.FocalLength]: "Focal Length",
+  [MediaField.Rating]: "Rating",
+  [MediaField.Taken]: null,
+  [MediaField.TakenZone]: null,
+};
 
 export enum TagField {
   Id = "id",

@@ -1,4 +1,10 @@
-import { Dispatch, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   SlCard,
   SlRadioButton,
@@ -7,19 +13,14 @@ import {
 } from "shoelace-react";
 
 import { IconButton } from "./Icon";
-import {
-  QueryField,
-  RelationQueryField,
-  RenderAlbumChoices,
-  RenderPeopleChoices,
-  RenderTagChoices,
-} from "./QueryFields";
+import { QueryField, RelationQueryField, ValueType } from "./QueryFields";
 import { SearchDescription } from "@/components/SearchDescription";
 import { useServerState, useTimeout } from "@/modules/hooks";
 import {
   AlbumField,
   CompoundQuery,
   CompoundQueryItem,
+  DispatchSSA,
   Join,
   PersonField,
   RelationQueryItem,
@@ -27,13 +28,13 @@ import {
   State,
   TagField,
 } from "@/modules/types";
-import { keyFor } from "@/modules/util";
+import { applySSA, keyFor } from "@/modules/util";
 
 import "styles/components/SearchBar.scss";
 
 type ItemRenderer<I> = (props: {
   item: I;
-  setItem: Dispatch<I>;
+  setItem: DispatchSSA<I>;
   deleteItem?: () => void;
   serverState: State;
   catalog: string;
@@ -51,7 +52,7 @@ function CompoundHeader<I, T extends Omit<CompoundQuery<I>, "type">>({
   setQuery,
 }: {
   query: T;
-  setQuery: (query: T) => void;
+  setQuery: DispatchSSA<T>;
 }) {
   let compoundType = useMemo(() => {
     if (query.join == Join.Or) {
@@ -107,7 +108,7 @@ function QueryItem<I, T extends Omit<CompoundQuery<I>, "type">>({
   renderer,
 }: {
   compound: T;
-  setCompound: (query: T) => void;
+  setCompound: DispatchSSA<T>;
   item: number;
   serverState: State;
   catalog: string;
@@ -124,14 +125,17 @@ function QueryItem<I, T extends Omit<CompoundQuery<I>, "type">>({
   }, [compound, item, setCompound]);
 
   let setItem = useCallback(
-    (newItem: I) => {
-      setCompound({
-        ...compound,
-        queries: [
-          ...compound.queries.slice(0, item),
-          newItem,
-          ...compound.queries.slice(item + 1),
-        ],
+    (ssa: SetStateAction<I>) => {
+      setCompound((previous) => {
+        let newItem = applySSA(previous.queries[item], ssa);
+        return {
+          ...compound,
+          queries: [
+            ...compound.queries.slice(0, item),
+            newItem,
+            ...compound.queries.slice(item + 1),
+          ],
+        };
       });
     },
     [compound, item, setCompound],
@@ -159,7 +163,7 @@ function Compound<I extends object, T extends Omit<CompoundQuery<I>, "type">>({
   renderer,
 }: {
   query: T;
-  setQuery: (query: T) => void;
+  setQuery: DispatchSSA<T>;
   serverState: State;
   catalog: string;
   renderer: ItemRenderer<I>;
@@ -193,7 +197,7 @@ function RenderTagItem({
   catalog,
 }: {
   item: RelationQueryItem<TagField>;
-  setItem: Dispatch<RelationQueryItem<TagField>>;
+  setItem: DispatchSSA<RelationQueryItem<TagField>>;
   serverState: State;
   catalog: string;
 }) {
@@ -203,6 +207,7 @@ function RenderTagItem({
       return (
         <Compound
           query={item}
+          // @ts-ignore
           setQuery={setItem}
           renderer={RenderTagItem}
           serverState={serverState}
@@ -216,15 +221,11 @@ function RenderTagItem({
           id={TagField.Id}
           name={TagField.Name}
           field={item}
+          // @ts-ignore
           setField={setItem}
-          choices={
-            <RenderTagChoices
-              field={item}
-              setField={setItem}
-              serverState={serverState}
-              catalog={catalog}
-            />
-          }
+          serverState={serverState}
+          catalog={catalog}
+          relationType={ValueType.Tag}
         />
       );
   }
@@ -237,7 +238,7 @@ function RenderAlbumItem({
   catalog,
 }: {
   item: RelationQueryItem<AlbumField>;
-  setItem: Dispatch<RelationQueryItem<AlbumField>>;
+  setItem: DispatchSSA<RelationQueryItem<AlbumField>>;
   serverState: State;
   catalog: string;
 }) {
@@ -247,6 +248,7 @@ function RenderAlbumItem({
       return (
         <Compound
           query={item}
+          // @ts-ignore
           setQuery={setItem}
           renderer={RenderAlbumItem}
           serverState={serverState}
@@ -260,15 +262,11 @@ function RenderAlbumItem({
           id={AlbumField.Id}
           name={AlbumField.Name}
           field={item}
+          // @ts-ignore
           setField={setItem}
-          choices={
-            <RenderAlbumChoices
-              field={item}
-              setField={setItem}
-              serverState={serverState}
-              catalog={catalog}
-            />
-          }
+          serverState={serverState}
+          catalog={catalog}
+          relationType={ValueType.Album}
         />
       );
   }
@@ -281,7 +279,7 @@ function RenderPersonItem({
   catalog,
 }: {
   item: RelationQueryItem<PersonField>;
-  setItem: Dispatch<RelationQueryItem<PersonField>>;
+  setItem: DispatchSSA<RelationQueryItem<PersonField>>;
   serverState: State;
   catalog: string;
 }) {
@@ -291,6 +289,7 @@ function RenderPersonItem({
       return (
         <Compound
           query={item}
+          // @ts-ignore
           setQuery={setItem}
           renderer={RenderPersonItem}
           serverState={serverState}
@@ -304,15 +303,11 @@ function RenderPersonItem({
           id={PersonField.Id}
           name={PersonField.Name}
           field={item}
+          // @ts-ignore
           setField={setItem}
-          choices={
-            <RenderPeopleChoices
-              field={item}
-              setField={setItem}
-              serverState={serverState}
-              catalog={catalog}
-            />
-          }
+          serverState={serverState}
+          catalog={catalog}
+          relationType={ValueType.Person}
         />
       );
   }
@@ -325,7 +320,7 @@ function RenderCompoundQueryItem({
   catalog,
 }: {
   item: CompoundQueryItem;
-  setItem: Dispatch<CompoundQueryItem>;
+  setItem: DispatchSSA<CompoundQueryItem>;
   serverState: State;
   catalog: string;
 }) {
@@ -335,6 +330,7 @@ function RenderCompoundQueryItem({
       return (
         <Compound
           query={item}
+          // @ts-ignore
           setQuery={setItem}
           renderer={RenderCompoundQueryItem}
           serverState={serverState}
@@ -345,6 +341,7 @@ function RenderCompoundQueryItem({
       return (
         <Compound
           query={item}
+          // @ts-ignore
           setQuery={setItem}
           renderer={RenderAlbumItem}
           serverState={serverState}
@@ -355,6 +352,7 @@ function RenderCompoundQueryItem({
       return (
         <Compound
           query={item}
+          // @ts-ignore
           setQuery={setItem}
           renderer={RenderPersonItem}
           serverState={serverState}
@@ -365,6 +363,7 @@ function RenderCompoundQueryItem({
       return (
         <Compound
           query={item}
+          // @ts-ignore
           setQuery={setItem}
           renderer={RenderTagItem}
           serverState={serverState}
@@ -372,7 +371,15 @@ function RenderCompoundQueryItem({
         />
       );
     default:
-      return <QueryField field={item} setField={setItem} />;
+      return (
+        <QueryField
+          field={item}
+          // @ts-ignore
+          setField={setItem}
+          serverState={serverState}
+          catalog={catalog}
+        />
+      );
   }
 }
 
@@ -383,7 +390,7 @@ export default function SearchBar({
   initiallyExpanded,
 }: {
   searchQuery: SearchQuery;
-  setQuery: Dispatch<SearchQuery>;
+  setQuery: DispatchSSA<SearchQuery>;
   catalog: string;
   initiallyExpanded?: boolean;
 }) {
@@ -399,8 +406,8 @@ export default function SearchBar({
   let [trigger, cancel] = useTimeout(1000, updateQuery);
 
   let updateCurrentQuery = useCallback(
-    (query: SearchQuery) => {
-      setCurrentQuery(query);
+    (ssa: SetStateAction<SearchQuery>) => {
+      setCurrentQuery(ssa);
       trigger();
     },
     [trigger],
