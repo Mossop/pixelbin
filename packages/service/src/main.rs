@@ -207,6 +207,14 @@ impl Runnable for Verify {
                 .await;
         }
 
+        for catalog in catalogs.iter() {
+            store
+                .queue_task(Task::PruneMediaItems {
+                    catalog: catalog.clone(),
+                })
+                .await;
+        }
+
         store.finish_tasks().await;
 
         for catalog in catalogs.iter() {

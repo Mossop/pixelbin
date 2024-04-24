@@ -78,7 +78,16 @@ impl DiskStore {
     }
 
     async fn prune_path(path: &Path) -> Result<bool> {
-        let mut reader = fs::read_dir(path).await?;
+        let mut reader = match fs::read_dir(path).await {
+            Ok(r) => r,
+            Err(e) => {
+                if e.kind() == ErrorKind::NotFound {
+                    return Ok(true);
+                } else {
+                    return Err(e.into());
+                }
+            }
+        };
         let mut can_prune = true;
 
         while let Some(entry) = reader.next_entry().await? {

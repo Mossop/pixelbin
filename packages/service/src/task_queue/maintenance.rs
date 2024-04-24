@@ -268,6 +268,32 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
     .await
 }
 
+pub(super) async fn prune_media_items(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
+    conn.isolated(Isolation::Committed, |conn| {
+        async move {
+            let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
+            let remote_store = storage.file_store(conn.config()).await?;
+            let local_store = conn.config().local_store();
+            let temp_store = conn.config().temp_store();
+
+            let prunable = models::MediaItem::list_prunable(conn, catalog).await?;
+
+            let ids: Vec<String> = prunable.iter().map(|(mi, _)| mi.id.clone()).collect();
+            models::MediaItem::delete(conn, &ids).await?;
+
+            for (_, media_item_path) in prunable {
+                remote_store.delete(&media_item_path).await.warn();
+                local_store.delete(&media_item_path).await.warn();
+                temp_store.delete(&media_item_path).await.warn();
+            }
+
+            Ok(())
+        }
+        .scope_boxed()
+    })
+    .await
+}
+
 pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
     for (media_file, _) in models::MediaFile::list_newest(conn, catalog).await? {
         if media_file.stored.is_none() {

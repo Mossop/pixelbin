@@ -1258,6 +1258,32 @@ impl MediaItem {
         Ok(())
     }
 
+    #[instrument(skip_all)]
+    pub(crate) async fn list_prunable(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Vec<(MediaItem, MediaItemPath)>> {
+        // Lists the items with no media_files.
+        let items = media_item::table
+            .left_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
+            .filter(media_item::catalog.eq(catalog))
+            .filter(media_file::id.is_null())
+            .select(media_item_columns!())
+            .load::<MediaItem>(conn)
+            .await?;
+
+        Ok(items
+            .into_iter()
+            .map(|media_item| {
+                let media_path = MediaItemPath {
+                    catalog: media_item.catalog.clone(),
+                    item: media_item.id.clone(),
+                };
+                (media_item, media_path)
+            })
+            .collect())
+    }
+
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
         diesel::delete(media_item::table)
             .filter(media_item::id.eq_any(media))

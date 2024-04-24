@@ -19,7 +19,8 @@ use crate::{
     store::db::{DbConnection, DbPool},
     task_queue::{
         maintenance::{
-            prune_media_files, server_startup, trigger_media_tasks, update_searches, verify_storage,
+            prune_media_files, prune_media_items, server_startup, trigger_media_tasks,
+            update_searches, verify_storage,
         },
         media::{build_alternates, delete_media, extract_metadata, upload_media_file},
     },
@@ -36,6 +37,7 @@ pub enum Task {
     UpdateSearches { catalog: String },
     VerifyStorage { catalog: String, delete_files: bool },
     PruneMediaFiles { catalog: String },
+    PruneMediaItems { catalog: String },
     ProcessMedia { catalog: String },
     ExtractMetadata { media_file: String },
     UploadMediaFile { media_file: String },
@@ -53,6 +55,7 @@ impl Task {
                 delete_files,
             } => verify_storage(conn, catalog, *delete_files).await,
             Task::PruneMediaFiles { catalog } => prune_media_files(conn, catalog).await,
+            Task::PruneMediaItems { catalog } => prune_media_items(conn, catalog).await,
             Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
             Task::ExtractMetadata { media_file } => extract_metadata(conn, media_file).await,
             Task::UploadMediaFile { media_file } => upload_media_file(conn, media_file).await,
@@ -64,7 +67,7 @@ impl Task {
 
     fn is_expensive(&self) -> bool {
         match self {
-            Task::BuildAlternates { media_file: _, typ } => typ.as_str() == mime::VIDEO,
+            Task::BuildAlternates { typ, .. } => typ.as_str() == mime::VIDEO,
             _ => false,
         }
     }
