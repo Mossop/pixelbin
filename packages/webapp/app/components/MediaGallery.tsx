@@ -22,8 +22,8 @@ export interface Group {
 
 interface Context {
   readonly url: string;
-  readonly groups: readonly Group[] | null;
-  readonly media: readonly MediaView[] | null;
+  readonly groups: readonly Group[];
+  readonly media: readonly MediaView[];
   readonly getMediaUrl?: (id: string) => string;
 }
 
@@ -112,8 +112,8 @@ class TakenGrouper extends Grouper {
 
 const GalleryContext = createContext<Context>({
   url: "",
-  groups: null,
-  media: null,
+  groups: [],
+  media: [],
   getMediaUrl: undefined,
 });
 
@@ -158,6 +158,7 @@ function fetchMedia(
         return;
       }
 
+      console.log("Creating new grouper");
       let grouper = new TakenGrouper();
 
       let jsonStream = new NdjsonStream<ApiMediaView[]>();
@@ -198,11 +199,9 @@ export default function MediaGallery({
   url: string;
   getMediaUrl?: (id: string) => string;
 }) {
-  let [context, setContext] = useState<
-    Omit<Context, "id" | "url" | "getMediaUrl">
-  >({
-    media: null,
-    groups: null,
+  let [context, setContext] = useState<GroupContext>({
+    media: [],
+    groups: [],
   });
   useEffect(() => fetchMedia(requestStream, setContext), [requestStream]);
 

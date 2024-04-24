@@ -353,11 +353,16 @@ function NumberOperator({
     [setField],
   );
 
+  let currentOperator = useMemo(
+    () => `${field.invert ? "not-" : ""}${field.operator}`,
+    [field],
+  );
+
   return (
     <SlSelect
       className="operator"
       onSlChange={onOperatorChange}
-      value={field.operator}
+      value={currentOperator}
       placement="bottom"
       hoist
     >
@@ -402,11 +407,16 @@ function StringOperator({
     [setField],
   );
 
+  let currentOperator = useMemo(
+    () => `${field.invert ? "not-" : ""}${field.operator}`,
+    [field],
+  );
+
   return (
     <SlSelect
       className="operator"
       onSlChange={onOperatorChange}
-      value={field.operator}
+      value={currentOperator}
       placement="bottom"
       hoist
     >
