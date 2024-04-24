@@ -1,4 +1,4 @@
-import { SetStateAction, useCallback, useMemo } from "react";
+import { Fragment, SetStateAction, useCallback, useMemo } from "react";
 import {
   SlDivider,
   SlInput,
@@ -661,14 +661,14 @@ export function QueryField({
         hoist
       >
         {Object.entries(MediaFields).map(([section, fields], index) => (
-          <>
-            {index !== 0 && <SlDivider key={section} />}
+          <Fragment key={section}>
+            {index !== 0 && <SlDivider />}
             {fields.map(([fld, label]) => (
               <SlOption key={fld} value={fld}>
                 {label}
               </SlOption>
             ))}
-          </>
+          </Fragment>
         ))}
       </SlSelect>
       <FieldOperator

@@ -32,6 +32,11 @@ const ICONS = {
   expand: "arrow-down-drop-circle-outline",
   collapse: "arrow-up-drop-circle-outline",
   delete: "delete",
+  addFieldSearch: "plus-box",
+  addCompoundSearch: "plus-box-multiple",
+  addPersonSearch: "account-plus",
+  addTagSearch: "tag-plus",
+  addAlbumSearch: "image-plus",
 };
 
 export type IconName = keyof typeof ICONS;

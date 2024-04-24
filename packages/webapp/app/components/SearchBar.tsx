@@ -91,12 +91,14 @@ function CompoundHeader<I, T extends Omit<CompoundQuery<I>, "type">>({
   );
 
   return (
-    <SlRadioGroup value={compoundType} onSlChange={joinChanged}>
-      <SlRadioButton value={CompoundType.And}>All of</SlRadioButton>
-      <SlRadioButton value={CompoundType.Or}>Any of</SlRadioButton>
-      <SlRadioButton value={CompoundType.Nor}>None of</SlRadioButton>
-      <SlRadioButton value={CompoundType.Nand}>Not all of</SlRadioButton>
-    </SlRadioGroup>
+    <div className="header">
+      <SlRadioGroup value={compoundType} onSlChange={joinChanged}>
+        <SlRadioButton value={CompoundType.And}>All of</SlRadioButton>
+        <SlRadioButton value={CompoundType.Or}>Any of</SlRadioButton>
+        <SlRadioButton value={CompoundType.Nor}>None of</SlRadioButton>
+        <SlRadioButton value={CompoundType.Nand}>Not all of</SlRadioButton>
+      </SlRadioGroup>
+    </div>
   );
 }
 
@@ -156,24 +158,91 @@ function QueryItem<I, T extends Omit<CompoundQuery<I>, "type">>({
   );
 }
 
+function CompoundFooter<
+  I extends object,
+  T extends Omit<CompoundQuery<I>, "type">,
+>({ setQuery, isOuter }: { setQuery: DispatchSSA<T>; isOuter: boolean }) {
+  let appendField = useCallback(
+    (field: I) => {
+      setQuery((compound) => ({
+        ...compound,
+        queries: [...compound.queries, field],
+      }));
+    },
+    [setQuery],
+  );
+
+  let addField = useCallback(() => {
+    // @ts-ignore
+    appendField({
+      type: "field",
+      field: isOuter ? "title" : "id",
+      operator: "equal",
+      value: "",
+    });
+  }, [isOuter, appendField]);
+
+  let addCompound = useCallback(() => {
+    // @ts-ignore
+    appendField({
+      type: "compound",
+      queries: [],
+    });
+  }, [appendField]);
+
+  let addPerson = useCallback(() => {
+    // @ts-ignore
+    appendField({
+      type: "person",
+      queries: [],
+    });
+  }, [appendField]);
+
+  let addTag = useCallback(() => {
+    // @ts-ignore
+    appendField({
+      type: "tag",
+      queries: [],
+    });
+  }, [appendField]);
+
+  let addAlbum = useCallback(() => {
+    // @ts-ignore
+    appendField({
+      type: "album",
+      queries: [],
+    });
+  }, [appendField]);
+
+  return (
+    <div className="footer">
+      <IconButton icon="addFieldSearch" onClick={addField} />
+      <IconButton icon="addCompoundSearch" onClick={addCompound} />
+      {isOuter && <IconButton icon="addPersonSearch" onClick={addPerson} />}
+      {isOuter && <IconButton icon="addTagSearch" onClick={addTag} />}
+      {isOuter && <IconButton icon="addAlbumSearch" onClick={addAlbum} />}
+    </div>
+  );
+}
+
 function Compound<I extends object, T extends Omit<CompoundQuery<I>, "type">>({
   query,
   setQuery,
   serverState,
   catalog,
   renderer,
+  isOuter,
 }: {
   query: T;
   setQuery: DispatchSSA<T>;
   serverState: State;
   catalog: string;
   renderer: ItemRenderer<I>;
+  isOuter: boolean;
 }) {
   return (
     <SlCard className="compound">
-      <div className="header">
-        <CompoundHeader query={query} setQuery={setQuery} />
-      </div>
+      <CompoundHeader query={query} setQuery={setQuery} />
       <ul className="queries">
         {query.queries.map((item, index) => (
           <QueryItem
@@ -187,6 +256,7 @@ function Compound<I extends object, T extends Omit<CompoundQuery<I>, "type">>({
           />
         ))}
       </ul>
+      <CompoundFooter setQuery={setQuery} isOuter={isOuter} />
     </SlCard>
   );
 }
@@ -213,6 +283,7 @@ function RenderTagItem({
           renderer={RenderTagItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter={false}
         />
       );
     default:
@@ -254,6 +325,7 @@ function RenderAlbumItem({
           renderer={RenderAlbumItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter={false}
         />
       );
     default:
@@ -295,6 +367,7 @@ function RenderPersonItem({
           renderer={RenderPersonItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter={false}
         />
       );
     default:
@@ -336,6 +409,7 @@ function RenderCompoundQueryItem({
           renderer={RenderCompoundQueryItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter
         />
       );
     case "album":
@@ -347,6 +421,7 @@ function RenderCompoundQueryItem({
           renderer={RenderAlbumItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter={false}
         />
       );
     case "person":
@@ -358,6 +433,7 @@ function RenderCompoundQueryItem({
           renderer={RenderPersonItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter={false}
         />
       );
     case "tag":
@@ -369,6 +445,7 @@ function RenderCompoundQueryItem({
           renderer={RenderTagItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter={false}
         />
       );
     default:
@@ -447,6 +524,7 @@ export default function SearchBar({
           renderer={RenderCompoundQueryItem}
           serverState={serverState}
           catalog={catalog}
+          isOuter
         />
       </div>
       <IconButton icon="collapse" onClick={collapse} />
