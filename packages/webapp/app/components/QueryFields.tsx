@@ -600,6 +600,8 @@ function modifiedType(sourceType: ValueType, modifier?: Modifier): ValueType {
       return sourceType;
     case ValueType.Date:
       switch (modifier) {
+        case Modifier.DayOfWeek:
+        case Modifier.Day:
         case Modifier.Month:
         case Modifier.Year:
           return ValueType.Number;
@@ -616,7 +618,7 @@ function modifiersForType(sourceType: ValueType): Modifier[] {
     case ValueType.String:
       return [Modifier.Length];
     case ValueType.Date:
-      return [Modifier.Month, Modifier.Year];
+      return [Modifier.DayOfWeek, Modifier.Day, Modifier.Month, Modifier.Year];
     default:
       return [];
   }

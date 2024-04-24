@@ -22,6 +22,8 @@ sql_function!(
 pub(crate) enum DateComponent {
     Year,
     Month,
+    Day,
+    DoW,
 }
 
 pub(crate) fn extract<A>(a: A, c: DateComponent) -> extract::HelperType<A>
@@ -89,6 +91,8 @@ pub(crate) mod extract {
         fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, QS>) -> QueryResult<()> {
             out.push_sql("EXTRACT(");
             match self.c {
+                DateComponent::DoW => out.push_sql("DOW"),
+                DateComponent::Day => out.push_sql("DAY"),
                 DateComponent::Month => out.push_sql("MONTH"),
                 DateComponent::Year => out.push_sql("YEAR"),
             }

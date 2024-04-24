@@ -301,6 +301,8 @@ pub(crate) enum Modifier {
     Length,
     Year,
     Month,
+    Day,
+    DayOfWeek,
 }
 
 derive_display_from_serialize!(Modifier);
@@ -558,6 +560,16 @@ where
                 Box::new(field_query(f, self.operator.clone(), self.invert))
             }
             TypedField::Date(f) => match self.modifier {
+                Some(Modifier::DayOfWeek) => Box::new(field_query(
+                    extract(f, super::functions::DateComponent::DoW),
+                    self.operator.clone(),
+                    self.invert,
+                )),
+                Some(Modifier::Day) => Box::new(field_query(
+                    extract(f, super::functions::DateComponent::Day),
+                    self.operator.clone(),
+                    self.invert,
+                )),
                 Some(Modifier::Month) => Box::new(field_query(
                     extract(f, super::functions::DateComponent::Month),
                     self.operator.clone(),

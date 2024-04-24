@@ -131,6 +131,8 @@ export enum Modifier {
   Length = "length",
   Year = "year",
   Month = "month",
+  Day = "day",
+  DayOfWeek = "dayofweek",
 }
 
 export enum Join {
