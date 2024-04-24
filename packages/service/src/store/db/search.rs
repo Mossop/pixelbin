@@ -127,6 +127,22 @@ pub(crate) mod field_query {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NOT NULL");
                 }
+                (Operator::Equal(SqlValue::String(v)), false) => {
+                    out.push_sql("COALESCE(");
+                    self.field.walk_ast(out.reborrow())?;
+                    out.push_sql(", ");
+                    out.push_bind_param::<Text, _>("")?;
+                    out.push_sql(") IS NOT DISTINCT FROM ");
+                    out.push_bind_param::<Text, _>(v)?;
+                }
+                (Operator::Equal(SqlValue::String(v)), true) => {
+                    out.push_sql("COALESCE(");
+                    self.field.walk_ast(out.reborrow())?;
+                    out.push_sql(", ");
+                    out.push_bind_param::<Text, _>("")?;
+                    out.push_sql(") IS DISTINCT FROM ");
+                    out.push_bind_param::<Text, _>(v)?;
+                }
                 (Operator::Equal(v), false) => {
                     self.field.walk_ast(out.reborrow())?;
                     out.push_sql(" IS NOT DISTINCT FROM ");
