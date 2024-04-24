@@ -635,8 +635,9 @@ export function QueryField({
   catalog: string;
   serverState: State;
 }) {
-  let baseType = fieldType(field.field);
-  let operatorType = modifiedType(baseType, field.modifier);
+  let valueType = fieldType(field.field);
+  let modifiers = modifiersForType(valueType);
+  valueType = modifiedType(valueType, field.modifier);
 
   let updateField = useCallback(
     (ssa: SetStateAction<FieldQuery<MediaField>>) => {
@@ -684,6 +685,22 @@ export function QueryField({
     [updateField, field],
   );
 
+  let onModifierChange = useCallback(
+    (event: SlSelectChangeEvent) => {
+      let modifier: Modifier | undefined;
+      if (event.target.value) {
+        modifier = event.target.value as Modifier;
+      }
+
+      let newField = {
+        ...field,
+        modifier,
+      };
+      updateField(newField);
+    },
+    [updateField, field],
+  );
+
   return (
     <div className="c-query-field">
       <SlSelect
@@ -704,13 +721,29 @@ export function QueryField({
           </Fragment>
         ))}
       </SlSelect>
+      {modifiers.length > 0 && (
+        <SlSelect
+          className="modifier"
+          onSlChange={onModifierChange}
+          value={field.modifier}
+          placement="bottom"
+          clearable
+          hoist
+        >
+          {modifiers.map((modifier) => (
+            <SlOption key={modifier} value={modifier}>
+              {modifier}
+            </SlOption>
+          ))}
+        </SlSelect>
+      )}
       <FieldOperator
         field={field}
         setField={updateField}
-        operatorType={operatorType}
+        operatorType={valueType}
       />
       <FieldValue
-        type={operatorType}
+        type={valueType}
         field={field}
         setField={updateField}
         catalog={catalog}
