@@ -1,5 +1,6 @@
 import { SetStateAction, useCallback, useMemo } from "react";
 import {
+  SlDivider,
   SlInput,
   SlInputChangeEvent,
   SlOption,
@@ -659,14 +660,16 @@ export function QueryField({
         placement="bottom"
         hoist
       >
-        {Object.entries(MediaFields).map(
-          ([fld, label]) =>
-            label && (
+        {Object.entries(MediaFields).map(([section, fields], index) => (
+          <>
+            {index !== 0 && <SlDivider key={section} />}
+            {fields.map(([fld, label]) => (
               <SlOption key={fld} value={fld}>
                 {label}
               </SlOption>
-            ),
-        )}
+            ))}
+          </>
+        ))}
       </SlSelect>
       <FieldOperator
         field={field}
