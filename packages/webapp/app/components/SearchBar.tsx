@@ -1,4 +1,5 @@
 import {
+  Dispatch,
   SetStateAction,
   useCallback,
   useEffect,
@@ -390,7 +391,7 @@ export default function SearchBar({
   initiallyExpanded,
 }: {
   searchQuery: SearchQuery;
-  setQuery: DispatchSSA<SearchQuery>;
+  setQuery: Dispatch<SearchQuery>;
   catalog: string;
   initiallyExpanded?: boolean;
 }) {

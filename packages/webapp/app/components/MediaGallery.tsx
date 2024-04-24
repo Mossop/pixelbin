@@ -117,14 +117,14 @@ const GalleryContext = createContext<Context>({
   getMediaUrl: undefined,
 });
 
-export function useGalleryMedia(): MediaView[] | null {
+export function useGalleryMedia(): readonly MediaView[] | null {
   let { media } = useContext(GalleryContext);
-  return media?.slice() ?? null;
+  return media ?? null;
 }
 
-export function useGalleryGroups(): Group[] | null {
+export function useGalleryGroups(): readonly Group[] | null {
   let { groups } = useContext(GalleryContext);
-  return groups?.slice() ?? null;
+  return groups ?? null;
 }
 
 export function useGalleryUrl(): string {
@@ -158,11 +158,14 @@ function fetchMedia(
         return;
       }
 
-      console.log("Creating new grouper");
       let grouper = new TakenGrouper();
 
       let jsonStream = new NdjsonStream<ApiMediaView[]>();
-      let reader = response.body.pipeThrough(jsonStream).getReader();
+      let reader = response.body
+        .pipeThrough(jsonStream, {
+          signal: aborter.signal,
+        })
+        .getReader();
 
       // eslint-disable-next-line no-constant-condition
       while (true) {

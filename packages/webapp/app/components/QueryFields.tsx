@@ -660,7 +660,12 @@ export function QueryField({
         hoist
       >
         {Object.entries(MediaFields).map(
-          ([fld, label]) => label && <SlOption value={fld}>{label}</SlOption>,
+          ([fld, label]) =>
+            label && (
+              <SlOption key={fld} value={fld}>
+                {label}
+              </SlOption>
+            ),
         )}
       </SlSelect>
       <FieldOperator
