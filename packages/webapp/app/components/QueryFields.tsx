@@ -13,7 +13,6 @@ import {
   DispatchSSA,
   FieldQuery,
   MediaField,
-  MediaFields,
   Modifier,
   PersonField,
   State,
@@ -24,6 +23,38 @@ import { applySSA } from "@/modules/util";
 import "styles/components/QueryFields.scss";
 
 type SetField<F> = DispatchSSA<FieldQuery<F>>;
+
+const MediaFields: Record<string, [MediaField, string | null][]> = {
+  test: [
+    [MediaField.Title, "Title"],
+    [MediaField.Photographer, "Photographer"],
+    [MediaField.Description, "Description"],
+    [MediaField.Category, "Category"],
+    [MediaField.Label, "Label"],
+    [MediaField.Filename, "Filename"],
+    [MediaField.Rating, "Rating"],
+  ],
+  kit: [
+    [MediaField.Make, "Camera make"],
+    [MediaField.Model, "Camera model"],
+    [MediaField.Lens, "Lens"],
+  ],
+  settings: [
+    [MediaField.Aperture, "Aperture"],
+    [MediaField.ShutterSpeed, "Shutter speed"],
+    [MediaField.Iso, "ISO"],
+    [MediaField.FocalLength, "Focal length"],
+  ],
+  position: [
+    [MediaField.Location, "Location"],
+    [MediaField.City, "City"],
+    [MediaField.State, "State"],
+    [MediaField.Country, "Country"],
+    [MediaField.Longitude, "Longitude"],
+    [MediaField.Latitude, "Latitude"],
+    [MediaField.Altitude, "Altitude"],
+  ],
+};
 
 interface Option {
   id: string;
