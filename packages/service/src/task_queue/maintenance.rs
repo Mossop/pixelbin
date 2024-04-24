@@ -63,7 +63,7 @@ pub(super) async fn verify_storage(
         async move {
             let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
 
-            let remote_store = storage.file_store().await?;
+            let remote_store = storage.file_store(conn.config()).await?;
             let local_store = conn.config().local_store();
             let temp_store = conn.config().temp_store();
 
@@ -245,7 +245,7 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
     conn.isolated(Isolation::Committed, |conn| {
         async move {
             let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
-            let remote_store = storage.file_store().await?;
+            let remote_store = storage.file_store(conn.config()).await?;
             let local_store = conn.config().local_store();
             let temp_store = conn.config().temp_store();
 

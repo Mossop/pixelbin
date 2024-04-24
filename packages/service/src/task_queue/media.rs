@@ -42,7 +42,7 @@ async fn download_media_file(conn: &mut DbConnection<'_>, file_path: &FilePath) 
                 fs::create_dir_all(parent).await?;
             }
 
-            let remote_store = storage.file_store().await?;
+            let remote_store = storage.file_store(conn.config()).await?;
 
             remote_store.pull(file_path, &temp_path).await?;
 
@@ -133,7 +133,7 @@ pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file: &
     conn.isolated(Isolation::Committed, |conn| {
         async move {
             let storage = models::Storage::lock_for_catalog(conn, &catalog).await?;
-            let remote_store = storage.file_store().await?;
+            let remote_store = storage.file_store(conn.config()).await?;
 
             remote_store
                 .push(&temp_file, &file_path, &media_file.mimetype)
@@ -203,7 +203,7 @@ pub(super) async fn build_alternates(
                                 .push(&built_file, &file_path, &alternate_file.mimetype)
                                 .await?;
                         } else {
-                            let store = storage.file_store().await?;
+                            let store = storage.file_store(conn.config()).await?;
                             store
                                 .push(&built_file, &file_path, &alternate_file.mimetype)
                                 .await?;
@@ -233,7 +233,7 @@ pub(super) async fn build_alternates(
                         .push(&built_file, &file_path, &alternate_file.mimetype)
                         .await?;
                 } else {
-                    let store = storage.file_store().await?;
+                    let store = storage.file_store(conn.config()).await?;
                     store
                         .push(&built_file, &file_path, &alternate_file.mimetype)
                         .await?;
@@ -268,7 +268,7 @@ pub(super) async fn delete_media(conn: &mut DbConnection<'_>, ids: &[String]) ->
 
     for (catalog, media) in mapped.iter() {
         let storage = models::Storage::get_for_catalog(conn, catalog).await?;
-        let remote_store = storage.file_store().await?;
+        let remote_store = storage.file_store(conn.config()).await?;
 
         for media in media {
             let path = media.path();

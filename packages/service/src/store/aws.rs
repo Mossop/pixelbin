@@ -14,14 +14,14 @@ use tokio::{
     fs::{self, metadata},
     io,
 };
-use tracing::{instrument, trace};
+use tracing::{debug, instrument, trace};
 
 use crate::{
     store::{
         models::Storage,
         path::{FilePath, PathLike, ResourcePath},
     },
-    Error, FileStore, Result,
+    Config, Error, FileStore, Result,
 };
 
 pub(crate) fn joinable(st: &str) -> &str {
@@ -37,6 +37,7 @@ pub(crate) struct AwsClient {
     bucket: String,
     path: Option<String>,
     public_url: Option<String>,
+    testing: bool,
 }
 
 impl AwsClient {
@@ -55,7 +56,7 @@ impl AwsClient {
         }
     }
 
-    pub(crate) async fn from_storage(storage: &Storage) -> Result<Self> {
+    pub(crate) async fn from_storage(storage: &Storage, config: &Config) -> Result<Self> {
         let mut config_loader = aws_config::defaults(BehaviorVersion::latest())
             .region(Region::new(storage.region.clone()))
             .app_name(AppName::new("pixelbin").unwrap())
@@ -71,13 +72,14 @@ impl AwsClient {
             config_loader = config_loader.endpoint_url(endpoint.to_owned());
         }
 
-        let config = config_loader.load().await;
+        let sdk_config = config_loader.load().await;
 
         Ok(Self {
-            client: Client::new(&config),
+            client: Client::new(&sdk_config),
             bucket: storage.bucket.clone(),
             path: storage.path.clone(),
             public_url: storage.public_url.clone(),
+            testing: config.testing,
         })
     }
 
@@ -179,6 +181,11 @@ impl FileStore for AwsClient {
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
+        if self.testing {
+            debug!("Not deleting in testing mode.");
+            return Ok(());
+        }
+
         let mut objects: Vec<ObjectIdentifier> = Vec::new();
         let mut paths: Vec<String> = Vec::new();
 
@@ -269,6 +276,11 @@ impl FileStore for AwsClient {
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), fields(size), err)]
     async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result {
+        if self.testing {
+            debug!("Not pushing in testing mode.");
+            return Ok(());
+        }
+
         let stats = metadata(source).await?;
         tracing::Span::current().record("size", stats.len());
 

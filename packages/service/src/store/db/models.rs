@@ -36,7 +36,7 @@ use crate::{
         path::{FilePath, MediaFilePath, MediaItemPath},
         DbConnection,
     },
-    Error, FileStore, Result,
+    Config, Error, FileStore, Result,
 };
 
 fn sql_bool(b: bool) -> SqlLiteral<sql_types::Bool> {
@@ -247,8 +247,8 @@ pub(crate) struct Storage {
 }
 
 impl Storage {
-    pub(crate) async fn file_store(&self) -> Result<impl FileStore> {
-        let client = AwsClient::from_storage(self).await?;
+    pub(crate) async fn file_store(&self, config: &Config) -> Result<impl FileStore> {
+        let client = AwsClient::from_storage(self, config).await?;
 
         Ok(client)
     }
@@ -258,8 +258,9 @@ impl Storage {
         path: &FilePath,
         mimetype: &Mime,
         filename: Option<&str>,
+        config: &Config,
     ) -> Result<String> {
-        let client = AwsClient::from_storage(self).await?;
+        let client = AwsClient::from_storage(self, config).await?;
         client.file_uri(path, mimetype, filename).await
     }
 

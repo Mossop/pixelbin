@@ -77,7 +77,12 @@ async fn download_handler(
 
     let file_path = media_file_path.file(&file_name);
     let uri = storage
-        .online_uri(&file_path, &mimetype, Some(&filename))
+        .online_uri(
+            &file_path,
+            &mimetype,
+            Some(&filename),
+            app_state.store.config(),
+        )
         .await?;
 
     Ok(HttpResponse::TemporaryRedirect()
@@ -203,7 +208,9 @@ async fn encoding_handler(
         Err(e) => return Err(e.into()),
     };
 
-    let url = storage.online_uri(&file_path, &mimetype, None).await?;
+    let url = storage
+        .online_uri(&file_path, &mimetype, None, app_state.store.config())
+        .await?;
 
     if let Some(val) = request.headers().get("Accept") {
         if val == "application/json" {

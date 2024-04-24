@@ -88,6 +88,9 @@ pub struct Config {
     pub api_url: Option<String>,
 
     pub thumbnails: ThumbnailConfig,
+
+    /// Disables writing to remote stores for testing purposes.
+    pub testing: bool,
 }
 
 #[derive(Deserialize)]
@@ -106,6 +109,8 @@ struct ParsedConfig {
     port: Option<u16>,
     api_url: Option<String>,
     thumbnails: Option<ThumbnailConfig>,
+    #[serde(default)]
+    testing: bool,
 }
 
 fn resolve(mut path: PathBuf) -> Result<PathBuf> {
@@ -177,6 +182,7 @@ impl Config {
             port: parsed.port,
             api_url: parsed.api_url,
             thumbnails: parsed.thumbnails.unwrap_or_default(),
+            testing: parsed.testing,
         })
     }
 
