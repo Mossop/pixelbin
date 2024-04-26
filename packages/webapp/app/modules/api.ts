@@ -190,18 +190,28 @@ export async function* listMedia(
     assertAuthenticated(session);
   }
 
-  let offset = 0;
-  while (true) {
-    const response = await apiCall<ListMediaResponse<ApiMediaView>>(
-      session,
-      `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
-    );
-    yield response.media;
-    offset += LIST_COUNT;
+  let response = await apiCall<ListMediaResponse<ApiMediaView>>(
+    session,
+    `/api/${source}/${id}/media?count=${LIST_COUNT}`,
+  );
 
-    if (offset >= response.total) {
-      break;
-    }
+  yield response.media;
+
+  let remainingChunks = [];
+  let offset = response.media.length;
+  while (offset <= response.total) {
+    remainingChunks.push(
+      apiCall<ListMediaResponse<ApiMediaView>>(
+        session,
+        `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
+      ),
+    );
+
+    offset += LIST_COUNT;
+  }
+
+  for (let chunkPromise of remainingChunks) {
+    yield (await chunkPromise).media;
   }
 }
 
@@ -212,25 +222,41 @@ export async function* searchMedia(
 ): AsyncGenerator<ApiMediaView[], void, unknown> {
   assertAuthenticated(session);
 
-  let offset = 0;
-  while (true) {
-    const response = await apiCall<ListMediaResponse<ApiMediaView>>(
-      session,
-      `/api/search`,
-      POST,
-      json({
-        catalog,
-        offset,
-        count: LIST_COUNT,
-        query,
-      }),
-    );
-    yield response.media;
-    offset += LIST_COUNT;
+  let response = await apiCall<ListMediaResponse<ApiMediaView>>(
+    session,
+    `/api/search`,
+    POST,
+    json({
+      catalog,
+      count: LIST_COUNT,
+      query,
+    }),
+  );
 
-    if (offset >= response.total) {
-      break;
-    }
+  yield response.media;
+
+  let remainingChunks = [];
+  let offset = response.media.length;
+  while (offset <= response.total) {
+    remainingChunks.push(
+      apiCall<ListMediaResponse<ApiMediaView>>(
+        session,
+        `/api/search`,
+        POST,
+        json({
+          catalog,
+          offset,
+          count: LIST_COUNT,
+          query,
+        }),
+      ),
+    );
+
+    offset += LIST_COUNT;
+  }
+
+  for (let chunkPromise of remainingChunks) {
+    yield (await chunkPromise).media;
   }
 }
 

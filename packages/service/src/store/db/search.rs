@@ -13,6 +13,7 @@ use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use serde_plain::derive_display_from_serialize;
+use tracing::instrument;
 use typeshare::typeshare;
 
 use crate::{
@@ -721,6 +722,7 @@ pub(crate) struct CompoundQuery<Q> {
 }
 
 impl CompoundQuery<CompoundItem> {
+    #[instrument(skip_all)]
     pub(crate) async fn count(&self, conn: &mut DbConnection<'_>, catalog: &str) -> Result<i64> {
         let count = media_view_tables!()
             .filter(media_item::deleted.eq(false))
@@ -733,6 +735,7 @@ impl CompoundQuery<CompoundItem> {
         Ok(count)
     }
 
+    #[instrument(skip(self, conn, catalog))]
     pub(crate) async fn list(
         &self,
         conn: &mut DbConnection<'_>,
