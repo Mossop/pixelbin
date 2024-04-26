@@ -54,7 +54,7 @@ async fn download_media_file(conn: &mut DbConnection<'_>, file_path: &FilePath) 
 }
 
 #[instrument(level = "trace", skip(conn), err)]
-async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: MediaFilePath) -> Result {
+async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: &MediaFilePath) -> Result {
     let (media_file, _) = models::MediaFile::get(conn, &media_file_path.file).await?;
 
     if media_file.stored.is_none() || media_file.needs_metadata {
@@ -63,6 +63,8 @@ async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: MediaFil
 
     let alternates = models::AlternateFile::list_for_media_file(conn, &media_file.id).await?;
     if alternates.into_iter().any(|af| af.stored.is_none()) {
+        // If there are any alternate files still to be generated then we should not remove the
+        // temp file.
         return Ok(());
     }
 
@@ -71,8 +73,6 @@ async fn check_media_file(conn: &mut DbConnection<'_>, media_file_path: MediaFil
     let temp_path = temp_store.local_path(&media_file_path.file(&media_file.file_name));
 
     fs::remove_file(&temp_path).await.ignore();
-
-    models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
 
     Ok(())
 }
@@ -110,13 +110,16 @@ pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file: &s
     })
     .await?;
 
-    check_media_file(conn, media_file_path).await
+    models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
+
+    check_media_file(conn, &media_file_path).await
 }
 
 pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file: &str) -> Result {
     let (mut media_file, media_file_path) = models::MediaFile::get(conn, media_file).await?;
     if media_file.stored.is_some() {
-        return check_media_file(conn, media_file_path).await;
+        models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
+        return check_media_file(conn, &media_file_path).await;
     }
 
     let temp_store = conn.config().temp_store();
@@ -145,7 +148,8 @@ pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file: &
     })
     .await?;
 
-    check_media_file(conn, media_file_path).await
+    models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
+    check_media_file(conn, &media_file_path).await
 }
 
 pub(super) async fn build_alternates(
@@ -216,6 +220,8 @@ pub(super) async fn build_alternates(
                     .scope_boxed()
                 })
                 .await?;
+
+                models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
             }
         }
     }
@@ -246,9 +252,11 @@ pub(super) async fn build_alternates(
             .scope_boxed()
         })
         .await?;
+
+        models::MediaItem::update_media_files(conn, &media_file_path.catalog).await?;
     }
 
-    check_media_file(conn, media_file_path).await
+    check_media_file(conn, &media_file_path).await
 }
 
 pub(super) async fn delete_media(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
