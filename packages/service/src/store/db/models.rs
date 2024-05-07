@@ -1225,22 +1225,13 @@ impl MediaItem {
         }
     }
 
-    pub(crate) async fn get(
+    pub(crate) async fn list_deleted(
         conn: &mut DbConnection<'_>,
-        media: &[String],
+        catalog: &str,
     ) -> Result<Vec<MediaItem>> {
         let media = media_item::table
-            .filter(media_item::id.eq_any(media))
-            .select(media_item_columns!())
-            .load::<MediaItem>(conn)
-            .await?;
-
-        Ok(media)
-    }
-
-    pub(crate) async fn list_deleted(conn: &mut DbConnection<'_>) -> Result<Vec<MediaItem>> {
-        let media = media_item::table
             .filter(media_item::deleted.eq(true))
+            .filter(media_item::catalog.eq(catalog))
             .select(media_item_columns!())
             .load::<MediaItem>(conn)
             .await?;

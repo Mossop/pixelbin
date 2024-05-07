@@ -259,8 +259,8 @@ pub(super) async fn build_alternates(
     check_media_file(conn, &media_file_path).await
 }
 
-pub(super) async fn delete_media(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
-    let media = models::MediaItem::get(conn, ids).await?;
+pub(super) async fn prune_deleted_media(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
+    let media = models::MediaItem::list_deleted(conn, catalog).await?;
 
     let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
 

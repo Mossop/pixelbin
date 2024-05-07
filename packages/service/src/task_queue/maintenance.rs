@@ -16,14 +16,14 @@ use crate::{
 };
 
 pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
-    let media = models::MediaItem::list_deleted(conn).await?;
-    let media_ids = media.into_iter().map(|m| m.id).collect();
-    conn.queue_task(Task::DeleteMedia { media: media_ids })
-        .await;
-
     let catalogs = conn.list_catalogs().await?;
 
     for catalog in catalogs {
+        conn.queue_task(Task::DeleteMedia {
+            catalog: catalog.clone(),
+        })
+        .await;
+
         models::MediaItem::update_media_files(conn, &catalog).await?;
 
         conn.queue_task(Task::UpdateSearches {

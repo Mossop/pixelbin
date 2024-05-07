@@ -8,7 +8,7 @@ use std::{
 };
 
 use async_channel::{unbounded, Receiver, Sender};
-use chrono::{Local, Timelike};
+use chrono::{Datelike, Local, NaiveDate, Timelike};
 use opentelemetry::{global, trace::TraceContextExt};
 use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
@@ -16,13 +16,17 @@ use tracing::{error, field, span, span::Id, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    store::db::{DbConnection, DbPool},
+    shared::error::Ignorable,
+    store::{
+        db::{DbConnection, DbPool},
+        models,
+    },
     task_queue::{
         maintenance::{
             prune_media_files, prune_media_items, server_startup, trigger_media_tasks,
             update_searches, verify_storage,
         },
-        media::{build_alternates, delete_media, extract_metadata, upload_media_file},
+        media::{build_alternates, extract_metadata, prune_deleted_media, upload_media_file},
     },
     Config, Result,
 };
@@ -32,15 +36,25 @@ mod media;
 
 #[derive(Debug, IntoStaticStr)]
 pub enum Task {
+    /// Queues work that may have been pending at the last shutdown.
     ServerStartup,
-    DeleteMedia { media: Vec<String> },
+    /// Cleans up deleted media items.
+    DeleteMedia { catalog: String },
+    /// Updates searches based on changes to media items.
     UpdateSearches { catalog: String },
+    /// Checks storage for missing files and prunes unexpected files.
     VerifyStorage { catalog: String, delete_files: bool },
+    /// Prunes superceded media files.
     PruneMediaFiles { catalog: String },
+    /// Prunes empty media items (no media files present).
     PruneMediaItems { catalog: String },
+    /// Triggers any tasks required to complete media files.
     ProcessMedia { catalog: String },
+    /// Extracts metadata for a media file.
     ExtractMetadata { media_file: String },
+    /// Uploads the media file.
     UploadMediaFile { media_file: String },
+    /// Builds necessary alternates for media files.
     BuildAlternates { media_file: String, typ: String },
 }
 
@@ -48,7 +62,7 @@ impl Task {
     async fn run(&self, conn: &mut DbConnection<'_>) -> Result {
         match self {
             Task::ServerStartup => server_startup(conn).await,
-            Task::DeleteMedia { media } => delete_media(conn, media).await,
+            Task::DeleteMedia { catalog } => prune_deleted_media(conn, catalog).await,
             Task::UpdateSearches { catalog } => update_searches(conn, catalog).await,
             Task::VerifyStorage {
                 catalog,
@@ -76,11 +90,43 @@ impl Task {
 fn next_tick() -> Duration {
     let now = Local::now();
     let seconds = 60 - now.second();
+    let minutes = 60 - now.minute();
 
-    Duration::from_secs(seconds as u64)
+    Duration::from_secs(((minutes * 60) + seconds) as u64)
 }
 
 type TaskMessage = (Task, HashMap<String, String>);
+
+fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
+    set.iter()
+        .filter_map(|s| {
+            if s.is_empty() {
+                return None;
+            }
+
+            let bytes = s.as_bytes();
+            let char = bytes[bytes.len() - 1];
+
+            // value is 0..61
+            let value = match char {
+                // A .. Z
+                65..=90 => char - 65,
+                // a .. z
+                97..=122 => (char - 97) + 26,
+                // 0 .. 9
+                48..=57 => (char - 48) + 26 + 26,
+                _ => return None,
+            } as u32;
+
+            // Imperfect but good enough
+            if (value % size) == offset {
+                Some(s.as_str())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
 
 #[derive(Clone)]
 pub(crate) struct TaskQueue {
@@ -169,13 +215,83 @@ impl TaskQueue {
         result
     }
 
+    async fn cron_inner(&self) -> Result {
+        let now = Local::now();
+        let hours = if now.minute() >= 30 {
+            now.hour() + 1
+        } else {
+            now.hour()
+        };
+
+        let mut conn = self.pool.get().await?;
+        let mut db_conn = DbConnection::new(&mut conn, &self.config, self);
+        let catalogs: Vec<String> = models::Catalog::list(&mut db_conn)
+            .await?
+            .into_iter()
+            .map(|c| c.id)
+            .collect();
+
+        // Hourly
+        for catalog in catalogs.iter() {
+            self.queue_task(Task::UpdateSearches {
+                catalog: catalog.clone(),
+            })
+            .await;
+        }
+
+        // Daily
+        {
+            let catalogs = partition(&catalogs, 24, hours);
+            for catalog in catalogs.iter() {
+                self.queue_task(Task::ProcessMedia {
+                    catalog: catalog.to_string(),
+                })
+                .await;
+                self.queue_task(Task::DeleteMedia {
+                    catalog: catalog.to_string(),
+                })
+                .await;
+                self.queue_task(Task::PruneMediaItems {
+                    catalog: catalog.to_string(),
+                })
+                .await;
+                self.queue_task(Task::PruneMediaFiles {
+                    catalog: catalog.to_string(),
+                })
+                .await;
+            }
+        }
+
+        if hours == 2 {
+            // Monthly
+            let month = now.month();
+            let year = now.year();
+            let days_in_month = if month == 12 {
+                NaiveDate::from_ymd_opt(year + 1, 1, 1)
+            } else {
+                NaiveDate::from_ymd_opt(year, month + 1, 1)
+            }
+            .unwrap()
+            .signed_duration_since(NaiveDate::from_ymd_opt(year, month, 1).unwrap())
+            .num_days() as u32;
+
+            let catalogs = partition(&catalogs, days_in_month, now.day0());
+            for catalog in catalogs.iter() {
+                self.queue_task(Task::VerifyStorage {
+                    catalog: catalog.to_string(),
+                    delete_files: true,
+                })
+                .await;
+            }
+        }
+
+        Ok(())
+    }
+
     async fn cron_loop(self) {
         loop {
             sleep(next_tick()).await;
-
-            let now = Local::now();
-            let _hours = now.hour();
-            let _minutes = now.minute();
+            self.cron_inner().await.warn();
         }
     }
 

@@ -5,6 +5,7 @@ use chrono_tz::Tz;
 use exif::ExifData;
 use image::DynamicImage;
 use lazy_static::lazy_static;
+pub(crate) use media::{load_source_image, resize_image};
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
@@ -17,7 +18,6 @@ use crate::{
     store::models::{AlternateFile, AlternateFileType, MediaFile, MediaItem},
     Config, Error, Result,
 };
-pub(crate) use media::{load_source_image, resize_image};
 
 pub(crate) mod exif;
 mod ffmpeg;
