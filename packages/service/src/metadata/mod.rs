@@ -258,7 +258,7 @@ impl FileMetadata {
     pub(crate) fn apply_to_media_file(&self, media_file: &mut MediaFile) {
         media_file.uploaded = self.uploaded;
         media_file.needs_metadata = false;
-        media_file.file_name = self.file_name.clone();
+        media_file.file_name.clone_from(&self.file_name);
         media_file.file_size = self.file_size;
         media_file.mimetype = self.mimetype.clone();
 

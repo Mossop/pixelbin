@@ -87,8 +87,8 @@ async fn edit_album(
                     models::Album::get_for_user_for_update(conn, &session.user.email, &request.id)
                         .await?;
 
-                album.name = request.album.name.clone();
-                album.parent = request.album.parent.clone();
+                album.name.clone_from(&request.album.name);
+                album.parent.clone_from(&request.album.parent);
 
                 models::Album::upsert(conn, &[album.clone()]).await?;
 

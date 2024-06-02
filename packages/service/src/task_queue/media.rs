@@ -89,7 +89,7 @@ pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file: &s
         let temp_file =
             download_media_file(conn, &media_file_path.file(&media_file.file_name)).await?;
         let mut metadata = parse_media(&temp_file).await?;
-        metadata.file_name = media_file.file_name.clone();
+        metadata.file_name.clone_from(&media_file.file_name);
         metadata.uploaded = media_file.uploaded;
 
         if let Some(parent) = metadata_path.parent() {
