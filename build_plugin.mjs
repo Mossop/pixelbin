@@ -5,8 +5,8 @@ const VERSION_RE = /major=(\d+), minor=(\d+), revision=(\d+), build=\d+,/;
 
 function parseVersion(major, minor, patch) {
   let parts = [];
-  if (process.argv[3] && process.argv[3].startsWith("v")) {
-    parts = process.argv[3].slice(1).split(".");
+  if (process.argv[2] && process.argv[2].startsWith("v")) {
+    parts = process.argv[2].slice(1).split(".");
     while (parts.length < 3) {
       parts.push(0);
     }
