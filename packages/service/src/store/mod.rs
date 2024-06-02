@@ -68,11 +68,15 @@ impl DiskStore {
             fs::create_dir_all(parent).await?;
         }
 
-        temp_file
-            .persist(target)
-            .map_err(|e| crate::Error::Unknown {
-                message: e.to_string(),
-            })?;
+        let source = temp_file.to_path_buf();
+
+        if fs::hard_link(&source, &target).await.is_err() {
+            fs::copy(&source, &target)
+                .await
+                .map_err(|e| crate::Error::Unknown {
+                    message: e.to_string(),
+                })?;
+        }
 
         Ok(())
     }
