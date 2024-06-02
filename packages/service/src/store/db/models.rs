@@ -722,11 +722,20 @@ impl Album {
         email: &str,
         id: &str,
     ) -> Result<Album> {
-        user_catalog::table
-            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .filter(user_catalog::writable)
+        let writable_catalogs = catalog::table
+            .inner_join(storage::table.on(storage::id.eq(catalog::storage)))
+            .filter(storage::owner.eq(email))
+            .select(catalog::id)
+            .union(
+                shared_catalog::table
+                    .filter(shared_catalog::user.eq(email))
+                    .filter(shared_catalog::writable.eq(true))
+                    .select(shared_catalog::catalog),
+            );
+
+        album::table
             .filter(album::id.eq(id))
+            .filter(album::catalog.eq_any(writable_catalogs))
             .select(album::all_columns)
             .for_update()
             .get_result::<Album>(conn)
