@@ -34,6 +34,7 @@ export default function AppBar() {
     <header className="c-appbar sl-theme-dark apply-theme">
       <div className="site">
         {serverState && <NavMenu serverState={serverState} />}
+        <img src="/logo.svg" alt="" />
         <h1>PixelBin</h1>
       </div>
       <div className="actions">

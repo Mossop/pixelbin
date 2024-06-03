@@ -21,12 +21,7 @@ import "styles/main.scss";
 export const links: LinksFunction = () => [
   {
     rel: "shortcut icon",
-    href: "/favicon.ico",
-    type: "image/x-icon",
-  },
-  {
-    rel: "shortcut icon",
-    href: "/icon.svg",
+    href: "/favicon.svg",
     type: "image/svg",
   },
 ];

@@ -15,11 +15,15 @@
     display: flex;
     align-items: center;
     gap: var(--sl-spacing-x-small);
-  }
 
-  h1 {
-    font-family: "Comfortaa", sans-serif;
-    font-size: 1.5rem;
+    img {
+      height: 2rem;
+    }
+
+    h1 {
+      font-family: "Comfortaa", sans-serif;
+      font-size: 1.5rem;
+    }
   }
 
   sl-icon-button::part(base) {
