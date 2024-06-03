@@ -119,6 +119,7 @@ function API:MULTIPART(path, content)
   end
 
   local url = self.apiUrl .. path
+  logger:trace("MULTIPART", url)
 
   return self:callServer(function ()
     return LrHttp.postMultipart(url, content, {
@@ -134,6 +135,8 @@ function API:POST(path, content)
   end
 
   local url = self.apiUrl .. path
+  logger:trace("POST", url)
+
   local requestHeaders = {
     { field = "Content-Type", value = "application/json" },
   }
@@ -161,6 +164,7 @@ function API:GET(path)
   end
 
   local url = self.apiUrl .. path
+  logger:trace("GET", url)
 
   return self:callServer(function ()
     return LrHttp.get(url, {

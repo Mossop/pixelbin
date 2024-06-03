@@ -520,28 +520,31 @@ impl Tag {
             .await?)
     }
 
-    #[instrument(skip(conn))]
-    pub(crate) async fn get_or_create(
+    async fn get_or_create(
         conn: &mut DbConnection<'_>,
         catalog: &str,
-        hierarchy: &[String],
+        name: &str,
+        parent: Option<&str>,
     ) -> Result<Tag> {
-        assert!(!hierarchy.is_empty());
-
-        let mut current_tag = match tag::table
+        let mut query = tag::table
             .filter(tag::catalog.eq(catalog))
-            .filter(lower(tag::name).eq(&hierarchy[0].to_lowercase()))
+            .filter(lower(tag::name).eq(name.to_lowercase()))
             .select(tag::all_columns)
-            .get_result::<Tag>(conn)
-            .await
-            .optional()?
-        {
-            Some(t) => t,
+            .into_boxed();
+
+        query = if let Some(parent) = parent {
+            query.filter(tag::parent.eq(parent))
+        } else {
+            query
+        };
+
+        match query.get_result::<Tag>(conn).await.optional()? {
+            Some(t) => Ok(t),
             None => {
                 let new_tag = Tag {
                     id: short_id("T"),
-                    parent: None,
-                    name: hierarchy[0].clone(),
+                    parent: parent.map(|p| p.to_owned()),
+                    name: name.to_owned(),
                     catalog: catalog.to_owned(),
                 };
 
@@ -550,38 +553,23 @@ impl Tag {
                     .execute(conn)
                     .await?;
 
-                new_tag
+                Ok(new_tag)
             }
-        };
+        }
+    }
 
-        let i = 1;
-        while i < hierarchy.len() {
-            current_tag = match tag::table
-                .filter(tag::catalog.eq(catalog))
-                .filter(tag::parent.eq(&current_tag.id))
-                .filter(lower(tag::name).eq(&hierarchy[i].to_lowercase()))
-                .select(tag::all_columns)
-                .get_result::<Tag>(conn)
-                .await
-                .optional()?
-            {
-                Some(t) => t,
-                None => {
-                    let new_tag = Tag {
-                        id: short_id("T"),
-                        parent: Some(current_tag.id.clone()),
-                        name: hierarchy[i].clone(),
-                        catalog: catalog.to_owned(),
-                    };
+    #[instrument(skip(conn))]
+    pub(crate) async fn get_or_create_hierarchy(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+        hierarchy: &[String],
+    ) -> Result<Tag> {
+        assert!(!hierarchy.is_empty());
 
-                    insert_into(tag::table)
-                        .values(&new_tag)
-                        .execute(conn)
-                        .await?;
+        let mut current_tag = Tag::get_or_create(conn, catalog, &hierarchy[0], None).await?;
 
-                    new_tag
-                }
-            }
+        for name in hierarchy.iter().skip(1) {
+            current_tag = Tag::get_or_create(conn, catalog, name, Some(&current_tag.id)).await?;
         }
 
         Ok(current_tag)

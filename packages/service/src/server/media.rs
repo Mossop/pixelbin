@@ -459,7 +459,8 @@ async fn update_media_item(
     if let Some(ref tag_list) = data.tags {
         let mut tags = Vec::new();
         for tag_name in tag_list {
-            let tag = models::Tag::get_or_create(conn, &media_item.catalog, tag_name).await?;
+            let tag =
+                models::Tag::get_or_create_hierarchy(conn, &media_item.catalog, tag_name).await?;
             tags.push(models::MediaTag {
                 catalog: media_item.catalog.clone(),
                 tag: tag.id,
