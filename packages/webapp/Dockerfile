@@ -5,12 +5,10 @@ RUN \
 
 WORKDIR /app
 
-COPY packages/webapp /app
-
-RUN \
-  npm i g @rollup/rollup-linux-`node -p "process.arch"`-musl && \
-  npm install && \
-  npm run build
+COPY packages/webapp/package.json packages/webapp/package-lock.json /app
+RUN --mount=type=cache,target=/app/node_modules \
+    npm install --production && \
+    npm install --no-save @rollup/rollup-linux-`node -p "process.arch"`-musl
 
 EXPOSE 3000
 
@@ -22,3 +20,7 @@ HEALTHCHECK --interval=10s CMD wget -qO- http://127.0.0.1:3000/api/config || exi
 
 ARG SOURCE_CHANGESET
 ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}
+
+COPY packages/webapp /app
+RUN --mount=type=cache,target=/app/node_modules \
+    npm run build

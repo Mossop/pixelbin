@@ -45,5 +45,5 @@ jobs:
           build-args: |
             SOURCE_CHANGESET=${{ github.sha }}
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/mossop/pixelbin-webapp:build-cache
+          cache-to: type=registry,ref=ghcr.io/mossop/pixelbin-webapp:build-cache,mode=max,compression=zstd
