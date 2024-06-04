@@ -35,25 +35,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.PACKAGE_TOKEN }}
 
-      - name: Cache mounts
-        uses: actions/cache@v3
-        id: cache
-        with:
-          path: |
-            cache-registry
-            cache-target
-          key: cache-${{ hashFiles('packages/service/Dockerfile') }}
-
-      - name: Inject cache mounts into docker
-        uses: reproducible-containers/buildkit-cache-dance@v3.1.0
-        with:
-          cache-map: |
-            {
-              "cache-registry": "/usr/local/cargo/registry",
-              "cache-target": "/build/target"
-            }
-          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
-
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -64,5 +45,5 @@ jobs:
           build-args: |
             SOURCE_CHANGESET=${{ github.sha }}
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/mossop/pixelbin-server:build-cache
+          cache-to: type=registry,ref=ghcr.io/mossop/pixelbin-server:build-cache,mode=max,compression=zstd

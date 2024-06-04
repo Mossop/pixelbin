@@ -24,8 +24,6 @@ RUN \
   mkdir -p /data /app /config && \
   apk add --no-cache ffmpeg exiftool libpq
 
-COPY --from=builder /build/pixelbin /app
-
 WORKDIR /config
 
 ENV PATH="${PATH}:/app"
@@ -42,3 +40,5 @@ HEALTHCHECK --interval=10s CMD wget -qO- http://127.0.0.1:8283/api/config || exi
 
 ARG SOURCE_CHANGESET
 ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}
+
+COPY --from=builder /build/pixelbin /app
