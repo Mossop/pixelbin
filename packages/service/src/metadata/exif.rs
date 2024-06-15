@@ -1,7 +1,4 @@
-use std::{
-    cmp::{max, min},
-    path::Path,
-};
+use std::path::Path;
 
 use chrono::{NaiveDateTime, Timelike};
 use lexical_parse_float::FromLexical;
@@ -315,7 +312,7 @@ impl ExifData {
 
         metadata.rating = first_of!(
             map!(prop!("RatingPercent"), expect_float).map(|p| (5.0 * p / 100.0).round() as i32),
-            map!(prop!("Rating"), expect_int).map(|r| max(0, min(5, r)))
+            map!(prop!("Rating"), expect_int).map(|r| r.clamp(0, 5))
         );
 
         metadata
@@ -447,7 +444,7 @@ impl ExifData {
         metadata.focal_length = map!(prop!("EXIF", "FocalLength"), expect_float);
 
         metadata.rating = first_of!(
-            map!(prop!("XMP", "Rating"), expect_int).map(|r| max(0, min(5, r))),
+            map!(prop!("XMP", "Rating"), expect_int).map(|r| r.clamp(0, 5)),
             map!(prop!("EXIF", "RatingPercent"), expect_float)
                 .map(|p| (5.0 * p / 100.0).round() as i32),
         );
