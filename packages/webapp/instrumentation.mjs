@@ -12,7 +12,7 @@ dotenv.config();
 if ("PIXELBIN_TELEMETRY_HOST" in process.env) {
   const sdk = new NodeSDK({
     traceExporter: new OTLPTraceExporter({
-      url: `http://${process.env.PIXELBIN_TELEMETRY_HOST}:4318/v1/traces`,
+      url: process.env.PIXELBIN_TELEMETRY_HOST,
     }),
     instrumentations: [
       new ExpressInstrumentation(),

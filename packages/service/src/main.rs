@@ -337,8 +337,9 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<Tracer>, Box<d
                 .tracing()
                 .with_exporter(
                     opentelemetry_otlp::new_exporter()
-                        .tonic()
-                        .with_endpoint(format!("http://{telemetry_host}:4317"))
+                        .http()
+                        .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
+                        .with_endpoint(telemetry_host)
                         .with_timeout(Duration::from_secs(3)),
                 )
                 .with_trace_config(trace::config().with_resource(Resource::new(vec![

@@ -28,10 +28,9 @@ services:
       - "./servers.json:/pgadmin4/servers.json"
 
   jaeger:
-    image: jaegertracing/all-in-one
+    image: jaegertracing/all-in-one:1.58
     restart: always
 
     ports:
-      - "4317:4317"
       - "4318:4318"
       - "16686:16686"
