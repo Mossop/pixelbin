@@ -6,8 +6,7 @@ RUN \
 WORKDIR /app
 
 COPY packages/webapp/package.json packages/webapp/package-lock.json /app
-RUN --mount=type=cache,target=/app/node_modules \
-    npm install --production && \
+RUN npm install --omit=dev && \
     npm install --no-save @rollup/rollup-linux-`node -p "process.arch"`-musl
 
 EXPOSE 3000
@@ -22,5 +21,4 @@ ARG SOURCE_CHANGESET
 ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}
 
 COPY packages/webapp /app
-RUN --mount=type=cache,target=/app/node_modules \
-    npm run build
+RUN npm run build
