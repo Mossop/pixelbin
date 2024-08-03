@@ -30,6 +30,7 @@ use opentelemetry_sdk::{
 use pixelbin::server::serve;
 use pixelbin::{load_config, Config, Result, Store, Task};
 use scoped_futures::ScopedFutureExt;
+use tokio::runtime::Builder;
 use tracing::{info, span, Instrument, Level, Span};
 use tracing_subscriber::{
     layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
@@ -390,11 +391,16 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     Ok(result?)
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let _ = dotenv();
 
-    if let Err(e) = inner_main().await {
+    let runtime = Builder::new_multi_thread()
+        .thread_stack_size(10 * 1024 * 1024)
+        .enable_all()
+        .build()
+        .unwrap();
+
+    if let Err(e) = runtime.block_on(inner_main()) {
         eprintln!("{e}");
     }
 }

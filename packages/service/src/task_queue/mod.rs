@@ -9,6 +9,7 @@ use std::{
 
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Datelike, Local, NaiveDate, Timelike};
+use mime::Mime;
 use opentelemetry::{global, trace::TraceContextExt};
 use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
@@ -26,13 +27,14 @@ use crate::{
             prune_media_files, prune_media_items, server_startup, trigger_media_tasks,
             update_searches, verify_storage,
         },
-        media::{build_alternates, extract_metadata, prune_deleted_media, upload_media_file},
+        media::{build_alternate, extract_metadata, prune_deleted_media, upload_media_file},
     },
     Config, Result,
 };
 
 mod maintenance;
 mod media;
+mod opcache;
 
 #[derive(Debug, IntoStaticStr)]
 pub enum Task {
@@ -54,8 +56,11 @@ pub enum Task {
     ExtractMetadata { media_file: String },
     /// Uploads the media file.
     UploadMediaFile { media_file: String },
-    /// Builds necessary alternates for media files.
-    BuildAlternates { media_file: String, typ: String },
+    /// Builds a necessary alternate for a media files.
+    BuildAlternate {
+        alternate_file_id: String,
+        mimetype: Mime,
+    },
 }
 
 impl Task {
@@ -73,15 +78,15 @@ impl Task {
             Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
             Task::ExtractMetadata { media_file } => extract_metadata(conn, media_file).await,
             Task::UploadMediaFile { media_file } => upload_media_file(conn, media_file).await,
-            Task::BuildAlternates { media_file, typ } => {
-                build_alternates(conn, media_file, typ).await
-            }
+            Task::BuildAlternate {
+                alternate_file_id, ..
+            } => build_alternate(conn, alternate_file_id).await,
         }
     }
 
     fn is_expensive(&self) -> bool {
         match self {
-            Task::BuildAlternates { typ, .. } => typ.as_str() == mime::VIDEO,
+            Task::BuildAlternate { mimetype, .. } => mimetype.type_() == mime::VIDEO,
             _ => false,
         }
     }

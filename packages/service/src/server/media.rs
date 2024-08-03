@@ -1,4 +1,4 @@
-use std::{collections::HashSet, str::FromStr};
+use std::str::FromStr;
 
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
 use actix_web::{get, http::header, post, web, Either, HttpRequest, HttpResponse, Responder};
@@ -596,14 +596,9 @@ async fn upload_media(
                         .map(|a| AlternateFile::new(&media_file.id, a))
                         .collect();
 
-                let alternate_mimes: HashSet<String> = alternate_files
-                    .iter()
-                    .map(|a| a.mimetype.type_().to_string())
-                    .collect();
-
-                tasks.extend(alternate_mimes.into_iter().map(|m| Task::BuildAlternates {
-                    media_file: media_file.id.clone(),
-                    typ: m,
+                tasks.extend(alternate_files.iter().map(|m| Task::BuildAlternate {
+                    alternate_file_id: m.id.clone(),
+                    mimetype: m.mimetype.clone(),
                 }));
 
                 models::MediaFile::upsert(conn, vec![media_file]).await?;

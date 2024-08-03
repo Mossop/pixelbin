@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use futures::join;
 use scoped_futures::ScopedFutureExt;
@@ -310,21 +310,16 @@ pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &s
             .await;
         }
 
-        let mut alternate_types = HashSet::new();
         for alternate_file in
             models::AlternateFile::list_for_media_file(conn, &media_file.id).await?
         {
             if alternate_file.stored.is_none() {
-                alternate_types.insert(alternate_file.mimetype.type_().to_string());
+                conn.queue_task(Task::BuildAlternate {
+                    alternate_file_id: alternate_file.id,
+                    mimetype: alternate_file.mimetype,
+                })
+                .await;
             }
-        }
-
-        for typ in alternate_types {
-            conn.queue_task(Task::BuildAlternates {
-                media_file: media_file.id.clone(),
-                typ,
-            })
-            .await;
         }
     }
 

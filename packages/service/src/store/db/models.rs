@@ -1747,6 +1747,16 @@ impl AlternateFile {
         }
     }
 
+    pub(crate) async fn get(conn: &mut DbConnection<'_>, id: &str) -> Result<Self> {
+        alternate_file::table
+            .select(alternate_file::all_columns)
+            .filter(alternate_file::id.eq(id))
+            .get_result::<AlternateFile>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
+
     pub(crate) async fn list_for_catalog(
         conn: &mut DbConnection<'_>,
         catalog: &str,
