@@ -16,8 +16,7 @@ use image::{
         jpeg::JpegEncoder,
     },
     imageops::FilterType,
-    io::Reader,
-    RgbImage,
+    ImageReader, RgbImage,
 };
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
@@ -110,7 +109,7 @@ impl Runnable for Encode {
     }
 
     async fn run(&self, _store: &Store) -> Result {
-        let reader = Reader::open(&self.file)?.with_guessed_format()?;
+        let reader = ImageReader::open(&self.file)?.with_guessed_format()?;
         let mut source_image = reader.decode()?;
         let mut buffered = BufWriter::new(File::create(&self.target)?);
 

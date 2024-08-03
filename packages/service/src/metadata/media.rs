@@ -12,8 +12,7 @@ use image::{
         jpeg::JpegEncoder,
     },
     imageops::FilterType,
-    io::Reader,
-    DynamicImage, RgbImage,
+    DynamicImage, ImageReader, RgbImage,
 };
 use mime::Mime;
 use tracing::{span, Instrument, Level};
@@ -176,7 +175,7 @@ pub(super) async fn encode_alternate_video(
 }
 
 fn load_image(file_path: &Path) -> Result<DynamicImage> {
-    let reader = Reader::open(file_path)?.with_guessed_format()?;
+    let reader = ImageReader::open(file_path)?.with_guessed_format()?;
 
     Ok(reader.decode()?)
 }
@@ -234,7 +233,7 @@ pub(crate) async fn load_source_image(file_path: &Path) -> Result<DynamicImage> 
 }
 
 fn load_image_data(image_path: &Path) -> Result<(u32, u32)> {
-    let img_reader = Reader::open(image_path)?.with_guessed_format()?;
+    let img_reader = ImageReader::open(image_path)?.with_guessed_format()?;
     Ok(img_reader.into_dimensions()?)
 }
 
