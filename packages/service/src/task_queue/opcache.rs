@@ -48,7 +48,7 @@ where
 
 #[derive(Default, Clone)]
 struct MultiLocker<P, R> {
-    locks: Arc<Mutex<HashMap<P, OnceCell<R>>>>,
+    locks: Arc<Mutex<HashMap<P, Arc<OnceCell<R>>>>>,
 }
 
 impl<P, R> MultiLocker<P, R>
@@ -61,8 +61,10 @@ where
         Fut: Future<Output = Result<R>>,
         Fn: FnOnce() -> Fut,
     {
-        let mut locks = self.locks.lock().await;
-        let cell = locks.entry(params).or_default();
+        let cell = {
+            let mut locks = self.locks.lock().await;
+            locks.entry(params).or_default().clone()
+        };
         cell.get_or_try_init(async { cb().await }).await.cloned()
     }
 }

@@ -1,26 +1,28 @@
 use std::{cmp, collections::HashMap};
 
+use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use scoped_futures::ScopedFutureExt;
 use tokio::fs;
-use tracing::instrument;
+use tracing::{instrument, warn};
 
 use crate::{
     metadata::{
         encode_alternate_image, encode_alternate_video, parse_media, parse_metadata, FileMetadata,
         METADATA_FILE,
     },
-    shared::file_exists,
+    shared::{error::Ignorable, file_exists},
     store::{db::models, models::AlternateFileType, FileStore, Isolation},
-    task_queue::{opcache::OP_CACHE, DbConnection},
+    task_queue::{
+        opcache::{MediaFileOpCache, OP_CACHE},
+        DbConnection,
+    },
     Error, Result,
 };
 
-#[instrument(skip(conn), err)]
-pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file_id: &str) -> Result {
+#[instrument(skip(conn, op_cache), err)]
+async fn extract_metadata(conn: &mut DbConnection<'_>, op_cache: MediaFileOpCache) -> Result {
     conn.isolated(Isolation::Committed, |conn| {
         async move {
-            let op_cache = OP_CACHE.for_media_file(conn, media_file_id).await?;
-
             let local_store = conn.config().local_store();
 
             let metadata_path =
@@ -44,25 +46,22 @@ pub(super) async fn extract_metadata(conn: &mut DbConnection<'_>, media_file_id:
                 metadata
             };
 
-            let mut media_file = models::MediaFile::get_for_update(conn, media_file_id).await?;
+            let mut media_file =
+                models::MediaFile::get_for_update(conn, &op_cache.media_file.id).await?;
             metadata.apply_to_media_file(&mut media_file);
             models::MediaFile::upsert(conn, vec![media_file.clone()]).await?;
 
-            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await?;
-
-            op_cache.release(conn).await
+            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await
         }
         .scope_boxed()
     })
     .await
 }
 
-#[instrument(skip(conn), err)]
-pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file_id: &str) -> Result {
+#[instrument(skip(conn, op_cache), err)]
+async fn upload_media_file(conn: &mut DbConnection<'_>, mut op_cache: MediaFileOpCache) -> Result {
     conn.isolated(Isolation::Committed, |conn| {
         async move {
-            let mut op_cache = OP_CACHE.for_media_file(conn, media_file_id).await?;
-
             if op_cache.media_file.stored.is_some() {
                 models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog)
                     .await?;
@@ -91,26 +90,27 @@ pub(super) async fn upload_media_file(conn: &mut DbConnection<'_>, media_file_id
 
             op_cache.media_file.mark_stored(conn).await?;
 
-            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await?;
-            op_cache.release(conn).await
+            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await
         }
         .scope_boxed()
     })
     .await
 }
 
-#[instrument(skip(conn), err)]
-pub(super) async fn build_alternate(
+#[instrument(skip(conn, op_cache), err)]
+async fn build_alternate(
     conn: &mut DbConnection<'_>,
-    alternate_file_id: &str,
+    op_cache: MediaFileOpCache,
+    mut alternate_file: models::AlternateFile,
 ) -> Result {
+    let _guard = if alternate_file.mimetype.type_() == mime::VIDEO {
+        Some(conn.config().enter_expensive_task().await)
+    } else {
+        None
+    };
+
     conn.isolated(Isolation::Committed, |conn| {
         async move {
-            let mut alternate_file = models::AlternateFile::get(conn, alternate_file_id).await?;
-            let op_cache = OP_CACHE
-                .for_media_file(conn, &alternate_file.media_file)
-                .await?;
-
             let built_file = if alternate_file.mimetype.type_() == mime::IMAGE {
                 let source_image = if alternate_file.file_type == AlternateFileType::Thumbnail {
                     op_cache
@@ -142,13 +142,71 @@ pub(super) async fn build_alternate(
 
             alternate_file.mark_stored(conn).await?;
 
-            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await?;
-
-            op_cache.release(conn).await
+            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await
         }
         .scope_boxed()
     })
     .await
+}
+
+#[instrument(skip(conn), err)]
+pub(super) async fn process_media_file(conn: &mut DbConnection<'_>, media_file_id: &str) -> Result {
+    let op_cache = OP_CACHE.for_media_file(conn, media_file_id).await?;
+
+    let tasks = FuturesUnordered::new();
+
+    if op_cache.media_file.stored.is_none() {
+        let store = conn.store();
+        let op_cache = op_cache.clone();
+
+        tasks.push(
+            async move {
+                match store.connect().await {
+                    Ok(mut conn) => upload_media_file(&mut conn, op_cache).await.warn(),
+                    Err(e) => warn!(error=?e),
+                }
+            }
+            .boxed(),
+        );
+    }
+
+    if op_cache.media_file.needs_metadata {
+        let store = conn.store();
+        let op_cache = op_cache.clone();
+
+        tasks.push(
+            async move {
+                match store.connect().await {
+                    Ok(mut conn) => extract_metadata(&mut conn, op_cache).await.warn(),
+                    Err(e) => warn!(error=?e),
+                }
+            }
+            .boxed(),
+        );
+    }
+
+    for alternate_file in models::AlternateFile::list_for_media_file(conn, media_file_id).await? {
+        if alternate_file.stored.is_none() {
+            let store = conn.store();
+            let op_cache = op_cache.clone();
+
+            tasks.push(
+                async move {
+                    match store.connect().await {
+                        Ok(mut conn) => build_alternate(&mut conn, op_cache, alternate_file)
+                            .await
+                            .warn(),
+                        Err(e) => warn!(error=?e),
+                    }
+                }
+                .boxed(),
+            );
+        }
+    }
+
+    tasks.count().await;
+
+    op_cache.release(conn).await
 }
 
 #[instrument(skip(conn), err)]

@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf, str::FromStr};
+use std::{env, fs, path::PathBuf, str::FromStr, sync::Arc};
 
 use figment::{
     providers::{Env, Format, Json},
@@ -10,6 +10,7 @@ use figment::{
 };
 use mime::Mime;
 use serde::{Deserialize, Serialize};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::{store::DiskStore, Error, Result};
 
@@ -67,7 +68,7 @@ impl Default for ThumbnailConfig {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Config {
     /// The hostname of the opentelemetry endpoint to use.
     pub telemetry_host: Option<String>,
@@ -91,6 +92,8 @@ pub struct Config {
 
     /// Disables writing to remote stores for testing purposes.
     pub testing: bool,
+
+    expensive_tasks: Arc<Semaphore>,
 }
 
 #[derive(Deserialize)]
@@ -183,6 +186,7 @@ impl Config {
             api_url: parsed.api_url,
             thumbnails: parsed.thumbnails.unwrap_or_default(),
             testing: parsed.testing,
+            expensive_tasks: Arc::new(Semaphore::new(1)),
         })
     }
 
@@ -196,5 +200,9 @@ impl Config {
         DiskStore {
             root: self.temp_storage.clone(),
         }
+    }
+
+    pub(crate) async fn enter_expensive_task(&self) -> OwnedSemaphorePermit {
+        self.expensive_tasks.clone().acquire_owned().await.unwrap()
     }
 }

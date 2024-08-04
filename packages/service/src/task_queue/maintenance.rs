@@ -295,32 +295,8 @@ pub(super) async fn prune_media_items(conn: &mut DbConnection<'_>, catalog: &str
 }
 
 pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    for (media_file, _) in models::MediaFile::list_newest(conn, catalog).await? {
-        if media_file.stored.is_none() {
-            conn.queue_task(Task::UploadMediaFile {
-                media_file: media_file.id.clone(),
-            })
-            .await;
-        }
-
-        if media_file.needs_metadata {
-            conn.queue_task(Task::ExtractMetadata {
-                media_file: media_file.id.clone(),
-            })
-            .await;
-        }
-
-        for alternate_file in
-            models::AlternateFile::list_for_media_file(conn, &media_file.id).await?
-        {
-            if alternate_file.stored.is_none() {
-                conn.queue_task(Task::BuildAlternate {
-                    alternate_file_id: alternate_file.id,
-                    mimetype: alternate_file.mimetype,
-                })
-                .await;
-            }
-        }
+    for media_file in models::MediaFile::list_needs_processing(conn, catalog).await? {
+        conn.queue_task(Task::ProcessMediaFile { media_file }).await;
     }
 
     Ok(())

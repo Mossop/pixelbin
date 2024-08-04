@@ -1496,6 +1496,32 @@ impl MediaFile {
     }
 
     #[instrument(skip_all)]
+    pub(crate) async fn list_needs_processing(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Vec<String>> {
+        let missing_alternates = alternate_file::table
+            .filter(alternate_file::stored.is_null())
+            .select(alternate_file::media_file);
+
+        Ok(media_file::table
+            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
+            .filter(media_item::catalog.eq(catalog))
+            .filter(media_item::deleted.eq(false))
+            .filter(
+                media_file::stored
+                    .is_null()
+                    .or(media_file::needs_metadata)
+                    .or(media_file::id.eq_any(missing_alternates)),
+            )
+            .order_by((media_file::media_item, media_file::uploaded.desc()))
+            .distinct_on(media_file::media_item)
+            .select(media_file::id)
+            .load::<String>(conn)
+            .await?)
+    }
+
+    #[instrument(skip_all)]
     pub(crate) async fn list_prunable(
         conn: &mut DbConnection<'_>,
         catalog: &str,
@@ -1745,16 +1771,6 @@ impl AlternateFile {
             local: alternate.alt_type == AlternateFileType::Thumbnail,
             stored: None,
         }
-    }
-
-    pub(crate) async fn get(conn: &mut DbConnection<'_>, id: &str) -> Result<Self> {
-        alternate_file::table
-            .select(alternate_file::all_columns)
-            .filter(alternate_file::id.eq(id))
-            .get_result::<AlternateFile>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
     }
 
     pub(crate) async fn list_for_catalog(

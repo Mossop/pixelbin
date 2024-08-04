@@ -5,7 +5,10 @@ pub(super) mod schema;
 pub(crate) mod search;
 pub(super) mod views;
 
-use std::pin::Pin;
+use std::{
+    ops::{Deref, DerefMut},
+    pin::Pin,
+};
 
 use chrono::{Duration, Utc};
 use diesel::{
@@ -17,7 +20,10 @@ use diesel::{
     sql_query,
 };
 use diesel_async::{
-    pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
+    pooled_connection::{
+        deadpool::{Object, Pool},
+        AsyncDieselConnectionManager,
+    },
     scoped_futures::ScopedFutureExt,
     AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection, TransactionManager,
 };
@@ -31,7 +37,7 @@ use crate::{
     metadata::{parse_metadata, METADATA_FILE},
     shared::{file_exists, long_id, spawn_blocking},
     store::{db::functions::media_file_columns, path::MediaFilePath, Isolation},
-    Config, Error, Result, Task, TaskQueue,
+    Config, Error, Result, Store, Task, TaskQueue,
 };
 
 pub(crate) type Backend = Pg;
@@ -130,8 +136,7 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
     let task_queue = TaskQueue::new(pool.clone(), config.clone(), task_span);
 
     // Verify that we can connect and update cached views.
-    let mut connection = pool.get().await?;
-    let mut conn = DbConnection::new(&mut connection, config, &task_queue);
+    let mut conn = DbConnection::new(pool.clone(), config, &task_queue).await?;
 
     conn.batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
         .await?;
@@ -200,8 +205,34 @@ pub struct StoreStats {
     pub alternate_files: u32,
 }
 
+enum Conn<'a> {
+    Owned(Object<BackendConnection>),
+    Borrowed(&'a mut BackendConnection),
+}
+
+impl<'a> Deref for Conn<'a> {
+    type Target = BackendConnection;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Conn::Owned(ref c) => c,
+            Conn::Borrowed(c) => c,
+        }
+    }
+}
+
+impl<'a> DerefMut for Conn<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match self {
+            Conn::Owned(ref mut c) => c.deref_mut(),
+            Conn::Borrowed(c) => c,
+        }
+    }
+}
+
 pub struct DbConnection<'conn> {
-    conn: &'conn mut BackendConnection,
+    pool: DbPool,
+    conn: Conn<'conn>,
     config: Config,
     isolation: Option<Isolation>,
     task_queue: TaskQueue,
@@ -266,27 +297,34 @@ impl<'a> AsyncConnection for DbConnection<'a> {
     where
         T: QueryFragment<Self::Backend> + QueryId + 'query,
     {
-        AsyncConnection::execute_returning_count(self.conn, source)
+        AsyncConnection::execute_returning_count(&mut self.conn, source)
     }
 
     fn transaction_state(
         &mut self,
     ) -> &mut <Self::TransactionManager as TransactionManager<Self>>::TransactionStateData {
-        AsyncConnection::transaction_state(self.conn)
+        AsyncConnection::transaction_state(&mut self.conn)
     }
 }
 
 impl<'conn> DbConnection<'conn> {
-    pub(crate) fn new(
-        conn: &'conn mut BackendConnection,
-        config: &Config,
-        task_queue: &TaskQueue,
-    ) -> Self {
-        Self {
-            conn,
+    pub(crate) async fn new(pool: DbPool, config: &Config, task_queue: &TaskQueue) -> Result<Self> {
+        let conn = pool.get().await?;
+
+        Ok(Self {
+            pool,
+            conn: Conn::Owned(conn),
             config: config.clone(),
             isolation: None,
             task_queue: task_queue.clone(),
+        })
+    }
+
+    pub fn store(&self) -> Store {
+        Store {
+            pool: self.pool.clone(),
+            config: self.config.clone(),
+            task_queue: self.task_queue.clone(),
         }
     }
 
@@ -308,7 +346,8 @@ impl<'conn> DbConnection<'conn> {
             assert_eq!(l, level);
 
             let mut db_conn = DbConnection {
-                conn: self.conn,
+                pool: self.pool.clone(),
+                conn: Conn::Borrowed(&mut self.conn),
                 config,
                 isolation: Some(level),
                 task_queue,
@@ -323,11 +362,13 @@ impl<'conn> DbConnection<'conn> {
             Isolation::ReadOnly => builder.repeatable_read().read_only(),
         };
 
+        let pool = self.pool.clone();
         builder
             .run(|conn| {
                 async move {
                     let mut db_conn = DbConnection {
-                        conn,
+                        pool,
+                        conn: Conn::Borrowed(conn),
                         config,
                         isolation: Some(level),
                         task_queue,

@@ -502,7 +502,7 @@ async fn upload_media(
     tracing::Span::current().record("id", data.json.id.as_deref().unwrap_or_default());
     tracing::Span::current().record("catalog", data.json.catalog.as_deref().unwrap_or_default());
 
-    let (media_item_id, tasks) = app_state
+    let (media_item_id, media_file_id) = app_state
         .store
         .isolated(Isolation::Committed, |conn| {
             async move {
@@ -581,38 +581,29 @@ async fn upload_media(
                     .copy_from_temp(data.file.file.into_temp_path(), &path)
                     .await?;
 
-                let mut tasks = vec![
-                    Task::ExtractMetadata {
-                        media_file: media_file.id.clone(),
-                    },
-                    Task::UploadMediaFile {
-                        media_file: media_file.id.clone(),
-                    },
-                ];
-
                 let alternate_files: Vec<AlternateFile> =
                     alternates_for_media_file(conn.config(), &media_file)
                         .into_iter()
                         .map(|a| AlternateFile::new(&media_file.id, a))
                         .collect();
 
-                tasks.extend(alternate_files.iter().map(|m| Task::BuildAlternate {
-                    alternate_file_id: m.id.clone(),
-                    mimetype: m.mimetype.clone(),
-                }));
+                let media_file_id = media_file.id.clone();
 
                 models::MediaFile::upsert(conn, vec![media_file]).await?;
                 models::AlternateFile::upsert(conn, alternate_files).await?;
 
-                Ok((media_item.id.clone(), tasks))
+                Ok((media_item.id.clone(), media_file_id))
             }
             .scope_boxed()
         })
         .await?;
 
-    for task in tasks.into_iter() {
-        app_state.store.queue_task(task).await;
-    }
+    app_state
+        .store
+        .queue_task(Task::ProcessMediaFile {
+            media_file: media_file_id,
+        })
+        .await;
 
     Ok(web::Json(MediaUploadResponse {
         id: media_item_id.clone(),

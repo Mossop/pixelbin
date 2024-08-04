@@ -289,6 +289,10 @@ impl Store {
         })
     }
 
+    pub async fn connect(self) -> Result<DbConnection<'static>> {
+        DbConnection::new(self.pool.clone(), &self.config, &self.task_queue).await
+    }
+
     pub async fn queue_task(&self, task: Task) {
         self.task_queue.queue_task(task).await;
     }
@@ -308,9 +312,8 @@ impl Store {
             + Send
             + 'a,
     {
-        let mut conn = self.pool.get().await?;
-
-        let mut db_conn = DbConnection::new(&mut conn, &self.config, &self.task_queue);
+        let mut db_conn =
+            DbConnection::new(self.pool.clone(), &self.config, &self.task_queue).await?;
         cb(&mut db_conn).await
     }
 
@@ -321,9 +324,8 @@ impl Store {
             + Send
             + 'a,
     {
-        let mut conn = self.pool.get().await?;
-
-        let mut db_conn = DbConnection::new(&mut conn, &self.config, &self.task_queue);
+        let mut db_conn =
+            DbConnection::new(self.pool.clone(), &self.config, &self.task_queue).await?;
         db_conn
             .isolated(level, |conn| async move { cb(conn).await }.scope_boxed())
             .await

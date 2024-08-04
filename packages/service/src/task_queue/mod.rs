@@ -9,7 +9,6 @@ use std::{
 
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Datelike, Local, NaiveDate, Timelike};
-use mime::Mime;
 use opentelemetry::{global, trace::TraceContextExt};
 use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
@@ -27,7 +26,7 @@ use crate::{
             prune_media_files, prune_media_items, server_startup, trigger_media_tasks,
             update_searches, verify_storage,
         },
-        media::{build_alternate, extract_metadata, prune_deleted_media, upload_media_file},
+        media::{process_media_file, prune_deleted_media},
     },
     Config, Result,
 };
@@ -52,15 +51,8 @@ pub enum Task {
     PruneMediaItems { catalog: String },
     /// Triggers any tasks required to complete media files.
     ProcessMedia { catalog: String },
-    /// Extracts metadata for a media file.
-    ExtractMetadata { media_file: String },
-    /// Uploads the media file.
-    UploadMediaFile { media_file: String },
-    /// Builds a necessary alternate for a media files.
-    BuildAlternate {
-        alternate_file_id: String,
-        mimetype: Mime,
-    },
+    /// Triggers any tasks required to complete a media file.
+    ProcessMediaFile { media_file: String },
 }
 
 impl Task {
@@ -76,18 +68,7 @@ impl Task {
             Task::PruneMediaFiles { catalog } => prune_media_files(conn, catalog).await,
             Task::PruneMediaItems { catalog } => prune_media_items(conn, catalog).await,
             Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
-            Task::ExtractMetadata { media_file } => extract_metadata(conn, media_file).await,
-            Task::UploadMediaFile { media_file } => upload_media_file(conn, media_file).await,
-            Task::BuildAlternate {
-                alternate_file_id, ..
-            } => build_alternate(conn, alternate_file_id).await,
-        }
-    }
-
-    fn is_expensive(&self) -> bool {
-        match self {
-            Task::BuildAlternate { mimetype, .. } => mimetype.type_() == mime::VIDEO,
-            _ => false,
+            Task::ProcessMediaFile { media_file } => process_media_file(conn, media_file).await,
         }
     }
 }
@@ -140,13 +121,11 @@ pub(crate) struct TaskQueue {
     notify: Arc<Notify>,
     pending: Arc<AtomicUsize>,
     sender: Sender<TaskMessage>,
-    expensive_sender: Sender<TaskMessage>,
 }
 
 impl TaskQueue {
     pub(crate) fn new(pool: DbPool, config: Config, parent_span: Option<Id>) -> Self {
         let (sender, receiver) = unbounded();
-        let (expensive_sender, expensive_receiver) = unbounded();
 
         let queue = Self {
             pool,
@@ -154,13 +133,11 @@ impl TaskQueue {
             notify: Arc::new(Notify::new()),
             pending: Arc::new(AtomicUsize::new(0)),
             sender,
-            expensive_sender,
         };
 
-        let expensive_workers = 1;
         let workers = 3;
 
-        for _ in 0..workers {
+        for _ in 1..workers {
             tokio::spawn(TaskQueue::task_loop(
                 queue.clone(),
                 receiver.clone(),
@@ -168,13 +145,7 @@ impl TaskQueue {
             ));
         }
 
-        for _ in 0..expensive_workers {
-            tokio::spawn(TaskQueue::task_loop(
-                queue.clone(),
-                expensive_receiver.clone(),
-                parent_span.clone(),
-            ));
-        }
+        tokio::spawn(TaskQueue::task_loop(queue.clone(), receiver, parent_span));
 
         tokio::spawn(TaskQueue::cron_loop(queue.clone()));
 
@@ -197,19 +168,11 @@ impl TaskQueue {
             propagator.inject_context(&context, &mut context_data)
         });
 
-        if task.is_expensive() {
-            self.expensive_sender
-                .send((task, context_data))
-                .await
-                .unwrap();
-        } else {
-            self.sender.send((task, context_data)).await.unwrap();
-        }
+        self.sender.send((task, context_data)).await.unwrap();
     }
 
     async fn run_task(&self, task: &Task) -> Result {
-        let mut conn = self.pool.get().await?;
-        let mut db_conn = DbConnection::new(&mut conn, &self.config, self);
+        let mut db_conn = DbConnection::new(self.pool.clone(), &self.config, self).await?;
         let result = task.run(&mut db_conn).await;
 
         let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
@@ -228,8 +191,7 @@ impl TaskQueue {
             now.hour()
         };
 
-        let mut conn = self.pool.get().await?;
-        let mut db_conn = DbConnection::new(&mut conn, &self.config, self);
+        let mut db_conn = DbConnection::new(self.pool.clone(), &self.config, self).await?;
         let catalogs: Vec<String> = models::Catalog::list(&mut db_conn)
             .await?
             .into_iter()
