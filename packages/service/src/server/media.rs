@@ -582,7 +582,7 @@ async fn upload_media(
                     .await?;
 
                 let alternate_files: Vec<AlternateFile> =
-                    alternates_for_media_file(conn.config(), &media_file)
+                    alternates_for_media_file(conn.config(), &media_file, false)
                         .into_iter()
                         .map(|a| AlternateFile::new(&media_file.id, a))
                         .collect();

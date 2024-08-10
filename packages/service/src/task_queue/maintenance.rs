@@ -78,6 +78,7 @@ pub(super) async fn verify_storage(
             let mut local_files = local_files?;
 
             let media_files = models::MediaFile::list_for_catalog(conn, catalog).await?;
+            let public_items = models::MediaItem::list_public(conn, catalog).await?;
             let mut modified_media_files = Vec::new();
             let mut bad_media_files = Vec::new();
 
@@ -132,7 +133,11 @@ pub(super) async fn verify_storage(
 
                 required_alternates.insert(
                     media_file.id.clone(),
-                    alternates_for_media_file(conn.config(), &media_file),
+                    alternates_for_media_file(
+                        conn.config(),
+                        &media_file,
+                        public_items.contains(&media_file.media_item),
+                    ),
                 );
 
                 if needs_change {

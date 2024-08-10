@@ -118,7 +118,11 @@ pub(crate) async fn encode_alternate_video(
     Ok(temp)
 }
 
-pub(crate) fn alternates_for_media_file(config: &Config, media_file: &MediaFile) -> Vec<Alternate> {
+pub(crate) fn alternates_for_media_file(
+    config: &Config,
+    media_file: &MediaFile,
+    _is_public: bool,
+) -> Vec<Alternate> {
     let base_name = if let Some(idx) = media_file.file_name.rfind('.') {
         media_file.file_name[0..idx].to_owned()
     } else {

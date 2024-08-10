@@ -134,6 +134,7 @@ diesel::table! {
         media_file -> Nullable<Varchar>,
         datetime -> Timestamptz,
         shutter_speed -> Nullable<Float4>,
+        public -> Bool,
     }
 }
 

@@ -1,4 +1,8 @@
-use std::{cmp::min, collections::HashMap, result};
+use std::{
+    cmp::min,
+    collections::{HashMap, HashSet},
+    result,
+};
 
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
@@ -1234,6 +1238,29 @@ impl MediaItem {
             .await?;
 
         Ok(media)
+    }
+
+    pub(crate) async fn list_public(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<HashSet<String>> {
+        let public_searches = media_search::table
+            .inner_join(saved_search::table.on(saved_search::id.eq(media_search::search)))
+            .filter(saved_search::shared.eq(true))
+            .filter(saved_search::catalog.eq(catalog))
+            .select(media_search::media);
+
+        let media = media_item::table
+            .filter(
+                media_item::public
+                    .eq(true)
+                    .or(media_item::id.eq_any(public_searches)),
+            )
+            .select(media_item::id)
+            .load::<String>(conn)
+            .await?;
+
+        Ok(media.into_iter().collect())
     }
 
     pub(crate) async fn mark_deleted(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
