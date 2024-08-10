@@ -23,8 +23,8 @@ use crate::{
     },
     task_queue::{
         maintenance::{
-            prune_media_files, prune_media_items, server_startup, trigger_media_tasks,
-            update_searches, verify_storage,
+            delete_alternate_files, prune_media_files, prune_media_items, server_startup,
+            trigger_media_tasks, update_searches, verify_storage,
         },
         media::{process_media_file, prune_deleted_media},
     },
@@ -53,6 +53,8 @@ pub enum Task {
     ProcessMedia { catalog: String },
     /// Triggers any tasks required to complete a media file.
     ProcessMediaFile { media_file: String },
+    /// Deletes the no longer required alternate files.
+    DeleteAlternateFiles { alternate_files: Vec<String> },
 }
 
 impl Task {
@@ -69,6 +71,9 @@ impl Task {
             Task::PruneMediaItems { catalog } => prune_media_items(conn, catalog).await,
             Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
             Task::ProcessMediaFile { media_file } => process_media_file(conn, media_file).await,
+            Task::DeleteAlternateFiles { alternate_files } => {
+                delete_alternate_files(conn, alternate_files).await
+            }
         }
     }
 }

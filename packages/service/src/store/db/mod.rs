@@ -34,7 +34,7 @@ use scoped_futures::ScopedBoxFuture;
 use tracing::{info, instrument, span, span::Id, trace, Level};
 
 use crate::{
-    metadata::{parse_metadata, METADATA_FILE},
+    metadata::{alternates_for_media_file, parse_metadata, METADATA_FILE},
     shared::{file_exists, long_id, spawn_blocking},
     store::{db::functions::media_file_columns, path::MediaFilePath, Isolation},
     Config, Error, Result, Store, Task, TaskQueue,
@@ -99,8 +99,9 @@ async fn update_search_dates(conn: &mut DbConnection<'_>) -> Result {
 pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(DbPool, TaskQueue)> {
     #![allow(clippy::borrowed_box)]
     let mut update_search_queries = false;
-    let mut reprocess_media: bool = false;
-    let mut update_search_date: bool = false;
+    let mut reprocess_media = false;
+    let mut update_search_date = false;
+    let mut update_alternates = false;
 
     // First connect synchronously to apply migrations.
     let mut connection = PgConnection::establish(&config.database_url)?;
@@ -125,6 +126,9 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
             "2024-04-05-120807_alternates_lookup" => {
                 update_search_queries = true;
                 reprocess_media = true;
+            }
+            "2024-08-10-105759_public_media_item" => {
+                update_alternates = true;
             }
             _ => {}
         }
@@ -174,6 +178,25 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
 
     if update_search_date {
         update_search_dates(&mut conn).await?;
+    }
+
+    if update_alternates {
+        let mut media_items = Vec::new();
+        for catalog in models::Catalog::list(&mut conn).await? {
+            media_items.extend(models::MediaItem::list_public(&mut conn, &catalog.id).await?);
+        }
+
+        let mut alternates_to_update = Vec::new();
+
+        for (media_file, media_file_path) in
+            models::MediaFile::list_for_items(&mut conn, &media_items).await?
+        {
+            let alternates = alternates_for_media_file(conn.config(), &media_file, true);
+
+            alternates_to_update.push((media_file, media_file_path, alternates));
+        }
+
+        models::AlternateFile::sync_for_media_files(&mut conn, alternates_to_update).await?;
     }
 
     let last_migration = if migrations.is_empty() {

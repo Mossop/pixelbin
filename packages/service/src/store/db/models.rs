@@ -24,7 +24,7 @@ use tracing::instrument;
 use typeshare::typeshare;
 
 use crate::{
-    metadata::{lookup_timezone, media_datetime, Alternate},
+    metadata::{alternates_for_media_file, lookup_timezone, media_datetime, Alternate},
     shared::{long_id, mime::MimeField, short_id},
     store::{
         aws::AwsClient,
@@ -37,10 +37,11 @@ use crate::{
             search::{upgrade_query, Filterable, SearchQuery},
             Backend,
         },
+        models,
         path::{FilePath, MediaFilePath, MediaItemPath},
         DbConnection,
     },
-    Config, Error, FileStore, Result,
+    Config, Error, FileStore, Result, Task,
 };
 
 fn sql_bool(b: bool) -> SqlLiteral<sql_types::Bool> {
@@ -109,13 +110,23 @@ fn owned_batch<T>(collection: Vec<T>, count: usize) -> OwnedBatch<T> {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, AsExpression, deserialize::FromSqlRow, Deserialize, Serialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    AsExpression,
+    deserialize::FromSqlRow,
+    Deserialize,
+    Serialize,
 )]
 #[diesel(sql_type = sql_types::VarChar)]
 #[serde(rename_all = "camelCase")]
 pub enum AlternateFileType {
     Thumbnail,
     Reencode,
+    Social,
 }
 
 impl<DB> deserialize::FromSql<sql_types::VarChar, DB> for AlternateFileType
@@ -127,6 +138,7 @@ where
         match String::from_sql(bytes)?.as_str() {
             "thumbnail" => Ok(AlternateFileType::Thumbnail),
             "reencode" => Ok(AlternateFileType::Reencode),
+            "social" => Ok(AlternateFileType::Social),
             x => Err(format!("Unrecognized variant {}", x).into()),
         }
     }
@@ -143,6 +155,7 @@ where
         let string = match self {
             AlternateFileType::Thumbnail => "thumbnail".to_string(),
             AlternateFileType::Reencode => "reencode".to_string(),
+            AlternateFileType::Social => "social".to_string(),
         };
 
         <String as serialize::ToSql<sql_types::VarChar, diesel::pg::Pg>>::to_sql(
@@ -939,6 +952,8 @@ impl SavedSearch {
     }
 
     pub(crate) async fn update_for_catalog(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
+        let was_public = MediaItem::list_public(conn, catalog).await?;
+
         let searches = saved_search::table
             .filter(saved_search::catalog.eq(catalog))
             .select(saved_search::all_columns)
@@ -949,7 +964,28 @@ impl SavedSearch {
             search.update(conn).await?;
         }
 
-        Ok(())
+        let now_public = MediaItem::list_public(conn, catalog).await?;
+
+        let changed_items: Vec<String> = was_public
+            .symmetric_difference(&now_public)
+            .cloned()
+            .collect();
+
+        let mut alternates_to_update = Vec::new();
+
+        for (media_file, media_file_path) in
+            models::MediaFile::list_for_items(conn, &changed_items).await?
+        {
+            let alternates = alternates_for_media_file(
+                conn.config(),
+                &media_file,
+                now_public.contains(&media_file_path.item),
+            );
+
+            alternates_to_update.push((media_file, media_file_path, alternates));
+        }
+
+        models::AlternateFile::sync_for_media_files(conn, alternates_to_update).await
     }
 
     pub(crate) async fn get_for_user_with_count(
@@ -1495,6 +1531,32 @@ impl MediaFile {
     }
 
     #[instrument(skip_all)]
+    pub(crate) async fn list_for_items(
+        conn: &mut DbConnection<'_>,
+        items: &[String],
+    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+        let files = media_file::table
+            .inner_join(media_item::table.on(media_item::media_file.eq(media_file::id.nullable())))
+            .filter(media_item::id.eq_any(items))
+            .filter(media_item::deleted.eq(false))
+            .select((media_file_columns!(), media_item::catalog))
+            .load::<(MediaFile, String)>(conn)
+            .await?;
+
+        Ok(files
+            .into_iter()
+            .map(|(media_file, catalog)| {
+                let media_path = MediaFilePath {
+                    catalog,
+                    item: media_file.media_item.clone(),
+                    file: media_file.id.clone(),
+                };
+                (media_file, media_path)
+            })
+            .collect())
+    }
+
+    #[instrument(skip_all)]
     pub(crate) async fn list_newest(
         conn: &mut DbConnection<'_>,
         catalog: &str,
@@ -1795,9 +1857,79 @@ impl AlternateFile {
             frame_rate: None,
             bit_rate: None,
             media_file: media_file.to_owned(),
-            local: alternate.alt_type == AlternateFileType::Thumbnail,
+            local: matches!(
+                alternate.alt_type,
+                AlternateFileType::Thumbnail | AlternateFileType::Social
+            ),
             stored: None,
         }
+    }
+
+    pub(crate) async fn sync_for_media_files(
+        conn: &mut DbConnection<'_>,
+        media_files: Vec<(MediaFile, MediaFilePath, Vec<Alternate>)>,
+    ) -> Result {
+        // Mapped by media_file ID.
+        let mut existing_alternates: HashMap<String, Vec<AlternateFile>> = HashMap::new();
+
+        {
+            let file_ids = media_files
+                .iter()
+                .map(|(mf, _, _)| mf.id.as_str())
+                .collect::<Vec<&str>>();
+
+            alternate_file::table
+                .filter(alternate_file::media_file.eq_any(file_ids))
+                .select(alternate_file::all_columns)
+                .load::<AlternateFile>(conn)
+                .await?
+                .into_iter()
+                .for_each(|af| {
+                    existing_alternates
+                        .entry(af.media_file.clone())
+                        .or_default()
+                        .push(af)
+                });
+        }
+
+        let mut to_delete: Vec<String> = Vec::new();
+        let mut to_create: Vec<AlternateFile> = Vec::new();
+
+        for (media_file, _, wanted_alternates) in media_files {
+            let mut wanted_alternates: HashSet<Alternate> = wanted_alternates.into_iter().collect();
+
+            if let Some(existing_alternates) = existing_alternates.get(&media_file.id) {
+                for af in existing_alternates {
+                    let len = wanted_alternates.len();
+                    wanted_alternates.retain(|a| !a.matches(af));
+
+                    // Unchanged means nothing matched so this alternate file is not wanted.
+                    if len == wanted_alternates.len() {
+                        to_delete.push(af.id.clone());
+                    }
+                }
+            }
+
+            if !wanted_alternates.is_empty() {
+                conn.queue_task(Task::ProcessMediaFile {
+                    media_file: media_file.id.clone(),
+                })
+                .await;
+            }
+
+            to_create.extend(
+                wanted_alternates
+                    .into_iter()
+                    .map(|a| AlternateFile::new(&media_file.id, a)),
+            );
+        }
+
+        conn.queue_task(Task::DeleteAlternateFiles {
+            alternate_files: to_delete,
+        })
+        .await;
+
+        AlternateFile::upsert(conn, to_create).await
     }
 
     pub(crate) async fn list_for_catalog(
@@ -1912,6 +2044,16 @@ impl AlternateFile {
                 alternate_file::bit_rate.eq(self.bit_rate),
             ))
             .get_result::<AlternateFile>(conn)
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn delete(conn: &mut DbConnection<'_>, alternate_files: &[String]) -> Result {
+        diesel::delete(alternate_file::table)
+            .filter(alternate_file::id.eq_any(alternate_files))
+            .execute(conn)
             .await?;
 
         Ok(())

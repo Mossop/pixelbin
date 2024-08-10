@@ -46,7 +46,7 @@ fn mime_extension(mimetype: &Mime) -> &'static str {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct Alternate {
     pub(crate) file_name: String,
     pub(crate) alt_type: AlternateFileType,
@@ -121,7 +121,7 @@ pub(crate) async fn encode_alternate_video(
 pub(crate) fn alternates_for_media_file(
     config: &Config,
     media_file: &MediaFile,
-    _is_public: bool,
+    is_public: bool,
 ) -> Vec<Alternate> {
     let base_name = if let Some(idx) = media_file.file_name.rfind('.') {
         media_file.file_name[0..idx].to_owned()
@@ -149,6 +149,15 @@ pub(crate) fn alternates_for_media_file(
                 size: Some(*size as i32),
             });
         }
+    }
+
+    if is_public {
+        alternates.push(Alternate {
+            file_name: format!("{base_name}-social.{jpg_extension}"),
+            alt_type: AlternateFileType::Social,
+            mimetype: mime::IMAGE_JPEG,
+            size: None,
+        });
     }
 
     alternates.push(Alternate {

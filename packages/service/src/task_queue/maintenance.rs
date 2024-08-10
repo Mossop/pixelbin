@@ -46,6 +46,16 @@ pub(super) async fn update_searches(conn: &mut DbConnection<'_>, catalog: &str) 
     models::SavedSearch::update_for_catalog(conn, catalog).await
 }
 
+pub(super) async fn delete_alternate_files(
+    conn: &mut DbConnection<'_>,
+    alternate_files: &[String],
+) -> Result {
+    // TODO: Delete the files here.
+    models::AlternateFile::delete(conn, alternate_files).await?;
+
+    Ok(())
+}
+
 pub(super) async fn verify_storage(
     conn: &mut DbConnection<'_>,
     catalog: &str,
@@ -150,14 +160,31 @@ pub(super) async fn verify_storage(
 
             let alternate_files = models::AlternateFile::list_for_catalog(conn, catalog).await?;
             let mut modified_alternate_files = Vec::new();
+            let mut alternate_files_to_delete = Vec::new();
 
             for (mut alternate_file, media_file_path) in alternate_files {
-                let expected_resource: ResourcePath = media_file_path.into();
+                let expected_resource: ResourcePath = media_file_path.clone().into();
 
-                if let Some(required_alternates) =
+                let wanted = if let Some(required_alternates) =
                     required_alternates.get_mut(&alternate_file.media_file)
                 {
+                    let len = required_alternates.len();
                     required_alternates.retain(|alt| !alt.matches(&alternate_file));
+                    len != required_alternates.len()
+                } else {
+                    false
+                };
+
+                if !wanted {
+                    let path = media_file_path
+                        .media_file_path()
+                        .file(&alternate_file.file_name);
+                    if alternate_file.local {
+                        local_store.delete(&path).await?;
+                    } else {
+                        remote_store.delete(&path).await?;
+                    }
+                    alternate_files_to_delete.push(alternate_file.id.clone());
                 }
 
                 // Waiting to be uploaded.
@@ -195,6 +222,7 @@ pub(super) async fn verify_storage(
             }
 
             models::AlternateFile::upsert(conn, modified_alternate_files).await?;
+            models::AlternateFile::delete(conn, &alternate_files_to_delete).await?;
 
             models::MediaItem::update_media_files(conn, catalog).await?;
 
