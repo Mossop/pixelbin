@@ -194,7 +194,8 @@ pub async fn serve(store: &Store) -> Result {
                 web::scope("/media")
                     .service(media::thumbnail_handler)
                     .service(media::encoding_handler)
-                    .service(media::download_handler),
+                    .service(media::download_handler)
+                    .service(media::social_handler),
             )
     })
     .bind(("0.0.0.0", port))?

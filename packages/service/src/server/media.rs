@@ -33,6 +33,39 @@ fn not_found() -> ApiResult<HttpResponse> {
 }
 
 #[derive(Debug, Deserialize)]
+struct SocialPath {
+    item: String,
+}
+
+#[get("/{item}/social")]
+#[instrument(err, skip(app_state))]
+async fn social_handler(
+    app_state: web::Data<AppState>,
+    path: web::Path<SocialPath>,
+) -> ApiResult<impl Responder> {
+    let (alternate, path) = match app_state
+        .store
+        .with_connection(|conn| {
+            async move { models::AlternateFile::get_social(conn, &path.item).await }.scope_boxed()
+        })
+        .await
+    {
+        Ok(alternates) => alternates,
+        Err(Error::NotFound) => return not_found(),
+        Err(e) => return Err(e.into()),
+    };
+
+    let path = app_state.store.config().local_store().local_path(&path);
+    let file = File::open(&path).await?;
+    let stream = ReaderStream::new(file);
+
+    Ok(HttpResponse::Ok()
+        .content_type(alternate.mimetype.clone())
+        .append_header((header::CONTENT_LENGTH, alternate.file_size))
+        .streaming(stream))
+}
+
+#[derive(Debug, Deserialize)]
 struct DownloadPath {
     item: String,
     file: String,

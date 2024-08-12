@@ -1871,6 +1871,42 @@ impl AlternateFile {
         }
     }
 
+    pub(crate) async fn get_social(
+        conn: &mut DbConnection<'_>,
+        media_item: &str,
+    ) -> Result<(Self, FilePath)> {
+        let public_items = media_search::table
+            .inner_join(saved_search::table.on(saved_search::id.eq(media_search::search)))
+            .filter(saved_search::shared.eq(true))
+            .select(media_search::media);
+
+        let (alternate, catalog) = alternate_file::table
+            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
+            .inner_join(media_item::table.on(media_item::media_file.eq(media_file::id.nullable())))
+            .filter(
+                media_item::public
+                    .eq(true)
+                    .or(media_item::id.eq_any(public_items)),
+            )
+            .filter(alternate_file::type_.eq(AlternateFileType::Social))
+            .filter(media_item::id.eq(media_item))
+            .filter(alternate_file::stored.is_not_null())
+            .select((alternate_file::all_columns, media_item::catalog))
+            .get_result::<(AlternateFile, String)>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)?;
+
+        let path = FilePath {
+            catalog,
+            item: media_item.to_owned(),
+            file: alternate.media_file.clone(),
+            file_name: alternate.file_name.clone(),
+        };
+
+        Ok((alternate, path))
+    }
+
     pub(crate) async fn sync_for_media_files(
         conn: &mut DbConnection<'_>,
         media_files: Vec<(MediaFile, MediaFilePath, Vec<Alternate>)>,

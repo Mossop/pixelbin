@@ -51,29 +51,14 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
     metas.push({ property: "og:description", content: media.description });
   }
 
-  if (media.file) {
-    let { filename } = media;
-    if (filename) {
-      let pos = filename.lastIndexOf(".");
-      if (pos > 0) {
-        filename = filename.substring(0, pos);
-      }
-    } else {
-      filename = "image";
-    }
-
-    metas.push({
-      property: "og:image",
-      content: `${serverConfig.apiUrl.slice(0, -1)}${url([
-        "media",
-        "encoding",
-        media.id,
-        media.file.id,
-        "image-jpeg",
-        `${filename}.jpg`,
-      ])}`,
-    });
-  }
+  metas.push({
+    property: "og:image",
+    content: `${serverConfig.apiUrl.slice(0, -1)}${url([
+      "media",
+      media.id,
+      "social",
+    ])}`,
+  });
 
   return metas;
 };
