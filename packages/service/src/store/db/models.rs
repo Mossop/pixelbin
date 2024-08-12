@@ -129,6 +129,12 @@ pub enum AlternateFileType {
     Social,
 }
 
+impl AlternateFileType {
+    pub(crate) fn is_local(&self) -> bool {
+        !matches!(self, AlternateFileType::Reencode)
+    }
+}
+
 impl<DB> deserialize::FromSql<sql_types::VarChar, DB> for AlternateFileType
 where
     DB: backend::Backend,
@@ -1243,6 +1249,7 @@ pub struct MediaItem {
     pub catalog: String,
     pub media_file: Option<String>,
     pub datetime: DateTime<Utc>,
+    pub public: bool,
 }
 
 impl MediaItem {
@@ -1259,6 +1266,7 @@ impl MediaItem {
             catalog: catalog.to_owned(),
             media_file: None,
             datetime: now,
+            public: false,
         }
     }
 
@@ -1426,6 +1434,7 @@ impl MediaItem {
                     media_item::focal_length.eq(excluded(media_item::focal_length)),
                     media_item::taken.eq(excluded(media_item::taken)),
                     media_item::media_file.eq(excluded(media_item::media_file)),
+                    media_item::public.eq(excluded(media_item::public)),
                 ))
                 .execute(conn)
                 .await?;
@@ -1857,10 +1866,7 @@ impl AlternateFile {
             frame_rate: None,
             bit_rate: None,
             media_file: media_file.to_owned(),
-            local: matches!(
-                alternate.alt_type,
-                AlternateFileType::Thumbnail | AlternateFileType::Social
-            ),
+            local: alternate.alt_type.is_local(),
             stored: None,
         }
     }

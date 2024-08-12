@@ -112,12 +112,14 @@ async fn build_alternate(
     conn.isolated(Isolation::Committed, |conn| {
         async move {
             let built_file = if alternate_file.mimetype.type_() == mime::IMAGE {
-                let source_image = if alternate_file.file_type == AlternateFileType::Thumbnail {
-                    op_cache
-                        .resize(conn, cmp::max(alternate_file.width, alternate_file.height))
-                        .await?
-                } else {
-                    op_cache.decode(conn).await?
+                let source_image = match alternate_file.file_type {
+                    AlternateFileType::Thumbnail => {
+                        op_cache
+                            .resize(conn, cmp::max(alternate_file.width, alternate_file.height))
+                            .await?
+                    }
+                    AlternateFileType::Reencode => op_cache.decode(conn).await?,
+                    AlternateFileType::Social => op_cache.resize_social(conn).await?,
                 };
 
                 encode_alternate_image(&mut alternate_file, &source_image).await?

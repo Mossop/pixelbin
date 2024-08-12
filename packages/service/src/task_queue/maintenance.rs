@@ -96,7 +96,7 @@ pub(super) async fn verify_storage(
 
             for (mut media_file, media_file_path) in media_files {
                 let metadata_file: ResourcePath = media_file_path.file(METADATA_FILE).into();
-                let metadata_exists = local_files.contains_key(&metadata_file);
+                let metadata_exists = local_files.remove(&metadata_file).is_some();
 
                 let file_path = media_file_path.file(&media_file.file_name);
 
@@ -104,12 +104,13 @@ pub(super) async fn verify_storage(
 
                 let expected_resource: ResourcePath = file_path.into();
 
-                let needs_change = if media_file.stored.is_some()
-                    && remote_files.get(&expected_resource) == Some(&(media_file.file_size as u64))
+                let needs_change = if remote_files.remove(&expected_resource)
+                    == Some(media_file.file_size as u64)
+                    && media_file.stored.is_some()
                 {
                     // Media file is correctly uploaded.
-                    if !metadata_exists && !media_file.needs_metadata {
-                        media_file.needs_metadata = true;
+                    if !metadata_exists || media_file.needs_metadata {
+                        media_file.needs_metadata = !metadata_exists;
                         true
                     } else {
                         false
@@ -120,8 +121,8 @@ pub(super) async fn verify_storage(
                     media_file.stored = None;
                     requires_upload += 1;
 
-                    if !metadata_exists && !media_file.needs_metadata {
-                        media_file.needs_metadata = true;
+                    if !metadata_exists || media_file.needs_metadata {
+                        media_file.needs_metadata = !metadata_exists;
                         true
                     } else {
                         needs_change
@@ -133,9 +134,6 @@ pub(super) async fn verify_storage(
 
                     continue;
                 };
-
-                remote_files.remove(&expected_resource);
-                local_files.remove(&metadata_file);
 
                 if media_file.needs_metadata {
                     requires_metadata += 1;
@@ -185,31 +183,26 @@ pub(super) async fn verify_storage(
                         remote_store.delete(&path).await?;
                     }
                     alternate_files_to_delete.push(alternate_file.id.clone());
-                }
-
-                // Waiting to be uploaded.
-                if alternate_file.stored.is_none() {
-                    missing_alternates += 1;
-                    continue;
-                }
-
-                let stored_files = if alternate_file.local {
-                    &mut local_files
                 } else {
-                    &mut remote_files
-                };
+                    // Waiting to be uploaded.
+                    if alternate_file.stored.is_none() {
+                        missing_alternates += 1;
+                    } else {
+                        let stored_files = if alternate_file.local {
+                            &mut local_files
+                        } else {
+                            &mut remote_files
+                        };
 
-                if alternate_file.stored.is_some()
-                    && stored_files.get(&expected_resource)
-                        == Some(&(alternate_file.file_size as u64))
-                {
-                    // All good!
-                    stored_files.remove(&expected_resource);
-                } else {
-                    // We can re-upload this.
-                    alternate_file.stored = None;
-                    modified_alternate_files.push(alternate_file);
-                    missing_alternates += 1;
+                        if stored_files.remove(&expected_resource)
+                            != Some(alternate_file.file_size as u64)
+                        {
+                            // We can re-upload this.
+                            alternate_file.stored = None;
+                            modified_alternate_files.push(alternate_file);
+                            missing_alternates += 1;
+                        }
+                    }
                 }
             }
 

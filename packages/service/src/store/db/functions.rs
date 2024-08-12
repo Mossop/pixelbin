@@ -146,6 +146,7 @@ macro_rules! media_item_columns {
             crate::store::db::schema::media_item::catalog,
             crate::store::db::schema::media_item::media_file,
             crate::store::db::schema::media_item::datetime,
+            crate::store::db::schema::media_item::public,
         )
     };
 }

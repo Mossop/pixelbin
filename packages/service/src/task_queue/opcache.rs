@@ -11,11 +11,14 @@ use image::DynamicImage;
 use tokio::{fs, sync::Mutex};
 
 use crate::{
-    metadata::{load_source_image, resize_image},
+    metadata::{crop_image, load_source_image, resize_image},
     shared::{error::Ignorable, file_exists},
     store::{db::DbConnection, models, path::MediaFilePath},
     FileStore, Result,
 };
+
+const SOCIAL_WIDTH: u32 = 1200;
+const SOCIAL_HEIGHT: u32 = 630;
 
 #[derive(Clone)]
 struct Locker<R> {
@@ -102,6 +105,7 @@ pub(super) struct MediaFileOpCache {
     storage_cell: OnceCell<models::Storage>,
     ensure_local_lock: Locker<PathBuf>,
     decode_lock: Locker<DynamicImage>,
+    social_lock: Locker<DynamicImage>,
     resize_locks: MultiLocker<i32, DynamicImage>,
 }
 
@@ -114,6 +118,7 @@ impl Clone for MediaFileOpCache {
             storage_cell: Default::default(),
             ensure_local_lock: self.ensure_local_lock.clone(),
             decode_lock: self.decode_lock.clone(),
+            social_lock: self.social_lock.clone(),
             resize_locks: self.resize_locks.clone(),
         }
     }
@@ -128,6 +133,7 @@ impl MediaFileOpCache {
             storage_cell: Default::default(),
             ensure_local_lock: Default::default(),
             decode_lock: Default::default(),
+            social_lock: Default::default(),
             resize_locks: Default::default(),
         }
     }
@@ -164,7 +170,7 @@ impl MediaFileOpCache {
         conn: &mut DbConnection<'_>,
     ) -> Result<models::Storage> {
         self.storage_cell
-            .get_or_try_init(models::Storage::lock_for_catalog(
+            .get_or_try_init(models::Storage::get_for_catalog(
                 conn,
                 &self.media_file_path.catalog,
             ))
@@ -220,7 +226,30 @@ impl MediaFileOpCache {
         self.resize_locks
             .perform(size, || async {
                 let image = self.decode(conn).await?;
-                Ok(resize_image(image, size).await)
+                Ok(resize_image(image, size, size).await)
+            })
+            .await
+    }
+
+    pub(super) async fn resize_social(&self, conn: &mut DbConnection<'_>) -> Result<DynamicImage> {
+        self.social_lock
+            .perform(|| async {
+                let mut image = self.decode(conn).await?;
+
+                // Target size is 1200 x 630
+                let target_aspect = (SOCIAL_WIDTH as f32) / (SOCIAL_HEIGHT as f32);
+                let source_aspect = (image.width() as f32) / (image.height() as f32);
+
+                if source_aspect < target_aspect {
+                    // Image is too tall. We want to crop off more of the bottom than the top.
+                    let target_width = image.width();
+                    let target_height = ((target_width as f32) / target_aspect).round() as u32;
+                    let diff = image.height() - target_height;
+                    let top = diff / 3;
+                    image = crop_image(image, 0, top, target_width, target_height).await;
+                }
+
+                Ok(resize_image(image, SOCIAL_WIDTH as i32, SOCIAL_HEIGHT as i32).await)
             })
             .await
     }

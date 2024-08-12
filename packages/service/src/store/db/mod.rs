@@ -163,6 +163,7 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
         .await?;
 
     if reprocess_media {
+        trace!("Reprocessing all media metadata");
         conn.isolated(Isolation::Committed, |conn| {
             reprocess_all_media(conn).scope_boxed()
         })
@@ -170,6 +171,7 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
     }
 
     if update_search_queries {
+        trace!("Upgrading search queries");
         conn.isolated(Isolation::Committed, |conn| {
             models::SavedSearch::upgrade_queries(conn).scope_boxed()
         })
@@ -177,10 +179,13 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
     }
 
     if update_search_date {
+        trace!("Updating search dates");
         update_search_dates(&mut conn).await?;
     }
 
     if update_alternates {
+        trace!("Rebuilding missing alternate files");
+
         let mut media_items = Vec::new();
         for catalog in models::Catalog::list(&mut conn).await? {
             media_items.extend(models::MediaItem::list_public(&mut conn, &catalog.id).await?);

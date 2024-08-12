@@ -40,18 +40,44 @@ pub(crate) enum AudioCodec {
     Aac(u32),
 }
 
-pub(crate) async fn resize_image(source_image: DynamicImage, size: i32) -> DynamicImage {
+pub(crate) async fn resize_image(
+    source_image: DynamicImage,
+    width: i32,
+    height: i32,
+) -> DynamicImage {
     spawn_blocking(
         span!(
             Level::INFO,
             "image resize",
             "otel.name" = format!(
-                "image resize ({}x{} -> {size})",
+                "image resize ({}x{} -> {width}x{height})",
                 source_image.width(),
                 source_image.height()
             ),
         ),
-        move || source_image.resize(size as u32, size as u32, FilterType::Lanczos3),
+        move || source_image.resize(width as u32, height as u32, FilterType::Lanczos3),
+    )
+    .await
+}
+
+pub(crate) async fn crop_image(
+    source_image: DynamicImage,
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+) -> DynamicImage {
+    spawn_blocking(
+        span!(
+            Level::INFO,
+            "image crop",
+            "otel.name" = format!(
+                "image crop ({}x{} -> {width}x{height})",
+                source_image.width(),
+                source_image.height()
+            ),
+        ),
+        move || source_image.crop_imm(x, y, width, height),
     )
     .await
 }
