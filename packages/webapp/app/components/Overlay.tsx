@@ -24,7 +24,7 @@ export default function Overlay({
 
   let [triggerTimeout, cancel] = useTimeout(
     TIMEOUT,
-    useCallback(() => setShown(false), []),
+    useCallback(() => setShown(true), []),
     true,
   );
 

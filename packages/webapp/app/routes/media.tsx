@@ -4,6 +4,7 @@ import { MetaDescriptor, useLoaderData } from "@remix-run/react";
 import MediaLayout from "@/components/MediaLayout";
 import { ApiConfig, getMedia } from "@/modules/api";
 import { getSession } from "@/modules/session";
+import { AlternateFileType } from "@/modules/types";
 import { deserializeMediaView, mediaTitle, url } from "@/modules/util";
 
 export async function loader({
@@ -51,14 +52,16 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
     metas.push({ property: "og:description", content: media.description });
   }
 
-  metas.push({
-    property: "og:image",
-    content: `${serverConfig.apiUrl.slice(0, -1)}${url([
-      "media",
-      media.id,
-      "social",
-    ])}`,
-  });
+  if (media.file?.alternates.some((a) => a.type == AlternateFileType.Social)) {
+    metas.push({
+      property: "og:image",
+      content: `${serverConfig.apiUrl.slice(0, -1)}${url([
+        "media",
+        media.id,
+        "social",
+      ])}`,
+    });
+  }
 
   return metas;
 };

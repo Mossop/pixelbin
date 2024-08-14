@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "@remix-run/react";
+import { useFetcher, useLocation, useNavigate } from "@remix-run/react";
 import { useCallback, useMemo, useState } from "react";
 
 import { IconButton, IconLink, IconName } from "./Icon";
@@ -15,7 +15,7 @@ import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
-import { useFullscreen } from "@/modules/hooks";
+import { useCatalog, useFullscreen } from "@/modules/hooks";
 import { MediaRelations, MediaView } from "@/modules/types";
 import { formatTime, mediaDate, url } from "@/modules/util";
 
@@ -117,6 +117,8 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
   let fromGallery = !!useLocation().state?.fromGallery;
   let currentMedia = useCurrentMedia();
   let displayingMedia = currentMedia ?? media;
+  let catalog = useCatalog(displayingMedia.catalog);
+  let fetcher = useFetcher();
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
@@ -157,6 +159,26 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
     [mediaContext],
   );
 
+  let share = useCallback(async () => {
+    if (!displayingMedia.public && catalog?.writable) {
+      fetcher.submit(
+        { id: displayingMedia.id },
+        {
+          action: "/markPublic",
+          method: "POST",
+          navigate: false,
+        },
+      );
+    }
+
+    let shareUrl = new URL(
+      url(["catalog", displayingMedia.catalog, "media", displayingMedia.id]),
+      document.documentURI,
+    );
+
+    navigator.clipboard.writeText(shareUrl.toString());
+  }, [fetcher, displayingMedia, catalog]);
+
   return (
     <div
       className="c-medialayout sl-theme-dark apply-theme"
@@ -186,6 +208,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
                   icon="download"
                 />
               )}
+              <IconButton onClick={share} icon="share" />
               {isFullscreen ? (
                 <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
               ) : (

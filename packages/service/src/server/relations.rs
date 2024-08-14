@@ -306,6 +306,7 @@ async fn get_search(
 struct CatalogResponse {
     #[serde(flatten)]
     catalog: models::Catalog,
+    writable: bool,
     media: i64,
 }
 
@@ -320,14 +321,18 @@ async fn get_catalog(
         .store
         .with_connection(|conn| {
             async move {
-                let (catalog, media) = models::Catalog::get_for_user_with_count(
+                let (catalog, writable, media) = models::Catalog::get_for_user_with_count(
                     conn,
                     &session.user.email,
                     &catalog_id,
                 )
                 .await?;
 
-                Ok(CatalogResponse { catalog, media })
+                Ok(CatalogResponse {
+                    catalog,
+                    writable,
+                    media,
+                })
             }
             .scope_boxed()
         })
@@ -348,7 +353,7 @@ async fn get_catalog_media(
         .store
         .isolated(Isolation::ReadOnly, |conn| {
             async move {
-                let (catalog, media_count) = models::Catalog::get_for_user_with_count(
+                let (catalog, _writable, media_count) = models::Catalog::get_for_user_with_count(
                     conn,
                     &session.user.email,
                     &catalog_id,

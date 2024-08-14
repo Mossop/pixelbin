@@ -2,7 +2,7 @@ import { useRouteLoaderData } from "@remix-run/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiConfig } from "./api";
-import { State } from "./types";
+import { Catalog, State } from "./types";
 
 export function useTimeout(
   timeout: number,
@@ -237,6 +237,10 @@ export function useFullscreen(): FullscreenProps {
 export function useServerState(): State | undefined {
   // @ts-ignore
   return useRouteLoaderData("root")?.serverState;
+}
+
+export function useCatalog(id: string): Catalog | undefined {
+  return useServerState()?.catalogs.find((c) => c.id == id);
 }
 
 export function useServerConfig(): ApiConfig {

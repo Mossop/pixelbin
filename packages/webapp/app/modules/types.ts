@@ -27,6 +27,7 @@ export interface Catalog {
   id: string;
   name: string;
   storage: string;
+  writable: boolean;
 }
 
 export interface Person {
@@ -191,6 +192,7 @@ export interface RelationFields {
 export enum AlternateFileType {
   Thumbnail = "thumbnail",
   Reencode = "reencode",
+  Social = "social",
 }
 
 export interface MediaViewFileAlternate {
@@ -231,6 +233,7 @@ export interface MediaView {
   created: DateTime;
   updated: DateTime;
   datetime: DateTime;
+  public: boolean;
   filename: string | null;
   title: string | null;
   description: string | null;
@@ -295,3 +298,7 @@ interface Relations {
 
 export type MediaRelations = MediaView & Relations;
 export type ApiMediaRelations = ApiMediaView & Relations;
+
+export interface ApiResponse {
+  message: string;
+}

@@ -4,6 +4,7 @@ import {
   Album,
   ApiMediaRelations,
   ApiMediaView,
+  ApiResponse,
   Catalog,
   LoginResponse,
   SavedSearch,
@@ -264,7 +265,7 @@ export async function getMedia(
   session: Session,
   id: string,
 ): Promise<ApiMediaRelations> {
-  const response = await apiCall<ListMediaResponse<ApiMediaRelations>>(
+  let response = await apiCall<ListMediaResponse<ApiMediaRelations>>(
     session,
     `/api/media/${id}`,
   );
@@ -278,4 +279,16 @@ export async function getMedia(
     status: 404,
     statusText: "Not Found",
   });
+}
+
+export async function markMediaPublic(
+  session: Session,
+  id: String,
+): Promise<void> {
+  await apiCall<ApiResponse>(
+    session,
+    `/api/media/edit`,
+    POST,
+    json({ id, public: true }),
+  );
 }

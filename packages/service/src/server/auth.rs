@@ -172,11 +172,19 @@ struct SavedSearchWithCount {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+struct CatalogState {
+    #[serde(flatten)]
+    catalog: models::Catalog,
+    writable: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct UserState {
     #[serde(flatten)]
     user: models::User,
     storage: Vec<models::Storage>,
-    catalogs: Vec<models::Catalog>,
+    catalogs: Vec<CatalogState>,
     people: Vec<models::Person>,
     tags: Vec<models::Tag>,
     albums: Vec<AlbumWithCount>,
@@ -218,7 +226,14 @@ async fn state(
                 Ok(UserState {
                     user,
                     storage: models::Storage::list_for_user(conn, email).await?,
-                    catalogs: models::Catalog::list_for_user(conn, email).await?,
+                    catalogs: models::Catalog::list_for_user(conn, email)
+                        .await?
+                        .into_iter()
+                        .map(|(c, w)| CatalogState {
+                            catalog: c,
+                            writable: w,
+                        })
+                        .collect(),
                     people: models::Person::list_for_user(conn, email).await?,
                     tags: models::Tag::list_for_user(conn, email).await?,
                     albums,

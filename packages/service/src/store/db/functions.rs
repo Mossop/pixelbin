@@ -195,6 +195,7 @@ macro_rules! media_view_columns {
                 crate::store::db::schema::media_file::uploaded.nullable(),
             ),
             crate::store::db::schema::media_item::datetime,
+            crate::store::db::schema::media_item::public,
             (
                 crate::store::db::functions::media_field!(filename),
                 crate::store::db::functions::media_field!(title),

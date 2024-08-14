@@ -7,7 +7,7 @@ use std::{
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
     alias, backend, delete, deserialize,
-    dsl::{count, sql},
+    dsl::{count, count_star, sql},
     expression::SqlLiteral,
     insert_into,
     prelude::*,
@@ -369,13 +369,13 @@ impl Catalog {
     pub(crate) async fn list_for_user(
         conn: &mut DbConnection<'_>,
         email: &str,
-    ) -> Result<Vec<Catalog>> {
+    ) -> Result<Vec<(Catalog, bool)>> {
         Ok(catalog::table
             .inner_join(user_catalog::table.on(user_catalog::catalog.eq(catalog::id)))
             .filter(user_catalog::user.eq(email))
-            .select(catalog::all_columns)
+            .select((catalog::all_columns, user_catalog::writable))
             .order(catalog::name.asc())
-            .load::<Catalog>(conn)
+            .load::<(Catalog, bool)>(conn)
             .await?)
     }
 
@@ -401,18 +401,25 @@ impl Catalog {
         conn: &mut DbConnection<'_>,
         email: &str,
         catalog: &str,
-    ) -> Result<(Catalog, i64)> {
-        user_catalog::table
+    ) -> Result<(Catalog, bool, i64)> {
+        let count = media_item::table
+            .filter(media_item::catalog.eq(catalog))
+            .select(count_star())
+            .get_result::<i64>(conn)
+            .await
+            .unwrap_or_default();
+
+        let (catalog, writable) = user_catalog::table
             .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
-            .left_join(media_item::table.on(catalog::id.eq(media_item::catalog)))
             .filter(user_catalog::user.eq(email))
             .filter(catalog::id.eq(catalog))
-            .group_by(catalog::id)
-            .select((catalog::all_columns, count(media_item::id.nullable())))
-            .get_result::<(Catalog, i64)>(conn)
+            .select((catalog::all_columns, user_catalog::writable))
+            .get_result::<(Catalog, bool)>(conn)
             .await
             .optional()?
-            .ok_or_else(|| Error::NotFound)
+            .ok_or_else(|| Error::NotFound)?;
+
+        Ok((catalog, writable, count))
     }
 }
 
@@ -2172,6 +2179,7 @@ pub(crate) struct MediaView {
     pub(crate) created: DateTime<Utc>,
     pub(crate) updated: DateTime<Utc>,
     pub(crate) datetime: DateTime<Utc>,
+    pub(crate) public: bool,
     #[serde(flatten)]
     pub(crate) metadata: MediaMetadata,
     pub(crate) taken_zone: Option<String>,

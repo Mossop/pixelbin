@@ -37,6 +37,7 @@ const ICONS = {
   addPersonSearch: "account-plus",
   addTagSearch: "tag-plus",
   addAlbumSearch: "image-plus",
+  share: "share-variant",
 };
 
 export type IconName = keyof typeof ICONS;

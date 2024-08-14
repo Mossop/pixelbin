@@ -43,6 +43,7 @@ export default defineConfig({
           route("/media/*", "api/media.ts");
           route("/login", "actions/login.ts");
           route("/logout", "actions/logout.ts");
+          route("/markPublic", "actions/markPublic.ts");
           route("/*", "routes/notfound.tsx");
         });
       },

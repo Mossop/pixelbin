@@ -456,6 +456,7 @@ struct MediaUploadMetadata {
     media: Option<MediaMetadata>,
     tags: Option<Vec<Vec<String>>>,
     people: Option<Vec<PersonInfo>>,
+    public: Option<bool>,
 }
 
 #[derive(MultipartForm)]
@@ -486,6 +487,28 @@ async fn update_media_item(
     };
 
     media_item.sync_with_file(media_file.as_ref());
+
+    if let Some(public) = data.public {
+        if media_item.public != public {
+            media_item.public = public;
+
+            if let Some(file) = media_file {
+                let file_id = file.id.clone();
+                let file_path = media_item.path().media_file_path(&file.id);
+                let alternates = alternates_for_media_file(conn.config(), &file, public);
+                models::AlternateFile::sync_for_media_files(
+                    conn,
+                    vec![(file, file_path, alternates)],
+                )
+                .await?;
+
+                conn.queue_task(Task::ProcessMediaFile {
+                    media_file: file_id,
+                })
+                .await;
+            }
+        }
+    }
 
     models::MediaItem::upsert(conn, &[media_item.clone()]).await?;
 
