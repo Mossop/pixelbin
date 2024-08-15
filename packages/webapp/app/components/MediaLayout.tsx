@@ -171,12 +171,16 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       );
     }
 
-    let shareUrl = new URL(
-      url(["catalog", displayingMedia.catalog, "media", displayingMedia.id]),
-      document.documentURI,
-    );
+    let shareUrl = document.documentURI;
 
-    navigator.clipboard.writeText(shareUrl.toString());
+    if (catalog?.writable) {
+      shareUrl = new URL(
+        url(["catalog", displayingMedia.catalog, "media", displayingMedia.id]),
+        document.documentURI,
+      ).toString();
+    }
+
+    navigator.clipboard.writeText(shareUrl);
   }, [fetcher, displayingMedia, catalog]);
 
   return (
