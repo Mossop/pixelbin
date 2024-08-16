@@ -15,7 +15,7 @@ ENV PIXELBIN_API_URL="http://pixelbin-server:8283"
 
 ENTRYPOINT ["npm", "start"]
 
-HEALTHCHECK --interval=10s CMD wget -qO- http://127.0.0.1:3000/api/config || exit 1
+HEALTHCHECK --start-period=30s --start-interval=2s --interval=60s CMD wget -qO- http://127.0.0.1:3000/api/config || exit 1
 
 ARG SOURCE_CHANGESET
 ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}
