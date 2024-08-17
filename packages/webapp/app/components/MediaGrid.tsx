@@ -15,7 +15,12 @@ import {
 import { SlSpinner } from "shoelace-react";
 
 import Icon from "./Icon";
-import { Group, useGalleryGroups, useGetMediaUrl } from "./MediaGallery";
+import {
+  Group,
+  useGalleryGroups,
+  useGalleryUrl,
+  useGetMediaUrl,
+} from "./MediaGallery";
 import { Rating } from "./Rating";
 import Throbber from "./Throbber";
 import { AlternateFileType, MediaView, MediaViewFile } from "@/modules/types";
@@ -241,21 +246,24 @@ class VisibilityObserver {
 
 export default function MediaGrid() {
   let groups = useGalleryGroups();
-  let [observer, setObserver] = useState<VisibilityObserver | null>(null);
-
-  useEffect(() => {
-    setObserver(new VisibilityObserver());
-  }, []);
+  let observer = useMemo(() => new VisibilityObserver(), []);
+  let galleryUrl = useGalleryUrl();
 
   if (!groups) {
-    return <Throbber />;
+    return (
+      <div key={galleryUrl} className="c-mediagrid">
+        <Throbber />
+      </div>
+    );
   }
 
   return (
-    <VisibilityContext.Provider value={observer}>
-      {groups.map((group) => (
-        <MediaGroup key={group.id} group={group} />
-      ))}
-    </VisibilityContext.Provider>
+    <div key={galleryUrl} className="c-mediagrid">
+      <VisibilityContext.Provider value={observer}>
+        {groups.map((group) => (
+          <MediaGroup key={group.id} group={group} />
+        ))}
+      </VisibilityContext.Provider>
+    </div>
   );
 }
