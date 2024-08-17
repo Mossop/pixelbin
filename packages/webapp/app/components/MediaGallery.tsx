@@ -140,7 +140,7 @@ export function useGetMediaUrl(): (id: string) => string {
         return context.getMediaUrl(mediaId);
       }
 
-      return `${context.url}/media/${mediaId}`;
+      return `${context.url}/media/${encodeURIComponent(mediaId)}`;
     },
     [context],
   );
