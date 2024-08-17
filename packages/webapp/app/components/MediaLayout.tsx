@@ -1,5 +1,6 @@
 import { useFetcher, useLocation, useNavigate } from "@remix-run/react";
 import { useCallback, useMemo, useState } from "react";
+import { SlTooltip } from "shoelace-react";
 
 import { IconButton, IconLink, IconName } from "./Icon";
 import Media from "./Media";
@@ -159,6 +160,8 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
     [mediaContext],
   );
 
+  let [shareTooltipOpen, setShareTooltipOpen] = useState(false);
+
   let share = useCallback(async () => {
     if (!displayingMedia.public && catalog?.writable) {
       fetcher.submit(
@@ -181,6 +184,8 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
     }
 
     navigator.clipboard.writeText(shareUrl);
+
+    setShareTooltipOpen(true);
   }, [fetcher, displayingMedia, catalog]);
 
   return (
@@ -212,7 +217,17 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
                   icon="download"
                 />
               )}
-              <IconButton onClick={share} icon="share" />
+              <SlTooltip
+                open={shareTooltipOpen}
+                trigger="manual"
+                content="Address copied to clipboard"
+              >
+                <IconButton
+                  onClick={share}
+                  onMouseLeave={() => setShareTooltipOpen(false)}
+                  icon="share"
+                />
+              </SlTooltip>
               {isFullscreen ? (
                 <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
               ) : (

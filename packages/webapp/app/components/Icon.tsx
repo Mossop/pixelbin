@@ -1,7 +1,7 @@
 import { useNavigate } from "@remix-run/react";
 import clsx from "clsx";
 import { useCallback } from "react";
-import { SlIcon, SlIconButton } from "shoelace-react";
+import { SlIcon, SlIconButton, SlIconButtonProps } from "shoelace-react";
 
 import "styles/components/Icon.scss";
 
@@ -116,11 +116,12 @@ export function IconButton({
   icon,
   className,
   onClick,
+  ...props
 }: {
   icon: IconName;
   className?: string;
   onClick: () => void;
-}) {
+} & Omit<SlIconButtonProps, "className" | "onClick" | "library" | "name">) {
   let clicked = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
@@ -136,6 +137,7 @@ export function IconButton({
       library="material"
       name={ICONS[icon]}
       onClick={clicked}
+      {...props}
     />
   );
 }
