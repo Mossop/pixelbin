@@ -246,8 +246,14 @@ class VisibilityObserver {
 
 export default function MediaGrid() {
   let groups = useGalleryGroups();
-  let observer = useMemo(() => new VisibilityObserver(), []);
+  let [observer, setObserver] = useState<VisibilityObserver | null>(null);
   let galleryUrl = useGalleryUrl();
+
+  useEffect(() => {
+    if (!observer) {
+      setObserver(new VisibilityObserver());
+    }
+  }, [observer]);
 
   if (!groups) {
     return (
