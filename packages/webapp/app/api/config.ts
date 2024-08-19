@@ -1,6 +1,7 @@
+import { safeLoader } from "@/modules/actions";
 import { ApiRequest, apiFetch } from "@/modules/telemetry";
 
-export async function loader() {
+export const loader = safeLoader(async () => {
   let init: ApiRequest = {
     method: "GET",
   };
@@ -17,4 +18,4 @@ export async function loader() {
   }
 
   return new Response(JSON.stringify(config));
-}
+});

@@ -17,21 +17,6 @@ const POST: ApiRequest = { method: "POST" };
 
 const DEEP_OPTIONS = ["headers", "next"];
 
-function isNotFoundError(e: unknown): boolean {
-  if (!(e instanceof Error)) {
-    return false;
-  }
-
-  switch (e.message) {
-    case "Not yet authenticated":
-    case "Unauthorized":
-    case "Not Found":
-      return true;
-    default:
-      return false;
-  }
-}
-
 function assertAuthenticated(session: Session) {
   if (!session.get("token")) {
     throw new Error("Not yet authenticated");
@@ -91,12 +76,17 @@ async function apiCall<T>(
   try {
     return await rawApiCall(path, authenticated(session), ...options);
   } catch (e) {
-    if (isNotFoundError(e)) {
+    if (e instanceof Response) {
+      if ([404, 401, 403].includes(e.status)) {
+        // eslint-disable-next-line @typescript-eslint/no-throw-literal
+        throw new Response(null, {
+          status: 404,
+          statusText: "Not Found",
+        });
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-throw-literal
-      throw new Response(null, {
-        status: 404,
-        statusText: "Not Found",
-      });
+      throw e;
     }
 
     throw e;

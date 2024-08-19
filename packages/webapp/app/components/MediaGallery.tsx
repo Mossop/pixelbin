@@ -160,7 +160,9 @@ function fetchMedia(
 
       let grouper = new TakenGrouper();
 
-      let jsonStream = new NdjsonStream<ApiMediaView[]>();
+      let jsonStream = new NdjsonStream<
+        { media: ApiMediaView[] } | { error: string }
+      >();
       let reader = response.body
         .pipeThrough(jsonStream, {
           signal: aborter.signal,
@@ -174,8 +176,13 @@ function fetchMedia(
           break;
         }
 
-        grouper.addMedia(value.map(deserializeMediaView));
-        setContext(grouper.context);
+        if ("media" in value) {
+          grouper.addMedia(value.media.map(deserializeMediaView));
+          setContext(grouper.context);
+        } else {
+          console.error(value.error);
+          break;
+        }
       }
     })
     .catch((error) => {

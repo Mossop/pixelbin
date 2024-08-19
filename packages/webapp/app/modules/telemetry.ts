@@ -1,9 +1,13 @@
 import { Span, SpanStatusCode, trace, context } from "@opentelemetry/api";
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 
-let apiUrl = process.env.PIXELBIN_API_URL;
-if (apiUrl?.endsWith("/")) {
-  apiUrl = apiUrl.substring(0, apiUrl.length - 1);
+function apiUrl(): string {
+  let url = process.env.PIXELBIN_API_URL;
+  if (url?.endsWith("/")) {
+    return url.substring(0, url.length - 1);
+  }
+
+  return url ?? "";
 }
 
 export function inSpan<F extends (span: Span) => unknown>(
@@ -75,7 +79,7 @@ export function apiFetch(path: string, init: ApiRequest): Promise<Response> {
       },
     });
 
-    const response = await fetch(`${apiUrl}${path}`, realInit);
+    const response = await fetch(`${apiUrl()}${path}`, realInit);
 
     span.setAttribute("http.response.status_code", response.status);
 

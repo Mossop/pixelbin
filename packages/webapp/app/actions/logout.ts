@@ -1,8 +1,9 @@
 import { ActionFunctionArgs, redirect } from "@remix-run/node";
 
+import { safeAction } from "@/modules/actions";
 import { destroySession, getSession } from "@/modules/session";
 
-export async function action({ request }: ActionFunctionArgs) {
+export const action = safeAction(async ({ request }: ActionFunctionArgs) => {
   let session = await getSession(request);
 
   return redirect("/", {
@@ -10,4 +11,4 @@ export async function action({ request }: ActionFunctionArgs) {
       "Set-Cookie": await destroySession(session),
     },
   });
-}
+});
