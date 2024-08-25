@@ -7,11 +7,13 @@ pub(super) mod views;
 
 use std::{
     ops::{Deref, DerefMut},
-    pin::Pin,
+    pin::{pin, Pin},
+    task::{Context, Poll},
 };
 
 use chrono::{Duration, Utc};
 use diesel::{
+    debug_query,
     dsl::now,
     migration::{Migration, MigrationSource},
     pg::Pg,
@@ -29,9 +31,10 @@ use diesel_async::{
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use futures::Future;
+use pin_project::pin_project;
 use schema::*;
 use scoped_futures::ScopedBoxFuture;
-use tracing::{info, instrument, span, span::Id, trace, Level};
+use tracing::{field, info, instrument, span, span::Id, trace, Level, Span};
 
 use crate::{
     metadata::{alternates_for_media_file, parse_metadata, METADATA_FILE},
@@ -258,6 +261,65 @@ impl<'a> DerefMut for Conn<'a> {
     }
 }
 
+#[pin_project]
+pub struct InstrumentedFuture<Inner> {
+    #[pin]
+    inner: Inner,
+    span: Span,
+}
+
+impl<Inner> InstrumentedFuture<Inner> {
+    fn new<F>(operation: &str, query: String, cb: F) -> Self
+    where
+        F: FnOnce() -> Inner,
+    {
+        let span = span!(
+            Level::INFO,
+            "query",
+            "query" = query,
+            "otel.name" = operation,
+            "otel.status_code" = field::Empty,
+            "otel.status_description" = field::Empty,
+        );
+
+        let inner = {
+            let _entered = span.enter();
+            cb()
+        };
+
+        Self { inner, span }
+    }
+}
+
+impl<Inner, T> Future for InstrumentedFuture<Inner>
+where
+    Inner: Future<Output = QueryResult<T>>,
+{
+    type Output = QueryResult<T>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let (span, result) = {
+            let this = self.project();
+            let span = this.span.clone();
+            let _entered = this.span.enter();
+            (span, this.inner.poll(cx))
+        };
+
+        match result {
+            Poll::Ready(Ok(r)) => {
+                span.record("otel.status_code", "Ok");
+                Poll::Ready(Ok(r))
+            }
+            Poll::Ready(Err(e)) => {
+                span.record("otel.status_code", "Error");
+                span.record("otel.status_description", e.to_string());
+                Poll::Ready(Err(e))
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
 pub struct DbConnection<'conn> {
     pool: DbPool,
     conn: Conn<'conn>,
@@ -281,11 +343,11 @@ impl<'a> SimpleAsyncConnection for DbConnection<'a> {
 }
 
 impl<'a> AsyncConnection for DbConnection<'a> {
-    type ExecuteFuture<'conn, 'query> = <BackendConnection as AsyncConnection>::ExecuteFuture<'conn, 'query>
+    type ExecuteFuture<'conn, 'query> = InstrumentedFuture<<BackendConnection as AsyncConnection>::ExecuteFuture<'conn, 'query>>
     where
         Self: 'conn;
 
-    type LoadFuture<'conn, 'query> = <BackendConnection as AsyncConnection>::LoadFuture<'conn, 'query>
+    type LoadFuture<'conn, 'query> = InstrumentedFuture<<BackendConnection as AsyncConnection>::LoadFuture<'conn, 'query>>
     where
         Self: 'conn;
 
@@ -307,7 +369,7 @@ impl<'a> AsyncConnection for DbConnection<'a> {
         'life0: 'async_trait,
         Self: 'async_trait,
     {
-        todo!();
+        unimplemented!();
     }
 
     fn load<'conn, 'query, T>(&'conn mut self, source: T) -> Self::LoadFuture<'conn, 'query>
@@ -315,7 +377,11 @@ impl<'a> AsyncConnection for DbConnection<'a> {
         T: AsQuery + 'query,
         T::Query: QueryFragment<Self::Backend> + QueryId + 'query,
     {
-        AsyncConnection::load(&mut self.conn, source)
+        let query = source.as_query();
+
+        InstrumentedFuture::new("load", debug_query(&query).to_string(), move || {
+            AsyncConnection::load(&mut self.conn, query)
+        })
     }
 
     fn execute_returning_count<'conn, 'query, T>(
@@ -325,7 +391,11 @@ impl<'a> AsyncConnection for DbConnection<'a> {
     where
         T: QueryFragment<Self::Backend> + QueryId + 'query,
     {
-        AsyncConnection::execute_returning_count(&mut self.conn, source)
+        InstrumentedFuture::new(
+            "execute_returning_count",
+            debug_query(&source).to_string(),
+            move || AsyncConnection::execute_returning_count(&mut self.conn, source),
+        )
     }
 
     fn transaction_state(
