@@ -61,10 +61,7 @@ pub(crate) async fn file_exists(path: &Path) -> Result<bool> {
     }
 }
 
-pub(crate) fn record_result<T, E: std::error::Error>(
-    span: &Span,
-    result: &std::result::Result<T, E>,
-) {
+pub(crate) fn record_result<T>(span: &Span, result: &Result<T>) {
     match result {
         Ok(_) => {
             span.record("otel.status_code", DEFAULT_STATUS);
