@@ -82,7 +82,7 @@ async fn download_handler(
     let email = session.session().map(|s| s.user.email.as_str());
     let filename = path.filename.clone();
 
-    let (media_file_path, storage, mimetype, file_name) = match app_state
+    let (media_file_store, storage, mimetype, file_name) = match app_state
         .store
         .with_connection(|conn| {
             async move {
@@ -108,7 +108,7 @@ async fn download_handler(
         Err(e) => return Err(e.into()),
     };
 
-    let file_path = media_file_path.file(&file_name);
+    let file_path = media_file_store.file(&file_name);
     let uri = storage
         .online_uri(
             &file_path,
@@ -167,12 +167,12 @@ async fn thumbnail_handler(
     };
 
     match choose_alternate(alternates, target_size) {
-        Some((alternate, media_path)) => {
+        Some((alternate, file_path)) => {
             let path = app_state
                 .store
                 .config()
                 .local_store()
-                .local_path(&media_path);
+                .local_path(&file_path);
             let file = File::open(&path).await?;
             let stream = ReaderStream::new(file);
 
@@ -494,11 +494,11 @@ async fn update_media_item(
 
             if let Some(file) = media_file {
                 let file_id = file.id.clone();
-                let file_path = media_item.path().media_file_path(&file.id);
+                let media_file_store = media_item.path().media_file_store(&file.id);
                 let alternates = alternates_for_media_file(conn.config(), &file, public);
                 models::AlternateFile::sync_for_media_files(
                     conn,
-                    vec![(file, file_path, alternates)],
+                    vec![(file, media_file_store, alternates)],
                 )
                 .await?;
 
@@ -629,7 +629,7 @@ async fn upload_media(
 
                 let path = media_item
                     .path()
-                    .media_file_path(&media_file.id)
+                    .media_file_store(&media_file.id)
                     .file(&file_name);
 
                 conn.config()

@@ -13,7 +13,7 @@ use tokio::{fs, sync::Mutex};
 use crate::{
     metadata::{crop_image, load_source_image, resize_image},
     shared::{error::Ignorable, file_exists},
-    store::{db::DbConnection, models, path::MediaFilePath},
+    store::{db::DbConnection, models, path::MediaFileStore},
     FileStore, Result,
 };
 
@@ -84,11 +84,11 @@ impl OpCache {
         media_file_id: &str,
     ) -> Result<MediaFileOpCache> {
         let mut media_files = self.media_files.lock().await;
-        let (media_file, media_file_path) = models::MediaFile::get(conn, media_file_id).await?;
+        let (media_file, media_file_store) = models::MediaFile::get(conn, media_file_id).await?;
 
         let mut cache = media_files
             .entry(media_file.id.clone())
-            .or_insert_with(|| MediaFileOpCache::new(&media_file, &media_file_path))
+            .or_insert_with(|| MediaFileOpCache::new(&media_file, &media_file_store))
             .clone();
 
         cache.media_file = media_file;
@@ -100,7 +100,7 @@ pub(super) static OP_CACHE: LazyLock<OpCache> = LazyLock::new(Default::default);
 
 pub(super) struct MediaFileOpCache {
     pub(super) media_file: models::MediaFile,
-    pub(super) media_file_path: MediaFilePath,
+    pub(super) media_file_store: MediaFileStore,
 
     storage_cell: OnceCell<models::Storage>,
     ensure_local_lock: Locker<PathBuf>,
@@ -113,7 +113,7 @@ impl Clone for MediaFileOpCache {
     fn clone(&self) -> Self {
         Self {
             media_file: self.media_file.clone(),
-            media_file_path: self.media_file_path.clone(),
+            media_file_store: self.media_file_store.clone(),
 
             storage_cell: Default::default(),
             ensure_local_lock: self.ensure_local_lock.clone(),
@@ -125,10 +125,10 @@ impl Clone for MediaFileOpCache {
 }
 
 impl MediaFileOpCache {
-    fn new(media_file: &models::MediaFile, media_file_path: &MediaFilePath) -> Self {
+    fn new(media_file: &models::MediaFile, media_file_store: &MediaFileStore) -> Self {
         Self {
             media_file: media_file.clone(),
-            media_file_path: media_file_path.clone(),
+            media_file_store: media_file_store.clone(),
 
             storage_cell: Default::default(),
             ensure_local_lock: Default::default(),
@@ -139,7 +139,7 @@ impl MediaFileOpCache {
     }
 
     pub(super) async fn release(&self, conn: &mut DbConnection<'_>) -> Result {
-        let (media_file, _) = models::MediaFile::get(conn, &self.media_file_path.file).await?;
+        let (media_file, _) = models::MediaFile::get(conn, &self.media_file_store.file).await?;
 
         if media_file.stored.is_none() || media_file.needs_metadata {
             return Ok(());
@@ -155,9 +155,7 @@ impl MediaFileOpCache {
 
         // Delete local file if present
         let temp_store = conn.config().temp_store();
-        let temp_path = temp_store.local_path(&self.media_file_path.file(&media_file.file_name));
-
-        fs::remove_file(&temp_path).await.ignore();
+        temp_store.prune(&self.media_file_store).await.ignore();
 
         let mut media_files = OP_CACHE.media_files.lock().await;
         media_files.remove(&self.media_file.id);
@@ -172,7 +170,7 @@ impl MediaFileOpCache {
         self.storage_cell
             .get_or_try_init(models::Storage::get_for_catalog(
                 conn,
-                &self.media_file_path.catalog,
+                &self.media_file_store.catalog,
             ))
             .await
             .cloned()
@@ -181,7 +179,7 @@ impl MediaFileOpCache {
     pub(super) async fn ensure_local(&self, conn: &mut DbConnection<'_>) -> Result<PathBuf> {
         self.ensure_local_lock
             .perform(|| async {
-                let file_path = self.media_file_path.file(&self.media_file.file_name);
+                let file_path = self.media_file_store.file(&self.media_file.file_name);
                 let temp_store = conn.config().temp_store();
                 let temp_path = temp_store.local_path(&file_path);
 

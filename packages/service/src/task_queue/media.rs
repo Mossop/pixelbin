@@ -26,7 +26,7 @@ async fn extract_metadata(conn: &mut DbConnection<'_>, op_cache: MediaFileOpCach
             let local_store = conn.config().local_store();
 
             let metadata_path =
-                local_store.local_path(&op_cache.media_file_path.file(METADATA_FILE));
+                local_store.local_path(&op_cache.media_file_store.file(METADATA_FILE));
 
             let metadata: FileMetadata = if file_exists(&metadata_path).await? {
                 parse_metadata(&metadata_path).await?
@@ -51,7 +51,7 @@ async fn extract_metadata(conn: &mut DbConnection<'_>, op_cache: MediaFileOpCach
             metadata.apply_to_media_file(&mut media_file);
             models::MediaFile::upsert(conn, vec![media_file.clone()]).await?;
 
-            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await
+            models::MediaItem::update_media_files(conn, &op_cache.media_file_store.catalog).await
         }
         .scope_boxed()
     })
@@ -63,14 +63,14 @@ async fn upload_media_file(conn: &mut DbConnection<'_>, mut op_cache: MediaFileO
     conn.isolated(Isolation::Committed, |conn| {
         async move {
             if op_cache.media_file.stored.is_some() {
-                models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog)
+                models::MediaItem::update_media_files(conn, &op_cache.media_file_store.catalog)
                     .await?;
                 return op_cache.release(conn).await;
             }
 
             let temp_store = conn.config().temp_store();
             let file_path = op_cache
-                .media_file_path
+                .media_file_store
                 .file(&op_cache.media_file.file_name);
             let temp_file = temp_store.local_path(&file_path);
 
@@ -81,7 +81,7 @@ async fn upload_media_file(conn: &mut DbConnection<'_>, mut op_cache: MediaFileO
             }
 
             let storage =
-                models::Storage::lock_for_catalog(conn, &op_cache.media_file_path.catalog).await?;
+                models::Storage::lock_for_catalog(conn, &op_cache.media_file_store.catalog).await?;
             let remote_store = storage.file_store(conn.config()).await?;
 
             remote_store
@@ -90,7 +90,7 @@ async fn upload_media_file(conn: &mut DbConnection<'_>, mut op_cache: MediaFileO
 
             op_cache.media_file.mark_stored(conn).await?;
 
-            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await
+            models::MediaItem::update_media_files(conn, &op_cache.media_file_store.catalog).await
         }
         .scope_boxed()
     })
@@ -129,7 +129,7 @@ async fn build_alternate(
             };
 
             let storage = op_cache.lock_storage(conn).await?;
-            let file_path = op_cache.media_file_path.file(&alternate_file.file_name);
+            let file_path = op_cache.media_file_store.file(&alternate_file.file_name);
             if alternate_file.local {
                 let store = conn.config().local_store();
                 store
@@ -144,7 +144,7 @@ async fn build_alternate(
 
             alternate_file.mark_stored(conn).await?;
 
-            models::MediaItem::update_media_files(conn, &op_cache.media_file_path.catalog).await
+            models::MediaItem::update_media_files(conn, &op_cache.media_file_store.catalog).await
         }
         .scope_boxed()
     })

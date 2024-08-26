@@ -40,7 +40,7 @@ use tracing::{field, info, instrument, span, span::Id, trace, Level, Span};
 use crate::{
     metadata::{alternates_for_media_file, parse_metadata, METADATA_FILE},
     shared::{file_exists, long_id, record_result, spawn_blocking, DEFAULT_STATUS},
-    store::{db::functions::media_file_columns, path::MediaFilePath, Isolation},
+    store::{db::functions::media_file_columns, path::MediaFileStore, Isolation},
     Config, Error, Result, Store, Task, TaskQueue,
 };
 
@@ -66,13 +66,13 @@ async fn reprocess_all_media(conn: &mut DbConnection<'_>) -> Result {
     let mut media_files = Vec::new();
 
     for (mut media_file, catalog) in files.into_iter() {
-        let media_file_path = MediaFilePath {
+        let media_file_store = MediaFileStore {
             catalog,
             item: media_file.media_item.clone(),
             file: media_file.id.clone(),
         };
 
-        let metadata_path = local_store.local_path(&media_file_path.file(METADATA_FILE));
+        let metadata_path = local_store.local_path(&media_file_store.file(METADATA_FILE));
         if file_exists(&metadata_path).await? {
             let metadata = parse_metadata(&metadata_path).await?;
             metadata.apply_to_media_file(&mut media_file);
@@ -197,12 +197,12 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
 
         let mut alternates_to_update = Vec::new();
 
-        for (media_file, media_file_path) in
+        for (media_file, media_file_store) in
             models::MediaFile::list_for_items(&mut conn, &media_items).await?
         {
             let alternates = alternates_for_media_file(conn.config(), &media_file, true);
 
-            alternates_to_update.push((media_file, media_file_path, alternates));
+            alternates_to_update.push((media_file, media_file_store, alternates));
         }
 
         models::AlternateFile::sync_for_media_files(&mut conn, alternates_to_update).await?;

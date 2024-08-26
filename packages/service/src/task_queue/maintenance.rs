@@ -9,7 +9,7 @@ use crate::{
     store::{
         db::DbConnection,
         models,
-        path::{CatalogPath, ResourcePath},
+        path::{CatalogStore, ResourcePath},
         FileStore, Isolation,
     },
     Ignorable, Result, Task,
@@ -77,7 +77,7 @@ pub(super) async fn verify_storage(
             let local_store = conn.config().local_store();
             let temp_store = conn.config().temp_store();
 
-            let resource = CatalogPath {
+            let resource = CatalogStore {
                 catalog: catalog.to_owned(),
             };
             let (remote_files, local_files) = join!(
@@ -94,11 +94,11 @@ pub(super) async fn verify_storage(
 
             let mut required_alternates: HashMap<String, Vec<Alternate>> = HashMap::new();
 
-            for (mut media_file, media_file_path) in media_files {
-                let metadata_file: ResourcePath = media_file_path.file(METADATA_FILE).into();
+            for (mut media_file, media_file_store) in media_files {
+                let metadata_file: ResourcePath = media_file_store.file(METADATA_FILE).into();
                 let metadata_exists = local_files.remove(&metadata_file).is_some();
 
-                let file_path = media_file_path.file(&media_file.file_name);
+                let file_path = media_file_store.file(&media_file.file_name);
 
                 let temp_exists = temp_store.exists(&file_path).await?;
 
@@ -175,7 +175,7 @@ pub(super) async fn verify_storage(
 
                 if !wanted {
                     let path = media_file_path
-                        .media_file_path()
+                        .media_file_store()
                         .file(&alternate_file.file_name);
                     if alternate_file.local {
                         local_store.delete(&path).await?;
@@ -237,7 +237,7 @@ pub(super) async fn verify_storage(
                 }
             }
 
-            let catalog_resource = CatalogPath {
+            let catalog_resource = CatalogStore {
                 catalog: catalog.to_owned(),
             };
 
@@ -281,10 +281,10 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
             let ids: Vec<String> = prunable.iter().map(|(mf, _)| mf.id.clone()).collect();
             models::MediaFile::delete(conn, &ids).await?;
 
-            for (_, media_file_path) in prunable {
-                remote_store.delete(&media_file_path).await.warn();
-                local_store.delete(&media_file_path).await.warn();
-                temp_store.delete(&media_file_path).await.warn();
+            for (_, media_file_store) in prunable {
+                remote_store.delete(&media_file_store).await.warn();
+                local_store.delete(&media_file_store).await.warn();
+                temp_store.delete(&media_file_store).await.warn();
             }
 
             Ok(())

@@ -38,7 +38,7 @@ use crate::{
             Backend,
         },
         models,
-        path::{FilePath, MediaFilePath, MediaItemPath},
+        path::{FilePath, MediaFileStore, MediaItemStore},
         DbConnection,
     },
     Config, Error, FileStore, Result, Task,
@@ -986,16 +986,16 @@ impl SavedSearch {
 
         let mut alternates_to_update = Vec::new();
 
-        for (media_file, media_file_path) in
+        for (media_file, media_file_store) in
             models::MediaFile::list_for_items(conn, &changed_items).await?
         {
             let alternates = alternates_for_media_file(
                 conn.config(),
                 &media_file,
-                now_public.contains(&media_file_path.item),
+                now_public.contains(&media_file_store.item),
             );
 
-            alternates_to_update.push((media_file, media_file_path, alternates));
+            alternates_to_update.push((media_file, media_file_store, alternates));
         }
 
         models::AlternateFile::sync_for_media_files(conn, alternates_to_update).await
@@ -1328,7 +1328,7 @@ impl MediaItem {
     pub(crate) async fn list_prunable(
         conn: &mut DbConnection<'_>,
         catalog: &str,
-    ) -> Result<Vec<(MediaItem, MediaItemPath)>> {
+    ) -> Result<Vec<(MediaItem, MediaItemStore)>> {
         // Lists the items with no media_files.
         let items = media_item::table
             .left_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
@@ -1341,11 +1341,11 @@ impl MediaItem {
         Ok(items
             .into_iter()
             .map(|media_item| {
-                let media_path = MediaItemPath {
+                let media_file_store = MediaItemStore {
                     catalog: media_item.catalog.clone(),
                     item: media_item.id.clone(),
                 };
-                (media_item, media_path)
+                (media_item, media_file_store)
             })
             .collect())
     }
@@ -1475,8 +1475,8 @@ impl MediaItem {
         self.datetime = media_datetime(self, media_file);
     }
 
-    pub(crate) fn path(&self) -> MediaItemPath {
-        MediaItemPath {
+    pub(crate) fn path(&self) -> MediaItemStore {
+        MediaItemStore {
             catalog: self.catalog.clone(),
             item: self.id.clone(),
         }
@@ -1550,7 +1550,7 @@ impl MediaFile {
     pub(crate) async fn list_for_items(
         conn: &mut DbConnection<'_>,
         items: &[String],
-    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+    ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         let files = media_file::table
             .inner_join(media_item::table.on(media_item::media_file.eq(media_file::id.nullable())))
             .filter(media_item::id.eq_any(items))
@@ -1562,12 +1562,12 @@ impl MediaFile {
         Ok(files
             .into_iter()
             .map(|(media_file, catalog)| {
-                let media_path = MediaFilePath {
+                let media_file_store = MediaFileStore {
                     catalog,
                     item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                 };
-                (media_file, media_path)
+                (media_file, media_file_store)
             })
             .collect())
     }
@@ -1576,7 +1576,7 @@ impl MediaFile {
     pub(crate) async fn list_newest(
         conn: &mut DbConnection<'_>,
         catalog: &str,
-    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+    ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         let files = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
             .filter(media_item::catalog.eq(catalog))
@@ -1590,12 +1590,12 @@ impl MediaFile {
         Ok(files
             .into_iter()
             .map(|(media_file, catalog)| {
-                let media_path = MediaFilePath {
+                let media_file_store = MediaFileStore {
                     catalog,
                     item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                 };
-                (media_file, media_path)
+                (media_file, media_file_store)
             })
             .collect())
     }
@@ -1630,7 +1630,7 @@ impl MediaFile {
     pub(crate) async fn list_prunable(
         conn: &mut DbConnection<'_>,
         catalog: &str,
-    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+    ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         // Lists the files that are older than the current valid media file.
         let current_file = alias!(media_file as current_file);
         let files = media_file::table
@@ -1651,12 +1651,12 @@ impl MediaFile {
         Ok(files
             .into_iter()
             .map(|(media_file, catalog)| {
-                let media_path = MediaFilePath {
+                let media_file_store = MediaFileStore {
                     catalog,
                     item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                 };
-                (media_file, media_path)
+                (media_file, media_file_store)
             })
             .collect())
     }
@@ -1664,7 +1664,7 @@ impl MediaFile {
     pub(crate) async fn list_for_catalog(
         conn: &mut DbConnection<'_>,
         catalog: &str,
-    ) -> Result<Vec<(MediaFile, MediaFilePath)>> {
+    ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         let files = media_file::table
             .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
             .filter(media_item::catalog.eq(&catalog))
@@ -1675,7 +1675,7 @@ impl MediaFile {
         Ok(files
             .into_iter()
             .map(|media_file| {
-                let file_path = MediaFilePath {
+                let file_path = MediaFileStore {
                     catalog: catalog.to_owned(),
                     item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
@@ -1690,7 +1690,7 @@ impl MediaFile {
         email: Option<&str>,
         media: &str,
         file: &str,
-    ) -> Result<(MediaFile, MediaFilePath)> {
+    ) -> Result<(MediaFile, MediaFileStore)> {
         let email = email.unwrap_or_default().to_owned();
 
         let (media_file, catalog) = media_file::table
@@ -1720,7 +1720,7 @@ impl MediaFile {
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
 
-        let file_path = MediaFilePath {
+        let file_path = MediaFileStore {
             catalog,
             item: media.to_owned(),
             file: file.to_owned(),
@@ -1731,7 +1731,7 @@ impl MediaFile {
     pub(crate) async fn get(
         conn: &mut DbConnection<'_>,
         id: &str,
-    ) -> Result<(MediaFile, MediaFilePath)> {
+    ) -> Result<(MediaFile, MediaFileStore)> {
         let (media_file, catalog) = media_file::table
             .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
             .filter(media_file::id.eq(id))
@@ -1741,7 +1741,7 @@ impl MediaFile {
             .optional()?
             .ok_or_else(|| Error::NotFound)?;
 
-        let file_path = MediaFilePath {
+        let file_path = MediaFileStore {
             catalog,
             item: media_file.media_item.clone(),
             file: media_file.id.clone(),
@@ -1916,7 +1916,7 @@ impl AlternateFile {
 
     pub(crate) async fn sync_for_media_files(
         conn: &mut DbConnection<'_>,
-        media_files: Vec<(MediaFile, MediaFilePath, Vec<Alternate>)>,
+        media_files: Vec<(MediaFile, MediaFileStore, Vec<Alternate>)>,
     ) -> Result {
         // Mapped by media_file ID.
         let mut existing_alternates: HashMap<String, Vec<AlternateFile>> = HashMap::new();

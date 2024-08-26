@@ -201,7 +201,32 @@ impl FileStore for DiskStore {
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
-        Self::prune_path(&self.local_path(path)).await?;
+        let local_path = self.local_path(path);
+
+        if Self::prune_path(&local_path).await? {
+            let mut current = local_path.as_path();
+
+            while let Some(parent) = current.parent() {
+                if parent == self.root {
+                    break;
+                }
+
+                if let Ok(mut reader) = fs::read_dir(parent).await {
+                    match reader.next_entry().await {
+                        Ok(None) => {
+                            if fs::remove_dir(parent).await.is_err() {
+                                break;
+                            }
+                        }
+                        _ => break,
+                    }
+                } else {
+                    break;
+                }
+
+                current = parent;
+            }
+        }
 
         Ok(())
     }

@@ -16,9 +16,9 @@ pub trait PathLike {
 #[enum_dispatch(PathLike)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ResourcePath {
-    Catalog(CatalogPath),
-    MediaItem(MediaItemPath),
-    MediaFile(MediaFilePath),
+    CatalogStore(CatalogStore),
+    MediaItemStore(MediaItemStore),
+    MediaFileStore(MediaFileStore),
     File(FilePath),
 }
 
@@ -37,19 +37,19 @@ impl ResourcePath {
         let item = if let Some(i) = iter.next() {
             i.to_owned()
         } else {
-            return Ok(CatalogPath { catalog }.into());
+            return Ok(CatalogStore { catalog }.into());
         };
 
         let file = if let Some(f) = iter.next() {
             f.to_owned()
         } else {
-            return Ok(MediaItemPath { catalog, item }.into());
+            return Ok(MediaItemStore { catalog, item }.into());
         };
 
         let file_name = if let Some(f) = iter.next() {
             f.to_owned()
         } else {
-            return Ok(MediaFilePath {
+            return Ok(MediaFileStore {
                 catalog,
                 item,
                 file,
@@ -82,31 +82,31 @@ impl fmt::Display for ResourcePath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CatalogPath {
+pub struct CatalogStore {
     pub(crate) catalog: String,
 }
 
-impl PathLike for CatalogPath {
+impl PathLike for CatalogStore {
     fn path_parts(&self) -> Vec<&str> {
         vec![&self.catalog]
     }
 }
 
-impl fmt::Display for CatalogPath {
+impl fmt::Display for CatalogStore {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.path_parts().join("/"))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MediaItemPath {
+pub struct MediaItemStore {
     pub(crate) catalog: String,
     pub(crate) item: String,
 }
 
-impl MediaItemPath {
-    pub(crate) fn media_file_path(&self, media_file: &str) -> MediaFilePath {
-        MediaFilePath {
+impl MediaItemStore {
+    pub(crate) fn media_file_store(&self, media_file: &str) -> MediaFileStore {
+        MediaFileStore {
             catalog: self.catalog.clone(),
             item: self.item.clone(),
             file: media_file.to_owned(),
@@ -114,26 +114,26 @@ impl MediaItemPath {
     }
 }
 
-impl PathLike for MediaItemPath {
+impl PathLike for MediaItemStore {
     fn path_parts(&self) -> Vec<&str> {
         vec![&self.catalog, &self.item]
     }
 }
 
-impl fmt::Display for MediaItemPath {
+impl fmt::Display for MediaItemStore {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.path_parts().join("/"))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MediaFilePath {
+pub struct MediaFileStore {
     pub(crate) catalog: String,
     pub(crate) item: String,
     pub(crate) file: String,
 }
 
-impl MediaFilePath {
+impl MediaFileStore {
     pub(crate) fn file(&self, file_name: &str) -> FilePath {
         FilePath {
             catalog: self.catalog.clone(),
@@ -144,15 +144,9 @@ impl MediaFilePath {
     }
 }
 
-impl PathLike for MediaFilePath {
+impl PathLike for MediaFileStore {
     fn path_parts(&self) -> Vec<&str> {
         vec![&self.catalog, &self.item, &self.file]
-    }
-}
-
-impl fmt::Display for MediaFilePath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.path_parts().join("/"))
     }
 }
 
@@ -165,21 +159,21 @@ pub struct FilePath {
 }
 
 impl FilePath {
-    pub fn catalog_path(&self) -> CatalogPath {
-        CatalogPath {
+    pub fn catalog_store(&self) -> CatalogStore {
+        CatalogStore {
             catalog: self.catalog.clone(),
         }
     }
 
-    pub fn media_item_path(&self) -> MediaItemPath {
-        MediaItemPath {
+    pub fn media_item_store(&self) -> MediaItemStore {
+        MediaItemStore {
             catalog: self.catalog.clone(),
             item: self.item.clone(),
         }
     }
 
-    pub fn media_file_path(&self) -> MediaFilePath {
-        MediaFilePath {
+    pub fn media_file_store(&self) -> MediaFileStore {
+        MediaFileStore {
             catalog: self.catalog.clone(),
             item: self.item.clone(),
             file: self.file.clone(),
@@ -202,21 +196,3 @@ impl fmt::Display for FilePath {
         f.write_str(&self.path_parts().join("/"))
     }
 }
-
-// #[derive(Debug, Clone)]
-// pub struct CatalogTree {
-//     pub(crate) path: CatalogPath,
-//     pub(crate) items: HashMap<String, MediaItemTree>,
-// }
-
-// #[derive(Debug, Clone)]
-// pub struct MediaItemTree {
-//     pub(crate) path: MediaItemPath,
-//     pub(crate) files: HashMap<String, MediaFileTree>,
-// }
-
-// #[derive(Debug, Clone)]
-// pub struct MediaFileTree {
-//     pub(crate) path: MediaFilePath,
-//     pub(crate) files: HashMap<String, FilePath>,
-// }
