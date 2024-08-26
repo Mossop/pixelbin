@@ -6,7 +6,7 @@ export const loader = safeLoader(async () => {
     method: "GET",
   };
 
-  let response = await apiFetch("/api/config", init);
+  let response = await apiFetch("/api/config", "config", init);
 
   if (response.status < 200 || response.status >= 300) {
     return response;

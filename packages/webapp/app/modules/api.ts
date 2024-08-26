@@ -40,6 +40,7 @@ function json(data: object): ApiRequest {
 
 async function rawApiCall<T>(
   path: string,
+  label: string,
   ...options: ApiRequest[]
 ): Promise<T> {
   const init = { ...GET };
@@ -56,7 +57,7 @@ async function rawApiCall<T>(
     }
   }
 
-  const response = await apiFetch(path, init);
+  const response = await apiFetch(path, label, init);
 
   if (response.ok) {
     return response.json();
@@ -71,10 +72,11 @@ async function rawApiCall<T>(
 async function apiCall<T>(
   session: Session,
   path: string,
+  label: string,
   ...options: ApiRequest[]
 ): Promise<T> {
   try {
-    return await rawApiCall(path, authenticated(session), ...options);
+    return await rawApiCall(path, label, authenticated(session), ...options);
   } catch (e) {
     if (e instanceof Response) {
       if ([404, 401, 403].includes(e.status)) {
@@ -106,12 +108,13 @@ export interface ApiConfig {
 }
 
 export async function config(): Promise<ApiConfig> {
-  return rawApiCall<ApiConfig>("/api/config");
+  return rawApiCall<ApiConfig>("/api/config", "config");
 }
 
 export async function login(session: Session, email: string, password: string) {
   const response = await rawApiCall<LoginResponse>(
     "/api/login",
+    "login",
     POST,
     json({
       email,
@@ -127,14 +130,18 @@ export async function login(session: Session, email: string, password: string) {
 
 export async function logout(session: Session) {
   if (session.get("token")) {
-    apiCall(session, "/api/logout", POST, { cache: "no-store" });
+    apiCall(session, "/api/logout", "logout", POST, { cache: "no-store" });
   }
 }
 
 export async function state(session: Session): Promise<State | undefined> {
   if (session.get("token")) {
     try {
-      return await rawApiCall<State>("/api/state", authenticated(session));
+      return await rawApiCall<State>(
+        "/api/state",
+        "state",
+        authenticated(session),
+      );
     } catch (e) {
       console.error(e);
     }
@@ -146,14 +153,14 @@ export async function state(session: Session): Promise<State | undefined> {
 export async function getAlbum(session: Session, id: string): Promise<Album> {
   assertAuthenticated(session);
 
-  return apiCall<Album>(session, `/api/album/${id}`);
+  return apiCall<Album>(session, `/api/album/${id}`, "getAlbum");
 }
 
 export async function getSearch(
   session: Session,
   id: string,
 ): Promise<SavedSearch> {
-  return apiCall<SavedSearch>(session, `/api/search/${id}`);
+  return apiCall<SavedSearch>(session, `/api/search/${id}`, "getSearch");
 }
 
 export async function getCatalog(
@@ -162,7 +169,7 @@ export async function getCatalog(
 ): Promise<Catalog> {
   assertAuthenticated(session);
 
-  return apiCall<Catalog>(session, `/api/catalog/${id}`);
+  return apiCall<Catalog>(session, `/api/catalog/${id}`, "getCatalog");
 }
 
 interface ListMediaResponse<T> {
@@ -184,6 +191,7 @@ export async function* listMedia(
   let response = await apiCall<ListMediaResponse<ApiMediaView>>(
     session,
     `/api/${source}/${id}/media?count=${LIST_COUNT}`,
+    "listMedia",
   );
 
   yield response.media;
@@ -195,6 +203,7 @@ export async function* listMedia(
       apiCall<ListMediaResponse<ApiMediaView>>(
         session,
         `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
+        "listMedia",
       ),
     );
 
@@ -216,6 +225,7 @@ export async function* searchMedia(
   let response = await apiCall<ListMediaResponse<ApiMediaView>>(
     session,
     `/api/search`,
+    "searchMedia",
     POST,
     json({
       catalog,
@@ -233,6 +243,7 @@ export async function* searchMedia(
       apiCall<ListMediaResponse<ApiMediaView>>(
         session,
         `/api/search`,
+        "searchMedia",
         POST,
         json({
           catalog,
@@ -258,6 +269,7 @@ export async function getMedia(
   let response = await apiCall<ListMediaResponse<ApiMediaRelations>>(
     session,
     `/api/media/${id}`,
+    "getMedia",
   );
 
   if (response.media.length) {
@@ -278,6 +290,7 @@ export async function markMediaPublic(
   await apiCall<ApiResponse>(
     session,
     `/api/media/edit`,
+    "getMedia",
     POST,
     json({ id, public: true }),
   );

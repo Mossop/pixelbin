@@ -56,10 +56,14 @@ export type ApiRequest = Omit<RequestInit, "headers"> & {
   headers?: Record<string, string>;
 };
 
-export function apiFetch(path: string, init: ApiRequest): Promise<Response> {
+export function apiFetch(
+  path: string,
+  label: string,
+  init: ApiRequest,
+): Promise<Response> {
   const method = init.method ?? "GET";
 
-  return inSpan(`API ${method} ${path}`, async (span: Span) => {
+  return inSpan(`API ${method} ${label}`, async (span: Span) => {
     span.setAttributes({
       "http.method": method,
       "url.path": path,

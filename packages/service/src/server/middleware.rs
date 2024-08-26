@@ -67,7 +67,7 @@ where
             Level::INFO,
             "api request",
             "duration" = field::Empty,
-            "otel.name" = format!("{} {}", req.method(), req.path()),
+            "otel.name" = format!("HTTP {}", req.method()),
             "otel.kind" = "server",
             "url.path" = req.path(),
             "http.request.method" = %req.method(),
@@ -93,7 +93,12 @@ where
                 span.record("duration", duration);
 
                 if status.is_server_error() || status.is_client_error() {
-                    record_error(&span, status.as_str());
+                    let message = if let Some(r) = status.canonical_reason() {
+                        format!("{} {}", status.as_str(), r)
+                    } else {
+                        status.as_str().to_owned()
+                    };
+                    record_error(&span, &message);
                 } else if duration >= 250 {
                     warn!(duration = duration, "Slow response");
                 };

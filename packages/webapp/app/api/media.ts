@@ -23,7 +23,7 @@ export const loader = safeLoader(
       init.headers!.Authorization = `Bearer ${token}`;
     }
 
-    let response = await apiFetch(`/media/${params["*"]}`, init);
+    let response = await apiFetch(`/media/${params["*"]}`, "media", init);
 
     if (response.status >= 300 && response.status < 400) {
       let location = response.headers.get("location");
