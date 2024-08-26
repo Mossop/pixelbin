@@ -161,7 +161,7 @@ function fetchMedia(
       let grouper = new TakenGrouper();
 
       let jsonStream = new NdjsonStream<
-        { media: ApiMediaView[] } | { error: string }
+        { media: ApiMediaView } | { error: string }
       >();
       let reader = response.body
         .pipeThrough(jsonStream, {
@@ -177,7 +177,7 @@ function fetchMedia(
         }
 
         if ("media" in value) {
-          grouper.addMedia(value.media.map(deserializeMediaView));
+          grouper.addMedia([deserializeMediaView(value.media)]);
           setContext(grouper.context);
         } else {
           console.error(value.error);

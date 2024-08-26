@@ -1,9 +1,12 @@
 use std::{
     cmp::min,
     collections::{HashMap, HashSet},
+    future::Future,
     result,
+    task::Poll,
 };
 
+use actix_web::web::Bytes;
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use diesel::{
     alias, backend, delete, deserialize,
@@ -16,16 +19,20 @@ use diesel::{
     AsExpression, Queryable,
 };
 use diesel_async::RunQueryDsl;
+use futures::{Stream, StreamExt};
 use mime::Mime;
+use pin_project::pin_project;
+use scoped_futures::ScopedFutureExt;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::{from_value, Value};
+use serde_json::{from_value, to_string, Value};
 use serde_repr::Serialize_repr;
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tracing::instrument;
 use typeshare::typeshare;
 
 use crate::{
     metadata::{alternates_for_media_file, lookup_timezone, media_datetime, Alternate},
-    shared::{long_id, mime::MimeField, short_id},
+    shared::{error::Ignorable, long_id, mime::MimeField, short_id},
     store::{
         aws::AwsClient,
         db::{
@@ -41,7 +48,7 @@ use crate::{
         path::{FilePath, MediaFileStore, MediaItemStore},
         DbConnection,
     },
-    Config, Error, FileStore, Result, Task,
+    Config, Error, FileStore, Result, Store, Task,
 };
 
 fn sql_bool(b: bool) -> SqlLiteral<sql_types::Bool> {
@@ -106,6 +113,99 @@ fn owned_batch<T>(collection: Vec<T>, count: usize) -> OwnedBatch<T> {
     OwnedBatch {
         collection: Some(collection),
         count,
+    }
+}
+
+#[pin_project]
+pub(crate) struct MediaViewStream {
+    is_done: bool,
+    receiver: Receiver<Option<Result<models::MediaView>>>,
+}
+
+impl MediaViewStream {
+    pub(crate) fn new() -> (Self, MediaViewSender) {
+        let (sender, receiver) = channel(100);
+
+        (
+            Self {
+                is_done: false,
+                receiver,
+            },
+            MediaViewSender { sender },
+        )
+    }
+}
+
+impl Stream for MediaViewStream {
+    type Item = Result<Bytes>;
+
+    fn poll_next(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        let this = self.project();
+
+        if *this.is_done {
+            return Poll::Ready(None);
+        }
+
+        match this.receiver.poll_recv(cx) {
+            Poll::Ready(Some(item)) => match item {
+                Some(Ok(media_view)) => match to_string(&media_view) {
+                    Ok(st) => {
+                        Poll::Ready(Some(Ok(Bytes::from(format!("{{ \"media\": {} }}\n", st)))))
+                    }
+                    Err(e) => {
+                        *this.is_done = true;
+                        Poll::Ready(Some(Ok(Bytes::from(format!("{{ \"error\": {} }}\n", e)))))
+                    }
+                },
+                Some(Err(e)) => Poll::Ready(Some(Err(e))),
+                None => Poll::Ready(None),
+            },
+            Poll::Ready(None) => {
+                *this.is_done = true;
+                Poll::Ready(None)
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+pub(crate) struct MediaViewSender {
+    sender: Sender<Option<Result<models::MediaView>>>,
+}
+
+impl MediaViewSender {
+    async fn send_stream<S, F>(self, stream_future: F) -> Result<()>
+    where
+        S: Stream<Item = QueryResult<MediaView>> + Unpin,
+        F: Future<Output = QueryResult<S>>,
+    {
+        match stream_future.await {
+            Ok(mut stream) => loop {
+                match stream.next().await {
+                    Some(Ok(media_view)) => {
+                        self.sender.send(Some(Ok(media_view))).await.ignore();
+                    }
+                    Some(Err(error)) => {
+                        self.send_error(error.into()).await;
+                        break;
+                    }
+                    None => {
+                        self.sender.send(None).await.ignore();
+                        break;
+                    }
+                }
+            },
+            Err(error) => self.send_error(error.into()).await,
+        }
+
+        Ok(())
+    }
+
+    async fn send_error(&self, error: Error) {
+        self.sender.send(Some(Err(error))).await.ignore();
     }
 }
 
@@ -357,6 +457,36 @@ impl Catalog {
         }
 
         Ok(query.load::<MediaView>(conn).await?)
+    }
+
+    pub(crate) async fn stream_media(
+        self,
+        store: Store,
+        offset: Option<i64>,
+        count: Option<i64>,
+        sender: MediaViewSender,
+    ) {
+        store
+            .with_connection(|conn| {
+                async move {
+                    let mut query = media_view!()
+                        .filter(media_item::catalog.eq(&self.id))
+                        .select(media_view_columns!())
+                        .offset(offset.unwrap_or_default())
+                        .into_boxed();
+
+                    if let Some(count) = count {
+                        query = query.limit(count);
+                    }
+
+                    sender
+                        .send_stream(query.load_stream::<MediaView>(conn))
+                        .await
+                }
+                .scope_boxed()
+            })
+            .await
+            .ignore()
     }
 
     pub(crate) async fn list(conn: &mut DbConnection<'_>) -> Result<Vec<Catalog>> {
@@ -720,6 +850,65 @@ impl Album {
         }
     }
 
+    pub(crate) async fn stream_media(
+        self,
+        store: Store,
+        recursive: bool,
+        offset: Option<i64>,
+        count: Option<i64>,
+        sender: MediaViewSender,
+    ) {
+        store
+            .with_connection(|conn| {
+                async move {
+                    if recursive {
+                        let valid_ids = media_album::table
+                            .inner_join(
+                                album_descendent::table
+                                    .on(album_descendent::descendent.eq(media_album::album)),
+                            )
+                            .filter(album_descendent::id.eq(&self.id))
+                            .select(media_album::media);
+
+                        let mut query = media_view!()
+                            .filter(media_item::id.eq_any(valid_ids))
+                            .select(media_view_columns!())
+                            .offset(offset.unwrap_or_default())
+                            .into_boxed();
+
+                        if let Some(count) = count {
+                            query = query.limit(count);
+                        }
+
+                        sender
+                            .send_stream(query.load_stream::<MediaView>(conn))
+                            .await
+                    } else {
+                        let valid_ids = media_album::table
+                            .filter(media_album::album.eq(&self.id))
+                            .select(media_album::media);
+
+                        let mut query = media_view!()
+                            .filter(media_item::id.eq_any(valid_ids))
+                            .select(media_view_columns!())
+                            .offset(offset.unwrap_or_default())
+                            .into_boxed();
+
+                        if let Some(count) = count {
+                            query = query.limit(count);
+                        }
+
+                        sender
+                            .send_stream(query.load_stream::<MediaView>(conn))
+                            .await
+                    }
+                }
+                .scope_boxed()
+            })
+            .await
+            .ignore()
+    }
+
     pub(crate) async fn list_for_user_with_count(
         conn: &mut DbConnection<'_>,
         email: &str,
@@ -756,6 +945,23 @@ impl Album {
             .filter(album::catalog.eq_any(writable_catalogs))
             .select(album::all_columns)
             .for_update()
+            .get_result::<Album>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
+    }
+
+    pub(crate) async fn get_for_user(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        album: &str,
+    ) -> Result<Album> {
+        user_catalog::table
+            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
+            .filter(user_catalog::user.eq(email))
+            .filter(album::id.eq(album))
+            .group_by(album::id)
+            .select(album::all_columns)
             .get_result::<Album>(conn)
             .await
             .optional()?
@@ -870,6 +1076,40 @@ impl SavedSearch {
         }
 
         Ok(query.load::<MediaView>(conn).await?)
+    }
+
+    pub(crate) async fn stream_media(
+        self,
+        store: Store,
+        offset: Option<i64>,
+        count: Option<i64>,
+        sender: MediaViewSender,
+    ) {
+        store
+            .with_connection(|conn| {
+                async move {
+                    let valid_ids = media_search::table
+                        .filter(media_search::search.eq(&self.id))
+                        .select(media_search::media);
+
+                    let mut query = media_view!()
+                        .filter(media_item::id.eq_any(valid_ids))
+                        .select(media_view_columns!())
+                        .offset(offset.unwrap_or_default())
+                        .into_boxed();
+
+                    if let Some(count) = count {
+                        query = query.limit(count);
+                    }
+
+                    sender
+                        .send_stream(query.load_stream::<MediaView>(conn))
+                        .await
+                }
+                .scope_boxed()
+            })
+            .await
+            .ignore()
     }
 
     #[instrument(skip_all, err)]
@@ -999,6 +1239,32 @@ impl SavedSearch {
         }
 
         models::AlternateFile::sync_for_media_files(conn, alternates_to_update).await
+    }
+
+    pub(crate) async fn get_for_user(
+        conn: &mut DbConnection<'_>,
+        email: Option<&str>,
+        search: &str,
+    ) -> Result<SavedSearch> {
+        let email = email.unwrap_or_default().to_owned();
+
+        saved_search::table
+            .filter(saved_search::id.eq(search))
+            .filter(
+                saved_search::shared
+                    .eq(true)
+                    .or(saved_search::catalog.eq_any(
+                        user_catalog::table
+                            .filter(user_catalog::user.eq(email))
+                            .select(user_catalog::catalog),
+                    )),
+            )
+            .group_by(saved_search::id)
+            .select(saved_search::all_columns)
+            .get_result::<SavedSearch>(conn)
+            .await
+            .optional()?
+            .ok_or_else(|| Error::NotFound)
     }
 
     pub(crate) async fn get_for_user_with_count(

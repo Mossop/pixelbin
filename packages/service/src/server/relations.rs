@@ -1,6 +1,12 @@
 use std::collections::HashSet;
 
-use actix_web::{get, post, web};
+use actix_web::{
+    get,
+    http::{header, StatusCode},
+    post,
+    web::{self},
+    HttpResponse, HttpResponseBuilder,
+};
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, OneOrMany};
@@ -9,11 +15,14 @@ use tracing::instrument;
 use crate::{
     server::{
         auth::{MaybeSession, Session},
-        media::{GetMediaRequest, GetMediaResponse},
+        media::GetMediaRequest,
         ApiResponse, ApiResult, AppState,
     },
     shared::short_id,
-    store::{models, Isolation},
+    store::{
+        models::{self, MediaViewStream},
+        Isolation,
+    },
     Task,
 };
 
@@ -348,29 +357,23 @@ async fn get_catalog_media(
     session: Session,
     catalog_id: web::Path<String>,
     query: web::Query<GetMediaRequest>,
-) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
-    let response = app_state
+) -> ApiResult<HttpResponse> {
+    let catalog = app_state
         .store
-        .isolated(Isolation::ReadOnly, |conn| {
-            async move {
-                let (catalog, _writable, media_count) = models::Catalog::get_for_user_with_count(
-                    conn,
-                    &session.user.email,
-                    &catalog_id,
-                )
-                .await?;
-                let media = catalog.list_media(conn, query.offset, query.count).await?;
-
-                Ok(GetMediaResponse {
-                    total: media_count,
-                    media,
-                })
-            }
-            .scope_boxed()
+        .with_connection(|conn| {
+            models::Catalog::get_for_user(conn, &session.user.email, &catalog_id, false)
+                .scope_boxed()
         })
         .await?;
 
-    Ok(web::Json(response))
+    let (stream, sender) = MediaViewStream::new();
+
+    let store = app_state.store.clone();
+    tokio::spawn(catalog.stream_media(store, query.offset, query.count, sender));
+
+    Ok(HttpResponseBuilder::new(StatusCode::OK)
+        .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
+        .streaming(stream))
 }
 
 #[derive(Debug, Deserialize)]
@@ -388,32 +391,22 @@ async fn get_album_media(
     session: Session,
     album_id: web::Path<String>,
     query: web::Query<GetRecursiveMediaRequest>,
-) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
-    let response = app_state
+) -> ApiResult<HttpResponse> {
+    let album = app_state
         .store
         .isolated(Isolation::ReadOnly, |conn| {
-            async move {
-                let (album, media_count) = models::Album::get_for_user_with_count(
-                    conn,
-                    &session.user.email,
-                    &album_id,
-                    query.recursive,
-                )
-                .await?;
-                let media = album
-                    .list_media(conn, query.recursive, query.offset, query.count)
-                    .await?;
-
-                Ok(GetMediaResponse {
-                    total: media_count,
-                    media,
-                })
-            }
-            .scope_boxed()
+            models::Album::get_for_user(conn, &session.user.email, &album_id).scope_boxed()
         })
         .await?;
 
-    Ok(web::Json(response))
+    let (stream, sender) = MediaViewStream::new();
+
+    let store = app_state.store.clone();
+    tokio::spawn(album.stream_media(store, query.recursive, query.offset, query.count, sender));
+
+    Ok(HttpResponseBuilder::new(StatusCode::OK)
+        .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
+        .streaming(stream))
 }
 
 #[get("/search/{search_id}/media")]
@@ -423,25 +416,22 @@ async fn get_search_media(
     session: MaybeSession,
     search_id: web::Path<String>,
     query: web::Query<GetMediaRequest>,
-) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
+) -> ApiResult<HttpResponse> {
     let email = session.session().map(|s| s.user.email.as_str());
 
-    let response = app_state
+    let search = app_state
         .store
         .isolated(Isolation::ReadOnly, |conn| {
-            async move {
-                let (search, media_count) =
-                    models::SavedSearch::get_for_user_with_count(conn, email, &search_id).await?;
-                let media = search.list_media(conn, query.offset, query.count).await?;
-
-                Ok(GetMediaResponse {
-                    total: media_count,
-                    media,
-                })
-            }
-            .scope_boxed()
+            models::SavedSearch::get_for_user(conn, email, &search_id).scope_boxed()
         })
         .await?;
 
-    Ok(web::Json(response))
+    let (stream, sender) = MediaViewStream::new();
+
+    let store = app_state.store.clone();
+    tokio::spawn(search.stream_media(store, query.offset, query.count, sender));
+
+    Ok(HttpResponseBuilder::new(StatusCode::OK)
+        .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
+        .streaming(stream))
 }

@@ -5,10 +5,12 @@ import {
   LoaderFunctionArgs,
 } from "@remix-run/node";
 
+import { ResponseError } from "./api";
+
 function fixError(e: unknown): unknown {
-  if (e instanceof Response) {
+  if (e instanceof ResponseError) {
     // eslint-disable-next-line @typescript-eslint/no-throw-literal
-    return e;
+    return e.response;
   }
 
   if (e instanceof Error) {

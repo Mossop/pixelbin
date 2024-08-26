@@ -3,7 +3,6 @@ import { ApiRequest, apiFetch } from "./telemetry";
 import {
   Album,
   ApiMediaRelations,
-  ApiMediaView,
   ApiResponse,
   Catalog,
   LoginResponse,
@@ -38,11 +37,28 @@ function json(data: object): ApiRequest {
   };
 }
 
-async function rawApiCall<T>(
+export class ResponseError extends Error {
+  public readonly response: Response;
+
+  constructor(response: Response) {
+    super(`${response.status} ${response.statusText}`);
+
+    if ([404, 401, 403].includes(response.status)) {
+      this.response = new Response(null, {
+        status: 404,
+        statusText: "Not Found",
+      });
+    } else {
+      this.response = response;
+    }
+  }
+}
+
+async function rawApiCall(
   path: string,
   label: string,
   ...options: ApiRequest[]
-): Promise<T> {
+): Promise<Response> {
   const init = { ...GET };
 
   for (const option of options) {
@@ -60,39 +76,29 @@ async function rawApiCall<T>(
   const response = await apiFetch(path, label, init);
 
   if (response.ok) {
-    return response.json();
+    return response;
   }
-  try {
-    throw new Error(await response.json());
-  } catch (e) {
-    throw new Error(response.statusText);
-  }
+
+  throw new ResponseError(response);
 }
 
-async function apiCall<T>(
+async function authenticatedApiCall(
+  session: Session,
+  path: string,
+  label: string,
+  ...options: ApiRequest[]
+) {
+  return rawApiCall(path, label, authenticated(session), ...options);
+}
+
+async function jsonApiCall<T>(
   session: Session,
   path: string,
   label: string,
   ...options: ApiRequest[]
 ): Promise<T> {
-  try {
-    return await rawApiCall(path, label, authenticated(session), ...options);
-  } catch (e) {
-    if (e instanceof Response) {
-      if ([404, 401, 403].includes(e.status)) {
-        // eslint-disable-next-line @typescript-eslint/no-throw-literal
-        throw new Response(null, {
-          status: 404,
-          statusText: "Not Found",
-        });
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-throw-literal
-      throw e;
-    }
-
-    throw e;
-  }
+  let response = await authenticatedApiCall(session, path, label, ...options);
+  return response.json();
 }
 
 export interface ThumbnailConfig {
@@ -108,11 +114,12 @@ export interface ApiConfig {
 }
 
 export async function config(): Promise<ApiConfig> {
-  return rawApiCall<ApiConfig>("/api/config", "config");
+  let response = await rawApiCall("/api/config", "config");
+  return response.json();
 }
 
 export async function login(session: Session, email: string, password: string) {
-  const response = await rawApiCall<LoginResponse>(
+  let response = await rawApiCall(
     "/api/login",
     "login",
     POST,
@@ -123,25 +130,29 @@ export async function login(session: Session, email: string, password: string) {
     { cache: "no-store" },
   );
 
-  if (response.token) {
-    session.set("token", response.token);
+  let result: LoginResponse = await response.json();
+
+  if (result.token) {
+    session.set("token", result.token);
   }
 }
 
 export async function logout(session: Session) {
   if (session.get("token")) {
-    apiCall(session, "/api/logout", "logout", POST, { cache: "no-store" });
+    jsonApiCall(session, "/api/logout", "logout", POST, { cache: "no-store" });
   }
 }
 
 export async function state(session: Session): Promise<State | undefined> {
   if (session.get("token")) {
     try {
-      return await rawApiCall<State>(
+      let response = await rawApiCall(
         "/api/state",
         "state",
         authenticated(session),
       );
+
+      return await response.json();
     } catch (e) {
       console.error(e);
     }
@@ -153,14 +164,14 @@ export async function state(session: Session): Promise<State | undefined> {
 export async function getAlbum(session: Session, id: string): Promise<Album> {
   assertAuthenticated(session);
 
-  return apiCall<Album>(session, `/api/album/${id}`, "getAlbum");
+  return jsonApiCall<Album>(session, `/api/album/${id}`, "getAlbum");
 }
 
 export async function getSearch(
   session: Session,
   id: string,
 ): Promise<SavedSearch> {
-  return apiCall<SavedSearch>(session, `/api/search/${id}`, "getSearch");
+  return jsonApiCall<SavedSearch>(session, `/api/search/${id}`, "getSearch");
 }
 
 export async function getCatalog(
@@ -169,7 +180,7 @@ export async function getCatalog(
 ): Promise<Catalog> {
   assertAuthenticated(session);
 
-  return apiCall<Catalog>(session, `/api/catalog/${id}`, "getCatalog");
+  return jsonApiCall<Catalog>(session, `/api/catalog/${id}`, "getCatalog");
 }
 
 interface ListMediaResponse<T> {
@@ -177,96 +188,46 @@ interface ListMediaResponse<T> {
   media: T[];
 }
 
-const LIST_COUNT = 500;
-
-export async function* listMedia(
+export function listMedia(
   session: Session,
   source: "album" | "catalog" | "search",
   id: string,
-): AsyncGenerator<ApiMediaView[], void, unknown> {
+): Promise<Response> {
   if (source != "search") {
     assertAuthenticated(session);
   }
 
-  let response = await apiCall<ListMediaResponse<ApiMediaView>>(
+  return authenticatedApiCall(
     session,
-    `/api/${source}/${id}/media?count=${LIST_COUNT}`,
+    `/api/${source}/${id}/media`,
     "listMedia",
   );
-
-  yield response.media;
-
-  let remainingChunks = [];
-  let offset = response.media.length;
-  while (offset <= response.total) {
-    remainingChunks.push(
-      apiCall<ListMediaResponse<ApiMediaView>>(
-        session,
-        `/api/${source}/${id}/media?offset=${offset}&count=${LIST_COUNT}`,
-        "listMedia",
-      ),
-    );
-
-    offset += LIST_COUNT;
-  }
-
-  for (let chunkPromise of remainingChunks) {
-    yield (await chunkPromise).media;
-  }
 }
 
-export async function* searchMedia(
+export function searchMedia(
   session: Session,
   catalog: string,
   query: SearchQuery,
-): AsyncGenerator<ApiMediaView[], void, unknown> {
+): Promise<Response> {
   assertAuthenticated(session);
 
-  let response = await apiCall<ListMediaResponse<ApiMediaView>>(
+  return authenticatedApiCall(
     session,
     `/api/search`,
     "searchMedia",
     POST,
     json({
       catalog,
-      count: LIST_COUNT,
       query,
     }),
   );
-
-  yield response.media;
-
-  let remainingChunks = [];
-  let offset = response.media.length;
-  while (offset <= response.total) {
-    remainingChunks.push(
-      apiCall<ListMediaResponse<ApiMediaView>>(
-        session,
-        `/api/search`,
-        "searchMedia",
-        POST,
-        json({
-          catalog,
-          offset,
-          count: LIST_COUNT,
-          query,
-        }),
-      ),
-    );
-
-    offset += LIST_COUNT;
-  }
-
-  for (let chunkPromise of remainingChunks) {
-    yield (await chunkPromise).media;
-  }
 }
 
 export async function getMedia(
   session: Session,
   id: string,
 ): Promise<ApiMediaRelations> {
-  let response = await apiCall<ListMediaResponse<ApiMediaRelations>>(
+  let response = await jsonApiCall<ListMediaResponse<ApiMediaRelations>>(
     session,
     `/api/media/${id}`,
     "getMedia",
@@ -287,7 +248,7 @@ export async function markMediaPublic(
   session: Session,
   id: String,
 ): Promise<void> {
-  await apiCall<ApiResponse>(
+  await jsonApiCall<ApiResponse>(
     session,
     `/api/media/edit`,
     "getMedia",
