@@ -1,19 +1,19 @@
-use diesel::{expression::AsExpression, sql_function, sql_types::*};
+use diesel::{define_sql_function, expression::AsExpression, sql_types::*};
 
-sql_function!(
+define_sql_function!(
     #[sql_name = "GREATEST"]
     fn greatest(a: Timestamptz, b: Nullable<Timestamptz>) -> Timestamptz
 );
 
-sql_function!(
+define_sql_function!(
     fn char_length(a: Nullable<Text>) -> Nullable<Integer>
 );
 
-sql_function!(
+define_sql_function!(
     fn coalesce<T: SingleValue>(a: Nullable<T>, b: Nullable<T>) -> Nullable<T>
 );
 
-sql_function!(
+define_sql_function!(
     #[sql_name = "LOWER"]
     fn lower(a: Text) -> Text
 );

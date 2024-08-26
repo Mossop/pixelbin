@@ -13,6 +13,7 @@ use std::{
 
 use chrono::{Duration, Utc};
 use diesel::{
+    connection::Instrumentation,
     debug_query,
     dsl::now,
     migration::{Migration, MigrationSource},
@@ -338,21 +339,15 @@ impl<'a> SimpleAsyncConnection for DbConnection<'a> {
 }
 
 impl<'a> AsyncConnection for DbConnection<'a> {
-    type ExecuteFuture<'conn, 'query> = InstrumentedFuture<<BackendConnection as AsyncConnection>::ExecuteFuture<'conn, 'query>>
-    where
-        Self: 'conn;
+    type ExecuteFuture<'conn, 'query> =
+        InstrumentedFuture<<BackendConnection as AsyncConnection>::ExecuteFuture<'conn, 'query>>;
 
-    type LoadFuture<'conn, 'query> = InstrumentedFuture<<BackendConnection as AsyncConnection>::LoadFuture<'conn, 'query>>
-    where
-        Self: 'conn;
+    type LoadFuture<'conn, 'query> =
+        InstrumentedFuture<<BackendConnection as AsyncConnection>::LoadFuture<'conn, 'query>>;
 
-    type Stream<'conn, 'query> = <BackendConnection as AsyncConnection>::Stream<'conn, 'query>
-    where
-        Self: 'conn;
+    type Stream<'conn, 'query> = <BackendConnection as AsyncConnection>::Stream<'conn, 'query>;
 
-    type Row<'conn, 'query> = <BackendConnection as AsyncConnection>::Row<'conn, 'query>
-    where
-        Self: 'conn;
+    type Row<'conn, 'query> = <BackendConnection as AsyncConnection>::Row<'conn, 'query>;
 
     type Backend = <BackendConnection as AsyncConnection>::Backend;
     type TransactionManager = <BackendConnection as AsyncConnection>::TransactionManager;
@@ -397,6 +392,14 @@ impl<'a> AsyncConnection for DbConnection<'a> {
         &mut self,
     ) -> &mut <Self::TransactionManager as TransactionManager<Self>>::TransactionStateData {
         AsyncConnection::transaction_state(&mut self.conn)
+    }
+
+    fn instrumentation(&mut self) -> &mut dyn Instrumentation {
+        AsyncConnection::instrumentation(&mut self.conn)
+    }
+
+    fn set_instrumentation(&mut self, instrumentation: impl Instrumentation) {
+        AsyncConnection::set_instrumentation(&mut self.conn, instrumentation)
     }
 }
 

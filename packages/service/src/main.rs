@@ -18,11 +18,11 @@ use image::{
     imageops::FilterType,
     ImageReader, RgbImage,
 };
-use opentelemetry::{global, KeyValue};
+use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
     propagation::TraceContextPropagator,
-    trace::{self, Tracer},
+    trace::{self, TracerProvider},
     Resource,
 };
 #[cfg(feature = "webserver")]
@@ -307,7 +307,7 @@ struct CliArgs {
     command: Command,
 }
 
-fn init_logging(telemetry: Option<&str>) -> result::Result<Option<Tracer>, Box<dyn Error>> {
+fn init_logging(telemetry: Option<&str>) -> result::Result<Option<TracerProvider>, Box<dyn Error>> {
     let filter = match env::var("RUST_LOG").as_deref() {
         Ok("") | Err(_) => {
             let mut filter = EnvFilter::new("warn");
@@ -332,20 +332,19 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<Tracer>, Box<d
     if let Some(telemetry_host) = telemetry {
         global::set_text_map_propagator(TraceContextPropagator::new());
 
-        let tracer =
-            opentelemetry_otlp::new_pipeline()
-                .tracing()
-                .with_exporter(
-                    opentelemetry_otlp::new_exporter()
-                        .http()
-                        .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
-                        .with_endpoint(telemetry_host)
-                        .with_timeout(Duration::from_secs(3)),
-                )
-                .with_trace_config(trace::config().with_resource(Resource::new(vec![
-                    KeyValue::new("service.name", "pixelbin-api"),
-                ])))
-                .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+        let tracer_provider = opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_exporter(
+                opentelemetry_otlp::new_exporter()
+                    .http()
+                    .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
+                    .with_endpoint(telemetry_host)
+                    .with_timeout(Duration::from_secs(3)),
+            )
+            .with_trace_config(trace::Config::default().with_resource(Resource::new(vec![
+                KeyValue::new("service.name", "pixelbin-api"),
+            ])))
+            .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
         let mut filter = EnvFilter::new("warn");
 
@@ -353,15 +352,17 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<Tracer>, Box<d
             filter = filter.add_directive(format!("{}=trace", module).parse().unwrap());
         }
 
+        let tracer = tracer_provider.tracer("pixelbin-api");
+
         let telemetry = tracing_opentelemetry::layer()
             .with_error_fields_to_exceptions(true)
             .with_tracked_inactivity(true)
-            .with_tracer(tracer.clone())
+            .with_tracer(tracer)
             .with_filter(filter);
 
         registry.with(telemetry).init();
 
-        Ok(Some(tracer))
+        Ok(Some(tracer_provider))
     } else {
         registry.init();
 
@@ -373,7 +374,7 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let args = CliArgs::parse();
     let config = load_config(args.config.as_deref())?;
 
-    let tracer = match init_logging(config.telemetry_host.as_deref()) {
+    let provider = match init_logging(config.telemetry_host.as_deref()) {
         Ok(t) => t,
         Err(e) => {
             eprintln!("Failed to initialise logging: {e}");
@@ -383,7 +384,7 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
 
     let result = args.command.exec(config).await;
 
-    if let Some(provider) = tracer.and_then(|t| t.provider()) {
+    if let Some(provider) = provider {
         provider.force_flush();
     }
 
