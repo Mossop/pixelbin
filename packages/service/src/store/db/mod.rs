@@ -605,13 +605,15 @@ impl<'conn> DbConnection<'conn> {
         Ok((user, token))
     }
 
+    #[instrument(skip_all)]
     pub(crate) async fn verify_token(&mut self, token: &str) -> Result<Option<models::User>> {
-        let mut user: models::User = match auth_token::table
-            .inner_join(user::table.on(user::email.eq(auth_token::email)))
+        let expiry = Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS);
+
+        let email = match diesel::update(auth_token::table)
             .filter(auth_token::token.eq(token))
-            .filter(auth_token::expiry.is_null().or(auth_token::expiry.gt(now)))
-            .select(user::all_columns)
-            .get_result::<models::User>(self)
+            .set(auth_token::expiry.eq(expiry))
+            .returning(auth_token::email)
+            .get_result::<String>(self)
             .await
             .optional()?
         {
@@ -619,22 +621,15 @@ impl<'conn> DbConnection<'conn> {
             None => return Ok(None),
         };
 
-        user.last_login = Some(Utc::now());
+        let user = diesel::update(user::table)
+            .filter(user::email.eq(&email))
+            .set(user::last_login.eq(Some(Utc::now())))
+            .returning(user::all_columns)
+            .get_result::<models::User>(self)
+            .await
+            .optional()?;
 
-        diesel::update(user::table)
-            .filter(user::email.eq(&user.email))
-            .set(user::last_login.eq(&user.last_login))
-            .execute(self)
-            .await?;
-
-        let expiry = Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS);
-        diesel::update(auth_token::table)
-            .filter(auth_token::email.eq(&user.email))
-            .set(auth_token::expiry.eq(expiry))
-            .execute(self)
-            .await?;
-
-        Ok(Some(user))
+        Ok(user)
     }
 
     pub(crate) async fn delete_token(&mut self, token: &str) -> Result {

@@ -31,6 +31,7 @@ export function inSpan<F extends (span: Span) => unknown>(
             .catch((e: unknown) => {
               span.setStatus({
                 code: SpanStatusCode.ERROR,
+                message: String(e),
               });
 
               throw e;
@@ -44,6 +45,7 @@ export function inSpan<F extends (span: Span) => unknown>(
       } catch (e) {
         span.setStatus({
           code: SpanStatusCode.ERROR,
+          message: String(e),
         });
         span.end();
 
@@ -88,7 +90,10 @@ export function apiFetch(
     span.setAttribute("http.response.status_code", response.status);
 
     if (!response.ok) {
-      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: `${response.status} ${response.statusText}`,
+      });
     }
 
     return response;
