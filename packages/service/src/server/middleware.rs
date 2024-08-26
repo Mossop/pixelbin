@@ -10,8 +10,10 @@ use actix_web::{
 };
 use futures::future::LocalBoxFuture;
 use opentelemetry::global;
-use tracing::{error, field, span, warn, Instrument, Level};
+use tracing::{field, span, warn, Instrument, Level};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
+
+use crate::shared::{record_error, DEFAULT_STATUS};
 
 pub(crate) struct Logging;
 
@@ -64,12 +66,14 @@ where
         let span = span!(
             Level::INFO,
             "api request",
+            "duration" = field::Empty,
             "otel.name" = format!("{} {}", req.method(), req.path()),
             "otel.kind" = "server",
             "url.path" = req.path(),
             "http.request.method" = %req.method(),
             "http.response.status_code" = field::Empty,
-            "otel.status_code" = field::Empty,
+            "otel.status_code" = DEFAULT_STATUS,
+            "otel.status_description" = field::Empty,
         );
         span.set_parent(parent_context);
 
@@ -86,26 +90,12 @@ where
                 let status = res.status();
 
                 span.record("http.response.status_code", status.as_u16());
+                span.record("duration", duration);
 
-                if status.is_server_error() {
-                    error!(
-                        duration = duration,
-                        status = status.as_str(),
-                        "Server error"
-                    );
-                    span.record("otel.status_code", "Error");
-                } else if status.is_client_error() {
-                    warn!(
-                        duration = duration,
-                        status = status.as_str(),
-                        "Client error"
-                    );
-                    span.record("otel.status_code", "Error");
+                if status.is_server_error() || status.is_client_error() {
+                    record_error(&span, status.as_str());
                 } else if duration >= 250 {
                     warn!(duration = duration, "Slow response");
-                    span.record("otel.status_code", "Ok");
-                } else {
-                    span.record("otel.status_code", "Ok");
                 };
 
                 Ok(res)

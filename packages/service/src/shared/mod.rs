@@ -15,6 +15,8 @@ use tracing::{Instrument, Span};
 
 use crate::Error;
 
+pub(crate) const DEFAULT_STATUS: &str = "Ok";
+
 pub fn load_config(config_file: Option<&str>) -> Result<Config> {
     Config::load(config_file)
 }
@@ -57,4 +59,23 @@ pub(crate) async fn file_exists(path: &Path) -> Result<bool> {
             Ok(false)
         }
     }
+}
+
+pub(crate) fn record_result<T, E: std::error::Error>(
+    span: &Span,
+    result: &std::result::Result<T, E>,
+) {
+    match result {
+        Ok(_) => {
+            span.record("otel.status_code", DEFAULT_STATUS);
+        }
+        Err(e) => {
+            record_error(span, &e.to_string());
+        }
+    }
+}
+
+pub(crate) fn record_error(span: &Span, error: &str) {
+    span.record("otel.status_code", "Error");
+    span.record("otel.status_description", error);
 }

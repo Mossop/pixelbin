@@ -12,11 +12,11 @@ use chrono::{Datelike, Local, NaiveDate, Timelike};
 use opentelemetry::{global, trace::TraceContextExt};
 use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
-use tracing::{error, field, span, span::Id, Instrument, Level, Span};
+use tracing::{field, span, span::Id, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    shared::error::Ignorable,
+    shared::{error::Ignorable, record_result, DEFAULT_STATUS},
     store::{
         db::{DbConnection, DbPool},
         models,
@@ -274,18 +274,11 @@ impl TaskQueue {
             let linked_span = linked_context.span().span_context().clone();
 
             let task_name: &'static str = (&task).into();
-            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task_name, "otel.status_code" = field::Empty);
+            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task_name, "otel.status_code" = DEFAULT_STATUS, "otel.status_description" = field::Empty);
             span.add_link(linked_span);
 
-            match queue.run_task(&task).instrument(span.clone()).await {
-                Ok(()) => {
-                    span.record("otel.status_code", "Ok");
-                }
-                Err(e) => {
-                    error!(error = %e, task = ?task, "Task failed");
-                    span.record("otel.status_code", "Error");
-                }
-            }
+            let result = queue.run_task(&task).instrument(span.clone()).await;
+            record_result(&span, &result);
         }
     }
 }

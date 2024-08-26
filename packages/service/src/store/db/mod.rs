@@ -38,7 +38,7 @@ use tracing::{field, info, instrument, span, span::Id, trace, Level, Span};
 
 use crate::{
     metadata::{alternates_for_media_file, parse_metadata, METADATA_FILE},
-    shared::{file_exists, long_id, spawn_blocking},
+    shared::{file_exists, long_id, record_result, spawn_blocking, DEFAULT_STATUS},
     store::{db::functions::media_file_columns, path::MediaFilePath, Isolation},
     Config, Error, Result, Store, Task, TaskQueue,
 };
@@ -275,10 +275,10 @@ impl<Inner> InstrumentedFuture<Inner> {
     {
         let span = span!(
             Level::INFO,
-            "query",
+            "database_query",
             "query" = query,
-            "otel.name" = operation,
-            "otel.status_code" = field::Empty,
+            "operation" = operation,
+            "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
         );
 
@@ -306,14 +306,9 @@ where
         };
 
         match result {
-            Poll::Ready(Ok(r)) => {
-                span.record("otel.status_code", "Ok");
-                Poll::Ready(Ok(r))
-            }
-            Poll::Ready(Err(e)) => {
-                span.record("otel.status_code", "Error");
-                span.record("otel.status_description", e.to_string());
-                Poll::Ready(Err(e))
+            Poll::Ready(r) => {
+                record_result(&span, &r);
+                Poll::Ready(r)
             }
             Poll::Pending => Poll::Pending,
         }
