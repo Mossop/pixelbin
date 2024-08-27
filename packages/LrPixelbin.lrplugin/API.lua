@@ -494,8 +494,17 @@ function API:uploadMetadata(photo, publishSettings, remoteId)
   return self:POST("media/edit", mediaInfo)
 end
 
+function API:create(publishSettings)
+  local mediaInfo = {
+    catalog = publishSettings.catalog
+  }
+
+  return self:POST("media/create", mediaInfo)
+end
+
 function API:upload(photo, publishSettings, filePath, remoteId)
   local mediaInfo = self:extractMetadata(photo, publishSettings)
+  mediaInfo.id = remoteId
 
   local exiftool = _PLUGIN.path .. "/Image-ExifTool/" .. "exiftool"
   local target = os.tmpname()
@@ -559,12 +568,6 @@ function API:upload(photo, publishSettings, filePath, remoteId)
         }
       end
     end
-  end
-
-  if remoteId then
-    mediaInfo.id = remoteId
-  else
-    mediaInfo.catalog = publishSettings.catalog
   end
 
   success, data = Utils.jsonEncode(logger, mediaInfo)

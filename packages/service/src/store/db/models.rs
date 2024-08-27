@@ -7,7 +7,7 @@ use std::{
 };
 
 use actix_web::web::Bytes;
-use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Timelike, Utc};
 use diesel::{
     alias, backend, delete, deserialize,
     dsl::{count, count_star, sql},
@@ -1595,11 +1595,14 @@ impl MediaItem {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<(MediaItem, MediaItemStore)>> {
+        let timeout = Utc::now() - Duration::weeks(1);
+
         // Lists the items with no media_files.
         let items = media_item::table
             .left_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
             .filter(media_item::catalog.eq(catalog))
             .filter(media_file::id.is_null())
+            .filter(media_item::created.lt(timeout))
             .select(media_item_columns!())
             .load::<MediaItem>(conn)
             .await?;

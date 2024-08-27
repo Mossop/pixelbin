@@ -181,6 +181,7 @@ pub async fn serve(store: &Store) -> Result {
                     .service(relations::get_search)
                     .service(relations::get_catalog)
                     .service(media::get_media)
+                    .service(media::create_media)
                     .service(media::upload_media)
                     .service(media::edit_media)
                     .service(media::delete_media)

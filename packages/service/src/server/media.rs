@@ -450,19 +450,25 @@ struct PersonInfo {
 }
 
 #[derive(Deserialize, Clone, Debug)]
-struct MediaUploadMetadata {
-    id: Option<String>,
-    catalog: Option<String>,
+struct MediaData {
     media: Option<MediaMetadata>,
     tags: Option<Vec<Vec<String>>>,
     people: Option<Vec<PersonInfo>>,
     public: Option<bool>,
 }
 
-#[derive(MultipartForm)]
-struct MediaUpload {
-    json: MultipartJson<MediaUploadMetadata>,
-    file: TempFile,
+#[derive(Deserialize, Clone, Debug)]
+struct MediaCreateMetadata {
+    catalog: String,
+    #[serde(flatten)]
+    metadata: MediaData,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+struct MediaUploadMetadata {
+    id: String,
+    #[serde(flatten)]
+    metadata: MediaData,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -473,7 +479,7 @@ struct MediaUploadResponse {
 async fn update_media_item(
     conn: &mut DbConnection<'_>,
     media_item: &mut models::MediaItem,
-    data: &MediaUploadMetadata,
+    data: &MediaData,
 ) -> Result {
     if let Some(ref metadata) = data.media {
         metadata.apply(media_item);
@@ -546,6 +552,41 @@ async fn update_media_item(
     Ok(())
 }
 
+#[post("/media/create")]
+#[instrument(err, skip_all, fields(catalog))]
+async fn create_media(
+    app_state: web::Data<AppState>,
+    session: Session,
+    data: web::Json<MediaCreateMetadata>,
+) -> ApiResult<web::Json<MediaUploadResponse>> {
+    tracing::Span::current().record("catalog", &data.catalog);
+
+    let media_item_id = app_state
+        .store
+        .isolated(Isolation::Committed, |conn| {
+            async move {
+                let catalog =
+                    models::Catalog::get_for_user(conn, &session.user.email, &data.catalog, true)
+                        .await?;
+                let mut media_item = models::MediaItem::new(&catalog.id);
+
+                update_media_item(conn, &mut media_item, &data.metadata).await?;
+
+                Ok(media_item.id)
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+    Ok(web::Json(MediaUploadResponse { id: media_item_id }))
+}
+
+#[derive(MultipartForm)]
+struct MediaUpload {
+    json: MultipartJson<MediaUploadMetadata>,
+    file: TempFile,
+}
+
 #[post("/media/upload")]
 #[instrument(err, skip_all, fields(id, catalog))]
 async fn upload_media(
@@ -555,52 +596,30 @@ async fn upload_media(
 ) -> ApiResult<web::Json<MediaUploadResponse>> {
     let data = data.into_inner();
 
-    tracing::Span::current().record("id", data.json.id.as_deref().unwrap_or_default());
-    tracing::Span::current().record("catalog", data.json.catalog.as_deref().unwrap_or_default());
+    tracing::Span::current().record("id", &data.json.id);
 
     let (media_item_id, media_file_id) = app_state
         .store
         .isolated(Isolation::Committed, |conn| {
             async move {
-                let mut media_item = match (&data.json.id, &data.json.catalog) {
-                    (Some(id), None) => {
-                        let mut media_items = models::MediaItem::get_for_user(
-                            conn,
-                            &session.user.email,
-                            &[id.clone()],
-                        )
-                        .await?;
+                let mut media_items = models::MediaItem::get_for_user(
+                    conn,
+                    &session.user.email,
+                    &[data.json.id.clone()],
+                )
+                .await?;
 
-                        if media_items.is_empty() {
-                            return Err(Error::NotFound);
-                        }
+                if media_items.is_empty() {
+                    return Err(Error::NotFound);
+                }
 
-                        let media_item = media_items.remove(0);
+                let mut media_item = media_items.remove(0);
 
-                        if media_item.deleted {
-                            return Err(Error::NotFound);
-                        }
+                if media_item.deleted {
+                    return Err(Error::NotFound);
+                }
 
-                        media_item
-                    }
-                    (None, Some(catalog_id)) => {
-                        let catalog = models::Catalog::get_for_user(
-                            conn,
-                            &session.user.email,
-                            catalog_id,
-                            true,
-                        )
-                        .await?;
-                        models::MediaItem::new(&catalog.id)
-                    }
-                    _ => {
-                        return Err(Error::InvalidData {
-                            message: "Need one of catalog or id".to_string(),
-                        });
-                    }
-                };
-
-                update_media_item(conn, &mut media_item, &data.json).await?;
+                update_media_item(conn, &mut media_item, &data.json.metadata).await?;
 
                 let base_name = if let Some(ref name) = data.file.file_name {
                     if let Some((name, _)) = name.rsplit_once('.') {
@@ -661,9 +680,7 @@ async fn upload_media(
         })
         .await;
 
-    Ok(web::Json(MediaUploadResponse {
-        id: media_item_id.clone(),
-    }))
+    Ok(web::Json(MediaUploadResponse { id: media_item_id }))
 }
 
 #[post("/media/edit")]
@@ -673,18 +690,15 @@ async fn edit_media(
     session: Session,
     data: web::Json<MediaUploadMetadata>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    let id = data.id.clone().ok_or_else(|| Error::InvalidData {
-        message: "Must pass an id".to_string(),
-    })?;
-
-    tracing::Span::current().record("id", &id);
+    tracing::Span::current().record("id", &data.id);
 
     let catalog = app_state
         .store
         .isolated(Isolation::Committed, |conn| {
             async move {
                 let mut media =
-                    models::MediaItem::get_for_user(conn, &session.user.email, &[id]).await?;
+                    models::MediaItem::get_for_user(conn, &session.user.email, &[data.id.clone()])
+                        .await?;
 
                 if media.is_empty() {
                     return Err(Error::NotFound);
@@ -695,7 +709,7 @@ async fn edit_media(
                     return Err(Error::NotFound);
                 }
 
-                update_media_item(conn, &mut media_item, &data).await?;
+                update_media_item(conn, &mut media_item, &data.metadata).await?;
 
                 Ok(media_item.catalog)
             }

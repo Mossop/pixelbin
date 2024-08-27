@@ -336,43 +336,56 @@ function Provider.processRenderedPhotos(context, exportContext)
         break
       end
 
-      remoteId = nil
       if success then
-        local success, result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, info.remoteId)
-        if success then
-          remoteId = result.id
-          local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/" .. remoteId
+        local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/"
 
-          if targetAlbum then
+        if not remoteId then
+          local success, result = api:create(publishSettings)
+          if success then
+            remoteId = result.id
+            catalogUrl = catalogUrl .. remoteId
+
             Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
-              defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
+              defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, false)
             end)
           else
-            info.rendition:recordPublishedPhotoId(remoteId)
-            info.rendition:recordPublishedPhotoUrl(catalogUrl)
+            info.rendition:uploadFailed(result.name)
           end
         else
-          info.rendition:uploadFailed(result.name)
+          catalogUrl = catalogUrl .. remoteId
+        end
+
+        if remoteId then
+          local success, result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, remoteId)
+          if success then
+            if targetAlbum then
+              Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
+                defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
+              end)
+
+              local success, result = api:addMediaToAlbum(targetAlbum, { remoteId })
+
+              if success then
+                info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
+                info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. targetAlbum .. "/media/" .. remoteId)
+              else
+                info.rendition:uploadFailed(result.name)
+              end
+            else
+              info.rendition:recordPublishedPhotoId(remoteId)
+              info.rendition:recordPublishedPhotoUrl(catalogUrl)
+            end
+          else
+            info.rendition:uploadFailed(result.name)
+          end
         end
       else
         info.rendition:uploadFailed(pathOrMessage)
       end
-    else
-      currentOperation = currentOperation + 1
     end
 
     currentOperation = currentOperation + 1
     updateProgress()
-
-    if targetAlbum and remoteId then
-      local success, result = api:addMediaToAlbum(targetAlbum, { remoteId })
-      if success then
-        info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
-        info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. targetAlbum .. "/media/" .. remoteId)
-      else
-        info.rendition:uploadFailed(result.name)
-      end
-    end
   end
 
   progressScope:done()
