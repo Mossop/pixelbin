@@ -326,7 +326,23 @@ function Provider.processRenderedPhotos(context, exportContext)
 
     local remoteId = info.remoteId
 
-    if not info.rendition.wasSkipped then
+    if info.rendition.wasSkipped then
+      -- Record the additional operation that would have been a render
+      currentOperation = currentOperation + 1
+
+      -- We can assume the photo is already in the default collection here so we
+      -- only need to add to the album.
+      if targetAlbum then
+        local success, result = api:addMediaToAlbum(targetAlbum, { remoteId })
+
+        if success then
+          info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
+          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. targetAlbum .. "/media/" .. remoteId)
+        else
+          info.rendition:uploadFailed(result.name)
+        end
+      end
+    else
       local success, pathOrMessage = info.rendition:waitForRender()
 
       currentOperation = currentOperation + 1
