@@ -104,4 +104,12 @@ function Utils.shallowClone(tbl)
   return result
 end
 
+function Utils.length(tbl)
+  local result = 0
+  for _ in pairs(tbl) do
+    result = result + 1
+  end
+  return result
+end
+
 return Utils

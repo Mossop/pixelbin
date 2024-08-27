@@ -238,7 +238,7 @@ function API:login()
   return success, self.errorState
 end
 
-function API:getMedia(ids)
+function API:getMedia(ids, progressCallback)
   local results = {}
 
   local function lookup(idlist, count)
@@ -259,7 +259,7 @@ function API:getMedia(ids)
   local idlist = ""
   local lookupCount = 0
 
-  for _, id in ipairs(ids) do
+  for idx, id in ipairs(ids) do
     if string.len(idlist) > 0 then
       idlist = idlist .. "," .. id
     else
@@ -272,6 +272,10 @@ function API:getMedia(ids)
       lookup(idlist, lookupCount)
       idlist = ""
       lookupCount = 0
+
+      if progressCallback then
+        progressCallback(idx + 1)
+      end
     end
   end
 
