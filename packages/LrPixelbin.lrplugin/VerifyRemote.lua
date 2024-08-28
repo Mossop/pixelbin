@@ -8,8 +8,6 @@ local API = require "API"
 local logger = require("Logging")("VerifyRemote")
 
 Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
-  local goodPhotos = 0
-  local badPhotos = 0
   local needsEdit = {}
 
   local services = LrApplication.activeCatalog():getPublishServices(_PLUGIN.id)
@@ -22,76 +20,126 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
   parentScope:setCancelable(false)
 
   for idx, service in ipairs(services) do
-    local collection = Utils.getDefaultCollection(service)
+    local defaultCollection = Utils.getDefaultCollection(service)
     parentScope:setPortionComplete(idx, serviceCount)
 
-    local settings = service:getPublishSettings()
-    logger:info("Checking photos for " .. settings.siteUrl)
+    local publishSettings = service:getPublishSettings()
+    local catalog = publishSettings.catalog
+    logger:info("Checking photos for " .. publishSettings.siteUrl)
 
-    local photoIds = {}
-    local publishedPhotos = {}
+    local remoteIds = {}
+    local byRemoteId = {}
+    local byLocalId = {}
+
+    for _, publishedPhoto in ipairs(defaultCollection:getPublishedPhotos()) do
+      byLocalId[publishedPhotos:getPhoto().localIdentifier] = publishedPhoto
+    end
+
+    local toAdd = {}
+
+    local collections = Utils.listCollections(service)
+    for _, collection in ipairs(collections) do
+      if collection ~= defaultCollection then
+        for _, publishedPhoto in ipairs(collection:getPublishedPhotos()) do
+          local remoteId = publishedPhoto:getRemoteId()
+
+          if not remoteId then
+            -- Never published. Just make sure it is marked to be published
+            if not publishedPhoto:getEditedFlag() then
+              table.insert(needsEdit, publishedPhoto)
+            end
+          elseif not byLocalId[publishedPhoto:getPhoto().localIdentifier] then
+            -- Photo is not in the default collection when it should be
+            local mediaItem = nil
+
+            local itemToAdd = toAdd[publishedPhoto:getPhoto().localIdentifier]
+            if not itemToAdd then
+              itemToAdd = {
+                photo = publishedPhoto:getPhoto(),
+                edited = publishedPhoto:getEditedFlag(),
+                mediaItem = nil
+              }
+              toAdd[publishedPhoto:getPhoto().localIdentifier] = itemToAdd
+            elseif publishedPhoto:getEditedFlag() then
+              itemToAdd.edited = true
+            end
+
+            local startIndex, _ = string.find(remoteId, "/")
+            if startIndex then
+              itemToAdd.mediaItem = string.sub(remoteId, startIndex + 1)
+            elseif not publishedPhoto:getEditedFlag() then
+              -- Unexpected remote Id. Republish.
+              table.insert(needsEdit, publishedPhoto)
+            end
+          end
+        end
+      end
+    end
+
+    Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
+      for _, itemToAdd in pairs(toAdd) do
+        if itemToAdd.mediaItem then
+          local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/" .. itemToAdd.mediaItem
+          defaultCollection:addPhotoByRemoteId(itemToAdd.photo, itemToAdd.mediaItem, catalogUrl, itemToAdd.edited)
+        end
+      end
+    end)
+
     local photosToCheck = 0
 
-    for _, publishedPhoto in ipairs(collection:getPublishedPhotos()) do
-      if publishedPhoto:getEditedFlag() then
-        goodPhotos = goodPhotos + 1
-      else
-        local id = publishedPhoto:getRemoteId()
+    for _, publishedPhoto in ipairs(defaultCollection:getPublishedPhotos()) do
+      byLocalId[publishedPhotos:getPhoto().localIdentifier] = publishedPhoto
+      local remoteId = publishedPhoto:getRemoteId()
 
-        if id then
-          publishedPhotos[id] = publishedPhoto
-          table.insert(photoIds, id)
-          photosToCheck = photosToCheck + 1
-          goodPhotos = goodPhotos + 1
-        else
-          logger:error("Found photo with missing remote ID.")
-          table.insert(needsEdit, publishedPhoto)
-          badPhotos = badPhotos + 1
-        end
+      if remoteId then
+        byRemoteId[remoteId] = publishedPhoto
+        table.insert(remoteIds, remoteId)
+        photosToCheck = photosToCheck + 1
+      elseif not publishedPhoto:getEditedFlag() then
+        logger:error("Found photo with missing remote ID.")
+        table.insert(needsEdit, publishedPhoto)
       end
     end
 
     if photosToCheck > 0 then
       local childScope = LrProgressScope({
         parent = parentScope,
-        caption = "Checking photos for " .. settings.siteUrl,
+        caption = "Downloading photos for " .. publishSettings.siteUrl,
         functionContext = context,
       })
       childScope:setCancelable(false)
       childScope:setPortionComplete(0, photosToCheck)
 
-      local api = API(settings)
-      local media = api:getMedia(photoIds, function(completed)
+      local api = API(publishSettings)
+      local media = api:getMedia(remoteIds, function(completed)
         childScope:setPortionComplete(completed, photosToCheck)
       end)
 
-      for index, id in ipairs(photoIds) do
+      childScope:done()
+
+      for _, id in ipairs(remoteIds) do
         if not media[id] then
           logger:error("Found photo with missing remote media.")
-          goodPhotos = goodPhotos - 1
-          badPhotos = badPhotos + 1
-          table.insert(needsEdit, publishedPhotos[id])
+          table.insert(needsEdit, byRemoteId[id])
         elseif not media[id].file then
           logger:error("Found unprocessed photo.")
-          goodPhotos = goodPhotos - 1
-          badPhotos = badPhotos + 1
-          table.insert(needsEdit, publishedPhotos[id])
+          table.insert(needsEdit, byRemoteId[id])
         end
       end
-
-      childScope:done()
     end
   end
 
   parentScope:done()
 
-  if badPhotos > 0 then
-    Utils.runWithWriteAccess(logger, "UpdateEdited", function()
+  local editCount = Utils.length(needsEdit)
+
+  if editCount > 0 then
+    Utils.runWithWriteAccess(logger, "Mark to republish", function()
       for _, publishedPhoto in ipairs(needsEdit) do
         publishedPhoto:setEditedFlag(true)
       end
     end)
   end
 
-  LrDialogs.message("Found " .. goodPhotos .. " good photos and " .. badPhotos .. " bad photos.", nil, "info")
+  LrDialogs.message("Marked " .. editCount .. " photos to be republished.", nil, "info")
 end)

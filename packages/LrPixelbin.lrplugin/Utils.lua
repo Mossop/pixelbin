@@ -96,6 +96,24 @@ function Utils.getDefaultCollection(publishService)
   return nil
 end
 
+function Utils.listCollections(publishService)
+  local collections = {}
+
+  local function list(outer)
+    for _, collectionSet in ipairs(outer:getChildCollectionSets()) do
+      list(collectionSet)
+    end
+
+    for _, collection in ipairs(outer:getChildCollections()) do
+      table.insert(collections, collection)
+    end
+  end
+
+  list(publishService)
+
+  return collections
+end
+
 function Utils.shallowClone(tbl)
   local result = {}
   for k, v in pairs(tbl) do
