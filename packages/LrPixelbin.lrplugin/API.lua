@@ -7,7 +7,7 @@ local utf8 = require "utf8"
 local logger = require("Logging")("API")
 local Utils = require "Utils"
 
-local API = { }
+local API = {}
 
 function API:parseHTTPResult(response, info)
   if not response then
@@ -121,7 +121,7 @@ function API:MULTIPART(path, content)
   local url = self.apiUrl .. path
   logger:trace("MULTIPART", url)
 
-  return self:callServer(function ()
+  return self:callServer(function()
     return LrHttp.postMultipart(url, content, {
       { field = "Authorization", value = "Bearer " .. self.apiToken },
     })
@@ -149,9 +149,9 @@ function API:POST(path, content)
     end
   end
 
-  return self:callServer(function ()
+  return self:callServer(function()
     return LrHttp.post(url, body, {
-      { field = "Content-Type", value = "application/json" },
+      { field = "Content-Type",  value = "application/json" },
       { field = "Authorization", value = "Bearer " .. self.apiToken },
     })
   end)
@@ -166,7 +166,7 @@ function API:GET(path)
   local url = self.apiUrl .. path
   logger:trace("GET", url)
 
-  return self:callServer(function ()
+  return self:callServer(function()
     return LrHttp.get(url, {
       { field = "Authorization", value = "Bearer " .. self.apiToken },
     })
@@ -553,10 +553,9 @@ function API:upload(photo, publishSettings, filePath, remoteId)
 
   local dimensions = photo:getRawMetadata("croppedDimensions")
   if exifdata.RegionAppliedToDimensionsW == dimensions.width and
-     exifdata.RegionAppliedToDimensionsH == dimensions.height and
-     exifdata.RegionAppliedToDimensionsUnit == "pixel" and
-     exifdata.RegionName then
-
+      exifdata.RegionAppliedToDimensionsH == dimensions.height and
+      exifdata.RegionAppliedToDimensionsUnit == "pixel" and
+      exifdata.RegionName then
     local regionType = asList(exifdata.RegionType)
     local regionAreaX = asList(exifdata.RegionAreaX)
     local regionAreaY = asList(exifdata.RegionAreaY)
@@ -580,7 +579,7 @@ function API:upload(photo, publishSettings, filePath, remoteId)
   end
 
   local params = {
-    { name = "json", value = data, contentType = "application/json" },
+    { name = "json", value = data,                                      contentType = "application/json" },
     { name = "file", fileName = photo:getFormattedMetadata("fileName"), filePath = filePath }
   }
 
@@ -600,7 +599,7 @@ function API:refreshState()
 end
 
 function API:logout()
-  self:GET("logout", { })
+  self:GET("logout", {})
 end
 
 function API:error()
@@ -649,7 +648,7 @@ function API:getOrCreateChildAlbum(catalog, parent, name)
   })
 end
 
-local instances = { }
+local instances = {}
 
 local function get(settings)
   local key = settings.siteUrl .. "#" .. settings.email

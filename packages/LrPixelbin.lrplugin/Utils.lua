@@ -4,7 +4,7 @@ local LrErrors = import "LrErrors"
 
 local json = require "json"
 
-local Utils = { }
+local Utils = {}
 
 function Utils.logFailures(context, logger, action)
   context:addFailureHandler(function(_, message)
@@ -66,7 +66,7 @@ function Utils.jsonEncode(logger, table)
 end
 
 function Utils.jsonDecode(logger, str)
-  local success, data =  Utils.safeCall(logger, "json decode", function()
+  local success, data = Utils.safeCall(logger, "json decode", function()
     return json.decode(str)
   end)
 

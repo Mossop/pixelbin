@@ -12,7 +12,7 @@ local Utils = require("Utils")
 
 local logger = require("Logging")("Provider")
 
-local Provider = { }
+local Provider = {}
 
 -- This makes us a publish service
 Provider.supportsIncrementalPublish = true
@@ -23,10 +23,10 @@ Provider.hideSections = {
 }
 
 Provider.exportPresetFields = {
-  { key = "email", default = "" },
+  { key = "email",    default = "" },
   { key = "password", default = "" },
-  { key = "siteUrl", default = "https://pixelbin.org/" },
-  { key = "catalog", default = "" },
+  { key = "siteUrl",  default = "https://pixelbin.org/" },
+  { key = "catalog",  default = "" },
 }
 
 Provider.canExportVideo = true
@@ -58,7 +58,7 @@ local function getCatalogFolderPath(path)
   local catalog = LrApplication.activeCatalog()
   local folders = catalog:getFolders()
 
-  local parts = { }
+  local parts = {}
   while path do
     for _, folder in ipairs(folders) do
       if folder:getPath() == path then
@@ -72,11 +72,11 @@ local function getCatalogFolderPath(path)
   end
 
   logger:warn("Found no root folder for photo", path)
-  return { }
+  return {}
 end
 
 local function getFilesystemPath(path)
-  local parts = { }
+  local parts = {}
 
   local leaf = LrPathUtils.leafName(path)
   path = LrPathUtils.parent(path)
@@ -211,8 +211,8 @@ function Provider.processRenderedPhotos(context, exportContext)
 
   local progressScope = exportContext:configureProgress({
     title = photoCount > 1
-      and LOC("$$$/LrPixelBin/Render/Progress=Publishing ^1 photos to PixelBin", photoCount)
-      or LOC "$$$/LrPixelBin/Render/Progress=Publishing one photo to PixelBin",
+        and LOC("$$$/LrPixelBin/Render/Progress=Publishing ^1 photos to PixelBin", photoCount)
+        or LOC "$$$/LrPixelBin/Render/Progress=Publishing one photo to PixelBin",
   })
 
   local operations = photoCount * 2 + 1
@@ -337,7 +337,8 @@ function Provider.processRenderedPhotos(context, exportContext)
 
         if success then
           info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
-          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. targetAlbum .. "/media/" .. remoteId)
+          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl ..
+            "album/" .. targetAlbum .. "/media/" .. remoteId)
         else
           info.rendition:uploadFailed(result.name)
         end
@@ -383,7 +384,8 @@ function Provider.processRenderedPhotos(context, exportContext)
 
               if success then
                 info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
-                info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. "album/" .. targetAlbum .. "/media/" .. remoteId)
+                info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl ..
+                  "album/" .. targetAlbum .. "/media/" .. remoteId)
               else
                 info.rendition:uploadFailed(result.name)
               end
@@ -430,7 +432,7 @@ function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPh
       remotePhotos[photo:getRemoteId()] = photo:getPhoto()
     end
 
-    Utils.runWithWriteAccess(logger, "Remove photos", function ()
+    Utils.runWithWriteAccess(logger, "Remove photos", function()
       for _, remoteId in ipairs(arrayOfPhotoIds) do
         local photo = remotePhotos[remoteId]
         if photo then

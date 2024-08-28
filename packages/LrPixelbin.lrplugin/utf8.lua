@@ -40,41 +40,41 @@ function utf8.next(str, i)
       local c2 = string.byte(str, i)
       if c2 >= 0x80 and c2 <= 0xBF then
         return i + 1,
-              shl(bottom(c1, 5), 6)
-                + bottom(c2, 6)
+            shl(bottom(c1, 5), 6)
+            + bottom(c2, 6)
       end
     end
   elseif c1 <= 0xEF then --3-byte
     if i <= len + 1 then
-      local c2, c3 = string.byte(str, i), string.byte(str, i+1)
+      local c2, c3 = string.byte(str, i), string.byte(str, i + 1)
       if not (
-           c2 < 0x80 or c2 > 0xBF
-        or c3 < 0x80 or c3 > 0xBF
-        or (c1 == 0xE0 and c2 < 0xA0)
-        or (c1 == 0xED and c2 > 0x9F)
-      ) then
+            c2 < 0x80 or c2 > 0xBF
+            or c3 < 0x80 or c3 > 0xBF
+            or (c1 == 0xE0 and c2 < 0xA0)
+            or (c1 == 0xED and c2 > 0x9F)
+          ) then
         return i + 2,
-              shl(bottom(c1, 4), 12)
+            shl(bottom(c1, 4), 12)
             + shl(bottom(c2, 6), 6)
-                + bottom(c3, 6)
+            + bottom(c3, 6)
       end
     end
   elseif c1 <= 0xF4 then --4-byte
     if i <= len + 2 then
-      local c2, c3, c4 = string.byte(str, i), string.byte(str, i+1), string.byte(str, i+2)
+      local c2, c3, c4 = string.byte(str, i), string.byte(str, i + 1), string.byte(str, i + 2)
       if not (
-           c2 < 0x80 or c2 > 0xBF
-        or c3 < 0x80 or c3 > 0xBF
-        or c3 < 0x80 or c3 > 0xBF
-        or c4 < 0x80 or c4 > 0xBF
-        or (c1 == 0xF0 and c2 < 0x90)
-        or (c1 == 0xF4 and c2 > 0x8F)
-      ) then
+            c2 < 0x80 or c2 > 0xBF
+            or c3 < 0x80 or c3 > 0xBF
+            or c3 < 0x80 or c3 > 0xBF
+            or c4 < 0x80 or c4 > 0xBF
+            or (c1 == 0xF0 and c2 < 0x90)
+            or (c1 == 0xF4 and c2 > 0x8F)
+          ) then
         return i + 3,
-             shl(bottom(c1, 3), 18)
-           + shl(bottom(c2, 6), 12)
-           + shl(bottom(c3, 6), 6)
-               + bottom(c4, 6)
+            shl(bottom(c1, 3), 18)
+            + shl(bottom(c2, 6), 12)
+            + shl(bottom(c3, 6), 6)
+            + bottom(c4, 6)
       end
     end
   end
