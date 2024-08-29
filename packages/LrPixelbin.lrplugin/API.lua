@@ -7,6 +7,17 @@ local utf8 = require "utf8"
 local logger = require("Logging")("API")
 local Utils = require "Utils"
 
+---@class API
+---@field private instanceKey string
+---@field private cacheCount number
+---@field private siteUrl string
+---@field private apiUrl string
+---@field private email string
+---@field private password string
+---@field apiToken string | nil
+---@field private errorState nil
+---@field private catalogs table
+---@field private albums table
 local API = {}
 
 function API:parseHTTPResult(response, info)
@@ -599,7 +610,7 @@ function API:refreshState()
 end
 
 function API:logout()
-  self:GET("logout", {})
+  self:GET("logout")
 end
 
 function API:error()
@@ -648,8 +659,11 @@ function API:getOrCreateChildAlbum(catalog, parent, name)
   })
 end
 
+---@type { [string]: API }
 local instances = {}
 
+---@param settings table
+---@return API
 local function get(settings)
   local key = settings.siteUrl .. "#" .. settings.email
   if instances[key] ~= nil then

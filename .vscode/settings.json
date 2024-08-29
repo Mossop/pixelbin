@@ -9,9 +9,6 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.formatOnSave": true
     },
-    "Lua.diagnostics.globals": [
-        "import",
-        "LOC",
-        "_PLUGIN"
-    ]
+    "Lua.workspace.library": ["/Users/dave/workspace/lightroom-lua/library"],
+    "Lua.runtime.special": {"import": "require"}
 }

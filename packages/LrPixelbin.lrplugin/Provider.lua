@@ -54,6 +54,8 @@ end
 
 ------------------------ Actions
 
+---@param path string
+---@return string[]
 local function getCatalogFolderPath(path)
   local catalog = LrApplication.activeCatalog()
   local folders = catalog:getFolders()
@@ -75,6 +77,8 @@ local function getCatalogFolderPath(path)
   return {}
 end
 
+---@param path string
+---@return string[]
 local function getFilesystemPath(path)
   local parts = {}
 

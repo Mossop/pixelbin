@@ -46,16 +46,22 @@ for k, v in pairs(escape_char_map) do
 end
 
 
+---@param c string
+---@return string
 local function escape_char(c)
   return "\\" .. (escape_char_map[c] or string.format("u%04x", c:byte()))
 end
 
 
-local function encode_nil(val)
+---@return string
+local function encode_nil()
   return "null"
 end
 
 
+---@param val any
+---@param stack any
+---@return string
 local function encode_table(val, stack)
   local res = {}
   stack = stack or {}
@@ -102,6 +108,8 @@ local function encode_string(val)
 end
 
 
+---@param val any
+---@return string
 local function encode_number(val)
   -- Check for NaN, -inf and inf
   if val ~= val or val <= -math.huge or val >= math.huge then
@@ -120,6 +128,9 @@ local type_func_map = {
 }
 
 
+---@param val any
+---@param stack any
+---@return string
 encode = function(val, stack)
   local t = type(val)
   local f = type_func_map[t]
@@ -130,6 +141,8 @@ encode = function(val, stack)
 end
 
 
+---@param val any
+---@return string
 function json.encode(val)
   return (encode(val))
 end
@@ -160,6 +173,10 @@ local literal_map  = {
 }
 
 
+---@param str string
+---@param idx number
+---@param set table
+---@param negate boolean?
 local function next_char(str, idx, set, negate)
   for i = idx, #str do
     if set[str:sub(i, i)] ~= negate then
@@ -170,6 +187,9 @@ local function next_char(str, idx, set, negate)
 end
 
 
+---@param str string
+---@param idx number
+---@param msg string
 local function decode_error(str, idx, msg)
   local line_count = 1
   local col_count = 1
@@ -184,6 +204,8 @@ local function decode_error(str, idx, msg)
 end
 
 
+---@param n number
+---@return string
 local function codepoint_to_utf8(n)
   -- http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=iws-appendixa
   local f = math.floor
@@ -201,6 +223,7 @@ local function codepoint_to_utf8(n)
 end
 
 
+---@param s string
 local function parse_unicode_escape(s)
   local n1 = tonumber(s:sub(1, 4), 16)
   local n2 = tonumber(s:sub(7, 10), 16)
@@ -213,6 +236,9 @@ local function parse_unicode_escape(s)
 end
 
 
+---@param str string
+---@param i number
+---@return string, number
 local function parse_string(str, i)
   local res = ""
   local j = i + 1
@@ -248,21 +274,29 @@ local function parse_string(str, i)
     j = j + 1
   end
 
+  ---@diagnostic disable-next-line: missing-return
   decode_error(str, i, "expected closing quote for string")
 end
 
 
+---@param str string
+---@param i number
+---@return number, number
 local function parse_number(str, i)
   local x = next_char(str, i, delim_chars)
   local s = str:sub(i, x - 1)
   local n = tonumber(s)
-  if not n then
-    decode_error(str, i, "invalid number '" .. s .. "'")
+  if n then
+    return n, x
   end
-  return n, x
+  ---@diagnostic disable-next-line: missing-return
+  decode_error(str, i, "invalid number '" .. s .. "'")
 end
 
 
+---@param str string
+---@param i number
+---@return boolean | nil, number
 local function parse_literal(str, i)
   local x = next_char(str, i, delim_chars)
   local word = str:sub(i, x - 1)
@@ -273,6 +307,9 @@ local function parse_literal(str, i)
 end
 
 
+---@param str string
+---@param i number
+---@return table, number
 local function parse_array(str, i)
   local res = {}
   local n = 1
@@ -300,6 +337,9 @@ local function parse_array(str, i)
 end
 
 
+---@param str string
+---@param i number
+---@return table, number
 local function parse_object(str, i)
   local res = {}
   i = i + 1
@@ -358,16 +398,24 @@ local char_func_map = {
 }
 
 
+---@param str string
+---@param idx number
+---@return table, number
 parse = function(str, idx)
   local chr = str:sub(idx, idx)
+  ---@type (fun(str: string, idx: number): table, number) | nil
   local f = char_func_map[chr]
   if f then
     return f(str, idx)
   end
+
+  ---@diagnostic disable-next-line: missing-return
   decode_error(str, idx, "unexpected character '" .. chr .. "'")
 end
 
 
+---@param str string
+---@return table
 function json.decode(str)
   if type(str) ~= "string" then
     error("expected argument of type string, got " .. type(str))
