@@ -32,7 +32,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
     local byLocalId = {}
 
     for _, publishedPhoto in ipairs(defaultCollection:getPublishedPhotos()) do
-      byLocalId[publishedPhotos:getPhoto().localIdentifier] = publishedPhoto
+      byLocalId[publishedPhoto:getPhoto().localIdentifier] = publishedPhoto
     end
 
     local toAdd = {}
@@ -88,7 +88,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
     local photosToCheck = 0
 
     for _, publishedPhoto in ipairs(defaultCollection:getPublishedPhotos()) do
-      byLocalId[publishedPhotos:getPhoto().localIdentifier] = publishedPhoto
+      byLocalId[publishedPhoto:getPhoto().localIdentifier] = publishedPhoto
       local remoteId = publishedPhoto:getRemoteId()
 
       if remoteId then
