@@ -54,45 +54,6 @@ end
 
 ------------------------ Actions
 
----@param path string
----@return string[]
-local function getCatalogFolderPath(path)
-  local catalog = LrApplication.activeCatalog()
-  local folders = catalog:getFolders()
-
-  local parts = {}
-  while path do
-    for _, folder in ipairs(folders) do
-      if folder:getPath() == path then
-        table.insert(parts, 1, LrPathUtils.leafName(path))
-        return parts
-      end
-    end
-
-    table.insert(parts, 1, LrPathUtils.leafName(path))
-    path = LrPathUtils.parent(path)
-  end
-
-  logger:warn("Found no root folder for photo", path)
-  return {}
-end
-
----@param path string
----@return string[]
-local function getFilesystemPath(path)
-  local parts = {}
-
-  local leaf = LrPathUtils.leafName(path)
-  path = LrPathUtils.parent(path)
-  while path do
-    table.insert(parts, 1, leaf)
-    leaf = LrPathUtils.leafName(path)
-    path = LrPathUtils.parent(path)
-  end
-
-  return parts
-end
-
 ---@param publishSettings PublishSettings
 function Provider.getCollectionBehaviorInfo(publishSettings)
   local api = API(publishSettings)
@@ -197,13 +158,14 @@ function Provider.processRenderedPhotos(context, exportContext)
   local exportSession = exportContext.exportSession
   ---@type PublishSettings
   local publishSettings = exportContext.propertyTable
-  local collection = exportContext.publishedCollection
-  local collectionInfo = collection:getCollectionInfoSummary()
-  ---@type SubAlbums
-  local subalbums = collectionInfo.collectionSettings.subalbums
-  ---@type number
-  local pathstrip = collectionInfo.collectionSettings.pathstrip
 
+  local api = API(publishSettings)
+  api:refreshState()
+  if not api:authenticated() then
+    error("Not authenticated")
+  end
+
+  local collection = exportContext.publishedCollection
   local catalog = publishSettings.catalog
   local album = collection:getRemoteId() --[[@as string | nil]]
 
@@ -237,11 +199,6 @@ function Provider.processRenderedPhotos(context, exportContext)
   local updateProgress = function()
     progressScope:setPortionComplete(currentOperation, operations)
   end
-
-  local api = API(publishSettings)
-
-  ---@type { [string]: string }
-  local targetAlbums = {}
 
   -- First we scan through and find any known ID for each rendition.
 
@@ -304,62 +261,18 @@ function Provider.processRenderedPhotos(context, exportContext)
     currentOperation = currentOperation + 1
     updateProgress()
 
-    local targetAlbum = album
-
-    if album and subalbums ~= "none" then
-      local photoPath = LrPathUtils.parent(info.rendition.photo:getRawMetadata("path"))
-
-      if not targetAlbums[photoPath] then
-        local parts = {}
-        if subalbums == "catalog" then
-          parts = getCatalogFolderPath(photoPath)
-        else
-          parts = getFilesystemPath(photoPath)
-        end
-
-        local strip = pathstrip
-        while strip > 0 do
-          table.remove(parts, 1)
-          strip = strip - 1
-        end
-
-        local childAlbum
-        local failed = false
-        local parentAlbum = album
-        for _, part in ipairs(parts) do
-          childAlbum = api:getOrCreateChildAlbum(catalog, parentAlbum, part)
-          if Utils.isError(childAlbum) then
-            info.rendition:uploadFailed(Utils.errorString(childAlbum))
-            failed = true
-            break
-          else
-            parentAlbum = childAlbum.id
-          end
-        end
-
-        if failed then
-          break
-        end
-
-        targetAlbums[photoPath] = parentAlbum
-      end
-    end
-
     local remoteId = info.remoteId
 
     if info.rendition.wasSkipped then
       -- Record the additional operation that would have been a render
       currentOperation = currentOperation + 1
 
-      -- We can assume the photo is already in the default collection here so we
-      -- only need to add to the album.
-      if targetAlbum then
-        local result = api:addMediaToAlbum(targetAlbum, { remoteId })
-
+      if remoteId then
+        local target = api:targetAlbumForPhoto(collection, info.rendition.photo)
+        local result = api:placeInAlbum(catalog, remoteId, target)
         if Utils.isSuccess(result) then
-          info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
-          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl ..
-            "album/" .. targetAlbum .. "/media/" .. remoteId)
+          info.rendition:recordPublishedPhotoId(result.publishedId)
+          info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
         else
           info.rendition:uploadFailed(Utils.errorString(result))
         end
@@ -396,23 +309,19 @@ function Provider.processRenderedPhotos(context, exportContext)
         if remoteId then
           local result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, remoteId)
           if Utils.isSuccess(result) then
-            if targetAlbum then
+            if album then
               Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
                 defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
               end)
+            end
 
-              local result = api:addMediaToAlbum(targetAlbum, { remoteId })
-
-              if Utils.isSuccess(result) then
-                info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
-                info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl ..
-                  "album/" .. targetAlbum .. "/media/" .. remoteId)
-              else
-                info.rendition:uploadFailed(Utils.errorString(result))
-              end
+            local target = Provider.albumForPhoto(collection, info.rendition.photo)
+            local result = api:placeInAlbum(catalog, remoteId, target)
+            if Utils.isSuccess(result) then
+              info.rendition:recordPublishedPhotoId(result.publishedId)
+              info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
             else
-              info.rendition:recordPublishedPhotoId(remoteId)
-              info.rendition:recordPublishedPhotoUrl(catalogUrl)
+              info.rendition:uploadFailed(Utils.errorString(result))
             end
           else
             info.rendition:uploadFailed(Utils.errorString(result))
@@ -868,8 +777,8 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
     local photoPath = photo:getRawMetadata("path")
     local basePath = LrPathUtils.parent(photoPath)
     local filename = LrPathUtils.leafName(photoPath)
-    local catalogPath = getCatalogFolderPath(basePath)
-    local filesystemPath = getFilesystemPath(basePath)
+    local catalogPath = api:getCatalogFolderPath(basePath)
+    local filesystemPath = api:getFilesystemPath(basePath)
 
     local function buildExample()
       local path

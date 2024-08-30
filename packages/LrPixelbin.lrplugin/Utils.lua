@@ -208,7 +208,7 @@ function Utils.getDefaultCollection(publishService)
 end
 
 ---@param publishService LrPublishService
----@return (LrPublishedCollection|LrPublishedCollectionSet)[]
+---@return LrPublishedCollection[]
 function Utils.listCollections(publishService)
   local collections = {}
 

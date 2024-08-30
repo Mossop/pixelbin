@@ -1,5 +1,7 @@
 local LrHttp = import "LrHttp"
 local LrTasks = import "LrTasks"
+local LrApplication = import "LrApplication"
+local LrPathUtils = import "LrPathUtils"
 
 local json = require "json"
 
@@ -250,7 +252,7 @@ end
 
 ---@param ids string[]
 ---@param progressCallback fun(count: number)?
----@return { [string]: table }
+---@return { [string]: Media }
 function API:getMedia(ids, progressCallback)
   local results = {}
 
@@ -672,6 +674,7 @@ end
 
 ---@param catalog string
 ---@param parent string | nil
+---@return Album[]
 function API:getAlbumsWithParent(catalog, parent)
   local albums = {}
   for _, album in ipairs(self.albums) do
@@ -683,21 +686,233 @@ function API:getAlbumsWithParent(catalog, parent)
   return albums
 end
 
+---@private
 ---@param catalog string
 ---@param parent string | nil
 ---@param name string
----@return Album | Error
-function API:getOrCreateChildAlbum(catalog, parent, name)
+---@param create boolean
+---@return Album | nil | Error
+function API:getChildAlbum(catalog, parent, name, create)
   for _, album in ipairs(self:getAlbumsWithParent(catalog, parent)) do
     if string.lower(album.name) == string.lower(name) then
       return album
     end
   end
 
-  return self:createAlbum(catalog, {
-    name = name,
-    parent = parent,
+  if create then
+    return self:createAlbum(catalog, {
+      name = name,
+      parent = parent,
+    })
+  end
+
+  return nil
+end
+
+---@param path string
+---@return string[]
+function API:getCatalogFolderPath(path)
+  local catalog = LrApplication.activeCatalog()
+  local folders = catalog:getFolders()
+
+  local parts = {}
+  while path do
+    for _, folder in ipairs(folders) do
+      if folder:getPath() == path then
+        table.insert(parts, 1, LrPathUtils.leafName(path))
+        return parts
+      end
+    end
+
+    table.insert(parts, 1, LrPathUtils.leafName(path))
+    path = LrPathUtils.parent(path)
+  end
+
+  logger:warn("Found no root folder for photo", path)
+  return {}
+end
+
+---@param path string
+---@return string[]
+function API:getFilesystemPath(path)
+  local parts = {}
+
+  local leaf = LrPathUtils.leafName(path)
+  path = LrPathUtils.parent(path)
+  while path do
+    table.insert(parts, 1, leaf)
+    leaf = LrPathUtils.leafName(path)
+    path = LrPathUtils.parent(path)
+  end
+
+  return parts
+end
+
+---@param collection LrPublishedCollection
+---@param photo LrPhoto
+---@return TargetAlbum | nil
+function API:targetAlbumForPhoto(collection, photo)
+  local collectionInfo = collection:getCollectionInfoSummary()
+
+  if collectionInfo.isDefaultCollection then
+    return nil
+  end
+
+  ---@type CollectionSettings
+  local collectionSettings = collectionInfo.collectionSettings
+  local subalbums = collectionSettings.subalbums
+  local pathstrip = collectionSettings.pathstrip
+
+  local album = collection:getRemoteId() --[[@as string | nil]]
+
+  local result = {
+    root = album,
+    names = {},
+  }
+
+  if collectionSettings.subalbums == "none" then
+    return result
+  end
+
+  local photoPath = LrPathUtils.parent(photo:getRawMetadata("path"))
+
+  if subalbums == "catalog" then
+    result.names = self:getCatalogFolderPath(photoPath)
+  else
+    result.names = self:getFilesystemPath(photoPath)
+  end
+
+  local strip = pathstrip
+  while strip > 0 do
+    table.remove(result.names, 1)
+    strip = strip - 1
+  end
+
+  return result
+end
+
+---@private
+---@param catalog string
+---@param target TargetAlbum | nil
+---@param create boolean
+---@return { included: string | nil, excluded: string[] } | Error
+function API:determineAlbums(catalog, target, create)
+  local result = {
+    included = nil,
+    excluded = {},
+  }
+
+  if target == nil then
+    return result
+  end
+
+  ---@type string | nil
+  local album = target.root
+
+  if target.names then
+    for _, name in ipairs(target.names) do
+      local childAlbum = self:getChildAlbum(catalog, album, name, create)
+      if Utils.isError(childAlbum) then
+        return Utils.error(childAlbum)
+      end
+
+      if childAlbum == nil then
+        album = nil
+        break
+      end
+
+      album = childAlbum.id
+    end
+
+    ---@param parent string
+    local function excludeChildren(parent)
+      for _, child in ipairs(self:getAlbumsWithParent(catalog, parent)) do
+        excludeChildren(child.id)
+
+        if child.id ~= album then
+          result.excluded[child.id] = true
+        end
+      end
+    end
+
+    excludeChildren(target.root)
+  end
+
+  result.included = album
+
+  return result
+end
+
+---@param catalog string
+---@param mediaId string
+---@param target TargetAlbum | nil
+---@return { publishedId: string, publishedPath: string } | Error
+function API:placeInAlbum(catalog, mediaId, target)
+  if target == nil then
+    return {
+      publishedId = catalog,
+      publishedPath = "catalog/" .. catalog .. "/media/" .. mediaId,
+    }
+  end
+
+  local where = self:determineAlbums(catalog, target, true)
+  if Utils.isError(where) then
+    return Utils.error(where)
+  end
+
+  local operations = {}
+
+  table.insert(operations, {
+    operation = "add",
+    media = mediaId,
+    album = where.included,
   })
+
+  for album, _ in ipairs(where.excluded) do
+    table.insert(operations, {
+      operation = "delete",
+      media = mediaId,
+      album = album,
+    })
+  end
+
+  local response = self:POST("album/media", operations)
+  if Utils.isError(response) then
+    return response
+  end
+
+  return {
+    publishedId = where.included,
+    publishedPath = "album/" .. where.included .. "/media/" .. mediaId,
+  }
+end
+
+---@param catalog string
+---@param media Media
+---@param target TargetAlbum | nil
+---@return boolean
+function API:isInCorrectAlbums(catalog, media, target)
+  if target == nil then
+    return media.catalog == catalog
+  end
+
+  local where = self:determineAlbums(catalog, target, false)
+  if Utils.isError(where) then
+    return false
+  end
+
+  local foundIncluded = false
+  for _, album in ipairs(media.albums) do
+    if album.id == where.included then
+      foundIncluded = true
+    end
+
+    if where.excluded[album.id] then
+      return false
+    end
+  end
+
+  return foundIncluded
 end
 
 ---@return boolean

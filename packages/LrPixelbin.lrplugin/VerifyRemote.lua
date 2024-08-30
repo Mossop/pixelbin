@@ -23,18 +23,23 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
     local defaultCollection = Utils.getDefaultCollection(service)
     parentScope:setPortionComplete(idx, serviceCount)
 
+    ---@type PublishSettings
     local publishSettings = service:getPublishSettings()
     local catalog = publishSettings.catalog
     logger:info("Checking photos for " .. publishSettings.siteUrl)
 
+    ---@type string[]
     local remoteIds = {}
+    ---@type { [string]: LrPublishedPhoto }
     local byRemoteId = {}
+    ---@type { [number]: LrPublishedPhoto }
     local byLocalId = {}
 
     for _, publishedPhoto in ipairs(defaultCollection:getPublishedPhotos()) do
       byLocalId[publishedPhoto:getPhoto().localIdentifier] = publishedPhoto
     end
 
+    ---@type { [number]: { photo: LrPhoto, edited: boolean, mediaItem: string | nil } }
     local toAdd = {}
 
     local collections = Utils.listCollections(service)
@@ -50,8 +55,6 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
             end
           elseif not byLocalId[publishedPhoto:getPhoto().localIdentifier] then
             -- Photo is not in the default collection when it should be
-            local mediaItem = nil
-
             local itemToAdd = toAdd[publishedPhoto:getPhoto().localIdentifier]
             if not itemToAdd then
               itemToAdd = {
@@ -126,6 +129,22 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
           table.insert(needsEdit, byRemoteId[id])
         end
       end
+
+      for _, collection in ipairs(collections) do
+        if collection ~= defaultCollection then
+          for _, publishedPhoto in ipairs(collection:getPublishedPhotos()) do
+            if not publishedPhoto:getEditedFlag() then
+              local remoteId = byLocalId[publishedPhoto:getPhoto().localIdentifier]:getRemoteId()
+              if media[remoteId] and media[remoteId].file then
+                local target = api:targetAlbumForPhoto(collection, publishedPhoto:getPhoto())
+                if not api:isInCorrectAlbums(catalog, media[remoteId], target) then
+                  table.insert(needsEdit, publishedPhoto)
+                end
+              end
+            end
+          end
+        end
+      end
     end
   end
 
@@ -141,5 +160,9 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function(context)
     end)
   end
 
-  LrDialogs.message("Marked " .. editCount .. " photos to be republished.", nil, "info")
+  if editCount == 0 then
+    LrDialogs.message("All photos are published correctly.", nil, "info")
+  else
+    LrDialogs.message(editCount .. " photos need to be republished.", nil, "warning")
+  end
 end)
