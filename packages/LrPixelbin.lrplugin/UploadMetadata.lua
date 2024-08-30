@@ -7,12 +7,15 @@ local API = require "API"
 
 local logger = require("Logging")("UploadMetadata")
 
+---@param photo LrPhoto
+---@param publishSettings PublishSettings
+---@param remoteId string
 local function uploadMetadata(photo, publishSettings, remoteId)
   local api = API(publishSettings)
 
-  local success, result = api:uploadMetadata(photo, publishSettings, remoteId)
-  if not success then
-    error(result.name)
+  local result = api:uploadMetadata(photo, publishSettings, remoteId)
+  if Utils.isError(result) then
+    error(Utils.errorString(result))
   end
 end
 
@@ -38,6 +41,7 @@ Utils.runAsync(logger, "UploadMetadata", function(context)
     if type(source) ~= "string" and source:type() == "LrPublishedCollection" then
       local service = source:getService()
       if service:getPluginId() == _PLUGIN.id then
+        ---@type PublishSettings
         local settings = service:getPublishSettings()
 
         local defaultCollection = Utils.getDefaultCollection(service)

@@ -93,6 +93,7 @@ local function getFilesystemPath(path)
   return parts
 end
 
+---@param publishSettings PublishSettings
 function Provider.getCollectionBehaviorInfo(publishSettings)
   local api = API(publishSettings)
 
@@ -111,12 +112,14 @@ function Provider.getCollectionBehaviorInfo(publishSettings)
   }
 end
 
+---@param publishSettings PublishSettings
 function Provider.didUpdatePublishService(publishSettings, info)
   logger:info("Publish service updated.", info.publishService:getName(),
     info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
     publishSettings.catalog)
 end
 
+---@param publishSettings PublishSettings
 function Provider.didCreateNewPublishService(publishSettings, info)
   logger:info("New publish service created.", info.publishService:getName(),
     info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
@@ -125,9 +128,9 @@ function Provider.didCreateNewPublishService(publishSettings, info)
   local api = API(publishSettings)
 
   Utils.runWithWriteAccess(logger, "Delete Default Collection", function()
-    local success, _ = api:login()
+    local result = api:login()
 
-    if not success then
+    if Utils.isError(result) then
       logger:error("Failed to log in to new service.")
       return
     end
@@ -138,12 +141,14 @@ function Provider.didCreateNewPublishService(publishSettings, info)
   end)
 end
 
+---@param publishSettings PublishSettings
 function Provider.willDeletePublishService(publishSettings, info)
   logger:trace("Publish service deleted.", info.publishService:getName(),
     info.publishService.localIdentifier, publishSettings.siteUrl, publishSettings.email,
     publishSettings.catalog)
 end
 
+---@param publishSettings PublishSettings
 function Provider.updateCollectionSettings(publishSettings, info)
   Utils.runWithWriteAccess(logger, "Update Collection", function()
     local api = API(publishSettings)
@@ -156,25 +161,25 @@ function Provider.updateCollectionSettings(publishSettings, info)
         parent = nil
       end
 
-      local success, result
+      local result
       if albumId then
-        success, result = api:editAlbum(albumId, {
+        result = api:editAlbum(albumId, {
           name = info.name,
           parent = parent,
         })
 
-        if not success then
-          LrDialogs.showError(result.name)
+        if Utils.isError(result) then
+          LrDialogs.showError(Utils.errorString(result))
         end
       else
-        success, result = api:createAlbum(publishSettings.catalog, {
+        result = api:createAlbum(publishSettings.catalog, {
           name = info.name,
           parent = parent,
         })
 
-        if not success then
+        if Utils.isError(result) then
           info.publishedCollection:delete()
-          LrDialogs.showError(result.name)
+          LrDialogs.showError(Utils.errorString(result))
         end
 
         info.publishedCollection:setRemoteId(result.id)
@@ -184,19 +189,26 @@ function Provider.updateCollectionSettings(publishSettings, info)
   end)
 end
 
+---@param context LrFunctionContext
+---@param exportContext LrExportContext
 function Provider.processRenderedPhotos(context, exportContext)
   Utils.logFailures(context, logger, "processRenderedPhotos")
 
   local exportSession = exportContext.exportSession
+  ---@type PublishSettings
   local publishSettings = exportContext.propertyTable
   local collection = exportContext.publishedCollection
   local collectionInfo = collection:getCollectionInfoSummary()
+  ---@type SubAlbums
   local subalbums = collectionInfo.collectionSettings.subalbums
+  ---@type number
   local pathstrip = collectionInfo.collectionSettings.pathstrip
 
   local catalog = publishSettings.catalog
-  local album = collection:getRemoteId()
-  local defaultCollection = nil
+  local album = collection:getRemoteId() --[[@as string | nil]]
+
+  ---@type LrPublishedCollection
+  local defaultCollection
   if album == catalog then
     album = nil
     defaultCollection = collection
@@ -205,6 +217,7 @@ function Provider.processRenderedPhotos(context, exportContext)
   end
 
   -- A map of photos already supposedly uploaded.
+  ---@type { [number]: LrPublishedPhoto }
   local publishedPhotos = {}
   for _, published in ipairs(defaultCollection:getPublishedPhotos()) do
     local photo = published:getPhoto()
@@ -227,12 +240,16 @@ function Provider.processRenderedPhotos(context, exportContext)
 
   local api = API(publishSettings)
 
+  ---@type { [string]: string }
   local targetAlbums = {}
 
   -- First we scan through and find any known ID for each rendition.
 
+  ---@type (string|number)[]
   local knownIds = {}
+  ---@type { [string|number]: RenditionInfo }
   local renditionsById = {}
+  ---@type RenditionInfo[]
   local renditions = {}
 
   for _, rendition in exportSession:renditions() do
@@ -242,18 +259,19 @@ function Provider.processRenderedPhotos(context, exportContext)
     if album then
       local published = publishedPhotos[rendition.photo.localIdentifier]
       if published then
-        remoteId = published:getRemoteId()
+        remoteId = published:getRemoteId() --[[@as string|nil]]
         needsUpload = published:getEditedFlag()
       end
     else
-      remoteId = rendition.publishedPhotoId
+      remoteId = rendition.publishedPhotoId --[[@as string|nil]]
     end
 
+    ---@type RenditionInfo
     local info = {
       remoteId = remoteId,
       rendition = rendition,
       needsUpload = needsUpload,
-      inAlbum = album and rendition.publishedPhotoId ~= nil,
+      inAlbum = album and rendition.publishedPhotoId ~= nil or false,
     }
 
     if remoteId then
@@ -267,7 +285,7 @@ function Provider.processRenderedPhotos(context, exportContext)
   -- Now lookup the known media IDs and for any that are no longer present remotely update our info
   -- accordingly.
   local knownMedia = api:getMedia(knownIds)
-  for index, remoteId in ipairs(knownIds) do
+  for _, remoteId in ipairs(knownIds) do
     local info = renditionsById[remoteId]
 
     if not knownMedia[remoteId] then
@@ -282,7 +300,7 @@ function Provider.processRenderedPhotos(context, exportContext)
   exportContext:startRendering()
 
   -- Now actually do the uploads.
-  for i, info in ipairs(renditions) do
+  for _, info in ipairs(renditions) do
     currentOperation = currentOperation + 1
     updateProgress()
 
@@ -291,8 +309,7 @@ function Provider.processRenderedPhotos(context, exportContext)
     if album and subalbums ~= "none" then
       local photoPath = LrPathUtils.parent(info.rendition.photo:getRawMetadata("path"))
 
-      targetAlbum = targetAlbums[photoPath]
-      if not targetAlbum then
+      if not targetAlbums[photoPath] then
         local parts = {}
         if subalbums == "catalog" then
           parts = getCatalogFolderPath(photoPath)
@@ -306,17 +323,17 @@ function Provider.processRenderedPhotos(context, exportContext)
           strip = strip - 1
         end
 
-        local success, childAlbum
+        local childAlbum
         local failed = false
-        targetAlbum = album
+        local parentAlbum = album
         for _, part in ipairs(parts) do
-          success, childAlbum = api:getOrCreateChildAlbum(catalog, targetAlbum, part)
-          if not success then
-            info.rendition:uploadFailed(childAlbum.name)
+          childAlbum = api:getOrCreateChildAlbum(catalog, parentAlbum, part)
+          if Utils.isError(childAlbum) then
+            info.rendition:uploadFailed(Utils.errorString(childAlbum))
             failed = true
             break
           else
-            targetAlbum = childAlbum.id
+            parentAlbum = childAlbum.id
           end
         end
 
@@ -324,7 +341,7 @@ function Provider.processRenderedPhotos(context, exportContext)
           break
         end
 
-        targetAlbums[photoPath] = targetAlbum
+        targetAlbums[photoPath] = parentAlbum
       end
     end
 
@@ -337,14 +354,14 @@ function Provider.processRenderedPhotos(context, exportContext)
       -- We can assume the photo is already in the default collection here so we
       -- only need to add to the album.
       if targetAlbum then
-        local success, result = api:addMediaToAlbum(targetAlbum, { remoteId })
+        local result = api:addMediaToAlbum(targetAlbum, { remoteId })
 
-        if success then
+        if Utils.isSuccess(result) then
           info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
           info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl ..
             "album/" .. targetAlbum .. "/media/" .. remoteId)
         else
-          info.rendition:uploadFailed(result.name)
+          info.rendition:uploadFailed(Utils.errorString(result))
         end
       end
     else
@@ -361,8 +378,8 @@ function Provider.processRenderedPhotos(context, exportContext)
         local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/"
 
         if not remoteId then
-          local success, result = api:create(publishSettings)
-          if success then
+          local result = api:create(publishSettings)
+          if Utils.isSuccess(result) then
             remoteId = result.id
             catalogUrl = catalogUrl .. remoteId
 
@@ -370,35 +387,35 @@ function Provider.processRenderedPhotos(context, exportContext)
               defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, false)
             end)
           else
-            info.rendition:uploadFailed(result.name)
+            info.rendition:uploadFailed(Utils.errorString(result))
           end
         else
           catalogUrl = catalogUrl .. remoteId
         end
 
         if remoteId then
-          local success, result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, remoteId)
-          if success then
+          local result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, remoteId)
+          if Utils.isSuccess(result) then
             if targetAlbum then
               Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
                 defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
               end)
 
-              local success, result = api:addMediaToAlbum(targetAlbum, { remoteId })
+              local result = api:addMediaToAlbum(targetAlbum, { remoteId })
 
-              if success then
+              if Utils.isSuccess(result) then
                 info.rendition:recordPublishedPhotoId(targetAlbum .. "/" .. remoteId)
                 info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl ..
                   "album/" .. targetAlbum .. "/media/" .. remoteId)
               else
-                info.rendition:uploadFailed(result.name)
+                info.rendition:uploadFailed(Utils.errorString(result))
               end
             else
               info.rendition:recordPublishedPhotoId(remoteId)
               info.rendition:recordPublishedPhotoUrl(catalogUrl)
             end
           else
-            info.rendition:uploadFailed(result.name)
+            info.rendition:uploadFailed(Utils.errorString(result))
           end
         end
       else
@@ -413,6 +430,7 @@ function Provider.processRenderedPhotos(context, exportContext)
   progressScope:done()
 end
 
+---@param publishSettings PublishSettings
 function Provider.deletePublishedCollection(publishSettings, info)
   if info.isDefaultCollection then
     error(LOC "$$$/LrPixelBin/Delete/Default=The default collection should not be deleted.")
@@ -422,6 +440,10 @@ function Provider.deletePublishedCollection(publishSettings, info)
   api:deleteAlbum(info.remoteId)
 end
 
+---@param publishSettings PublishSettings
+---@param arrayOfPhotoIds string[]
+---@param deletedCallback fun(id: string)
+---@param collectionId number
 function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPhotoIds, deletedCallback, collectionId)
   local api = API(publishSettings)
   local collection = Utils.getCollectionsForId(collectionId)
@@ -430,6 +452,7 @@ function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPh
   if (collectionInfo.isDefaultCollection) then
     -- Deleting from the entire service.
     local publishService = collection:getService()
+    ---@type { [string]: LrPhoto }
     local remotePhotos = {}
 
     for _, photo in ipairs(collection:getPublishedPhotos()) do
@@ -457,6 +480,7 @@ function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPh
     end
   else
     -- Just deleting from this album.
+    ---@type { [string]: string[] }
     local albums = {}
 
     for _, id in ipairs(arrayOfPhotoIds) do
@@ -471,13 +495,13 @@ function Provider.deletePhotosFromPublishedCollection(publishSettings, arrayOfPh
     end
 
     for album, media in pairs(albums) do
-      local success, result = api:removeMediaFromAlbum(album, media)
-      if success then
+      local result = api:removeMediaFromAlbum(album, media)
+      if Utils.isSuccess(result) then
         for _, remoteId in ipairs(media) do
           deletedCallback(album .. "/" .. remoteId)
         end
       else
-        error(result.name)
+        error(Utils.errorString(result))
       end
     end
   end
@@ -526,8 +550,8 @@ local function verifyLogin(propertyTable)
     api:refreshState()
     local error = api:error()
 
-    if error then
-      propertyTable.error = error.name
+    if Utils.isError(error) then
+      propertyTable.error = Utils.errorString(error)
     else
       local catalogs = {}
       for _, catalog in ipairs(api:getCatalogs()) do
@@ -738,7 +762,7 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
 
   local api = API(publishSettings)
 
-  if not api.apiToken then
+  if not api:authenticated() then
     info.collectionSettings.LR_canSaveCollection = false
 
     return f:group_box {

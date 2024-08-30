@@ -4,8 +4,98 @@ local LrErrors = import "LrErrors"
 
 local json = require "json"
 
+local ERROR_CODES = {
+  invalidUrl = "The Url is invalid",
+  unknownHost = "Host not found: ^1",
+  connection = "Connection failed: ^1",
+  notLoggedIn = "Not logged in: ^1",
+  tooLarge = "This file is too large.",
+  notFound = "Resource not found.",
+  backoff = "Server is overloaded, try again later.",
+  unknown = "An unknown error occured.",
+  badCredentials = "Incorrect username or password.",
+  exiftoolError = "Exiftool returned an error.",
+  badfile = "Failed opening Exiftool output: ^1",
+  exception = "An exception was thrown: ^1",
+  invalidJson = "Invalid JSON: ^1",
+}
+
+---@class Error
+---@field code string
+---@field args string[]
+local Error = {}
+
 ---@class Utils
 local Utils = {}
+
+---@param code string
+---@param args string[]?
+---@return Error
+function Utils.throw(code, args)
+  local error = {
+    code = code,
+    args = args
+  }
+
+  setmetatable(error, { __index = Error })
+
+  return error
+end
+
+---@generic T
+---@param val T | Error
+---@return boolean
+function Utils.isSuccess(val)
+  return not Utils.isError(val)
+end
+
+---@generic T
+---@param val T | Error
+---@return boolean
+function Utils.isError(val)
+  if type(val) ~= "table" then
+    return false
+  end
+
+  local meta = getmetatable(val)
+  return meta and meta["__index"] == Error
+end
+
+---@generic T
+---@param val T | Error
+---@return Error
+function Utils.error(val)
+  if Utils.isError(val) then
+    return val
+  end
+
+  error("Unexpected error access on success")
+end
+
+---@generic T
+---@param val T | Error
+---@return string
+function Utils.errorString(val)
+  error = Utils.error(val)
+
+  local message = "Unknown Error (" .. error.code .. ")"
+  if ERROR_CODES[error.code] then
+    message = ERROR_CODES[error.code]
+  end
+
+  return LOC("$$$/LrPixelBin/error/" .. error.code .. "=" .. message, unpack(val.args))
+end
+
+---@generic T
+---@param val T | Error
+---@return T
+function Utils.result(val)
+  if Utils.isSuccess(val) then
+    return val
+  end
+
+  error("Unexpected result access on error")
+end
 
 ---@param context LrFunctionContext
 ---@param logger Logger
@@ -52,7 +142,7 @@ end
 ---@param logger Logger
 ---@param action string
 ---@param func fun(context: LrFunctionContext): T
----@return boolean, T
+---@return T | Error
 function Utils.safeCall(logger, action, func)
   local success, result = LrFunctionContext.pcallWithContext(action, function(context)
     return func(context)
@@ -60,45 +150,41 @@ function Utils.safeCall(logger, action, func)
 
   if not success then
     logger:error(action, result)
+    return Utils.throw("exception", { result })
   end
 
-  return success, result
+  return result
 end
 
 ---@param logger Logger
 ---@param table table
----@return boolean, any
+---@return string | Error
 function Utils.jsonEncode(logger, table)
-  local success, str = Utils.safeCall(logger, "json encode", function()
+  local result = Utils.safeCall(logger, "json encode", function()
     return json.encode(table)
   end)
 
-  if not success then
-    return false, {
-      code = "invalidJson",
-      name = str,
-    }
+  if Utils.isError(result) then
+    return Utils.throw("invalidJson", result.args)
   end
 
-  return true, str
+  return result
 end
 
+---@generic T
 ---@param logger Logger
 ---@param str string
----@return boolean, any
+---@return T | Error
 function Utils.jsonDecode(logger, str)
-  local success, data = Utils.safeCall(logger, "json decode", function()
+  local result = Utils.safeCall(logger, "json decode", function()
     return json.decode(str)
   end)
 
-  if not success then
-    return false, {
-      code = "invalidJson",
-      name = data,
-    }
+  if Utils.isError(result) then
+    return Utils.throw("invalidJson", result.args)
   end
 
-  return true, data
+  return result
 end
 
 ---@param localId number

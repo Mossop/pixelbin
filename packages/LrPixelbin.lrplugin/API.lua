@@ -2,7 +2,6 @@ local LrHttp = import "LrHttp"
 local LrTasks = import "LrTasks"
 
 local json = require "json"
-local utf8 = require "utf8"
 
 local logger = require("Logging")("API")
 local Utils = require "Utils"
@@ -14,22 +13,26 @@ local Utils = require "Utils"
 ---@field private apiUrl string
 ---@field private email string
 ---@field private password string
----@field apiToken string | nil
----@field private errorState nil
----@field private catalogs table
----@field private albums table
+---@field private apiToken string | nil
+---@field private errorState Error | nil
+---@field private catalogs Catalog[]
+---@field private albums Album[]
 local API = {}
 
+---@private
+---@param response string
+---@param info table
+---@return any | Error
 function API:parseHTTPResult(response, info)
   if not response then
     logger:error("Connection to server failed", info.error.errorCode, info.error.name)
 
     if info.error.errorCode == "badURL" then
-      return false, { code = "invalidUrl", name = info.error.name }
+      return Utils.throw("invalidUrl", info.error.name)
     elseif info.error.errorCode == "cannotFindHost" then
-      return false, { code = "unknownHost", name = info.error.name }
+      return Utils.throw("unknownHost", info.error.name)
     else
-      return false, { code = "connection", name = info.error.name }
+      return Utils.throw("connection", info.error.name)
     end
   end
 
@@ -39,94 +42,85 @@ function API:parseHTTPResult(response, info)
 
   if info.status == 401 then
     self.apiToken = nil
-    return false, {
-      code = "notLoggedIn",
-      name = LOC "$$$/LrPixelBin/API/NotLoggedIn=Not logged in.",
-    }
+    return Utils.throw("notLoggedIn", info.error.name)
   end
 
   if info.status == 413 then
-    return false, {
-      code = "tooLarge",
-      name = LOC "$$$/LrPixelBin/API/TooLarge=This file is too large.",
-    }
+    return Utils.throw("tooLarge", info.error.name)
   end
 
   if info.status == 404 then
-    return false, {
-      code = "notFound",
-      name = LOC "$$$/LrPixelBin/API/NotFound=Resource not found.",
-    }
+    return Utils.throw("notFound", info.error.name)
   end
 
   if info.status == 503 then
-    return false, {
-      code = "backoff",
-      name = LOC "$$$/LrPixelBin/API/Backoff=Server is overloaded, try again later.",
-    }
+    return Utils.throw("backoff", info.error.name)
   end
 
-  local success, result = Utils.jsonDecode(logger, response)
-  if success and result.code then
+  local result = Utils.jsonDecode(logger, response)
+  if Utils.isSuccess(result) and result.code then
+    result = Utils.result(result)
     if result.data and result.data.message then
-      return false, {
-        code = result.code,
-        name = result.data.message
-      }
+      return Utils.throw(result.code, result.data.message)
     end
-    return false, {
-      code = result.code,
-      name = LOC "$$$/LrPixelBin/API/Unknown=An unknown error occured."
-    }
-  else
-    logger:error("Unexpected response from server", response)
+
+    return Utils.throw(result.code)
   end
-  return false, {
-    code = "unknown",
-    name = LOC "$$$/LrPixelBin/API/Unknown=An unknown error occured."
-  }
+
+  logger:error("Unexpected response from server", response)
+
+  return Utils.throw("unknown")
 end
 
+---@private
+---@param cb fun(): string, table
+---@return any | Error
 function API:callServer(cb)
   local attemptCount = 0
   repeat
     attemptCount = attemptCount + 1
     local response, info = cb()
-    local success, result = self:parseHTTPResult(response, info)
+    local result = self:parseHTTPResult(response, info)
 
-    if success then
-      return success, result
+    if Utils.isSuccess(result) then
+      return result
     end
 
     if result.code == "notLoggedIn" then
       if attemptCount == 2 then
         logger:error("Logged out and log in failed. Giving up.")
-        return success, result
+        return result
       end
 
       logger:info("Logged out, attempting to log in.")
-      success, result = self:login()
-      if not success then
-        return success, result
+      result = self:login()
+      if Utils.isError(result) then
+        return result
       end
     elseif result.code == "backoff" then
       if attemptCount == 10 then
         logger:error("Instructed to back off 10 times. Giving up.")
-        return success, result
+        return result
       end
 
       logger:info("Received backoff status from server. Sleeping for 20 seconds.")
       LrTasks.sleep(10)
     else
-      return success, result
+      return result
     end
+
+    ---@diagnostic disable-next-line: missing-return
   until false
 end
 
+---@private
+---@param path string
+---@param content table
+---@return any | Error
 function API:MULTIPART(path, content)
-  local success, result = self:login()
-  if not success then
-    return success, result
+  local result = self:login()
+  if Utils.isError(result) then
+    return result
   end
 
   local url = self.apiUrl .. path
@@ -139,24 +133,26 @@ function API:MULTIPART(path, content)
   end)
 end
 
+---@private
+---@param path string
+---@param content string | table
+---@return any | Error
 function API:POST(path, content)
-  local success, result = self:login()
-  if not success then
-    return success, result
+  local result = self:login()
+  if Utils.isError(result) then
+    return result
   end
 
   local url = self.apiUrl .. path
   logger:trace("POST", url)
 
-  local requestHeaders = {
-    { field = "Content-Type", value = "application/json" },
-  }
-
   local body = content
   if type(content) ~= "string" then
-    success, body = Utils.jsonEncode(logger, content)
-    if not success then
-      return success, body
+    local encoded = Utils.jsonEncode(logger, content)
+    if Utils.isSuccess(encoded) then
+      body = encoded
+    else
+      return encoded
     end
   end
 
@@ -168,10 +164,13 @@ function API:POST(path, content)
   end)
 end
 
+---@private
+---@param path string
+---@return any | Error
 function API:GET(path)
-  local success, result = self:login()
-  if not success then
-    return success, result
+  local result = self:login()
+  if Utils.isError(result) then
+    return result
   end
 
   local url = self.apiUrl .. path
@@ -184,6 +183,7 @@ function API:GET(path)
   end)
 end
 
+---@param password string
 function API:setPassword(password)
   if self.password == password then
     return
@@ -196,9 +196,10 @@ function API:setPassword(password)
   self.albums = {}
 end
 
+---@return boolean | Error
 function API:login()
   if self.apiToken ~= nil then
-    return true, nil
+    return true
   end
 
   local requestHeaders = {
@@ -206,49 +207,50 @@ function API:login()
   }
 
   local response, info = LrHttp.get(self.siteUrl .. "api/config", requestHeaders)
-  local success, result = self:parseHTTPResult(response, info)
-  if not success then
-    return success, result
+  local result = self:parseHTTPResult(response, info)
+  if Utils.isError(result) then
+    return result
   end
 
   self.apiUrl = result.apiUrl .. "api/"
 
-  local success, data = Utils.jsonEncode(logger, {
+  result = Utils.jsonEncode(logger, {
     email = self.email,
     password = self.password,
   })
-  if not success then
-    return success, data
+
+  if Utils.isError(result) then
+    return Utils.error(result)
   end
 
-  local response, info = LrHttp.post(self.apiUrl .. "login", data, requestHeaders)
-  local success, result = self:parseHTTPResult(response, info)
+  response, info = LrHttp.post(self.apiUrl .. "login", result, requestHeaders)
+  result = self:parseHTTPResult(response, info)
 
-  if not success and result.code == "notLoggedIn" then
-    result = {
-      code = "badCredentials",
-      name = LOC "$$$/LrPixelBin/API/BadCredentials=Incorrect username or password.",
-    }
+  if Utils.isError(result) and result.code == "notLoggedIn" then
+    result = Utils.throw("badCredentials")
   end
 
-  if success then
+  if Utils.isSuccess(result) then
     self.errorState = nil
     self.apiToken = result.token
 
     self:refreshState()
 
-    return true, nil
+    return true
   end
 
-  logger:error("Login failed", result.code, result.name)
+  logger:error("Login failed", result.code)
   self.apiToken = nil
   self.errorState = result
   self.catalogs = nil
   self.albums = nil
 
-  return success, self.errorState
+  return result
 end
 
+---@param ids string[]
+---@param progressCallback fun(count: number)?
+---@return { [string]: table }
 function API:getMedia(ids, progressCallback)
   local results = {}
 
@@ -257,8 +259,8 @@ function API:getMedia(ids, progressCallback)
       return
     end
 
-    local success, result = self:GET("media/" .. idlist)
-    if not success then
+    local result = self:GET("media/" .. idlist)
+    if Utils.isError(result) then
       return
     end
 
@@ -295,10 +297,15 @@ function API:getMedia(ids, progressCallback)
   return results
 end
 
+---@param ids string[]
+---@return nil | Error
 function API:deleteMedia(ids)
   return self:POST("media/delete", ids)
 end
 
+---@param catalog string
+---@param album AlbumUpdate
+---@return Album | Error
 function API:createAlbum(catalog, album)
   local parent
   if album.parent then
@@ -317,14 +324,17 @@ function API:createAlbum(catalog, album)
     }
   ]], json.encode(catalog), json.encode(album.name), parent)
 
-  local success, result = self:POST("album/create", body)
-  if success then
+  local result = self:POST("album/create", body)
+  if Utils.isSuccess(result) then
     table.insert(self.albums, result)
   end
 
-  return success, result
+  return result
 end
 
+---@param id string
+---@param album AlbumUpdate
+---@return Album | Error
 function API:editAlbum(id, album)
   local parent
   if album.parent then
@@ -343,8 +353,8 @@ function API:editAlbum(id, album)
     }
   ]], json.encode(id), json.encode(album.name), parent)
 
-  local success, result = self:POST("album/edit", body)
-  if success then
+  local result = self:POST("album/edit", body)
+  if Utils.isSuccess(result) then
     for i, album in ipairs(self.albums) do
       if album.id == result.id then
         self.albums[i] = result
@@ -352,13 +362,18 @@ function API:editAlbum(id, album)
     end
   end
 
-  return success, result
+  return result
 end
 
+---@param album string
+---@return nil | Error
 function API:deleteAlbum(album)
   return self:POST("album/delete", { album })
 end
 
+---@param album string
+---@param media string[]
+---@return nil | Error
 function API:addMediaToAlbum(album, media)
   return self:POST("album/media", {
     {
@@ -369,6 +384,9 @@ function API:addMediaToAlbum(album, media)
   })
 end
 
+---@param album string
+---@param media string[]
+---@return nil | Error
 function API:removeMediaFromAlbum(album, media)
   return self:POST("album/media", {
     {
@@ -379,6 +397,8 @@ function API:removeMediaFromAlbum(album, media)
   })
 end
 
+---@param val string | table
+---@return table
 local function asList(val)
   if type(val) ~= "table" then
     return { val }
@@ -386,6 +406,9 @@ local function asList(val)
   return val
 end
 
+---@param photo LrPhoto
+---@param keyword LrKeyword
+---@return boolean
 local function hasKeyword(photo, keyword)
   for _, found in ipairs(keyword:getPhotos()) do
     if found == photo then
@@ -396,6 +419,9 @@ local function hasKeyword(photo, keyword)
   return false
 end
 
+---@param photo LrPhoto
+---@param keywords LrKeyword[]
+---@param found LrKeyword[]
 local function findKeywords(photo, keywords, found)
   for _, keyword in ipairs(keywords) do
     if hasKeyword(photo, keyword) then
@@ -406,6 +432,9 @@ local function findKeywords(photo, keywords, found)
   end
 end
 
+---@param photo LrPhoto
+---@param publishSettings PublishSettings
+---@return table
 function API:extractMetadata(photo, publishSettings)
   local metadata = {
     media = {},
@@ -502,6 +531,10 @@ function API:extractMetadata(photo, publishSettings)
   return metadata
 end
 
+---@param photo LrPhoto
+---@param publishSettings PublishSettings
+---@param remoteId string
+---@return nil | Error
 function API:uploadMetadata(photo, publishSettings, remoteId)
   local mediaInfo = self:extractMetadata(photo, publishSettings)
   mediaInfo.id = remoteId
@@ -509,6 +542,8 @@ function API:uploadMetadata(photo, publishSettings, remoteId)
   return self:POST("media/edit", mediaInfo)
 end
 
+---@param publishSettings PublishSettings
+---@return { id: string } | Error
 function API:create(publishSettings)
   local mediaInfo = {
     catalog = publishSettings.catalog
@@ -517,6 +552,8 @@ function API:create(publishSettings)
   return self:POST("media/create", mediaInfo)
 end
 
+---@param photo LrPhoto
+---@return { id: string } | Error
 function API:upload(photo, publishSettings, filePath, remoteId)
   local mediaInfo = self:extractMetadata(photo, publishSettings)
   mediaInfo.id = remoteId
@@ -526,26 +563,20 @@ function API:upload(photo, publishSettings, filePath, remoteId)
 
   local result = LrTasks.execute(exiftool .. " -json " .. filePath .. " > " .. target)
   if result ~= 0 then
-    return false, {
-      code = "exiftool-error",
-      name = LOC "$$$/LrPixelBin/API/ExifToolError=Exiftool returned an error.",
-    }
+    return Utils.throw("exiftoolError")
   end
 
   local handle, error, code = io.open(target, "r")
   if not handle then
-    return false, {
-      code = "badfile",
-      name = error,
-    }
+    return Utils.throw("badfile", { error or "unknown" })
   end
 
   local data = handle:read("*all")
   handle:close()
 
-  local success, exifdata = Utils.jsonDecode(logger, data)
-  if not success then
-    return success, exifdata
+  local exifdata = Utils.jsonDecode(logger, data)
+  if Utils.isError(exifdata) then
+    return exifdata
   end
 
   exifdata = exifdata[1]
@@ -584,9 +615,9 @@ function API:upload(photo, publishSettings, filePath, remoteId)
     end
   end
 
-  success, data = Utils.jsonEncode(logger, mediaInfo)
-  if not success then
-    return success, data
+  data = Utils.jsonEncode(logger, mediaInfo)
+  if Utils.isError(data) then
+    return Utils.error(data)
   end
 
   local params = {
@@ -599,8 +630,8 @@ end
 
 function API:refreshState()
   if self.apiToken then
-    local success, result = self:GET("state")
-    if success then
+    local result = self:GET("state")
+    if Utils.isSuccess(result) then
       self.catalogs = result.catalogs
       self.albums = result.albums
     end
@@ -613,14 +644,18 @@ function API:logout()
   self:GET("logout")
 end
 
+---@return nil | Error
 function API:error()
   return self.errorState
 end
 
+---@return Catalog[]
 function API:getCatalogs()
   return self.catalogs
 end
 
+---@param id string
+---@return Catalog | nil
 function API:getCatalog(id)
   if not self.catalogs then
     return nil
@@ -635,6 +670,8 @@ function API:getCatalog(id)
   return nil
 end
 
+---@param catalog string
+---@param parent string | nil
 function API:getAlbumsWithParent(catalog, parent)
   local albums = {}
   for _, album in ipairs(self.albums) do
@@ -646,10 +683,14 @@ function API:getAlbumsWithParent(catalog, parent)
   return albums
 end
 
+---@param catalog string
+---@param parent string | nil
+---@param name string
+---@return Album | Error
 function API:getOrCreateChildAlbum(catalog, parent, name)
   for _, album in ipairs(self:getAlbumsWithParent(catalog, parent)) do
     if string.lower(album.name) == string.lower(name) then
-      return true, album
+      return album
     end
   end
 
@@ -659,10 +700,15 @@ function API:getOrCreateChildAlbum(catalog, parent, name)
   })
 end
 
+---@return boolean
+function API:authenticated()
+  return self.apiToken ~= nil
+end
+
 ---@type { [string]: API }
 local instances = {}
 
----@param settings table
+---@param settings PublishSettings
 ---@return API
 local function get(settings)
   local key = settings.siteUrl .. "#" .. settings.email

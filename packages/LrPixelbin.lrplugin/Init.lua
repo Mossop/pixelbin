@@ -13,7 +13,7 @@ Utils.runAsync(logger, "Init", function(context)
 
     local api = API(settings)
 
-    if not api.apiToken then
+    if not api:authenticated() then
       api:login()
     end
   end
