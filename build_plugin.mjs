@@ -1,7 +1,8 @@
 import path from "path";
 import { promises as fs } from "fs";
 
-const VERSION_RE = /major=(\d+), minor=(\d+), revision=(\d+), build=\d+,/;
+const VERSION_RE =
+  /major = (\d+), minor = (\d+), revision = (\d+), build = \d+,/;
 
 function parseVersion(major, minor, patch) {
   let parts = [];
@@ -53,7 +54,7 @@ for (let line of info.split("\n")) {
     );
     line = line.replace(
       VERSION_RE,
-      `major=${version.major}, minor=${version.minor}, revision=${version.patch}, build=0,`
+      `major = ${version.major}, minor = ${version.minor}, revision = ${version.patch}, build = 0,`
     );
   }
 
