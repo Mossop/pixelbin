@@ -51,6 +51,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
               -- Never published. Just make sure it is marked to be published
               if not publishedPhoto:getEditedFlag() then
                 table.insert(needsEdit, publishedPhoto)
+                logger:error("Media appears to be published but has no ID")
               end
             elseif not byLocalId[publishedPhoto:getPhoto().localIdentifier] then
               -- Photo is not in the default collection when it should be
@@ -73,6 +74,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
               elseif not publishedPhoto:getEditedFlag() then
                 -- Unexpected remote Id. Republish.
                 table.insert(needsEdit, publishedPhoto)
+                logger:error("Media appears to be published but has and invalid ID")
               end
             end
           end)
@@ -103,7 +105,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
             table.insert(remoteIds, remoteId)
             photosToCheck = photosToCheck + 1
           elseif not publishedPhoto:getEditedFlag() then
-            logger:error("Found photo with missing remote ID.")
+            logger:error("Media is missing remotely")
             table.insert(needsEdit, publishedPhoto)
           end
         end)
@@ -125,10 +127,10 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
           serviceScope:ipairs(remoteIds, function(_, _, id)
             if not byRemoteId[id]:getEditedFlag() then
               if not media[id] then
-                logger:error("Found photo with missing remote media.")
+                logger:error("Media " .. id .. " is missing remotely")
                 table.insert(needsEdit, byRemoteId[id])
               elseif not media[id].file then
-                logger:error("Found unprocessed photo.")
+                logger:error("Media " .. id .. " has not been processed")
                 table.insert(needsEdit, byRemoteId[id])
               end
             end
@@ -148,9 +150,8 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
                     local target = api:targetAlbumForPhoto(collectionInfo, albumId, publishedPhoto:getPhoto())
                     if not api:isInCorrectAlbums(catalog, media[remoteId], target) then
                       table.insert(needsEdit, publishedPhoto)
+                      logger:error("Media " .. remoteId .. " is in the wrong albums")
                     end
-                  else
-                    table.insert(needsEdit, publishedPhoto)
                   end
                 end
               end)

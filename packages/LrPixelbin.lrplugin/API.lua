@@ -862,7 +862,7 @@ end
 ---@param catalog string
 ---@param target TargetAlbum | nil
 ---@param create boolean
----@return { included: string | nil, excluded: string[] } | Error
+---@return { included: string | nil, excluded: { [string]: boolean } } | Error
 function API:determineAlbums(catalog, target, create)
   local result = {
     included = nil,
@@ -927,6 +927,8 @@ function API:placeInAlbum(catalog, mediaId, target)
     return Utils.error(where)
   end
 
+  logger:info("Determined", Utils.jsonEncode(logger, where))
+
   local operations = {}
 
   table.insert(operations, {
@@ -935,13 +937,15 @@ function API:placeInAlbum(catalog, mediaId, target)
     album = where.included,
   })
 
-  for album, _ in ipairs(where.excluded) do
+  for album, _ in pairs(where.excluded) do
     table.insert(operations, {
       operation = "delete",
       media = mediaId,
       album = album,
     })
   end
+
+  logger:info("Sending", Utils.jsonEncode(logger, operations))
 
   local response = self:POST("album/media", operations)
   if Utils.isError(response) then

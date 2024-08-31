@@ -202,12 +202,12 @@ function Provider.processRenderedPhotos(context, exportContext)
 
     ---@type string[]
     local knownIds = {}
-    ---@type { [string|number]: RenditionInfo }
-    local renditionsById = {}
-    ---@type RenditionInfo[]
-    local renditions = {}
+    ---@type { [string]: RenditionInfo }
+    local renditionInfoByLocalId = {}
+    ---@type { [string]: RenditionInfo }
+    local renditionInfoByRemoteId = {}
 
-    scope:childScope(exportSession:countRenditions(), function(scope)
+    scope:childScope(exportSession:countRenditions(), function(renditionScope)
       for _, rendition in exportSession:renditions() do
         local remoteId = nil
         local needsUpload = true
@@ -225,32 +225,32 @@ function Provider.processRenderedPhotos(context, exportContext)
         ---@type RenditionInfo
         local info = {
           remoteId = remoteId,
-          rendition = rendition,
           needsUpload = needsUpload,
+          rendition = rendition,
           inAlbum = album and rendition.publishedPhotoId ~= nil or false,
         }
 
+        renditionInfoByLocalId[rendition.photo.localIdentifier] = info
+
         if remoteId then
           table.insert(knownIds, remoteId)
-          renditionsById[remoteId] = info
+          renditionInfoByRemoteId[remoteId] = info
         end
 
-        table.insert(renditions, info)
-
-        scope:advance()
+        renditionScope:advance()
       end
     end)
 
     -- Now lookup the known media IDs and for any that are no longer present remotely update our info
     -- accordingly.
-    local knownMedia = scope:childScope(Utils.length(knownIds), function(scope)
+    local knownMedia = scope:childScope(Utils.length(knownIds), function(mediaScope)
       return api:getMedia(knownIds, function(count)
-        scope:advance(count)
+        mediaScope:advance(count)
       end)
     end)
 
     scope:ipairs(knownIds, function(_, _, remoteId)
-      local info = renditionsById[remoteId]
+      local info = renditionInfoByRemoteId[remoteId]
 
       if not knownMedia[remoteId] then
         info.remoteId = nil
@@ -264,69 +264,75 @@ function Provider.processRenderedPhotos(context, exportContext)
     exportContext:startRendering()
 
     -- Now actually do the uploads.
-    scope:ipairs(renditions, function(scope, _, info)
-      local remoteId = info.remoteId
+    scope:childScope(exportSession:countRenditions(), function(renditionScope)
+      for _, rendition in exportSession:renditions() do
+        ---@type RenditionInfo
+        local info = renditionInfoByLocalId[rendition.photo.localIdentifier]
+        local remoteId = info.remoteId
 
-      if info.rendition.wasSkipped then
-        if remoteId then
-          local target = api:targetAlbumForPhoto(collectionInfo, album, info.rendition.photo)
-          local result = api:placeInAlbum(catalog, remoteId, target)
-          if Utils.isSuccess(result) then
-            info.rendition:recordPublishedPhotoId(result.publishedId)
-            info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
-            info.rendition:renditionIsDone(true, "")
-          else
-            info.rendition:uploadFailed(Utils.errorString(result))
-          end
-        end
-      else
-        local success, pathOrMessage = info.rendition:waitForRender()
-        scope:advance(0.5)
-
-        if success then
-          local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/"
-
-          if not remoteId then
-            local result = api:create(publishSettings)
-            if Utils.isSuccess(result) then
-              remoteId = result.id
-              catalogUrl = catalogUrl .. remoteId
-
-              Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
-                defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, false)
-              end)
-            else
-              info.rendition:uploadFailed(Utils.errorString(result))
-            end
-          else
-            catalogUrl = catalogUrl .. remoteId
-          end
-
+        if info.rendition.wasSkipped then
           if remoteId then
-            local result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, remoteId)
+            local target = api:targetAlbumForPhoto(collectionInfo, album, info.rendition.photo)
+            local result = api:placeInAlbum(catalog, remoteId, target)
             if Utils.isSuccess(result) then
-              if album then
-                Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
-                  defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
-                end)
-              end
-
-              local target = api:targetAlbumForPhoto(collectionInfo, album, info.rendition.photo)
-              local result = api:placeInAlbum(catalog, remoteId, target)
-              if Utils.isSuccess(result) then
-                info.rendition:recordPublishedPhotoId(result.publishedId)
-                info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
-                info.rendition:renditionIsDone(true, "")
-              else
-                info.rendition:uploadFailed(Utils.errorString(result))
-              end
+              info.rendition:recordPublishedPhotoId(result.publishedId)
+              info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
+              logger:info("Recorded")
             else
               info.rendition:uploadFailed(Utils.errorString(result))
             end
           end
         else
-          info.rendition:uploadFailed(pathOrMessage)
+          local success, pathOrMessage = info.rendition:waitForRender()
+          renditionScope:advance(0.5)
+
+          if success then
+            local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/"
+
+            if not remoteId then
+              local result = api:create(publishSettings)
+              if Utils.isSuccess(result) then
+                remoteId = result.id
+                catalogUrl = catalogUrl .. remoteId
+
+                Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
+                  defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, false)
+                end)
+              else
+                info.rendition:uploadFailed(Utils.errorString(result))
+              end
+            else
+              catalogUrl = catalogUrl .. remoteId
+            end
+
+            if remoteId then
+              local result = api:upload(info.rendition.photo, publishSettings, pathOrMessage, remoteId)
+              if Utils.isSuccess(result) then
+                if album then
+                  Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
+                    defaultCollection:addPhotoByRemoteId(info.rendition.photo, remoteId, catalogUrl, true)
+                  end)
+                end
+
+                local target = api:targetAlbumForPhoto(collectionInfo, album, info.rendition.photo)
+                local result = api:placeInAlbum(catalog, remoteId, target)
+                if Utils.isSuccess(result) then
+                  info.rendition:recordPublishedPhotoId(result.publishedId)
+                  info.rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
+                  logger:info("Recorded")
+                else
+                  info.rendition:uploadFailed(Utils.errorString(result))
+                end
+              else
+                info.rendition:uploadFailed(Utils.errorString(result))
+              end
+            end
+          else
+            info.rendition:uploadFailed(pathOrMessage)
+          end
         end
+
+        renditionScope:advance()
       end
     end)
   end)

@@ -42,11 +42,14 @@ end
 ---@param target number
 ---@param noYield boolean?
 function ProgressScope:advanceTo(target, noYield)
+  if self.current > target then
+    logger:warn("Reversed progress", self:depth(), self.current, self.total, target)
+  end
+
   self.current = target
 
   if self.current > self.total then
     logger:warn("Advanced past total", self:depth(), self.current, self.total)
-    self.current = self.total
   end
 
   self:afterAdvance(noYield)
@@ -108,7 +111,7 @@ end
 
 ---@param noYield boolean?
 function InnerProgressScope:afterAdvance(noYield)
-  self.parent:updateChildPosition(self.current / self.total, noYield)
+  self.parent:updateChildPosition(math.min(self.total, self.current) / self.total, noYield)
 end
 
 ---@param position number
@@ -165,7 +168,7 @@ end
 
 ---@param noYield boolean?
 function RootProgressScope:afterAdvance(noYield)
-  self:setPosition(self.current / self.total, noYield)
+  self:setPosition(math.min(self.total, self.current) / self.total, noYield)
 end
 
 ---@return boolean

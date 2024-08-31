@@ -61,8 +61,8 @@ local PublishSettings = {}
 
 ---@class RenditionInfo
 ---@field remoteId string|nil
----@field rendition LrExportRendition
 ---@field needsUpload boolean
+---@field rendition LrExportRendition
 ---@field inAlbum boolean
 local RenditionInfo = {}
 
