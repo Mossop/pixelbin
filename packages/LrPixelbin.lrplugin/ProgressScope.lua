@@ -10,8 +10,10 @@ local logger = require("Logging")("ProgressScope")
 ---@class ProgressScope
 ---@field protected current number
 ---@field protected total number
----@field protected updateChildPosition fun(self: ProgressScope, position: number, noyield: boolean?)
----@field advance fun(self: ProgressScope, count: number?, noyield: boolean?)
+---@field protected depth fun(self: ProgressScope): number
+---@field protected updateChildPosition fun(self: ProgressScope, position: number, noYield: boolean?)
+---@field advance fun(self: ProgressScope, count: number?, noYield: boolean?)
+---@field afterAdvance fun(self: ProgressScope, noYield: boolean?)
 ---@field isCanceled fun(self: ProgressScope): boolean
 local ProgressScope = {}
 
@@ -28,17 +30,26 @@ local RootProgressScope = {}
 setmetatable(RootProgressScope, { __index = ProgressScope })
 
 ---@param count number?
-function ProgressScope:advance(count)
+---@param noYield boolean?
+function ProgressScope:advance(count, noYield)
   if count == nil then
     count = 1
   end
 
-  self.current = self.current + count
+  self:advanceTo(self.current + count, noYield)
+end
+
+---@param target number
+---@param noYield boolean?
+function ProgressScope:advanceTo(target, noYield)
+  self.current = target
 
   if self.current > self.total then
-    logger:warn("Advanced past total", self.current, self.total)
+    logger:warn("Advanced past total", self:depth(), self.current, self.total)
     self.current = self.total
   end
+
+  self:afterAdvance(noYield)
 end
 
 ---@generic T
@@ -46,10 +57,12 @@ end
 ---@param func fun(scope: ProgressScope, index: number, item: T)
 function ProgressScope:ipairs(tbl, func)
   self:childScope(Utils.length(tbl), function(scope)
+    local target = 0
     for idx, item in ipairs(tbl) do
+      target = target + 1
       func(scope, idx, item)
 
-      scope:advance()
+      scope:advanceTo(target)
     end
   end)
 end
@@ -61,7 +74,15 @@ end
 function ProgressScope:childScope(total, func)
   local scope = InnerProgressScope.new(self, total)
   local result = func(scope)
-  self:advance()
+  local target = self.current + 1
+
+  if scope.current ~= scope.total then
+    logger:warn("Scope ended before completing", scope:depth(), scope.current, scope.total)
+  end
+
+  self.current = target
+  self:afterAdvance()
+
   return result
 end
 
@@ -80,18 +101,20 @@ function InnerProgressScope.new(parent, total)
   return progressScope
 end
 
----@param count number?
----@param noyield boolean?
-function InnerProgressScope:advance(count, noyield)
-  ProgressScope.advance(self, count)
+---@return number
+function InnerProgressScope:depth()
+  return self.parent:depth() + 1
+end
 
-  self.parent:updateChildPosition(self.current / self.total, noyield)
+---@param noYield boolean?
+function InnerProgressScope:afterAdvance(noYield)
+  self.parent:updateChildPosition(self.current / self.total, noYield)
 end
 
 ---@param position number
----@param noyield boolean?
-function InnerProgressScope:updateChildPosition(position, noyield)
-  self.parent:updateChildPosition((self.current + position) / self.total, noyield)
+---@param noYield boolean?
+function InnerProgressScope:updateChildPosition(position, noYield)
+  self.parent:updateChildPosition((self.current + position) / self.total, noYield)
 end
 
 ---@return boolean
@@ -114,13 +137,18 @@ function RootProgressScope.new(scope, total)
   return progressScope
 end
 
+---@return number
+function RootProgressScope:depth()
+  return 0
+end
+
 ---@private
 ---@param position number
----@param noyield boolean?
-function RootProgressScope:setPosition(position, noyield)
+---@param noYield boolean?
+function RootProgressScope:setPosition(position, noYield)
   self.scope:setPortionComplete(position, 1)
 
-  if not noyield and LrTasks.canYield() then
+  if not noYield and LrTasks.canYield() then
     LrTasks.yield()
   end
 
@@ -130,17 +158,14 @@ function RootProgressScope:setPosition(position, noyield)
 end
 
 ---@param position number
----@param noyield boolean?
-function RootProgressScope:updateChildPosition(position, noyield)
-  self:setPosition((self.current + position) / self.total, noyield)
+---@param noYield boolean?
+function RootProgressScope:updateChildPosition(position, noYield)
+  self:setPosition((self.current + position) / self.total, noYield)
 end
 
----@param count number?
----@param noyield boolean?
-function RootProgressScope:advance(count, noyield)
-  ProgressScope.advance(self, count)
-
-  self:setPosition(self.current / self.total, noyield)
+---@param noYield boolean?
+function RootProgressScope:afterAdvance(noYield)
+  self:setPosition(self.current / self.total, noYield)
 end
 
 ---@return boolean

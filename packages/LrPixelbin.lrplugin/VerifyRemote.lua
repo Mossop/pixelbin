@@ -116,10 +116,8 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
 
           logger:info("Get " .. photosToCheck .. " media")
           local media = serviceScope:childScope(photosToCheck, function(scope)
-            local current = 0
             return api:getMedia(remoteIds, function(completed)
-              scope:advance(completed - current)
-              current = completed
+              scope:advance(completed)
             end)
           end)
           logger:info("Got media")
@@ -170,7 +168,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
 
   if editCount > 0 then
     Utils.runWithWriteAccess(logger, "Mark to republish", function()
-      for idx, publishedPhoto in ipairs(needsEdit) do
+      for _, publishedPhoto in ipairs(needsEdit) do
         publishedPhoto:setEditedFlag(true)
       end
     end)
