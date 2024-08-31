@@ -17,6 +17,8 @@ local Provider = {}
 -- This makes us a publish service
 Provider.supportsIncrementalPublish = true
 
+Provider.small_icon = "icon.png"
+
 Provider.hideSections = {
   "exportLocation",
   "fileNaming"
