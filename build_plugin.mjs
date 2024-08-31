@@ -27,7 +27,9 @@ function parseVersion(major, minor, patch) {
 }
 
 let source = path.join(import.meta.dirname, "packages", "LrPixelbin.lrplugin");
-let target = path.join(import.meta.dirname, "build", "LrPixelbin.lrplugin");
+let target =
+  process.argv[3] ??
+  path.join(import.meta.dirname, "build", "LrPixelbin.lrplugin");
 
 await fs.rm(target, { recursive: true, force: true });
 await fs.mkdir(target, { recursive: true });

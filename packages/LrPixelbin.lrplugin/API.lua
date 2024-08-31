@@ -8,6 +8,16 @@ local json = require "json"
 local logger = require("Logging")("API")
 local Utils = require "Utils"
 
+---@param url string
+---@return string
+local function logUrl(url)
+  if string.len(url) > 100 then
+    return string.sub(url, 1, 97) .. "..."
+  end
+
+  return url
+end
+
 ---@class API
 ---@field private instanceKey string
 ---@field private cacheCount number
@@ -17,9 +27,41 @@ local Utils = require "Utils"
 ---@field private password string
 ---@field private apiToken string | nil
 ---@field private errorState Error | nil
----@field private catalogs Catalog[]
----@field private albums Album[]
+---@field private catalogs { [string]: Catalog }
+---@field private albums { [string]: Album }
+---@field private children { [string]: { [string]: boolean } }
 local API = {}
+
+---@param album Album
+function API:setChild(album)
+  local parent = album.parent
+  if not parent then
+    parent = album.catalog
+  end
+
+  local childList = self.children[parent]
+  if not childList then
+    childList = {}
+    self.children[parent] = childList
+  end
+
+  childList[album.id] = true
+end
+
+---@param album Album
+function API:removeChild(album)
+  local parent = album.parent
+  if not parent then
+    parent = album.catalog
+  end
+
+  local childList = self.children[parent]
+  if not childList then
+    return
+  end
+
+  childList[album.id] = nil
+end
 
 ---@private
 ---@param response string
@@ -126,7 +168,7 @@ function API:MULTIPART(path, content)
   end
 
   local url = self.apiUrl .. path
-  logger:trace("MULTIPART", url)
+  logger:trace("MULTIPART", logUrl(url))
 
   return self:callServer(function()
     return LrHttp.postMultipart(url, content, {
@@ -146,7 +188,7 @@ function API:POST(path, content)
   end
 
   local url = self.apiUrl .. path
-  logger:trace("POST", url)
+  logger:trace("POST", logUrl(url))
 
   local body = content
   if type(content) ~= "string" then
@@ -176,7 +218,7 @@ function API:GET(path)
   end
 
   local url = self.apiUrl .. path
-  logger:trace("GET", url)
+  logger:trace("GET", logUrl(url))
 
   return self:callServer(function()
     return LrHttp.get(url, {
@@ -328,7 +370,8 @@ function API:createAlbum(catalog, album)
 
   local result = self:POST("album/create", body)
   if Utils.isSuccess(result) then
-    table.insert(self.albums, result)
+    self.albums[result.id] = result
+    self.children[result.parent][result.id] = true
   end
 
   return result
@@ -357,11 +400,10 @@ function API:editAlbum(id, album)
 
   local result = self:POST("album/edit", body)
   if Utils.isSuccess(result) then
-    for i, album in ipairs(self.albums) do
-      if album.id == result.id then
-        self.albums[i] = result
-      end
-    end
+    self:removeChild(self.albums[id])
+    self.albums[id].name = result.name
+    self.albums[id].parent = result.parent
+    self:setChild(self.albums[id])
   end
 
   return result
@@ -630,12 +672,30 @@ function API:upload(photo, publishSettings, filePath, remoteId)
   return self:MULTIPART("media/upload", params)
 end
 
+---@generic T
+---@param list T[]
+---@return { [string]: T }
+local function intoMap(list)
+  local result = {}
+
+  for _, item in ipairs(list) do
+    result[item.id] = item
+  end
+
+  return result
+end
+
 function API:refreshState()
   if self.apiToken then
     local result = self:GET("state")
     if Utils.isSuccess(result) then
-      self.catalogs = result.catalogs
-      self.albums = result.albums
+      self.catalogs = intoMap(result.catalogs)
+      self.albums = intoMap(result.albums)
+      self.children = {}
+
+      for _, album in pairs(self.albums) do
+        self:setChild(album)
+      end
     end
   else
     self:login()
@@ -653,7 +713,13 @@ end
 
 ---@return Catalog[]
 function API:getCatalogs()
-  return self.catalogs
+  local result = {}
+
+  for _, c in pairs(self.catalogs) do
+    table.insert(result, c)
+  end
+
+  return result
 end
 
 ---@param id string
@@ -663,27 +729,31 @@ function API:getCatalog(id)
     return nil
   end
 
-  for _, catalog in ipairs(self.catalogs) do
-    if catalog.id == id then
-      return catalog
-    end
-  end
-
-  return nil
+  return self.catalogs[id]
 end
 
 ---@param catalog string
 ---@param parent string | nil
----@return Album[]
+---@return fun(): Album | nil
 function API:getAlbumsWithParent(catalog, parent)
-  local albums = {}
-  for _, album in ipairs(self.albums) do
-    if album.catalog == catalog and album.parent == parent then
-      table.insert(albums, album)
+  if not parent then
+    parent = catalog
+  end
+
+  local table = {}
+  if self.children[parent] then
+    table = self.children[parent]
+  end
+
+  local inner, state, var = pairs(table)
+  local function iter()
+    var = inner(state, var)
+    if var ~= nil then
+      return self.albums[var]
     end
   end
 
-  return albums
+  return iter
 end
 
 ---@private
@@ -693,7 +763,7 @@ end
 ---@param create boolean
 ---@return Album | nil | Error
 function API:getChildAlbum(catalog, parent, name, create)
-  for _, album in ipairs(self:getAlbumsWithParent(catalog, parent)) do
+  for album in self:getAlbumsWithParent(catalog, parent) do
     if string.lower(album.name) == string.lower(name) then
       return album
     end
@@ -748,12 +818,11 @@ function API:getFilesystemPath(path)
   return parts
 end
 
----@param collection LrPublishedCollection
+---@param collectionInfo table
+---@param albumId string | nil
 ---@param photo LrPhoto
 ---@return TargetAlbum | nil
-function API:targetAlbumForPhoto(collection, photo)
-  local collectionInfo = collection:getCollectionInfoSummary()
-
+function API:targetAlbumForPhoto(collectionInfo, albumId, photo)
   if collectionInfo.isDefaultCollection then
     return nil
   end
@@ -763,10 +832,8 @@ function API:targetAlbumForPhoto(collection, photo)
   local subalbums = collectionSettings.subalbums
   local pathstrip = collectionSettings.pathstrip
 
-  local album = collection:getRemoteId() --[[@as string | nil]]
-
   local result = {
-    root = album,
+    root = albumId,
     names = {},
   }
 
@@ -826,7 +893,7 @@ function API:determineAlbums(catalog, target, create)
 
     ---@param parent string
     local function excludeChildren(parent)
-      for _, child in ipairs(self:getAlbumsWithParent(catalog, parent)) do
+      for child in self:getAlbumsWithParent(catalog, parent) do
         excludeChildren(child.id)
 
         if child.id ~= album then

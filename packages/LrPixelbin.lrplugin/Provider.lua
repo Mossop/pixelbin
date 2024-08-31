@@ -166,6 +166,7 @@ function Provider.processRenderedPhotos(context, exportContext)
   end
 
   local collection = exportContext.publishedCollection
+  local collectionInfo = collection:getCollectionInfoSummary()
   local catalog = publishSettings.catalog
   local album = collection:getRemoteId() --[[@as string | nil]]
 
@@ -268,7 +269,7 @@ function Provider.processRenderedPhotos(context, exportContext)
       currentOperation = currentOperation + 1
 
       if remoteId then
-        local target = api:targetAlbumForPhoto(collection, info.rendition.photo)
+        local target = api:targetAlbumForPhoto(collectionInfo, album, info.rendition.photo)
         local result = api:placeInAlbum(catalog, remoteId, target)
         if Utils.isSuccess(result) then
           info.rendition:recordPublishedPhotoId(result.publishedId)
@@ -741,9 +742,7 @@ function Provider.viewForCollectionSettings(f, publishSettings, info)
   end
 
   local function addRowsForAlbums(parent, depth)
-    local albums = api:getAlbumsWithParent(catalog.id, parent)
-
-    for _, album in ipairs(albums) do
+    for album in api:getAlbumsWithParent(catalog.id, parent) do
       if album.id ~= remote then
         table.insert(albumTbl, f:row {
           fill_horizontal = 1,
