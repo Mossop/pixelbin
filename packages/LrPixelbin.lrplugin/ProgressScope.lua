@@ -13,7 +13,7 @@ local logger = require("Logging")("ProgressScope")
 ---@field protected depth fun(self: ProgressScope): number
 ---@field protected updateChildPosition fun(self: ProgressScope, position: number, noYield: boolean?)
 ---@field advance fun(self: ProgressScope, count: number?, noYield: boolean?)
----@field afterAdvance fun(self: ProgressScope, noYield: boolean?)
+---@field updatePosition fun(self: ProgressScope, noYield: boolean?)
 ---@field isCanceled fun(self: ProgressScope): boolean
 local ProgressScope = {}
 
@@ -52,7 +52,7 @@ function ProgressScope:advanceTo(target, noYield)
     logger:warn("Advanced past total", self:depth(), self.current, self.total)
   end
 
-  self:afterAdvance(noYield)
+  self:updatePosition(noYield)
 end
 
 ---@generic T
@@ -76,6 +76,8 @@ end
 ---@return T
 function ProgressScope:childScope(total, func)
   local scope = InnerProgressScope.new(self, total)
+  scope:updatePosition(true)
+
   local result = func(scope)
   local target = self.current + 1
 
@@ -84,7 +86,7 @@ function ProgressScope:childScope(total, func)
   end
 
   self.current = target
-  self:afterAdvance()
+  self:updatePosition()
 
   return result
 end
@@ -110,7 +112,7 @@ function InnerProgressScope:depth()
 end
 
 ---@param noYield boolean?
-function InnerProgressScope:afterAdvance(noYield)
+function InnerProgressScope:updatePosition(noYield)
   self.parent:updateChildPosition(math.min(self.total, self.current) / self.total, noYield)
 end
 
@@ -167,7 +169,7 @@ function RootProgressScope:updateChildPosition(position, noYield)
 end
 
 ---@param noYield boolean?
-function RootProgressScope:afterAdvance(noYield)
+function RootProgressScope:updatePosition(noYield)
   self:setPosition(math.min(self.total, self.current) / self.total, noYield)
 end
 

@@ -927,8 +927,6 @@ function API:placeInAlbum(catalog, mediaId, target)
     return Utils.error(where)
   end
 
-  logger:info("Determined", Utils.jsonEncode(logger, where))
-
   local operations = {}
 
   table.insert(operations, {
@@ -944,8 +942,6 @@ function API:placeInAlbum(catalog, mediaId, target)
       album = album,
     })
   end
-
-  logger:info("Sending", Utils.jsonEncode(logger, operations))
 
   local response = self:POST("album/media", operations)
   if Utils.isError(response) then
