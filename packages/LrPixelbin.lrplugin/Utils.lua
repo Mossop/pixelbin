@@ -103,7 +103,7 @@ end
 function Utils.logFailures(context, logger, action)
   context:addFailureHandler(function(_, message)
     if LrErrors.isCanceledError(message) then
-      logger:info(action, message)
+      logger:info(action, "User cancelled")
     else
       logger:error(action, message)
     end
@@ -144,11 +144,16 @@ end
 ---@param func fun(context: LrFunctionContext): T
 ---@return T | Error
 function Utils.safeCall(logger, action, func)
+  ---@type boolean, any
   local success, result = LrFunctionContext.pcallWithContext(action, function(context)
     return func(context)
   end)
 
   if not success then
+    if LrErrors.isCanceledError(result) then
+      LrErrors.throwCanceled()
+    end
+
     logger:error(action, result)
     return Utils.throw("exception", { result })
   end
