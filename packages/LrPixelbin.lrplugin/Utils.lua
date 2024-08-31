@@ -233,6 +233,30 @@ function Utils.listCollections(publishService)
   return collections
 end
 
+---@param publishService LrPublishService
+---@return LrPublishedCollection[]
+function Utils.listNonDefaultCollections(publishService)
+  local collections = {}
+
+  ---@param outer LrPublishService | LrPublishedCollectionSet
+  local function list(outer)
+    for _, collectionSet in ipairs(outer:getChildCollectionSets()) do
+      list(collectionSet)
+    end
+
+    for _, collection in ipairs(outer:getChildCollections()) do
+      local collectionInfo = collection:getCollectionInfoSummary()
+      if not collectionInfo.isDefaultCollection then
+        table.insert(collections, collection)
+      end
+    end
+  end
+
+  list(publishService)
+
+  return collections
+end
+
 ---@generic T
 ---@param tbl T
 ---@return T

@@ -3,6 +3,8 @@ local LrProgressScope = import "LrProgressScope"
 local LrFunctionContext = import "LrFunctionContext"
 local LrErrors = import "LrErrors"
 
+local Utils = require "Utils"
+
 local logger = require("Logging")("ProgressScope")
 
 ---@class ProgressScope
@@ -37,6 +39,19 @@ function ProgressScope:advance(count)
     logger:warn("Advanced past total", self.current, self.total)
     self.current = self.total
   end
+end
+
+---@generic T
+---@param tbl T[]
+---@param func fun(scope: ProgressScope, index: number, item: T)
+function ProgressScope:ipairs(tbl, func)
+  self:childScope(Utils.length(tbl), function(scope)
+    for idx, item in ipairs(tbl) do
+      func(scope, idx, item)
+
+      scope:advance()
+    end
+  end)
 end
 
 ---@generic T
@@ -138,7 +153,7 @@ end
 ---@param total number
 ---@param func fun(scope: ProgressScope, functionContext: LrFunctionContext): T | nil
 ---@return T
-local function Progress(title, total, func)
+function ProgressScope.new(title, total, func)
   local success, result = LrFunctionContext.pcallWithContext(title, function(context)
     local scope = LrProgressScope({
       title = title,
@@ -158,4 +173,20 @@ local function Progress(title, total, func)
   end
 end
 
-return Progress
+---@generic T
+---@param title string
+---@param total number
+---@param exportContext LrExportContext
+---@param func fun(scope: ProgressScope): T | nil
+---@return T
+function ProgressScope.forExportContext(title, total, exportContext, func)
+  local scope = exportContext:configureProgress({
+    title = title,
+  })
+  scope:setCancelable(true)
+
+  local rootScope = RootProgressScope.new(scope, total)
+  return func(rootScope)
+end
+
+return ProgressScope
