@@ -8,6 +8,7 @@ local Utils = require "Utils"
 local logger = require("Logging")("ProgressScope")
 
 ---@class ProgressScope
+---@field private inChild boolean
 ---@field protected current number
 ---@field protected total number
 ---@field protected depth fun(self: ProgressScope): number
@@ -42,6 +43,10 @@ end
 ---@param target number
 ---@param noYield boolean?
 function ProgressScope:advanceTo(target, noYield)
+  if self.inChild then
+    logger:warn("Advancing parent scope with active child", self:depth(), self.current, self.total)
+  end
+
   if self.current > target then
     logger:warn("Reversed progress", self:depth(), self.current, self.total, target)
   end
@@ -55,17 +60,40 @@ function ProgressScope:advanceTo(target, noYield)
   self:updatePosition(noYield)
 end
 
+---@generic A, B, C, D, E
+---@param inner fun(state, var): A, B, C, D, E
+---@return fun(): A, B, C, D, E
+function ProgressScope:iter(inner, state, var)
+  ---@return any[]
+  local function asTable(...)
+    return arg
+  end
+
+  local target = self.current
+
+  local function iter()
+    self:advanceTo(target)
+    target = self.current + 1
+
+    local vars = asTable(inner(state, var))
+    var = vars[1]
+    if var ~= nil then
+      return unpack(vars)
+    else
+      return nil
+    end
+  end
+
+  return iter
+end
+
 ---@generic T
 ---@param tbl T[]
 ---@param func fun(scope: ProgressScope, index: number, item: T)
 function ProgressScope:ipairs(tbl, func)
   self:childScope(Utils.length(tbl), function(scope)
-    local target = 0
-    for idx, item in ipairs(tbl) do
-      target = target + 1
+    for idx, item in scope:iter(ipairs(tbl)) do
       func(scope, idx, item)
-
-      scope:advanceTo(target)
     end
   end)
 end
@@ -78,8 +106,10 @@ function ProgressScope:childScope(total, func)
   local scope = InnerProgressScope.new(self, total)
   scope:updatePosition(true)
 
-  local result = func(scope)
   local target = self.current + 1
+  self.inChild = true
+  local result = func(scope)
+  self.inChild = false
 
   if scope.current ~= scope.total then
     logger:warn("Scope ended before completing", scope:depth(), scope.current, scope.total)
@@ -98,6 +128,7 @@ function InnerProgressScope.new(parent, total)
   ---@type InnerProgressScope
   local progressScope = {
     parent = parent,
+    inChild = false,
     current = 0,
     total = total,
   }
@@ -134,6 +165,7 @@ function RootProgressScope.new(scope, total)
   ---@type RootProgressScope
   local progressScope = {
     scope = scope,
+    inChild = false,
     current = 0,
     total = total,
   }
