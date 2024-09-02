@@ -262,14 +262,14 @@ function Provider.processRenderedPhotos(context, exportContext)
     exportContext:startRendering()
 
     -- Now actually do the uploads.
-    scope:childScope(exportSession:countRenditions() * 2, function(renditionScope)
+    scope:childScope(exportSession:countRenditions(), function(renditionScope)
       for _, rendition in renditionScope:iter(exportSession:renditions()) do
         ---@type RenditionInfo
         local info = renditionInfoByLocalId[rendition.photo.localIdentifier]
         local remoteId = info.remoteId
 
         local success, pathOrMessage = rendition:waitForRender()
-        renditionScope:advance()
+        renditionScope:advance(0.5)
 
         if success then
           local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/"
@@ -305,7 +305,6 @@ function Provider.processRenderedPhotos(context, exportContext)
             if Utils.isSuccess(result) then
               rendition:recordPublishedPhotoId(result.publishedId)
               rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
-              logger:info("Recorded", rendition.photo.localIdentifier, result.publishedId)
             else
               rendition:uploadFailed(Utils.errorString(result))
             end

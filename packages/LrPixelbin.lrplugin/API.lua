@@ -949,7 +949,7 @@ function API:placeInAlbum(catalog, mediaId, target)
   end
 
   return {
-    publishedId = where.included,
+    publishedId = where.included .. "/" .. mediaId,
     publishedPath = "album/" .. where.included .. "/media/" .. mediaId,
   }
 end
@@ -957,29 +957,29 @@ end
 ---@param catalog string
 ---@param media Media
 ---@param target TargetAlbum | nil
----@return boolean
+---@return string | nil
 function API:isInCorrectAlbums(catalog, media, target)
   if target == nil then
-    return media.catalog == catalog
+    return catalog
   end
 
   local where = self:determineAlbums(catalog, target, false)
   if Utils.isError(where) then
-    return false
+    return nil
   end
 
-  local foundIncluded = false
+  local result = nil
   for _, album in ipairs(media.albums) do
     if album.id == where.included then
-      foundIncluded = true
+      result = where.included .. "/" .. media.id
     end
 
     if where.excluded[album.id] then
-      return false
+      return nil
     end
   end
 
-  return foundIncluded
+  return result
 end
 
 ---@return boolean

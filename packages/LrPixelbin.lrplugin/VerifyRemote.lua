@@ -148,9 +148,13 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
                   local remoteId = byLocalId[publishedPhoto:getPhoto().localIdentifier]:getRemoteId()
                   if media[remoteId] and media[remoteId].file then
                     local target = api:targetAlbumForPhoto(collectionInfo, albumId, publishedPhoto:getPhoto())
-                    if not api:isInCorrectAlbums(catalog, media[remoteId], target) then
+                    local expectedId = api:isInCorrectAlbums(catalog, media[remoteId], target)
+                    if expectedId == nil then
                       table.insert(needsEdit, publishedPhoto)
                       logger:error("Media " .. remoteId .. " is in the wrong albums")
+                    elseif publishedPhoto:getRemoteId() ~= expectedId then
+                      table.insert(needsEdit, publishedPhoto)
+                      logger:error("Media " .. remoteId .. " has an incorrect remote ID")
                     end
                   end
                 end
