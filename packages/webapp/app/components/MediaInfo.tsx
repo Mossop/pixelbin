@@ -1,6 +1,5 @@
-import clsx from "clsx";
 import { DateTime } from "luxon";
-import { useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import Chip from "./Chip";
 import { Rating } from "./Rating";
@@ -28,6 +27,7 @@ const LABELS = {
   albums: "In albums:",
   searches: "In searches:",
   location: "Location:",
+  map: "Location",
   make: "Camera make:",
   model: "Camera model:",
   lens: "Lens:",
@@ -138,34 +138,63 @@ function Row({
   label,
   children,
   suppressHydrationWarning = false,
-  multiline = false,
 }: {
-  multiline?: boolean;
   label: keyof typeof LABELS;
   suppressHydrationWarning?: boolean;
   children: React.ReactNode;
 }) {
-  let labelClasses = clsx(
-    "metadata-label",
-    multiline && "multiline",
-    // `metadata-${id}`,
-  );
-  let contentClasses = clsx(
-    "metadata-value",
-    multiline && "multiline",
-    // `metadata-${id}`,
-  );
-
   return (
     <>
-      <dt className={labelClasses}>{LABELS[label]}</dt>
+      <dt className={`metadata-label ${label}`}>{LABELS[label]}</dt>
       <dd
-        className={contentClasses}
+        className={`metadata-value ${label}`}
         suppressHydrationWarning={suppressHydrationWarning}
       >
         {children}
       </dd>
     </>
+  );
+}
+
+function FullRow({
+  label,
+  children,
+}: {
+  label: keyof typeof LABELS;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <dt className={`metadata-label hidden ${label}`}>{LABELS[label]}</dt>
+      <dd className={`metadata-value fullwidth ${label}`}>{children}</dd>
+    </>
+  );
+}
+
+function Map({ media }: { media: MediaRelations }) {
+  let [LazyMap, setMap] = useState<typeof import("./Map").default | null>(null);
+
+  useEffect(() => {
+    if (media.longitude !== null && media.latitude !== null) {
+      import("./Map").then((map) => {
+        setMap(() => map.default);
+      });
+    }
+  }, [media]);
+
+  if (LazyMap === null) {
+    return null;
+  }
+
+  return (
+    <FullRow label="map">
+      <div />
+      <LazyMap
+        latitude={media.latitude}
+        longitude={media.longitude}
+        altitude={media.altitude}
+      />
+    </FullRow>
   );
 }
 
@@ -188,7 +217,7 @@ function Metadata<P extends keyof MediaView & keyof typeof LABELS>({
   );
 }
 
-export default function MediaInfo({ media }: { media: MediaRelations }) {
+export default memo(({ media }: { media: MediaRelations }) => {
   let taken = useMemo(() => {
     if (media.taken === null) {
       return null;
@@ -324,6 +353,7 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
         </Row>
       )}
       {location}
+      <Map media={media} />
       {media.tags.length > 0 && (
         <Row label="tags">
           <ul className="relation-list">
@@ -360,4 +390,4 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
       {focalLength}
     </dl>
   );
-}
+});

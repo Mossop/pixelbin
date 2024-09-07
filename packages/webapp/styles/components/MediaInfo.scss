@@ -13,14 +13,17 @@ dl {
     font-weight: bold;
     text-align: right;
 
-    &.multiline {
-      grid-column: 1 / 3;
-      text-align: left;
+    &.hidden {
+      display: none;
     }
   }
 
-  .metadata-value.multiline {
+  .metadata-value.fullwidth {
     grid-column: 1 / 3;
+  }
+
+  .metadata-value.map {
+    aspect-ratio: 4 / 3;
   }
 
   .relation-list {

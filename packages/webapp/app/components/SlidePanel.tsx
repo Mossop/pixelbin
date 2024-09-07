@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { SlDrawer } from "shoelace-react";
 
 export default function SlidePanel({
@@ -15,15 +16,26 @@ export default function SlidePanel({
   onClosed?: () => void;
   children: React.ReactNode;
 }) {
+  let [showChildren, setShowChildren] = useState(show);
+
+  let onShow = useCallback(() => setShowChildren(true), []);
+  let onAfterHide = useCallback(() => {
+    setShowChildren(false);
+    if (onClosed) {
+      onClosed();
+    }
+  }, [onClosed]);
+
   return (
     <SlDrawer
       label={label}
       open={show}
       placement={position == "left" ? "start" : "end"}
-      onSlAfterHide={onClosed}
+      onSlShow={onShow}
+      onSlAfterHide={onAfterHide}
       className={theme ? `sl-theme-${theme} apply-theme` : undefined}
     >
-      {children}
+      {(show || showChildren) && children}
     </SlDrawer>
   );
 }
