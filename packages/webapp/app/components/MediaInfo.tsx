@@ -136,10 +136,12 @@ function tagUrl(catalog: string, tag: Relation): string | undefined {
 function Row({
   label,
   children,
+  suppressHydrationWarning = false,
   multiline = false,
 }: {
   multiline?: boolean;
   label: keyof typeof LABELS;
+  suppressHydrationWarning?: boolean;
   children: React.ReactNode;
 }) {
   let labelClasses = clsx(
@@ -156,7 +158,12 @@ function Row({
   return (
     <>
       <dt className={labelClasses}>{LABELS[label]}</dt>
-      <dd className={contentClasses}>{children}</dd>
+      <dd
+        className={contentClasses}
+        suppressHydrationWarning={suppressHydrationWarning}
+      >
+        {children}
+      </dd>
     </>
   );
 }
@@ -187,7 +194,7 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
     }
 
     return (
-      <Row label="taken">
+      <Row label="taken" suppressHydrationWarning>
         {media.taken.toLocaleString(DateTime.DATETIME_SHORT)}
       </Row>
     );
