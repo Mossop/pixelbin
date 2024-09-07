@@ -30,21 +30,28 @@ export default function MapComponent({
   let latlng = { lat: latitude, lng: longitude, alt: altitude ?? undefined };
 
   return (
-    <MapContainer
-      center={latlng}
-      zoom={15}
-      style={{ height: "100%", width: "100%" }}
-      scrollWheelZoom={false}
-      zoomControl={false}
-      dragging={false}
-      ref={setMap}
-      whenReady={isReady}
+    // eslint-disable-next-line jsx-a11y/control-has-associated-label
+    <a
+      target="_blank"
+      href={`https://www.openstreetmap.org/#map=15/${latitude}/${longitude}`}
+      rel="noreferrer"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Marker position={latlng} />
-    </MapContainer>
+      <MapContainer
+        center={latlng}
+        zoom={15}
+        style={{ height: "100%", width: "100%" }}
+        scrollWheelZoom={false}
+        zoomControl={false}
+        dragging={false}
+        ref={setMap}
+        whenReady={isReady}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <Marker position={latlng} />
+      </MapContainer>
+    </a>
   );
 }
