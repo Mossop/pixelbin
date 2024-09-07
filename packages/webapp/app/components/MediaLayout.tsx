@@ -218,22 +218,24 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
             <div className="buttons">
               {downloadUrl && (
                 <IconLink
-                  download={currentMedia?.file!.fileName}
+                  download={displayingMedia.file!.fileName}
                   to={downloadUrl}
                   icon="download"
                 />
               )}
-              <SlTooltip
-                open={shareTooltipOpen}
-                trigger="manual"
-                content="Address copied to clipboard"
-              >
-                <IconButton
-                  onClick={share}
-                  onMouseLeave={() => setShareTooltipOpen(false)}
-                  icon="share"
-                />
-              </SlTooltip>
+              {(displayingMedia.owned || displayingMedia.public) && (
+                <SlTooltip
+                  open={shareTooltipOpen}
+                  trigger="manual"
+                  content="Address copied to clipboard"
+                >
+                  <IconButton
+                    onClick={share}
+                    onMouseLeave={() => setShareTooltipOpen(false)}
+                    icon="share"
+                  />
+                </SlTooltip>
+              )}
               {isFullscreen ? (
                 <IconButton onClick={exitFullscreen} icon="fullscreen-exit" />
               ) : (
