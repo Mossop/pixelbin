@@ -913,8 +913,9 @@ end
 ---@param catalog string
 ---@param mediaId string
 ---@param target TargetAlbum | nil
+---@param media Media | nil
 ---@return { publishedId: string, publishedPath: string } | Error
-function API:placeInAlbum(catalog, mediaId, target)
+function API:placeInAlbum(catalog, mediaId, target, media)
   if target == nil then
     return {
       publishedId = catalog,
@@ -929,23 +930,39 @@ function API:placeInAlbum(catalog, mediaId, target)
 
   local operations = {}
 
-  table.insert(operations, {
-    operation = "add",
-    media = mediaId,
-    album = where.included,
-  })
+  local mustAdd = true
+  local hasDeletes = false
 
-  for album, _ in pairs(where.excluded) do
+  if media then
+    for _, album in ipairs(media.albums) do
+      if album.id == where.included then
+        mustAdd = false
+      end
+
+      if where.excluded[album.id] then
+        table.insert(operations, {
+          operation = "delete",
+          media = mediaId,
+          album = album,
+        })
+        hasDeletes = true
+      end
+    end
+  end
+
+  if mustAdd then
     table.insert(operations, {
-      operation = "delete",
+      operation = "add",
       media = mediaId,
-      album = album,
+      album = where.included,
     })
   end
 
-  local response = self:POST("album/media", operations)
-  if Utils.isError(response) then
-    return response
+  if mustAdd or hasDeletes then
+    local response = self:POST("album/media", operations)
+    if Utils.isError(response) then
+      return response
+    end
   end
 
   return {

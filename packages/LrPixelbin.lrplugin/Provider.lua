@@ -300,7 +300,7 @@ function Provider.processRenderedPhotos(context, exportContext)
             end
 
             local target = api:targetAlbumForPhoto(collectionInfo, album, rendition.photo)
-            local result = api:placeInAlbum(catalog, remoteId, target)
+            local result = api:placeInAlbum(catalog, remoteId, target, knownMedia[remoteId])
 
             if Utils.isSuccess(result) then
               rendition:recordPublishedPhotoId(result.publishedId)
