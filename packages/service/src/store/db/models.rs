@@ -2525,6 +2525,14 @@ pub(crate) struct PersonRelation {
     pub(crate) location: Option<Location>,
 }
 
+#[typeshare]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub(crate) struct SearchRelation {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) id: Option<String>,
+    pub(crate) name: String,
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[serde(transparent)]
 pub(crate) struct MaybeVec<T>(Vec<T>);
@@ -2550,6 +2558,8 @@ pub(crate) struct Relations {
     pub(crate) tags: MaybeVec<TagRelation>,
     #[diesel(deserialize_as = Option<Value>)]
     pub(crate) people: MaybeVec<PersonRelation>,
+    #[diesel(deserialize_as = Option<Value>)]
+    pub(crate) searches: MaybeVec<SearchRelation>,
 }
 
 #[typeshare]
@@ -2590,6 +2600,7 @@ impl MediaRelations {
             .left_join(album_relation::table.on(album_relation::media.eq(media_item::id)))
             .left_join(tag_relation::table.on(tag_relation::media.eq(media_item::id)))
             .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
+            .left_join(search_relation::table.on(search_relation::media.eq(media_item::id)))
             .filter(media_item::id.eq_any(media))
             .select((
                 media_view_columns!(),
@@ -2598,6 +2609,7 @@ impl MediaRelations {
                     album_relation::albums.nullable(),
                     tag_relation::tags.nullable(),
                     person_relation::people.nullable(),
+                    search_relation::searches.nullable(),
                 ),
                 media_item::id.eq_any(valid_searches.select(media_search::media)),
             ))
@@ -2620,6 +2632,7 @@ impl MediaRelations {
                 if matches!(access, MediaAccess::PublicSearch | MediaAccess::PublicMedia) {
                     relations.tags.0.iter_mut().for_each(|r| r.id = None);
                     relations.albums.0 = vec![];
+                    relations.searches.0 = vec![];
 
                     if access == MediaAccess::PublicMedia {
                         relations.people.0 = vec![];

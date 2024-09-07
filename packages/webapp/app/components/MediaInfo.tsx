@@ -26,6 +26,7 @@ const LABELS = {
   taken: "Taken at:",
   photographer: "Taken by:",
   albums: "In albums:",
+  searches: "In searches:",
   location: "Location:",
   make: "Camera make:",
   model: "Camera model:",
@@ -292,6 +293,22 @@ export default function MediaInfo({ media }: { media: MediaRelations }) {
             {media.albums.map((r) => (
               <li key={r.id ?? r.name}>
                 <Chip to={r.id ? url(["album", r.id]) : undefined} icon="album">
+                  {r.name}
+                </Chip>
+              </li>
+            ))}
+          </ul>
+        </Row>
+      )}
+      {media.searches.length > 0 && (
+        <Row label="searches">
+          <ul className="relation-list">
+            {media.searches.map((r) => (
+              <li key={r.id ?? r.name}>
+                <Chip
+                  to={r.id ? url(["search", r.id]) : undefined}
+                  icon="search"
+                >
                   {r.name}
                 </Chip>
               </li>

@@ -42,6 +42,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    search_relation (media) {
+        media -> Varchar,
+        searches -> Json
+    }
+}
+
+diesel::table! {
     media_file_alternates (media_file) {
         media_file -> Varchar,
         alternates -> Json

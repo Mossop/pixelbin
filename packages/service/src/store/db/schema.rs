@@ -241,6 +241,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_relation,
     tag_descendent,
     tag_relation,
+    search_relation,
     user_catalog,
     album,
     alternate_file,

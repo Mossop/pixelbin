@@ -10,7 +10,7 @@ index 886ae32..0c2dd54 100644
  pub mod sql_types {
      #[derive(diesel::sql_types::SqlType)]
      #[diesel(postgres_type(name = "location"))]
-@@ -231,6 +233,14 @@ diesel::joinable!(media_person -> person (catalog));
+@@ -231,6 +233,15 @@ diesel::joinable!(media_person -> person (catalog));
  diesel::joinable!(media_search -> saved_search (catalog));
  
  diesel::allow_tables_to_appear_in_same_query!(
@@ -21,6 +21,7 @@ index 886ae32..0c2dd54 100644
 +    person_relation,
 +    tag_descendent,
 +    tag_relation,
++    search_relation,
 +    user_catalog,
      album,
      alternate_file,

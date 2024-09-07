@@ -294,6 +294,7 @@ interface Relations {
   access?: "writableCatalog" | "readableCatalog" | "publicSearch";
   albums: Relation[];
   tags: Relation[];
+  searches: Relation[];
   people: PersonRelation[];
 }
 
