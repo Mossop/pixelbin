@@ -2314,7 +2314,8 @@ impl AlternateFile {
                         user_catalog::table
                             .filter(user_catalog::user.eq(email))
                             .select(user_catalog::catalog),
-                    )),
+                    ))
+                    .or(media_item::public.eq(true)),
             )
             .inner_join(
                 alternate_file::table
@@ -2528,6 +2529,8 @@ impl<T: DeserializeOwned> TryFrom<Option<Value>> for MaybeVec<T> {
 pub(crate) struct MediaRelations {
     #[serde(flatten)]
     pub(crate) media: MediaView,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) owned: Option<bool>,
     #[diesel(deserialize_as = Option<Value>)]
     pub(crate) albums: MaybeVec<AlbumRelation>,
     #[diesel(deserialize_as = Option<Value>)]
@@ -2540,9 +2543,19 @@ impl MediaRelations {
     pub(crate) async fn get_for_user(
         conn: &mut DbConnection<'_>,
         email: Option<&str>,
+        search: Option<&str>,
         media: &[&str],
     ) -> Result<Vec<MediaRelations>> {
         let email = email.unwrap_or_default().to_owned();
+
+        let mut valid_searches = saved_search::table
+            .inner_join(media_search::table.on(media_search::search.eq(saved_search::id)))
+            .filter(saved_search::shared.eq(true))
+            .into_boxed();
+
+        if let Some(search) = search {
+            valid_searches = valid_searches.filter(saved_search::id.eq(search))
+        }
 
         let media = media_view!()
             .left_join(
@@ -2553,39 +2566,42 @@ impl MediaRelations {
             .left_join(album_relation::table.on(album_relation::media.eq(media_item::id)))
             .left_join(tag_relation::table.on(tag_relation::media.eq(media_item::id)))
             .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
-            .left_join(media_search::table.on(media_search::media.eq(media_item::id)))
             .filter(media_item::id.eq_any(media))
-            .filter(
-                user_catalog::user
-                    .is_not_null()
-                    .or(media_search::search.eq_any(
-                        saved_search::table
-                            .filter(saved_search::shared.eq(true))
-                            .select(saved_search::id),
-                    )),
-            )
             .select((
                 (
                     media_view_columns!(),
+                    user_catalog::writable.nullable(),
                     album_relation::albums.nullable(),
                     tag_relation::tags.nullable(),
                     person_relation::people.nullable(),
                 ),
-                user_catalog::user.nullable(),
+                media_item::id.eq_any(valid_searches.select(media_search::media)),
             ))
-            .load::<(MediaRelations, Option<String>)>(conn)
+            .load::<(MediaRelations, bool)>(conn)
             .await?;
 
         Ok(media
             .into_iter()
-            .map(|(mut item, user)| {
-                if user.is_none() {
-                    item.albums.0 = vec![];
-                    item.tags.0.iter_mut().for_each(|r| r.id = None);
-                    item.people.0.iter_mut().for_each(|r| r.id = None);
-                }
+            .filter_map(|(mut item, in_public_search)| {
+                if !item.media.public && item.owned.is_none() && !in_public_search {
+                    None
+                } else {
+                    if item.owned.is_none() {
+                        item.albums.0 = vec![];
+                        item.tags.0.iter_mut().for_each(|r| r.id = None);
+                        if search.is_none() || !in_public_search {
+                            item.media.metadata.longitude = None;
+                            item.media.metadata.latitude = None;
+                            item.media.metadata.altitude = None;
+                            item.media.metadata.location = None;
+                            item.people.0 = vec![];
+                        } else {
+                            item.people.0.iter_mut().for_each(|r| r.id = None);
+                        }
+                    }
 
-                item
+                    Some(item)
+                }
             })
             .collect())
     }

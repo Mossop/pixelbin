@@ -11,12 +11,17 @@ import {
   useMediaContext,
   useVideoState,
 } from "./MediaContext";
-import { useGalleryMedia, useGetMediaUrl, useGalleryUrl } from "./MediaGallery";
+import {
+  useGalleryMedia,
+  useGetMediaUrl,
+  useGalleryUrl,
+  useGalleryType,
+} from "./MediaGallery";
 import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
-import { useCatalog, useFullscreen } from "@/modules/hooks";
+import { useFullscreen } from "@/modules/hooks";
 import { MediaRelations, MediaView } from "@/modules/types";
 import { formatTime, mediaDate, url } from "@/modules/util";
 
@@ -117,22 +122,23 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
   let gallery = useGalleryUrl();
   let fromGallery = !!useLocation().state?.fromGallery;
   let currentMedia = useCurrentMedia();
+  let galleryType = useGalleryType();
   let displayingMedia = currentMedia ?? media;
-  let catalog = useCatalog(displayingMedia.catalog);
   let fetcher = useFetcher();
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
 
-  let downloadUrl = displayingMedia.file
-    ? url([
-        "media",
-        "download",
-        displayingMedia.id,
-        displayingMedia.file.id,
-        displayingMedia.file.fileName,
-      ])
-    : null;
+  let downloadUrl =
+    galleryType && displayingMedia.file
+      ? url([
+          "media",
+          "download",
+          displayingMedia.id,
+          displayingMedia.file.id,
+          displayingMedia.file.fileName,
+        ])
+      : null;
 
   let [infoPanelShown, setInfoPanelShown] = useState(false);
   let showInfoPanel = useCallback(() => setInfoPanelShown(true), []);
@@ -163,7 +169,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
   let [shareTooltipOpen, setShareTooltipOpen] = useState(false);
 
   let share = useCallback(async () => {
-    if (!displayingMedia.public && catalog?.writable) {
+    if (!displayingMedia.public && displayingMedia.owned) {
       fetcher.submit(
         { id: displayingMedia.id },
         {
@@ -176,7 +182,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
 
     let shareUrl = document.documentURI;
 
-    if (catalog?.writable) {
+    if (displayingMedia.public || displayingMedia.owned) {
       shareUrl = new URL(
         url(["catalog", displayingMedia.catalog, "media", displayingMedia.id]),
         document.documentURI,
@@ -186,7 +192,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
     navigator.clipboard.writeText(shareUrl);
 
     setShareTooltipOpen(true);
-  }, [fetcher, displayingMedia, catalog]);
+  }, [fetcher, displayingMedia]);
 
   return (
     <div

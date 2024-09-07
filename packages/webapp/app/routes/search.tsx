@@ -68,6 +68,7 @@ export default function Search() {
 
   return (
     <MediaGallery
+      type="search"
       url={galleryUrl}
       requestStream={requestStream}
       getMediaUrl={getMediaUrl}

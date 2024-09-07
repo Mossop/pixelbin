@@ -66,7 +66,11 @@ export default function AlbumLayout() {
   );
 
   return (
-    <MediaGallery url={url(["album", album.id])} requestStream={requestStream}>
+    <MediaGallery
+      type="album"
+      url={url(["album", album.id])}
+      requestStream={requestStream}
+    >
       <MediaGrid />
       <Outlet />
     </MediaGallery>

@@ -264,6 +264,12 @@ pub(crate) struct GetMediaRequest {
     pub(crate) count: Option<i64>,
 }
 
+#[derive(Debug, Deserialize)]
+struct MediaRequest {
+    #[serde(default)]
+    search: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) struct GetMediaResponse<T> {
     pub(crate) total: i64,
@@ -275,6 +281,7 @@ pub(crate) struct GetMediaResponse<T> {
 async fn get_media(
     app_state: web::Data<AppState>,
     session: MaybeSession,
+    request: web::Query<MediaRequest>,
     media_ids: web::Path<String>,
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaRelations>>> {
     tracing::Span::current().record("media", media_ids.as_str());
@@ -285,7 +292,13 @@ async fn get_media(
         .store
         .with_connection(|conn| {
             async move {
-                let media = models::MediaRelations::get_for_user(conn, email, &ids).await?;
+                let media = models::MediaRelations::get_for_user(
+                    conn,
+                    email,
+                    request.search.as_deref(),
+                    &ids,
+                )
+                .await?;
 
                 Ok(GetMediaResponse {
                     total: media.len() as i64,

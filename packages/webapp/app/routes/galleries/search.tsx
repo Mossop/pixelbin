@@ -46,6 +46,7 @@ export default function SearchLayout() {
 
   return (
     <MediaGallery
+      type="savedSearch"
       url={url(["search", search.id])}
       requestStream={requestStream}
     >

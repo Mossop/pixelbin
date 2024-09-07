@@ -2,6 +2,7 @@ import {
   LoaderFunctionArgs,
   MetaFunction,
   SerializeFrom,
+  TypedResponse,
   json,
 } from "@remix-run/node";
 import { Outlet, useLoaderData } from "@remix-run/react";
@@ -10,16 +11,30 @@ import { useCallback } from "react";
 import { IconLink } from "@/components/Icon";
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
-import { getCatalog } from "@/modules/api";
-import { getSession } from "@/modules/session";
-import { SearchQuery } from "@/modules/types";
+import { getCatalog, isNotFound } from "@/modules/api";
+import { getSession, isAuthenticated } from "@/modules/session";
+import { Catalog, SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
-export async function loader({ request, params: { id } }: LoaderFunctionArgs) {
+export async function loader({
+  request,
+  params: { id },
+}: LoaderFunctionArgs): Promise<
+  TypedResponse<{ title: string; catalog: Catalog } | null>
+> {
   let session = await getSession(request);
-  let catalog = await getCatalog(session, id!);
+  if (isAuthenticated(session)) {
+    try {
+      let catalog = await getCatalog(session, id!);
+      return json({ title: catalog.name, catalog });
+    } catch (e: unknown) {
+      if (!isNotFound(e)) {
+        throw e;
+      }
+    }
+  }
 
-  return json({ title: catalog.name, catalog });
+  return json(null);
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -35,32 +50,40 @@ export const handle = {
       queries: [],
     };
 
-    let params = new URLSearchParams({ q: JSON.stringify(query) });
-    return (
-      <IconLink
-        icon="search"
-        to={url(["catalog", data.catalog.id, "search"], params)}
-      />
-    );
+    if (data) {
+      let params = new URLSearchParams({ q: JSON.stringify(query) });
+      return (
+        <IconLink
+          icon="search"
+          to={url(["catalog", data.catalog.id, "search"], params)}
+        />
+      );
+    }
+    return null;
   },
 };
 
 export default function CatalogLayout() {
-  let { catalog } = useLoaderData<typeof loader>();
+  let catalog = useLoaderData<typeof loader>()?.catalog;
 
   let requestStream = useCallback(
     (signal: AbortSignal) =>
-      fetch(`/api/catalog/${catalog.id}/media`, { signal }),
+      fetch(`/api/catalog/${catalog!.id}/media`, { signal }),
     [catalog],
   );
 
-  return (
-    <MediaGallery
-      url={url(["catalog", catalog.id])}
-      requestStream={requestStream}
-    >
-      <MediaGrid />
-      <Outlet />
-    </MediaGallery>
-  );
+  if (catalog) {
+    return (
+      <MediaGallery
+        type="catalog"
+        url={url(["catalog", catalog.id])}
+        requestStream={requestStream}
+      >
+        <MediaGrid />
+        <Outlet />
+      </MediaGallery>
+    );
+  }
+
+  return <Outlet />;
 }

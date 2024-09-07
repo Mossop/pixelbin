@@ -40,10 +40,13 @@ function json(data: object): ApiRequest {
 export class ResponseError extends Error {
   public readonly response: Response;
 
+  public readonly isNotFound: boolean;
+
   constructor(response: Response) {
     super(`${response.status} ${response.statusText}`);
 
-    if ([404, 401, 403].includes(response.status)) {
+    this.isNotFound = [404, 401, 403].includes(response.status);
+    if (this.isNotFound) {
       this.response = new Response(null, {
         status: 404,
         statusText: "Not Found",
@@ -52,6 +55,10 @@ export class ResponseError extends Error {
       this.response = response;
     }
   }
+}
+
+export function isNotFound(error: unknown): boolean {
+  return error instanceof ResponseError && error.isNotFound;
 }
 
 async function rawApiCall(

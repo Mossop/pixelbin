@@ -30,4 +30,8 @@ export function getSession(request: Request): Promise<Session> {
   return sessionGetter(request.headers.get("Cookie"));
 }
 
+export function isAuthenticated(session: Session): boolean {
+  return session.has("token");
+}
+
 export { commitSession, destroySession };

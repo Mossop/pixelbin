@@ -291,6 +291,7 @@ export type PersonRelation = Relation & {
 };
 
 interface Relations {
+  owned?: boolean;
   albums: Relation[];
   tags: Relation[];
   people: PersonRelation[];

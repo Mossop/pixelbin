@@ -12,7 +12,7 @@ import {
 import { ApiMediaView, MediaView } from "@/modules/types";
 import { deserializeMediaView, mediaDate } from "@/modules/util";
 
-export type GalleryType = "album" | "catalog" | "search";
+export type GalleryType = "album" | "catalog" | "search" | "savedSearch";
 
 export interface Group {
   id: string;
@@ -22,6 +22,7 @@ export interface Group {
 
 interface Context {
   readonly url: string;
+  readonly type: GalleryType;
   readonly groups: readonly Group[];
   readonly media: readonly MediaView[];
   readonly getMediaUrl?: (id: string) => string;
@@ -110,25 +111,22 @@ class TakenGrouper extends Grouper {
   }
 }
 
-const GalleryContext = createContext<Context>({
-  url: "",
-  groups: [],
-  media: [],
-  getMediaUrl: undefined,
-});
+const GalleryContext = createContext<Context | null>(null);
+
+export function useGalleryType(): GalleryType | null {
+  return useContext(GalleryContext)?.type ?? null;
+}
 
 export function useGalleryMedia(): readonly MediaView[] | null {
-  let { media } = useContext(GalleryContext);
-  return media ?? null;
+  return useContext(GalleryContext)?.media ?? null;
 }
 
 export function useGalleryGroups(): readonly Group[] | null {
-  let { groups } = useContext(GalleryContext);
-  return groups ?? null;
+  return useContext(GalleryContext)?.groups ?? null;
 }
 
 export function useGalleryUrl(): string {
-  return useContext(GalleryContext).url;
+  return useContext(GalleryContext)?.url ?? "";
 }
 
 export function useGetMediaUrl(): (id: string) => string {
@@ -136,6 +134,10 @@ export function useGetMediaUrl(): (id: string) => string {
 
   return useCallback(
     (mediaId: string) => {
+      if (!context) {
+        return "";
+      }
+
       if (context.getMediaUrl) {
         return context.getMediaUrl(mediaId);
       }
@@ -200,11 +202,13 @@ function fetchMedia(
 
 export default function MediaGallery({
   children,
+  type,
   requestStream,
   url,
   getMediaUrl,
 }: {
   children: React.ReactNode;
+  type: GalleryType;
   requestStream: (signal: AbortSignal) => Promise<Response>;
   url: string;
   getMediaUrl?: (id: string) => string;
@@ -216,8 +220,8 @@ export default function MediaGallery({
   useEffect(() => fetchMedia(requestStream, setContext), [requestStream]);
 
   let gallery = useMemo(
-    () => ({ url, getMediaUrl, ...context }),
-    [url, getMediaUrl, context],
+    () => ({ url, type, getMediaUrl, ...context }),
+    [url, getMediaUrl, type, context],
   );
 
   return (
