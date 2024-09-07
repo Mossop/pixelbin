@@ -61,6 +61,8 @@ dotenvy = "0.15.7"
 strum_macros = "0.26.4"
 webp = "0.3.0"
 async-once-cell = "0.5.3"
+pin-project = "1.1.5"
+regex = "1.10.6"
 
 actix-web = { version = "4.9.0", optional = true }
 actix-multipart = { version = "0.7.2", optional = true }
@@ -70,4 +72,3 @@ serde_with = { version = "3.8.3", optional = true }
 mime = { version = "0.3.17", optional = true }
 tokio-util = { version = "0.7.11", features = ["io"], optional = true }
 file-format = { version = "0.25.0", features = ["reader-mp4"], optional = true }
-pin-project = "1.1.5"

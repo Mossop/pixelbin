@@ -3036,6 +3036,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "pin-project",
+ "regex",
  "scoped-futures",
  "serde",
  "serde_json",

@@ -22,6 +22,7 @@ use diesel_async::RunQueryDsl;
 use futures::{Stream, StreamExt};
 use mime::Mime;
 use pin_project::pin_project;
+use regex::Regex;
 use scoped_futures::ScopedFutureExt;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{from_value, to_string, Value};
@@ -1774,6 +1775,11 @@ pub(crate) struct MediaFile {
     pub(crate) stored: Option<DateTime<Utc>>,
 }
 
+fn make_safe(name: &str) -> String {
+    let matcher = Regex::new("[^a-zA-Z0-9_\\-\\.]").unwrap();
+    matcher.replace(name, "_").to_string()
+}
+
 impl MediaFile {
     pub(crate) fn new(media_item: &str, file_name: &str, file_size: i64, mimetype: &Mime) -> Self {
         Self {
@@ -1781,7 +1787,7 @@ impl MediaFile {
             uploaded: Utc::now(),
             needs_metadata: true,
             stored: None,
-            file_name: file_name.to_owned(),
+            file_name: make_safe(file_name),
             file_size,
             mimetype: mimetype.to_owned(),
             width: 0,
