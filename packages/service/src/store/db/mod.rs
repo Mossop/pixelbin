@@ -35,6 +35,7 @@ use futures::{Future, Stream};
 use pin_project::pin_project;
 use schema::*;
 use scoped_futures::ScopedBoxFuture;
+use serde::Serialize;
 use tracing::{field, info, instrument, span, span::Id, trace, Level, Span};
 
 use crate::{
@@ -51,6 +52,15 @@ pub(crate) type DbPool = Pool<BackendConnection>;
 const TOKEN_EXPIRY_DAYS: i64 = 90;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum MediaAccess {
+    WritableCatalog,
+    ReadableCatalog,
+    PublicSearch,
+    PublicMedia,
+}
 
 #[instrument(err, skip_all)]
 async fn reprocess_all_media(conn: &mut DbConnection<'_>) -> Result {

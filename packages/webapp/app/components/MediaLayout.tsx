@@ -169,7 +169,10 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
   let [shareTooltipOpen, setShareTooltipOpen] = useState(false);
 
   let share = useCallback(async () => {
-    if (!displayingMedia.public && displayingMedia.owned) {
+    if (
+      !displayingMedia.public &&
+      displayingMedia.access == "writableCatalog"
+    ) {
       fetcher.submit(
         { id: displayingMedia.id },
         {
@@ -182,7 +185,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
 
     let shareUrl = document.documentURI;
 
-    if (displayingMedia.public || displayingMedia.owned) {
+    if (displayingMedia.public || displayingMedia.access == "writableCatalog") {
       shareUrl = new URL(
         url(["catalog", displayingMedia.catalog, "media", displayingMedia.id]),
         document.documentURI,
@@ -223,7 +226,8 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
                   icon="download"
                 />
               )}
-              {(displayingMedia.owned || displayingMedia.public) && (
+              {(displayingMedia.access == "writableCatalog" ||
+                displayingMedia.public) && (
                 <SlTooltip
                   open={shareTooltipOpen}
                   trigger="manual"

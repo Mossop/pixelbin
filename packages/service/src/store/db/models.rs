@@ -42,7 +42,7 @@ use crate::{
             },
             schema::*,
             search::{upgrade_query, Filterable, SearchQuery},
-            Backend,
+            Backend, MediaAccess,
         },
         models,
         path::{FilePath, MediaFileStore, MediaItemStore},
@@ -185,7 +185,8 @@ impl MediaViewSender {
         match stream_future.await {
             Ok(mut stream) => loop {
                 match stream.next().await {
-                    Some(Ok(media_view)) => {
+                    Some(Ok(mut media_view)) => {
+                        media_view.amend_for_access(MediaAccess::PublicMedia);
                         self.sender.send(Some(Ok(media_view))).await.ignore();
                     }
                     Some(Err(error)) => {
@@ -2458,6 +2459,17 @@ pub(crate) struct MediaView {
     pub(crate) file: Option<MediaViewFile>,
 }
 
+impl MediaView {
+    pub(crate) fn amend_for_access(&mut self, access: MediaAccess) {
+        if access == MediaAccess::PublicMedia {
+            self.metadata.longitude = None;
+            self.metadata.latitude = None;
+            self.metadata.altitude = None;
+            self.metadata.location = None;
+        }
+    }
+}
+
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct AlbumRelation {
@@ -2523,20 +2535,26 @@ impl<T: DeserializeOwned> TryFrom<Option<Value>> for MaybeVec<T> {
     }
 }
 
-#[typeshare]
 #[derive(Queryable, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct MediaRelations {
-    #[serde(flatten)]
-    pub(crate) media: MediaView,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) owned: Option<bool>,
+pub(crate) struct Relations {
     #[diesel(deserialize_as = Option<Value>)]
     pub(crate) albums: MaybeVec<AlbumRelation>,
     #[diesel(deserialize_as = Option<Value>)]
     pub(crate) tags: MaybeVec<TagRelation>,
     #[diesel(deserialize_as = Option<Value>)]
     pub(crate) people: MaybeVec<PersonRelation>,
+}
+
+#[typeshare]
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct MediaRelations {
+    #[serde(flatten)]
+    pub(crate) media: MediaView,
+    pub(crate) access: MediaAccess,
+    #[serde(flatten)]
+    pub(crate) relations: Relations,
 }
 
 impl MediaRelations {
@@ -2568,40 +2586,45 @@ impl MediaRelations {
             .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
             .filter(media_item::id.eq_any(media))
             .select((
+                media_view_columns!(),
+                user_catalog::writable.nullable(),
                 (
-                    media_view_columns!(),
-                    user_catalog::writable.nullable(),
                     album_relation::albums.nullable(),
                     tag_relation::tags.nullable(),
                     person_relation::people.nullable(),
                 ),
                 media_item::id.eq_any(valid_searches.select(media_search::media)),
             ))
-            .load::<(MediaRelations, bool)>(conn)
+            .load::<(MediaView, Option<bool>, Relations, bool)>(conn)
             .await?;
 
         Ok(media
             .into_iter()
-            .filter_map(|(mut item, in_public_search)| {
-                if !item.media.public && item.owned.is_none() && !in_public_search {
-                    None
-                } else {
-                    if item.owned.is_none() {
-                        item.albums.0 = vec![];
-                        item.tags.0.iter_mut().for_each(|r| r.id = None);
-                        if search.is_none() || !in_public_search {
-                            item.media.metadata.longitude = None;
-                            item.media.metadata.latitude = None;
-                            item.media.metadata.altitude = None;
-                            item.media.metadata.location = None;
-                            item.people.0 = vec![];
-                        } else {
-                            item.people.0.iter_mut().for_each(|r| r.id = None);
-                        }
-                    }
+            .filter_map(|(mut media, writable, mut relations, in_public_search)| {
+                let access = match (writable, media.public, search.is_some(), in_public_search) {
+                    (Some(true), _, _, _) => MediaAccess::WritableCatalog,
+                    (Some(false), _, _, _) => MediaAccess::ReadableCatalog,
+                    (_, _, true, true) => MediaAccess::PublicSearch,
+                    (_, true, _, _) => MediaAccess::PublicMedia,
+                    _ => return None,
+                };
 
-                    Some(item)
+                media.amend_for_access(access);
+
+                if matches!(access, MediaAccess::PublicSearch | MediaAccess::PublicMedia) {
+                    relations.tags.0.iter_mut().for_each(|r| r.id = None);
+                    relations.albums.0 = vec![];
+
+                    if access == MediaAccess::PublicMedia {
+                        relations.people.0 = vec![];
+                    }
                 }
+
+                Some(MediaRelations {
+                    media,
+                    access,
+                    relations,
+                })
             })
             .collect())
     }

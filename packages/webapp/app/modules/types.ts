@@ -291,7 +291,7 @@ export type PersonRelation = Relation & {
 };
 
 interface Relations {
-  owned?: boolean;
+  access?: "writableCatalog" | "readableCatalog" | "publicSearch";
   albums: Relation[];
   tags: Relation[];
   people: PersonRelation[];
