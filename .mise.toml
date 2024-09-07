@@ -1,0 +1,14 @@
+[tools]
+node = "20"
+watchexec = "latest"
+
+[tasks.apiserver]
+description = "Run the API server"
+run = "cargo run -- serve"
+sources = ["packages/service/Cargo.toml", "packages/service/src/**/*.rs"]
+
+[tasks.webserver]
+description = "Run the web server"
+run = "npm run dev"
+dir = "packages/webapp"
+sources = ["packages/webapp/package.json", "packages/webapp/instrumentation.mjs", "packages/webapp/**/*.ts"]

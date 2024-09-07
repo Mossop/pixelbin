@@ -4,14 +4,18 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "cargo",
+      "type": "shell",
+      "command": "mise",
+      "args": [
+        "watch",
+        "-t",
+        "apiserver",
+        "--",
+        "-r",
+      ],
+      "problemMatcher": [],
       "label": "Pixelbin API server",
       "isBackground": true,
-      "command": "run",
-      "args": [
-        "--",
-        "serve"
-      ],
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -24,17 +28,11 @@
     },
     {
       "type": "shell",
-      "command": "npm",
+      "command": "mise",
       "args": [
         "run",
-        "dev"
+        "webserver",
       ],
-      "options": {
-        "cwd": "${workspaceFolder}/packages/webapp",
-        "env": {
-          "PATH": "/Users/dave/.local/share/mise/shims:$PATH"
-        }
-      },
       "problemMatcher": [],
       "label": "Pixelbin web server",
       "isBackground": true,
