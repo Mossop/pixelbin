@@ -233,10 +233,12 @@ export function searchMedia(
 export async function getMedia(
   session: Session,
   id: string,
+  search: string | null,
 ): Promise<ApiMediaRelations> {
+  let path = `/api/media/${id}${search ? `?search=${search}` : ""}`;
   let response = await jsonApiCall<ListMediaResponse<ApiMediaRelations>>(
     session,
-    `/api/media/${id}`,
+    path,
     "getMedia",
   );
 

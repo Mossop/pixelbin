@@ -12,7 +12,12 @@ export async function loader({
   params: { media: mediaId },
 }: LoaderFunctionArgs) {
   let session = await getSession(request);
-  let media = await getMedia(session, mediaId!);
+  let pathParts = new URL(request.url).pathname.split("/");
+  let search: string | null = null;
+  if (pathParts[1] == "search") {
+    search = pathParts[2];
+  }
+  let media = await getMedia(session, mediaId!, search);
 
   return json(media);
 }
@@ -24,9 +29,10 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
     | string
     | undefined;
 
-  let serverConfig: ApiConfig;
   // @ts-ignore
-  serverConfig = matches.find((m) => m.id == "root").data.serverConfig;
+  let { serverConfig } = matches.find((m) => m.id == "root").data as {
+    serverConfig: ApiConfig;
+  };
 
   let title: string | null | undefined = mediaTitle(media!);
 
