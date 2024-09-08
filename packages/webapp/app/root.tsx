@@ -13,8 +13,8 @@ import AppBar from "./components/AppBar";
 import CastManager from "./components/CastManager";
 import NotFound from "./components/NotFound";
 import SidebarLayout from "./components/SidebarLayout";
+import { getRequestContext } from "./modules/RequestContext";
 import { config, state } from "./modules/api";
-import { getSession } from "./modules/session";
 
 import "styles/main.scss";
 
@@ -26,9 +26,9 @@ export const links: LinksFunction = () => [
   },
 ];
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  let session = await getSession(request);
-  let serverConfig = await config();
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  let session = await getRequestContext(request, context);
+  let serverConfig = await config(session);
   let serverState = await state(session);
 
   return json({ serverState, serverConfig });

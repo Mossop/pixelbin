@@ -1,29 +1,31 @@
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 
+import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
-import { getSession } from "@/modules/session";
-import { ApiRequest, apiFetch } from "@/modules/telemetry";
+import { ApiRequest, apiResponse, forwardedRequest, GET } from "@/modules/api";
 
 export const loader = safeLoader(
-  async ({ request, params }: LoaderFunctionArgs) => {
-    let init: ApiRequest = {
-      method: "GET",
-      redirect: "manual",
-      headers: {},
-    };
+  async ({ request, context, params }: LoaderFunctionArgs) => {
+    let session = await getRequestContext(request, context);
+    let init: ApiRequest = GET();
+    init.redirect = "manual";
 
     let accept = request.headers.get("Accept");
     if (accept) {
-      init.headers!.Accept = accept;
+      init.headers.Accept = accept;
     }
 
-    let session = await getSession(request);
     let token = session.get("token");
     if (token) {
-      init.headers!.Authorization = `Bearer ${token}`;
+      init.headers.Authorization = `Bearer ${token}`;
     }
 
-    let response = await apiFetch(`/media/${params["*"]}`, "media", init);
+    let response = await apiResponse(
+      `/media/${params["*"]}`,
+      "media",
+      () => init,
+      forwardedRequest(session),
+    );
 
     if (response.status >= 300 && response.status < 400) {
       let location = response.headers.get("location");

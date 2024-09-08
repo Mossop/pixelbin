@@ -9,5 +9,5 @@
     },
   },
 
-  "include": ["env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": ["env.d.ts", "**/*.ts", "**/*.tsx", "**/*.mjs", "app/modules/telemetry.mjs"],
 }

@@ -1,16 +1,20 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 
+import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
 import { listMedia, searchMedia } from "@/modules/api";
-import { getSession } from "@/modules/session";
 
 export const loader = safeLoader(
-  async ({ request, params: { container, id, type } }: LoaderFunctionArgs) => {
+  async ({
+    request,
+    context,
+    params: { container, id, type },
+  }: LoaderFunctionArgs) => {
     if (!["catalog", "album", "search"].includes(container!)) {
       throw new Error(`Unknown container: ${container}`);
     }
 
-    let session = await getSession(request);
+    let session = await getRequestContext(request, context);
 
     if (type == "media") {
       return listMedia(
@@ -20,6 +24,7 @@ export const loader = safeLoader(
         id!,
       );
     }
+
     if (type == "search") {
       let url = new URL(request.url);
       let param = url.searchParams.get("q");

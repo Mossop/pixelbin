@@ -10,13 +10,17 @@ import { useCallback, useMemo } from "react";
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
 import SearchBar from "@/components/SearchBar";
+import { getRequestContext } from "@/modules/RequestContext";
 import { getCatalog } from "@/modules/api";
-import { getSession } from "@/modules/session";
 import { SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
-export async function loader({ request, params: { id } }: LoaderFunctionArgs) {
-  let session = await getSession(request);
+export async function loader({
+  request,
+  context,
+  params: { id },
+}: LoaderFunctionArgs) {
+  let session = await getRequestContext(request, context);
   let catalog = await getCatalog(session, id!);
 
   return json({ title: catalog.name, catalog });

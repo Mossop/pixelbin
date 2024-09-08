@@ -10,13 +10,17 @@ import { useCallback } from "react";
 import { IconLink } from "@/components/Icon";
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
+import { getRequestContext } from "@/modules/RequestContext";
 import { getAlbum } from "@/modules/api";
-import { getSession } from "@/modules/session";
 import { AlbumField, SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
-export async function loader({ request, params: { id } }: LoaderFunctionArgs) {
-  let session = await getSession(request);
+export async function loader({
+  request,
+  context,
+  params: { id },
+}: LoaderFunctionArgs) {
+  let session = await getRequestContext(request, context);
   let album = await getAlbum(session, id!);
 
   return json({ title: album.name, album });

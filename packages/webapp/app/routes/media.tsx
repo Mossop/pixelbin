@@ -2,16 +2,17 @@ import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { MetaDescriptor, useLoaderData } from "@remix-run/react";
 
 import MediaLayout from "@/components/MediaLayout";
+import { getRequestContext } from "@/modules/RequestContext";
 import { ApiConfig, getMedia } from "@/modules/api";
-import { getSession } from "@/modules/session";
 import { AlternateFileType } from "@/modules/types";
 import { deserializeMediaView, mediaTitle, url } from "@/modules/util";
 
 export async function loader({
   request,
+  context,
   params: { media: mediaId },
 }: LoaderFunctionArgs) {
-  let session = await getSession(request);
+  let session = await getRequestContext(request, context);
   let pathParts = new URL(request.url).pathname.split("/");
   let search: string | null = null;
   if (pathParts[1] == "search") {

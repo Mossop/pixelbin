@@ -11,19 +11,20 @@ import { useCallback } from "react";
 import { IconLink } from "@/components/Icon";
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
+import { getRequestContext } from "@/modules/RequestContext";
 import { getCatalog, isNotFound } from "@/modules/api";
-import { getSession, isAuthenticated } from "@/modules/session";
 import { Catalog, SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
 export async function loader({
   request,
+  context,
   params: { id },
 }: LoaderFunctionArgs): Promise<
   TypedResponse<{ title: string; catalog: Catalog } | null>
 > {
-  let session = await getSession(request);
-  if (isAuthenticated(session)) {
+  let session = await getRequestContext(request, context);
+  if (session.isAuthenticated()) {
     try {
       let catalog = await getCatalog(session, id!);
       return json({ title: catalog.name, catalog });

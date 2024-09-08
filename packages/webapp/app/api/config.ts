@@ -1,21 +1,27 @@
+import { LoaderFunctionArgs } from "@remix-run/node";
+
+import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
-import { ApiRequest, apiFetch } from "@/modules/telemetry";
+import { apiResponse, forwardedRequest } from "@/modules/api";
 
-export const loader = safeLoader(async () => {
-  let init: ApiRequest = {
-    method: "GET",
-  };
+export const loader = safeLoader(
+  async ({ request, context }: LoaderFunctionArgs) => {
+    let session = await getRequestContext(request, context);
+    let response = await apiResponse(
+      "/api/config",
+      "config",
+      forwardedRequest(session),
+    );
 
-  let response = await apiFetch("/api/config", "config", init);
+    if (response.status < 200 || response.status >= 300) {
+      return response;
+    }
 
-  if (response.status < 200 || response.status >= 300) {
-    return response;
-  }
+    let config = await response.json();
+    if ("SOURCE_CHANGESET" in process.env) {
+      config.webappChangeset = process.env.SOURCE_CHANGESET;
+    }
 
-  let config = await response.json();
-  if ("SOURCE_CHANGESET" in process.env) {
-    config.webappChangeset = process.env.SOURCE_CHANGESET;
-  }
-
-  return new Response(JSON.stringify(config));
-});
+    return new Response(JSON.stringify(config));
+  },
+);

@@ -7,29 +7,9 @@ import { RemixServer } from "@remix-run/react";
 import * as isbotModule from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 
-const ABORT_DELAY = 5_000;
+import { inSpan } from "./modules/telemetry.mjs";
 
-export default function handleRequest(
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  remixContext: EntryContext,
-  loadContext: AppLoadContext,
-) {
-  return isBotRequest(request.headers.get("user-agent"))
-    ? handleBotRequest(
-        request,
-        responseStatusCode,
-        responseHeaders,
-        remixContext,
-      )
-    : handleBrowserRequest(
-        request,
-        responseStatusCode,
-        responseHeaders,
-        remixContext,
-      );
-}
+const ABORT_DELAY = 5_000;
 
 // We have some Remix apps in the wild already running with isbot@3 so we need
 // to maintain backwards compatibility even though we want new apps to use
@@ -54,10 +34,11 @@ function isBotRequest(userAgent: string | null) {
 
 function handleBotRequest(
   request: Request,
-  responseStatusCode: number,
+  initialStatusCode: number,
   responseHeaders: Headers,
   remixContext: EntryContext,
 ) {
+  let responseStatusCode = initialStatusCode;
   return new Promise((resolve, reject) => {
     let shellRendered = false;
     const { pipe, abort } = renderToPipeableStream(
@@ -104,10 +85,11 @@ function handleBotRequest(
 
 function handleBrowserRequest(
   request: Request,
-  responseStatusCode: number,
+  initialStatusCode: number,
   responseHeaders: Headers,
   remixContext: EntryContext,
 ) {
+  let responseStatusCode = initialStatusCode;
   return new Promise((resolve, reject) => {
     let shellRendered = false;
     const { pipe, abort } = renderToPipeableStream(
@@ -150,4 +132,29 @@ function handleBrowserRequest(
 
     setTimeout(abort, ABORT_DELAY);
   });
+}
+
+export default function handleRequest(
+  request: Request,
+  responseStatusCode: number,
+  responseHeaders: Headers,
+  remixContext: EntryContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  loadContext: AppLoadContext,
+) {
+  return inSpan("render", () =>
+    isBotRequest(request.headers.get("user-agent"))
+      ? handleBotRequest(
+          request,
+          responseStatusCode,
+          responseHeaders,
+          remixContext,
+        )
+      : handleBrowserRequest(
+          request,
+          responseStatusCode,
+          responseHeaders,
+          remixContext,
+        ),
+  );
 }

@@ -1,40 +1,67 @@
-import { Session } from "./session";
-import { ApiRequest, apiFetch } from "./telemetry";
+import {
+  context as telemetryContext,
+  propagation,
+  Span,
+  SpanKind,
+  SpanStatusCode,
+} from "@opentelemetry/api";
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_HTTP_RESPONSE_STATUS_CODE,
+  ATTR_URL_PATH,
+} from "@opentelemetry/semantic-conventions";
+
+import { RequestContext } from "./RequestContext";
+import { inSpan } from "./telemetry.mjs";
 import {
   Album,
   ApiMediaRelations,
   ApiResponse,
   Catalog,
   LoginResponse,
+  Replace,
   SavedSearch,
   SearchQuery,
   State,
 } from "./types";
 
-const GET: ApiRequest = { method: "GET" };
-const POST: ApiRequest = { method: "POST" };
+export const GET = (): ApiRequest => ({ method: "GET", headers: {} });
+export const POST = (): ApiRequest => ({ method: "POST", headers: {} });
 
-const DEEP_OPTIONS = ["headers", "next"];
+function apiUrl(): string {
+  let url = process.env.PIXELBIN_API_URL;
+  if (url?.endsWith("/")) {
+    return url.substring(0, url.length - 1);
+  }
 
-function assertAuthenticated(session: Session) {
-  if (!session.get("token")) {
+  return url ?? "";
+}
+
+function assertAuthenticated(context: RequestContext) {
+  if (!context.isAuthenticated()) {
     throw new Error("Not yet authenticated");
   }
 }
 
-function authenticated(session: Session): ApiRequest {
-  return {
+function authenticated(context: RequestContext): RequestBuilder {
+  return (init: ApiRequest) => ({
+    ...init,
     headers: {
-      Authorization: `Bearer ${session.get("token")}`,
+      ...init.headers,
+      Authorization: `Bearer ${context.get("token")}`,
     },
-  };
+  });
 }
 
-function json(data: object): ApiRequest {
-  return {
-    headers: { "Content-Type": "application/json" },
+function json(data: object): RequestBuilder {
+  return (init: ApiRequest) => ({
+    ...init,
+    headers: {
+      ...init.headers,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(data),
-  };
+  });
 }
 
 export class ResponseError extends Error {
@@ -61,26 +88,78 @@ export function isNotFound(error: unknown): boolean {
   return error instanceof ResponseError && error.isNotFound;
 }
 
-async function rawApiCall(
+export type ApiRequest = Replace<
+  RequestInit,
+  {
+    headers: Record<string, string>;
+  }
+>;
+export type RequestBuilder = (request: ApiRequest) => ApiRequest;
+
+export function forwardedRequest(
+  requestContext: RequestContext,
+): RequestBuilder {
+  return (init) => ({
+    ...init,
+    headers: {
+      ...init.headers,
+      Forwarded: `for="${requestContext.expressRequest.ip}"`,
+    },
+  });
+}
+
+export function apiResponse(
   path: string,
   label: string,
-  ...options: ApiRequest[]
+  ...builders: RequestBuilder[]
 ): Promise<Response> {
-  const init = { ...GET };
+  let init = GET();
 
-  for (const option of options) {
-    for (const [key, value] of Object.entries(option)) {
-      if (key in init && DEEP_OPTIONS.includes(key)) {
-        // @ts-expect-error Foo
-        Object.assign(init[key], value);
-      } else {
-        // @ts-expect-error Foo
-        init[key] = value;
-      }
-    }
+  for (let builder of builders) {
+    init = builder(init);
   }
 
-  const response = await apiFetch(path, label, init);
+  let method = init.method ?? "GET";
+
+  return inSpan(
+    {
+      name: `API call: ${method} ${label}`,
+      kind: SpanKind.CLIENT,
+      attributes: {
+        [ATTR_HTTP_REQUEST_METHOD]: method,
+        [ATTR_URL_PATH]: path,
+      },
+    },
+    async (span: Span) => {
+      propagation.inject(telemetryContext.active(), init.headers, {
+        set(headers: Record<string, string>, key: string, value: string) {
+          // eslint-disable-next-line no-param-reassign
+          headers[key] = value;
+        },
+      });
+
+      let response = await fetch(`${apiUrl()}${path}`, init);
+
+      span.setAttribute(ATTR_HTTP_RESPONSE_STATUS_CODE, response.status);
+
+      if (response.status < 200 || response.status >= 400) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: `${response.status} ${response.statusText}`,
+        });
+      }
+
+      return response;
+    },
+  );
+}
+
+export async function apiCall(
+  path: string,
+  label: string,
+  ...builders: RequestBuilder[]
+): Promise<Response> {
+  let response = await apiResponse(path, label, ...builders);
 
   if (response.ok) {
     return response;
@@ -89,22 +168,19 @@ async function rawApiCall(
   throw new ResponseError(response);
 }
 
-async function authenticatedApiCall(
-  session: Session,
-  path: string,
-  label: string,
-  ...options: ApiRequest[]
-) {
-  return rawApiCall(path, label, authenticated(session), ...options);
-}
-
 async function jsonApiCall<T>(
-  session: Session,
+  context: RequestContext,
   path: string,
   label: string,
-  ...options: ApiRequest[]
+  ...builders: RequestBuilder[]
 ): Promise<T> {
-  let response = await authenticatedApiCall(session, path, label, ...options);
+  let response = await apiCall(
+    path,
+    label,
+    forwardedRequest(context),
+    authenticated(context),
+    ...builders,
+  );
   return response.json();
 }
 
@@ -120,13 +196,21 @@ export interface ApiConfig {
   thumbnails: ThumbnailConfig;
 }
 
-export async function config(): Promise<ApiConfig> {
-  let response = await rawApiCall("/api/config", "config");
+export async function config(context: RequestContext): Promise<ApiConfig> {
+  let response = await apiCall(
+    "/api/config",
+    "config",
+    forwardedRequest(context),
+  );
   return response.json();
 }
 
-export async function login(session: Session, email: string, password: string) {
-  let response = await rawApiCall(
+export async function login(
+  context: RequestContext,
+  email: string,
+  password: string,
+) {
+  let response = await apiCall(
     "/api/login",
     "login",
     POST,
@@ -134,29 +218,36 @@ export async function login(session: Session, email: string, password: string) {
       email,
       password,
     }),
-    { cache: "no-store" },
+    forwardedRequest(context),
+    (init) => ({ ...init, cache: "no-store" }),
   );
 
   let result: LoginResponse = await response.json();
 
   if (result.token) {
-    session.set("token", result.token);
+    context.set("token", result.token);
   }
 }
 
-export async function logout(session: Session) {
-  if (session.get("token")) {
-    jsonApiCall(session, "/api/logout", "logout", POST, { cache: "no-store" });
+export async function logout(context: RequestContext) {
+  if (context.get("token")) {
+    jsonApiCall(context, "/api/logout", "logout", POST, (init) => ({
+      ...init,
+      cache: "no-store",
+    }));
   }
 }
 
-export async function state(session: Session): Promise<State | undefined> {
-  if (session.get("token")) {
+export async function state(
+  context: RequestContext,
+): Promise<State | undefined> {
+  if (context.get("token")) {
     try {
-      let response = await rawApiCall(
+      let response = await apiCall(
         "/api/state",
         "state",
-        authenticated(session),
+        forwardedRequest(context),
+        authenticated(context),
       );
 
       return await response.json();
@@ -168,26 +259,29 @@ export async function state(session: Session): Promise<State | undefined> {
   return undefined;
 }
 
-export async function getAlbum(session: Session, id: string): Promise<Album> {
-  assertAuthenticated(session);
+export async function getAlbum(
+  context: RequestContext,
+  id: string,
+): Promise<Album> {
+  assertAuthenticated(context);
 
-  return jsonApiCall<Album>(session, `/api/album/${id}`, "getAlbum");
+  return jsonApiCall<Album>(context, `/api/album/${id}`, "getAlbum");
 }
 
 export async function getSearch(
-  session: Session,
+  context: RequestContext,
   id: string,
 ): Promise<SavedSearch> {
-  return jsonApiCall<SavedSearch>(session, `/api/search/${id}`, "getSearch");
+  return jsonApiCall<SavedSearch>(context, `/api/search/${id}`, "getSearch");
 }
 
 export async function getCatalog(
-  session: Session,
+  context: RequestContext,
   id: string,
 ): Promise<Catalog> {
-  assertAuthenticated(session);
+  assertAuthenticated(context);
 
-  return jsonApiCall<Catalog>(session, `/api/catalog/${id}`, "getCatalog");
+  return jsonApiCall<Catalog>(context, `/api/catalog/${id}`, "getCatalog");
 }
 
 interface ListMediaResponse<T> {
@@ -196,32 +290,34 @@ interface ListMediaResponse<T> {
 }
 
 export function listMedia(
-  session: Session,
+  context: RequestContext,
   source: "album" | "catalog" | "search",
   id: string,
 ): Promise<Response> {
   if (source != "search") {
-    assertAuthenticated(session);
+    assertAuthenticated(context);
   }
 
-  return authenticatedApiCall(
-    session,
+  return apiCall(
     `/api/${source}/${id}/media`,
     "listMedia",
+    forwardedRequest(context),
+    authenticated(context),
   );
 }
 
 export function searchMedia(
-  session: Session,
+  context: RequestContext,
   catalog: string,
   query: SearchQuery,
 ): Promise<Response> {
-  assertAuthenticated(session);
+  assertAuthenticated(context);
 
-  return authenticatedApiCall(
-    session,
+  return apiCall(
     `/api/search`,
     "searchMedia",
+    forwardedRequest(context),
+    authenticated(context),
     POST,
     json({
       catalog,
@@ -231,13 +327,13 @@ export function searchMedia(
 }
 
 export async function getMedia(
-  session: Session,
+  context: RequestContext,
   id: string,
   search: string | null,
 ): Promise<ApiMediaRelations> {
   let path = `/api/media/${id}${search ? `?search=${search}` : ""}`;
   let response = await jsonApiCall<ListMediaResponse<ApiMediaRelations>>(
-    session,
+    context,
     path,
     "getMedia",
   );
@@ -254,11 +350,11 @@ export async function getMedia(
 }
 
 export async function markMediaPublic(
-  session: Session,
+  context: RequestContext,
   id: String,
 ): Promise<void> {
   await jsonApiCall<ApiResponse>(
-    session,
+    context,
     `/api/media/edit`,
     "getMedia",
     POST,
