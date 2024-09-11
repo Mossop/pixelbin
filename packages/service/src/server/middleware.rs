@@ -1,37 +1,35 @@
-use std::{
-    future::{ready, Ready},
-    net::SocketAddr,
-    time::Instant,
-};
+use std::{net::SocketAddr, time::Instant};
 
 use actix_web::{
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    http::header::HeaderMap,
-    Error, HttpRequest,
+    body::MessageBody,
+    dev::{ServiceRequest, ServiceResponse},
+    http::{header::HeaderMap, StatusCode},
+    middleware::Next,
+    web::Data,
+    Error, FromRequest, HttpRequest,
 };
-use futures::future::LocalBoxFuture;
 use opentelemetry::{global, propagation::Extractor};
-use tracing::{field, span, warn, Instrument, Level};
+use tracing::{field, instrument, span, warn, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-use crate::shared::{record_error, DEFAULT_STATUS};
+use crate::{
+    server::AppState,
+    shared::{record_error, DEFAULT_STATUS},
+};
 
-pub(crate) struct Logging;
+pub(super) struct RequestTracker {}
 
-impl<S, B> Transform<S, ServiceRequest> for Logging
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = LoggingMiddleware<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+impl RequestTracker {
+    pub(super) fn new() -> Self {
+        Self {}
+    }
 
-    fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(LoggingMiddleware { service }))
+    fn check_request(&self, client_addr: &Option<String>) -> bool {
+        true
+    }
+
+    fn record_response(&self, client_addr: &Option<String>, status: StatusCode) {
+        if let Some(client) = client_addr {}
     }
 }
 
@@ -59,10 +57,6 @@ fn client_addr(req: &HttpRequest) -> Option<String> {
     }
 }
 
-pub(crate) struct LoggingMiddleware<S> {
-    service: S,
-}
-
 struct TextMapExtractor<'a> {
     headers: &'a HeaderMap,
 }
@@ -77,80 +71,72 @@ impl<'a> Extractor for TextMapExtractor<'a> {
     }
 }
 
-impl<S, B> Service<ServiceRequest> for LoggingMiddleware<S>
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+#[instrument(skip_all)]
+pub(super) async fn middleware(
+    req: ServiceRequest,
+    next: Next<impl MessageBody>,
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    let http_request = req.request();
+    let app_data = Data::<AppState>::extract(http_request).await?;
 
-    forward_ready!(service);
+    let headers = http_request.headers();
+    let extractor = TextMapExtractor { headers };
 
-    fn call(&self, req: ServiceRequest) -> Self::Future {
-        let headers = req.request().headers();
-        let extractor = TextMapExtractor {
-            headers: req.request().headers(),
-        };
+    let parent_context =
+        global::get_text_map_propagator(|propagator| propagator.extract(&extractor));
+    Span::current().set_parent(parent_context);
 
-        let parent_context =
-            global::get_text_map_propagator(|propagator| propagator.extract(&extractor));
+    let span = span!(
+        Level::INFO,
+        "api request",
+        "duration" = field::Empty,
+        "otel.name" = format!("HTTP {}", req.method()),
+        "otel.kind" = "server",
+        "client.address" = field::Empty,
+        "url.path" = req.path(),
+        "user_agent.original" = field::Empty,
+        "http.request.method" = %req.method(),
+        "http.response.status_code" = field::Empty,
+        "otel.status_code" = DEFAULT_STATUS,
+        "otel.status_description" = field::Empty,
+    );
 
-        let span = span!(
-            Level::INFO,
-            "api request",
-            "duration" = field::Empty,
-            "otel.name" = format!("HTTP {}", req.method()),
-            "otel.kind" = "server",
-            "client.address" = field::Empty,
-            "url.path" = req.path(),
-            "user_agent.original" = field::Empty,
-            "http.request.method" = %req.method(),
-            "http.response.status_code" = field::Empty,
-            "otel.status_code" = DEFAULT_STATUS,
-            "otel.status_description" = field::Empty,
-        );
-        span.set_parent(parent_context);
-
-        if let Some(user_agent) = headers.get("user-agent").and_then(|h| h.to_str().ok()) {
-            span.record("user_agent.original", user_agent);
-        }
-
-        if let Some(ip) = client_addr(req.request()) {
-            span.record("client.address", ip);
-        }
-
-        let start = Instant::now();
-
-        let fut = self.service.call(req);
-
-        let outer_span = span.clone();
-        Box::pin(
-            async move {
-                let res = fut.await?;
-
-                let duration = Instant::now().duration_since(start).as_millis();
-                let status = res.status();
-
-                span.record("http.response.status_code", status.as_u16());
-                span.record("duration", duration);
-
-                if status.is_server_error() || status.is_client_error() {
-                    let message = if let Some(r) = status.canonical_reason() {
-                        format!("{} {}", status.as_str(), r)
-                    } else {
-                        status.as_str().to_owned()
-                    };
-                    record_error(&span, &message);
-                } else if duration >= 250 {
-                    warn!(duration = duration, "Slow response");
-                };
-
-                Ok(res)
-            }
-            .instrument(outer_span),
-        )
+    if let Some(user_agent) = headers.get("user-agent").and_then(|h| h.to_str().ok()) {
+        span.record("user_agent.original", user_agent);
     }
+
+    let client_addr = client_addr(req.request());
+
+    if let Some(ref ip) = client_addr {
+        span.record("client.address", ip);
+    }
+
+    if !app_data.request_tracker.check_request(&client_addr) {
+        // TODO
+    }
+
+    let start = Instant::now();
+    let res = next.call(req).instrument(span.clone()).await?;
+
+    let duration = Instant::now().duration_since(start).as_millis();
+    let status = res.status();
+    app_data
+        .request_tracker
+        .record_response(&client_addr, status);
+
+    span.record("http.response.status_code", status.as_u16());
+    span.record("duration", duration);
+
+    if status.is_server_error() || status.is_client_error() {
+        let message = if let Some(r) = status.canonical_reason() {
+            format!("{} {}", status.as_str(), r)
+        } else {
+            status.as_str().to_owned()
+        };
+        record_error(&span, &message);
+    } else if duration >= 250 {
+        warn!(duration = duration, "Slow response");
+    };
+
+    Ok(res)
 }

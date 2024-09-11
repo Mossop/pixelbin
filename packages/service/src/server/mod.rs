@@ -4,6 +4,7 @@ use actix_web::{
     body::BoxBody,
     get,
     http::{StatusCode, Uri},
+    middleware::from_fn,
     web, App, HttpResponse, HttpServer, ResponseError,
 };
 use serde::Serialize;
@@ -121,6 +122,7 @@ where
 
 struct AppState {
     store: Store,
+    request_tracker: middleware::RequestTracker,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -160,6 +162,7 @@ pub async fn serve(store: &Store) -> Result {
 
     let state = AppState {
         store: store.clone(),
+        request_tracker: middleware::RequestTracker::new(),
     };
 
     let app_data = web::Data::new(state);
@@ -167,7 +170,7 @@ pub async fn serve(store: &Store) -> Result {
     HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
-            .wrap(middleware::Logging)
+            .wrap(from_fn(middleware::middleware))
             .service(
                 web::scope("/api")
                     .service(config)
