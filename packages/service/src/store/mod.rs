@@ -2,6 +2,7 @@
 use std::{
     collections::HashMap,
     fmt,
+    future::Future,
     io::ErrorKind,
     iter::once,
     path::{Path, PathBuf},
@@ -314,8 +315,12 @@ impl Store {
         })
     }
 
-    pub async fn connect(self) -> Result<DbConnection<'static>> {
-        DbConnection::new(self.pool.clone(), &self.config, &self.task_queue).await
+    pub fn connect(&self) -> impl Future<Output = Result<DbConnection<'static>>> {
+        DbConnection::new(
+            self.pool.clone(),
+            self.config.clone(),
+            self.task_queue.clone(),
+        )
     }
 
     pub async fn queue_task(&self, task: Task) {
@@ -337,8 +342,7 @@ impl Store {
             + Send
             + 'a,
     {
-        let mut db_conn =
-            DbConnection::new(self.pool.clone(), &self.config, &self.task_queue).await?;
+        let mut db_conn = self.connect().await?;
         cb(&mut db_conn).await
     }
 
@@ -349,8 +353,7 @@ impl Store {
             + Send
             + 'a,
     {
-        let mut db_conn =
-            DbConnection::new(self.pool.clone(), &self.config, &self.task_queue).await?;
+        let mut db_conn = self.connect().await?;
         db_conn
             .isolated(level, |conn| async move { cb(conn).await }.scope_boxed())
             .await

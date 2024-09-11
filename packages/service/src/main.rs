@@ -3,6 +3,7 @@ use std::{
     error::Error,
     fs::File,
     io::{self, BufWriter, Write},
+    process::ExitCode,
     result,
     time::{Duration, Instant},
 };
@@ -391,7 +392,7 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     Ok(result?)
 }
 
-fn main() {
+fn main() -> ExitCode {
     let _ = dotenv();
 
     let runtime = Builder::new_multi_thread()
@@ -402,5 +403,8 @@ fn main() {
 
     if let Err(e) = runtime.block_on(inner_main()) {
         eprintln!("{e}");
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
     }
 }

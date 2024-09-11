@@ -1,16 +1,16 @@
 use std::{cmp, collections::HashMap};
 
-use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
+use futures::{stream::FuturesUnordered, FutureExt, StreamExt, TryFutureExt};
 use scoped_futures::ScopedFutureExt;
 use tokio::fs;
-use tracing::{instrument, warn};
+use tracing::{instrument, Instrument};
 
 use crate::{
     metadata::{
         encode_alternate_image, encode_alternate_video, parse_media, parse_metadata, FileMetadata,
         METADATA_FILE,
     },
-    shared::{error::Ignorable, file_exists},
+    shared::{error::IgnorableFuture, file_exists},
     store::{db::models, models::AlternateFileType, FileStore, Isolation},
     task_queue::{
         opcache::{MediaFileOpCache, OP_CACHE},
@@ -162,13 +162,12 @@ pub(super) async fn process_media_file(conn: &mut DbConnection<'_>, media_file_i
         let op_cache = op_cache.clone();
 
         tasks.push(
-            async move {
-                match store.connect().await {
-                    Ok(mut conn) => upload_media_file(&mut conn, op_cache).await.warn(),
-                    Err(e) => warn!(error=?e),
-                }
-            }
-            .boxed(),
+            store
+                .connect()
+                .and_then(|mut conn| async move { upload_media_file(&mut conn, op_cache).await })
+                .warn()
+                .in_current_span()
+                .boxed(),
         );
     }
 
@@ -177,13 +176,12 @@ pub(super) async fn process_media_file(conn: &mut DbConnection<'_>, media_file_i
         let op_cache = op_cache.clone();
 
         tasks.push(
-            async move {
-                match store.connect().await {
-                    Ok(mut conn) => extract_metadata(&mut conn, op_cache).await.warn(),
-                    Err(e) => warn!(error=?e),
-                }
-            }
-            .boxed(),
+            store
+                .connect()
+                .and_then(|mut conn| async move { extract_metadata(&mut conn, op_cache).await })
+                .warn()
+                .in_current_span()
+                .boxed(),
         );
     }
 
@@ -193,15 +191,14 @@ pub(super) async fn process_media_file(conn: &mut DbConnection<'_>, media_file_i
             let op_cache = op_cache.clone();
 
             tasks.push(
-                async move {
-                    match store.connect().await {
-                        Ok(mut conn) => build_alternate(&mut conn, op_cache, alternate_file)
-                            .await
-                            .warn(),
-                        Err(e) => warn!(error=?e),
-                    }
-                }
-                .boxed(),
+                store
+                    .connect()
+                    .and_then(|mut conn| async move {
+                        build_alternate(&mut conn, op_cache, alternate_file).await
+                    })
+                    .warn()
+                    .in_current_span()
+                    .boxed(),
             );
         }
     }

@@ -1,8 +1,8 @@
 use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpRequest};
-use futures::future::LocalBoxFuture;
+use futures::{future::LocalBoxFuture, join, TryFutureExt};
 use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
-use tracing::{instrument, warn};
+use tracing::{instrument, warn, Instrument};
 use typeshare::typeshare;
 
 use crate::{
@@ -197,52 +197,79 @@ async fn state(
     app_state: web::Data<AppState>,
     session: Session,
 ) -> ApiResult<web::Json<UserState>> {
-    let state = app_state
-        .store
-        .clone()
-        .with_connection(|conn| {
-            async move {
-                let email = &session.user.email;
-                let user = models::User::get(conn, email).await?;
+    let store = &app_state.store;
+    let email = &session.user.email;
 
-                let albums = models::Album::list_for_user_with_count(conn, email)
-                    .await?
-                    .into_iter()
-                    .map(|(album, count)| AlbumWithCount {
-                        album,
-                        media: count,
-                    })
-                    .collect();
-
-                let searches = models::SavedSearch::list_for_user_with_count(conn, email)
-                    .await?
-                    .into_iter()
-                    .map(|(search, count)| SavedSearchWithCount {
-                        search,
-                        media: count,
-                    })
-                    .collect();
-
-                Ok(UserState {
-                    user,
-                    storage: models::Storage::list_for_user(conn, email).await?,
-                    catalogs: models::Catalog::list_for_user(conn, email)
-                        .await?
-                        .into_iter()
-                        .map(|(c, w)| CatalogState {
-                            catalog: c,
-                            writable: w,
-                        })
-                        .collect(),
-                    people: models::Person::list_for_user(conn, email).await?,
-                    tags: models::Tag::list_for_user(conn, email).await?,
-                    albums,
-                    searches,
-                })
-            }
-            .scope_boxed()
-        })
+    let user = store
+        .with_connection(|conn| models::User::get(conn, email).scope_boxed())
         .await?;
 
-    Ok(web::Json(state))
+    let (storage, catalogs, albums, people, tags, searches) = join!(
+        store
+            .connect()
+            .and_then(
+                |mut conn| async move { models::Storage::list_for_user(&mut conn, email).await }
+            )
+            .in_current_span(),
+        store
+            .connect()
+            .and_then(
+                |mut conn| async move { models::Catalog::list_for_user(&mut conn, email).await }
+            )
+            .in_current_span(),
+        store
+            .connect()
+            .and_then(|mut conn| async move {
+                models::Album::list_for_user_with_count(&mut conn, email).await
+            })
+            .in_current_span(),
+        store
+            .connect()
+            .and_then(
+                |mut conn| async move { models::Person::list_for_user(&mut conn, email).await }
+            )
+            .in_current_span(),
+        store
+            .connect()
+            .and_then(|mut conn| async move { models::Tag::list_for_user(&mut conn, email).await })
+            .in_current_span(),
+        store
+            .connect()
+            .and_then(|mut conn| async move {
+                models::SavedSearch::list_for_user_with_count(&mut conn, email).await
+            })
+            .in_current_span(),
+    );
+
+    let albums = albums?
+        .into_iter()
+        .map(|(album, count)| AlbumWithCount {
+            album,
+            media: count,
+        })
+        .collect();
+
+    let searches = searches?
+        .into_iter()
+        .map(|(search, count)| SavedSearchWithCount {
+            search,
+            media: count,
+        })
+        .collect();
+
+    Ok(web::Json(UserState {
+        user,
+        storage: storage?,
+        catalogs: catalogs?
+            .into_iter()
+            .map(|(c, w)| CatalogState {
+                catalog: c,
+                writable: w,
+            })
+            .collect(),
+        people: people?,
+        tags: tags?,
+        albums,
+        searches,
+    }))
 }

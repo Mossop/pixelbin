@@ -1,4 +1,4 @@
-use std::io;
+use std::{future::Future, io};
 
 #[cfg(feature = "webserver")]
 use actix_multipart::MultipartError;
@@ -77,7 +77,7 @@ pub(crate) trait Ignorable {
     fn warn(self);
 }
 
-impl<R, E> Ignorable for std::result::Result<R, E>
+impl<E> Ignorable for std::result::Result<(), E>
 where
     E: std::fmt::Debug,
 {
@@ -87,6 +87,20 @@ where
         if let Err(e) = self {
             warn!(error=?e);
         }
+    }
+}
+
+pub(crate) trait IgnorableFuture {
+    async fn warn(self);
+}
+
+impl<F, E> IgnorableFuture for F
+where
+    F: Future<Output = std::result::Result<(), E>>,
+    E: std::fmt::Debug,
+{
+    async fn warn(self) {
+        self.await.warn()
     }
 }
 

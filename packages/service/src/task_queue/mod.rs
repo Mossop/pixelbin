@@ -177,7 +177,8 @@ impl TaskQueue {
     }
 
     async fn run_task(&self, task: &Task) -> Result {
-        let mut db_conn = DbConnection::new(self.pool.clone(), &self.config, self).await?;
+        let mut db_conn =
+            DbConnection::new(self.pool.clone(), self.config.clone(), self.clone()).await?;
         let result = task.run(&mut db_conn).await;
 
         let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
@@ -196,7 +197,8 @@ impl TaskQueue {
             now.hour()
         };
 
-        let mut db_conn = DbConnection::new(self.pool.clone(), &self.config, self).await?;
+        let mut db_conn =
+            DbConnection::new(self.pool.clone(), self.config.clone(), self.clone()).await?;
         let catalogs: Vec<String> = models::Catalog::list(&mut db_conn)
             .await?
             .into_iter()

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use futures::join;
 use scoped_futures::ScopedFutureExt;
-use tracing::{error, info};
+use tracing::{error, info, Instrument};
 
 use crate::{
     metadata::{alternates_for_media_file, Alternate, METADATA_FILE},
@@ -81,8 +81,8 @@ pub(super) async fn verify_storage(
                 catalog: catalog.to_owned(),
             };
             let (remote_files, local_files) = join!(
-                remote_store.list_files(Some(&resource)),
-                local_store.list_files(Some(&resource))
+                remote_store.list_files(Some(&resource)).in_current_span(),
+                local_store.list_files(Some(&resource)).in_current_span()
             );
             let mut remote_files = remote_files?;
             let mut local_files = local_files?;

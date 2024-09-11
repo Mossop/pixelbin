@@ -154,7 +154,7 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(D
     let task_queue = TaskQueue::new(pool.clone(), config.clone(), task_span);
 
     // Verify that we can connect and update cached views.
-    let mut conn = DbConnection::new(pool.clone(), config, &task_queue).await?;
+    let mut conn = DbConnection::new(pool.clone(), config.clone(), task_queue.clone()).await?;
 
     conn.batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
         .await?;
@@ -483,19 +483,21 @@ impl<'a> AsyncConnection for DbConnection<'a> {
     }
 }
 
-impl<'conn> DbConnection<'conn> {
-    pub(crate) async fn new(pool: DbPool, config: &Config, task_queue: &TaskQueue) -> Result<Self> {
+impl DbConnection<'static> {
+    pub(crate) async fn new(pool: DbPool, config: Config, task_queue: TaskQueue) -> Result<Self> {
         let conn = pool.get().await?;
 
         Ok(Self {
             pool,
             conn: Conn::Owned(conn),
-            config: config.clone(),
+            config,
             isolation: None,
-            task_queue: task_queue.clone(),
+            task_queue,
         })
     }
+}
 
+impl<'conn> DbConnection<'conn> {
     pub fn store(&self) -> Store {
         Store {
             pool: self.pool.clone(),
